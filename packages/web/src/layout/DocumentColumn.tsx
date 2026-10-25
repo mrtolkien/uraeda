@@ -19,7 +19,8 @@ import { SideColumn } from "./SideColumn.tsx";
 /**
  * A panel of the column, shown as its tab: its key in the address, its name and icon, a badge after
  * them, and its content. One that `fills` takes the column's height, scrolling its own parts, as a
- * split does, rather than the column scrolling as a whole.
+ * split does, rather than the column scrolling as a whole: those parts take the focus that scrolls
+ * them, and its tab's panel does not.
  */
 export type ColumnPanel = {
   badge?: ReactNode;
@@ -170,7 +171,9 @@ function Drawn({
           aria-labelledby={tabId(shown.key)}
           id={panelId(shown.key)}
           role="tabpanel"
-          tabIndex={0}
+          // The panel scrolls with the column, so it takes the focus that scrolls it, unless it
+          // fills the column: then its own parts scroll, and take it.
+          tabIndex={fills ? undefined : 0}
           {...stylex.props(fills && styles.fills)}
         >
           {shown.content}

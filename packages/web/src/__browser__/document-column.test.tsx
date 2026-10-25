@@ -1,13 +1,15 @@
 // US3, more scenarios 4 and 5, and SC-002 for the tabs: the document's column keeps one width
 // whatever its open tab, a third of the window until dragged, the dragged width kept for every
-// document; its tabs follow WAI-ARIA's pattern, the arrows moving between them. Drawn over a small
-// page of three tabs, the column's own behaviour apart from any document's.
+// document; its tabs follow WAI-ARIA's pattern, the arrows moving between them; a split panel's two
+// parts each scroll from the keyboard. Drawn over a small page of three tabs, the column's own
+// behaviour apart from any document's.
 import { Theme } from "@astryxdesign/core/theme";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { userEvent } from "vite-plus/test/browser";
 import { beforeEach, describe, expect, test } from "vite-plus/test";
 import { type ColumnPanel, DocumentColumn } from "../layout/DocumentColumn.tsx";
 import { COLUMN_KEY } from "../layout/documentColumnWidth.ts";
+import { splitPanel } from "../layout/SplitPanel.tsx";
 import { uraedaTheme } from "../theme/built/uraeda.js";
 import { atSize, drawn } from "./helpers.tsx";
 
@@ -32,8 +34,21 @@ const PANELS: ReadonlyArray<ColumnPanel> = [
   { content: <p>No session yet.</p>, icon: "uraeda:comment", key: "session", label: "Session" },
 ];
 
-/** A document beside the column, `title` in it. */
-function Page({ title }: { title: string }) {
+/** `count` lines of `name`'s, each a paragraph, taller than the column. */
+const lines = (name: string, count = 60) =>
+  Array.from({ length: count }, (_, line) => <p key={line}>{`${name}, line ${line + 1}.`}</p>);
+
+/** A split panel of Activity over Changes, both taller than their room, and Notes. */
+const SPLIT: ReadonlyArray<ColumnPanel> = [
+  splitPanel(
+    { content: lines("Activity"), icon: "uraeda:list", key: "activity", label: "Activity" },
+    { content: lines("Changes"), icon: "uraeda:pencil", key: "changes", label: "Changes" },
+  ),
+  { content: <p>No notes yet.</p>, icon: "uraeda:pencil", key: "notes", label: "Notes" },
+];
+
+/** A document beside the column of `panels`, `title` in it. */
+function Page({ panels = PANELS, title }: { panels?: ReadonlyArray<ColumnPanel>; title: string }) {
   return (
     <Theme mode="light" theme={uraedaTheme}>
       <DocumentColumn
@@ -43,7 +58,7 @@ function Page({ title }: { title: string }) {
           </section>
         }
         label="The round's column"
-        panels={PANELS}
+        panels={panels}
       />
     </Theme>
   );
@@ -63,9 +78,9 @@ const documentBox = () => {
   return [Math.round(x), Math.round(wide)];
 };
 
-/** Draws the page, the address's tab open, and waits for it to settle. */
-async function open(title = "Merge chats, round 01") {
-  render(<Page title={title} />);
+/** Draws the page, its column of `panels`, the address's tab open, and waits for it to settle. */
+async function open(title = "Merge chats, round 01", panels = PANELS) {
+  render(<Page panels={panels} title={title} />);
   await screen.findByRole("heading", { name: title });
   await drawn();
 }
@@ -114,6 +129,19 @@ describe("on a desktop", () => {
 
     await expect.poll(() => screen.queryByRole("tabpanel", { name: "Notes" })).not.toBeNull();
     expect(screen.getByRole("tab", { name: "Notes" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  test("a split panel's two parts each scroll from the keyboard", async () => {
+    await open(undefined, SPLIT);
+    screen.getByRole("tab", { name: "Activity" }).focus();
+
+    for (const name of ["Activity", "Changes"]) {
+      await userEvent.keyboard("{Tab}");
+      const part = within(column()).getByRole("region", { name });
+      expect(document.activeElement).toBe(part);
+      await userEvent.keyboard("{PageDown}");
+      await expect.poll(() => part.scrollTop).toBeGreaterThan(0);
+    }
   });
 
   test("dragged to 560 px, the column stays 560 px on another document", async () => {

@@ -1,8 +1,9 @@
 // A split panel of the column (approval comment C1 of the session's spec): a panel holding two
 // panels, one above the other, shown as one tab. The top one takes the room left, scrolling on its
 // own; the bottom one sits under it, titled by its name, and takes at most 40% of the height,
-// scrolling past it (the spec's assumption), so it never pushes the top one out of view. The
-// session column splits Activity, or Sub-agents, over Changes this way.
+// scrolling past it (the spec's assumption), so it never pushes the top one out of view. Each part
+// is a region named by its panel, in the tab order, so the keyboard scrolls it: the column around
+// them no longer scrolls. The session column splits Activity, or Sub-agents, over Changes this way.
 import { Heading } from "@astryxdesign/core/Heading";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -40,13 +41,28 @@ const styles = stylex.create({
   },
 });
 
-/** `top` above, scrolling on its own, and `bottom` under it, a section named `label`. */
-function Split({ bottom, label, top }: { bottom: ReactNode; label: string; top: ReactNode }) {
+/**
+ * `top` above, a region named `topLabel` scrolling on its own, and `bottom` under it, a section
+ * named `label`: both take the focus, so the keyboard scrolls them.
+ */
+function Split({
+  bottom,
+  label,
+  top,
+  topLabel,
+}: {
+  bottom: ReactNode;
+  label: string;
+  top: ReactNode;
+  topLabel: string;
+}) {
   const headingId = useId();
   return (
     <div {...stylex.props(styles.split)}>
-      <div {...stylex.props(styles.top)}>{top}</div>
-      <section aria-labelledby={headingId} {...stylex.props(styles.bottom)}>
+      <section aria-label={topLabel} tabIndex={0} {...stylex.props(styles.top)}>
+        {top}
+      </section>
+      <section aria-labelledby={headingId} tabIndex={0} {...stylex.props(styles.bottom)}>
         <Heading accessibilityLevel={3} id={headingId} level={4} xstyle={styles.heading}>
           {label}
         </Heading>
@@ -63,7 +79,9 @@ function Split({ bottom, label, top }: { bottom: ReactNode; label: string; top: 
 export function splitPanel(top: ColumnPanel, bottom: ColumnPanel): ColumnPanel {
   return {
     ...(top.badge === undefined ? {} : { badge: top.badge }),
-    content: <Split bottom={bottom.content} label={bottom.label} top={top.content} />,
+    content: (
+      <Split bottom={bottom.content} label={bottom.label} top={top.content} topLabel={top.label} />
+    ),
     fills: true,
     icon: top.icon,
     key: top.key,
