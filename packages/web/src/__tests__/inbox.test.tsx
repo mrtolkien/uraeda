@@ -1111,3 +1111,25 @@ test("an edit over a change made elsewhere is refused, and the inbox reads again
   ).toBeGreaterThan(0);
   expect(await (await main()).findByText("A home icon")).toBeTruthy();
 });
+
+test("a New category the server fails says so in the field, and nothing is written", async () => {
+  const repo = fixtureRepo();
+  const server = serverFetch(repo);
+  // The request itself fails, as a server's 500 or a lost connection does: it rejects.
+  const failing: typeof fetch = async (input, init) => {
+    if (typeof init?.body === "string" && init.body.includes("inbox.addCategory")) {
+      throw new TypeError("Failed to fetch");
+    }
+    return server(input, init);
+  };
+  await renderPage("/inbox", repo, { fetch: failing });
+  const before = read(repo, PATH);
+  await click(await screen.findByRole("button", { name: "New category" }));
+  const field = screen.getByRole("textbox", { name: "New category" });
+  await type(field, "Prompts");
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+  expect(await screen.findByText(/Failed to fetch/)).toBeTruthy();
+  expect(read(repo, PATH)).toBe(before);
+});

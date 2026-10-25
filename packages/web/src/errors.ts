@@ -18,3 +18,17 @@ export function refusal(error: unknown): Refusal {
   const [message, ...output] = match[2].split("\n\n");
   return { kind, message, output: output.length ? output.join("\n\n") : undefined };
 }
+
+/**
+ * Runs a write that can fail beyond the core's refusals: a server error or a lost connection
+ * rejects the request, instead of answering with an `error`. It resolves with that failure as the
+ * result's `error`, so the page shows it as it shows a refusal.
+ */
+export async function guarded<R extends { error?: unknown }>(call: () => Promise<R>): Promise<R> {
+  try {
+    return await call();
+  } catch (error) {
+    const text = error instanceof Error ? error.message : String(error);
+    return { error: new Error(`Could not write: ${text}`) } as R;
+  }
+}

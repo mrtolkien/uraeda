@@ -3,7 +3,7 @@
 // itself or the page shows; a conflict also reads the inbox again.
 import { useFateClient } from "react-fate";
 import { rereadChanges } from "../data.ts";
-import { refusal } from "../errors.ts";
+import { guarded, refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
 import { InboxRemovedView, InboxView } from "../views.ts";
 
@@ -26,10 +26,9 @@ export function useCategoryActions(hash: string) {
   };
 
   const add = async (name: string) => {
-    const result = await fate.mutations.inbox.addCategory({
-      input: { hash, name },
-      view: InboxView,
-    });
+    const result = await guarded(() =>
+      fate.mutations.inbox.addCategory({ input: { hash, name }, view: InboxView }),
+    );
     return result.error ? failed(result.error) : undefined;
   };
 
@@ -38,18 +37,19 @@ export function useCategoryActions(hash: string) {
     if (from === to) {
       return undefined;
     }
-    const result = await fate.mutations.inbox.renameCategory({
-      input: { from, hash, to },
-      view: InboxView,
-    });
+    const result = await guarded(() =>
+      fate.mutations.inbox.renameCategory({ input: { from, hash, to }, view: InboxView }),
+    );
     return result.error ? failed(result.error) : undefined;
   };
 
   const remove = async (name: string, keepNotes: boolean) => {
-    const result = await fate.mutations.inbox.removeCategory({
-      input: { hash, keepNotes, name },
-      view: InboxRemovedView,
-    });
+    const result = await guarded(() =>
+      fate.mutations.inbox.removeCategory({
+        input: { hash, keepNotes, name },
+        view: InboxRemovedView,
+      }),
+    );
     if (result.error) {
       return failed(result.error);
     }

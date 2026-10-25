@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { readPrioritiesHash, usePriority } from "../data.ts";
-import { refusal } from "../errors.ts";
+import { guarded, refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
 import { currentEntry, parseLocation, redirect, useRepoPath } from "../routes.tsx";
 import { closeDetail } from "./DetailOverlay.tsx";
@@ -42,7 +42,7 @@ export function usePriorityActions(
   /** Runs a change of the line: a refusal shows in the pane, and a conflict reloads the list. */
   const run = async <R extends { error?: unknown }>(call: () => Promise<R>) => {
     setMessage(undefined);
-    const result = await call();
+    const result = await guarded(call);
     if (result.error) {
       const failed = refusal(result.error);
       setMessage(failed.message);
@@ -58,10 +58,12 @@ export function usePriorityActions(
 
   const rename = async (text: string) => {
     onRenaming(entry.id);
-    const result = await fate.mutations.priorities.edit({
-      input: { entry: entry.id, hash, text },
-      view: PrioritiesView,
-    });
+    const result = await guarded(() =>
+      fate.mutations.priorities.edit({
+        input: { entry: entry.id, hash, text },
+        view: PrioritiesView,
+      }),
+    );
     if (result.error) {
       onRenaming(undefined);
       return refusal(result.error).message;
