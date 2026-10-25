@@ -28,9 +28,13 @@ describe("on the phone", () => {
       expect(box.left, name).toBeCloseTo(inset, 0);
       expect(box.right, name).toBeCloseTo(width - inset, 0);
     }
-    // Every pane keeps only its titled top border on the phone, a story's and a decision's alike:
-    // its title starts at the page's inset, and its text runs to it.
-    for (const name of ["Task storage", "US2 · Complete a repeating task"]) {
+    // Every pane keeps only its titled top border on the phone, the block's, a story's, and a
+    // decision's alike: its title starts at the page's inset, and its text runs to it.
+    for (const name of [
+      "Approved on 2026-10-18.",
+      "Task storage",
+      "US2 · Complete a repeating task",
+    ]) {
       const pane = screen.getByRole("region", { name });
       const title = within(pane).getByRole("heading", { name: new RegExp(`^${name}`) });
       expect(title.getBoundingClientRect().left, name).toBeCloseTo(inset, 0);
