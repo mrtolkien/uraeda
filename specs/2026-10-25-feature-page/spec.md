@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Feature page in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Approved on 2026-10-25.
 >
 > - You approve a feature's Home in titled panes: Next, then a timeline of stages holding their
 >   files, and a column of sessions, figures, and links. No tab line, as you chose.
