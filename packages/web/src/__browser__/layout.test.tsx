@@ -20,7 +20,7 @@
 // category and its confirmation, in `sign-in.test.tsx`. So do the settings page, one form, opened
 // at its Runs section, and a search that leaves a row (SC-005 of the settings page, US5 of the
 // layout's look).
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";
 import type { RepoCommands } from "../../vite.browser.config.ts";
