@@ -316,12 +316,7 @@ function PaneName({
         {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
         {renamed && <SinceSign />}
       </span>
-      {titleSuffix !== undefined && (
-        <>
-          {" "}
-          <span {...stylex.props(styles.suffix)}>{titleSuffix}</span>
-        </>
-      )}
+      {titleSuffix !== undefined && <span {...stylex.props(styles.suffix)}> {titleSuffix}</span>}
     </span>
   );
 }
