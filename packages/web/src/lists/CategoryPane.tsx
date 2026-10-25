@@ -34,11 +34,13 @@ const styles = stylex.create({
   },
   // The key, a bordered mark of its own, as a terminal draws one.
   key: {
+    // Against the line's end, past its words.
     borderColor: colorVars["--color-border"],
     borderStyle: "solid",
     borderWidth: borderVars["--border-width"],
     color: colorVars["--color-text-accent"],
     font: "inherit",
+    marginInlineStart: "auto",
     paddingInline: spacingVars["--spacing-2"],
   },
   // The title, a button drawn as the title it stands for: a target as tall as a control, the
@@ -146,16 +148,14 @@ export function DeleteCategoryDialog({
         <VStack gap={2}>
           {CHOICES.map(({ answer, key, words }) => (
             <Button
+              endContent={<kbd {...stylex.props(styles.key)}>{key}</kbd>}
               key={answer}
               label={words}
               onClick={() => onAnswer(answer)}
               variant="ghost"
               width="100%"
               xstyle={styles.choice}
-            >
-              <span>{words}</span>
-              <kbd {...stylex.props(styles.key)}>{key}</kbd>
-            </Button>
+            />
           ))}
         </VStack>
       </VStack>

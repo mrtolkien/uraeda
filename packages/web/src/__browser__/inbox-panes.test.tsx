@@ -126,6 +126,22 @@ test("a taken or blank category name is refused with the core's message", async 
   expect(await commands.readRepo(PATH)).toBe(original);
 });
 
+test("each choice of the delete's question shows its key at the end of its line", async () => {
+  await show("/inbox", HOME);
+
+  await deleteCategory("UI");
+  const dialog = await question("UI");
+  for (const words of [/^Yes/, /^No/, /^Cancel/]) {
+    const line = choice(dialog, words);
+    const key = line.querySelector("kbd");
+    expect(key).not.toBeNull();
+    // The key sits against the line's end, past its words, not beside them.
+    expect(
+      line.getBoundingClientRect().right - (key as Element).getBoundingClientRect().right,
+    ).toBeLessThan(24);
+  }
+});
+
 test("deleting UI and answering No puts its notes first under no category, and Undo restores the file", async () => {
   await show("/inbox", HOME);
   const original = await commands.readRepo(PATH);
