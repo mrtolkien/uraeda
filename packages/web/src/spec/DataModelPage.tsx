@@ -1,5 +1,5 @@
 // A feature's `data-model.md` opened alone: its title, then the same panes as the spec's "Data",
-// one per entity, from the core's sections.
+// one per entity, from the core's sections, beside the documents' column.
 import { Heading } from "@astryxdesign/core/Heading";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Blocks } from "../Blocks.tsx";
@@ -7,6 +7,10 @@ import { Crumbs } from "../Crumbs.tsx";
 import { useHashFold } from "../Folds.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Spans } from "../Spans.tsx";
+import { dataModelEntries, documentEntries } from "../document/entries.ts";
+import { usePageSession } from "./pageSession.ts";
+import { SpecColumn } from "./SpecColumn.tsx";
+import { Contents } from "./SpecContents.tsx";
 import { DataPart } from "./DataPart.tsx";
 import type { File } from "./parts.ts";
 
@@ -17,7 +21,8 @@ export function DataModelPage({ file }: { file: File }) {
   const title = document.blocks.find((b) => b.kind === "heading" && b.level === 1);
   // A link to an entity, `data-model.md#task`, lands on its pane, the section's anchor its id.
   useHashFold(document, undefined, true);
-  return (
+  const session = usePageSession(file);
+  const page = (
     <Page>
       <Crumbs current={file.name} folder={file.folder} />
       {model ? (
@@ -33,5 +38,14 @@ export function DataModelPage({ file }: { file: File }) {
         <Blocks document={document} />
       )}
     </Page>
+  );
+  return (
+    <SpecColumn
+      content={page}
+      contents={<Contents entries={model ? dataModelEntries(model) : documentEntries(document)} />}
+      extra={session ? [session.tab] : []}
+      file={file}
+      review={undefined}
+    />
   );
 }

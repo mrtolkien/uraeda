@@ -103,3 +103,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   in the pull request, not fixed in passing.
 - **If wrong**: a check `fast` would run on a task is run by `ready` at the wave's end.
 - **Where**: every task's validation step.
+
+## R10: The document pages take their session themselves, and the quote is of the fixture's lines
+
+- **Decision**: `DocumentPage` and `DataModelPage` call `usePageSession(file)` themselves, as
+  `PlanPage` and `SpecPage` do, rather than `FilePage` passing the session in; their tests quote the
+  lines the fixture's proposal has (5–6, the What paragraph), not the spec's "lines 9–10" of the
+  example project.
+- **Rationale**: `FilePage` returns early for a missing file, so it cannot call a hook for the pages
+  below it; one hook per page is the pattern the two other document pages already use. The fixture's
+  proposal is the project's test data, and the "lines 9–10" of the spec belong to the example's
+  proposal.
+- **Alternatives considered**: a wrapper component in `FilePage` giving the session: rejected, a
+  layer for no rule.
+- **If wrong**: moving the call up is a one-line change in each page.
+- **Where**: task 2.
