@@ -31,6 +31,7 @@ import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
 import { recommendedDataView } from "./recommended.ts";
 import { settingsDataView } from "./settings.ts";
+import type { FeatureAgent } from "./agentTime.ts";
 import type { FeatureTokens } from "./tokens.ts";
 import { branchChangesDataView } from "./views-branch.ts";
 import {
@@ -77,6 +78,8 @@ export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
 export type FeatureRecord = Omit<Record_<FeatureView>, "step"> &
   // Its name in the sidebar, or null (R2).
   ItemLook & {
+    /** Its sessions' agent time, null when no turn has a start. */
+    agent: FeatureAgent | null;
     id: string;
     missing?: boolean;
     /**
@@ -300,6 +303,7 @@ export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
 });
 
 export const featureDataView = dataView<FeatureRecord>("Feature")({
+  agent: true,
   behind: true,
   branch: true,
   files: true,

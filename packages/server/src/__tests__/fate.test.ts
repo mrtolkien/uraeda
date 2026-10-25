@@ -562,6 +562,27 @@ test("a feature's tokens sum its turns, cache reads left out, since its first co
   });
 });
 
+test("a feature's agent time sums its ended turns, and is null before any turn", async () => {
+  const { app, repo, sessions } = await testApp();
+  const [none] = await byId(app, "Feature", [CLI], ["id", "agent"]);
+  // Sent as null, not left out: the client keeps a field an answer leaves out.
+  expect(none).toHaveProperty("agent", null);
+
+  const session = await sessions.featureSession(repo, CLI);
+  for (const [at, ended] of [
+    ["2026-10-06T09:14:00.000Z", "2026-10-06T10:06:00.000Z"],
+    ["2026-10-06T13:15:00.000Z", "2026-10-06T15:14:00.000Z"],
+  ]) {
+    endedTurn(sessions.cache, session.id, at);
+    sessions.cache.db
+      .prepare("UPDATE turns SET ended_at = ? WHERE id = (SELECT MAX(id) FROM turns)")
+      .run(ended);
+  }
+
+  const [feature] = await byId(app, "Feature", [CLI], ["id", "agent"]);
+  expect(feature.agent).toEqual({ runningSince: null, seconds: 10_260 });
+});
+
 /** A turn, with only what its tokens read. */
 const turn = (
   startedAt: string | null,

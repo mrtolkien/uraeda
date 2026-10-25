@@ -351,7 +351,7 @@ Tasks 5 to 9 all change `FeaturePage.tsx`, each on the one before.
   killed with no end) adds nothing. `null` when no turn has a `startedAt`. The browser adds
   `now − runningSince`, so the figure grows while a turn runs.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/__tests__/agent-time.test.ts
@@ -387,22 +387,22 @@ counting a crashed turn as running forever; showing "0 min" for a feature with n
 In `fate.test.ts`, use `recordRun` twice (52 min, 1 h 59 min) for a fixture feature and expect its
 read feature's `agent.seconds` to be `10260`, so the summing runs over the real cache.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/__tests__/agent-time.test.ts`
 - Expected: FAIL, `Failed to resolve import "../fate/agentTime.ts"`
 
-- [ ] **Step 3: Implement `agentTime`, add it to `featureRecord`, the views, and `FeatureView`**
+- [x] **Step 3: Implement `agentTime`, add it to `featureRecord`, the views, and `FeatureView`**
 
 Compute it from the same `turns` array as `featureTokens`, in `featureRecord`, and expose it next to
 `tokens` in both views.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server packages/web/src/views.ts

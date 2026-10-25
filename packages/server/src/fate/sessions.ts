@@ -12,6 +12,7 @@ import { itemLooks } from "./items.ts";
 import type { Context, RepoContext } from "./context.ts";
 import { callSiteError } from "./errors.ts";
 import { checkoutDir, hasPreview } from "./preview.ts";
+import { agentTime } from "./agentTime.ts";
 import { featureTokens } from "./tokens.ts";
 import {
   AGENT_ID,
@@ -429,6 +430,7 @@ export async function featureRecord(
   return {
     id: feature.folder,
     ...feature,
+    agent: agentTime(turns),
     ...itemLooks(ctx)(feature.folder),
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
     session: sessions[0]?.id ?? null,

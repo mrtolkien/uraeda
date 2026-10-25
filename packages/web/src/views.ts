@@ -98,6 +98,7 @@ export const WorkspaceView = view<Workspace>()({
 });
 
 export const FeatureView = view<Feature>()({
+  agent: { runningSince: true, seconds: true },
   behind: true,
   branch: true,
   files: true,
