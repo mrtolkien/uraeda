@@ -25,78 +25,48 @@ export const STRETCH_PARAMETER = "stretch";
 /** What the words call a call: its kind, or a sub-agent, whatever its kind. */
 type CallKind = "read" | "edit" | "delete" | "move" | "search" | "fetch" | "execute" | "subagent";
 
-/** A kind's words: its past verb, its present verb, its row's word, and what it acts on. */
-type Words = {
-  doing: string;
-  /** Counts distinct targets, not calls. */
-  files?: true;
-  kind: CallKind;
-  past: string;
-  row: string;
-  /** What it counts, "file", or "times" for "once", "twice", "3 times". */
-  unit: string;
-  /** What it acts on when no target names it. */
-  what: string;
-};
+/**
+ * A kind's words: its past verb, its present verb, and its row's word. A recap line counts distinct
+ * `files`, `calls` of its `unit`, or `times`, "once", "twice", "3 times", for a kind with no unit.
+ */
+type Words = { doing: string; kind: CallKind; past: string; row: string } & (
+  | { count: "files" | "calls"; unit: string }
+  | { count: "times" }
+);
 
 /**
  * The words of each kind of call, in the order a recap line counts them (ruling R5), and its row's
  * word (ruling R6). An array, so that order is the table's and no sort of keys changes it.
  */
 const WORDS: ReadonlyArray<Words> = [
+  { count: "files", doing: "reading", kind: "read", past: "read", row: "read", unit: "file" },
+  { count: "files", doing: "editing", kind: "edit", past: "edited", row: "edit", unit: "file" },
   {
-    doing: "reading",
-    files: true,
-    kind: "read",
-    past: "read",
-    row: "read",
-    unit: "file",
-    what: "a file",
-  },
-  {
-    doing: "editing",
-    files: true,
-    kind: "edit",
-    past: "edited",
-    row: "edit",
-    unit: "file",
-    what: "a file",
-  },
-  {
+    count: "files",
     doing: "deleting",
-    files: true,
     kind: "delete",
     past: "deleted",
     row: "delete",
     unit: "file",
-    what: "a file",
   },
+  { count: "files", doing: "moving", kind: "move", past: "moved", row: "move", unit: "file" },
+  { count: "times", doing: "searching", kind: "search", past: "searched", row: "search" },
+  { count: "calls", doing: "fetching", kind: "fetch", past: "fetched", row: "fetch", unit: "page" },
   {
-    doing: "moving",
-    files: true,
-    kind: "move",
-    past: "moved",
-    row: "move",
-    unit: "file",
-    what: "a file",
-  },
-  { doing: "searching", kind: "search", past: "searched", row: "search", unit: "times", what: "" },
-  { doing: "fetching", kind: "fetch", past: "fetched", row: "fetch", unit: "page", what: "a page" },
-  {
+    count: "calls",
     doing: "running",
     kind: "execute",
     past: "ran",
     row: "run",
     unit: "command",
-    what: "a command",
   },
   {
+    count: "calls",
     doing: "running",
     kind: "subagent",
     past: "ran",
     row: "sub-agent",
     unit: "sub-agent",
-    what: "a sub-agent",
   },
 ];
 
@@ -105,18 +75,23 @@ const KINDS = new Map(WORDS.map((words) => [words.kind, words]));
 
 /** The counts after the kinds of `WORDS`: other tools, then thoughts. */
 const OTHER = { doing: "using", past: "used", unit: "other tool" };
-const THOUGHT = { past: "thought", unit: "times" };
+const THOUGHT = "thought";
 
 /** "once", "twice", "3 times". */
 function times(count: number): string {
   return count === 1 ? "once" : count === 2 ? "twice" : `${count} times`;
 }
 
-/** "searched twice", "read 3 files", "ran 1 command". */
-function counted(past: string, unit: string, count: number): string {
-  return unit === "times"
+/** "read 3 files", "ran 1 command", or with no unit "searched twice". */
+function counted(past: string, count: number, unit?: string): string {
+  return unit === undefined
     ? `${past} ${times(count)}`
     : `${past} ${count} ${unit}${count === 1 ? "" : "s"}`;
+}
+
+/** What a kind acts on when no target names it, "a file", or nothing for a search. */
+function what(words: Words): string | undefined {
+  return words.count === "times" ? undefined : `a ${words.unit}`;
 }
 
 /** The words of a call's kind, a sub-agent whatever its kind, or undefined for another tool. */
@@ -179,7 +154,7 @@ function single(tool: ToolItem): string | undefined {
   }
   // A sub-agent's target is its description, which its activity row shows.
   if (words.kind === "subagent") {
-    return `${words.past} ${words.what}`;
+    return `${words.past} ${what(words)}`;
   }
   return tool.target ? `${words.past} ${tool.target}` : undefined;
 }
@@ -190,16 +165,17 @@ function counts(tools: ReadonlyArray<ToolItem>): Array<string> {
   for (const words of WORDS) {
     const calls = tools.filter((tool) => wordsOf(tool) === words);
     // A file read twice is one file read.
-    const count = words.files
-      ? new Set(calls.map((tool) => tool.target ?? tool.id)).size
-      : calls.length;
+    const count =
+      words.count === "files"
+        ? new Set(calls.map((tool) => tool.target ?? tool.id)).size
+        : calls.length;
     if (count > 0) {
-      parts.push(counted(words.past, words.unit, count));
+      parts.push(counted(words.past, count, words.count === "times" ? undefined : words.unit));
     }
   }
   const others = tools.filter((tool) => !wordsOf(tool)).length;
   if (others > 0) {
-    parts.push(counted(OTHER.past, OTHER.unit, others));
+    parts.push(counted(OTHER.past, others, OTHER.unit));
   }
   return parts;
 }
@@ -214,7 +190,7 @@ export function recapText(items: ReadonlyArray<ActivityItem>): string {
   const alone = tools.length === 1 ? single(tools[0]!) : undefined;
   const parts = [elapsed(lengthOf(items)), ...(alone ? [alone] : counts(tools))];
   if (thoughts > 0) {
-    parts.push(counted(THOUGHT.past, THOUGHT.unit, thoughts));
+    parts.push(counted(THOUGHT, thoughts));
   }
   return parts.join(" · ");
 }
@@ -233,8 +209,8 @@ export function doingText(tool: {
   if (!words) {
     return `${OTHER.doing} ${tool.name ?? "a tool"}`;
   }
-  const what = words.kind === "subagent" ? words.what : (tool.target ?? words.what);
-  return what ? `${words.doing} ${what}` : words.doing;
+  const acted = words.kind === "subagent" ? what(words) : (tool.target ?? what(words));
+  return acted ? `${words.doing} ${acted}` : words.doing;
 }
 
 /**
