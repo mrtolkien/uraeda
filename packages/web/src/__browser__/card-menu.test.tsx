@@ -219,4 +219,26 @@ describe("on a phone, a card's menu", () => {
       expect(Number(getComputedStyle(button).opacity)).toBe(1);
     }
   });
+  test("no card's text runs under its … button", async () => {
+    await show("/inbox", "Specs are still way too long and hard to read");
+    for (const button of screen.getAllByRole("button", { name: /^Actions of / })) {
+      const card = button.closest("[data-row]");
+      if (!card) {
+        continue;
+      }
+      const text = card.querySelector("a");
+      expect(text).not.toBeNull();
+      const range = document.createRange();
+      range.selectNodeContents(text as Element);
+      const at = button.getBoundingClientRect();
+      for (const line of range.getClientRects()) {
+        const crosses =
+          line.right > at.left &&
+          line.left < at.right &&
+          line.bottom > at.top &&
+          line.top < at.bottom;
+        expect(crosses, card.textContent ?? "").toBe(false);
+      }
+    }
+  });
 });

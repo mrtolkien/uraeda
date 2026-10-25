@@ -71,7 +71,8 @@ const styles = stylex.create({
     minHeight: sizeVars["--size-element-sm"],
     minWidth: 0,
     paddingBlock: spacingVars["--spacing-1"],
-    paddingInline: spacingVars["--spacing-2"],
+    paddingInlineEnd: spacingVars["--spacing-2"],
+    paddingInlineStart: spacingVars["--spacing-2"],
     position: "relative",
     // The long press on a phone does not select text or open the link's menu.
     userSelect: "none",
@@ -95,12 +96,16 @@ const styles = stylex.create({
     position: "absolute",
     transform: "translateY(-50%)",
   },
+  // Room at the end for the `…` button, so the text never runs under it.
   menu: {
     insetBlockStart: spacingVars["--spacing-1"],
     insetInlineEnd: spacingVars["--spacing-1"],
     position: "absolute",
     // Over the stretched link, so a press on it reaches it.
     zIndex: 2,
+  },
+  withMenu: {
+    paddingInlineEnd: `calc(${sizeVars["--size-element-sm"]} + ${spacingVars["--spacing-2"]})`,
   },
   // The mauve tint of a selected row, apart from the pane's own background.
   selected: {
@@ -154,7 +159,12 @@ export function Card({
       aria-current={isSelected ? "true" : undefined}
       data-row=""
       ref={row.isFixed ? undefined : ref}
-      {...stylex.props(styles.frame, isSelected && styles.selected, isDragging && styles.lifted)}
+      {...stylex.props(
+        styles.frame,
+        row.menu !== undefined && styles.withMenu,
+        isSelected && styles.selected,
+        isDragging && styles.lifted,
+      )}
     >
       {/* dnd-kit's accessibility attributes (a button role, a tab stop) go on its handle: an empty, hidden element, so the card stays a link and the sensor takes a press anywhere on it. */}
       {!row.isFixed && <span aria-hidden="true" ref={handleRef} tabIndex={-1} />}
