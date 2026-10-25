@@ -4,7 +4,7 @@ import { screen, within } from "@testing-library/react";
 import { createFateClient } from "react-fate/client";
 import { expect, test } from "vite-plus/test";
 import { sendMessage as sendTo } from "../sessions.ts";
-import { agent, atRepo, atSize, drawn, LIVE, show } from "./helpers.tsx";
+import { agent, atRepo, atSize, commands, drawn, LIVE, show } from "./helpers.tsx";
 
 atSize("desktop");
 
@@ -44,4 +44,30 @@ test("a reading block's text is Inter, and a button inside it stays monospace", 
   expect(family(card.getByRole("button", { name: "Start the change" }))).toBe(
     "JetBrains Mono Variable",
   );
+});
+
+test("a plan's lead and a task's paragraph are in the reading font, as its list items", async () => {
+  const folder = "2026-10-13-plan-review";
+  const plan = await commands.fixtureText("plan-page/plan.md");
+  await commands.commitOnBranch(folder, { [`specs/${folder}/plan.md`]: plan });
+  await show(`/f/${folder}/plan.md`, "Global constraints");
+  await drawn();
+
+  const lead = screen.getByRole("region", { name: "Goal" });
+  const task = screen.getByRole("region", {
+    name: "Task 1 · The session's view, scrolling in the round's column",
+  });
+  const item = within(task).getAllByRole("listitem")[0]!;
+  const paragraph = within(task)
+    .getByText(/the session's scrolling moves into a box/)
+    .closest("p")!;
+  expect(family(item)).toBe("Inter Variable");
+  expect(
+    family(
+      within(lead)
+        .getByText(/the round of questions draws/)
+        .closest("p")!,
+    ),
+  ).toBe(family(item));
+  expect(family(paragraph)).toBe(family(item));
 });

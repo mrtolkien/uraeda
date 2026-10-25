@@ -22,7 +22,9 @@ import { type PageSession, usePageSession } from "./spec/pageSession.ts";
 import { SpecColumn } from "./spec/SpecColumn.tsx";
 import { Contents, type Entry } from "./spec/SpecContents.tsx";
 import { Selectable, type Selection } from "./Selection.tsx";
-import { Spans } from "./Spans.tsx";
+import { plain, Spans } from "./Spans.tsx";
+import { SinceWords, wordCount } from "./sinceMarks.tsx";
+import { Paragraph } from "./layout/Paragraph.tsx";
 import { StoriesProvider } from "./stories.tsx";
 import { fileStatusBadge } from "./labels.ts";
 
@@ -39,14 +41,23 @@ const leadId = (label: string) =>
     .trim()
     .replaceAll(/\s+/g, "-")}`;
 
-/** A lead paragraph, in a pane titled by its label, its text without the label. */
+/**
+ * A lead paragraph, in a pane titled by its label, its text without the label, a paragraph of
+ * reading text as every other.
+ */
 function LeadPane({ drawing, run }: { drawing: Drawing; run: OpeningRun & { kind: "lead" } }) {
   const override = (block: Block) =>
     block.id === run.block ? (
       <Selectable block={block} key={block.id} selection={drawing.selection}>
-        <Text as="p" display="block" type="inherit">
-          <Spans spans={run.text} />
-        </Text>
+        <Paragraph>
+          <SinceWords
+            block={block}
+            lead={wordCount(plain(block.spans)) - wordCount(plain(run.text))}
+            spans={run.text}
+          >
+            <Spans spans={run.text} />
+          </SinceWords>
+        </Paragraph>
       </Selectable>
     ) : undefined;
   return (

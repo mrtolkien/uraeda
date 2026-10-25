@@ -3,7 +3,6 @@ import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
-import { Text } from "@astryxdesign/core/Text";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
@@ -12,6 +11,7 @@ import { proseStyles } from "./Prose.tsx";
 import { Diagram, type Place } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
+import { Paragraph } from "./layout/Paragraph.tsx";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { After, Selectable, type Selection } from "./Selection.tsx";
@@ -321,19 +321,16 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       );
     case "paragraph":
       // A paragraph holding an image is a box: its lightbox, a dialog, cannot sit in a `<p>`. A
-      // link alone in it, like a story's mockup, is a control's height. Reading text, as its list
-      // items are: the theme's base styles set a `<p>` in the UI's monospace font.
+      // link alone in it, like a story's mockup, is a control's height.
       return (
-        <Text
+        <Paragraph
           as={!context.staticImages && block.spans.some(opensImage) ? "div" : "p"}
-          display="block"
-          type="inherit"
-          xstyle={[proseStyles.reading, styles.paragraph]}
+          xstyle={styles.paragraph}
         >
           <SinceWords block={block}>
             <Spans isAlone spans={block.spans} />
           </SinceWords>
-        </Text>
+        </Paragraph>
       );
     case "list":
       return <ListNode block={block} context={context} />;
