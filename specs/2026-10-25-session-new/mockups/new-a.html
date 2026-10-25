@@ -2,78 +2,84 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>New A: three cards</title>
-    <link rel="stylesheet" href="terminal.css" />
+    <title>New A: three cards side by side</title>
+    <link rel="stylesheet" href="app.css" />
+    <script src="shell.js"></script>
   </head>
   <body>
     <div class="app">
-      <div class="col nav">
-        <div class="pane">
-          <h2>Uraeda</h2>
-          <div class="btn fill">＋ New</div>
-          &nbsp;<span class="dim">Note</span>
-        </div>
-        <div class="pane">
-          <h2>Needs you</h2>
-          <div class="item">◆ Questions page <span class="dim">Answer</span></div>
-        </div>
-        <div class="pane tall">
-          <h2>Sessions</h2>
-          <div class="item on">● Recurring tasks <span class="dim">spec</span></div>
-          <div class="item">○ Fix due-date typo</div>
-          <div class="item">○ Why is CI slow?</div>
-        </div>
-        <div class="pane">
-          <h2>5 h</h2>
-          <span class="dim">42% used</span>
-        </div>
-      </div>
-      <div class="col" style="grid-column: 2 / span 2">
-        <div class="pane tall">
-          <h2>New</h2>
+      <nav class="nav" data-current="new"></nav>
+      <main class="page">
+        <div class="page-inner">
+          <h1>New</h1>
+          <div class="sub" style="margin: 9.6px 0 19.2px">
+            Pick what you are starting. Each card says what it ends with, and what waits on you.
+          </div>
           <div class="cards">
-            <div class="pane card">
-              <h2>Session</h2>
-              <div>Talk to the agent in your checkout, like plain Claude Code.</div>
-              <br />
-              <div class="dim">e.g. “Why is CI slow?” · “Explain the sync code”</div>
-              <br />
-              <div class="flow">prompt</div>
-              <br />
-              <div class="sub">You decide: nothing waits on you</div>
-            </div>
-            <div class="pane card">
-              <h2>Change</h2>
-              <div>A fix or a small change on its own branch, ending in a pull request.</div>
-              <br />
-              <div class="dim">e.g. “Fix the due-date typo” · “Rename a setting”</div>
-              <br />
-              <div class="flow">prompt <i>→</i> questions if any <i>→</i> pull request</div>
-              <br />
-              <div class="sub">You review the pull request</div>
-            </div>
-            <div class="pane card sel">
-              <h2>Feature</h2>
-              <div>A larger piece you design with the agent before any code.</div>
-              <br />
-              <div class="dim">e.g. “Add recurring tasks” · “Redo the settings page”</div>
-              <br />
-              <div class="flow">prompt <i>→</i> questions <i>→</i> spec <i>→</i> pull request</div>
-              <br />
-              <div class="sub">You answer questions and approve the spec</div>
-            </div>
+            <section class="pane">
+              <h2><i data-i="bot"></i> Session</h2>
+              <div class="body">
+                <div>Talk to the agent in the main checkout, like plain Claude Code.</div>
+                <div class="example">“Why is CI slow?” · “Explain the sync code”</div>
+                <div class="steps">
+                  <i data-i="pencil"></i> Prompt <span class="to">→</span>
+                  <i data-i="message-square"></i> Chat
+                </div>
+                <div class="waits"><i data-i="circle-alert"></i> Nothing: answer when you like</div>
+              </div>
+            </section>
+            <section class="pane">
+              <h2><i data-i="wrench"></i> Change</h2>
+              <div class="body">
+                <div>A fix or a small change, on its own branch, ending in a pull request.</div>
+                <div class="example">“Fix the due-date typo” · “Rename a setting”</div>
+                <div class="steps">
+                  <i data-i="pencil"></i> Prompt <span class="to">→</span>
+                  <i data-i="message-circle-question-mark"></i> Questions, if any
+                  <span class="to">→</span> <i data-i="git-pull-request"></i> Pull request
+                </div>
+                <div class="waits"><i data-i="circle-alert"></i> You review the pull request</div>
+              </div>
+            </section>
+            <section class="pane accent">
+              <h2><i data-i="file-text"></i> Feature</h2>
+              <div class="body">
+                <div>A larger piece of work, designed with the agent before any code.</div>
+                <div class="example">“Add recurring tasks” · “Redo the settings page”</div>
+                <div class="steps">
+                  <i data-i="pencil"></i> Prompt <span class="to">→</span>
+                  <i data-i="message-circle-question-mark"></i> Questions <span class="to">→</span>
+                  <i data-i="file-text"></i> Spec <span class="to">→</span>
+                  <i data-i="git-pull-request"></i> Pull request
+                </div>
+                <div class="waits">
+                  <i data-i="circle-alert"></i> You answer questions and approve the spec
+                </div>
+              </div>
+            </section>
           </div>
-          <br />
-          <div class="pane">
-            <h2>Feature · title</h2>
-            <div class="composer"><b>Add recurring tasks</b></div>
-            <br /><span class="btn fill">Write the proposal</span> &nbsp;<span class="dim"
-              >or start from a note or a priority ▾</span
-            >
+          <div class="row" style="align-items: flex-end; margin-top: 28.8px; gap: 9.6px">
+            <div class="field">
+              <label>Title</label>
+              <div class="input-box">Add recurring tasks</div>
+            </div>
+            <span class="btn primary">Write the proposal</span>
           </div>
+          <div style="margin-top: 19.2px; font-weight: 500">Or start from a note or a priority</div>
+          <ul class="list starts" style="margin-top: 4.8px">
+            <li>
+              <a>Inbox · Specs are still way too long and hard to read</a
+              ><span class="btn">Open the draft</span>
+            </li>
+            <li>
+              <a>Inbox · We'll need a model selector for each step</a
+              ><span class="btn">Open the draft</span>
+            </li>
+            <li><a>Priorities · Git listener process</a><span class="btn">Open the draft</span></li>
+          </ul>
         </div>
-      </div>
+      </main>
     </div>
-    <div class="note">A · three titled cards side by side, one selected, its form below</div>
+    <div class="proto">New A · three cards side by side, the picked one's form under them</div>
   </body>
 </html>

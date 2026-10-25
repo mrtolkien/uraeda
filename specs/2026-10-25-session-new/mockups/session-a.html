@@ -2,107 +2,150 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Session A: chat, recaps, Activity tab</title>
-    <link rel="stylesheet" href="terminal.css" />
+    <title>Session A: recap lines in the chat, Activity, Changes, and Progress tabs</title>
+    <link rel="stylesheet" href="app.css" />
+    <script src="shell.js"></script>
   </head>
   <body>
-    <div class="app">
-      <div class="col nav">
-        <div class="pane">
-          <h2>Uraeda</h2>
-          <div class="btn fill">＋ New</div>
-          &nbsp;<span class="dim">Note</span>
-        </div>
-        <div class="pane">
-          <h2>Needs you</h2>
-          <div class="item">◆ Questions page <span class="dim">Answer</span></div>
-        </div>
-        <div class="pane tall">
-          <h2>Sessions</h2>
-          <div class="item on">● Recurring tasks <span class="dim">spec</span></div>
-          <div class="item">○ Fix due-date typo</div>
-          <div class="item">○ Why is CI slow?</div>
-        </div>
-        <div class="pane">
-          <h2>5 h</h2>
-          <span class="dim">42% used</span>
-        </div>
-      </div>
-      <div class="col">
-        <div class="pane tall">
-          <h2>Recurring tasks · spec · session</h2>
-          <div class="msg me">
-            Why does completing a repeating task not create the next one? Check the code and the
-            docs of the library before you change anything.
+    <div class="app with-column">
+      <nav class="nav" data-current="recurring"></nav>
+
+      <main class="page">
+        <div class="page-inner session">
+          <div class="crumbs">
+            Home <i data-i="chevron-right"></i> Recurring tasks <i data-i="chevron-right"></i>
+            <b>Session</b>
           </div>
-          <div class="recap">
-            <span
-              ><b>Worked 2 min</b> · read 3 files · searched 1 · fetched 1 page · thought 2×</span
-            ><span class="blue">Activity ›</span>
+          <h1>Recurring tasks</h1>
+          <div class="subline">
+            <span class="working"><span class="live"></span><b>Working</b></span>
+            <i data-i="bot"></i> Claude Code · branch 2026-10-06-recurring-tasks
           </div>
-          <div class="recap">
-            <span><b>Worked 1 min</b> · edited 2 files · ran 1 command</span
-            ><span class="blue">Changes ›</span>
+
+          <div class="transcript" style="margin-top: 19.2px">
+            <div class="run-divider">Run: Implementation</div>
+            <div class="mine">
+              <div class="bubble">
+                Why does completing a repeating task not create the next one? Check the code and the
+                library's docs before you change anything.
+              </div>
+              <time>03:41 PM</time>
+            </div>
+
+            <div class="recap">
+              <i data-i="wrench"></i>
+              <span><b>2 min</b> · read 3 files · searched 1 · fetched 1 page · thought twice</span>
+              <span class="open">Activity <i data-i="chevron-right"></i></span>
+            </div>
+
+            <div class="agent">
+              <p>
+                The next occurrence is only created in <code>complete.ts</code> when the task has a
+                <code>repeat</code> rule. Your task stores the rule as
+                <code>repeat: "weekly"</code>, a string, and the check expects an object.
+              </p>
+              <p>
+                The library's docs confirm that <code>rrule</code> strings are valid input, so no
+                migration is needed. I'll fix the check to accept both and add a test.
+              </p>
+            </div>
+
+            <div class="recap">
+              <i data-i="wrench"></i>
+              <span><b>1 min</b> · edited 2 files · ran 1 command</span>
+              <span class="open">Changes <i data-i="chevron-right"></i></span>
+            </div>
+
+            <div class="agent">
+              <p>
+                Done: <code>complete.ts</code> reads both shapes, and a new test completes a weekly
+                task and checks the next one is due a week later. <code>pnpm test</code> passes.
+              </p>
+            </div>
+
+            <div class="working sm sub">
+              <span class="live" style="width: 14px; height: 14px"></span> Working · 12 s · reading
+              src/tasks/undo.ts
+            </div>
           </div>
-          <div class="msg agent">
-            The next occurrence is only created in <code>complete.ts</code> when the task has a
-            <code>repeat</code> rule. Your task stores the rule as <code>repeat: "weekly"</code>, a
-            string, and the check expects an object. I fixed the check to accept both and added a
-            test.<br /><br />The library's docs confirm that <code>rrule</code> strings are valid
-            input, so no migration is needed.
-          </div>
-        </div>
-        <div class="composer">
-          <b>Message the agent…</b> <span style="float: right" class="dim">Ctrl+Enter</span>
-        </div>
-      </div>
-      <div class="col side">
-        <div class="pane tall">
-          <div class="tabs">
-            <span class="on">Activity</span><span>Changes · 2</span><span>Progress</span>
-          </div>
-          <div class="row">
-            <span class="k dim">12:01</span><span class="mauve">thought</span> Looking at how
-            completion reads the rule <span class="dim">· 8 s</span>
-          </div>
-          <div class="row">
-            <span class="k dim">12:01</span><span class="blue">read</span> src/tasks/complete.ts
-          </div>
-          <div class="row">
-            <span class="k dim">12:01</span><span class="blue">read</span> src/tasks/repeat.ts
-          </div>
-          <div class="row">
-            <span class="k dim">12:02</span><span class="blue">read</span> src/tasks/repeat.test.ts
-          </div>
-          <div class="row">
-            <span class="k dim">12:02</span><span class="teal">search</span> "rrule next occurrence"
-          </div>
-          <div class="row">
-            <span class="k dim">12:02</span
-            ><span class="teal">web</span> github.com/jkbrzt/rrule#usage
-          </div>
-          <div class="row">
-            <span class="k dim">12:03</span><span class="mauve">thought</span> The rule is a string
-            here, not an object <span class="dim">· 5 s</span>
-          </div>
-          <div class="row">
-            <span class="k dim">12:03</span><span class="peach">edit</span> src/tasks/complete.ts
-            <span class="green">+9</span> <span class="red">−3</span>
-          </div>
-          <div class="row">
-            <span class="k dim">12:03</span
-            ><span class="peach">edit</span> src/tasks/complete.test.ts
-            <span class="green">+24</span>
-          </div>
-          <div class="row">
-            <span class="k dim">12:04</span><span class="sub">run</span> pnpm test
-            <span class="green">passed</span>
+
+          <div class="composer-wrap">
+            <div class="composer">
+              <div class="input">Message Claude Code</div>
+              <div class="bar">
+                <span class="round"><i data-i="paperclip"></i></span>
+                <span class="round send"><i data-i="arrow-up"></i></span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+
+      <aside class="column">
+        <div class="tabs">
+          <span class="on"><i data-i="activity"></i> Activity</span>
+          <span><i data-i="git-compare"></i> Changes <span class="n">2</span></span>
+          <span><i data-i="list-checks"></i> Progress</span>
+        </div>
+
+        <div class="group-title"><span>Run 1 · 2 min</span><span>03:41 PM</span></div>
+        <ul class="list">
+          <li class="sub">
+            <i data-i="brain"></i><span class="grow">Thought</span><span class="when">8 s</span>
+          </li>
+          <li>
+            <i data-i="file-text"></i><span class="grow">src/tasks/complete.ts</span
+            ><span class="when">read</span>
+          </li>
+          <li>
+            <i data-i="file-text"></i><span class="grow">src/tasks/repeat.ts</span
+            ><span class="when">read</span>
+          </li>
+          <li>
+            <i data-i="file-text"></i><span class="grow">src/tasks/repeat.test.ts</span
+            ><span class="when">read</span>
+          </li>
+          <li>
+            <i data-i="search"></i><span class="grow">"rrule next occurrence"</span
+            ><span class="when">search</span>
+          </li>
+          <li>
+            <i data-i="globe"></i><span class="grow">github.com/jkbrzt/rrule#usage</span
+            ><span class="when">fetch</span>
+          </li>
+          <li class="sub">
+            <i data-i="brain"></i><span class="grow">Thought</span><span class="when">5 s</span>
+          </li>
+        </ul>
+        <div class="rule"></div>
+        <div class="group-title"><span>Run 2 · 1 min</span><span>03:44 PM</span></div>
+        <ul class="list">
+          <li>
+            <i data-i="file-pen-line"></i><span class="grow">src/tasks/complete.ts</span
+            ><span class="when"><span class="green">+9</span> <span class="red">-3</span></span>
+          </li>
+          <li>
+            <i data-i="file-pen-line"></i><span class="grow">src/tasks/complete.test.ts</span
+            ><span class="when"><span class="green">+24</span> <span class="red">-0</span></span>
+          </li>
+          <li>
+            <i data-i="square-terminal"></i><span class="grow">pnpm test</span
+            ><span class="when green">passed</span>
+          </li>
+        </ul>
+        <div class="rule"></div>
+        <div class="group-title"><span>Run 3 · live</span><span>03:46 PM</span></div>
+        <ul class="list">
+          <li class="on">
+            <i data-i="loader-circle"></i><span class="grow">src/tasks/undo.ts</span
+            ><span class="when">read</span>
+          </li>
+        </ul>
+      </aside>
     </div>
-    <div class="note">
-      A · chat holds one recap line per run · sidebar tabs: Activity, Changes, Progress
+    <div class="proto">
+      Session A · the chat keeps one recap line per run; the column's tabs: Activity, Changes,
+      Progress
     </div>
   </body>
 </html>

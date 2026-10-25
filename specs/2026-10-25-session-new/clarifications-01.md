@@ -100,7 +100,12 @@ decides what the feature page and later pages reuse.
   - [pro] The chat shows what happened where it happened.
   - [con] Rows between messages break the chat-first reading you asked for.
 
-**Answer:**
+**Answer:** B: I want to re-take the list view of view A (tool calls per run/turn), but the layout
+of B.
+
+I also feel like there's a bit too many panes going on in B, we can keep it a bit lighter. The idea
+is to split the column in two with tool calls on the top, and changes on the bottom. Maybe a small
+progress bar at the very bottom.
 
 ## Q2: Where should the diff of the last edit come from?
 
@@ -129,7 +134,7 @@ third adds neither.
   - [pro] Nothing new to build or store.
   - [con] You cannot see what changed without opening the file.
 
-**Answer:**
+**Answer:** C: Let's keep it simple
 
 ## Q3: What should the transcript show for the model's thinking?
 
@@ -155,7 +160,7 @@ answer.
   - [pro] Fewer rows.
   - [con] A finished turn shows nothing of the thinking it spent time on.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Should a session without a workflow get the right column too?
 
@@ -173,7 +178,7 @@ Why it matters: it decides whether the session page has one layout or two.
   - [pro] A plain chat stays as simple as plain Claude Code.
   - [con] Two layouts to keep and test.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: How should the New page tell its three kinds apart?
 
@@ -206,7 +211,8 @@ title or a note, which a single composer does not hold.
   - [pro] The shortest path for a session, the most common start.
   - [con] The kinds are told apart by one line of text, and change and feature need other fields.
 
-**Answer:**
+**Answer:** A: Pretty good but the cards at the moment look too busy and don't have clear enough
+hierarchy in their inside content
 
 ## Settled without the human
 
@@ -235,3 +241,11 @@ title or a note, which a single composer does not hold.
   See [discovery](discovery-01.md#needs-no-choice).
 
 **Notes:**
+
+- **The session beside a document**: Yes, we need a name for that ("embedded session"?). Use the
+  "compact" main session view (the center column).
+
+  Our approach actually fits even better: since the main column becomes lighter, it's easier to
+  embed it.
+
+- **Sub-agents**: I want a "sub-agents" tab if any of them are running.

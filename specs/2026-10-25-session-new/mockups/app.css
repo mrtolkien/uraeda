@@ -1,0 +1,798 @@
+/*
+ * Throwaway prototypes of round 01, drawn in the app's own look: the tokens of
+ * `packages/web/src/theme/theme.ts` (Catppuccin Latte and Mocha, JetBrains Mono, Inter for reading,
+ * 120% sizes, square corners), and the sizes measured on the running app at 1600 px.
+ */
+@font-face {
+  font-family: "JetBrains Mono Variable";
+  font-weight: 100 800;
+  src: url("fonts/jetbrains-mono.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter Variable";
+  font-weight: 100 900;
+  src: url("fonts/inter.woff2") format("woff2");
+}
+
+:root,
+[data-scheme="latte"] {
+  --base: #eff1f5;
+  --mantle: #e6e9ef;
+  --crust: #dce0e8;
+  --surface0: #ccd0da;
+  --overlay: #7c7f93;
+  --text: #4c4f69;
+  --sub: #5c5f77;
+  --dim: #5f6276;
+  --blue: #1957d5;
+  --green: #2c6f1f;
+  --lavender: #4254c8;
+  --mauve: #7b2fe0;
+  --peach: #a63f00;
+  --red: #bc0d33;
+  --teal: #0f6c72;
+  --yellow: #875800;
+  --sapphire: #04699a;
+  --neutral: #4c4f690f;
+  --on: #ffffff;
+  --bubble: #d5dff1;
+}
+[data-scheme="mocha"] {
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --crust: #11111b;
+  --surface0: #313244;
+  --overlay: #6c7086;
+  --text: #cdd6f4;
+  --sub: #a6adc8;
+  --dim: #969db8;
+  --blue: #89b4fa;
+  --green: #a6e3a1;
+  --lavender: #b4befe;
+  --mauve: #cba6f7;
+  --peach: #fab387;
+  --red: #f38ba8;
+  --teal: #94e2d5;
+  --yellow: #f9e2af;
+  --sapphire: #74c7ec;
+  --neutral: #cdd6f41a;
+  --on: #11111b;
+  --bubble: #2b3248;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+body {
+  background: var(--mantle);
+  color: var(--text);
+  font:
+    16.8px/1.41 "JetBrains Mono Variable",
+    ui-monospace,
+    monospace;
+  overflow: hidden;
+}
+svg.i {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  vertical-align: -0.125em;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+code {
+  font-family: inherit;
+  font-size: 0.9em;
+  background: var(--neutral);
+  padding: 0 4px;
+}
+
+/* The shell: navigation, page, the right column, and the status line. */
+.app {
+  display: grid;
+  grid-template-columns: 256px minmax(0, 1fr);
+  height: calc(100vh - 38px);
+}
+.app.with-column {
+  grid-template-columns: 256px minmax(0, 1fr) clamp(400px, 33.4vw, 600px);
+}
+.nav {
+  background: var(--base);
+  border-right: 1px solid var(--overlay);
+  padding: 9.6px 6.8px;
+  display: flex;
+  flex-direction: column;
+  gap: 9.6px;
+  overflow: hidden;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 12px;
+}
+.brand .logo {
+  width: 28.8px;
+  height: 28.8px;
+  margin-left: 26px;
+}
+.brand b {
+  display: block;
+  font-weight: 500;
+  font-size: 19.2px;
+  line-height: 1.2;
+}
+.brand small {
+  font-size: 14.4px;
+  color: var(--sub);
+}
+.actions {
+  display: flex;
+  gap: 9.6px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9.6px;
+  padding: 7px 14.4px;
+  font: inherit;
+  font-weight: 500;
+  border: 0;
+  background: var(--neutral);
+  color: var(--text);
+  white-space: nowrap;
+}
+.btn.primary {
+  background: var(--mauve);
+  color: var(--on);
+}
+.btn.small {
+  padding: 4.8px 14.4px;
+}
+.search {
+  border: 1px solid var(--overlay);
+  background: var(--neutral);
+  height: 38.4px;
+  display: flex;
+  align-items: center;
+  gap: 9.6px;
+  padding: 0 9.6px;
+  color: var(--sub);
+}
+
+/* A pane titled in its border, as the nav, the spec and the questions draw them. */
+.pane {
+  border: 1px solid var(--overlay);
+  background: var(--base);
+  padding: 0 4.8px 4.8px;
+  margin-top: 10.8px;
+  min-width: 0;
+}
+.pane > h2 {
+  display: flex;
+  align-items: center;
+  gap: 4.8px;
+  width: fit-content;
+  margin: -10.77px 0 4.6px 9.6px;
+  padding: 0 9.6px;
+  background: var(--base);
+  color: var(--lavender);
+  font-size: 14.4px;
+  font-weight: 600;
+  line-height: 20.57px;
+}
+.pane.attention {
+  border-color: var(--peach);
+}
+.pane.attention > h2 {
+  color: var(--peach);
+}
+.pane.accent {
+  border-color: var(--mauve);
+}
+.pane.accent > h2 {
+  color: var(--mauve);
+}
+.pane.success {
+  border-color: var(--green);
+}
+.pane.success > h2 {
+  color: var(--green);
+}
+.pane .body {
+  padding: 4.8px 4.8px 4.8px;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 9.6px;
+  padding: 0 4.8px;
+  min-height: 33.6px;
+}
+.item.current {
+  background: var(--neutral);
+  font-weight: 500;
+}
+.item .grow {
+  flex: 1;
+  min-width: 0;
+}
+.count {
+  font-size: 14.4px;
+  background: var(--neutral);
+  padding: 0 7px;
+}
+.entry {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0 9.6px;
+  padding: 4.8px;
+  align-items: start;
+}
+.entry.current {
+  background: var(--neutral);
+  font-weight: 500;
+}
+.entry .meta {
+  display: block;
+  font-size: 14.4px;
+  color: var(--sub);
+  font-weight: 400;
+}
+.entry svg.i {
+  margin-top: 4px;
+  font-size: 14.4px;
+}
+.entry .counts {
+  grid-column: 2 / -1;
+  justify-self: end;
+  font-size: 14.4px;
+}
+.dot {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--on);
+  background: var(--yellow);
+  margin-top: 3px;
+}
+.dot.red {
+  background: var(--red);
+}
+.dot.blue {
+  background: var(--blue);
+}
+.ring {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sub);
+  margin-top: 3px;
+}
+
+.status-line {
+  position: fixed;
+  inset: auto 0 0 0;
+  height: 38.4px;
+  background: var(--mantle);
+  border-top: 1px solid var(--overlay);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 19.2px;
+  padding: 0 14.4px;
+  font-size: 14.4px;
+  color: var(--sub);
+}
+
+/* The page: crumbs, title, its status. */
+.page {
+  overflow: auto;
+  min-width: 0;
+}
+.page-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28.8px 38.4px;
+}
+.crumbs {
+  display: flex;
+  gap: 4.8px;
+  color: var(--sub);
+  align-items: center;
+  margin-bottom: 14.4px;
+}
+.crumbs b {
+  color: var(--text);
+  font-weight: 500;
+}
+h1 {
+  font-size: 28.8px;
+  font-weight: 600;
+  line-height: 1.38;
+  margin: 0;
+}
+.subline {
+  display: flex;
+  align-items: center;
+  gap: 9.6px;
+  margin-top: 4.8px;
+  font-size: 14.4px;
+  color: var(--sub);
+}
+.subline b {
+  font-size: 16.8px;
+  color: var(--text);
+}
+.sm {
+  font-size: 14.4px;
+}
+.sub {
+  color: var(--sub);
+}
+.green {
+  color: var(--green);
+}
+.red {
+  color: var(--red);
+}
+.mauve {
+  color: var(--mauve);
+}
+.peach {
+  color: var(--peach);
+}
+.blue {
+  color: var(--blue);
+}
+.teal {
+  color: var(--teal);
+}
+.lavender {
+  color: var(--lavender);
+}
+
+/* The transcript, as Astryx's chat draws it in the app. */
+.session {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: 0;
+}
+.session .page-inner {
+  width: 100%;
+}
+.transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 14.4px;
+}
+.run-divider {
+  display: flex;
+  align-items: center;
+  gap: 14.4px;
+  font-size: 14.4px;
+  color: var(--sub);
+  margin: 9.6px 0 0;
+}
+.run-divider::before,
+.run-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--overlay);
+}
+.mine {
+  align-self: flex-end;
+  max-width: 80%;
+  text-align: right;
+}
+.mine .bubble {
+  background: var(--bubble);
+  padding: 14.4px 19.2px;
+  text-align: left;
+}
+.mine time {
+  display: block;
+  font-size: 14.4px;
+  color: var(--sub);
+  margin-top: 2.4px;
+}
+.agent {
+  font-family: "Inter Variable", system-ui, sans-serif;
+  font-size: 16.8px;
+  line-height: 1.6;
+}
+.agent p {
+  margin: 0 0 9.6px;
+}
+.agent p:last-child {
+  margin: 0;
+}
+.agent code {
+  font-family: "JetBrains Mono Variable", monospace;
+}
+/* A tool row, as the app's tool groups draw theirs. */
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 7.2px;
+  font-size: 14.4px;
+  color: var(--sub);
+  padding: 2.4px 0;
+  min-width: 0;
+}
+.tool b {
+  font-weight: 500;
+}
+.tool .target {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tool .end {
+  margin-left: auto;
+  display: flex;
+  gap: 9.6px;
+  align-items: center;
+  white-space: nowrap;
+}
+.recap {
+  display: flex;
+  align-items: center;
+  gap: 9.6px;
+  font-size: 14.4px;
+  color: var(--sub);
+  border-left: 2px solid var(--overlay);
+  padding: 2.4px 0 2.4px 12px;
+}
+.recap b {
+  font-weight: 500;
+  color: var(--text);
+}
+.recap .open {
+  margin-left: auto;
+  color: var(--mauve);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.working {
+  display: flex;
+  align-items: center;
+  gap: 9.6px;
+}
+.working .live {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.composer-wrap {
+  margin-top: auto;
+  padding: 14.4px 0;
+  position: sticky;
+  bottom: 0;
+  background: var(--mantle);
+}
+.composer {
+  background: var(--base);
+  border: 1px solid var(--overlay);
+  border-radius: 28px;
+  padding: 14.4px;
+  display: flex;
+  flex-direction: column;
+  gap: 9.6px;
+}
+.composer .input {
+  color: var(--sub);
+  padding: 0 4.8px;
+  min-height: 66px;
+}
+.composer .bar {
+  display: flex;
+  align-items: center;
+  gap: 9.6px;
+}
+.round {
+  width: 38.4px;
+  height: 38.4px;
+  border-radius: 13.6px;
+  display: grid;
+  place-items: center;
+  background: var(--neutral);
+}
+.round.send {
+  background: var(--mauve);
+  color: var(--on);
+  opacity: 0.6;
+  margin-left: auto;
+}
+
+/* The right column of the questions and spec pages: tabs, then the open tab's panel. */
+.column {
+  border-left: 1px solid var(--overlay);
+  padding: 0 19.2px 19.2px;
+  overflow: auto;
+  min-width: 0;
+}
+.tabs {
+  display: flex;
+  gap: 2.4px;
+  justify-content: center;
+  border-bottom: 1px solid var(--overlay);
+  margin: 0 -19.2px 9.6px;
+  padding-top: 9.6px;
+}
+.tabs span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4.8px;
+  padding: 0 14.4px 6px;
+  color: var(--sub);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tabs span.on {
+  color: var(--text);
+  font-weight: 600;
+  border-color: var(--mauve);
+}
+.tabs .n {
+  font-size: 14.4px;
+  font-weight: 400;
+  color: var(--sub);
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.list li {
+  display: flex;
+  gap: 9.6px;
+  align-items: baseline;
+  padding: 4.8px 9.6px;
+  min-width: 0;
+}
+.list li.on {
+  background: color-mix(in srgb, var(--mauve) 10%, var(--base));
+}
+.list li .grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list li .grow.wrap {
+  white-space: normal;
+}
+.list li svg.i {
+  align-self: center;
+}
+.list .when {
+  font-size: 14.4px;
+  color: var(--sub);
+  white-space: nowrap;
+}
+.group-title {
+  font-size: 14.4px;
+  color: var(--sub);
+  padding: 9.6px 9.6px 2.4px;
+  display: flex;
+  justify-content: space-between;
+}
+.rule {
+  border-top: 1px solid var(--overlay);
+  margin: 9.6px 0;
+}
+.column h4 {
+  margin: 14.4px 0 4.8px;
+  font-size: 16.8px;
+  font-weight: 600;
+}
+.bar-progress {
+  height: 8px;
+  background: var(--overlay);
+  margin: 4.8px 0 9.6px;
+}
+.bar-progress i {
+  display: block;
+  height: 100%;
+  background: var(--mauve);
+}
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: 14.4px;
+  height: 100%;
+  padding-top: 19.2px;
+}
+.split .pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.split .pane .body {
+  overflow: auto;
+}
+
+/* A diff, its lines tinted as the app tints a hue's background. */
+.diff {
+  font-size: 14.4px;
+  line-height: 1.5;
+  background: var(--mantle);
+  border: 1px solid var(--overlay);
+  overflow: auto;
+}
+.diff div {
+  padding: 0 9.6px;
+  white-space: pre;
+}
+.diff .file {
+  color: var(--sub);
+  background: var(--neutral);
+  padding: 4.8px 9.6px;
+  display: flex;
+  justify-content: space-between;
+}
+.diff .hunk {
+  color: var(--sapphire);
+}
+.diff .add {
+  background: color-mix(in srgb, var(--green) 14%, var(--base));
+}
+.diff .del {
+  background: color-mix(in srgb, var(--red) 12%, var(--base));
+}
+
+/* The New page. */
+.segmented {
+  display: inline-flex;
+  gap: 2.4px;
+  padding: 4.8px;
+  background: var(--neutral);
+}
+.segmented span {
+  padding: 3px 14.4px;
+  color: var(--sub);
+}
+.segmented span.on {
+  background: var(--mantle);
+  color: var(--text);
+  font-weight: 600;
+}
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4.8px;
+  font-size: 14.4px;
+  color: var(--sub);
+}
+.steps .to {
+  color: var(--overlay);
+}
+.field label {
+  display: block;
+  color: var(--sub);
+  font-weight: 500;
+  margin-bottom: 4.8px;
+}
+.input-box {
+  border: 1px solid var(--overlay);
+  background: var(--base);
+  height: 38.4px;
+  padding: 0 9.6px;
+  display: flex;
+  align-items: center;
+  min-width: 263px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 9.6px;
+}
+.starts li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4.8px 0;
+}
+.starts a {
+  color: var(--mauve);
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 19.2px;
+}
+.cards .pane .body {
+  display: flex;
+  flex-direction: column;
+  gap: 9.6px;
+  padding: 4.8px 9.6px 9.6px;
+}
+.example {
+  font-size: 14.4px;
+  color: var(--sub);
+}
+.waits {
+  font-size: 14.4px;
+  display: flex;
+  gap: 7.2px;
+  align-items: center;
+}
+.compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.4px;
+}
+.compare th,
+.compare td {
+  text-align: left;
+  padding: 7.2px 9.6px;
+  border-bottom: 1px solid var(--overlay);
+  vertical-align: top;
+}
+.compare th {
+  color: var(--sub);
+  font-weight: 600;
+}
+.compare td:first-child {
+  color: var(--sub);
+}
+.choice {
+  display: flex;
+  gap: 9.6px;
+  align-items: baseline;
+}
+.radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sub);
+  flex: none;
+  position: relative;
+  top: 2px;
+}
+.radio.on {
+  border-color: var(--mauve);
+  box-shadow: inset 0 0 0 3.5px var(--base);
+  background: var(--mauve);
+}
+
+/* The prototype's own label: not part of the page. */
+.proto {
+  position: fixed;
+  left: 270px;
+  bottom: 6px;
+  z-index: 5;
+  font-size: 13px;
+  background: var(--crust);
+  border: 1px dashed var(--overlay);
+  color: var(--sub);
+  padding: 3px 8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.proto button {
+  font: inherit;
+  background: none;
+  border: 1px solid var(--overlay);
+  color: inherit;
+  cursor: pointer;
+  padding: 0 6px;
+}

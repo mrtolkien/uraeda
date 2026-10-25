@@ -2,55 +2,58 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>New C: composer first</title>
-    <link rel="stylesheet" href="terminal.css" />
+    <title>New C: one composer first, the kind chosen under it</title>
+    <link rel="stylesheet" href="app.css" />
+    <script src="shell.js"></script>
   </head>
   <body>
     <div class="app">
-      <div class="col nav">
-        <div class="pane">
-          <h2>Uraeda</h2>
-          <div class="btn fill">＋ New</div>
-          &nbsp;<span class="dim">Note</span>
-        </div>
-        <div class="pane">
-          <h2>Needs you</h2>
-          <div class="item">◆ Questions page <span class="dim">Answer</span></div>
-        </div>
-        <div class="pane tall">
-          <h2>Sessions</h2>
-          <div class="item on">● Recurring tasks <span class="dim">spec</span></div>
-          <div class="item">○ Fix due-date typo</div>
-          <div class="item">○ Why is CI slow?</div>
-        </div>
-        <div class="pane">
-          <h2>5 h</h2>
-          <span class="dim">42% used</span>
-        </div>
-      </div>
-      <div class="col" style="grid-column: 2 / span 2">
-        <div class="pane tall">
-          <h2>New</h2>
-          <div class="composer" style="min-height: 110px">
-            <b>Describe what you want…</b><br /><span class="dim">“Add recurring tasks”</span>
+      <nav class="nav" data-current="new"></nav>
+      <main class="page">
+        <div class="page-inner">
+          <h1>New</h1>
+          <div class="composer" style="margin-top: 19.2px">
+            <div class="input" style="color: var(--text); min-height: 88px">
+              Add recurring tasks: a task can repeat daily, weekly, or on a custom rule, and
+              completing it creates the next one.
+            </div>
+            <div class="bar">
+              <span class="round"><i data-i="paperclip"></i></span>
+            </div>
           </div>
-          <br />
-          <div class="row">
-            <span class="dim">Start as</span> &nbsp;<span class="tag mauve">Session</span>
-            <span class="tag dim">Change</span> <span class="tag dim">Feature</span>
+          <div class="row" style="margin-top: 19.2px">
+            <span class="sub">Start as</span>
+            <span class="segmented"
+              ><span>Session</span><span>Change</span><span class="on">Feature</span></span
+            >
           </div>
-          <br />
-          <div class="pane good">
-            <h2>Session</h2>
-            Talk to the agent in your checkout. Nothing is created beyond the chat.
-            <div class="flow" style="margin-top: 6px">send <i>→</i> chat</div>
+          <div style="margin-top: 14.4px">
+            A larger piece of work, designed with the agent before any code. Its own branch.
           </div>
-          <br /><span class="btn fill">Start session</span> &nbsp;<span class="dim"
-            >Change and Feature need a title or a note: they replace the composer</span
-          >
+          <div class="steps" style="margin-top: 4.8px">
+            <i data-i="pencil"></i> Prompt <span class="to">→</span>
+            <i data-i="message-circle-question-mark"></i> Questions <span class="to">→</span>
+            <i data-i="file-text"></i> Spec <span class="to">→</span>
+            <i data-i="git-pull-request"></i> Pull request
+          </div>
+          <div class="waits" style="margin-top: 4.8px">
+            <i data-i="circle-alert"></i> You answer questions and approve the spec
+          </div>
+          <div class="row" style="margin-top: 19.2px">
+            <span class="btn primary">Write the proposal</span>
+            <span class="sm sub">The first line becomes its title: Add recurring tasks</span>
+          </div>
+          <div style="margin-top: 28.8px; font-weight: 500">Or start from a note or a priority</div>
+          <ul class="list starts" style="margin-top: 4.8px">
+            <li>
+              <a>Inbox · Specs are still way too long and hard to read</a
+              ><span class="btn">Open the draft</span>
+            </li>
+            <li><a>Priorities · Git listener process</a><span class="btn">Open the draft</span></li>
+          </ul>
         </div>
-      </div>
+      </main>
     </div>
-    <div class="note">C · one composer first, the kind chosen under it with a live explanation</div>
+    <div class="proto">New C · one composer first, the kind under it with a live sentence</div>
   </body>
 </html>
