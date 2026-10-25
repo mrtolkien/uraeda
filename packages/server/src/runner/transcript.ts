@@ -202,8 +202,9 @@ export class Transcript {
   }
 
   /**
-   * Records a thinking block, whole: the main agent's lasts since its block's start, and one without
-   * a start, as a sub-agent's, lasts 0. Its text is cut to `OUTPUT_LIMIT`, as a tool's output is.
+   * Records a thinking block, whole: the main agent's lasts since its block's start, and one
+   * without a start, as a sub-agent's, lasts 0. Its text is cut to `OUTPUT_LIMIT`, as a tool's
+   * output is.
    */
   #thought(live: Live, turn: Running, event: Extract<AgentEvent, { type: "thought" }>) {
     const started = event.parent === undefined ? turn.thinking : undefined;

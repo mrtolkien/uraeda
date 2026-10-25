@@ -23,9 +23,10 @@ const styles = stylex.create({
 
 /**
  * A piece of a turn: its workflow divider with its first page, its items from where the tail
- * starts, and its live line and ending with its last page, in a box the address's anchor scrolls to,
- * with the button above that offers the messages before it. The press keeps the place of the box's
- * first element, which the earlier messages are drawn before. `latest` for the session's latest turn.
+ * starts, and its live line and ending with its last page, in a box the address's anchor scrolls
+ * to, with the button above that offers the messages before it. The press keeps the place of the
+ * box's first element, which the earlier messages are drawn before. `latest` for the session's
+ * latest turn.
  */
 function TailPage({
   actions,

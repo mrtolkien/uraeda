@@ -1,7 +1,7 @@
 // What the Activity draws of the pages of turns it read: each turn a run, its main agent's calls
-// and thoughts its rows, each sub-agent's own calls and thoughts its group, and the stretch each row
-// belongs to, joined across pages by the chat's rule (ruling R18). Which rows draw within the bound
-// is decided here too, so the panel only draws.
+// and thoughts its rows, each sub-agent's own calls and thoughts its group, and the stretch each
+// row belongs to, joined across pages by the chat's rule (ruling R18). Which rows draw within the
+// bound is decided here too, so the panel only draws.
 import type { TranscriptItem } from "../TranscriptMessages.tsx";
 import {
   type ActivityItem,
@@ -35,8 +35,8 @@ const isActivity = (item: TranscriptItem): item is ActivityItem =>
 /**
  * The stretch of each of the main agent's items, by its `seq`, over a turn's pages in order: a
  * stretch `continued` at a page's start joins the page before's last when that one is `open`, and
- * takes its key, so a stretch over pages has one key, as its recap line does. A page of a sub-agent's
- * items alone is seen through.
+ * takes its key, so a stretch over pages has one key, as its recap line does. A page of a
+ * sub-agent's items alone is seen through.
  */
 function stretchesOf(
   turn: string,
@@ -110,7 +110,7 @@ export function rowCount(items: ReadonlyArray<TranscriptItem>): number {
   return items.filter((item) => isActivity(item) && item.parent === undefined).length;
 }
 
-/** The rows each run draws, `from` its first to before `to`, and whether rows are left out around. */
+/** The rows each run draws, `from` its first to before `to`, and whether rows are left out. */
 export type Drawn = {
   /** Whether rows of the runs are left out before those drawn. */
   earlier: boolean;

@@ -214,7 +214,7 @@ function OpenAt({
   );
 }
 
-/** The open stretch that ends the page `after`, and the pages before it, joined before `stretch`. */
+/** The open stretch that ends the page `after`, and its pages before, joined before `stretch`. */
 function PageBefore({
   after,
   children,
@@ -338,7 +338,7 @@ function Ticking({
   return <RecapLine activity={activity.label} href={href} live text={text} />;
 }
 
-/** The live line, over the turn's last page `items`: it opens the open stretch, else the Activity. */
+/** The live line, over the turn's last page `items`: it opens the open stretch, else Activity. */
 function LiveLine({
   actions,
   activity,

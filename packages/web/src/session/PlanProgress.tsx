@@ -1,8 +1,8 @@
 // The plan's progress, at the session column's foot: while the feature's step has a current task, a
-// link to the plan at that task, "Implementation · task 3 of 7" and the task's title, over a bar 3/7
-// full (US2, scenario 3). Before the plan, in review, past its last task, or for a change, which has
-// no plan, nothing (ruling R8). The phone's status line shows it as "3 / 7". The link reaches the
-// task's heading once the plan is read, or the plan's top when its read fails.
+// link to the plan at that task, "Implementation · task 3 of 7" and the task's title, over a bar
+// 3/7 full (US2, scenario 3). Before the plan, in review, past its last task, or for a change,
+// which has no plan, nothing (ruling R8). The phone's status line shows it as "3 / 7". The link
+// reaches the task's heading once the plan is read, or the plan's top when its read fails.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";

@@ -45,7 +45,7 @@ export const ACTIVITY_ROWS = 200;
  * How many pages the walk reads at most for each 200 rows it draws: past the two or three pages
  * dense rows take, so a turn of a sub-agent's calls, or a chat of few calls, is not read whole.
  */
-export const WALK_PAGES = 4;
+const WALK_PAGES = 4;
 
 const styles = stylex.create({
   // The run's start, after its title, as the mockup's group title.
@@ -104,7 +104,7 @@ function lengthOf(turn: { endedAt: string | null; startedAt: string | null; stat
   return elapsed(Date.parse(turn.endedAt ?? "") - Date.parse(turn.startedAt ?? "") || 0);
 }
 
-/** Where the Activity scrolls to reach the stretch the address names: its run's title, or its row. */
+/** Where the Activity scrolls to reach the stretch the address names: its run's title, or row. */
 type Aim = "row" | "title";
 
 /**
@@ -211,10 +211,10 @@ function weightOf(
 }
 
 /**
- * Keeps the Activity's latest row in view while `latest`, without a stretch to show: it opens at its
- * end, as the chat does, and follows the rows that arrive, and its part as it shrinks, while the
- * human is there; scrolled up, nothing moves. `list` is the runs' list, in the part of the column
- * that scrolls, once `shown`.
+ * Keeps the Activity's latest row in view while `latest`, without a stretch to show: it opens at
+ * its end, as the chat does, and follows the rows that arrive, and its part as it shrinks, while
+ * the human is there; scrolled up, nothing moves. `list` is the runs' list, in the part of the
+ * column that scrolls, once `shown`.
  */
 function useLatestInView(list: RefObject<HTMLElement | null>, latest: boolean, shown: boolean) {
   // Whether the human was at the end when the part last scrolled: a part that shrinks or grows
@@ -263,8 +263,8 @@ function More({ label, onPress }: { label: string; onPress: () => void }) {
 
 /**
  * The runs of the pages `read`, the rows of its window, with "Show earlier runs" above them while
- * rows are left out before, or the walk's budget stopped it, and "Show later runs" below them alike.
- * `onDrawn` hears the rows the walk drawn was walked for, at each commit.
+ * rows are left out before, or the walk's budget stopped it, and "Show later runs" below them
+ * alike. `onDrawn` hears the rows the walk drawn was walked for, at each commit.
  */
 function Runs({
   arrival,
@@ -393,8 +393,8 @@ function useShown() {
 }
 
 /**
- * The window the Activity draws: the latest `shown` rows; or, at the stretch `target`, 200 rows from
- * its page on, `later` times 200 more, and `shown` less 200 before (ruling R25).
+ * The window the Activity draws: the latest `shown` rows; or, at the stretch `target`, 200 rows
+ * from its page on, `later` times 200 more, and `shown` less 200 before (ruling R25).
  */
 function windowOf(target: Target | undefined, shown: number, later: number): Window {
   return target === undefined

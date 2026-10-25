@@ -229,8 +229,8 @@ export function TranscriptItems({
   actions: Actions;
   /**
    * The page before these items, drawn above them, whose open stretch their first one goes on, or
-   * whose open stretch is drawn before them when they do not go on with it: undefined on the
-   * turn's first page, when the items do not start their page, or when the page before is not drawn.
+   * whose open stretch is drawn before them when they do not go on with it: undefined on the turn's
+   * first page, when the items do not start their page, or when the page before is not drawn.
    */
   after: number | undefined;
   /**

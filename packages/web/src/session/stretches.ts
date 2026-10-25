@@ -16,8 +16,8 @@ export type ActivityItem = Extract<TranscriptItem, { kind: "thought" | "tool" }>
  *
  * A turn's pages cut a stretch where they end, so a stretch says where it may go on: `continued`,
  * the page's items before it are only a sub-agent's, so on a page after the turn's first it goes on
- * from the page before; `open`, the page's items after it are only a sub-agent's, so it may go on in
- * the page after. `joinStretches` makes the two halves one stretch, under the first half's key.
+ * from the page before; `open`, the page's items after it are only a sub-agent's, so it may go on
+ * in the page after. `joinStretches` makes the two halves one stretch, under the first half's key.
  */
 export type Stretch = {
   continued: boolean;
@@ -179,8 +179,8 @@ export function pageEnd(slots: ReadonlyArray<Slot>): Stretch | typeof THROUGH | 
 
 /**
  * One stretch from a stretch `open` at a page's end and the `continued` one that starts the next
- * page: the items of both, under the earlier one's key, so a recap line counts the whole stretch and
- * the Activity marks its rows by one key.
+ * page: the items of both, under the earlier one's key, so a recap line counts the whole stretch
+ * and the Activity marks its rows by one key.
  */
 export function joinStretches(earlier: Stretch, later: Stretch): Stretch {
   return {

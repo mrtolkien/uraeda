@@ -5,8 +5,8 @@
 // width the documents'. A recap line's address, `?tab=activity&stretch=<turn>:<seq>`, unfolds it at
 // the Activity. On the phone, the status line's Activity, Changes, and progress instead, the first
 // two opening the column in a sheet kept in the address (`useSheetTab`, ruling R3). While the main
-// agent runs sub-agents, or while the address opens it, a Sub-agents panel over the Changes joins it
-// (US3), a tab in the column and in the phone's sheet (ruling R23), which a reload or a width
+// agent runs sub-agents, or while the address opens it, a Sub-agents panel over the Changes joins
+// it (US3), a tab in the column and in the phone's sheet (ruling R23), which a reload or a width
 // change keeps.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -67,7 +67,7 @@ function RunningCount({ count }: { count: number }) {
  * then, while the main agent runs `running` sub-agents or the address's tab, `asked`, is theirs,
  * the Sub-agents over the Changes, its tab counting them.
  */
-export function sessionPanels({
+function sessionPanels({
   asked = null,
   folder,
   running = 0,

@@ -1,7 +1,8 @@
 // A column's width and fold, kept in the browser under a key of its own: a share of the window,
 // within its own limits, until the human drags its edge, then the width they chose, within the
 // drag's limits. A kept width outside those, from a hand edit, an older build, or a column sharing
-// the key, is clamped as it is drawn. The shell's navigation and the document's column keep theirs this way.
+// the key, is clamped as it is drawn. The shell's navigation and the document's column keep theirs
+// this way.
 import { useResizable } from "@astryxdesign/core/Resizable";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 

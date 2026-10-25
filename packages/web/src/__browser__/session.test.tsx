@@ -1,12 +1,12 @@
 // US1 and its edge case "Back from a session view": a feature's session opens as a page of its own
 // at both sizes, its transcript follows its end while the human is at the end, and Back returns to
 // the same position. US3's edge case "Width changing across 768 px": the session's column turns
-// into the phone's status line and back as the width changes. US4.1–US4.4: scrolled up, "Jump to the latest" brings back the end, and the page
-// follows it again. The session view passes the layout checks at both sizes, in light and dark
-// (SC-004).
-// A chat whose last message has images opens at its end too, once they load. Round 03 Q2: a banner
-// that leaves at the end, and the scroll that comes after the reply, do not stop following. A scroll
-// made before the transcript first draws keeps its place (R110).
+// into the phone's status line and back as the width changes. US4.1–US4.4: scrolled up, "Jump to
+// the latest" brings back the end, and the page follows it again. The session view passes the
+// layout checks at both sizes, in light and dark (SC-004). A chat whose last message has images
+// opens at its end too, once they load. Round 03 Q2: a banner that leaves at the end, and the
+// scroll that comes after the reply, do not stop following. A scroll made before the transcript
+// first draws keeps its place (R110).
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";

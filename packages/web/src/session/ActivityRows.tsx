@@ -1,8 +1,9 @@
-// A run's rows in the Activity: each call or thought with its kind's icon, what it acted on, and its
-// word, `stretches.ts`'s (ruling R6). A call with output, a thought with text, and a sub-agent's
-// group unfold, their content mounted only while open, kept open in the history entry. The rows of
-// the stretch the address names are marked, and a call still going in a running turn is live. An
-// open group mounts its latest 200 rows, and "Show earlier calls" adds 200 more, as the runs do.
+// A run's rows in the Activity: each call or thought with its kind's icon, what it acted on, and
+// its word, `stretches.ts`'s (ruling R6). A call with output, a thought with text, and a
+// sub-agent's group unfold, their content mounted only while open, kept open in the history entry.
+// The rows of the stretch the address names are marked, and a call still going in a running turn is
+// live. An open group mounts its latest 200 rows, and "Show earlier calls" adds 200 more, as the
+// runs do.
 import { Button } from "@astryxdesign/core/Button";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
@@ -23,12 +24,12 @@ import { Path } from "./Path.tsx";
 import { type ActivityItem, type RowWords, rowWords, type ToolItem } from "./stretches.ts";
 
 const styles = stylex.create({
-  // What a row acted on breaks after its slashes first, then anywhere, a long path or command whole
-  // on the row's lines, as the changes' paths: no text is cut. In a fold's toggle, which sets a larger text and grows to its
-  // content, it takes the row's text, and no width of its own, so it wraps rather than widening
-  // the list.
   // A part of a row's word, never broken.
   group: { whiteSpace: "nowrap" },
+  // What a row acted on breaks after its slashes first, then anywhere, a long path or command whole
+  // on the row's lines, as the changes' paths: no text is cut. In a fold's toggle, which sets a
+  // larger text and grows to its content, it takes the row's text, and no width of its own, so it
+  // wraps rather than widening the list.
   label: {
     contain: "inline-size",
     display: "block",
@@ -60,8 +61,8 @@ const ICONS: Partial<Record<ToolItem["toolKind"], string>> = {
   search: "search",
 };
 
-/** What a run's rows draw from: the run, how its turn stands, its open folds, its marked stretch. */
-export type RunView = {
+/** What a run's rows draw from: the run, its turn's state, its open folds, its marked stretch. */
+type RunView = {
   /** Whether its turn ended, so a call still going will not end. */
   ended: boolean;
   keys: OpenKeys;

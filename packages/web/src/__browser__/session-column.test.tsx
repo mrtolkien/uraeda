@@ -2,8 +2,8 @@
 // window when wide, 300 px at a semi-wide 1000 px, where a document's column keeps its 400 px; the
 // Changes part at most 40% of its height; resized from its edge, its width kept, and `]` folding
 // it; and, on the phone, its split opened as a sheet from the status line, closed by Back. As the
-// right bar's (`specs/done/2026-10-19-right-bar.md`): its edge dragged by the pointer along its full
-// height, a click in its folded rail's space unfolding it, its fold eased over 200 ms, at once
+// right bar's (`specs/done/2026-10-19-right-bar.md`): its edge dragged by the pointer along its
+// full height, a click in its folded rail's space unfolding it, its fold eased over 200 ms, at once
 // under reduced motion, and the page beside it kept as it folds.
 import { screen, within } from "@testing-library/react";
 import { page, userEvent } from "vite-plus/test/browser";

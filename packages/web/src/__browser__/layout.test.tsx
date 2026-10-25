@@ -3,8 +3,8 @@
 // every width (SC-004, and the UI look decision's 120%), every control is 44 px tall under a touch
 // pointer (SC-004), no line of a paragraph runs past about 110 characters, text is left-aligned,
 // and axe-core finds no WCAG 2.1 A or AA violation (SC-003). On the phone, questions, options,
-// stories, and scenarios start within 50 px of the screen's left edge. A change of width keeps
-// what is being typed (US7 2) and the task view's address (the edge case on crossing 768 px). The
+// stories, and scenarios start within 50 px of the screen's left edge. A change of width keeps what
+// is being typed (US7 2) and the task view's address (the edge case on crossing 768 px). The
 // session view, the chat view, and the sidebar pass the same checks (SC-004 of chat in the web UI).
 // So do the views images were added to (SC-005 of image attachments): the editor with an image's
 // link, a refusal, and the drop hint, its preview and a proposal with the image, the lightbox, the
@@ -13,12 +13,13 @@
 // form of another open, the notes restored with their notice, and the "Leave page?" and "Discard
 // your comment?" confirmations. So do a feature's session at its implementation, its column shown
 // and hidden, the phone's sheet of the column open, and a chat, the transcript at least 1.4 times
-// as wide as the column at 1440 px and at semi-wide (SC-001, SC-004 of the session view, ruling
-// R21 of session-new), and at 1024 px with the sidebar open (its edge case). So do a spec with a story embedded, ready, a round whose options are stories, and the
-// Storybook page (the UI iteration flow's UI checks). So do the sign-in screen, empty and with its
-// error, and the settings' Sign-in category and its confirmation, in `sign-in.test.tsx`.
-// So do the settings page, one form, opened at its Runs section, and a search that leaves a row
-// (SC-005 of the settings page, US5 of the layout's look).
+// as wide as the column at 1440 px and at semi-wide (SC-001, SC-004 of the session view, ruling R21
+// of session-new), and at 1024 px with the sidebar open (its edge case). So do a spec with a story
+// embedded, ready, a round whose options are stories, and the Storybook page (the UI iteration
+// flow's UI checks). So do the sign-in screen, empty and with its error, and the settings' Sign-in
+// category and its confirmation, in `sign-in.test.tsx`. So do the settings page, one form, opened
+// at its Runs section, and a search that leaves a row (SC-005 of the settings page, US5 of the
+// layout's look).
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { commands as browserCommands, page, userEvent } from "vite-plus/test/browser";

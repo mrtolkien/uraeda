@@ -95,7 +95,7 @@ const asked = (text: string): Item => ({
   text,
 });
 
-/** US1.1's run: a message, two thoughts around three reads, a search, and a fetch, then the answer. */
+/** US1.1's run: a message, two thoughts around three reads, a search, a fetch, then the answer. */
 const SCENARIO: ReadonlyArray<Item> = [
   asked("Why does completing a repeating task not create the next one?"),
   thought(8000),

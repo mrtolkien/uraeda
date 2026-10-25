@@ -1,6 +1,7 @@
 // The final review's finding 5: the stretch a recap line opened stays in the address only while it
-// is the human's place. A new turn takes it out, so the Activity follows the latest calls again, and
-// the phone's status line's Activity opens the sheet at the latest calls, not at a stretch kept.
+// is the human's place. A new turn takes it out, so the Activity follows the latest calls again,
+// and the phone's status line's Activity opens the sheet at the latest calls, not at a stretch
+// kept.
 import { screen, waitFor } from "@testing-library/react";
 import type { Item } from "uraeda-server/fate";
 import { beforeEach, expect, test } from "vite-plus/test";
@@ -37,7 +38,7 @@ const asked = (text: string): Item => ({
 });
 const said = (text: string): Item => ({ kind: "text", streaming: false, text });
 
-/** A chat of one ended turn, a stretch of reads: the chat, its fake agent, and the stretch's key. */
+/** A chat of one ended turn, a stretch of reads: the chat, its fake agent, the stretch's key. */
 async function chatWithStretch() {
   const repo = fixtureRepo();
   const fake = await fakeAgent();

@@ -38,8 +38,8 @@ export function Overlay({
 }: {
   children: ReactNode;
   /**
-   * On narrow screens, whether the content fills the sheet's height, as a flex column's item, rather
-   * than the sheet scrolling it whole: the session's column's split, whose parts scroll.
+   * On narrow screens, whether the content fills the sheet's height, as a flex column's item,
+   * rather than the sheet scrolling it whole: the session's column's split, whose parts scroll.
    */
   fills?: boolean;
   /** On narrow screens, whether the page behind the sheet is blocked, and dimmed. */

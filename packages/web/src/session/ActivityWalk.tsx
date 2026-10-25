@@ -1,11 +1,11 @@
 // The Activity's walks over a session's turns and their pages, which read what the panel draws and
 // draw nothing themselves. Without a stretch in the address, one walk goes back from the latest
-// turn's last page; with one, a walk goes forward from the stretch's page, and another back from the
-// page before it (ruling R25). Each reads pages until they hold the rows the bound needs, and one
-// more, which tells whether rows are left beyond; and at most a budget of pages, since rows count
-// the main agent's calls alone, so a turn of a sub-agent's calls, or a long chat of few calls, would
-// be read whole (ruling R24). They suspend until what they read is in, so the rows drawn stay while
-// they read more.
+// turn's last page; with one, a walk goes forward from the stretch's page, and another back from
+// the page before it (ruling R25). Each reads pages until they hold the rows the bound needs, and
+// one more, which tells whether rows are left beyond; and at most a budget of pages, since rows
+// count the main agent's calls alone, so a turn of a sub-agent's calls, or a long chat of few
+// calls, would be read whole (ruling R24). They suspend until what they read is in, so the rows
+// drawn stay while they read more.
 import { type ReactNode, useLayoutEffect } from "react";
 import { useTurn, useTurnLog } from "../sessionData.ts";
 import { type ReadPage, rowCount } from "./activityRuns.ts";
