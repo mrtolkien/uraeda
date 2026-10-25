@@ -1,11 +1,13 @@
 // The window's reading place, kept as the width class changes: for a moment, the browser lays the
-// layout drawn for the old width out at the new one, a column beside the content squeezing it, which
-// moves the scroll position or clamps it at the end. The place is put back once the new layout is
-// drawn.
+// layout drawn for the old width out at the new one, a column beside the content squeezing it,
+// which moves the scroll position or clamps it at the end. The place is put back once the new
+// layout is drawn. Crossing 1280 px moves it too: the navigation and a session's column change
+// their widths there, and the wide layout, laid out for a moment in a semi-wide window, squeezes
+// the transcript.
 import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
 import { atEnd, scroller } from "./following.ts";
 import { scrollInstantly } from "./keepPlace.ts";
-import { isNarrow, useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
+import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 
 /** How far down the window the place is read: below the top bar, above the sticky composer. */
 const READ_AT = 1 / 3;
@@ -49,16 +51,14 @@ function placeIn(content: HTMLElement): { element: Element; top: number } | unde
 }
 
 /**
- * Keeps the place the human reads in `content` as the window crosses the narrow breakpoint: the
- * element a third down the window stays there, or the end stays in view. Content in a box that
- * scrolls on its own, as a round's column, keeps none: the column is drawn only above the
- * breakpoint, and leaves as the window crosses it, while its place read against the window would
- * move the round.
+ * Keeps the place the human reads in `content` as the window crosses a breakpoint: the element a
+ * third down the window stays there, or the end stays in view. Content in a box that scrolls on its
+ * own, as a round's column, keeps none: the column is drawn only above the narrow breakpoint, and
+ * leaves as the window crosses it, while its place read against the window would move the round.
  */
 export function useKeepPlace(content: RefObject<HTMLElement | null>) {
-  // Pages lay out alike at semi-wide and wide: only crossing into or out of narrow moves the place.
-  const narrow = isNarrow(useWidthClass());
-  const drawn = useRef(narrow);
+  const width = useWidthClass();
+  const drawn = useRef(width);
   const place = useRef<{ element: Element; top: number } | "end" | undefined>(undefined);
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
       frame = undefined;
       // A layout drawn for the other width class: its positions are not the human's.
       const element = content.current;
-      if (!element || isNarrow(widthClassNow()) !== drawn.current) {
+      if (!element || widthClassNow() !== drawn.current) {
         return;
       }
       place.current = atEnd() ? "end" : placeIn(element);
@@ -97,10 +97,10 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
   }, [content]);
 
   useLayoutEffect(() => {
-    if (drawn.current === narrow) {
+    if (drawn.current === width) {
       return;
     }
-    drawn.current = narrow;
+    drawn.current = width;
     const kept = place.current;
     // Put back before the frame is drawn, once every component drawn for the width has committed:
     // each media query's listener commits on its own, and the shell's navigation may follow this.
@@ -112,5 +112,5 @@ export function useKeepPlace(content: RefObject<HTMLElement | null>) {
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [narrow]);
+  }, [width]);
 }
