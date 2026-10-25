@@ -116,6 +116,36 @@ test("every kind's count, in the table's order whatever came first", () => {
   );
 });
 
+test("deletes and moves count distinct files", () => {
+  expect(
+    recapText([
+      call("delete", "Delete", "a.ts", 1000),
+      call("delete", "Delete", "a.ts", 1000),
+      call("delete", "Delete", "b.ts", 1000),
+      call("move", "Move", "c.ts", 1000),
+      call("move", "Move", "c.ts", 1000),
+    ]),
+  ).toBe("5 s · deleted 2 files · moved 1 file");
+});
+
+test("the plurals of sub-agents, pages, other tools, and searches", () => {
+  const agent = (description: string) =>
+    call("other", "Task", description, 1000, { subagent: { description } });
+
+  expect(
+    recapText([
+      agent("Find the tests"),
+      agent("Read the docs"),
+      fetch("example.com", 1000),
+      fetch("example.org", 1000),
+      call("other", "TodoWrite", undefined, 1000),
+      call("other", "Skill", undefined, 1000),
+      search("a", 1000),
+      search("b", 1000),
+    ]),
+  ).toBe("8 s · searched twice · fetched 2 pages · ran 2 sub-agents · used 2 other tools");
+});
+
 test("edge: a single call reads the call", () => {
   expect(recapText([read("src/tasks/undo.ts", 4000)])).toBe("4 s · read src/tasks/undo.ts");
   expect(recapText([run("pnpm test", 4000)])).toBe("4 s · ran pnpm test");
@@ -123,6 +153,17 @@ test("edge: a single call reads the call", () => {
     "7 s · edited src/a.ts · thought once",
   );
   expect(recapText([thought(3000)])).toBe("3 s · thought once");
+});
+
+test("edge: a single sub-agent or other tool reads the call (ruling R20)", () => {
+  expect(
+    recapText([
+      call("other", "Task", "Find the tests", 4000, {
+        subagent: { description: "Find the tests" },
+      }),
+    ]),
+  ).toBe("4 s · ran a sub-agent");
+  expect(recapText([call("other", "TodoWrite", undefined, 4000)])).toBe("4 s · used TodoWrite");
 });
 
 test("edge: a session cached before thoughts counts none", () => {

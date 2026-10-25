@@ -188,3 +188,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   without bound; a limit of its own, a second number for the same need.
 - **If wrong**: the limit's one use in `#thought`.
 - **Where**: fix 6 of tasks 1-3's review, `packages/server/src/runner/transcript.ts`.
+
+## R17: A single sub-agent reads "ran a sub-agent", and thoughts do not make a count
+
+- **Decision**: a stretch with one call reads the call even with thoughts around it, "7 s · edited
+  src/a.ts · thought once"; a single sub-agent reads "ran a sub-agent", not its description; a
+  single other tool reads "used TodoWrite".
+- **Rationale**: the spec's single call reads the call, and thoughts are not calls; a sub-agent's
+  description is a sentence, which the Activity's row already shows, and would make the recap line
+  as long as a message.
+- **Alternatives considered**: counting as soon as thoughts join the call, "edited 1 file · thought
+  once"; "ran Find the tests", the description as the target.
+- **If wrong**: one branch of `single` in `session/stretches.ts`.
+- **Where**: task 5; tasks 6 and 8 keep these words.
