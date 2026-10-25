@@ -1090,8 +1090,12 @@ git commit -m "feat(session-new): the session column, its changes, and its progr
 **Files:**
 
 - Modify: `packages/web/src/session/ActivityPanel.tsx`
-- Create: `packages/web/src/session/ActivityRows.tsx` (if the panel would pass the limits)
-- Modify: `packages/web/src/theme/icons.ts` (the rows' icons)
+- Create: `packages/web/src/session/ActivityRows.tsx` (the rows), `session/ActivityWalk.tsx` (the
+  walk back over the pages), and `session/activityRuns.ts` (the runs, their groups and stretches,
+  and which rows draw, pure)
+- Create: `packages/web/src/theme/activityIcons.ts`; Modify: `packages/web/src/theme/icons.ts` (the
+  rows' icons)
+- Modify: `packages/web/src/routeHistory.ts` (the history entry keeps the Activity's count of rows)
 - Test: `packages/web/src/__tests__/session-activity.test.tsx` (new)
 
 **Interfaces:**
@@ -1100,7 +1104,7 @@ git commit -m "feat(session-new): the session column, its changes, and its progr
   7's `addRun` and the `activity` panel; `useTurn`, `useTurnLog`, `useOpenKeys`.
 - Produces: `ACTIVITY_ROWS = 200`, exported for the tests; `ActivityPanel` with the same signature.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // __tests__/session-activity.test.tsx
@@ -1136,12 +1140,12 @@ The break each test catches:
 - Old run: a stretch past the bound ignored, nothing marked.
 - Sub-agents: their calls among the main agent's rows, or mounted folded.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/session-activity.test.tsx`
-- Expected: FAIL, `Unable to find role="heading" and name "Run 1 · 2 min"`.
+- Expected: FAIL, `Unable to find role="heading"`: the stub draws no run.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - The panel walks the session's turns from the latest back, and each turn's pages from its last,
   collecting rows until `ACTIVITY_ROWS`; past them, "Show earlier runs" at the top adds 200, the
@@ -1151,21 +1155,23 @@ The break each test catches:
   `elapsed(endedAt - startedAt)` (ruling R4), "live" while it runs, "failed" in the error colour,
   "stopped" for a stopped one; its start time, `sentAt`, at its end. Then a list of its rows.
 - A row: the kind's icon, the target (or "Thought", or the sub-agent's description), and `rowWord`,
-  or a thought's length when at least a second. A call with output, a thought with text, and a
-  sub-agent's group unfold, their content not mounted while folded, kept open in the history entry
-  through `useOpenKeys`. An in-progress call of a running turn shows a status mark named "Live". A
-  sub-agent's group holds the calls whose `parent` is its id, nested sub-agents as rows.
+  or a thought's length when at least a second; a sub-agent's row adds its calls, "sub-agent · 6
+  calls", as the mockup's. A long target wraps, breaking anywhere: no text is cut. A call with
+  output, a thought with text, and a sub-agent's group unfold, their content not mounted while
+  folded, kept open in the history entry through `useOpenKeys`. An in-progress call of a running
+  turn shows a status mark named "Live". A sub-agent's group holds the calls whose `parent` is its
+  id, nested sub-agents as rows.
 - The stretch the address names: its rows are `aria-current="true"`, and its run's heading is
   scrolled into view once drawn, in the column's scroller. A stretch over pages is one stretch, by
   the same rule as the chat's: a `continued` stretch on a page after the turn's first joins the page
   before's last with `joinStretches`, so its rows on both pages are marked by the first page's key.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
-- Expected: PASS. Deferred to ready: the browser suites.
+- Expected: PASS. A new test file makes `fast` run `ready` whole, browser suites included.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-25-session-new/plan.md

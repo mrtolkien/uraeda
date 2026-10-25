@@ -65,6 +65,7 @@ import {
 import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
 import { badgeCheck, hourglass, lightbulb, map, scale, shield } from "./lucideParts.ts";
 import { filePenLine, gitCompare, listChecks } from "./sessionIcons.ts";
+import { arrowRightLeft, brain, trash } from "./activityIcons.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
 // Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The README's
@@ -176,10 +177,12 @@ export const uraedaIcons = {
   "uraeda:activity": activity,
   // Lucide's `arrow-right`: a link away, to another page.
   "uraeda:arrow-right": then,
+  "uraeda:arrow-right-left": arrowRightLeft,
   "uraeda:attach": attach,
   "uraeda:badge-check": badgeCheck,
   "uraeda:book-open": bookOpen,
   "uraeda:bot": bot,
+  "uraeda:brain": brain,
   "uraeda:comment": comment,
   "uraeda:crop": crop,
   "uraeda:database": database,
@@ -222,6 +225,7 @@ export const uraedaIcons = {
   "uraeda:settings": settings,
   "uraeda:shield": shield,
   "uraeda:smartphone": smartphone,
+  "uraeda:square-terminal": squareTerminal,
   "uraeda:step-discovery": discovery,
   "uraeda:step-given": given,
   "uraeda:step-implementation": implementation,
@@ -235,6 +239,7 @@ export const uraedaIcons = {
   "uraeda:step-when": when,
   "uraeda:target": target,
   "uraeda:terminal": terminal,
+  "uraeda:trash": trash,
   "uraeda:triangle-alert": triangleAlert,
   "uraeda:workflow": workflow,
   "uraeda:wrench": wrench,

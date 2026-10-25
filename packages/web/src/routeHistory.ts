@@ -11,6 +11,8 @@ export const CHANGE = "uraeda:navigate";
  * and the folds opened in a view (see `useOpenKeys.ts`).
  */
 type Entry = {
+  /** The count of rows a session's Activity draws, kept so Back draws as many. */
+  activity?: number;
   /** A chat its first message just created, on the page it left: its first turn is news. */
   created?: boolean;
   from?: string;
