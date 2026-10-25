@@ -794,6 +794,8 @@ export interface DraftView {
   document: Document
   /** The stories its paragraphs embed. */
   stories: Array<StoryLink>
+  /** The HTML mockups its paragraphs embed. */
+  mockups: Array<MockupEmbed>
   /** Whether its current text is committed. */
   committed: boolean
   /** The priority line linking it. */

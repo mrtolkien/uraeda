@@ -262,6 +262,7 @@ export const DraftView = view<Draft>()({
   hash: true,
   id: true,
   kind: true,
+  mockups: true,
   path: true,
   priorityChanges: true,
   slug: true,

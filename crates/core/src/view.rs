@@ -9,7 +9,7 @@ use crate::decisions::{Candidate, DecisionChange};
 use crate::files::document::{Document, Span};
 use crate::files::items::{Items, ReviewItems};
 use crate::files::markdown;
-use crate::files::stories::StoryLink;
+use crate::files::stories::{MockupEmbed, StoryLink};
 use crate::steps::{Step, TaskProgress};
 use crate::workspace::{Feature, FileKind, Problem, Workspace};
 
@@ -144,6 +144,8 @@ pub struct DraftView {
     pub document: Document,
     /// The stories its paragraphs embed.
     pub stories: Vec<StoryLink>,
+    /// The HTML mockups its paragraphs embed.
+    pub mockups: Vec<MockupEmbed>,
     /// Whether its current text is committed.
     pub committed: bool,
     /// The priority line linking it.

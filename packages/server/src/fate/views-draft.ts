@@ -22,6 +22,7 @@ export const draftDataView = dataView<DraftRecord>("Draft")({
   hash: true,
   id: true,
   kind: true,
+  mockups: true,
   path: true,
   priorityChanges: true,
   slug: true,

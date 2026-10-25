@@ -11,7 +11,7 @@ use super::{
 use crate::actions::{draft, place, priorities as edits, text};
 use crate::files::document::{self, hash};
 use crate::files::proposal;
-use crate::files::stories::story_links;
+use crate::files::stories::{mockup_embeds, story_links};
 use crate::target;
 use crate::view::{CommitView, DraftView, PriorityView, ProposalHint, WorkspaceView, title};
 use crate::workspace::{Feature, Workspace};
@@ -65,6 +65,7 @@ fn text_view(
         title: title(&text).unwrap_or_else(|| path.to_string()),
         hash: hash(&text),
         stories: story_links(&document),
+        mockups: mockup_embeds(&document),
         document,
         committed,
         entry: None,
