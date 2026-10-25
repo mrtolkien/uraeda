@@ -4,13 +4,11 @@ import { dataView, list } from "@nkzw/fate/server";
 import type {
   AddCommit,
   BranchDecision,
-  DraftView,
   EntryItem,
   FeatureView,
   FileView,
   Inbox,
   Priorities,
-  ProposalHint,
   RunningFeature,
   SectionItems,
   StepView,
@@ -34,12 +32,23 @@ import { recommendedDataView } from "./recommended.ts";
 import { settingsDataView } from "./settings.ts";
 import type { FeatureTokens } from "./tokens.ts";
 import { branchChangesDataView } from "./views-branch.ts";
+import {
+  type DraftRecord,
+  draftDataView,
+  type ProposalHintsRecord,
+  proposalHintsDataView,
+  type SlugProposalRecord,
+  slugProposalDataView,
+} from "./views-draft.ts";
 import { droppedDataView } from "./views-dropped.ts";
 import { historyDataView } from "./views-history.ts";
 import { ledgerDataView } from "./views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./views-repositories.ts";
 
 export type Record_<T> = { [Key in keyof T]: T[Key] };
+
+export { draftDataView, proposalHintsDataView, slugProposalDataView };
+export type { DraftRecord, ProposalHintsRecord, SlugProposalRecord };
 
 /** A feature's step, its progress sent as null when it has none. */
 export type StepRecord = Omit<StepView, "progress"> & { progress: TaskProgress | null };
@@ -129,13 +138,6 @@ export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> &
 /** The inbox: one record, `inbox`, its triage's status sent as null when there is no triage. */
 export type InboxRecord = Omit<Record_<Inbox>, "triage"> &
   Added & { id: string; triage: string | null };
-
-export type DraftRecord = Record_<DraftView> & { id: string };
-/** The proposal template's guidance, by heading, which the editor shows in empty sections. */
-export type ProposalHintsRecord = { hints: Array<Record_<ProposalHint>>; id: string };
-
-/** The slug the core proposes for a typed change, whose text is its ID: "New change" shows it. */
-export type SlugProposalRecord = { id: string; slug: string };
 
 /** The agent sessions run on, and what it can do: one record, `agent`. */
 export type AgentRecord = {
@@ -360,26 +362,6 @@ export const inboxDataView = dataView<InboxRecord>("Inbox")({
   triage: true,
 });
 
-export const draftDataView = dataView<DraftRecord>("Draft")({
-  committed: true,
-  discovery: true,
-  discoveryLevels: true,
-  document: true,
-  emptySections: true,
-  entry: true,
-  folder: true,
-  hash: true,
-  id: true,
-  kind: true,
-  path: true,
-  priorityChanges: true,
-  slug: true,
-  stories: true,
-  text: true,
-  title: true,
-  written: true,
-});
-
 export const agentDataView = dataView<AgentRecord>("Agent")({
   available: true,
   capabilities: true,
@@ -447,16 +429,6 @@ export const workflowMessageDataView = dataView<WorkflowMessageRecord>("Workflow
   refusal: true,
   step: true,
   text: true,
-});
-
-export const proposalHintsDataView = dataView<ProposalHintsRecord>("ProposalHints")({
-  hints: true,
-  id: true,
-});
-
-export const slugProposalDataView = dataView<SlugProposalRecord>("SlugProposal")({
-  id: true,
-  slug: true,
 });
 
 /** The ids of the records there is one of. */
