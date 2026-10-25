@@ -6,7 +6,8 @@
 >
 > Features for v1.0.0
 
-- [Session and New in the terminal look](drafts/session-and-new.md)
+- [Session and New in the terminal look](/specs/2026-10-25-session-new/proposal.md)
+
 - [Inbox and priorities in the terminal look](drafts/inbox-and-priorities.md)
 - [Feature page in the terminal look](drafts/feature-page.md)
 
