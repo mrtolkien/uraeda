@@ -15,7 +15,7 @@
 // and hidden, the phone's sheet of the column open, and a chat, the transcript at least 1.4 times
 // as wide as the column at 1440 px and at semi-wide (SC-001, SC-004 of the session view, ruling R21
 // of session-new), and at 1024 px with the sidebar open (its edge case). So do a spec with a story
-// embedded, ready, a round whose options are stories, and the Storybook page (the UI iteration
+// embedded, ready, a round whose options are stories, and the story page (the UI iteration
 // flow's UI checks). So do the sign-in screen, empty and with its error, and the settings' Sign-in
 // category and its confirmation, in `sign-in.test.tsx`. So do the settings page, one form, opened
 // at its Runs section, and a search that leaves a row (SC-005 of the settings page, US5 of the

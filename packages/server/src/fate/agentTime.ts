@@ -28,6 +28,7 @@ export function agentTime(turns: ReadonlyArray<TurnRow>): FeatureAgent | null {
       // A clock set back leaves a negative span: not a time that ran.
       seconds += Math.max(0, elapsed);
     } else if (state === "running") {
+      // Sessions run one at a time: only the latest running turn is named.
       runningSince = startedAt;
     }
   }

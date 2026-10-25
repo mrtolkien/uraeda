@@ -1,5 +1,5 @@
 // The stories an agent's message links, drawn by the transcript's markdown: a story link alone in
-// its paragraph shows the story, and one inside a sentence opens Uraeda's Storybook page. Whether a
+// its paragraph shows the story, and one inside a sentence opens the story page. Whether a
 // link is a story link is the core's rule, asked through a `StoryHref` record for each link (R3): a
 // link shows as a plain one until it is known. A message streaming shows no story: a paragraph that
 // is a link alone for a moment would start a Storybook for nothing.
@@ -17,7 +17,7 @@ import {
 import { useStoryHref } from "./data.ts";
 import { useRepoPath } from "./routes.tsx";
 import { StoryEmbed } from "./StoryEmbed.tsx";
-import { embedComment, type Stories, StoryContext, storybookHref } from "./stories.tsx";
+import { embedComment, type Stories, StoryContext, storyHref } from "./stories.tsx";
 
 const styles = stylex.create({
   paragraph: {
@@ -50,14 +50,14 @@ function PlainLink({ children, href }: LinkProps) {
   );
 }
 
-/** A link to a story, to its checkout's Storybook page; another link as it is. */
+/** A link to a story, to its checkout's story page; another link as it is. */
 function StoryOrPlainLink({ children, folder, href }: LinkProps & { folder: string }) {
   const here = useRepoPath();
   const story = useStoryHref(href);
-  return <PlainLink href={story ? here(storybookHref(folder, story)) : href}>{children}</PlainLink>;
+  return <PlainLink href={story ? here(storyHref(folder, story)) : href}>{children}</PlainLink>;
 }
 
-/** An agent's link: a story's, when its checkout has a preview decision, opens its Storybook page. */
+/** An agent's link: a story's, when its checkout has a preview decision, opens its story page. */
 function AgentLink({ children, href }: LinkProps) {
   const stories = useContext(StoryContext);
   if (!stories?.preview) {
@@ -142,6 +142,6 @@ function AgentParagraph({ children }: { children: ReactNode }) {
 
 /**
  * The components an agent's markdown draws its links and paragraphs with: a story link alone in its
- * paragraph shows the story, and inside a sentence opens Uraeda's Storybook page.
+ * paragraph shows the story, and inside a sentence opens the story page.
  */
 export const agentStories = { link: AgentLink, paragraph: AgentParagraph };

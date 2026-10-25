@@ -47,7 +47,7 @@ const styles = stylex.create({
   },
 });
 
-/** Why the story does not show, or its Storybook: the Storybook page shows it too. */
+/** Why the story does not show, or its Storybook: the story page shows it too. */
 export function State({ children, error = false }: { children: ReactNode; error?: boolean }) {
   return (
     <div role="status" {...stylex.props(styles.state, error && styles.error)}>

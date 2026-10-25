@@ -1,7 +1,7 @@
 // US4 of the UI iteration flow: the stories an agent links in its messages. A story link alone in
 // its paragraph shows the story live, from the feature's worktree in its session (US4.1) and from
 // the main checkout in a chat (US4.2); a comment on it goes to the composer, unsent (US4.3); and a
-// story link inside a sentence opens Uraeda's Storybook page (US4.4). A message shows its stories
+// story link inside a sentence opens the story page (US4.4). A message shows its stories
 // once it ends, not while it streams.
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
@@ -87,7 +87,7 @@ test("a comment on a story in the chat goes to the composer, unsent (US4.3)", as
   expect(await commands.agentSent()).toHaveLength(1);
 });
 
-test("a story link inside a sentence opens Uraeda's Storybook page (US4.4)", async () => {
+test("a story link inside a sentence opens the story page (US4.4)", async () => {
   await commands.addStoryFeature();
 
   await startTurn(
@@ -115,7 +115,7 @@ test("a message shows its stories once it ends, not while it streams", async () 
   const sentence = "I wrote the stories.\n\n";
   // The streamed text ends at the link's `)`: a link alone in its paragraph, for now.
   await startTurn("Show me", [{ text: `${sentence}${LINK}`, type: "textDelta" }], SESSION);
-  // Once the link is known as a story's: a figure in its place, or the link to its Storybook page.
+  // Once the link is known as a story's: a figure in its place, or the link to its story page.
   await expect
     .poll(
       async () =>

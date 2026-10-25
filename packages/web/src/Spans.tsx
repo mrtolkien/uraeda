@@ -8,7 +8,7 @@ import { MAIN_CHECKOUT } from "./data.ts";
 import { ImageView } from "./ImageView.tsx";
 import { pathLink } from "./links.tsx";
 import { repoPath, useRepository } from "./routes.tsx";
-import { StoryContext, storybookHref } from "./stories.tsx";
+import { StoryContext, storyHref } from "./stories.tsx";
 
 const styles = stylex.create({
   alone: {
@@ -59,7 +59,7 @@ function SpanLink({
     return (
       <Link
         hasUnderline
-        href={repoPath(repo, storybookHref(stories.folder, link.story))}
+        href={repoPath(repo, storyHref(stories.folder, link.story))}
         type="inherit"
         xstyle={xstyle}
       >
