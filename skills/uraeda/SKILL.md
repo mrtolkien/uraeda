@@ -73,7 +73,7 @@ says what to do by hand, and names the command that does it, to use when `ura` i
 specs/
   README.md                 # layout and conventions, links to this skill
   CONSTITUTION.md           # project principles, by priority: always binding
-  PRIORITIES.md             # Now, Next, Later, Blocked
+  PRIORITIES.md             # Now, Next, Later
   INBOX.md                  # notes to organize later, by category
   INBOX-TRIAGE.md           # an agent's proposed outcome for each note, as questions
   DECISIONS-CHECK.md        # questions on the decisions, options in decisions-check/

@@ -222,3 +222,26 @@ fn outside_a_repository() {
     assert_eq!(output.code, 1);
     assert_eq!(fs::read_dir(folder.path()).unwrap().count(), 0);
 }
+
+#[test]
+fn a_new_projects_priorities_have_no_blocked_and_no_warning() {
+    let repo = TestRepo::new();
+    repo.write("crates/a.txt", "a\n");
+    let home = repo.home();
+    let home_env = [("HOME", home.to_str().unwrap())];
+    ura_in(repo.path(), &["install", "--user", "--agents"], &home_env);
+    ura_in(repo.path(), &["init"], &home_env);
+
+    let priorities = repo.read("specs/PRIORITIES.md");
+    let checked = ura_in(repo.path(), &["check", "--json"], &home_env);
+
+    assert!(!priorities.contains("Blocked"), "{priorities}");
+    let json: serde_json::Value = serde_json::from_str(&checked.stdout).unwrap();
+    let about_priorities: Vec<&serde_json::Value> = json["problems"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|p| p["file"] == "specs/PRIORITIES.md")
+        .collect();
+    assert!(about_priorities.is_empty(), "{about_priorities:?}");
+}

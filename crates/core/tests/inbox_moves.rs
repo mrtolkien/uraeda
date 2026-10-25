@@ -151,8 +151,8 @@ fn a_note_becomes_a_draft_linked_from_the_priorities() {
         "{draft}"
     );
     assert!(!draft.contains('['), "a placeholder is left: {draft}");
-    assert!(repo.read(PRIORITIES).contains(
-        "  - with a cache\n- [We need a home icon](drafts/we-need-a-home-icon.md)\n\n## Blocked"
+    assert!(repo.read(PRIORITIES).ends_with(
+        "- Benchmarks: after the runner is ready\n- [We need a home icon](drafts/we-need-a-home-icon.md)\n"
     ));
     assert!(!repo.read(INBOX).contains("home icon"));
 }

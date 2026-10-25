@@ -392,7 +392,7 @@ the page share.
   an entry; warning `priorities.context` per callout with no text, saying to put the text in the
   same callout as its marker.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/priorities.rs
@@ -418,12 +418,12 @@ The `init` test: `ura init` writes a `PRIORITIES.md` with Now, Next, and Later, 
 `ura check` reports nothing for it. The break each test catches: a context read from any `>` line
 (the marker's text); a Blocked required again; a Blocked warning that fails the check.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test priorities --test check`
 - Expected: FAIL, `no field context on type SectionItems`.
 
-- [ ] **Step 3: Implement the context, the check, and the format's documents**
+- [x] **Step 3: Implement the context, the check, and the format's documents**
 
 `contexts` scans each section's lines between its heading and its first list item for the first
 blockquote whose first line is `[!TYPE]` (any type, case-insensitive, `QUESTION` included, not only
@@ -438,14 +438,14 @@ Blocked line to Later and gives each section a context, the fixture repository m
 line to Later and gives the sections contexts, and every mention of Blocked in the files listed
 above goes. Run `nix develop -c vp run binding:build` to regenerate `index.d.ts`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then `nix develop -c cargo run -q -p uraeda-cli -- check specs`
   and the same on `skills/uraeda/assets/example/specs`
 - Expected: PASS; the repository's own `PRIORITIES.md` warns about Later's callout, which the human
   fixes on the default branch (the spec's assumption), and nothing else.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates skills README.md fixtures packages/binding specs/2026-10-25-inbox-priorities

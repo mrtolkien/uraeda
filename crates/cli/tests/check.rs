@@ -117,7 +117,7 @@ fn warnings_print_after_errors_and_exit_with_success() {
 #[test]
 fn json_lists_problems() {
     let repo = TestRepo::new();
-    specs(&repo, "# Priorities\n\n## Now\n\n## Next\n\n## Later\n");
+    specs(&repo, "# Priorities\n\n## Now\n\n## Next\n");
 
     let output = ura(&repo, &["check", "--json"]);
 
@@ -127,7 +127,7 @@ fn json_lists_problems() {
     assert_eq!(json["problems"][0]["rule"], "sections.missing");
     assert_eq!(
         json["problems"][0]["message"],
-        "missing section \"## Blocked\""
+        "missing section \"## Later\""
     );
     assert_eq!(output.code, 1);
 }

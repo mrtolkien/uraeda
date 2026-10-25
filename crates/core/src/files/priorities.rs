@@ -2,7 +2,10 @@
 
 use super::lines::{self, Item};
 
+mod context;
 mod edits;
+
+pub use context::{SectionContext, contexts};
 
 pub use edits::{
     add, add_started, edit, insert_entry, link, move_entry, move_to_started, remove, remove_added,
@@ -152,6 +155,9 @@ pub struct SectionItems {
     /// `now`, `next`, `later`, or `blocked`.
     pub section: String,
     pub title: String,
+    /// The text of the first callout under the first of its headings that has one, before its
+    /// first entry: what the section holds.
+    pub context: Option<String>,
     pub entries: Vec<EntryItem>,
 }
 
@@ -199,11 +205,16 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
     let lines: Vec<&str> = unix.split('\n').collect();
     let entries = parse(&unix);
     let keys = keys(&entries);
+    let contexts = contexts(&unix);
     let sections = Section::ALL
         .into_iter()
         .map(|section| SectionItems {
             section: section.id().to_string(),
             title: section.title().to_string(),
+            context: contexts
+                .iter()
+                .filter(|context| context.section == section)
+                .find_map(|context| context.text.clone()),
             entries: entries
                 .iter()
                 .zip(&keys)

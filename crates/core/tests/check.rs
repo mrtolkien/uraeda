@@ -370,8 +370,8 @@ fn each_rule() {
         ),
         (
             "priorities without a section",
-            |e| e.edit("specs/PRIORITIES.md", "## Blocked", "## Elsewhere"),
-            "specs/PRIORITIES.md: missing section \"## Blocked\"".into(),
+            |e| e.edit("specs/PRIORITIES.md", "## Next", "## Elsewhere"),
+            "specs/PRIORITIES.md: missing section \"## Next\"".into(),
         ),
         (
             "edge case importance",
@@ -2388,4 +2388,57 @@ fn every_decision_of_the_repository_holds_at_most_10_rules() {
         })
         .sum();
     assert!(words <= 9_500, "{words} words");
+}
+
+const PRIORITIES: &str = "specs/PRIORITIES.md";
+
+#[test]
+fn a_blocked_with_lines_warns_it_is_retired() {
+    let example = Example::new();
+    example.write(
+        PRIORITIES,
+        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n\n- Sync\n- More\n",
+    );
+
+    let problems = example.problems();
+
+    assert_eq!(
+        summary(&problems),
+        ["warning: specs/PRIORITIES.md:11: Blocked is retired: move its lines"]
+    );
+    assert!(problems.iter().all(|p| p.severity == Severity::Warning));
+}
+
+#[test]
+fn an_empty_blocked_reports_nothing() {
+    let example = Example::new();
+    example.write(
+        PRIORITIES,
+        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
+    );
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+
+    example.write(
+        PRIORITIES,
+        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n",
+    );
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
+#[test]
+fn a_callout_with_its_text_in_a_separate_quote_warns() {
+    let example = Example::new();
+    example.write(
+        PRIORITIES,
+        "# Priorities\n\n## Now\n\n> [!NOTE]\n\n> text\n\n## Next\n\n> [!NOTE]\n> fine\n\n## Later\n",
+    );
+
+    let problems = summary(&example.problems());
+
+    assert_eq!(problems.len(), 1, "{problems:#?}");
+    assert!(
+        problems[0].starts_with("warning: specs/PRIORITIES.md:5: ")
+            && problems[0].contains("same callout as its marker"),
+        "{problems:#?}"
+    );
 }

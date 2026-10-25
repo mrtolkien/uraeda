@@ -1511,6 +1511,11 @@ export interface SectionItems {
   /** `now`, `next`, `later`, or `blocked`. */
   section: string
   title: string
+  /**
+   * The text of the first callout under the first of its headings that has one, before its
+   * first entry: what the section holds.
+   */
+  context?: string
   entries: Array<EntryItem>
 }
 
