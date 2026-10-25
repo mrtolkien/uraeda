@@ -7,16 +7,9 @@
  */
 import type { Page } from "playwright";
 import type { FakeAdapter } from "uraeda-server/testing";
-import { type Each, here, openSessionsTab, settle, show, wait } from "./shots.ts";
+import { type Each, here, openSessionsTab, settle, show, showNew, wait } from "./shots.ts";
 
 const result = { denials: [], errors: [], interrupted: false, ok: true, type: "result" as const };
-
-/** The New page's line for each kind, which shows once it is drawn. */
-const KINDS = {
-  change: "A bug fix or a small change",
-  feature: "A larger piece of work",
-  session: "Talk to the agent in the main checkout, like plain Claude Code.",
-} as const;
 
 const OFFER = [
   "The guard and the router both redirect: this should not land on main directly.",
@@ -38,7 +31,7 @@ async function accept(adapter: FakeAdapter, sent: number) {
 
 /** A session whose agent offered the change "Login redirects twice": its path. */
 async function offered(adapter: FakeAdapter, first: Page) {
-  await show(first, "/new", KINDS.session);
+  await showNew(first);
   const sent = adapter.sent.length;
   await first
     .getByRole("textbox", { name: "Message Claude Code" })
@@ -77,9 +70,7 @@ async function sidebar(page: Page, size: "phone" | "desktop") {
 /** The views of merging chats and changes. */
 export async function takeMergeChats(each: Each, first: Page, adapter: FakeAdapter) {
   for (const kind of ["session", "change", "feature"] as const) {
-    await each(`new-page-${kind}`, ({ page }) =>
-      show(page, kind === "session" ? "/new" : `/new?kind=${kind}`, KINDS[kind]),
-    );
+    await each(`new-page-${kind}`, ({ page }) => showNew(page, kind));
   }
 
   const session = await offered(adapter, first);

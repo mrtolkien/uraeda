@@ -63,6 +63,23 @@ export async function show(page: Page, path: string, text: string | RegExp) {
   await settle(page);
 }
 
+/**
+ * What only each kind's form on New shows, once drawn: the cards' sentences show whatever the kind,
+ * so they do not say the form drew.
+ */
+const NEW_FORMS = {
+  change: (page: Page) => page.getByText("Describe the bug or the change."),
+  feature: (page: Page) => page.getByText("Or start from a note or a priority"),
+  session: (page: Page) => page.getByRole("textbox", { name: "Message Claude Code" }),
+};
+
+/** Opens New with `kind` picked, and waits for its form and for the page to settle. */
+export async function showNew(page: Page, kind: keyof typeof NEW_FORMS = "session") {
+  await page.goto(`${prefix}${kind === "session" ? "/new" : `/new?kind=${kind}`}`);
+  await NEW_FORMS[kind](page).first().waitFor({ timeout: 20_000 });
+  await settle(page);
+}
+
 /** Forgets the browser's unsaved text and choices, but the theme: the next view opens as new. */
 export async function forget(page: Page) {
   // A page that has not opened the app yet has nothing kept, and no storage to reach.

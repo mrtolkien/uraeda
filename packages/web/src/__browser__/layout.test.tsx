@@ -93,7 +93,8 @@ const PAGES: Array<[name: string, path: string, text: string, insets: string | n
   [
     "a new session",
     "/new",
-    "Talk to the agent in the main checkout, like plain Claude Code.",
+    // The composer's placeholder: only Session's form shows it, not the cards.
+    "Message Claude Code",
     null,
   ],
   // The settings page, one form, with the test server's override note, and opened at its Runs
@@ -486,7 +487,7 @@ describe("the session on the phone", () => {
 
 /** Starts a chat with a turn whose action auto mode blocked. */
 async function blockedChat() {
-  await show("/new", "Talk to the agent in the main checkout, like plain Claude Code.");
+  await show("/new", "Message Claude Code");
   await sendMessage("Tag v0.3.0 and push the tag.");
   // At once: a reply that ends the turn before the new chat's view listens still shows.
   await agent.agentAccept();
@@ -519,7 +520,7 @@ async function blockedChat() {
 // SC-004: a chat with one reply.
 test.each(MODES)("a chat with one reply, in $mode", async ({ mode }) => {
   await colorScheme(mode);
-  await show("/new", "Talk to the agent in the main checkout, like plain Claude Code.");
+  await show("/new", "Message Claude Code");
   await sendMessage("Why is CI slow on WebKit?");
   await agent.agentAccept();
   await agent.agentEmit([

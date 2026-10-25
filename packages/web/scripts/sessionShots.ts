@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import type { Page } from "playwright";
 import { ELEVEN, git, planText } from "uraeda-binding/test-utils";
 import type { FakeAdapter } from "uraeda-server/testing";
-import { type Each, here, openSessionsTab, settle, show, wait } from "./shots.ts";
+import { type Each, here, openSessionsTab, settle, show, showNew, wait } from "./shots.ts";
 
 /** A feature waiting on the agent: the fixture's CLI TUIs. */
 export const AGENT = "/f/2026-10-12-cli-tuis";
@@ -131,7 +131,7 @@ export async function takeImplementation(each: Each, adapter: FakeAdapter, repo:
 
 async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
   // Two chats: one replied to, one whose action auto mode blocked.
-  await show(first, "/new", "Talk to the agent in the main checkout, like plain Claude Code.");
+  await showNew(first);
   let id = await send(adapter, first, "Why is CI slow on WebKit?");
   adapter.emit({ id, type: "accepted" });
   adapter.emit({
@@ -142,7 +142,7 @@ async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
   await first.waitForURL(/\/sessions\//);
   const replied = here(first);
   await each("chat", ({ page }) => show(page, replied, "draws without a GPU"));
-  await show(first, "/new", "Talk to the agent in the main checkout, like plain Claude Code.");
+  await showNew(first);
   id = await send(adapter, first, "Tag v0.3.0 and push the tag.");
   adapter.emit({ id, type: "accepted" });
   adapter.emit({
@@ -165,9 +165,7 @@ async function takeChats(each: Each, first: Page, adapter: FakeAdapter) {
   await first.waitForURL(/\/sessions\//);
   const chat = here(first);
   await each("chat-blocked", ({ page }) => show(page, chat, "Allow and retry"));
-  await each("chat-new", ({ page }) =>
-    show(page, "/new", "Talk to the agent in the main checkout, like plain Claude Code."),
-  );
+  await each("chat-new", ({ page }) => showNew(page));
 }
 
 async function takeWorking(each: Each, first: Page, adapter: FakeAdapter) {
