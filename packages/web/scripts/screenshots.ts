@@ -487,11 +487,8 @@ async function takeStories(each: Each) {
     await settle(page);
   });
   await each("story-page", async ({ page }) => {
-    await show(
-      page,
-      `/f/${STORY_FEATURE}/storybook?story=${encodeURIComponent(`${STORIES_FILE}#Dragging`)}`,
-      "Story",
-    );
+    const href = `/f/${STORY_FEATURE}/storybook?story=${encodeURIComponent(STORIES_FILE)}%23Dragging`;
+    await show(page, href, "Story");
     await page
       .frameLocator('iframe[title^="Dragging, "]')
       .getByText("Clicked 0 times")
