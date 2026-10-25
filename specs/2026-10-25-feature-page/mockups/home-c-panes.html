@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>C · Today's Home in panes</title>
+    <link rel="stylesheet" href="proto.css" />
+    <style>
+      .steps {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        text-align: center;
+        gap: 4px;
+      }
+      .steps div {
+        flex: 1;
+        border-top: 3px solid var(--s2);
+        padding-top: 6px;
+      }
+      .steps .d {
+        border-color: var(--green);
+      }
+      .steps .c {
+        border-color: var(--mauve);
+        color: var(--mauve);
+        font-weight: 700;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 22px;
+      }
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 22px;
+      }
+      .row a {
+        color: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app side">
+      <nav class="shell">
+        <div class="logo">⣿ Uraeda <span class="dim">todo-app</span></div>
+        <div class="btns">
+          <span class="btn fill">＋ New</span><span class="btn quiet">✎ Note</span>
+        </div>
+        <div class="pane">
+          <span class="t">Needs you · 1</span>
+          <div class="item">◆ Keyboard shortcuts<small>Questions · 6, 20 min</small></div>
+        </div>
+        <div class="pane">
+          <span class="t">In progress · 3</span>
+          <div class="item on">● Recurring tasks<small>Build · task 5 of 9</small></div>
+          <div class="item">◆ Keyboard shortcuts<small>Questions</small></div>
+          <div class="item">○ Due-date typo<small>Fix</small></div>
+        </div>
+      </nav>
+
+      <main class="main">
+        <div class="tabline" role="navigation" aria-label="Recurring tasks">
+          <span class="name">Recurring tasks</span>
+          <a class="tab on" href="#" aria-current="page">⌂ Home</a>
+          <a class="tab" href="home-a-spec.html">✎ Proposal</a>
+          <a class="tab" href="#">? Questions 01</a>
+          <a class="tab" href="home-a-spec.html">▤ Spec</a>
+          <a class="tab" href="#">☰ Plan <span class="dim">5/9</span></a>
+          <a class="tab" href="#"><span class="dot run"></span> Session</a>
+          <span class="fill"></span>
+          <a class="tab" href="#">⋯ More</a>
+        </div>
+        <div class="page">
+          <div class="meta">Feature · started Oct 6 · branch 2026-10-06-recurring-tasks</div>
+
+          <div class="stack">
+            <div class="pane">
+              <span class="t">Stages</span>
+              <div class="steps">
+                <div class="d">✓ Proposal<br /><span class="dim">20 min</span></div>
+                <div class="d">✓ Questions<br /><span class="dim">3 h 10</span></div>
+                <div class="d">✓ Spec<br /><span class="dim">1 h 40</span></div>
+                <div class="d">✓ Plan<br /><span class="dim">18 min</span></div>
+                <div class="c">◉ Build<br /><span class="dim">since 14:40</span></div>
+                <div>Pull request</div>
+                <div>Merged</div>
+              </div>
+            </div>
+            <div class="grid">
+              <div class="pane active">
+                <span class="t">Next</span>
+                <div class="sub">The agent is building</div>
+                <div class="big">Task 5 of 9</div>
+                <div class="bar"><i style="width: 52%"></i></div>
+              </div>
+              <div class="pane">
+                <span class="t">Agent</span>
+                <div><span class="green">●</span> Working · 6 min</div>
+                <div class="dim">2 sub-agents</div>
+              </div>
+            </div>
+            <div class="tiles">
+              <div class="pane">
+                <span class="t">Lines</span><span class="big green">+1,204</span>
+                <span class="red">−310</span>
+                <div class="dim">23 files</div>
+              </div>
+              <div class="pane">
+                <span class="t">Tokens</span><span class="big">5.2 M</span>
+                <div class="dim">in · 113 k out</div>
+              </div>
+              <div class="pane">
+                <span class="t">Agent time</span><span class="big">2 h 51</span>
+                <div class="dim">of 6 h 02 elapsed</div>
+              </div>
+            </div>
+            <div class="pane">
+              <span class="t">Files · 7</span>
+              <div class="row">
+                <a href="#">✎ Proposal</a><span class="badge green">committed</span>
+              </div>
+              <div class="row">
+                <a href="#">? Questions 01</a><span class="badge green">answered</span>
+              </div>
+              <div class="row"><a href="#">▤ Spec</a><span class="badge green">approved</span></div>
+              <div class="row"><a href="#">☰ Plan</a><span class="badge mauve">5 of 9</span></div>
+              <div class="row"><span class="dim">Discovery 01 · Data model · Rulings</span></div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="col">
+        <div class="stack">
+          <div class="pane">
+            <span class="t">Sessions · 2</span>
+            <div class="row">
+              <span><span class="green">●</span> Build the plan</span
+              ><span class="dim">working</span>
+            </div>
+            <div class="row">
+              <span><span class="dim">○</span> Discovery and spec</span
+              ><span class="dim">Oct 6</span>
+            </div>
+            <div style="margin-top: 8px"><span class="btn quiet">＋ New session</span></div>
+          </div>
+          <div class="pane">
+            <span class="t">Links</span>
+            <div class="row">
+              <span class="k">branch</span><span>2026-10-06-recurring-tasks</span>
+            </div>
+            <div class="row"><span class="k">worktree</span><span>.worktrees/…tasks</span></div>
+            <div class="row">
+              <span class="k">pull request</span><span class="dim">not yet</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div class="statusline">
+      <span>] fold column</span><span class="r">1 need you · 1 running</span>
+    </div>
+    <div class="note">
+      C · today's page in panes: the stages as a row, Next beside the agent, the figures as tiles,
+      and the files, with the sessions and links in the column.
+    </div>
+  </body>
+</html>

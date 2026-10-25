@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>B · Home with a process plan, files, and activity</title>
+    <link rel="stylesheet" href="proto.css" />
+    <style>
+      .plan {
+        position: relative;
+        padding: 34px 6px 4px;
+      }
+      .line {
+        position: absolute;
+        left: 7%;
+        right: 7%;
+        top: 58px;
+        border-top: 2px solid var(--s2);
+      }
+      .line i {
+        position: absolute;
+        left: 0;
+        top: -2px;
+        width: 67%;
+        border-top: 2px solid var(--green);
+      }
+      .nodes {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        position: relative;
+        text-align: center;
+        font-size: 13px;
+      }
+      .node .m {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        background: var(--base);
+        border: 2px solid var(--s2);
+        transform: rotate(45deg);
+        margin: 8px 0 10px;
+      }
+      .node.done .m {
+        border-color: var(--green);
+        background: var(--green);
+      }
+      .node.gate .m {
+        border-color: var(--peach);
+      }
+      .node.done.gate .m {
+        background: var(--peach);
+      }
+      .node.cur .m {
+        border-color: var(--mauve);
+        background: var(--mauve);
+      }
+      .node .lab {
+        font-weight: 700;
+      }
+      .node .w {
+        color: var(--dim);
+        font-size: 12px;
+      }
+      .node .g {
+        color: var(--peach);
+        font-size: 11px;
+        height: 16px;
+        margin-top: -24px;
+        margin-bottom: 8px;
+      }
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+      .row a {
+        color: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app side">
+      <nav class="shell">
+        <div class="logo">⣿ Uraeda <span class="dim">todo-app</span></div>
+        <div class="btns">
+          <span class="btn fill">＋ New</span><span class="btn quiet">✎ Note</span>
+        </div>
+        <div class="pane">
+          <span class="t">Needs you · 1</span>
+          <div class="item">◆ Keyboard shortcuts<small>Questions · 6, 20 min</small></div>
+        </div>
+        <div class="pane">
+          <span class="t">In progress · 3</span>
+          <div class="item on">● Recurring tasks<small>Build · task 5 of 9</small></div>
+          <div class="item">◆ Keyboard shortcuts<small>Questions</small></div>
+          <div class="item">○ Due-date typo<small>Fix</small></div>
+        </div>
+      </nav>
+
+      <main class="main">
+        <div class="tabline" role="navigation" aria-label="Recurring tasks">
+          <span class="name">Recurring tasks</span>
+          <a class="tab on" href="#" aria-current="page">⌂ Home</a>
+          <a class="tab" href="home-a-spec.html">✎ Proposal</a>
+          <a class="tab" href="#">? Questions 01</a>
+          <a class="tab" href="home-a-spec.html">▤ Spec</a>
+          <a class="tab" href="#">☰ Plan <span class="dim">5/9</span></a>
+          <a class="tab" href="#"><span class="dot run"></span> Session</a>
+          <span class="fill"></span>
+          <a class="tab" href="#">⋯ More</a>
+        </div>
+        <div class="page">
+          <div class="meta">Feature · started Oct 6 · branch 2026-10-06-recurring-tasks</div>
+
+          <div class="stack">
+            <div class="pane">
+              <span class="t">Process · ◆ your gates</span>
+              <div class="plan">
+                <div class="line"><i></i></div>
+                <div class="nodes">
+                  <div class="node done gate">
+                    <div class="g">you write</div>
+                    <span class="m"></span>
+                    <div class="lab">Proposal</div>
+                    <div class="w">20 min</div>
+                  </div>
+                  <div class="node done gate">
+                    <div class="g">you answer</div>
+                    <span class="m"></span>
+                    <div class="lab">Questions</div>
+                    <div class="w">3 h 10</div>
+                  </div>
+                  <div class="node done gate">
+                    <div class="g">you approve</div>
+                    <span class="m"></span>
+                    <div class="lab">Spec</div>
+                    <div class="w">1 h 40</div>
+                  </div>
+                  <div class="node done">
+                    <div class="g"></div>
+                    <span class="m"></span>
+                    <div class="lab">Plan</div>
+                    <div class="w">18 min</div>
+                  </div>
+                  <div class="node cur">
+                    <div class="g"></div>
+                    <span class="m"></span>
+                    <div class="lab"><span class="mauve">Build</span></div>
+                    <div class="w">since 14:40</div>
+                  </div>
+                  <div class="node gate">
+                    <div class="g">you review</div>
+                    <span class="m"></span>
+                    <div class="lab"><span class="dim">Pull request</span></div>
+                    <div class="w"></div>
+                  </div>
+                  <div class="node">
+                    <div class="g"></div>
+                    <span class="m"></span>
+                    <div class="lab"><span class="dim">Merged</span></div>
+                    <div class="w"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="pane active next">
+              <span class="t">Next</span>
+              <div class="sub">The agent is building</div>
+              <div class="big">Task 5 of 9: undo restores the previous due date</div>
+              <div class="bar"><i style="width: 52%"></i></div>
+              <div class="dim" style="font-size: 13px">
+                Working for 6 min · 2 sub-agents · nothing waits on you
+              </div>
+            </div>
+
+            <div class="two">
+              <div class="pane">
+                <span class="t">Files · 7</span>
+                <div class="row">
+                  <a href="#">✎ Proposal</a><span class="badge green">committed</span>
+                </div>
+                <div class="row">
+                  <a href="#">⌕ Discovery 01</a><span class="badge green">committed</span>
+                </div>
+                <div class="row">
+                  <a href="#">? Questions 01</a><span class="badge green">answered</span>
+                </div>
+                <div class="row">
+                  <a href="#">▤ Spec</a><span class="badge green">approved</span>
+                </div>
+                <div class="row">
+                  <a href="#">⛁ Data model</a><span class="badge green">committed</span>
+                </div>
+                <div class="row">
+                  <a href="#">☰ Plan</a><span class="badge mauve">5 of 9</span>
+                </div>
+                <div class="row"><a href="#">⚖ Rulings</a><span class="badge sub">4</span></div>
+              </div>
+              <div class="pane">
+                <span class="t">Activity</span>
+                <div class="row"><span>feat: tasks 3–4</span><span class="dim">14:58</span></div>
+                <div class="row"><span>plan auto-approved</span><span class="dim">14:40</span></div>
+                <div class="row">
+                  <span class="peach">you approved the spec</span><span class="dim">14:20</span>
+                </div>
+                <div class="row"><span>spec revision 2</span><span class="dim">13:55</span></div>
+                <div class="row">
+                  <span class="peach">you answered round 01</span><span class="dim">12:40</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="col">
+        <div class="stack">
+          <div class="pane">
+            <span class="t">Sessions · 2</span>
+            <div class="row">
+              <span><span class="green">●</span> Build the plan</span
+              ><span class="dim">working</span>
+            </div>
+            <div class="row">
+              <span><span class="dim">○</span> Discovery and spec</span
+              ><span class="dim">Oct 6</span>
+            </div>
+            <div style="margin-top: 8px"><span class="btn quiet">＋ New session</span></div>
+          </div>
+          <div class="pane">
+            <span class="t">Produced so far</span>
+            <div class="row">
+              <span class="k">lines</span
+              ><span><span class="green">+1,204</span> <span class="red">−310</span></span>
+            </div>
+            <div class="row"><span class="k">files</span><span>23</span></div>
+            <div class="row"><span class="k">tokens</span><span>5.2 M in · 113 k out</span></div>
+            <div class="row"><span class="k">agent time</span><span>2 h 51 min</span></div>
+            <div class="row"><span class="k">elapsed</span><span>6 h 02 min</span></div>
+          </div>
+          <div class="pane">
+            <span class="t">Links</span>
+            <div class="row">
+              <span class="k">branch</span><span>2026-10-06-recurring-tasks</span>
+            </div>
+            <div class="row"><span class="k">worktree</span><span>.worktrees/…tasks</span></div>
+            <div class="row">
+              <span class="k">pull request</span><span class="dim">not yet</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+    <div class="statusline">
+      <span>] fold column</span><span class="r">1 need you · 1 running</span>
+    </div>
+    <div class="note">
+      B · a horizontal process plan with your gates marked, as the blueprint direction drew it, then
+      Next, then the files and a feed of what happened, side by side.
+    </div>
+  </body>
+</html>
