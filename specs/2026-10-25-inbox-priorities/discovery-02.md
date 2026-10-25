@@ -134,8 +134,9 @@ Criteria come from [the proposal](proposal.md), [UI layout](/specs/decisions/ui-
 ### The overlay
 
 How a single line is shown over the page. All three keep the URL, Back to close, Previous and Next,
-and a sheet on narrow screens. Prototypes: [a dialog](mockups/overlay-a-dialog.html),
-[a large float](mockups/overlay-b-large-float.html), [a drawer](mockups/overlay-c-drawer.html).
+and a sheet on narrow screens. Prototypes: [a dialog](mockups/overlay-a-dialog.html), a large float
+(`mockups/overlay-b-large-float.html`, deleted), a drawer (`mockups/overlay-c-drawer.html`,
+deleted).
 
 | Option                                        | Page behind it  | Room for a long note, draft, images | Reuses the shared overlay |
 | --------------------------------------------- | --------------- | ----------------------------------- | ------------------------- |

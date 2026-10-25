@@ -180,10 +180,10 @@ column about 170 px.
 
 The proposal asks for several proposals of how the inbox and the priorities differ, since the
 priorities are opinionated and hierarchical and the inbox is freeform. The round compares three
-inbox looks against one priorities look: [panes by category](mockups/inbox-a-panes.html),
-[the file as a buffer](mockups/inbox-b-buffer.html), and
-[a category index with one category open](mockups/inbox-c-index.html), against
-[four columns](mockups/priorities-kanban.html).
+inbox looks against one priorities look: [panes by category](mockups/inbox-a-panes.html), the file
+as a buffer (`mockups/inbox-b-buffer.html`, deleted), and a category index with one category open
+(`mockups/inbox-c-index.html`, deleted), against four columns (`mockups/priorities-kanban.html`,
+deleted).
 
 ### "Ongoing, Now, Next, and Later" leaves Blocked out
 
