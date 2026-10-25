@@ -17,7 +17,7 @@ export const WATCHDOG_MS = 30 * 60_000;
  * closed process still running this long after gets SIGTERM, and SIGKILL as long after.
  */
 export const TERMINATE_AFTER_MS = 10_000;
-/** A tool's output is cut to this many characters. */
+/** A tool's output, and a thought's text, are cut to this many characters. */
 export const OUTPUT_LIMIT = 4000;
 export { MAX_IMAGES } from "../limits.ts";
 

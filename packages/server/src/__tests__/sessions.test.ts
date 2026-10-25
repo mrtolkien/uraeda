@@ -4,6 +4,7 @@ import { expect, test, vi } from "vite-plus/test";
 import { chatImages } from "../attach.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
+import { OUTPUT_LIMIT } from "../runner/session-state.ts";
 import { ChatImages } from "../runner/images.ts";
 import { addChange, byId, byIdAt, type Data, fixture, git, mutate, testServer } from "./helpers.ts";
 
@@ -716,6 +717,14 @@ test("a sub-agent's thought has no start to time it: its length is 0", async () 
   } finally {
     vi.useRealTimers();
   }
+});
+
+test("a thought's text is cut to the tool output's limit", async () => {
+  const server = await testServer();
+  const session = await send(server, { folder: AGENT, text: "Write the spec" });
+  server.adapter.emit({ text: "x".repeat(OUTPUT_LIMIT + 10), type: "thought" });
+  const [thought] = await thoughtsOf(server, session);
+  expect(thought?.text).toBe("x".repeat(OUTPUT_LIMIT));
 });
 
 test("each call of the main agent restarts the activity's time", async () => {

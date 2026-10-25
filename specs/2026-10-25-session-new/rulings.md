@@ -176,3 +176,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   still loses the drag when the storage is refused, and keeps two meanings of the state.
 - **If wrong**: the default `read` of `useFollowedWidth` and its drawn width.
 - **Where**: fix 1 of tasks 1-3's review, `packages/web/src/layout/followedWidth.ts`.
+
+## R16: A thought's text is cut to the tool output's limit
+
+- **Decision**: a thought's text is cut to `OUTPUT_LIMIT`, 4,000 characters, as a tool call's output
+  is, before it is cached.
+- **Rationale**: a harness may give a thinking block's text, and a block can be long; every item is
+  kept in the cache and sent with its page of items. A row's unfolded text (US1, scenario 3) then
+  shows its first 4,000 characters, as a tool call's output does.
+- **Alternatives considered**: no limit, which lets one block grow the cache and each page of items
+  without bound; a limit of its own, a second number for the same need.
+- **If wrong**: the limit's one use in `#thought`.
+- **Where**: fix 6 of tasks 1-3's review, `packages/server/src/runner/transcript.ts`.
