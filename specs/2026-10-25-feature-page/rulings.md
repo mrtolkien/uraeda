@@ -91,3 +91,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   does not read.
 - **If wrong**: the core would send them with the plan's items, and the rows add them.
 - **Where**: task 6.
+
+## R9: Tasks validate with `vp check` and their tests, not `vp run fast`
+
+- **Decision**: a task's validation step runs `vp check` and the test files it adds or touches;
+  `vp run ready` runs at the end of each wave and before the push.
+- **Rationale**: `vp run fast` stops at `specs:check` on three broken links of
+  `specs/done/2026-10-20-layout-look.md` that were there before this branch, so it cannot say
+  whether a task is green.
+- **Alternatives considered**: fixing the three links: rejected, a failure already there is reported
+  in the pull request, not fixed in passing.
+- **If wrong**: a check `fast` would run on a task is run by `ready` at the wave's end.
+- **Where**: every task's validation step.
