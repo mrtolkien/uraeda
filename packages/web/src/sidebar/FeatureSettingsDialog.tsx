@@ -8,8 +8,11 @@ import { useFateClient } from "react-fate";
 import { refusal } from "../errors.ts";
 import { Overlay } from "../layout/Overlay.tsx";
 import { FeatureView } from "../views.ts";
-import type { Feature } from "./cards.ts";
+import type { Feature as Card } from "./cards.ts";
 import { FeatureSettingsForm } from "./FeatureSettings.tsx";
+
+/** What the settings read of a feature: its page has these as well as the shell's card. */
+type Feature = Pick<Card, "folder" | "label" | "slug">;
 
 /** Opens a feature's settings. */
 const OpenContext = createContext<(feature: Feature) => void>(() => {});

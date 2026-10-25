@@ -169,3 +169,21 @@ export function markDropped(session: string) {
 export function useDropped(session: string): boolean {
   return useSyncExternalStore(subscribe, () => dropped.has(session));
 }
+
+/** The key Home's notes are kept under, as a session's are kept under its ID: what a drop from a feature's page says. */
+export const HOME_NOTES = "home";
+
+/** Removes the line at `index` of the notes kept under `key`, once the human dismissed it. */
+export function dismissNote(key: string, index: number) {
+  notes.set(
+    key,
+    (notes.get(key) ?? []).filter((_, at) => at !== index),
+  );
+  changed();
+}
+
+/** Forgets the notes of every session, and Home's: a test's lines do not reach the next. */
+export function forgetNotes() {
+  notes.clear();
+  changed();
+}

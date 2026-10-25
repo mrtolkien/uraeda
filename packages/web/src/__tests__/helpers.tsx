@@ -18,6 +18,7 @@ import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
 import { fateClients } from "../clients.ts";
 import { forgetUnsaved } from "../fields/unsaved.ts";
+import { forgetNotes } from "../offers.ts";
 import { forgetUndoToasts } from "../layout/useUndoToast.ts";
 import { forgetSignedOut } from "../sign-in/signedOut.ts";
 
@@ -79,6 +80,7 @@ beforeEach(() => {
   }
   // The unsaved text of the last test, in memory, goes with its storage.
   forgetUnsaved();
+  forgetNotes();
   // A page signed out in the last test loads signed in again.
   forgetSignedOut();
 });
