@@ -13,19 +13,10 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import {
-  type ComponentProps,
-  type ReactNode,
-  type RefObject,
-  createContext,
-  use,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ComponentProps, type ReactNode, createContext, use, useId, useRef } from "react";
 import { SinceSign, useSinceTitle } from "../sinceMarks.tsx";
 import { useScrollMargin } from "./scrollMargin.ts";
+import { useActionsRoom } from "./useActionsRoom.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 /** Whether a pane is inside another: there, it keeps its borders on the phone too. */
@@ -274,48 +265,6 @@ function looks(isActive: boolean, tone: PaneTone | undefined, isTinted: boolean)
     : ([border, ink] as const);
 }
 
-/** The least room, in px, a title keeps beside the actions: less, and it goes under them. */
-const TITLE_ROOM = 160;
-
-/**
- * Where the title goes with the actions in the top border: beside them, wrapping before them, or,
- * where they leave it less than `TITLE_ROOM`, under them. Undefined without actions, or until
- * measured.
- */
-function useActionsRoom(
-  pane: RefObject<HTMLElement | null>,
-  actions: RefObject<HTMLDivElement | null>,
-  hasActions: boolean,
-) {
-  const [room, setRoom] = useState<{ height: number; under: boolean; width: number }>();
-  useLayoutEffect(() => {
-    const own = pane.current;
-    const box = actions.current;
-    if (!hasActions || !own || !box) {
-      return;
-    }
-    const measure = () => {
-      const width = Math.ceil(box.getBoundingClientRect().width);
-      const height = Math.ceil(box.getBoundingClientRect().height);
-      const under = own.clientWidth - width < TITLE_ROOM;
-      setRoom((known) =>
-        known?.width === width && known.height === height && known.under === under
-          ? known
-          : { height, under, width },
-      );
-    };
-    measure();
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-    const observer = new ResizeObserver(measure);
-    observer.observe(own);
-    observer.observe(box);
-    return () => observer.disconnect();
-  }, [actions, hasActions, pane]);
-  return hasActions ? room : undefined;
-}
-
 /** The title's room by the actions: the width it keeps free beside them, or its place under them. */
 function besideActions(room: ReturnType<typeof useActionsRoom>) {
   if (!room) {
@@ -465,20 +414,9 @@ export function Pane({
         tabIndex={id === undefined ? undefined : -1}
         xstyle={[styles.title, isOpen && styles.openOnPhoneTitle, tint && TINTS[tint], ink, beside]}
       >
-        {fold ? (
-          <Button
-            aria-expanded={fold.isOpen}
-            label={label}
-            onClick={() => fold.onOpenChange(!fold.isOpen)}
-            size="sm"
-            variant="ghost"
-            xstyle={styles.foldTitle}
-          >
-            {name}
-          </Button>
-        ) : (
-          name
-        )}
+        <TitleWords fold={fold} label={label}>
+          {name}
+        </TitleWords>
       </Heading>
       {actions !== undefined && (
         <div
@@ -490,6 +428,33 @@ export function Pane({
       )}
       <PaneBody fold={fold}>{children}</PaneBody>
     </section>
+  );
+}
+
+/** The title's words, or, in a pane that folds, the button that opens and closes it. */
+function TitleWords({
+  children,
+  fold,
+  label,
+}: {
+  children: ReactNode;
+  fold?: PaneFold;
+  label: string | undefined;
+}) {
+  if (!fold) {
+    return children;
+  }
+  return (
+    <Button
+      aria-expanded={fold.isOpen}
+      label={label}
+      onClick={() => fold.onOpenChange(!fold.isOpen)}
+      size="sm"
+      variant="ghost"
+      xstyle={styles.foldTitle}
+    >
+      {children}
+    </Button>
   );
 }
 
