@@ -55,6 +55,13 @@ const styles = stylex.create({
     paddingInlineStart: spacingVars["--spacing-1"],
     position: "relative",
   },
+  // The room `selectable` takes before a block's text, without its tap or its tint.
+  room: {
+    borderInlineStartColor: "transparent",
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: spacingVars["--spacing-1"],
+    paddingInlineStart: spacingVars["--spacing-1"],
+  },
   // On narrow screens, the block takes no room for its bar, which a selected block draws in the gap
   // before its text, as a list's marker hangs in the page's margin: the text keeps the paragraphs'
   // edge and its whole width.
@@ -239,6 +246,26 @@ export function Selectable({
       </div>
       <After>{selection?.after?.(block)}</After>
     </>
+  );
+}
+
+/**
+ * Blocks drawn without `selection`, read as they are, where the same page drawn for a review selects
+ * them, like a plan's panes: on wide screens, they take the room a selectable block takes for its
+ * bar, so their text sits where the review's does.
+ */
+export function SelectionRoom({
+  children,
+  selection,
+}: {
+  children: ReactNode;
+  selection: Selection | undefined;
+}) {
+  const isNarrowScreen = isNarrow(useWidthClass());
+  return selection || isNarrowScreen ? (
+    children
+  ) : (
+    <div {...stylex.props(styles.room)}>{children}</div>
   );
 }
 

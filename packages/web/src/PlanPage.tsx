@@ -21,7 +21,7 @@ import { ReviewEnd, ReviewHost, ReviewIntro, useReview } from "./review/useRevie
 import { type PageSession, usePageSession } from "./spec/pageSession.ts";
 import { SpecColumn } from "./spec/SpecColumn.tsx";
 import { Contents, type Entry } from "./spec/SpecContents.tsx";
-import { Selectable, type Selection } from "./Selection.tsx";
+import { Selectable, type Selection, SelectionRoom } from "./Selection.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import { SinceWords, wordCount } from "./sinceMarks.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
@@ -62,7 +62,9 @@ function LeadPane({ drawing, run }: { drawing: Drawing; run: OpeningRun & { kind
     ) : undefined;
   return (
     <Pane id={leadId(run.label)} isOpenOnPhone title={run.label}>
-      <Blocks {...drawing} ids={[run.block]} override={override} />
+      <SelectionRoom selection={drawing.selection}>
+        <Blocks {...drawing} ids={[run.block]} override={override} />
+      </SelectionRoom>
     </Pane>
   );
 }
@@ -93,10 +95,10 @@ function HeadingLine({ heading, selection }: { heading: Block; selection?: Selec
 function SectionPane({ drawing, section }: { drawing: Drawing; section: PlanSection }) {
   const { heading, ids, task } = section;
   const blocks = (
-    <>
+    <SelectionRoom selection={drawing.selection}>
       <HeadingLine heading={heading} selection={drawing.selection} />
       {ids.length > 0 && <Blocks {...drawing} ids={ids} />}
-    </>
+    </SelectionRoom>
   );
   if (!task) {
     return (
