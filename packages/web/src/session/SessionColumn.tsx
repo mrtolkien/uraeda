@@ -12,7 +12,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useEffect, useId, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
 import { useFateClient, useView } from "react-fate";
 import type { Session } from "uraeda-server/fate";
 import { ColumnStatusLine } from "../layout/ColumnStatusLine.tsx";
@@ -32,7 +32,7 @@ import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { openOverlayAt } from "../layout/useBackCloses.ts";
 import { useSheetTab } from "../layout/useSheetTab.ts";
 import { redirect, useSearch } from "../routes.tsx";
-import { useSession } from "../sessionData.ts";
+import { useSession, useTurn } from "../sessionData.ts";
 import { ActivityPanel, NoCall } from "./ActivityPanel.tsx";
 import { ChangesPanel, fileCount } from "./ChangesPanel.tsx";
 import { PlanProgress, ProgressChip } from "./PlanProgress.tsx";
@@ -119,23 +119,31 @@ function useSessionRecord(session: string | undefined) {
 }
 
 /**
- * Takes the stretch out of the address, in place, once the session's `latest` turn changes, as a
- * message the human sends starts one: the Activity follows the latest calls again, rather than
- * keeping to a stretch of a run before.
+ * Takes the stretch out of the address, in place, once the turn `turn`, a later one than `first`,
+ * the latest as the page opened, runs: the Activity follows the latest calls again, rather than
+ * keeping to a stretch of a run before. A turn queued behind the running one waits until it runs.
  */
-function useStretchEndsWithTurn(latest: string | undefined) {
-  const seen = useRef(latest);
+function StretchEndsWithTurn({ first, turn }: { first: string; turn: string }) {
+  const running = useTurn(turn, true)?.state === "running";
   useEffect(() => {
-    const before = seen.current;
-    seen.current = latest;
     const search = new URLSearchParams(window.location.search);
-    if (before === undefined || before === latest || !search.has(STRETCH_PARAMETER)) {
+    if (turn === first || !running || !search.has(STRETCH_PARAMETER)) {
       return;
     }
     search.delete(STRETCH_PARAMETER);
     const query = search.toString();
     redirect(`${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
-  }, [latest]);
+  }, [first, running, turn]);
+  return null;
+}
+
+/** The session's latest turn as the page first read it, kept as later turns start. */
+function useFirstLatest(latest: string | undefined) {
+  const [first, setFirst] = useState(latest);
+  if (first === undefined && latest !== undefined) {
+    setFirst(latest);
+  }
+  return first ?? latest;
 }
 
 /**
@@ -281,7 +289,8 @@ export function SessionColumn({ content, folder, session }: Of & { content: Reac
   const wide = !isNarrow(useWidthClass());
   useStretchUnfolds(column.setShown, wide);
   const record = useSessionRecord(session);
-  useStretchEndsWithTurn(record?.turns.at(-1));
+  const latest = record?.turns.at(-1);
+  const first = useFirstLatest(latest);
   const panels = sessionPanels({
     asked: useAskedTab(),
     folder,
@@ -304,6 +313,11 @@ export function SessionColumn({ content, folder, session }: Of & { content: Reac
         panels={panels}
       />
       {!wide && <PhoneParts folder={folder} panels={panels} session={session} />}
+      {latest !== undefined && first !== undefined && (
+        <Section>
+          <StretchEndsWithTurn first={first} key={latest} turn={latest} />
+        </Section>
+      )}
     </>
   );
 }

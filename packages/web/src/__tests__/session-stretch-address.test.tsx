@@ -68,3 +68,24 @@ test("on the phone, the status line's Activity opens the sheet at the latest, no
 
   await waitFor(() => expect(window.location.search).toBe("?tab=activity"));
 });
+
+test("a turn queued behind the running one keeps the stretch until it runs", async () => {
+  const { chat, fake, key, repo } = await chatWithStretch();
+  const running = addRun(fake, chat, [asked("Again."), read("src/b.ts")], "running");
+  await renderPage(`/sessions/${chat}?tab=activity&stretch=${key}`, repo, { agent: fake });
+  await screen.findByRole("region", { name: "Activity" });
+
+  const queued = fake.sessions.cache.addTurn({
+    allowed: null,
+    kind: "chat",
+    sessionId: chat,
+    state: "queued",
+    step: null,
+    trigger: null,
+  });
+  fake.sessions.cache.appendItem(queued, asked("Then this."));
+
+  await refreshUntil(() => expect(screen.getByText("Then this.")).toBeTruthy());
+  expect(window.location.search).toBe(`?tab=activity&stretch=${key}`);
+  fake.sessions.cache.endTurn(running, { state: "done" });
+});
