@@ -11,6 +11,7 @@ import {
   atRepo,
   atSize,
   charactersAcross,
+  checkPage,
   drawn,
   nowHoldsNext,
   reload,
@@ -319,5 +320,14 @@ describe("on the phone", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(window.location.pathname).toBe(atRepo("/priorities"));
     await isSelected(NEXT);
+  });
+
+  test("a drafted priority's sheet cuts none of its words", async () => {
+    await show("/priorities", AFTER);
+    await userEvent.click(card(AFTER));
+
+    const sheet = await overlay();
+    await within(sheet).findByRole("button", { name: "Start a change from this draft" });
+    checkPage(sheet);
   });
 });
