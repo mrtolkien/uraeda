@@ -428,6 +428,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
     wide as the screen, is within a pixel of the room its parent gives it, so only the insets around
     the frame narrow it, whatever the theme's sizes. Tighter than the slack: a frame scaled to 95%
     of its stage fails them.
+  - "a principle's address shows its heading whole" (desktop, `scroll-target.test.tsx`) guards that
+    a jump shows its heading whole: III's heading ended 9 px above the reader's top. A real defect
+    the wider inset only revealed: the jump scrolled while the reading font, Inter, was still
+    loading; its swap rewrapped the text above the heading, a rule of principle II a line shorter in
+    Inter than in the fallback font at the inset's narrower width, and the browser's anchoring held
+    the block around the gap above the heading, not the heading. Fixed in the code: the decisions
+    page's jumps (`ConstitutionReader`, `DecisionDetail`, `BranchDecision`) go through `jumpTo`
+    (`keepPlace.ts`), which keeps the target in place until the fonts load, unless the reader
+    scrolls. The test is unchanged.
 - **Rationale**: the wider inset is the human's request, for frames that felt too tight; a test that
   fails because of it is changed, and a text it cuts is a defect.
 - **Alternatives considered**: a wider column, 272 px, which changes the column's approved 256 px
@@ -435,4 +444,5 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   px, a fixed number again.
 - **If wrong**: `--pane-inset` of `nav` in `packages/web/src/shell/Column.tsx`, and `offTheirRoom`
   in `packages/web/src/__browser__/story-embed.test.tsx`.
-- **Where**: a fix on top of main, `packages/web/src/layout/Pane.tsx`.
+- **Where**: a fix on top of main, `packages/web/src/layout/Pane.tsx`, and `jumpTo` in
+  `packages/web/src/keepPlace.ts`.

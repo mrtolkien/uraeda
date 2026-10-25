@@ -2,6 +2,7 @@
 // on its own, but WebKit's, in the tests, held only on the first page drawn, and let go once the
 // page's content was replaced, as each page change does (R25). So the page puts it back itself,
 // once the change is drawn: where the browser already did, nothing is left to move.
+import { scroller } from "./following.ts";
 
 /** Resolves on the next animation frame. */
 export const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
@@ -168,3 +169,18 @@ export const topOf = (element: Element) => readerOf(tops, element, "top");
 
 /** The bottom of an element on screen, in px, NaN once it left the page: a story frame's place. */
 export const bottomOf = (element: Element) => readerOf(bottoms, element, "bottom");
+
+/**
+ * Scrolls to `element`'s top, past its scroll margin, and keeps it there while the fonts its page
+ * asked for load. A jump drawn in the fallback font is taken at once, and the font's swap rewraps
+ * the text above it: lines fewer or more would move the target, and the browser's anchoring holds
+ * the block around the gap above it, not the target. The reader's own scroll meanwhile stays theirs.
+ */
+export function jumpTo(element: Element) {
+  element.scrollIntoView?.({ block: "start" });
+  // The jump's layout asked for the fonts: `ready` waits for them. Not all test DOMs have fonts.
+  const fonts = (document as Partial<Document>).fonts;
+  if (fonts?.status === "loading") {
+    void keepPlace(topOf(element), async () => void (await fonts.ready), scroller(element));
+  }
+}

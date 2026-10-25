@@ -13,6 +13,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useLayoutEffect } from "react";
 import type { Block } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
+import { jumpTo } from "../keepPlace.ts";
 import { useHash } from "../routes.tsx";
 import { decisionIcon } from "../theme/icons.ts";
 import { BranchChanges } from "./BranchChange.tsx";
@@ -77,7 +78,10 @@ export function DecisionDetail({ decision }: { decision: LedgerDecision }) {
   const hash = decodeURIComponent(useHash().slice(1));
   useLayoutEffect(() => {
     if (hash) {
-      window.document.getElementById(hash)?.scrollIntoView?.({ block: "start" });
+      const target = window.document.getElementById(hash);
+      if (target) {
+        jumpTo(target);
+      }
     }
   }, [hash, decision.name]);
   // The title is the pane's heading already.
