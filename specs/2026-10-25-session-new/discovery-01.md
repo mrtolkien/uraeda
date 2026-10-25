@@ -141,7 +141,7 @@ keeps.
 - A kind of information has one component on every page
   ([UI coherence](../decisions/ui-coherence.md)): changed files and tasks now draw in
   `SessionAside.tsx` only, but the feature page draws its own progress and sessions. The next
-  feature, [feature page](../drafts/feature-page.md), will want the same panes.
+  feature, [feature page](../2026-10-25-feature-page/proposal.md), will want the same panes.
 - Mounted rows are bounded, and folded content is not mounted
   ([UI behaviour](../decisions/ui-behaviour.md)): any activity log in a tab must follow it.
 - A feature's session may sit beside documents in the right column, at least 400 px
