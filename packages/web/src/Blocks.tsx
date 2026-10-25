@@ -3,22 +3,23 @@ import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
-import { Text } from "@astryxdesign/core/Text";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useContext, useLayoutEffect, useMemo, useRef } from "react";
+import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
 import type { Block, Document } from "uraeda-binding";
 import { proseStyles } from "./Prose.tsx";
 import { Diagram, type Place } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
+import { Paragraph } from "./layout/Paragraph.tsx";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { After, Selectable, type Selection } from "./Selection.tsx";
+import { SinceBlock, SinceScoped, SinceWords } from "./sinceMarks.tsx";
 import { TableNode } from "./BlockTable.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
-import { StoryEmbed } from "./StoryEmbed.tsx";
-import { embedComment, StoryContext, storyEmbedId, useStoryAt } from "./stories.tsx";
+import { EmbedNode } from "./EmbedNode.tsx";
+import { useMockupAt, useStoryAt } from "./stories.tsx";
 
 const SIGNS: Record<string, string> = {
   ask: "?",
@@ -286,7 +287,9 @@ function ListNode({ block, context }: { block: Block; context: BlockContext }) {
           label={
             <Selectable block={item} selection={context.selection}>
               <div {...stylex.props(proseStyles.reading, styles.item)}>
-                <Spans spans={item.spans} />
+                <SinceWords block={item}>
+                  <Spans spans={item.spans} />
+                </SinceWords>
                 <Children block={item} context={context} />
               </div>
             </Selectable>
@@ -318,17 +321,16 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       );
     case "paragraph":
       // A paragraph holding an image is a box: its lightbox, a dialog, cannot sit in a `<p>`. A
-      // link alone in it, like a story's mockup, is a control's height. Reading text, as its list
-      // items are: the theme's base styles set a `<p>` in the UI's monospace font.
+      // link alone in it, like a story's mockup, is a control's height.
       return (
-        <Text
+        <Paragraph
           as={!context.staticImages && block.spans.some(opensImage) ? "div" : "p"}
-          display="block"
-          type="inherit"
-          xstyle={[proseStyles.reading, styles.paragraph]}
+          xstyle={styles.paragraph}
         >
-          <Spans isAlone spans={block.spans} />
-        </Text>
+          <SinceWords block={block}>
+            <Spans isAlone spans={block.spans} />
+          </SinceWords>
+        </Paragraph>
       );
     case "list":
       return <ListNode block={block} context={context} />;
@@ -336,7 +338,7 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       // Drawn by its list, or alone, as an option's plain bullet: its text, then its blocks.
       return (
         <div {...stylex.props(proseStyles.reading, styles.item)}>
-          {spans}
+          <SinceWords block={block}>{spans}</SinceWords>
           <Children block={block} context={context} />
         </div>
       );
@@ -345,7 +347,11 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       return (
         <div role="note" {...stylex.props(styles.callout, CALLOUT_STYLES[kind])}>
           <span {...stylex.props(styles.calloutTitle)}>
-            {block.spans.length ? spans : CALLOUT_TITLES[kind]}
+            {block.spans.length ? (
+              <SinceWords block={block}>{spans}</SinceWords>
+            ) : (
+              CALLOUT_TITLES[kind]
+            )}
           </span>
           <Children block={block} context={context} />
         </div>
@@ -388,37 +394,19 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
   }
 }
 
-/**
- * A paragraph that embeds a story: the story, then what follows the block in a review, like its
- * pending comments. The embed is not selected as lines are: its comments come from its own controls.
- */
-function StoryNode({ block, context }: { block: Block; context: BlockContext }) {
-  const stories = useContext(StoryContext)!;
-  const story = useStoryAt(block)!;
-  const after = context.selection?.after?.(block);
-  return (
-    <>
-      <StoryEmbed
-        comment={embedComment(stories, story, block)}
-        folder={stories.folder}
-        id={storyEmbedId(block.id)}
-        key={`${stories.folder}:${story.path}#${story.export}`}
-        removed={stories.removed}
-        story={story}
-      />
-      {after && <After>{after}</After>}
-    </>
-  );
-}
-
 function BlockNode({ block, context }: { block: Block; context: BlockContext }): ReactNode {
   const story = useStoryAt(block);
+  const mockup = useMockupAt(block);
   const own = context.override?.(block);
   if (own !== undefined) {
     return own;
   }
-  if (story) {
-    return <StoryNode block={block} context={context} />;
+  if (story || mockup) {
+    return (
+      <SinceBlock block={block}>
+        <EmbedNode block={block} context={context} />
+      </SinceBlock>
+    );
   }
   const node = blockElement(block, context);
   return UNWRAPPED.has(block.kind) ? (
@@ -466,27 +454,29 @@ export function Blocks({
     fold.ids.forEach((id, index) => folded.set(id, index === 0 ? fold : undefined));
   }
   return (
-    <div {...stylex.props(proseStyles.doc, styles.doc)}>
-      {blocks.map((block) => {
-        if (!folded.has(block.id)) {
-          return <BlockNode block={block} context={context} key={block.id} />;
-        }
-        const fold = folded.get(block.id);
-        if (!fold || !folds) {
-          return null;
-        }
-        // The fold's title is its toggle; what follows the title in a review, like a pending
-        // comment on it, comes first inside.
-        const [title, ...rest] = fold.ids.map((id) => document.blocks[id]);
-        return (
-          <FoldNode fold={fold} folds={folds} key={`fold-${fold.key}`} title={title}>
-            {title && selection?.after && <After>{selection.after(title)}</After>}
-            {rest.map(
-              (inner) => inner && <BlockNode block={inner} context={context} key={inner.id} />,
-            )}
-          </FoldNode>
-        );
-      })}
-    </div>
+    <SinceScoped document={document}>
+      <div {...stylex.props(proseStyles.doc, styles.doc)}>
+        {blocks.map((block) => {
+          if (!folded.has(block.id)) {
+            return <BlockNode block={block} context={context} key={block.id} />;
+          }
+          const fold = folded.get(block.id);
+          if (!fold || !folds) {
+            return null;
+          }
+          // The fold's title is its toggle; what follows the title in a review, like a pending
+          // comment on it, comes first inside.
+          const [title, ...rest] = fold.ids.map((id) => document.blocks[id]);
+          return (
+            <FoldNode fold={fold} folds={folds} key={`fold-${fold.key}`} title={title}>
+              {title && selection?.after && <After>{selection.after(title)}</After>}
+              {rest.map(
+                (inner) => inner && <BlockNode block={inner} context={context} key={inner.id} />,
+              )}
+            </FoldNode>
+          );
+        })}
+      </div>
+    </SinceScoped>
   );
 }

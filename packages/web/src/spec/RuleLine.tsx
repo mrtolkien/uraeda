@@ -1,7 +1,7 @@
-// A decision's part as the spec page draws it: its words, as the core compared them, added ones
-// green and underlined, removed ones red with a dotted underline, never struck; and a rule, its
-// strength's icon first, coloured by strength, then its words, then how it is checked on a muted
-// line of its own.
+// A decision's part as its ledger draws it: its words, as the core compared them, added ones in an
+// `ins`, green with a wavy underline, removed ones in a `del`, red and struck, so a change never
+// rests on colour alone; and a rule, its strength's icon first, coloured by strength, then its
+// words, then how it is checked on a muted line of its own.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
@@ -14,10 +14,12 @@ import { isStrength, type Strength, strengthIcon } from "../theme/icons.ts";
 
 const styles = stylex.create({
   added: {
-    // Added words: a green tint and an underline, so the change does not rest on colour alone.
+    // Added words: a green tint and a wavy underline, so the change does not rest on colour alone.
     backgroundColor: colorVars["--color-background-green"],
     textDecorationColor: colorVars["--color-icon-green"],
     textDecorationLine: "underline",
+    textDecorationStyle: "wavy",
+    textUnderlineOffset: "0.2em",
   },
   icon: {
     flexShrink: 0,
@@ -31,35 +33,39 @@ const styles = stylex.create({
     lineHeight: typeScaleVars["--text-heading-3-leading"],
   },
   removed: {
-    // Removed words: a red tint and a dotted underline, never struck, so they stay readable.
+    // Removed words: a red tint and a strike, so the change does not rest on colour alone.
     backgroundColor: colorVars["--color-background-red"],
     textDecorationColor: colorVars["--color-icon-red"],
-    textDecorationLine: "underline",
-    textDecorationStyle: "dotted",
+    textDecorationLine: "line-through",
   },
   text: {
     margin: 0,
+    // A long path or name breaks rather than push the ledger past a phone's screen.
+    overflowWrap: "anywhere",
   },
   whole: {
-    // A part added or removed whole: its tint, or its pill, says so, its words left unmarked.
-    textDecorationLine: "none",
+    // A part removed whole: struck, its sign saying the rest, without a tint of its own.
+    textDecorationColor: colorVars["--color-icon-red"],
+    textDecorationLine: "line-through",
   },
 });
 
 /**
  * Each strength's colour (review comment C1 of the spec): MUST hard green, SHOULD soft green,
- * SHOULD NOT soft red, MUST NOT hard red, MAY neutral. A soft colour is the hard one three quarters
- * over the card's background.
+ * SHOULD NOT soft red, MUST NOT hard red, MAY neutral. A soft colour is the hard one four fifths
+ * over the surface the rule sits on, its pane's (`--pane-surface`, the page's on the phone, where
+ * the pane has no background) else the body's: so it keeps 3:1 over it in both schemes, a row's
+ * tint included (`ledger/Rows.tsx`), where three quarters fell under it.
  */
 const colours = stylex.create({
   may: { color: colorVars["--color-icon-secondary"] },
   must: { color: colorVars["--color-icon-green"] },
   "must-not": { color: colorVars["--color-icon-red"] },
   should: {
-    color: `color-mix(in srgb, ${colorVars["--color-icon-green"]} 75%, ${colorVars["--color-background-card"]})`,
+    color: `color-mix(in srgb, ${colorVars["--color-icon-green"]} 80%, var(--pane-surface, ${colorVars["--color-background-body"]}))`,
   },
   "should-not": {
-    color: `color-mix(in srgb, ${colorVars["--color-icon-red"]} 75%, ${colorVars["--color-background-card"]})`,
+    color: `color-mix(in srgb, ${colorVars["--color-icon-red"]} 80%, var(--pane-surface, ${colorVars["--color-background-body"]}))`,
   },
 });
 
@@ -72,21 +78,29 @@ const LABELS: Record<Strength, string> = {
   "should-not": "Should not",
 };
 
-/** The words of a part, as the core compared them: `whole` for a part added or removed whole. */
+/**
+ * The words of a part, as the core compared them: added ones in an `ins`, removed ones in a `del`.
+ * `whole` for a part added or removed whole: an added one reads plain, its sign saying so, a
+ * removed one struck in one `del`.
+ */
 export function Runs({ runs, whole = false }: { runs: ReadonlyArray<Run>; whole?: boolean }) {
+  if (whole) {
+    const text = runs.map((run) => run.text).join(" ");
+    const removed = runs.length > 0 && runs.every((run) => run.kind === "removed");
+    return removed ? <del {...stylex.props(styles.whole)}>{text}</del> : text;
+  }
   return runs.map((run, index) => {
     const space = index > 0 ? " " : "";
     if (run.kind === "kept") {
       return `${space}${run.text}`;
     }
-    const role = run.kind === "added" ? "insertion" : "deletion";
-    const style = whole ? styles.whole : run.kind === "added" ? styles.added : styles.removed;
+    const Mark = run.kind === "added" ? "ins" : "del";
     return (
       <span key={index}>
         {space}
-        <span role={role} {...stylex.props(style)}>
+        <Mark {...stylex.props(run.kind === "added" ? styles.added : styles.removed)}>
           {run.text}
-        </span>
+        </Mark>
       </span>
     );
   });

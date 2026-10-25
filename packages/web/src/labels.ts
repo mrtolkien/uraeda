@@ -81,3 +81,16 @@ export function waiting(
         : `/f/${feature.folder}`;
   return { ...gateAction(feature.step), href, line: summary?.waitingLine };
 }
+
+/** The badge of a spec's or a plan's status, a request red as in the files' list. */
+const FILE_STATUSES: Record<string, { label: string; variant: "error" | "success" | "warning" }> = {
+  approved: { label: "Approved", variant: "success" },
+  "auto-approved": { label: "Auto-approved", variant: "success" },
+  "awaiting-human": { label: "Waiting for your review", variant: "warning" },
+  "changes-requested": { label: "Changes requested", variant: "error" },
+};
+
+/** A workflow file's status badge, its words and its variant, or none for another status. */
+export function fileStatusBadge(status: string | undefined | null) {
+  return FILE_STATUSES[status ?? ""];
+}

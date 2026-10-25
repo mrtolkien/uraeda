@@ -22,9 +22,9 @@ const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
 
 /** A story's title, by its id, in the fixture's spec. */
 const STORIES = {
-  US1: "Make a task repeat",
-  US2: "Complete a repeating task",
-  US3: "Repeat on a custom schedule",
+  US1: "US1 · Make a task repeat",
+  US2: "US2 · Complete a repeating task",
+  US3: "US3 · Repeat on a custom schedule",
 };
 
 /**
@@ -59,7 +59,7 @@ function barBottom() {
 }
 
 test("the selected block stays visible above the sheet, quoted (US2 1, 2)", async () => {
-  await show(SPEC, "Complete a repeating task");
+  await show(SPEC, "US2 · Complete a repeating task");
   await userEvent.click(fold("US2"));
   const block = blockOf("Given a weekly task");
   block.scrollIntoView({ block: "end" });
@@ -103,7 +103,7 @@ test("a block taller than the space above the sheet starts under the bar", async
 });
 
 test("open folds survive Back (US1 4)", async () => {
-  await show(SPEC, "Complete a repeating task");
+  await show(SPEC, "US2 · Complete a repeating task");
   expect(shows(/completes it on Monday the 5th/)).toBe(false);
   await userEvent.click(fold("US2"));
   await userEvent.click(fold("US1"));
@@ -130,7 +130,7 @@ test("open folds survive Back (US1 4)", async () => {
 });
 
 test("a hash that is not a valid escape leaves the page drawn", async () => {
-  await show(`${SPEC}#100%`, "Complete a repeating task");
+  await show(`${SPEC}#100%`, "US2 · Complete a repeating task");
 
   expect(fold("US2").getAttribute("aria-expanded")).toBe("false");
 });

@@ -53,11 +53,30 @@ function lineOf(repo: string, phrase: string) {
 
 /** The entries of "Contents", by the text of their links. */
 async function entries() {
-  const column = await screen.findByRole("complementary", { name: "Contents" });
+  const column = await screen.findByRole("tabpanel", { name: "Contents" });
   return within(column)
     .getAllByRole("link")
     .map((link) => link.textContent);
 }
+
+/** US1: how it is built, each part a pane titled by its name, the edge cases and criteria counted. */
+test("how it is built draws in panes, the edge cases and the criteria with their counts", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(PAGE, repo);
+
+  // The fixture's spec has 5 edge cases and 2 success criteria.
+  const titles = [
+    ["Architecture", "Architecture"],
+    ["Edge cases", "Edge cases · 5"],
+    ["Success criteria", "Success criteria · 2"],
+    ["Assumptions", "Assumptions"],
+  ];
+  for (const [name, title] of titles) {
+    const part = await region(name!);
+    expect(within(part).getByRole("heading", { level: 3, name: title })).toBeTruthy();
+  }
+});
 
 /** US8 1 */
 test("edge cases show high, then normal, then the niche ones folded", async () => {
@@ -80,13 +99,13 @@ test("edge cases show high, then normal, then the niche ones folded", async () =
   expect(rowsOf(part)[0]!.textContent).toContain("the schedule restarts from the new date");
   const fold = within(part).getByRole("button", { name: "2 niche cases" });
   expect(fold.getAttribute("aria-expanded")).toBe("false");
-  const nicheRow = within(part).getByText(/A title made only of "every monday"/);
-  expect(folded(nicheRow)).toBe(true);
+  // Folded, the niche cases are not in the page at all, not merely hidden.
+  expect(within(part).queryByText(/A title made only of "every monday"/)).toBeNull();
 
   await click(fold);
 
   expect(fold.getAttribute("aria-expanded")).toBe("true");
-  expect(folded(nicheRow)).toBe(false);
+  expect(folded(within(part).getByText(/A title made only of "every monday"/))).toBe(false);
   expect(rowsOf(part, 1).map(importance)).toEqual(["Niche", "Niche"]);
 });
 
@@ -271,15 +290,16 @@ test("the data model shows its committed version while the worktree holds an edi
   expect(screen.queryByRole("region", { name: "Uncommitted entity" })).toBeNull();
 });
 
-/** The text before the first entity sits in a card of its own, as the entities do. */
-test("the data model's intro is drawn in a part of its own", async () => {
+/** The text before the first entity shows under "Data", before the entities' panes, in none. */
+test("the data model's intro is drawn before its entities", async () => {
   const repo = fixtureRepo();
   addSpecFeature(repo);
   await renderPage(PAGE, repo);
 
-  const intro = await region("Data model");
-  expect(intro.textContent).toContain("Entities that the feature adds or changes.");
-  expect(within(intro).queryByRole("table")).toBeNull();
+  const task = await region("Task");
+  const intro = screen.getByText("Entities that the feature adds or changes.");
+  expect(intro.compareDocumentPosition(task) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getAllByRole("region").some((pane) => pane.contains(intro))).toBe(false);
 });
 
 /** Review focus 5 */
@@ -291,7 +311,7 @@ test("a spec without a data model has no Data part", async () => {
 
   await region("Architecture");
   expect(await entries()).not.toContain("Data");
-  expect(screen.queryByRole("heading", { name: "Data" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: /^Data/ })).toBeNull();
   expect(screen.queryByRole("region", { name: "Task" })).toBeNull();
 });
 

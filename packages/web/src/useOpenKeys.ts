@@ -43,18 +43,31 @@ export function useSpecFolds(
   forced: (folds: ReadonlyArray<Fold>) => ReadonlyArray<string> = () => [],
 ): Folds | undefined {
   const keys = useOpenKeys();
-  const [shut, setShut] = useState<ReadonlyArray<string>>([]);
   const list = useMemo(() => (spec ? specFolds(spec) : []), [spec]);
-  if (list.length === 0) {
+  const folds = list.length === 0 ? undefined : { list, ...keys };
+  return useForcedFolds(folds, folds ? forced(list) : []);
+}
+
+/**
+ * `folds`, with those `forced` open too, without writing them to the history entry, like the folds
+ * holding a part changed since your review. A forced fold the human closes stays closed until
+ * opened again.
+ */
+export function useForcedFolds(
+  folds: Folds | undefined,
+  forced: ReadonlyArray<string>,
+): Folds | undefined {
+  const [shut, setShut] = useState<ReadonlyArray<string>>([]);
+  if (!folds) {
     return undefined;
   }
-  const opened = forced(list).filter((key) => !shut.includes(key) && !keys.open.includes(key));
+  const opened = forced.filter((key) => !shut.includes(key) && !folds.open.includes(key));
   return {
-    list,
+    list: folds.list,
     onOpenChange: (key, isOpen) => {
       setShut(isOpen ? shut.filter((k) => k !== key) : [...shut.filter((k) => k !== key), key]);
-      keys.onOpenChange(key, isOpen);
+      folds.onOpenChange(key, isOpen);
     },
-    open: [...keys.open, ...opened],
+    open: [...folds.open, ...opened],
   };
 }

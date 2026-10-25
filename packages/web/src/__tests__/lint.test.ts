@@ -85,10 +85,10 @@ const LEGACY_READING = [
   "Folds.tsx",
   "Question.tsx",
   "RoundPage.tsx",
-  "spec/BuiltParts.tsx",
   "spec/DecisionCard.tsx",
   "spec/SpecOpening.tsx",
   "spec/StoryCard.tsx",
+  "spec/builtParts/shared.tsx",
 ];
 
 test("reading text is set in Prose.tsx, bar the files that still move there (UI coherence)", () => {

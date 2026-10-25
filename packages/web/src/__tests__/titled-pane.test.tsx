@@ -1,6 +1,7 @@
 // The titled pane that folds, as the round's Today and Under the hood do: its title is a button that
 // tells whether it is open, and folded, its content is not mounted, as the UI behaviour decision
 // asks; a line in its body can open it too.
+import { Button } from "@astryxdesign/core/Button";
 import { render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import { expect, test } from "vite-plus/test";
@@ -65,4 +66,34 @@ test("a folding pane's button is named by its title and its count, as it shows t
   expect(screen.getByRole("button", { name: "Under the hood · 3" })).toBeTruthy();
   // The pane itself is named by its title alone.
   expect(screen.getByRole("region", { name: "Under the hood" })).toBeTruthy();
+});
+
+test("a pane's actions sit in its border, and its region is named by its title alone", async () => {
+  let isFull = false;
+  render(
+    <Pane
+      actions={<Button label="Full screen" onClick={() => (isFull = true)} />}
+      title="live · today"
+      tone="live"
+    >
+      <p>Inside.</p>
+    </Pane>,
+  );
+  const pane = within(screen.getByRole("region", { name: "live · today" }));
+
+  await click(pane.getByRole("button", { name: "Full screen" }));
+
+  expect(isFull).toBe(true);
+});
+
+test("a pane's suffix reads after its title, outside the region's name", () => {
+  render(
+    <Pane title="live · today" titleSuffix="· 1440 × 900 · 49%" tone="live">
+      <p>Inside.</p>
+    </Pane>,
+  );
+
+  const pane = screen.getByRole("region", { name: "live · today" });
+  const heading = within(pane).getByRole("heading");
+  expect(heading.textContent).toBe("live · today· 1440 × 900 · 49%");
 });

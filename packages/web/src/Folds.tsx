@@ -131,9 +131,15 @@ export function useHashFold(document: Document, folds: Folds | undefined, anywhe
   }, [anywhere, document, folds, hash, target, visit]);
 }
 
-/** Scrolls to an element, a little below the top, or the top bar, where it stays on the phone. */
+/**
+ * Scrolls to an element, a little below the top, or the top bar, where it stays on the phone. An
+ * element with a scroll margin, as a pane, leaves that room above itself: the margin counts the bar.
+ */
 export function scrollBelowBar(element: HTMLElement) {
   element.scrollIntoView({ block: "start" });
+  if (Number.parseFloat(getComputedStyle(element).scrollMarginTop) > 0) {
+    return;
+  }
   const bar = window.document.querySelector('[role="banner"]')?.getBoundingClientRect();
   window.scrollBy(0, -Math.max(bar?.bottom ?? 0, 0) - 16);
 }

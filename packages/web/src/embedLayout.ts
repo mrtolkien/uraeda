@@ -1,7 +1,8 @@
 // A story embed's room on the page: how far it grows past its column into the empty space beside it,
 // on a wide screen, so a desktop story shows nearer its own size; and full screen, the browser's own,
-// entered and left from the embed and followed as Escape leaves it.
+// entered and left from the embed and followed as Escape leaves it, or an overlay where it has none.
 import { type RefObject, useContext, useEffect, useState } from "react";
+import { useBackCloses } from "./layout/useBackCloses.ts";
 import { PageColumn } from "./layout/Page.tsx";
 
 /** A length in px from a style's value, 0 when it has none. */
@@ -48,11 +49,15 @@ function room(own: DOMRect, from: Element, page: Element, outer: Element, inset:
 }
 
 /**
- * How many px the embed grows past each side of its box, on a wide screen: up to the desktop's
- * width with its stage's inset, into the empty space beside it within its page's container, more on
- * the side with more room. None outside a page, or on a narrow screen.
+ * How many px the embed grows past each side of its box, on a wide screen: up to `width`, the
+ * desktop's by default, with its stage's inset, into the empty space beside it within its page's
+ * container, more on the side with more room. None outside a page, or on a narrow screen.
  */
-export function useOutgrow(embed: RefObject<HTMLElement | null>, wide: boolean): Outgrow {
+export function useOutgrow(
+  embed: RefObject<HTMLElement | null>,
+  wide: boolean,
+  width?: number,
+): Outgrow {
   const column = useContext(PageColumn);
   const [grow, setGrow] = useState<Outgrow>({ end: 0, start: 0 });
   // After the commit, once the page's column has its ref, which a parent gets after its children's
@@ -79,16 +84,19 @@ export function useOutgrow(embed: RefObject<HTMLElement | null>, wide: boolean):
       const want = wide
         ? Math.max(
             0,
-            px(getComputedStyle(own).getPropertyValue("--size-story-desktop")) +
+            (width ?? px(getComputedStyle(own).getPropertyValue("--size-story-desktop"))) +
               2 * GAP +
               2 -
               natural.width,
           )
         : 0;
       const free = room(natural, parent, page, outer, px(getComputedStyle(page).paddingLeft));
+      // A side with less room than the gap does not grow: a few px would only lay the embed's
+      // border over its pane's.
+      const [open, close] = [free.start, free.end].map((side) => (side < GAP ? 0 : side));
       const half = want / 2;
-      const start = Math.min(free.start, Math.max(half, want - free.end));
-      const end = Math.min(free.end, want - start);
+      const start = Math.min(open!, Math.max(half, want - close!));
+      const end = Math.min(close!, want - start);
       setGrow((known) =>
         Math.abs(known.start - start) < 0.5 && Math.abs(known.end - end) < 0.5
           ? known
@@ -100,21 +108,36 @@ export function useOutgrow(embed: RefObject<HTMLElement | null>, wide: boolean):
     observer.observe(outer);
     observer.observe(parent);
     return () => observer.disconnect();
-  }, [column, embed, wide]);
+  }, [column, embed, wide, width]);
   return grow;
 }
 
 /**
- * Whether the embed is full screen, and what enters or leaves it: undefined where the browser has
- * no full screen for an element, as on an iPhone.
+ * Whether the embed is full screen, and what enters or leaves it: the browser's own full screen, or,
+ * where the browser has none for an element, as on an iPhone, an overlay covering the screen,
+ * `overlay`, which the button, Escape, and Back leave.
  */
 export function useFullScreen(embed: RefObject<HTMLElement | null>) {
-  const [full, setFull] = useState(false);
+  const [native, setNative] = useState(false);
+  const [overlay, setOverlay] = useState(false);
   useEffect(() => {
-    const onChange = () => setFull(document.fullscreenElement === embed.current);
+    const onChange = () => setNative(document.fullscreenElement === embed.current);
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, [embed]);
+  const leave = useBackCloses("Full screen", overlay, () => setOverlay(false));
+  useEffect(() => {
+    if (!overlay) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        leave();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [leave, overlay]);
   const toggle =
     typeof document !== "undefined" && document.fullscreenEnabled
       ? async () => {
@@ -124,6 +147,6 @@ export function useFullScreen(embed: RefObject<HTMLElement | null>) {
             await embed.current?.requestFullscreen();
           }
         }
-      : undefined;
-  return { full, toggle };
+      : async () => (overlay ? leave() : setOverlay(true));
+  return { full: native || overlay, overlay, toggle };
 }

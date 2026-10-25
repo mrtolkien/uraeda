@@ -1,7 +1,7 @@
-// A user story of the spec page, as a card: its id and priority, its title, its journey, its mockup
-// live through the story embed (an HTML one a link), then its key scenarios as Given, When, and
-// Then rows, and the others behind "N more scenarios", open as the history entry keeps the spec's
-// folds. Every scenario takes a comment, as any block of the page does.
+// A user story of the spec page, as a pane titled "US1 · <title>" with its priority: its journey,
+// its mockup live in a live window, then its key scenarios as Given, When, and Then rows, and the
+// others behind "N more scenarios", open as the history entry keeps the spec's folds, and not
+// mounted while folded. Every scenario takes a comment, as any block of the page does.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -12,10 +12,11 @@ import { useState } from "react";
 import type { Block, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import type { Folds } from "../Folds.tsx";
+import { Pane } from "../layout/Pane.tsx";
 import { After, Selectable, type Selection } from "../Selection.tsx";
+import { SinceWords } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
-import { Panel } from "./Panel.tsx";
-import { GROUPS, type PartProps, type SpecItems, storyId } from "./parts.ts";
+import { type PartProps, type SpecItems, storyId } from "./parts.ts";
 
 /** The icon of each step word, as the core names them. */
 const STEP_ICONS: Record<string, string> = {
@@ -85,19 +86,21 @@ function ScenarioNode({
   const nested = document.blocks.filter((b) => b.parent === block.id).map((b) => b.id);
   return (
     <Selectable block={block} selection={selection}>
-      <div {...stylex.props(styles.scenario)}>
-        {steps.map(({ spans, word }, at) => (
-          // The spaces between the cells, which the grid drops, keep the words apart when read.
-          <div key={at} {...stylex.props(styles.contents)}>
-            <span {...stylex.props(styles.step)}>
-              <Icon icon={STEP_ICONS[word] ?? "uraeda:step-then"} />
-            </span>{" "}
-            <span>
-              <strong {...stylex.props(styles.word)}>{word}</strong> <Spans spans={spans} />
-            </span>{" "}
-          </div>
-        ))}
-      </div>
+      <SinceWords block={block} isParagraph>
+        <div {...stylex.props(styles.scenario)}>
+          {steps.map(({ spans, word }, at) => (
+            // The spaces between the cells, which the grid drops, keep the words apart when read.
+            <div key={at} {...stylex.props(styles.contents)}>
+              <span {...stylex.props(styles.step)}>
+                <Icon icon={STEP_ICONS[word] ?? "uraeda:step-then"} />
+              </span>{" "}
+              <span>
+                <strong {...stylex.props(styles.word)}>{word}</strong> <Spans spans={spans} />
+              </span>{" "}
+            </div>
+          ))}
+        </div>
+      </SinceWords>
       {nested.length > 0 && <Blocks document={document} ids={nested} selection={selection} />}
     </Selectable>
   );
@@ -152,7 +155,9 @@ function useMoreOpen(folds: Folds | undefined, story: Story) {
   };
 }
 
-/** A story's more scenarios, behind "N more scenarios", which reads "Fold the other scenarios" open. */
+/**
+ * A story's more scenarios, behind "N more scenarios", which reads "Fold the other scenarios" open.
+ */
 function MoreScenarios({
   document,
   folds,
@@ -178,49 +183,58 @@ function MoreScenarios({
       onOpenChange={onOpenChange}
       trigger={<span {...stylex.props(styles.foldLabel)}>{label}</span>}
     >
-      <div {...stylex.props(styles.more)}>
-        <Scenarios document={document} intro={intro} scenarios={story.more} selection={selection} />
-      </div>
+      {isOpen && (
+        <div {...stylex.props(styles.more)}>
+          <Scenarios
+            document={document}
+            intro={intro}
+            scenarios={story.more}
+            selection={selection}
+          />
+        </div>
+      )}
     </Collapsible>
   );
 }
 
 /**
- * A user story as a card: its id and priority, its title, its journey and its mockup, drawn by the
- * story's blocks (a story link embeds its story live, an HTML mockup is a link), then its key
+ * A user story as a pane titled by its id and title, its priority after them: its journey and its
+ * mockup, drawn by the story's blocks (a story link or an HTML mockup embeds it live), then its key
  * scenarios, and the others folded.
  */
 export function StoryCard({ document, folds, selection, story }: StoryCardProps) {
   const scenarioIds = new Set([...story.keyBlocks, ...story.moreBlocks]);
   const journey = story.blocks.filter((id) => !scenarioIds.has(id));
   return (
-    <Panel
-      badges={
-        <>
-          <Badge label={story.id} variant="neutral" />
-          <Badge label={story.priority} variant={story.priority === "P1" ? "info" : "neutral"} />
-        </>
-      }
-      crumbs={[GROUPS.stories.title]}
+    <Pane
+      icon="uraeda:map"
       id={storyId(document, story)}
-      title={story.title}
+      // On the phone, its titled top border alone, so its live window keeps the screen's width.
+      isOpenOnPhone
+      level={3}
+      title={`${story.id} · ${story.title}`}
+      titleSuffix={
+        <Badge label={story.priority} variant={story.priority === "P1" ? "info" : "neutral"} />
+      }
     >
-      {journey.length > 0 && <Blocks document={document} ids={journey} selection={selection} />}
-      <Scenarios
-        document={document}
-        intro={story.keyBlocks[0]}
-        scenarios={story.key}
-        selection={selection}
-      />
-      {story.more.length > 0 && (
-        <MoreScenarios
+      <VStack gap={3}>
+        {journey.length > 0 && <Blocks document={document} ids={journey} selection={selection} />}
+        <Scenarios
           document={document}
-          folds={folds}
-          intro={story.moreBlocks[0]}
+          intro={story.keyBlocks[0]}
+          scenarios={story.key}
           selection={selection}
-          story={story}
         />
-      )}
-    </Panel>
+        {story.more.length > 0 && (
+          <MoreScenarios
+            document={document}
+            folds={folds}
+            intro={story.moreBlocks[0]}
+            selection={selection}
+            story={story}
+          />
+        )}
+      </VStack>
+    </Pane>
   );
 }

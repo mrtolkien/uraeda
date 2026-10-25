@@ -89,7 +89,8 @@ export function storybookFixture(): { configDir: string; dataDir: string; repo: 
     addFeature(repo, CHECKOUTS.starting, { mode: "hang", worktree: true });
     addFeature(repo, CHECKOUTS.failed, { mode: "fail", worktree: true });
     addFeature(repo, CHECKOUTS.noWorktree, { mode: "ok", worktree: false });
-    // The spec page's features: its spec waiting for review, and approved.
+    // The spec page's features: its spec revised since its review, approved, and its plan,
+    // auto-approved and waiting.
     addSpecPages(repo);
     // The round page's mockups, in the clarifications redesign's format.
     addRoundMockup(repo, ROUND_MOCKUPS.waiting, "B");

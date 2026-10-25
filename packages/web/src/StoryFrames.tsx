@@ -1,89 +1,15 @@
 // A story's frame, sandboxed without `allow-same-origin`, and the messages of its window. One frame,
 // at the phone's width or the desktop's: a change of width resizes and rescales it, and never
-// reloads it. On a wide screen, the phone's frame stands centred on a background of its own, framed
-// as a phone's screen, and the desktop's is 1440 px wide, scaled to the embed's width. The frame is
-// as tall as its story says, up to the theme's maximum, the phone's frame 50% taller; full screen,
-// it fills the screen. Its colour mode is sent when it says it is ready and when it changes,
-// with pick mode, and its pick script reports the elements picked. It loads its story only once its
-// box is on screen, then stays loaded: a page of many embeds loads only those it shows.
+// reloads it. It is drawn by the live window's frame (`LiveFrame`): at its real width, scaled to
+// fit, at 100% in full screen. The frame is as tall as its story says, up to the theme's maximum,
+// the phone's frame 50% taller. Its colour mode is sent when it says it is ready and when it
+// changes, with pick mode, and its pick script reports the elements picked. It loads its story only
+// once its box is on screen, then stays loaded.
 import { useTheme } from "@astryxdesign/core/theme";
-import {
-  colorVars,
-  radiusVars,
-  shadowVars,
-  spacingVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
-import {
-  type RefObject,
-  useEffect,
-  useEffectEvent,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type RefObject, useEffect, useEffectEvent, useRef, useState } from "react";
 import { bottomOf, keepPlace } from "./keepPlace.ts";
+import { type Fit, LiveFrame } from "./LiveFrame.tsx";
 import type { Picked } from "./storyComment.ts";
-
-const styles = stylex.create({
-  // The desktop's frame, 1440 px wide, scaled from its top left corner to its box's width.
-  desktop: {
-    insetBlockStart: 0,
-    insetInlineStart: 0,
-    position: "absolute",
-    transformOrigin: "0 0",
-    width: "var(--size-story-desktop)",
-  },
-  desktopBox: {
-    overflow: "hidden",
-    position: "relative",
-    width: "100%",
-  },
-  // A frame's height, at most the theme's: a story sized to its window reports more at each resize.
-  frame: {
-    borderWidth: 0,
-    display: "block",
-    height: "var(--size-story-height)",
-    maxHeight: "var(--size-story-max-height)",
-  },
-  // A height the human chose, or the screen's: no maximum.
-  free: { maxHeight: "none" },
-  full: {
-    flexGrow: 1,
-    minHeight: 0,
-    overflow: "hidden",
-  },
-  height: (height: string) => ({ height }),
-  hidden: { visibility: "hidden" },
-  // On a wide screen, the phone's screen: centred, with a bezel and a shadow, on its own background.
-  phone: {
-    // The bezel goes around the phone's 402 px, not into them.
-    borderColor: colorVars["--color-background-inverted"],
-    borderRadius: radiusVars["--radius-page"],
-    borderStyle: "solid",
-    borderWidth: spacingVars["--spacing-2"],
-    boxShadow: shadowVars["--shadow-med"],
-    boxSizing: "content-box",
-    maxWidth: "100%",
-    width: "var(--size-story-phone)",
-  },
-  phoneNarrow: {
-    width: "100%",
-  },
-  phoneStage: {
-    backgroundColor: colorVars["--color-background-gray"],
-    justifyContent: "center",
-  },
-  scale: (transform: string) => ({ transform }),
-  stage: {
-    backgroundColor: colorVars["--color-background-muted"],
-    display: "flex",
-    padding: spacingVars["--spacing-4"],
-  },
-  stageNarrow: {
-    padding: 0,
-  },
-});
 
 /** The widths a story is shown at: the phone's, 402 px, or the desktop's, 1440 px. */
 export type Width = "phone" | "desktop";
@@ -98,12 +24,6 @@ type FrameMessage = {
 };
 
 const SANDBOX = "allow-scripts allow-popups";
-
-/** How much taller the phone's frame is than the theme's heights, which the desktop's keep. */
-const PHONE_TALLER = 1.5;
-
-/** A length in px from a style's value, 0 when it has none. */
-const px = (value: string) => Number.parseFloat(value) || 0;
 
 /** Whether a message is the pick script's: an object with a `uraeda` field. */
 function isFrameMessage(data: unknown): data is FrameMessage {
@@ -125,10 +45,12 @@ function pickedOf({ name, role, text }: FrameMessage): Picked | undefined {
 
 /**
  * Gives the frame a new height with `resize`. A frame wholly above the window's top would move the
- * text read below it by the change: that text is kept in place (US7 2 of the spec redesign).
+ * text read below it by the change: that text is kept in place (US7 2 of the spec redesign). Within
+ * a pixel: a scaled frame's height is a fraction of one, and the place kept puts its bottom a
+ * fraction below the top.
  */
 function resizeKeepingPlace(stage: HTMLElement | null, resize: () => void) {
-  if (!stage || stage.getBoundingClientRect().bottom > 0) {
+  if (!stage || stage.getBoundingClientRect().bottom >= 1) {
     resize();
     return;
   }
@@ -199,153 +121,41 @@ function useFrame(pick: PickMode, stage: RefObject<HTMLElement | null>) {
   return { frame, reported };
 }
 
-/** How far below the window's top, in px, a box must reach to count as on screen. */
-const EDGE = 32;
-
 /**
- * Whether the box has been on screen since it was drawn: false until it first is, then true for
- * good. Without IntersectionObserver, true at once.
- */
-function useSeen(box: RefObject<HTMLDivElement | null>) {
-  const [seen, setSeen] = useState(() => typeof IntersectionObserver === "undefined");
-  useEffect(() => {
-    const outer = box.current;
-    if (seen || !outer) {
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setSeen(true);
-        }
-      },
-      // A sliver at the window's top is not on screen: a scroll to the embed below another leaves
-      // the last pixel of the one above in view. At the bottom, a frame coming into view loads.
-      { rootMargin: `-${EDGE}px 0px 0px` },
-    );
-    observer.observe(outer);
-    return () => observer.disconnect();
-  }, [box, seen]);
-  return seen;
-}
-
-/**
- * The size of the stage's content box, kept as it changes, with the theme's sizes of a story's frame,
- * in px, read from its style: undefined until measured.
- */
-function useStage(stage: RefObject<HTMLElement | null>) {
-  const [size, setSize] = useState<{
-    desktop: number;
-    height: number;
-    max: number;
-    story: number;
-    width: number;
-  }>();
-  useLayoutEffect(() => {
-    const element = stage.current;
-    if (!element) {
-      return;
-    }
-    const measure = () => {
-      const style = getComputedStyle(element);
-      const next = {
-        desktop: px(style.getPropertyValue("--size-story-desktop")) || 1440,
-        height: element.clientHeight - px(style.paddingTop) - px(style.paddingBottom),
-        max: px(style.getPropertyValue("--size-story-max-height")) || 900,
-        story: px(style.getPropertyValue("--size-story-height")) || 560,
-        width: element.clientWidth - px(style.paddingLeft) - px(style.paddingRight),
-      };
-      setSize((known) =>
-        known &&
-        Object.entries(next).every(([key, value]) => known[key as keyof typeof next] === value)
-          ? known
-          : next,
-      );
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [stage]);
-  return size;
-}
-
-/**
- * The story's frame, at `width`: the phone's alone on narrow screens. Full screen, it fills the
- * space below the embed's bar. An element picked names its width on wide
- * screens, where both can show.
+ * The story's frame, at `width`, scaled to fit, at 100% when `full`. An element picked names the
+ * width it was picked at. `onFit` hears the frame's width and scale.
  */
 export function StoryFrames({
   full = false,
   label,
+  onFit,
   pick,
   src,
-  wide,
   width,
 }: {
   full?: boolean;
   label: string;
+  onFit?: (fit: Fit) => void;
   pick: PickMode;
   src: string;
-  wide: boolean;
   width: Width;
 }) {
   const stage = useRef<HTMLDivElement>(null);
-  const seen = useSeen(stage);
-  const shownWidth: Width = wide ? width : "phone";
   const { frame, reported } = useFrame(
-    {
-      ...pick,
-      onPicked: (picked) => pick.onPicked(wide ? { ...picked, width: shownWidth } : picked),
-    },
+    { ...pick, onPicked: (picked) => pick.onPicked({ ...picked, width }) },
     stage,
   );
-  const space = useStage(stage);
-  const desktop = shownWidth === "desktop";
-  const scale = desktop && space ? space.width / space.desktop : 1;
-  // The height the story asks for, shown on the page: at most the theme's, scaled with the frame,
-  // the phone's taller.
-  const taller = desktop ? 1 : PHONE_TALLER;
-  const asked = space && Math.min(reported ?? space.story * taller, space.max * taller) * scale;
-  const shown = full ? space?.height : asked;
-  // The frame's own height, before its scale: the story's, or what the page shows, unscaled.
-  const frameHeight = shown === undefined ? undefined : shown / scale;
   return (
-    <>
-      <div
-        ref={stage}
-        {...stylex.props(
-          styles.stage,
-          !wide && styles.stageNarrow,
-          wide && !desktop && styles.phoneStage,
-          full && styles.full,
-        )}
-      >
-        <div
-          {...stylex.props(
-            desktop && styles.desktopBox,
-            desktop && styles.height(`${shown ?? asked ?? 0}px`),
-            !desktop && wide && styles.phone,
-            !desktop && !wide && styles.phoneNarrow,
-          )}
-        >
-          <iframe
-            ref={frame}
-            sandbox={SANDBOX}
-            src={seen ? src : undefined}
-            title={`${label}, ${shownWidth}`}
-            {...stylex.props(
-              styles.frame,
-              !desktop && styles.phoneNarrow,
-              frameHeight === undefined
-                ? reported !== undefined && styles.height(`${reported}px`)
-                : [styles.free, styles.height(`${frameHeight}px`)],
-              desktop && styles.desktop,
-              desktop && (space ? styles.scale(`scale(${scale})`) : styles.hidden),
-            )}
-          />
-        </div>
-      </div>
-    </>
+    <LiveFrame
+      asked={reported}
+      frame={frame}
+      full={full}
+      onFit={onFit}
+      sandbox={SANDBOX}
+      src={src}
+      stage={stage}
+      title={`${label}, ${width}`}
+      width={width}
+    />
   );
 }

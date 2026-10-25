@@ -4,7 +4,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useCallback, useEffect, useId, useRef } from "react";
+import { useCallback, useEffect, useId, useRef } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
@@ -17,7 +17,6 @@ import { SaveStatus } from "./fields/SaveStatus.tsx";
 import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
-import { Overlay } from "./layout/Overlay.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type Hashes, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
@@ -215,24 +214,6 @@ export function NotesRead({
         </HStack>
       </VStack>
     </section>
-  );
-}
-
-/** On the phone, the notes' field in a sheet over the round, which stays where it was read. */
-export function NotesSheet({
-  children,
-  isOpen,
-  onClose,
-}: {
-  /** The notes' field. */
-  children: ReactNode;
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  return (
-    <Overlay isOpen={isOpen} label="Notes" onClose={onClose}>
-      {children}
-    </Overlay>
   );
 }
 

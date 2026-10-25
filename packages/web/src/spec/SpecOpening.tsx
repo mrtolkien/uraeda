@@ -1,8 +1,11 @@
-// "What you approve", the spec page's first part: the block's record or request, the time and the
-// risk tier as pills, the "You approve" item as the page's lead, the block's other items, the text
-// before the first section, then the constitution's principles as a strip of pills and the risk
-// tier's reason. Each item and paragraph takes a comment as the spec's other blocks do.
+// "What you approve", the spec page's first part: a pane titled by the block's first line, its
+// record or request, the "You approve" item as the page's lead, the block's other items, the text
+// before the first section, then, at the pane's foot under a separator (C1), the time and the risk
+// tier as pills, the constitution's principles as a strip of pills, and the risk tier's reason.
+// Each item and paragraph takes a comment as the spec's other blocks do, and the strip as its
+// table's row of checks, marked Δ as it when it changed since your review.
 import { Badge } from "@astryxdesign/core/Badge";
+import { Divider } from "@astryxdesign/core/Divider";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
@@ -11,9 +14,10 @@ import { fontWeightVars, spacingVars, typeScaleVars } from "@astryxdesign/core/t
 import * as stylex from "@stylexjs/stylex";
 import type { Block, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
-import { Selectable, type Selection } from "../Selection.tsx";
-import { Spans } from "../Spans.tsx";
-import { Panel } from "./Panel.tsx";
+import { Pane } from "../layout/Pane.tsx";
+import { After, Selectable, type Selection } from "../Selection.tsx";
+import { cellRuns, type SinceMark, SinceMarked, SinceSign, useSinceMark } from "../sinceMarks.tsx";
+import { plain, Spans } from "../Spans.tsx";
 import { GROUPS, type PartProps, partOf, type SpecItems } from "./parts.ts";
 
 const styles = stylex.create({
@@ -119,42 +123,138 @@ function Pills({ items }: { items: SpecItems }) {
   );
 }
 
-/** The constitution's principles as a strip of pills: a check for each kept, a warning otherwise. */
-function Principles({ items }: { items: SpecItems }) {
+/**
+ * The cells a row's change touched, by index, from its runs cell by cell: none when the cells do
+ * not match, the row's mark then showing alone.
+ */
+function changedCells(mark: SinceMark | undefined): Set<number> {
+  const cells = mark?.change.kind === "changed" ? cellRuns(mark.change.runs) : undefined;
+  return new Set(
+    (cells ?? []).flatMap((runs, index) =>
+      runs.some((run) => run.kind !== "kept") ? [index] : [],
+    ),
+  );
+}
+
+/**
+ * The constitution's principles as a strip of pills, a check for each kept, else a warning: the
+ * `## Constitution check` table, `table`, drawn so. The strip is its row of checks for a review,
+ * a tap starting a comment on it; it is marked Δ when that row or the principles' changed since
+ * your review, a Δ after each principle whose cell changed.
+ */
+function Principles({
+  document,
+  items,
+  selection,
+  table,
+}: Pick<PartProps, "document" | "selection"> & { items: SpecItems; table: Block | undefined }) {
+  const rows = childrenOf(document, table?.id);
+  const header = rows.find((row) => row.header);
+  const checks = rows.find((row) => !row.header);
+  const headerMark = useSinceMark(header?.id ?? -1);
+  const changed = new Set([
+    ...changedCells(headerMark),
+    ...changedCells(useSinceMark(checks?.id ?? -1)),
+  ]);
   if (items.principles.length === 0) {
     return null;
   }
-  return (
+  const strip = (
     <VStack gap={1}>
       <Text color="secondary" type="supporting">
         Constitution
       </Text>
       <HStack gap={2} wrap="wrap">
-        {items.principles.map(({ label, ok }) => (
+        {items.principles.map(({ label, ok }, index) => (
           <Badge
             icon={<Icon icon={ok ? "check" : "warning"} label={ok ? "Kept" : "Warning"} />}
             key={label}
-            label={label}
+            label={
+              changed.has(index) ? (
+                <>
+                  {label}
+                  <SinceSign />
+                </>
+              ) : (
+                label
+              )
+            }
             variant={ok ? "success" : "warning"}
           />
         ))}
       </HStack>
     </VStack>
   );
+  const drawn = checks ? (
+    <Selectable block={checks} selection={selection}>
+      {strip}
+    </Selectable>
+  ) : (
+    strip
+  );
+  return (
+    <>
+      {headerMark ? <SinceMarked mark={headerMark}>{drawn}</SinceMarked> : drawn}
+      {header && selection?.after && <After>{selection.after(header)}</After>}
+    </>
+  );
 }
 
 /**
- * What you approve: the block's first paragraph, its record or its request; the time and the risk
- * tier; the "You approve" item large, then the block's other items; the text between the block and
- * the first section; the constitution's principles, and the text under their table; the risk
- * tier's reason.
+ * The block's foot, after a separator (C1): the pills, the principles, and the risk's reason;
+ * nothing, not even the separator, when it has none of them.
+ */
+function Foot({
+  document,
+  items,
+  selection,
+}: Pick<PartProps, "document" | "selection"> & { items: SpecItems }) {
+  const constitution = partOf(items, "Constitution check");
+  const risk = partOf(items, "Risk tier");
+  const table = constitution?.blocks
+    .map((id) => document.blocks[id])
+    .find((block) => block?.kind === "table");
+  const constitutionBlocks = constitution?.blocks.filter((id) => id !== table?.id) ?? [];
+  const hasPills = items.minutes != null || Boolean(items.riskTier);
+  const hasReason = (risk?.blocks.length ?? 0) > 0;
+  if (!hasPills && !constitution && !hasReason) {
+    // Nothing to draw: no separator under the block's items. A constitution's part, even empty,
+    // keeps its anchor.
+    return null;
+  }
+  return (
+    <>
+      <Divider />
+      {hasPills && <Pills items={items} />}
+      {constitution && (
+        <div id={constitution.anchor} {...stylex.props(styles.section)}>
+          <Principles document={document} items={items} selection={selection} table={table} />
+          {constitutionBlocks.length > 0 && (
+            <Blocks document={document} ids={constitutionBlocks} selection={selection} />
+          )}
+        </div>
+      )}
+      {risk && hasReason && (
+        <div id={risk.anchor} {...stylex.props(styles.section)}>
+          <Blocks document={document} ids={risk.blocks} selection={selection} />
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * What you approve, a pane in the accent titled by the block's first paragraph, its record or its
+ * request ("Spec to review, revision 2, about 10 minutes."): the "You approve" item large, then the
+ * block's other items; the text between the block and the first section; then its foot.
  */
 export function SpecOpening({
   document,
   items,
   selection,
 }: Pick<PartProps, "document" | "selection"> & { items: SpecItems }) {
-  const inBlock = childrenOf(document, items.block ?? undefined);
+  const block = items.block == null ? undefined : document.blocks[items.block];
+  const inBlock = childrenOf(document, block?.id);
   const record = inBlock.find((b) => b.kind === "paragraph");
   const bullets = inBlock
     .filter((b) => b.kind === "list")
@@ -164,43 +264,28 @@ export function SpecOpening({
   const intro = childrenOf(document, null)
     .filter((b) => b.id < first && b.id !== items.block && !(b.kind === "heading" && b.level === 1))
     .map((b) => b.id);
-  const constitution = partOf(items, "Constitution check");
-  const risk = partOf(items, "Risk tier");
-  const constitutionBlocks = constitution?.blocks.filter(
-    (id) => document.blocks[id]?.kind !== "table",
-  );
+  const title = record ? plain(record.spans).trim() : "";
   return (
-    <Panel crumbs={[]} id={GROUPS.approve.id} title={GROUPS.approve.title}>
-      {record && (
-        <Selectable block={record} selection={selection}>
-          <Text color="secondary" display="block" type="supporting">
-            <Spans spans={record.spans} />
-          </Text>
-        </Selectable>
-      )}
-      <Pills items={items} />
-      {lead && <Bullet isLead item={lead} selection={selection} />}
-      {bullets
-        .filter((b) => b !== lead)
-        .map((item) => (
-          <Bullet isLead={false} item={item} key={item.id} selection={selection} />
-        ))}
-      {intro.length > 0 && <Blocks document={document} ids={intro} selection={selection} />}
-      {constitution && (
-        <div id={constitution.anchor} {...stylex.props(styles.section)}>
-          <Principles items={items} />
-          {constitutionBlocks && constitutionBlocks.length > 0 && (
-            <Blocks document={document} ids={constitutionBlocks} selection={selection} />
-          )}
-        </div>
-      )}
-      {risk && (
-        <div id={risk.anchor} {...stylex.props(styles.section)}>
-          {risk.blocks.length > 0 && (
-            <Blocks document={document} ids={risk.blocks} selection={selection} />
-          )}
-        </div>
-      )}
-    </Panel>
+    <Pane
+      icon="uraeda:badge-check"
+      id={GROUPS.approve.id}
+      isActive
+      isOpenOnPhone
+      title={title || GROUPS.approve.title}
+    >
+      <VStack gap={3}>
+        {/* The record is the title, which takes no comment: one saved on it, or elsewhere on the
+            block's lines outside its items, draws here (R13). */}
+        {block && selection?.after && <After>{selection.after(block)}</After>}
+        {lead && <Bullet isLead item={lead} selection={selection} />}
+        {bullets
+          .filter((b) => b !== lead)
+          .map((item) => (
+            <Bullet isLead={false} item={item} key={item.id} selection={selection} />
+          ))}
+        {intro.length > 0 && <Blocks document={document} ids={intro} selection={selection} />}
+        <Foot document={document} items={items} selection={selection} />
+      </VStack>
+    </Pane>
   );
 }

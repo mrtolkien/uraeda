@@ -9,7 +9,7 @@ use crate::decisions::{Candidate, DecisionChange};
 use crate::files::document::{Document, Span};
 use crate::files::items::{Items, ReviewItems};
 use crate::files::markdown;
-use crate::files::stories::StoryLink;
+use crate::files::stories::{MockupEmbed, StoryLink};
 use crate::steps::{Step, TaskProgress};
 use crate::workspace::{Feature, FileKind, Problem, Workspace};
 
@@ -17,8 +17,10 @@ mod feature;
 
 pub use feature::{FeatureView, FileSummary, PromotedView, StartedView, StepView};
 
+mod since;
 mod version;
 
+pub use since::{SinceChange, SinceReview};
 pub use version::VersionView;
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -116,6 +118,10 @@ pub struct FileView {
     /// when the revision was first committed: the one `## Your review` answers, whatever the review
     /// file holds now. `None` when that review did not request changes.
     pub answered: Option<ReviewItems>,
+    /// For `spec.md`, what changed since the version that `answered` reviewed, the spec at its
+    /// commit against the one the page shows: the committed one while it waits for review. `None`
+    /// when `answered` is.
+    pub since_review: Option<SinceReview>,
 }
 
 /// The name of a file's kind, as the web UI reads it: empty for none.
@@ -138,6 +144,8 @@ pub struct DraftView {
     pub document: Document,
     /// The stories its paragraphs embed.
     pub stories: Vec<StoryLink>,
+    /// The HTML mockups its paragraphs embed.
+    pub mockups: Vec<MockupEmbed>,
     /// Whether its current text is committed.
     pub committed: bool,
     /// The priority line linking it.

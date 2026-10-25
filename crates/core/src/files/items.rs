@@ -10,9 +10,11 @@ use super::document::{BlockKind, Document, ItemMarker, Span, plain};
 use super::{frontmatter, review};
 use crate::workspace::FileKind;
 
+mod data_model;
 mod round;
 mod spec;
 
+pub use data_model::{DataModelItems, DataSection, DataTable, RowChange, RowChangeKind};
 pub(crate) use round::round;
 pub(crate) use round::settled_points;
 pub(crate) use round::subjectless_items;
@@ -219,7 +221,24 @@ pub struct TaskItem {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlanItems {
+    /// Its lead paragraphs, "**Goal:**" and the like, before its first `##`.
+    pub lead: Vec<PlanLead>,
     pub tasks: Vec<TaskItem>,
+}
+
+/// A plan's lead paragraph: a top-level paragraph before the first `##` whose first span is bold
+/// text ending in ":", such as "**Goal:**".
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanLead {
+    /// The bold text without its colon: `Goal`, `Architecture`, `Spec`.
+    pub label: String,
+    /// The paragraph's block.
+    pub block: u32,
+    /// The paragraph's spans without the bold label and the space after it, which its pane's title
+    /// says: empty for a label alone.
+    pub text: Vec<Span>,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -270,6 +289,7 @@ pub struct Items {
     pub clarifications: Option<RoundItems>,
     pub spec: Option<SpecItems>,
     pub plan: Option<PlanItems>,
+    pub data_model: Option<DataModelItems>,
     pub review: Option<ReviewItems>,
     pub rulings: Option<Vec<Ruling>>,
 }
@@ -292,7 +312,13 @@ pub fn items(name: &str, text: &str, doc: &Document) -> Items {
             spec.tiers = super::spec::tier_choices(spec.risk_tier.as_deref(), spec.plan_review);
             items.spec = Some(spec);
         }
-        Some(FileKind::Plan) => items.plan = Some(PlanItems { tasks: tasks(doc) }),
+        Some(FileKind::Plan) => {
+            items.plan = Some(PlanItems {
+                lead: super::plan::lead(doc),
+                tasks: tasks(doc),
+            })
+        }
+        Some(FileKind::DataModel) => items.data_model = Some(data_model::data_model(doc)),
         Some(FileKind::Review) => items.review = review_items(text),
         Some(FileKind::Rulings) => items.rulings = Some(super::rulings::items(doc)),
         _ => {}

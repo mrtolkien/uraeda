@@ -96,7 +96,7 @@ export function EditorText({ draft, editor }: { draft: Draft; editor: DraftEdito
       )}
       {editor.drawn ? (
         <DropHint hint={images.hint}>
-          <StoriesProvider folder={MAIN_CHECKOUT} stories={draft.stories}>
+          <StoriesProvider folder={MAIN_CHECKOUT} mockups={draft.mockups} stories={draft.stories}>
             <Blocks document={draft.document} ids={ids} />
           </StoriesProvider>
         </DropHint>

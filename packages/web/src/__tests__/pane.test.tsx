@@ -112,6 +112,19 @@ test("a click opens the pane to read", async () => {
   expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
 });
 
+test("a draft's HTML mockup, alone in its paragraph, draws live in the pane", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(
+    join(repo, DRAFT),
+    `${read(repo, DRAFT)}\n[The listener's look](git-listener/mockups/look.html?w=402)\n`,
+  );
+  await renderPage("/priorities/git-listener", repo);
+
+  expect(
+    await (await paneDrawn()).findByRole("figure", { name: "The listener's look" }),
+  ).toBeTruthy();
+});
+
 /** US1 2, C2 */
 test("Edit opens the line and the draft's text in place", async () => {
   const { repo } = await renderPage("/priorities/git-listener");

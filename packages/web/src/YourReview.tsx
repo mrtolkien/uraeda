@@ -4,16 +4,35 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, use } from "react";
 import type { CommentItem } from "uraeda-binding";
 import type { useFile } from "./data.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { where } from "./ReviewComments.tsx";
-import { Band } from "./ReviewHeadings.tsx";
-import { type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
+import { type ChoicesState, type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
 import { ReviewImagesContext } from "./useReviewImages.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
+
+const styles = stylex.create({
+  band: {
+    // A band before the review's end, to the screen's edges on the phone.
+    backgroundColor: colorVars["--color-background-muted"],
+    height: spacingVars["--spacing-2"],
+    marginBlock: spacingVars["--spacing-5"],
+  },
+  bandBleed: {
+    // The page's inset, taken back (see `Page`).
+    marginInline: "var(--page-bleed)",
+  },
+});
+
+/** The band before a review's end, to the screen's edges on the phone. */
+function Band({ wide }: { wide: boolean }) {
+  return <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />;
+}
 
 /** Says that the file changed under the pending comments, with Start over. */
 export function StaleBanner({
@@ -38,10 +57,12 @@ export function StaleBanner({
 
 /** The verdict of a review, which the comment being written, and its images, may hold back. */
 export function YourVerdict({
+  choices,
   comments,
   file,
   refusals,
 }: {
+  choices: ChoicesState;
   /** How many comments are pending. */
   comments: number;
   file: File;
@@ -50,6 +71,7 @@ export function YourVerdict({
   const images = use(ReviewImagesContext);
   return (
     <ReviewVerdict
+      choices={choices}
       comments={comments}
       file={file}
       refusals={{ ...refusals, hides: images?.hides, hold: images?.hold }}
@@ -63,6 +85,7 @@ export function YourVerdict({
  * when the page shows it elsewhere.
  */
 export function YourReview({
+  choices,
   comments,
   file,
   general,
@@ -72,6 +95,7 @@ export function YourReview({
   refusals,
   wide,
 }: {
+  choices: ChoicesState;
   comments: ReadonlyArray<CommentItem>;
   file: File;
   general: ReactNode;
@@ -107,7 +131,9 @@ export function YourReview({
         <Button label="Add a general comment" onClick={onGeneral} />
       </HStack>
       {general}
-      {hasVerdict && <YourVerdict comments={comments.length} file={file} refusals={refusals} />}
+      {hasVerdict && (
+        <YourVerdict choices={choices} comments={comments.length} file={file} refusals={refusals} />
+      )}
     </>
   );
 }

@@ -4,6 +4,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useId } from "react";
 import type { Block } from "uraeda-binding";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { SinceBlock } from "./sinceMarks.tsx";
 import type { Range } from "./useCommentDraft.ts";
 
 /**
@@ -54,6 +55,13 @@ const styles = stylex.create({
     paddingInlineStart: spacingVars["--spacing-1"],
     position: "relative",
   },
+  // The room `selectable` takes before a block's text, without its tap or its tint.
+  room: {
+    borderInlineStartColor: "transparent",
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: spacingVars["--spacing-1"],
+    paddingInlineStart: spacingVars["--spacing-1"],
+  },
   // On narrow screens, the block takes no room for its bar, which a selected block draws in the gap
   // before its text, as a list's marker hangs in the page's margin: the text keeps the paragraphs'
   // edge and its whole width.
@@ -97,6 +105,19 @@ export function selectable(block: Block) {
   return block.parent === undefined
     ? block.kind !== "list" && block.kind !== "table"
     : block.kind === "item" || block.kind === "row";
+}
+
+/**
+ * The mark of a selectable element, `data-lines`: a block's lines in the file, or a decision's
+ * part's, its decision and side named, so a comment finds its element by its lines.
+ */
+export function linesMark(start: number, end: number, decision?: Range["decision"]) {
+  return `${decision ? sideMark(decision) : ""}${start}-${end}`;
+}
+
+/** What starts the mark of each part of a decision's side, `linesMark`. */
+export function sideMark(decision: NonNullable<Range["decision"]>) {
+  return `${decision.name}${decision.removed ? " removed" : ""}:`;
 }
 
 /**
@@ -153,7 +174,7 @@ export function useSelect(block: Block, selection: Selection | undefined) {
   const pressed = selection.isSelected(block);
   return {
     above: stylex.props(styles.above),
-    block: tapProps(`${block.startLine}-${block.endLine}`, (element) =>
+    block: tapProps(linesMark(block.startLine, block.endLine), (element) =>
       selection.onTap(block, element),
     ),
     cell: styles.cell,
@@ -180,10 +201,13 @@ export function After({ children }: { children: ReactNode }) {
   );
 }
 
-/** A block a review can tap, around its drawing, with what follows it. */
+/**
+ * A block a review can tap, around its drawing, with what follows it; marked Δ when it changed
+ * since your review.
+ */
 export function Selectable({
   block,
-  children,
+  children: drawing,
   selection,
 }: {
   block: Block;
@@ -191,6 +215,7 @@ export function Selectable({
   selection: Selection | undefined;
 }) {
   const select = useSelect(block, selection);
+  const children = <SinceBlock block={block}>{drawing}</SinceBlock>;
   const isNarrowScreen = isNarrow(useWidthClass());
   if (!select) {
     // A block a tap does not select may still have something after it, like a comment.
@@ -221,6 +246,26 @@ export function Selectable({
       </div>
       <After>{selection?.after?.(block)}</After>
     </>
+  );
+}
+
+/**
+ * Blocks drawn without `selection`, read as they are, where the same page drawn for a review selects
+ * them, like a plan's panes: on wide screens, they take the room a selectable block takes for its
+ * bar, so their text sits where the review's does.
+ */
+export function SelectionRoom({
+  children,
+  selection,
+}: {
+  children: ReactNode;
+  selection: Selection | undefined;
+}) {
+  const isNarrowScreen = isNarrow(useWidthClass());
+  return selection || isNarrowScreen ? (
+    children
+  ) : (
+    <div {...stylex.props(styles.room)}>{children}</div>
   );
 }
 

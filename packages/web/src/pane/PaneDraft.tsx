@@ -39,7 +39,7 @@ export function PaneDraft({ isEditing, path }: { isEditing: boolean; path: strin
       {isEditing || editor.field.entry ? (
         <DraftEditor draft={draft} editor={editor} />
       ) : (
-        <StoriesProvider folder={MAIN_CHECKOUT} stories={draft.stories}>
+        <StoriesProvider folder={MAIN_CHECKOUT} mockups={draft.mockups} stories={draft.stories}>
           <Blocks document={draft.document} ids={ids} />
         </StoriesProvider>
       )}

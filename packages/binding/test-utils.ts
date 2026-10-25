@@ -367,8 +367,8 @@ function specText(text: string, status: string, revision: number): string {
  * without an item of `## Decisions`. `status` and `revision` rewrite the spec: an approved one has
  * its approval record and the approval's review, with a comment of its own; a revision 1 has no
  * `## Your review`, no review file, and no `## History`; a revision 3 has two records in its
- * history. `folder` builds it in another folder, on its branch, beside the first. Returns the
- * folder.
+ * history. `folder` builds it in another folder, on its branch, beside the first. `stories` makes
+ * its stories run, as `addSpecStories` does. Returns the folder.
  */
 export function addSpecFeature(
   repo: string,
@@ -376,7 +376,13 @@ export function addSpecFeature(
     folder = SPEC_FEATURE,
     revision = 2,
     status = "awaiting-human",
-  }: { folder?: string; revision?: number; status?: "approved" | "awaiting-human" } = {},
+    stories = false,
+  }: {
+    folder?: string;
+    revision?: number;
+    status?: "approved" | "awaiting-human";
+    stories?: boolean;
+  } = {},
 ): string {
   // Main's decisions, once for every folder.
   if (!git(repo, "ls-tree", "--name-only", "main", "specs/decisions/task-history.md")) {
@@ -399,5 +405,72 @@ export function addSpecFeature(
   }
   files["specs/decisions/task-history.md"] = null;
   commitOnBranch(repo, folder, files);
+  if (stories) {
+    addSpecStories(repo, folder);
+  }
   return folder;
+}
+
+/**
+ * The spec page's spec at revision 1, as its human reviewed it, from its revision 2, `revised`: no
+ * `## Your review` and no `## History`, US1's journey without "weekends" and US2's saying "for 3
+ * seconds".
+ */
+export function reviewedSpec(revised: string): string {
+  const swaps: Array<[string, string]> = [
+    ["weekdays, weekends, weekly", "weekdays, weekly"],
+    ["so for 5 seconds", "so for 3 seconds"],
+  ];
+  return swaps.reduce(
+    (text, [from, to]) => {
+      if (!text.includes(from)) {
+        throw new Error(`The revised spec has no ${JSON.stringify(from)}`);
+      }
+      return text.replace(from, to);
+    },
+    specText(revised, "awaiting-human", 1),
+  );
+}
+
+/**
+ * Builds the spec page's feature as `addSpecFeature` does, then gives its spec a reviewed past:
+ * revision 1 committed on its branch, `reviewed` of the revision 2's text (`reviewedSpec` by
+ * default), without a review file; then `spec-review.md` requesting changes, its `commit:` that
+ * commit's short hash, with the fixture's comments; then the fixture's revision 2. Returns the
+ * folder.
+ */
+export function addRevisedSpec(
+  repo: string,
+  { reviewed = reviewedSpec }: { reviewed?: (revised: string) => string } = {},
+): string {
+  const folder = addSpecFeature(repo);
+  const spec = `specs/${folder}/spec.md`;
+  const review = `specs/${folder}/spec-review.md`;
+  const revised = git(repo, "show", `${folder}:${spec}`);
+  const requested = git(repo, "show", `${folder}:${review}`);
+  commitOnBranch(repo, folder, { [review]: null, [spec]: reviewed(revised) });
+  const commit = git(repo, "rev-parse", "--short=7", folder).trim();
+  commitOnBranch(repo, folder, {
+    [review]: requested.replace(/^commit: .*$/m, `commit: ${commit}`),
+  });
+  commitOnBranch(repo, folder, { [spec]: revised });
+  return folder;
+}
+
+/** The spec page's feature's stories file, which its spec links: `src/tasks/RepeatMenu.stories.tsx`. */
+export const SPEC_STORIES = "src/tasks/RepeatMenu.stories.tsx";
+
+/**
+ * Makes the spec page's feature's stories run, after `addSpecFeature`: commits their file, exporting
+ * `Open`, `Completed`, and `Custom`, on its branch, the fake preview's decision running in `src`,
+ * and checks the branch out in `.worktrees/<folder>`. Returns the fake's log, as `addPreview` does.
+ */
+export function addSpecStories(repo: string, folder = SPEC_FEATURE): string {
+  const stories = ["Open", "Completed", "Custom"].map((name) => `export const ${name} = {};\n`);
+  commitOnBranch(repo, folder, {
+    [SPEC_STORIES]: `export default { title: "RepeatMenu" };\n\n${stories.join("")}`,
+  });
+  const log = addPreview(repo, { folder: "src" });
+  git(repo, "worktree", "add", "--quiet", join(".worktrees", folder), folder);
+  return log;
 }

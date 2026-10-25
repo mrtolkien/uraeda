@@ -50,6 +50,6 @@ pub(super) fn answered(
         .filter(|review| review.verdict == "changes-requested")
 }
 
-fn revision_of(text: &str) -> Option<u32> {
+pub(super) fn revision_of(text: &str) -> Option<u32> {
     u32::try_from(frontmatter::parse(text).ok()?.integer("revision")?).ok()
 }

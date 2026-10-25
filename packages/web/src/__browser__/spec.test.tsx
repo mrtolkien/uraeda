@@ -1,86 +1,59 @@
-// The spec page of the specs redesign: on the phone, each part takes the screen's width, without a
-// card, its title and breadcrumbs sticking under the top bar while it scrolls (US5 2, 3).
+// The spec page in titled panes: on the phone, each pane takes the page's width (US1); a decision's
+// lines keep their measure; a link to a part opens the page at it; the page is accessible.
 import { fireEvent, screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
-import { backdrop, contrast, over, rgb, tinted } from "./colours.ts";
+import { backdrop, contrast, over, rgb } from "./colours.ts";
 import { atSize, checkLayout, colorScheme, commands, drawn, show } from "./helpers.tsx";
 
 const FOLDER = "2026-10-17-spec-page";
 const PAGE = `/f/${FOLDER}/spec.md`;
 
-/** The top bar's bottom edge, which a sticking title sits right under. */
-const barBottom = () => screen.getByRole("banner").getBoundingClientRect().bottom;
-
 describe("on the phone", () => {
   atSize("phone");
 
-  test("on the phone, the part and story stay at the top while you read (US5 2)", async () => {
-    await commands.addSpecFeature();
-    await show(PAGE, "Complete a repeating task");
-    const story = screen.getByRole("region", { name: "Complete a repeating task" });
-
-    // US2's second key scenario, 300 px down the screen: the story's head is above it.
-    const scenario = within(story).getByText(/taps undo within 5/);
-    window.scrollBy(0, scenario.getBoundingClientRect().top - 300);
-    await drawn();
-
-    // The story's head, its breadcrumbs then its title, sticks right below the top bar, over the
-    // scenarios scrolled under it.
-    const crumbs = within(story).getByText("What changes for users");
-    const title = within(story).getByRole("heading", { name: "Complete a repeating task" });
-    const top = crumbs.getBoundingClientRect().top;
-    expect(top).toBeGreaterThanOrEqual(barBottom() - 0.5);
-    expect(top).toBeLessThan(barBottom() + 16);
-    expect(title.getBoundingClientRect().top).toBeGreaterThan(crumbs.getBoundingClientRect().top);
-    expect(within(story).getByText("US2").getBoundingClientRect().top).toBeLessThan(
-      title.getBoundingClientRect().bottom,
-    );
-    for (const element of [crumbs, title]) {
-      const box = element.getBoundingClientRect();
-      const shown = document.elementFromPoint(box.left + 4, box.top + box.height / 2);
-      expect(element.contains(shown), element.textContent ?? "").toBe(true);
-    }
-    // The story's start scrolled under its head.
-    expect(story.getBoundingClientRect().top).toBeLessThan(barBottom());
-  });
-
-  test("on the phone, a part's head pushed away slides under the top bar", async () => {
-    await commands.addSpecFeature();
-    await show(PAGE, "Complete a repeating task");
-    // US1's end at the bar's bottom: its head, pushed up by it, overlaps the bar.
-    const story = screen.getByRole("region", { name: "Make a task repeat" });
-    window.scrollBy(0, story.getBoundingClientRect().bottom - barBottom());
-    await drawn();
-    const head = within(story).getByRole("heading", { name: "Make a task repeat" });
-    expect(head.getBoundingClientRect().bottom).toBeLessThan(barBottom());
-    expect(head.getBoundingClientRect().bottom).toBeGreaterThan(0);
-
-    const banner = screen.getByRole("banner");
-    const box = banner.getBoundingClientRect();
-    for (const y of [box.top + 8, head.getBoundingClientRect().top + 8]) {
-      const shown = document.elementFromPoint(box.left + box.width / 2, y);
-      expect(banner.contains(shown), `${y}: ${shown?.textContent?.slice(0, 40)}`).toBe(true);
-    }
-  });
-
-  test("on the phone, no part has a card, and text runs to 14.4 px from the edges (US5 3, at 120%)", async () => {
+  test("on the phone, the panes take the page's width, a story's and a decision's text to 14.4 px from the edges (US1, at 120%)", async () => {
     await commands.addSpecFeature({ status: "approved" });
-    await show(PAGE, "Complete a repeating task");
+    await show(PAGE, "US2 · Complete a repeating task");
 
     const width = window.innerWidth;
-    // US5 3's 12 px inset, at the UI look decision's 120% (R5).
+    // The page's 12 px inset, at the UI look decision's 120% (R5).
     const inset = 14.4;
-    for (const name of ["What you approve", "Task storage", "Complete a repeating task"]) {
-      const part = screen.getByRole("region", { name });
-      const title = within(part).getByRole("heading", { name });
-      expect(title.getBoundingClientRect().left, name).toBeCloseTo(inset, 0);
-      // The part takes the page's width, inside its inset.
-      const box = part.getBoundingClientRect();
+    for (const name of [
+      "Approved on 2026-10-18.",
+      "Task storage",
+      "US2 · Complete a repeating task",
+    ]) {
+      // Each pane takes the page's width, inside its inset.
+      const box = screen.getByRole("region", { name }).getBoundingClientRect();
       expect(box.left, name).toBeCloseTo(inset, 0);
       expect(box.right, name).toBeCloseTo(width - inset, 0);
     }
+    // Every pane keeps only its titled top border on the phone, the block's, a story's, and a
+    // decision's alike: its title starts at the page's inset, and its text runs to it.
+    for (const name of [
+      "Approved on 2026-10-18.",
+      "Task storage",
+      "US2 · Complete a repeating task",
+    ]) {
+      const pane = screen.getByRole("region", { name });
+      const title = within(pane).getByRole("heading", { name: new RegExp(`^${name}`) });
+      expect(title.getBoundingClientRect().left, name).toBeCloseTo(inset, 0);
+      expect(getComputedStyle(pane).borderLeftWidth, name).toBe("0px");
+      expect(getComputedStyle(pane).borderRightWidth, name).toBe("0px");
+    }
+    // A decision's note, and its ledger's rows, their signs first, start at the page's inset.
+    const storage = screen.getByRole("region", { name: "Task storage" });
+    for (const text of [
+      /Completing a repeating task moves it to its next due date/,
+      /^An upgrade that cannot read a saved\s+value clears it/,
+    ]) {
+      const box = screen.getByText(text).getBoundingClientRect();
+      expect(box.left, String(text)).toBeCloseTo(inset, 0);
+      expect(box.right, String(text)).toBeLessThanOrEqual(width - inset + 0.5);
+    }
+    const sign = within(storage).getAllByRole("img", { name: "Changed" })[0]!;
+    expect(sign.getBoundingClientRect().left, "a row's sign").toBeCloseTo(inset, 0);
     const journey = screen.getByText(/Completing a repeating task moves it to its next due date/);
-    expect(journey.getBoundingClientRect().left).toBeCloseTo(inset, 0);
     expect(journey.getBoundingClientRect().right).toBeCloseTo(width - inset, 0);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(width);
   });
@@ -154,7 +127,10 @@ describe("on a wide screen", () => {
     }
   });
 
-  /** Review comment C1 of the spec, and US2 1: colours by strength, no side bar, nothing struck. */
+  /**
+   * Review comment C1 of the spec, and US2 1: colours by strength, no side bar, and only removed
+   * words struck, as the spec page's ledger strikes them (R6).
+   */
   test("the strength icon takes its strength's colour, and the card has no side bar", async () => {
     await commands.addSpecFeature();
     await commands.commitOnBranch(FOLDER, { "specs/decisions/due-dates.md": DUE_DATES });
@@ -176,7 +152,7 @@ describe("on a wide screen", () => {
     for (const [name, [r, g, b]] of Object.entries({ mustNot, shouldNot })) {
       expect(r, name).toBeGreaterThan(Math.max(g, b));
     }
-    // A soft colour is its hard one three quarters over the card's background: apart from it, but
+    // A soft colour is its hard one four fifths over the pane's surface: apart from it, but
     // near it, and never past it.
     for (const [soft, hard] of [
       [should!, must!],
@@ -191,10 +167,13 @@ describe("on a wide screen", () => {
     // The neutral is grey.
     expect(Math.max(...may!) - Math.min(...may!)).toBeLessThan(0.15);
 
+    const deletions = within(card).queryAllByRole("deletion");
     for (const element of [card, ...card.querySelectorAll("*")]) {
       const style = getComputedStyle(element);
       const name = element.textContent?.slice(0, 60);
-      expect(style.textDecorationLine, name).not.toContain("line-through");
+      if (style.textDecorationLine.includes("line-through")) {
+        expect(deletions.some((deletion) => deletion.contains(element))).toBe(true);
+      }
       // A bar is a border on one side alone: a card's own border goes all around.
       const start = Number.parseFloat(style.borderLeftWidth);
       const visible = start > 0 && rgb(style.borderLeftColor).length === 3;
@@ -208,8 +187,8 @@ describe("on a wide screen", () => {
 
 /**
  * The non-text contrast (WCAG 1.4.11) axe does not check: each strength's icon over what is behind
- * it, and the edge of a removed part's red tint and of the selection over the card around them,
- * each at least 3:1.
+ * it, and the edge of the selection over the card around it, each at least 3:1. A removed part's
+ * tint is no edge of its own: its sign and its strike tell it (R6).
  */
 function checkNonTextContrast() {
   const main = screen.getByRole("main");
@@ -222,28 +201,14 @@ function checkNonTextContrast() {
     const name = icon.getAttribute("aria-label");
     expect(contrast(colour, backdrop(icon)), `${name} icon`).toBeGreaterThanOrEqual(3);
   }
-  // A part removed whole, its words not marked one by one: the box around them that has a tint.
-  const words = within(main)
-    .getAllByRole("deletion")
-    .find((element) => !tinted(element))!;
-  let tint: Element = words;
-  while (!tinted(tint) && tint.parentElement) {
-    tint = tint.parentElement;
-  }
   const selected = within(main).getByRole("button", { pressed: true }).parentElement!;
-  for (const [name, box] of Object.entries({ removed: tint, selection: selected })) {
-    const style = getComputedStyle(box);
-    const around = backdrop(box.parentElement);
-    const edge = Number.parseFloat(style.borderInlineStartWidth) > 0;
-    // On the phone, a selected block's bar is a shadow before its text (R24).
-    const bar =
-      style.boxShadow === "none" ? undefined : /rgba?\([^)]*\)/.exec(style.boxShadow)?.[0];
-    const colour = over(
-      edge ? style.borderInlineStartColor : (bar ?? style.backgroundColor),
-      around,
-    );
-    expect(contrast(colour, around), name).toBeGreaterThanOrEqual(3);
-  }
+  const style = getComputedStyle(selected);
+  const around = backdrop(selected.parentElement);
+  const edge = Number.parseFloat(style.borderInlineStartWidth) > 0;
+  // On the phone, a selected block's bar is a shadow before its text (R24 of the questions page).
+  const bar = style.boxShadow === "none" ? undefined : /rgba?\([^)]*\)/.exec(style.boxShadow)?.[0];
+  const colour = over(edge ? style.borderInlineStartColor : (bar ?? style.backgroundColor), around);
+  expect(contrast(colour, around), "selection").toBeGreaterThanOrEqual(3);
 }
 
 /** Whether an element shows at the top of the window, below the phone's top bar. */
@@ -260,14 +225,36 @@ describe("at both sizes", () => {
   test("a link to a section or a story of the spec opens the page at it", async () => {
     await commands.addSpecFeature();
     for (const anchor of ["us2-complete-a-repeating-task-p1", "user-stories", "risk-tier"]) {
-      await show(`${PAGE}#${anchor}`, "Complete a repeating task");
+      await show(`${PAGE}#${anchor}`, "US2 · Complete a repeating task");
       await expect
         .poll(() => atTop(document.getElementById(anchor)), { message: anchor })
         .toBe(true);
     }
     expect(document.getElementById("us2-complete-a-repeating-task-p1")).toBe(
-      screen.getByRole("region", { name: "Complete a repeating task" }),
+      screen.getByRole("region", { name: "US2 · Complete a repeating task" }),
     );
+  });
+
+  /**
+   * WCAG 1.4.11: each strength's icon, a graphic that tells the rule's strength, at 3:1 over the
+   * surface it sits on: the pane's body on a wide screen, the page's on the phone, where the pane
+   * has no background of its own.
+   */
+  test("the five strength icons read at 3:1 over their surface, in both schemes", async () => {
+    await commands.addSpecFeature();
+    await commands.commitOnBranch(FOLDER, { "specs/decisions/due-dates.md": DUE_DATES });
+    await show(PAGE, "Due dates");
+    const card = screen.getByRole("region", { name: "Due dates" });
+    for (const mode of ["light", "dark"] as const) {
+      await colorScheme(mode);
+      await drawn();
+      for (const name of ["Must", "Should", "Should not", "Must not", "May"]) {
+        const icon = within(card).getByRole("img", { name });
+        const behind = backdrop(icon);
+        const ratio = contrast(over(getComputedStyle(icon).color, behind), behind);
+        expect(ratio, `${mode}: ${name}`).toBeGreaterThanOrEqual(3);
+      }
+    }
   });
 
   /** SC-004 */

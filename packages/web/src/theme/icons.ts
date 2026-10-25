@@ -62,6 +62,8 @@ import {
   wrench,
   outline,
 } from "./lucide.ts";
+import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
+import { badgeCheck, lightbulb, map, scale, shield } from "./lucideParts.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
 // Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The README's
@@ -172,9 +174,11 @@ export function decisionIcon(name: string | null | undefined): `uraeda:decision-
 export const uraedaIcons = {
   "uraeda:activity": activity,
   "uraeda:attach": attach,
+  "uraeda:badge-check": badgeCheck,
   "uraeda:book-open": bookOpen,
   "uraeda:comment": comment,
   "uraeda:crop": crop,
+  "uraeda:database": database,
   "uraeda:enter": enter,
   "uraeda:eye": review,
   "uraeda:flag": flag,
@@ -188,8 +192,14 @@ export const uraedaIcons = {
   "uraeda:home": home,
   "uraeda:inbox": inbox,
   "uraeda:key-round": keyRound,
+  "uraeda:layers": layers,
+  "uraeda:lightbulb": lightbulb,
   "uraeda:list": list,
   "uraeda:log-out": logOut,
+  "uraeda:map": map,
+  "uraeda:maximize": maximize,
+  "uraeda:minimize": minimize,
+  "uraeda:monitor": monitor,
   "uraeda:palette": palette,
   "uraeda:panel-left": panelLeft,
   "uraeda:panel-right": panelRight,
@@ -197,8 +207,12 @@ export const uraedaIcons = {
   "uraeda:pick": pick,
   "uraeda:plug": plug,
   "uraeda:plus": plus,
+  "uraeda:ruler": ruler,
+  "uraeda:scale": scale,
   "uraeda:server": server,
   "uraeda:settings": settings,
+  "uraeda:shield": shield,
+  "uraeda:smartphone": smartphone,
   "uraeda:step-discovery": discovery,
   "uraeda:step-given": given,
   "uraeda:step-implementation": implementation,

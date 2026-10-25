@@ -2,7 +2,7 @@
 // links its paragraphs embed, and where a comment on one goes. Each page that draws a workflow file
 // fills `StoryContext`, so `Blocks` and `Spans` read it without a prop through every caller.
 import { createContext, type ReactNode, useContext } from "react";
-import type { Block, Document, StoryLink, StoryTarget } from "uraeda-binding";
+import type { Block, Document, MockupEmbed, StoryLink, StoryTarget } from "uraeda-binding";
 import { MAIN_CHECKOUT, usePreviewOn } from "./data.ts";
 import type { EmbedComment } from "./StoryPick.tsx";
 
@@ -23,12 +23,14 @@ export type StoryComments = { path: string; save: StoryComment };
 /**
  * The stories of what a page draws: the checkout's folder, `main` for the main checkout; the story
  * links its paragraphs embed, as the core found them; where a comment goes, when one can; whether
- * its stories were removed, as a round's after its answer; and whether the checkout has a preview
- * decision, without which story links are plain links.
+ * its stories were removed, as a round's after its answer; whether the checkout has a preview
+ * decision, without which story links are plain links; and the HTML mockups its paragraphs embed,
+ * which need no preview.
  */
 export type Stories = {
   comment?: StoryComments;
   folder: string;
+  mockups?: ReadonlyArray<MockupEmbed>;
   preview: boolean;
   removed?: boolean;
   stories: ReadonlyArray<StoryLink>;
@@ -43,23 +45,27 @@ export const StoryContext = createContext<Stories | null>(null);
  */
 export const PreviewBase = createContext("");
 
-/** Gives the stories of a workflow file or a draft to what draws it. */
+/** Gives the stories and HTML mockups of a workflow file or a draft to what draws it. */
 export function StoriesProvider({
   children,
   comment,
   folder,
+  mockups,
   removed,
   stories,
 }: {
   children: ReactNode;
   comment?: StoryComments;
   folder: string;
+  mockups?: ReadonlyArray<MockupEmbed>;
   removed?: boolean;
   stories: ReadonlyArray<StoryLink>;
 }) {
   const preview = usePreviewOn(folder);
   return (
-    <StoryContext value={{ comment, folder, preview, removed, stories }}>{children}</StoryContext>
+    <StoryContext value={{ comment, folder, mockups, preview, removed, stories }}>
+      {children}
+    </StoryContext>
   );
 }
 
@@ -110,6 +116,14 @@ export function holdsStory(context: Stories | null, document: Document, id: numb
 /** The story a paragraph embeds, when its checkout has a preview decision. */
 export function useStoryAt(block: Block): StoryLink | undefined {
   return storyIn(useContext(StoryContext), block);
+}
+
+/** The HTML mockup a paragraph embeds, in a page's mockups. */
+export function useMockupAt(block: Block): MockupEmbed | undefined {
+  const context = useContext(StoryContext);
+  return block.kind === "paragraph"
+    ? context?.mockups?.find((mockup) => mockup.block === block.id)
+    : undefined;
 }
 
 /**

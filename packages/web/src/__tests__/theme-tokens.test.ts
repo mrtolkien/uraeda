@@ -137,9 +137,10 @@ const BACKGROUNDS = [
 
 /** Every text colour against the backgrounds it is read on, beside the pairs components draw. */
 const TEXT: Array<[string, string]> = [
-  ...[...new Set([...named(/^--color-text-/), "--color-text-lavender"])].flatMap((text) =>
-    BACKGROUNDS.map((back): [string, string] => [text, back]),
-  ),
+  // Lavender and sapphire, the theme's own hues: a pane's title and a live window's.
+  ...[
+    ...new Set([...named(/^--color-text-/), "--color-text-lavender", "--color-text-sapphire"]),
+  ].flatMap((text) => BACKGROUNDS.map((back): [string, string] => [text, back])),
   ...["--color-text-primary", "--color-text-secondary"].flatMap((text) =>
     [
       "--color-background-muted",
@@ -187,6 +188,8 @@ const CONTROLS = [
   "--color-error",
   ...named(/^--color-icon-/),
   ...HUES.map((hue) => `--color-border-${hue}`),
+  // A live window's double border, in the theme's own sapphire.
+  "--color-border-sapphire",
   "--color-selection-edge",
 ];
 

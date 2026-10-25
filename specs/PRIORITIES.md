@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Spec and plan pages in the terminal look](drafts/spec-page.md)
 - [Lists and starts in the terminal look](drafts/lists-and-starts.md)
 
 - Empty inbox

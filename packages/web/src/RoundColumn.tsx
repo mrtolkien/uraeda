@@ -2,94 +2,30 @@
 // column of Outline, Notes, and, for a feature whose agent can be asked, Session; on the phone, the
 // status line's count, Notes, and Next or Submit, the count and Notes each opening a sheet.
 import { Button } from "@astryxdesign/core/Button";
-import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { type ReactNode, Suspense } from "react";
+import type { ReactNode } from "react";
 import type { Document, RoundItems } from "uraeda-binding";
-import { ColumnSession } from "./ColumnSession.tsx";
-import type { useFile } from "./data.ts";
-import {
-  askedTabNow,
-  type ColumnTab,
-  DocumentColumn,
-  tabAddress,
-  useAskedTab,
-  useColumnTab,
-} from "./layout/DocumentColumn.tsx";
+import { focusOnceDrawn, sessionTab, useColumnAsk } from "./ColumnSession.tsx";
+import { type useFile, useAgent } from "./data.ts";
+import { ColumnStatusLine } from "./layout/ColumnStatusLine.tsx";
+import { type ColumnTab, DocumentColumn, useColumnTab } from "./layout/DocumentColumn.tsx";
 import { useDocumentColumnWidth } from "./layout/documentColumnWidth.ts";
-import { TopBarSlot } from "./layout/TopBarSlot.tsx";
-import { openOverlayAt, overlayOf } from "./layout/useBackCloses.ts";
+import { type SheetState, useSheetTab } from "./layout/useSheetTab.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import {
-  NOTES_FIELD,
-  NotesField,
-  NotesSheet,
-  useNotesDrop,
-  type useRoundNotes,
-} from "./RoundNotes.tsx";
-import { NextOrSubmit, OutlineSheet, RoundOutline, useBlankKeys } from "./RoundOutline.tsx";
+import { NOTES_FIELD, NotesField, useNotesDrop, type useRoundNotes } from "./RoundNotes.tsx";
+import { NextOrSubmit, OutlineSheetPanel, RoundOutline, useBlankKeys } from "./RoundOutline.tsx";
 import type { NavQuestion } from "./roundJump.ts";
-import { redirect } from "./routes.tsx";
-import { askAbout, quoted } from "./sessions.ts";
+import { quoted } from "./sessions.ts";
 import type { Draft } from "./useDraft.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
-/** The phone's sheet open over the round, if any. */
-type RoundSheet = "outline" | "notes" | undefined;
-
-/** The phone's sheets' names, by their keys in the address. */
+/** The phone's sheets' names, by their keys in the address: `?tab=notes`, `?tab=outline`. */
 const SHEETS = { notes: "Notes", outline: "Outline" } as const;
-
-/**
- * The phone's open sheet, and what opens or closes one: on narrow screens, `?tab=notes` opens the
- * Notes sheet and `?tab=outline` the Outline sheet, so a reload, Back, or a width change keeps it,
- * and the column's tab of the same key opens as the window widens. Opening a sheet adds a history
- * entry of the page's, so Back closes it; closing it goes back over that entry, or, opened by the
- * address, takes the tab out of it.
- */
-function useRoundSheet(wide: boolean) {
-  const asked = useAskedTab();
-  const sheet: RoundSheet = !wide && (asked === "notes" || asked === "outline") ? asked : undefined;
-  const setSheet = (key: RoundSheet) => {
-    if (key !== undefined) {
-      openOverlayAt(tabAddress(key), SHEETS[key]);
-      return;
-    }
-    // Read now: called once Back landed, the sheet's entry gone.
-    const open = askedTabNow();
-    if (open !== "notes" && open !== "outline") {
-      return;
-    }
-    if (overlayOf(window.history.state) === SHEETS[open]) {
-      window.history.back();
-    } else {
-      redirect(tabAddress(undefined));
-    }
-  };
-  return [sheet, setSheet] as const;
-}
 
 /** The column's tabs, by their keys in the address: Session only where the agent can be asked. */
 function columnKeys(asks: boolean) {
   return asks ? ["outline", "notes", "session"] : ["outline", "notes"];
-}
-
-/** The id of the Session tab's panel, whose composer asking focuses once it is drawn. */
-const SESSION_PANEL = "round-session";
-
-/** Focuses what `find` finds once it is drawn, within two seconds, without scrolling the page. */
-function focusOnceDrawn(find: () => HTMLElement | null | undefined) {
-  const start = performance.now();
-  const tick = () => {
-    const found = find();
-    if (found) {
-      found.focus({ preventScroll: true });
-    } else if (performance.now() - start < 2000) {
-      requestAnimationFrame(tick);
-    }
-  };
-  requestAnimationFrame(tick);
 }
 
 /**
@@ -106,22 +42,12 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
   const wide = !isNarrow(useWidthClass());
   const column = useDocumentColumnWidth();
   const [tab, setTab] = useColumnTab(columnKeys(draft !== undefined));
-  const sheet = useRoundSheet(wide);
+  const sheet = useSheetTab(SHEETS, !wide);
   const openTab = (key: string) => {
     column.setShown(true);
     setTab(key);
   };
-  const ask = (quote: string) => {
-    if (!wide) {
-      askAbout(file.folder, quote);
-      return;
-    }
-    draft?.ask(quote);
-    openTab("session");
-    focusOnceDrawn(() =>
-      document.getElementById(SESSION_PANEL)?.querySelector<HTMLElement>('[role="textbox"]'),
-    );
-  };
+  const ask = useColumnAsk(file.folder, draft);
   const editNotes = () => {
     if (wide) {
       openTab("notes");
@@ -173,6 +99,7 @@ export function RoundColumn({
   onSubmit: () => void;
 }) {
   const wide = !isNarrow(useWidthClass());
+  const agent = useAgent();
   useBlankKeys(nav, wide);
   // With Session shown, an image dropped goes to its composer, never to the notes.
   const queued = useNotesDrop({
@@ -206,18 +133,7 @@ export function RoundColumn({
     { icon: "uraeda:pencil", key: "notes", label: "Notes", panel: notesField },
   ];
   if (draft) {
-    tabs.push({
-      icon: "uraeda:comment",
-      key: "session",
-      label: "Session",
-      panel: (
-        <div id={SESSION_PANEL}>
-          <Suspense fallback={null}>
-            <ColumnSession draft={draft} folder={file.folder} />
-          </Suspense>
-        </div>
-      ),
-    });
+    tabs.push(sessionTab(draft, file.folder, agent?.kind));
   }
   return (
     <>
@@ -242,53 +158,64 @@ export function RoundColumn({
 
 /**
  * On the phone, the round's parts outside its page: the status line's count, Notes, and Next or
- * Submit, the count opening the outline's sheet, and Notes the notes' sheet, over `notesField`.
+ * Submit, the count opening the outline's sheet, and Notes the notes' sheet, over `notesField`,
+ * the open one kept in the address (`useSheetTab`).
  */
 function PhoneParts({
   nav,
   notesField,
   onSubmit,
   round: { document, round },
-  sheet: [sheet, setSheet],
+  sheet,
 }: {
   nav: ReadonlyArray<NavQuestion>;
   notesField: ReactNode;
   onSubmit: () => void;
   round: { document: Document; round: RoundItems };
-  sheet: ReturnType<typeof useRoundActions>["sheet"];
+  sheet: SheetState;
 }) {
-  const close = () => setSheet(undefined);
+  const [, setSheet] = sheet;
   const answered = nav.filter((q) => q.answered).length;
-  return (
+  const buttons = (
     <>
-      <TopBarSlot>
-        <HStack align="center" gap={1}>
-          <Button
-            label={`${answered}/${nav.length} answered, outline`}
-            onClick={() => setSheet("outline")}
-            variant="ghost"
-          >
-            {`${answered}/${nav.length}`}
-          </Button>
-          <Button
-            icon={<Icon icon="uraeda:pencil" />}
-            label="Notes"
-            onClick={() => setSheet("notes")}
-            variant="ghost"
-          />
-          <NextOrSubmit onSubmit={onSubmit} questions={nav} />
-        </HStack>
-      </TopBarSlot>
-      <OutlineSheet
-        document={document}
-        isOpen={sheet === "outline"}
-        onClose={close}
-        questions={nav}
-        round={round}
+      <Button
+        label={`${answered}/${nav.length} answered, outline`}
+        onClick={() => setSheet("outline")}
+        variant="ghost"
+      >
+        {`${answered}/${nav.length}`}
+      </Button>
+      <Button
+        icon={<Icon icon="uraeda:pencil" />}
+        label="Notes"
+        onClick={() => setSheet("notes")}
+        variant="ghost"
       />
-      <NotesSheet isOpen={sheet === "notes"} onClose={close}>
-        {notesField}
-      </NotesSheet>
+      <NextOrSubmit onSubmit={onSubmit} questions={nav} />
     </>
+  );
+  return (
+    <ColumnStatusLine
+      buttons={buttons}
+      sheet={sheet}
+      sheets={[
+        {
+          // No field to type in: the sheet needs no room for a keyboard, and the round shows above.
+          height: "capped",
+          key: "outline",
+          label: SHEETS.outline,
+          panel: (
+            <OutlineSheetPanel
+              document={document}
+              onClose={() => setSheet()}
+              questions={nav}
+              round={round}
+            />
+          ),
+        },
+        // The round stays where it was read under the notes' field.
+        { key: "notes", label: SHEETS.notes, panel: notesField },
+      ]}
+    />
   );
 }

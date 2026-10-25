@@ -1,6 +1,7 @@
 //! The tasks of a plan, and how many of their steps are checked.
 
-use super::items::TaskItem;
+use super::document::{BlockKind, Document, Span};
+use super::items::{PlanLead, TaskItem};
 
 /// Every task of a plan, `## Task N: title`, in order, with its checkbox steps: the same parse the
 /// plan's review reads. `dir` is the folder holding the plan, from the repository's top level. A
@@ -46,4 +47,37 @@ pub fn checkboxes(text: &str) -> (usize, usize) {
         }
     }
     (done, total)
+}
+
+/// A plan's lead paragraphs, in order: the top-level paragraphs before its first `##` whose first
+/// span is bold text ending in ":", labelled by that text without the colon.
+pub(crate) fn lead(doc: &Document) -> Vec<PlanLead> {
+    doc.blocks
+        .iter()
+        .filter(|b| b.parent.is_none())
+        .take_while(|b| b.kind != BlockKind::Heading || b.level != Some(2))
+        .filter(|b| b.kind == BlockKind::Paragraph)
+        .filter_map(|b| {
+            let first = b.spans.first().filter(|span| span.strong)?;
+            let label = first.text.trim().strip_suffix(':')?.trim();
+            (!label.is_empty()).then(|| PlanLead {
+                label: label.to_string(),
+                block: b.id,
+                text: after_label(&b.spans[1..]),
+            })
+        })
+        .collect()
+}
+
+/// The spans after a lead's label, without the white space starting them.
+fn after_label(spans: &[Span]) -> Vec<Span> {
+    let mut rest = spans.to_vec();
+    while let Some(first) = rest.first_mut() {
+        first.text = first.text.trim_start().to_string();
+        if !first.text.is_empty() {
+            break;
+        }
+        rest.remove(0);
+    }
+    rest
 }

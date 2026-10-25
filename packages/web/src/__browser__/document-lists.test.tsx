@@ -275,3 +275,27 @@ describe("lists on the desktop", () => {
     },
   );
 });
+
+describe("a plan's lists on the phone", () => {
+  atSize("phone");
+
+  test("a marker hung before its text never sits on its pane's border", async () => {
+    const folder = "2026-10-13-plan-review";
+    const plan = await commands.fixtureText("plan-page/plan.md");
+    await commands.commitOnBranch(folder, { [`specs/${folder}/plan.md`]: plan });
+    await show(`/f/${folder}/plan.md`, "Global constraints");
+    await drawn();
+
+    const item =
+      '"The UI MUST adapt to three width classes, narrow, semi-wide, and wide, not to the device, through the theme and never per-view media queries."';
+    const pane = screen.getByRole("region", { name: "Global constraints" });
+    const border = Number.parseFloat(getComputedStyle(pane).borderLeftWidth);
+    const inside = pane.getBoundingClientRect().left + border;
+    const left = Math.min(...glyphs("-", item).map((box) => box.left));
+    // Drawn left of a side border, it would cross it; with none, it hangs in the page's margin.
+    expect(
+      border === 0 || left >= inside - 0.5,
+      `the marker at ${left}, the border's inner edge at ${inside}`,
+    ).toBe(true);
+  });
+});

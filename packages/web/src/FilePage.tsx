@@ -5,15 +5,17 @@ import { Crumbs } from "./Crumbs.tsx";
 import { DocumentPage } from "./DocumentPage.tsx";
 import { useFile } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
-import { ReviewPage } from "./ReviewPage.tsx";
+import { PlanPage } from "./PlanPage.tsx";
 import { RoundPage } from "./RoundPage.tsx";
+import { DataModelPage } from "./spec/DataModelPage.tsx";
 import { SpecPage } from "./spec/SpecPage.tsx";
 import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { StoriesProvider } from "./stories.tsx";
 
 /**
- * A workflow file, on the page its kind needs: a spec, waiting for review or not; a round to answer;
- * a plan to review; or a document to read, its story links embedded.
+ * A workflow file, on the page its kind needs: a spec, waiting for review or not; a round to
+ * answer; a plan, waiting for review or not; a data model, in panes; or a document to read, its
+ * story links embedded.
  */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
   const file = useFile(folder, name);
@@ -42,19 +44,26 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
   if (file.kind === "spec") {
     return <SpecPage file={file} />;
   }
-  if (file.kind === "plan" && file.status === "awaiting-human") {
-    return <ReviewPage file={file} />;
+  if (file.kind === "plan") {
+    return <PlanPage file={file} />;
   }
-  // A round and a document draw the file as it is now, with the stories it embeds: a story gone
-  // from an answered round is a variant removed after its answer.
+  // A round, a data model, and a document draw the file as it is now, with the stories and HTML
+  // mockups it embeds: a story gone from an answered round is a variant removed after its answer.
   const round = file.kind === "clarifications";
   return (
     <StoriesProvider
       folder={file.folder}
+      mockups={file.current.mockups}
       removed={round && file.status === "answered"}
       stories={file.current.stories}
     >
-      {round ? <RoundPage file={file} target={{ folder }} /> : <DocumentPage file={file} />}
+      {round ? (
+        <RoundPage file={file} target={{ folder }} />
+      ) : file.kind === "data-model" ? (
+        <DataModelPage file={file} />
+      ) : (
+        <DocumentPage file={file} />
+      )}
     </StoriesProvider>
   );
 }

@@ -117,23 +117,22 @@ describe("on a desktop", () => {
 describe("on a desktop, the embed's sizes", () => {
   atSize("desktop");
 
-  test("at the phone's width, the story is centred, framed as a phone's screen, on its own background", async () => {
+  // R3: the live window's title and size, for the phone's bezel and its background.
+  test("at the phone's width, the story is centred in its window, at 402 px and 100%", async () => {
     await commands.addStoryFeature();
     await showSpec();
     await storyShown(DESKTOP);
     const frame = within(embed()).getByTitle(DESKTOP);
     const stage = frame.parentElement!.parentElement!;
-    const desktopBackground = getComputedStyle(stage).backgroundColor;
 
     await atPhoneWidth();
 
     const box = frame.getBoundingClientRect();
     const around = stage.getBoundingClientRect();
     expect(Math.abs(box.left - around.left - (around.right - box.right))).toBeLessThan(2);
-    expect(
-      Number.parseFloat(getComputedStyle(frame.parentElement!).borderTopWidth),
-    ).toBeGreaterThan(0);
-    expect(getComputedStyle(stage).backgroundColor).not.toBe(desktopBackground);
+    expect(box.width).toBe(402);
+    const window = within(embed()).getByRole("region", { name: `live · ${LABEL}` });
+    expect(within(window).getAllByRole("heading")[0]!.textContent).toContain("402 px · 100%");
   });
 
   test("Full screen shows the story on the whole screen, and leaves it", async () => {
@@ -168,7 +167,9 @@ describe("on a desktop, the embed's sizes", () => {
     await page.viewport(1920, 1080);
     try {
       await commands.addStoryFeature();
-      await showSpec();
+      // The proposal, whose column holds its text and the embed, outside any pane.
+      await show(PROPOSAL, "Long feature names are cut");
+      embed().scrollIntoView({ block: "center" });
       await storyShown(DESKTOP);
       const column = embed().parentElement!.getBoundingClientRect();
 
@@ -406,17 +407,24 @@ describe("on a desktop, the embed among other windows and boxes", () => {
 describe("on the phone", () => {
   atSize("phone");
 
-  test("on the phone, the embed is as wide as the page, at the phone width, with named icons (US1.5)", async () => {
+  // R3, R7: the phone's width first, scaled to fit the screen, its switch and links named icons.
+  test("on the phone, the story shows at the phone width, scaled to fit, with named icons (US1.5)", async () => {
     await commands.addStoryFeature();
     await showSpec();
 
     const phone = await within(embed()).findByTitle(PHONE, {}, READY);
     await storyShown(PHONE);
-    expect(phone.getBoundingClientRect().width).toBe(window.innerWidth);
+    expect(phone.getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth);
+    expect(phone.getBoundingClientRect().width).toBeGreaterThan(window.innerWidth - 60);
     expect(within(embed()).queryByTitle(DESKTOP)).toBeNull();
-    expect(within(embed()).queryByRole("radio")).toBeNull();
-    const open = within(embed()).getByRole("link", { name: "Open in Storybook" });
-    expect(open.textContent).not.toContain("Open in Storybook");
+    const controls = [
+      within(embed()).getByRole("radio", { name: "Phone" }),
+      within(embed()).getByRole("radio", { name: "Desktop" }),
+      within(embed()).getByRole("link", { name: "Open in Storybook" }),
+    ];
+    for (const control of controls) {
+      expect(control.textContent).toBe("");
+    }
   });
 });
 

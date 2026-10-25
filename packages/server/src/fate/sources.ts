@@ -148,7 +148,7 @@ export function repositoriesRecord(ctx: Context, added: string | null = null): R
 function missingFile(id: string, folder: string, name: string): FileRecord {
   return {
     candidates: [],
-    current: { document: { blocks: [], hash: "" }, items: {}, stories: [], text: "" },
+    current: { document: { blocks: [], hash: "" }, items: {}, mockups: [], stories: [], text: "" },
     decisionChanges: [],
     folder,
     id,

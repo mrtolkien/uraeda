@@ -1,18 +1,15 @@
 import { Button } from "@astryxdesign/core/Button";
-import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { useHotkeys } from "@astryxdesign/core/hooks";
-import { List, ListItem } from "@astryxdesign/core/List";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Text } from "@astryxdesign/core/Text";
-import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useId } from "react";
 import type { Document, RoundItems, SettledGroup, SettledKind } from "uraeda-binding";
-import { Overlay } from "./layout/Overlay.tsx";
+import { OutlineRows, type OutlineRow, type StateNames } from "./layout/OutlineRows.tsx";
 import { openAnchor } from "./routeHistory.ts";
 import { PART_IDS } from "./roundPartIds.ts";
 import {
@@ -34,34 +31,10 @@ const styles = stylex.create({
   inPage: {
     marginBlockEnd: spacingVars["--spacing-6"],
   },
-  label: {
-    // A row's text wraps: no title is cut.
-    overflowWrap: "anywhere",
-    whiteSpace: "normal",
-  },
-  mark: {
-    // The marks line up in one column, whatever their glyph's width.
-    display: "inline-block",
-    textAlign: "center",
-    width: spacingVars["--spacing-3"],
-  },
-  sub: {
-    paddingInlineStart: spacingVars["--spacing-4"],
-  },
 });
 
-/** A row of the outline: the part it jumps to, by its id on the page, and how it reads. */
-type Row = {
-  id: string;
-  label: string;
-  /** Before the label, for a part: what kind of part it is. */
-  mark?: string;
-  /** A question's state: a glyph before its label, and words at the end of its name. */
-  state?: "answered" | "unanswered";
-  /** Under the row before it: a part of the context, a follow-up under its question. */
-  sub?: boolean;
-  tone?: "warning";
-};
+/** A question's state, as a screen reader hears it after its title. */
+const ANSWERED: StateNames = { done: "answered", open: "unanswered" };
 
 /** The parts the page draws for each kind of settled group, by their ids, and their rows' names. */
 const GROUPS: Record<SettledKind, { id: string; label: string; mark: string }> = {
@@ -74,7 +47,7 @@ const GROUPS: Record<SettledKind, { id: string; label: string; mark: string }> =
 const OPENS_BY_ADDRESS = new Set<string>([PART_IDS.today]);
 
 /** A settled group's row, none for a group without points, as the page draws no pane for it. */
-function groupRow(group: SettledGroup | undefined): Array<Row> {
+function groupRow(group: SettledGroup | undefined): Array<OutlineRow> {
   if (!group || group.points === 0) {
     return [];
   }
@@ -84,18 +57,19 @@ function groupRow(group: SettledGroup | undefined): Array<Row> {
       id,
       label: `${label} · ${group.points}`,
       mark,
+      nested: false,
       ...(group.kind === "check" ? { tone: "warning" } : {}),
     },
   ];
 }
 
 /** The questions' rows, follow-ups under their parent. */
-function questionRows(questions: ReadonlyArray<NavQuestion>): Array<Row> {
+function questionRows(questions: ReadonlyArray<NavQuestion>): Array<OutlineRow> {
   return questions.map((q) => ({
     id: q.id,
     label: `${q.id} ${q.title}`,
-    state: q.answered ? "answered" : "unanswered",
-    sub: q.level === 2,
+    nested: q.level === 2,
+    state: q.answered ? "done" : "open",
   }));
 }
 
@@ -105,7 +79,7 @@ function questionRows(questions: ReadonlyArray<NavQuestion>): Array<Row> {
  */
 function rowsOf(round: RoundItems, document: Document, questions: ReadonlyArray<NavQuestion>) {
   const group = (kind: SettledKind) => round.settledGroups.find((g) => g.kind === kind);
-  const opening: Array<Row> = [
+  const opening: Array<OutlineRow> = [
     ...(round.block === undefined
       ? []
       : [
@@ -113,21 +87,22 @@ function rowsOf(round: RoundItems, document: Document, questions: ReadonlyArray<
             id: PART_IDS.summary,
             label: round.verdict ? "Verdict and summary" : "Summary",
             mark: "!",
+            nested: false,
           },
         ]),
     ...round.context.map((part) => {
       const anchor = part.heading === undefined ? undefined : document.blocks[part.heading]?.anchor;
       return anchor
-        ? { id: anchor, label: part.title, mark: "·", sub: true }
-        : { id: PART_IDS.context, label: "Context", mark: "·", sub: true };
+        ? { id: anchor, label: part.title, mark: "·", nested: true }
+        : { id: PART_IDS.context, label: "Context", mark: "·", nested: true };
     }),
     ...groupRow(group("check")),
   ];
   const asked = questionRows(questions);
-  const end: Array<Row> = [
+  const end: Array<OutlineRow> = [
     ...groupRow(group("behaviour")),
     ...groupRow(group("hood")),
-    { id: PART_IDS.notes, label: "Notes and submit", mark: "✎" },
+    { id: PART_IDS.notes, label: "Notes and submit", mark: "✎", nested: false },
   ];
   return [opening, asked, end].filter((run) => run.length > 0);
 }
@@ -143,49 +118,6 @@ function goTo(id: string) {
   }
   openAnchor(id);
   requestAnimationFrame(() => jumpTo(id));
-}
-
-/** The outline's runs of rows, the part at the top, `current`, marked. */
-function Rows({
-  current,
-  onPick,
-  runs,
-}: {
-  current: string | undefined;
-  onPick: (id: string) => void;
-  runs: ReadonlyArray<ReadonlyArray<Row>>;
-}) {
-  return runs.map((run, index) => (
-    <VStack gap={2} key={run[0]?.id}>
-      {index > 0 && <Divider />}
-      <List density="compact">
-        {run.map((row) => (
-          <ListItem
-            isSelected={row.id === current}
-            key={row.id}
-            label={
-              <span {...stylex.props(styles.label)}>
-                {row.state && <span aria-hidden>{row.state === "answered" ? "✓ " : "○ "}</span>}
-                {row.label}
-                {row.state && <VisuallyHidden> ({row.state})</VisuallyHidden>}
-              </span>
-            }
-            onClick={() => onPick(row.id)}
-            {...(row.mark
-              ? {
-                  startContent: (
-                    <Text aria-hidden color={row.tone ?? "secondary"} xstyle={styles.mark}>
-                      {row.mark}
-                    </Text>
-                  ),
-                }
-              : {})}
-            xstyle={row.sub ? styles.sub : undefined}
-          />
-        ))}
-      </List>
-    </VStack>
-  ));
 }
 
 /**
@@ -287,7 +219,12 @@ export function RoundOutline({
           max={questions.length}
           value={questions.length - blank.length}
         />
-        <Rows current={current ?? parts[0]} onPick={goTo} runs={runs} />
+        <OutlineRows
+          current={current ?? parts[0]}
+          onPick={goTo}
+          runs={runs}
+          stateNames={ANSWERED}
+        />
         <Text color="secondary" type="supporting">
           n / p: next / previous unanswered
         </Text>
@@ -308,24 +245,27 @@ export function RoundIndex({ questions }: { questions: ReadonlyArray<NavQuestion
       <Heading id={title} level={2}>
         Questions
       </Heading>
-      <Rows current={undefined} onPick={(id) => jumpTo(id)} runs={[questionRows(questions)]} />
+      <OutlineRows
+        current={undefined}
+        onPick={(id) => jumpTo(id)}
+        runs={[questionRows(questions)]}
+        stateNames={ANSWERED}
+      />
     </nav>
   );
 }
 
 /**
- * On the phone, the outline's rows in a sheet, the part at the top marked: a tap on a row closes
- * the sheet, then brings its part to the top once the page can scroll again.
+ * On the phone, the outline's rows in its sheet, the part at the top marked: a tap on a row closes
+ * the sheet, `onClose`, then brings its part to the top once the page can scroll again.
  */
-export function OutlineSheet({
+export function OutlineSheetPanel({
   document,
-  isOpen,
   onClose,
   questions,
   round,
 }: {
   document: Document;
-  isOpen: boolean;
   onClose: () => void;
   questions: ReadonlyArray<NavQuestion>;
   round: RoundItems;
@@ -333,19 +273,17 @@ export function OutlineSheet({
   const runs = rowsOf(round, document, questions);
   const parts = runs.flat().map((row) => row.id);
   return (
-    // No field to type in: the sheet needs no room for a keyboard, and the round shows above.
-    <Overlay isOpen={isOpen} label="Outline" onClose={onClose} sheetHeight="capped">
-      <VStack gap={2}>
-        <Text color="secondary">{countOf(questions)}</Text>
-        <Rows
-          current={questionAtTop(parts) ?? parts[0]}
-          onPick={(id) => {
-            onClose();
-            afterSheetCloses(() => goTo(id));
-          }}
-          runs={runs}
-        />
-      </VStack>
-    </Overlay>
+    <VStack gap={2}>
+      <Text color="secondary">{countOf(questions)}</Text>
+      <OutlineRows
+        current={questionAtTop(parts) ?? parts[0]}
+        onPick={(id) => {
+          onClose();
+          afterSheetCloses(() => goTo(id));
+        }}
+        runs={runs}
+        stateNames={ANSWERED}
+      />
+    </VStack>
   );
 }

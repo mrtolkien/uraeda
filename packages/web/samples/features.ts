@@ -6,6 +6,7 @@
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  addRevisedSpec,
   addSpecFeature,
   commitOnBranch,
   commitsAt,
@@ -69,6 +70,18 @@ export function addRoundMockup(repo: string, folder: string, answer: string) {
   });
 }
 
+/**
+ * Adds a spec page's feature whose spec is approved, its plan `fixtures/plan-page/plan.md` (the
+ * questions page's) at `status`, on its branch.
+ */
+function addPlanPage(repo: string, folder: string, status: string) {
+  addSpecFeature(repo, { folder, status: "approved" });
+  const plan = readFileSync(fixture("plan-page/plan.md"), "utf8");
+  commitOnBranch(repo, folder, {
+    [`specs/${folder}/plan.md`]: plan.replace(/^status: .*$/m, `status: ${status}`),
+  });
+}
+
 /** A blank answer's line. */
 const ANSWER = "**Answer:**\n";
 
@@ -109,10 +122,16 @@ export function addQuestionsPages(repo: string) {
   );
 }
 
-/** Adds the spec page's features to `repo`: its spec waiting for review, and approved. */
+/**
+ * Adds the spec page's features to `repo`: its spec at revision 2 waiting for review, revision 1
+ * reviewed at a commit of its branch, so "Since your review" lists what changed; the same spec
+ * approved; and a plan, auto-approved and waiting for review.
+ */
 export function addSpecPages(repo: string) {
-  addSpecFeature(repo, { folder: SPEC_PAGES.waiting });
+  addRevisedSpec(repo);
   addSpecFeature(repo, { folder: SPEC_PAGES.approved, status: "approved" });
+  addPlanPage(repo, SPEC_PAGES.plan, "auto-approved");
+  addPlanPage(repo, SPEC_PAGES.planWaiting, "awaiting-human");
 }
 
 /** A pull request as `gh pr list --json` lists it. */

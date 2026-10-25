@@ -1,17 +1,26 @@
-// The spec's decisions, after what you approve: a card per decision the spec lists, in its order,
+// The spec's decisions, after what you approve: a pane per decision the spec lists, in its order,
 // then one per decision the branch changes without listing it, marked so, then the section's other
-// blocks, like the "Relied on" table.
+// blocks, the "Relied on" table in a pane of its own, alone when no decision is listed or changed.
 import { fontWeightVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { Block, DecisionChange, Span } from "uraeda-binding";
+import type { Block, DecisionChange, Document, Span } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
+import { Pane } from "../layout/Pane.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { branchDecisionPath, useRepoPath } from "../routes.tsx";
 import { type Selection, Selectable } from "../Selection.tsx";
-import { Spans } from "../Spans.tsx";
+import { SinceWords, wordCount } from "../sinceMarks.tsx";
+import { plain, Spans } from "../Spans.tsx";
 import { DecisionCard } from "./DecisionCard.tsx";
 import { UnreadItems } from "./UnreadItems.tsx";
-import { decisionId, GROUPS, type PartProps, type SpecItems, unreadItems } from "./parts.ts";
+import {
+  decisionId,
+  decisionPanes,
+  GROUPS,
+  type PartProps,
+  type SpecItems,
+  unreadItems,
+} from "./parts.ts";
 
 const styles = stylex.create({
   note: {
@@ -54,12 +63,49 @@ function noteOf(spans: ReadonlyArray<Span>): Array<Span> {
 
 /** An item's sentence, which a review comments on as the spec's line it is. */
 function Note({ block, selection }: { block: Block; selection: Selection | undefined }) {
+  const note = noteOf(block.spans);
   return (
     <Selectable block={block} selection={selection}>
       <Paragraph xstyle={styles.note}>
-        <Spans spans={noteOf(block.spans)} />
+        {/* Changed since your review: its words after the lead, which its pane's title says. */}
+        <SinceWords
+          block={block}
+          lead={wordCount(plain(block.spans)) - wordCount(plain(note))}
+          spans={note}
+        >
+          <Spans spans={note} />
+        </SinceWords>
       </Paragraph>
     </Selectable>
+  );
+}
+
+/**
+ * The section's other blocks: with a table, in a pane "Relied on", counting its rows; as they are
+ * otherwise.
+ */
+function Rest({
+  document,
+  ids,
+  selection,
+}: {
+  document: Document;
+  ids: ReadonlyArray<number>;
+  selection: Selection | undefined;
+}) {
+  if (ids.length === 0) {
+    return null;
+  }
+  const blocks = <Blocks document={document} ids={ids} selection={selection} />;
+  const rows = document.blocks.filter(
+    (block) => block.kind === "row" && !block.header && ids.includes(block.parent ?? -1),
+  ).length;
+  return rows === 0 ? (
+    blocks
+  ) : (
+    <Pane count={rows} level={3} title="Relied on">
+      {blocks}
+    </Pane>
   );
 }
 
@@ -74,53 +120,35 @@ export function DecisionCards({
   selection,
 }: DecisionCardsProps) {
   const here = useRepoPath();
-  const byName = new Map(changes.map((change) => [change.name, change]));
-  const listed = new Set(items.map((item) => item.name));
   const lists = new Set(items.map((item) => document.blocks[item.block]?.parent));
   const unread = unreadItems(
     document,
     items.map((item) => item.block),
   );
   const rest = part?.blocks.filter((id) => !lists.has(id)) ?? [];
-  const card = (name: string, kind: string) => ({
-    comments,
-    crumbs: [GROUPS.decisions.title],
-    href: kind === "removed" ? undefined : here(branchDecisionPath(folder, name)),
-    id: decisionId(name),
-    kind,
-    name,
-    parts: selection?.parts,
-  });
   return (
     <>
-      {items.map((item) => {
-        const change = byName.get(item.name);
-        const block = document.blocks[item.block];
-        // The change's kind once compared: a decision listed as changed may be new to the branch.
-        const kind = change?.compared ? change.kind : item.kind;
+      {decisionPanes(items, changes).map(({ change, item, kind, name, title }) => {
+        const block = item && document.blocks[item.block];
         return (
           <DecisionCard
-            {...card(item.name, kind)}
             change={change}
-            key={item.name}
+            comments={comments}
+            crumbs={[GROUPS.decisions.title]}
+            href={kind === "removed" ? undefined : here(branchDecisionPath(folder, name))}
+            id={decisionId(name)}
+            key={name}
+            kind={kind}
+            name={name}
             note={block && <Note block={block} selection={selection} />}
-            title={item.title}
+            parts={selection?.parts}
+            title={title}
+            unlisted={!item}
           />
         );
       })}
-      {changes
-        .filter((change) => !listed.has(change.name))
-        .map((change) => (
-          <DecisionCard
-            {...card(change.name, change.kind)}
-            change={change}
-            key={change.name}
-            title={change.title}
-            unlisted
-          />
-        ))}
       <UnreadItems document={document} ids={unread} selection={selection} />
-      {rest.length > 0 && <Blocks document={document} ids={rest} selection={selection} />}
+      <Rest document={document} ids={rest} selection={selection} />
     </>
   );
 }

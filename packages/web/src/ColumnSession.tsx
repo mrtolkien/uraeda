@@ -2,12 +2,16 @@
 // the way to the session's page.
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useFeature } from "./data.ts";
+import { harnessMark } from "./HarnessMark.tsx";
+import { type ColumnTab, useColumnTab } from "./layout/DocumentColumn.tsx";
+import { showDocumentColumn } from "./layout/documentColumnWidth.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useRepoPath } from "./routes.tsx";
 import type { SessionItem } from "./SessionActions.tsx";
 import { SessionAnnouncer } from "./SessionAnnouncer.tsx";
-import { sessionPath } from "./sessions.ts";
+import { askAbout, sessionPath } from "./sessions.ts";
 import { NO_BRANCH, SessionPane } from "./SessionView.tsx";
 import type { Draft } from "./useDraft.ts";
 
@@ -58,4 +62,63 @@ export function ColumnSession({ draft, folder }: { draft: Draft; folder: string 
       </VStack>
     </>
   );
+}
+
+/** The id of the Session tab's panel, whose composer asking focuses once it is drawn. */
+const SESSION_PANEL = "column-session";
+
+/**
+ * The column's Session tab, on the feature's session in `folder`, its composer holding `draft`, its
+ * icon the mark of `agent`, the kind of agent asked, as the session's page draws it.
+ */
+export function sessionTab(draft: Draft, folder: string, agent: string | undefined): ColumnTab {
+  return {
+    icon: harnessMark(agent ?? "").icon,
+    key: "session",
+    label: "Session",
+    panel: (
+      <div id={SESSION_PANEL}>
+        <Suspense fallback={null}>
+          <ColumnSession draft={draft} folder={folder} />
+        </Suspense>
+      </div>
+    ),
+  };
+}
+
+/** Focuses what `find` finds once it is drawn, within two seconds, without scrolling the page. */
+export function focusOnceDrawn(find: () => HTMLElement | null | undefined) {
+  const start = performance.now();
+  const tick = () => {
+    const found = find();
+    if (found) {
+      found.focus({ preventScroll: true });
+    } else if (performance.now() - start < 2000) {
+      requestAnimationFrame(tick);
+    }
+  };
+  requestAnimationFrame(tick);
+}
+
+/**
+ * Asking the agent from a page with a Session tab: the quote written into `draft`, the feature's
+ * session draft, in place of the one asking wrote last (`Draft.ask`), and Session opened, the
+ * column unfolded when `]` folded it (R23 of the questions page), its composer focused; on the
+ * phone, the session's page opened with the quote, Back returning to the page.
+ */
+export function useColumnAsk(folder: string, draft: Draft | undefined) {
+  const wide = !isNarrow(useWidthClass());
+  const [, setTab] = useColumnTab(["session"]);
+  return (quote: string) => {
+    if (!wide) {
+      askAbout(folder, quote);
+      return;
+    }
+    draft?.ask(quote);
+    setTab("session");
+    showDocumentColumn();
+    focusOnceDrawn(() =>
+      document.getElementById(SESSION_PANEL)?.querySelector<HTMLElement>('[role="textbox"]'),
+    );
+  };
 }

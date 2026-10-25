@@ -10,10 +10,11 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { CommentItem } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
+import { Pane } from "../layout/Pane.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { Selectable } from "../Selection.tsx";
+import { SinceWords } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
-import { Panel } from "./Panel.tsx";
 import { UnreadItems } from "./UnreadItems.tsx";
 import {
   type File,
@@ -53,7 +54,7 @@ export function answeredComments(file: File): ReadonlyArray<CommentItem> {
   return file.answered?.comments ?? [];
 }
 
-/** Your comment: its number and summary, its quote, and your words, when the file still has them. */
+/** Your comment: its number and summary, its quote, and your words, while the file has them. */
 function YourComment({
   comment,
   number,
@@ -81,9 +82,9 @@ function YourComment({
 }
 
 /**
- * Each answer of `## Your review`: on the left, your comment with its quote and words, matched by
- * its number; on the right, a "done" or "declined" badge, and the answer as the spec writes it,
- * which takes a comment. The section's other blocks follow.
+ * Each answer of `## Your review`, in a pane: on the left, your comment with its quote and words,
+ * matched by its number; on the right, a "done" or "declined" badge, and the answer as the spec
+ * writes it, which takes a comment. The section's other blocks follow.
  */
 export function ReviewAnswers({
   comments,
@@ -103,33 +104,37 @@ export function ReviewAnswers({
   );
   const rest = partOf(items, "Your review")?.blocks.filter((id) => !lists.has(id)) ?? [];
   return (
-    <Panel crumbs={[]} id={groupId(items, GROUPS.answers)} title={GROUPS.answers.title}>
-      {items.answers.map(({ block, number, summary, verdict }) => {
-        const item = document.blocks[block];
-        return (
-          item && (
-            <div key={block} {...stylex.props(styles.row, wide && styles.rowWide)}>
-              <YourComment
-                comment={comments.find((c) => c.number === number)}
-                number={number}
-                summary={summary}
-              />
-              <VStack gap={1}>
-                <HStack>
-                  <Badge label={verdict} variant={verdict === "done" ? "success" : "warning"} />
-                </HStack>
-                <Selectable block={item} selection={selection}>
-                  <Text display="block" type="inherit">
-                    <Spans spans={item.spans} />
-                  </Text>
-                </Selectable>
-              </VStack>
-            </div>
-          )
-        );
-      })}
-      <UnreadItems document={document} ids={unread} selection={selection} />
-      {rest.length > 0 && <Blocks document={document} ids={rest} selection={selection} />}
-    </Panel>
+    <Pane id={groupId(items, GROUPS.answers)} title={GROUPS.answers.title}>
+      <VStack gap={3}>
+        {items.answers.map(({ block, number, summary, verdict }) => {
+          const item = document.blocks[block];
+          return (
+            item && (
+              <div key={block} {...stylex.props(styles.row, wide && styles.rowWide)}>
+                <YourComment
+                  comment={comments.find((c) => c.number === number)}
+                  number={number}
+                  summary={summary}
+                />
+                <VStack gap={1}>
+                  <HStack>
+                    <Badge label={verdict} variant={verdict === "done" ? "success" : "warning"} />
+                  </HStack>
+                  <Selectable block={item} selection={selection}>
+                    <Text display="block" type="inherit">
+                      <SinceWords block={item}>
+                        <Spans spans={item.spans} />
+                      </SinceWords>
+                    </Text>
+                  </Selectable>
+                </VStack>
+              </div>
+            )
+          );
+        })}
+        <UnreadItems document={document} ids={unread} selection={selection} />
+        {rest.length > 0 && <Blocks document={document} ids={rest} selection={selection} />}
+      </VStack>
+    </Pane>
   );
 }

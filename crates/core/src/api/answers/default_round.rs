@@ -13,7 +13,7 @@ use crate::decisions::candidates;
 use crate::files::document;
 use crate::files::frontmatter;
 use crate::files::items::{Items, round};
-use crate::files::stories::story_links;
+use crate::files::stories::{mockup_embeds, story_links};
 use crate::git::{Git, ObjectId};
 use crate::today;
 use crate::view::{FileView, VersionView};
@@ -26,11 +26,13 @@ fn version(text: String) -> VersionView {
         ..Items::default()
     };
     let stories = story_links(&document);
+    let mockups = mockup_embeds(&document);
     VersionView {
         text,
         document,
         items,
         stories,
+        mockups,
     }
 }
 
@@ -70,6 +72,7 @@ fn view(
         decision_changes: Vec::new(),
         candidates,
         answered: None,
+        since_review: None,
     }
 }
 

@@ -25,6 +25,22 @@
 
 ## Deferred fixes
 
+- [agent] [spec-page] Live window: an HTML mockup in a nested folder (`mockups/sub/x.html`) draws
+  live, but "Open the mockup's page" lands on a missing page: the route and `MockupPage` take one
+  segment only
+- [agent] [spec-page] Live window: "Open the mockup's page" drops the link's `?w=` and `#anchor`, so
+  the page opens at its top, without the state the window shows
+- [agent] [spec-page] Spec page: the niche edge cases' fold, held open by a pending comment or the
+  selection, cannot be closed, unlike the ledger's folds
+- [agent] [spec-page] Since your review: a new `##` section marks its blocks and its Contents row,
+  but its pane's title shows no Δ
+- [agent] [spec-page] Spec page: the Architecture part hides the block just before the first
+  tradeoffs list, taking it for "Tradeoffs:", so a paragraph placed there is hidden
+- [agent] [spec-page] Since your review: a revision that renames a principle and changes a check
+  shows "Changed since your review" twice on the principles strip, one bar inside the other, and no
+  test covers a renamed principle
+- [agent] [spec-page] Live window: after picking Phone on a desktop, a story's window still grows
+  toward the desktop's width, leaving a wide hatched stage around a 402 px frame
 - [agent] [redesign-feature] Runner: a workflow message queued on a feature merged before it starts
   fails with "This feature has no branch left"
 - [agent] [decision-review-fixes] Watch: each burst reads every decision of every branch to hash it,

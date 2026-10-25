@@ -51,7 +51,8 @@ const ItemsSelection = {
     status: true,
     verdict: true,
   },
-  plan: { tasks: true },
+  dataModel: { intro: true, sections: true },
+  plan: { lead: true, tasks: true },
   review: { comments: true, commit: true, summary: true, verdict: true },
   rulings: true,
   spec: {
@@ -77,6 +78,7 @@ const ItemsSelection = {
 const VersionSelection = {
   document: DocumentSelection,
   items: ItemsSelection,
+  mockups: true,
   stories: true,
   text: true,
 } as const;
@@ -195,6 +197,7 @@ export const FileView = view<WorkflowFile>()({
   resumable: true,
   review: ItemsSelection,
   reviewStale: true,
+  sinceReview: { found: true, parts: true, revision: true },
   status: true,
   takesImages: true,
   tip: true,
@@ -259,6 +262,7 @@ export const DraftView = view<Draft>()({
   hash: true,
   id: true,
   kind: true,
+  mockups: true,
   path: true,
   priorityChanges: true,
   slug: true,

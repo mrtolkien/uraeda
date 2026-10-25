@@ -323,7 +323,7 @@ owners' approval, and neutral glyphs for the others.
 ## Follow-ups
 
 - The questions page, the spec and plan pages, and the lists and starts are drafts in Now:
-  [questions page](2026-10-24-questions-page.md), [spec page](../drafts/spec-page.md), and
+  [questions page](2026-10-24-questions-page.md), [spec page](2026-10-24-spec-page.md), and
   [lists and starts](../drafts/lists-and-starts.md). The session beside a document and the kanban
   priorities wait there.
 - The screenshot script stops at two other features' views: `text-discard` on the desktop, left in

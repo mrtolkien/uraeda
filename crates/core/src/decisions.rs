@@ -4,10 +4,10 @@
 mod branch;
 pub mod candidates;
 mod change;
-mod parts;
 mod strength;
 
+pub use crate::compare::Run;
 pub use branch::{BranchSides, branch_changes, branch_decision};
 pub use candidates::{Candidate, links_folder, option_folder};
-pub use change::{DecisionChange, PartChange, Run, SectionChange, compare};
+pub use change::{DecisionChange, PartChange, SectionChange, compare};
 pub use strength::{Strength, strength};

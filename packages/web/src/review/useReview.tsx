@@ -1,7 +1,8 @@
-// A review's machinery, shared by the spec page and the plan's review page: its pending comments,
-// the comment being written and its field, the folds its comments open, the selection of blocks,
-// the comments on embedded stories, and what the page draws around the file: its intro, its end
-// with the general comments and the verdict, and on the phone the comment's sheet.
+// A review's machinery, shared by the spec page and the plan page: its pending comments, the
+// verdict's choices, the comment being written and its field, the folds its comments open, the
+// selection of blocks, the comments on embedded stories, and what the page draws around the file:
+// its intro, its end with the general comments and the verdict, and on the phone the comment's
+// sheet.
 import { Code } from "@astryxdesign/core/Code";
 import { Text } from "@astryxdesign/core/Text";
 import { type ReactNode, useMemo, useState } from "react";
@@ -11,7 +12,8 @@ import { type Fold, foldOf } from "../Folds.tsx";
 import { AddingNote, CommentHost, type ReviewField } from "../ReviewCommentForm.tsx";
 import { usePlacedComments } from "../ReviewComments.tsx";
 import { placeOf, reviewEditKey, reviewKey } from "../reviewField.ts";
-import { useRefusals } from "../ReviewVerdict.tsx";
+import { initialChoices } from "../ReviewChoices.tsx";
+import { type ChoicesState, useRefusals } from "../ReviewVerdict.tsx";
 import type { Range, useCommentDraft } from "../useCommentDraft.ts";
 import { useSpecFolds } from "../useOpenKeys.ts";
 import { useReviewActions } from "../useReviewActions.ts";
@@ -64,9 +66,10 @@ function fieldOf(
 /**
  * A spec or a plan's review, as committed at its branch's tip: its pending comments, the comment
  * being written, which opens again with its unsaved text, the folds holding a comment or the
- * selection, and the blocks' selection, `selection`, which a tap starts a comment with.
+ * selection, and the blocks' selection, `selection`, which a tap starts a comment with. `onAsk`,
+ * where the agent can be asked, takes the quote "Ask the agent" makes of the selection.
  */
-export function useReview(file: File, wide: boolean) {
+export function useReview(file: File, wide: boolean, onAsk?: (quote: string) => void) {
   const version = file.committed ?? file.current;
   const tree = version.document;
   const review = file.review?.review;
@@ -75,11 +78,14 @@ export function useReview(file: File, wide: boolean) {
   const commentDraft = useReviewDraft(file, comments, wide, refusals);
   // The comment form's element, which each place it shows takes in turn.
   const [container] = useState(() => document.createElement("div"));
-  const actions = useReviewActions(file, commentDraft, refusals);
+  const actions = useReviewActions(file, commentDraft, refusals, onAsk);
   const placed = usePlacedComments(comments, tree);
   const folds = useSpecFolds(version.items.spec, shownFolds(tree, placed, commentDraft.selection));
   const field = fieldOf(file, comments, commentDraft);
   const storyComments = useStoryComments(file);
+  // A spec's risk tier and plan review, kept for the page's life: the end's form sets them, and
+  // either verdict, the end's or the Review tab's, commits them.
+  const choices: ChoicesState = useState(() => initialChoices(version.items.spec));
   const blocks = useReviewSelection({
     actions,
     commentDraft,
@@ -92,6 +98,7 @@ export function useReview(file: File, wide: boolean) {
   return {
     ...blocks,
     actions,
+    choices,
     commentDraft,
     comments,
     container,
@@ -168,13 +175,23 @@ export function ReviewEnd({
   hasVerdict?: boolean;
   review: Review;
 }) {
-  const { actions, commentDraft, comments, container, inPage, pendingNote, refusals, wide } =
-    review;
+  const {
+    actions,
+    choices,
+    commentDraft,
+    comments,
+    container,
+    inPage,
+    pendingNote,
+    refusals,
+    wide,
+  } = review;
   const { adding } = actions;
   const { draft, start } = commentDraft;
   return (
     <>
       <YourReview
+        choices={choices}
         comments={comments}
         file={file}
         general={
