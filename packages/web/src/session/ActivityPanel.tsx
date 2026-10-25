@@ -22,6 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { TURN_PAGE } from "uraeda-server/limits";
 import { atEnd, scroller } from "../following.ts";
 import { keepPlace, scrollInstantly, topOf } from "../keepPlace.ts";
 import { statusStyles } from "../Question.tsx";
@@ -46,9 +47,6 @@ export const ACTIVITY_ROWS = 200;
  */
 export const WALK_PAGES = 4;
 
-/** The items of a turn's page, as the server pages them (`TURN_PAGE`): a stretch's page by its seq. */
-const PAGE_ITEMS = 100;
-
 const styles = stylex.create({
   // The run's start, after its title, as the mockup's group title.
   start: { flexShrink: 0 },
@@ -62,12 +60,15 @@ export function NoCall() {
 /** The stretch the address names: its key, its turn's place, and its first item's page. */
 type Target = { index: number; key: string; page: number };
 
-/** The stretch `?stretch=<turn>:<seq>` names among the session's `turns`, if one of theirs. */
+/**
+ * The stretch `?stretch=<turn>:<seq>` names among the session's `turns`, if one of theirs: its page
+ * by its seq, as the server pages a turn's items.
+ */
 function targetOf(stretch: string | null, turns: ReadonlyArray<string>): Target | undefined {
   const match = stretch === null ? null : /^(\d+):(\d+)$/.exec(stretch);
   const index = match ? turns.indexOf(match[1]!) : -1;
   return match && index >= 0
-    ? { index, key: match[0], page: Math.floor(Number(match[2]) / PAGE_ITEMS) }
+    ? { index, key: match[0], page: Math.floor(Number(match[2]) / TURN_PAGE) }
     : undefined;
 }
 

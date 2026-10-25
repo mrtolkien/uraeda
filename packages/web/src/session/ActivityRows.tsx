@@ -17,10 +17,9 @@ import { scroller } from "../following.ts";
 import { keepPlace, topOf } from "../keepPlace.ts";
 import { ProseMarkdown } from "../Prose.tsx";
 import { StatusMark } from "../StatusMark.tsx";
-import { elapsed } from "../TurnLines.tsx";
 import type { OpenKeys } from "../useOpenKeys.ts";
 import type { Run } from "./activityRuns.ts";
-import { type ActivityItem, rowWord, type ToolItem } from "./stretches.ts";
+import { type ActivityItem, type RowWords, rowWords, type ToolItem } from "./stretches.ts";
 
 const styles = stylex.create({
   // What a row acted on breaks anywhere, a long path or command whole on the row's lines, as the
@@ -85,30 +84,10 @@ function iconOf(item: ActivityItem): string {
   return item.subagent ? "uraeda:bot" : (ICONS[item.toolKind] ?? "wrench");
 }
 
-/** "1 call", or "N calls". */
-function callCount(count: number) {
-  return `${count} ${count === 1 ? "call" : "calls"}`;
-}
-
-/**
- * A row's words: what it acted on, "Thought", or the sub-agent's description; then its word, a
- * thought's length from a second, or a sub-agent's word and calls, "sub-agent · 6 calls".
- */
-function wordsOf(
-  item: ActivityItem,
-  view: RunView,
-): { calls?: string; end?: string; label: string } {
-  if (item.kind === "thought") {
-    return item.durationMs >= 1000
-      ? { end: elapsed(item.durationMs), label: "Thought" }
-      : { label: "Thought" };
-  }
-  const word = rowWord(item, view.ended);
-  if (item.subagent) {
-    const calls = (view.run.groups.get(item.id) ?? []).filter((own) => own.kind === "tool");
-    return { calls: callCount(calls.length), end: word, label: item.subagent.description };
-  }
-  return { end: word, label: item.target ?? item.name };
+/** A row's words, `stretches.ts`'s, its sub-agent's own calls counted from its group. */
+function wordsOf(item: ActivityItem, view: RunView): RowWords {
+  const calls = item.kind === "tool" && item.subagent ? (view.run.groups.get(item.id) ?? []) : [];
+  return rowWords(item, view.ended, calls.filter((own) => own.kind === "tool").length);
 }
 
 /** What a row unfolds, drawn only while open: a thought's text, a call's output, a group's rows. */

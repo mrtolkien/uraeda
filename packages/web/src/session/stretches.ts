@@ -1,6 +1,6 @@
 // A turn's items cut into stretches, the main agent's calls and thoughts between two other lines,
-// and every word said of them: a recap line's counts, the live line, and an activity row's end. One
-// table of the kinds' words serves them all, so a word changes in one place.
+// and every word said of them: a recap line's counts, the live line, an activity row's words, and a
+// sub-agent's row's. One table of the kinds' words serves them all, so a word changes in one place.
 import type { TranscriptItem } from "../TranscriptMessages.tsx";
 import { elapsed } from "../TurnLines.tsx";
 
@@ -264,6 +264,33 @@ export function doingText(tool: {
 }
 
 /**
+ * What the main agent does when no call of its is going: its activity's label, "Working" or
+ * "Thinking", as the live line reads it, "thinking".
+ */
+export function activityText(label: string): string {
+  return `${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+}
+
+/** "1 call", or "N calls". */
+export function callCount(count: number): string {
+  return `${count} ${count === 1 ? "call" : "calls"}`;
+}
+
+/**
+ * A sub-agent's line under its description: its calls, then what its latest does, "2 calls ·
+ * reading src/tasks/undo.ts", or "no call yet".
+ */
+export function subagentText({
+  calls,
+  latest,
+}: {
+  calls: number;
+  latest: Parameters<typeof doingText>[0] | null;
+}): string {
+  return latest === null ? "no call yet" : `${callCount(calls)} · ${doingText(latest)}`;
+}
+
+/**
  * The live line of a running turn: how long its current call or thought lasts, what it does, and
  * its running sub-agents, "12 s · reading src/tasks/undo.ts · 2 sub-agents running".
  */
@@ -285,4 +312,25 @@ export function rowWord(tool: ToolItem, ended: boolean): string {
     return "not finished";
   }
   return wordsOf(tool)?.row ?? tool.name;
+}
+
+/** An activity row's words: its `label`, its `end` word, and a sub-agent's count of `calls`. */
+export type RowWords = { calls?: string; end?: string; label: string };
+
+/**
+ * An activity row's words: what it acted on, "Thought", or the sub-agent's description; then its
+ * word, a thought's length from a second, or a sub-agent's word and its own `calls`, "sub-agent · 6
+ * calls". `ended`, as `rowWord`'s.
+ */
+export function rowWords(item: ActivityItem, ended: boolean, calls: number): RowWords {
+  if (item.kind === "thought") {
+    return item.durationMs >= 1000
+      ? { end: elapsed(item.durationMs), label: "Thought" }
+      : { label: "Thought" };
+  }
+  const word = rowWord(item, ended);
+  if (item.subagent) {
+    return { calls: callCount(calls), end: word, label: item.subagent.description };
+  }
+  return { end: word, label: item.target ?? item.name };
 }

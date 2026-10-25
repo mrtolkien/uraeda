@@ -19,6 +19,7 @@ import { useTurnLog } from "../sessionData.ts";
 import { StatusMark } from "../StatusMark.tsx";
 import type { Actions, TranscriptItem } from "../TranscriptMessages.tsx";
 import {
+  activityText,
   doingText,
   joinStretches,
   liveText,
@@ -314,9 +315,7 @@ function doing(items: ReadonlyArray<TranscriptItem>, activity: Activity): string
       item.parent === undefined &&
       (item.status === "in_progress" || item.status === "pending"),
   );
-  return going
-    ? doingText(going)
-    : `${activity.label.charAt(0).toLowerCase()}${activity.label.slice(1)}`;
+  return going ? doingText(going) : activityText(activity.label);
 }
 
 /**

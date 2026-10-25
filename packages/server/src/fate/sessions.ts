@@ -2,6 +2,7 @@
 // pages, the sidebar's list and search, and the workflow's message.
 import type { FeatureView, WorkspaceView } from "uraeda-binding";
 import type { SessionCache, SessionRow, TurnRow } from "../runner/cache.ts";
+import { TURN_PAGE } from "../limits.ts";
 import { coveredDenials } from "../runner/allow.ts";
 import type { Trigger } from "../runner/events.ts";
 import { commentsReference, runMessage } from "../runner/message.ts";
@@ -27,9 +28,6 @@ import {
   type TurnRecord,
   type WorkflowMessageRecord,
 } from "./views.ts";
-
-/** The items in each page of a turn's log. */
-export const TURN_PAGE = 100;
 
 /** The triggers a workflow message takes. */
 export const TRIGGERS: Array<Trigger> = [

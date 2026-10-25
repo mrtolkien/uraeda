@@ -1,7 +1,10 @@
 // The core's size limit of an attached image, which the server and the UI also check before the
 // core sees the image: their refusal is the core's text. And the chat's own limits on a message's
-// images, which the sessions enforce and the composer checks first. Free of Node's modules, so the
-// UI can import it.
+// images, which the sessions enforce and the composer checks first. And the size of a turn's log's
+// pages, which the UI reads a stretch's page by. Free of Node's modules, so the UI can import it.
+
+/** The items in each page of a turn's log. */
+export const TURN_PAGE = 100;
 
 const MIB = 1024 * 1024;
 /** The core's limit, 20 MB counted in MiB (R9). */

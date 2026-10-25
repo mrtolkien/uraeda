@@ -13,7 +13,7 @@ import { StatusMark } from "../StatusMark.tsx";
 import { elapsed } from "../TurnLines.tsx";
 import { useNow } from "./RecapLine.tsx";
 import { Section } from "./Section.tsx";
-import { doingText } from "./stretches.ts";
+import { subagentText } from "./stretches.ts";
 
 /** A running sub-agent, as the session's record lists it. */
 type Subagent = Session["subagents"][number];
@@ -64,23 +64,13 @@ function useKeptRows(running: ReadonlyArray<Subagent>, now: number): ReadonlyArr
   return kept.rows;
 }
 
-/** "1 call", "6 calls". */
-function callCount(count: number): string {
-  return `${count} ${count === 1 ? "call" : "calls"}`;
-}
-
-/** A sub-agent's line under its description: its calls, then what its latest does. */
-function doing({ calls, latest }: Subagent): string {
-  return latest === null ? "no call yet" : `${callCount(calls)} · ${doingText(latest)}`;
-}
-
 /** A sub-agent's row: working or done, its description, what it does, and how long it has run. */
 function SubagentRow({ now, row: { endedAt, subagent } }: { now: number; row: Row }) {
   const lasting = Math.max((endedAt ?? now) - Date.parse(subagent.startedAt), 0);
   return (
     <ListItem
       align="first-line"
-      description={doing(subagent)}
+      description={subagentText(subagent)}
       endContent={
         <Text color="secondary" type="supporting">
           {elapsed(lasting)}
