@@ -72,7 +72,7 @@ function Kind({
         <Button clickAction={draft} label="Draft" variant="primary" />
         <Button
           clickAction={startChange}
-          label="Start a change based on this line"
+          label="Start a change from this line"
           variant="secondary"
         />
       </HStack>

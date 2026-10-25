@@ -44,7 +44,8 @@ export function PaneDraft({ isEditing, path }: { isEditing: boolean; path: strin
         </StoriesProvider>
       )}
       <SlugField field={slug} />
-      <HStack gap={2}>
+      {/* A long label takes its own line rather than being cut. */}
+      <HStack gap={2} wrap="wrap">
         <WriteButton
           label="Start the feature"
           onClick={() => editor.actions.start(false)}
@@ -52,7 +53,7 @@ export function PaneDraft({ isEditing, path }: { isEditing: boolean; path: strin
           variant="primary"
         />
         <WriteButton
-          label="Start a change based on this draft"
+          label="Start a change from this draft"
           onClick={() => editor.actions.start(false, "change")}
           runningLabel="Starting the change…"
           variant="secondary"
