@@ -420,7 +420,7 @@ git commit -m "feat(feature-page): sum a feature's agent time"
   `packages/web/src/document/useAskSelection.tsx`
 - Modify: `packages/web/src/DocumentPage.tsx` (rewritten),
   `packages/web/src/spec/DataModelPage.tsx`, `packages/web/src/PlanPage.tsx` (imports the moved
-  `SectionPane`), `packages/web/src/FilePage.tsx` (passes the page's session to both pages)
+  `SectionPane`); `FilePage.tsx` stays as is (R10)
 - Test: `packages/web/src/__tests__/document.test.tsx` (updated), `document-ask.test.tsx` (new)
 
 **Interfaces:**
@@ -442,7 +442,7 @@ git commit -m "feat(feature-page): sum a feature's agent time"
     file's name. The data model page draws its entity panes as today, inside the same `SpecColumn`,
     its Contents one entry per entity pane.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `document.test.tsx` (replacing the old-look assertions, with a ruling for each, R1):
 
@@ -490,24 +490,24 @@ no Session tab shows.
 The breaks they catch: a pane whose id is not its anchor (links land nowhere); a Session tab for a
 feature with no branch; a quote of the wrong lines; Contents duplicating a section.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/web/src/__tests__/document.test.tsx packages/web/src/__tests__/document-ask.test.tsx`
 - Expected: FAIL, `Unable to find role="region" and name "What"`
 
-- [ ] **Step 3: Move `SectionPane`, then write `entries.ts`, `useAskSelection`, and the pages**
+- [x] **Step 3: Move `SectionPane`, then write `entries.ts`, `useAskSelection`, and the pages**
 
 Move first and run the plan page's tests (they pass before and after), then build the rest on it.
-The Session tab comes from `usePageSession(file)` called in `FilePage`'s documents, as `SpecPage`
-does; `ask` goes to `useAskSelection`.
+The Session tab comes from `usePageSession(file)` called in each document page, as `SpecPage` does
+(R10); `ask` goes to `useAskSelection`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

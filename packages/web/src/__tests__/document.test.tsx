@@ -1,10 +1,11 @@
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { addSpecFeature, commitOnBranch, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { expect, test } from "vite-plus/test";
 import { ImageView } from "../ImageView.tsx";
 import { navigate } from "../routes.tsx";
-import { atRepo, click, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { atRepo, atWidth, click, fixtureRepo, git, record, renderPage } from "./helpers.tsx";
 
 const TEXT = `# Web UI
 
@@ -253,4 +254,93 @@ test("an image inside a link is drawn in the link, which it does not open", asyn
   const badge = screen.getByRole("link", { name: "badge" });
   expect(badge.getAttribute("href")).toBe("https://ci.example.com/b");
   expect(within(badge).queryByRole("img")).toBeNull();
+});
+
+const RECURRING = "2026-10-06-recurring-tasks";
+
+/** US4.1 */
+test("the proposal is panes, with Edit beside the title and the documents' column", async () => {
+  atWidth(1440);
+  await renderPage(`/f/${RECURRING}/proposal.md`, fixtureRepo(), { agent: true });
+
+  expect(await screen.findByRole("region", { name: "What" })).toBeTruthy();
+  expect(screen.getByRole("region", { name: "Why" })).toBeTruthy();
+  expect(screen.getByRole("region", { name: "Notes" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+  const column = within(screen.getByRole("complementary", { name: "The proposal's column" }));
+  expect(column.getAllByRole("tab")).toHaveLength(2);
+  expect(column.getByRole("tab", { name: "Contents" })).toBeTruthy();
+  expect(column.getByRole("tab", { name: "Session" })).toBeTruthy();
+});
+
+/** Review focus 2 */
+test("a link to discovery-01.md#approaches lands on its pane", async () => {
+  atWidth(1440);
+  const repo = fixtureRepo();
+  commitOnBranch(repo, RECURRING, {
+    [`specs/${RECURRING}/discovery-01.md`]: "# Discovery 01\n\n## Approaches\n\nTwo ways.\n",
+  });
+  await renderPage(`/f/${RECURRING}/discovery-01.md#approaches`, repo, { agent: true });
+
+  const pane = await screen.findByRole("region", { name: "Approaches" });
+  expect(document.getElementById("approaches")).toBe(pane);
+});
+
+/** Edge: a document without `##` */
+test("a document without sections is one pane titled by its file", async () => {
+  atWidth(1440);
+  const repo = fixtureRepo();
+  commitOnBranch(repo, RECURRING, {
+    [`specs/${RECURRING}/rulings.md`]: "# Rulings\n\nNothing ruled yet.\n",
+  });
+  await renderPage(`/f/${RECURRING}/rulings.md`, repo, { agent: true });
+
+  const pane = await screen.findByRole("region", { name: "rulings.md" });
+  expect(within(pane).getByText("Nothing ruled yet.")).toBeTruthy();
+});
+
+/** US4 more 1 */
+test("the data model keeps its panes beside the column", async () => {
+  atWidth(1440);
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(`/f/${SPEC_FEATURE}/data-model.md`, repo, { agent: true });
+
+  expect(await screen.findByRole("region", { name: "Task" })).toBeTruthy();
+  expect(screen.getByRole("region", { name: "Repeat rule" })).toBeTruthy();
+  const column = within(screen.getByRole("complementary", { name: "The data-model's column" }));
+  expect(column.getAllByRole("tab", { name: "Contents" })).toHaveLength(1);
+  const contents = within(column.getByRole("tabpanel", { name: /^Contents/ }));
+  expect(contents.getByRole("link", { name: "Task" })).toBeTruthy();
+  expect(contents.getByRole("link", { name: "Repeat rule" })).toBeTruthy();
+});
+
+/** US4 more 2 */
+test("a done feature's record file has Contents and no Session", async () => {
+  atWidth(1440);
+  const done = "2026-10-09-dark-mode";
+  const repo = fixtureRepo();
+  git(repo, "switch", "--quiet", "--create", done, "main");
+  mkdirSync(join(repo, "specs/done"), { recursive: true });
+  writeFileSync(join(repo, `specs/done/${done}.md`), record("Dark mode"));
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "finish(dark-mode): dark mode");
+  git(repo, "switch", "--quiet", "main");
+  git(repo, "merge", "--quiet", "--no-ff", "--no-edit", done);
+  await renderPage(`/f/${done}/${done}.md`, repo, { agent: true });
+
+  expect(await screen.findByRole("region", { name: "Behaviour" })).toBeTruthy();
+  const column = within(screen.getByRole("complementary", { name: /^The .* column$/ }));
+  expect(column.getAllByRole("tab")).toHaveLength(1);
+  expect(column.getByRole("tab", { name: "Contents" })).toBeTruthy();
+});
+
+/** US4.3 */
+test("on the phone the status line holds Contents and Session", async () => {
+  atWidth(402);
+  await renderPage(`/f/${RECURRING}/proposal.md`, fixtureRepo(), { agent: true });
+
+  expect(await screen.findByRole("button", { name: "Contents" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Session" })).toBeTruthy();
+  expect(screen.queryByRole("complementary")).toBeNull();
 });
