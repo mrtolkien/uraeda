@@ -84,7 +84,7 @@ test("↓ selects the next row and the pane follows (US2 1, SC-003)", async () =
     await userEvent.keyboard("{ArrowDown}");
   }
   await selected(/Nix \+ Docker/);
-  expect(await screen.findByText("Later · 1 of 1")).toBeTruthy();
+  expect(await screen.findByText("Later · 1 of 2")).toBeTruthy();
   await drawn();
   expect(document.activeElement).toBe(row(/Nix \+ Docker/));
   // The pane followed in place: Back leaves the priorities, not each row passed.

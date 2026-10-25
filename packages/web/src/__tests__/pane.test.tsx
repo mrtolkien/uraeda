@@ -237,7 +237,7 @@ test("another row with unsaved text", async () => {
   await type(screen.getByRole("textbox", { name: "Line" }), "Claude Code runner, by hand");
 
   await click((await rows("Later")).getByRole("link", { name: /Nix \+ Docker/ }));
-  expect(await (await paneDrawn()).findByText("Later · 1 of 1")).toBeTruthy();
+  expect(await (await paneDrawn()).findByText("Later · 1 of 2")).toBeTruthy();
   expect(detail().queryByRole("textbox", { name: "Line" })).toBeNull();
   await click((await rows("Next")).getByRole("link", { name: /Claude Code runner/ }));
 
@@ -268,7 +268,7 @@ test("the section moves the line (US3 4)", async () => {
   await click(await screen.findByRole("radio", { name: "Later" }));
   await waitFor(() =>
     expect(read(repo)).toContain(
-      "  - with a cache\n- Claude Code runner (triggered manually)\n\n## Blocked",
+      "- Benchmarks: after the runner is ready\n- Claude Code runner (triggered manually)\n",
     ),
   );
   expect(await screen.findByRole("radio", { checked: true, name: "Later" })).toBeTruthy();

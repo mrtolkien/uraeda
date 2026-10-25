@@ -10,7 +10,7 @@ import { atSize, drawn, middle, pickUp, show } from "./helpers.tsx";
 const commands = browserCommands as unknown as RepoCommands;
 
 const NEXT_SWAPPED =
-  "## Next\n\n- [Git listener process](drafts/git-listener.md)\n- Claude Code runner (triggered manually)\n";
+  "## Next\n\n> [!NOTE]\n>\n> What comes once Now is done\n\n- [Git listener process](drafts/git-listener.md)\n- Claude Code runner (triggered manually)\n";
 
 /** Where a line's text is now on screen: it moves with its row. */
 function top(name: RegExp) {
