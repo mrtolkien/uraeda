@@ -1,11 +1,24 @@
 // The session's column, measured (US1 more 2, approval comment C2, review focus 4): a third of the
 // window when wide, 300 px at a semi-wide 1000 px, where a document's column keeps its 400 px; the
 // Changes part at most 40% of its height; resized from its edge, its width kept, and `]` folding
-// it; and, on the phone, its split opened as a sheet from the status line, closed by Back.
+// it; and, on the phone, its split opened as a sheet from the status line, closed by Back. As the
+// right bar's (`specs/done/2026-10-19-right-bar.md`): its edge dragged by the pointer along its full
+// height, a click in its folded rail's space unfolding it, its fold eased over 200 ms, at once
+// under reduced motion, and the page beside it kept as it folds.
 import { screen, within } from "@testing-library/react";
 import { page, userEvent } from "vite-plus/test/browser";
-import { describe, expect, test } from "vite-plus/test";
-import { agent, atRepo, atSize, drawn, LIVE, reload, show } from "./helpers.tsx";
+import { afterEach, describe, expect, test } from "vite-plus/test";
+import {
+  agent,
+  atRepo,
+  atSize,
+  drawn,
+  LIVE,
+  reducedMotion,
+  reload,
+  show,
+  startTurn,
+} from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 
@@ -125,6 +138,84 @@ describe("on a desktop", () => {
     expect(within(column()).getByRole("img", { name: "Activity" })).toBeTruthy();
     await userEvent.keyboard("]");
     await expect.poll(() => width()).toBe(dragged);
+  });
+});
+
+describe("on a desktop, its edge and its fold", () => {
+  atSize("desktop");
+
+  afterEach(async () => {
+    await reducedMotion(false);
+  });
+
+  test("its edge runs the column's height above the status line, and a drag resizes it", async () => {
+    await session();
+    const handle = screen.getByRole("separator", { name: "Resize the session's column" });
+    const box = handle.getBoundingClientRect();
+    // As tall as the window above the shell's status line (layout-look R20).
+    const line = screen.getByRole("contentinfo", { name: "Status line" }).getBoundingClientRect();
+    expect(Math.round(box.height)).toBe(Math.round(line.top));
+    expect(Math.round(column().getBoundingClientRect().height)).toBe(Math.round(line.top));
+    expect(Math.round(box.x)).toBe(Math.round(column().getBoundingClientRect().x));
+
+    await userEvent.dragAndDrop(handle, document.body, {
+      sourcePosition: { x: 1, y: 100 },
+      targetPosition: { x: box.x - 80, y: 100 },
+    });
+
+    await expect.poll(() => width()).toBeGreaterThan(520);
+    const dragged = width();
+    await reload("CLI TUIs");
+    await screen.findByRole("complementary", { name: NAME }, LIVE);
+    await expect.poll(() => width()).toBe(dragged);
+  });
+
+  test("folded, a click in its rail's space unfolds it", async () => {
+    await session();
+    await userEvent.click(screen.getByRole("button", { name: "Hide the session's column" }));
+    await expect.poll(() => width()).toBe(RAIL);
+    expect(screen.queryByRole("separator", { name: "Resize the session's column" })).toBeNull();
+
+    // Below the rail's icons, in its empty space.
+    await userEvent.click(column(), { position: { x: 24, y: 400 } });
+
+    await expect.poll(() => width()).toBe(480);
+  });
+
+  test("the fold eases over 200 ms, and at once under reduced motion", async () => {
+    await session();
+    await userEvent.keyboard("]");
+    expect(getComputedStyle(column()).transitionDuration).toBe("0.2s");
+    await expect.poll(() => width()).toBe(RAIL);
+    await userEvent.keyboard("]");
+    await drawn();
+
+    await reducedMotion(true);
+    await userEvent.keyboard("]");
+    expect(getComputedStyle(column()).transitionDuration).toBe("0s");
+  });
+
+  test("hiding the column keeps the transcript, the focus, and what the composer holds", async () => {
+    await session();
+    await startTurn("Plan the CLI.", [{ text: "Investigating.", type: "text" }]);
+    const log = await screen.findByRole("log", { name: "Conversation" }, LIVE);
+    await within(log).findByText("Investigating.", undefined, LIVE);
+    const field = screen.getByRole("textbox", { name: "Message Claude Code" });
+    await userEvent.click(field);
+    // Typed in a field, `]` is text.
+    await userEvent.keyboard("A note]");
+    expect(width()).toBe(480);
+
+    const crumb = screen.getAllByRole("link", { name: "CLI TUIs" })[0];
+    crumb.focus();
+    await userEvent.keyboard("]");
+
+    await expect.poll(() => width()).toBe(RAIL);
+    expect(log.isConnected).toBe(true);
+    expect(document.activeElement).toBe(crumb);
+    expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toContain(
+      "A note]",
+    );
   });
 });
 
