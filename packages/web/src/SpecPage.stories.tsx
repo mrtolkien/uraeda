@@ -1,7 +1,7 @@
-// The spec page of the spec page in the terminal look (`specs/2026-10-24-spec-page/`), as the app
-// draws it, over the spec page's features that `addSpecPages` builds from `fixtures/spec-page/` (see
-// `.storybook/fixture.ts`): its data comes from Uraeda's server in Storybook, through fate, on the
-// fake agent.
+// The spec page of the spec page in the terminal look (`specs/done/2026-10-24-spec-page.md`), as
+// the app draws it, over the spec page's features that `addSpecPages` builds from
+// `fixtures/spec-page/` (see `.storybook/fixture.ts`): its data comes from Uraeda's server in
+// Storybook, through fate, on the fake agent.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { userEvent, within } from "storybook/test";
 import { SPEC_PAGES } from "../.storybook/checkouts.ts";

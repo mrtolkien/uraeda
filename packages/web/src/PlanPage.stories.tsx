@@ -1,7 +1,7 @@
-// The plan page of the spec page in the terminal look (`specs/2026-10-24-spec-page/`), as the app
-// draws it, over the questions page's plan (`fixtures/plan-page/plan.md`) that `addSpecPages`
-// commits on two of the spec page's features (see `.storybook/fixture.ts`): its data comes from
-// Uraeda's server in Storybook, through fate, on the fake agent.
+// The plan page of the spec page in the terminal look (`specs/done/2026-10-24-spec-page.md`), as
+// the app draws it, over the questions page's plan (`fixtures/plan-page/plan.md`) that
+// `addSpecPages` commits on two of the spec page's features (see `.storybook/fixture.ts`): its data
+// comes from Uraeda's server in Storybook, through fate, on the fake agent.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { SPEC_PAGES } from "../.storybook/checkouts.ts";
 import { inRepositoryFolder } from "../.storybook/inRepositoryFolder.tsx";
