@@ -347,6 +347,8 @@ session reports.
 - Modify: `packages/server/src/runner/claude-events.ts` (`parseLine`'s `assistant` case)
 - Modify: `packages/server/src/runner/transcript.ts` (`#output`, `#track`, `#result`)
 - Modify: `packages/server/src/runner/session-state.ts` (`Running`)
+- Modify: `packages/web/src/TranscriptMessages.tsx` (`TranscriptItems` skips a thought, see
+  [R13](rulings.md#r13-the-chat-skips-a-thought-until-its-recap-lines-come))
 - Test: `packages/server/src/runner/__tests__/claude.test.ts`,
   `packages/server/src/__tests__/sessions.test.ts`
 
@@ -361,7 +363,7 @@ session reports.
   - A main-agent `toolStart` restarts the running turn's `activity.since`, its label staying
     "Working".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // runner/__tests__/claude.test.ts
@@ -417,13 +419,13 @@ The break each test catches:
 - Sub-agent: a sub-agent thought timed from the main agent's thinking start.
 - Restart: `#activity`'s same-label shortcut keeps the first call's `since`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test run packages/server/src/runner/__tests__/claude.test.ts packages/server/src/__tests__/sessions.test.ts`
 - Expected: FAIL, `expected [] to deeply equal [ { type: 'thought' } ]`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 - `claude-events.ts`: an `assistant` block of type `thinking` or `redacted_thinking` gives a
   `thought` event, with `parent` for a sub-agent's line, and `text` only when `thinking` is a
@@ -437,17 +439,19 @@ The break each test catches:
   next event. A main-agent `toolStart` sets `turn.activity = working(WORKING)` and reports the
   change, even when the label was already "Working".
 - No cache migration: the `items` table stores any kind.
+- `TranscriptMessages.tsx`: `TranscriptItems` skips a thought, neither a line nor a break between
+  tool calls, as `fast` type-checks the web.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
-- Expected: PASS. Deferred to ready: the web's type check and tests, which see the new item kind in
-  task 5 on.
+- Expected: PASS. Deferred to ready: application journeys, browser phone/desktop, production
+  builds/package smoke, full workspace/editor checks.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server/src/runner packages/server/src/__tests__/sessions.test.ts specs/2026-10-25-session-new/plan.md
+git add packages/server/src/runner packages/server/src/__tests__/sessions.test.ts packages/web/src/TranscriptMessages.tsx specs/2026-10-25-session-new/plan.md specs/2026-10-25-session-new/rulings.md
 git commit -m "feat(session-new): record the agent's thoughts, and time each call"
 ```
 

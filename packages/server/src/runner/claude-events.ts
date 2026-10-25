@@ -134,6 +134,18 @@ export function parseLine(
           if (block.type === "tool_use" && typeof block.id === "string") {
             return [toolStart(block.id, text(block.name), block.input, parent, cwd)];
           }
+          // A thinking block comes whole once it ends, its text empty unless the agent shows it.
+          if (block.type === "thinking" || block.type === "redacted_thinking") {
+            return [
+              {
+                ...(parent === undefined ? {} : { parent }),
+                ...(typeof block.thinking === "string" && block.thinking !== ""
+                  ? { text: block.thinking }
+                  : {}),
+                type: "thought",
+              },
+            ];
+          }
           return [];
         },
       );

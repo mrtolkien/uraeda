@@ -138,3 +138,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: `SelectableCard`, without radio keys; `RadioList`, round.
 - **If wrong**: the group's keys in one component.
 - **Where**: task 4.
+
+## R13: The chat skips a thought until its recap lines come
+
+- **Decision**: task 1 makes `TranscriptMessages.tsx` skip a thought item, which neither draws a
+  line nor parts the tool calls around it. Task 6's recap lines then count it.
+- **Rationale**: `fast` type-checks the web, so the new item kind cannot wait for task 5: the chat's
+  last branch drew every other kind as a denial, and a thought would have reached it.
+- **Alternatives considered**: deferring the web's type check to ready, as the plan said, which
+  `fast` does not do; drawing the thought, which the spec keeps out of the chat.
+- **If wrong**: one condition in the chat, which task 6 rewrites.
+- **Where**: task 1, `packages/web/src/TranscriptMessages.tsx`.

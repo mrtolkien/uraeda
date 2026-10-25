@@ -264,6 +264,10 @@ export function TranscriptItems({
       current.tools.push(item);
       continue;
     }
+    // A thought is no line of the chat, and does not part the tool calls around it.
+    if (item.kind === "thought") {
+      continue;
+    }
     current = undefined;
     if (item.kind === "message") {
       const canTakeBack = actions.canTakeBack && (item.id !== firstMessage || queued);

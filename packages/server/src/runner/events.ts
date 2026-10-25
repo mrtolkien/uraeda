@@ -25,6 +25,13 @@ export type AgentEvent =
    * streams, with its target once the input names it.
    */
   | { activity: Activity; type: "activity" }
+  /** A thinking block, whole: its text only when the agent gave a non-empty one. */
+  | {
+      /** The tool call of the sub-agent that thought it. */
+      parent?: string;
+      text?: string;
+      type: "thought";
+    }
   | {
       id: string;
       input: Record<string, unknown>;
@@ -132,6 +139,17 @@ export type Item =
       /** The command, the path relative to the session's directory, the URL, or the pattern. */
       target?: string;
       toolKind: ToolKind;
+    }
+  /**
+   * A thinking block, timed from its start to the whole block, the agent's next event: 0 when no
+   * start was seen, as for a sub-agent's. Its text only when the agent gave one.
+   */
+  | {
+      durationMs: number;
+      kind: "thought";
+      /** The sub-agent that thought it. */
+      parent?: string;
+      text?: string;
     }
   /** A resumed or replaced session, a retry, skipped lines, an error. */
   | { kind: "system"; text: string }
