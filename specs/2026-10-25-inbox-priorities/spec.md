@@ -68,9 +68,9 @@ the phone the same panes are stacked, one column. A card is a small frame whose 
 border: a running step, "draft", or a note's tags. A line is dragged from anywhere on its card, with
 no handle. Under the title, one line says what the page is for.
 
-[Columns, with the current priorities](mockups/priorities-columns-scroll.html)
+[Columns, with the current priorities](/packages/web/src/lists/WorkList.stories.tsx#Columns)
 
-[The phone](mockups/phone.html)
+[The phone](/packages/web/src/lists/WorkList.stories.tsx#Phone)
 
 Key scenarios:
 
@@ -123,7 +123,7 @@ tags, and first image. The notes without a category come first. Under the title,
 the inbox is for. A note is drawn as the same card as a priority and drags the same way, within and
 between categories.
 
-[Inbox panes](mockups/inbox-a-panes.html)
+[Inbox panes](/packages/web/src/lists/WorkList.stories.tsx#Inbox)
 
 Key scenarios:
 
@@ -148,7 +148,7 @@ and Next, and Close. On every width but the phone it is a dialog about 108 chara
 of the window tall, over the dimmed page. On the phone it is a bottom sheet. The URL is the line's,
 so reload and Back keep it: Back closes it. The list's selection does not open it.
 
-[The dialog](mockups/overlay-a-dialog.html)
+[The dialog](/packages/web/src/pane/EntryPane.stories.tsx#Overlay)
 
 Key scenarios:
 
@@ -194,7 +194,7 @@ More scenarios:
 Deleting asks "Delete the N notes too?" with three bordered lines, each showing its key: Yes (Y), No
 (N), and Cancel (C). No keeps the notes, in order, under No category.
 
-[Delete a category](mockups/category-delete.html)
+[Delete a category](/packages/web/src/lists/WorkList.stories.tsx#CategoryDelete)
 
 Key scenarios:
 
@@ -303,8 +303,8 @@ the page text, and its `…` rule, follow here. Settled while writing this spec:
   it.
 - **The overlay's size** is 108 characters of the page's font wide, about 1,060 px, and 60% of the
   window tall, and it is the same overlay for notes and priorities.
-- **The mockups** are the HTML pages above. The plan writes their stories first, with the real
-  components, and deletes the pages once the stories show the same states.
+- **The mockups** are the stories above, with the real components: the HTML pages that came first
+  are deleted.
 - **Later's callout**, malformed in the project's own file, is fixed by the human on the default
   branch, since the file lives there. The warning tells them.
 - **The two files' edits** stay written at once and committed from the commit bar, as today.

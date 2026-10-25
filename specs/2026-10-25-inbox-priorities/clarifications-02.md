@@ -98,7 +98,7 @@ sets how much of the board you still see.
 
 - **A (recommended). A dialog about 34 characters wide, centred, over the dimmed page.**
 
-  [A dialog](mockups/overlay-a-dialog.html)
+  A dialog (`mockups/overlay-a-dialog.html`, deleted)
 
   - [pro] it reuses the shared overlay, shows the board behind, and a short line needs no more.
   - [con] a long note and its images scroll in a narrow box.
@@ -126,9 +126,8 @@ sets how much of the board you still see.
 ### Behaviour
 
 - **The columns** scroll sideways when the window is narrower than four columns of at least 300 px.
-  A column may then be cut at the edge. See the
-  [prototype of the columns](mockups/priorities-columns-scroll.html), which uses your current
-  priorities' text.
+  A column may then be cut at the edge. See the prototype of the columns
+  (`mockups/priorities-columns-scroll.html`, deleted), which uses your current priorities' text.
 - **Previous and Next** stay in the overlay, as the old pane's did, stepping through the column, or
   the category, the line is in.
 - **The inbox** is a pane per category, as you picked, and each category shows its notes whole.

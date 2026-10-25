@@ -92,8 +92,8 @@ The other answers are applied in the spec without a new question.
 - `packages/web/src/lists/`: cards without handles, the `…` menu, the columns that scroll.
 - `crates/core/src/files/priorities.rs`, `check/`, the skill, template, and example: Blocked
   retired.
-- Prototypes: [the overlay's three looks](mockups/) and
-  [the columns](mockups/priorities-columns-scroll.html), throwaway.
+- Prototypes: the overlay's three looks (`mockups/`, deleted) and the columns
+  (`mockups/priorities-columns-scroll.html`, deleted), throwaway.
 
 ## The proposal
 
@@ -134,9 +134,9 @@ Criteria come from [the proposal](proposal.md), [UI layout](/specs/decisions/ui-
 ### The overlay
 
 How a single line is shown over the page. All three keep the URL, Back to close, Previous and Next,
-and a sheet on narrow screens. Prototypes: [a dialog](mockups/overlay-a-dialog.html), a large float
-(`mockups/overlay-b-large-float.html`, deleted), a drawer (`mockups/overlay-c-drawer.html`,
-deleted).
+and a sheet on narrow screens. Prototypes: a dialog (`mockups/overlay-a-dialog.html`, deleted), a
+large float (`mockups/overlay-b-large-float.html`, deleted), a drawer
+(`mockups/overlay-c-drawer.html`, deleted).
 
 | Option                                        | Page behind it  | Room for a long note, draft, images | Reuses the shared overlay |
 | --------------------------------------------- | --------------- | ----------------------------------- | ------------------------- |
