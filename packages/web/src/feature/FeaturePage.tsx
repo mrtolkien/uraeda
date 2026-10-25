@@ -19,14 +19,14 @@ import { useSession } from "../sessionData.ts";
 import { useOpenKeys } from "../useOpenKeys.ts";
 import { FeatureMenu } from "./FeatureMenu.tsx";
 import { Figures } from "./Figures.tsx";
-import { FileList } from "./FileList.tsx";
+import { Links } from "./FileList.tsx";
 import { nextOf, type Recommended } from "./next.ts";
 import { NextPane } from "./NextPane.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
 import { QUESTIONS_KEY, Record } from "./Record.tsx";
 import { Section } from "./Section.tsx";
 import { SessionsCard } from "./SessionsCard.tsx";
-import { Stages } from "./Stages.tsx";
+import { Timeline } from "./Timeline.tsx";
 import { day } from "./times.ts";
 
 type FeatureData = NonNullable<ReturnType<typeof useFeature>>;
@@ -162,8 +162,8 @@ function Produced({ feature, history }: { feature: FeatureData; history: History
           pullRequest={done ? feature.pullRequest?.url : undefined}
           tokens={feature.tokens ?? null}
         />
-        <div id="files">
-          <FileList feature={feature} />
+        <div id="links">
+          <Links feature={feature} />
         </div>
       </Section>
       {record && (
@@ -216,7 +216,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
           {headerLine(feature)}
         </Text>
       </VStack>
-      <Stages history={history} />
+      <Timeline feature={feature} history={history} progress={feature.step.progress} />
       <Blocking
         change={feature.kind === "change"}
         folder={feature.folder}

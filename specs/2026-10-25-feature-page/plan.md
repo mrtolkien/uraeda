@@ -806,8 +806,8 @@ git commit -m "feat(feature-page): Next offers the step's recommended message"
 **Files:**
 
 - Create: `packages/web/src/feature/stageFiles.ts`, `packages/web/src/feature/Timeline.tsx`
-  (replaces `Stages.tsx`, deleted; `stageLine` and the stage labels move into `timeline.ts` or stay
-  exported from `Timeline.tsx`)
+  (replaces `Stages.tsx`, deleted; `stageLine` and the stage labels move into `timeline.ts`;
+  `FileList.tsx` keeps only its Links, exported as `Links`, until task 7)
 - Modify: `packages/web/src/feature/FeaturePage.tsx` (the timeline replaces the stepper and the
   files list, `FileList.tsx`'s Files part)
 - Test: `packages/web/src/__tests__/stage-files.test.ts` (new, pure),
@@ -825,13 +825,13 @@ git commit -m "feat(feature-page): Next offers the step's recommended message"
   change; the record → `merged`. A file whose stage is not among `stages` goes to the nearest
   earlier stage of the list, else the first. Every file appears once. `stageLine` is unchanged,
   except a stage with one round reads "1 round" (R4: the old rule showed rounds only above one).
-- `Timeline({ feature, history })`: an ordered list named "Stages", one item per stage,
-  `aria-current="step"` on the current one, each with its name, its line, and its files (a link, its
-  status after a middot, "to review" while it waits on you); Build lists its tasks (done ones
-  grouped "Tasks 1–4", the current one by number and title, the rest grouped "Tasks 6–9"); a stage
-  not reached shows its name only, dimmed.
+- `Timeline({ feature, history, progress })`, `progress` being `feature.step.progress`: an ordered
+  list named "Stages", one item per stage, `aria-current="step"` on the current one, each with its
+  name, its line, and its files (a link, its status after a middot, "to review" while it waits on
+  you); Build lists its tasks (done ones grouped "Tasks 1–4", the current one by number and title,
+  the rest grouped "Tasks 6–9"); a stage not reached shows its name only, dimmed.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("every kind of file goes to one stage", () => {
@@ -877,22 +877,22 @@ test("every file of the folder shows once", async () => {
 The breaks they catch: a file listed twice or nowhere; a round count that reads "0 rounds" or omits
 "1 round"; a current stage marked by colour alone; a change's rulings under a Plan stage it lacks.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/stage-files.test.ts`
 - Expected: FAIL, `Failed to resolve import "../stageFiles.ts"`
 
-- [ ] **Step 3: Implement `stageFiles.ts` and `Timeline`, wire it, delete `Stages.tsx` and
+- [x] **Step 3: Implement `stageFiles.ts` and `Timeline`, wire it, delete `Stages.tsx` and
       `FileList`'s Files**
 
 Draw it as a `Pane` titled "Timeline". `FileList`'s Links part stays until task 7.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

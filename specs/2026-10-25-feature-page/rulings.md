@@ -145,3 +145,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   same kind of file.
 - **If wrong**: move the file; its imports are the only change.
 - **Where**: task 5, and the later tasks' pure tests (`stageFiles`, `figureRows`) follow it.
+
+## R13: The browser test of the stages' one row goes with the stepper
+
+- **Decision**: `__browser__/feature.test.tsx` loses "every stage's line fits on one line on a
+  desktop" (C3) and its helpers: the timeline is a column at every width, with no row to fit.
+- **Rationale**: the test guarded the stepper's row-or-column measure, which task 6 removes; the
+  timeline's three widths are checked by task 9's browser tests.
+- **Alternatives considered**: keeping it against the timeline: rejected, a column has no line to
+  overrun its neighbour.
+- **If wrong**: add the timeline's own check in task 9.
+- **Where**: task 6.

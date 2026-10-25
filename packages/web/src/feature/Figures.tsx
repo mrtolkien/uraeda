@@ -272,7 +272,7 @@ export function Figures({
   }
   const figures = done
     ? doneFigures(history, tokens, change, pullRequest)
-    : [...(history.lines ? [linesFigure(history.lines, "#files")] : []), tokensFigure(tokens)];
+    : [...(history.lines ? [linesFigure(history.lines, "#stages")] : []), tokensFigure(tokens)];
   return (
     <div onClickCapture={jumpInPage(onOpen)}>
       <Grid columns={{ minWidth: wide ? 190 : 150, repeat: "fill" }} gap={3}>

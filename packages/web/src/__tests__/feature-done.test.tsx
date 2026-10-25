@@ -104,19 +104,15 @@ function region(name: string): HTMLElement {
   return screen.getByRole("region", { name });
 }
 
-/** The stage of this label's line. */
+/** The stage of this label, everything it shows: its line and its files. */
 function stageLine(label: string): string {
   const item = within(screen.getByRole("list", { name: "Stages" }))
     .getAllByRole("listitem")
-    .find((li) => within(li).queryByText(label, { exact: true }));
+    .find((li) => within(li).queryAllByText(label, { exact: true }).length > 0);
   if (!item) {
     throw new Error(`No stage ${label}`);
   }
-  return within(item)
-    .getAllByText(/./)
-    .map((element) => element.textContent ?? "")
-    .filter((text) => text !== label && text !== "completed")
-    .join(" ");
+  return item.textContent ?? "";
 }
 
 /** Adds an ended turn to a feature's session, with its own counts, started at `at`. */
@@ -165,7 +161,7 @@ test("lines changed read in green and red, with the files", async () => {
   await renderPage(`/f/${CLI}`, repo, { agent: true });
 
   const link = await screen.findByRole("link", { name: /^Lines changed/ });
-  expect(link.getAttribute("href")).toBe("#files");
+  expect(link.getAttribute("href")).toBe("#stages");
   const lineCard = within(figureCard("Lines changed"));
   expect(lineCard.getByText("+1,204")).toBeTruthy();
   expect(lineCard.getByText("−310")).toBeTruthy();
@@ -183,7 +179,7 @@ test("a done feature's total time and timed stages", async () => {
   await screen.findByRole("link", { name: /^Total time/ });
   expect(figure("Total time")).toContain("11 h 11 min");
   expect(figure("Total time")).toContain("10:52 to 22:03");
-  expect(stageLine("Merged")).toBe("22:09");
+  expect(stageLine("Merged")).toContain("22:09");
   expect(screen.getByRole("link", { name: /^Total time/ }).getAttribute("href")).toBe("#stages");
 });
 
@@ -408,7 +404,7 @@ test("a merged change without a question shows its four stages and its record", 
     "Pull request",
     "Merged",
   ]);
-  expect(stageLine("Fix")).toBe("15:44 · 22 min");
+  expect(stageLine("Fix")).toContain("15:44 · 22 min");
   expect(figure("Total time")).toContain("26 min");
   expect(screen.queryByRole("link", { name: /^Questions/ })).toBeNull();
   expect(screen.queryByRole("button", { name: /^Questions ·/ })).toBeNull();
