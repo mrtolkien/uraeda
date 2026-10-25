@@ -70,22 +70,24 @@ test("↓ selects the next card and opens nothing (US2 1, US4)", async () => {
   expect(window.location.pathname).toBe(atRepo("/priorities"));
   expect(screen.queryByRole("dialog")).toBeNull();
 
-  // Nine presses from the first card reach the tenth: Later's line.
+  // Nine presses from the first card stop at the column's last, the seventh: the keys stay in the
+  // column (R20).
   for (let press = 0; press < 8; press += 1) {
     await userEvent.keyboard("{ArrowDown}");
   }
-  await selected(/Nix \+ Docker/);
+  await selected(/Line seven/);
   expect(window.history.length).toBe(entries);
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
-test("j crosses sections (US2 2)", async () => {
+test("j stops at the last card of the column (US2 2, R20)", async () => {
   await longList();
   await show("/priorities", "Line seven");
   row(/Line seven/).focus();
 
   await userEvent.keyboard("j");
-  await selected(/Claude Code runner/);
+  await drawn();
+  await selected(/Line seven/);
 });
 
 test("Enter opens the selected card in its overlay, and Escape closes it (US2 3, 4)", async () => {
@@ -114,7 +116,7 @@ test("End and Home (US2 5)", async () => {
   await fromFirst();
 
   await userEvent.keyboard("{End}");
-  await selected(/Benchmarks/);
+  await selected(/Line seven/);
   await userEvent.keyboard("{Home}");
   await selected(/Line one/);
 });
