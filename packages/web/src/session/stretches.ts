@@ -147,16 +147,16 @@ export function lengthOf(items: ReadonlyArray<ActivityItem>): number {
 }
 
 /** A single call's words: its past verb and target, "read src/tasks/undo.ts". */
-function single(tool: ToolItem): string | undefined {
+function single(tool: ToolItem): string {
   const words = wordsOf(tool);
   if (!words) {
     return `${OTHER.past} ${tool.name}`;
   }
-  // A sub-agent's target is its description, which its activity row shows.
-  if (words.kind === "subagent") {
-    return `${words.past} ${what(words)}`;
-  }
-  return tool.target ? `${words.past} ${tool.target}` : undefined;
+  // A sub-agent's target is its description, which its activity row shows (ruling R20). A call
+  // with no target reads what it acts on, "read a file", and a search, which has no word for it,
+  // "searched once".
+  const acted = words.kind === "subagent" ? what(words) : (tool.target ?? what(words));
+  return acted ? `${words.past} ${acted}` : counted(words.past, 1);
 }
 
 /** Each kind's count, in the table's order, from a stretch's calls. */

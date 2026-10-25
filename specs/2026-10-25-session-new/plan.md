@@ -802,12 +802,15 @@ The counts' words, in this order (ruling R5): reads "read N file(s)" and edits "
 deletes "deleted N file(s)", moves "moved N file(s)", counting distinct targets; searches "searched
 once", "twice", "N times"; fetches "fetched N page(s)"; commands "ran N command(s)"; sub-agents "ran
 N sub-agent(s)"; other tools "used N other tool(s)"; thoughts "thought once", "twice", "N times". A
-single call: its past verb and target, "read src/tasks/undo.ts", "ran pnpm test"; a single thought:
-"thought once". The time is `elapsed(lengthOf(items))` from `TurnLines.tsx`. Doing: "reading",
-"editing", "deleting", "moving", "searching", "fetching", "running", then the target; a sub-agent
-"running a sub-agent"; another tool "using <name>". Row words (ruling R6): "read", "edit", "delete",
-"move", "search", "fetch", "run", "sub-agent", the tool's name otherwise; "failed" for a failed or
-cancelled call; "not finished" for a call still in progress in an ended turn.
+single call: its past verb and target, "read src/tasks/undo.ts", "ran pnpm test", with no target
+what it acts on, "read a file", "searched once"; a single sub-agent "ran a sub-agent", another tool
+"used TodoWrite", thoughts around it counted after it, "7 s · edited src/a.ts · thought once"
+(ruling R20); a single thought: "thought once". The time is `elapsed(lengthOf(items))` from
+`TurnLines.tsx`. Doing: "reading", "editing", "deleting", "moving", "searching", "fetching",
+"running", then the target; a sub-agent "running a sub-agent"; another tool "using <name>". Row
+words (ruling R6): "read", "edit", "delete", "move", "search", "fetch", "run", "sub-agent", the
+tool's name otherwise; "failed" for a failed or cancelled call; "not finished" for a call still in
+progress in an ended turn.
 
 The break each test catches:
 

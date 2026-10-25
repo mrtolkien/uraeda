@@ -155,6 +155,12 @@ test("edge: a single call reads the call", () => {
   expect(recapText([thought(3000)])).toBe("3 s · thought once");
 });
 
+test("edge: a single call with no target reads the call, not a count", () => {
+  expect(recapText([call("read", "Read", undefined, 4000)])).toBe("4 s · read a file");
+  expect(recapText([call("execute", "Bash", undefined, 4000)])).toBe("4 s · ran a command");
+  expect(recapText([call("search", "Grep", undefined, 4000)])).toBe("4 s · searched once");
+});
+
 test("edge: a single sub-agent or other tool reads the call (ruling R20)", () => {
   expect(
     recapText([
