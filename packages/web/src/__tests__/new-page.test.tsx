@@ -189,7 +189,7 @@ async function picked(kind: string) {
 }
 
 /** US5 more 2 */
-test("US5 more 2: the arrow keys move the pick, as in a group of radio buttons", async () => {
+test("US5 more 2: the arrow keys move the pick, and Space picks, as in a group of radio buttons", async () => {
   await renderPage("/new", fixtureRepo());
   await screen.findByRole("radiogroup", { name: "What to start" });
   // One stop in the tab order: the picked card.
@@ -211,8 +211,15 @@ test("US5 more 2: the arrow keys move the pick, as in a group of radio buttons",
   await press("ArrowLeft");
   await picked("Feature");
   await press("Home");
+  await picked("Session");
   expect(document.activeElement).toBe(card("Session"));
   expect(`${window.location.pathname}${window.location.search}`).toBe(atRepo("/new"));
+
+  // Space picks the focused card, unpicked.
+  card("Change").focus();
+  await press(" ");
+  await picked("Change");
+  expect(document.activeElement).toBe(card("Change"));
 });
 
 test("an arrow with a modifier is the browser's, as Alt+Right is Forward: the pick stays", async () => {
