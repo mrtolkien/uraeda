@@ -15,6 +15,7 @@ import {
   startTransition,
   Suspense,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -23,6 +24,7 @@ import {
 import { scroller } from "../following.ts";
 import { keepPlace, scrollInstantly, topOf } from "../keepPlace.ts";
 import { statusStyles } from "../Question.tsx";
+import { CHANGE } from "../routeHistory.ts";
 import { currentEntry, updateEntry, useSearch } from "../routes.tsx";
 import { useSession, useTurn } from "../sessionData.ts";
 import { sentAt } from "../TranscriptMessages.tsx";
@@ -100,9 +102,25 @@ function lengthOf(turn: { endedAt: string | null; startedAt: string | null; stat
   return elapsed(Date.parse(turn.endedAt ?? "") - Date.parse(turn.startedAt ?? "") || 0);
 }
 
+/** Where the Activity scrolls to reach the stretch the address names: its run's title, or its row. */
+type Aim = "row" | "title";
+
+/**
+ * Where a run's part scrolls to reach the stretch `marked`, if it holds its first row: the run's
+ * title when the stretch is the run's first, else the stretch's first row.
+ */
+function aimOf(run: Run, from: number, to: number, marked: string | undefined): Aim | undefined {
+  const first = run.rows.findIndex((row) => run.stretches.get(row.seq) === marked);
+  if (marked === undefined || first < from || first >= to) {
+    return undefined;
+  }
+  return run.start === 0 && first === 0 ? "title" : "row";
+}
+
 /**
  * A run: its title, "Run 1 · 2 min", "failed" in the error colour, its start, and its rows from
- * `from`. Holding the stretch the address names, it hands its title to `onTarget` once drawn.
+ * `from` to before `to`. Holding the first row of the stretch the address names, it hands where to
+ * scroll to reach it to `onTarget` once drawn.
  */
 function RunPart({
   from,
@@ -117,19 +135,23 @@ function RunPart({
   keys: OpenKeys;
   marked: string | undefined;
   number: number;
-  onTarget: (title: HTMLElement) => void;
+  onTarget: ((element: Element) => void) | undefined;
   run: Run;
   to: number;
 }) {
   const turn = useTurn(run.turn);
+  const part = useRef<HTMLDivElement>(null);
   const title = useRef<HTMLDivElement>(null);
   const rows = run.rows.slice(from, to);
-  const holds = marked !== undefined && rows.some((row) => run.stretches.get(row.seq) === marked);
+  const aim = aimOf(run, from, to, marked);
   useLayoutEffect(() => {
-    if (holds && title.current) {
-      onTarget(title.current);
+    // The stretch's first row is the first marked one in the run's list.
+    const element =
+      aim === "title" ? title.current : part.current?.querySelector('[aria-current="true"]');
+    if (aim && element && onTarget) {
+      onTarget(element);
     }
-  }, [holds, onTarget]);
+  }, [aim, onTarget]);
   if (!turn) {
     return null;
   }
@@ -142,7 +164,7 @@ function RunPart({
     running: turn.state === "running",
   };
   return (
-    <VStack gap={1}>
+    <VStack gap={1} ref={part}>
       <HStack align="center" gap={2} justify="between" ref={title}>
         <Heading accessibilityLevel={3} color="secondary" level={6}>
           {`Run ${number} · `}
@@ -163,7 +185,7 @@ function RunPart({
  * Scrolls `element` to the top of its scroller, the column's part, alone: neither the page nor the
  * chat moves.
  */
-function scrollToTop(element: HTMLElement) {
+function scrollToTop(element: Element) {
   const box = scroller(element);
   if (box) {
     scrollInstantly(element.getBoundingClientRect().top - box.getBoundingClientRect().top, box);
@@ -194,6 +216,7 @@ function More({ label, onPress }: { label: string; onPress: () => void }) {
  * `onDrawn` hears the rows the walk drawn was walked for, at each commit.
  */
 function Runs({
+  arrival,
   onDrawn,
   onLater,
   onMore,
@@ -201,6 +224,8 @@ function Runs({
   target,
   turns,
 }: {
+  /** How many times the address arrived again, unchanged: each scrolls to the stretch again. */
+  arrival: number;
   onDrawn: (walked: number) => void;
   onLater: () => void;
   onMore: (anchor: Element | null) => void;
@@ -220,16 +245,20 @@ function Runs({
     (run, row) => rowWeight(run, row, keys),
     target?.key,
   );
-  // The stretch is scrolled to once, when its run first draws.
+  // The stretch is scrolled to once per arrival of its address, once the window read for it draws:
+  // a window read for another may hold it, and move as its own is read.
   const scrolled = useRef<string | undefined>(undefined);
+  const start = read.window.start;
+  const aimed = target && start?.index === target.index && start.page === target.page;
+  const scrollKey = `${target?.key}#${arrival}`;
   const onTarget = useCallback(
-    (title: HTMLElement) => {
-      if (target && scrolled.current !== target.key) {
-        scrolled.current = target.key;
-        scrollToTop(title);
+    (element: Element) => {
+      if (scrolled.current !== scrollKey) {
+        scrolled.current = scrollKey;
+        scrollToTop(element);
       }
     },
-    [target],
+    [scrollKey],
   );
   // The walks read a row past those drawn: one left out tells that rows exist there.
   const before = rows.earlier || read.cappedBefore;
@@ -258,7 +287,7 @@ function Runs({
               keys={keys}
               marked={target?.key}
               number={turns.indexOf(run.turn) + 1}
-              onTarget={onTarget}
+              onTarget={aimed ? onTarget : undefined}
               run={run}
               to={rows.to[at]!}
             />
@@ -324,11 +353,33 @@ function windowOf(target: Target | undefined, shown: number, later: number): Win
       };
 }
 
+/**
+ * How many times a navigation arrived at the address it left, as a recap line followed again does:
+ * the Activity scrolls to its stretch again. Its mount, with a reload or Back, and another stretch,
+ * scroll to it on their own: nothing restores the column's place (ruling R28).
+ */
+function useArrival() {
+  const [arrival, setArrival] = useState(0);
+  useEffect(() => {
+    let search = window.location.search;
+    const onChange = () => {
+      if (window.location.search === search) {
+        setArrival((count) => count + 1);
+      }
+      search = window.location.search;
+    };
+    window.addEventListener(CHANGE, onChange);
+    return () => window.removeEventListener(CHANGE, onChange);
+  }, []);
+  return arrival;
+}
+
 /** The Activity of the session `session`, once its record is in. */
 function Activity({ session }: { session: string }) {
   const turns = useSession(session)?.turns ?? [];
   const stretch = new URLSearchParams(useSearch()).get(STRETCH_PARAMETER);
   const { more, onDrawn, reset, shown } = useShown();
+  const arrival = useArrival();
   const [read, setRead] = useState<Read>();
   const [later, setLater] = useState(0);
   const key = turns.join(" ");
@@ -359,6 +410,7 @@ function Activity({ session }: { session: string }) {
       <Suspense fallback={null}>{walk}</Suspense>
       {read && (
         <Runs
+          arrival={arrival}
           onDrawn={onDrawn}
           onLater={() => startTransition(() => setLater((count) => count + 1))}
           onMore={more}

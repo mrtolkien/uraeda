@@ -1168,10 +1168,12 @@ The break each test catches:
   and its own calls are not live. A sub-agent's group holds the calls whose `parent` is its id,
   nested sub-agents as rows; an open group mounts its latest 200 rows, and "Show earlier calls" adds
   200, the first row drawn kept in place.
-- The stretch the address names: its rows are `aria-current="true"`, and its run's heading is
-  scrolled into view once drawn, in the column's scroller. A stretch over pages is one stretch, by
-  the same rule as the chat's: a `continued` stretch on a page after the turn's first joins the page
-  before's last with `joinStretches`, so its rows on both pages are marked by the first page's key.
+- The stretch the address names: its rows are `aria-current="true"`, and once the window read for it
+  draws, the column's scroller brings to its top the run's heading when the stretch is the run's
+  first, else the stretch's first row: once per arrival of the address, a recap line followed again
+  included (ruling R28). A stretch over pages is one stretch, by the same rule as the chat's: a
+  `continued` stretch on a page after the turn's first joins the page before's last with
+  `joinStretches`, so its rows on both pages are marked by the first page's key.
 
 - [x] **Step 4: Run the task's validation**
 

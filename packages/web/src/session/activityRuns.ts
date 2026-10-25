@@ -14,6 +14,8 @@ export type Run = {
   groups: ReadonlyMap<string, ReadonlyArray<ActivityItem>>;
   /** The main agent's calls and thoughts, in order: the run's rows. */
   rows: ReadonlyArray<ActivityItem>;
+  /** The first page of its turn read: 0 when `rows` start at the turn's first row. */
+  start: number;
   /** The key of the stretch each row belongs to, by the row's `seq`. */
   stretches: ReadonlyMap<number, string>;
   turn: string;
@@ -52,8 +54,12 @@ function stretchesOf(
   return keys;
 }
 
-/** A turn's run, from its pages read, in order. */
-function runOf(turn: string, pages: ReadonlyArray<ReadonlyArray<TranscriptItem>>): Run {
+/** A turn's run, from its pages read, in order, the first of them `start`. */
+function runOf(
+  turn: string,
+  pages: ReadonlyArray<ReadonlyArray<TranscriptItem>>,
+  start: number,
+): Run {
   const rows: Array<ActivityItem> = [];
   const groups = new Map<string, Array<ActivityItem>>();
   for (const item of pages.flat()) {
@@ -68,21 +74,22 @@ function runOf(turn: string, pages: ReadonlyArray<ReadonlyArray<TranscriptItem>>
       groups.set(item.parent, group);
     }
   }
-  return { groups, rows, stretches: stretchesOf(turn, pages), turn };
+  return { groups, rows, start, stretches: stretchesOf(turn, pages), turn };
 }
 
 /** The runs of the pages read, the earliest first: consecutive pages of a turn are one run. */
 export function runsOf(read: ReadonlyArray<ReadPage>): Array<Run> {
-  const turns: Array<{ pages: Array<ReadonlyArray<TranscriptItem>>; turn: string }> = [];
-  for (const { items, turn } of read) {
+  const turns: Array<{ pages: Array<ReadonlyArray<TranscriptItem>>; start: number; turn: string }> =
+    [];
+  for (const { items, page, turn } of read) {
     const last = turns.at(-1);
     if (last?.turn === turn) {
       last.pages.push(items);
     } else {
-      turns.push({ pages: [items], turn });
+      turns.push({ pages: [items], start: page, turn });
     }
   }
-  return turns.map(({ pages, turn }) => runOf(turn, pages));
+  return turns.map(({ pages, start, turn }) => runOf(turn, pages, start));
 }
 
 /** The count of a main agent's calls and thoughts in a page's items, as the bound counts them. */

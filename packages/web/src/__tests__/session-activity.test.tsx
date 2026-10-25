@@ -179,13 +179,26 @@ function watchScrolls() {
     scrolls.push({ box: this, top: typeof options === "number" ? 0 : (options?.top ?? 0) });
   });
   // The heading the scroll brought to the top: the element's own, or the first it holds.
-  return () => {
-    const last = scrolls.at(-1);
-    const top = last && all()[all().indexOf(last.box) + last.top];
-    return top?.matches("h1, h2, h3, h4, h5, h6")
-      ? top.textContent
-      : top?.querySelector("h1, h2, h3, h4, h5, h6")?.textContent;
-  };
+  return Object.assign(
+    () => {
+      const top = scrolledTop(scrolls);
+      return top?.matches("h1, h2, h3, h4, h5, h6")
+        ? top.textContent
+        : top?.querySelector("h1, h2, h3, h4, h5, h6")?.textContent;
+    },
+    {
+      /** How many times the page scrolled a box. */
+      count: () => scrolls.length,
+      /** The row the last scroll brought to the top, its text. */
+      row: () => scrolledTop(scrolls)?.closest("li")?.textContent,
+    },
+  );
+}
+
+/** The element the last of `scrolls` brought to its box's top. */
+function scrolledTop(scrolls: ReadonlyArray<{ box: Element; top: number }>) {
+  const last = scrolls.at(-1);
+  return last && all()[all().indexOf(last.box) + last.top];
 }
 
 /**
@@ -437,6 +450,28 @@ test("SC-002, review focus 2: a stretch in run 1 of 5,000 calls mounts at most 2
   await waitFor(() => expect(rows().at(-1)!.textContent).toContain("src/run-5/file-999.ts"));
   expect(rows()).toHaveLength(ACTIVITY_ROWS);
   expect(activity().queryByRole("button", { name: "Show later runs" })).toBeNull();
+});
+
+test("US1.2: a later stretch of a long run scrolls to its first row, and again at each arrival", async () => {
+  const chat = await newChat();
+  // The first stretch's 150 reads fill the first page and half the second; the next starts at 152.
+  const items = [asked("Read"), ...reads(1, 150), said("Half."), ...reads(2, 100), said("Done.")];
+  const turn = addRun(chat.fake, chat.chat, items);
+  const scrolledTo = watchScrolls();
+  const address = `?tab=activity&stretch=${turn}%3A152`;
+
+  await openActivity(chat, address);
+
+  await waitFor(() => expect(scrolledTo.row()).toContain("src/run-2/file-0.ts"));
+  const marked = activity().getAllByRole("listitem", { current: true });
+  expect(marked).toHaveLength(100);
+  expect(marked[0]!.textContent).toContain("src/run-2/file-0.ts");
+
+  // The reader scrolls away; the same recap line, followed again, scrolls back to the stretch.
+  const scrolls = scrolledTo.count();
+  act(() => redirect(`${window.location.pathname}${address}`));
+  await waitFor(() => expect(scrolledTo.count()).toBeGreaterThan(scrolls));
+  expect(scrolledTo.row()).toContain("src/run-2/file-0.ts");
 });
 
 test("review focus 2: a stretch over two pages marks its rows on both", async () => {

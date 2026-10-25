@@ -339,3 +339,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `windowOf` in `session/ActivityPanel.tsx`, `walkOf` in `session/ActivityWalk.tsx`,
   and `drawnRows` in `session/activityRuns.ts`.
 - **Where**: task 8, `packages/web/src/session/ActivityPanel.tsx`.
+
+## R28: The Activity scrolls to its stretch at each arrival of the address
+
+- **Decision**: once the window read for the stretch the address names draws, the column's scroller
+  brings to its top the stretch's run's heading when the stretch is the run's first, else the
+  stretch's first row. It does so once per arrival of the address: the Activity's mount, so a
+  reload, Back to the page, or a tab switch back to the Activity; another stretch; and a navigation
+  to the address already shown, as a recap line followed again. A press of a "Show" button, or a
+  live update, does not scroll.
+- **Rationale**: the run's heading of a stretch deep in a long run left its marked rows out of view.
+  A recap line followed a second time, after the reader scrolled away, did nothing. Nothing restores
+  the session column's place on a reload or Back, so the stretch is the place to bring back.
+- **Alternatives considered**: scrolling once per stretch, as before, which ignored the second
+  click; the column keeping its place in the history entry, which no part of the column does today.
+- **If wrong**: `useArrival` and `aimOf` in `session/ActivityPanel.tsx`.
+- **Where**: task 8, `packages/web/src/session/ActivityPanel.tsx`.
