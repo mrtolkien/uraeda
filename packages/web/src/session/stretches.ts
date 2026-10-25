@@ -13,8 +13,18 @@ export type ActivityItem = Extract<TranscriptItem, { kind: "thought" | "tool" }>
 /**
  * The main agent's calls and thoughts between two other items of a turn, its sub-agents' starting
  * calls included. `key` is `stretchKey` of its turn and first item.
+ *
+ * A turn's pages cut a stretch where they end, so a stretch says where it may go on: `continued`,
+ * the page's items before it are only a sub-agent's, so on a page after the turn's first it goes on
+ * from the page before; `open`, the page's items after it are only a sub-agent's, so it may go on in
+ * the page after. `joinStretches` makes the two halves one stretch, under the first half's key.
  */
-export type Stretch = { items: ReadonlyArray<ActivityItem>; key: string };
+export type Stretch = {
+  continued: boolean;
+  items: ReadonlyArray<ActivityItem>;
+  key: string;
+  open: boolean;
+};
 
 /** A place in a page of a turn: one of its other items, or a stretch. */
 export type Slot = { item: TranscriptItem; kind: "item" } | { kind: "stretch"; stretch: Stretch };
@@ -129,7 +139,12 @@ export function slotsOf(turn: string, items: ReadonlyArray<TranscriptItem>): Arr
         current = [];
         slots.push({
           kind: "stretch",
-          stretch: { items: current, key: stretchKey(turn, item.seq) },
+          stretch: {
+            continued: slots.length === 0,
+            items: current,
+            key: stretchKey(turn, item.seq),
+            open: false,
+          },
         });
       }
       current.push(item);
@@ -138,7 +153,25 @@ export function slotsOf(turn: string, items: ReadonlyArray<TranscriptItem>): Arr
     current = undefined;
     slots.push({ item, kind: "item" });
   }
+  const last = slots.at(-1);
+  if (last?.kind === "stretch") {
+    last.stretch.open = true;
+  }
   return slots;
+}
+
+/**
+ * One stretch from a stretch `open` at a page's end and the `continued` one that starts the next
+ * page: the items of both, under the earlier one's key, so a recap line counts the whole stretch and
+ * the Activity marks its rows by one key.
+ */
+export function joinStretches(earlier: Stretch, later: Stretch): Stretch {
+  return {
+    continued: earlier.continued,
+    items: [...earlier.items, ...later.items],
+    key: earlier.key,
+    open: later.open,
+  };
 }
 
 /** The sum of the items' lengths, in ms: a call cached without one counts 0. */

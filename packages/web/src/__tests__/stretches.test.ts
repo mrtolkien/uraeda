@@ -4,12 +4,14 @@ import { expect, test } from "vite-plus/test";
 import {
   type ActivityItem,
   doingText,
+  joinStretches,
   liveText,
   recapText,
   rowWord,
   type Slot,
   slotsOf,
   stretchAddress,
+  type Stretch,
   stretchKey,
 } from "../session/stretches.ts";
 import type { TranscriptItem } from "../TranscriptMessages.tsx";
@@ -59,6 +61,10 @@ function text(): TranscriptItem {
 }
 
 const kindOf = (slot: Slot) => slot.kind;
+
+/** The page's stretches, without its other items. */
+const stretchesOf = (slots: Array<Slot>): Array<Stretch> =>
+  slots.flatMap((slot) => (slot.kind === "stretch" ? [slot.stretch] : []));
 
 test("US1.1: a run of reads, a search, a fetch, and two thoughts", () => {
   expect(
@@ -247,6 +253,61 @@ test("review focus 3: a sub-agent's calls inside a stretch do not part it", () =
   expect(slots[0]?.kind === "stretch" && recapText(slots[0].stretch.items)).toBe(
     "2 s · read 2 files",
   );
+});
+
+test("review focus 1: a page's first stretch continues the page before, its last runs on", () => {
+  const items: Array<TranscriptItem> = [
+    read("a.ts", 1000),
+    text(),
+    read("b.ts", 1000),
+    text(),
+    read("c.ts", 1000),
+  ];
+
+  const [first, middle, last] = stretchesOf(slotsOf("7", items));
+
+  expect([first?.continued, first?.open]).toEqual([true, false]);
+  expect([middle?.continued, middle?.open]).toEqual([false, false]);
+  expect([last?.continued, last?.open]).toEqual([false, true]);
+});
+
+test("review focus 1: a page of calls alone continues, and runs on", () => {
+  const [only] = stretchesOf(slotsOf("7", [read("a.ts", 1000), thought(1000)]));
+
+  expect([only?.continued, only?.open]).toEqual([true, true]);
+});
+
+test("review focus 1: a page after text neither continues nor runs on", () => {
+  const [only] = stretchesOf(slotsOf("7", [text(), read("a.ts", 1000), text()]));
+
+  expect([only?.continued, only?.open]).toEqual([false, false]);
+});
+
+test("review focus 1: a sub-agent's calls at a page's ends leave the stretch continued and open", () => {
+  const items: Array<TranscriptItem> = [
+    call("read", "Read", "z.ts", 9000, { parent: "agent-1" }),
+    { durationMs: 0, kind: "thought", parent: "agent-1", seq: 300 },
+    read("a.ts", 1000),
+    call("search", "Grep", "y", 9000, { parent: "agent-1" }),
+  ];
+
+  const [only] = stretchesOf(slotsOf("7", items));
+
+  expect([only?.continued, only?.open]).toEqual([true, true]);
+});
+
+test("review focus 1: a stretch over two pages joins under the first page's key", () => {
+  const before = slotsOf("7", [text(), read("a.ts", 1000), read("b.ts", 1000)]);
+  const after = slotsOf("7", [read("a.ts", 1000), search("x", 2000), text()]);
+  const earlier = stretchesOf(before).at(-1)!;
+  const later = stretchesOf(after)[0]!;
+
+  const joined = joinStretches(earlier, later);
+
+  expect(joined.key).toBe(earlier.key);
+  expect(joined.key).not.toBe(later.key);
+  expect(recapText(joined.items)).toBe("5 s · read 2 files · searched once");
+  expect([joined.continued, joined.open]).toEqual([false, false]);
 });
 
 test("US1.3: the live line", () => {

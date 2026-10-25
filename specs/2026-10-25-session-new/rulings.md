@@ -201,3 +201,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   once"; "ran Find the tests", the description as the target.
 - **If wrong**: one branch of `single` in `session/stretches.ts`.
 - **Where**: task 5; tasks 6 and 8 keep these words.
+
+## R21: A stretch says whether its page cut it, and two halves join under the first key
+
+- **Decision**: `slotsOf` marks a page's stretch `continued` when only a sub-agent's items precede
+  it on the page, and `open` when only a sub-agent's items follow it; `joinStretches` makes an open
+  stretch and the next page's continued one a single stretch under the earlier key. The chat's recap
+  lines (task 6) and the Activity's marked rows (task 8) both use it.
+- **Rationale**: a turn's pages hold 100 items each, so a stretch of 250 calls spans three; one rule
+  in the pure module keeps one recap line per stretch and one key for the line and the rows. A
+  sub-agent's items at a page's start do not part the main agent's stretch, as they do not inside a
+  page.
+- **Alternatives considered**: each consumer comparing a page's first item with its first stretch,
+  which two tasks would write twice and could write apart.
+- **If wrong**: `continued` and `open` are set in `slotsOf` alone.
+- **Where**: task 5; tasks 6 and 8.

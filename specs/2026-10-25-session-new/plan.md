@@ -745,13 +745,19 @@ git commit -m "feat(session-new): New's three kinds as cards"
 - Consumes: task 1's `thought` item, through `TranscriptItem` (`TranscriptMessages.tsx`).
 - Produces:
   - `type ActivityItem = Extract<TranscriptItem, { kind: "thought" | "tool" }>`.
-  - `type Stretch = { items: ReadonlyArray<ActivityItem>; key: string }`: the main agent's calls and
-    thoughts between two other items of a turn, its sub-agents' starting calls included; `key` is
-    `stretchKey(turn, firstSeq)`.
+  - `type Stretch = { continued: boolean; items: ReadonlyArray<ActivityItem>; key: string; open: boolean }`:
+    the main agent's calls and thoughts between two other items of a turn, its sub-agents' starting
+    calls included; `key` is `stretchKey(turn, firstSeq)`. `continued`: only items with a `parent`
+    precede it on its page, so on a page after the turn's first it goes on from the page before.
+    `open`: only items with a `parent` follow it on its page, so it may go on in the page after
+    (ruling R21).
   - `type Slot = { item: TranscriptItem; kind: "item" } | { kind: "stretch"; stretch: Stretch }`.
   - `slotsOf(turn: string, items: ReadonlyArray<TranscriptItem>): Array<Slot>`: a page's items in
     order, each run of the main agent's calls and thoughts one stretch. Items with a `parent` are
     left out, and do not end a stretch.
+  - `joinStretches(earlier: Stretch, later: Stretch): Stretch`: an `open` stretch and the
+    `continued` one of the next page as one, the items of both under `earlier.key`, `continued` from
+    `earlier` and `open` from `later`.
   - `stretchKey(turn: string, seq: number): string`, `` `${turn}:${seq}` ``;
     `STRETCH_PARAMETER = "stretch"`; `stretchAddress(path: string, key: string): string`,
     `path?tab=activity&stretch=<key>`.
@@ -860,9 +866,9 @@ git commit -m "feat(session-new): stretches of calls, and their words"
 
 **Interfaces:**
 
-- Consumes: task 5's `slotsOf`, `recapText`, `doingText`, `liveText`, `stretchAddress`; task 2's
-  `session.subagents` for the live line's count; `addRun` from task 7 is not available in this wave:
-  seed with `fake.sessions.cache` as `session-tail.test.tsx` does.
+- Consumes: task 5's `slotsOf`, `joinStretches`, `recapText`, `doingText`, `liveText`,
+  `stretchAddress`; task 2's `session.subagents` for the live line's count; `addRun` from task 7 is
+  not available in this wave: seed with `fake.sessions.cache` as `session-tail.test.tsx` does.
 - Produces:
   - `Actions.stretchHref?: (key: string) => string`, set by `SessionPane`: on the session's page,
     `stretchAddress(location.pathname, key)`; boxed in a document's column,
@@ -924,11 +930,12 @@ The break each test catches:
 - `TranscriptItems` draws `slotsOf`'s slots: an item as today (a `thought` is never drawn alone), a
   stretch as a `RecapLine` with `recapText`. The `else` branch that drew any other kind as a denial
   names the denial kind.
-- A stretch whose first item is the first of its page, on a page after the turn's first, continues
-  one from the page before: its recap line reads the pages before back to the stretch's start, so it
-  counts the whole stretch, and the page where the stretch starts draws no line for it. The line
-  sits after the stretch's last call. Pages are read with `useTurnLog`, under `Suspense`, as the
-  tail reads them.
+- A page's first stretch that is `continued`, on a page after the turn's first, goes on from the
+  page before: its recap line reads the pages before, while their last stretch is `continued` too,
+  back to the stretch's start, and joins them with `joinStretches`, so it counts the whole stretch
+  and links its first page's key. A stretch that is `open`, on a page before the turn's last, draws
+  no line: the page after draws it. The line sits after the stretch's last call. Pages are read with
+  `useTurnLog`, under `Suspense`, as the tail reads them.
 - A running turn's end, in `TailPage`, draws the live `RecapLine`:
   `liveText(now - activity.since, doing, running sub-agents)`, `doing` the latest in-progress main
   call's `doingText`, else the activity's label in lower case. It ticks each second, and is
@@ -1074,8 +1081,8 @@ git commit -m "feat(session-new): the session column, its changes, and its progr
 
 **Interfaces:**
 
-- Consumes: task 5's `slotsOf`, `rowWord`, `STRETCH_PARAMETER`, `stretchKey`; task 7's `addRun` and
-  the `activity` panel; `useTurn`, `useTurnLog`, `useOpenKeys`.
+- Consumes: task 5's `slotsOf`, `joinStretches`, `rowWord`, `STRETCH_PARAMETER`, `stretchKey`; task
+  7's `addRun` and the `activity` panel; `useTurn`, `useTurnLog`, `useOpenKeys`.
 - Produces: `ACTIVITY_ROWS = 200`, exported for the tests; `ActivityPanel` with the same signature.
 
 - [ ] **Step 1: Write the failing tests**
@@ -1134,7 +1141,9 @@ The break each test catches:
   through `useOpenKeys`. An in-progress call of a running turn shows a status mark named "Live". A
   sub-agent's group holds the calls whose `parent` is its id, nested sub-agents as rows.
 - The stretch the address names: its rows are `aria-current="true"`, and its run's heading is
-  scrolled into view once drawn, in the column's scroller.
+  scrolled into view once drawn, in the column's scroller. A stretch over pages is one stretch, by
+  the same rule as the chat's: a `continued` stretch on a page after the turn's first joins the page
+  before's last with `joinStretches`, so its rows on both pages are marked by the first page's key.
 
 - [ ] **Step 4: Run the task's validation**
 
