@@ -230,3 +230,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: A test of dnd-kit's sensor alone: it would assert its internals.
 - **If wrong**: Move `fileIndex` back and import it in `cardMoves.ts`.
 - **Where**: task 7.
+
+## R18: An empty category deletes at once, and the old "hidden" test now expects a pane
+
+- **Decision**: A category with no note deletes from its menu without the question, with the Undo
+  toast: "Delete the 0 notes too?" asks nothing. A category with notes asks. The test "an empty
+  category is hidden, and the empty inbox says so" is now "an empty category is an empty pane, ...":
+  it expects the heading "UI · 0".
+- **Rationale**: US3 and US6 draw an empty category as an empty pane, so the old test's premise,
+  that it is hidden, is gone; the only thing to decide with no notes is the heading, and Undo
+  restores it.
+- **Alternatives considered**: Asking with N=0: a question with no answer to choose between.
+- **If wrong**: One condition in `CategoryMenu`.
+- **Where**: task 8.
+
+## R19: `remove(name, keepNotes)`, a bare title field, and the image in its own block
+
+- **Decision**: `useCategoryActions(hash)` returns `add(name)`, `rename(from, to)`, and
+  `remove(name, keepNotes)`, each resolving with the core's refusal message or nothing, in place of
+  the plan's `remove(name, count)`: the menu decides whether to ask, from the count. A rename to the
+  category's own name writes nothing. The title renames in place with `LineField` in a new bare form
+  (`isBare`: the field alone, Enter and Escape deciding), as Save and Cancel do not fit in a pane's
+  border. A card draws its image in a block of its own, under its text: it was inline, beside a
+  short text. `Pane` and `WorkSection` gained `titleNode`, and `WorkSection` a `menu`.
+- **Rationale**: The core refuses a rename to the same name as "exists"; the border holds a title,
+  not a form; US3 says the first image shows under the text.
+- **Alternatives considered**: Save and Cancel buttons in the title: wider than a phone's pane.
+- **If wrong**: `lists/CategoryPane.tsx`, `lists/useCategoryActions.ts`, and one line of `Card`.
+- **Where**: task 8.

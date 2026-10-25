@@ -26,7 +26,7 @@ const styles = stylex.create({
 const TARGETS = [...TITLES].filter(([id]) => id !== "blocked");
 
 /** What `…` opens: `items` under `label`, as a popover, or a bottom sheet on a narrow screen. */
-function CardMenu({
+export function CardMenu({
   items,
   label,
   onOpen,

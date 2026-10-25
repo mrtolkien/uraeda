@@ -334,6 +334,7 @@ function PaneName({
   paneId,
   title,
   titleId,
+  titleNode,
   titleSuffix,
 }: {
   count?: number;
@@ -342,6 +343,7 @@ function PaneName({
   paneId: string | undefined;
   title: string;
   titleId: string;
+  titleNode?: ReactNode;
   titleSuffix?: ReactNode;
 }) {
   // A title changed since your review, like a story renamed, carries the mark.
@@ -359,7 +361,7 @@ function PaneName({
             <Icon icon={icon} size="sm" />
           </span>
         )}
-        <span id={titleId}>{title}</span>
+        <span id={titleId}>{titleNode ?? title}</span>
         {/* The space is for the text's reading: flex items show no space between them. */}
         {count !== undefined && " "}
         {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
@@ -383,7 +385,8 @@ function PaneName({
  * the title in secondary text, as a live window's size and scale do, outside the pane's name.
  * With `id`, its heading is `<id>-title`, focusable by script, which a jump to the pane focuses.
  * `isTinted` sets its background in the accent's muted tint, as a picked card's. `tint` colours the
- * title alone, under the accent and the tone's.
+ * title alone, under the accent and the tone's. `titleNode` draws the title's words itself, as a
+ * title renamed in place, `title` still naming the pane.
  */
 export function Pane({
   actions,
@@ -399,6 +402,7 @@ export function Pane({
   level = 2,
   tint,
   title,
+  titleNode,
   titleSuffix,
   tone,
 }: {
@@ -415,6 +419,7 @@ export function Pane({
   level?: HeadingLevel;
   tint?: PaneTint;
   title: string;
+  titleNode?: ReactNode;
   titleSuffix?: ReactNode;
   tone?: PaneTone;
 }) {
@@ -436,6 +441,7 @@ export function Pane({
       paneId={id}
       title={title}
       titleId={titleId}
+      titleNode={titleNode}
       titleSuffix={titleSuffix}
     />
   );

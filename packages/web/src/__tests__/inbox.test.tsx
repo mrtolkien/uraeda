@@ -480,13 +480,13 @@ test("an agent's note shows its marks as tags", async () => {
   expect(marked.queryByText("agent")).toBeNull();
 });
 
-/** Edge cases: an empty category is hidden; the empty inbox says how to fill it. */
-test("an empty category is hidden, and the empty inbox says so", async () => {
+/** Edge cases: an empty category is an empty pane; the empty inbox says how to fill it. */
+test("an empty category is an empty pane, and the empty inbox says so", async () => {
   const repo = withInbox("# Inbox\n\n## UI\n\n## CLI\n\n- One thing\n");
   await renderPage("/inbox", repo);
   const page = await main();
   await page.findByText("One thing");
-  expect(page.queryByRole("heading", { name: "UI" })).toBeNull();
+  expect(page.getByRole("heading", { name: "UI · 0" })).toBeTruthy();
   expect(page.getByText("1")).toBeTruthy();
 
   writeFileSync(join(repo, PATH), "# Inbox\n");

@@ -29,8 +29,12 @@ export interface WorkSection {
   id: string;
   /** Whether its rows stay where they are, and nothing is dropped in it, as the ongoing entries. */
   isFixed?: boolean;
+  /** Its menu, in the top border at its end. */
+  menu?: ReactNode;
   rows: ReadonlyArray<WorkRow>;
   title: string;
+  /** What draws its title's words, as a title renamed in place: `title` still names it. */
+  titleNode?: ReactNode;
   tone: Tone;
 }
 
@@ -109,7 +113,13 @@ function SectionBody({
 }) {
   return (
     <div ref={ref} {...stylex.props(isColumn && styles.column)}>
-      <Pane count={rows.length} tint={TINTS[section.tone]} title={section.title}>
+      <Pane
+        actions={section.menu}
+        count={rows.length}
+        tint={TINTS[section.tone]}
+        title={section.title}
+        titleNode={section.titleNode}
+      >
         {section.context && (
           <Text color="secondary" display="block" xstyle={styles.context}>
             {section.context}

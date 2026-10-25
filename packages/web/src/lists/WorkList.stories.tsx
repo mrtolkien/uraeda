@@ -5,6 +5,7 @@ import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 import { useWorkspace } from "../data.ts";
 import { InboxPage } from "../InboxPage.tsx";
+import { DeleteCategoryDialog } from "./CategoryPane.tsx";
 import { PrioritiesPage } from "../PrioritiesPage.tsx";
 import { RepositoryPathContext } from "../routes.tsx";
 
@@ -61,7 +62,17 @@ export const Selected: Story = {
 };
 
 /**
- * The inbox's categories as the same sections, every note the same card, with its children,
- * the count beside the heading and "Organize with an agent" on its right.
+ * The inbox as a pane per category, every note the same card, with its children, the purpose line
+ * under the heading, "New category", and each title renamed in place, with its menu in the border.
  */
 export const Inbox: Story = { render: () => <InboxPage /> };
+
+/** A category's delete asking what becomes of its three notes, over the inbox. */
+export const CategoryDelete: Story = {
+  render: () => (
+    <>
+      <InboxPage />
+      <DeleteCategoryDialog count={3} isOpen name="UI" onAnswer={() => undefined} />
+    </>
+  ),
+};
