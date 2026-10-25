@@ -31,6 +31,7 @@ const STORYBOOK_STEPS = {
   "2026-10-17-redesign-rounds": "done",
   "2026-10-17-round-mockup": "human-gate",
   "2026-10-17-round-mockup-comment": "human-gate",
+  "2026-10-17-snooze-times": "plan",
   "2026-10-17-spec-page": "human-gate",
   "2026-10-17-spec-page-approved": "discovery",
   "2026-10-17-symlinks": "done",

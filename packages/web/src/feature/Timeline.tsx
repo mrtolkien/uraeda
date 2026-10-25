@@ -2,7 +2,12 @@
 // as links, and, for the current Build, its tasks. A stage not reached shows its name only, dimmed.
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  colorVars,
+  fontWeightVars,
+  sizeVars,
+  spacingVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { TaskProgress } from "uraeda-binding";
 import { Pane } from "../layout/Pane.tsx";
@@ -11,6 +16,9 @@ import { filesByStage, type FilesFeature, type TimelineFile } from "./stageFiles
 import { LABELS, stageLine, type StagesHistory } from "./timeline.ts";
 
 const styles = stylex.create({
+  // As tall as a control: a finger's 44 px under a coarse pointer.
+  file: { alignItems: "center", display: "inline-flex", minHeight: sizeVars["--size-element-sm"] },
+  fileLine: { alignItems: "center", display: "flex" },
   files: {
     columnGap: spacingVars["--spacing-4"],
     display: "flex",
@@ -81,10 +89,12 @@ function Tasks({ progress }: { progress: TaskProgress }) {
 function FileLink({ file }: { file: TimelineFile }) {
   const here = useRepoPath();
   return (
-    <span>
-      <Link href={here(file.href)}>{file.label}</Link>
+    <span {...stylex.props(styles.fileLine)}>
+      <Link href={here(file.href)} xstyle={styles.file}>
+        {file.label}
+      </Link>
       {file.status && (
-        <span {...stylex.props(file.waiting && styles.waiting)}> · {file.status}</span>
+        <span {...stylex.props(file.waiting && styles.waiting)}>&nbsp;· {file.status}</span>
       )}
     </span>
   );

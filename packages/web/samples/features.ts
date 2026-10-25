@@ -165,6 +165,27 @@ const RUNS = [
     tokens: { cacheRead: 98_120_400, cacheWrite: 3_904_211, input: 1840, output: 81_022 },
   },
   {
+    at: "2026-10-17T12:20:00Z",
+    ended: "2026-10-17T13:35:00Z",
+    folder: FEATURE_PAGES.working,
+    step: "plan",
+    tokens: { cacheRead: 41_300_220, cacheWrite: 1_650_004, input: 1210, output: 52_480 },
+  },
+  {
+    at: "2026-10-17T11:20:00Z",
+    ended: "2026-10-17T11:41:00Z",
+    folder: FEATURE_PAGES.idle,
+    step: "questions",
+    tokens: { cacheRead: 9_120_400, cacheWrite: 604_211, input: 410, output: 12_022 },
+  },
+  {
+    at: "2026-10-17T12:05:00Z",
+    ended: "2026-10-17T12:50:00Z",
+    folder: FEATURE_PAGES.idle,
+    step: "spec",
+    tokens: { cacheRead: 30_512_008, cacheWrite: 1_098_340, input: 920, output: 41_230 },
+  },
+  {
     at: "2026-10-17T12:01:00Z",
     ended: "2026-10-17T12:11:00Z",
     folder: FEATURE_PAGES.waiting,
@@ -304,7 +325,7 @@ function addWorking(repo: string) {
   git(repo, "worktree", "add", "--quiet", join(".worktrees", folder), folder);
 }
 
-/** A feature whose spec is `status`: waiting for review, or unreadable. */
+/** A feature whose spec is `status`: waiting for review, approved, or unreadable. */
 function addGated(repo: string, folder: string, title: string, status: string) {
   const path = `specs/${folder}`;
   const slug = slugOf(folder);
@@ -418,6 +439,7 @@ function addDoneChange(repo: string) {
 export function addFeaturePages(repo: string) {
   addWorking(repo);
   addGated(repo, FEATURE_PAGES.waiting, "Recurring reminders", "awaiting-human");
+  addGated(repo, FEATURE_PAGES.idle, "Snooze times", "approved");
   addGated(repo, FEATURE_PAGES.blocked, "Due dates", "aproved");
   addPullRequest(repo);
   addDone(repo);

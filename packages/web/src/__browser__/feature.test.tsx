@@ -6,6 +6,7 @@ import { screen, within } from "@testing-library/react";
 import { userEvent } from "vite-plus/test/browser";
 import { describe, expect, test } from "vite-plus/test";
 import { FEATURE_PAGES } from "../../.storybook/checkouts.ts";
+import { page } from "vite-plus/test/browser";
 import { atSize, checkLayout, colorScheme, commands, drawn, show } from "./helpers.tsx";
 
 /** Where "Next" and the sessions' pane are drawn. */
@@ -22,7 +23,7 @@ describe("Next and the Home's column", () => {
   // C8.
   test("Next comes before the sessions on the phone, and the column is beside it on a desktop", async () => {
     await commands.addFeaturePages();
-    await show(`/f/${FEATURE_PAGES.working}`, "The agent is building");
+    await show(`/f/${FEATURE_PAGES.working}`, "Continue, implement the plan");
     await drawn();
     const { agent, next } = nextAndAgent();
     if (window.innerWidth >= 768) {
@@ -38,7 +39,7 @@ describe("the Home on the phone", () => {
 
   test("stacks Next, the timeline, Sessions, Produced, and Links", async () => {
     await commands.addFeaturePages();
-    await show(`/f/${FEATURE_PAGES.working}`, "The agent is building");
+    await show(`/f/${FEATURE_PAGES.working}`, "Continue, implement the plan");
     await drawn();
     const tops = [
       screen.getByRole("region", { name: "Next" }),
@@ -73,12 +74,59 @@ describe("lines changed", () => {
 
 /** Every state the page draws without `gh`, by a text that says it is drawn. */
 const STATES: Array<[string, string]> = [
-  [FEATURE_PAGES.working, "The agent is building"],
+  [FEATURE_PAGES.working, "Continue, implement the plan"],
   [FEATURE_PAGES.waiting, "You review the spec"],
   [FEATURE_PAGES.blocked, "This feature cannot go on"],
   [FEATURE_PAGES.done, "What and why"],
   [FEATURE_PAGES.doneChange, "What and why"],
 ];
+
+/** The proposal page of the working feature, whose text the samples write. */
+const PROPOSAL = [
+  `/f/${FEATURE_PAGES.working}/proposal.md`,
+  "Rounds of questions read as a flat list.",
+];
+
+describe("at the three widths", () => {
+  atSize("desktop");
+
+  // The wide, the semi-wide, and the phone's width: the page scrolls only down, and the status line
+  // at the bottom hides none of its text, scrolled to the end.
+  test.each([1440, 1205, 390])(
+    "the Home and a proposal page scroll only vertically at %i px",
+    async (width) => {
+      await commands.addFeaturePages();
+      try {
+        await page.viewport(width, 900);
+        await expect.poll(() => window.innerWidth).toBe(width);
+        for (const [path, text] of [[`/f/${FEATURE_PAGES.done}`, "What it produced"], PROPOSAL]) {
+          await show(path!, text!);
+          await drawn();
+          const scrolling = document.scrollingElement!;
+          expect(scrolling.scrollWidth).toBeLessThanOrEqual(scrolling.clientWidth);
+          window.scrollTo(0, scrolling.scrollHeight);
+          await drawn();
+          const line = screen.getByRole("contentinfo", { name: "Status line" });
+          const covered = [...screen.getByRole("main").querySelectorAll("*")].filter((element) => {
+            const own = [...element.childNodes].some(
+              (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+            );
+            const box = element.getBoundingClientRect();
+            return (
+              own &&
+              box.height > 0 &&
+              box.bottom > line.getBoundingClientRect().top + 0.5 &&
+              box.top < line.getBoundingClientRect().bottom
+            );
+          });
+          expect(covered.map((element) => element.textContent?.slice(0, 40))).toEqual([]);
+        }
+      } finally {
+        await page.viewport(1440, 900);
+      }
+    },
+  );
+});
 
 describe("in both themes", () => {
   atSize("both");
@@ -93,13 +141,19 @@ describe("in both themes", () => {
       for (const [folder, text] of STATES) {
         await show(`/f/${folder}`, text);
         const main = screen.getByRole("main");
-        const folded = () => within(main).queryAllByRole("button", { expanded: false });
+        // The feature's "…" menu is collapsed too, but it opens a menu, not a fold.
+        const folded = () =>
+          within(main).queryAllByRole("button", { expanded: false, name: /^(?!.*actions$)/ });
         for (let left = 10; left > 0 && folded().length > 0; left -= 1) {
           await userEvent.click(folded()[0]!);
         }
         await drawn();
         await checkLayout();
       }
+      // A proposal page, in panes with Contents and the session's column.
+      await show(PROPOSAL[0]!, PROPOSAL[1]!);
+      await drawn();
+      await checkLayout();
     },
   );
 });

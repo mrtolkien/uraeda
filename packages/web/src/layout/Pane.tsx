@@ -316,7 +316,12 @@ function PaneName({
         {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
         {renamed && <SinceSign />}
       </span>
-      {titleSuffix !== undefined && <span {...stylex.props(styles.suffix)}>{titleSuffix}</span>}
+      {titleSuffix !== undefined && (
+        <>
+          {" "}
+          <span {...stylex.props(styles.suffix)}>{titleSuffix}</span>
+        </>
+      )}
     </span>
   );
 }
@@ -380,8 +385,9 @@ export function Pane({
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
   const isOpen = isOpenOnPhone && isNarrow(width) && !use(InPane);
-  // The fold button's name, as it reads: the title and its count.
-  const label = count === undefined ? title : `${title} · ${count}`;
+  // The fold button's name, as it reads: the title, its count, and a suffix of text.
+  const counted = count === undefined ? title : `${title} · ${count}`;
+  const label = typeof titleSuffix === "string" ? `${counted} ${titleSuffix}` : counted;
   const name = (
     <PaneName
       count={count}

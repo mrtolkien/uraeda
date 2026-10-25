@@ -120,8 +120,6 @@ function Row({
       ))}
       {latest && working && progress && (
         <ProgressBar
-          formatValueLabel={(value: number, max: number) => `${value}/${max}`}
-          hasValueLabel
           label={`Task ${progress.position} of ${progress.total}: ${progress.title}`}
           max={progress.total}
           value={progress.position}
