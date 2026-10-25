@@ -12,6 +12,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import {
+  type RefObject,
   startTransition,
   Suspense,
   useCallback,
@@ -21,7 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { scroller } from "../following.ts";
+import { AT_END, scroller } from "../following.ts";
 import { keepPlace, scrollInstantly, topOf } from "../keepPlace.ts";
 import { statusStyles } from "../Question.tsx";
 import { CHANGE } from "../routeHistory.ts";
@@ -205,6 +206,32 @@ function weightOf(
   );
 }
 
+/**
+ * Keeps the Activity's latest row in view while `latest`, without a stretch to show: it opens at its
+ * end, as the chat does, and follows the rows that arrive while the human is there; scrolled up,
+ * nothing moves. `list` is the runs' list, in the part of the column that scrolls.
+ */
+function useLatestInView(list: RefObject<HTMLElement | null>, latest: boolean) {
+  // Where the rows drawn last ended: the human followed them when the view reaches it. None opens
+  // at the end, as back from a stretch's rows.
+  const end = useRef<number | undefined>(undefined);
+  useLayoutEffect(() => {
+    if (!latest) {
+      end.current = undefined;
+    }
+  }, [latest]);
+  useLayoutEffect(() => {
+    const box = list.current ? scroller(list.current) : undefined;
+    if (!latest || !box) {
+      return;
+    }
+    if (end.current === undefined || box.scrollTop + box.clientHeight >= end.current - AT_END) {
+      scrollInstantly(box.scrollHeight, box);
+    }
+    end.current = box.scrollHeight;
+  });
+}
+
 /** A ghost button of the Activity's: "Show earlier runs" or "Show later runs". */
 function More({ label, onPress }: { label: string; onPress: () => void }) {
   return <Button clickAction={onPress} label={label} size="sm" variant="ghost" />;
@@ -265,6 +292,7 @@ function Runs({
   const after = rows.later || read.cappedAfter;
   const drawn = weightOf(runs, rows, keys);
   useLayoutEffect(() => onDrawn(read.walked));
+  useLatestInView(box, target === undefined);
   if (drawn === 0 && !before && !after) {
     return <NoCall />;
   }

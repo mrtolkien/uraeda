@@ -61,6 +61,27 @@ async function at(windowWidth: number, check: () => Promise<void>) {
   }
 }
 
+/** Reads of `src/f<from>.rs` to before `src/f<to>.rs`, the last one still running. */
+function reads(from: number, to: number) {
+  return Array.from({ length: to - from }, (_, index) => {
+    const id = `f${String(from + index).padStart(2, "0")}`;
+    const start = { id, input: {}, kind: "read" as const, name: "Read", target: `src/${id}.rs` };
+    return from + index === to - 1
+      ? [{ ...start, type: "toolStart" as const }]
+      : [
+          { ...start, type: "toolStart" as const },
+          { id, isError: false, output: "", type: "toolEnd" as const },
+        ];
+  }).flat();
+}
+
+/** Whether `element` shows whole inside the box `box` scrolls. */
+function inView(element: Element, box: Element) {
+  const row = element.getBoundingClientRect();
+  const frame = box.getBoundingClientRect();
+  return row.top >= frame.top - 1 && row.bottom <= frame.bottom + 1;
+}
+
 describe("on a desktop", () => {
   atSize("desktop");
 
@@ -139,6 +160,34 @@ describe("on a desktop", () => {
     expect(within(column()).getByRole("img", { name: "Activity" })).toBeTruthy();
     await userEvent.keyboard("]");
     await expect.poll(() => width()).toBe(dragged);
+  });
+});
+
+describe("on a desktop, the Activity", () => {
+  atSize("desktop");
+
+  test("US1 key 3: the Activity opens at its latest call, marked live, and follows the calls that arrive", async () => {
+    await agent.addPlan(CLI);
+    await startTurn("Read the sources.", reads(0, 40), `/f/${CLI}/session`);
+    await screen.findAllByText("src/f39.rs", undefined, LIVE);
+    // Opened again, its calls already there.
+    await reload("CLI TUIs");
+    await screen.findByRole("complementary", { name: NAME }, LIVE);
+    const activity = within(column()).getByRole("region", { name: "Activity" });
+    await within(activity).findByText("src/f39.rs", undefined, LIVE);
+    await drawn();
+    // More rows than the Activity shows: its start is out of view, its latest call in it.
+    expect(activity.scrollHeight).toBeGreaterThan(activity.clientHeight);
+    await expect.poll(() => inView(within(activity).getByText("src/f39.rs"), activity)).toBe(true);
+    expect(inView(within(activity).getByText("src/f00.rs"), activity)).toBe(false);
+
+    await agent.agentEmit([
+      { id: "f39", isError: false, output: "", type: "toolEnd" },
+      ...reads(40, 50),
+    ]);
+    await within(activity).findByText("src/f49.rs", undefined, LIVE);
+    await drawn();
+    await expect.poll(() => inView(within(activity).getByText("src/f49.rs"), activity)).toBe(true);
   });
 });
 
