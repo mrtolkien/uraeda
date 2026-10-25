@@ -19,6 +19,7 @@ import {
   show,
   startTurn,
 } from "./helpers.tsx";
+import { COLUMN_KEY } from "../layout/documentColumnWidth.ts";
 
 const CLI = "2026-10-12-cli-tuis";
 
@@ -246,6 +247,16 @@ describe("on the phone", () => {
     await expect.poll(() => screen.queryByRole("dialog", { name: "Activity" }), LIVE).toBeNull();
     expect(window.location.search).toBe("");
     expect(screen.getByRole("log", { name: "Conversation" })).toBeTruthy();
+  });
+
+  test("a recap line's address leaves the desktop's folded column folded", async () => {
+    window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ folded: true }));
+    await agent.addPlan(CLI);
+    await show(`/f/${CLI}/session?tab=activity&stretch=1:0`, "CLI TUIs");
+    await screen.findByRole("dialog", { name: "Activity" }, LIVE);
+    await drawn();
+
+    expect(JSON.parse(window.localStorage.getItem(COLUMN_KEY)!)).toEqual({ folded: true });
   });
 
   test("Changes counts the session's files, and opens the same sheet", async () => {

@@ -168,16 +168,17 @@ function PhoneParts({ folder, panels, session }: Of & { panels: ReadonlyArray<Co
 }
 
 /**
- * Unfolds the column with `setShown` each time the address names a stretch: a recap line opens
- * the Activity at it, folded or not.
+ * Unfolds the column with `setShown` each time the address names a stretch while the column is
+ * drawn, `wide`: a recap line opens the Activity at it, folded or not. On the phone, the sheet
+ * opens instead, and the fold, the desktop's, stays as the human left it.
  */
-function useStretchUnfolds(setShown: (shown: boolean) => void) {
+function useStretchUnfolds(setShown: (shown: boolean) => void, wide: boolean) {
   const stretch = new URLSearchParams(useSearch()).get(STRETCH_PARAMETER);
   useEffect(() => {
-    if (stretch !== null) {
+    if (wide && stretch !== null) {
       setShown(true);
     }
-  }, [setShown, stretch]);
+  }, [setShown, stretch, wide]);
 }
 
 /**
@@ -188,7 +189,7 @@ function useStretchUnfolds(setShown: (shown: boolean) => void) {
 export function SessionColumn({ content, folder, session }: Of & { content: ReactNode }) {
   const column = useSessionColumnWidth();
   const wide = !isNarrow(useWidthClass());
-  useStretchUnfolds(column.setShown);
+  useStretchUnfolds(column.setShown, wide);
   const panels = sessionPanels({
     asked: useAskedTab(),
     folder,
