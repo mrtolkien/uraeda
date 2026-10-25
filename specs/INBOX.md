@@ -9,6 +9,8 @@
 
 - I want to try monaspace font family for the website, using the different styles
 - In 1440px wide, the right column in questions/clarification is a bit too big...
+- I thought the UI I validated for questions had the questions BELOW the text, not on the side like
+  before??? Did I approve the wrong layout?
 
 > Below points are likely obsolete
 
@@ -21,7 +23,6 @@
 - "drafting a priority" is ass btw. It should be "Turn a priority into a draft".
 - In clarifications of inbox triage, most notes were cut -> very hard to read
 - Need more space between the last card and "settle without you" in questions
-- [session-new] Questions page needs a bit more borders on desktop, the frames feel way too tight
 
 ## Prompts
 

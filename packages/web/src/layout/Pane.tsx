@@ -173,7 +173,7 @@ const styles = stylex.create({
     paddingBlockEnd: spacingVars["--spacing-1"],
     // The title, in the flow, takes the room above the content.
     paddingBlockStart: 0,
-    paddingInline: spacingVars["--spacing-1"],
+    paddingInline: spacingVars["--spacing-3"],
     position: "relative",
   },
   problem: { borderColor: colorVars["--color-border-red"] },
