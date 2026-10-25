@@ -90,34 +90,47 @@ export function rowCount(items: ReadonlyArray<TranscriptItem>): number {
   return items.filter((item) => isActivity(item) && item.parent === undefined).length;
 }
 
+/** The rows each run draws, `from` its first to before `to`, and whether rows are left out around. */
+export type Drawn = {
+  /** Whether rows of the runs are left out before those drawn. */
+  earlier: boolean;
+  from: Array<number>;
+  /** Whether rows of the runs are left out after those drawn. */
+  later: boolean;
+  to: Array<number>;
+};
+
 /**
- * Where each run's drawn rows start: the latest rows of the runs, as many as weigh `shown`, a row
- * weighing `weight`, and back to the first row of the stretch `stretch` when a run holds it.
- * `earlier`: whether rows of the runs are left out before those drawn.
+ * Which rows of the runs draw: from the row `split`, counted over the runs in order, as many as
+ * weigh `after` forward, and as many as weigh `before` back, a row weighing `weight`. The first row
+ * of the stretch `stretch` draws whatever its rows before weigh, so a stretch the window starts at
+ * is never left out.
  */
-export function drawnFrom(
+export function drawnRows(
   runs: ReadonlyArray<Run>,
-  shown: number,
+  { after, before, split }: { after: number; before: number; split: number },
   weight: (run: Run, row: ActivityItem) => number,
   stretch: string | undefined,
-): { earlier: boolean; from: Array<number> } {
+): Drawn {
+  const flat = runs.flatMap((run, at) => run.rows.map((row, place) => ({ at, place, row, run })));
+  let first = split;
+  for (let total = 0; first > 0 && total < before;) {
+    first -= 1;
+    total += weight(flat[first]!.run, flat[first]!.row);
+  }
+  let last = split;
+  for (let total = 0; last < flat.length && total < after; last++) {
+    total += weight(flat[last]!.run, flat[last]!.row);
+  }
+  const marked = flat.findIndex(({ row, run }) => run.stretches.get(row.seq) === stretch);
+  if (stretch !== undefined && marked >= last) {
+    last = marked + 1;
+  }
   const from = runs.map((run) => run.rows.length);
-  let total = 0;
-  for (let index = runs.length - 1; index >= 0 && total < shown; index--) {
-    const run = runs[index]!;
-    while (from[index]! > 0 && total < shown) {
-      from[index]! -= 1;
-      total += weight(run, run.rows[from[index]!]!);
-    }
+  const to = runs.map(() => 0);
+  for (const { at, place } of flat.slice(first, last)) {
+    from[at] = Math.min(from[at]!, place);
+    to[at] = place + 1;
   }
-  const marked = runs.findIndex((run) =>
-    run.rows.some((row) => run.stretches.get(row.seq) === stretch),
-  );
-  if (stretch !== undefined && marked >= 0) {
-    const run = runs[marked]!;
-    const first = run.rows.findIndex((row) => run.stretches.get(row.seq) === stretch);
-    from[marked] = Math.min(from[marked]!, first);
-    from.fill(0, marked + 1);
-  }
-  return { earlier: from.some((start) => start > 0), from };
+  return { earlier: first > 0, from, later: last < flat.length, to };
 }

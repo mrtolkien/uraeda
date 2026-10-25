@@ -1,9 +1,10 @@
 // The session's Activity: its runs, each titled by its place and length, with its calls and
 // thoughts, sub-agents as folded groups (US1). It mounts the latest 200 rows, counting rows and not
 // messages, and "Show earlier runs" adds 200 more (SC-002): a walk back over the turns' pages, from
-// the latest, reads as many as the bound needs, and back to the stretch the address names, whose
-// rows it marks and whose run it scrolls to. The tail's walk counts messages and keeps its start,
-// so the Activity has its own (the plan's complexity tracking).
+// the latest, reads as many as the bound needs. At a stretch the address names, it mounts 200 rows
+// from the stretch's page on instead, with "Show later runs" below them, and marks the stretch's
+// rows (ruling R27). The tail's walk counts messages and keeps its start, so the Activity has its
+// own (the plan's complexity tracking).
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -27,8 +28,8 @@ import { useSession, useTurn } from "../sessionData.ts";
 import { sentAt } from "../TranscriptMessages.tsx";
 import { elapsed } from "../TurnLines.tsx";
 import { type OpenKeys, useOpenKeys } from "../useOpenKeys.ts";
-import { type ActivityWalk, Walk } from "./ActivityWalk.tsx";
-import { drawnFrom, type ReadPage, type Run, runsOf } from "./activityRuns.ts";
+import { walkOf, type WalkRead, type Window } from "./ActivityWalk.tsx";
+import { drawnRows, rowCount, type Run, runsOf } from "./activityRuns.ts";
 import { RowList, rowWeight } from "./ActivityRows.tsx";
 import { Section } from "./Section.tsx";
 import { STRETCH_PARAMETER } from "./stretches.ts";
@@ -55,11 +56,11 @@ export function NoCall() {
   return <Text color="secondary">No call yet.</Text>;
 }
 
+/** The stretch the address names: its key, its turn's place, and its first item's page. */
+type Target = { index: number; key: string; page: number };
+
 /** The stretch `?stretch=<turn>:<seq>` names among the session's `turns`, if one of theirs. */
-function targetOf(
-  stretch: string | null,
-  turns: ReadonlyArray<string>,
-): ActivityWalk["target"] | undefined {
+function targetOf(stretch: string | null, turns: ReadonlyArray<string>): Target | undefined {
   const match = stretch === null ? null : /^(\d+):(\d+)$/.exec(stretch);
   const index = match ? turns.indexOf(match[1]!) : -1;
   return match && index >= 0
@@ -68,15 +69,18 @@ function targetOf(
 }
 
 /**
- * What a walk read: its pages, whether its budget stopped it, and the rows it was walked for, which
- * tells a press of "Show earlier runs" its rows are in.
+ * What the walks read, the window they read, and the rows above its start they were walked for,
+ * which tells a press of "Show earlier runs" its rows are in.
  */
-type Read = { capped: boolean; pages: ReadonlyArray<ReadPage>; walked: number };
+type Read = WalkRead & { walked: number; window: Window };
 
 /** Whether two walks read the same pages, as the same records, and ended the same. */
 const same = (a: Read | undefined, b: Read) =>
-  a?.capped === b.capped &&
+  a?.cappedAfter === b.cappedAfter &&
+  a.cappedBefore === b.cappedBefore &&
+  a.split === b.split &&
   a.walked === b.walked &&
+  a.window === b.window &&
   a.pages.length === b.pages.length &&
   a.pages.every(
     (read, at) =>
@@ -107,6 +111,7 @@ function RunPart({
   number,
   onTarget,
   run,
+  to,
 }: {
   from: number;
   keys: OpenKeys;
@@ -114,10 +119,11 @@ function RunPart({
   number: number;
   onTarget: (title: HTMLElement) => void;
   run: Run;
+  to: number;
 }) {
   const turn = useTurn(run.turn);
   const title = useRef<HTMLDivElement>(null);
-  const rows = run.rows.slice(from);
+  const rows = run.rows.slice(from, to);
   const holds = marked !== undefined && rows.some((row) => run.stretches.get(row.seq) === marked);
   useLayoutEffect(() => {
     if (holds && title.current) {
@@ -164,41 +170,53 @@ function scrollToTop(element: HTMLElement) {
   }
 }
 
-/** The weight of the rows drawn from `from` on, of each run. */
-function weightFrom(runs: ReadonlyArray<Run>, from: ReadonlyArray<number>, keys: OpenKeys) {
+/** The weight of the rows drawn, of each run from `from` to before `to`. */
+function weightOf(
+  runs: ReadonlyArray<Run>,
+  { from, to }: { from: Array<number>; to: Array<number> },
+  keys: OpenKeys,
+) {
   return runs.reduce(
     (total, run, at) =>
-      run.rows.slice(from[at]).reduce((sum, row) => sum + rowWeight(run, row, keys), total),
+      run.rows.slice(from[at], to[at]).reduce((sum, row) => sum + rowWeight(run, row, keys), total),
     0,
   );
 }
 
+/** A ghost button of the Activity's: "Show earlier runs" or "Show later runs". */
+function More({ label, onPress }: { label: string; onPress: () => void }) {
+  return <Button clickAction={onPress} label={label} size="sm" variant="ghost" />;
+}
+
 /**
- * The runs of the pages `read`, their latest `shown` rows, and back to the stretch `target`; with
- * "Show earlier runs" above them while rows are left out before, or the walk's budget stopped it.
+ * The runs of the pages `read`, the rows of its window, with "Show earlier runs" above them while
+ * rows are left out before, or the walk's budget stopped it, and "Show later runs" below them alike.
  * `onDrawn` hears the rows the walk drawn was walked for, at each commit.
  */
 function Runs({
   onDrawn,
+  onLater,
   onMore,
   read,
-  shown,
   target,
   turns,
 }: {
   onDrawn: (walked: number) => void;
-  onMore: (drawn: number, anchor: Element | null) => void;
+  onLater: () => void;
+  onMore: (anchor: Element | null) => void;
   read: Read;
-  shown: number;
-  target: ActivityWalk["target"] | undefined;
+  target: Target | undefined;
   turns: ReadonlyArray<string>;
 }) {
   const keys = useOpenKeys();
   const box = useRef<HTMLDivElement>(null);
   const runs = useMemo(() => runsOf(read.pages), [read.pages]);
-  const { earlier, from } = drawnFrom(
+  const split = read.pages
+    .slice(0, read.split)
+    .reduce((sum, page) => sum + rowCount(page.items), 0);
+  const rows = drawnRows(
     runs,
-    shown,
+    { after: read.window.after, before: read.window.before, split },
     (run, row) => rowWeight(run, row, keys),
     target?.key,
   );
@@ -213,40 +231,41 @@ function Runs({
     },
     [target],
   );
-  // The walk reads a row past those drawn: one left out tells that earlier rows exist.
-  const before = earlier || read.capped;
-  const drawn = weightFrom(runs, from, keys);
+  // The walks read a row past those drawn: one left out tells that rows exist there.
+  const before = rows.earlier || read.cappedBefore;
+  const after = rows.later || read.cappedAfter;
+  const drawn = weightOf(runs, rows, keys);
   useLayoutEffect(() => onDrawn(read.walked));
-  if (drawn === 0 && !before) {
+  if (drawn === 0 && !before && !after) {
     return <NoCall />;
   }
   return (
     <VStack gap={3}>
       {before && (
-        <Button
+        <More
           // The place kept is the first row drawn: the rows added may join its run, above it,
           // and leave the run's block where it was.
-          clickAction={() => onMore(drawn, box.current?.querySelector("li") ?? null)}
           label="Show earlier runs"
-          size="sm"
-          variant="ghost"
+          onPress={() => onMore(box.current?.querySelector("li") ?? null)}
         />
       )}
       <VStack gap={3} ref={box}>
         {runs.map((run, at) =>
-          run.rows.length > from[at]! ? (
+          rows.to[at]! > rows.from[at]! ? (
             <RunPart
-              from={from[at]!}
+              from={rows.from[at]!}
               key={run.turn}
               keys={keys}
               marked={target?.key}
               number={turns.indexOf(run.turn) + 1}
               onTarget={onTarget}
               run={run}
+              to={rows.to[at]!}
             />
           ) : null,
         )}
       </VStack>
+      {after && <More label="Show later runs" onPress={onLater} />}
     </VStack>
   );
 }
@@ -255,14 +274,15 @@ function Runs({
 type Press = { done: () => void; next: number };
 
 /**
- * "Show earlier runs": the count of rows drawn, kept in the history entry so Back and a reload
- * draw as many, and the press that raises it by 200, keeping the reader's place once its rows draw.
+ * "Show earlier runs": the count of rows drawn up to the window's start, the latest or a stretch's,
+ * kept in the history entry so Back and a reload draw as many, and the press that raises it by 200,
+ * keeping the reader's place once its rows draw. `reset` draws 200 again, for another window.
  */
 function useShown() {
   const [shown, setShown] = useState(() => currentEntry().activity ?? ACTIVITY_ROWS);
   const presses = useRef<Array<Press>>([]);
-  const more = (drawn: number, anchor: Element | null) => {
-    const next = Math.max(shown, drawn) + ACTIVITY_ROWS;
+  const more = (anchor: Element | null) => {
+    const next = shown + ACTIVITY_ROWS;
     void keepPlace(
       anchor ? topOf(anchor) : () => Number.NaN,
       () =>
@@ -283,39 +303,54 @@ function useShown() {
     presses.current = presses.current.filter((press) => !done(press));
     waiting.forEach((press) => press.done());
   };
-  return { more, onDrawn, shown };
+  const reset = () => {
+    setShown(ACTIVITY_ROWS);
+    updateEntry({ activity: ACTIVITY_ROWS });
+  };
+  return { more, onDrawn, reset, shown };
+}
+
+/**
+ * The window the Activity draws: the latest `shown` rows; or, at the stretch `target`, 200 rows from
+ * its page on, `later` times 200 more, and `shown` less 200 before (ruling R27).
+ */
+function windowOf(target: Target | undefined, shown: number, later: number): Window {
+  return target === undefined
+    ? { after: 0, before: shown, start: undefined }
+    : {
+        after: ACTIVITY_ROWS * (1 + later),
+        before: shown - ACTIVITY_ROWS,
+        start: { index: target.index, page: target.page },
+      };
 }
 
 /** The Activity of the session `session`, once its record is in. */
 function Activity({ session }: { session: string }) {
   const turns = useSession(session)?.turns ?? [];
   const stretch = new URLSearchParams(useSearch()).get(STRETCH_PARAMETER);
-  const { more, onDrawn, shown } = useShown();
+  const { more, onDrawn, reset, shown } = useShown();
   const [read, setRead] = useState<Read>();
+  const [later, setLater] = useState(0);
   const key = turns.join(" ");
   const target = useMemo(() => targetOf(stretch, key.split(" ")), [key, stretch]);
+  // Another stretch, or none, draws its own window from 200 rows: the presses were the last one's.
+  const [windowFor, setWindowFor] = useState(target?.key);
+  if (windowFor !== target?.key) {
+    setWindowFor(target?.key);
+    setLater(0);
+    reset();
+  }
   // The walk draws again only when what it walks changes, not as the panel draws what it read.
   const walk = useMemo(() => {
     const list = key === "" ? [] : key.split(" ");
-    const onRead = (pages: ReadonlyArray<ReadPage>, capped: boolean) => {
-      const next = { capped, pages, walked: shown };
+    const bounds = windowOf(target, shown, later);
+    const onRead = (walkRead: WalkRead) => {
+      const next = { ...walkRead, walked: shown, window: bounds };
       setRead((old) => (same(old, next) ? old : next));
     };
-    // A row past those drawn tells whether earlier ones exist.
-    return list.length === 0 ? null : (
-      <Walk
-        acc={[]}
-        budget={WALK_PAGES * Math.ceil(shown / ACTIVITY_ROWS)}
-        index={list.length - 1}
-        need={shown + 1}
-        onRead={onRead}
-        page="last"
-        root
-        target={target}
-        turns={list}
-      />
-    );
-  }, [key, shown, target]);
+    const budget = (rows: number) => WALK_PAGES * Math.max(1, Math.ceil(rows / ACTIVITY_ROWS));
+    return list.length === 0 ? null : walkOf(bounds, list, budget, onRead);
+  }, [key, later, shown, target]);
   if (walk === null) {
     return <NoCall />;
   }
@@ -325,9 +360,9 @@ function Activity({ session }: { session: string }) {
       {read && (
         <Runs
           onDrawn={onDrawn}
+          onLater={() => startTransition(() => setLater((count) => count + 1))}
           onMore={more}
           read={read}
-          shown={shown}
           target={target}
           turns={turns}
         />

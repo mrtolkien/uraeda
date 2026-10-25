@@ -410,6 +410,35 @@ test("review focus 2: a stretch older than the 200 rows draws back to its run", 
   expect(activity().getByRole("heading", { name: "Run 2 · 0 s" })).toBeTruthy();
 });
 
+test("SC-002, review focus 2: a stretch in run 1 of 5,000 calls mounts at most 200 rows, from its run", async () => {
+  const chat = await newChat();
+  const turns = [1, 2, 3, 4, 5].map((run) =>
+    addRun(chat.fake, chat.chat, [asked(`Run ${run}`), ...reads(run, 1000), said(`Done ${run}`)]),
+  );
+
+  await openActivity(chat, `?tab=activity&stretch=${turns[0]}%3A1`);
+
+  await waitFor(() =>
+    expect(activity().queryAllByRole("listitem", { current: true })).not.toEqual([]),
+  );
+  expect(rows().length).toBeLessThanOrEqual(ACTIVITY_ROWS);
+  expect(rows()[0]!.textContent).toContain("src/run-1/file-0.ts");
+  expect(activity().getByRole("heading", { name: /^Run 1 · / })).toBeTruthy();
+  expect(activity().queryByRole("button", { name: "Show earlier runs" })).toBeNull();
+
+  // Show later runs adds the next 200 rows below.
+  await click(activity().getByRole("button", { name: "Show later runs" }));
+  await waitFor(() => expect(activity().getByText("src/run-1/file-399.ts")).toBeTruthy());
+  expect(rows().length).toBeLessThanOrEqual(2 * ACTIVITY_ROWS);
+  expect(rows()[0]!.textContent).toContain("src/run-1/file-0.ts");
+
+  // Leaving the stretch's address draws the latest rows again.
+  act(() => redirect(`${window.location.pathname}?tab=activity`));
+  await waitFor(() => expect(rows().at(-1)!.textContent).toContain("src/run-5/file-999.ts"));
+  expect(rows()).toHaveLength(ACTIVITY_ROWS);
+  expect(activity().queryByRole("button", { name: "Show later runs" })).toBeNull();
+});
+
 test("review focus 2: a stretch over two pages marks its rows on both", async () => {
   const chat = await newChat();
   // The message and 99 reads fill the first page; the stretch goes on with 51 on the second.

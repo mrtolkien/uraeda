@@ -1153,7 +1153,9 @@ The break each test catches:
   them, "Show earlier runs" at the top adds 200, the first row drawn kept in place. The walk reads
   at most `WALK_PAGES`, 4, pages for each 200 rows, and offers "Show earlier runs" when that stops
   it (ruling R26). A folded sub-agent group counts as one row. While the address names a stretch,
-  the walk goes back at least to its turn.
+  the Activity draws a window of 200 rows from the start of the stretch's page instead, read by a
+  walk forward, with "Show earlier runs" above it and "Show later runs" below it, which adds the
+  next 200; another stretch, or none, draws its own window from 200 rows (ruling R27).
 - A run: a level-3 heading "Run N · <length>", N its place among the session's turns, its length
   `elapsed(endedAt - startedAt)` (ruling R4), "live" while it runs, "failed" in the error colour,
   "stopped" for a stopped one; its start time, `sentAt`, at its end. Then a list of its rows.

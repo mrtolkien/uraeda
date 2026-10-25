@@ -314,3 +314,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `WALK_PAGES` in `session/ActivityPanel.tsx`, and `capped` in
   `session/ActivityWalk.tsx`.
 - **Where**: task 8, `packages/web/src/session/ActivityWalk.tsx`.
+
+## R27: A stretch's Activity is a window of 200 rows from the stretch's page
+
+- **Decision**: at a stretch the address names, the Activity draws 200 rows forward from the first
+  row of the page of 100 items the stretch begins on, its run's title above them, read by a walk
+  forward from that page. "Show earlier runs" above adds 200 rows before that page, through a walk
+  back from the page before it; "Show later runs" below adds the next 200, toward the latest. Both
+  show only while rows are left out on their side, or a walk's page budget (ruling R26) stopped it.
+  The rows added above are kept in the history entry, as the latest window's; the later presses are
+  the panel's, so a reload draws the stretch's first 200 again. Another stretch, or none, draws its
+  own window from 200 rows: leaving the stretch's address returns to the latest 200.
+- **Rationale**: the walk back from the latest drew every run from the stretch's to the latest in
+  full, about 5,000 rows for a stretch in run 1 of a 5,000-call session, against SC-002 and the UI
+  behaviour decision's bounded rows. The page is what the address gives (the stretch's key is its
+  first item's `seq`) and what the walks read; a stretch begins at most 99 rows into it, so its
+  first rows are always in the window. "Show later runs" adds rather than slides, as "Show earlier
+  runs" does, so a press never takes away the rows being read; each press mounts 200 more, the bound
+  the spec gives for "Show earlier runs".
+- **Alternatives considered**: a window starting at the stretch's own first row, which needs the
+  stretch's items before the walk can count, for at most 99 rows saved; a window sliding toward the
+  latest, which drops the rows above the reader's place; drawing back to the stretch's run from the
+  latest, the old way.
+- **If wrong**: `windowOf` in `session/ActivityPanel.tsx`, `walkOf` in `session/ActivityWalk.tsx`,
+  and `drawnRows` in `session/activityRuns.ts`.
+- **Where**: task 8, `packages/web/src/session/ActivityPanel.tsx`.
