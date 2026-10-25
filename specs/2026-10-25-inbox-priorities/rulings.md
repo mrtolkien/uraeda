@@ -116,3 +116,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   guarding the position.
 - **If wrong**: Revert the fixture and these expectations together.
 - **Where**: task 2.
+
+## R10: The semi-wide test of a kept place uses a shorter window
+
+- **Decision**: The layout test of a task open beside the priorities, across 1280 px, sets its
+  window to 300 px tall, not 500.
+- **Rationale**: The priorities are now a row of columns, so the page is shorter, and at 500 px it
+  scrolled by only 33 px at 1205 and 4 px at 1440. The test guards that the scroll place and the
+  pane survive the width change, which needs a page that scrolls at both widths.
+- **Alternatives considered**: Adding lines to the fixture: it would change every other test's data.
+- **If wrong**: Restore 500 px and give the fixture's priorities more lines.
+- **Where**: task 5, `layout.test.tsx`.
+
+## R11: The columns live in `WorkList`, and a pane takes a title tint
+
+- **Decision**: No `Columns.tsx`: `WorkList` draws each section as a titled pane and arranges them
+  with `layout`. `Pane` gains a `tint` (blue, gray, green) that colours the title alone, and a space
+  before its count, so its text reads "Now · 4". A selected card takes the accent's muted tint as
+  its background.
+- **Rationale**: The row is one flex container around the same pane component the sections already
+  use, so a second file would hold a wrapper only. The mockup colours Ongoing's and Now's titles,
+  not their borders, which no `PaneTone` does. The card's own background equals the pane's, so the
+  selected card showed only by its border, which the existing test of a selected row's background
+  caught.
+- **Alternatives considered**: New `PaneTone` values: they would colour the border too.
+- **If wrong**: Drop `tint`, and the sections' titles are all lavender.
+- **Where**: task 5.

@@ -1,29 +1,30 @@
-// The list the priorities and the inbox share: sections under a coloured heading with their count,
-// on wide screens a thin edge of the same colour, and a card for each line (see `Card`). A card
-// drags from anywhere: past 5 px of a mouse press, or after half a second of a touch press. The
-// keys move the selection, with the pane beside the list following (see `useListKeys`).
-import { Divider } from "@astryxdesign/core/Divider";
-import { Heading } from "@astryxdesign/core/Heading";
+// The list the priorities and the inbox share: sections as titled panes with their count in the
+// border, their context under the title, and a card for each line (see `Card`). `columns` sets the
+// panes in one row that scrolls sideways, each at least 400 px wide, and a pane titled "Blocked"
+// under it; the phone, and `stack`, set them one under the other. A card drags from anywhere: past
+// 5 px of a mouse press, or after half a second of a touch press. The keys move the selection,
+// with the pane beside the list following (see `useListKeys`).
+import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import * as stylex from "@stylexjs/stylex";
-import { Fragment, type ReactNode, type Ref, use, useEffect } from "react";
+import { type ReactNode, type Ref, use, useEffect } from "react";
+import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, type WorkRow } from "./Card.tsx";
 import { ListPaneContext } from "./listPane.ts";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
 import { useListKeys } from "./useListKeys.ts";
 
-/**
- * A section's colour: the ongoing entries green, Now blue, Next and the inbox's categories
- * neutral, Later grey, Blocked orange.
- */
-export type Tone = "green" | "blue" | "neutral" | "gray" | "orange";
+/** A section's colour: the ongoing entries green, Now blue, Later grey, the rest neutral. */
+export type Tone = "green" | "blue" | "neutral" | "gray";
 
 export type { WorkRow };
 
 /** A section of the list: a heading of the file, the ongoing entries, or a category of the inbox. */
 export interface WorkSection {
+  /** Its context, a line under its title. */
+  context?: string;
   /** What ends it, like its Add row. */
   footer?: ReactNode;
   id: string;
@@ -33,6 +34,12 @@ export interface WorkSection {
   title: string;
   tone: Tone;
 }
+
+/** How the sections are arranged: panes in a row that scrolls, or one under the other. */
+export type WorkLayout = "columns" | "stack";
+
+/** The title of the section that is drawn under the row of columns. */
+const BELOW = "Blocked";
 
 const styles = stylex.create({
   // The cards, a gap apart so each one's marks have room over its border.
@@ -45,94 +52,91 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: 0,
   },
-  count: {
-    color: colorVars["--color-text-secondary"],
-    fontWeight: "normal",
+  // A column of the row: at least 400 px, growing to share the row's width.
+  column: {
+    "--column-least": "400px",
+    flexBasis: "var(--column-least)",
+    flexGrow: 1,
+    flexShrink: 0,
+    minWidth: 0,
   },
-  edge: {
-    borderInlineStartStyle: "solid",
-    borderInlineStartWidth: spacingVars["--spacing-1"],
-    paddingInlineStart: spacingVars["--spacing-3"],
+  context: {
+    color: colorVars["--color-text-secondary"],
+    paddingBlockEnd: spacingVars["--spacing-1"],
   },
   footer: {
     paddingBlock: spacingVars["--spacing-1"],
     paddingInlineStart: spacingVars["--spacing-2"],
   },
-  section: {
-    paddingBlock: spacingVars["--spacing-1"],
+  // The panes of the row, side by side, whose row scrolls sideways.
+  row: {
+    alignItems: "flex-start",
+    display: "flex",
+    gap: spacingVars["--spacing-3"],
+    overflowX: "auto",
+    paddingBlockEnd: spacingVars["--spacing-2"],
+  },
+  // The panes one under the other.
+  stack: {
+    display: "flex",
+    flexDirection: "column",
+    gap: spacingVars["--spacing-1"],
   },
 });
 
-/** Each tone's heading and edge, from Astryx's colour tokens. */
-const tones = stylex.create({
-  blue: {
-    borderInlineStartColor: colorVars["--color-border-blue"],
-    color: colorVars["--color-text-blue"],
-  },
-  gray: {
-    borderInlineStartColor: colorVars["--color-border-gray"],
-    color: colorVars["--color-text-secondary"],
-  },
-  green: {
-    borderInlineStartColor: colorVars["--color-border-green"],
-    color: colorVars["--color-text-green"],
-  },
-  neutral: {
-    borderInlineStartColor: colorVars["--color-border-emphasized"],
-    color: colorVars["--color-text-primary"],
-  },
-  orange: {
-    borderInlineStartColor: colorVars["--color-border-orange"],
-    color: colorVars["--color-text-orange"],
-  },
-});
+/** Each tone's title colour. */
+const TINTS: Record<Tone, PaneTint | undefined> = {
+  blue: "blue",
+  gray: "gray",
+  green: "green",
+  neutral: undefined,
+};
 
-/** A section's heading, rows, and footer, in its colour. */
+/** A section as a pane: its title and count, its context, its cards, and its footer. */
 function SectionBody({
+  isColumn,
   ref,
   rows,
   section,
   selected,
 }: {
-  ref?: Ref<HTMLElement>;
+  isColumn: boolean;
+  ref?: Ref<HTMLDivElement>;
   rows: ReadonlyArray<WorkRow>;
   section: WorkSection;
   selected?: string;
 }) {
-  // On a phone, the heading alone carries the colour: a side edge makes wrapped lines hard to read.
-  const hasEdge = !isNarrow(useWidthClass());
   return (
-    <section
-      ref={ref}
-      {...stylex.props(styles.section, hasEdge && [styles.edge, tones[section.tone]])}
-      aria-label={section.title}
-    >
-      <Heading level={2}>
-        <span {...stylex.props(tones[section.tone])}>
-          {section.title} <span {...stylex.props(styles.count)}>· {rows.length}</span>
-        </span>
-      </Heading>
-      {rows.length > 0 && (
-        // The cards' list: Astryx's `List` draws only its own rows, not a card.
-        <ul aria-label={`${section.title} lines`} {...stylex.props(styles.cards)}>
-          {rows.map((row, index) => (
-            <Card
-              index={index}
-              isSelected={row.key === selected}
-              key={row.key}
-              row={section.isFixed ? { ...row, isFixed: true } : row}
-              section={section.id}
-            />
-          ))}
-        </ul>
-      )}
-      {section.footer && <div {...stylex.props(styles.footer)}>{section.footer}</div>}
-    </section>
+    <div ref={ref} {...stylex.props(isColumn && styles.column)}>
+      <Pane count={rows.length} tint={TINTS[section.tone]} title={section.title}>
+        {section.context && (
+          <Text color="secondary" display="block" xstyle={styles.context}>
+            {section.context}
+          </Text>
+        )}
+        {rows.length > 0 && (
+          // The cards' list: Astryx's `List` draws only its own rows, not a card.
+          <ul aria-label={`${section.title} lines`} {...stylex.props(styles.cards)}>
+            {rows.map((row, index) => (
+              <Card
+                index={index}
+                isSelected={row.key === selected}
+                key={row.key}
+                row={section.isFixed ? { ...row, isFixed: true } : row}
+                section={section.id}
+              />
+            ))}
+          </ul>
+        )}
+        {section.footer && <div {...stylex.props(styles.footer)}>{section.footer}</div>}
+      </Pane>
+    </div>
   );
 }
 
 /** A section rows are dropped in, even when it is empty. */
 function DropSection(props: {
+  isColumn: boolean;
   rows: ReadonlyArray<WorkRow>;
   section: WorkSection;
   selected?: string;
@@ -148,18 +152,20 @@ function DropSection(props: {
 }
 
 /**
- * The sections, one under the other, a separator between two. `selected` is the key of the row
+ * The sections as panes, in the `layout`'s arrangement. `selected` is the key of the row
  * open beside the list; with `isFocused`, the keyboard's focus is put on it, with its ring. A drop
  * calls `onMove` with the row's key, its section, and its index among that section's rows on
  * screen; until it resolves, the list stays as the drag left it.
  */
 export function WorkList({
   isFocused = false,
+  layout = "stack",
   onMove,
   sections,
   selected,
 }: {
   isFocused?: boolean;
+  layout?: WorkLayout;
   onMove?: OnMove;
   sections: ReadonlyArray<WorkSection>;
   selected?: string;
@@ -193,19 +199,36 @@ export function WorkList({
     }
   }, [isFocused, selected, focusSelected]);
   useEffect(() => pane?.setFocusRow(focusSelected), [pane, focusSelected]);
+  const isNarrowScreen = isNarrow(useWidthClass());
+  const asColumns = layout === "columns" && !isNarrowScreen;
+  const below = asColumns ? drag.sections.filter((section) => section.title === BELOW) : [];
+  const drawn = (section: WorkSection, isColumn: boolean) => {
+    const Body = section.isFixed ? SectionBody : DropSection;
+    return (
+      <Body
+        isColumn={isColumn}
+        key={section.id}
+        rows={rowsOf(section)}
+        section={section}
+        selected={selected}
+      />
+    );
+  };
   return (
     <div ref={ref}>
       <DragDropProvider {...drag.provider}>
-        {drag.sections.map((section, index) => (
-          <Fragment key={section.id}>
-            {index > 0 && <Divider />}
-            {section.isFixed ? (
-              <SectionBody rows={rowsOf(section)} section={section} selected={selected} />
-            ) : (
-              <DropSection rows={rowsOf(section)} section={section} selected={selected} />
-            )}
-          </Fragment>
-        ))}
+        {/* The row scrolls sideways: a region the keyboard can scroll, which its panes' links reach. */}
+        <div
+          aria-label={asColumns ? "Columns" : undefined}
+          role={asColumns ? "region" : undefined}
+          tabIndex={asColumns ? 0 : undefined}
+          {...stylex.props(asColumns ? styles.row : styles.stack)}
+        >
+          {drag.sections
+            .filter((section) => !below.includes(section))
+            .map((section) => drawn(section, asColumns))}
+        </div>
+        {below.map((section) => drawn(section, false))}
       </DragDropProvider>
     </div>
   );

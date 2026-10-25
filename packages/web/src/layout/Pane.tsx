@@ -37,6 +37,9 @@ const InPane = createContext(false);
  */
 export type PaneTone = "attention" | "changed" | "example" | "live" | "new" | "problem" | "removed";
 
+/** A colour for a pane's title alone, as a list's section tells its kind; its border stays. */
+export type PaneTint = "blue" | "gray" | "green";
+
 /**
  * A pane that folds to its title: whether it is open, and what opens or closes it. `folded`, when
  * given, is a line in the folded pane's body that opens it too, such as "3 choices in the code only".
@@ -67,6 +70,9 @@ const styles = stylex.create({
   attentionTitle: { color: colorVars["--color-text-orange"] },
   changed: { borderColor: colorVars["--color-border-purple"] },
   changedTitle: { color: colorVars["--color-text-purple"] },
+  tintBlue: { color: colorVars["--color-text-blue"] },
+  tintGray: { color: colorVars["--color-text-secondary"] },
+  tintGreen: { color: colorVars["--color-text-green"] },
   // The count stays on the title's first line, whole.
   count: {
     flexShrink: 0,
@@ -243,6 +249,9 @@ const TONES = {
   removed: [styles.problem, styles.problemTitle],
 } as const;
 
+/** Each tint's title style. */
+const TINTS = { blue: styles.tintBlue, gray: styles.tintGray, green: styles.tintGreen } as const;
+
 /**
  * The border's and the title's styles, by the pane's state: active, then its tone. An active live
  * window keeps its double border, in the accent.
@@ -351,6 +360,8 @@ function PaneName({
           </span>
         )}
         <span id={titleId}>{title}</span>
+        {/* The space is for the text's reading: flex items show no space between them. */}
+        {count !== undefined && " "}
         {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
         {renamed && <SinceSign />}
       </span>
@@ -371,7 +382,8 @@ function PaneName({
  * before them, or under them where they leave it too little room; `titleSuffix` follows
  * the title in secondary text, as a live window's size and scale do, outside the pane's name.
  * With `id`, its heading is `<id>-title`, focusable by script, which a jump to the pane focuses.
- * `isTinted` sets its background in the accent's muted tint, as a picked card's.
+ * `isTinted` sets its background in the accent's muted tint, as a picked card's. `tint` colours the
+ * title alone, under the accent and the tone's.
  */
 export function Pane({
   actions,
@@ -385,6 +397,7 @@ export function Pane({
   isOpenOnPhone = false,
   isTinted = false,
   level = 2,
+  tint,
   title,
   titleSuffix,
   tone,
@@ -400,6 +413,7 @@ export function Pane({
   isOpenOnPhone?: boolean;
   isTinted?: boolean;
   level?: HeadingLevel;
+  tint?: PaneTint;
   title: string;
   titleSuffix?: ReactNode;
   tone?: PaneTone;
@@ -443,7 +457,7 @@ export function Pane({
         id={id === undefined ? undefined : `${id}-title`}
         level={level}
         tabIndex={id === undefined ? undefined : -1}
-        xstyle={[styles.title, isOpen && styles.openOnPhoneTitle, ink, beside]}
+        xstyle={[styles.title, isOpen && styles.openOnPhoneTitle, tint && TINTS[tint], ink, beside]}
       >
         {fold ? (
           <Button

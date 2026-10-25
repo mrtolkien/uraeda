@@ -37,6 +37,24 @@ type Story = StoryObj<typeof meta>;
 /** "Ongoing", the running entries, then Now, Next, Later, and Blocked, each in its colour. */
 export const Priorities: Story = {};
 
+/**
+ * The priorities as columns: Ongoing, Now, Next, and Later, each a titled pane at least 400 px
+ * wide with its context under the title, in one row that scrolls sideways.
+ */
+export const Columns: Story = {};
+
+/** The same at 390 px: the panes stacked in the order Ongoing, Now, Next, Later. */
+export const Phone: Story = {
+  globals: { viewport: { isRotated: false, value: "phone" } },
+  parameters: {
+    viewport: {
+      options: {
+        phone: { name: "Phone", styles: { height: "844px", width: "390px" }, type: "mobile" },
+      },
+    },
+  },
+};
+
 /** The first row of Next selected, with the keyboard's focus on it. */
 export const Selected: Story = {
   args: { isFocused: true, select: "claude-code-runner-triggered-manually" },
