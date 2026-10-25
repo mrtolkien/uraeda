@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Inbox and priorities in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 11 questions, about 25 minutes.
+> Answered on 2026-10-25.
 >
 > - Verdict: worth building, with changes: the pages and keys are worth it. The detail pane cannot
 >   stay beside four columns, and the work is likely too large for one spec.
@@ -104,7 +104,7 @@ The questions about the keys below are asked now either way, so you answer only 
   - [pro] the keys arrive with the pages, as the proposal reads.
   - [con] a spec past the split rule, and a later review of a larger pull request.
 
-**Answer:**
+**Answer:** A and B
 
 ## Q2: How should the inbox look, next to the columns of the priorities?
 
@@ -140,7 +140,7 @@ option shows them differently.
   - [pro] short pages, and `h l` moves between categories.
   - [con] one category at a time hides the rest, and the phone needs two pages.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Where does the detail open, now that the priorities have four columns?
 
@@ -165,7 +165,12 @@ Why it matters: it decides how wide the columns stay and what Enter does, for bo
   - [pro] full width always.
   - [con] images, Start, and the draft editor have no place, so this costs features.
 
-**Answer:**
+**Answer:** A: Could we use a modal/overlay to see a single line?
+
+That's how I show a lot of content in nvim, might be easier. I want a few mockups.
+
+Also the 4 content columns could be scrollable: it's ok if "Later" is not fully visible when we open
+the page for example.
 
 ## Q4: How is a column's context written in `PRIORITIES.md`?
 
@@ -191,7 +196,7 @@ say it, so it lasts beyond this feature.
   - [pro] easy to parse.
   - [con] a new structure, harder to read and edit in the file.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Where does Blocked go?
 
@@ -213,7 +218,8 @@ Why it matters: it decides whether a blocked priority stays visible.
   - [pro] the simplest.
   - [con] blocked work disappears from the page that exists to order it.
 
-**Answer:**
+**Answer:** Let's dropped the "Blocked" category actually: a blocked feature should just be moved
+after the feature it needs, in the right category.
 
 ## Q6: Where do a row's actions appear?
 
@@ -236,7 +242,7 @@ Why it matters: actions behind a pane cost a tap and a page load for each note y
   - [pro] nothing new to build.
   - [con] the slowest way to organize notes.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: What does deleting a category do to its notes?
 
@@ -260,7 +266,9 @@ Why it matters: a delete that loses notes is the one irreversible-looking action
   - [pro] one action for a category you no longer want.
   - [con] the most destructive default, one key from losing notes.
 
-**Answer:**
+**Answer:** Ask the user? It's the simplest by a lot.
+
+"Delete category -> do you also want to delete notes: Y/N"
 
 ## Q8: Should categories also be renamed and reordered?
 
@@ -278,7 +286,7 @@ a whole block of lines, which no operation does today.
   - [pro] the least work.
   - [con] a wrong name means delete and move every note.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: How do the vim keys and the key map relate to the other lists and to the leader key?
 
@@ -304,7 +312,10 @@ keyboard to maintain.
   - [pro] one feature for all keys.
   - [con] it takes the Now item over, with a scope far beyond two pages.
 
-**Answer:**
+**Answer:** A: It's `dd` and not `Dd` to delete a line btw
+
+Make sure the way you implement this makes it easy to interface with the leader key/global shortcut
+map later
 
 ## Q10: Where does a line land when it moves to another column?
 
@@ -324,7 +335,7 @@ Why it matters: it decides whether `L` keeps your eye in place or reorders the t
   - [pro] predictable, like Trello's `.`.
   - [con] a line moved to Now lands at the end of the most urgent list.
 
-**Answer:**
+**Answer:** A
 
 ## Q11: Which way do `o` and `O` insert?
 
@@ -341,7 +352,7 @@ Why it matters: your fingers know vim's order, and the wrong one would be wrong 
   - [pro] follows the sentence.
   - [con] the reverse of vim, and of nvim where you use them now.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -379,3 +390,14 @@ Why it matters: your fingers know vim's order, and the wrong one would be wrong 
 - **The prototypes** in `mockups/` are throwaway: the approval of the spec deletes them.
 
 **Notes:**
+
+- **Columns by width**: As I said earlier: it's ok to overflow horizontally a bit
+
+  It's important that text is easily readable, so use the current priorities as example in the
+  mockups.
+
+- **Dragging**: I don't like the handles: todoist doesn't have any
+
+  Coupled with the `...` that would become very busy
+
+  I'd rather have small, simple to read cards, always draggable, and with `...` appearing on hover
