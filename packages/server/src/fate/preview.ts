@@ -12,7 +12,7 @@ import type { RepoContext } from "./context.ts";
 /**
  * A story link of a checkout, `<folder>:<path>#<export>`, `folder` a feature's or `main`: reading
  * it is a view of the checkout's Storybook. `none` without a checkout or a preview decision; when
- * ready, its frame and its Storybook page; when failed, why.
+ * ready, its frame and its story page; when failed, why.
  */
 export type StoryRecord = {
   error: string | null;

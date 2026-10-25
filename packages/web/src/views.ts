@@ -433,7 +433,7 @@ export const SlugProposalView = view<SlugProposal>()({
 
 /**
  * A story link of a checkout, `<folder>:<path>#<export>`: its Storybook's state, and its frame and
- * Storybook page once ready. Reading it is a view of the checkout's Storybook.
+ * story page once ready. Reading it is a view of the checkout's Storybook.
  */
 export const StoryView = view<Story>()({
   error: true,

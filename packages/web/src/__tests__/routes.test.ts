@@ -16,7 +16,7 @@ test.each([
   // A session, and the New page with the kind it starts with (US3).
   ["/sessions/abc", { id: "abc", page: "session-id" }],
   ["/new", { kind: "session", page: "new" }],
-  // US5.1: a feature's Storybook page, and the main checkout's; a file of that name stays a file.
+  // US5.1: a feature's story page, and the main checkout's; a file of that name stays a file.
   ["/f/x/storybook", { folder: "x", page: "storybook" }],
   ["/storybook", { folder: "main", page: "storybook" }],
   ["/f/x/storybook.md", { folder: "x", name: "storybook.md", page: "file" }],

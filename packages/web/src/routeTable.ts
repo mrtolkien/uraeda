@@ -20,6 +20,8 @@ export type Route =
   | { page: "edit"; path: string }
   | { folder: string; name: string; page: "mockup" }
   | { folder: string; page: "session" }
+  // Kept for the story page, or a redirect Home when it has no story (R6).
+  // Kept: it draws a story page, or redirects Home when it names no story (R6).
   | { folder: string; page: "storybook" }
   | { folder: string; id: string; page: "run" }
   | { id: string; page: "session-id" }

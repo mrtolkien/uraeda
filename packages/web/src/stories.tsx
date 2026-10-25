@@ -127,10 +127,10 @@ export function useMockupAt(block: Block): MockupEmbed | undefined {
 }
 
 /**
- * The page of a checkout's Storybook, within its repository: `/f/<folder>/storybook`, `/storybook`
- * for the main checkout, at a story when given, which the page finds by its file and export (R2).
+ * The story page's address, within its repository: `/f/<folder>/storybook`, `/storybook` for the
+ * main checkout, at a story when given, which the page finds by its file and export (R2).
  */
-export function storybookHref(folder: string, story?: StoryTarget): string {
+export function storyHref(folder: string, story?: StoryTarget): string {
   const page =
     folder === MAIN_CHECKOUT ? "/storybook" : `/f/${encodeURIComponent(folder)}/storybook`;
   if (!story) {
