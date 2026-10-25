@@ -231,3 +231,38 @@ test("Contents lists the pane after what you approve, and counts every decision"
     "Decisions · 4",
   ]);
 });
+
+/** US5, SC-003: a principle's check changed marks the strip, its pill, and its place lands there. */
+test("a changed Constitution check is marked, its place jumping to the principles", async () => {
+  await revised(
+    swap(
+      "| ✅        | ✅              | ⚠️        |",
+      "| ✅        | ✅              | ✅        |",
+    ),
+  );
+
+  const pane = await sincePane(4);
+  const block = screen.getByRole("region", { name: BLOCK });
+  const [strip, ...others] = within(block).getAllByRole("group", { name: MARK });
+  expect(others).toHaveLength(0);
+  expect(strip!.textContent).toContain("III. Fast");
+  const signed = within(strip!)
+    .getAllByText("Δ")
+    .map((sign) => sign.parentElement?.textContent);
+  expect(signed.some((text) => text?.startsWith("III. Fast"))).toBe(true);
+  expect(signed.some((text) => text?.startsWith("I. Simple"))).toBe(false);
+  await click(within(pane).getByRole("button", { name: "What you approve" }));
+  await waitFor(() => expect(strip!.contains(document.activeElement)).toBe(true));
+});
+
+/** SC-004: a tap on a principle starts a comment on the Constitution check's row. */
+test("a tap on a principle starts a comment on its table's row", async () => {
+  await revised((text) => text);
+
+  const block = screen.getByRole("region", { name: BLOCK });
+  await click(within(block).getByText("III. Fast"));
+  await screen.findByLabelText("Comment text");
+  const pressed = document.querySelector<HTMLElement>("button[aria-pressed='true']");
+  expect(pressed?.closest("[data-lines]")?.getAttribute("data-lines")).toBe("160-160");
+  expect(pressed?.closest("[data-lines]")?.textContent).toContain("I. Simple");
+});

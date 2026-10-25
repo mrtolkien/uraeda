@@ -2,7 +2,8 @@
 // record or request, the "You approve" item as the page's lead, the block's other items, the text
 // before the first section, then, at the pane's foot under a separator (C1), the time and the risk
 // tier as pills, the constitution's principles as a strip of pills, and the risk tier's reason.
-// Each item and paragraph takes a comment as the spec's other blocks do.
+// Each item and paragraph takes a comment as the spec's other blocks do, and the strip as its
+// table's row of checks, marked Δ as it when it changed since your review.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Divider } from "@astryxdesign/core/Divider";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -15,6 +16,7 @@ import type { Block, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { After, Selectable, type Selection } from "../Selection.tsx";
+import { cellRuns, type SinceMark, SinceMarked, SinceSign, useSinceMark } from "../sinceMarks.tsx";
 import { plain, Spans } from "../Spans.tsx";
 import { GROUPS, type PartProps, partOf, type SpecItems } from "./parts.ts";
 
@@ -121,27 +123,80 @@ function Pills({ items }: { items: SpecItems }) {
   );
 }
 
-/** The constitution's principles as a strip of pills: a check for each kept, else a warning. */
-function Principles({ items }: { items: SpecItems }) {
+/**
+ * The cells a row's change touched, by index, from its runs cell by cell: none when the cells do
+ * not match, the row's mark then showing alone.
+ */
+function changedCells(mark: SinceMark | undefined): Set<number> {
+  const cells = mark?.change.kind === "changed" ? cellRuns(mark.change.runs) : undefined;
+  return new Set(
+    (cells ?? []).flatMap((runs, index) =>
+      runs.some((run) => run.kind !== "kept") ? [index] : [],
+    ),
+  );
+}
+
+/**
+ * The constitution's principles as a strip of pills, a check for each kept, else a warning: the
+ * `## Constitution check` table, `table`, drawn so. The strip is its row of checks for a review,
+ * a tap starting a comment on it; it is marked Δ when that row or the principles' changed since
+ * your review, a Δ after each principle whose cell changed.
+ */
+function Principles({
+  document,
+  items,
+  selection,
+  table,
+}: Pick<PartProps, "document" | "selection"> & { items: SpecItems; table: Block | undefined }) {
+  const rows = childrenOf(document, table?.id);
+  const header = rows.find((row) => row.header);
+  const checks = rows.find((row) => !row.header);
+  const headerMark = useSinceMark(header?.id ?? -1);
+  const changed = new Set([
+    ...changedCells(headerMark),
+    ...changedCells(useSinceMark(checks?.id ?? -1)),
+  ]);
   if (items.principles.length === 0) {
     return null;
   }
-  return (
+  const strip = (
     <VStack gap={1}>
       <Text color="secondary" type="supporting">
         Constitution
       </Text>
       <HStack gap={2} wrap="wrap">
-        {items.principles.map(({ label, ok }) => (
+        {items.principles.map(({ label, ok }, index) => (
           <Badge
             icon={<Icon icon={ok ? "check" : "warning"} label={ok ? "Kept" : "Warning"} />}
             key={label}
-            label={label}
+            label={
+              changed.has(index) ? (
+                <>
+                  {label}
+                  <SinceSign />
+                </>
+              ) : (
+                label
+              )
+            }
             variant={ok ? "success" : "warning"}
           />
         ))}
       </HStack>
     </VStack>
+  );
+  const drawn = checks ? (
+    <Selectable block={checks} selection={selection}>
+      {strip}
+    </Selectable>
+  ) : (
+    strip
+  );
+  return (
+    <>
+      {headerMark ? <SinceMarked mark={headerMark}>{drawn}</SinceMarked> : drawn}
+      {header && selection?.after && <After>{selection.after(header)}</After>}
+    </>
   );
 }
 
@@ -156,8 +211,10 @@ function Foot({
 }: Pick<PartProps, "document" | "selection"> & { items: SpecItems }) {
   const constitution = partOf(items, "Constitution check");
   const risk = partOf(items, "Risk tier");
-  const constitutionBlocks =
-    constitution?.blocks.filter((id) => document.blocks[id]?.kind !== "table") ?? [];
+  const table = constitution?.blocks
+    .map((id) => document.blocks[id])
+    .find((block) => block?.kind === "table");
+  const constitutionBlocks = constitution?.blocks.filter((id) => id !== table?.id) ?? [];
   const hasPills = items.minutes != null || Boolean(items.riskTier);
   const hasReason = (risk?.blocks.length ?? 0) > 0;
   if (!hasPills && !constitution && !hasReason) {
@@ -171,7 +228,7 @@ function Foot({
       {hasPills && <Pills items={items} />}
       {constitution && (
         <div id={constitution.anchor} {...stylex.props(styles.section)}>
-          <Principles items={items} />
+          <Principles document={document} items={items} selection={selection} table={table} />
           {constitutionBlocks.length > 0 && (
             <Blocks document={document} ids={constitutionBlocks} selection={selection} />
           )}
