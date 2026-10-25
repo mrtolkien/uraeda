@@ -2,19 +2,18 @@
 // border, their context under the title, and a card for each line (see `Card`). `columns` sets the
 // panes in one row that scrolls sideways, each at least 400 px wide, and a pane titled "Blocked"
 // under it; the phone, and `stack`, set them one under the other. A card drags from anywhere: past
-// 5 px of a mouse press, or after half a second of a touch press. The keys move the selection,
-// with the pane beside the list following (see `useListKeys`).
+// 5 px of a mouse press, or after half a second of a touch press. The keys move the selection, and
+// Enter or a click opens the card in its overlay (see `useListKeys`).
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type Ref, use, useEffect } from "react";
+import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, type WorkRow } from "./Card.tsx";
-import { ListPaneContext } from "./listPane.ts";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
-import { useListKeys } from "./useListKeys.ts";
+import { isLayerOpen, useListKeys } from "./useListKeys.ts";
 
 /** A section's colour: the ongoing entries green, Now blue, Later grey, the rest neutral. */
 export type Tone = "green" | "blue" | "neutral" | "gray";
@@ -95,12 +94,14 @@ const TINTS: Record<Tone, PaneTint | undefined> = {
 /** A section as a pane: its title and count, its context, its cards, and its footer. */
 function SectionBody({
   isColumn,
+  onOpen,
   ref,
   rows,
   section,
   selected,
 }: {
   isColumn: boolean;
+  onOpen: (row: WorkRow) => void;
   ref?: Ref<HTMLDivElement>;
   rows: ReadonlyArray<WorkRow>;
   section: WorkSection;
@@ -122,6 +123,7 @@ function SectionBody({
                 index={index}
                 isSelected={row.key === selected}
                 key={row.key}
+                onOpen={onOpen}
                 row={section.isFixed ? { ...row, isFixed: true } : row}
                 section={section.id}
               />
@@ -137,6 +139,7 @@ function SectionBody({
 /** A section rows are dropped in, even when it is empty. */
 function DropSection(props: {
   isColumn: boolean;
+  onOpen: (row: WorkRow) => void;
   rows: ReadonlyArray<WorkRow>;
   section: WorkSection;
   selected?: string;
@@ -152,25 +155,45 @@ function DropSection(props: {
 }
 
 /**
- * The sections as panes, in the `layout`'s arrangement. `selected` is the key of the row
- * open beside the list; with `isFocused`, the keyboard's focus is put on it, with its ring. A drop
- * calls `onMove` with the row's key, its section, and its index among that section's rows on
- * screen; until it resolves, the list stays as the drag left it.
+ * The selection of the list: the key the address names, once it names one, and that card after the
+ * address stops naming it, as the overlay closes. It moves with the keys and with a click.
+ */
+function useSelection(named: string | undefined) {
+  const [selected, setSelected] = useState(named);
+  const [seen, setSeen] = useState(named);
+  if (named !== seen) {
+    setSeen(named);
+    if (named !== undefined) {
+      setSelected(named);
+    }
+  }
+  return [selected, setSelected] as const;
+}
+
+/**
+ * The sections as panes, in the `layout`'s arrangement. `selected` is the key of the row the
+ * address names, an open overlay's: the selection starts there and stays on it once the overlay
+ * closes, with the focus. With `isFocused`, the keyboard's focus is put on it, with its ring.
+ * `onOpen` opens a card, from a click or Enter, with its link's address. A drop calls `onMove` with
+ * the row's key, its section, and its index among that section's rows on screen; until it
+ * resolves, the list stays as the drag left it.
  */
 export function WorkList({
   isFocused = false,
   layout = "stack",
   onMove,
+  onOpen,
   sections,
-  selected,
+  selected: named,
 }: {
   isFocused?: boolean;
   layout?: WorkLayout;
   onMove?: OnMove;
+  onOpen?: (href: string) => void;
   sections: ReadonlyArray<WorkSection>;
   selected?: string;
 }) {
-  const pane = use(ListPaneContext);
+  const [selected, setSelected] = useSelection(named);
   const drag = useDragOrder(sections, onMove);
   const byKey = new Map(
     drag.sections.flatMap((section) => section.rows.map((row) => [row.key, row] as const)),
@@ -182,23 +205,37 @@ export function WorkList({
   // The rows in the order they show, which the keys move along.
   const rows = drag.sections.flatMap(rowsOf);
   const { focusSelected, ref } = useListKeys({
-    // Escape closes the pane beside the list: without one, it does nothing, and is not named.
-    escapeLabel: pane ? "close" : null,
-    onClose: () => {
-      pane?.close();
-      return pane !== null;
-    },
-    onEdit: () => pane?.edit() ?? false,
-    // On wide screens the pane follows the selection; without a pane, only the focus moves.
-    onSelect: (index) => pane?.follow(rows[index].href),
+    // Enter opens the focused card's link, and nothing closes: the overlay has its own Escape.
+    escapeLabel: null,
+    onClose: () => false,
+    onEdit: () => false,
+    onSelect: (index) => setSelected(rows[index].key),
     selected: rows.findIndex((row) => row.key === selected),
   });
+  const wasNamed = useRef(named !== undefined);
   useEffect(() => {
-    if (isFocused && selected !== undefined) {
-      focusSelected();
+    // The overlay closed: the card it showed is selected, and has the focus once the overlay's
+    // layer, which leaves the page a moment after, no longer holds it.
+    const closed = wasNamed.current && named === undefined;
+    wasNamed.current = named !== undefined;
+    if (!((isFocused && selected !== undefined) || closed)) {
+      return undefined;
     }
-  }, [isFocused, selected, focusSelected]);
-  useEffect(() => pane?.setFocusRow(focusSelected), [pane, focusSelected]);
+    let frame = 0;
+    const focus = () => {
+      if (isLayerOpen()) {
+        frame = requestAnimationFrame(focus);
+      } else {
+        focusSelected();
+      }
+    };
+    focus();
+    return () => cancelAnimationFrame(frame);
+  }, [isFocused, named, selected, focusSelected]);
+  const open = (row: WorkRow) => {
+    setSelected(row.key);
+    onOpen?.(row.href);
+  };
   const isNarrowScreen = isNarrow(useWidthClass());
   const asColumns = layout === "columns" && !isNarrowScreen;
   const below = asColumns ? drag.sections.filter((section) => section.title === BELOW) : [];
@@ -208,6 +245,7 @@ export function WorkList({
       <Body
         isColumn={isColumn}
         key={section.id}
+        onOpen={open}
         rows={rowsOf(section)}
         section={section}
         selected={selected}

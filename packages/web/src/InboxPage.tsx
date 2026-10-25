@@ -15,6 +15,7 @@ import { useStartChat } from "./StartChat.tsx";
 import { Page } from "./layout/Page.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { WorkList, type WorkSection } from "./lists/WorkList.tsx";
+import { NOTE, openDetail } from "./pane/DetailOverlay.tsx";
 import { repoPath, useLocalPath, useRepoPath, useRepository, useRestoreScroll } from "./routes.tsx";
 import { imagePath, plain, Spans } from "./Spans.tsx";
 import { InboxView } from "./views.ts";
@@ -125,7 +126,14 @@ function InboxList({
     }
   };
 
-  return <WorkList onMove={onMove} sections={sections} selected={selected} />;
+  return (
+    <WorkList
+      onMove={onMove}
+      onOpen={(href) => openDetail(href, NOTE)}
+      sections={sections}
+      selected={selected}
+    />
+  );
 }
 
 /**

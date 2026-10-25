@@ -8,6 +8,7 @@ import type { PriorityEntry } from "uraeda-server/fate";
 import type { usePriorities } from "../data.ts";
 import { EditableLine } from "../EditableLine.tsx";
 import { stepTitle } from "../labels.ts";
+import { openDetail, PRIORITY } from "../pane/DetailOverlay.tsx";
 import { useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { PrioritiesView } from "../views.ts";
@@ -136,7 +137,7 @@ function sectionsOf(
 
 /**
  * The priorities' sections, with "Ongoing" first, and each section's Add row. `select` is the key
- * of a row to select, for a mockup; otherwise the row open beside the list is. `isFocused` puts the
+ * of a row to select, for a mockup; otherwise the row whose overlay is open is. `isFocused` puts the
  * keyboard's focus on it. `run` writes a change and resolves with its refusal, if any; a refused
  * move goes to `onMoveRefused`.
  */
@@ -198,6 +199,7 @@ export function PrioritiesList({
       isFocused={isFocused}
       layout="columns"
       onMove={onMove}
+      onOpen={(href) => openDetail(href, PRIORITY)}
       sections={all}
       selected={selected}
     />

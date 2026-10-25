@@ -1,6 +1,3 @@
-import { Button } from "@astryxdesign/core/Button";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
 import * as stylex from "@stylexjs/stylex";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { type ReactNode, useLayoutEffect, useRef } from "react";
@@ -8,10 +5,6 @@ import { useRestorePaneScroll } from "../routes.tsx";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
-  close: {
-    paddingBlockStart: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-2"],
-  },
   detail: {
     // The detail stays in view beside the list, which scrolls with the page, and scrolls on its
     // own. As tall as the window, so its edge runs the whole height beside the list.
@@ -47,8 +40,7 @@ const styles = stylex.create({
  * A list and the detail opened from it: side by side on wide screens, the detail 40% wide and at
  * least 400 px, keeping its own scroll position for Back, and shown from its top when it shows
  * another item, `detailKey`, in the same entry; on narrow screens, the detail alone when there is
- * one, else the list. `onCloseDetail` draws a Close above the detail; without it, the detail draws
- * its own. With `listWidth`, the list takes that width instead and the detail the rest, both drawing
+ * one, else the list. The detail draws its own Close. With `listWidth`, the list takes that width instead and the detail the rest, both drawing
  * their own panes, so the detail draws no edge.
  */
 export function Panes({
@@ -56,14 +48,12 @@ export function Panes({
   detailKey,
   list,
   listWidth,
-  onCloseDetail,
 }: {
   detail: ReactNode | undefined;
   detailKey?: string;
   list: ReactNode;
   /** The list's width, a CSS length such as a theme's size: the detail's 40% by default. */
   listWidth?: string;
-  onCloseDetail?: () => void;
 }) {
   const wide = !isNarrow(useWidthClass());
   const pane = useRef<HTMLElement>(null);
@@ -91,19 +81,6 @@ export function Panes({
         {...stylex.props(styles.detail, listWidth !== undefined && styles.framed)}
         aria-label="Detail"
       >
-        {onCloseDetail && (
-          <div {...stylex.props(styles.close)}>
-            <HStack justify="end">
-              <Button
-                icon={<Icon icon="close" />}
-                isIconOnly
-                label="Close"
-                onClick={onCloseDetail}
-                variant="ghost"
-              />
-            </HStack>
-          </div>
-        )}
         {detail}
       </section>
     </div>

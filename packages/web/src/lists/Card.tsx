@@ -16,7 +16,7 @@ import {
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { useSortable } from "@dnd-kit/react/sortable";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 /** A card's line: what a list draws, and where a tap on it leads. */
 export interface WorkRow {
@@ -116,11 +116,14 @@ const styles = stylex.create({
 export function Card({
   index,
   isSelected,
+  onOpen,
   row,
   section,
 }: {
   index: number;
   isSelected: boolean;
+  /** Opens the card on a plain click or Enter, in place of following its link. */
+  onOpen?: (row: WorkRow) => void;
   row: WorkRow;
   section: string;
 }) {
@@ -148,7 +151,18 @@ export function Card({
       {!row.isFixed && <span aria-hidden="true" ref={handleRef} tabIndex={-1} />}
       {row.marks !== undefined && <span {...stylex.props(styles.marks)}>{row.marks}</span>}
       {row.menu !== undefined && <span {...stylex.props(styles.menu)}>{row.menu}</span>}
-      <Link href={row.href} xstyle={[styles.stretched, styles.text]}>
+      <Link
+        href={row.href}
+        onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+          // A click that is a drag's end is already prevented, and a modified one is the browser's.
+          const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0);
+          if (onOpen && plain && !event.defaultPrevented) {
+            event.preventDefault();
+            onOpen(row);
+          }
+        }}
+        xstyle={[styles.stretched, styles.text]}
+      >
         {row.label ?? row.text}
       </Link>
       {row.lines.map((line, at) => (

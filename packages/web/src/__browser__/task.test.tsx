@@ -1,5 +1,5 @@
-// US3 scenario 5: on a wide screen, the task view opens in a pane beside home, which stays usable;
-// Back closes it.
+// US3 scenario 5, with the overlay: on a wide screen, the task view opens in the overlay over home,
+// which stays drawn under it; Back closes it.
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
@@ -19,12 +19,12 @@ async function showNext() {
   await show("/", "Claude Code runner");
 }
 
-/** The pane beside the list, once it shows. */
+/** The line's overlay, once it shows. */
 async function detail() {
-  return within(await screen.findByRole("region", { name: "Detail" }));
+  return within(await screen.findByRole("dialog", { name: "Priority" }));
 }
 
-test("on a wide screen, the task view opens beside home (US3 5)", async () => {
+test("on a wide screen, the task view opens over home (US3 5)", async () => {
   await showNext();
   // A real click: WebKit skips, on Back, an entry that added another without a user's gesture.
   await userEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
@@ -32,24 +32,26 @@ test("on a wide screen, the task view opens beside home (US3 5)", async () => {
     .poll(() => window.location.pathname)
     .toBe(atRepo("/priorities/claude-code-runner-triggered-manually"));
   expect(await (await detail()).findByRole("radio", { checked: true, name: "Now" })).toBeTruthy();
-  // Home stays beside it.
-  expect(screen.getByRole("link", { name: /Git listener process/ })).toBeTruthy();
+  // Home stays under it.
+  expect(screen.getByRole("link", { hidden: true, name: /Git listener process/ })).toBeTruthy();
   await act(async () => window.history.back());
-  await waitFor(() => expect(screen.queryByRole("region", { name: "Detail" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(window.location.pathname).toBe(atRepo("/"));
 });
 
-test("on a wide screen, a second line tapped in home's list keeps home beside it", async () => {
+test("on a wide screen, the next line of the overlay keeps home under it", async () => {
   await showNext();
   await userEvent.click(screen.getByRole("link", { name: /Claude Code runner/ }));
   expect(await (await detail()).findByRole("radio", { checked: true, name: "Now" })).toBeTruthy();
 
-  await userEvent.click(screen.getByRole("link", { name: /Git listener process/ }));
+  await userEvent.click((await detail()).getByRole("button", { name: "Next ›" }));
 
   await expect.poll(() => window.location.pathname).toBe(atRepo("/priorities/git-listener"));
-  expect(await screen.findByRole("heading", { name: "What" })).toBeTruthy();
+  expect(await (await detail()).findByRole("heading", { name: "What" })).toBeTruthy();
   // Home's list is still there, its own link to the priorities included, and Home is selected.
-  expect(screen.getByRole("link", { name: "Open priorities" })).toBeTruthy();
-  const nav = screen.getByRole("navigation", { name: "Navigation" });
-  expect(within(nav).getByRole("link", { name: "Home" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("link", { hidden: true, name: "Open priorities" })).toBeTruthy();
+  const nav = screen.getByRole("navigation", { hidden: true, name: "Navigation" });
+  expect(
+    within(nav).getByRole("link", { hidden: true, name: "Home" }).getAttribute("aria-current"),
+  ).toBe("page");
 });

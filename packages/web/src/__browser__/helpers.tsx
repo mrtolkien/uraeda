@@ -379,6 +379,11 @@ function averageCharacter(element: Element) {
   return context.measureText(SAMPLE).width / SAMPLE.length;
 }
 
+/** How many average characters of its own font an element is wide, borders and padding included. */
+export function charactersAcross(element: Element) {
+  return Math.round(element.getBoundingClientRect().width / averageCharacter(element));
+}
+
 /**
  * No line of reading text holds more than about 110 characters, the theme's reading measure (the UI
  * layout decision): paragraphs, and the toggles that hold text of their own, like a review's

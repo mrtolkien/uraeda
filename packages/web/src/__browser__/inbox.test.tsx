@@ -109,8 +109,8 @@ test("the empty inbox passes the layout checks", async () => {
 
 /**
  * SC-003, and the UI layout decision: three taps from the inbox page move a note to Next: the note,
- * Move to priorities, the section. On wide screens the note opens in the pane beside the inbox, at
- * its own URL; on narrow screens, as its own page.
+ * Move to priorities, the section. The note opens in an overlay over the inbox, at its own
+ * URL: a dialog on wide screens, a sheet on narrow ones.
  */
 test("three taps from the inbox move a note to Next", async () => {
   await show("/inbox", "We need a home icon");
@@ -120,8 +120,8 @@ test("three taps from the inbox move a note to Next", async () => {
     .poll(() => window.location.pathname)
     .toBe(atRepo("/inbox/draft-to-proposal-on-mobile-went-404"));
   expect(await screen.findByText("Note, in UI")).toBeTruthy();
-  // Beside the inbox on wide screens; alone on narrow ones.
-  expect(screen.queryByRole("heading", { level: 1, name: "Inbox" }) === null).toBe(narrow());
+  // In an overlay over the inbox, which stays drawn, at every size.
+  expect(screen.getByRole("heading", { hidden: true, level: 1, name: "Inbox" })).toBeTruthy();
   await userEvent.click(screen.getByRole("button", { name: "Move to priorities" }));
   // A menu on wide screens; on narrow ones, a sheet of buttons.
   await userEvent.click(

@@ -653,7 +653,7 @@ function withLookDraft() {
 
 /** The note's view, in the pane beside the inbox, as it is drawn now. */
 function detail() {
-  return within(screen.getByRole("region", { name: "Detail" }));
+  return within(screen.getByRole("dialog", { name: "Note" }));
 }
 
 /** Opens a menu of the note's view, by its button, and picks one of its items. */
@@ -831,7 +831,8 @@ test("Delete asks nothing, and Undo puts the note back at its place", async () =
   await click(await screen.findByRole("button", { name: "Delete" }));
 
   expect(await toast("Deleted, not committed")).toBeTruthy();
-  expect(screen.queryByRole("dialog")).toBeNull();
+  // No question, and the note's overlay closes.
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(read(repo, PATH)).not.toContain("Draft to proposal on mobile went 404");
   await click(screen.getByRole("button", { name: "Undo" }));
   await waitFor(() => expect(read(repo, PATH)).toBe(before));
@@ -1078,10 +1079,9 @@ test("a note edited, then removed elsewhere, is not taken for the note at its pl
   await waitFor(() => expect(screen.queryByRole("textbox", { name: "Note" })).toBeNull());
   writeFileSync(join(repo, PATH), read(repo, PATH).replace("- We need a home icon!\n", ""));
 
-  await refreshUntil(() =>
-    expect(detail().getByText("This note is no longer in INBOX.md.")).toBeTruthy(),
-  );
-  expect(detail().queryByRole("button", { name: "Delete" })).toBeNull();
+  // The overlay does not show the note that left: nothing of it is drawn.
+  await refreshUntil(() => expect(detail().queryByRole("button", { name: "Delete" })).toBeNull());
+  expect(detail().queryByText("We need a home icon!")).toBeNull();
 });
 
 /** Review: a note opened from the inbox returns to it once moved, so Back leaves the inbox. */

@@ -8,7 +8,8 @@ import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./
 import { refusal } from "./errors.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { TITLES } from "./QuickAdd.tsx";
-import { currentEntry, localPath, navigate, redirect, useRepoPath } from "./routes.tsx";
+import { closeDetail } from "./pane/DetailOverlay.tsx";
+import { localPath, navigate, redirect, useRepoPath } from "./routes.tsx";
 import { DraftView, InboxView } from "./views.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
@@ -132,21 +133,16 @@ function useMovesOut(
 }
 
 /**
- * Back to the inbox once the note left it, only while its view is still shown: Back, to the list
- * it was opened from, so the history holds the list once; otherwise the list in its place.
+ * Closes the note's overlay once the note left the inbox, only while it is shown: Back over its
+ * entry, so the history holds the list once; otherwise the list in its place.
  */
 function useLeave(key: string) {
   const fate = useFateClient();
   const here = useRepoPath();
   return () => {
     rereadChanges(fate);
-    if (localPath(window.location.pathname) !== `/inbox/${key}`) {
-      return;
-    }
-    if (currentEntry().from === "/inbox") {
-      window.history.back();
-    } else {
-      redirect(here("/inbox"));
+    if (localPath(window.location.pathname) === `/inbox/${key}`) {
+      closeDetail(here("/inbox"));
     }
   };
 }

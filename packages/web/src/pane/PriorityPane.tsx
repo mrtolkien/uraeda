@@ -10,17 +10,10 @@ import { Suspense, useState } from "react";
 import type { Span } from "uraeda-binding";
 import { usePriority } from "../data.ts";
 import { stepTitle } from "../labels.ts";
-import { Page } from "../layout/Page.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { pathLink } from "../links.tsx";
 import { TITLES } from "../QuickAdd.tsx";
-import {
-  currentEntry,
-  navigate,
-  useRepoPath,
-  useRepository,
-  useRestoreScroll,
-} from "../routes.tsx";
+import { redirect, useRepoPath, useRepository } from "../routes.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { EntryPane, EntryText, RunningPart, Steps } from "./EntryPane.tsx";
 import { PaneDraft } from "./PaneDraft.tsx";
@@ -94,12 +87,10 @@ function Kind({
 function PriorityBody({
   found,
   hash,
-  onClose,
   onRenaming,
 }: {
   found: Found;
   hash: string;
-  onClose?: () => void;
   onRenaming: (id: string | undefined) => void;
 }) {
   const here = useRepoPath();
@@ -117,16 +108,14 @@ function PriorityBody({
       draftHref={entry.draft ? here(`/edit/${entry.draft.path}`) : undefined}
       isEditing={line.open}
       location={`${section.title} · ${index + 1} of ${entries.length}`}
-      onClose={onClose}
       onDelete={actions.remove}
       onEdit={line.openLine}
       steps={
         <Steps
           count={entries.length}
           index={index}
-          onStep={(to) =>
-            navigate(here(`/priorities/${entries[to].key}`), { from: currentEntry().from })
-          }
+          // The overlay shows another line in its own history entry.
+          onStep={(to) => redirect(here(`/priorities/${entries[to].key}`))}
         />
       }
       text={<EntryText label="Line" line={line} nested={entry.nestedSpans} spans={entry.spans} />}
@@ -161,36 +150,15 @@ function PriorityBody({
 }
 
 /**
- * A line of `PRIORITIES.md` in the pane, by its key: read-only on arrival, Edit in its bar. On
- * narrow screens, the page itself.
+ * A line of `PRIORITIES.md` in its overlay, by its key: read-only on arrival, Edit in its bar. A
+ * line that is not there draws nothing: the route says it is gone.
  */
-export function PriorityPane({ entryKey, onClose }: { entryKey: string; onClose?: () => void }) {
+export function PriorityPane({ entryKey }: { entryKey: string }) {
   // The line's id while it is renamed: its key changes before its address does.
   const [renaming, setRenaming] = useState<string>();
   const { found, priorities } = usePriority(entryKey, renaming);
-  const here = useRepoPath();
-  // Its data is read before it draws: the position comes back at once.
-  useRestoreScroll(true);
-  if (!priorities) {
+  if (!priorities || !found) {
     return null;
   }
-  if (!found) {
-    return (
-      <Page>
-        <AnnouncedBanner
-          collapsible={false}
-          description={
-            <Link hasUnderline href={here("/priorities")}>
-              Open the priorities
-            </Link>
-          }
-          status="error"
-          title="This line is no longer in PRIORITIES.md."
-        />
-      </Page>
-    );
-  }
-  return (
-    <PriorityBody found={found} hash={priorities.hash} onClose={onClose} onRenaming={setRenaming} />
-  );
+  return <PriorityBody found={found} hash={priorities.hash} onRenaming={setRenaming} />;
 }

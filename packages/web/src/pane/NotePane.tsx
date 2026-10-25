@@ -1,12 +1,10 @@
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Divider } from "@astryxdesign/core/Divider";
-import { Link } from "@astryxdesign/core/Link";
 import { useState } from "react";
 import type { Inbox } from "uraeda-server/fate";
 import { useInbox } from "../data.ts";
 import { Marks } from "../InboxPage.tsx";
-import { Page } from "../layout/Page.tsx";
-import { navigate, useRepoPath, useRestoreScroll } from "../routes.tsx";
+import { redirect, useRepoPath } from "../routes.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { categoryName, type Placed, type Renaming, useNoteActions } from "../useNoteActions.ts";
 import { EntryPane, EntryText, Steps } from "./EntryPane.tsx";
@@ -18,7 +16,7 @@ import { NoteImages } from "./NoteImages.tsx";
  * its id, only as long as that note holds the text saved: an id is a place, which another note
  * takes once this one goes.
  */
-function placed(
+export function placed(
   inbox: Pick<Inbox, "categories">,
   key: string,
   renaming?: Renaming,
@@ -42,12 +40,10 @@ function placed(
 function NoteBody({
   found,
   inbox,
-  onClose,
   onRenaming,
 }: {
   found: Placed;
   inbox: Pick<Inbox, "categories" | "hash" | "names">;
-  onClose?: () => void;
   onRenaming: (renaming: Renaming | undefined) => void;
 }) {
   const here = useRepoPath();
@@ -66,14 +62,14 @@ function NoteBody({
       draftHref={note.draft === undefined ? undefined : here(`/edit/${draftFile(note.draft)}`)}
       isEditing={line.open}
       location={`Note, in ${categoryName(found.category)}`}
-      onClose={onClose}
       onDelete={actions.remove}
       onEdit={line.openLine}
       steps={
         <Steps
           count={notes.length}
           index={found.index}
-          onStep={(to) => navigate(here(`/inbox/${notes[to].key}`))}
+          // The overlay shows another note in its own history entry.
+          onStep={(to) => redirect(here(`/inbox/${notes[to].key}`))}
         />
       }
       text={
@@ -98,35 +94,16 @@ function NoteBody({
 }
 
 /**
- * A note of `INBOX.md` in the pane, by its key: read-only on arrival, Edit in its bar, its children
- * under it. On narrow screens, the page itself.
+ * A note of `INBOX.md` in its overlay, by its key: read-only on arrival, Edit in its bar, its
+ * children under it. A note that is not there draws nothing: the route says it is gone.
  */
-export function NotePane({ noteKey, onClose }: { noteKey: string; onClose?: () => void }) {
+export function NotePane({ noteKey }: { noteKey: string }) {
   const inbox = useInbox();
-  const here = useRepoPath();
   // The note's id and new text while it is renamed: its key changes before its address does.
   const [renaming, setRenaming] = useState<Renaming>();
-  // Its data is read before it draws: the position comes back at once.
-  useRestoreScroll(true);
-  if (!inbox) {
+  const found = inbox ? placed(inbox, noteKey, renaming) : undefined;
+  if (!inbox || !found) {
     return null;
   }
-  const found = placed(inbox, noteKey, renaming);
-  if (!found) {
-    return (
-      <Page>
-        <AnnouncedBanner
-          collapsible={false}
-          description={
-            <Link hasUnderline href={here("/inbox")}>
-              Open the inbox
-            </Link>
-          }
-          status="error"
-          title="This note is no longer in INBOX.md."
-        />
-      </Page>
-    );
-  }
-  return <NoteBody found={found} inbox={inbox} onClose={onClose} onRenaming={setRenaming} />;
+  return <NoteBody found={found} inbox={inbox} onRenaming={setRenaming} />;
 }
