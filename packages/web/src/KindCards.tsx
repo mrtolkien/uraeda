@@ -38,6 +38,8 @@ const styles = stylex.create({
     columnGap: spacingVars["--spacing-2"],
     display: "flex",
   },
+  // On the picked card's tint, the rule in the accent, which keeps its 3:1 there in dark.
+  pickedFacts: { borderBlockStartColor: colorVars["--color-accent"] },
   // The facts under a rule, as the mockup draws them apart from the sentence.
   facts: {
     borderBlockStartColor: colorVars["--color-border"],
@@ -190,11 +192,17 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
             tabIndex={isPicked ? 0 : -1}
             {...stylex.props(styles.card, focusOutlineStyles.focusVisible)}
           >
-            <Pane icon={card.icon} isActive={isPicked} isGroup title={card.name}>
+            <Pane
+              icon={card.icon}
+              isActive={isPicked}
+              isGroup
+              isTinted={isPicked}
+              title={card.name}
+            >
               <div id={`${bodies}-${card.kind}`} {...stylex.props(styles.body)}>
                 <div {...stylex.props(proseStyles.reading)}>{card.sentence}</div>
                 {!narrow && <Text color="secondary">{card.example}</Text>}
-                <dl {...stylex.props(styles.facts)}>
+                <dl {...stylex.props(styles.facts, isPicked && styles.pickedFacts)}>
                   <Fact icon="uraeda:flag" label="Ends with" value={card.endsWith} />
                   <Fact icon="uraeda:hourglass" label="Waits on you" value={card.waitsOnYou} />
                 </dl>

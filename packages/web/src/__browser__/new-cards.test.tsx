@@ -124,3 +124,16 @@ test.each(MODES)("New, Feature picked, in $mode", async ({ mode }) => {
   await drawn();
   await checkLayout();
 });
+
+/** A kind's card's background, its pane's. */
+const background = (kind: string) =>
+  getComputedStyle(within(card(kind)).getByRole("group", { name: kind })).backgroundColor;
+
+// The final review's finding 6: in dark, a lighter border alone set the picked card apart.
+test.each(MODES)("the picked card is tinted in the accent, in $mode", async ({ mode }) => {
+  await colorScheme(mode);
+  await show("/new?kind=feature", "Write the proposal");
+  await drawn();
+  expect(background("Feature")).not.toBe(background("Session"));
+  expect(background("Change")).toBe(background("Session"));
+});
