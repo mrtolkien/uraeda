@@ -1,9 +1,10 @@
 # Inbox
 
-- https://github.com/facebook/astryx/releases#release-v0.7.0
-  - Check their Markdown changes: "keeps Markdown transforms composable"
+- After approving a spec the feature stayed in "needs you" until I ran a full refresh
 
-## Quickfixes
+## To test
+
+- See if we can integrate Claude Design
 
 ## UI
 
@@ -11,6 +12,7 @@
 - In 1440px wide, the right column in questions/clarification is a bit too big...
 - I thought the UI I validated for questions had the questions BELOW the text, not on the side like
   before??? Did I approve the wrong layout?
+- Review composer: it shouldn't be round, should have less borders on mobile
 
 > Below points are likely obsolete
 
@@ -23,6 +25,9 @@
 - "drafting a priority" is ass btw. It should be "Turn a priority into a draft".
 - In clarifications of inbox triage, most notes were cut -> very hard to read
 - Need more space between the last card and "settle without you" in questions
+- [inbox-priorities] The HTML "phone mockups" in inbox/priorities specs showed up at 1440px wide.
+  Generally, mockups kinda break the flow in the specs atm, particularly when there's multiple in a
+  row.
 
 ## Prompts
 
