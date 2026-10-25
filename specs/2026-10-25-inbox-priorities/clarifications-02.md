@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 02: Inbox and priorities in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions, about 10 minutes.
+> Answered on 2026-10-25.
 >
 > - Verdict: worth building, with changes: your answers settled the design, and two points need you
 >   once more.
@@ -84,7 +84,7 @@ limit of six, so one sitting may not be enough to approve it.
   - [pro] the keys arrive with the pages.
   - [con] a spec past the limit, and a larger pull request to review.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How big is the overlay that shows a single line?
 
@@ -119,7 +119,7 @@ sets how much of the board you still see.
   - [con] it needs Astryx's `Drawer`, which the shared overlay does not use, and it covers the
     right-most column.
 
-**Answer:**
+**Answer:** A: This but a bit bigger, ~70 characters wide
 
 ## Settled without the human
 
