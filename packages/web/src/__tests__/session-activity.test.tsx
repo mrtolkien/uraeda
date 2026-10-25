@@ -14,6 +14,7 @@ import {
   type Fake,
   fakeAgent,
   fixtureRepo,
+  quiet,
   renderPage,
 } from "./helpers.tsx";
 
@@ -380,6 +381,34 @@ test("review focus 3, edge: a sub-agent's calls are its group's rows, folded and
   expect(await opened.findByText("src/tasks/list.ts")).toBeTruthy();
   expect(opened.getByText('"complete("')).toBeTruthy();
   expect(rows()).toHaveLength(5);
+});
+
+test("review focus 3: an open sub-agent of 2,000 calls mounts its latest 200; Show earlier calls adds 200", async () => {
+  const chat = await newChat();
+  const own = Array.from({ length: 2000 }, (_, index) =>
+    call("read", `src/agent/file-${index}.ts`, { id: `s-${index}`, parent: "agent-1" }),
+  );
+  addRun(chat.fake, chat.chat, [
+    asked("Read everything."),
+    subagent("agent-1", "Read every file"),
+    ...own,
+    said("Read."),
+  ]);
+  await openActivity(chat);
+  // The walk may stop short of the sub-agent's start: earlier runs draw it.
+  while (activity().queryByRole("button", { name: /Read every file/ }) === null) {
+    await click(activity().getByRole("button", { name: "Show earlier runs" }));
+    await quiet();
+  }
+
+  await click(activity().getByRole("button", { name: /Read every file/ }));
+
+  await waitFor(() => expect(activity().getByText("src/agent/file-1999.ts")).toBeTruthy());
+  expect(rows().length).toBeLessThanOrEqual(1 + ACTIVITY_ROWS);
+  expect(activity().queryByText("src/agent/file-1799.ts")).toBeNull();
+  await click(activity().getByRole("button", { name: "Show earlier calls" }));
+  await waitFor(() => expect(activity().getByText("src/agent/file-1600.ts")).toBeTruthy());
+  expect(rows().length).toBeLessThanOrEqual(1 + 2 * ACTIVITY_ROWS);
 });
 
 test("edge: a sub-agent's own sub-agent is a row of its parent's group", async () => {
