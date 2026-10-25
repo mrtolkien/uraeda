@@ -12,6 +12,7 @@ import {
   agent,
   atRepo,
   atSize,
+  checkLayout,
   drawn,
   LIVE,
   reducedMotion,
@@ -238,6 +239,40 @@ describe("on a desktop, the Activity", () => {
       const word = within(activity).getByText("· 1 call").parentElement!;
       expect(word.textContent).toBe("sub-agent · 1 call");
       expect(widthOf(label)).toBeGreaterThan(widthOf(word));
+    });
+  });
+});
+
+describe("on a desktop, its tabs", () => {
+  atSize("desktop");
+
+  test("ui-layout: at 1000 px, with two sub-agents running, the column's tabs read whole", async () => {
+    await at(1000, async () => {
+      await agent.addPlan(CLI);
+      await startTurn(
+        "Explore.",
+        ["one", "two"].map((id) => ({
+          id,
+          input: {},
+          kind: "other" as const,
+          name: "Task",
+          subagent: { description: `Explore ${id}` },
+          type: "toolStart" as const,
+        })),
+        `/f/${CLI}/session`,
+      );
+      await within(column()).findByRole("tab", { name: /Sub-agents/ }, LIVE);
+      await drawn();
+
+      // No tab scrolled out of the strip, or cut: each reads whole in the strip's box.
+      const tabs = within(column()).getAllByRole("tab");
+      const strip = tabs[0]!.parentElement!.getBoundingClientRect();
+      for (const tab of tabs) {
+        const box = tab.getBoundingClientRect();
+        expect(box.left, tab.textContent!).toBeGreaterThanOrEqual(strip.left - 0.5);
+        expect(box.right, tab.textContent!).toBeLessThanOrEqual(strip.right + 0.5);
+      }
+      await checkLayout(column());
     });
   });
 });

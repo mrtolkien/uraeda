@@ -9,11 +9,12 @@
 // page alone, kept in its place in the tree as the window crosses 768 px, so its typed text stays.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, useId } from "react";
 import { redirect, useSearch } from "../routes.tsx";
-import { useDocumentColumnWidth } from "./documentColumnWidth.ts";
+import { LIMITS, useDocumentColumnWidth } from "./documentColumnWidth.ts";
 import { SideColumn } from "./SideColumn.tsx";
 
 /**
@@ -32,6 +33,9 @@ export type ColumnPanel = {
 };
 
 const styles = stylex.create({
+  // A compact tab's sides, closer than a tab's own: with no icon, the session's tabs read whole in
+  // its column at 300 px (ruling R29).
+  compact: { paddingInline: spacingVars["--spacing-1"] },
   // The foot keeps its height under a panel that fills the column.
   foot: {
     flexShrink: 0,
@@ -95,16 +99,20 @@ export const panelId = (ids: string, key: string) => `${ids}-panel-${key}`;
 
 /**
  * The tabs of `panels`, a list named `label`, `open` selected, each controlling its panel by its
- * id among `ids`: the column's top, and the phone's sheet of it.
+ * id among `ids`: the column's top, and the phone's sheet of it. `isCompact`, in a column narrower
+ * than a document's, the tabs drop their icons, which the folded rail keeps, and draw closer, so
+ * their names read whole rather than scrolling out of the strip (ruling R29).
  */
 export function ColumnTabs({
   ids,
+  isCompact = false,
   label,
   onChange,
   open,
   panels,
 }: {
   ids: string;
+  isCompact?: boolean;
   label: string;
   onChange: (key: string) => void;
   open: string;
@@ -115,12 +123,13 @@ export function ColumnTabs({
       {panels.map((panel) => (
         <Tab
           endContent={panel.badge}
-          icon={<Icon icon={panel.icon} size="sm" />}
+          icon={isCompact ? undefined : <Icon icon={panel.icon} size="sm" />}
           id={tabId(ids, panel.key)}
           key={panel.key}
           label={panel.label}
           panelId={panelId(ids, panel.key)}
           value={panel.key}
+          xstyle={isCompact && styles.compact}
         />
       ))}
     </TabList>
@@ -186,7 +195,16 @@ function Drawn({
   return (
     <SideColumn
       content={content}
-      header={<ColumnTabs ids={ids} label={label} onChange={setOpen} open={open} panels={panels} />}
+      header={
+        <ColumnTabs
+          ids={ids}
+          isCompact={resizable.size < LIMITS.min}
+          label={label}
+          onChange={setOpen}
+          open={open}
+          panels={panels}
+        />
+      }
       isFilled={fills}
       isShown={isShown}
       label={label}

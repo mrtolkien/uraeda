@@ -381,3 +381,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the session's page without their column.
 - **If wrong**: the `only` size of those views in `packages/web/scripts/session-new-shots.ts`.
 - **Where**: task 10, `packages/web/scripts/session-new-shots.ts`.
+
+## R29: In a column narrower than a document's, the column's tabs drop their icons
+
+- **Decision**: while the column is narrower than a document's column's least width, 400 px, as the
+  session's column is at semi-wide, its tabs draw without their icons and with closer sides, a
+  `--spacing-1` each. The folded rail keeps the icons, and the phone's sheet keeps them too.
+- **Rationale**: at 1000 px the session's column is 300 px, and its tabs, Activity and Sub-agents
+  with its running count, took 294 px in a strip of 233: "Sub-agents" scrolled out of the strip, cut
+  to "Sub-". ui-layout wants text readable at each width. Without the icons and with closer sides,
+  the tabs take 218 px, room left for a running count of two digits.
+- **Alternatives considered**: a wider session column at semi-wide, about 330 px, which leaves the
+  chat less than twice the column's width (approval comment C2); the tabs' labels hidden behind
+  their icons, which leaves the words out.
+- **If wrong**: `isCompact` of `ColumnTabs` in `layout/DocumentColumn.tsx`.
+- **Where**: the final review, `packages/web/src/layout/DocumentColumn.tsx`.
