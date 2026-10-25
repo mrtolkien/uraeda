@@ -131,9 +131,13 @@ function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
   const fold = foldOf(item, view);
   const key = foldKey(view.run.turn, item.seq);
   const isOpen = view.keys.open.includes(key);
+  // Live is a call the main agent runs now: a sub-agent's row keeps its bot, and the sub-agent's
+  // own calls are its own work, not the run's.
   const live =
     view.running &&
     item.kind === "tool" &&
+    item.parent === undefined &&
+    !item.subagent &&
     (item.status === "in_progress" || item.status === "pending");
   const marked =
     view.marked !== undefined &&

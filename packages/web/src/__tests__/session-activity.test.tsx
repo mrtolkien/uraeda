@@ -59,14 +59,22 @@ function call(
   };
 }
 
-/** A sub-agent's starting call, `id`, described by `description`, of the sub-agent `parent`. */
-function subagent(id: string, description: string, parent?: string): Item {
+/**
+ * A sub-agent's starting call, `id`, described by `description`, of the sub-agent `parent`, in
+ * `status`.
+ */
+function subagent(
+  id: string,
+  description: string,
+  parent?: string,
+  status: Extract<Item, { kind: "tool" }>["status"] = "completed",
+): Item {
   return {
     id,
     kind: "tool",
     name: "Task",
     ...(parent === undefined ? {} : { parent }),
-    status: "completed",
+    status,
     subagent: { description },
     toolKind: "other",
   };
@@ -238,6 +246,29 @@ test("US1.3: the running call is the last row, marked live", async () => {
   expect(last.textContent).toContain("read");
   expect(within(last).getByLabelText("Live")).toBeTruthy();
   expect(within(rows()[0]!).queryByLabelText("Live")).toBeNull();
+});
+
+test("US1.3: a running sub-agent keeps its row's icon, and its own calls are not live", async () => {
+  const chat = await newChat();
+  addRun(
+    chat.fake,
+    chat.chat,
+    [
+      asked("Find the callers."),
+      subagent("agent-1", "Find every caller", undefined, "in_progress"),
+      call("read", "src/tasks/list.ts", { id: "s-1", parent: "agent-1", status: "in_progress" }),
+    ],
+    "running",
+  );
+
+  await openActivity(chat);
+
+  const [group] = rows();
+  expect(group!.textContent).toContain("Find every caller");
+  expect(within(group!).queryByLabelText("Live")).toBeNull();
+  await click(within(group!).getByRole("button", { name: /Find every caller/ }));
+  await activity().findByText("src/tasks/list.ts");
+  expect(activity().queryByLabelText("Live")).toBeNull();
 });
 
 test("US1 more 3: a thought with text unfolds it; one without has no fold", async () => {

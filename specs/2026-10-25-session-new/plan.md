@@ -243,14 +243,15 @@ Tests and validation:
 
 ## Complexity tracking
 
-| Abstraction or exception                                                | Why it is needed                                                                                                                                  | Simpler alternative rejected because                                                                         |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `ColumnPanel` and `splitPanel` ([`layout/`](/packages/web/src/layout/)) | Approval comment C1: one panel shown as a tab or in a split, the split a panel of two panels; the session column and the feature page next use it | A session-only column: two columns that drift, against UI coherence                                          |
-| `session/stretches.ts`                                                  | One owner of a stretch's counts and words, called by the chat's recap lines, the live line, the activity, and the sub-agents                      | Words in each component: four copies of one rule                                                             |
-| `useSessionColumnWidth`                                                 | C2: a narrower column at semi-wide, keeping the documents' fold and dragged width                                                                 | A second stored width: the fold would differ between pages, against the spec's architecture                  |
-| The Activity's walk back over pages (`session/ActivityPanel.tsx`)       | It counts rows, not messages, and reaches the marked stretch's run                                                                                | Reusing the tail's walk: its kept start and probe are about messages, and sharing it would couple two bounds |
-| A raw radiogroup of cards on the New page                               | C3 forbids round radios; Astryx's `SelectableCard` is a checkbox. Astryx gap: no radio card                                                       | `RadioList`: draws round radios                                                                              |
-| `SessionCache.editedFiles` and `subagentsOf`                            | One SQL read each behind the session record, so the counts are the server's                                                                       | Counting on the web: it would read every page of every turn                                                  |
+| Abstraction or exception                                                    | Why it is needed                                                                                                                                  | Simpler alternative rejected because                                                                         |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `ColumnPanel` and `splitPanel` ([`layout/`](/packages/web/src/layout/))     | Approval comment C1: one panel shown as a tab or in a split, the split a panel of two panels; the session column and the feature page next use it | A session-only column: two columns that drift, against UI coherence                                          |
+| `session/stretches.ts`                                                      | One owner of a stretch's counts and words, called by the chat's recap lines, the live line, the activity, and the sub-agents                      | Words in each component: four copies of one rule                                                             |
+| `useSessionColumnWidth`                                                     | C2: a narrower column at semi-wide, keeping the documents' fold and dragged width                                                                 | A second stored width: the fold would differ between pages, against the spec's architecture                  |
+| The Activity's walk back over pages (`session/ActivityPanel.tsx`)           | It counts rows, not messages, and reaches the marked stretch's run                                                                                | Reusing the tail's walk: its kept start and probe are about messages, and sharing it would couple two bounds |
+| A raw radiogroup of cards on the New page                                   | C3 forbids round radios; Astryx's `SelectableCard` is a checkbox. Astryx gap: no radio card                                                       | `RadioList`: draws round radios                                                                              |
+| `SessionCache.editedFiles` and `subagentsOf`                                | One SQL read each behind the session record, so the counts are the server's                                                                       | Counting on the web: it would read every page of every turn                                                  |
+| A styled `span` for "failed" in a run's title (`session/ActivityPanel.tsx`) | The global constraints' "Run 2 · failed" in the error colour, inside the run's `Heading`. Astryx gap: `Text` has no error colour                  | `Text` with an error colour: it has none, and a `Text` in the heading would set its own size                 |
 
 ## Review comments
 
@@ -1158,9 +1159,11 @@ The break each test catches:
   or a thought's length when at least a second; a sub-agent's row adds its calls, "sub-agent · 6
   calls", as the mockup's. A long target wraps, breaking anywhere: no text is cut. A call with
   output, a thought with text, and a sub-agent's group unfold, their content not mounted while
-  folded, kept open in the history entry through `useOpenKeys`. An in-progress call of a running
-  turn shows a status mark named "Live". A sub-agent's group holds the calls whose `parent` is its
-  id, nested sub-agents as rows.
+  folded, kept open in the history entry through `useOpenKeys`. An in-progress call the main agent
+  runs in a running turn shows a status mark named "Live"; a running sub-agent's row keeps its bot,
+  and its own calls are not live. A sub-agent's group holds the calls whose `parent` is its id,
+  nested sub-agents as rows; an open group mounts its latest 200 rows, and "Show earlier calls" adds
+  200, the first row drawn kept in place.
 - The stretch the address names: its rows are `aria-current="true"`, and its run's heading is
   scrolled into view once drawn, in the column's scroller. A stretch over pages is one stretch, by
   the same rule as the chat's: a `continued` stretch on a page after the turn's first joins the page
