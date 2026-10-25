@@ -345,7 +345,8 @@ session reports.
 
 - Modify: `packages/server/src/runner/events.ts` (`Item`, `AgentEvent`)
 - Modify: `packages/server/src/runner/claude-events.ts` (`parseLine`'s `assistant` case)
-- Modify: `packages/server/src/runner/transcript.ts` (`#output`, `#track`, `#result`)
+- Modify: `packages/server/src/runner/transcript.ts` (`#output`, `#track`, `#activity`, new
+  `#thought`)
 - Modify: `packages/server/src/runner/session-state.ts` (`Running`)
 - Modify: `packages/web/src/TranscriptMessages.tsx` (`TranscriptItems` skips a thought, see
   [R13](rulings.md#r13-the-chat-skips-a-thought-until-its-recap-lines-come))
