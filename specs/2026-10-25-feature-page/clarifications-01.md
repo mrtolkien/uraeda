@@ -69,8 +69,8 @@ features.
   right column. This feature builds after it, or on what it left, and draws no session of its own.
   See [discovery](discovery-01.md#overlaps-with-features-in-flight).
 - **On the phone**, the tab line is one row under the top bar, scrolled sideways, with the open tab
-  in view. The Home's column comes under its centre, in one column. See the
-  [prototype](mockups/home-a-timeline.html), narrowed under 768 px.
+  in view. The Home's column comes under its centre, in one column. See the prototype
+  (`mockups/home-a-timeline.html`, deleted), narrowed under 768 px.
 - **A done feature** keeps one page, with its record drawn in place on Home, as today. It has no tab
   line: its folder and files are gone. See [discovery](discovery-01.md#needs-no-choice).
 
@@ -92,7 +92,8 @@ follow it.
   of questions, Spec, Plan, and Session. The discovery, data model, rulings, and reviews sit under
   "More". Each tab is the page's own address.**
 
-  [Fixed tabs, on Home](mockups/home-a-timeline.html) and [on the spec](mockups/home-a-spec.html)
+  Fixed tabs, on Home (`mockups/home-a-timeline.html`, deleted) and on the spec
+  (`mockups/home-a-spec.html`, deleted)
 
   - [pro] nothing to open or close, and each page keeps its own right column.
   - [con] a file you read often, like a discovery, is one click deeper, under "More".
@@ -104,7 +105,7 @@ follow it.
   single click opens a preview tab that the next replaces. Open tabs are kept per feature in the
   browser.**
 
-  [Editor tabs](mockups/tabs-b-editor.html)
+  Editor tabs (`mockups/tabs-b-editor.html`, deleted)
 
   - [pro] the tabs are exactly what you are working with, as in your editor.
   - [con] a close and preview model to learn, a cap to set, and tabs to restore after a reload.
@@ -112,7 +113,7 @@ follow it.
 - **C. No tabs: Home is a page, with the files and sessions in its column. A file or a session opens
   as its own page, and Back or the crumbs return.**
 
-  [No tabs](mockups/tabs-c-none.html)
+  No tabs (`mockups/tabs-c-none.html`, deleted)
 
   - [pro] the least work, and nothing new to learn.
   - [con] moving between the spec and the session goes back through Home.
@@ -132,7 +133,7 @@ most.
 - **A (recommended). Next, then a vertical timeline: each stage with its times, its files, and, for
   the build, its tasks.**
 
-  [Timeline](mockups/home-a-timeline.html)
+  Timeline (`mockups/home-a-timeline.html`, deleted)
 
   - [pro] each file sits in the stage that made it, so the timeline is also the file list.
   - [con] a long feature's timeline runs past the screen's height.
@@ -141,7 +142,7 @@ most.
 - **B. A horizontal process plan with your gates marked, then Next, then the files and a feed of
   what happened, side by side.**
 
-  [Process plan](mockups/home-b-process.html)
+  Process plan (`mockups/home-b-process.html`, deleted)
 
   - [pro] the whole process fits one line, gates included, as the blueprint drew it.
   - [con] the feed is new data to build, and the plan turns into a column on the phone.
@@ -149,7 +150,7 @@ most.
 - **C. Today's parts in panes: the stages as a row, Next beside the agent, the figures as tiles, and
   the files.**
 
-  [Panes](mockups/home-c-panes.html)
+  Panes (`mockups/home-c-panes.html`, deleted)
 
   - [pro] the closest to today, so the least to build.
   - [con] the files stay a plain list, apart from the stages that made them.
