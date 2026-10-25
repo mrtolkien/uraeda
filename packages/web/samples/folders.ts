@@ -10,6 +10,8 @@ export const FEATURE_PAGES = {
   working: "2026-10-17-redesign-clarifications",
   /** Its spec waiting for review. */
   waiting: "2026-10-17-recurring-reminders",
+  /** Its spec approved, no agent working: "Next" offers the plan, with agent time already counted. */
+  idle: "2026-10-17-snooze-times",
   /** Its spec's status unreadable, "aproved": the workflow cannot go on. */
   blocked: "2026-10-17-due-dates",
   /** Finished on its branch, its pull request #31 open once `gh` lists it. */

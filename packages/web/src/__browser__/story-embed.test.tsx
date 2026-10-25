@@ -189,24 +189,24 @@ describe("on a desktop, the embed's sizes", () => {
     expect(await within(embed()).findByRole("button", { name: "Full screen" })).toBeTruthy();
   });
 
-  test("in a document's column, the embed grows into the empty space beside it", async () => {
+  // R15: a document's sections are panes, so the embed fills its pane instead of growing past it.
+  test("in a document's pane, the embed fills the pane and stays inside it", async () => {
     // A window wide enough for empty space beside the column whatever the fonts, which size it.
     await page.viewport(1920, 1080);
     try {
       await commands.addStoryFeature();
-      // The proposal, whose column holds its text and the embed, outside any pane.
+      // The proposal, whose sections are panes, the embed in one.
       await show(PROPOSAL, "Long feature names are cut");
       embed().scrollIntoView({ block: "center" });
       await storyShown(DESKTOP);
-      const column = embed().parentElement!.getBoundingClientRect();
-
-      await expect.poll(() => embed().getBoundingClientRect().width).toBeGreaterThan(column.width);
-      const grown = embed().getBoundingClientRect();
-      expect(grown.width).toBeLessThanOrEqual(1440 + 34);
-      // Never past the page's own inset, nor over the sidebar.
+      const pane = embed().closest("section")!.getBoundingClientRect();
+      const shown = embed().getBoundingClientRect();
+      expect(shown.width).toBeGreaterThan(pane.width / 2);
+      expect(shown.left).toBeGreaterThanOrEqual(pane.left);
+      expect(shown.right).toBeLessThanOrEqual(pane.right);
+      // Never over the sidebar.
       const sidebar = screen.getAllByRole("link", { name: "Home" })[0]!.getBoundingClientRect();
-      expect(grown.left).toBeGreaterThan(sidebar.right);
-      expect(grown.right).toBeLessThanOrEqual(window.innerWidth);
+      expect(shown.left).toBeGreaterThan(sidebar.right);
     } finally {
       await page.viewport(1440, 900);
     }

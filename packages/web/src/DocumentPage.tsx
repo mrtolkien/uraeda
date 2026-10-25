@@ -6,6 +6,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { VStack } from "@astryxdesign/core/VStack";
+import * as stylex from "@stylexjs/stylex";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import type { useFile } from "./data.ts";
@@ -24,6 +25,11 @@ import { Contents } from "./spec/SpecContents.tsx";
 import { Spans } from "./Spans.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
+
+const styles = stylex.create({
+  // The title wraps beside it, and "Edit" keeps its whole word on a phone.
+  edit: { flexShrink: 0 },
+});
 
 /**
  * A workflow file, drawn from the core's document tree, in panes: a document with no `##` section
@@ -55,7 +61,11 @@ export function DocumentPage({ file }: { file: File }) {
             </Selectable>
           )}
           {file.kind === "proposal" && (
-            <Button label="Edit" onClick={() => navigate(here(`/edit/${file.path}`))} />
+            <Button
+              label="Edit"
+              onClick={() => navigate(here(`/edit/${file.path}`))}
+              xstyle={styles.edit}
+            />
           )}
         </HStack>
         {sections.length === 0 ? (

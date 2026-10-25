@@ -95,5 +95,5 @@ test("a pane's suffix reads after its title, outside the region's name", () => {
 
   const pane = screen.getByRole("region", { name: "live · today" });
   const heading = within(pane).getByRole("heading");
-  expect(heading.textContent).toBe("live · today· 1440 × 900 · 49%");
+  expect(heading.textContent).toBe("live · today · 1440 × 900 · 49%");
 });

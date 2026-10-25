@@ -249,7 +249,7 @@ test("the record shows in place, its questions folded", async () => {
   expect(screen.getByRole("heading", { name: "Behaviour" })).toBeTruthy();
   expect(screen.getByRole("heading", { name: "Follow-ups" })).toBeTruthy();
   expect(screen.getByText("Keyboard navigation, left for later.")).toBeTruthy();
-  const questions = screen.getByRole("button", { name: "Questions · 10" });
+  const questions = screen.getByRole("button", { name: /^Questions · 10/ });
   expect(questions.getAttribute("aria-expanded")).toBe("false");
   // Its pane's title holds the button, and says how many rounds the count is of.
   expect(within(region("Questions")).getByRole("button")).toBe(questions);
@@ -308,7 +308,7 @@ test("a done feature without a round or a decision shows its six figures", async
     .getAllByRole("group")
     .map((group) => group.getAttribute("aria-label"));
   expect(labels).toEqual(["total time", "lines", "tokens", "agent time", "questions", "decisions"]);
-  expect(figure("questions")).toBe("questions0no round");
+  expect(figure("questions")).toBe("questions0 no round");
   expect(figure("decisions")).toContain("0");
   // Nothing to open at zero: plain cards.
   expect(produced().queryByRole("link", { name: /^questions/ })).toBeNull();
@@ -322,12 +322,12 @@ test("the questions opened stay open across Back", async () => {
 
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
-  await click(await screen.findByRole("button", { name: "Questions · 10" }));
+  await click(await screen.findByRole("button", { name: /^Questions · 10/ }));
   await click(within(stage("Merged")).getByRole("link", { name: "Record" }));
   await waitFor(() => expect(location.pathname).toContain(`/f/${DONE}/${DONE}.md`));
   await act(async () => window.history.back());
 
-  const questions = await screen.findByRole("button", { name: "Questions · 10" });
+  const questions = await screen.findByRole("button", { name: /^Questions · 10/ });
   expect(questions.getAttribute("aria-expanded")).toBe("true");
 });
 
@@ -344,12 +344,12 @@ test("a fold opened after a figure's jump stays open across Back", async () => {
   await screen.findByRole("region", { name: "Decisions" });
   await click(produced().getByRole("link", { name: /^decisions/ }));
   expect((window.history.state as { id?: string } | null)?.id).toBe("opened");
-  await click(screen.getByRole("button", { name: "Questions · 10" }));
+  await click(screen.getByRole("button", { name: /^Questions · 10/ }));
   await click(within(stage("Merged")).getByRole("link", { name: "Record" }));
   await waitFor(() => expect(location.pathname).toContain(`/f/${DONE}/${DONE}.md`));
   await act(async () => window.history.back());
 
-  const questions = await screen.findByRole("button", { name: "Questions · 10" });
+  const questions = await screen.findByRole("button", { name: /^Questions · 10/ });
   expect(questions.getAttribute("aria-expanded")).toBe("true");
 });
 
@@ -360,7 +360,7 @@ test("Questions opens the questions", async () => {
 
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
-  const fold = await screen.findByRole("button", { name: "Questions · 10" });
+  const fold = await screen.findByRole("button", { name: /^Questions · 10/ });
   await click(produced().getByRole("link", { name: /^questions/ }));
   expect(fold.getAttribute("aria-expanded")).toBe("true");
 });

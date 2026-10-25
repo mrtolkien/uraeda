@@ -2,9 +2,16 @@
 // request. Mockups sit in the timeline, and stories in the sentences that name them.
 import { Code } from "@astryxdesign/core/Code";
 import { Link } from "@astryxdesign/core/Link";
+import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
+import * as stylex from "@stylexjs/stylex";
 import { Pane } from "../layout/Pane.tsx";
 import { FactRow } from "./ProducedPane.tsx";
+
+const styles = stylex.create({
+  // As tall as a control: a finger's 44 px under a coarse pointer.
+  link: { alignItems: "center", display: "inline-flex", minHeight: sizeVars["--size-element-sm"] },
+});
 
 /** What the links read of the feature. */
 export type LinksFeature = {
@@ -40,6 +47,7 @@ export function LinksPane({ feature }: { feature: LinksFeature }) {
               href={pullRequest.url}
               rel="noopener noreferrer"
               target="_blank"
+              xstyle={styles.link}
             >
               #{pullRequest.number} ↗
             </Link>

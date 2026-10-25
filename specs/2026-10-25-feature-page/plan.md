@@ -1076,7 +1076,7 @@ git commit -m "feat(feature-page): assemble the Home in panes"
 - Produces: stories with the real components (the plan's stories hold what the spec's HTML mockup
   drew); the SC-003 and SC-004 checks.
 
-- [ ] **Step 1: Write the failing browser tests**
+- [x] **Step 1: Write the failing browser tests**
 
 ```tsx
 test.each([1440, 1205, 390])(
@@ -1095,7 +1095,7 @@ governs, extended to the Home and a proposal page, in both themes.
 - Run: `nix develop -c vp run browser:desktop`
 - Expected: FAIL, no story or sample for the new states yet
 
-- [ ] **Step 3: Write the stories and samples, take the screenshots, review them, fix what they
+- [x] **Step 3: Write the stories and samples, take the screenshots, review them, fix what they
       show**
 
 - [ ] **Step 4: Run the complete validation**
@@ -1103,7 +1103,7 @@ governs, extended to the Home and a proposal page, in both themes.
 - Run: `nix develop -c vp run ready`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web specs/2026-10-25-feature-page/screenshots

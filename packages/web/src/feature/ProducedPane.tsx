@@ -23,7 +23,7 @@ const styles = stylex.create({
     justifyContent: "space-between",
     rowGap: spacingVars["--spacing-0-5"],
   },
-  value: { alignItems: "flex-end", display: "flex", flexDirection: "column", textAlign: "end" },
+  value: { alignItems: "flex-end", display: "flex", flexDirection: "column", textAlign: "start" },
 });
 
 const COUNT = new Intl.NumberFormat("en-US");
@@ -102,7 +102,9 @@ function Figure({ row }: { row: FigureRow }) {
     <span {...stylex.props(styles.value)}>
       <Value value={row.value} />
       {row.caption && (
+        // The space keeps the value and its caption two words in the link's text, as its name has them.
         <Text color="secondary" type="supporting">
+          {" "}
           {row.caption}
         </Text>
       )}

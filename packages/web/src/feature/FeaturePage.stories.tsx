@@ -2,6 +2,7 @@
 // `samples/features.ts` builds, one per state: their data comes from Uraeda's server in
 // Storybook, through fate, their stages timed from their commits, in the browser's time zone.
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { userEvent, within } from "storybook/test";
 import { FEATURE_PAGES } from "../../.storybook/checkouts.ts";
 import { inRepositoryFolder } from "../../.storybook/inRepositoryFolder.tsx";
 import { FeaturePage } from "./FeaturePage.tsx";
@@ -24,6 +25,12 @@ type Story = StoryObj<typeof meta>;
  */
 export const Working: Story = {};
 
+/**
+ * The spec is approved and no agent works: "Next" offers the plan with its one button, and the
+ * column's figures count the agent's time over the feature's two runs.
+ */
+export const Idle: Story = { args: { folder: FEATURE_PAGES.idle } };
+
 /** The spec waits for your review: "Next" holds its one button, the agent idle beside it. */
 export const WaitingOnYou: Story = { args: { folder: FEATURE_PAGES.waiting } };
 
@@ -45,3 +52,19 @@ export const Done: Story = { args: { folder: FEATURE_PAGES.done } };
 
 /** A change, merged: its own stages, without questions, and its record in place. */
 export const DoneChange: Story = { args: { folder: FEATURE_PAGES.doneChange } };
+
+/** The feature's "…" open: Rename, and Drop behind its confirmation. */
+export const MenuOpen: Story = {
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    await userEvent.click(await page.findByRole("button", { name: "Feature actions" }));
+  },
+};
+
+/** The column folded to its rail of icons by `]`, the page taking the room. */
+export const ColumnFolded: Story = {
+  play: async ({ canvasElement }) => {
+    await within(canvasElement).findByRole("region", { name: "Next" });
+    await userEvent.keyboard("]");
+  },
+};

@@ -171,3 +171,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   information two ways.
 - **If wrong**: unpad the minutes in `duration`, and update the scenarios that quote it.
 - **Where**: tasks 7 and 8; `feature/times.ts`.
+
+## R15: A story's embed in a document fills its pane, and the browser run's old failures are reported
+
+- **Decision**: the browser test "in a document's column, the embed grows into the empty space
+  beside it" becomes "in a document's pane, the embed fills the pane and stays inside it". A fold's
+  name now includes its text suffix ("Questions · 10 in 1 round"), the pane's words are kept apart
+  by spaces (so a link's or button's name holds its visible text), the timeline's file links and the
+  pull request link are as tall as a control on a phone, a session's task bar drops its count (it
+  ran into the label), and a proposal's "Edit" keeps its word on a phone.
+- **Rationale**: the spec draws a document's sections as panes (task 2), and an embed in a pane
+  cannot pass the pane's border without covering it; the old test measured an embed outside any
+  pane. A link's name that does not contain its visible text fails the accessibility check.
+- **Alternatives considered**: letting the embed pass its pane's border: rejected, it would cover
+  the border the terminal look draws.
+- **If wrong**: restore the growth in `StoryEmbed` and the old test; the embed then overlaps panes.
+- **Where**: task 9.
