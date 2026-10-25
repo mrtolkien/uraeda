@@ -8,7 +8,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type KeyboardEvent, useRef } from "react";
+import { type KeyboardEvent, useId, useRef } from "react";
 import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { proseStyles } from "./Prose.tsx";
@@ -146,6 +146,7 @@ function moved(key: string, index: number): number | undefined {
 export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewKind) => void }) {
   const narrow = isNarrow(useWidthClass());
   const cards = useRef<Array<HTMLDivElement | null>>([]);
+  const bodies = useId();
   const keyDown = (event: KeyboardEvent, index: number) => {
     // A key with a modifier is the browser's or the system's, as Alt+Left is Back.
     if (event.altKey || event.ctrlKey || event.metaKey) {
@@ -175,6 +176,9 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
         return (
           <div
             aria-checked={isPicked}
+            // A radio's content is presentational: its name is the card's, and its body, the
+            // sentence, example, and facts, is read as its description.
+            aria-describedby={`${bodies}-${card.kind}`}
             aria-label={card.name}
             key={card.kind}
             onClick={() => onPick(card.kind)}
@@ -187,7 +191,7 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
             {...stylex.props(styles.card, focusOutlineStyles.focusVisible)}
           >
             <Pane icon={card.icon} isActive={isPicked} isGroup title={card.name}>
-              <div {...stylex.props(styles.body)}>
+              <div id={`${bodies}-${card.kind}`} {...stylex.props(styles.body)}>
                 <div {...stylex.props(proseStyles.reading)}>{card.sentence}</div>
                 {!narrow && <Text color="secondary">{card.example}</Text>}
                 <dl {...stylex.props(styles.facts)}>

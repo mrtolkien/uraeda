@@ -137,6 +137,22 @@ test("US5.3: each card says what it ends with and what waits on you", async () =
   ]);
 });
 
+/** A radio's content is presentational: the card's body is its description, read with its name. */
+test("each card's sentence and facts are its radio's description", async () => {
+  await renderPage("/new", fixtureRepo());
+  await screen.findByRole("radiogroup", { name: "What to start" });
+
+  expect(
+    screen.getByRole("radio", { description: /Ends with ?a pull request/, name: "Change" }),
+  ).toBe(card("Change"));
+  expect(
+    screen.getByRole("radio", {
+      description: /Ends with ?a spec, then a pull request/,
+      name: "Feature",
+    }),
+  ).toBe(card("Feature"));
+});
+
 /** US5, each card's sentence and example. */
 test("each card has its sentence and its example", async () => {
   await renderPage("/new", fixtureRepo());
