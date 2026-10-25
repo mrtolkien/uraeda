@@ -4,12 +4,17 @@
 // at semi-wide, so the chat keeps the weight (approval comment C2, ruling R9), its fold and dragged
 // width the documents'. A recap line's address, `?tab=activity&stretch=<turn>:<seq>`, unfolds it at
 // the Activity. On the phone, the status line's Activity, Changes, and progress instead, the first
-// two opening the column's split in a sheet kept in the address (`useSheetTab`, ruling R3).
+// two opening the column's split in a sheet kept in the address (`useSheetTab`, ruling R3). While
+// the main agent runs sub-agents, or while the address opens it, a Sub-agents panel over the Changes
+// joins it (US3), and its sheet on the phone, which a reload or a width change keeps.
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
-import { type ReactNode, useEffect } from "react";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
+import { type ReactNode, useEffect, useMemo } from "react";
+import { useFateClient, useView } from "react-fate";
+import type { Session } from "uraeda-server/fate";
 import { ColumnStatusLine } from "../layout/ColumnStatusLine.tsx";
-import { type ColumnPanel, DocumentColumn } from "../layout/DocumentColumn.tsx";
+import { type ColumnPanel, DocumentColumn, useAskedTab } from "../layout/DocumentColumn.tsx";
 import { useSessionColumnWidth } from "../layout/documentColumnWidth.ts";
 import { splitPanel } from "../layout/SplitPanel.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
@@ -21,18 +26,36 @@ import { ChangesPanel, fileCount } from "./ChangesPanel.tsx";
 import { PlanProgress, ProgressChip } from "./PlanProgress.tsx";
 import { Section } from "./Section.tsx";
 import { STRETCH_PARAMETER } from "./stretches.ts";
+import { SubagentsPanel, topLevel } from "./SubagentsPanel.tsx";
+import { SessionView } from "../views.ts";
 
-/** The phone's sheet of the column, by its tab's key. */
-const SHEETS = { activity: "Activity" } as const;
+/** The key of the Sub-agents panel, its tab's in the address. */
+const SUBAGENTS = "subagents";
 
 /** What the session's column draws from: the feature's or the change's folder, and the session. */
 type Of = { folder?: string | undefined; session?: string | undefined };
 
+/** "2 running", its number shown, its word read out after it. */
+function RunningCount({ count }: { count: number }) {
+  return (
+    <>
+      {count}
+      <VisuallyHidden> running</VisuallyHidden>
+    </>
+  );
+}
+
 /**
- * The session column's panels: the Activity over the Changes, a split shown as the Activity's tab.
- * A panel shown while the session needs it, as its sub-agents', is added here.
+ * The session column's panels: the Activity over the Changes, a split shown as the Activity's tab;
+ * then, while the main agent runs `running` sub-agents or the address's tab, `asked`, is theirs,
+ * the Sub-agents over the Changes, its tab counting them.
  */
-export function sessionPanels({ folder, session }: Of): Array<ColumnPanel> {
+export function sessionPanels({
+  asked = null,
+  folder,
+  running = 0,
+  session,
+}: Of & { asked?: string | null; running?: number }): Array<ColumnPanel> {
   const activity: ColumnPanel = {
     // Before its first message, the session has no call.
     content: session === undefined ? <NoCall /> : <ActivityPanel session={session} />,
@@ -51,7 +74,32 @@ export function sessionPanels({ folder, session }: Of): Array<ColumnPanel> {
     key: "changes",
     label: "Changes",
   };
-  return [splitPanel(activity, changes)];
+  if (running === 0 && asked !== SUBAGENTS) {
+    return [splitPanel(activity, changes)];
+  }
+  const subagents: ColumnPanel = {
+    ...(running === 0 ? {} : { badge: <RunningCount count={running} /> }),
+    content: <SubagentsPanel session={session} />,
+    icon: "uraeda:users",
+    key: SUBAGENTS,
+    label: "Sub-agents",
+  };
+  return [splitPanel(activity, changes), splitPanel(subagents, changes)];
+}
+
+/**
+ * How many sub-agents the main agent of the session `session` runs, from its record as the page
+ * read it, which this read shares: none before it exists.
+ */
+function useRunningSubagents(session: string | undefined): number {
+  const fate = useFateClient();
+  // The reference's identity is the view's subscription: one per session.
+  const ref = useMemo(
+    () => (session === undefined ? undefined : fate.ref<Session>("Session", session, SessionView)),
+    [fate, session],
+  );
+  const record = useView(SessionView, ref);
+  return topLevel(record?.subagents ?? []).length;
 }
 
 /**
@@ -79,10 +127,12 @@ function SessionChanges({ onOpen, session }: { onOpen: () => void; session: stri
 /**
  * On the phone, the column outside the page: the status line's Activity and Changes, each opening
  * the column's split in the sheet `activity`, and the plan's progress, opening the plan at its
- * task.
+ * task. Each of `panels` is a sheet the address may open, as a reload or a width change does.
  */
-function PhoneParts({ folder, panel, session }: Of & { panel: ReactNode }) {
-  const sheet = useSheetTab(SHEETS, true);
+function PhoneParts({ folder, panels, session }: Of & { panels: ReadonlyArray<ColumnPanel> }) {
+  // A sheet for each panel, by its tab's key: the Sub-agents' too, while its tab shows.
+  const sheets = Object.fromEntries(panels.map((panel) => [panel.key, panel.label]));
+  const sheet = useSheetTab(sheets, true);
   const [, setSheet] = sheet;
   const open = () => setSheet("activity");
   const buttons = (
@@ -112,7 +162,7 @@ function PhoneParts({ folder, panel, session }: Of & { panel: ReactNode }) {
     <ColumnStatusLine
       buttons={buttons}
       sheet={sheet}
-      sheets={[{ key: "activity", label: SHEETS.activity, panel }]}
+      sheets={panels.map(({ content, key, label }) => ({ key, label, panel: content }))}
     />
   );
 }
@@ -139,7 +189,12 @@ export function SessionColumn({ content, folder, session }: Of & { content: Reac
   const column = useSessionColumnWidth();
   const wide = !isNarrow(useWidthClass());
   useStretchUnfolds(column.setShown);
-  const panels = sessionPanels({ folder, session });
+  const panels = sessionPanels({
+    asked: useAskedTab(),
+    folder,
+    running: useRunningSubagents(session),
+    session,
+  });
   return (
     <>
       <DocumentColumn
@@ -155,7 +210,7 @@ export function SessionColumn({ content, folder, session }: Of & { content: Reac
         label="The session's column"
         panels={panels}
       />
-      {!wide && <PhoneParts folder={folder} panel={panels[0]!.content} session={session} />}
+      {!wide && <PhoneParts folder={folder} panels={panels} session={session} />}
     </>
   );
 }

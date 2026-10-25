@@ -64,7 +64,7 @@ import {
 } from "./lucide.ts";
 import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
 import { badgeCheck, hourglass, lightbulb, map, scale, shield } from "./lucideParts.ts";
-import { filePenLine, gitCompare, listChecks } from "./sessionIcons.ts";
+import { filePenLine, gitCompare, listChecks, users } from "./sessionIcons.ts";
 import { arrowRightLeft, brain, trash } from "./activityIcons.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
@@ -241,6 +241,7 @@ export const uraedaIcons = {
   "uraeda:terminal": terminal,
   "uraeda:trash": trash,
   "uraeda:triangle-alert": triangleAlert,
+  "uraeda:users": users,
   "uraeda:workflow": workflow,
   "uraeda:wrench": wrench,
   ...Object.fromEntries(

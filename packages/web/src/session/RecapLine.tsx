@@ -264,8 +264,8 @@ export function EarlierRecap({
   );
 }
 
-/** The time now, again each second. */
-function useNow() {
+/** The time now, again each second: of the live line, and the running sub-agents' rows. */
+export function useNow() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);

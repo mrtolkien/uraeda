@@ -1194,7 +1194,7 @@ git commit -m "feat(session-new): the Activity, by run, bounded to 200 rows"
   `splitPanel(subagents, changes)`, shown while `session.subagents` lists one whose `parent` is
   null, or while the address's `?tab=` is `subagents`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // __tests__/session-subagents.test.tsx
@@ -1202,12 +1202,12 @@ test("US3.1: a run with no sub-agent has the Activity tab alone", …);
 test("US3.2: two running sub-agents, their calls, what they do, and since when", async () => {
   // "Research rrule's undo of an occurrence", 6 calls, the last fetching
   // github.com/jkbrzt/rrule/issues/412, started 1 min ago; "Find every caller of complete()",
-  // 3 calls, the last searching "complete(", started 20 s ago
+  // 3 calls, the last searching complete(, started 20 s ago
   await click(tab("Sub-agents"));
   expect(rowText("Research rrule's undo of an occurrence"))
     .toContain("6 calls · fetching github.com/jkbrzt/rrule/issues/412");
   expect(rowText("Research rrule's undo of an occurrence")).toContain("1 min");
-  expect(rowText("Find every caller of complete()")).toContain('3 calls · searching "complete("');
+  expect(rowText("Find every caller of complete()")).toContain("3 calls · searching complete(");
 });
 test("US3.3: once the last ends, each is marked done, and the tab stays until left", …);
 test("edge: a sub-agent's own sub-agent is not listed", …);
@@ -1220,24 +1220,29 @@ The break each test catches:
 - US3.3: the tab vanishing under the human, or sub-agents still marked running.
 - Nested: a nested sub-agent listed as one of the session's.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test run packages/web/src/__tests__/session-subagents.test.tsx`
-- Expected: FAIL, `Unable to find role="tab" and name "Sub-agents"`.
+- Expected: FAIL, `Unable to find role="tab" and name "Sub-agents"`, for all but US3.1, which passes
+  already: it guards against a tab always shown.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Rows: the description, then "<calls> calls · <doingText(latest)>", then the time since `startedAt`
-ticking each second, with a status mark "Working". The panel keeps the rows it drew while the tab is
-open: a sub-agent gone from the record is marked "Done", its time frozen (ruling R10). A nested
-sub-agent, one whose `parent` is not null, is left out of the tab and of its badge's count.
+ticking each second, with a status mark "Working". A search's pattern reads as the target the server
+stores, unquoted, as `doingText` says it on the live line: the mockup's quotes would be a change of
+`stretches.ts`'s words for every line. The panel keeps the rows it drew while the tab is open: a
+sub-agent gone from the record is marked "Done", its time frozen (ruling R10). A nested sub-agent,
+one whose `parent` is not null, is left out of the tab and of its badge's count. On the phone, each
+panel is a sheet the address may open, so a reload or a width change keeps the Sub-agents open; the
+status line gains no button, as in the mockup.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-25-session-new/plan.md
