@@ -3,7 +3,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { commitsAt, type DatedCommit } from "uraeda-binding/test-utils";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
-import { click, type Fake, fakeAgent, fixtureRepo, git, renderPage } from "./helpers.tsx";
+import { atWidth, click, type Fake, fakeAgent, fixtureRepo, git, renderPage } from "./helpers.tsx";
 
 const CLI = "2026-10-12-cli-tuis";
 const DONE = "2026-10-17-clarity";
@@ -261,6 +261,26 @@ test("the record shows in place, its questions folded", async () => {
   // The record's file is the Merged stage's link, not a link of the record.
   expect(screen.queryByRole("link", { name: "Open the record file" })).toBeNull();
   expect(within(stage("Merged")).getByRole("link", { name: "Record" })).toBeTruthy();
+});
+
+/** US3.2: on the phone, a done feature's record comes before what it produced */
+test("on the phone, a done feature's produced figures follow its record", async () => {
+  atWidth(402);
+  const repo = fixtureRepo();
+  doneFeature(repo);
+
+  await renderPage(`/f/${DONE}`, repo, { agent: true });
+
+  const record = await screen.findByRole("heading", { name: "Follow-ups" });
+  const stages = screen.getByRole("list", { name: "Stages" });
+  expect(Boolean(stages.compareDocumentPosition(record) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(
+    true,
+  );
+  expect(
+    Boolean(
+      record.compareDocumentPosition(region("What it produced")) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ),
+  ).toBe(true);
 });
 
 /** US2: a feature's questions and decisions shown at zero */
