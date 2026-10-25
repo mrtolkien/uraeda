@@ -12,7 +12,7 @@ import { readPriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Overlay } from "./layout/Overlay.tsx";
 import { useUndoToast } from "./layout/useUndoToast.ts";
-import { type Added, AddForm, TITLES } from "./QuickAdd.tsx";
+import { type Added, AddForm, titleOf } from "./QuickAdd.tsx";
 import { useRoute } from "./routes.tsx";
 import { InboxView, PrioritiesView } from "./views.ts";
 
@@ -82,7 +82,7 @@ function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
 
   const added = (section: string, line: Added | undefined) => {
     onClose();
-    const title = TITLES.get(section);
+    const title = titleOf(section);
     if (line?.committed) {
       const { hash } = line.committed;
       toast(`Added to ${title} and committed`, () => undoCommitted(fate, line, hash), true);

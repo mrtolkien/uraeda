@@ -22,9 +22,6 @@ const styles = stylex.create({
   trigger: { opacity: "var(--menu-opacity, 1)" },
 });
 
-/** The sections a line moves to: Blocked is retired, so it is no target. */
-const TARGETS = [...TITLES].filter(([id]) => id !== "blocked");
-
 /** What `…` opens: `items` under `label`, as a popover, or a bottom sheet on a narrow screen. */
 export function CardMenu({
   items,
@@ -110,10 +107,12 @@ export function PriorityMenu({
   return (
     <CardMenu
       items={[
-        ...TARGETS.filter(([id]) => id !== section.section).map(([id, title]) => ({
-          label: `Move to ${title}`,
-          onClick: () => go(actions.moveTo(id, Number.MAX_SAFE_INTEGER).then(onRefused)),
-        })),
+        ...[...TITLES]
+          .filter(([id]) => id !== section.section)
+          .map(([id, title]) => ({
+            label: `Move to ${title}`,
+            onClick: () => go(actions.moveTo(id, Number.MAX_SAFE_INTEGER).then(onRefused)),
+          })),
         { isDisabled: !place.up, label: "Move up", onClick: within("up") },
         { isDisabled: !place.down, label: "Move down", onClick: within("down") },
         { isDisabled: !place.up, label: "To the top", onClick: within("top") },
@@ -171,7 +170,7 @@ export function NoteMenu({
     <CardMenu
       items={[
         {
-          items: TARGETS.map(([id, title]) => ({
+          items: [...TITLES].map(([id, title]) => ({
             label: title,
             onClick: () => go(actions.toPriorities(id)),
           })),
@@ -187,7 +186,7 @@ export function NoteMenu({
         ...(note.draft === undefined
           ? [
               {
-                items: TARGETS.map(([id, title]) => ({
+                items: [...TITLES].map(([id, title]) => ({
                   label: title,
                   onClick: () => go(actions.toNewDraft(id)),
                 })),

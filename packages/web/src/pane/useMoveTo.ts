@@ -3,7 +3,7 @@
 import { useFateClient } from "react-fate";
 import { refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
-import { TITLES } from "../QuickAdd.tsx";
+import { titleOf } from "../QuickAdd.tsx";
 import { plain } from "../Spans.tsx";
 import { PrioritiesView } from "../views.ts";
 import type { Found } from "./usePriorityActions.ts";
@@ -36,7 +36,7 @@ export function useMoveTo(
     const text = plain(entry.spans);
     const failed = `Could not move "${text}" back: PRIORITIES.md changed on disk.`;
     if (moved !== undefined && result.result) {
-      toast(`Moved "${text}" to ${TITLES.get(to) ?? to}`, async () => {
+      toast(`Moved "${text}" to ${titleOf(to)}`, async () => {
         try {
           // Over the file as the move left it: a changed file refuses, as an id is a place.
           const back = await fate.mutations.priorities.move({
