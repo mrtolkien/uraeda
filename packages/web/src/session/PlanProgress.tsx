@@ -32,6 +32,8 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-4"],
     textDecoration: "none",
   },
+  // The label's count, "task 3 of 7", whole on a line: the label wraps before it.
+  count: { whiteSpace: "nowrap" },
   // The label, then the task's title beside it, apart at the row's ends; in a column narrower than
   // a document's, as the session's at semi-wide, the title under the label, so neither wraps in a
   // sliver of the row.
@@ -49,11 +51,15 @@ const styles = stylex.create({
 
 /** The plan's current task, as the progress draws it. */
 type PlanTask = {
+  /** "task 3 of 7". */
+  count: string;
   /** The plan's page, at the task's heading. */
   href: string;
   /** "Implementation · task 3 of 7". */
   label: string;
   position: number;
+  /** "Implementation". */
+  step: string;
   title: string;
   total: number;
 };
@@ -65,10 +71,14 @@ function usePlanTask(folder: string): PlanTask | undefined {
   if (!feature || feature.missing || !progress) {
     return undefined;
   }
+  const step = stepLabel(feature.step.name);
+  const count = `task ${progress.position} of ${progress.total}`;
   return {
+    count,
     href: `/f/${folder}/plan.md`,
-    label: `${stepLabel(feature.step.name)} · task ${progress.position} of ${progress.total}`,
+    label: `${step} · ${count}`,
     position: progress.position,
+    step,
     title: progress.title,
     total: progress.total,
   };
@@ -130,7 +140,10 @@ function Bar({ anchor, task }: { anchor: string; task: PlanTask }) {
   return (
     <Link href={here(`${task.href}${anchor}`)} type="inherit" xstyle={styles.progress}>
       <span {...stylex.props(styles.row)}>
-        <Text>{task.label}</Text>
+        <Text>
+          {`${task.step} · `}
+          <span {...stylex.props(styles.count)}>{task.count}</span>
+        </Text>
         <Text color="secondary" type="supporting" xstyle={styles.title}>
           {task.title}
         </Text>

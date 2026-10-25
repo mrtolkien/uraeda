@@ -284,10 +284,14 @@ describe("on a desktop, at 1000 px", () => {
 
   test("the plan's progress stacks its task's title under its label, side by side when wide", async () => {
     await session();
-    // The link's first words: the bar under it says them again, hidden.
-    const label = () => within(column()).getAllByText(/^Implementation · task \d+ of \d+$/)[0]!;
+    // The link's first words, whole: the bar under it says them again, hidden.
+    const words = /^Implementation · task \d+ of \d+$/;
+    const whole = (_: string, element: Element | null) =>
+      words.test(element?.textContent ?? "") &&
+      ![...element!.children].some((child) => words.test(child.textContent ?? ""));
+    const label = () => within(column()).getAllByText(whole)[0]!;
     const title = () => label().nextElementSibling!;
-    await within(column()).findAllByText(/^Implementation · task \d+ of \d+$/, undefined, LIVE);
+    await within(column()).findAllByText(whole, undefined, LIVE);
     expect(title().getBoundingClientRect().left).toBeGreaterThan(
       label().getBoundingClientRect().right,
     );
@@ -297,6 +301,17 @@ describe("on a desktop, at 1000 px", () => {
       const below = title().getBoundingClientRect();
       expect(below.top).toBeGreaterThanOrEqual(label().getBoundingClientRect().bottom);
       expect(Math.round(below.left)).toBe(Math.round(label().getBoundingClientRect().left));
+      // The label wraps before its count, never inside it: "task 7 of 11" on one line.
+      const walker = document.createTreeWalker(label(), NodeFilter.SHOW_TEXT);
+      const range = document.createRange();
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const at = node.textContent!.indexOf("task");
+        if (at >= 0) {
+          range.setStart(node, at);
+          range.setEnd(node, node.textContent!.length);
+        }
+      }
+      expect(new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size).toBe(1);
     });
   });
 
