@@ -197,3 +197,36 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: A pixel width: not the font's.
 - **If wrong**: Two tokens and one style.
 - **Where**: task 6.
+
+## R16: The menu is a DropdownMenu, its note choices are submenus, and a running card offers Open
+
+- **Decision**: `CardMenu` draws Astryx's `DropdownMenu` with an icon button, not `MoreMenu`, whose
+  `xstyle` styles the menu and not its button. A note's Move to a priority, Add to a draft, Make a
+  draft (in Now, Next, or Later), and Category are submenus (a drill-in sheet on the phone), where
+  the pane has a selector or a button per choice; the targets are Now, Next, and Later, as Blocked
+  is retired. A priority's moves are "Move to" the other sections, Move up and down, To the top and
+  To the bottom, the last four disabled when they would change nothing on screen. Make a draft and
+  Start show only for a line with no draft and no link, as the pane does. A running card's menu
+  holds one item, Open, to its feature, so its `…` is not empty; it has no move and no Delete. A
+  move of a priority from the menu shows a toast with Undo (`moveTo`, in `useMoveTo`), which the
+  pane's section control does not.
+- **Rationale**: The button must show its own opacity while the menu is open and the pointer left
+  the card, which needs the trigger's own style. The spec asks for an Undo on Move to Now. The
+  drafts' titles are read once the first note menu opens.
+- **Alternatives considered**: A selector inside the menu, which Astryx's menu does not hold.
+- **If wrong**: One file, `lists/CardMenu.tsx`.
+- **Where**: task 7.
+
+## R17: `fileIndex` lives in `cardMoves.ts`, and the press-on-`…` test checks the outcome
+
+- **Decision**: `fileIndex` moved from `PrioritiesList.tsx` to `lists/cardMoves.ts` (the list
+  imports it), so the menu and the drag share it without an import cycle. `(hover: none)` is true in
+  the phone project (WebKit with a touch screen), so its test reads the real button's opacity. The
+  test that a press on `…` never drags checks the outcome (the press is on the button, a drag from
+  it writes nothing, and a drag from the card's text opens no menu). It also passes with
+  `preventActivation` removed, so it cannot tell the guard's own effect: Astryx's trigger already
+  keeps a held press from reaching the sensor.
+- **Rationale**: A cycle `PrioritiesList` to `CardMenu` to `cardMoves` to `PrioritiesList`.
+- **Alternatives considered**: A test of dnd-kit's sensor alone: it would assert its internals.
+- **If wrong**: Move `fileIndex` back and import it in `cardMoves.ts`.
+- **Where**: task 7.

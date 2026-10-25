@@ -5,11 +5,12 @@ import { useFateClient } from "react-fate";
 import { readPrioritiesHash, usePriority } from "../data.ts";
 import { refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
-import { currentEntry, navigate, parseLocation, redirect, useRepoPath } from "../routes.tsx";
+import { currentEntry, parseLocation, redirect, useRepoPath } from "../routes.tsx";
 import { closeDetail } from "./DetailOverlay.tsx";
 import { plain } from "../Spans.tsx";
-import { useStartChange } from "./useStartChange.ts";
-import { DraftView, PrioritiesView } from "../views.ts";
+import { useMoveTo } from "./useMoveTo.ts";
+import { useDraft, useStartChange } from "./useStartChange.ts";
+import { PrioritiesView } from "../views.ts";
 
 /** A line found in the priorities, with its section and its place in it. */
 export type Found = NonNullable<ReturnType<typeof usePriority>["found"]>;
@@ -28,10 +29,11 @@ function origin() {
  * does, and nothing once the save is refused.
  */
 export function usePriorityActions(
-  { entry, index, section }: Found,
+  found: Found,
   hash: string,
   onRenaming: (id: string | undefined) => void,
 ) {
+  const { entry, index, section } = found;
   const fate = useFateClient();
   const toast = useUndoToast();
   const here = useRepoPath();
@@ -81,16 +83,6 @@ export function usePriorityActions(
       }),
     );
 
-  const draft = async () => {
-    const result = await run(() =>
-      fate.mutations.draft.create({ input: { hash, line: entry.id }, view: DraftView }),
-    );
-    const path = (result as { result?: { path?: unknown } }).result?.path;
-    if (!result.error && typeof path === "string") {
-      navigate(here(`/edit/${path}`));
-    }
-  };
-
   const remove = async () => {
     const text = plain(entry.spans);
     // What Undo writes back: the line's lines, nested ones included, exactly as they were.
@@ -122,5 +114,13 @@ export function usePriorityActions(
     }
   };
 
-  return { draft, message, move, remove, rename, startChange: useStartChange(entry.id, hash, run) };
+  return {
+    draft: useDraft(entry.id, hash, run),
+    message,
+    move,
+    moveTo: useMoveTo(found, hash, run),
+    remove,
+    rename,
+    startChange: useStartChange(entry.id, hash, run),
+  };
 }

@@ -43,6 +43,14 @@ const styles = stylex.create({
   // The frame: a raw element, as the plan's Complexity tracking says (no Astryx component sets
   // marks in a border).
   frame: {
+    // The `…` button's opacity, which `CardMenu` reads: shown under the pointer, on keyboard focus
+    // within the card, and always when the pointer cannot hover, a touch screen.
+    "--menu-opacity": {
+      ":has(:focus-visible)": 1,
+      ":hover": 1,
+      "@media (hover: none)": 1,
+      default: 0,
+    },
     borderColor: colorVars["--color-border"],
     borderStyle: "solid",
     borderWidth: borderVars["--border-width"],
@@ -96,6 +104,7 @@ const styles = stylex.create({
   },
   // The mauve tint of a selected row, apart from the pane's own background.
   selected: {
+    "--menu-opacity": 1,
     backgroundColor: colorVars["--color-accent-muted"],
     borderColor: colorVars["--color-accent"],
   },
@@ -150,7 +159,6 @@ export function Card({
       {/* dnd-kit's accessibility attributes (a button role, a tab stop) go on its handle: an empty, hidden element, so the card stays a link and the sensor takes a press anywhere on it. */}
       {!row.isFixed && <span aria-hidden="true" ref={handleRef} tabIndex={-1} />}
       {row.marks !== undefined && <span {...stylex.props(styles.marks)}>{row.marks}</span>}
-      {row.menu !== undefined && <span {...stylex.props(styles.menu)}>{row.menu}</span>}
       <Link
         href={row.href}
         onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
@@ -171,6 +179,8 @@ export function Card({
         </Text>
       ))}
       {row.image}
+      {/* After the link, so Tab from the card reaches it; over the link by its z-index. */}
+      {row.menu !== undefined && <span {...stylex.props(styles.menu)}>{row.menu}</span>}
     </li>
   );
 }
