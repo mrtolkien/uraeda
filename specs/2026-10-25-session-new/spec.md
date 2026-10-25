@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Session and New in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Approved on 2026-10-25.
 >
 > - You approve a session page where the chat keeps one recap line per stretch of tool calls, beside
 >   a column split in two: the calls by run above, the changed files below, and a progress bar at
