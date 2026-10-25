@@ -19,11 +19,12 @@ import { ProseMarkdown } from "../Prose.tsx";
 import { StatusMark } from "../StatusMark.tsx";
 import type { OpenKeys } from "../useOpenKeys.ts";
 import type { Run } from "./activityRuns.ts";
+import { Path } from "./Path.tsx";
 import { type ActivityItem, type RowWords, rowWords, type ToolItem } from "./stretches.ts";
 
 const styles = stylex.create({
-  // What a row acted on breaks anywhere, a long path or command whole on the row's lines, as the
-  // changes' paths: no text is cut. In a fold's toggle, which sets a larger text and grows to its
+  // What a row acted on breaks after its slashes first, then anywhere, a long path or command whole
+  // on the row's lines, as the changes' paths: no text is cut. In a fold's toggle, which sets a larger text and grows to its
   // content, it takes the row's text, and no width of its own, so it wraps rather than widening
   // the list.
   // A part of a row's word, never broken.
@@ -155,12 +156,18 @@ function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
           <Collapsible
             isOpen={isOpen}
             onOpenChange={(open: boolean) => view.keys.onOpenChange(key, open)}
-            trigger={<span {...stylex.props(styles.label)}>{label}</span>}
+            trigger={
+              <span {...stylex.props(styles.label)}>
+                <Path inText path={label} />
+              </span>
+            }
           >
             {isOpen ? fold() : null}
           </Collapsible>
         ) : (
-          <span {...stylex.props(styles.label)}>{label}</span>
+          <span {...stylex.props(styles.label)}>
+            <Path inText path={label} />
+          </span>
         )
       }
       startContent={

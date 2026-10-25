@@ -9,17 +9,15 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { Fragment } from "react";
 import { useBranchChanges } from "../data.ts";
 import { statusStyles } from "../Question.tsx";
 import { useSession } from "../sessionData.ts";
 import { useOpenKeys } from "../useOpenKeys.ts";
+import { Path } from "./Path.tsx";
 import { Section } from "./Section.tsx";
 
 const styles = stylex.create({
   added: { color: colorVars["--color-text-green"] },
-  // A long path breaks anywhere, rather than running under its count.
-  path: { minWidth: 0, overflowWrap: "anywhere" },
   removed: { color: colorVars["--color-text-red"] },
 });
 
@@ -35,29 +33,6 @@ const NOTHING = "No file changed yet.";
 /** "1 file", or "N files". */
 export function fileCount(count: number) {
   return `${count} ${count === 1 ? "file" : "files"}`;
-}
-
-/** A path that breaks after its slashes first, where a line has room for its folders. */
-function breakable(path: string) {
-  const parts = path.split("/");
-  return parts.map((part, index) =>
-    index < parts.length - 1 ? (
-      <Fragment key={index}>
-        {part}/<wbr />
-      </Fragment>
-    ) : (
-      part
-    ),
-  );
-}
-
-/** A path, in the code font, breaking where a line has room. */
-function Path({ path }: { path: string }) {
-  return (
-    <Text type="code" xstyle={styles.path}>
-      {breakable(path)}
-    </Text>
-  );
 }
 
 /** A part's title: its name and counts, over its rows. */

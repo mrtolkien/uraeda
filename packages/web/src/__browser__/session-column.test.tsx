@@ -243,7 +243,7 @@ describe("on a desktop, the Activity", () => {
   });
 });
 
-describe("on a desktop, its tabs", () => {
+describe("on a desktop, at 1000 px", () => {
   atSize("desktop");
 
   test("ui-layout: at 1000 px, with two sub-agents running, the column's tabs read whole", async () => {
@@ -273,6 +273,39 @@ describe("on a desktop, its tabs", () => {
         expect(box.right, tab.textContent!).toBeLessThanOrEqual(strip.right + 0.5);
       }
       await checkLayout(column());
+    });
+  });
+
+  test("a long path in the Activity breaks after its slashes, never inside a name", async () => {
+    const path = "src/recurring/tasks/complete/next-occurrence/complete.ts";
+    await at(1000, async () => {
+      await agent.addPlan(CLI);
+      await startTurn(
+        "Read it.",
+        [{ id: "r", input: {}, kind: "read", name: "Read", target: path, type: "toolStart" }],
+        `/f/${CLI}/session`,
+      );
+      const activity = within(column()).getByRole("region", { name: "Activity" });
+      const row = await within(activity).findByText(path, undefined, LIVE);
+      await drawn();
+      // Each of its names on one line, the path on several.
+      const lines = new Set<number>();
+      for (const name of path.split("/")) {
+        const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+        const range = document.createRange();
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          const at = node.textContent!.indexOf(name);
+          if (at >= 0) {
+            range.setStart(node, at);
+            range.setEnd(node, at + name.length);
+            break;
+          }
+        }
+        const rects = [...range.getClientRects()].filter((rect) => rect.width > 0);
+        expect(new Set(rects.map((rect) => Math.round(rect.top))).size, name).toBe(1);
+        lines.add(Math.round(rects[0]!.top));
+      }
+      expect(lines.size).toBeGreaterThan(1);
     });
   });
 });
