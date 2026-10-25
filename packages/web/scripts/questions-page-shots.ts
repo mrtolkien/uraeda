@@ -1,5 +1,5 @@
 /**
- * The screenshots' views of the questions page (`specs/2026-10-24-questions-page/`), over its
+ * The screenshots' views of the questions page (`specs/done/2026-10-24-questions-page.md`), over its
  * spec's rounds that the sample builders' `addQuestionsPages` adds: the merge-chats round waiting,
  * its Q2 answered A, at its top with its column; Check these; Under the hood, opened; a question's
  * header held at the top mid-card, and Q4's Example and Why it matters, in the layout-look round;

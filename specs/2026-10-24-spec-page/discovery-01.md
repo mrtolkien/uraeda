@@ -386,8 +386,8 @@ progress. See [the plan page](#the-plan-page).
 ### A broken link
 
 The proposal's "Why" links `questions-page.md` beside it, the draft that became the
-[questions page feature](/specs/2026-10-24-questions-page/proposal.md). Its answer, the session in
-the right column as a tab, is settled by that feature's approved spec.
+[questions page feature](/specs/done/2026-10-24-questions-page.md). Its answer, the session in the
+right column as a tab, is settled by that feature's approved spec.
 
 ## Worth it and feasibility
 

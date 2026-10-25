@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Questions page in the terminal look](/specs/2026-10-24-questions-page/proposal.md)
 - [Spec and plan pages in the terminal look](/specs/2026-10-24-spec-page/proposal.md)
 
 - [Lists and starts in the terminal look](drafts/lists-and-starts.md)
