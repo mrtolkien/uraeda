@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Feature page in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 6 questions, about 15 minutes.
+> Answered on 2026-10-25.
 >
 > - Verdict: worth building, with changes. Your tabs work best as the feature's own pages, always
 >   there, rather than editor tabs you open and close.
@@ -117,7 +117,7 @@ follow it.
   - [pro] the least work, and nothing new to learn.
   - [con] moving between the spec and the session goes back through Home.
 
-**Answer:**
+**Answer:** C: Actually let’s not add tabs
 
 ## Q2: What should the Home show, and in what order?
 
@@ -154,7 +154,7 @@ most.
   - [pro] the closest to today, so the least to build.
   - [con] the files stay a plain list, apart from the stages that made them.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Which figures should the page show?
 
@@ -181,7 +181,7 @@ B can come on top of A.
   - [pro] nothing new.
   - [con] the page cannot tell how long the agent worked.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Should the Home start the agent's next step?
 
@@ -204,7 +204,7 @@ Why it matters: it decides whether the Home is a page of actions or a view to re
   - [pro] nothing new.
   - [con] starting a step stays two pages away.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: How far should the Storybook link's removal go?
 
@@ -224,7 +224,7 @@ Why it matters: removing one link leaves two paths to a page you said does not r
   - [pro] touches nothing outside this page.
   - [con] the page stays reachable from the session's column.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Should the old-look document pages join the tab line's look?
 
@@ -245,7 +245,7 @@ page component.
   - [pro] a smaller feature.
   - [con] two looks under one tab line.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -273,3 +273,5 @@ page component.
   [discovery](discovery-01.md#likely-changes).
 
 **Notes:**
+
+- **On the phone**: Just don’t show the tab line on mobile for the moment, it won’t play well
