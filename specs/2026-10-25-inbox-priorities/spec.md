@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 2
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Inbox and priorities in the terminal look
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 10 minutes.
+> Approved on 2026-10-25.
 >
 > - You approve the priorities as scrolling columns of draggable cards, the inbox as a pane per
 >   category, a detail that opens in an overlay, a `…` menu on every line, and categories you
