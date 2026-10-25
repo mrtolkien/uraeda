@@ -24,7 +24,7 @@ test("a path without a repository opens it in the most recent", async () => {
 
   await waitFor(() => expect(window.location.pathname).toBe("/r/uraeda/f/2026-10-11-web-ui"));
   expect(window.location.search + window.location.hash).toBe("?tab=files#top");
-  expect(await screen.findByRole("list", { name: "Files" })).toBeTruthy();
+  expect(await screen.findByRole("list", { name: "Stages" })).toBeTruthy();
 });
 
 /** US3.1, US3.2 */

@@ -324,15 +324,15 @@ test("US1.8: a session's link replaces the feature page, and Back returns to it"
   const fake = await fakeAgent();
   await fake.sessions.featureSession(repo, WEB_UI);
   await renderPage(`/f/${WEB_UI}`, repo, { agent: fake });
-  await screen.findByRole("list", { name: "Files" });
+  await screen.findByRole("list", { name: "Stages" });
   window.scrollTo(0, 120);
 
   await click(await screen.findByRole("link", { name: / \d\d:\d\d$/ }));
   await screen.findByRole("log", { name: "Conversation" });
-  expect(screen.queryByRole("list", { name: "Files" })).toBeNull();
+  expect(screen.queryByRole("list", { name: "Stages" })).toBeNull();
   await act(async () => window.history.back());
 
-  await screen.findByRole("list", { name: "Files" });
+  await screen.findByRole("list", { name: "Stages" });
   expect(window.scrollY).toBe(120);
 });
 

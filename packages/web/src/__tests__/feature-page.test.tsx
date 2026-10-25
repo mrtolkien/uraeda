@@ -53,28 +53,20 @@ function stages() {
   return within(screen.getByRole("list", { name: "Stages" }));
 }
 
-/** The texts a stage shows, without its label and the word read out for a passed one. */
-function stageTexts(item: HTMLElement, label: string) {
-  return within(item)
-    .getAllByText(/./)
-    .map((element) => element.textContent ?? "")
-    .filter((text) => text !== label && text !== "completed");
-}
-
 /** The stage of this label. */
 function stage(label: string) {
   const item = stages()
     .getAllByRole("listitem")
-    .find((li) => within(li).queryByText(label, { exact: true }));
+    .find((li) => within(li).queryAllByText(label, { exact: true }).length > 0);
   if (!item) {
     throw new Error(`No stage ${label}`);
   }
   return item;
 }
 
-/** A stage's line: its time and duration, or since when. */
+/** What a stage shows: its time, its files, and its tasks. */
 function stageLine(label: string) {
-  return stageTexts(stage(label), label).join(" ");
+  return stage(label).textContent ?? "";
 }
 
 /** The label of the current stage. */
@@ -83,14 +75,9 @@ function currentStage() {
   if (!item) {
     return undefined;
   }
-  return within(item)
-    .getAllByText(/./)
-    .map((element) => element.textContent)
-    .find((text) =>
-      ["Proposal", "Questions", "Spec", "Plan", "Build", "Fix", "Pull request", "Merged"].includes(
-        text ?? "",
-      ),
-    );
+  return ["Proposal", "Questions", "Spec", "Plan", "Build", "Fix", "Pull request", "Merged"].find(
+    (label) => within(item).queryAllByText(label, { exact: true }).length > 0,
+  );
 }
 
 /** A feature merged into `main` with a merge commit, its record on the default branch. */
@@ -176,9 +163,9 @@ test("a passed stage shows its time and duration", async () => {
   await renderPage(`/f/${CLI}`, repo, { agent: true });
 
   await nextCard();
-  expect(stageLine("Spec")).toBe("12:11 · 2 h 50 min");
+  expect(stageLine("Spec")).toContain("12:11 · 2 h 50 min");
   expect(currentStage()).toBe("Plan");
-  expect(stageLine("Plan")).toBe("since 15:01");
+  expect(stageLine("Plan")).toContain("since 15:01");
 });
 
 /** US1 more 1 */
@@ -226,7 +213,7 @@ test("a build started the next day shows its date", async () => {
   await renderPage(`/f/${CLI}`, repo, { agent: true });
 
   await nextCard();
-  expect(stageLine("Plan")).toBe("15:08 · 18 h 2 min");
+  expect(stageLine("Plan")).toContain("15:08 · 18 h 2 min");
   expect(stageLine("Build")).toContain("Oct 18, 09:10");
 });
 
@@ -245,7 +232,7 @@ test("a first stage started after the folder's day shows its date", async () => 
   await renderPage(`/f/${CHANGE}`, repo, { agent: true });
 
   await nextCard();
-  expect(stageLine("Proposal")).toBe("Oct 17, 09:10");
+  expect(stageLine("Proposal")).toContain("Oct 17, 09:10");
 });
 
 /** US1 more 3 */
@@ -458,26 +445,107 @@ test("a merged feature still says to run ura clean", async () => {
   expect(screen.getByText(`.worktrees/${DONE}`)).toBeTruthy();
   const next = await nextCard();
   expect(next.getByRole("heading", { name: "Merged" })).toBeTruthy();
-  const files = screen.getByRole("list", { name: "Files" });
-  expect(within(files).getByText("Record")).toBeTruthy();
-  expect(within(files).queryByText("not yet")).toBeNull();
+  expect(within(stage("Merged")).getByRole("link", { name: "Record" })).toBeTruthy();
   expect(currentStage()).toBeUndefined();
 });
 
-/** C6 */
-test("the files are compact rows with their status", async () => {
+/** US1.2 */
+test("Questions shows its time, its round, and links its files", async () => {
+  const repo = fixtureRepo();
+  commitsAt(repo, RECURRING, [
+    {
+      at: "2026-10-06T09:32:00Z",
+      files: { [`specs/${RECURRING}/discovery-01.md`]: "# Discovery\n" },
+      message: "discovery(recurring-tasks): x",
+    },
+    {
+      at: "2026-10-06T12:42:00Z",
+      files: { "notes/spec.txt": "1" },
+      message: "spec(recurring-tasks): x",
+    },
+  ]);
+
+  await renderPage(`/f/${RECURRING}`, repo, { agent: true });
+
+  await nextCard();
+  const questions = within(stage("Questions"));
+  expect(stageLine("Questions")).toContain("09:32 · 3 h 10 min · 1 round");
+  expect(questions.getByRole("link", { name: "Discovery 01" }).getAttribute("href")).toBe(
+    atRepo(`/f/${RECURRING}/discovery-01.md`),
+  );
+  expect(questions.getByRole("link", { name: "Questions 01" }).getAttribute("href")).toBe(
+    atRepo(`/f/${RECURRING}/clarifications-01.md`),
+  );
+  expect(stageLine("Questions")).toContain("answered");
+});
+
+/** US1.2 */
+test("Build is current with its tasks", async () => {
+  const repo = fixtureRepo();
+  addPlan(repo, CLI, ELEVEN);
+  const fake = await fakeAgent();
+  await liveRun(fake, repo);
+
+  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+
+  await nextCard();
+  expect(currentStage()).toBe("Build");
+  const build = within(stage("Build"));
+  expect(build.getByText(/Tasks 1–6/)).toBeTruthy();
+  expect(build.getByText(/7 Session column/)).toBeTruthy();
+  expect(build.getByText(/Tasks 8–11/)).toBeTruthy();
+  // A stage not reached shows its name only.
+  expect(stageLine("Merged")).not.toContain("since");
+  expect(within(stage("Merged")).queryByRole("link")).toBeNull();
+});
+
+/** US1.3 */
+test("a file waiting on you reads to review", async () => {
   await renderPage(`/f/${RECURRING}`, fixtureRepo(), { agent: true });
 
-  const files = within(await screen.findByRole("list", { name: "Files" }));
-  const rows = files.getAllByRole("listitem").map((item) => item.textContent);
-  expect(rows).toEqual([
-    "Proposalcommitted",
-    "Questions, round 01answered",
-    "Specawaiting-human",
-    "Plannot yet",
-  ]);
-  expect(files.getByRole("link", { name: /Questions, round 01/ }).getAttribute("href")).toBe(
-    atRepo(`/f/${RECURRING}/clarifications-01.md`),
+  await nextCard();
+  const spec = within(stage("Spec"));
+  expect(spec.getByRole("link", { name: "Spec" })).toBeTruthy();
+  expect(stageLine("Spec")).toContain("to review");
+  expect(stageLine("Questions")).not.toContain("to review");
+  expect(currentStage()).toBe("Spec");
+});
+
+/** US1 more 3 */
+test("a change's stages are Proposal, Questions, Fix, Pull request, Merged, and Rulings sits in Fix", async () => {
+  const repo = fixtureRepo();
+  addChange(repo, CHANGE, {
+    "clarifications-01.md": "---\nstatus: answered\n---\n\n# Questions\n",
+    "proposal.md": "# A home logo\n",
+    "rulings.md": "# Rulings\n",
+  });
+
+  await renderPage(`/f/${CHANGE}`, repo, { agent: true });
+
+  await nextCard();
+  const labels = stages()
+    .getAllByRole("listitem")
+    .map((item) => item.textContent?.match(/Proposal|Questions|Fix|Pull request|Merged/)?.[0]);
+  expect(labels).toEqual(["Proposal", "Questions", "Fix", "Pull request", "Merged"]);
+  expect(within(stage("Fix")).getByRole("link", { name: "Rulings" })).toBeTruthy();
+  expect(within(stage("Questions")).getByRole("link", { name: "Questions 01" })).toBeTruthy();
+});
+
+/** SC-001 */
+test("every file of the folder shows once", async () => {
+  const repo = fixtureRepo();
+  addMockup(repo, RECURRING, "repeat.html");
+
+  await renderPage(`/f/${RECURRING}`, repo, { agent: true });
+
+  await nextCard();
+  const shown = within(screen.getByRole("list", { name: "Stages" }))
+    .getAllByRole("link")
+    .map((link) => link.getAttribute("href"));
+  expect(shown.toSorted()).toEqual(
+    ["proposal.md", "clarifications-01.md", "spec.md", "mockups/repeat.html"]
+      .map((name) => atRepo(`/f/${RECURRING}/${name}`))
+      .toSorted(),
   );
 });
 
@@ -487,14 +555,15 @@ test("the header names the kind, the day, and the branch", async () => {
   expect(await screen.findByText(`Feature · Oct 12 · branch ${CLI}`)).toBeTruthy();
 });
 
-/** Review comment C1 of the old page: the mockups beside the files. */
+/** Review comment C1 of the old page: the mockups beside the files, now in the timeline's Spec. */
 test("the page links its mockups", async () => {
   const repo = fixtureRepo();
   addMockup(repo, RECURRING, "repeat.html");
 
   await renderPage(`/f/${RECURRING}`, repo);
 
-  const link = await screen.findByRole("link", { name: /repeat\.html/ });
+  await nextCard();
+  const link = within(stage("Spec")).getByRole("link", { name: /repeat\.html/ });
   expect(link.getAttribute("href")).toBe(atRepo(`/f/${RECURRING}/mockups/repeat.html`));
 });
 
