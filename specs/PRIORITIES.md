@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Feature page in the terminal look](/specs/2026-10-25-feature-page/proposal.md)
 
 - Full interactive UI pass: manual small fixes
 - Leader key/shortcut map
