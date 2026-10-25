@@ -3,7 +3,7 @@
 // messages, and "Show earlier runs" adds 200 more (SC-002): a walk back over the turns' pages, from
 // the latest, reads as many as the bound needs. At a stretch the address names, it mounts 200 rows
 // from the stretch's page on instead, with "Show later runs" below them, and marks the stretch's
-// rows (ruling R27). The tail's walk counts messages and keeps its start, so the Activity has its
+// rows (ruling R25). The tail's walk counts messages and keeps its start, so the Activity has its
 // own (the plan's complexity tracking).
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -341,7 +341,7 @@ function useShown() {
 
 /**
  * The window the Activity draws: the latest `shown` rows; or, at the stretch `target`, 200 rows from
- * its page on, `later` times 200 more, and `shown` less 200 before (ruling R27).
+ * its page on, `later` times 200 more, and `shown` less 200 before (ruling R25).
  */
 function windowOf(target: Target | undefined, shown: number, later: number): Window {
   return target === undefined
@@ -356,7 +356,7 @@ function windowOf(target: Target | undefined, shown: number, later: number): Win
 /**
  * How many times a navigation arrived at the address it left, as a recap line followed again does:
  * the Activity scrolls to its stretch again. Its mount, with a reload or Back, and another stretch,
- * scroll to it on their own: nothing restores the column's place (ruling R28).
+ * scroll to it on their own: nothing restores the column's place (ruling R26).
  */
 function useArrival() {
   const [arrival, setArrival] = useState(0);

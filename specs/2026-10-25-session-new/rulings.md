@@ -297,7 +297,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `ColumnSheet` in `packages/web/src/session/SessionColumn.tsx`.
 - **Where**: the review of tasks 7 and 9, `packages/web/src/session/SessionColumn.tsx`.
 
-## R26: The Activity's walk reads at most 4 pages for each 200 rows
+## R24: The Activity's walk reads at most 4 pages for each 200 rows
 
 - **Decision**: the Activity's walk back over the pages reads at most `WALK_PAGES`, 4, pages of 100
   items for each 200 rows it draws, 4 at first and 8 after one "Show earlier runs". When that budget
@@ -315,13 +315,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `session/ActivityWalk.tsx`.
 - **Where**: task 8, `packages/web/src/session/ActivityWalk.tsx`.
 
-## R27: A stretch's Activity is a window of 200 rows from the stretch's page
+## R25: A stretch's Activity is a window of 200 rows from the stretch's page
 
 - **Decision**: at a stretch the address names, the Activity draws 200 rows forward from the first
   row of the page of 100 items the stretch begins on, its run's title above them, read by a walk
   forward from that page. "Show earlier runs" above adds 200 rows before that page, through a walk
   back from the page before it; "Show later runs" below adds the next 200, toward the latest. Both
-  show only while rows are left out on their side, or a walk's page budget (ruling R26) stopped it.
+  show only while rows are left out on their side, or a walk's page budget (ruling R24) stopped it.
   The rows added above are kept in the history entry, as the latest window's; the later presses are
   the panel's, so a reload draws the stretch's first 200 again. Another stretch, or none, draws its
   own window from 200 rows: leaving the stretch's address returns to the latest 200.
@@ -340,7 +340,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and `drawnRows` in `session/activityRuns.ts`.
 - **Where**: task 8, `packages/web/src/session/ActivityPanel.tsx`.
 
-## R28: The Activity scrolls to its stretch at each arrival of the address
+## R26: The Activity scrolls to its stretch at each arrival of the address
 
 - **Decision**: once the window read for the stretch the address names draws, the column's scroller
   brings to its top the stretch's run's heading when the stretch is the run's first, else the
