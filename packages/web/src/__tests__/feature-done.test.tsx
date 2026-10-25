@@ -79,7 +79,7 @@ function doneFeature(repo: string, record = featureRecord()) {
 
 /** What the feature produced: its figures, then its files. */
 function produced() {
-  return within(screen.getByRole("region", { name: /^What it produced/ }));
+  return within(screen.getByRole("region", { name: /^(What it produced|Produced so far)$/ }));
 }
 
 /** A figure's card, a group named by its label, whether it leads to its detail or not. */
@@ -160,13 +160,13 @@ test("lines changed read in green and red, with the files", async () => {
 
   await renderPage(`/f/${CLI}`, repo, { agent: true });
 
-  const link = await screen.findByRole("link", { name: /^Lines changed/ });
+  const link = await screen.findByRole("link", { name: /^lines/ });
   expect(link.getAttribute("href")).toBe("#stages");
-  const lineCard = within(figureCard("Lines changed"));
+  const lineCard = within(figureCard("lines"));
   expect(lineCard.getByText("+1,204")).toBeTruthy();
   expect(lineCard.getByText("−310")).toBeTruthy();
   expect(lineCard.getByText("23 files")).toBeTruthy();
-  expect(region("What it produced so far")).toBeTruthy();
+  expect(region("Produced so far")).toBeTruthy();
 });
 
 /** US2.1 */
@@ -176,11 +176,11 @@ test("a done feature's total time and timed stages", async () => {
 
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
-  await screen.findByRole("link", { name: /^Total time/ });
-  expect(figure("Total time")).toContain("11 h 11 min");
-  expect(figure("Total time")).toContain("10:52 to 22:03");
+  await screen.findByRole("link", { name: /^total time/ });
+  expect(figure("total time")).toContain("11 h 11 min");
+  expect(figure("total time")).toContain("10:52 to 22:03");
   expect(stageLine("Merged")).toContain("22:09");
-  expect(screen.getByRole("link", { name: /^Total time/ }).getAttribute("href")).toBe("#stages");
+  expect(screen.getByRole("link", { name: /^total time/ }).getAttribute("href")).toBe("#stages");
 });
 
 /** US2.2 */
@@ -197,9 +197,9 @@ test("tokens leave cache reads out, on two lines", async () => {
 
   await renderPage(`/f/${DONE}`, repo, { agent: fake });
 
-  await screen.findByRole("group", { name: "Tokens" });
-  expect(figureLines("Tokens")).toEqual(["5.2 M in", "113 k out"]);
-  expect(figure("Tokens")).toContain("cache reads left out");
+  await screen.findByRole("group", { name: "tokens" });
+  expect(figureLines("tokens")).toEqual(["5.2 M in", "113 k out"]);
+  expect(figure("tokens")).toContain("cache reads left out");
 });
 
 /** US2.3 */
@@ -211,14 +211,14 @@ test("Decisions leads to the decisions, drawn as changes", async () => {
 
   // The record, drawn once its file is read.
   await screen.findByRole("region", { name: "Decisions" });
-  const decisions = produced().getByRole("link", { name: /^Decisions/ });
-  expect(within(figureCard("Decisions")).getByText("1")).toBeTruthy();
+  const decisions = produced().getByRole("link", { name: /^decisions/ });
+  expect(within(figureCard("decisions")).getByText("1")).toBeTruthy();
   const scrolled = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
   onTestFinished(() => scrolled.mockRestore());
   const { length } = window.history;
   await click(decisions);
   // An in-page jump: the page scrolls to the decisions, in the same history entry.
-  expect(scrolled.mock.contexts).toContain(document.getElementById("decisions"));
+  expect(scrolled.mock.contexts).toContain(document.getElementById("record-decisions"));
   expect(window.history.length).toBe(length);
   const drawn = within(region("Decisions"));
   expect(drawn.getByText("New")).toBeTruthy();
@@ -249,15 +249,15 @@ test("the record shows in place, its questions folded", async () => {
   // A button holds no heading: its region is named instead.
   expect(within(questions).queryByRole("heading")).toBeNull();
   expect(within(region("Questions")).getByRole("button")).toBe(questions);
-  expect(screen.getByRole("link", { name: "Questions: 10, 1 round" }).getAttribute("href")).toBe(
-    "#questions",
+  expect(screen.getByRole("link", { name: "questions: 10, 1 round" }).getAttribute("href")).toBe(
+    "#record-questions",
   );
   expect(screen.getByRole("heading", { level: 2, name: "What it produced" })).toBeTruthy();
   expect(screen.getByRole("link", { name: "Open the record file" })).toBeTruthy();
 });
 
-/** US2: a row of five figures, a feature's questions and decisions shown at zero */
-test("a done feature without a round or a decision shows its five figures", async () => {
+/** US2: a feature's questions and decisions shown at zero */
+test("a done feature without a round or a decision shows its six figures", async () => {
   const repo = fixtureRepo();
   const folder = `specs/${DONE}`;
   const record = `---\nkind: feature\nfinished: 2026-10-17\n---\n\n# Record: Clarity\n\n## What and why\n\nRounds read as a flat list.\n\n## Behaviour\n\n- A round opens with a verdict.\n\n## Design\n\nCards.\n`;
@@ -296,16 +296,16 @@ test("a done feature without a round or a decision shows its five figures", asyn
 
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
-  await screen.findByRole("group", { name: "Tokens" });
+  await screen.findByRole("group", { name: "tokens" });
   const labels = produced()
     .getAllByRole("group")
     .map((group) => group.getAttribute("aria-label"));
-  expect(labels).toEqual(["Total time", "Lines changed", "Tokens", "Questions", "Decisions"]);
-  expect(figure("Questions")).toBe("Questions0no round");
-  expect(figure("Decisions")).toContain("0");
+  expect(labels).toEqual(["total time", "lines", "tokens", "agent time", "questions", "decisions"]);
+  expect(figure("questions")).toBe("questions0no round");
+  expect(figure("decisions")).toContain("0");
   // Nothing to open at zero: plain cards.
-  expect(produced().queryByRole("link", { name: /^Questions/ })).toBeNull();
-  expect(produced().queryByRole("link", { name: /^Decisions/ })).toBeNull();
+  expect(produced().queryByRole("link", { name: /^questions/ })).toBeNull();
+  expect(produced().queryByRole("link", { name: /^decisions/ })).toBeNull();
 });
 
 /** Decision ui-behaviour: Back restores the open items */
@@ -335,7 +335,7 @@ test("a fold opened after a figure's jump stays open across Back", async () => {
   await renderPage(`/f/${DONE}`, repo, { agent: true, reload: true });
 
   await screen.findByRole("region", { name: "Decisions" });
-  await click(produced().getByRole("link", { name: /^Decisions/ }));
+  await click(produced().getByRole("link", { name: /^decisions/ }));
   expect((window.history.state as { id?: string } | null)?.id).toBe("opened");
   await click(screen.getByRole("button", { name: "Questions · 10 in 1 round" }));
   await click(screen.getByRole("link", { name: "Open the record file" }));
@@ -354,7 +354,7 @@ test("Questions opens the questions", async () => {
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
   const fold = await screen.findByRole("button", { name: "Questions · 10 in 1 round" });
-  await click(produced().getByRole("link", { name: /^Questions/ }));
+  await click(produced().getByRole("link", { name: /^questions/ }));
   expect(fold.getAttribute("aria-expanded")).toBe("true");
 });
 
@@ -368,7 +368,7 @@ test("a feature without token counts reads Not recorded", async () => {
 
   await renderPage(`/f/${DONE}`, repo, { agent: fake });
 
-  const tokens = await screen.findByRole("group", { name: "Tokens" });
+  const tokens = await screen.findByRole("group", { name: "tokens" });
   expect(within(tokens).getByText("Not recorded")).toBeTruthy();
   expect(within(tokens).queryByText(/ in$/)).toBeNull();
 });
@@ -405,8 +405,8 @@ test("a merged change without a question shows its four stages and its record", 
     "Merged",
   ]);
   expect(stageLine("Fix")).toContain("15:44 · 22 min");
-  expect(figure("Total time")).toContain("26 min");
-  expect(screen.queryByRole("link", { name: /^Questions/ })).toBeNull();
+  expect(figure("total time")).toContain("26 min");
+  expect(screen.queryByRole("link", { name: /^questions/ })).toBeNull();
   expect(screen.queryByRole("button", { name: /^Questions ·/ })).toBeNull();
 });
 
@@ -431,8 +431,8 @@ test.each([
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
   expect(await screen.findByText("No figures: its commits could not be traced")).toBeTruthy();
-  expect(screen.queryByRole("link", { name: /^Lines changed/ })).toBeNull();
-  expect(screen.queryByRole("group", { name: "Lines changed" })).toBeNull();
+  expect(screen.queryByRole("link", { name: /^lines/ })).toBeNull();
+  expect(screen.queryByRole("group", { name: "lines" })).toBeNull();
   expect(screen.queryByText("0 files")).toBeNull();
   // Its decisions' changes not found, the record's own list of them is drawn.
   expect(await screen.findByText("New: Diagrams.")).toBeTruthy();
@@ -450,9 +450,9 @@ test("tokens counted from a later turn say since when", async () => {
 
   await renderPage(`/f/${DONE}`, repo, { agent: fake });
 
-  await screen.findByRole("group", { name: "Tokens" });
-  expect(figureLines("Tokens")).toEqual(["1.7 k in", "800 out"]);
-  expect(figure("Tokens")).toContain("since Oct 19");
+  await screen.findByRole("group", { name: "tokens" });
+  expect(figureLines("tokens")).toEqual(["1.7 k in", "800 out"]);
+  expect(figure("tokens")).toContain("since Oct 19");
 });
 
 /** Review focus 9 */
@@ -462,9 +462,9 @@ test("a record without its pull request draws Lines changed as a plain card", as
 
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
-  const lineCard = await screen.findByRole("group", { name: "Lines changed" });
+  const lineCard = await screen.findByRole("group", { name: "lines" });
   expect(within(lineCard).getByText("+47")).toBeTruthy();
-  expect(screen.queryByRole("link", { name: /^Lines changed/ })).toBeNull();
+  expect(screen.queryByRole("link", { name: /^lines/ })).toBeNull();
 });
 
 /** Review focus 9, with the pull request */
@@ -474,7 +474,7 @@ test("a record with its pull request leads Lines changed to its files", async ()
 
   await renderPage(`/f/${DONE}`, repo, { agent: true });
 
-  const lineCard = await screen.findByRole("link", { name: /^Lines changed/ });
+  const lineCard = await screen.findByRole("link", { name: /^lines/ });
   expect(lineCard.getAttribute("href")).toBe("https://github.com/o/r/pull/30/files");
   // In a new tab, as "Open pull request #30".
   expect(lineCard.getAttribute("target")).toBe("_blank");

@@ -156,3 +156,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   overrun its neighbour.
 - **If wrong**: add the timeline's own check in task 9.
 - **Where**: task 6.
+
+## R14: Elapsed reads "6 h 2 min", and the record's parts take their ids in task 7
+
+- **Decision**: the figures format every time with `duration`, which does not pad minutes, so the
+  spec's "6 h 02 min" reads "6 h 2 min", as the timeline's "18 h 2 min" does. The record's questions
+  and decisions take the ids `record-questions` and `record-decisions` in task 7, not task 8, since
+  the figures lead to them.
+- **Rationale**: one formatter for every duration on the page (UI coherence); padding minutes only
+  in the figures would draw one kind of information two ways. The figures' links name ids that must
+  exist when they ship.
+- **Alternatives considered**: padding the minutes in `duration`: rejected, it changes every stage's
+  line, which the spec's other scenarios pin without padding.
+- **If wrong**: pad the minutes after an hour in `duration`, and update the scenarios that quote it.
+- **Where**: task 7; the spec's scenario US3.1 reads the mockup's padded text.

@@ -1,0 +1,193 @@
+// What a feature produced, as rows in a pane of the Home's column: while it runs, its lines
+// changed, tokens, agent time, and elapsed time; once done, its total time, lines, tokens, agent
+// time, questions, and decisions. A row with a detail leads to it.
+import { Link } from "@astryxdesign/core/Link";
+import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
+import { type MouseEvent, type ReactNode, useEffect, useState } from "react";
+import { scrollBelowBar } from "../Folds.tsx";
+import { Pane } from "../layout/Pane.tsx";
+import { type FigureRow, type FigureValue } from "./figureRows.ts";
+
+const styles = stylex.create({
+  // Text's `success` and `error` are no colours of the theme: they draw as the primary text (C4).
+  added: { color: colorVars["--color-success"] },
+  removed: { color: colorVars["--color-error"] },
+  row: {
+    alignItems: "baseline",
+    columnGap: spacingVars["--spacing-3"],
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: spacingVars["--spacing-0-5"],
+  },
+  value: { alignItems: "flex-end", display: "flex", flexDirection: "column", textAlign: "end" },
+});
+
+const COUNT = new Intl.NumberFormat("en-US");
+
+/** How often a figure that grows with the clock is drawn again, in ms. */
+const TICK_MS = 30_000;
+
+/**
+ * The browser's clock, drawn again every 30 s while `ticking`, so a figure counted to now grows
+ * without a refresh (R5).
+ */
+export function useNow(ticking: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!ticking) {
+      return;
+    }
+    const timer = setInterval(() => setNow(Date.now()), TICK_MS);
+    return () => clearInterval(timer);
+  }, [ticking]);
+  return now;
+}
+
+/** A row of a pane of the column: its name at the start, its value at the end. */
+export function FactRow({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <div aria-label={label} role="group" {...stylex.props(styles.row)}>
+      <Text color="secondary">{label}</Text>
+      {children}
+    </div>
+  );
+}
+
+/** A value as one line of text, for a link's accessible name. */
+function valueText(value: FigureValue): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if ("added" in value) {
+    return `+${COUNT.format(value.added)} −${COUNT.format(value.removed)}`;
+  }
+  return value.lines.join(", ");
+}
+
+/** A row's value: plain, lines added in green and removed in red, or one line per part. */
+function Value({ value }: { value: FigureValue }) {
+  if (typeof value === "string") {
+    return <Text hasTabularNumbers>{value}</Text>;
+  }
+  if ("added" in value) {
+    return (
+      <span>
+        <Text hasTabularNumbers wrap="nowrap" xstyle={styles.added}>
+          +{COUNT.format(value.added)}
+        </Text>{" "}
+        <Text hasTabularNumbers wrap="nowrap" xstyle={styles.removed}>
+          −{COUNT.format(value.removed)}
+        </Text>
+      </span>
+    );
+  }
+  return (
+    <>
+      {value.lines.map((line) => (
+        <Text hasTabularNumbers key={line}>
+          {line}
+        </Text>
+      ))}
+    </>
+  );
+}
+
+/** One figure: its name, its value, what it counts, and, when it has a detail, a link to it. */
+function Figure({ row }: { row: FigureRow }) {
+  const body = (
+    <span {...stylex.props(styles.value)}>
+      <Value value={row.value} />
+      {row.caption && (
+        <Text color="secondary" type="supporting">
+          {row.caption}
+        </Text>
+      )}
+    </span>
+  );
+  if (!row.href) {
+    return <FactRow label={row.label}>{body}</FactRow>;
+  }
+  const caption = row.caption ? `, ${row.caption}` : "";
+  const inPage = row.href.startsWith("#");
+  return (
+    <FactRow label={row.label}>
+      <Link
+        aria-label={`${row.label}: ${valueText(row.value)}${caption}`}
+        href={row.href}
+        // Out of the app, like the pull request's files: in a new tab, as the app's external links.
+        {...(inPage ? {} : { rel: "noopener noreferrer", target: "_blank" })}
+      >
+        {body}
+      </Link>
+    </FactRow>
+  );
+}
+
+/**
+ * What follows a figure's in-page link, by a tap or a key: `open` opens the detail when it is
+ * folded, then the page scrolls to it and moves the focus there, its title's when it has one, in the
+ * same history entry. The browser's own jump would push an entry without the page's state, whose
+ * position and open items Back could not restore.
+ */
+function jumpInPage(open: ((id: string) => void) | undefined) {
+  return (event: MouseEvent) => {
+    const link = (event.target as Element).closest?.("a");
+    const href = link?.getAttribute("href");
+    if (
+      !href?.startsWith("#") ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey
+    ) {
+      return;
+    }
+    const target = document.getElementById(href.slice(1));
+    if (!target) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    open?.(target.id);
+    scrollBelowBar(target);
+    const focus = document.getElementById(`${target.id}-title`) ?? target;
+    if (!focus.hasAttribute("tabindex")) {
+      focus.setAttribute("tabindex", "-1");
+    }
+    focus.focus({ preventScroll: true });
+  };
+}
+
+/**
+ * The pane of `rows`: "Produced so far" while the feature runs, "What it produced" once done. With
+ * no rows, a done item says its commits could not be traced. `onOpen` opens a detail of the page by
+ * its id, when it is folded, as its figure leads to it.
+ */
+export function ProducedPane({
+  done,
+  onOpen,
+  rows,
+}: {
+  done: boolean;
+  onOpen?: (id: string) => void;
+  rows: ReadonlyArray<FigureRow>;
+}) {
+  return (
+    <Pane title={done ? "What it produced" : "Produced so far"}>
+      <div onClickCapture={jumpInPage(onOpen)}>
+        <VStack gap={2}>
+          {rows.length === 0 && (
+            <Text color="secondary">No figures: its commits could not be traced</Text>
+          )}
+          {rows.map((row) => (
+            <Figure key={row.label} row={row} />
+          ))}
+        </VStack>
+      </div>
+    </Pane>
+  );
+}

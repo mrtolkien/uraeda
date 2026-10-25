@@ -1,4 +1,5 @@
-// The feature page at both sizes: "Next" beside the agent on a desktop and first on the phone (C8),
+// The feature page at both sizes: "Next" with the column of sessions beside the page on a desktop and
+// before it on the phone (C8),
 // and every layout check in both themes, over the feature page's features of
 // `samples/features.ts`, their times read in UTC.
 import { screen, within } from "@testing-library/react";
@@ -7,7 +8,7 @@ import { describe, expect, test } from "vite-plus/test";
 import { FEATURE_PAGES } from "../../.storybook/checkouts.ts";
 import { atSize, checkLayout, colorScheme, commands, drawn, show } from "./helpers.tsx";
 
-/** Where "Next" and the agent's card are drawn. */
+/** Where "Next" and the sessions' pane are drawn. */
 function nextAndAgent() {
   return {
     agent: screen.getByRole("region", { name: "Sessions" }).getBoundingClientRect(),
@@ -15,20 +16,17 @@ function nextAndAgent() {
   };
 }
 
-describe("Next and the agent", () => {
+describe("Next and the Home's column", () => {
   atSize("both");
 
   // C8.
-  test("Next comes first on the phone, beside the agent on a desktop", async () => {
+  test("Next comes before the sessions on the phone, and the column is beside it on a desktop", async () => {
     await commands.addFeaturePages();
     await show(`/f/${FEATURE_PAGES.working}`, "The agent is building");
     await drawn();
     const { agent, next } = nextAndAgent();
     if (window.innerWidth >= 768) {
-      expect(Math.round(agent.top)).toBe(Math.round(next.top));
-      expect(agent.left).toBeGreaterThan(next.right);
-      expect(next.width / agent.width).toBeGreaterThan(1.8);
-      expect(next.width / agent.width).toBeLessThan(2.2);
+      expect(agent.left).toBeGreaterThanOrEqual(next.right);
     } else {
       expect(next.bottom).toBeLessThanOrEqual(agent.top);
     }
@@ -47,7 +45,7 @@ describe("lines changed", () => {
   test("lines added read in green and removed in red", async () => {
     await commands.addFeaturePages();
     await show(`/f/${FEATURE_PAGES.done}`, "What it produced");
-    const card = screen.getByRole("group", { name: "Lines changed" });
+    const card = screen.getByRole("group", { name: "lines" });
     const [red, green, blue] = rgb(within(card).getByText("+1,222"));
     expect(green).toBeGreaterThan(Math.max(red!, blue!) + 40);
     const [red2, green2, blue2] = rgb(within(card).getByText("−310"));
