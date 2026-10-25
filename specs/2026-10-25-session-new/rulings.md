@@ -251,9 +251,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R21: At 1440 px, the chat keeps more room than the column, not 760 px
 
 - **Decision**: the layout checks' assertion that a feature's session at 1440 px, beside the
-  sidebar's 240 px and its column, keeps a transcript at least 760 px wide becomes a transcript
-  wider than the column. The session column takes the documents' third at wide (ruling R9), 480 px
-  at 1440 px, which leaves the transcript 704 px.
+  sidebar's 240 px and its column, keeps a transcript at least 760 px wide becomes a transcript at
+  least 1.4 times as wide as the column, at 1440 px and at a semi-wide 1205 px. The session column
+  takes the documents' third at wide (ruling R9), 480 px at 1440 px, which leaves the transcript 704
+  px.
 - **Rationale**: the old 760 px followed the old column's 320 px; the approved architecture gives
   the session column the documents' width at wide, and approval comment C2 asks that the chat
   clearly weigh more than the column, which the new assertion states.
