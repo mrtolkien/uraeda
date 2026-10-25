@@ -279,7 +279,9 @@ type Activity = { label: string; since: string };
 
 /**
  * What the main agent does now: its latest call still going, "reading src/tasks/undo.ts", else its
- * activity, "thinking".
+ * activity, "thinking". It reads the turn's last page alone, which the tail has in: a call still
+ * going on a page before, as one followed by a page of its sub-agents' items, is missed, and the
+ * line reads the activity then, a rare case not worth reading the pages before each second.
  */
 function doing(items: ReadonlyArray<TranscriptItem>, activity: Activity): string {
   const going = items.findLast(
@@ -291,6 +293,26 @@ function doing(items: ReadonlyArray<TranscriptItem>, activity: Activity): string
   return going
     ? doingText(going)
     : `${activity.label.charAt(0).toLowerCase()}${activity.label.slice(1)}`;
+}
+
+/**
+ * The live line's words, again each second, linking `href`: the clock ticks here alone, below the
+ * join of the pages, which runs only when they change.
+ */
+function Ticking({
+  activity,
+  doing,
+  href,
+  subagents,
+}: {
+  activity: Activity;
+  doing: string;
+  href: string | undefined;
+  subagents: number;
+}) {
+  const now = useNow();
+  const text = liveText(Math.max(now - Date.parse(activity.since), 0), doing, subagents);
+  return <RecapLine activity={activity.label} href={href} live text={text} />;
 }
 
 /** The live line, over the turn's last page `items`: it opens the open stretch, else the Activity. */
@@ -307,16 +329,16 @@ function LiveLine({
   items: ReadonlyArray<TranscriptItem>;
   turn: string;
 }) {
-  const now = useNow();
-  const text = liveText(
-    Math.max(now - Date.parse(activity.since), 0),
-    doing(items, activity),
-    actions.subagents ?? 0,
+  const what = doing(items, activity);
+  const line = (key?: string) => (
+    <Ticking
+      activity={activity}
+      doing={what}
+      href={actions.stretchHref?.(key)}
+      subagents={actions.subagents ?? 0}
+    />
   );
   const last = slotsOf(turn, items).at(-1);
-  const line = (key?: string) => (
-    <RecapLine activity={activity.label} href={actions.stretchHref?.(key)} live text={text} />
-  );
   if (last?.kind !== "stretch") {
     return line();
   }
