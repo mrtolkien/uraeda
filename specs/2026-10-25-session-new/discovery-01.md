@@ -227,7 +227,8 @@ How the chat, the tool calls, and the right column share the page. Relies on
 | B. Chat with a recap, sidebar split: Activity above, diff below | Yes                         | Always                | Always           | New: two panes, no tabs     |
 | C. Typed rows stay in chat, tabs Sources, Changes, Progress     | Less: rows between messages | In the chat           | A tab            | Yes                         |
 
-Mockups: [A](mockups/session-a.html), [B](mockups/session-b.html), [C](mockups/session-c.html).
+Mockups: A (`mockups/session-a.html`, deleted), B (`mockups/session-b.html`, deleted), C
+(`mockups/session-c.html`, deleted).
 
 ### The last edit
 
@@ -272,7 +273,8 @@ How the three kinds are told apart. Relies on
 | B. Stacked choices, then a comparison table                   | Yes                    | By table       | Yes                    |
 | C. One composer first, the kind chosen under it               | Less                   | By text below  | Needs a place          |
 
-Mockups: [A](mockups/new-a.html), [B](mockups/new-b.html), [C](mockups/new-c.html).
+Mockups: A (`mockups/new-a.html`, deleted), B (`mockups/new-b.html`, deleted), C
+(`mockups/new-c.html`, deleted).
 
 ### Needs no choice
 

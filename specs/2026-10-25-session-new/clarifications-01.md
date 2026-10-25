@@ -71,12 +71,12 @@ Three prototypes, in Catppuccin Mocha, with the left navigation, the chat, and t
 wide window. The same session in each: an agent reads three files, searches, fetches a library page,
 thinks twice, edits two files, and runs the tests.
 
-- [Session A](mockups/session-a.html): the chat holds one recap line per run of calls, such as
-  "Worked 2 min · read 3 files · searched 1". The right column is tabs, like the documents'.
-- [Session B](mockups/session-b.html): the same chat, and your idea of a vertically split sidebar:
-  the live activity above, the last edit's diff and the changes below.
-- [Session C](mockups/session-c.html): one typed line per call stays in the chat, between the
-  messages, and the column's tabs hold the sources, the changes, and the progress.
+- Session A (`mockups/session-a.html`, deleted): the chat holds one recap line per run of calls,
+  such as "Worked 2 min · read 3 files · searched 1". The right column is tabs, like the documents'.
+- Session B (`mockups/session-b.html`, deleted): the same chat, and your idea of a vertically split
+  sidebar: the live activity above, the last edit's diff and the changes below.
+- Session C (`mockups/session-c.html`, deleted): one typed line per call stays in the chat, between
+  the messages, and the column's tabs hold the sources, the changes, and the progress.
 
 Pi folds tools and thinking apart, Zed and Codex give the changes a panel of their own. Nobody keeps
 every call in the reading flow. More in [discovery](discovery-01.md#session-layout).
@@ -188,11 +188,12 @@ Session?
 The page names Session, Change, and Feature in a segmented control today, with one sentence each.
 Three prototypes, each with the same three kinds:
 
-- [New A](mockups/new-a.html): three cards side by side, each with a sentence, an example prompt,
-  its steps, and what waits on you. The picked card's form is under them.
-- [New B](mockups/new-b.html): stacked choices, then a table of use, ending, what waits on you, and
-  length.
-- [New C](mockups/new-c.html): one composer first, the kind chosen under it, with a live sentence.
+- New A (`mockups/new-a.html`, deleted): three cards side by side, each with a sentence, an example
+  prompt, its steps, and what waits on you. The picked card's form is under them.
+- New B (`mockups/new-b.html`, deleted): stacked choices, then a table of use, ending, what waits on
+  you, and length.
+- New C (`mockups/new-c.html`, deleted): one composer first, the kind chosen under it, with a live
+  sentence.
 
 More in [discovery](discovery-01.md#new-page-layout).
 
