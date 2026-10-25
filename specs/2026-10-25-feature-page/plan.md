@@ -932,14 +932,14 @@ git commit -m "feat(feature-page): a timeline of stages holding their files"
   rail); inline after the timeline in one column on the phone. A ticking `useNow` (30 s) re-renders
   the figures while a turn runs.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
-test("agent time and elapsed read 2 h 51 min and 6 h 02 min", () => {
+test("agent time and elapsed read 2 h 51 min and 6 h 2 min", () => {
   const now = Date.parse("2026-10-06T15:14:00Z");
   const rows = figureRows({ ...LIVE, agent: { seconds: 10260, runningSince: null }, now });
   expect(rows.find((r) => r.label === "agent time")?.value).toBe("2 h 51 min");
-  expect(rows.find((r) => r.label === "elapsed")?.value).toBe("6 h 02 min"); // started 09:12
+  expect(rows.find((r) => r.label === "elapsed")?.value).toBe("6 h 2 min"); // started 09:12
 });
 test("a running turn counts to now", () => {
   /* runningSince 4 min before now: agent time "4 min" */
@@ -967,24 +967,24 @@ test("no page of the feature links Storybook", async () => {}); // SC-005, with 
 catch: a summed running turn double counted; "0 min" for no data; a wrong hour from time zones; a
 column whose width differs from the documents'.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/figure-rows.test.ts`
 - Expected: FAIL, `Failed to resolve import "../figureRows.ts"`
 
-- [ ] **Step 3: Implement the rows and the panes, build the column, delete `Figures.tsx` and
+- [x] **Step 3: Implement the rows and the panes, build the column, delete `Figures.tsx` and
       `FileList.tsx`**
 
 Sessions keeps its rows: status, name, start, sub-agents, task bar, Stop, "New session". The in-page
 links of the done figures (`#record-questions`, `#record-decisions`) keep the existing jump that
 opens the folded questions (`jumpInPage` moves with the rows' view).
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp check` and the task's test files with `nix develop -c vp test <files>`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

@@ -67,14 +67,14 @@ function RecordSection({ anchor, document }: { anchor: string; document: Documen
   return <Blocks document={document} ids={[heading, ...body]} />;
 }
 
-/** The decisions the feature made or changed, each drawn as its change, at `#decisions`. */
+/** The decisions the feature made or changed, each drawn as its change, at `#record-decisions`. */
 function Decisions({ decisions }: { decisions: ReadonlyArray<DecisionChange> }) {
   const here = useRepoPath();
   if (decisions.length === 0) {
     return null;
   }
   return (
-    <Section id="decisions" title="Decisions">
+    <Section id="record-decisions" title="Decisions">
       <VStack gap={4} xstyle={styles.layer}>
         {decisions.map((change) => (
           <DecisionCard
@@ -98,7 +98,7 @@ function Decisions({ decisions }: { decisions: ReadonlyArray<DecisionChange> }) 
 /** The key of the record's questions in the history entry's open items. */
 export const QUESTIONS_KEY = "record:questions";
 
-/** The record's questions, folded under their count, at `#questions`, open as `keys` keep them. */
+/** The record's questions, folded under their count, at `#record-questions`, open as `keys` keep them. */
 function Questions({
   document,
   history,
@@ -115,7 +115,7 @@ function Questions({
   }
   const title = `Questions · ${history.questions ?? 0} in ${rounds} ${rounds === 1 ? "round" : "rounds"}`;
   return (
-    <section aria-label="Questions" id="questions">
+    <section aria-label="Questions" id="record-questions">
       <Collapsible
         isOpen={keys.open.includes(QUESTIONS_KEY)}
         onOpenChange={(isOpen: boolean) => keys.onOpenChange(QUESTIONS_KEY, isOpen)}

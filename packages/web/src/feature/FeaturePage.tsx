@@ -1,8 +1,8 @@
-// The page of a feature or a change, top to bottom: where it is, what blocks it, what's next beside
-// its sessions, what it produced, a done one's record, and its notes, folded.
+// The page of a feature or a change, top to bottom: where it is, what blocks it, what's next, a
+// done one's record, and its notes, folded; beside them, or after them on the phone, its column of
+// sessions, figures, and links.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
-import { Grid, GridSpan } from "@astryxdesign/core/Grid";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
@@ -16,16 +16,13 @@ import { Paragraph } from "../layout/Paragraph.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useRestoreScroll } from "../routes.tsx";
 import { useSession } from "../sessionData.ts";
-import { useOpenKeys } from "../useOpenKeys.ts";
+import { type OpenKeys, useOpenKeys } from "../useOpenKeys.ts";
 import { FeatureMenu } from "./FeatureMenu.tsx";
-import { Figures } from "./Figures.tsx";
-import { Links } from "./FileList.tsx";
+import { FeatureColumn, WithFeatureColumn } from "./FeatureColumn.tsx";
 import { nextOf, type Recommended } from "./next.ts";
 import { NextPane } from "./NextPane.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
-import { QUESTIONS_KEY, Record } from "./Record.tsx";
-import { Section } from "./Section.tsx";
-import { SessionsCard } from "./SessionsCard.tsx";
+import { Record } from "./Record.tsx";
 import { Timeline } from "./Timeline.tsx";
 import { day } from "./times.ts";
 
@@ -58,8 +55,8 @@ function recommendedOf(read: ReturnType<typeof useRecommendedMessage>): Recommen
   return read.reason === null ? undefined : { reason: read.reason };
 }
 
-/** "Next" beside its sessions: one row on a wide screen, "Next" twice as wide; stacked on the phone. */
-function NextAndSessions({
+/** "Next": the one action of the feature's step. */
+function NextStep({
   feature,
   history,
   working = false,
@@ -68,7 +65,6 @@ function NextAndSessions({
   history: HistoryData;
   working?: boolean;
 }) {
-  const wide = !isNarrow(useWidthClass());
   const merge = history.stages.find((stage) => stage.name === "merged")?.started;
   const agent = useAgent();
   const recommended = recommendedOf(useRecommendedMessage(feature.folder));
@@ -80,21 +76,10 @@ function NextAndSessions({
   });
   // A human gate is peach; the agent's turn, a build, or a merge is the active pane.
   const tone = feature.step.waitsOn === "human" ? "attention" : "active";
-  return (
-    <Grid columns={wide ? 3 : 1} gap={3}>
-      <GridSpan columns={wide ? 2 : 1}>
-        <NextPane folder={feature.folder} next={next} tone={tone} />
-      </GridSpan>
-      <SessionsCard
-        folder={feature.folder}
-        progress={feature.step.progress}
-        sessions={feature.sessions}
-      />
-    </Grid>
-  );
+  return <NextPane folder={feature.folder} next={next} tone={tone} />;
 }
 
-/** "Next" and the sessions, once the feature's latest session is read, which its runs go to. */
+/** "Next", once the feature's latest session is read, which its runs go to. */
 function WithSession({
   feature,
   history,
@@ -105,9 +90,7 @@ function WithSession({
   id: string;
 }) {
   const session = useSession(id);
-  return (
-    <NextAndSessions feature={feature} history={history} working={session?.status === "working"} />
-  );
+  return <NextStep feature={feature} history={history} working={session?.status === "working"} />;
 }
 
 /** What a finished feature left behind: its worktree, its branch, or both. */
@@ -143,35 +126,25 @@ function LeftBanner({ feature }: { feature: FeatureData }) {
   );
 }
 
-/**
- * What the feature produced: its figures and files, then, once done, its record in place, its
- * folds open as the history entry keeps them.
- */
-function Produced({ feature, history }: { feature: FeatureData; history: HistoryData }) {
-  const keys = useOpenKeys();
+/** A done item's record, in place, its folds open as the history entry keeps them. */
+function RecordPart({
+  feature,
+  history,
+  keys,
+}: {
+  feature: FeatureData;
+  history: HistoryData;
+  keys: OpenKeys;
+}) {
   const done = history.current >= history.stages.length;
   const record = done ? feature.files.find((file) => file.kind === "record") : undefined;
+  if (!record) {
+    return null;
+  }
   return (
-    <>
-      <Section id="changes" title={done ? "What it produced" : "What it produced so far"}>
-        <Figures
-          change={feature.kind === "change"}
-          done={done}
-          history={history}
-          onOpen={(id) => id === "questions" && keys.onOpenChange(QUESTIONS_KEY, true)}
-          pullRequest={done ? feature.pullRequest?.url : undefined}
-          tokens={feature.tokens ?? null}
-        />
-        <div id="links">
-          <Links feature={feature} />
-        </div>
-      </Section>
-      {record && (
-        <Suspense fallback={null}>
-          <Record folder={feature.folder} history={history} keys={keys} name={record.name} />
-        </Suspense>
-      )}
-    </>
+    <Suspense fallback={null}>
+      <Record folder={feature.folder} history={history} keys={keys} name={record.name} />
+    </Suspense>
   );
 }
 
@@ -180,60 +153,72 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
   const history = useHistory(feature.folder);
   // Why the server refused a drop, shown under the name until dismissed.
   const [refused, setRefused] = useState<string>();
+  // The record's folds, which a figure of the column opens.
+  const keys = useOpenKeys();
+  const inline = isNarrow(useWidthClass());
   if (!history) {
-    return null;
+    return (
+      <Page>
+        <Crumbs folder={feature.folder} />
+      </Page>
+    );
   }
   const done = history.current >= history.stages.length;
-  return (
-    <VStack gap={6}>
-      <VStack gap={2}>
-        <HStack align="center" gap={2} justify="between">
-          <Heading level={1}>{feature.title}</Heading>
-          {!done && (
-            <FeatureMenu
-              feature={feature}
-              item={{
-                branch: feature.branch ?? null,
-                folder: feature.folder,
-                kind: feature.kind === "change" ? "change" : "feature",
-                slug: feature.slug,
-              }}
-              onRefused={setRefused}
+  const page = (
+    <Page>
+      <Crumbs folder={feature.folder} />
+      <VStack gap={6}>
+        <VStack gap={2}>
+          <HStack align="center" gap={2} justify="between">
+            <Heading level={1}>{feature.title}</Heading>
+            {!done && (
+              <FeatureMenu
+                feature={feature}
+                item={{
+                  branch: feature.branch ?? null,
+                  folder: feature.folder,
+                  kind: feature.kind === "change" ? "change" : "feature",
+                  slug: feature.slug,
+                }}
+                onRefused={setRefused}
+              />
+            )}
+          </HStack>
+          {refused && (
+            <AnnouncedBanner
+              collapsible={false}
+              dismissLabel="Dismiss"
+              isDismissable
+              onDismiss={() => setRefused(undefined)}
+              status="error"
+              title={refused}
             />
           )}
-        </HStack>
-        {refused && (
-          <AnnouncedBanner
-            collapsible={false}
-            dismissLabel="Dismiss"
-            isDismissable
-            onDismiss={() => setRefused(undefined)}
-            status="error"
-            title={refused}
-          />
-        )}
-        <Text color="secondary" type="supporting">
-          {headerLine(feature)}
-        </Text>
+          <Text color="secondary" type="supporting">
+            {headerLine(feature)}
+          </Text>
+        </VStack>
+        <Timeline feature={feature} history={history} progress={feature.step.progress} />
+        <Blocking
+          change={feature.kind === "change"}
+          folder={feature.folder}
+          problems={feature.problems}
+        />
+        <LeftBanner feature={feature} />
+        <Suspense fallback={null}>
+          {feature.session ? (
+            <WithSession feature={feature} history={history} id={feature.session} />
+          ) : (
+            <NextStep feature={feature} history={history} />
+          )}
+        </Suspense>
+        {inline && <FeatureColumn feature={feature} history={history} keys={keys} />}
+        <RecordPart feature={feature} history={history} keys={keys} />
+        <Notes notes={feature.notes} />
       </VStack>
-      <Timeline feature={feature} history={history} progress={feature.step.progress} />
-      <Blocking
-        change={feature.kind === "change"}
-        folder={feature.folder}
-        problems={feature.problems}
-      />
-      <LeftBanner feature={feature} />
-      <Suspense fallback={null}>
-        {feature.session ? (
-          <WithSession feature={feature} history={history} id={feature.session} />
-        ) : (
-          <NextAndSessions feature={feature} history={history} />
-        )}
-      </Suspense>
-      <Produced feature={feature} history={history} />
-      <Notes notes={feature.notes} />
-    </VStack>
+    </Page>
   );
+  return <WithFeatureColumn content={page} feature={feature} history={history} keys={keys} />;
 }
 
 /** A feature's or a change's page. */
@@ -248,10 +233,5 @@ export function FeaturePage({ folder }: { folder: string }) {
       </Page>
     );
   }
-  return (
-    <Page>
-      <Crumbs folder={folder} />
-      <FeatureBody feature={feature} />
-    </Page>
-  );
+  return <FeatureBody feature={feature} />;
 }

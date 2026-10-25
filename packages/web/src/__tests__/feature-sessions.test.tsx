@@ -18,10 +18,9 @@ const CLI = "2026-10-12-cli-tuis";
 
 today("2026-10-12");
 
-/** The page's sessions card, once drawn. */
-async function sessionsCard() {
-  await screen.findByRole("heading", { level: 2, name: "Sessions" });
-  return within(screen.getByRole("region", { name: "Sessions" }));
+/** The page's sessions pane, once drawn. */
+async function sessionsPane() {
+  return within(await screen.findByRole("region", { name: "Sessions" }));
 }
 
 /** A first session of the feature, its plan run done; then a second one, whose agent works. */
@@ -56,11 +55,11 @@ test("a feature's page lists its sessions, latest first, with their sub-agents",
 
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
 
-  const card = await sessionsCard();
-  await waitFor(() => expect(card.getByText("Write the card's tests")).toBeTruthy());
+  const pane = await sessionsPane();
+  await waitFor(() => expect(pane.getByText("Write the card's tests")).toBeTruthy());
   // The earlier session draws once its first turn is read, for its title.
   const links = await waitFor(() => {
-    const found = card.getAllByRole("link");
+    const found = pane.getAllByRole("link");
     expect(found).toHaveLength(2);
     return found;
   });
@@ -69,10 +68,10 @@ test("a feature's page lists its sessions, latest first, with their sub-agents",
     atRepo(`/sessions/${first.id}`),
   ]);
   // Titled by their first run's step, or "Session" for a first message without a workflow.
-  expect(card.getByRole("link", { name: /^Working Session Oct \d+, \d\d:\d\d$/ })).toBe(links[0]);
-  expect(card.getByRole("link", { name: / Plan Oct \d+, / })).toBe(links[1]);
+  expect(pane.getByRole("link", { name: /^Working Session Oct \d+, \d\d:\d\d$/ })).toBe(links[0]);
+  expect(pane.getByRole("link", { name: / Plan Oct \d+, / })).toBe(links[1]);
   // The sub-agent is listed under its session, before the earlier one.
-  const subagent = card.getByText("Write the card's tests");
+  const subagent = pane.getByText("Write the card's tests");
   expect(
     links[0].compareDocumentPosition(subagent) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
@@ -87,10 +86,10 @@ test("New session opens a session of the feature", async () => {
   const fake = await fakeAgent();
   const first = await fake.sessions.featureSession(repo, CLI);
   await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  const card = await sessionsCard();
-  expect(await card.findAllByRole("link")).toHaveLength(1);
+  const pane = await sessionsPane();
+  expect(await pane.findAllByRole("link")).toHaveLength(1);
 
-  await click(card.getByRole("button", { name: "New session" }));
+  await click(pane.getByRole("button", { name: "New session" }));
 
   await waitFor(() => expect(window.location.pathname).toMatch(/\/sessions\/[^/]+$/));
   const id = decodeURIComponent(window.location.pathname.split("/").at(-1)!);
@@ -102,7 +101,7 @@ test("New session opens a session of the feature", async () => {
   // is read again, as when it comes back to the foreground; the server's tests check the update.
   act(() => window.history.back());
   await waitFor(() => expect(window.location.pathname).toBe(atRepo(`/f/${CLI}`)));
-  const after = await sessionsCard();
+  const after = await sessionsPane();
   await refreshUntil(() =>
     expect(after.getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
       atRepo(`/f/${CLI}/session`),
@@ -116,12 +115,12 @@ test("Stop stops the working session", async () => {
   const fake = await fakeAgent();
   await twoSessions(fake, repo);
   const { agent } = await renderPage(`/f/${CLI}`, repo, { agent: fake });
-  const card = await sessionsCard();
+  const pane = await sessionsPane();
 
-  await click(await card.findByRole("button", { name: "Stop" }));
+  await click(await pane.findByRole("button", { name: "Stop" }));
 
   await waitFor(() => expect(agent.interrupts).toBe(1));
-  expect(card.getAllByRole("button", { name: "Stop" })).toHaveLength(1);
+  expect(pane.getAllByRole("button", { name: "Stop" })).toHaveLength(1);
 });
 
 /** US5 more 1: an earlier session is its feature's session page, at its own address. */

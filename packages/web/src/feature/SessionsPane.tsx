@@ -1,9 +1,7 @@
-// A feature's or a change's sessions, beside "Next": the latest first, each with its status, its
+// A feature's or a change's sessions, in a pane of the Home's column: the latest first, each with its status, its
 // running sub-agents, and when it started; the latest's task and last run, Stop for a working one,
 // and "New session", which opens a new session in its worktree, on its own page.
 import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
-import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { SideNavItem } from "@astryxdesign/core/SideNav";
@@ -17,6 +15,7 @@ import type { TaskProgress } from "uraeda-binding";
 import { useAgent } from "../data.ts";
 import { refusal } from "../errors.ts";
 import { stepLabel } from "../labels.ts";
+import { Pane } from "../layout/Pane.tsx";
 import { statusStyles } from "../Question.tsx";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { useSession, useTurn } from "../sessionData.ts";
@@ -27,8 +26,6 @@ import { clearPending, markPending } from "../writes/store.ts";
 import { clock, day, duration } from "./times.ts";
 
 const styles = stylex.create({
-  // The card fills its cell of the row, so it and "Next" share one height.
-  fill: { height: "100%" },
   subagent: { paddingInlineStart: spacingVars["--spacing-6"] },
 });
 
@@ -184,10 +181,10 @@ function NewSession({ folder }: { folder: string }) {
 }
 
 /**
- * The sessions' card: its sessions, the latest first, "New session", and that the agent is not on
- * this machine.
+ * The sessions' pane, titled with their count: its sessions, the latest first, "New session", and
+ * that the agent is not on this machine.
  */
-export function SessionsCard({
+export function SessionsPane({
   folder,
   progress,
   sessions,
@@ -198,26 +195,21 @@ export function SessionsCard({
 }) {
   const agent = useAgent();
   return (
-    <section aria-label="Sessions" {...stylex.props(styles.fill)}>
-      <Card padding={4} xstyle={styles.fill}>
-        <VStack gap={3}>
-          <HStack align="center" gap={2} justify="between" wrap="wrap">
-            <Heading level={2}>Sessions</Heading>
-            {agent?.available !== false && <NewSession folder={folder} />}
-          </HStack>
-          {sessions.length === 0 && <Text color="secondary">No session yet.</Text>}
-          {sessions.map((id, index) => (
-            <Suspense fallback={null} key={id}>
-              <SessionItem folder={folder} id={id} latest={index === 0} progress={progress} />
-            </Suspense>
-          ))}
-          {agent?.available === false && (
-            <Text color="secondary" type="supporting">
-              {agent.name} is not available on this machine.
-            </Text>
-          )}
-        </VStack>
-      </Card>
-    </section>
+    <Pane count={sessions.length} title="Sessions">
+      <VStack gap={3}>
+        {sessions.length === 0 && <Text color="secondary">No session yet.</Text>}
+        {sessions.map((id, index) => (
+          <Suspense fallback={null} key={id}>
+            <SessionItem folder={folder} id={id} latest={index === 0} progress={progress} />
+          </Suspense>
+        ))}
+        {agent?.available !== false && <NewSession folder={folder} />}
+        {agent?.available === false && (
+          <Text color="secondary" type="supporting">
+            {agent.name} is not available on this machine.
+          </Text>
+        )}
+      </VStack>
+    </Pane>
   );
 }

@@ -2,7 +2,7 @@
 // its blocking problems, and its notes, folded. Times are read in UTC (`vite.config.ts`).
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { refreshPullRequests, startFeature } from "uraeda-binding";
 import {
   addChange,
@@ -13,6 +13,7 @@ import {
   temporaryFolder,
 } from "uraeda-binding/test-utils";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
+import { COLUMN_KEY } from "../layout/documentColumnWidth.ts";
 import { navigate } from "../routes.tsx";
 import {
   addMockup,
@@ -43,7 +44,7 @@ async function nextCard() {
   return within(await screen.findByRole("region", { name: "Next" }));
 }
 
-/** The sessions' card, beside "Next". */
+/** The sessions' pane, in the Home's column. */
 function sessionsCard() {
   return within(screen.getByRole("region", { name: "Sessions" }));
 }
@@ -293,8 +294,8 @@ test("the pull request opens in a new tab from Next and from the links", async (
   await renderPage(`/f/${CLI}`, repo, { agent: true });
 
   const next = (await nextCard()).getByRole("link", { name: "Open pull request #31" });
-  const links = within(screen.getByRole("list", { name: "Links" }));
-  const row = links.getByRole("link", { name: /Pull request #31/ });
+  const links = within(screen.getByRole("region", { name: "Links" }));
+  const row = links.getByRole("link", { name: "Pull request #31" });
   for (const link of [next, row]) {
     expect(link.getAttribute("href")).toBe(url);
     expect(link.getAttribute("target")).toBe("_blank");
@@ -744,4 +745,124 @@ test("a merged feature's session opens from its card, with its last run and no S
   ).toBeTruthy();
   expect(sessionsCard().getByRole("link", { name: / \d\d:\d\d$/ })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Stop" })).toBeNull();
+});
+
+/** A turn of the feature's session, started at `at` and ended at `ended`, or still running. */
+async function turnAt(fake: Fake, repo: string, at: string, ended: string | null) {
+  const { cache } = fake.sessions;
+  const session = await fake.sessions.featureSession(repo, CLI);
+  const id = cache.addTurn({
+    allowed: null,
+    kind: "workflow",
+    sessionId: session.id,
+    state: "running",
+    step: "implementation",
+    trigger: "manual",
+  });
+  if (ended !== null) {
+    cache.endTurn(id, { state: "done" });
+  }
+  cache.db.prepare("UPDATE turns SET started_at = ?, ended_at = ? WHERE id = ?").run(at, ended, id);
+}
+
+/** The figures' pane in the Home's column, and its row of this name. */
+function produced(label: string): HTMLElement {
+  const pane = screen.getByRole("region", { name: "Produced so far" });
+  return within(pane).getByRole("group", { name: label });
+}
+
+/** The feature started at 09:12, the browser's clock at `now`. */
+function startedAt0912(repo: string, now: string) {
+  commitsAt(repo, CLI, [
+    {
+      at: "2026-10-12T09:12:00Z",
+      files: { [`specs/${CLI}/proposal.md`]: "# Proposal: CLI TUIs\n" },
+      message: "proposal(cli-tuis): x",
+    },
+  ]);
+  vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+  vi.setSystemTime(new Date(now));
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+}
+
+/** US3.1 */
+test("Produced so far reads agent time and elapsed", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await turnAt(fake, repo, "2026-10-12T09:14:00.000Z", "2026-10-12T10:06:00.000Z");
+  await turnAt(fake, repo, "2026-10-12T13:15:00.000Z", "2026-10-12T15:14:00.000Z");
+  startedAt0912(repo, "2026-10-12T15:14:00Z");
+
+  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+
+  await screen.findByRole("region", { name: "Produced so far" });
+  expect(produced("agent time").textContent).toContain("2 h 51 min");
+  expect(produced("elapsed").textContent).toContain("6 h 2 min");
+});
+
+/** US3 more 1 */
+test("agent time grows while a turn runs", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  await turnAt(fake, repo, "2026-10-12T15:10:00.000Z", null);
+  startedAt0912(repo, "2026-10-12T15:14:00Z");
+
+  await renderPage(`/f/${CLI}`, repo, { agent: fake });
+
+  await screen.findByRole("region", { name: "Produced so far" });
+  expect(produced("agent time").textContent).toContain("4 min");
+  await act(async () => {
+    vi.setSystemTime(new Date("2026-10-12T15:15:00Z"));
+    vi.advanceTimersByTime(30_000);
+  });
+  expect(produced("agent time").textContent).toContain("5 min");
+});
+
+/** US3 more 2 */
+test("agent time reads Not recorded without a turn", async () => {
+  const repo = fixtureRepo();
+  await renderPage(`/f/${CLI}`, repo, { agent: true });
+
+  await screen.findByRole("region", { name: "Produced so far" });
+  expect(produced("agent time").textContent).toContain("Not recorded");
+  expect(produced("tokens").textContent).toContain("Not recorded");
+});
+
+/** US1 more 2, and the documents' column's width and fold, which this column shares */
+test("] folds the Home's column and the width is the documents'", async () => {
+  const repo = fixtureRepo();
+  await renderPage(`/f/${CLI}`, repo, { agent: true });
+  await screen.findByRole("region", { name: "Produced so far" });
+  expect(screen.getByRole("separator", { name: "Resize the feature's column" })).toBeTruthy();
+
+  fireEvent.keyDown(document.body, { key: "]" });
+
+  await waitFor(() => expect(screen.queryByRole("region", { name: "Sessions" })).toBeNull());
+  expect(screen.queryByRole("region", { name: "Produced so far" })).toBeNull();
+  expect(JSON.parse(window.localStorage.getItem(COLUMN_KEY) ?? "{}")).toMatchObject({
+    folded: true,
+  });
+  await click(screen.getByRole("button", { name: "Show the feature's column" }));
+  expect(await screen.findByRole("region", { name: "Sessions" })).toBeTruthy();
+});
+
+/** US1 more 2: the folded column is the documents' column's fold */
+test("a column folded for the documents is folded on the Home", async () => {
+  window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ folded: true }));
+  const repo = fixtureRepo();
+  await renderPage(`/f/${CLI}`, repo, { agent: true });
+
+  await screen.findByRole("heading", { level: 1 });
+  expect(screen.queryByRole("region", { name: "Sessions" })).toBeNull();
+});
+
+/** US5.1, the Home's */
+test("no page of the feature links Storybook", async () => {
+  const repo = fixtureRepo();
+  await renderPage(`/f/${CLI}`, repo, { agent: true });
+
+  await screen.findByRole("region", { name: "Sessions" });
+  expect(screen.queryByRole("link", { name: /Storybook/ })).toBeNull();
 });
