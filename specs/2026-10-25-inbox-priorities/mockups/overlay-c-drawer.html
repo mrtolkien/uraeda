@@ -1,0 +1,49 @@
+<!doctype html><meta charset="utf-8" /><link rel="stylesheet" href="terminal.css" /><style>
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+</style>
+<body class="pad">
+  <h1>Priorities</h1>
+  <div class="cols">
+    <div class="pane blue">
+      <span class="t">Now · 6</span>
+      <div class="card">Feature page in the terminal look</div>
+      <div class="card sel">
+        Neovim plugin: an "open priorities/inbox" shortcut, and review its shortcuts
+      </div>
+      <div class="card">Empty inbox</div>
+    </div>
+    <div class="pane">
+      <span class="t">Next · 14</span>
+      <div class="card">Worker lifecycle</div>
+      <div class="card">Heartbeat/cron jobs</div>
+    </div>
+    <div class="pane">
+      <span class="t">Later · 9</span>
+      <div class="card">?Slack integration?</div>
+    </div>
+  </div>
+  <div class="scrim"></div>
+  <div
+    class="dlg"
+    style="top: 0; right: 0; bottom: 0; width: min(30em, 90vw); border-width: 0 0 0 1px"
+  >
+    <span class="t">Priority</span>
+    <div class="meta">Priority in Next, 2 of 14 · draft: none</div>
+    <p>
+      Neovim plugin: an "open priorities/inbox" shortcut, and review its shortcuts, they are very
+      bad atm -> overall a small review as I have used it for a bit now
+    </p>
+    <ul>
+      <li>Would be nice to be able to connect to a running server to start steps?</li>
+      <li>Small change so let us do it</li>
+    </ul>
+    <div class="btns">
+      <b>i</b> edit · <b>m</b> move to… · <b>d</b> make a draft · <b>s</b> start · <b>dd</b> delete
+      · <b>[ ]</b> previous, next · <b>esc</b> close
+    </div>
+  </div>
+</body>
