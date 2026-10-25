@@ -7,7 +7,8 @@ import { useEffect } from "react";
 import { ConfirmHost, useConfirm } from "./fields/Confirm.tsx";
 import { Page } from "./layout/Page.tsx";
 import { addNote } from "./offers.ts";
-import { dropQuestion, SessionActions as Actions, type SessionItem } from "./SessionActions.tsx";
+import { dropQuestion, type SessionItem } from "./dropItem.ts";
+import { SessionActions as Actions } from "./SessionActions.tsx";
 import { SessionEnd } from "./SessionOffers.tsx";
 import type { Controls } from "./useSessionControls.ts";
 

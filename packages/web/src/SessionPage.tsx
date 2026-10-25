@@ -2,7 +2,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useFeature } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import { type Draft, featureDraftKey, useDraft } from "./useDraft.ts";
-import type { SessionItem } from "./SessionActions.tsx";
+import type { SessionItem } from "./dropItem.ts";
 import { type ReadMessage, useFreshRun, useHandOver, WorkflowMessage } from "./HandOver.tsx";
 import { SessionAnnouncer, useCreatedHere } from "./SessionAnnouncer.tsx";
 import { Page } from "./layout/Page.tsx";
