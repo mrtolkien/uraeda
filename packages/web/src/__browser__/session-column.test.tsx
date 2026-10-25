@@ -298,6 +298,23 @@ describe("on the phone", () => {
     expect(screen.getByRole("log", { name: "Conversation" })).toBeTruthy();
   });
 
+  test("the sheet holds the split: the Activity scrolls on its own, the Changes in view under it", async () => {
+    await agent.addPlan(CLI);
+    await startTurn("Read the sources.", reads(0, 40), `/f/${CLI}/session`);
+    const line = within(screen.getByRole("contentinfo", { name: "Status line" }));
+    await userEvent.click(line.getByRole("button", { name: "Activity" }));
+    const sheet = await screen.findByRole("dialog", { name: "Activity" }, LIVE);
+    const activity = within(sheet).getByRole("region", { name: "Activity" });
+    await within(activity).findByText("src/f39.rs", undefined, LIVE);
+    await drawn();
+
+    expect(activity.scrollHeight).toBeGreaterThan(activity.clientHeight);
+    const changes = within(sheet).getByRole("region", { name: "Changes" });
+    expect(changes.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight);
+    // The latest call in view, as in the column.
+    await expect.poll(() => inView(within(activity).getByText("src/f39.rs"), activity)).toBe(true);
+  });
+
   test("the sheet's tabs open the Sub-agents by a tap, and Back closes the sheet", async () => {
     await session();
     await startTurn("Plan the CLI.", [

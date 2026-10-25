@@ -11,6 +11,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
+import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useEffect, useId, useMemo } from "react";
 import { useFateClient, useView } from "react-fate";
 import type { Session } from "uraeda-server/fate";
@@ -41,6 +42,11 @@ import { SessionView } from "../views.ts";
 
 /** The key of the Sub-agents panel, its tab's in the address. */
 const SUBAGENTS = "subagents";
+
+const styles = stylex.create({
+  // The sheet's open panel takes the room under its tabs, so the split's parts scroll on their own.
+  panel: { display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0 },
+});
 
 /** What the session's column draws from: the feature's or the change's folder, and the session. */
 type Of = { folder?: string | undefined; session?: string | undefined };
@@ -156,7 +162,7 @@ function ColumnSheet({
   const shown = panels.find((panel) => panel.key === open) ?? panels[0];
   const tabbed = panels.length > 1 && shown !== undefined;
   return (
-    <Overlay isOpen={open !== undefined} label={SHEET} onClose={onClose}>
+    <Overlay fills isOpen={open !== undefined} label={SHEET} onClose={onClose}>
       {tabbed && (
         <ColumnTabs
           ids={ids}
@@ -167,7 +173,12 @@ function ColumnSheet({
         />
       )}
       {tabbed ? (
-        <div aria-labelledby={tabId(ids, shown.key)} id={panelId(ids, shown.key)} role="tabpanel">
+        <div
+          aria-labelledby={tabId(ids, shown.key)}
+          id={panelId(ids, shown.key)}
+          role="tabpanel"
+          {...stylex.props(styles.panel)}
+        >
           {shown.content}
         </div>
       ) : (
