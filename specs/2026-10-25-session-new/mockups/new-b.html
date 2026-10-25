@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>New B: list and comparison table</title>
+    <link rel="stylesheet" href="terminal.css" />
+  </head>
+  <body>
+    <div class="app">
+      <div class="col nav">
+        <div class="pane">
+          <h2>Uraeda</h2>
+          <div class="btn fill">＋ New</div>
+          &nbsp;<span class="dim">Note</span>
+        </div>
+        <div class="pane">
+          <h2>Needs you</h2>
+          <div class="item">◆ Questions page <span class="dim">Answer</span></div>
+        </div>
+        <div class="pane tall">
+          <h2>Sessions</h2>
+          <div class="item on">● Recurring tasks <span class="dim">spec</span></div>
+          <div class="item">○ Fix due-date typo</div>
+          <div class="item">○ Why is CI slow?</div>
+        </div>
+        <div class="pane">
+          <h2>5 h</h2>
+          <span class="dim">42% used</span>
+        </div>
+      </div>
+      <div class="col" style="grid-column: 2 / span 2">
+        <div class="pane tall">
+          <h2>New</h2>
+          <div class="msg">
+            Pick one. You can always start a session first: it offers a change when the work grows.
+          </div>
+          <div class="pane good">
+            <h2>● Session · talk first</h2>
+            Nothing is created until you send a message.
+          </div>
+          <br />
+          <div class="pane">
+            <h2>○ Change · fix or adjust</h2>
+            Ends in a pull request.
+          </div>
+          <br />
+          <div class="pane">
+            <h2>○ Feature · design first</h2>
+            You approve a spec before any code.
+          </div>
+          <br />
+          <table style="width: 100%; border-collapse: collapse">
+            <tr class="dim">
+              <td></td>
+              <td>Session</td>
+              <td>Change</td>
+              <td>Feature</td>
+            </tr>
+            <tr style="border-top: 1px solid var(--s1)">
+              <td class="dim" style="padding: 6px 8px 6px 0">Use it for</td>
+              <td>talk, explore, ask</td>
+              <td>a fix, a small change</td>
+              <td>new behaviour, a redesign</td>
+            </tr>
+            <tr style="border-top: 1px solid var(--s1)">
+              <td class="dim" style="padding: 6px 8px 6px 0">Ends with</td>
+              <td>nothing: just the chat</td>
+              <td>a pull request</td>
+              <td>a spec, then a pull request</td>
+            </tr>
+            <tr style="border-top: 1px solid var(--s1)">
+              <td class="dim" style="padding: 6px 8px 6px 0">Waits on you</td>
+              <td>never</td>
+              <td>the pull request</td>
+              <td>questions, the spec</td>
+            </tr>
+            <tr style="border-top: 1px solid var(--s1)">
+              <td class="dim" style="padding: 6px 8px 6px 0">Branch</td>
+              <td>none</td>
+              <td>its own</td>
+              <td>its own</td>
+            </tr>
+            <tr style="border-top: 1px solid var(--s1)">
+              <td class="dim" style="padding: 6px 8px 6px 0">Typical length</td>
+              <td>minutes</td>
+              <td>under an hour</td>
+              <td>hours to days</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="note">B · stacked choices, then a comparison table</div>
+  </body>
+</html>

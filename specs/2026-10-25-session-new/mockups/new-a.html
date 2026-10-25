@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>New A: three cards</title>
+    <link rel="stylesheet" href="terminal.css" />
+  </head>
+  <body>
+    <div class="app">
+      <div class="col nav">
+        <div class="pane">
+          <h2>Uraeda</h2>
+          <div class="btn fill">＋ New</div>
+          &nbsp;<span class="dim">Note</span>
+        </div>
+        <div class="pane">
+          <h2>Needs you</h2>
+          <div class="item">◆ Questions page <span class="dim">Answer</span></div>
+        </div>
+        <div class="pane tall">
+          <h2>Sessions</h2>
+          <div class="item on">● Recurring tasks <span class="dim">spec</span></div>
+          <div class="item">○ Fix due-date typo</div>
+          <div class="item">○ Why is CI slow?</div>
+        </div>
+        <div class="pane">
+          <h2>5 h</h2>
+          <span class="dim">42% used</span>
+        </div>
+      </div>
+      <div class="col" style="grid-column: 2 / span 2">
+        <div class="pane tall">
+          <h2>New</h2>
+          <div class="cards">
+            <div class="pane card">
+              <h2>Session</h2>
+              <div>Talk to the agent in your checkout, like plain Claude Code.</div>
+              <br />
+              <div class="dim">e.g. “Why is CI slow?” · “Explain the sync code”</div>
+              <br />
+              <div class="flow">prompt</div>
+              <br />
+              <div class="sub">You decide: nothing waits on you</div>
+            </div>
+            <div class="pane card">
+              <h2>Change</h2>
+              <div>A fix or a small change on its own branch, ending in a pull request.</div>
+              <br />
+              <div class="dim">e.g. “Fix the due-date typo” · “Rename a setting”</div>
+              <br />
+              <div class="flow">prompt <i>→</i> questions if any <i>→</i> pull request</div>
+              <br />
+              <div class="sub">You review the pull request</div>
+            </div>
+            <div class="pane card sel">
+              <h2>Feature</h2>
+              <div>A larger piece you design with the agent before any code.</div>
+              <br />
+              <div class="dim">e.g. “Add recurring tasks” · “Redo the settings page”</div>
+              <br />
+              <div class="flow">prompt <i>→</i> questions <i>→</i> spec <i>→</i> pull request</div>
+              <br />
+              <div class="sub">You answer questions and approve the spec</div>
+            </div>
+          </div>
+          <br />
+          <div class="pane">
+            <h2>Feature · title</h2>
+            <div class="composer"><b>Add recurring tasks</b></div>
+            <br /><span class="btn fill">Write the proposal</span> &nbsp;<span class="dim"
+              >or start from a note or a priority ▾</span
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note">A · three titled cards side by side, one selected, its form below</div>
+  </body>
+</html>

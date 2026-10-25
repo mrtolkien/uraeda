@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Session B: split sidebar</title>
+    <link rel="stylesheet" href="terminal.css" />
+  </head>
+  <body>
+    <div class="app">
+      <div class="col nav">
+        <div class="pane">
+          <h2>Uraeda</h2>
+          <div class="btn fill">＋ New</div>
+          &nbsp;<span class="dim">Note</span>
+        </div>
+        <div class="pane">
+          <h2>Needs you</h2>
+          <div class="item">◆ Questions page <span class="dim">Answer</span></div>
+        </div>
+        <div class="pane tall">
+          <h2>Sessions</h2>
+          <div class="item on">● Recurring tasks <span class="dim">spec</span></div>
+          <div class="item">○ Fix due-date typo</div>
+          <div class="item">○ Why is CI slow?</div>
+        </div>
+        <div class="pane">
+          <h2>5 h</h2>
+          <span class="dim">42% used</span>
+        </div>
+      </div>
+      <div class="col">
+        <div class="pane tall">
+          <h2>Recurring tasks · spec · session</h2>
+          <div class="msg me">
+            Why does completing a repeating task not create the next one? Check the code and the
+            docs of the library before you change anything.
+          </div>
+          <div class="recap">
+            <span><b>Worked 2 min</b> · read 3 · searched 1 · fetched 1 · thought 2×</span>
+          </div>
+          <div class="msg agent">
+            The next occurrence is only created in <code>complete.ts</code> when the task has a
+            <code>repeat</code> rule. Your task stores the rule as <code>repeat: "weekly"</code>, a
+            string, and the check expects an object. I fixed the check to accept both and added a
+            test.<br /><br />The library's docs confirm that <code>rrule</code> strings are valid
+            input, so no migration is needed.
+          </div>
+        </div>
+        <div class="composer">
+          <b>Message the agent…</b> <span style="float: right" class="dim">Ctrl+Enter</span>
+        </div>
+      </div>
+      <div class="col side">
+        <div class="pane half">
+          <h2>Activity · live</h2>
+          <div class="row">
+            <span class="k dim">12:01</span><span class="mauve">thought</span> Looking at how
+            completion reads the rule <span class="dim">· 8 s</span>
+          </div>
+          <div class="row">
+            <span class="k dim">12:01</span><span class="blue">read</span> src/tasks/complete.ts
+          </div>
+          <div class="row">
+            <span class="k dim">12:01</span><span class="blue">read</span> src/tasks/repeat.ts
+          </div>
+          <div class="row">
+            <span class="k dim">12:02</span><span class="blue">read</span> src/tasks/repeat.test.ts
+          </div>
+          <div class="row">
+            <span class="k dim">12:02</span><span class="teal">search</span> "rrule next occurrence"
+          </div>
+          <div class="row">
+            <span class="k dim">12:02</span
+            ><span class="teal">web</span> github.com/jkbrzt/rrule#usage
+          </div>
+          <div class="row">
+            <span class="k dim">12:03</span><span class="mauve">thought</span> The rule is a string
+            here, not an object <span class="dim">· 5 s</span>
+          </div>
+          <div class="row">
+            <span class="k dim">12:03</span><span class="peach">edit</span> src/tasks/complete.ts
+            <span class="green">+9</span> <span class="red">−3</span>
+          </div>
+          <div class="row">
+            <span class="k dim">12:03</span
+            ><span class="peach">edit</span> src/tasks/complete.test.ts
+            <span class="green">+24</span>
+          </div>
+          <div class="row">
+            <span class="k dim">12:04</span><span class="sub">run</span> pnpm test
+            <span class="green">passed</span>
+          </div>
+        </div>
+        <div class="pane half">
+          <h2>Last edit · complete.ts</h2>
+          <div class="diff">
+            <div class="h">src/tasks/complete.ts</div>
+            <div class="d">- if (task.repeat?.rule) {</div>
+            <div class="a">
+              + const rule = typeof task.repeat === "string" ? task.repeat : task.repeat?.rule;
+            </div>
+            <div class="a">+ if (rule) {</div>
+            <div>next = nextOccurrence(rule, task.due);</div>
+          </div>
+          <div style="margin-top: 8px" class="dim">Changed · 2 files</div>
+          <div class="row">
+            <span class="green">+9</span> <span class="red">−3</span> src/tasks/complete.ts
+          </div>
+          <div class="row">
+            <span class="green">+24</span> <span class="red">−0</span> src/tasks/complete.test.ts
+          </div>
+        </div>
+        <div class="pane">
+          <h2>Step</h2>
+          <div class="row"><span class="green">✓</span> Spec approved</div>
+          <div class="row"><span class="mauve">●</span> Task 3 of 7: completion</div>
+          <div class="row dim">○ Task 4: undo</div>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      B · sidebar split vertically: live Activity above, last edit diff and changes below
+    </div>
+  </body>
+</html>
