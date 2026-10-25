@@ -371,7 +371,9 @@ test("a column's read that fails leaves the session and the rest of the column",
   expect(await screen.findByRole("log", { name: "Conversation" })).toBeTruthy();
   await findColumn();
   expect(await changes().findByText("No file changed yet.")).toBeTruthy();
-  expect(column().queryByRole("link", { name: /task 7 of 11/ })).toBeNull();
+  // The progress still shows, at the plan's top: its task's anchor is the plan's to read.
+  const bar = await column().findByRole("link", { name: /^Implementation · task 7 of 11/ });
+  expect(bar.getAttribute("href")).toBe(atRepo(`/f/${CLI}/plan.md`));
 });
 
 test("a merged feature, without a branch: no branch part", async () => {
