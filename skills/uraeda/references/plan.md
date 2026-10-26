@@ -353,8 +353,8 @@ simpler private design from what the code shows:
 - **A test step**: the tests the [testing](code-quality.md#testing) section asks for, their names
   and assertions as code, with the spec's exact values in them, including the human's approval
   comments. An assertion picks out what the task adds, by its message or its kind, and never
-  compares a whole list of results: see [what a test asserts](code-quality.md#how-many). Each test
-  names the break it catches: see [tests that can fail](code-quality.md#tests-that-can-fail). Derive
+  compares a whole list of results: see [how many](code-quality.md#how-many). Each test names the
+  break it catches: see [tests that can fail](code-quality.md#tests-that-can-fail). Derive
   expectations from the approved behaviour, independently of the proposed implementation. A task
   marked **Risky** names the breaks to make. The step also creates the helpers its tests use, so the
   first failure is about the feature, not a missing helper. Checks of preserved behaviour may
