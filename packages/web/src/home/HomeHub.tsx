@@ -39,7 +39,7 @@ function PrioritiesNow() {
   const link = <PaneLink href={here("/priorities")} label="Open priorities" />;
   if (entries.length === 0) {
     return (
-      <Pane level={3} title="Priorities now">
+      <Pane icon="uraeda:list" level={3} title="Priorities now">
         <Empty isInset>Nothing in Now.</Empty>
         {link}
       </Pane>
@@ -52,6 +52,7 @@ function PrioritiesNow() {
       sections={[
         {
           footer: link,
+          icon: "uraeda:list",
           id: "now",
           isFixed: true,
           rows: entries.map((entry) => ({
@@ -75,7 +76,7 @@ function Inbox() {
   const here = useRepoPath();
   const { count, latest } = inboxSummary(useInbox());
   return (
-    <Pane count={count} level={3} title="Inbox">
+    <Pane count={count} icon="uraeda:inbox" level={3} title="Inbox">
       {count === 0 ? (
         <Empty isInset>The inbox is empty.</Empty>
       ) : (

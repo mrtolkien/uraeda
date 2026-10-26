@@ -22,7 +22,7 @@ export function Recent({ features, rows }: { features: Array<Feature>; rows: Arr
   const all = asked || hash === "#done";
   const done = doneRows(features, rows, { here, pathname });
   return (
-    <Pane id="done" level={3} title="Recent">
+    <Pane icon="check" id="done" level={3} title="Recent">
       {done.length === 0 ? (
         <Empty isInset>Nothing done yet.</Empty>
       ) : (

@@ -5,11 +5,12 @@
 // 5 px of a mouse press, or after half a second of a touch press. The keys move the selection, and
 // Enter or a click opens the card in its overlay (see `useListKeys`).
 import type { HeadingLevel } from "@astryxdesign/core/Heading";
+import type { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type Ref, useState } from "react";
+import { type ComponentProps, type ReactNode, type Ref, useState } from "react";
 import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, RowStateContext, type WorkRow } from "./Card.tsx";
@@ -30,6 +31,8 @@ export interface WorkSection {
   context?: string;
   /** What ends it, like its Add row. */
   footer?: ReactNode;
+  /** An icon before its title. */
+  icon?: ComponentProps<typeof Icon>["icon"];
   id: string;
   /** Whether its rows stay where they are, and nothing is dropped in it, as the ongoing entries. */
   isFixed?: boolean;
@@ -122,6 +125,7 @@ function SectionBody({
       <Pane
         actions={section.menu}
         count={rows.length}
+        {...(section.icon ? { icon: section.icon } : {})}
         {...(level ? { level } : {})}
         tint={TINTS[section.tone]}
         title={section.title}
