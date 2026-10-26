@@ -457,7 +457,8 @@ plan's.
 
 ## Tests
 
-The spec names no test: its scenarios, edge cases, and success criteria are what the tests check.
+The spec names no new test: its scenarios, edge cases, and success criteria are what the tests
+check. It names only the existing tests of the behaviour it replaces, in `## Replaced behaviour`.
 The plan's `## Test map` maps each of them to its test: see [Plan](plan.md). How the tests are
 written, and when one goes, is the [testing](code-quality.md#testing) section.
 

@@ -132,6 +132,10 @@ to keep a test. A test that fails is in one of four cases:
    commit body. Never edit the assertion, skip the test, or raise a timeout, and never change code
    only to keep a test green.
 
+A test that fails on a change that keeps what callers and users observe, such as a split of a unit
+over its limit, asserts how the code does it: remove it with a one-line ruling, as in the second
+case.
+
 Checks: the reviews of the tasks and the final review, which count a test that bends the code, or
 that went without one of these cases, as a finding.
 
