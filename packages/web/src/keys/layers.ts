@@ -56,31 +56,52 @@ export function isLayerOpen(target?: EventTarget | null) {
 /** What changes whether a layer is open, besides the nodes coming and going. */
 const WATCHED = ["aria-expanded", "aria-haspopup", "class", "hidden", "open", "popover", "role"];
 
-/** The listeners of `useLayerOpen`, and the observers that serve them, while there is one. */
+/** The listeners of `useLayerOpen`, and what serves them, while there is one. */
 const listeners = new Set<() => void>();
 let stop: (() => void) | null = null;
+/** Whether a layer is open, as of the last frame that followed a change: one check for all. */
+let open = false;
+/** The frame that will check, when a change asked for one. */
+let frame: number | null = null;
 
-function notify() {
-  for (const listener of listeners) {
-    listener();
-  }
+/**
+ * Asks for a check at the next frame, one for the whole burst: a streaming transcript changes the
+ * document many times a frame, and the rule reads the layout, which is for the listeners together
+ * once, not for each of them at every change.
+ */
+function schedule() {
+  frame ??= requestAnimationFrame(() => {
+    frame = null;
+    const now = isLayerOpen();
+    if (now !== open) {
+      open = now;
+      for (const listener of listeners) {
+        listener();
+      }
+    }
+  });
 }
 
 /** Starts watching the document: a popover opens with no attribute, but with a `toggle` event. */
 function watch() {
-  const observer = new MutationObserver(notify);
+  const observer = new MutationObserver(schedule);
   observer.observe(document, {
     attributeFilter: WATCHED,
     attributes: true,
     childList: true,
     subtree: true,
   });
-  document.addEventListener("toggle", notify, true);
-  document.addEventListener("fullscreenchange", notify);
+  document.addEventListener("toggle", schedule, true);
+  document.addEventListener("fullscreenchange", schedule);
+  open = isLayerOpen();
   return () => {
     observer.disconnect();
-    document.removeEventListener("toggle", notify, true);
-    document.removeEventListener("fullscreenchange", notify);
+    document.removeEventListener("toggle", schedule, true);
+    document.removeEventListener("fullscreenchange", schedule);
+    if (frame !== null) {
+      cancelAnimationFrame(frame);
+      frame = null;
+    }
   };
 }
 
@@ -100,7 +121,7 @@ function subscribe(listener: () => void) {
 export function useLayerOpen() {
   return useSyncExternalStore(
     subscribe,
-    () => isLayerOpen(),
+    () => (stop === null ? isLayerOpen() : open),
     () => false,
   );
 }

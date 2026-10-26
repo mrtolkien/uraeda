@@ -322,10 +322,10 @@ test("a layer opening while the menu is shown closes it", async () => {
   wait(500);
   const dialog = document.createElement("div");
   dialog.setAttribute("role", "dialog");
-  // The document's observer tells the host a moment after.
+  // The document's observer tells the host at the next frame (R133).
   await act(async () => {
     document.body.append(dialog);
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(16);
   });
   expect(menu("Space")).toBeNull();
 });
