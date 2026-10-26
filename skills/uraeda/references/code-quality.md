@@ -139,8 +139,8 @@ to keep a test. A test that fails is in one of four cases:
 
 1. **It guards behaviour the approved spec lists as replaced**: rewrite or remove it in the task
    that changes the behaviour. No ruling: the spec's approval covered it. A rewritten test often
-   proves the new behaviour too, as an error that now lists a newly allowed value proves that value
-   allowed: the new behaviour then gets no test of its own.
+   proves the new behaviour too, as a test rewritten to expect a renamed command's new output proves
+   the new name works: the new behaviour then gets no test of its own.
 2. **It guards behaviour the spec replaces but did not list**: remove it with a one-line ruling. The
    final review lists it.
 3. **It fails because of the human's own request**: change it when the change is safe and
