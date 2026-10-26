@@ -4,7 +4,7 @@
 // picked. On narrow ones, the reader replaces the list once an item is picked, with a way back.
 // The keys move through the principles, then the decisions, the reader following (`useListKeys`);
 // `/` or "Jump to…" opens a palette that finds any of them (`JumpPalette`).
-import { Banner } from "@astryxdesign/core/Banner";
+
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { useHotkeys } from "@astryxdesign/core/hooks";
@@ -35,6 +35,7 @@ import { CheckButton, CheckMessage, DecisionsCheckBanner } from "./DecisionsChec
 import { JumpPalette } from "./JumpPalette.tsx";
 import { jumpEntries } from "./jump.ts";
 import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts";
+import { NoSpecs } from "../layout/Missing.tsx";
 
 const styles = stylex.create({
   column: {
@@ -296,10 +297,7 @@ export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: 
   if (workspace.noSpecs) {
     return (
       <Page>
-        <Banner
-          status="warning"
-          title={`No specs/ folder in ${workspace.noSpecs}. Set Uraeda up with ura init.`}
-        />
+        <NoSpecs path={workspace.noSpecs} />
       </Page>
     );
   }

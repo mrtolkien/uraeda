@@ -1,5 +1,6 @@
 // What a page shows when the thing its address names is not there: an error with the way out, the
-// same on every page (UI coherence).
+// same on every page (UI coherence); and a repository without a `specs/` folder.
+import { Banner } from "@astryxdesign/core/Banner";
 import { Link } from "@astryxdesign/core/Link";
 import { useRepoPath } from "../routes.tsx";
 import { AnnouncedBanner } from "./AnnouncedBanner.tsx";
@@ -29,5 +30,12 @@ export function Missing({
       status="error"
       title={title}
     />
+  );
+}
+
+/** A page of a repository without a `specs/` folder: the folder, and how to set Uraeda up. */
+export function NoSpecs({ path }: { path: string }) {
+  return (
+    <Banner status="warning" title={`No specs/ folder in ${path}. Set Uraeda up with ura init.`} />
   );
 }
