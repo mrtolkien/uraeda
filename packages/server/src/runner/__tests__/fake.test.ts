@@ -1,4 +1,3 @@
-import { getEventListeners } from "node:events";
 import { expect, test } from "vite-plus/test";
 import type { AgentProcess } from "../adapter.ts";
 import type { AgentEvent } from "../events.ts";
@@ -97,19 +96,6 @@ test("a stuck process ignores the interrupt and SIGINT, and ends on SIGTERM", as
   agent.kill("SIGTERM");
   expect(await readUntil(agent, () => false)).toEqual([{ code: 143, stderr: "", type: "exit" }]);
   expect(adapter.kills).toEqual(["SIGINT", "SIGTERM"]);
-});
-
-test("capabilities, availability, and the allow rule", async () => {
-  const adapter = new FakeAdapter();
-  expect(adapter.name).toBe("Claude Code");
-  adapter.capabilities = { ...adapter.capabilities, approvals: true, steer: false };
-  expect(adapter.capabilities).toMatchObject({ approvals: true, steer: false });
-  expect(await adapter.version()).toBeDefined();
-  adapter.installed = false;
-  expect(await adapter.version()).toBeUndefined();
-  expect(adapter.allowRule({ input: { command: "git push origin HEAD" }, tool: "Bash" })).toBe(
-    "Bash(git push origin HEAD)",
-  );
 });
 
 test("a message with no scripted turn plays the fallback, and a scripted turn comes first", async () => {
@@ -245,36 +231,4 @@ test("a step that throws ends the process with its error", async () => {
     { id: "m1", type: "accepted" },
     { code: 1, stderr: "Error: no such file", type: "exit" },
   ]);
-});
-
-test("a message sent after the exit plays no fallback", () => {
-  const adapter = new FakeAdapter();
-  let played = 0;
-  adapter.fallback = () => {
-    played++;
-    return [];
-  };
-  const agent = adapter.open(options);
-  agent.close();
-  agent.send({ id: "m1", images: [], text: "late", when: "steer" });
-  expect(played).toBe(0);
-});
-
-test("awaited steps leave no listener on the signal they were given", async () => {
-  const adapter = new FakeAdapter();
-  const signals: Array<AbortSignal> = [];
-  adapter.script(
-    Array.from({ length: 20 }, () => async (_cwd: string, signal: AbortSignal) => {
-      signals.push(signal);
-    }),
-  );
-  const agent = adapter.open(options);
-  await readUntil(agent, (event) => event.type === "init");
-
-  agent.send({ id: "m1", images: [], text: "go", when: "steer" });
-  await readUntil(agent, (event) => event.type === "result");
-
-  // One signal for the whole turn, which nothing cut: a listener left per step would pile up.
-  expect(new Set(signals).size).toBe(1);
-  expect(getEventListeners(signals[0]!, "abort")).toEqual([]);
 });

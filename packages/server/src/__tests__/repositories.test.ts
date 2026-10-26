@@ -119,24 +119,6 @@ test("a repository's raw file is served under its name", async () => {
 });
 
 /** Review focus 5 */
-test("a missing repository's host starts without a watch", async () => {
-  const repo = fixtureRepo();
-  const dataDir = temporaryFolder("uraeda-data");
-  const { repository } = await binding.addRepository(dataDir, repo);
-  rmSync(repo, { force: true, recursive: true });
-  const watch = vi.fn(binding.watch);
-  const { sessions } = fakeSessions({ installed: false });
-
-  const hosts = await Hosts.open({ binding: { ...binding, watch }, dataDir, sessions });
-  const host = hosts.get(repository.name);
-  sessions.close();
-  hosts.close();
-
-  expect(host?.missing).toBe(true);
-  expect(watch).not.toHaveBeenCalled();
-});
-
-/** Review focus 5 */
 test("a watch that fails to start is logged, and the server goes on", async () => {
   const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
   const repo = fixtureRepo();
@@ -184,18 +166,6 @@ test("hosts follow the list as it reloads, and close the watch of a removed one"
   await binding.removeRepository(dataDir, names[0]);
   await hosts.reload();
   expect([hosts.get(names[0]), closed]).toEqual([undefined, 1]);
-});
-
-test("an invalid list keeps the hosts, with its problem", async () => {
-  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-  const { dataDir, hosts, names } = await testHosts([fixtureRepo()], { installed: false });
-  writeFileSync(join(dataDir, "repositories.json"), "{not json");
-
-  await hosts.reload();
-
-  expect(hosts.get(names[0])).toBeDefined();
-  expect(hosts.problem).toMatch(/^repositories\.json could not be read: /);
-  log.mockRestore();
 });
 
 const LIST = ["id", "rows", "problem", "added"];

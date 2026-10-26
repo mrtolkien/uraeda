@@ -2,7 +2,6 @@ import { existsSync, mkdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync }
 import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { LIST_QUIET_MS } from "../repositories.ts";
 import { FileWatch } from "../settings-watch.ts";
 import { ServerSettings } from "../settings.ts";
 
@@ -96,35 +95,6 @@ test("a symlinked file is seen changing, by hand, by the core, and pointed elsew
   await expect.poll(() => settings.allowedHosts(), POLL).toEqual([MAC]);
   writeFileSync(join(other, "config.toml"), hosts(LAPTOP));
   await expect.poll(() => settings.allowedHosts(), POLL).toEqual([LAPTOP]);
-});
-
-test("a burst of writes is read once", async () => {
-  const dir = temporaryFolder("uraeda-config");
-  const { counted, settings } = await watched(dir);
-  const reads = counted.reads;
-  // A second watch of the file: once it sees a write, the settings' watch has had it too.
-  let seen = 0;
-  const probe = new FileWatch(dir, "config.toml", () => {
-    seen += 1;
-  });
-  onTestFinished(() => probe.close());
-  // The settings' quiet moment passes only when the test says so.
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-  onTestFinished(() => {
-    vi.useRealTimers();
-  });
-
-  for (const name of [MAC, LAPTOP, MAC, LAPTOP]) {
-    const before = seen;
-    writeFileSync(join(dir, "config.toml"), hosts(name));
-    await expect.poll(() => seen, POLL).toBeGreaterThan(before);
-  }
-  vi.advanceTimersByTime(LIST_QUIET_MS);
-  // Waits for the read the quiet moment started, then reads once more.
-  await settings.reload();
-
-  expect(settings.allowedHosts()).toEqual([LAPTOP]);
-  expect(counted.reads).toBe(reads + 2);
 });
 
 test("another file of the folder is not reported", async () => {

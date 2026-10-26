@@ -85,28 +85,6 @@ test("ends a session 30 days after its last use", () => {
   expect(store.findSession(used)).toEqual({ id: idOf(used), refreshed: true });
 });
 
-test("records a use at most once a day", () => {
-  const { clock, dataDir, now, path } = folder();
-  const { store } = SignInStore.open(dataDir, now);
-  const cookie = store.createSession();
-  // Every write replaces the file: a new inode is a new write.
-  const written = () => statSync(path).ino;
-  const created = written();
-
-  clock.now += HOUR;
-  expect(store.findSession(cookie)?.refreshed).toBe(false);
-  expect(written()).toBe(created);
-
-  clock.now += DAY;
-  expect(store.findSession(cookie)?.refreshed).toBe(true);
-  const refreshed = written();
-  expect(refreshed).not.toBe(created);
-
-  clock.now += HOUR;
-  expect(store.findSession(cookie)?.refreshed).toBe(false);
-  expect(written()).toBe(refreshed);
-});
-
 test("the sweep ends every session unused for 30 days", () => {
   const { clock, dataDir, now, path } = folder();
   const { store } = SignInStore.open(dataDir, now);

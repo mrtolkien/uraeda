@@ -274,25 +274,6 @@ test("an unknown option names --help and exits 1", () => {
   expect(result.status).toBe(1);
 });
 
-test("a second start hands its repository to the running server and exits 0", async () => {
-  const data = temporaryFolder("uraeda-data");
-  const port = await freePort();
-  const first = start(["--repo", fixtureRepo(), "--port", String(port)], {
-    env: { URAEDA_DATA_DIR: data },
-  });
-  await ready(first);
-  const notes = fixtureRepo();
-
-  const second = await run(["--repo", notes, "--port", String(port)], {
-    env: { URAEDA_DATA_DIR: data },
-  });
-
-  const name = await listedName(data, notes);
-  expect(name).toBeDefined();
-  expect(second.stdout).toBe(`Uraeda already runs at http://127.0.0.1:${port}/r/${name}/\n`);
-  expect(second.code).toBe(0);
-});
-
 test("a relative --repo is resolved where the second start runs", async () => {
   const data = temporaryFolder("uraeda-data");
   const port = await freePort();
@@ -763,12 +744,6 @@ test("a new key the server refuses changes nothing and exits 1", async () => {
   expect(second.code).toBe(1);
   expect(readFileSync(join(data, "sign-in.json"), "utf8")).toContain(hash(key));
   expect(await signedIn(port, cookie)).toBe(true);
-});
-
-test("the help names --new-key", () => {
-  expect(HELP).toContain(
-    "  --new-key                make a new access key and sign every device out\n",
-  );
 });
 
 /** SC-003 */

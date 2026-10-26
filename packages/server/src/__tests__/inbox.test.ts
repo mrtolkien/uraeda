@@ -558,22 +558,6 @@ test("a category is added, renamed, and deleted, and a delete's removed text res
   expect(removedText).toBe(before);
 });
 
-test("a delete's removed text is the file as it was", async () => {
-  const repo = fixtureRepo();
-  const { app } = await testApp(repo);
-  const before = read(repo, "specs/INBOX.md");
-  const { hash } = await readInbox(app);
-
-  const deleted = await mutate(
-    app,
-    "inbox.removeCategory",
-    { hash, keepNotes: false, name: "UI" },
-    WITH_REMOVED,
-  );
-
-  expect(deleted.data.removed).toBe(before);
-});
-
 test("a category named like another is refused with its message", async () => {
   const { app } = await testApp(fixtureRepo());
   const { hash } = await readInbox(app);

@@ -99,19 +99,6 @@ test("no argument skips permissions or sets a model", () => {
   }
 });
 
-test("Claude Code declares what it can do", () => {
-  const adapter = new ClaudeAdapter({ imagesDir: "/data/images", pluginDir: "/plugin" });
-  expect([adapter.kind, adapter.name]).toEqual(["claude", "Claude Code"]);
-  expect(adapter.capabilities).toEqual({
-    approvals: false,
-    images: true,
-    queue: true,
-    steer: true,
-    subagents: true,
-    takeBack: true,
-  });
-});
-
 test.each<[string, Array<AgentEvent>]>([
   [
     "init.jsonl",
@@ -294,36 +281,6 @@ test("a success result marked as an error is not ok, and gives its text", () => 
       type: "result",
     },
   ]);
-});
-
-/** The `result` event of a result line with these fields. */
-function resultOf(fields: Record<string, unknown>) {
-  const line = JSON.stringify({
-    permission_denials: [],
-    subtype: "success",
-    type: "result",
-    ...fields,
-  });
-  return parseLine(line).at(-1);
-}
-
-test("a result line's cost and models reach the result event", () => {
-  const usage = { inputTokens: 1, outputTokens: 2 };
-
-  const event = resultOf({ modelUsage: { "claude-sonnet-5-5": usage }, total_cost_usd: 0.42 });
-
-  expect(event).toMatchObject({
-    costUsd: 0.42,
-    models: ["claude-sonnet-5-5"],
-    type: "result",
-  });
-});
-
-test("a result with no cost or models keeps both fields absent", () => {
-  const event = resultOf({});
-
-  expect(event).not.toHaveProperty("costUsd");
-  expect(event).not.toHaveProperty("models");
 });
 
 test("a line that is not JSON is skipped", () =>

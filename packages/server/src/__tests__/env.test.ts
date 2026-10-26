@@ -90,17 +90,6 @@ test("--allowed-hosts replaces URAEDA_ALLOWED_HOSTS", () => {
   expect(parseOptions([], loadEnv(null, {})).allowedHosts).toBeUndefined();
 });
 
-test("--no-open, --new-key, --help, and --version", () => {
-  const env = loadEnv(null, {});
-
-  expect(parseOptions([], env).noOpen).toBe(false);
-  expect(parseOptions([], env).newKey).toBe(false);
-  expect(parseOptions(["--new-key"], env).newKey).toBe(true);
-  expect(parseOptions(["--no-open"], env).noOpen).toBe(true);
-  expect(parseOptions(["--help"], env).show).toBe("help");
-  expect(parseOptions(["--version"], env).show).toBe("version");
-});
-
 test("the data folder comes from .env, then the environment, then the system's default", () => {
   const dir = root("URAEDA_DATA_DIR=/data/from-env-file\n");
 

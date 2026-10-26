@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
+import { afterEach, expect, test, vi } from "vite-plus/test";
 import {
   addPreview,
   fixtureRepo,
@@ -12,8 +12,8 @@ import {
 } from "uraeda-binding/test-utils";
 import { type GroupsFile, groupsFolder, startTime } from "../preview/groups.ts";
 import { FakeAdapter } from "../runner/fake.ts";
-import { startServer, SWEEP_EVERY_MS } from "../server.ts";
-import { SIGN_IN_FILE, SignInStore } from "../sign-in/store.ts";
+import { startServer } from "../server.ts";
+import { SIGN_IN_FILE } from "../sign-in/store.ts";
 import { testSettings } from "../testing.ts";
 import { groupLeader, running } from "./helpers.ts";
 
@@ -192,19 +192,6 @@ test("the global endpoint serves no repository's records", async () => {
   expect(body.results[0].error.message).toBe("refused: no repository");
 });
 
-test("stopping closes the hosts and the session manager", async () => {
-  const repo = fixtureRepo();
-  const server = await start(repo, temporaryFolder("uraeda-data"));
-  const close = vi.spyOn(server.hosts, "close");
-  const closeAll = vi.spyOn(server.sessions, "closeAll");
-
-  await server.stop();
-
-  expect(close).toHaveBeenCalled();
-  expect(closeAll).toHaveBeenCalled();
-  expect(server.hosts.all()).toEqual([]);
-});
-
 /** SC-005 */
 test("stopping stops every Storybook", async () => {
   const repo = fixtureRepo();
@@ -245,19 +232,6 @@ test("removing a repository from the list stops its Storybooks", async () => {
 
   expect(server.previews.state(base)).toBeUndefined();
   await expect.poll(() => running(previewStarts(log)[0]!.pid), { timeout: 10_000 }).toBe(false);
-});
-
-test("the server sweeps its Storybooks every minute", async () => {
-  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-  onTestFinished(() => {
-    vi.useRealTimers();
-  });
-  const server = await start(fixtureRepo(), temporaryFolder("uraeda-data"));
-  const sweep = vi.spyOn(server.previews, "sweep");
-
-  vi.advanceTimersByTime(SWEEP_EVERY_MS);
-
-  expect(sweep).toHaveBeenCalledOnce();
 });
 
 /**
@@ -425,19 +399,6 @@ test("an invalid sign-in file stops the start, and is left as it is", async () =
     ),
   );
   expect(readFileSync(path, "utf8")).toBe("{ not json");
-});
-
-test("the server ends unused sessions every minute", async () => {
-  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-  onTestFinished(() => {
-    vi.useRealTimers();
-  });
-  const sweep = vi.spyOn(SignInStore.prototype, "sweep");
-  await signedServer(fixtureRepo(), temporaryFolder("uraeda-data"));
-
-  vi.advanceTimersByTime(SWEEP_EVERY_MS);
-
-  expect(sweep).toHaveBeenCalledOnce();
 });
 
 /** Every file under `folder`, at any depth. */

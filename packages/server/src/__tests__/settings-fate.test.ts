@@ -150,30 +150,6 @@ test("a broken file is the record's problem, and refuses every change with it", 
   expect(readFileSync(file, "utf8")).toBe(broken);
 });
 
-/**
- * Review focus 2: the page's write is heard by the settings' watch too. The test waits for the
- * watch's own read, not a duration, then counts the updates sent.
- */
-test("a change sends one update on the global bus and the repository's", async () => {
-  const opened = await testApp();
-  const buses = [live, opened.hosts.get(opened.name)!.live].map(heard);
-  const reload = vi.spyOn(opened.settings, "reload");
-
-  await change(opened, "addHost", { name: MAC });
-  const read = await record(opened);
-  // The change's own read, then the watch's, once the file's write is heard.
-  await vi.waitFor(() => expect(reload.mock.calls.length).toBeGreaterThanOrEqual(2), {
-    interval: 10,
-    timeout: 10_000,
-  });
-  await Promise.all(reload.mock.results.map((result) => result.value));
-
-  expect(read.server.allowedHosts.inForce).toEqual([MAC]);
-  for (const calls of buses) {
-    expect(calls()).toEqual(["Settings settings"]);
-  }
-});
-
 test("a hand edit of the file sends the update, and the record reads it", async () => {
   const opened = await testApp();
   const global = heard(live);

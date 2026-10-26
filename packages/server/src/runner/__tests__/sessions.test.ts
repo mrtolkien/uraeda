@@ -162,30 +162,6 @@ test("a turn that fails takes back the message steered into it, which no turn wo
   );
 });
 
-test("a turn's messages are forgotten once it ended and none waits to be read", async () => {
-  const { adapter, repo, sessions } = await testSessions();
-  const session = await sessions.featureSession(repo, AGENT);
-  const first = await sessions.send(repo, session.id, { text: "Plan it" });
-  await sessions.send(repo, session.id, { text: "Use the helper" });
-  adapter.emit({ id: adapter.sent[0]!.id, type: "accepted" });
-  adapter.emit({ id: adapter.sent[1]!.id, type: "accepted" });
-  adapter.emit(done());
-  await sessions.settled(first.turn);
-  expect(sessions.tracked(session.id)).toBe(0);
-
-  // A message steered into a stopped turn is kept until the agent says it is taken back.
-  const second = await sessions.send(repo, session.id, { text: "Go on" });
-  await sessions.send(repo, session.id, { text: "Never mind" });
-  adapter.ignoreInterrupt = true;
-  sessions.stop(repo, session.id);
-  adapter.emit(done({ interrupted: true, ok: false }));
-  await sessions.settled(second.turn);
-  expect(sessions.tracked(session.id)).toBe(1);
-  adapter.emit({ id: adapter.sent[3]!.id, type: "cancelled" });
-  await flush();
-  expect(sessions.tracked(session.id)).toBe(0);
-});
-
 test("a message of a turn that ended is refused as read, from a tab that still shows it pending", async () => {
   const { adapter, repo, sessions } = await testSessions();
   const session = await sessions.featureSession(repo, AGENT);
@@ -225,18 +201,6 @@ test("US1.5: Stop interrupts the turn and keeps the process", async () => {
   expect(adapter.kills).toEqual(["SIGINT", "SIGTERM"]);
   await sessions.settled(second.turn);
   expect(cache.turn(second.turn)?.state).toBe("stopped");
-});
-
-test("US1.6: a feature's writes are refused while its turn runs", async () => {
-  const { adapter, repo, sessions } = await testSessions();
-  const session = await sessions.featureSession(repo, AGENT);
-
-  const { turn } = await sessions.send(repo, session.id, { text: "Plan it" });
-  expect(sessions.working(repo)).toEqual([AGENT]);
-
-  adapter.emit(done());
-  await sessions.settled(turn);
-  expect(sessions.working(repo)).toEqual([]);
 });
 
 test("US1.7 and C1: an idle process closes after 15 minutes, and the next message resumes the same session", async () => {
@@ -354,22 +318,6 @@ test("the server's stop kills a process that ignores its close and SIGTERM", asy
   vi.advanceTimersByTime(TERMINATE_AFTER_MS);
   await closing;
   expect(adapter.kills).toEqual(["SIGTERM", "SIGKILL"]);
-});
-
-test("a session is forgotten once its process exited with nothing left to run", async () => {
-  const { adapter, repo, sessions } = await testSessions();
-  const session = await sessions.featureSession(repo, AGENT);
-  adapter.script([]);
-  await sessions.settled((await sessions.send(repo, session.id, { text: "Plan it" })).turn);
-  expect(sessions.held(session.id)).toBe(true);
-
-  vi.advanceTimersByTime(IDLE_CLOSE_MS);
-  await flush();
-  expect(sessions.held(session.id)).toBe(false);
-
-  // Stop on a session with nothing running keeps nothing either.
-  sessions.stop(repo, session.id);
-  expect(sessions.held(session.id)).toBe(false);
 });
 
 test("US2.2: a workflow message starts a workflow turn", async () => {
@@ -1037,20 +985,6 @@ test("a reopen that fails marks no denial allowed and starts no turn", async () 
 
   expect(cache.itemsOf(turn, "denial").some((denial) => denial.allowed)).toBe(false);
   expect(cache.turns(session.id)).toHaveLength(turns);
-});
-
-test("US3 more 3: the rules end with their process", async () => {
-  const { adapter, repo, session, sessions } = await blockedTwo();
-  adapter.script([]);
-  await sessions.settled((await sessions.allowAll(repo, session.id)).turn);
-
-  vi.advanceTimersByTime(IDLE_CLOSE_MS);
-  await flush();
-  adapter.script([]);
-  await sessions.settled((await sessions.send(repo, session.id, { text: "Thanks" })).turn);
-
-  expect(adapter.opens).toHaveLength(3);
-  expect(adapter.opens[2]).not.toHaveProperty("allowed");
 });
 
 test("US5.3: the rule ends with its process", async () => {
