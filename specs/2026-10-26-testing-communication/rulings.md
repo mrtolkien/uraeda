@@ -123,7 +123,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `packages/web/src/__tests__/preview-sandbox.test.tsx`, and its row in the Kept web UI
   tests table.
 
-## R10: The writes store's test comes back
+## R11: The writes store's test comes back
 
 - **Decision**: `packages/web/src/__tests__/writes-store.test.tsx` is restored as it was at the
   start of the branch, and its row leaves task 12's Removed table.
@@ -135,7 +135,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   Vitest's fake ones, so it depends on no elapsed time.
 - **Where**: the Kept web UI tests table, and task 12's Removed table.
 
-## R11: The figure rows' cases come back
+## R12: The figure rows' cases come back
 
 - **Decision**: the five cases of `figureRows` that task 13 removed (a live feature, a done one, a
   change, zero questions, and commits not traced) are restored in `figure-rows.test.ts`, as they
