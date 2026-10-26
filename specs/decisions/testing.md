@@ -6,11 +6,11 @@ icon: flask-conical
 
 # Testing
 
-Tests let the project change with confidence: they are evidence of what the human asked for, never
-an authority over it. How much is tested follows the project's stage, now `early`: only what is
+Tests check that the code behaves as the decisions and the approved spec say. They follow those, and
+never override them. How much is tested follows the project's stage, now `early`: only what is
 costly to get wrong and rarely changes, such as stored formats, git, security, and the contracts
-between the core, the CLI, and the server. The web UI is not tested automatically: the human reviews
-it live in the sandbox.
+between the core, the CLI, and the server. Tests of the web UI are rare and must be extremely
+useful: the human mostly reviews the UI by using it.
 
 ## Rules
 
@@ -19,14 +19,15 @@ it live in the sandbox.
   never kept by bending the code. Checked by review.
 - A spec that replaces behaviour MUST list it with the tests that guard it, so its approval covers
   their removal, and the record MUST name them. Checked by review.
-- A test MUST assert behaviour a caller or a user can observe through a public interface, and MUST
-  NOT assert markup, class names, sizes, call sequences, or private state. Checked by review.
-- At the `early` stage, a feature MUST test only stored formats, git, security, contracts between
-  the project's parts, pure logic with many cases, and the reproduction of each bug fixed. Checked
-  by review.
-- The web UI MUST NOT have automated UI tests. Checked by review.
+- A test MUST assert what a caller or a user observes, never how the code does it. Checked by
+  review.
+- At the `early` stage, a feature MUST test little beyond stored formats, git, security, contracts
+  between the project's parts, pure logic with many cases, and the reproduction of each bug fixed.
+  Checked by review.
+- A test of the web UI MUST guard behaviour that is costly to lose and that using the UI would not
+  show, such as unsaved text or a git write, and everything else is left to the human's review.
+  Checked by review.
 - The stage MUST be set by the human, and moves only when they say so. Checked by review.
-- Pure logic extracted from the web UI MAY have unit tests. Checked by review.
 
 ## Why
 
@@ -37,8 +38,9 @@ The human chose to scale testing with the stage, since in early development test
 inertia"
 ([stages](../2026-10-26-testing-communication/clarifications-01.md#q3-does-testing-effort-scale-with-the-projects-stage)).
 They would "rather review actual behaviour with the sandbox" than keep UI tests
-([UI testing](../2026-10-26-testing-communication/clarifications-01.md#q4-how-should-the-web-ui-be-tested)).
-Speed, retries, and flaky tests stay with the [toolchain](toolchain.md) decision.
+([UI testing](../2026-10-26-testing-communication/clarifications-01.md#q4-how-should-the-web-ui-be-tested)),
+and kept the door open to the rare UI test that is extremely useful. Speed, retries, and flaky tests
+stay with the [toolchain](toolchain.md) decision.
 
 ## Alternatives considered
 
@@ -48,8 +50,9 @@ Speed, retries, and flaky tests stay with the [toolchain](toolchain.md) decision
 
 ## Consequences
 
-- A change to the look or the behaviour of a view costs no test edit, and no automatic check holds a
-  UI behaviour, an accessibility rule, or a size: a regression there is found by the human's review.
+- A change to the look or the behaviour of a view costs almost no test edit, and most UI behaviours,
+  accessibility rules, and sizes have no automatic check: a regression there is found by the human's
+  review.
 - Moving to `growing` will need a new answer on what the UI is tested by.
 - A spec carries one more list to read, the behaviour it replaces.
 

@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,19 +8,21 @@ plan-review: false
 
 # Spec: Testing strategy review
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-10-26: 4 comments in spec-review.md.
+> Spec to review, about 10 minutes. Revised after your review: 4 comments, all done.
 >
-> - You approve a new way of testing: a test is evidence and never an authority, a spec lists the
->   behaviour it replaces, the web UI has no automated tests, and the whole suite is rewritten in
->   one pass. Records and pull request bodies become one text, and records point to their
->   successors.
-> - Decisions: one new, Testing, and seven changed. Every UI rule now ends "Checked by review", so
->   no automatic check guards a UI behaviour, an accessibility rule, or a layout.
-> - The cut line I read from your answer: all 155 `.test.tsx` files of `packages/web`, the browser
->   runner, and axe go. Its 32 logic test files, and the tests of Rust, the server, and the scripts,
->   are judged one by one.
+> - You approve a new way of testing: tests follow the spec and the decisions and never override
+>   them, a spec lists the behaviour it replaces, web UI tests are kept only when extremely useful,
+>   and the whole suite is rewritten in one pass. Records and pull request bodies become one text,
+>   and records point to their successors.
+> - Since your review: web UI tests are no longer forbidden, only held to a high bar, so the cut
+>   line changes. The Testing, UI checks, and UI look decisions are reworded as you asked.
+> - Decisions: one new, Testing, and seven changed. Most UI rules end "Checked by review", so most
+>   UI behaviours, accessibility rules, and layouts have no automatic check.
+> - The cut line I read from your comment: each of the 155 `.test.tsx` files of `packages/web` is
+>   judged, and the plan lists the few kept with the cost each guards. The browser runner and axe go
+>   unless a kept test needs them. The other tests are judged one by one.
 > - Outside behaviour not verified: attaching a screenshot to a pull request without committing it.
 >   The plan's first task checks it. If it fails, the body carries no image and says so.
 > - The evaluation spends up to 12 Claude Code runs with Sonnet, in a throwaway copy. Approving the
@@ -34,23 +36,38 @@ stage, and a way to retire tests with the behaviour they guard. It rewrites the 
 match, and makes a record and its pull request body one text. See the [proposal](proposal.md),
 [discovery](discovery-01.md), and [clarifications](clarifications-01.md).
 
+## Your review
+
+- **C1** (tests are not evidence of what you asked for): done. The Testing decision now says tests
+  check that the code behaves as the decisions and the approved spec say, and never override them.
+  Web UI tests are no longer forbidden: one must guard behaviour that is costly to lose and that
+  using the UI would not show, and the plan lists each one kept.
+- **C2** (the assertion rule is too specific): done. The rule reads "assert what a caller or a user
+  observes, never how the code does it", with no list of markup, sizes, or call sequences.
+- **C3** (a live review per feature is not how you work): done. UI checks says you review by using
+  the app when you choose, often several features together after merging, and the agent never waits
+  for a review of each change.
+- **C4** (the contrast rule gives no values): done. UI look names 4.5:1 for text and 3:1 for borders
+  and controls, the contrast WCAG AA asks for.
+
 ## Decisions
 
-- **New: [Testing](../decisions/testing.md)**. Tests are evidence, not authority: a spec lists the
-  behaviour it replaces with its tests, only contracts and logic are tested at the `early` stage,
-  and the web UI has no automated tests.
-- **Changed: [UI checks](../decisions/ui-checks.md)**. The human checks UI work live in the sandbox,
-  with one screenshot of each new view in the pull request, and none in the repository.
+- **New: [Testing](../decisions/testing.md)**. Tests follow the spec and the decisions, never
+  override them: a spec lists the behaviour it replaces with its tests, only contracts and logic are
+  tested at the `early` stage, and a web UI test is kept only when extremely useful.
+- **Changed: [UI checks](../decisions/ui-checks.md)**. The human checks UI work by using the app,
+  when they choose, with one screenshot of each new view in the pull request, and none in the
+  repository.
 - **Changed: [UI layout](../decisions/ui-layout.md)**. Rules keep their intent, lose their pixel
   widths, and end "Checked by review".
 - **Changed: [UI look](../decisions/ui-look.md)**. The reading size is set once in the theme, with
-  no percentage in the rule. Contrast stays tested, since WCAG sets it.
+  no percentage in the rule. Contrast keeps its WCAG ratios and its test.
 - **Changed: [UI behaviour](../decisions/ui-behaviour.md)**. Its rules end "Checked by review"
   instead of the UI tests.
 - **Changed: [Problems](../decisions/problems.md)** and **[Settings](../decisions/settings.md)**.
   One rule each ends "Checked by review" instead of a UI test.
-- **Changed: [Preview](../decisions/preview.md)**. Stories do not run as tests, since there are no
-  UI tests.
+- **Changed: [Preview](../decisions/preview.md)**. Stories do not run as tests, since the rare UI
+  tests are not run through Storybook.
 
 Relied on:
 
@@ -91,11 +108,12 @@ More scenarios:
 2. **Given** a test fails after your own request changed the behaviour, **When** the agent finds it,
    **Then** it changes the test, and tells you which and why in the same response.
 
-### US2: Decisions say intent, and you check the UI live (P1)
+### US2: Decisions say intent, and you check the UI by using it (P1)
 
 Decisions keep what the code does not show: your intent. A number lives in the code. "Checked by"
 names a test only for a contract or an outside standard, and says "review" otherwise. A UI change
-reaches you as a sandbox to try and one screenshot of each new view in its pull request.
+reaches you as a sandbox to try, whenever you choose to, and one screenshot of each new view in its
+pull request.
 
 Key scenarios:
 
@@ -108,13 +126,15 @@ Key scenarios:
 ### US3: The suite shrinks to what matters (P1)
 
 All of the repository's tests are rewritten against the guidance, in this feature's one pass. The
-web UI keeps none of its automated tests, and the rest keep what guards a contract or logic.
+web UI keeps only the rare test that is extremely useful, and the rest keep what guards a contract
+or logic.
 
 Key scenarios:
 
-1. **Given** the repository today, **When** the rewrite is done, **Then** `packages/web` has no
-   `.test.tsx` file, no `__browser__` folder, and no browser configuration, and `vp run ready` has
-   no browser group.
+1. **Given** the repository today, **When** the rewrite is done, **Then** each `.test.tsx` file of
+   `packages/web` is removed or kept, and the plan names the cost each kept one guards, such as
+   unsaved text. The browser configuration and the `ready` browser groups stay only if a kept test
+   needs a browser.
 2. **Given** a core test that builds a git history and asserts a branch's step, **When** it is
    judged, **Then** it stays. A test asserting the order of internal calls goes.
 3. **Given** the theme's contrast test, **When** the rewrite is done, **Then** it stays, as WCAG's
@@ -156,10 +176,10 @@ Key scenarios:
 
 Replaced behaviour, and the tests that guard it, which this spec's approval covers removing:
 
-- **Automated tests of the web UI**: the 90 `.test.tsx` files of `packages/web/src/__tests__`, the
-  64 of `__browser__`, the one of `__focused__`, the browser configuration and its helpers,
-  Playwright, axe, the size and measure checks, the `ready` browser groups, and the CI shards for
-  them.
+- **Most automated tests of the web UI**: the 90 `.test.tsx` files of `packages/web/src/__tests__`,
+  the 64 of `__browser__`, and the one of `__focused__`, except those the plan keeps as extremely
+  useful. With them go the size and measure checks, and, unless a kept test needs them, the browser
+  configuration, Playwright, axe, the `ready` browser groups, and the CI shards for them.
 - **A ruling for each removed test**: replaced by this list, in each spec.
 - **Rules "Checked by the UI tests" or "by the browser tests"**: now "Checked by review", in the
   decisions this spec changes.
@@ -197,7 +217,7 @@ holds for any stack. Records and pull request bodies share one writer, the finis
 
 Tradeoffs:
 
-- Removing the UI tests leaves a UI regression to your eyes.
+- Removing most UI tests leaves most UI regressions to your eyes.
 - One pass over about 3,900 tests is a large change, and the open coherence-pass change edits web
   tests this feature deletes.
 - A merged record gains a second allowed edit.
@@ -208,6 +228,7 @@ Tradeoffs:
 | ---------- | ---------------------------------------------------------- | -------------------------------------------------------------------------- |
 | High       | A test guards behaviour the spec replaces but did not list | the agent removes it with a one-line ruling, and the final review lists it |
 | High       | A UI test was the only guard of a logic rule               | the logic is extracted and unit tested before the UI test goes             |
+| Normal     | A UI test guards unsaved text or a git write               | it stays if extremely useful, and the plan names the cost it guards        |
 | High       | A screenshot cannot be attached without a commit           | the body carries no image, says so, and names the sandbox command          |
 | Normal     | An open change still has a `screenshots/` folder           | `ura check` keeps accepting it, and the change's finish deletes it         |
 | Normal     | `supersedes` names a record that does not exist            | `ura check` reports it                                                     |
@@ -245,10 +266,11 @@ spec:
 - **The constitution.** You removed its test principle, so no amendment is asked. The spec's
   constitution check has five columns.
 - **The stage.** The project's stage is `early`, from your example, and only you move it.
-- **The cut line.** "Logic and contract tests only" means every rendering test goes, and the unit
-  tests of pure functions stay, once judged.
-- **The accessibility check.** Axe leaves with the browser tests. Say so in your review if you want
-  it back.
+- **The cut line.** Most rendering tests go, since your answer was "logic and contract tests only"
+  and your review kept the door open to the extremely useful. The unit tests of pure functions stay,
+  once judged.
+- **The accessibility check.** Axe is judged like any UI test: it stays only if extremely useful,
+  and goes with the browser tests otherwise.
 - **No backfill.** Only this feature's record gets supersession links, to the records of
   `2026-10-14-testing-review`, `2026-10-19-fix-testing`, and the UI checks answer of
   `2026-10-12-ui-improvements`. Older records are not searched for them.
@@ -258,7 +280,7 @@ spec:
   skill.
 - **The screenshot.** The host is checked first, as the plan's first task, and nothing for it is
   committed.
-- **Test-first.** It stays for logic, contracts, and bug fixes, as the note on UI tests says.
+- **Test-first.** It stays for logic, contracts, and bug fixes, as your note on UI tests says.
 - **The constitution template.** Its principle on code quality drops the test line, and the inbox
   note about it is closed.
 
@@ -272,3 +294,11 @@ spec:
 
 **Medium**: no stored data users hold changes, but about 3,900 tests and eight decisions do, and git
 keeps what is deleted.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-10-26: tests are not evidence of what you asked for, the assertion rule
+> is too specific, a live review per feature is not how you work, and the contrast rule gives no
+> values.
