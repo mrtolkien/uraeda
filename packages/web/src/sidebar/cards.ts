@@ -26,10 +26,28 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
 
 /** What a gate asks, by the kind of file it waits on, in the card's name. */
 const GATES: Record<string, { kind: StepKind; label: string }> = {
-  clarifications: { kind: "questions", label: "Questions to answer" },
-  plan: { kind: "plan", label: "Plan to review" },
-  proposal: { kind: "proposal", label: "Proposal to write" },
-  spec: { kind: "spec", label: "Spec to review" },
+  clarifications: { kind: "questions", label: "Questions" },
+  plan: { kind: "plan", label: "Plan ready" },
+  proposal: { kind: "proposal", label: "Write proposal" },
+  spec: { kind: "spec", label: "Spec ready" },
+};
+
+/** Each step's short label on a card, by the core's step name. */
+const SHORT: Record<string, string> = {
+  approval: "Approving",
+  change: "Changing",
+  discovery: "Discovery",
+  done: "Done",
+  "final-review": "Final review",
+  finish: "Opening PR",
+  implementation: "Implementing",
+  plan: "Planning",
+  "plan-revision": "Revising plan",
+  "pull-request": "PR ready",
+  "pull-request-changes": "PR changes",
+  "pull-request-unknown": "PR unknown",
+  spec: "Writing spec",
+  "spec-revision": "Revising spec",
 };
 
 /** Each step's icon, by the core's step name. */
@@ -57,13 +75,16 @@ const KINDS: Record<string, StepKind> = {
  */
 export function stepOf(feature: Feature): NonNullable<CardItem["step"]> {
   if (feature.problems.length > 0) {
-    return { kind: "problem", label: "Problem to fix" };
+    return { kind: "problem", label: "Problem" };
   }
   if (feature.step.name === "human-gate") {
     const kind = feature.files.find((file) => file.name === feature.step.file)?.kind;
     return (kind ? GATES[kind] : undefined) ?? { kind: "proposal", label: waiting(feature).title };
   }
-  return { kind: KINDS[feature.step.name] ?? "problem", label: stepLabel(feature.step.name) };
+  return {
+    kind: KINDS[feature.step.name] ?? "problem",
+    label: SHORT[feature.step.name] ?? stepLabel(feature.step.name),
+  };
 }
 
 /** The status of a feature that waits on the human. */

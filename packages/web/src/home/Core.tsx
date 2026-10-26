@@ -1,106 +1,60 @@
 // Home's core, above the "Overview" line: the problems that stop the workflow, when there are any,
-// what waits on the human, then what agents work on beside the sessions without a workflow.
-import { Pane } from "../layout/Pane.tsx";
-import { HarnessMark, harnessMark } from "../HarnessMark.tsx";
-import { stepLabel, waiting } from "../labels.ts";
-import { sessionIdPath, useRepoPath } from "../routes.tsx";
-import { byStatus, type Feature, featureStatus, type Row, stepOf } from "../sidebar/cards.ts";
-import { StepIcon } from "../sidebar/StepIcon.tsx";
-import { HomeRow } from "./parts.tsx";
+// what waits on the human, what agents work on, and the sessions without a workflow. Each is a pane
+// of the sidebar's own cards; `coreParts` gives each its node and its height, for the layout.
+import type { ReactNode } from "react";
+import { waiting } from "../labels.ts";
 import { Empty } from "../layout/Empty.tsx";
+import { Pane } from "../layout/Pane.tsx";
+import { byStatus, type Feature, type Row } from "../sidebar/cards.ts";
+import { FeatureCard, SessionCard } from "../sidebar/Cards.tsx";
+
+/** A pane of the core, drawn by `key`, as tall as `height` card lines. */
+export type CorePart = { height: number; key: string; node: ReactNode };
+
+/** Card lines in a pane's frame, in a card, and in its empty text. */
+const FRAME = 2;
+const CARD = 3;
+const EMPTY = 1.5;
+
+/** A pane of cards: `cards` each with its detail line if it has one, or `empty` text. */
+function part(
+  key: string,
+  pane: { count: number; title: string; tone?: "attention" | "problem" },
+  cards: Array<{ detail?: string | undefined; node: ReactNode }>,
+  empty: string,
+): CorePart {
+  const height = FRAME + (cards.length === 0 ? EMPTY : cards.length * CARD);
+  return {
+    height,
+    key,
+    node: (
+      <Pane {...pane}>
+        {cards.length === 0 ? <Empty isInset>{empty}</Empty> : cards.map((card) => card.node)}
+      </Pane>
+    ),
+  };
+}
 
 /**
- * The features whose files stop the workflow, each with its first problem, opening its page:
- * nothing when there are none.
+ * The core's panes in their reading order: the problems, when there are any, what waits on the
+ * human, what is in progress, and the sessions without a workflow.
  */
-export function Problems({ features }: { features: Array<Feature> }) {
-  const here = useRepoPath();
-  if (features.length === 0) {
-    return null;
-  }
-  return (
-    <Pane count={features.length} title="Problems" tone="problem">
-      {features.map((feature) => (
-        <HomeRow
-          action="Fix"
-          href={here(`/f/${feature.folder}`)}
-          icon={<StepIcon step="problem" />}
-          key={feature.folder}
-          sub={feature.problems[0]?.message}
-          title={feature.title}
-        />
-      ))}
-    </Pane>
-  );
-}
-
-/** What waits on the human: each feature's title, its step and its line, and what it asks. */
-export function NeedsYou({ features }: { features: Array<Feature> }) {
-  const here = useRepoPath();
-  return (
-    <Pane count={features.length} title="Needs you" tone="attention">
-      {features.length === 0 ? (
-        <Empty isInset>Nothing waits on you.</Empty>
-      ) : (
-        features.map((feature) => {
-          const { href, line, name, verb } = waiting(feature);
-          return (
-            <HomeRow
-              action={verb}
-              href={here(href)}
-              icon={<StepIcon step={stepOf(feature).kind} />}
-              key={feature.folder}
-              sub={[name, line].filter(Boolean).join(" · ")}
-              title={feature.title}
-            />
-          );
-        })
-      )}
-    </Pane>
-  );
-}
-
-/** A feature's second line in progress: its step, its task, and its plan's progress. */
-function progressLine(feature: Feature) {
-  const { progress, task } = feature.step;
-  return [
-    stepLabel(feature.step.name),
-    progress ? `task ${progress.position} of ${progress.total}` : undefined,
-    task,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-}
-
-/** What agents work on: each feature's title, its step and task, and its session's status. */
-export function InProgress({ features, rows }: { features: Array<Feature>; rows: Array<Row> }) {
-  const here = useRepoPath();
-  return (
-    <Pane count={features.length} title="In progress">
-      {features.length === 0 ? (
-        <Empty isInset>Nothing in progress.</Empty>
-      ) : (
-        features.map((feature) => {
-          const row = rows.find((candidate) => candidate.folder === feature.folder);
-          return (
-            <HomeRow
-              href={here(`/f/${feature.folder}`)}
-              icon={<StepIcon step={stepOf(feature).kind} />}
-              key={feature.folder}
-              status={featureStatus(feature, row)}
-              sub={progressLine(feature)}
-              title={feature.title}
-            />
-          );
-        })
-      )}
-    </Pane>
-  );
-}
-
-/** The sessions without a workflow, what needs the human first: each with its harness and status. */
-export function Sessions({ rows }: { rows: Array<Row> }) {
-  const here = useRepoPath();
+export function coreParts({
+  agents,
+  human,
+  invalid,
+  rows,
+}: {
+  agents: Array<Feature>;
+  human: Array<Feature>;
+  invalid: Array<Feature>;
+  rows: Array<Row>;
+}): Array<CorePart> {
+  const rowOf = (feature: Feature) => rows.find((row) => row.folder === feature.folder);
+  const feature = (f: Feature, detail?: string) => ({
+    detail,
+    node: <FeatureCard detail={detail} feature={f} key={f.folder} pathname="" row={rowOf(f)} />,
+  });
   const sessions = byStatus(
     rows
       .filter((row) => row.folder === null && !row.archived && !row.done)
@@ -110,22 +64,56 @@ export function Sessions({ rows }: { rows: Array<Row> }) {
         status: { label: row.statusLabel, status: row.status },
       })),
   );
-  return (
-    <Pane count={sessions.length} title="Sessions">
-      {sessions.length === 0 ? (
-        <Empty isInset>No session running.</Empty>
-      ) : (
-        sessions.map(({ row, status }) => (
-          <HomeRow
-            href={here(sessionIdPath(row.id))}
-            icon={<HarnessMark isDecorative kind={row.agent} />}
-            key={row.id}
-            status={status}
-            sub={harnessMark(row.agent).name}
-            title={row.title}
-          />
-        ))
-      )}
-    </Pane>
-  );
+  return [
+    ...(invalid.length === 0
+      ? []
+      : [
+          part(
+            "problems",
+            { count: invalid.length, title: "Problems", tone: "problem" },
+            invalid.map((f) => feature(f, f.problems[0]?.message)),
+            "",
+          ),
+        ]),
+    part(
+      "needs-you",
+      { count: human.length, title: "Needs you", tone: "attention" },
+      human.map((f) => feature(f, waiting(f).line)),
+      "Nothing waits on you.",
+    ),
+    part(
+      "in-progress",
+      { count: agents.length, title: "In progress" },
+      agents.map((f) => feature(f, f.step.task ?? undefined)),
+      "Nothing in progress.",
+    ),
+    part(
+      "sessions",
+      { count: sessions.length, title: "Sessions" },
+      sessions.map(({ row }) => ({
+        node: <SessionCard key={row.id} pathname="" row={row} />,
+      })),
+      "No session running.",
+    ),
+  ];
+}
+
+/**
+ * Splits the panes into two columns, each keeping their reading order, so that the columns end as
+ * near each other as they can: the least empty space under the shorter one. The first split that
+ * reaches the least difference wins, so ties keep the panes on the left.
+ */
+export function splitColumns(parts: Array<CorePart>): [Array<CorePart>, Array<CorePart>] {
+  let best = 0;
+  let least = Number.POSITIVE_INFINITY;
+  for (let mask = 0; mask < 1 << parts.length; mask++) {
+    const right = parts.reduce((sum, p, i) => sum + (mask & (1 << i) ? p.height : 0), 0);
+    const left = parts.reduce((sum, p) => sum + p.height, 0) - right;
+    const waste = Math.abs(left - right);
+    if (waste < least) {
+      least = waste;
+      best = mask;
+    }
+  }
+  return [parts.filter((_, i) => !(best & (1 << i))), parts.filter((_, i) => best & (1 << i))];
 }
