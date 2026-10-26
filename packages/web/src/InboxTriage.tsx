@@ -2,7 +2,6 @@
 // banner of the triage there is, which leads to answering it, then to applying it. Without an agent
 // on this machine, each gives its message to copy, for an agent elsewhere.
 import { Button } from "@astryxdesign/core/Button";
-
 import { APPLY_TRIAGE, ORGANIZE_INBOX } from "uraeda-server/round-messages";
 import { MessageToCopy, RoundBanner, type StartChat } from "./StartChat.tsx";
 import { Foldable } from "./layout/Foldable.tsx";

@@ -1,7 +1,6 @@
 // A session's header: its title, its status, its agent's mark and name, and its place.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
-
 import type { SessionStatus as Status } from "uraeda-server/fate";
 import { useAgent } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";

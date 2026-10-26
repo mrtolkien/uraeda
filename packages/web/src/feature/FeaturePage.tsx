@@ -3,7 +3,6 @@
 // sessions, figures, and links.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
-
 import { VStack } from "@astryxdesign/core/VStack";
 import { Suspense, useState } from "react";
 import { Crumbs } from "../Crumbs.tsx";

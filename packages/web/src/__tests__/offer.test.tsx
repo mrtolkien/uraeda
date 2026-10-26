@@ -100,7 +100,6 @@ test("Start the change from the agent's offer", async () => {
   );
 });
 
-/** Review: an agent that writes CRLF line ends offers a card too. */
 /** UI behaviour: a git write blocks the next; Ctrl+Enter twice, then Start, start the change once. */
 test("Ctrl+Enter twice and Start, while the change starts, start it once", async () => {
   const repo = fixtureRepo();
@@ -149,6 +148,7 @@ test("Ctrl+Enter in the proposal starts the change", async () => {
   ).toBeTruthy();
 });
 
+/** Review: an agent that writes CRLF line ends offers a card too. */
 test("an offer with CRLF line ends shows its card", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();

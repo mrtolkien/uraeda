@@ -71,12 +71,6 @@ async function undoCommitted(
 }
 
 /**
- * The priorities' form: it jots a line down at the end of a section of `PRIORITIES.md`, Next by
- * default, at once, committed alone with "Add and commit". A toast says where it went, with Undo,
- * which commits the removal of a committed line. Closing it with Close, Back, or Escape keeps its
- * text.
- */
-/**
  * The overlay of a ＋ button's form, `label` its title: a dialog of the quick add's width on wider
  * screens, a sheet as tall as the form on the phone, `loading` read while its file loads.
  */
@@ -106,6 +100,12 @@ function AddOverlay({
   );
 }
 
+/**
+ * The priorities' form: it jots a line down at the end of a section of `PRIORITIES.md`, Next by
+ * default, at once, committed alone with "Add and commit". A toast says where it went, with Undo,
+ * which commits the removal of a committed line. Closing it with Close, Back, or Escape keeps its
+ * text.
+ */
 function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const fate = useFateClient();
   const toast = useUndoToast();

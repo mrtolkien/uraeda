@@ -1,6 +1,5 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-
 import { Icon } from "@astryxdesign/core/Icon";
 import { Thumbnail } from "@astryxdesign/core/Thumbnail";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -14,7 +13,6 @@ import { refusal } from "./errors.ts";
 import { OrganizeButton, OrganizeMessage, TriageBanner } from "./InboxTriage.tsx";
 import { useStartChat } from "./StartChat.tsx";
 import { Page } from "./layout/Page.tsx";
-
 import { NoteMenu } from "./lists/CardMenu.tsx";
 import { CategoryMenu, CategoryTitle } from "./lists/CategoryPane.tsx";
 import { useCategoryActions } from "./lists/useCategoryActions.ts";

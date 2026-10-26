@@ -1,7 +1,6 @@
 // The edge cases: their table drawn as rows by importance, the niche ones folded behind their
 // count, not mounted while folded, the part's other blocks as written.
 import { Badge } from "@astryxdesign/core/Badge";
-
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";

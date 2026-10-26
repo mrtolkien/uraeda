@@ -1,5 +1,4 @@
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
@@ -7,7 +6,6 @@ import { CommitBar } from "./CommitBar.tsx";
 import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
-
 import { PrioritiesList } from "./lists/PrioritiesList.tsx";
 import { useRestoreScroll } from "./routes.tsx";
 import { PrioritiesView } from "./views.ts";

@@ -1,6 +1,5 @@
 import { ChatComposerDrawer, type ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import { HStack } from "@astryxdesign/core/HStack";
-
 import { type RefObject, useEffect, useRef } from "react";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { useRepository } from "./routes.tsx";

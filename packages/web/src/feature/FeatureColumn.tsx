@@ -32,7 +32,7 @@ export function FeatureColumn({ feature, history, keys }: ColumnProps) {
   const done = isDone(history);
   const agent = feature.agent ?? null;
   // Elapsed counts to now while the feature is live, and a running turn's time until it ends.
-  // Every 30 s while it runs (R5).
+  // Every 30 s while it runs, as the feature page's record asks.
   const now = useNow(!done || agent?.runningSince != null ? 30_000 : null);
   const rows = figureRows({
     agent,
