@@ -100,12 +100,19 @@ test("Space on a link and on a row opens the menu and follows nothing", async ()
 
 test("Space on a switch ticks it and on a radio card is the card's, with no menu", async () => {
   show();
+  // The window's listener of this test runs after the registry's: it sees what the registry did.
+  const prevented: Array<boolean> = [];
+  const record = (event: KeyboardEvent) => void prevented.push(event.defaultPrevented);
+  window.addEventListener("keydown", record);
   screen.getByRole("switch", { name: "Remember" }).focus();
   await userEvent.keyboard(" ");
   expect(ticked).toHaveBeenCalledOnce();
   screen.getByRole("radio", { name: "Card" }).focus();
   await userEvent.keyboard(" ");
   expect(picked).toHaveBeenCalledOnce();
+  window.removeEventListener("keydown", record);
+  // Neither Space was default-prevented: the leader left both to the control.
+  expect(prevented).toEqual([false, false]);
   // The menu shows half a second after Space: 700 ms is long enough to see it absent.
   await new Promise((resolve) => setTimeout(resolve, 700));
   expect(screen.queryByRole("group", { name: "Space" })).toBeNull();
