@@ -92,7 +92,7 @@ workflow file.
   [`actions.rs`](/crates/lsp/src/actions.rs), the reads in
   [`requests.rs`](/crates/lsp/src/requests.rs), and the commands with their refusals in
   [`commands.rs`](/crates/lsp/src/commands.rs).
-- The plugin, in [`editors/nvim/`](/editors/nvim/README.md): the entry in
+- The plugin, in `editors/nvim/`, since removed from the repository: the entry in
   [`plugin/uraeda.lua`](/editors/nvim/plugin/uraeda.lua) and the LSP config in
   [`lsp/uraeda.lua`](/editors/nvim/lsp/uraeda.lua); one registry of actions, each with its key,
   subcommand, and mapping, in [`actions.lua`](/editors/nvim/lua/uraeda/actions.lua) and
