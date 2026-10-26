@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Testing strategy review
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 10 questions and 1 follow-up, about 30 minutes.
+> Answered on 2026-10-26.
 >
 > - Verdict: worth building, with changes. The guidelines, decisions, and records are cheap and fix
 >   the cause. Rewriting about 3,900 tests in the same feature is not.
@@ -104,7 +104,7 @@ evaluation. Done first, it may need redoing.
   - [pro] the suite shrinks at once.
   - [con] the skill is edited by two features, and the rewrite still precedes the evaluation.
 
-**Answer:**
+**Answer:** B: I'd rather you do everything in a single pass, I'll let you work for 10+ hours.
 
 ## Q2: What happens to a test that guards behaviour the approved spec replaces?
 
@@ -137,7 +137,8 @@ exception, the spec or the constitution. The constitution is yours to amend.
   - [pro] no change to write.
   - [con] the cost that made the agent bend code stays.
 
-**Answer:**
+**Answer:** B: I've actually removed principle VI, it was a bad principle and not really related to
+the project at hand.
 
 ## Q3: Does testing effort scale with the project's stage?
 
@@ -169,7 +170,7 @@ costs.
   - [pro] no amendment, and a risky story gets more.
   - [con] a judgement per spec, which you review each time.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: How should the web UI be tested?
 
@@ -199,7 +200,10 @@ Why it matters: it sets what the rewrite keeps and what every UI feature costs.
   - [pro] the least change.
   - [con] about 3,000 tests of mostly unclear value stay, and the speed does not improve.
 
-**Answer:**
+**Answer:** B: I don't even want screenshots, I'd rather review actual behaviour with the sandbox.
+
+Maybe 1 screenshot per new view in the PR is warranted but that's it. No screenshots for review in
+the repo.
 
 ## Q5: Do decisions state structure and never specifics?
 
@@ -228,7 +232,9 @@ without a check is a rule only review enforces.
   - [pro] decisions become pure intent.
   - [con] tools and agents lose the pointer to what guards a rule.
 
-**Answer:**
+**Answer:** A: Yes: behaviour is encoded IN THE CODE.
+
+Decisions only serve a purpose if they store information that's not already in the code.
 
 ### Q5.A: Which existing decisions does this feature rewrite?
 
@@ -247,7 +253,7 @@ Why it matters: each rewritten decision needs your approval of the spec that lis
   - [pro] the ledger is consistent at once.
   - [con] a long spec, with many changed decisions.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Is the pull request body the record?
 
@@ -274,7 +280,10 @@ Why it matters: two texts that say the same thing drift, and the reviewer reads 
   - [pro] each fits its reader.
   - [con] the duplication you want gone.
 
-**Answer:**
+**Answer:** A: Let's do that but allow the agent to make small changes to the record for the PR
+body.
+
+In particular in the PR it can include screenshots, which should not be in the record/repo.
 
 ## Q7: May an agent edit an old record to link to its successor?
 
@@ -304,7 +313,7 @@ finish step and `ura check` do.
   - [pro] the correction sits beside the stale text.
   - [con] old records grow, and notes drift from their sources.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: Should records keep the issues faced during implementation?
 
@@ -333,7 +342,7 @@ records carry.
   - [pro] nothing is lost.
   - [con] 22 rulings of one change would bury the facts that matter.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: What happens to rulings?
 
@@ -358,7 +367,7 @@ the record to matter.
   - [pro] nothing to maintain.
   - [con] a choice is found only by `git log`, with no list for the review.
 
-**Answer:**
+**Answer:** A
 
 ## Q10: How is the new wording evaluated?
 
@@ -388,7 +397,13 @@ usage.
   - [pro] free.
   - [con] nothing shows the agents behave differently.
 
-**Answer:**
+**Answer:** A: I want _you_ to judge the output as part of the feature development. Iterate on the
+skill's wording until we get small, efficient, useful, focused tests. But keep the skill's wording
+generic.
+
+You can use fresh subagents to evaluate testing quality for example. You're allowed to use my
+opencode client too, with DeepSeek Flash v4.1, to have another model evaluate things, making it a
+bit more objective.
 
 ## Settled without the human
 
@@ -414,3 +429,6 @@ usage.
   [one home per rule](/skills/uraeda/references/code-quality.md#one-home-per-rule).
 
 **Notes:**
+
+- **A UI test needs no test-first step.**: They're usually even judged by generated code and running
+  the live application.
