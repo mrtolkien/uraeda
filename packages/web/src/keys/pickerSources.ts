@@ -53,51 +53,91 @@ const PROPOSAL = "proposal.md";
 /** What a feature's or a change's preview says when its proposal could not be read. */
 export const PROPOSAL_FAILED = "Could not load the proposal.";
 
-/** The proposals read: by folder, or `failed` where the request did not answer. */
-type Proposals = { failed: boolean; texts: ReadonlyMap<string, string> };
+/** The proposals read: by folder, and the folders whose proposal could not be read. */
+type Proposals = { failed: ReadonlySet<string>; texts: ReadonlyMap<string, string> };
+
+/** One proposal's folder and raw text, as read from its record. */
+type ProposalText = { folder: string; text: string };
+
+/**
+ * Reads each ref, in turn, until `isCurrent` says nobody waits for them any more (then `null`).
+ * A ref that cannot be read does not discard the others: the folders with no text at the end are
+ * the `failed` ones, only when a read failed.
+ */
+export async function readProposals<Ref>(
+  folders: ReadonlyArray<string>,
+  refs: ReadonlyArray<Ref>,
+  read: (ref: Ref) => Promise<ProposalText>,
+  isCurrent: () => boolean,
+): Promise<Proposals | null> {
+  const texts = new Map<string, string>();
+  let isFailed = false;
+  for (const ref of refs) {
+    if (!isCurrent()) {
+      return null;
+    }
+    try {
+      const { folder, text } = await read(ref);
+      texts.set(folder, text);
+    } catch {
+      isFailed = true;
+    }
+  }
+  const failed = isFailed ? folders.filter((folder) => !texts.has(folder)) : [];
+  return { failed: new Set(failed), texts };
+}
 
 /**
  * The raw proposals of the folders, by folder, in one request once asked for and again when the
- * list changes; empty until they arrive, and `failed` where the request failed.
+ * list changes; empty until they arrive, and `failed` where the request or a read failed.
  */
 function useProposals(folders: ReadonlyArray<string>): Proposals {
   const fate = useFateClient();
-  const [read, setRead] = useState<{ failed: boolean; key: string; texts: Proposals["texts"] }>();
+  const [read, setRead] = useState<{ key: string } & Proposals>();
   const key = folders.join("\n");
   useEffect(() => {
     if (key === "") {
       return;
     }
     let current = true;
-    const ids = key.split("\n").map((folder) => `${folder}/${PROPOSAL}`);
+    const names = key.split("\n");
+    const ids = names.map((folder) => `${folder}/${PROPOSAL}`);
     void (async () => {
       const { workflowFile } = await fate.request({
         workflowFile: { ids, view: ProposalTextView },
       });
-      const texts = new Map<string, string>();
-      for (const ref of workflowFile as ReadonlyArray<Parameters<typeof fate.readView>[1]>) {
-        // fate types a root's records as any entity: the view gives the files' fields.
-        const { data } = (await fate.readView(ProposalTextView, ref)) as unknown as {
-          data: { current: { text: string } | null; id: string };
-        };
-        texts.set(data.id.slice(0, -`/${PROPOSAL}`.length), data.current?.text ?? "");
-      }
-      if (current) {
-        setRead({ failed: false, key, texts });
+      const result = await readProposals(
+        names,
+        workflowFile as ReadonlyArray<Parameters<typeof fate.readView>[1]>,
+        async (ref) => {
+          // fate types a root's records as any entity: the view gives the files' fields.
+          const { data } = (await fate.readView(ProposalTextView, ref)) as unknown as {
+            data: { current: { text: string } | null; id: string };
+          };
+          return {
+            folder: data.id.slice(0, -`/${PROPOSAL}`.length),
+            text: data.current?.text ?? "",
+          };
+        },
+        () => current,
+      );
+      if (current && result !== null) {
+        setRead({ key, ...result });
       }
     })().catch(() => {
       if (current) {
-        setRead({ failed: true, key, texts: NO_TEXTS });
+        setRead({ failed: new Set(names), key, texts: NO_TEXTS });
       }
     });
     return () => {
       current = false;
     };
   }, [fate, key]);
-  return read?.key === key ? read : { failed: false, texts: NO_TEXTS };
+  return read?.key === key ? read : { failed: NO_FAILED, texts: NO_TEXTS };
 }
 
 const NO_TEXTS: ReadonlyMap<string, string> = new Map();
+const NO_FAILED: ReadonlySet<string> = new Set();
 
 type Workspace = NonNullable<ReturnType<typeof useWorkspace>>;
 type Records = {
@@ -117,7 +157,9 @@ function featureItems(workspace: Workspace | undefined, proposals: Proposals): A
       id: `/f/${encodeURIComponent(feature.folder)}`,
       kind: isChange ? "changes" : "features",
       path: `/f/${encodeURIComponent(feature.folder)}`,
-      preview: proposals.texts.get(feature.folder) ?? (proposals.failed ? PROPOSAL_FAILED : ""),
+      preview:
+        proposals.texts.get(feature.folder) ??
+        (proposals.failed.has(feature.folder) ? PROPOSAL_FAILED : ""),
       title: feature.title,
     };
   });
