@@ -1,7 +1,8 @@
 // Home's core, above the "Overview" line: the problems that stop the workflow, when there are any,
 // what waits on the human, what agents work on, and the sessions without a workflow. Each is a pane
 // of the sidebar's own cards; `coreParts` gives each its node and its height, for the layout.
-import type { ReactNode } from "react";
+import type { Icon } from "@astryxdesign/core/Icon";
+import type { ComponentProps, ReactNode } from "react";
 import { waiting } from "../labels.ts";
 import { Empty } from "../layout/Empty.tsx";
 import { Pane } from "../layout/Pane.tsx";
@@ -19,7 +20,12 @@ const EMPTY = 1.5;
 /** A pane of cards: `cards` each with its detail line if it has one, or `empty` text. */
 function part(
   key: string,
-  pane: { count: number; title: string; tone?: "attention" | "problem" },
+  pane: {
+    count: number;
+    icon: ComponentProps<typeof Icon>["icon"];
+    title: string;
+    tone?: "attention" | "problem";
+  },
   cards: Array<{ detail?: string | undefined; node: ReactNode }>,
   empty: string,
 ): CorePart {
@@ -70,26 +76,26 @@ export function coreParts({
       : [
           part(
             "problems",
-            { count: invalid.length, title: "Problems", tone: "problem" },
+            { count: invalid.length, icon: "warning", title: "Problems", tone: "problem" },
             invalid.map((f) => feature(f, f.problems[0]?.message)),
             "",
           ),
         ]),
     part(
       "needs-you",
-      { count: human.length, title: "Needs you", tone: "attention" },
+      { count: human.length, icon: "uraeda:hourglass", title: "Needs you", tone: "attention" },
       human.map((f) => feature(f, waiting(f).line)),
       "Nothing waits on you.",
     ),
     part(
       "in-progress",
-      { count: agents.length, title: "In progress" },
+      { count: agents.length, icon: "uraeda:activity", title: "In progress" },
       agents.map((f) => feature(f, f.step.task ?? undefined)),
       "Nothing in progress.",
     ),
     part(
       "sessions",
-      { count: sessions.length, title: "Sessions" },
+      { count: sessions.length, icon: "uraeda:bot", title: "Sessions" },
       sessions.map(({ row }) => ({
         node: <SessionCard key={row.id} pathname="" row={row} />,
       })),
