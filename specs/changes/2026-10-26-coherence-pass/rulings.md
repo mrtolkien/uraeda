@@ -68,17 +68,21 @@ decisions.
 - **If wrong**: [`layout/Missing.tsx`](/packages/web/src/layout/Missing.tsx).
 - **Where**: [`layout/Missing.tsx`](/packages/web/src/layout/Missing.tsx)
 
-## R6: A count beside a title is `· n`; at a row's end or on a tab, a badge
+## R6: A count beside a pane's or a group's title is `· n`; beside a page's title, a badge
 
-- **Decision**: no `Count` component. A count beside a title is the pane's `· n`, which titles
-  outside a pane take too; a count at a row's end, or over a tab's icon, stays an Astryx badge,
-  whose colour says what it counts.
-- **Rationale**: `Pane` already draws the title's count, and the badges sit where a title's text
-  would not fit. Two forms, each with one home, follow the UI coherence decision without a wrapper
-  around `Badge`.
-- **Alternatives considered**: badges everywhere, which a pane's title in its border cannot hold.
+- **Decision**: no `Count` component. A pane's title and a group's title (`GroupTitle`) carry their
+  count as `· n`; a page's title (`PageTitle`) carries it as a badge without words; a count at a
+  row's end, or over a tab's icon, stays an Astryx badge, whose colour says what it counts.
+- **Rationale**: `Pane` already draws the title's count, and the inbox's review asked for its page's
+  count as a badge beside its heading, without words (C3, in
+  [`inbox.test.tsx`](/packages/web/src/__tests__/inbox.test.tsx)). Each form has one home, as the UI
+  coherence decision asks, without a wrapper around `Badge`.
+- **Alternatives considered**: `· n` beside the page's title too, which the inbox's review ruled
+  out; badges everywhere, which a pane's title in its border cannot hold.
 - **If wrong**: a `Count` wrapper can replace the badges later.
-- **Where**: [`layout/Pane.tsx`](/packages/web/src/layout/Pane.tsx)
+- **Where**: [`layout/Pane.tsx`](/packages/web/src/layout/Pane.tsx),
+  [`layout/GroupTitle.tsx`](/packages/web/src/layout/GroupTitle.tsx),
+  [`layout/PageTitle.tsx`](/packages/web/src/layout/PageTitle.tsx)
 
 ## R7: Round marks stay round
 
@@ -100,3 +104,58 @@ decisions.
 - **Alternatives considered**: one file, over the size limit.
 - **If wrong**: nothing draws differently.
 - **Where**: [`theme/`](/packages/web/src/theme/)
+
+## R9: Every page's title is `PageTitle`
+
+- **Decision**: the level-1 title of every page is `PageTitle`: a file's status badge over it, the
+  title and its count, `actions` that stay beside it at every width (a feature's `…` menu, a
+  proposal's Edit), an `aside` at the row's end from semi-wide and under the title on the phone (the
+  inbox's "Organize with an agent", the settings' search), the subject's state on a supporting line
+  under it, and what the page is for in secondary text. The round's opening keeps its own title, the
+  distinct look the questions page's record approved.
+- **Rationale**: the title was drawn six ways, each page placing its badge, menu, search, and lines
+  itself. The inbox's description now comes right under its title, before its banners.
+- **Alternatives considered**: one slot for everything beside the title, wrapping; it would move the
+  feature's `…` under its title on the phone, or keep the settings' search beside it there, which
+  the layout and look record placed under it.
+- **If wrong**: each page's call is one element, and
+  [`PageTitle.tsx`](/packages/web/src/layout/PageTitle.tsx) one file.
+- **Where**: [`layout/PageTitle.tsx`](/packages/web/src/layout/PageTitle.tsx)
+
+## R10: An agent's offer, a round's notes, and a comment's box are titled panes
+
+- **Decision**: the offer card, the round's notes, and the comment box under a document's lines or a
+  round's settled point are panes, titled "Start a change" or "Make this change a feature", "Notes",
+  and "Comment". The comment box is a group, so it adds no landmark.
+- **Rationale**: the UI look decision groups content in bordered panes titled in their border; the
+  offer was an Astryx card, the notes a bare heading, and the comment box a border copied twice.
+- **Alternatives considered**: a pane without a title for the comment box, which the look does not
+  have.
+- **If wrong**: each is one element in its file.
+- **Where**: [`OfferCard.tsx`](/packages/web/src/OfferCard.tsx),
+  [`RoundNotes.tsx`](/packages/web/src/RoundNotes.tsx),
+  [`layout/CommentBox.tsx`](/packages/web/src/layout/CommentBox.tsx)
+
+## R11: An answer's comment and a review's comment stay two forms
+
+- **Decision**: `QuestionComment` and `CommentForm` stay apart.
+- **Rationale**: both already draw the shared `TextField`, `SaveStatus`, and `AttachStatus`; what
+  differs is their behaviour, a comment that saves into the answer against one added to a review and
+  closed.
+- **Alternatives considered**: one form with a mode, which would hold both behaviours behind flags.
+- **If wrong**: nothing draws differently.
+- **Where**: [`QuestionComment.tsx`](/packages/web/src/QuestionComment.tsx),
+  [`CommentForm.tsx`](/packages/web/src/CommentForm.tsx)
+
+## R12: Plain banners that show a lasting state stay plain
+
+- **Decision**: the banners that show a state, such as a blocked action, a branch left after merge,
+  a restored draft, or notifications blocked, stay Astryx's `Banner`; only the identical "No specs/
+  folder" banner of Home and the decisions page is merged, as `NoSpecs`.
+- **Rationale**: `AnnouncedBanner`'s rule is for errors and the outcome of an action; a banner that
+  mirrors a lasting state stays plain, as its comment says.
+- **Alternatives considered**: announcing every banner, which would read each state aloud on every
+  page load.
+- **If wrong**: one import per banner.
+- **Where**: [`layout/AnnouncedBanner.tsx`](/packages/web/src/layout/AnnouncedBanner.tsx),
+  [`layout/Missing.tsx`](/packages/web/src/layout/Missing.tsx)

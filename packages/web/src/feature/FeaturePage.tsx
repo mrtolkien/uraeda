@@ -3,9 +3,7 @@
 // sessions, figures, and links.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
-import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Text } from "@astryxdesign/core/Text";
+
 import { VStack } from "@astryxdesign/core/VStack";
 import { Suspense, useState } from "react";
 import { Crumbs } from "../Crumbs.tsx";
@@ -25,6 +23,7 @@ import { Record } from "./Record.tsx";
 import { Timeline } from "./Timeline.tsx";
 import { day } from "./times.ts";
 import { Missing } from "../layout/Missing.tsx";
+import { PageTitle } from "../layout/PageTitle.tsx";
 
 type FeatureData = NonNullable<ReturnType<typeof useFeature>>;
 type HistoryData = NonNullable<ReturnType<typeof useHistory>>;
@@ -169,21 +168,25 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
       <Crumbs folder={feature.folder} />
       <VStack gap={6}>
         <VStack gap={2}>
-          <HStack align="center" gap={2} justify="between">
-            <Heading level={1}>{feature.title}</Heading>
-            {!done && (
-              <FeatureMenu
-                feature={feature}
-                item={{
-                  branch: feature.branch ?? null,
-                  folder: feature.folder,
-                  kind: feature.kind === "change" ? "change" : "feature",
-                  slug: feature.slug,
-                }}
-                onRefused={setRefused}
-              />
-            )}
-          </HStack>
+          <PageTitle
+            actions={
+              !done && (
+                <FeatureMenu
+                  feature={feature}
+                  item={{
+                    branch: feature.branch ?? null,
+                    folder: feature.folder,
+                    kind: feature.kind === "change" ? "change" : "feature",
+                    slug: feature.slug,
+                  }}
+                  onRefused={setRefused}
+                />
+              )
+            }
+            meta={{ text: headerLine(feature) }}
+          >
+            {feature.title}
+          </PageTitle>
           {refused && (
             <AnnouncedBanner
               collapsible={false}
@@ -194,9 +197,6 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
               title={refused}
             />
           )}
-          <Text color="secondary" type="supporting">
-            {headerLine(feature)}
-          </Text>
         </VStack>
         <Blocking
           change={feature.kind === "change"}

@@ -2,7 +2,7 @@
 // without the navigation, at both widths, its column centred.
 import { Button } from "@astryxdesign/core/Button";
 import { Code } from "@astryxdesign/core/Code";
-import { Heading } from "@astryxdesign/core/Heading";
+
 import { HStack } from "@astryxdesign/core/HStack";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -12,7 +12,8 @@ import { useState } from "react";
 import { useServerFetch } from "../attach/ServerFetch.tsx";
 import { StatusText } from "../fields/StatusText.tsx";
 import { Page } from "../layout/Page.tsx";
-import { Paragraph } from "../layout/Paragraph.tsx";
+
+import { PageTitle } from "../layout/PageTitle.tsx";
 
 const styles = stylex.create({
   // The page's surface, which the shell paints on the other pages: this page has none.
@@ -88,15 +89,20 @@ export function SignInPage({
       <main>
         <Page>
           <VStack gap={3} xstyle={styles.column}>
-            <Heading level={1}>Sign in to Uraeda</Heading>
-            <Paragraph color="secondary">
-              Paste the access key Uraeda showed when it first started. On the machine that runs
-              Uraeda,{" "}
-              <Code size="inherit" xstyle={styles.command}>
-                uraeda --new-key
-              </Code>{" "}
-              makes a new one and signs every device out.
-            </Paragraph>
+            <PageTitle
+              description={
+                <>
+                  Paste the access key Uraeda showed when it first started. On the machine that runs
+                  Uraeda,{" "}
+                  <Code size="inherit" xstyle={styles.command}>
+                    uraeda --new-key
+                  </Code>{" "}
+                  makes a new one and signs every device out.
+                </>
+              }
+            >
+              Sign in to Uraeda
+            </PageTitle>
             <TextInput
               autoComplete="current-password"
               label="Access key"

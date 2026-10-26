@@ -1,7 +1,6 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
+
 import { Icon } from "@astryxdesign/core/Icon";
 import { Thumbnail } from "@astryxdesign/core/Thumbnail";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -15,7 +14,7 @@ import { refusal } from "./errors.ts";
 import { OrganizeButton, OrganizeMessage, TriageBanner } from "./InboxTriage.tsx";
 import { useStartChat } from "./StartChat.tsx";
 import { Page } from "./layout/Page.tsx";
-import { Paragraph } from "./layout/Paragraph.tsx";
+
 import { NoteMenu } from "./lists/CardMenu.tsx";
 import { CategoryMenu, CategoryTitle } from "./lists/CategoryPane.tsx";
 import { useCategoryActions } from "./lists/useCategoryActions.ts";
@@ -27,6 +26,7 @@ import { imagePath, plain, Spans } from "./Spans.tsx";
 import { InboxView } from "./views.ts";
 import { plural } from "./labels.ts";
 import { Empty } from "./layout/Empty.tsx";
+import { PageTitle } from "./layout/PageTitle.tsx";
 
 /** "1 note", "10 notes". */
 export function notes(count: number) {
@@ -208,13 +208,13 @@ export function InboxPage() {
   return (
     <Page>
       <VStack gap={2}>
-        <HStack align="center" gap={3} justify="between" wrap="wrap">
-          <HStack align="center" gap={2}>
-            <Heading level={1}>Inbox</Heading>
-            {inbox.count > 0 && <Badge label={String(inbox.count)} variant="neutral" />}
-          </HStack>
-          {agent && <OrganizeButton chat={chat} triage={inbox.triage} />}
-        </HStack>
+        <PageTitle
+          aside={agent && <OrganizeButton chat={chat} triage={inbox.triage} />}
+          count={inbox.count > 0 ? inbox.count : undefined}
+          description="Things noticed, not decided: turn each into a priority, a draft, or nothing."
+        >
+          Inbox
+        </PageTitle>
         {!agent && inbox.triage === null && <OrganizeMessage />}
         {inbox.triage !== null && <TriageBanner agent={agent} chat={chat} status={inbox.triage} />}
         {chat.error && <AnnouncedBanner collapsible={false} status="error" title={chat.error} />}
@@ -222,9 +222,6 @@ export function InboxPage() {
         {inbox.count === 0 && (
           <Empty>The inbox is empty. Notes you add with ＋ next to Inbox land here.</Empty>
         )}
-        <Paragraph color="secondary">
-          Things noticed, not decided: turn each into a priority, a draft, or nothing.
-        </Paragraph>
         <EditableLine
           display={
             <>

@@ -2,9 +2,7 @@
 // title, each lead paragraph (Goal, Architecture, Spec) a titled pane, then each section a pane, a
 // task's with its steps checked out of its total. The spec's column beside it, of Contents, Review
 // while it waits, and Session; on the phone, in the status line.
-import { Badge } from "@astryxdesign/core/Badge";
-import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
+
 import { VStack } from "@astryxdesign/core/VStack";
 import type { ReactNode } from "react";
 import type { Block, CommentItem, Document, PlanItems } from "uraeda-binding";
@@ -27,6 +25,7 @@ import { SinceWords, wordCount } from "./sinceMarks.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { StoriesProvider } from "./stories.tsx";
 import { fileStatusBadge } from "./labels.ts";
+import { PageTitle } from "./layout/PageTitle.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -91,17 +90,18 @@ function PlanParts({
   useHashFold(document, drawing.folds, true);
   return (
     <VStack gap={3}>
-      {status && (
-        <HStack>
-          <Badge label={status.label} variant={status.variant} />
-        </HStack>
-      )}
       {title && (
-        <Selectable block={title} selection={drawing.selection}>
-          <Heading id={title.anchor} level={1}>
-            <Spans spans={title.spans} />
-          </Heading>
-        </Selectable>
+        <PageTitle
+          around={(heading) => (
+            <Selectable block={title} selection={drawing.selection}>
+              {heading}
+            </Selectable>
+          )}
+          id={title.anchor}
+          status={status}
+        >
+          <Spans spans={title.spans} />
+        </PageTitle>
       )}
       {intro}
       {opening.map((run) =>
