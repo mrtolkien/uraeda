@@ -17,6 +17,7 @@ import { Runs } from "./RuleLine.tsx";
 import type { Entry } from "./SpecContents.tsx";
 import { plural } from "../labels.ts";
 import { Foldable } from "../layout/Foldable.tsx";
+import { Empty } from "../layout/Empty.tsx";
 
 const styles = stylex.create({
   removed: { margin: 0 },
@@ -167,7 +168,7 @@ function Lead({ model }: { model: SinceModel }) {
     return <Paragraph>The version you reviewed is not in git anymore.</Paragraph>;
   }
   if (places.length === 0 && removed.length === 0) {
-    return <Paragraph>No part changed since your review.</Paragraph>;
+    return <Empty>No part changed since your review.</Empty>;
   }
   return (
     <Paragraph color="secondary">

@@ -35,6 +35,7 @@ import { JumpPalette } from "./JumpPalette.tsx";
 import { jumpEntries } from "./jump.ts";
 import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts";
 import { NoSpecs } from "../layout/Missing.tsx";
+import { Empty } from "../layout/Empty.tsx";
 
 const styles = stylex.create({
   column: {
@@ -207,7 +208,7 @@ function ReaderBody({ ledger, open }: { ledger: LedgerData; open: LedgerOpen | u
   const { constitution } = ledger;
   if (open?.kind === "decision") {
     const decision = ledger.decisions.find((one) => one.name === open.name);
-    return decision ? <DecisionDetail decision={decision} /> : <Paragraph>Nothing here.</Paragraph>;
+    return decision ? <DecisionDetail decision={decision} /> : <Empty>Nothing here.</Empty>;
   }
   return constitution ? (
     <ConstitutionReader
