@@ -658,3 +658,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   pressed on a card they can see is not being edited.
 - **If wrong**: `useRowKeys`' `i` and `RowEditors`' `onDirty`.
 - **Where**: fix pass C, review of task 8.
+
+## R84: The row keys find a card by its `data-row-key`
+
+- **Decision**: `useListKeys` takes the keys of the rows, in the order its `selected`, `columns`,
+  and the index it gives `rowKeys`' `run` and `onMoveItem` use. A card names itself with
+  `data-row-key`; the row of the link a key was pressed on is its key's place in that order, never
+  the link's place among the links in the DOM, and the focus goes to the link of the row it leads
+  to. A move to a card edited in place, which draws no link, leaves the focus and the selection
+  where they are. Lists that give no keys, such as the decisions', keep the links' own order. The
+  index API stays: the key is resolved once, where the key press is read.
+- **Rationale**: a card edited in place draws no link, so every later card's place among the links
+  was one below its place in the list, and `m`, `o`, `i`, J K H L and the moves took a neighbour.
+- **Alternatives considered**: giving `run` and `onMoveItem` the key itself: the same fix with a
+  wider change of every caller's signature, and `selected` and `columns` stay indexes either way.
+- **If wrong**: `lists/useListKeys.ts` (`indexOfLink`, `focusRowAt`) and `Card`'s `data-row-key`.
+- **Where**: fix pass C, review of task 8.

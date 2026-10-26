@@ -90,3 +90,45 @@ test("a opens the add form, and the focus is in its text field", async () => {
   const field = await screen.findByRole("textbox", { name: "Priority" });
   await waitFor(() => expect(document.activeElement).toBe(field));
 });
+
+test("m opens the menu of the card the focus is on while an earlier card is edited (R84)", async () => {
+  await onLine("Next line 1");
+  await userEvent.keyboard("i");
+  await screen.findByRole("textbox", { name: "Edit Next line 1" });
+  // The card edited draws no link: the next card's place among the links is one below its place.
+  const later = screen
+    .getAllByRole("link", { name: /Next line 2/ })
+    .find((one) => one.closest("[data-row]") !== null) as HTMLElement;
+  later.focus();
+
+  await userEvent.keyboard("m");
+  await userEvent.click(await screen.findByRole("menuitem", { name: "Move to Later" }));
+
+  await expect
+    .poll(async () =>
+      (await commands.readRepo()).includes("## Later\n\n- Later line 1\n- Next line 2"),
+    )
+    .toBe(true);
+  expect(await commands.readRepo()).toContain("- Next line 1\n");
+});
+
+test("a line saved in its card keeps the selection and the focus, though its key changed (R81)", async () => {
+  await onLine("Next line 2");
+
+  await userEvent.keyboard("i");
+  await screen.findByRole("textbox", { name: "Edit Next line 2" });
+  await userEvent.keyboard(" changed{Enter}");
+
+  await expect
+    .poll(async () => (await commands.readRepo()).includes("- Next line 2 changed\n"))
+    .toBe(true);
+  await waitFor(() => {
+    expect(document.activeElement?.textContent).toContain("Next line 2 changed");
+    expect(document.activeElement?.closest("[data-row]")?.getAttribute("aria-current")).toBe(
+      "true",
+    );
+  });
+  // The keys go on from the saved card.
+  await userEvent.keyboard("k");
+  await waitFor(() => expect(document.activeElement?.textContent).toContain("Next line 1"));
+});
