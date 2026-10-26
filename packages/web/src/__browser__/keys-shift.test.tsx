@@ -58,7 +58,7 @@ async function onLine() {
 test("K moves the line above the one before it, as a drag would write it", async () => {
   await onLine();
 
-  await userEvent.keyboard("K");
+  await userEvent.keyboard("{Shift>}K{/Shift}");
 
   await expect.poll(() => section("Next")).toEqual(["Next line 2", "Next line 1", "Next line 3"]);
 });
@@ -66,7 +66,7 @@ test("K moves the line above the one before it, as a drag would write it", async
 test("J moves the line one place down", async () => {
   await onLine();
 
-  await userEvent.keyboard("J");
+  await userEvent.keyboard("{Shift>}J{/Shift}");
 
   await expect.poll(() => section("Next")).toEqual(["Next line 1", "Next line 3", "Next line 2"]);
 });
@@ -74,7 +74,7 @@ test("J moves the line one place down", async () => {
 test("L moves the line to the end of the next section, Later", async () => {
   await onLine();
 
-  await userEvent.keyboard("L");
+  await userEvent.keyboard("{Shift>}L{/Shift}");
 
   await expect.poll(() => section("Later")).toEqual(["Later line 1", "Next line 2"]);
   expect(await section("Next")).toEqual(["Next line 1", "Next line 3"]);
@@ -83,7 +83,7 @@ test("L moves the line to the end of the next section, Later", async () => {
 test("H moves the line to the end of the previous section, Now", async () => {
   await onLine();
 
-  await userEvent.keyboard("H");
+  await userEvent.keyboard("{Shift>}H{/Shift}");
 
   await expect.poll(() => section("Now")).toEqual(["Now line 1", "Now line 2", "Next line 2"]);
   expect(await section("Next")).toEqual(["Next line 1", "Next line 3"]);
