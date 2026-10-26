@@ -9,39 +9,13 @@ import { useTheme } from "@astryxdesign/core/theme";
 import { type RefObject, useEffect, useEffectEvent, useRef, useState } from "react";
 import { bottomOf, keepPlace } from "./keepPlace.ts";
 import { type Fit, LiveFrame } from "./LiveFrame.tsx";
+import { frameMessage, heightOf, pickedOf } from "./frameMessages.ts";
 import type { Picked } from "./storyComment.ts";
 
 /** The widths a story is shown at: the phone's, 402 px, or the desktop's, 1440 px. */
 export type Width = "phone" | "desktop";
 
-/** A message from a frame, which the embed reads only from its own frame's window. */
-type FrameMessage = {
-  height?: unknown;
-  name?: unknown;
-  role?: unknown;
-  text?: unknown;
-  uraeda: unknown;
-};
-
 const SANDBOX = "allow-scripts allow-popups";
-
-/** Whether a message is the pick script's: an object with a `uraeda` field. */
-function isFrameMessage(data: unknown): data is FrameMessage {
-  return typeof data === "object" && data !== null && "uraeda" in data;
-}
-
-/** A story's height, when its `size` message gives a finite number above 0. */
-function heightOf(message: FrameMessage): number | undefined {
-  const { height } = message;
-  return typeof height === "number" && Number.isFinite(height) && height > 0 ? height : undefined;
-}
-
-/** The element a `picked` message names, when it gives its role and name as text, with its text. */
-function pickedOf({ name, role, text }: FrameMessage): Picked | undefined {
-  return typeof role === "string" && role !== "" && typeof name === "string"
-    ? { name, role, ...(typeof text === "string" && text !== "" ? { text } : {}) }
-    : undefined;
-}
 
 /**
  * Gives the frame a new height with `resize`. A frame wholly above the window's top would move the
@@ -80,31 +54,28 @@ function useFrame(pick: PickMode, stage: RefObject<HTMLElement | null>) {
   const [reported, setReported] = useState<number>();
   const { mode } = useTheme();
   const onMessage = useEffectEvent((event: MessageEvent) => {
-    if (
-      event.source === null ||
-      frame.current?.contentWindow !== event.source ||
-      !isFrameMessage(event.data)
-    ) {
+    const message = frameMessage(event.source, frame.current?.contentWindow, event.data);
+    if (message === undefined) {
       return;
     }
     const source = event.source as Window;
-    if (event.data.uraeda === "ready") {
+    if (message.uraeda === "ready") {
       source.postMessage({ mode, uraeda: "mode" }, "*");
       if (pick.picking) {
         source.postMessage({ on: true, uraeda: "pick" }, "*");
       }
       pick.onReady();
-    } else if (event.data.uraeda === "size") {
-      const height = heightOf(event.data);
+    } else if (message.uraeda === "size") {
+      const height = heightOf(message);
       if (height !== undefined) {
         resizeKeepingPlace(stage.current, () => setReported(height));
       }
-    } else if (event.data.uraeda === "picked") {
-      const picked = pickedOf(event.data);
+    } else if (message.uraeda === "picked") {
+      const picked = pickedOf(message);
       if (picked) {
         pick.onPicked(picked);
       }
-    } else if (event.data.uraeda === "pick-stopped") {
+    } else if (message.uraeda === "pick-stopped") {
       pick.onPickStopped();
     }
   });

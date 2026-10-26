@@ -548,7 +548,7 @@ git commit -m "test(testing-communication): unit tests for the text rules the UI
 
 - Produces: as task 4, for these rules.
 
-- [ ] **Step 1: Write the unit tests, and the extractions they need**
+- [x] **Step 1: Write the unit tests, and the extractions they need**
 
 | Rule                                                                                                                                                                                                               | Source                                          | Cases from                          |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- | ----------------------------------- |
@@ -562,22 +562,37 @@ git commit -m "test(testing-communication): unit tests for the text rules the UI
 | the pick script's keys: Enter and Space pick the focused element, a modifier or composing text passes through, a key's repeats are swallowed until its key up or a blur; HTML cut at 2,000 characters, text at 200 | `skills/uraeda/assets/storybook/uraeda-pick.js` | `__browser__/sandbox-pick.test.tsx` |
 | a message from the story frame is checked before it is read (`isFrameMessage`, `pickedOf`)                                                                                                                         | `StoryFrames.tsx`                               | `__browser__/story-embed.test.tsx`  |
 
+As built: each rule is a pure function with a table-driven test, named after its source module.
+
+| Function                                                                                | Now in                                          | Test                     |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------ |
+| `cutsOff` (takes the host names' source)                                                | `settings/hosts.ts`, out of `SettingsPage.tsx`  | `hosts.test.ts`          |
+| `shownLabels`                                                                           | `settings/categories.ts`, as it was             | `categories.test.ts`     |
+| `storedScheme` (takes the stored value)                                                 | `theme.tsx`                                     | `theme.test.ts`          |
+| `byStatus`, `featureStatus`                                                             | `sidebar/cards.ts`, as they were                | `cards.test.ts`          |
+| `matching`, through `entriesOf`                                                         | `sidebar/entries.ts`, as they were              | `entries.test.ts`        |
+| `searchEntries`, `jumpEntries`                                                          | `decisions/jump.ts`, as they were               | `jump.test.ts`           |
+| `destination`                                                                           | `lists/destination.ts`, out of `useListKeys.ts` | `destination.test.ts`    |
+| `readColumn`, with `readOld` through it                                                 | `shell/columnWidth.ts`, as they were            | `columnWidth.test.ts`    |
+| `isFrameMessage`, `heightOf`, `pickedOf`, and `frameMessage` (the frame's window check) | `frameMessages.ts`, out of `StoryFrames.tsx`    | `frameMessages.test.ts`  |
+| the pick script's keys and cuts                                                         | `uraeda-pick.js`, as it was                     | `storybook-pick.test.ts` |
+
 The pick script's cases run in `storybook-pick.test.ts`'s existing `pickFrame` harness. Together
 with `pickText.test.ts`, they own the [Sandbox](/specs/decisions/sandbox.md) rule "A pick MUST be
 copied to the clipboard as text that names the page, the element, and its source location": write a
 ruling saying so.
 
-- [ ] **Step 2: Run them**
+- [x] **Step 2: Run them**
 
 - Run: the new and changed test files, by path, under `nix develop -c vp test`.
 - Expected: PASS; the existing `.test.tsx` files still pass.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web/src skills/uraeda/assets/storybook specs/2026-10-26-testing-communication
