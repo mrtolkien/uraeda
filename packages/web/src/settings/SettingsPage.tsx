@@ -9,13 +9,11 @@ import { OnListClient } from "../RepositoryMenu.tsx";
 import { useRestoreScroll } from "../routes.tsx";
 import { SettingsRecordView } from "../views.ts";
 import { categoryOf } from "./categories.ts";
-import type { ServerActions, ServerValues } from "./ServerSettings.tsx";
+import { cutsOff } from "./hosts.ts";
+import type { ServerActions } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
 
 const UNREACHABLE = "Could not reach the Uraeda server.";
-
-/** The names that reach the server whatever its settings say. */
-const ALWAYS_ALLOWED = new Set(["127.0.0.1", "localhost"]);
 
 /** What removing the host name of this browser asks. */
 function removeOwn(name: string): ConfirmOptions {
@@ -26,17 +24,6 @@ function removeOwn(name: string): ConfirmOptions {
     destructive: true,
     title: "Remove the host name of this browser?",
   };
-}
-
-/**
- * Whether removing `name` cuts this browser off: it is the host name the browser reached the
- * server through, `browser`, not one that always passes, and the file's names are in force.
- */
-function cutsOff(name: string, browser: string, values: ServerValues): boolean {
-  const host = browser.toLowerCase();
-  return (
-    !ALWAYS_ALLOWED.has(host) && values.server.allowedHosts.source.kind === "file" && name === host
-  );
 }
 
 /** Sends a change: the core's refusal, or the server's absence, as the error to show. */
@@ -61,7 +48,10 @@ function OnSettings({ category }: { category?: string }) {
     addHost: (name) => run(() => change.addHost({ input: { name }, view })),
     editHost: (from, to) => run(() => change.editHost({ input: { from, to }, view })),
     removeHost: async (name) => {
-      if (cutsOff(name, window.location.hostname, settings) && !(await confirm(removeOwn(name)))) {
+      if (
+        cutsOff(name, window.location.hostname, settings.server.allowedHosts.source) &&
+        !(await confirm(removeOwn(name)))
+      ) {
         return undefined;
       }
       return run(() => change.removeHost({ input: { name }, view }));

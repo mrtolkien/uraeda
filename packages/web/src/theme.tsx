@@ -16,17 +16,21 @@ export type ThemeMode = "system" | "light" | "dark";
 const KEY = "uraeda.theme";
 
 /**
- * The scheme picked on this browser, `system` when none, when storage is unavailable, or for a
- * value it does not know. An earlier version stored `dark` and `light`: they read as Mocha and
- * Latte, until the next pick rewrites them.
+ * The scheme a stored value names, `system` when none, or for a value it does not know. An earlier
+ * version stored `dark` and `light`: they read as Mocha and Latte, until the next pick rewrites
+ * them.
  */
-function storedScheme(): Scheme {
+export function storedScheme(value: string | null): Scheme {
+  if (value === "mocha" || value === "dark") {
+    return "mocha";
+  }
+  return value === "latte" || value === "light" ? "latte" : "system";
+}
+
+/** The scheme picked on this browser, `system` when none or when storage is unavailable. */
+function readScheme(): Scheme {
   try {
-    const value = window.localStorage.getItem(KEY);
-    if (value === "mocha" || value === "dark") {
-      return "mocha";
-    }
-    return value === "latte" || value === "light" ? "latte" : "system";
+    return storedScheme(window.localStorage.getItem(KEY));
   } catch {
     return "system";
   }
@@ -52,7 +56,7 @@ export function ThemeModeProvider({
 }: {
   children: (mode: Exclude<ThemeMode, "system">) => ReactNode;
 }) {
-  const [scheme, setScheme] = useState(storedScheme);
+  const [scheme, setScheme] = useState(readScheme);
   const dark = useMediaQuery("(prefers-color-scheme: dark)");
   const set = (next: Scheme) => {
     store(next);

@@ -60,3 +60,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an older `gh` refuses the flag; the body then follows the fallback, as the spec's
   edge case says.
 - **Where**: task 1; task 9 writes it into the finish step.
+
+## R6: The unit tests own the Sandbox rule on a pick's text, with the pick script's cases
+
+- **Decision**: `pickText.test.ts` and the pick script's cases in `storybook-pick.test.ts` own the
+  [Sandbox](/specs/decisions/sandbox.md) rule "A pick MUST be copied to the clipboard as text that
+  names the page, the element, and its source location", which the browser test
+  `sandbox-pick.test.tsx` owned with them. `pickText` writes the text that names the page, the
+  element, and its source; the script reports the element's role, name, text, HTML, and nearest
+  `data-insp-path`, with its text cut at 200 characters and its HTML at 2,000. The clipboard write
+  and its fallback to a text to copy by hand are wiring that review checks.
+- **Rationale**: the rule's logic is the text and what the script reports; the browser runner goes
+  with its tests (R2), and a test of a clipboard in a headless browser guarded a call to the
+  browser's own API.
+- **Where**: task 5; the browser test goes in task 10.
+- **If wrong**: `sandbox-pick.test.tsx` comes back from git, with the browser runner.
