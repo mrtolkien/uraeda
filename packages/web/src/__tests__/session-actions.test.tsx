@@ -131,11 +131,29 @@ test("US3 more 2: after a normal message, Allow all is gone and the old banners 
   expect((await log()).getAllByRole("button", { name: "Allow and retry" })).toHaveLength(2);
 });
 
-/** The session's "…" beside Send, opened: its actions' names. */
+/**
+ * The session's "…" beside Send, opened: its actions' names. A popover lists them as menu items;
+ * on a narrow screen, a sheet as buttons in its list.
+ */
 async function actions() {
   await click(await screen.findByRole("button", { name: "Session actions" }));
-  await screen.findByRole("menu");
-  return screen.getAllByRole("menuitem").map((item) => item.textContent);
+  return (await shownActions()).map((item) => item.textContent);
+}
+
+/** The actions of the "…" opened, a popover's menu items or a sheet's buttons. */
+async function shownActions() {
+  return waitFor(() => {
+    const items = screen.queryAllByRole("menuitem");
+    const sheet = screen.queryByRole("dialog");
+    const found = items.length > 0 ? items : sheet ? within(sheet).queryAllByRole("button") : [];
+    expect(found.length).toBeGreaterThan(0);
+    return found;
+  });
+}
+
+/** The action named `name` of the "…" opened. */
+async function action(name: string) {
+  return (await shownActions()).find((item) => item.textContent === name)!;
 }
 
 /** The change `login-redirect`, with a session. */
@@ -165,13 +183,13 @@ test("Archive in a session's … archives it, and Unarchive brings it back", asy
   await renderPage(`/sessions/${id}`, repo, { agent: fake });
 
   await actions();
-  await click(screen.getByRole("menuitem", { name: "Archive" }));
+  await click(await action("Archive"));
 
   await waitFor(() => expect(fake.sessions.cache.session(id)?.archivedAt).not.toBeNull());
   // The page hears of it by its live update, which can come after the server's write.
   await actions();
-  await waitFor(() =>
-    expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toContain("Unarchive"),
+  await waitFor(async () =>
+    expect((await shownActions()).map((item) => item.textContent)).toContain("Unarchive"),
   );
 });
 

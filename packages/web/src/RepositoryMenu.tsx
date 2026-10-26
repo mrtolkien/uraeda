@@ -7,7 +7,7 @@ import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
-import { MoreMenu } from "@astryxdesign/core/MoreMenu";
+
 import { Popover } from "@astryxdesign/core/Popover";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
@@ -22,10 +22,11 @@ import type { FateClient as Client } from "./clients.ts";
 import { useRepositories } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { afterOverlayCloses, Overlay } from "./layout/Overlay.tsx";
-import { isNarrow, useWidthClass, useMenuPresentation } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Logo } from "./Logo.tsx";
 import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
+import { ActionsMenu } from "./layout/ActionsMenu.tsx";
 
 const styles = stylex.create({
   brand: {
@@ -105,7 +106,6 @@ function RepositoryRow({
   onRemove: (name: string) => void;
   row: Row;
 }) {
-  const presentation = useMenuPresentation();
   return (
     <ListItem
       description={
@@ -120,11 +120,9 @@ function RepositoryRow({
         )
       }
       endContent={
-        <MoreMenu
-          alignment="end"
+        <ActionsMenu
           items={[{ label: "Remove from Uraeda", onClick: () => onRemove(row.name) }]}
           label={`More for ${row.name}`}
-          presentation={presentation}
         />
       }
       isSelected={row.name === current}

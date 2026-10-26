@@ -4,7 +4,7 @@
 // the drag's `fileIndex` owns. The button shows on hover, on the selected card, on keyboard focus
 // within the card, and always when the pointer cannot hover, by the card's `--menu-opacity`.
 import { DropdownMenu, type DropdownMenuOption } from "@astryxdesign/core/DropdownMenu";
-import { Icon } from "@astryxdesign/core/Icon";
+
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useState } from "react";
 import type { Inbox } from "uraeda-server/fate";
@@ -15,6 +15,7 @@ import { navigate, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { type Placed, useNoteActions } from "../useNoteActions.ts";
 import { type Direction, moveIndex, movesOf } from "./cardMoves.ts";
+import { MORE_ICON } from "../layout/ActionsMenu.tsx";
 
 const styles = stylex.create({
   // The card's variable, shown while the menu is open, though the pointer left the card for it.
@@ -38,7 +39,7 @@ export function CardMenu({
     <DropdownMenu
       alignment="end"
       button={{
-        icon: <Icon color="secondary" icon="moreHorizontal" />,
+        icon: MORE_ICON,
         isIconOnly: true,
         label,
         size: "sm",
