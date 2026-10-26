@@ -4,7 +4,7 @@
 import { Button } from "@astryxdesign/core/Button";
 
 import { APPLY_DECISIONS_CHECK, RUN_DECISIONS_CHECK } from "uraeda-server/round-messages";
-import { AgentMessage, RoundBanner, type StartChat } from "../StartChat.tsx";
+import { MessageToCopy, RoundBanner, type StartChat } from "../StartChat.tsx";
 import { Foldable } from "../layout/Foldable.tsx";
 
 /** "Check decisions": starts the check's chat, disabled while a check exists. */
@@ -22,7 +22,7 @@ export function CheckButton({ chat, check }: { chat: StartChat; check: string | 
 export function CheckMessage() {
   return (
     <Foldable label="Check decisions">
-      <AgentMessage text={RUN_DECISIONS_CHECK} />
+      <MessageToCopy text={RUN_DECISIONS_CHECK} />
     </Foldable>
   );
 }

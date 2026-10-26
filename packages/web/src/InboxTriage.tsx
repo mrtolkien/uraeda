@@ -4,7 +4,7 @@
 import { Button } from "@astryxdesign/core/Button";
 
 import { APPLY_TRIAGE, ORGANIZE_INBOX } from "uraeda-server/round-messages";
-import { AgentMessage, RoundBanner, type StartChat } from "./StartChat.tsx";
+import { MessageToCopy, RoundBanner, type StartChat } from "./StartChat.tsx";
 import { Foldable } from "./layout/Foldable.tsx";
 
 /** "Organize with an agent": starts the triage's chat, disabled while a triage exists. */
@@ -22,7 +22,7 @@ export function OrganizeButton({ chat, triage }: { chat: StartChat; triage: stri
 export function OrganizeMessage() {
   return (
     <Foldable label="Organize with an agent">
-      <AgentMessage text={ORGANIZE_INBOX} />
+      <MessageToCopy text={ORGANIZE_INBOX} />
     </Foldable>
   );
 }
