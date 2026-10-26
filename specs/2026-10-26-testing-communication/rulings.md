@@ -134,3 +134,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   reproduced bug, which the `early` stage keeps, and no unit test replaced it. Its timers are
   Vitest's fake ones, so it depends on no elapsed time.
 - **Where**: the Kept web UI tests table, and task 12's Removed table.
+
+## R11: The figure rows' cases come back
+
+- **Decision**: the five cases of `figureRows` that task 13 removed (a live feature, a done one, a
+  change, zero questions, and commits not traced) are restored in `figure-rows.test.ts`, as they
+  were at the start of the branch.
+- **Rationale**: `figureRows` is a pure function with many cases, which the `early` stage keeps, and
+  its cases are its whole specification: the rows' labels, order, and links, all in one place.
+- **Where**: task 13's Removed table loses their five rows (14 removed become 9).
