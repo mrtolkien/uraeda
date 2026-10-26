@@ -6,7 +6,7 @@
 // item itself, where the list can. They act only when the focus is on a row or on the page itself;
 // the registry holds them back in a text field and under any open layer.
 import { useListFocus } from "@astryxdesign/core/hooks";
-import { useCallback } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { type Binding, useKeys } from "../keys/registry.tsx";
 import { type Columns, destination, type Move } from "./destination.ts";
 
@@ -14,6 +14,9 @@ export type { Columns };
 
 /** The rows' links, in the list's order: each row marks its item with `data-row`. */
 const ROW = "[data-row] a[href]";
+
+/** The key a row names itself with, `data-row-key`: what the list's own order is read by. */
+const ROW_KEY = "data-row-key";
 
 /** A move of the selected item itself, which `onMoveItem` is called with. */
 export type ItemMove = "up" | "down" | "left" | "right";
@@ -68,6 +71,42 @@ export type RowKey = {
   label: string;
   run: (row: number) => boolean | void;
 };
+
+/**
+ * The index of the row a link is in: its place among the `links`, or with `keys`, the place of its
+ * row's `data-row-key` among them, -1 for a link that is no row's.
+ */
+function indexOfLink(
+  links: ReadonlyArray<Element>,
+  keys: ReadonlyArray<string> | undefined,
+  target: EventTarget | null,
+) {
+  const link = links.find((one) => one === target);
+  if (link === undefined) {
+    return -1;
+  }
+  return keys === undefined
+    ? links.indexOf(link)
+    : keys.indexOf(link.closest("[data-row]")?.getAttribute(ROW_KEY) ?? "");
+}
+
+/**
+ * Puts the focus on the link of the row at `index`, the row a `keys`' index names: a row edited
+ * in place draws no link, and the focus stays where it is. Returns whether it moved.
+ */
+function focusRowAt(
+  links: ReadonlyArray<Element>,
+  keys: ReadonlyArray<string> | undefined,
+  index: number,
+  focusItem: (at: number) => void,
+) {
+  const at = links.findIndex((link) => indexOfLink(links, keys, link) === index);
+  if (at === -1) {
+    return false;
+  }
+  focusItem(at);
+  return true;
+}
 
 /** Where a list's keys act, and what they do there. */
 type Acts = {
@@ -163,14 +202,18 @@ function bindingsOf({
  * each holds (see `Columns`): its keys move inside a column and between them. `onMoveItem(move,
  * row)` is given by a list whose items can move: `J K H L` and Shift with the arrows call it with
  * the row the focus is on, or the selected one when the focus is on the page; without it those
- * keys are not bound. `rowKeys` are the page's own keys on a row, bound once (`RowKey`). `isOff` says a layer the list owns, like its overlay, holds the keys: the
- * status line then names only Escape's. Returns the ref of the list's element, and what focuses
- * the selected row.
+ * keys are not bound. `rowKeys` are the page's own keys on a row, bound once (`RowKey`). `keys` are
+ * the keys of the rows in the order `selected`, `columns`, and the rows given to the keys use, where
+ * a row may draw no link, as one edited in place: a row is then found by its `data-row-key`, never
+ * by its place among the links; without them the rows are the links, in the order they are drawn.
+ * `isOff` says a layer the list owns, like its overlay, holds the keys: the status line then names
+ * only Escape's. Returns the ref of the list's element, and what focuses the selected row.
  */
 export function useListKeys({
   columns,
   escapeLabel = "close",
   isOff = false,
+  keys,
   onClose,
   onEdit,
   onMoveItem,
@@ -181,6 +224,7 @@ export function useListKeys({
   columns?: Columns;
   escapeLabel?: string | null;
   isOff?: boolean;
+  keys?: ReadonlyArray<string>;
   onClose: () => boolean;
   onEdit: () => boolean;
   onMoveItem?: (move: ItemMove, row: number) => void;
@@ -189,6 +233,12 @@ export function useListKeys({
   selected: number;
 }) {
   const { focusItem, getItems, listRef } = useListFocus<HTMLDivElement>({ itemSelector: ROW });
+  const rows = { getItems, keys };
+  const latest = useRef(rows);
+  useLayoutEffect(() => {
+    latest.current = rows;
+  });
+  const focusRow = (index: number) => focusRowAt(getItems(), keys, index, focusItem);
   const acts: Acts = {
     edit: (row) => row === selected && selected !== -1 && onEdit(),
     item: (move, row) => {
@@ -197,19 +247,18 @@ export function useListKeys({
       }
     },
     move: (move, row) => {
-      const count = getItems().length;
+      const count = keys?.length ?? getItems().length;
       if (count === 0) {
         return false;
       }
       const to = destination(move, row, count, columns);
-      if (to !== -1) {
-        focusItem(to);
+      if (to !== -1 && focusRow(to)) {
         onSelect(to);
       }
       return true;
     },
     rowAt: (target) => {
-      const row = getItems().indexOf(target as Element);
+      const row = indexOfLink(getItems(), keys, target);
       const onPage = target === document.body || target === document.documentElement;
       return row !== -1 || onPage ? (row === -1 ? selected : row) : null;
     },
@@ -228,7 +277,7 @@ export function useListKeys({
 
   const focusSelected = useCallback(() => {
     if (selected !== -1) {
-      focusItem(selected);
+      focusRowAt(latest.current.getItems(), latest.current.keys, selected, focusItem);
     }
   }, [focusItem, selected]);
   return { focusSelected, ref: listRef };
