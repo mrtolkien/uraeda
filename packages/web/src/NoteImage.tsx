@@ -1,10 +1,7 @@
 // A note with an image (US6): the image picked in the add form, and the add that makes the note a
 // draft folder holding it, in one call to the core, which encodes the image (the attachments
 // decision).
-import { Button } from "@astryxdesign/core/Button";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Text } from "@astryxdesign/core/Text";
-import { Thumbnail } from "@astryxdesign/core/Thumbnail";
+
 import { useAnnounce } from "@astryxdesign/core/hooks";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
@@ -16,6 +13,7 @@ import { readInbox, rereadChanges } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { repoPath, useRepository } from "./routes.tsx";
 import { InboxView } from "./views.ts";
+import { RemovableThumbnail } from "./attach/RemovableThumbnail.tsx";
 
 type Fate = ReturnType<typeof useFateClient>;
 
@@ -68,19 +66,9 @@ export function usePickedImages(): readonly [ReadonlyArray<Picked>, PickedChange
   ] as const;
 }
 
-/** An image picked for the note: its thumbnail, its name, and Remove. */
+/** An image picked for the note: its thumbnail, named, and Remove under it. */
 export function PickedImage({ image, onRemove }: { image: Picked; onRemove: () => void }) {
-  const name = image.file.name;
-  return (
-    <HStack align="center" gap={2}>
-      {/* Decorative: the name beside it says which image it is. */}
-      <Thumbnail alt="" src={image.preview} />
-      <Text>{name}</Text>
-      <Button label={`Remove ${name}`} onClick={onRemove} variant="ghost">
-        Remove
-      </Button>
-    </HStack>
-  );
+  return <RemovableThumbnail name={image.file.name} onRemove={onRemove} src={image.preview} />;
 }
 
 /** The note of the inbox, as it is now, that links the draft at `path`. */

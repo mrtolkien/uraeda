@@ -1,13 +1,11 @@
-import { Button } from "@astryxdesign/core/Button";
 import { ChatComposerDrawer, type ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
-import { Thumbnail } from "@astryxdesign/core/Thumbnail";
-import { VStack } from "@astryxdesign/core/VStack";
+
 import { type RefObject, useEffect, useRef } from "react";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { useRepository } from "./routes.tsx";
 import { chatImageSrc } from "./sessions.ts";
+import { RemovableThumbnail } from "./attach/RemovableThumbnail.tsx";
 
 /** The image being removed: where it was, and its key. */
 export type RemovedImage = { index: number; key: string } | undefined;
@@ -48,9 +46,7 @@ export function useFocusAfterRemove(
 
 /**
  * The composer's images, as thumbnails above its text, dimmed while saved, each with Remove under
- * it, tall enough for a finger: Astryx's own, in its corner, is 20 px whatever the pointer (an
- * Astryx gap, see the plan). Several are told apart by their place, as pasted images share their
- * name.
+ * it. Several are told apart by their place, as pasted images share their name.
  */
 export function ComposerImages({
   focusAt,
@@ -69,25 +65,17 @@ export function ComposerImages({
         {images.map((image, index, all) => {
           const alt = all.length > 1 ? `image ${index + 1} of ${all.length}` : undefined;
           return (
-            <VStack gap={1} hAlign="center" key={image.key} role="group">
-              <Thumbnail
-                label={image.name}
-                src={image.image ? chatImageSrc(repo, image.image) : image.preview}
-                {...(alt ? { alt } : {})}
-                isLoading={!image.image}
-              />
-              <Button
-                icon={<Icon icon="close" />}
-                isIconOnly
-                label={`Remove ${image.name}${alt ? ` — ${alt}` : ""}`}
-                onClick={() => {
-                  focusAt.current = { index, key: image.key };
-                  onRemove(image.key);
-                }}
-                size="sm"
-                variant="ghost"
-              />
-            </VStack>
+            <RemovableThumbnail
+              key={image.key}
+              {...(alt ? { alt } : {})}
+              isLoading={!image.image}
+              name={image.name}
+              onRemove={() => {
+                focusAt.current = { index, key: image.key };
+                onRemove(image.key);
+              }}
+              src={image.image ? chatImageSrc(repo, image.image) : image.preview}
+            />
           );
         })}
       </HStack>
