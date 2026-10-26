@@ -428,6 +428,35 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the title is `titleOf` in the host; the order is `sessionItems`.
 - **Where**: fix pass B, `keys/KeyPickerHost.tsx`, `keys/pickerSources.ts`.
 
+## R40: How `a o i m` reach the priorities and the inbox
+
+- **Decision**: `useOpenAddForm()` still takes no argument and returns the opener, which takes the
+  place as its second argument: `open("priority", { section })`, `open("note", { category })`, a
+  `category` of `null` for "No category". `a` is declared by the page (`PrioritiesPage`,
+  `InboxPage`) and opens the form in its default place. `o`, `i`, `m` act on the row the focus is
+  on, or the selected one, and are declared by `WorkList` through `useListKeys`' new `rowKeys`: `o`
+  when the page gives `onAddBeside(section, row)` (the priorities pass the entry's own section in
+  the file, never "Ongoing"), `i` when a row has an `editor`, `m` when it has a `menu`; each is
+  bound only then. `i` swaps the card's link for the line's own field (`LineField`, started open,
+  `useLineSave`'s `startOpen`) saving through the view's own `rename` and `edit`, under the view's
+  own unsaved key, and those two no longer redirect to the new key unless the page is that line's
+  own overlay. `m` opens the card's `…` menu itself, held open by the list (`isMenuOpen`) so the key
+  and the button are one menu: on a note it is the note's whole menu, its Category choices among
+  them. `i` and `m` also select their row, so the focus has a card to return to, and the focus
+  returns to the selected card once the editor or a key-opened menu closes. A card edited in place
+  does not drag.
+- **Rationale**: the plan put the place on `useOpenAddForm`, which has no arguments; the opener is
+  the function the buttons call. The row is only known to the list, so the row keys live there, the
+  page owns what they do. The spec's "`m` moves it to another category" is the note menu's Category
+  item, which the menu holds with the note's other moves, and the plan says the keys open the card
+  menu. Sharing the view's unsaved key means a text typed in one editor is restored by the other.
+- **Alternatives considered**: `i` opening the line's overlay with its editor open: it needs a
+  signal into the pane and takes the page away. Clicking the menu's button from the key: no
+  controlled state, and a stale focus return. Opening the note's Category submenu directly: Astryx
+  gives no way to open a submenu.
+- **If wrong**: the keys are `lists/useRowKeys.ts`; the editors `lists/RowEditors.tsx`.
+- **Where**: task 8.
+
 ## R50: The questions' `n` and `p` work at every width
 
 - **Decision**: `useBlankKeys` declares `n` and `p` whatever the width, where it declared them, and
@@ -536,34 +565,81 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the position is the order of `CATEGORIES`; moving it changes the two lists.
 - **Where**: task 11, `settings/categories.ts`, `settings/SingleKeysSetting.tsx`, `Shell.tsx`.
 
-## R40: How `a o i m` reach the priorities and the inbox
+## R80: `o` on a Blocked line opens the form in Next
 
-- **Decision**: `useOpenAddForm()` still takes no argument and returns the opener, which takes the
-  place as its second argument: `open("priority", { section })`, `open("note", { category })`, a
-  `category` of `null` for "No category". `a` is declared by the page (`PrioritiesPage`,
-  `InboxPage`) and opens the form in its default place. `o`, `i`, `m` act on the row the focus is
-  on, or the selected one, and are declared by `WorkList` through `useListKeys`' new `rowKeys`: `o`
-  when the page gives `onAddBeside(section, row)` (the priorities pass the entry's own section in
-  the file, never "Ongoing"), `i` when a row has an `editor`, `m` when it has a `menu`; each is
-  bound only then. `i` swaps the card's link for the line's own field (`LineField`, started open,
-  `useLineSave`'s `startOpen`) saving through the view's own `rename` and `edit`, under the view's
-  own unsaved key, and those two no longer redirect to the new key unless the page is that line's
-  own overlay. `m` opens the card's `…` menu itself, held open by the list (`isMenuOpen`) so the key
-  and the button are one menu: on a note it is the note's whole menu, its Category choices among
-  them. `i` and `m` also select their row, so the focus has a card to return to, and the focus
-  returns to the selected card once the editor or a key-opened menu closes. A card edited in place
-  does not drag.
-- **Rationale**: the plan put the place on `useOpenAddForm`, which has no arguments; the opener is
-  the function the buttons call. The row is only known to the list, so the row keys live there, the
-  page owns what they do. The spec's "`m` moves it to another category" is the note menu's Category
-  item, which the menu holds with the note's other moves, and the plan says the keys open the card
-  menu. Sharing the view's unsaved key means a text typed in one editor is restored by the other.
-- **Alternatives considered**: `i` opening the line's overlay with its editor open: it needs a
-  signal into the pane and takes the page away. Clicking the menu's button from the key: no
-  controlled state, and a stale focus return. Opening the note's Category submenu directly: Astryx
-  gives no way to open a submenu.
-- **If wrong**: the keys are `lists/useRowKeys.ts`; the editors `lists/RowEditors.tsx`.
-- **Where**: task 8.
+- **Decision**: the add form offers Now, Next, and Later (`TITLES`), never Blocked, so `o` on a line
+  of Blocked opens it in its default place, Next, the same as `a`. `o` on a line of any other
+  section, or on a running entry, still opens it in the section the line has in the file.
+- **Rationale**: handing the form `blocked` left no radio checked, and the add would have written a
+  Blocked line the form cannot show. Next is where `a` goes; a Blocked line has no better neighbour
+  among the three.
+- **Alternatives considered**: Now, where a line unblocked usually goes: a guess about the human's
+  next step, where Next is the form's own default. Adding Blocked to the form: a change of what the
+  form offers (R1 keeps Blocked a section the page does not add to).
+- **If wrong**: `onAddBeside` in `lists/PrioritiesList.tsx`.
+- **Where**: fix pass C, review of task 8.
+
+## R81: A line saved in its card is selected under its new key, and has the focus
+
+- **Decision**: a line's key is a slug of its text, so a save in its card draws a new card and drops
+  the old one. The editors tell the list the new key once the save resolves (`onRenamed`, an option
+  of `usePriorityActions` and `useNoteActions`, taken from the saved result, as the redirect is);
+  the list selects it, and takes the focus to it as soon as the card is drawn (and no layer is
+  open), once. The card's editor is handed `{ onDone, onRenamed }` (`EditorHooks`), where it had
+  `onDone` alone.
+- **Rationale**: without it the selection named a key no card had and the focus fell to the page, so
+  the next key found no row and the human had to Tab back into the list.
+- **Alternatives considered**: matching the saved line by its place in the list: a note and a line
+  can move or be added meanwhile, and the result already names the line by its id.
+- **If wrong**: `lists/useRowKeys.ts` (`onRenamed`, `renamed`) and `lists/useRefocus.ts`.
+- **Where**: fix pass C, review of task 8. `WorkList`'s `useItemMoves`, `useRefocus`, and the
+  sections' order moved to `lists/useItemMoves.ts`, `lists/useRefocus.ts`, and `useShown`, to keep
+  it under the function and file limits.
+
+## R82: The in-card editors say they do not redirect; the views always do
+
+- **Decision**: `usePriorityActions` and `useNoteActions` take an option, `redirects`, true by
+  default. A rename or edit that changes the key follows it to its new address as before Task 8,
+  unless `redirects` is `false`, which only `RowEditors` passes. Neither hook reads the location any
+  more. This replaces R40's "unless the page is that line's own overlay".
+- **Rationale**: the guard compared the location with `/priorities/${key}` as typed, and the browser
+  percent-encodes a key with non-ASCII characters (a CJK line), so the task view's own redirect was
+  skipped for such lines. An option the caller sets cannot depend on how an address is written, and
+  the cards no longer re-render with every navigation through `useLocalPath`.
+- **Alternatives considered**: decoding the location before comparing: it keeps every card's menu
+  and editor subscribed to the location, and trusts the decoding to match the key's.
+- **If wrong**: the option's two hooks, and `NO_REDIRECT` in `lists/RowEditors.tsx`.
+- **Where**: fix pass C, review of task 8.
+
+## R83: `i` does nothing while another card's editor holds unsaved text
+
+- **Decision**: the card's editor tells the list whether it holds unsaved text (`onDirty`, in
+  `EditorHooks`). `i` on another card then does nothing, and the first editor stays open with its
+  text; with an unchanged editor, `i` on another card moves the editor there. A card whose line the
+  file no longer holds has no editor and no menu, so `i` and `m` leave the key to the page.
+- **Rationale**: the second `i` unmounted the first editor and its text stayed in the unsaved store,
+  unseen, until the human opened the same line again. Moving an unchanged editor loses nothing.
+- **Alternatives considered**: a second editor beside the first: two fields on one list, and the
+  Enter and Escape of each to tell apart. A confirm before leaving: a dialog for a key the human
+  pressed on a card they can see is not being edited.
+- **If wrong**: `useRowKeys`' `i` and `RowEditors`' `onDirty`.
+- **Where**: fix pass C, review of task 8.
+
+## R84: The row keys find a card by its `data-row-key`
+
+- **Decision**: `useListKeys` takes the keys of the rows, in the order its `selected`, `columns`,
+  and the index it gives `rowKeys`' `run` and `onMoveItem` use. A card names itself with
+  `data-row-key`; the row of the link a key was pressed on is its key's place in that order, never
+  the link's place among the links in the DOM, and the focus goes to the link of the row it leads
+  to. A move to a card edited in place, which draws no link, leaves the focus and the selection
+  where they are. Lists that give no keys, such as the decisions', keep the links' own order. The
+  index API stays: the key is resolved once, where the key press is read.
+- **Rationale**: a card edited in place draws no link, so every later card's place among the links
+  was one below its place in the list, and `m`, `o`, `i`, J K H L and the moves took a neighbour.
+- **Alternatives considered**: giving `run` and `onMoveItem` the key itself: the same fix with a
+  wider change of every caller's signature, and `selected` and `columns` stay indexes either way.
+- **If wrong**: `lists/useListKeys.ts` (`indexOfLink`, `focusRowAt`) and `Card`'s `data-row-key`.
+- **Where**: fix pass C, review of task 8.
 
 ## R90: An allowlisted letter key still follows the single-key switch
 
@@ -600,82 +676,6 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   effect: still after the first commit's layout effects, which show the hints.
 - **If wrong**: delete the `keysSwitch` prop and `App`'s state; `Shell` keeps its own.
 - **Where**: `Shell.tsx`, `App.tsx`.
-
-## R80: `o` on a Blocked line opens the form in Next
-
-- **Decision**: the add form offers Now, Next, and Later (`TITLES`), never Blocked, so `o` on a line
-  of Blocked opens it in its default place, Next, the same as `a`. `o` on a line of any other
-  section, or on a running entry, still opens it in the section the line has in the file.
-- **Rationale**: handing the form `blocked` left no radio checked, and the add would have written a
-  Blocked line the form cannot show. Next is where `a` goes; a Blocked line has no better neighbour
-  among the three.
-- **Alternatives considered**: Now, where a line unblocked usually goes: a guess about the human's
-  next step, where Next is the form's own default. Adding Blocked to the form: a change of what the
-  form offers (R1 keeps Blocked a section the page does not add to).
-- **If wrong**: `onAddBeside` in `lists/PrioritiesList.tsx`.
-- **Where**: fix pass C, review of task 8.
-
-## R82: The in-card editors say they do not redirect; the views always do
-
-- **Decision**: `usePriorityActions` and `useNoteActions` take an option, `redirects`, true by
-  default. A rename or edit that changes the key follows it to its new address as before Task 8,
-  unless `redirects` is `false`, which only `RowEditors` passes. Neither hook reads the location any
-  more. This replaces R40's "unless the page is that line's own overlay".
-- **Rationale**: the guard compared the location with `/priorities/${key}` as typed, and the browser
-  percent-encodes a key with non-ASCII characters (a CJK line), so the task view's own redirect was
-  skipped for such lines. An option the caller sets cannot depend on how an address is written, and
-  the cards no longer re-render with every navigation through `useLocalPath`.
-- **Alternatives considered**: decoding the location before comparing: it keeps every card's menu
-  and editor subscribed to the location, and trusts the decoding to match the key's.
-- **If wrong**: the option's two hooks, and `NO_REDIRECT` in `lists/RowEditors.tsx`.
-- **Where**: fix pass C, review of task 8.
-
-## R81: A line saved in its card is selected under its new key, and has the focus
-
-- **Decision**: a line's key is a slug of its text, so a save in its card draws a new card and drops
-  the old one. The editors tell the list the new key once the save resolves (`onRenamed`, an option
-  of `usePriorityActions` and `useNoteActions`, taken from the saved result, as the redirect is);
-  the list selects it, and takes the focus to it as soon as the card is drawn (and no layer is
-  open), once. The card's editor is handed `{ onDone, onRenamed }` (`EditorHooks`), where it had
-  `onDone` alone.
-- **Rationale**: without it the selection named a key no card had and the focus fell to the page, so
-  the next key found no row and the human had to Tab back into the list.
-- **Alternatives considered**: matching the saved line by its place in the list: a note and a line
-  can move or be added meanwhile, and the result already names the line by its id.
-- **If wrong**: `lists/useRowKeys.ts` (`onRenamed`, `renamed`) and `lists/useRefocus.ts`.
-- **Where**: fix pass C, review of task 8. `WorkList`'s `useItemMoves`, `useRefocus`, and the
-  sections' order moved to `lists/useItemMoves.ts`, `lists/useRefocus.ts`, and `useShown`, to keep
-  it under the function and file limits.
-
-## R83: `i` does nothing while another card's editor holds unsaved text
-
-- **Decision**: the card's editor tells the list whether it holds unsaved text (`onDirty`, in
-  `EditorHooks`). `i` on another card then does nothing, and the first editor stays open with its
-  text; with an unchanged editor, `i` on another card moves the editor there. A card whose line the
-  file no longer holds has no editor and no menu, so `i` and `m` leave the key to the page.
-- **Rationale**: the second `i` unmounted the first editor and its text stayed in the unsaved store,
-  unseen, until the human opened the same line again. Moving an unchanged editor loses nothing.
-- **Alternatives considered**: a second editor beside the first: two fields on one list, and the
-  Enter and Escape of each to tell apart. A confirm before leaving: a dialog for a key the human
-  pressed on a card they can see is not being edited.
-- **If wrong**: `useRowKeys`' `i` and `RowEditors`' `onDirty`.
-- **Where**: fix pass C, review of task 8.
-
-## R84: The row keys find a card by its `data-row-key`
-
-- **Decision**: `useListKeys` takes the keys of the rows, in the order its `selected`, `columns`,
-  and the index it gives `rowKeys`' `run` and `onMoveItem` use. A card names itself with
-  `data-row-key`; the row of the link a key was pressed on is its key's place in that order, never
-  the link's place among the links in the DOM, and the focus goes to the link of the row it leads
-  to. A move to a card edited in place, which draws no link, leaves the focus and the selection
-  where they are. Lists that give no keys, such as the decisions', keep the links' own order. The
-  index API stays: the key is resolved once, where the key press is read.
-- **Rationale**: a card edited in place draws no link, so every later card's place among the links
-  was one below its place in the list, and `m`, `o`, `i`, J K H L and the moves took a neighbour.
-- **Alternatives considered**: giving `run` and `onMoveItem` the key itself: the same fix with a
-  wider change of every caller's signature, and `selected` and `columns` stay indexes either way.
-- **If wrong**: `lists/useListKeys.ts` (`indexOfLink`, `focusRowAt`) and `Card`'s `data-row-key`.
-- **Where**: fix pass C, review of task 8.
 
 ## R100: What the structural test lists, and where the old hint API's last test went
 
