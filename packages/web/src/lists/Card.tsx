@@ -17,13 +17,17 @@ import * as stylex from "@stylexjs/stylex";
 import { createContext, type MouseEvent, type ReactNode, useContext } from "react";
 import { legendStyles } from "../layout/legend.ts";
 
+/** What a card's editor tells the list: that it closed, and the new key of the line it saved. */
+export type EditorHooks = { onDone: () => void; onRenamed: (key: string) => void };
+
 /** A card's line: what a list draws, and where a tap on it leads. */
 export interface WorkRow {
   /**
    * What the card shows in the place of its link while it is edited in place (the `i` key): its
-   * editor, which calls `onDone` once it closed, saved or not.
+   * editor, which calls `onDone` once it closed, saved or not, and `onRenamed` with the key the
+   * line has once saved, as the text that is its key changed.
    */
-  editor?: (onDone: () => void) => ReactNode;
+  editor?: (hooks: EditorHooks) => ReactNode;
   /** Where a click or Enter on the card leads. */
   href: string;
   /** A picture under its text, such as a note's first image. */
@@ -50,10 +54,16 @@ export type RowState = {
   onEdited: () => void;
   /** A card's menu opened or closed: `key` is the card's. */
   onMenu: (key: string, isOpen: boolean) => void;
+  /** The line of the card edited was saved: `key` is the key it has now. */
+  onRenamed: (key: string) => void;
 };
 
 /** The list's state of its cards: nothing is edited, and no menu is open, outside a list. */
-export const RowStateContext = createContext<RowState>({ onEdited: () => {}, onMenu: () => {} });
+export const RowStateContext = createContext<RowState>({
+  onEdited: () => {},
+  onMenu: () => {},
+  onRenamed: () => {},
+});
 
 /** What a card tells its menu: whether the list holds it open, and the list hearing it open or close. */
 export type MenuState = { isOpen: boolean; onOpenChange: (isOpen: boolean) => void };
@@ -197,7 +207,7 @@ export function Card({
         </span>
       )}
       {isEditing ? (
-        row.editor?.(state.onEdited)
+        row.editor?.({ onDone: state.onEdited, onRenamed: state.onRenamed })
       ) : (
         <Link
           href={row.href}

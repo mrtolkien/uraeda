@@ -627,3 +627,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and editor subscribed to the location, and trusts the decoding to match the key's.
 - **If wrong**: the option's two hooks, and `NO_REDIRECT` in `lists/RowEditors.tsx`.
 - **Where**: fix pass C, review of task 8.
+
+## R81: A line saved in its card is selected under its new key, and has the focus
+
+- **Decision**: a line's key is a slug of its text, so a save in its card draws a new card and drops
+  the old one. The editors tell the list the new key once the save resolves (`onRenamed`, an option
+  of `usePriorityActions` and `useNoteActions`, taken from the saved result, as the redirect is);
+  the list selects it, and takes the focus to it as soon as the card is drawn (and no layer is
+  open), once. The card's editor is handed `{ onDone, onRenamed }` (`EditorHooks`), where it had
+  `onDone` alone.
+- **Rationale**: without it the selection named a key no card had and the focus fell to the page, so
+  the next key found no row and the human had to Tab back into the list.
+- **Alternatives considered**: matching the saved line by its place in the list: a note and a line
+  can move or be added meanwhile, and the result already names the line by its id.
+- **If wrong**: `lists/useRowKeys.ts` (`onRenamed`, `renamed`) and `lists/useRefocus.ts`.
+- **Where**: fix pass C, review of task 8. `WorkList`'s `useItemMoves`, `useRefocus`, and the
+  sections' order moved to `lists/useItemMoves.ts`, `lists/useRefocus.ts`, and `useShown`, to keep
+  it under the function and file limits.

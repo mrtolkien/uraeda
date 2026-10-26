@@ -9,6 +9,7 @@ import { refusal } from "./errors.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { TITLES } from "./QuickAdd.tsx";
 import { closeDetail } from "./pane/DetailOverlay.tsx";
+import type { ActionOptions } from "./pane/usePriorityActions.ts";
 import { localPath, navigate, redirect, useRepoPath } from "./routes.tsx";
 import { DraftView, InboxView } from "./views.ts";
 
@@ -153,12 +154,13 @@ function useLeave(key: string) {
  * inbox returns to it. `onRenaming` holds the note's id and new text while its text, and so its
  * key, changes. An edit that changes the note's key follows it to its new address, unless
  * `redirects` is `false`, as for an editor in a card of a list, which leaves the page as it is.
+ * `onRenamed` gets the note's new key once an edit is saved.
  */
 export function useNoteActions(
   placed: Placed,
   hash: string,
   onRenaming: (renaming: Renaming | undefined) => void,
-  { redirects = true }: { redirects?: boolean } = {},
+  { onRenamed, redirects = true }: ActionOptions = {},
 ) {
   const fate = useFateClient();
   const toast = useUndoToast();
@@ -196,8 +198,11 @@ export function useNoteActions(
     const key = result.result?.categories
       .flatMap((c) => c.notes)
       .find((one) => one.id === note.id)?.key;
-    if (redirects && key && key !== note.key) {
-      redirect(here(`/inbox/${key}`));
+    if (key !== undefined) {
+      onRenamed?.(key);
+      if (redirects && key !== note.key) {
+        redirect(here(`/inbox/${key}`));
+      }
     }
     onRenaming(undefined);
     return undefined;

@@ -2,7 +2,7 @@
 // it into its editor in place, `m` opens its `…` menu. Each is bound only where the list can do it,
 // and acts on the row the focus is on, or the selected one (see `useListKeys`'s `rowKeys`). The state
 // they set is what `Card` reads: which card is edited, and which card's menu is held open.
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { RowState, WorkRow } from "./Card.tsx";
 import type { RowKey } from "./useListKeys.ts";
 
@@ -14,7 +14,8 @@ type Rows = { id: string; rows: ReadonlyArray<WorkRow> };
  * `onAddBeside(section, row)` is given by a list that adds in a place: its `o`. `i` and `m` select
  * their row, so the focus has a card to return to, though a Tab put it there. `held` is the key of
  * the card whose editor or key-opened menu holds the focus, until it closes: the list takes the focus
- * back to the selected card then.
+ * back to the selected card then. `renamed` is the key of a line just saved in its card, until the
+ * list took the focus to it (`onRefocused`): its key changed with its text, so it is a new card.
  */
 export function useRowKeys(
   sections: ReadonlyArray<Rows>,
@@ -24,6 +25,8 @@ export function useRowKeys(
   const [editing, setEditing] = useState<string>();
   const [menu, setMenu] = useState<string>();
   const [keyed, setKeyed] = useState<string>();
+  const [renamed, setRenamed] = useState<string>();
+  const onRefocused = useCallback(() => setRenamed(undefined), []);
   const rows = sections.flatMap((section) => section.rows);
   // A card that left the list, renamed or deleted, takes its editor and its menu with it.
   const isShown = (key: string | undefined) => rows.some((row) => row.key === key);
@@ -39,11 +42,16 @@ export function useRowKeys(
     editing,
     menu,
     onEdited: () => setEditing(undefined),
+    // The saved line has a new key: it is the selected one, and gets the focus once it is drawn.
     onMenu: (key, isOpen) => {
       setMenu((now) => (isOpen ? key : now === key ? undefined : now));
       if (!isOpen) {
         setKeyed((now) => (now === key ? undefined : now));
       }
+    },
+    onRenamed: (key) => {
+      select(key);
+      setRenamed(key);
     },
   };
 
@@ -92,5 +100,5 @@ export function useRowKeys(
       },
     });
   }
-  return { held: editing ?? keyed, keys, state };
+  return { held: editing ?? keyed, keys, onRefocused, renamed, state };
 }

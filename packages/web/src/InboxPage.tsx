@@ -163,10 +163,10 @@ function InboxList({
           titleNode: <CategoryTitle name={category.name} onRename={actions.rename} />,
         }),
     rows: category.notes.map((note, index) => ({
-      editor: (onDone: () => void) => (
+      editor: (hooks) => (
         <NoteEditor
           hash={inbox.hash}
-          onDone={onDone}
+          hooks={hooks}
           placed={{ category: category.name, index, note }}
         />
       ),
