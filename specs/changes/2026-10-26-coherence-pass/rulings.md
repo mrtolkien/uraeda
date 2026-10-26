@@ -163,3 +163,44 @@ decisions.
 - **If wrong**: one import per banner.
 - **Where**: [`layout/AnnouncedBanner.tsx`](/packages/web/src/layout/AnnouncedBanner.tsx),
   [`layout/Missing.tsx`](/packages/web/src/layout/Missing.tsx)
+
+## R13: A question stays a card, its header sticking whole
+
+- **Decision**: a round's question keeps its card on wide screens, its header, the id, "Ask the
+  agent", and the title at a heading's size, sticking at the top while the card shows. It is the one
+  group of the UI not titled in its border.
+- **Rationale**: the questions page's round answered that the card's header sticks at every width
+  ([Q4](/specs/done/2026-10-24-questions-page.md)), and its tests hold a title of three lines shown
+  whole at the top (US3.3) and the header under the phone's bar. A pane titled in its border would
+  set the question at a pane title's size, the UI look's readability rule's first concern for the
+  text read most, and would let the id and "Ask the agent" scroll away in its border.
+- **Alternatives considered**: a pane titled "Q3 · follows Q2" with the question under it, which
+  drops the id and Ask from what sticks; a pane titled by the question, as a spec's story, which
+  sets the question small; a border title made to stick, which no pane does and the header's tests
+  do not measure.
+- **If wrong**: the card is one element in [`QuestionCard.tsx`](/packages/web/src/QuestionCard.tsx),
+  and `Pane` would gain a sticky title.
+- **Where**: [`QuestionCard.tsx`](/packages/web/src/QuestionCard.tsx)
+
+## R14: The save hooks stay apart
+
+- **Decision**: `useSave`, `useLineSave`, `useDraftEditor`, `useCommentDraft`, and `useReviewDraft`
+  stay separate hooks.
+- **Rationale**: they share their storage, the unsaved store, and `useDraftEditor` saves through
+  `useSave`; each owns a different flow: a value saved in order, a line edited in place, a draft's
+  editor with its frontmatter, and a review's comment and its place. None draws anything, so none is
+  a kind of information drawn twice.
+- **Alternatives considered**: one hook with modes, which would hold four flows behind flags.
+- **If wrong**: nothing draws differently.
+- **Where**: [`useSave.ts`](/packages/web/src/useSave.ts)
+
+## R15: Keyboard hints stay as they are
+
+- **Decision**: "Ctrl+Enter saves" stays beside the Save of a field saved in place, and a composer's
+  send buttons keep their key; the other forms' main buttons, like "Add comment", show no key.
+- **Rationale**: Ctrl+Enter works in every multi-line field already, the offer's proposal included
+  now; which button shows its key is behaviour the proposal does not name.
+- **Alternatives considered**: the key in every multi-line form's main button, as a composer's,
+  which changes every form's row of buttons.
+- **If wrong**: `SaveKeys` or the composer's key, beside each main button.
+- **Where**: [`fields/SaveKeys.tsx`](/packages/web/src/fields/SaveKeys.tsx)
