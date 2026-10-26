@@ -42,11 +42,17 @@ function untracked(tasks: Record<string, Task>): Array<string> {
     });
 }
 
-/** A text without its comments: `#` ones in TOML and YAML, line and block ones elsewhere. */
+/**
+ * A text without its comments: `#` ones in TOML and YAML, line and block ones elsewhere. A string
+ * is kept whole: a glob such as `"packages/**"` opens no block comment.
+ */
 function uncommented(path: string, text: string): string {
   return /\.(toml|ya?ml)$/.test(path)
     ? text.replaceAll(/(^|\s)#.*$/gm, "$1")
-    : text.replaceAll(/\/\*[\s\S]*?\*\//g, "").replaceAll(/(^|\s)\/\/.*$/gm, "$1");
+    : text.replaceAll(
+        /("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|\/\*[\s\S]*?\*\/|(?<=^|\s)\/\/.*$/gm,
+        (_match, string: string | undefined) => string ?? "",
+      );
 }
 
 /** The ways a test runner is told to retry: an option on its command line, or nextest's variable. */
@@ -283,7 +289,7 @@ function selects(options: Array<string>, project: string): boolean {
 
 /**
  * The Vitest projects no `vp test` of the tasks runs. A task naming each project with `--project`
- * drops a project added later: one selecting the others by exclusion runs it.
+ * drops a project added later: one running every project runs it.
  */
 function unselected(projects: Array<string>, tasks: Record<string, Task>): Array<string> {
   const runs = Object.values(tasks).flatMap(({ command }) => projectOptions(command));
@@ -291,31 +297,19 @@ function unselected(projects: Array<string>, tasks: Record<string, Task>): Array
     .filter((project) => !runs.some((options) => selects(options, project)))
     .map(
       (project) =>
-        `\`${project}\` is in \`test.projects\`, but no task of \`ready\` runs it: select the unit projects by exclusion in \`ts:test\` (\`--project '!phone'\`), or add a task running it.`,
+        `\`${project}\` is in \`test.projects\`, but no task of \`ready\` runs it: let \`ts:test\` run every project, with no \`--project\`, or add a task running it.`,
     );
 }
 
-/**
- * The names of the root config's Vitest projects: a package's is its `package.json` name, and a
- * config file's are its browser instances' names.
- */
+/** The names of the root config's Vitest projects: a package's is its `package.json` name. */
 function projectNames(): Array<string> {
   const projects = (config as { test?: { projects?: Array<string> } }).test?.projects ?? [];
-  return projects.flatMap((project) => {
-    if (!project.endsWith(".ts")) {
-      const manifest = readFileSync(join(ROOT, project, "package.json"), "utf8");
-      return [(JSON.parse(manifest) as { name: string }).name];
+  return projects.map((project) => {
+    if (project === "scripts/vite.config.ts") {
+      return "scripts";
     }
-    const text = uncommented(project, readFileSync(join(ROOT, project), "utf8"));
-    const instances = /\binstances:\s*\[([\s\S]*?)\n\s*\]/.exec(text)?.[1] ?? "";
-    const names = [...instances.matchAll(/\bname:\s*"([^"]+)"/g)].map(([, name]) => name);
-    if (!names.length && project === "scripts/vite.config.ts") {
-      return ["scripts"];
-    }
-    if (!names.length) {
-      throw new Error(`no browser instance names in ${project}: teach \`projectNames\` its names`);
-    }
-    return names;
+    const manifest = readFileSync(join(ROOT, project, "package.json"), "utf8");
+    return (JSON.parse(manifest) as { name: string }).name;
   });
 }
 
@@ -334,27 +328,6 @@ function outsideRunFolder(tasks: Record<string, Task>): Array<string> {
     [command].flat().some((line) => TEST_RUNNER.test(line) && !TEST_RUN.test(line))
       ? [
           `\`${name}\` runs tests outside a temporary folder of their own: start its command with \`node scripts/test-run.ts\`.`,
-        ]
-      : [],
-  );
-}
-
-/**
- * The tasks running a browser project without the machine's lock of the browser tests, which
- * caps how many run at once across checkouts.
- */
-function unlockedBrowsers(tasks: Record<string, Task>, browsers: Array<string>): Array<string> {
-  return Object.entries(tasks).flatMap(([name, { command }]) =>
-    [command]
-      .flat()
-      .some(
-        (line) =>
-          projectOptions(line).some((options) =>
-            browsers.some((browser) => selects(options, browser)),
-          ) && !/--lock browser\b/.test(TEST_RUN.exec(line)?.[1] ?? ""),
-      )
-      ? [
-          `\`${name}\` runs browser tests without waiting for the other checkouts': run it with \`node scripts/test-run.ts --lock browser --slots 2\`.`,
         ]
       : [],
   );
@@ -381,24 +354,6 @@ function taskCommands(tasks: Record<string, Task>): Record<string, string> {
   return Object.fromEntries(
     Object.entries(tasks).map(([name, { command }]) => [name, [command].flat().join("\n")]),
   );
-}
-
-/**
- * The test runners' configurations that start a browser server on Vitest's port, 63315, which every
- * checkout's tests would ask for: a config enabling a browser sets `test.api`'s port.
- */
-function defaultBrowserPort(files: Record<string, string>): Array<string> {
-  return Object.entries(files)
-    .filter(([path, text]) => {
-      const code = uncommented(path, text);
-      return (
-        /\bbrowser:\s*\{[^}]*\benabled:\s*true/.test(code) && !/\bapi:\s*\{[^}]*\bport:/.test(code)
-      );
-    })
-    .map(
-      ([path]) =>
-        `\`${path}\` starts its browser server on Vitest's port: set \`test.api\` to \`{ port: await freePort() }\`.`,
-    );
 }
 
 /**
@@ -436,15 +391,6 @@ function bindingConfigs(): Record<string, string> {
       })
       .map((path) => [path, readFileSync(join(ROOT, path), "utf8")]),
   );
-}
-
-/** The browser projects' names: the instances of the root's config file projects. */
-function browserProjects(): Array<string> {
-  const projects = (config as { test?: { projects?: Array<string> } }).test?.projects ?? [];
-  const packages = projects.filter(
-    (project) => !project.endsWith(".ts") || project === "scripts/vite.config.ts",
-  ).length;
-  return projectNames().slice(packages);
 }
 
 test.each([
@@ -506,6 +452,16 @@ test.each([
     ],
   ],
   [
+    "a Vitest project retried after globs, whose `/*` and `*/` are no comment",
+    retried({
+      "vite.config.ts":
+        'export default {\n  a: ["src/**"],\n  test: { retry: 2 },\n  b: ["**/*.ts"],\n};\n',
+    }),
+    [
+      "Tests are never retried (toolchain decision): remove `retry` and fix the test that needed it.",
+    ],
+  ],
+  [
     "a runner retried by a task's command or variable",
     retriedTasks({
       "rust:test": { command: "NEXTEST_RETRIES=2 cargo nextest run" },
@@ -524,13 +480,12 @@ test.each([
   ],
   [
     "a Vitest project no task selects",
-    unselected(["uraeda-binding", "uraeda-server", "phone"], {
-      "browser:phone": { command: "vp test --project phone" },
-      ready: { command: "true", dependsOn: ["ts:test", "browser:phone"] },
+    unselected(["uraeda-binding", "uraeda-server"], {
+      ready: { command: "true", dependsOn: ["ts:test"] },
       "ts:test": { command: "env -u GIT_DIR vp test --project uraeda-binding" },
     }),
     [
-      "`uraeda-server` is in `test.projects`, but no task of `ready` runs it: select the unit projects by exclusion in `ts:test` (`--project '!phone'`), or add a task running it.",
+      "`uraeda-server` is in `test.projects`, but no task of `ready` runs it: let `ts:test` run every project, with no `--project`, or add a task running it.",
     ],
   ],
   [
@@ -540,7 +495,7 @@ test.each([
       "test:extra": {
         command: ["cargo build -q", "node ../../scripts/test-run.ts vp test --project x"],
       },
-      "ts:test": { command: "node scripts/test-run.ts vp test --project '!phone'" },
+      "ts:test": { command: "node scripts/test-run.ts vp test" },
       "ui:smoke": { command: ["node scripts/build.ts", "node packages/uraeda/scripts/smoke.ts"] },
     }),
     [
@@ -549,34 +504,14 @@ test.each([
     ],
   ],
   [
-    "a browser task without the lock",
-    unlockedBrowsers(
-      {
-        "browser:desktop": { command: "node scripts/test-run.ts vp test --project desktop" },
-        "browser:phone": {
-          command: "node scripts/test-run.ts --lock browser --slots 2 vp test --project phone",
-        },
-        coverage: {
-          command: "node scripts/test-run.ts vp test --project '!phone' --project '!desktop'",
-        },
-        everything: { command: "node scripts/test-run.ts vp test" },
-      },
-      ["phone", "desktop"],
-    ),
-    [
-      "`browser:desktop` runs browser tests without waiting for the other checkouts': run it with `node scripts/test-run.ts --lock browser --slots 2`.",
-      "`everything` runs browser tests without waiting for the other checkouts': run it with `node scripts/test-run.ts --lock browser --slots 2`.",
-    ],
-  ],
-  [
     "a fixed port in a test config and a task, but not in a comment",
     fixedPorts({
-      "packages/web/vite.browser.config.ts": "export default { test: { api: { port: 63315 } } };\n",
+      "packages/server/vite.config.ts": "export default { test: { api: { port: 63315 } } };\n",
       "packages/web/vite.config.ts": "// Never `port: 4310` in tests.\nexport default {};\n",
       storybook: "storybook dev --port 6006",
     }),
     [
-      "`packages/web/vite.browser.config.ts` sets a fixed port: take a free one, as `freePort` of `packages/server/src/free-port.ts` gives.",
+      "`packages/server/vite.config.ts` sets a fixed port: take a free one, as `freePort` of `packages/server/src/free-port.ts` gives.",
       "`storybook` sets a fixed port: take a free one, as `freePort` of `packages/server/src/free-port.ts` gives.",
     ],
   ],
@@ -585,25 +520,13 @@ test.each([
     staleBindingFirst({
       "packages/binding/vite.config.ts":
         '// A comment.\nimport "../server/src/fresh-binding.ts";\nimport { defineConfig } from "vite-plus";\n',
-      "packages/web/vite.browser.config.ts":
+      "packages/server/vite.config.ts":
         'import { addRepository } from "uraeda-binding";\nimport "uraeda-server/fresh-binding";\n',
       "packages/web/vite.config.ts":
         'import "uraeda-server/fresh-binding";\nimport {\n  devHandler,\n} from "uraeda-server/dev";\n',
     }),
     [
-      "`packages/web/vite.browser.config.ts` may load the binding before it is rebuilt: import `uraeda-server/fresh-binding` first.",
-    ],
-  ],
-  [
-    "a browser config on Vitest's port",
-    defaultBrowserPort({
-      "a.config.ts": "export default { test: { browser: { enabled: true } } };\n",
-      "b.config.ts":
-        "export default { test: { api: { port: await freePort() }, browser: { enabled: true } } };\n",
-      "c.config.ts": "export default { test: { environment: 'happy-dom' } };\n",
-    }),
-    [
-      "`a.config.ts` starts its browser server on Vitest's port: set `test.api` to `{ port: await freePort() }`.",
+      "`packages/server/vite.config.ts` may load the binding before it is rebuilt: import `uraeda-server/fresh-binding` first.",
     ],
   ],
 ])("%s is reported", (_name, problems, expected) => expect(problems).toEqual(expected));
@@ -701,14 +624,11 @@ test("ts:test reruns when a configuration its scripts and toolchain tests read c
   }
 });
 
-test.each(["ts:test", "browser:phone", "browser:desktop"])(
-  "%s invalidates on native binding changes",
-  (task) => {
-    expect(tracks(task, "crates/core/src/lib.rs")).toBe(true);
-    expect(tracks(task, "crates/binding/src/lib.rs")).toBe(true);
-    expect(tracks(task, "Cargo.lock")).toBe(true);
-  },
-);
+test("ts:test invalidates on native binding changes", () => {
+  expect(tracks("ts:test", "crates/core/src/lib.rs")).toBe(true);
+  expect(tracks("ts:test", "crates/binding/src/lib.rs")).toBe(true);
+  expect(tracks("ts:test", "Cargo.lock")).toBe(true);
+});
 
 test("cached checks track the dev shell and ignore generated reports", () => {
   for (const [name, { cache }] of Object.entries(readyTasks())) {
@@ -737,28 +657,18 @@ test("the repository's toolchain follows the decision", () => {
   expect(withDoctests(libraryManifests())).toEqual([]);
   expect(unselected(projectNames(), readyTasks())).toEqual([]);
   expect(outsideRunFolder(allTasks())).toEqual([]);
-  expect(unlockedBrowsers(allTasks(), browserProjects())).toEqual([]);
   expect(fixedPorts({ ...runnerConfigs(), ...taskCommands(allTasks()) })).toEqual([]);
-  expect(defaultBrowserPort(runnerConfigs())).toEqual([]);
   expect(staleBindingFirst(bindingConfigs())).toEqual([]);
   expect(Object.keys(bindingConfigs()).sort()).toEqual([
     "packages/binding/vite.config.ts",
     "packages/server/vite.config.ts",
-    "packages/web/vite.browser.config.ts",
     "packages/web/vite.config.ts",
   ]);
 });
 
-test("the browser projects are the browser config's instances", () =>
-  expect(browserProjects()).toEqual(["phone", "desktop"]));
-
-test("a project added to test.projects is run by a task selecting the others by exclusion", () =>
+test("a project added to test.projects is run by a task running every project", () =>
   expect(
-    unselected(["uraeda-binding", "uraeda-new", "phone", "desktop"], {
-      "browser:desktop": { command: "vp test --project desktop" },
-      "browser:phone": { command: "vp test --project phone" },
-      "ts:test": { command: "vp test --project '!phone' --project '!desktop'" },
-    }),
+    unselected(["uraeda-binding", "uraeda-new"], { "ts:test": { command: "vp test" } }),
   ).toEqual([]));
 
 test("the heavy checks wait for the other checkouts' through a shared limit of two", () => {

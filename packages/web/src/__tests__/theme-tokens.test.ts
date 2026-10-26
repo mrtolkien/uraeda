@@ -5,7 +5,7 @@
 // the built stylesheet the app loads, so it judges what ships, inherited tokens and rules included.
 import { readFileSync } from "node:fs";
 import { expect, test } from "vite-plus/test";
-import { contrast } from "../__browser__/colours.ts";
+import { contrast } from "../theme/contrast.ts";
 import { uraedaTheme } from "../theme/built/uraeda.js";
 
 const css = readFileSync(new URL("../theme/built/uraeda.css", import.meta.url), "utf8");

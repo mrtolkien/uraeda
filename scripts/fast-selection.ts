@@ -111,7 +111,6 @@ const dependents: Record<string, Array<string>> = {
 };
 const deferred = [
   "application journeys",
-  "browser phone/desktop",
   "production builds/package smoke",
   "full workspace/editor checks",
 ];
