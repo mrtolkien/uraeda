@@ -6,7 +6,6 @@
 // motion. The page keeps its place in the tree as the column folds and unfolds, or the width
 // changes, so its transcript, focus, and errors stay. Its caller keeps its width, as the document's
 // column does (`DocumentColumn.tsx`).
-import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Layout, LayoutPanel } from "@astryxdesign/core/Layout";
@@ -15,6 +14,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { easeVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type MouseEvent, type ReactNode, useState } from "react";
+import { useKeys } from "../keys/registry.tsx";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
@@ -236,7 +236,21 @@ function ColumnAt({
     onShownChange(next);
   };
   const toggle = () => change(!isShown);
-  useHotkeys([{ isDisabled: !wide, keys: "]", onPress: toggle }]);
+  // Wide only, as the column is: the leader's `u ]` is the same key, named in full.
+  useKeys(
+    wide
+      ? [
+          { keys: "]", label: "Fold right column", run: toggle },
+          {
+            icon: "uraeda:panel-right",
+            keys: "space u ]",
+            label: "Fold right column",
+            run: toggle,
+          },
+        ]
+      : [],
+    "shell",
+  );
   // A click on the rail's space, not on a control or a link in it, unfolds the column.
   const unfold = (event: MouseEvent) => {
     if (folded && !(event.target as Element).closest("a, button")) {

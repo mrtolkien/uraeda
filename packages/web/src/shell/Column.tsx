@@ -3,7 +3,6 @@
 // the window until its edge is dragged, folds to its 52 px rail from its button or `[`, its width
 // easing over 200 ms; semi-wide, it is the rail, which opens over the page (`Rail.tsx`). An Astryx
 // gap (plan, Complexity tracking): `SideNav` folds to icons, but cannot open over the page.
-import { useHotkeys } from "@astryxdesign/core/hooks";
 import { ResizeHandle } from "@astryxdesign/core/Resizable";
 import {
   borderVars,
@@ -13,13 +12,13 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useMemo, useRef, useState } from "react";
+import { useKeys } from "../keys/registry.tsx";
 import { SearchField, useSessionQuery } from "../sidebar/Search.tsx";
 import { ColumnActions, ColumnFoot, ColumnHeading, Navigate } from "./ColumnPanes.tsx";
 import { useColumnWidth } from "./columnWidth.ts";
 import { ColumnFoldContext } from "./fold.ts";
 import { LogoButton, useRail } from "./Rail.tsx";
 import { ShellPanes, useShellPath } from "./ShellPanes.tsx";
-import { useStatusHints } from "../statusHints.tsx";
 
 const styles = stylex.create({
   easing: {
@@ -110,8 +109,21 @@ export function Column({ isWide }: { isWide: boolean }) {
     }),
     [isFolded, toggleStored],
   );
-  useHotkeys([{ isDisabled: !isWide, keys: "[", onPress: fold.toggle }]);
-  useStatusHints(isWide ? [{ keys: "[", label: "fold" }] : [], "shell");
+  // The fold is the column's own key, wide only: the leader's `u [` is the same, named in full.
+  useKeys(
+    isWide
+      ? [
+          { hint: "[", keys: "[", label: "fold", run: fold.toggle },
+          {
+            icon: "uraeda:panel-left",
+            keys: "space u [",
+            label: "Fold navigation",
+            run: fold.toggle,
+          },
+        ]
+      : [],
+    "shell",
+  );
   return (
     <ColumnFoldContext value={fold}>
       <div

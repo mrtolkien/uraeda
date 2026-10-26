@@ -11,6 +11,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
 import { KeysProvider } from "./keys/registry.tsx";
+import { ScrollKeys } from "./keys/scroll.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { useUndoErrors } from "./layout/useUndoToast.ts";
@@ -172,6 +173,7 @@ export function Shell({ children }: { children: ReactNode }) {
               >
                 <LeaderMenuHost />
                 <Writing />
+                <ScrollKeys />
                 <NotifyBanner />
                 <Notifier />
                 <UndoErrors />

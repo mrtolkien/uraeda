@@ -9,9 +9,12 @@ const DIALOGS = 'dialog[open], [role="dialog"], [role="alertdialog"]';
 const EXPANDED = '[aria-expanded="true"][aria-haspopup], [role="combobox"][aria-expanded="true"]';
 const INSIDE = 'dialog, [role="dialog"], [role="alertdialog"], [role="listbox"], [role="menu"]';
 
-/** Whether an element shows: closed, a layer may stay in the page, hidden. */
+/**
+ * Whether an element shows: closed, a layer may stay in the page, hidden, itself or in a popover
+ * that is not open (`checkVisibility`, for happy-dom, whose `getClientRects` always has one rect).
+ */
 function shown(element: Element) {
-  return element.getClientRects().length > 0;
+  return element.getClientRects().length > 0 && (element.checkVisibility?.() ?? true);
 }
 
 /**
