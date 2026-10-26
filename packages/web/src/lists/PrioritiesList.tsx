@@ -8,7 +8,7 @@ import type { PriorityEntry } from "uraeda-server/fate";
 import type { usePriorities } from "../data.ts";
 import { EditableLine } from "../EditableLine.tsx";
 import { stepTitle } from "../labels.ts";
-import { titleOf } from "../QuickAdd.tsx";
+import { TITLES, titleOf } from "../QuickAdd.tsx";
 import { useOpenAddForm } from "../SidebarAdd.tsx";
 import { openDetail, PRIORITY } from "../pane/DetailOverlay.tsx";
 import { useLocalPath, useRepoPath } from "../routes.tsx";
@@ -204,13 +204,12 @@ export function PrioritiesList({
     <WorkList
       isFocused={isFocused}
       layout="columns"
-      // `o`: the form in the section of the line's own place in the file, not "Ongoing".
-      onAddBeside={(_, row) =>
-        openForm("priority", {
-          section: priorities.sections.find((s) => s.entries.some((e) => e.key === row.key))
-            ?.section,
-        })
-      }
+      // `o`: the form in the section of the line's own place in the file, not "Ongoing"; the form
+      // has no Blocked (R80), so a line there opens it in the default place.
+      onAddBeside={(_, row) => {
+        const own = priorities.sections.find((s) => s.entries.some((e) => e.key === row.key));
+        openForm("priority", { section: own && TITLES.has(own.section) ? own.section : undefined });
+      }}
       onMove={onMove}
       onOpen={(href) => openDetail(href, PRIORITY)}
       sections={all}
