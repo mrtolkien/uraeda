@@ -130,7 +130,7 @@ test("US2.1: this session's files, with their edits, and no diff", async () => {
 
 /**
  * The feature's branch: 13 files of 24 lines added, and a file of 41 lines from `main` deleted, 14
- * files, +312 -41.
+ * files, +312 −41.
  */
 function fourteenFiles() {
   const repo = fixtureRepo();
@@ -151,15 +151,15 @@ test("US2.2: the branch's files, the first two, then how many more", async () =>
   await renderPage(`/f/${CLI}/session`, fourteenFiles(), { agent: await fakeAgent() });
 
   await findColumn();
-  expect(await changes().findByText("On the branch · 14 files · +312 -41")).toBeTruthy();
-  expect(rowOf("src/f00.ts").textContent).toBe("src/f00.ts+24 -0");
+  expect(await changes().findByText("On the branch · 14 files · +312 −41")).toBeTruthy();
+  expect(rowOf("src/f00.ts").textContent).toBe("src/f00.ts+24 −0");
   expect(changes().getByText("src/f01.ts")).toBeTruthy();
   expect(changes().queryByText("src/f02.ts")).toBeNull();
 
   await click(changes().getByRole("button", { name: "12 more files" }));
 
   expect(changes().getAllByText(/^src\/.+\.ts$/)).toHaveLength(14);
-  expect(rowOf("src/old.ts").textContent).toBe("src/old.ts+0 -41");
+  expect(rowOf("src/old.ts").textContent).toBe("src/old.ts+0 −41");
   expect(changes().queryByText(/^and \d+ more/)).toBeNull();
 });
 
@@ -252,7 +252,7 @@ test("a change's session has the column, its branch's files, and no progress (R8
   await renderPage(`/f/${change}/session`, repo, { agent: await fakeAgent() });
 
   await findColumn();
-  expect(await changes().findByText("On the branch · 1 file · +3 -0")).toBeTruthy();
+  expect(await changes().findByText("On the branch · 1 file · +3 −0")).toBeTruthy();
   await answered("Feature");
   expect(column().queryByRole("link", { name: /task \d+ of/ })).toBeNull();
 });
@@ -279,15 +279,15 @@ test("edge: the stretch's address unfolds the folded column, at Activity", async
 test("a new commit adds a file", async () => {
   const repo = fourteenFiles();
   await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
-  await (await findColumn()).findByText("On the branch · 14 files · +312 -41");
+  await (await findColumn()).findByText("On the branch · 14 files · +312 −41");
 
   commitOnBranch(repo, CLI, { "crates/core/src/watch.rs": lines(6) });
 
   await refreshUntil(() =>
-    expect(changes().getByText("On the branch · 15 files · +318 -41")).toBeTruthy(),
+    expect(changes().getByText("On the branch · 15 files · +318 −41")).toBeTruthy(),
   );
   // Sorted first by its path: among the two shown.
-  expect(rowOf("crates/core/src/watch.rs").textContent).toBe("crates/core/src/watch.rs+6 -0");
+  expect(rowOf("crates/core/src/watch.rs").textContent).toBe("crates/core/src/watch.rs+6 −0");
 });
 
 test("more than 50 changed files: the first 50 once unfolded, then how many more", async () => {
@@ -305,7 +305,7 @@ test("more than 50 changed files: the first 50 once unfolded, then how many more
   await renderPage(`/f/${CLI}/session`, repo, { agent: await fakeAgent() });
 
   await findColumn();
-  expect(await changes().findByText("On the branch · 60 files · +60 -0")).toBeTruthy();
+  expect(await changes().findByText("On the branch · 60 files · +60 −0")).toBeTruthy();
   await click(changes().getByRole("button", { name: "58 more files" }));
 
   expect(changes().getAllByText(/^src\/f\d+\.rs$/)).toHaveLength(50);

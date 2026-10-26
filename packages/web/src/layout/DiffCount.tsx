@@ -1,14 +1,15 @@
-// Lines a change added and removed, "+120 −4", in the success and error colours, with tabular
-// figures: the same on a sidebar's card and a feature's column (UI coherence).
+// Lines a change added and removed, "+120 −4", in green and red, the theme's text colours that read
+// at 4.5:1, with tabular figures: the same on a sidebar's card, a feature's column, and a session's
+// changed files (UI coherence).
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 
 const styles = stylex.create({
+  added: { color: colorVars["--color-text-green"] },
   // In a row, it keeps its width: the two counts never part.
-  added: { color: colorVars["--color-success"] },
   counts: { flexShrink: 0 },
-  removed: { color: colorVars["--color-error"] },
+  removed: { color: colorVars["--color-text-red"] },
 });
 
 /** "1,204": a count with its thousands grouped. */

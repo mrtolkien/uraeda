@@ -142,14 +142,14 @@ test.each(MODES)("a change's session, in $mode", async ({ mode }) => {
   expect(document.documentElement.getAttribute("data-theme")).toBe(mode);
   if (window.innerWidth >= 768) {
     const aside = await column();
-    await aside.findByText("On the branch · 1 file · +1 -0", undefined, LIVE);
+    await aside.findByText("On the branch · 1 file · +1 −0", undefined, LIVE);
     await drawn();
     await checkLayout();
     await checkLayout(screen.getByRole("complementary", { name: COLUMN }));
   } else {
     await userEvent.click(await screen.findByRole("button", { name: "Activity" }, LIVE));
     const open = await screen.findByRole("dialog", { name: "Activity" }, LIVE);
-    await within(open).findByText("On the branch · 1 file · +1 -0", undefined, LIVE);
+    await within(open).findByText("On the branch · 1 file · +1 −0", undefined, LIVE);
     await grown();
     await checkLayout();
   }
