@@ -64,7 +64,7 @@ import {
   outline,
 } from "./lucide.ts";
 import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
-import { badgeCheck, hourglass, lightbulb, map, scale, shield } from "./lucideParts.ts";
+import { badgeCheck, hourglass, keyboard, lightbulb, map, scale, shield } from "./lucideParts.ts";
 import { filePenLine, gitCompare, listChecks, users } from "./sessionIcons.ts";
 import { arrowRightLeft, brain, trash } from "./activityIcons.ts";
 
@@ -147,6 +147,7 @@ const DECISION_ICONS = {
   "git-branch": gitBranch,
   history,
   "key-round": keyRound,
+  keyboard,
   layers,
   "layout-panel-left": layoutPanelLeft,
   "layout-template": layoutTemplate,
