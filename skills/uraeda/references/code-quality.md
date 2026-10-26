@@ -79,8 +79,9 @@ project's parts, pure logic with many cases, and the reproduction of each bug fi
   none where the stage asks none. A rarer scenario, a lower edge case, or a review-focus item joins
   one of those tests, as a row or an assertion, or has no test. The plan's test map says "none" and
   why for each row without one.
-- **One test per behaviour.** A test that repeats another's coverage, new or existing, is not
-  written: extend the test that owns the behaviour instead.
+- **The existing tests first.** A scenario an existing test already proves gets no new test: the
+  test map names the one that proves it. A behaviour with a test gets its new case there, not in a
+  second test.
 - **A UI gets few tests**, only for behaviour that is costly to lose and that using the app would
   not show, such as unsaved text or a git write. The human checks the rest by using the app.
 - **A project's constitution stays in force.** When it asks for more, such as a test per scenario,
@@ -102,7 +103,8 @@ never from the code under test.
 - **Short**: Arrange, Act, Assert, with a name that states the scenario. Shared helpers, fixtures,
   and fakes hold the setup, so a test holds none.
 - **Independent**: a case passes alone, in any order. A sequence that cannot be split is one test.
-- **Pure logic with many cases** is one table-driven test, a row per case.
+- **Pure logic with many cases** is one table-driven test, a row per case the spec names, not per
+  value.
 - **No fixed wait, no elapsed time**: a test waits for the condition, or sets the clock. A benchmark
   of a spec's success criterion is not a unit test.
 
