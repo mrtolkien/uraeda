@@ -13,34 +13,22 @@
  * It saves into the feature's folder it is given: `vp run --filter uraeda-web screenshots <folder>`;
  * the views named after it, like `session-working sidebar`, are the only ones taken.
  */
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Browser, type Page, webkit } from "playwright";
 import { addRepository } from "uraeda-binding";
-import {
-  addStoryFeature,
-  fixtureRepo,
-  git,
-  STORIES_FILE,
-  STORY_FEATURE,
-} from "uraeda-binding/test-utils";
+import { addStoryFeature, STORIES_FILE, STORY_FEATURE } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "uraeda-server/testing";
 import { createServer, type PluginOption } from "vite-plus";
 import base, { uraedaServer } from "../vite.config.ts";
-import {
-  addFeaturePages,
-  addQuestionsPages,
-  addRoundMockup,
-  addSpecPages,
-  listPullRequest,
-  recordFeatureRuns,
-  ROUND_MOCKUPS,
-} from "../samples/index.ts";
+import { listPullRequest, recordFeatureRuns } from "../samples/index.ts";
 import { takeChanges } from "./change-shots.ts";
 import { takeFeaturePage } from "./feature-shots.ts";
 import { takeImages } from "./image-shots.ts";
+import { repository } from "./screenshot-repository.ts";
+import { takeLeaderKeys } from "./leader-key-shots.ts";
 import { takeInbox } from "./inbox-shots.ts";
 import { takeDecisions, takeLayoutLook } from "./layout-look-shots.ts";
 import { takePrioritiesInbox } from "./priorities-inbox-shots.ts";
@@ -84,32 +72,8 @@ const views = process.argv.slice(3);
 
 const MOCKUP = "/f/2026-10-06-recurring-tasks/mockups/repeat.html";
 
-/** The fixture, with the fixture HTML mockup committed on the recurring tasks' branch. */
-function repository() {
-  const repo = fixtureRepo();
-  const branch = "2026-10-06-recurring-tasks";
-  git(repo, "switch", "--quiet", branch);
-  mkdirSync(join(repo, "specs", branch, "mockups"), { recursive: true });
-  copyFileSync(
-    join(root, "fixtures/mockups/repeat.html"),
-    join(repo, "specs", branch, "mockups/repeat.html"),
-  );
-  git(repo, "add", "--all");
-  git(repo, "commit", "--quiet", "--no-verify", "--message", "docs: mockup repeat.html");
-  git(repo, "switch", "--quiet", "main");
-  // The round page's mockup feature, whose round holds a diagram, a follow-up, and every group.
-  addRoundMockup(repo, ROUND_MOCKUPS.waiting, "B");
-  // The questions page's features, from its spec's rounds.
-  addQuestionsPages(repo);
-  // The spec page's features, waiting for review and approved, and their decisions' changes.
-  addSpecPages(repo);
-  // The feature page's features, one per state.
-  addFeaturePages(repo);
-  return repo;
-}
-
 async function main() {
-  const repo = repository();
+  const repo = repository(root);
   // The test feature, whose spec embeds a story, before any worktree is made: its preview decision
   // goes on every branch, so the features' pages and sessions list their Storybook.
   addStoryFeature(repo);
@@ -195,6 +159,8 @@ async function main() {
     );
     // `sign-in` names every view of signing in and out.
     await takeSignIn(shooter(shots, out, views.includes("sign-in") ? [] : views));
+    // `leader-key` names every view of the leader key; last, as its settings view toggles a setting.
+    await takeLeaderKeys(shooter(shots, out, views.includes("leader-key") ? [] : views), shots);
   } finally {
     await browser?.close();
     await server.close();
