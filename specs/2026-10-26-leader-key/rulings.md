@@ -176,3 +176,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   focused card the selection does not name would not move, with its ring on it.
 - **If wrong**: the target is one function, `lists/itemMoves.ts`.
 - **Where**: task 6.
+
+## R20: A letter's case is Shift's, and keyCode 229 is a composition
+
+- **Decision**: `tokenOf` gives a single Latin letter (`a` to `z`) the case Shift says, `J` with
+  Shift and `j` without, whatever the key's own case and Caps Lock say; with Ctrl, Cmd, or Alt the
+  letter is lowercase and Shift is the token's own (`mod+shift+k`). A keydown whose `keyCode` is 229
+  is no shortcut, as with `isComposing`. A character with no case, and a letter of another script,
+  stays what was typed.
+- **Rationale**: with Caps Lock on, `j` types `J`, the key that moves the selected item and writes
+  to git; the human pressed `j`. Astryx's `isImeKeyEvent` treats 229 as a composition because Safari
+  ends the composition before the keydown, so `isComposing` is already false.
+- **Alternatives considered**: reading `getModifierState("CapsLock")` and flipping the case back:
+  the same result with one more state to stub, and it fails where the keyboard reports no Caps Lock
+  state. Treating every non-ASCII letter the same way: `toUpperCase` is not one letter in every
+  script (`ß`), and no binding names one.
+- **If wrong**: a layout whose Latin letter needs a case other than Shift's (none known) loses the
+  key; the change is `letter` in `keys/match.ts`.
+- **Where**: fix pass A, `keys/match.ts`.

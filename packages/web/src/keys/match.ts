@@ -31,6 +31,15 @@ export function isPrintable(key: string) {
   return [...key].length === 1;
 }
 
+const LETTER = /^[a-zA-Z]$/;
+
+/**
+ * A Latin letter in the case Shift gives it, not Caps Lock's; with a modifier it is lowercase, and
+ * Shift is the token's own.
+ */
+const letter = (key: string, { altKey, ctrlKey, metaKey, shiftKey }: KeyboardEvent) =>
+  shiftKey && !altKey && !ctrlKey && !metaKey ? key.toUpperCase() : key.toLowerCase();
+
 /**
  * The token of a keydown, `null` where it is no shortcut: a key of a composition (`isComposing`),
  * a dead key, an IME's `Process`, `Unidentified`, or a modifier alone. A repeated key still has its
@@ -41,7 +50,8 @@ export function isPrintable(key: string) {
  */
 export function tokenOf(event: KeyboardEvent): string | null {
   const { key } = event;
-  if (event.isComposing || NOT_KEYS.has(key)) {
+  // An IME's keydown has `keyCode` 229, whatever `isComposing` says (Safari ends it first).
+  if (event.isComposing || event.keyCode === 229 || NOT_KEYS.has(key)) {
     return null;
   }
   const isChar = isPrintable(key) && key !== " ";
@@ -51,7 +61,10 @@ export function tokenOf(event: KeyboardEvent): string | null {
     return key;
   }
   const mod = event.ctrlKey || event.metaKey;
-  const name = key === " " ? "space" : mod ? key.toLowerCase() : key;
+  // The case of a Latin letter is Shift's: Caps Lock turns `j` into `J`, the key that moves the
+  // item and writes to git. Any other character is what was typed.
+  const name =
+    key === " " ? "space" : LETTER.test(key) ? letter(key, event) : mod ? key.toLowerCase() : key;
   // Shift is in the character it typed, and Space with it is still Space; on a named key, or with
   // another modifier, it is the shortcut's.
   const isShift = event.shiftKey && ((!isChar && key !== " ") || mod || event.altKey);

@@ -3,11 +3,15 @@
 import { expect, test } from "vite-plus/test";
 import { isSingleKey, tokenOf } from "../keys/match.ts";
 
-/** A keydown as a browser reports it: happy-dom's `getModifierState` answers `AltGraph` with Alt. */
-function press(key: string, init: KeyboardEventInit & { altGraph?: boolean } = {}) {
-  const { altGraph = false, ...rest } = init;
+/**
+ * A keydown as a browser reports it: happy-dom's `getModifierState` answers `AltGraph` with Alt, so
+ * it is stubbed, and so is `CapsLock`, which happy-dom never reports.
+ */
+function press(key: string, init: KeyboardEventInit & { altGraph?: boolean; caps?: boolean } = {}) {
+  const { altGraph = false, caps = false, ...rest } = init;
   const event = new KeyboardEvent("keydown", { key, ...rest });
-  event.getModifierState = (name) => name === "AltGraph" && altGraph;
+  event.getModifierState = (name) =>
+    (name === "AltGraph" && altGraph) || (name === "CapsLock" && caps);
   return event;
 }
 
@@ -29,6 +33,26 @@ test("a character typed with AltGr is that character, and a real Ctrl shortcut i
   expect(tokenOf(press("[", { altKey: true, ctrlKey: true }))).toBe("[");
   expect(tokenOf(press("[", { ctrlKey: true }))).not.toBe("[");
   expect(tokenOf(press("x", { altKey: true }))).not.toBe("x");
+});
+
+// Break: the token taken from `event.key` as typed, so Caps Lock turns `j` into `J`, which moves
+// the item and writes to git.
+test("Caps Lock does not change a letter's case: Shift does", () => {
+  expect(tokenOf(press("J", { caps: true }))).toBe("j");
+  expect(tokenOf(press("j", { caps: true, shiftKey: true }))).toBe("J");
+  expect(tokenOf(press("K", { caps: true }))).toBe("k");
+  expect(tokenOf(press("G", { caps: true, shiftKey: true }))).toBe("G");
+  // The key's own case is the keyboard's, with no Caps Lock: Shift states it.
+  expect(tokenOf(press("J", { shiftKey: true }))).toBe("J");
+  // A character with no case, and a letter of another script, is what was typed.
+  expect(tokenOf(press("[", { caps: true }))).toBe("[");
+  expect(tokenOf(press("ю", { caps: true }))).toBe("ю");
+});
+
+test("a keydown of an IME's composition, with keyCode 229, is no shortcut", () => {
+  expect(tokenOf(press("j", { keyCode: 229 }))).toBeNull();
+  expect(tokenOf(press("Enter", { keyCode: 229 }))).toBeNull();
+  expect(tokenOf(press("j", { keyCode: 74 }))).toBe("j");
 });
 
 test("a composition, a dead key, and a lone modifier are no shortcut", () => {
