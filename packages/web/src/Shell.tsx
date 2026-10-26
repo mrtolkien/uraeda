@@ -9,6 +9,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
+import { KeysProvider } from "./keys/registry.tsx";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
 import { useUndoErrors } from "./layout/useUndoToast.ts";
@@ -154,25 +155,27 @@ export function Shell({ children }: { children: ReactNode }) {
       <FeatureSettingsHost>
         <RenameSessionHost>
           <StatusHintsProvider>
-            <Frame
-              bottom={<StatusLine isNarrow={narrow} slot={slot} />}
-              isNarrow={narrow}
-              start={narrow ? null : <Column isWide={width === "wide"} />}
-              top={
-                narrow ? (
-                  // The page's banner, by its role as the pages look it up, as `AppShell` drew it.
-                  <header role="banner" {...stylex.props(styles.header)}>
-                    <Tabs />
-                  </header>
-                ) : null
-              }
-            >
-              <Writing />
-              <NotifyBanner />
-              <Notifier />
-              <UndoErrors />
-              <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
-            </Frame>
+            <KeysProvider>
+              <Frame
+                bottom={<StatusLine isNarrow={narrow} slot={slot} />}
+                isNarrow={narrow}
+                start={narrow ? null : <Column isWide={width === "wide"} />}
+                top={
+                  narrow ? (
+                    // The page's banner, by its role as the pages look it up, as `AppShell` drew it.
+                    <header role="banner" {...stylex.props(styles.header)}>
+                      <Tabs />
+                    </header>
+                  ) : null
+                }
+              >
+                <Writing />
+                <NotifyBanner />
+                <Notifier />
+                <UndoErrors />
+                <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
+              </Frame>
+            </KeysProvider>
           </StatusHintsProvider>
         </RenameSessionHost>
       </FeatureSettingsHost>

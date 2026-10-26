@@ -377,7 +377,8 @@ builds on it.
 **Files:**
 
 - Create: `packages/web/src/keys/registry.tsx` (`KeysProvider`, `useKeys`, `useHints`, the window
-  listener, conflicts), `keys/match.ts` (`tokenOf(event)`), `keys/layers.ts` (`isLayerOpen`,
+  listener), `keys/store.ts` (the declared bindings, the conflicts, the single-key switch, the
+  hints), `keys/match.ts` (`tokenOf(event)`, `isSingleKey`), `keys/layers.ts` (`isLayerOpen`,
   `useLayerOpen`), `keys/groups.ts` (the group labels and icons)
 - Modify: `packages/web/src/shell/StatusLine.tsx` (`Hints` reads `useHints()` first, then the old
   declarations until Task 12), `packages/web/src/Shell.tsx` (mounts `KeysProvider`)
@@ -416,7 +417,7 @@ export function KeysProvider(props: { children: ReactNode; singleKeys?: boolean 
 export function useHints(): ReadonlyArray<StatusHint>;
 
 // keys/match.ts
-export function tokenOf(event: KeyboardEvent): string | null; // null: composition, dead, repeat-only
+export function tokenOf(event: KeyboardEvent): string | null; // null: composition, dead, a lone modifier
 
 // keys/layers.ts
 export function isLayerOpen(target?: EventTarget | null): boolean;
@@ -428,7 +429,7 @@ reader (hints, menu) re-renders only when the binding's data, not its handler, c
 place is page first, then shell, as `statusHints.tsx` orders them. `singleKeys` defaults to `true`
 here: Task 11 wires the setting. Outside the provider, as in a story, `useKeys` declares nothing.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 `keys-match.test.ts` (pure, on `tokenOf` with constructed `KeyboardEvent`s):
 
@@ -458,13 +459,13 @@ here: Task 11 wires the setting. Outside the provider, as in a story, `useKeys` 
 removes the hints, except one with `hintInLayer`; on a phone width none shows (the existing
 `StatusLine` rule).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test run packages/web/src/__tests__/keys-match.test.ts packages/web/src/__tests__/keys-registry.test.tsx packages/web/src/__tests__/keys-hints.test.tsx`
 - Expected: FAIL, `Failed to resolve import "../keys/match.ts"`.
 
-- [ ] **Step 3: Implement** `match.ts`, `layers.ts`, and `registry.tsx` to the contracts above.
+- [x] **Step 3: Implement** `match.ts`, `layers.ts`, and `registry.tsx` to the contracts above.
       `layers.ts` is the one layer rule: the union of the three old ones, a shown dialog or
       `[role=dialog|alertdialog]`, an expanded `[aria-haspopup]` or `combobox`, an open popover that
       is not `manual`, or a target inside a `[role=listbox|menu]`; `useLayerOpen` observes the
@@ -475,10 +476,12 @@ removes the hints, except one with `hintInLayer`; on a phone width none shows (t
       icons for the prefixes `space n`, `space f`, and `space u` are in `groups.ts`. Mount
       `KeysProvider` in `Shell.tsx` around the page, and make `Hints` in `StatusLine.tsx` draw
       `useHints()` before the old declarations. Keep each file under the limits: split
-      `registry.tsx` if it nears them.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS, with the
+      `registry.tsx` if it nears them: the bindings' store, with the conflict check, the switch, and
+      the hints, is `keys/store.ts`, and the listener and the hooks stay in `registry.tsx`. A
+      repeated key keeps its token (R3).
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS, with the
       existing key tests unchanged.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src/keys packages/web/src/shell/StatusLine.tsx packages/web/src/Shell.tsx packages/web/src/lists/useListKeys.ts packages/web/src/__tests__ specs/2026-10-26-leader-key/plan.md

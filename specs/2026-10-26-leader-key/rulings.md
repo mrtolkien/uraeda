@@ -33,3 +33,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   sequence typed at a normal pace.
 - **If wrong**: the delay is one constant and one rule in `sequence.ts`'s glue.
 - **Where**: task 4.
+
+## R3: A repeated key keeps its token
+
+- **Decision**: `tokenOf` returns the token of a repeated key (`event.repeat`), and `null` only for
+  a composition, a dead key, `Process`, `Unidentified`, and a modifier pressed alone. The plan's
+  interface comment said "repeat-only" is `null`; it now says what is built. What a repeat may start
+  (a sequence, the menu while Space is held) is the sequences' rule, Task 4's, which reads
+  `event.repeat` itself.
+- **Rationale**: holding `j` or an arrow goes on moving the selection or the scroll today, and the
+  list keys never skipped repeats; a `null` for every repeat would end that, and the spec asks for
+  nothing of the sort. Review focus 3 puts the rule on sequences and the menu.
+- **Alternatives considered**: `null` for every repeat: held keys would stop moving. A flag on the
+  token: a second return shape for one rule that only Task 4 needs, and it has the event.
+- **If wrong**: `tokenOf` is the one place; the registry's listener would pass `event.repeat` on.
+- **Where**: task 2, `keys/match.ts`.
