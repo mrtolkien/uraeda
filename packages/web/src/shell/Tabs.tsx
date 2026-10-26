@@ -4,7 +4,7 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
 import { useInbox } from "../data.ts";
@@ -31,7 +31,8 @@ const styles = stylex.create({
     alignItems: "center",
     boxSizing: "border-box",
     display: "flex",
-    gap: spacingVars["--spacing-1"],
+    // None between them at the least: eight 44 px buttons and the line are what a 375 px phone holds.
+    gap: 0,
     height: spacingVars["--spacing-12"],
     justifyContent: "space-between",
     paddingInline: spacingVars["--spacing-2"],
@@ -39,6 +40,19 @@ const styles = stylex.create({
   icon: {
     display: "inline-flex",
     position: "relative",
+  },
+  divider: {
+    // The line between the sidebar's toggle and the pages' tabs.
+    backgroundColor: colorVars["--color-border"],
+    height: spacingVars["--spacing-5"],
+    width: "1px",
+  },
+  toggle: {
+    // The sidebar's toggle apart, further left than the tabs: its own group, then a line.
+    alignItems: "center",
+    display: "flex",
+    gap: spacingVars["--spacing-1"],
+    marginInlineStart: `calc(-1 * ${spacingVars["--spacing-1"]})`,
   },
   small: {
     // A small badge, its count in the type it had: less padding, and a step less tall.
@@ -107,7 +121,13 @@ function InboxCounted({ isCurrent }: { isCurrent: boolean }) {
   );
 }
 
-export function Tabs() {
+export function Tabs({
+  isSidebarOpen,
+  onToggleSidebar,
+}: {
+  isSidebarOpen: boolean;
+  onToggleSidebar: () => void;
+}) {
   const pathname = useShellPath();
   const data = useNavigation();
   const at = (to: string) => selects(pathname, to);
@@ -121,6 +141,16 @@ export function Tabs() {
   );
   return (
     <nav aria-label="Tabs" {...stylex.props(ruleStyles.below, styles.bar)}>
+      <div {...stylex.props(styles.toggle)}>
+        <IconButton
+          aria-expanded={isSidebarOpen}
+          icon={<Icon icon="uraeda:panel-left" />}
+          label="Sidebar"
+          onClick={onToggleSidebar}
+          variant={isSidebarOpen ? "secondary" : "ghost"}
+        />
+        <span aria-hidden="true" {...stylex.props(styles.divider)} />
+      </div>
       <Tab
         icon={DESTINATIONS.home.icon}
         isCurrent={at(DESTINATIONS.home.path)}

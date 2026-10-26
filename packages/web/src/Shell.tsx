@@ -8,7 +8,7 @@ import { LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
 import { KeyPickerHost } from "./keys/KeyPickerHost.tsx";
 import { LeaderKeys } from "./keys/LeaderKeys.tsx";
@@ -20,7 +20,8 @@ import { useUndoErrors } from "./layout/useUndoToast.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Notifier, NotifyBanner } from "./notify/Notifier.tsx";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
-import { Column } from "./shell/Column.tsx";
+import { Column, PhoneColumn } from "./shell/Column.tsx";
+import { useShellPath } from "./shell/ShellPanes.tsx";
 import { StatusLine } from "./shell/StatusLine.tsx";
 import { Tabs } from "./shell/Tabs.tsx";
 import { FeatureSettingsHost } from "./sidebar/FeatureSettingsDialog.tsx";
@@ -166,6 +167,10 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
   const [singleKeys, setSingleKeys] = keysSwitch ?? own;
   const width = useWidthClass();
   const narrow = isNarrow(width);
+  // The phone's column, which the tabs' toggle opens over the page: it folds as a page opens.
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = useShellPath();
+  useEffect(() => setSidebarOpen(false), [pathname]);
   return (
     <SidebarAddForms>
       <FeatureSettingsHost>
@@ -176,12 +181,21 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
               <Frame
                 bottom={<StatusLine isNarrow={narrow} slot={slot} />}
                 isNarrow={narrow}
-                start={narrow ? null : <Column isWide={width === "wide"} />}
+                start={
+                  narrow ? (
+                    <PhoneColumn isOpen={isSidebarOpen} />
+                  ) : (
+                    <Column isWide={width === "wide"} />
+                  )
+                }
                 top={
                   narrow ? (
                     // The page's banner, by its role as the pages look it up, as `AppShell` drew it.
                     <header role="banner" {...stylex.props(styles.header)}>
-                      <Tabs />
+                      <Tabs
+                        isSidebarOpen={isSidebarOpen}
+                        onToggleSidebar={() => setSidebarOpen((open) => !open)}
+                      />
                     </header>
                   ) : null
                 }
