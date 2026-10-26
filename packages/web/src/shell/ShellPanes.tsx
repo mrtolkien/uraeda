@@ -2,7 +2,7 @@
 // changes in progress, each the oldest started first, then the latest done items. The column draws
 // them under Navigate, as many done items as fit; the phone's sessions page draws them as its own.
 // During a search, only the cards it found.
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useRef } from "react";
 import { Pane, type PaneTone } from "../layout/Pane.tsx";
@@ -15,14 +15,12 @@ import { doneRows, useKeptSession } from "../sidebar/done.ts";
 import { type Data, type Entry, entriesOf, entryKey } from "../sidebar/entries.ts";
 import { useColumnFold } from "./fold.ts";
 import { Empty } from "../layout/Empty.tsx";
+import { ruleStyles } from "../layout/rules.ts";
 
 const styles = stylex.create({
   rail: {
     // Folded: a group of icons under a line, in the rail's column.
     alignItems: "center",
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: borderVars["--border-width"],
     display: "flex",
     flexDirection: "column",
     gap: spacingVars["--spacing-1"],
@@ -73,7 +71,7 @@ export function ShellPane({
     return null;
   }
   if (isFolded) {
-    return <div {...stylex.props(styles.rail)}>{children}</div>;
+    return <div {...stylex.props(ruleStyles.above, styles.rail)}>{children}</div>;
   }
   return (
     <Pane

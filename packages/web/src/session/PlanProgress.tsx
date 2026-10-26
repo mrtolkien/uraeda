@@ -8,7 +8,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Text } from "@astryxdesign/core/Text";
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import { useFeature, useFile } from "../data.ts";
@@ -16,15 +16,13 @@ import { stepLabel } from "../labels.ts";
 import { sectionId } from "../planParts.ts";
 import { useRepoPath } from "../routes.tsx";
 import { Section } from "./Section.tsx";
+import { ruleStyles } from "../layout/rules.ts";
 
 const styles = stylex.create({
   // A rule across the column's whole width over it, as over the split's bottom part, its content
   // kept in the column's inset (`SideColumn.tsx`'s `full`).
   progress: {
     // Its own width decides whether the task's title fits beside the label.
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: borderVars["--border-width"],
     containerType: "inline-size",
     display: "block",
     marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
@@ -138,7 +136,11 @@ function Anchored({
 function Bar({ anchor, task }: { anchor: string; task: PlanTask }) {
   const here = useRepoPath();
   return (
-    <Link href={here(`${task.href}${anchor}`)} type="inherit" xstyle={styles.progress}>
+    <Link
+      href={here(`${task.href}${anchor}`)}
+      type="inherit"
+      xstyle={[ruleStyles.above, styles.progress]}
+    >
       <span {...stylex.props(styles.row)}>
         <Text>
           {`${task.step} · `}

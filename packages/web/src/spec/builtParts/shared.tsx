@@ -1,6 +1,6 @@
 // What the parts after the stories share: their rows' and pills' styles, and how a part draws its
 // blocks in their order, those it does not draw its own way as the spec's blocks.
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { Block } from "uraeda-binding";
@@ -32,9 +32,6 @@ export const builtStyles = stylex.create({
   },
   row: {
     // A row of the part, set apart from the one before by a hairline.
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: spacingVars["--spacing-0-5"],
     paddingBlockStart: spacingVars["--spacing-3"],
   },
 });

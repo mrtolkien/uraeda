@@ -4,7 +4,7 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
 import { useInbox } from "../data.ts";
@@ -14,6 +14,7 @@ import { runningSessions } from "../sidebar/entries.ts";
 import { selects } from "../sidebar/Row.tsx";
 import { useShellPath } from "./ShellPanes.tsx";
 import { plural } from "../labels.ts";
+import { ruleStyles } from "../layout/rules.ts";
 
 const styles = stylex.create({
   badge: {
@@ -27,9 +28,6 @@ const styles = stylex.create({
   bar: {
     // The phone's top bar, as tall as before: the pages' sticky parts stay below `--spacing-12`.
     alignItems: "center",
-    borderBlockEndColor: colorVars["--color-border"],
-    borderBlockEndStyle: "solid",
-    borderBlockEndWidth: borderVars["--border-width"],
     boxSizing: "border-box",
     display: "flex",
     gap: spacingVars["--spacing-1"],
@@ -114,7 +112,7 @@ export function Tabs() {
   const at = (to: string) => selects(pathname, to);
   const inbox = <Tab icon="uraeda:inbox" isCurrent={at("/inbox")} label="Inbox" to="/inbox" />;
   return (
-    <nav aria-label="Tabs" {...stylex.props(styles.bar)}>
+    <nav aria-label="Tabs" {...stylex.props(ruleStyles.below, styles.bar)}>
       <Tab icon="uraeda:home" isCurrent={at("/")} label="Home" to="/" />
       {data.workspace?.noSpecs ? (
         inbox

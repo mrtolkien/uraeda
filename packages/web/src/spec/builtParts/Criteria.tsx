@@ -10,6 +10,7 @@ import { SinceWords, wordCount } from "../../sinceMarks.tsx";
 import { plain, Spans } from "../../Spans.tsx";
 import type { PartProps, SpecItems } from "../parts.ts";
 import { builtStyles, type DrawingProps, inOrder, Leftover, Nested, parentsOf } from "./shared.tsx";
+import { ruleStyles } from "../../layout/rules.ts";
 
 /** A criterion: its id and measure as pills, then its sentence, as the core cuts it (R75). */
 function Criterion({
@@ -21,7 +22,7 @@ function Criterion({
 }) {
   const item = props.document.blocks[criterion.block]!;
   return (
-    <li {...stylex.props(builtStyles.row)}>
+    <li {...stylex.props(ruleStyles.between, builtStyles.row)}>
       <Selectable block={item} selection={props.selection}>
         <HStack align="start" gap={2}>
           <Icon color="success" icon="check" size="md" />
@@ -65,7 +66,7 @@ export function Criteria({ items, part, props }: DrawingProps) {
             return criterion ? (
               <Criterion criterion={criterion} key={item.id} props={props} />
             ) : (
-              <li key={item.id} {...stylex.props(builtStyles.row)}>
+              <li key={item.id} {...stylex.props(ruleStyles.between, builtStyles.row)}>
                 <Leftover item={item} props={props} />
               </li>
             );
