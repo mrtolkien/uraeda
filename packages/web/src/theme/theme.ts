@@ -233,6 +233,15 @@ export const uraedaTheme = defineTheme({
     // Square badges and switches, as the terminal look's corners; status dots stay round.
     badge: { base: { "--radius-full": "0px", fontFamily: "var(--font-family-body)" } },
     switch: { base: { "--radius-full": "0px" } },
+    // A popover, a menu's included, stands apart by a border, as a terminal's floating window does,
+    // where the flat look sets every shadow to none and left its text floating over the page.
+    popover: {
+      base: {
+        borderColor: "var(--color-border)",
+        borderStyle: "solid",
+        borderWidth: "var(--border-width)",
+      },
+    },
     // Astryx gap: the lightbox's Close is a ghost button, its icon the colour of text on dark, with
     // no background of its own: over a light screenshot that fills the window, it vanished. The
     // scrim Astryx's thumbnails put under their remove button keeps it seen over any image.

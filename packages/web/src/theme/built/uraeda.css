@@ -660,6 +660,12 @@
     font-size: 0.9em;
   }
 
+  .astryx-popover {
+    border-color: var(--color-border);
+    border-style: solid;
+    border-width: var(--border-width);
+  }
+
   .astryx-lightbox:is(*) button {
     background-color: var(--color-overlay) !important;
   }

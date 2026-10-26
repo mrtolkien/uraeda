@@ -275,3 +275,16 @@ decisions.
 - **If wrong**: their steps in [`scripts/`](/packages/web/scripts/) wait for text the UI no longer
   shows; each is a locator to update.
 - **Where**: [`scripts/screenshots.ts`](/packages/web/scripts/screenshots.ts)
+
+## R21: A popover stands apart by its border
+
+- **Decision**: every popover, a menu, a selector's list, and a palette, draws a hairline border in
+  the border colour, set once in the theme's `popover` component.
+- **Rationale**: the flat look sets every shadow to none, so a popover was a block of text floating
+  over the page, its edge only its background's tint: over the page's own background, as the
+  session's `…` opens over the composer, it showed no edge at all. A bordered floating window is the
+  terminal look's own, as Neovim's.
+- **Alternatives considered**: giving shadows back to popovers, which the flat look removed; a
+  stronger popover background, which still shows no edge over a matching surface.
+- **If wrong**: the `popover` entry in [`theme.ts`](/packages/web/src/theme/theme.ts).
+- **Where**: [`theme/theme.ts`](/packages/web/src/theme/theme.ts)
