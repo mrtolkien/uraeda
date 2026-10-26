@@ -339,19 +339,24 @@ fn check_supersession(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<P
         let rule = format!("frontmatter.{key}");
         let line = front.line(key);
         let Some(names) = front.list(key) else {
-            let message = match value {
-                Value::List(_) | Value::Other => format!("{key} is not a list of record names"),
-                other => format!("{key} {} is not a list of records", shown(other)),
-            };
-            problems.push(file.problem(line, &rule, message));
+            problems.push(file.problem(
+                line,
+                &rule,
+                format!("{key} {} is not a list of records", shown(value)),
+            ));
             continue;
         };
         for name in names {
             let Some(partner) = file.folder.get(&format!("{name}.md")) else {
+                let hint = if name.ends_with(".md") {
+                    ": write its name without \".md\""
+                } else {
+                    ""
+                };
                 problems.push(file.warning(
                     line,
                     &rule,
-                    format!("{key} names \"{name}\", which is not a record"),
+                    format!("{key} names \"{name}\", which is not a record{hint}"),
                 ));
                 continue;
             };
