@@ -81,13 +81,13 @@ export function newBindings(
       run: () => go("/new?kind=feature"),
     },
     {
-      icon: "uraeda:pencil",
+      icon: KIND_ICONS.notes,
       keys: "space n n",
       label: "Note (inbox entry)",
       run: () => openForm("note"),
     },
     {
-      icon: DESTINATIONS.priorities.icon,
+      icon: KIND_ICONS.priorities,
       keys: "space n p",
       label: "Priority",
       run: () => openForm("priority"),

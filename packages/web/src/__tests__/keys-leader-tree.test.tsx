@@ -2,13 +2,14 @@
 // three presses from the home, the place entries are the destinations' own icon and label, and the
 // New, Find, and UI groups run what their buttons do.
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { addChange } from "uraeda-binding/test-utils";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { DESTINATIONS } from "../destinations.ts";
 import { SHOW_AFTER } from "../keys/leader.ts";
-import { findBindings, newBindings, placeBindings } from "../keys/leaderTree.ts";
+import { findBindings } from "../keys/leaderTree.ts";
 import type { PickerKind } from "../keys/pickerSources.ts";
 import { navigate } from "../routeHistory.ts";
-import { atRepo, atWidth, quiet, renderPage } from "./helpers.tsx";
+import { atRepo, atWidth, fakeAgent, fixtureRepo, quiet, renderPage } from "./helpers.tsx";
 
 beforeEach(() => {
   atWidth(1440);
@@ -169,25 +170,59 @@ test("the menu at Space lists the places, the groups, Continue, and Find anythin
   }
 });
 
-// Break: a place entry with an icon or a label of its own.
-test("the menu's place entries carry the icon and label of each destination (SC-007)", () => {
-  const places = {
-    ",": DESTINATIONS.settings,
-    d: DESTINATIONS.decisions,
-    h: DESTINATIONS.home,
-    i: DESTINATIONS.inbox,
-    p: DESTINATIONS.priorities,
-    s: DESTINATIONS.sessions,
-  };
-  for (const prefix of ["space", "g"]) {
-    const bindings = placeBindings(prefix, () => {});
-    for (const [key, destination] of Object.entries(places)) {
-      const entry = bindings.find((binding) => binding.keys === `${prefix} ${key}`);
-      expect(entry?.icon).toBe(destination.icon);
-      expect(entry?.label).toBe(destination.label);
-    }
-    expect(bindings).toHaveLength(Object.keys(places).length);
+/** The leader menu, shown at the keys `path` pressed from the home, as a user sees it. */
+function menuAfter(...path: Array<string>) {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  keys(...path);
+  act(() => void vi.advanceTimersByTime(SHOW_AFTER));
+  vi.useRealTimers();
+  return screen.getByRole("group", {
+    name: path.map((key) => (key === " " ? "Space" : key)).join(" "),
+  });
+}
+
+/** The icon a row draws, as its paths: the same icon looks the same wherever it is drawn. */
+const iconOf = (row: HTMLElement) =>
+  Array.from(row.querySelectorAll("svg")).find((svg) => !svg.closest("kbd"))?.innerHTML;
+
+/** The row of the leader menu, or the link of a navigation, named `label`. */
+const rowNamed = (menu: HTMLElement, label: string) =>
+  within(menu).getByText(label).closest("li") as HTMLElement;
+
+/** The icon and label of each place in the menu, as in the navigation's links. */
+function expectPlaces(menu: HTMLElement, nav: HTMLElement, places: Array<{ label: string }>) {
+  for (const place of places) {
+    const link = within(nav)
+      .getAllByRole("link", { name: new RegExp(`^${place.label}`) })
+      .find((one) => iconOf(one) !== undefined)!;
+    expect(rowNamed(menu, place.label), place.label).toBeTruthy();
+    expect(iconOf(rowNamed(menu, place.label)), place.label).toBe(iconOf(link));
   }
+}
+
+// Break: a place entry with an icon or a label of its own.
+test("the menu's place entries draw the icon and label of the navigation column's links (SC-007)", async () => {
+  await atHome();
+  const { decisions, home, inbox, priorities, settings } = DESTINATIONS;
+  const nav = screen.getByRole("navigation", { name: "Navigation" });
+  const menu = menuAfter(" ");
+  expectPlaces(menu, nav, [decisions, home, inbox, priorities, settings]);
+  press("Escape");
+  // `g`'s menu names the same places the same way.
+  expectPlaces(menuAfter("g"), nav, [decisions, home, inbox, priorities, settings]);
+});
+
+// Break: a place entry with an icon or a label of its own.
+test("the menu's place entries draw the icon and label of the phone's tabs too (SC-007)", async () => {
+  atWidth(402);
+  await atHome("Tabs");
+  const { home, inbox, priorities, sessions } = DESTINATIONS;
+  expectPlaces(menuAfter(" "), screen.getByRole("navigation", { name: "Tabs" }), [
+    home,
+    inbox,
+    priorities,
+    sessions,
+  ]);
 });
 
 /** Whether a navigation holds a link named by each place's label. */
@@ -223,21 +258,66 @@ test("the phone's tabs name theirs as the menu does (SC-007)", async () => {
   ]);
 });
 
-/** The icon of the binding on `keys`, among `all`. */
-const icon = (all: ReturnType<typeof newBindings>, keys: string) =>
-  all.find((binding) => binding.keys === keys)?.icon;
+/** Each kind: how a picker row names it, its entry in the Find group, and in the New group if any. */
+const KINDS: Array<{ add?: string; find: string; kind: PickerKind; row: string }> = [
+  { add: "Feature", find: "Features", kind: "features", row: "Feature" },
+  { add: "Change", find: "Changes", kind: "changes", row: "Change" },
+  { add: "Session", find: "Sessions", kind: "sessions", row: "Session" },
+  { add: "Note (inbox entry)", find: "Notes", kind: "notes", row: "Note" },
+  { add: "Priority", find: "Priorities", kind: "priorities", row: "Priority" },
+  { find: "Decisions", kind: "decisions", row: "Decision" },
+];
 
-test("a kind has one icon in the New group, the Find group, and the picker's rows (UI coherence)", () => {
-  const find = findBindings(() => {});
-  const added = newBindings(
-    () => {},
-    () => {},
+/** The picker's row labelled with a kind's name. */
+const named = (all: Array<HTMLElement>, kind: string) =>
+  all.find((one) => within(one).queryByText(kind) !== null);
+
+// Break: the New group's note, or any picker row, drawn with an icon of its own.
+test("a kind has one icon in the New group, the Find group, and the picker's rows (UI coherence)", async () => {
+  // A repository with a row of every kind: a change, and a session besides the fixture's.
+  const repo = fixtureRepo();
+  addChange(repo, "2026-10-16-centred-x", { "proposal.md": "# Centre the x\n\nIt sits low.\n" });
+  const fake = await fakeAgent();
+  const chat = await fake.sessions.newChat(repo);
+  fake.adapter.script([{ text: "Done.", type: "text" }]);
+  const { turn } = await fake.sessions.send(repo, chat.id, { text: "List the drafts" });
+  await fake.sessions.settled(turn);
+  await renderPage("/", repo, { agent: fake });
+  await screen.findByRole("navigation", { name: "Navigation" });
+  await quiet();
+  const added = menuAfter(" ", "n");
+  const inNew = new Map(
+    KINDS.filter(({ add }) => add !== undefined).map(({ add, kind }) => [
+      kind,
+      iconOf(rowNamed(added, add!)),
+    ]),
   );
-  // The kinds both groups name; the note is the Note button's pencil, which no kind has.
-  expect(icon(added, "space n f")).toBe(icon(find, "space f f"));
-  expect(icon(added, "space n c")).toBe(icon(find, "space f c"));
-  expect(icon(added, "space n s")).toBe(icon(find, "space f s"));
-  expect(
-    new Set([icon(added, "space n f"), icon(added, "space n c"), icon(added, "space n s")]).size,
-  ).toBe(3);
+  press("Escape");
+  const found = menuAfter(" ", "f");
+  const inFind = new Map(KINDS.map(({ find, kind }) => [kind, iconOf(rowNamed(found, find))]));
+  press("Escape");
+
+  // Every kind's rows in the one picker, each labelled with its kind.
+  keys(" ", " ");
+  await screen.findByRole("combobox", { name: "Find anything" });
+  const rows = await waitFor(() => {
+    const all = screen.getAllByRole("option");
+    for (const { row } of KINDS) {
+      expect(named(all, row), `a ${row} row`).toBeDefined();
+    }
+    return all;
+  });
+
+  for (const { kind, row } of KINDS) {
+    // A decision's row draws its own decision's icon; the other kinds draw their kind's.
+    if (kind !== "decisions") {
+      const drawn = iconOf(named(rows, row)!);
+      expect(drawn, `${kind} in the picker`).toBe(inFind.get(kind));
+    }
+    if (inNew.has(kind)) {
+      expect(inNew.get(kind), `${kind} in the New group`).toBe(inFind.get(kind));
+    }
+  }
+  // Each kind has an icon of its own.
+  expect(new Set(inFind.values()).size).toBe(KINDS.length);
 });
