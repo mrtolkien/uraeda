@@ -1,6 +1,6 @@
 // The sample features Storybook's fixture, the screenshots, and the sandbox build, each "a feature
-// at a step", on the fixture repository's `main`: the feature page's, one per state its stories,
-// browser tests, and screenshots show, from the recurring tasks' files of `fixtures/repo/`, each
+// at a step", on the fixture repository's `main`: the feature page's, one per state its stories
+// and screenshots show, from the recurring tasks' files of `fixtures/repo/`, each
 // with typed commits dated in UTC, so its stages are timed; the round page's mockups, from
 // `fixtures/round-mockup/`; and the spec page's features, from `fixtures/spec-page/`.
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";

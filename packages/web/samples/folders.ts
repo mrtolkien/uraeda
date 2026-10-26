@@ -1,9 +1,9 @@
 // The folders the sample builders build, by the page that shows them: the one part of the samples
-// the stories and browser tests import, so it imports nothing, and runs in a browser as in Node.
+// the stories import, so it imports nothing, and runs in a browser as in Node.
 
 /**
  * The feature page's features, by state, which `addFeaturePages` builds:
- * `FeaturePage.stories.tsx`'s, the browser tests', and the screenshots'.
+ * `FeaturePage.stories.tsx`'s, and the screenshots'.
  */
 export const FEATURE_PAGES = {
   /** At implementation, task 7 of 11 current: the agent builds. */
