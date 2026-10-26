@@ -86,3 +86,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   hole. Task 10, a risky change of this test, found it by breaking the rule on purpose.
 - **Where**: task 10, `toolchain.test.ts`; a fixture case (a retry between two globs) fails on the
   old stripping.
+
+## R8: The web tests' setup gets the time bound of their tests
+
+- **Decision**: `uiTestOptions` gives hooks `gitTestTimeout`, the 20-second bound its tests already
+  have, instead of Vitest's 10-second default.
+- **Rationale**: `storybook-fate.test.ts`'s `beforeAll` builds a fixture repository through the
+  binding and starts a server, the work `gitTestTimeout` bounds in a test. Under the load of several
+  worktrees, it timed out in `ready` at 10 seconds and passed alone in 13. Its four tests guard
+  cross-site requests, a security rule, so the file stays, and the toolchain decision asks a test
+  failing without a bug to be fixed in the pull request that finds it.
+- **Where**: `packages/web/vite.transforms.ts`, found by the validation of wave 3.
