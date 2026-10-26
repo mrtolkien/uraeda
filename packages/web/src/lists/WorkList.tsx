@@ -13,7 +13,9 @@ import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, type WorkRow } from "./Card.tsx";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
-import { type Columns, isLayerOpen, useListKeys } from "./useListKeys.ts";
+import { isLayerOpen } from "../keys/layers.ts";
+import { itemTarget, type Placed } from "./itemMoves.ts";
+import { type Columns, type ItemMove, useListKeys } from "./useListKeys.ts";
 
 /** A section's colour: the ongoing entries green, Now blue, Later grey, the rest neutral. */
 export type Tone = "green" | "blue" | "neutral" | "gray";
@@ -193,6 +195,75 @@ function useSelection(named: string | undefined) {
 }
 
 /**
+ * What the keys that move the selected item do: the move a drop would ask `onMove` for, one at a
+ * time, as a second one before the first is written would be read against a list that changed.
+ * `sections` are those on screen, in order, and the moved row is selected. Absent where the list
+ * has no `onMove`: its items cannot move.
+ */
+function useItemMoves(
+  onMove: OnMove | undefined,
+  sections: ReadonlyArray<Placed>,
+  select: (key: string) => void,
+) {
+  const isMoving = useRef(false);
+  if (onMove === undefined) {
+    return undefined;
+  }
+  return async (move: ItemMove, row: number) => {
+    const key = sections.flatMap((section) => section.rows)[row]?.key;
+    const target = key === undefined ? undefined : itemTarget(sections, key, move);
+    if (key === undefined || target === undefined || isMoving.current) {
+      return;
+    }
+    select(key);
+    isMoving.current = true;
+    try {
+      await onMove(key, target.section, target.index);
+    } finally {
+      isMoving.current = false;
+    }
+  };
+}
+
+/**
+ * Puts the keyboard's focus on the selected card: at the start with `isFocused`, and once the overlay
+ * of a card closed (`named` turns undefined), which leaves the page a moment after, so the focus
+ * waits for the layer rule to say it left.
+ */
+function useRefocus({
+  focusSelected,
+  isFocused,
+  named,
+  selected,
+}: {
+  focusSelected: () => void;
+  isFocused: boolean;
+  named: string | undefined;
+  selected: string | undefined;
+}) {
+  const wasNamed = useRef(named !== undefined);
+  useEffect(() => {
+    // The overlay closed: the card it showed is selected, and has the focus once the overlay's
+    // layer, which leaves the page a moment after, no longer holds it.
+    const closed = wasNamed.current && named === undefined;
+    wasNamed.current = named !== undefined;
+    if (!((isFocused && selected !== undefined) || closed)) {
+      return undefined;
+    }
+    let frame = 0;
+    const focus = () => {
+      if (isLayerOpen()) {
+        frame = requestAnimationFrame(focus);
+      } else {
+        focusSelected();
+      }
+    };
+    focus();
+    return () => cancelAnimationFrame(frame);
+  }, [isFocused, named, selected, focusSelected]);
+}
+
+/**
  * The sections as panes, in the `layout`'s arrangement. `selected` is the key of the row the
  * address names, an open overlay's: the selection starts there and stays on it once the overlay
  * closes, with the focus. With `isFocused`, the keyboard's focus is put on it, with its ring.
@@ -232,6 +303,15 @@ export function WorkList({
   const shown = [...inRow, ...below].map(rowsOf);
   const rows = shown.flat();
   const isOpen = named !== undefined;
+  const onMoveItem = useItemMoves(
+    onMove,
+    [...inRow, ...below].map((section, at) => ({
+      id: section.id,
+      isFixed: section.isFixed,
+      rows: shown[at],
+    })),
+    setSelected,
+  );
   const { focusSelected, ref } = useListKeys({
     columns: asColumns ? columnsOf(shown) : undefined,
     // Enter opens the focused card's link; the overlay, once open, has its own Escape.
@@ -239,29 +319,11 @@ export function WorkList({
     isOff: isOpen,
     onClose: () => false,
     onEdit: () => false,
+    onMoveItem,
     onSelect: (index) => setSelected(rows[index].key),
     selected: rows.findIndex((row) => row.key === selected),
   });
-  const wasNamed = useRef(named !== undefined);
-  useEffect(() => {
-    // The overlay closed: the card it showed is selected, and has the focus once the overlay's
-    // layer, which leaves the page a moment after, no longer holds it.
-    const closed = wasNamed.current && named === undefined;
-    wasNamed.current = named !== undefined;
-    if (!((isFocused && selected !== undefined) || closed)) {
-      return undefined;
-    }
-    let frame = 0;
-    const focus = () => {
-      if (isLayerOpen()) {
-        frame = requestAnimationFrame(focus);
-      } else {
-        focusSelected();
-      }
-    };
-    focus();
-    return () => cancelAnimationFrame(frame);
-  }, [isFocused, named, selected, focusSelected]);
+  useRefocus({ focusSelected, isFocused, named, selected });
   const open = (row: WorkRow) => {
     setSelected(row.key);
     onOpen?.(row.href);

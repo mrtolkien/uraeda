@@ -729,22 +729,26 @@ git commit -m "feat(leader-key): scroll keys and the folds on the registry"
 - Modify: `packages/web/src/lists/useListKeys.ts` (declares through `useKeys`: no `document`
   listener, no `isLayerOpen` of its own, no `useStatusHints` call),
   `packages/web/src/lists/WorkList.tsx` (the item moves through `onMove`, the `isLayerOpen` import)
-- Test: `packages/web/src/__tests__/status-hints.test.tsx` (replaced by `keys-hints.test.tsx`'s list
-  rows, with a ruling), `keys-shift.test.tsx`; `__browser__/list-keys.test.tsx` unchanged
+- Create: `packages/web/src/lists/itemMoves.ts` (where the keys that move the item send it, R9)
+- Test: `packages/web/src/__tests__/status-hints.test.tsx` (its list test moved to
+  `keys-hints.test.tsx`, R9), `__tests__/keys-shift.test.tsx` (a list alone) and
+  `__browser__/keys-shift.test.tsx` (the priorities page: happy-dom reads a closed popover as an
+  open layer, R9); `__browser__/list-keys.test.tsx` gains the `+ -` test and keeps the rest
 
 **Interfaces:**
 
 - Consumes: Task 2's `useKeys`, `Binding`, `isLayerOpen`.
 - Produces: `useListKeys`' signature is unchanged, plus an optional
-  `onMoveItem?: (move: "up" | "down" | "left" | "right") => void`, called by `K`, `J`, `H`, `L` and
-  `Shift` with the arrows, only when given. The list declares `j k ↓ ↑ + -` (one hint, `j k`
-  "move"), `h l ← →` (hint `h l` "column", only with columns), `Home End`, `Enter` (hint `⏎`
-  "open"), and `Escape` (hint its label, `hintInLayer` when it is the list's own overlay), all with
-  `when` the focus is on a row of this list or the page. The registry's `isLayerOpen` replaces the
-  first copy of the layer rule; `lists/useListKeys.ts` no longer exports it, and `WorkList` imports
-  it from `keys/layers.ts`. `+` is the next row and `-` the previous.
+  `onMoveItem?: (move: "up" | "down" | "left" | "right", row: number) => void` (R9), called by `K`,
+  `J`, `H`, `L` and `Shift` with the arrows, only when given, with the row the focus is on, or the
+  selected one on the page; the keys are not bound without it. The list declares `j k ↓ ↑ + -` (one
+  hint, `j k` "move"), `h l ← →` (hint `h l` "column", only with columns), `Home End`, `Enter` (hint
+  `⏎` "open"), and `Escape` (hint its label, `hintInLayer` when it is the list's own overlay), all
+  with `when` the focus is on a row of this list or the page. The registry's `isLayerOpen` replaces
+  the first copy of the layer rule; `lists/useListKeys.ts` no longer exports it, and `WorkList`
+  imports it from `keys/layers.ts`. `+` is the next row and `-` the previous.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `keys-shift.test.tsx` on the priorities page (US3 4, review focus 4): with Next's second line
 selected, `K` moves it above the first and the file shows it (the same write a drag makes); `L`
@@ -758,16 +762,16 @@ except where the hint API moved: those assertions are re-pointed to `useHints()`
 keeping each assertion's meaning. Add `+` and `-` to the list's keys test: `+` selects the next row,
 `-` the previous, and the status line reads `j k move` without them.
 
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test run packages/web/src/__tests__/keys-shift.test.tsx`; expected FAIL
       `Unable to find an element with the text` for the moved line (the key does nothing today).
-- [ ] **Step 3: Implement** the move of `useListKeys` to `useKeys`, keeping `destination()` and its
+- [x] **Step 3: Implement** the move of `useListKeys` to `useKeys`, keeping `destination()` and its
       column logic as they are, then `WorkList`'s `onMoveItem`: `K` and `J` move one place within
       the section, `H` and `L` to the end of the previous and next section, all by the `onMove` the
       drag calls. Settle the target of `H` and `L` in a ruling.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then the browser tests of
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then the browser tests of
       the lists: `nix develop -c vp run browser:desktop`. Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-26-leader-key/plan.md specs/2026-10-26-leader-key/rulings.md

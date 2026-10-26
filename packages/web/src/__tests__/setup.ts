@@ -33,6 +33,23 @@ if (typeof document !== "undefined") {
 }
 
 /**
+ * happy-dom lays nothing out: every element has one box, though a browser gives none to an element
+ * the page hides with `display: none`, or that sits in one, such as a closed popover's content.
+ * The registry's layer rule asks whether a dialog shows by its boxes, so each test page held an
+ * open layer, which hid the keys' hints. An element in a hidden popover, or hidden itself, has none,
+ * as in a browser.
+ */
+if (typeof window !== "undefined") {
+  const boxes = window.Element.prototype.getClientRects;
+  window.Element.prototype.getClientRects = function getClientRects(this: Element) {
+    const isHidden = [this, this.closest("[popover]")].some(
+      (element) => element !== null && window.getComputedStyle(element).display === "none",
+    );
+    return isHidden ? ([] as unknown as DOMRectList) : boxes.call(this);
+  };
+}
+
+/**
  * A jump ends a second after its scroll's last move: one a test started would end after the test
  * file's page is gone, its timer then reaching for a `window` that is no more. Each test ends its.
  */
