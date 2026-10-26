@@ -425,13 +425,13 @@ changes, and features ([sidebar/entries.ts](/packages/web/src/sidebar/entries.ts
 Four prototypes, each live: press Space, wait 500 ms, then `n`. Add `#open` or `#nested` to the
 address to start with it shown. Narrow screens show none of them.
 
-- [Box, bottom right](mockups/bottom-right-box.html): Helix's info box, bordered, titled with the
-  keys pressed, above the status line.
-- [Panel over the status line](mockups/bottom-panel.html): which-key's classic full-width panel in
-  columns.
-- [Centred modal](mockups/centered-modal.html): like VSpaceCode, dimming the page.
-- [Status line strip](mockups/status-line-strip.html): the current choices in the status line
-  itself.
+- Box, bottom right (`mockups/bottom-right-box.html`, deleted): Helix's info box, bordered, titled
+  with the keys pressed, above the status line.
+- Panel over the status line (`mockups/bottom-panel.html`, deleted): which-key's classic full-width
+  panel in columns.
+- Centred modal (`mockups/centered-modal.html`, deleted): like VSpaceCode, dimming the page.
+- Status line strip (`mockups/status-line-strip.html`, deleted): the current choices in the status
+  line itself.
 
 | Option            | Hides page content      | Fits many entries       | Matches terminal look (borders with titles)      |
 | ----------------- | ----------------------- | ----------------------- | ------------------------------------------------ |
