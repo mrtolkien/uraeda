@@ -178,7 +178,8 @@ from the plan, and every choice a later reader would want explained, is a ruling
 feature's `rulings.md`, from
 [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit as
 the code it concerns. It is the feature's small ledger of low-impact decisions, in a fixed format:
-what was decided, why, the alternatives considered, and what it costs if it is wrong.
+what was decided, why, and, when they help, the alternatives considered and what it costs if it is
+wrong.
 
 A ruling is never a [decision](spec.md#what-is-a-decision): it applies inside this feature only. A
 choice that would bind future work, or that only the human can make, is a reason to stop, below.
@@ -262,15 +263,16 @@ Review the changed subsystem and affected callers, including relevant code outsi
   removal of the protection, then restore it. Exercise relevant sequences, failures, retries, and
   changes made elsewhere; use property-based tests when they provide useful coverage. List the tests
   the branch removed by the spec's list or by ruling, as
-  [when a test goes](code-quality.md#when-a-test-goes) says. Check explicit architectural
-  constraints separately from functional outcomes, through existing checks where practical. Report
-  what was actually exercised and any unverified assumptions.
+  [when a test goes](code-quality.md#when-a-test-goes) says: the record keeps them. Check explicit
+  architectural constraints separately from functional outcomes, through existing checks where
+  practical. Report what was actually exercised and any unverified assumptions.
 - **Change cost**: identify duplicated decisions, unnecessary indirection, and obsolete paths. Trace
   where a likely follow-up change would belong without implementing that feature. Would it need the
   same rule edited in several places, or unrelated internals understood together? Judge the
   boundaries by that cost, rather than a preferred style, and against the project's limits.
-- **Size**: list each function and file the branch grew, with its length before and after, for the
-  pull request's description ([extract, don't grow](code-quality.md#extract-dont-grow)).
+- **Size**: list each function and file the branch grew, with its length before and after
+  ([extract, don't grow](code-quality.md#extract-dont-grow)). One past a limit is a point for the
+  pull request's opening block.
 
 ### Grade the findings
 
@@ -305,29 +307,12 @@ replaces the folder with its record, and marks the pull request ready.
 The pull request is opened as a draft after the final review, and marked ready by the
 [finish](finish.md) step, whose last commit also removes the feature's entry from `PRIORITIES.md`.
 It is the feature's last human gate: it merges the record, the decisions, and the code at once. Its
-description, written when it is marked ready, reads like a file waiting for the human, following
-[Coming back to the human](../SKILL.md#coming-back-to-the-human):
+body is written when it is marked ready: an opening block, then the record's text, then one
+screenshot per new view, as [the finish step](finish.md#mark-the-pull-request-ready) says.
 
-- **First line**: what is asked, and an honest time: "Pull request to review, about 20 minutes."
-- **What was done**, in two to four sentences, before any detail: what users can do now that they
-  could not before, and the main parts of the code it touched. The human often has several features
-  in flight, and comes to this one without its context.
-- **What most needs attention**, one line each: the rulings that change behaviour, the plan's text
-  edited during the work, a new dependency, a failure that was already there, a final review done
-  without a fresh reviewer.
-- **Links** to the record, and to `spec.md` and `plan.md` at the commit before finishing.
-- **Tests**: each acceptance scenario and review-focus item, with the test that covers it, from the
-  plan's test map. Then, apart, the tests removed, skipped, or loosened and the timeouts changed,
-  each with its ruling and the check that keeps its guarantee, or none.
-- **Size**: each function and file the branch grew, with its length before and after.
-- **Rulings**: a link to `rulings.md`, and the ones that change behaviour, one line each.
-- **Review comments**: when the plan was approved with comments, how each was carried out.
-- **Inbox notes**: the [agents' notes](inbox.md#agents-notes) the feature added, when there are any.
-- **Last line**: "Once merged, run `ura clean` to remove the worktree and the branch."
-
-If you cannot open a pull request, push the branch, and put the description in the body of the last
-commit. When the human talks with you in the session, say the same in one or two sentences, with the
-pull request's link.
+If you cannot open a pull request, push the branch, and put the body in the last commit's message.
+When the human talks with you in the session, say the same in one or two sentences, with the pull
+request's link.
 
 ## Comments on the pull request
 

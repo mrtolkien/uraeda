@@ -758,7 +758,7 @@ git commit -m "feat(testing-communication): the spec page draws the replaced beh
 
 - Consumes: task 1's ruling; task 2's fields and sections; task 3's `code-quality.md#testing`.
 
-- [ ] **Step 1: The finish step**
+- [x] **Step 1: The finish step**
 
 `finish.md` writes the record, then the pull request body from it, and owns:
 
@@ -778,14 +778,14 @@ git commit -m "feat(testing-communication): the spec page draws the replaced beh
 - "After the merge": a merged record is edited only to fix a broken link, or to add `superseded-by`
   and its line.
 
-- [ ] **Step 2: The steps that pointed to their own body**
+- [x] **Step 2: The steps that pointed to their own body**
 
 `implementation.md`'s `## Pull request` and `change.md`'s `## The pull request` keep when the pull
 request opens and is marked ready, and point to the finish step for the body, dropping their lists
 of sections. The final review's size list and removed-test list go to the record or the opening
 block, as the finish step says.
 
-- [ ] **Step 3: Templates and the example**
+- [x] **Step 3: Templates and the example**
 
 - The record template's placeholders for the new fields and sections, and their order as task 2 set
   it.
@@ -794,14 +794,19 @@ block, as the finish step says.
   timers that never fire unless told to advance them, next to the test helper it shaped; one of the
   example's rulings shows the two optional fields left out.
 - `conventions.md`'s list of record checks gains the pairing.
+- Built: the older record's "Superseded in part by" line is the last paragraph of its opening
+  `> [!NOTE]` block, since `ura check` wants a record to open with it; the finish step also allows
+  "Superseded by" for a record replaced in whole. The example's record has its Gotchas, so the
+  core's `replaced_behaviour_and_gotchas_are_optional_sections_in_their_place` inserts Replaced
+  behaviour before them instead of adding both.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then
   `nix develop -c cargo run -q -p uraeda-cli -- check specs skills/uraeda/assets/example/specs`
 - Expected: PASS, the example with no problem and its spec within its word limit.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills specs/2026-10-26-testing-communication/plan.md

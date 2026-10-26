@@ -7,6 +7,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: [what was decided]
 - **Rationale**: [why, with links to the code, task, or source]
-- **Alternatives considered**: [what else was weighed, and why not]
-- **If wrong**: [what it costs, and how to undo it]
+- **Alternatives considered**: [Optional: what else was weighed, and why not. Left out when nothing
+  close was weighed]
+- **If wrong**: [Optional: what it costs, and how to undo it. Left out when it costs little]
 - **Where**: [task N of the plan, or the file]

@@ -533,10 +533,11 @@ fn replaced_behaviour_and_gotchas_are_optional_sections_in_their_place() {
         "## Architecture\n",
         "## Replaced behaviour\n\n- **A behaviour** goes, guarded by `a test`.\n\n## Architecture\n",
     );
+    // The example's record has its Gotchas already: Replaced behaviour goes before them.
     example.edit(
         RECORD,
-        "## Questions\n",
-        "## Replaced behaviour\n\n- A behaviour.\n\n## Gotchas\n\n- A trap.\n\n## Questions\n",
+        "## Gotchas\n",
+        "## Replaced behaviour\n\n- A behaviour.\n\n## Gotchas\n",
     );
 
     assert_eq!(summary(&example.problems()), Vec::<String>::new());

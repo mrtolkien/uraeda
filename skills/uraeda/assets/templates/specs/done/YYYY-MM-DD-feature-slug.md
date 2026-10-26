@@ -2,8 +2,19 @@
 kind: [feature | change]
 finished: [YYYY-MM-DD: the day of the finishing commit]
 pull-request: [Optional: the pull request's URL]
-supersedes: [Optional: the older records this one replaces, a list of record names]
-superseded-by: [Optional: the newer records replacing this one, a list of record names]
+supersedes:
+  [
+    Optional: the older records whose behaviour this one replaces,
+    in whole or in part,
+    a list of record names,
+  ]
+superseded-by:
+  [
+    Optional,
+    added once merged by the newer record's feature:
+      the newer records that replace this one's behaviour,
+    a list of record names,
+  ]
 ---
 
 # Record: [Feature name]
@@ -13,6 +24,9 @@ superseded-by: [Optional: the newer records replacing this one, a list of record
 > The record of a merged [feature | change], not instructions to follow. Started on [YYYY-MM-DD],
 > finished on [YYYY-MM-DD], in [its pull request](https://...). Its full files are in git:
 > `git log -- [specs/ | specs/changes/]YYYY-MM-DD-feature-slug/`.
+>
+> [Optional, one line for each `superseded-by`, the last paragraph of this block: Superseded in part
+> by [YYYY-MM-DD-newer-slug](YYYY-MM-DD-newer-slug.md).]
 
 ## What and why
 
@@ -30,11 +44,14 @@ change, the root cause or the approach, and the code it touched.]
 
 ## Replaced behaviour
 
-[Optional: the behaviour the feature replaced, one line each, with the tests that guarded it.]
+[Optional, left out when nothing was replaced: the behaviour the feature replaced, one line each, in
+bold, with the tests that guarded it and the tests removed, the spec's list first, then the tests
+removed by ruling.]
 
 ## Gotchas
 
-[Optional: what the code and tests do not show, one line each, next to the choice it shaped.]
+[Optional, left out when there is none: what the code and tests do not show, one line each, starting
+with the choice it shaped and linking its code. No routine debugging step.]
 
 ## Questions
 
@@ -60,8 +77,8 @@ shortened.]
 
 ## Changes after approval
 
-[Optional: the changes made after the spec's approval that change behaviour, the spec's revisions,
-and the changes asked on the pull request, one line each, said in words, without ruling IDs.]
+[Optional: the rulings that change behaviour, the spec's revisions after its approval, and the
+changes asked on the pull request, one line each, said in words, without ruling IDs.]
 
 ## Follow-ups
 

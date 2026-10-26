@@ -46,6 +46,12 @@ due on the 31st stays on the 31st after a shorter month.
 - The repeat menu in [`EditPanel.tsx`](/src/components/EditPanel.tsx), the custom screen
   `RepeatScreen.tsx`, and the icon and undo in [`TaskRow.tsx`](/src/components/TaskRow.tsx).
 
+## Gotchas
+
+- `renderApp` in [`tests/helpers/app.tsx`](/tests/helpers/app.tsx) creates its `user` with
+  `advanceTimers`: `user-event` waits on fake timers that never fire unless told to advance them,
+  and every click hangs.
+
 ## Questions
 
 ### Round 01
