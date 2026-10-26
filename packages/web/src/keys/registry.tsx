@@ -101,10 +101,28 @@ export function KeysProvider({
     }
   }, [registry, singleKeys]);
   useLayoutEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => dispatch(registry, event);
+    // A Space the registry prevented: Firefox presses a button on the Space's keyup, whatever its
+    // keydown did, so the keyup is prevented as well.
+    let tookSpace = false;
+    const onKeyDown = (event: KeyboardEvent) => {
+      const wasPrevented = event.defaultPrevented;
+      dispatch(registry, event);
+      tookSpace = event.key === " " && !wasPrevented && event.defaultPrevented;
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (tookSpace && event.key === " ") {
+        tookSpace = false;
+        event.preventDefault();
+      }
+    };
+    const onBlur = () => void (tookSpace = false);
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
       registry.leader.dispose();
     };
   }, [registry]);

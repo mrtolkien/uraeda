@@ -243,3 +243,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a named key the leader tree needs (none now) binds like any other: a bound token is
   matched before this rule.
 - **Where**: fix pass A, `keys/sequence.ts`.
+
+## R23: The keyup of a Space the registry took is prevented, and Firefox is not a test project
+
+- **Decision**: when the registry's keydown listener prevented a Space (the leader took it from a
+  button, a link, or a row), the next `keyup` of Space is prevented too, once; a blur forgets it. A
+  Space the registry did not prevent, or one another handler had already prevented, keeps its keyup.
+  Tested at the unit level: `fireEvent.keyDown` and `keyUp` return `false` for the taken Space, and
+  `true` for a checkbox's, for another key's, and for the keyup after. No Firefox project is added:
+  the browser project runs in WebKit (`vite.config.ts`), and Playwright's Firefox, installed here
+  (`firefox-1543`), sends events into the page rather than through Firefox's own key handling, as R8
+  found for quick find, so it would not show a button pressed on keyup.
+- **Rationale**: a button is pressed by Space on `keyup` in Firefox, and a prevented `keydown` does
+  not stop it there as it does in Chromium and WebKit; the leader must never press the button the
+  human only meant to start a menu on.
+- **Alternatives considered**: a Firefox project with the button test: it would pass whether or not
+  the keyup is prevented. Preventing every Space keyup: it would stop a checkbox, a switch, and a
+  radio card from taking their own Space, which the registry leaves alone.
+- **If wrong**: a Firefox human sees the Note button pressed on releasing Space after the menu
+  opened; the check in a human's Firefox is deferred. The fix is the `keyup` listener in
+  `KeysProvider`.
+- **Where**: fix pass A, `keys/registry.tsx`; deferred check, Firefox by hand.
