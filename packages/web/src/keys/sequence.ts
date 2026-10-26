@@ -77,8 +77,9 @@ export function next(
   if (token !== "space" && !isPrintable(token)) {
     return PASSED;
   }
-  // An unbound key leaves a menu the human reads open; a sequence typed fast just ends.
-  return step.isShown ? { consumed: true, ran: null, step } : ENDED;
+  // An unbound key leaves the leader's menu the human reads open; `g`'s sequence, shown or not,
+  // and one typed fast just end.
+  return step.isShown && step.path[0] === LEADER ? { consumed: true, ran: null, step } : ENDED;
 }
 
 /**

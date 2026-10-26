@@ -78,6 +78,12 @@ test("an unbound key of a menu not yet shown ends the sequence and runs nothing"
   expect(press(hidden("space", "n"), "z")).toEqual({ consumed: true, ran: null, step: null });
 });
 
+// Break: the Space rule (an unbound key keeps a shown menu open) applied to `g` too.
+test("an unbound key of a shown g menu ends it and runs nothing", () => {
+  expect(press(shown("g"), "x")).toEqual({ consumed: true, ran: null, step: null });
+  expect(press(shown("g"), "+")).toEqual({ consumed: true, ran: null, step: null });
+});
+
 test("g then g runs gg", () => {
   expect(press(hidden("g"), "g")).toEqual({ consumed: true, ran: "g g", step: null });
   expect(press(hidden("g"), "i")).toEqual({ consumed: true, ran: "g i", step: null });
