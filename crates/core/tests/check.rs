@@ -369,6 +369,42 @@ fn each_rule() {
             format!("{RECORD}: a record opens with a \"> [!NOTE]\" block"),
         ),
         (
+            "supersedes a record that does not exist",
+            |e| e.edit(RECORD, PULL_REQUEST, &with_fields("supersedes: [2026-10-01-nothing]")),
+            format!("warning: {RECORD}:5: supersedes names \"2026-10-01-nothing\", which is not a record"),
+        ),
+        (
+            "superseded-by a record that does not exist",
+            |e| e.edit(RECORD, PULL_REQUEST, &with_fields("superseded-by: [2026-10-01-nothing]")),
+            format!("warning: {RECORD}:5: superseded-by names \"2026-10-01-nothing\", which is not a record"),
+        ),
+        (
+            "supersedes a record that does not name this one",
+            |e| {
+                e.write("specs/done/2026-10-02-older.md", &linked_record("Older", ""));
+                e.edit(RECORD, PULL_REQUEST, &with_fields("supersedes: [2026-10-02-older]"));
+            },
+            format!("warning: {RECORD}:5: 2026-10-02-older does not name this record in its superseded-by"),
+        ),
+        (
+            "superseded-by a record that does not name this one",
+            |e| {
+                e.write("specs/done/2026-10-20-newer.md", &linked_record("Newer", ""));
+                e.edit(RECORD, PULL_REQUEST, &with_fields("superseded-by: [2026-10-20-newer]"));
+            },
+            format!("warning: {RECORD}:5: 2026-10-20-newer does not name this record in its supersedes"),
+        ),
+        (
+            "supersedes is not a list",
+            |e| e.edit(RECORD, PULL_REQUEST, &with_fields("supersedes: x")),
+            format!("{RECORD}:5: supersedes \"x\" is not a list of records"),
+        ),
+        (
+            "superseded-by is not a list",
+            |e| e.edit(RECORD, PULL_REQUEST, &with_fields("superseded-by: x")),
+            format!("{RECORD}:5: superseded-by \"x\" is not a list of records"),
+        ),
+        (
             "priorities without a section",
             |e| e.edit("specs/PRIORITIES.md", "## Next", "## Elsewhere"),
             "specs/PRIORITIES.md: missing section \"## Next\"".into(),
@@ -426,6 +462,91 @@ fn each_rule() {
             "{name}: {expected}\nin {problems:#?}"
         );
     }
+}
+
+const PULL_REQUEST: &str = "pull-request: https://github.com/example/todo/pull/42\n";
+
+/// The example record's `pull-request` line, with `fields` on the lines after it.
+fn with_fields(fields: &str) -> String {
+    format!("{PULL_REQUEST}{fields}\n")
+}
+
+/// A record with `fields` after its `pull-request` line, for the lists that link records.
+fn linked_record(title: &str, fields: &str) -> String {
+    let text = record("feature", title);
+    let line = "pull-request: https://github.com/owner/repo/pull/1\n";
+    let fields = if fields.is_empty() {
+        String::new()
+    } else {
+        format!("{fields}\n")
+    };
+    text.replacen(line, &format!("{line}{fields}"), 1)
+}
+
+/// A record's lists: an older record replaced in two parts pairs with both newer records, and each
+/// record reports its own side only.
+#[test]
+fn a_record_superseded_twice_pairs_with_both() {
+    const OLDER: &str = "specs/done/2026-10-01-older.md";
+    const A: &str = "specs/done/2026-10-05-a.md";
+    const B: &str = "specs/done/2026-10-06-b.md";
+    let example = Example::new();
+    let newer = |title| linked_record(title, "supersedes: [2026-10-01-older]");
+    example.write(A, &newer("A"));
+    example.write(B, &newer("B"));
+    example.write(
+        OLDER,
+        &linked_record("Older", "superseded-by: [2026-10-05-a, 2026-10-06-b]"),
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+
+    example.write(
+        OLDER,
+        &linked_record("Older", "superseded-by: [2026-10-06-b]"),
+    );
+
+    let problems = check::check(example.root(), &example.root().join(A)).unwrap();
+    assert_eq!(
+        summary(&problems),
+        [format!(
+            "warning: {A}:5: 2026-10-01-older does not name this record in its superseded-by"
+        )]
+    );
+    let problems = check::check(example.root(), &example.root().join(B)).unwrap();
+    assert_eq!(summary(&problems), Vec::<String>::new());
+}
+
+/// The optional sections of replaced behaviour and gotchas: a spec and a record may hold them where
+/// the template puts them, and one out of place is reported.
+#[test]
+fn replaced_behaviour_and_gotchas_are_optional_sections_in_their_place() {
+    let example = Example::new();
+    let spec = format!("{FEATURE}/spec.md");
+    example.edit(
+        &spec,
+        "## Architecture\n",
+        "## Replaced behaviour\n\n- **A behaviour** goes, guarded by `a test`.\n\n## Architecture\n",
+    );
+    example.edit(
+        RECORD,
+        "## Questions\n",
+        "## Replaced behaviour\n\n- A behaviour.\n\n## Gotchas\n\n- A trap.\n\n## Questions\n",
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+
+    example.edit(&spec, "## Replaced behaviour\n", "## Swap\n");
+    example.edit(&spec, "## Architecture\n", "## Replaced behaviour\n");
+    example.edit(&spec, "## Swap\n", "## Architecture\n");
+
+    assert!(
+        summary(&example.problems())
+            .iter()
+            .any(|problem| problem.ends_with(
+                "\"## Replaced behaviour\" must come before \"## Architecture\", as in the template"
+            ))
+    );
 }
 
 /// SC-003: a story link is a plain markdown link, and a spec holding one checks without problem.

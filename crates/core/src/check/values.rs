@@ -27,7 +27,10 @@ fn fields(kind: Checked) -> Option<(&'static [&'static str], &'static [&'static 
             &["status", "approved-by"],
             &["icon", "preview-folder", "preview-command"],
         )),
-        Checked::Record => Some((&["kind", "finished"], &["pull-request"])),
+        Checked::Record => Some((
+            &["kind", "finished"],
+            &["pull-request", "supersedes", "superseded-by"],
+        )),
         _ => None,
     }
 }
@@ -168,7 +171,7 @@ fn shown(value: &Value) -> String {
         Value::Integer(number) => number.to_string(),
         Value::Bool(value) => value.to_string(),
         Value::Null => "empty".to_string(),
-        Value::Other => "a list or a map".to_string(),
+        Value::List(_) | Value::Other => "a list or a map".to_string(),
     }
 }
 
@@ -220,6 +223,7 @@ pub(super) fn check_frontmatter(
     }
     if file.kind == Checked::Record {
         check_finished(file, &front, problems);
+        check_supersession(file, &front, problems);
     }
     if file.kind == Checked::PreviewDecision {
         for (rule, message) in preview::field_problems(&front) {
@@ -312,5 +316,59 @@ fn check_finished(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<Probl
             "frontmatter.finished",
             format!("finished {} is not a date: YYYY-MM-DD", shown(value)),
         ));
+    }
+}
+
+/// A record's `supersedes` and `superseded-by` are lists of records, and each one names this record
+/// back in the other list. Each record reports its own side only, as a warning: a check of one file
+/// keeps the problems of that file.
+fn check_supersession(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<Problem>) {
+    let own = file
+        .path
+        .rsplit('/')
+        .next()
+        .and_then(|name| name.strip_suffix(".md"))
+        .unwrap_or_default();
+    for (key, partner_key) in [
+        ("supersedes", "superseded-by"),
+        ("superseded-by", "supersedes"),
+    ] {
+        let Some(value) = front.get(key) else {
+            continue;
+        };
+        let rule = format!("frontmatter.{key}");
+        let line = front.line(key);
+        let Some(names) = front.list(key) else {
+            let message = match value {
+                Value::List(_) | Value::Other => format!("{key} is not a list of record names"),
+                other => format!("{key} {} is not a list of records", shown(other)),
+            };
+            problems.push(file.problem(line, &rule, message));
+            continue;
+        };
+        for name in names {
+            let Some(partner) = file.folder.get(&format!("{name}.md")) else {
+                problems.push(file.warning(
+                    line,
+                    &rule,
+                    format!("{key} names \"{name}\", which is not a record"),
+                ));
+                continue;
+            };
+            let names_back = super::parse_frontmatter(partner)
+                .and_then(|partner| {
+                    partner
+                        .list(partner_key)
+                        .map(|list| list.iter().any(|item| item == own))
+                })
+                .unwrap_or(false);
+            if !names_back {
+                problems.push(file.warning(
+                    line,
+                    &rule,
+                    format!("{name} does not name this record in its {partner_key}"),
+                ));
+            }
+        }
     }
 }
