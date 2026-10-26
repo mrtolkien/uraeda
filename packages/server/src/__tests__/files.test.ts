@@ -1,8 +1,20 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { attachImage } from "uraeda-binding";
-import { expect, test } from "vite-plus/test";
-import { fixture, fixtureRepo, git, port, testApp } from "./helpers.ts";
+import { expect, test, vi } from "vite-plus/test";
+import { createApp } from "../app.ts";
+import { FrameSecret } from "../sign-in/frames.ts";
+import {
+  appSettings,
+  binding,
+  fixture,
+  fixtureRepo,
+  git,
+  port,
+  testApp,
+  testHosts,
+  testPreviews,
+} from "./helpers.ts";
 
 test("serves a mockup sandboxed, with its type", async () => {
   const repo = fixtureRepo();
@@ -62,6 +74,40 @@ test("serves a file's raw text, and nothing outside the repository", async () =>
   expect(await draft.text()).toContain("# Git listener process");
   expect(draft.headers.get("content-type")).toBe("text/plain; charset=utf-8");
   expect(outside.status).toBe(404);
+});
+
+test("a file that cannot be read for another reason than its absence is a server error, logged", async () => {
+  const { dataDir, hosts, names, sessions } = await testHosts([fixtureRepo()], {
+    installed: false,
+  });
+  // The core fails for a reason other than a missing file.
+  const failing = {
+    ...binding,
+    readRaw: () => Promise.reject(new Error("refused: disk unreadable")),
+  };
+  const frames = new FrameSecret();
+  const app = createApp({
+    allowOrigins: [],
+    binding: failing,
+    dataDir,
+    frames,
+    hosts,
+    port,
+    previews: testPreviews(),
+    sessions,
+    settings: (await appSettings()).settings,
+  });
+  const log = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+  const raw = await app.request(`http://127.0.0.1:${port}/r/${names[0]}/raw/specs/README.md`);
+  const mockup = await app.request(
+    `http://127.0.0.1:${port}/r/${names[0]}/mockups/${frames.current()}/specs/x/mockups/ui.html`,
+  );
+  const logged = log.mock.calls.map(([line]) => String(line)).join("");
+  log.mockRestore();
+
+  expect([raw.status, mockup.status]).toEqual([500, 500]);
+  expect(logged).toContain("refused: disk unreadable");
 });
 
 test("serves an image with its type, nosniff, and default-src 'none'", async () => {
