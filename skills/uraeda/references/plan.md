@@ -259,9 +259,11 @@ What goes in each section:
   spec to its task and test. A review-focus item gets its row, named "Review focus:" with its
   subject. It opens with a sentence on how the tests run: what they render, on which store, with
   which clock, and which checks use a real boundary. A row names the check that owns the guarantee:
-  one test may own several rows, and a row needs no test of its own when another owns it. A row
-  where the stage asks no test says "none" and why: see [how many](code-quality.md#how-many). An
-  error the code handles but no edge case names gets its row too.
+  one test may own several rows, and a row needs no test of its own when another owns it. When an
+  existing test owns part of a row, such as an old result the scenario says still holds, the row
+  names that test for it, and the new test asserts only the rest. A row where the stage asks no test
+  says "none" and why: see [how many](code-quality.md#how-many). An error the code handles but no
+  edge case names gets its row too.
 - **Waves**: one line per wave, following [Waves](#waves): its tasks, and, for a wave of several,
   the shared files they each add to, if any. The implementation reads this section to decide what
   runs at the same time.
