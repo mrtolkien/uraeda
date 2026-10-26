@@ -4,6 +4,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 import { inRepositoryFolder } from "../../.storybook/inRepositoryFolder.tsx";
+import { DESTINATIONS } from "../destinations.ts";
 import { Home } from "../Home.tsx";
 import { Shell } from "../Shell.tsx";
 import { LeaderMenu, type MenuEntry } from "./LeaderMenu.tsx";
@@ -21,25 +22,26 @@ function Over({ children }: { children: ReactNode }) {
 }
 
 const TOP: ReadonlyArray<MenuEntry> = [
-  { key: "space", label: "Find anything…" },
-  { key: "h", label: "Home" },
-  { key: "i", label: "Inbox" },
-  { key: "p", label: "Priorities" },
-  { key: "d", label: "Decisions" },
-  { key: "s", label: "Sessions" },
-  { key: ",", label: "Settings" },
-  { isGroup: true, key: "n", label: "new" },
-  { isGroup: true, key: "f", label: "find" },
-  { isGroup: true, key: "u", label: "ui" },
-  { key: "r", label: "Switch repository…" },
+  { icon: "search", key: "space", label: "Find anything…" },
+  { icon: "uraeda:arrow-right", key: "c", label: "Continue" },
+  { icon: DESTINATIONS.home.icon, key: "h", label: DESTINATIONS.home.label },
+  { icon: DESTINATIONS.inbox.icon, key: "i", label: DESTINATIONS.inbox.label },
+  { icon: DESTINATIONS.priorities.icon, key: "p", label: DESTINATIONS.priorities.label },
+  { icon: DESTINATIONS.decisions.icon, key: "d", label: DESTINATIONS.decisions.label },
+  { icon: DESTINATIONS.sessions.icon, key: "s", label: DESTINATIONS.sessions.label },
+  { icon: DESTINATIONS.settings.icon, key: ",", label: DESTINATIONS.settings.label },
+  { icon: "uraeda:plus", isGroup: true, key: "n", label: "New" },
+  { icon: "search", isGroup: true, key: "f", label: "Find" },
+  { icon: "uraeda:palette", isGroup: true, key: "u", label: "UI" },
+  { icon: "uraeda:layers", key: "r", label: "Switch repository…" },
 ];
 
 const NEW: ReadonlyArray<MenuEntry> = [
-  { key: "s", label: "Session" },
-  { key: "c", label: "Change" },
-  { key: "f", label: "Feature" },
-  { key: "n", label: "Note (inbox entry)" },
-  { key: "p", label: "Priority" },
+  { icon: DESTINATIONS.sessions.icon, key: "s", label: "Session" },
+  { icon: "uraeda:git-compare", key: "c", label: "Change" },
+  { icon: "uraeda:step-spec", key: "f", label: "Feature" },
+  { icon: "uraeda:pencil", key: "n", label: "Note (inbox entry)" },
+  { icon: DESTINATIONS.priorities.icon, key: "p", label: "Priority" },
 ];
 
 const meta = {

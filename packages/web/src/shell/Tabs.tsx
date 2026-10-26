@@ -9,6 +9,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
 import { useInbox } from "../data.ts";
 import { useRepoPath } from "../routes.tsx";
+import { DESTINATIONS } from "../destinations.ts";
 import { useNavigation } from "../sessionData.ts";
 import { runningSessions } from "../sidebar/entries.ts";
 import { selects } from "../sidebar/Row.tsx";
@@ -98,10 +99,10 @@ function InboxCounted({ isCurrent }: { isCurrent: boolean }) {
     <Tab
       count={inbox?.count}
       counted={(n) => plural(n, "note")}
-      icon="uraeda:inbox"
+      icon={DESTINATIONS.inbox.icon}
       isCurrent={isCurrent}
-      label="Inbox"
-      to="/inbox"
+      label={DESTINATIONS.inbox.label}
+      to={DESTINATIONS.inbox.path}
     />
   );
 }
@@ -110,10 +111,22 @@ export function Tabs() {
   const pathname = useShellPath();
   const data = useNavigation();
   const at = (to: string) => selects(pathname, to);
-  const inbox = <Tab icon="uraeda:inbox" isCurrent={at("/inbox")} label="Inbox" to="/inbox" />;
+  const inbox = (
+    <Tab
+      icon={DESTINATIONS.inbox.icon}
+      isCurrent={at(DESTINATIONS.inbox.path)}
+      label={DESTINATIONS.inbox.label}
+      to={DESTINATIONS.inbox.path}
+    />
+  );
   return (
     <nav aria-label="Tabs" {...stylex.props(ruleStyles.below, styles.bar)}>
-      <Tab icon="uraeda:home" isCurrent={at("/")} label="Home" to="/" />
+      <Tab
+        icon={DESTINATIONS.home.icon}
+        isCurrent={at(DESTINATIONS.home.path)}
+        label={DESTINATIONS.home.label}
+        to={DESTINATIONS.home.path}
+      />
       {data.workspace?.noSpecs ? (
         inbox
       ) : (
@@ -121,22 +134,32 @@ export function Tabs() {
           <InboxCounted isCurrent={at("/inbox")} />
         </Suspense>
       )}
-      <Tab icon="uraeda:list" isCurrent={at("/priorities")} label="Priorities" to="/priorities" />
+      <Tab
+        icon={DESTINATIONS.priorities.icon}
+        isCurrent={at(DESTINATIONS.priorities.path)}
+        label={DESTINATIONS.priorities.label}
+        to={DESTINATIONS.priorities.path}
+      />
       <Tab
         count={runningSessions(data)}
         counted={(n) => `${n} running`}
-        icon="uraeda:activity"
-        isCurrent={at("/sessions")}
-        label="Sessions"
-        to="/sessions"
+        icon={DESTINATIONS.sessions.icon}
+        isCurrent={at(DESTINATIONS.sessions.path)}
+        label={DESTINATIONS.sessions.label}
+        to={DESTINATIONS.sessions.path}
       />
       <Tab
-        icon="uraeda:decision-ruler"
-        isCurrent={at("/decisions")}
-        label="Decisions"
-        to="/decisions"
+        icon={DESTINATIONS.decisions.icon}
+        isCurrent={at(DESTINATIONS.decisions.path)}
+        label={DESTINATIONS.decisions.label}
+        to={DESTINATIONS.decisions.path}
       />
-      <Tab icon="uraeda:settings" isCurrent={at("/settings")} label="Settings" to="/settings" />
+      <Tab
+        icon={DESTINATIONS.settings.icon}
+        isCurrent={at(DESTINATIONS.settings.path)}
+        label={DESTINATIONS.settings.label}
+        to={DESTINATIONS.settings.path}
+      />
       <Tab icon="uraeda:plus" isCurrent={at("/new")} label="New" to="/new" variant="primary" />
     </nav>
   );

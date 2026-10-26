@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,29 +8,46 @@ plan-review: false
 
 # Spec: Leader key/shortcut map
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-10-26: 7 comments in spec-review.md.
+> Spec to review, about 10 minutes.
 >
 > - You approve a Space leader menu, `g` sequences, and one base keymap on every page, all declared
 >   in one key registry, with a setting in the settings file that turns single-key shortcuts off.
-> - New decision: [Keyboard](../decisions/keyboard.md). Every key lives in the registry, pages share
->   a base keymap, and a letter key is never the only way to do something.
-> - You chose every page in this one feature. It stays at 6 stories, but the keymap tables in the
->   second and third stories are what to check, key by key.
-> - Read one way among several: `a` adds at the page's default place, `o` adds beside the selected
->   row, and `i` edits it. `n` is no add key, so the questions page keeps it for "next unanswered".
-> - Settled while writing: `G` goes to the bottom, `Space Space` searches all kinds, a pending `g`
->   shows the same menu, and on phones the menu spans the window.
-> - Unverified: Space under a screen reader's browse mode, and the preview's raw file text, which
->   the plan's first tasks check.
-> - Risk tier `medium`: the settings file gains a table, and every page's keys change. The plan does
->   not wait for your review.
+> - Since your review, all seven comments are done but one part: shifted `+` and `-` cannot move an
+>   item, because `+` already needs Shift. `J K H L` and Shift with the arrows do.
+> - Changed decision: [Keyboard](../decisions/keyboard.md) now says each key is declared with its
+>   label, icon, and whether the status line shows it. The menu and the sidebar share one list of
+>   places and their icons.
+> - New: `c` is Continue, which goes to what needs you, with a small picker when there is more than
+>   one. The New page's kinds have keys: `s`, `c`, `f`.
+> - Read one way: the menu is in alphabetical order of its keys, `+` is next and `-` previous, and
+>   the shifted movement keys move the selected item itself.
+> - Unverified, unchanged: Space under a screen reader's browse mode, and the preview's raw file
+>   text, which the plan's first tasks check.
+> - Risk tier `medium`, unchanged. The plan does not wait for your review. Users drive the whole web
+>   UI from the keyboard. Space opens a leader menu of nested groups and searches, `g` sequences go
+>   to pages, and every page shares one base keymap. One registry declares every key, so a key
+>   search and a dynamic status line can come later. See the [proposal](proposal.md),
+>   [discovery](discovery-01.md), and [clarifications](clarifications-01.md).
 
-Users drive the whole web UI from the keyboard. Space opens a leader menu of nested groups and
-searches, `g` sequences go to pages, and every page shares one base keymap. One registry declares
-every key, so a key search and a dynamic status line can come later. See the
-[proposal](proposal.md), [discovery](discovery-01.md), and [clarifications](clarifications-01.md).
+## Your review
+
+- **C1** (icons, one definition, derive from features): done. The menu shows the Space key as its
+  icon and every entry with one. The sidebar, the phone's tabs, and the menu read one list of
+  places, and the menu's entries come from the keys each feature declares, with their label and
+  icon.
+- **C2** (a key for Needs you): done. `c` is Continue: it opens the one thing that needs you, or a
+  small picker of them when there are several.
+- **C3** (alphabetical menu): done. Entries are in alphabetical order of their keys, Space and the
+  symbols first.
+- **C4** (`+` and `-`): done. `+` moves to the next row and `-` to the previous, like `j` and `k`.
+- **C5** (New page keys): done. On the New page, `s`, `c`, and `f` pick Session, Change, or Feature.
+- **C6** (shifted movement): done, in part. `J K H L` and Shift with the arrows move the selected
+  item itself. Shift with `+` and `-` is not offered: `+` already needs Shift, and Shift with `-`
+  types `_`, so the keys could not be told apart.
+- **C7** (which keys the status line shows): done. Each key is declared with whether its hint shows:
+  the line shows `j k`, and not the arrows, `+`, or `-`.
 
 ## Decisions
 
@@ -53,7 +70,9 @@ Relied on:
 ### US1: Open the leader menu with Space (P1)
 
 Outside text fields, Space opens a menu of what the next key does. Keys typed quickly run without
-showing it. A group key goes down a level, Backspace goes up, and Escape closes.
+showing it. A group key goes down a level, Backspace goes up, and Escape closes. Each entry has an
+icon, the Space key is drawn as its own, and the entries are in alphabetical order of their keys,
+Space and the symbols first.
 
 [Leader menu, top level](/packages/web/src/keys/LeaderMenu.stories.tsx#TopLevel)
 
@@ -64,6 +83,7 @@ The top level, from the groups you chose:
 | Key                 | Does                                                                                                         |
 | ------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `Space`             | find anything: every kind of thing in one picker                                                             |
+| `c`                 | continue: open what needs you, or pick among them when there are several                                     |
 | `h` `i` `p` `d` `s` | Home, Inbox, Priorities, Decisions, Sessions                                                                 |
 | `,`                 | Settings                                                                                                     |
 | `n`                 | new: `s` session, `c` change, `f` feature, `n` note, `p` priority                                            |
@@ -84,14 +104,17 @@ Key scenarios:
 
 More scenarios:
 
-1. **Given** the menu is open, **When** you press a key bound to nothing, **Then** the menu stays
+1. **Given** three cards need you, **When** you press `Space` `c`, **Then** a small picker lists
+   them, and Enter opens the selected one. With one card it opens at once, and with none the menu
+   says "Nothing needs you".
+2. **Given** the menu is open, **When** you press a key bound to nothing, **Then** the menu stays
    open and nothing runs.
-2. **Given** a dialog is open, **When** you press Space, **Then** the dialog's own keys act.
-3. **Given** the focus on the "Note" button, **When** you press Space, **Then** the menu opens and
+3. **Given** a dialog is open, **When** you press Space, **Then** the dialog's own keys act.
+4. **Given** the focus on the "Note" button, **When** you press Space, **Then** the menu opens and
    the button is not pressed; Enter still presses it.
-4. **Given** the focus on a checkbox, **When** you press Space, **Then** it ticks, and no menu
+5. **Given** the focus on a checkbox, **When** you press Space, **Then** it ticks, and no menu
    opens.
-5. **Given** a phone-width window with a keyboard, **When** you press Space and wait, **Then** the
+6. **Given** a phone-width window with a keyboard, **When** you press Space and wait, **Then** the
    menu spans the window's width above the page, in one column.
 
 ### US2: Go anywhere, and move the same way everywhere (P1)
@@ -102,18 +125,19 @@ for its second key.
 
 The base keymap, outside text fields and with no layer open:
 
-| Keys                             | Do                                                            |
-| -------------------------------- | ------------------------------------------------------------- |
-| `j` `k`, `↓` `↑`                 | move to the next or previous row, card, or option             |
-| `h` `l`, `←` `→`                 | move between columns, where a page has them                   |
-| `Home` `End`                     | first and last row                                            |
-| `g` `g`, `G`                     | top and bottom of the page                                    |
-| `Enter`, `Escape`                | open the selected row, close the pane or go back one step     |
-| `[` `]`                          | fold the navigation, fold the right column                    |
-| `a`                              | add the page's main kind of item, at its default place        |
-| `o`                              | add beside the selected row: same section or category         |
-| `i`                              | edit the selected item in place, or focus the page's text box |
-| `g` then `h` `i` `p` `d` `s` `,` | go to Home, Inbox, Priorities, Decisions, Sessions, Settings  |
+| Keys                                     | Do                                                                                                           |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `j` `k`, `↓` `↑`, `+` `-`                | move to the next or previous row, card, or option                                                            |
+| `h` `l`, `←` `→`                         | move between columns, where a page has them                                                                  |
+| `J` `K` `H` `L`, `Shift` with the arrows | move the selected item itself: down, up, to the previous or next column or section, where items can be moved |
+| `Home` `End`                             | first and last row                                                                                           |
+| `g` `g`, `G`                             | top and bottom of the page                                                                                   |
+| `Enter`, `Escape`                        | open the selected row, close the pane or go back one step                                                    |
+| `[` `]`                                  | fold the navigation, fold the right column                                                                   |
+| `a`                                      | add the page's main kind of item, at its default place                                                       |
+| `o`                                      | add beside the selected row: same section or category                                                        |
+| `i`                                      | edit the selected item in place, or focus the page's text box                                                |
+| `g` then `h` `i` `p` `d` `s` `,`         | go to Home, Inbox, Priorities, Decisions, Sessions, Settings                                                 |
 
 A key a page has no use for is unbound there and not hinted.
 
@@ -136,17 +160,17 @@ More scenarios:
 
 ### US3: A few keys of each page's own (P2)
 
-Pages add few keys beyond the base ones, each a mnemonic. Home, Sessions, and New have none besides
-`a`.
+Pages add few keys beyond the base ones, each a mnemonic. Home and Sessions have none besides `a`.
 
 | Page                                  | Keys beyond the base                                                                                                        |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Home, Sessions                        | `a` opens the New page                                                                                                      |
-| Priorities                            | `a` opens the add form, `o` adds in the selected row's section, `i` edits the line, `m` moves it to another section         |
+| Priorities                            | `a` opens the add form, `o` adds in the selected row's section, `i` edits the line, `m` opens a menu to move it             |
 | Inbox                                 | `a` opens the add-note form, `o` adds in the selected note's category, `i` edits the note, `m` moves it to another category |
 | Questions, triage, decisions check    | `n` `p` next and previous unanswered question, as today                                                                     |
 | Decisions                             | `/` opens the decisions picker, as today                                                                                    |
-| A session, and the New page           | `i` focuses the text box, and Escape leaves it, keeping the draft                                                           |
+| A session                             | `i` focuses the text box, and Escape leaves it, keeping the draft                                                           |
+| New                                   | `s` `c` `f` pick Session, Change, or Feature, `i` focuses the text box                                                      |
 | Documents, features, settings, editor | the base keys only                                                                                                          |
 
 Key scenarios:
@@ -157,6 +181,10 @@ Key scenarios:
    Escape returns the focus to the page with the draft kept.
 3. **Given** the priorities page with a line selected, **When** you press `m`, **Then** the move
    menu opens for that line.
+4. **Given** the Next section's second line selected, **When** you press `K`, **Then** it moves
+   above the first, as a drag would, and `L` moves it to Later.
+5. **Given** the New page with Session picked, **When** you press `f`, **Then** the Feature card is
+   picked, as a click would.
 
 ### US4: Find anything with a picker (P2)
 
@@ -210,8 +238,9 @@ More scenarios:
 
 ### US6: The status line shows the keys that work (P3)
 
-The status line draws the hints of the page's registered keys, as it does now, and nothing else. On
-a phone it shows none, and the keys still work.
+The status line draws the hints of the page's registered keys, as it does now. Each key says whether
+its hint shows, so a line with `j k` does not also list the arrows, `+`, and `-`. On a phone it
+shows none, and the keys still work.
 
 Key scenarios:
 
@@ -219,6 +248,8 @@ Key scenarios:
    `n p unanswered` among its hints, drawn from the registry.
 2. **Given** the priorities page, **When** you open a dialog, **Then** the page's hints leave the
    line until it closes.
+3. **Given** a list page, **When** it shows, **Then** the line reads `j k move`, and the arrows,
+   `+`, and `-` move too without a hint.
 
 ## Architecture
 
@@ -228,16 +259,21 @@ the [Keyboard decision](../decisions/keyboard.md), and fixes the three copies of
 found in [the code](discovery-01.md#rules-and-their-owners). We write the matching ourselves, as you
 chose, rather than adding a library: [the options](discovery-01.md#the-key-library).
 
-- **The key registry** holds each binding: its keys, label, group, page, and handler. It owns the
-  one window listener, matching by the typed character, skipping text fields, composition, and open
-  layers, and it owns sequences with their 2-second wait. It refuses two meanings for one key on a
-  page.
+- **The places** are one list of Home, Inbox, Priorities, Sessions, Decisions, and Settings, each
+  with its label, icon, and path. The navigation column, the phone's tabs, and the leader menu read
+  it, so an icon is defined once. It exists already in the mockup's code.
+- **The key registry** holds each binding: its keys, label, icon, group, page, whether its hint
+  shows, and handler. A feature adds its keys there, and the leader menu is whatever the registry
+  holds for the step, sorted by key, so it grows with the features. It owns the one window listener,
+  matching by the typed character, skipping text fields, composition, and open layers, and it owns
+  sequences with their 2-second wait. It refuses two meanings for one key on a page.
 - **The off switch** is read by the registry. Off, it drops every binding of a single character, and
   keeps the modifier chord for the menu.
 - **The leader menu** draws the registry's current step after a half-second delay, in the bottom
   right, titled with the keys pressed. Its mockup is already a story.
 - **The key picker** is the Jump palette made general: one component, a source per kind, and a raw
-  markdown preview. The decisions page's `/` uses its decisions source.
+  markdown preview. The decisions page's `/` uses its decisions source, and Continue uses a source
+  of what needs you.
 - **The keyboard setting** adds a `[keyboard]` table to the settings in the Rust core, and a
   Keyboard section to the settings page. See [the data model](data-model.md).
 - **The status line** reads hints from the registry, replacing its separate declarations.
@@ -260,10 +296,12 @@ Tradeoffs:
 | High       | The switch is turned off with the menu open   | the menu closes                                                 |
 | High       | Space on a focused button                     | the menu opens and the button is not pressed; Enter presses it  |
 | High       | The settings file cannot be read              | shortcuts stay on, and the settings page says so                |
+| High       | `Space` `c` with nothing that needs you       | the menu says "Nothing needs you" and nothing opens             |
 | Normal     | Space on a checkbox, radio, switch, or select | it keeps Space                                                  |
 | Normal     | The page changes while the menu is open       | the menu closes                                                 |
 | Normal     | A letter on AZERTY or Dvorak                  | it matches the character typed, so `h j k l` follow the letters |
 | Normal     | Escape in a composer with unsent text         | focus leaves; the draft stays                                   |
+| Normal     | `K` on the first line of its section          | nothing moves                                                   |
 | Niche      | `/` with the browser's quick find             | the page's key wins outside text fields                         |
 
 ## Success criteria
@@ -274,6 +312,8 @@ Tradeoffs:
 - **SC-004** (nothing lost): Every shortcut that exists today works as before, through the registry.
 - **SC-005** (three letters): Each decision opens with three letters or fewer between `/` and Enter.
 - **SC-006** (off means off): With the switch off, no letter key, Space, or `g` sequence acts.
+- **SC-007** (one icon): A place's icon and label are written once, and the navigation, the tabs,
+  and the menu draw it from there.
 
 ## Assumptions
 
@@ -288,6 +328,7 @@ what your answers and notes changed:
 - `gg` goes to the top of the page.
 - `n` means different things on different pages; `a` is the base add key.
 - Previews are raw markdown.
+- The menu's order: alphabetical by key, Space and the symbols first, as your review asked.
 
 Settled while writing this spec:
 
@@ -300,6 +341,10 @@ Settled while writing this spec:
 - **The setting** has no flag or variable, like the run settings.
 - **Settings in the file** are read as the others are, a missing key meaning on.
 - **A session's preview** is its title, state, and branch: it has no markdown.
+- **`+` and `-`** move to the next and the previous row, in that order, like `j` and `k`.
+- **Shifted movement** moves the selected item with the same mechanism as a drag, and only where
+  items can be moved: the priorities and the inbox's notes.
+- **Continue** reads the cards of the navigation's Needs you pane, so the two always agree.
 - **Raw file text** for previews comes from the server, a small addition if the document tree omits
   it.
 
@@ -312,3 +357,24 @@ Settled while writing this spec:
 ## Risk tier
 
 **Medium**: the settings file gains a table, and every page's keys move onto a new registry.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-10-26: seven comments on the menu, the keys, and the status line.
+>
+> - You approve a Space leader menu, `g` sequences, and one base keymap on every page, all declared
+>   in one key registry, with a setting in the settings file that turns single-key shortcuts off.
+> - New decision: [Keyboard](../decisions/keyboard.md). Every key lives in the registry, pages share
+>   a base keymap, and a letter key is never the only way to do something.
+> - You chose every page in this one feature. It stays at 6 stories, but the keymap tables in the
+>   second and third stories are what to check, key by key.
+> - Read one way among several: `a` adds at the page's default place, `o` adds beside the selected
+>   row, and `i` edits it. `n` is no add key, so the questions page keeps it for "next unanswered".
+> - Settled while writing: `G` goes to the bottom, `Space Space` searches all kinds, a pending `g`
+>   shows the same menu, and on phones the menu spans the window.
+> - Unverified: Space under a screen reader's browse mode, and the preview's raw file text, which
+>   the plan's first tasks check.
+> - Risk tier `medium`: the settings file gains a table, and every page's keys change. The plan does
+>   not wait for your review.

@@ -15,6 +15,7 @@ import { useNavigation } from "../sessionData.ts";
 import { Allowance } from "../sidebar/Allowance.tsx";
 import { nowCount } from "../sidebar/entries.ts";
 import { Item } from "../sidebar/Row.tsx";
+import { DESTINATIONS } from "../destinations.ts";
 import { AddNoteButton, AddPriorityButton, useOpenAddForm } from "../SidebarAdd.tsx";
 import { useColumnFold } from "./fold.ts";
 import { ShellPane } from "./ShellPanes.tsx";
@@ -127,10 +128,10 @@ function InboxRow({ notes, pathname }: { notes?: number; pathname: string }) {
       actions={<AddNoteButton />}
       count={notes}
       endContent={notes === undefined ? undefined : count(notes)}
-      icon={<Icon icon="uraeda:inbox" />}
-      label="Inbox"
+      icon={<Icon icon={DESTINATIONS.inbox.icon} />}
+      label={DESTINATIONS.inbox.label}
       pathname={pathname}
-      to="/inbox"
+      to={DESTINATIONS.inbox.path}
     />
   );
 }
@@ -141,7 +142,12 @@ export function Navigate({ pathname }: { pathname: string }) {
   const now = nowCount(data);
   return (
     <ShellPane title="Navigate">
-      <Item icon={<Icon icon="uraeda:home" />} label="Home" pathname={pathname} to="/" />
+      <Item
+        icon={<Icon icon={DESTINATIONS.home.icon} />}
+        label={DESTINATIONS.home.label}
+        pathname={pathname}
+        to={DESTINATIONS.home.path}
+      />
       {data.workspace?.noSpecs ? (
         <InboxRow pathname={pathname} />
       ) : (
@@ -153,16 +159,16 @@ export function Navigate({ pathname }: { pathname: string }) {
         actions={<AddPriorityButton />}
         count={now}
         endContent={count(now)}
-        icon={<Icon icon="uraeda:list" />}
-        label="Priorities"
+        icon={<Icon icon={DESTINATIONS.priorities.icon} />}
+        label={DESTINATIONS.priorities.label}
         pathname={pathname}
-        to="/priorities"
+        to={DESTINATIONS.priorities.path}
       />
       <Item
-        icon={<Icon icon="uraeda:decision-ruler" />}
-        label="Decisions"
+        icon={<Icon icon={DESTINATIONS.decisions.icon} />}
+        label={DESTINATIONS.decisions.label}
         pathname={pathname}
-        to="/decisions"
+        to={DESTINATIONS.decisions.path}
       />
     </ShellPane>
   );
@@ -174,10 +180,10 @@ export function ColumnFoot({ pathname }: { pathname: string }) {
     <div>
       <Allowance />
       <Item
-        icon={<Icon icon="uraeda:settings" />}
-        label="Settings"
+        icon={<Icon icon={DESTINATIONS.settings.icon} />}
+        label={DESTINATIONS.settings.label}
         pathname={pathname}
-        to="/settings"
+        to={DESTINATIONS.settings.path}
       />
     </div>
   );

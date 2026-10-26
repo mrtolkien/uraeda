@@ -13,8 +13,9 @@ only way to do something.
 
 ## Rules
 
-- A shortcut that acts on the page MUST be declared in the key registry, with its label and group,
-  and MUST NOT be listened for anywhere else. Checked by a structural test and review.
+- A shortcut that acts on the page MUST be declared in the key registry, with its label, icon,
+  group, and whether the status line shows it, and MUST NOT be listened for anywhere else. Checked
+  by a structural test and review.
 - Single-key shortcuts MUST be switchable off by a setting in the settings file, and a modifier
   chord MUST stay available to open the leader menu while they are off. Checked by the settings
   page's tests.
@@ -46,10 +47,10 @@ requires a way to do
 
 ## Consequences
 
-- A new page declares its keys in the registry, and the leader menu, the status line, and a key
+- A new feature declares its keys in the registry, and the leader menu, the status line, and a key
   search read them with no further work.
 - A key conflict on one page fails a test, instead of being found by pressing keys.
-- Every shortcut needs a label and a group, and a page cannot grab a key on its own.
+- Every shortcut needs a label, an icon, and a group, and a page cannot grab a key on its own.
 - The setting is read by the server and the page, so it lives in the Rust core with the others.
 
 ## Applies to
