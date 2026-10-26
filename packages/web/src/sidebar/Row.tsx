@@ -8,6 +8,7 @@ import type { MouseEvent, ReactNode } from "react";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { useColumnFold } from "../shell/fold.ts";
 import { StatusMark } from "../StatusMark.tsx";
+import { brighten } from "./brighten.ts";
 import type { Status } from "./cards.ts";
 
 const styles = stylex.create({
@@ -128,6 +129,7 @@ export function Item({
       icon={status ? <StatusMark label={status.label} status={status.status} /> : icon}
       isSelected={selects(pathname, to)}
       label={label}
+      xstyle={brighten}
       // The pane's compact rows: their labels keep the room a pane's border and inset take.
       size="sm"
       {...(named === label ? {} : { "aria-label": named })}

@@ -1,7 +1,9 @@
 // Home: the core, then the overview. Above a dashed "Overview" line, the problems that stop the
-// workflow when there are any, what waits on the human, then In progress beside Sessions; under it,
-// the widgets two by two: the priorities now, the usage, the inbox's latest notes, and what is done.
-// From semi-wide, two columns; on the phone, one, in the same order.
+// workflow when there are any, what waits on the human, In progress, and Sessions, as the sidebar's
+// cards, in the two columns that end nearest each other (`Core.tsx`); under it, the widgets two by
+// two: the priorities now, the usage, the inbox's latest notes, and what is done. From semi-wide,
+// two columns; on the phone, one, in the same order.
+import { Fragment } from "react";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useInbox, usePriorities } from "../data.ts";
@@ -9,7 +11,8 @@ import { Pane } from "../layout/Pane.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
 import { plain } from "../Spans.tsx";
-import { InProgress, NeedsYou, Problems, Sessions } from "./Core.tsx";
+import { coreParts, splitColumns } from "./Core.tsx";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { homeFeatures } from "./features.ts";
 import { Columns, HomeRow, Overview, PaneLink } from "./parts.tsx";
 import { Recent } from "./Recent.tsx";
@@ -37,7 +40,7 @@ function PrioritiesNow({ running }: { running: Array<string> }) {
         entries.map((entry) => (
           <HomeRow
             href={here(entry.running ? `/f/${entry.running.folder}` : `/priorities/${entry.key}`)}
-            icon={<Icon color="secondary" icon="uraeda:list" size="sm" />}
+            icon={<Icon color="secondary" icon="uraeda:list" size="md" />}
             key={entry.key}
             sub={
               entry.running
@@ -69,7 +72,7 @@ function Inbox() {
         latest.map((note) => (
           <HomeRow
             href={here(`/inbox/${note.key}`)}
-            icon={<Icon color="secondary" icon="uraeda:pencil" size="sm" />}
+            icon={<Icon color="secondary" icon="uraeda:pencil" size="md" />}
             key={note.id}
             sub={note.category}
             title={note.text}
@@ -86,19 +89,38 @@ function Inbox() {
 
 export function HomeHub() {
   const { sessionList, workspace } = useNavigation();
+  const narrow = isNarrow(useWidthClass());
   if (!workspace || workspace.noSpecs) {
     return null;
   }
   const rows = sessionList?.rows ?? [];
   const { agents, human, invalid } = homeFeatures(workspace.features);
+  const parts = coreParts({ agents, human, invalid, rows });
+  // Two columns from semi-wide, split so that they end as near each other as they can; the
+  // reading order on the phone.
+  const [left, right] = splitColumns(parts);
   return (
     <VStack gap={1}>
-      <Problems features={invalid} />
-      <NeedsYou features={human} />
-      <Columns isCore>
-        <InProgress features={agents} rows={rows} />
-        <Sessions rows={rows} />
-      </Columns>
+      {narrow ? (
+        <VStack gap={1}>
+          {parts.map((part) => (
+            <Fragment key={part.key}>{part.node}</Fragment>
+          ))}
+        </VStack>
+      ) : (
+        <Columns>
+          <VStack gap={1}>
+            {left.map((part) => (
+              <Fragment key={part.key}>{part.node}</Fragment>
+            ))}
+          </VStack>
+          <VStack gap={1}>
+            {right.map((part) => (
+              <Fragment key={part.key}>{part.node}</Fragment>
+            ))}
+          </VStack>
+        </Columns>
+      )}
       <Overview />
       <Columns>
         <PrioritiesNow running={workspace.running} />

@@ -14,12 +14,17 @@ import { type CardItem, ItemCard } from "./ItemCard.tsx";
 import { useOpenRename } from "./RenameSession.tsx";
 import { selects } from "./Row.tsx";
 
-/** A feature's or a change's card, with the lines its branch changed once read. */
-function FeatureCard({
+/**
+ * A feature's or a change's card, with the lines its branch changed once read, and `detail` under
+ * its name on home.
+ */
+export function FeatureCard({
+  detail,
   feature,
   pathname,
   row,
 }: {
+  detail?: string | undefined;
   feature: Feature;
   pathname: string;
   row: Row | undefined;
@@ -29,6 +34,7 @@ function FeatureCard({
   const to = `/f/${feature.folder}`;
   const card = (item: CardItem) => (
     <ItemCard
+      detail={detail}
       href={here(to)}
       isSelected={selects(pathname, to)}
       item={item}
@@ -67,7 +73,7 @@ function WithChanges({
 }
 
 /** A session's card: its "…" renames it, and archives it or brings it back. */
-function SessionCard({ pathname, row }: { pathname: string; row: Row }) {
+export function SessionCard({ pathname, row }: { pathname: string; row: Row }) {
   const here = useRepoPath();
   const fate = useFateClient();
   const rename = useOpenRename();
