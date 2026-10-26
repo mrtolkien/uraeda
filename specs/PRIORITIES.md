@@ -6,8 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Coherence pass: since the terminal look was built with parallel sessions, validate that components that should be shared are shared! And check all views have the new look](/specs/changes/2026-10-26-coherence-pass/proposal.md)
-
 - [Many times the implementation made undue changes due to forcing itself to pass bad tests. We need to rephrase the testing strategy.](drafts/many-times-the-implementation-made-undue-changes.md)
 - [Leader key/shortcut map](drafts/leader-key-shortcut-map.md)
 - Full interactive UI pass: manual small fixes
@@ -21,12 +19,6 @@
 > [!NOTE]
 >
 > Goals once I'm happy with the core feature set
-
-- Neovim plugin: an "open priorities/inbox" shortcut, and review its shortcuts, they are very bad
-  atm -> overall a small review as I've used it for a bit now
-  - Would be nice to be able to connect to a running server to start steps?
-  - Small change so let's do it
-  - Offer nvim install during `ura install` if detected
 
 - References (docs) querying and storing workflow -> our own local context8?
   - Issue faced: I'm using Astryx which is pretty new, and the agents did make errors with it

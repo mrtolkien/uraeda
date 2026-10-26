@@ -20,6 +20,22 @@ Decisions content could also be extended/rewrote if it helps. A decision is enfo
 at the moment, but maybe it does not need to be the case. Decisions should be _structural_, not
 _specifics_.
 
+We also need to review the PR, ruling, and record formats, which are linked to the same concept:
+validation of changes and storing of user intention:
+
+- The PR body should just be the record: they both should explain the same thing, which is what was
+  changed, how, and why (human intent). The goal of a record is to save IMPORTANT INFORMATION for
+  future agent runs. Not to create random noise.
+- The agent should be allowed to edit old records to add links to newer ones if they were
+  superseeded by newer changes
+- This sounds a bit similar decisions, because it is: the decisions folder is storing core
+  architectural decisions and their current state, records save the human intent _per feature_, as
+  it was at the time of the feature.
+  - Records help understand past decisions.
+- I need your opinion: should records also save information about issues faced during
+  implementation? Stuff like a library not behaving as expected, or other issues that are currently
+  buried in rulings
+
 ## Why
 
 Many times the implementation made bad changes, breaking the specs, due to forcing itself to pass
