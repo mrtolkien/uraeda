@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: triangle-alert
 ---
 
@@ -18,7 +18,7 @@ reads as the feature's fault.
 - Whether a rule stops the workflow MUST be decided once, in the core, never by a tool reading its
   results. Checked by the core's tests.
 - Home and the sidebar's cards MUST show problems only, and notes MUST show only on their item's
-  page. Checked by the UI tests.
+  page. Checked by review.
 - `ura check` and editors MUST keep reporting every result at its own severity: a note is the UI's
   reading of an error. Checked by the CLI's tests.
 - A new rule of `ura check` SHOULD be a note, unless the workflow cannot go on without a fix.

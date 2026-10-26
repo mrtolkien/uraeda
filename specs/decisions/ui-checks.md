@@ -1,52 +1,56 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: scan-eye
 ---
 
 # UI checks
 
-UI work is checked by what it does for the human, not by how its markup looks. Every test earns its
-maintenance by guarding something the human asked for. Screenshots reviewed by the agent, then the
-human, catch what no rule names.
+The human checks UI work by using it, in the sandbox, not through automated tests of the UI. The
+agent hands over a UI change with the sandbox ready to try, and with one screenshot of each new view
+in the pull request. Screenshots are never kept in the repository.
 
 ## Rules
 
-- Every UI test MUST guard something a spec or decision asks for, and MUST change or go with it,
-  never loosened to keep passing. Checked by review.
-- UI tests MUST drive the UI as a user does, and MUST NOT assert markup, class names, or pixels.
-  Checked by review.
-- `vp run ready` MUST check every page a UI decision governs at a phone and a desktop size, in both
-  themes, for readability and accessibility. Checked by review.
-- Before handing over a UI change, the agent MUST review screenshots of every changed view at both
-  sizes and in both themes against the decisions, and commit them. Checked by review.
+- UI work MUST be checked by the human live, in the sandbox, against the spec and the decisions the
+  view follows. Checked by review.
+- A pull request that adds a view MUST show one screenshot of it, in the pull request only. Checked
+  by review.
+- Screenshots MUST NOT be committed to the repository for review. Checked by review.
+- The agent MUST review each changed view in the running app before handing it over, in both themes
+  and at a phone's width and a desktop's, against the decisions. Checked by review.
 
 ## Why
 
-Nothing checked the desktop, and the components drifted from their spec unseen. The human wants
-useful tests only: "each test is added maintenance, because tests also drift away from expected
-behaviour"
-([how the rules are checked](../done/2026-10-12-ui-improvements.md#q4-what-checks-an-agents-ui-work)).
-Checks on behaviour and measures survive markup changes. Pixel comparisons break across systems and
-fonts, so a local run would differ from CI, against the [toolchain](toolchain.md) decision. Most UI
-tests are whole-page flows that write to the repository or script the fake agent, which Storybook's
-shared fixture cannot reset.
+Nothing checked the desktop, and the components drifted from their spec unseen. Automated UI tests
+then grew to a suite that was slow, tied to the markup and the look, and made every visual change
+cost test edits. The human prefers to "review actual behaviour with the sandbox", and wants at most
+one screenshot of a new view, in the pull request
+([how the UI is tested](../2026-10-26-testing-communication/clarifications-01.md#q4-how-should-the-web-ui-be-tested)).
+Pixel comparisons break across systems and fonts, against the [toolchain](toolchain.md) decision.
 
 ## Alternatives considered
 
 - Pixel comparisons in CI: every visual change flagged, but images to update with each intended
   change, and failures only CI shows.
-- Storybook stories as UI tests, replayed in its Interactions panel: dropped, as flows need a fresh
-  repository and an agent channel per story.
+- Storybook stories as UI tests: dropped, as flows need a fresh repository and an agent channel per
+  story.
+- Browser tests with measures, such as a size or a width: dropped, as the look changes them without
+  a bug.
+- Screenshots reviewed by the agent and committed with the change: dropped, as they filled the
+  repository with images nobody read again.
 
 ## Consequences
 
-- A visual slip no rule names is caught by the screenshots' review, not by a test.
-- Pull requests of UI work carry images, kept in git history after the finish step removes them.
-- Browser tests are slower than happy-dom ones, so they stay limited to what needs a real layout.
-- Reviewing a UI test means reading it against the spec.
+- A regression in a UI behaviour, an accessibility rule, or a layout is found by the human's review,
+  no longer by a test.
+- The sandbox must stay easy to start, since it is the check.
+- Pull requests of UI work carry images, kept by the forge and not by git.
 
 ## Applies to
 
-- [`packages/web/`](/packages/web/), its tests, and every feature or change that adds or changes a
-  view
+- [`packages/web/`](/packages/web/), and every feature or change that adds or changes a view
+
+## Revisit when
+
+The human sets the project's stage to `growing` in the [testing](testing.md) decision.
