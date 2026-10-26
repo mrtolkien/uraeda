@@ -33,6 +33,9 @@
 
 ## Deferred fixes
 
+- [agent] [coherence-pass] Two small copies left: the spec page's section headings draw their
+  `· detail` with a copy of `GroupTitle`'s count style (`spec/SpecPage.tsx`), and `CommentCount`
+  picks "comment" or "comments" by hand beside `plural`
 - [agent] [spec-page] Live window: an HTML mockup in a nested folder (`mockups/sub/x.html`) draws
   live, but "Open the mockup's page" lands on a missing page: the route and `MockupPage` take one
   segment only
