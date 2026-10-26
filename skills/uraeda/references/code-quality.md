@@ -86,13 +86,13 @@ project's parts, pure logic with many cases, and the reproduction of each bug fi
   behaviour that has a test goes into that test, as a row or an assertion. A new test that would
   prove all an existing one proves replaces it, in the same commit.
 - **Assert only what the task adds.** A new test checks the behaviour the task adds or changes, and
-  leaves what existing tests already check to them. When the code returns several results, such as a
-  list of problems, a test of a new one picks it out, by its message or its kind, and asserts it
+  leaves what existing tests already check to them. When the code returns several results, such as
+  the rows of a report, a test of a new one picks it out, by its text or its kind, and asserts it
   alone, or its absence: it never compares the whole list. A scenario that says an existing
-  behaviour still holds, such as "only the existing error, and no warning", has two halves: the
-  existing test owns the old half, and the new test asserts the new half alone, here the warning's
-  absence. A case existing tests already run, such as the unchanged path of valid input, gets no new
-  test.
+  behaviour still holds, such as "the old message still shows, and nothing new", has two halves: the
+  existing test owns the old half, and the new test asserts the new half alone, here that nothing
+  new shows. A case existing tests already run, such as the unchanged path of valid input, gets no
+  new test.
 - **One layer per rule.** A rule that two entry points reach, such as a check and a view built on
   it, gets one test, through the entry point whose path runs all the code the rule depends on. A
   test of the inner one adds nothing.
@@ -154,9 +154,9 @@ A test that fails on a change that keeps what callers and users observe, such as
 over its limit, asserts how the code does it: remove it with a one-line ruling, as in the second
 case.
 
-A test that fails only because the new rule now flags its data, such as a date that now warns, keeps
-its point: move its data well away from the new rule, never onto the rule's edge, since the new
-rule's own tests own its edges.
+A test that fails only because the new rule now flags its data, such as a value the new rule now
+refuses, keeps its point: move its data well away from the new rule, never onto the rule's edge,
+since the new rule's own tests own its edges.
 
 Checks: the reviews of the tasks and the final review, which count a test that bends the code, or
 that went without one of these cases, as a finding.
