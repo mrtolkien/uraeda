@@ -9,7 +9,6 @@ import { Composer } from "./Composer.tsx";
 import { useSlugProposal } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { useTextField } from "./fields/useTextField.ts";
-import { Paragraph } from "./layout/Paragraph.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
 import { SlugField } from "./SlugField.tsx";
@@ -102,9 +101,6 @@ export function NewChange() {
   const [starting, setStarting] = useState(false);
   return (
     <VStack gap={4}>
-      <Paragraph color="secondary">
-        Describe the bug or the change. The first line is its title.
-      </Paragraph>
       <Composer
         images={images}
         onChange={text.change}
