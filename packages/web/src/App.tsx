@@ -58,7 +58,7 @@ import { SessionsPage } from "./shell/SessionsPage.tsx";
 import { SignInPage } from "./sign-in/SignInPage.tsx";
 import { useSignedOut } from "./sign-in/signedOut.ts";
 import { ThemeModeProvider } from "./theme.tsx";
-import { Paragraph } from "./layout/Paragraph.tsx";
+import { Missing } from "./layout/Missing.tsx";
 
 /** Shows that the server could not be reached, with a way to try again. */
 class ServerErrorBoundary extends Component<
@@ -296,7 +296,7 @@ function Nothing() {
   useRestoreScroll(true);
   return (
     <PageLayout>
-      <Paragraph>Nothing here.</Paragraph>
+      <Missing title="Nothing here." />
     </PageLayout>
   );
 }

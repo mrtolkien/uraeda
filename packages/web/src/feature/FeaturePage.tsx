@@ -12,7 +12,6 @@ import { Crumbs } from "../Crumbs.tsx";
 import { useAgent, useFeature, useHistory, useRecommendedMessage } from "../data.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
-import { Paragraph } from "../layout/Paragraph.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useRestoreScroll } from "../routes.tsx";
 import { useSession } from "../sessionData.ts";
@@ -25,6 +24,7 @@ import { Blocking, Notes } from "./Notes.tsx";
 import { Record } from "./Record.tsx";
 import { Timeline } from "./Timeline.tsx";
 import { day } from "./times.ts";
+import { Missing } from "../layout/Missing.tsx";
 
 type FeatureData = NonNullable<ReturnType<typeof useFeature>>;
 type HistoryData = NonNullable<ReturnType<typeof useHistory>>;
@@ -229,7 +229,7 @@ export function FeaturePage({ folder }: { folder: string }) {
   if (!feature || feature.missing) {
     return (
       <Page>
-        <Paragraph>No feature {folder}.</Paragraph>
+        <Missing title={`No feature ${folder}.`} />
       </Page>
     );
   }

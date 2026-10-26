@@ -1,7 +1,6 @@
 // A session's view: its header, transcript, and composer, drawn by the session's page and by a
 // round's Session column, where it scrolls in the column's box.
-import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-import { Link } from "@astryxdesign/core/Link";
+
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
@@ -40,6 +39,7 @@ import { StoriesProvider } from "./stories.tsx";
 import { Transcript } from "./Transcript.tsx";
 import { useKeepPlace } from "./useKeepPlace.ts";
 import { SessionView } from "./views.ts";
+import { Missing } from "./layout/Missing.tsx";
 
 const styles = stylex.create({
   box: {
@@ -77,23 +77,6 @@ export type Handing = {
 
 /** Why a feature's session takes no message before its proposal is committed. */
 export const NO_BRANCH = "This feature has no branch left: it is merged.";
-
-/** What a page cannot find, with the way home. */
-export function Missing({ title }: { title: string }) {
-  const here = useRepoPath();
-  return (
-    <AnnouncedBanner
-      collapsible={false}
-      description={
-        <Link hasUnderline href={here("/")}>
-          Open home
-        </Link>
-      }
-      status="error"
-      title={title}
-    />
-  );
-}
 
 /**
  * A session's header, transcript, and errors, or why there is no session `id`. While the human

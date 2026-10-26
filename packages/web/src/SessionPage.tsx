@@ -15,7 +15,8 @@ import {
   useSearch,
 } from "./routes.tsx";
 import { sessionPath } from "./sessions.ts";
-import { type Handing, Missing, NO_BRANCH, SessionPane } from "./SessionView.tsx";
+import { type Handing, NO_BRANCH, SessionPane } from "./SessionView.tsx";
+import { Missing } from "./layout/Missing.tsx";
 
 /**
  * A feature's session: created with its first message, which this view sends. Opened to hand the

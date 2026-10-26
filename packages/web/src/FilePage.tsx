@@ -1,5 +1,3 @@
-import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Crumbs } from "./Crumbs.tsx";
 import { DocumentPage } from "./DocumentPage.tsx";
@@ -9,8 +7,9 @@ import { PlanPage } from "./PlanPage.tsx";
 import { RoundPage } from "./RoundPage.tsx";
 import { DataModelPage } from "./spec/DataModelPage.tsx";
 import { SpecPage } from "./spec/SpecPage.tsx";
-import { useRepoPath, useRestoreScroll } from "./routes.tsx";
+import { useRestoreScroll } from "./routes.tsx";
 import { StoriesProvider } from "./stories.tsx";
+import { Missing } from "./layout/Missing.tsx";
 
 /**
  * A workflow file, on the page its kind needs: a spec, waiting for review or not; a round to
@@ -19,7 +18,6 @@ import { StoriesProvider } from "./stories.tsx";
  */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
   const file = useFile(folder, name);
-  const here = useRepoPath();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   if (!file || file.missing) {
@@ -27,15 +25,10 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
       <Page>
         <VStack gap={3}>
           <Crumbs current={name} folder={folder} />
-          <AnnouncedBanner
-            collapsible={false}
-            description={
-              <Link hasUnderline href={here(`/f/${folder}`)}>
-                Open the feature
-              </Link>
-            }
-            status="error"
+          <Missing
+            label="Open the feature"
             title={`No file ${name} in ${folder}.`}
+            to={`/f/${folder}`}
           />
         </VStack>
       </Page>
