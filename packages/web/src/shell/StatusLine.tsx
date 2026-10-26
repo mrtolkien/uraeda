@@ -8,18 +8,14 @@
 // the column's panes and the tabs say them where they are read.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
-import {
-  colorVars,
-  fontWeightVars,
-  spacingVars,
-  typographyVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useRef } from "react";
 import { useNavigation } from "../sessionData.ts";
 import { needsYou } from "../sidebar/cards.ts";
 import { type Data, entriesOf, runningSessions } from "../sidebar/entries.ts";
 import { useDeclaredHints, useStatusLineCovered } from "../statusHints.tsx";
+import { KeyCap } from "../keys/KeyCap.tsx";
 import { useCountsFit } from "./useCountsFit.ts";
 import { ruleStyles } from "../layout/rules.ts";
 
@@ -65,12 +61,6 @@ const styles = stylex.create({
     minWidth: 0,
     overflow: "hidden",
   },
-  key: {
-    color: colorVars["--color-text-orange"],
-    // The UI's font, where a browser sets a `kbd` in its own monospace one.
-    fontFamily: typographyVars["--font-family-body"],
-    fontWeight: fontWeightVars["--font-weight-bold"],
-  },
   line: {
     alignItems: "center",
     backgroundColor: colorVars["--color-background-muted"],
@@ -114,7 +104,7 @@ function Hints() {
           type="supporting"
           xstyle={styles.hint}
         >
-          <kbd {...stylex.props(styles.key)}>{hint.keys}</kbd> {hint.label}
+          <KeyCap>{hint.keys}</KeyCap> {hint.label}
         </Text>
       ))}
     </div>
