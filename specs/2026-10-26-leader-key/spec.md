@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 3
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Leader key/shortcut map
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 5 minutes.
+> Approved on 2026-10-26.
 >
 > - You approve a Space leader menu, `g` sequences, and one base keymap on every page, all declared
 >   in one key registry, with a setting in the settings file that turns single-key shortcuts off.
