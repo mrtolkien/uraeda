@@ -10,6 +10,7 @@ import { useRef } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { KeysProvider, useKeys } from "../keys/registry.tsx";
 import { ScrollKeys } from "../keys/scroll.ts";
+import { addSpecFeature, SPEC_FEATURE } from "uraeda-binding/test-utils";
 import { NAV_KEY } from "../shell/columnWidth.ts";
 import { useRail } from "../shell/Rail.tsx";
 import { atWidth, fixtureRepo, renderPage } from "./helpers.tsx";
@@ -230,6 +231,25 @@ test("on the settings, `[` folds the navigation with the focus on a button, and 
   expect(scrollBy).toHaveBeenCalledTimes(1);
 });
 
+/** The column's own fold, `]` and the leader's `space u ]` (US2 4): the same key, with the focus anywhere. */
+test("on a spec page, `]` and `space u ]` fold the column beside it, with the focus on a button", async () => {
+  const repo = fixtureRepo();
+  addSpecFeature(repo);
+  await renderPage(`/f/${SPEC_FEATURE}/spec.md`, repo);
+  const hide = await screen.findByRole("button", { name: /^Hide the .* column$/ });
+  hide.focus();
+
+  press("]", hide);
+  await screen.findByRole("button", { name: /^Show the .* column$/ });
+  press("]");
+  await screen.findByRole("button", { name: /^Hide the .* column$/ });
+
+  press(" ");
+  press("u");
+  press("]");
+  await screen.findByRole("button", { name: /^Show the .* column$/ });
+});
+
 /** A bare rail, and two controls of the page beside it. */
 function Rail() {
   const ref = useRef<HTMLElement>(null);
@@ -297,5 +317,48 @@ test("with the rail folded, Escape goes to the page's own binding", () => {
   );
   press("Escape");
   expect(ran).toEqual(["close"]);
+  expect(screen.getByRole("navigation", { name: "Folded" })).toBeTruthy();
+});
+
+// R31: the rail's Escape is a fallback of the registry, below the page's own Escape: with a pane open
+// and the rail open, one Escape closes the pane only, and the second, with nothing left to close,
+// folds the rail.
+test("with the rail open and a pane to close, one Escape closes the pane and the next folds the rail", () => {
+  let isPaneOpen = true;
+  function Pane() {
+    useKeys([
+      {
+        keys: "Escape",
+        label: "Close",
+        run: () => {
+          if (!isPaneOpen) {
+            return false;
+          }
+          isPaneOpen = false;
+        },
+      },
+    ]);
+    return null;
+  }
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  render(
+    <KeysProvider>
+      <Rail />
+      <Pane />
+    </KeysProvider>,
+  );
+  fireEvent.pointerOver(screen.getByRole("navigation"), { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(250));
+  const page = screen.getByRole("button", { name: "Page" });
+
+  act(() => {
+    press("Escape", page);
+  });
+  expect(isPaneOpen).toBe(false);
+  expect(screen.getByRole("navigation", { name: "Open" })).toBeTruthy();
+
+  act(() => {
+    press("Escape", page);
+  });
   expect(screen.getByRole("navigation", { name: "Folded" })).toBeTruthy();
 });
