@@ -506,7 +506,8 @@ human's comments and order.
 - Modify: `packages/server/src/settings.ts` (`KeyboardSettingsView`, `inForce`), `fate/settings.ts`,
   `fate/settings-mutations.ts` (`settings.setSingleKeyShortcuts`)
 - Modify: `packages/web/src/views.ts` (`SettingsRecordView` selects `keyboard`)
-- Generated and committed: `packages/binding/index.d.ts`, `packages/web/.fate/client.generated.ts`
+- Generated and committed: `packages/binding/index.d.ts`, `packages/binding/index.js`,
+  `packages/web/.fate/client.generated.ts`
 - Test: `crates/core/tests/settings.rs`, `packages/binding/contracts.test.ts`,
   `packages/server/src/__tests__/settings.test.ts`, `settings-fate.test.ts`
 
@@ -522,7 +523,7 @@ human's comments and order.
   problem message of a non-boolean value is `Single-key shortcuts is true or false.`, as the other
   settings word theirs.
 
-- [ ] **Step 1: Write the failing tests**, mirroring the `[runs]` tests found by following
+- [x] **Step 1: Write the failing tests**, mirroring the `[runs]` tests found by following
       `build_in_fresh_session`:
   - core: a file with `[keyboard]\nsingle_key_shortcuts = false\n` reads `Some(false)`; none reads
     `None`; `single_key_shortcuts = 1` is unreadable with
@@ -536,17 +537,17 @@ human's comments and order.
   - server: `inForce` gives `true` and source `default` with no file, with the file's value its
     source `file`, and a file the core cannot read leaves it `true` (shortcuts stay on); the fate
     mutation writes the file and returns the record.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c cargo nextest run -p uraeda-core --test settings`, expected FAIL
       `no field keyboard on type Settings`; then the binding and server tests, expected
       `settings.setSingleKeyShortcuts is not a function`.
-- [ ] **Step 3: Implement it** in the core with the table of `runs`' pattern
+- [x] **Step 3: Implement it** in the core with the table of `runs`' pattern
       (`change_table(dir, "keyboard", …)`), the binding wrapper, the server's view and mutation, and
       the web's record selection; rebuild the binding
       (`nix develop -c vp run --filter uraeda-binding build`) and run the web tests once so the fate
       plugin regenerates its client, and commit both generated files.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages specs/2026-10-26-leader-key/plan.md

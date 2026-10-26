@@ -366,6 +366,11 @@ const mutations = {
     FateAPI['mutations']['settings.setPort']['input'],
     FateAPI['mutations']['settings.setPort']['output']
   >('Settings'),
+  'settings.setSingleKeyShortcuts': mutation<
+    Settings,
+    FateAPI['mutations']['settings.setSingleKeyShortcuts']['input'],
+    FateAPI['mutations']['settings.setSingleKeyShortcuts']['output']
+  >('Settings'),
   'settled.comment': mutation<
     WorkflowFile,
     FateAPI['mutations']['settled.comment']['input'],

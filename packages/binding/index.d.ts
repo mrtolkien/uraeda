@@ -405,6 +405,9 @@ export declare function setOpenBrowser(dir: string, open: boolean): Promise<Sett
 /** Sets the port, from the text typed. */
 export declare function setPort(dir: string, port: string): Promise<Settings>
 
+/** Sets whether the keys of one printable character act in the web UI. */
+export declare function setSingleKeyShortcuts(dir: string, on: boolean): Promise<Settings>
+
 /**
  * The settings file in the config folder `dir`, the home folder written `~`, as the core's messages
  * write it.
@@ -1122,6 +1125,12 @@ export interface ItemSettingsView {
   label?: string
 }
 
+/** The `[keyboard]` table: how the web UI's keys behave. */
+export interface KeyboardSettings {
+  /** Whether the keys of one printable character act: `true` when unset. */
+  singleKeyShortcuts?: boolean
+}
+
 /**
  * The constitution and the decisions: `None` without `specs/CONSTITUTION.md`, and no decision
  * without `specs/decisions/`.
@@ -1557,6 +1566,7 @@ export interface ServerSettings {
 export interface Settings {
   server: ServerSettings
   runs: RunSettings
+  keyboard: KeyboardSettings
 }
 
 /** A comment on a settled point: a bullet of the notes, `- **<subject>**: <text>`. */

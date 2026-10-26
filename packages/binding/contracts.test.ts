@@ -4,7 +4,13 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { checkedPort, readSettings, setPort, settingsFile } from "./index.js";
+import {
+  checkedPort,
+  readSettings,
+  setPort,
+  setSingleKeyShortcuts,
+  settingsFile,
+} from "./index.js";
 import { temporaryFolder } from "./test-utils.ts";
 
 const PORT_PROBLEM = "The port is a number from 1 to 65535.";
@@ -39,6 +45,7 @@ test("settings cross the binding in camelCase, an absent key left out", async ()
   );
 
   expect(await readSettings(dir)).toEqual({
+    keyboard: {},
     runs: { buildInFreshSession: true },
     server: { allowedHosts: ["box.ts.net"], openBrowser: false },
   });
@@ -49,9 +56,23 @@ test("a write is read back by a new read, keeping the human's comment and order"
 
   const written = await setPort(dir, " 4400 ");
 
-  expect(written).toEqual({ runs: {}, server: { openBrowser: true, port: 4400 } });
+  expect(written).toEqual({ keyboard: {}, runs: {}, server: { openBrowser: true, port: 4400 } });
   expect(read(dir)).toBe("# mine\n[server]\nopen_browser = true # keep\nport = 4400\n");
   expect(await readSettings(dir)).toEqual(written);
+});
+
+test("the keyboard table crosses the binding, and a write keeps the human's comment and order", async () => {
+  const dir = configWith("# mine\n[keyboard]\nsingle_key_shortcuts = false # mouse only\n");
+
+  expect(await readSettings(dir)).toEqual({
+    keyboard: { singleKeyShortcuts: false },
+    runs: {},
+    server: {},
+  });
+  const written = await setSingleKeyShortcuts(dir, true);
+
+  expect(written.keyboard).toEqual({ singleKeyShortcuts: true });
+  expect(read(dir)).toBe("# mine\n[keyboard]\nsingle_key_shortcuts = true # mouse only\n");
 });
 
 test("a synchronous check throws its problem at the call, not as a rejection", () => {

@@ -78,3 +78,9 @@ pub fn set_open_browser(dir: String, open: bool) -> AsyncTask<Job<Settings>> {
 pub fn set_build_in_fresh_session(dir: String, fresh: bool) -> AsyncTask<Job<Settings>> {
     job(move || settings::set_build_in_fresh_session(Path::new(&dir), fresh))
 }
+
+/// Sets whether the keys of one printable character act in the web UI.
+#[napi(ts_return_type = "Promise<Settings>")]
+pub fn set_single_key_shortcuts(dir: String, on: bool) -> AsyncTask<Job<Settings>> {
+    job(move || settings::set_single_key_shortcuts(Path::new(&dir), on))
+}

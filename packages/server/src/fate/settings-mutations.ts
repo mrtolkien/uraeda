@@ -65,4 +65,9 @@ export const settingsMutations = {
       settingsChanged(call, (dir) => call.ctx.binding.setPort(dir, input.port)),
     type: "Settings",
   },
+  "settings.setSingleKeyShortcuts": {
+    resolve: ({ input, ...call }: ListResolver<{ on: boolean }>) =>
+      settingsChanged(call, (dir) => call.ctx.binding.setSingleKeyShortcuts(dir, input.on)),
+    type: "Settings",
+  },
 };

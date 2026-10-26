@@ -1,4 +1,4 @@
-// The `Settings` record and its six changes, on every endpoint: the values in force, the file's,
+// The `Settings` record and its seven changes, on every endpoint: the values in force, the file's,
 // and their sources; the core's refusals; and the live update each change sends (review focus 2).
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -7,7 +7,7 @@ import { live } from "../fate.ts";
 import { binding, byIdAt, fateAt, testApp } from "./helpers.ts";
 
 const MAC = "mac.tail1234.ts.net";
-const SELECT = ["id", "file", "problem", "runs", "server"];
+const SELECT = ["id", "file", "problem", "keyboard", "runs", "server"];
 
 type Opened = Awaited<ReturnType<typeof testApp>>;
 
@@ -43,6 +43,11 @@ const defaults = {
   port: { inForce: 4310, saved: null, source: { kind: "default" } },
 };
 
+/** The keyboard's defaults: single-key shortcuts are on. */
+const keyboardDefaults = {
+  singleKeyShortcuts: { inForce: true, saved: null, source: { kind: "default" } },
+};
+
 /** The runs' defaults: the build after a spec's approval starts in a fresh session. */
 const runDefaults = {
   buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } },
@@ -57,6 +62,7 @@ test("the record of an empty config folder is read on the global endpoint and a 
   expect(global).toEqual({
     file: opened.settings.file,
     id: "settings",
+    keyboard: keyboardDefaults,
     problem: null,
     runs: runDefaults,
     server: defaults,
@@ -105,6 +111,22 @@ test("each change answers the record with its value", async () => {
   expect((await binding.readSettings(opened.configDir)).runs.buildInFreshSession).toBe(false);
 });
 
+/** US5 1 */
+test("turning single-key shortcuts off answers the record and writes the file", async () => {
+  const opened = await testApp();
+
+  const result = await change(opened, "setSingleKeyShortcuts", { on: false });
+
+  expect(result.error).toBeUndefined();
+  expect(result.data.keyboard.singleKeyShortcuts).toEqual({
+    inForce: false,
+    saved: false,
+    source: { kind: "file" },
+  });
+  expect((await binding.readSettings(opened.configDir)).keyboard.singleKeyShortcuts).toBe(false);
+  expect((await record(opened)).keyboard.singleKeyShortcuts.inForce).toBe(false);
+});
+
 /** US3 */
 test("a port that is not one is refused with the core's message", async () => {
   const opened = await testApp();
@@ -135,17 +157,19 @@ test("a broken file is the record's problem, and refuses every change with it", 
     change(opened, "setPort", { port: "4400" }),
     change(opened, "setOpenBrowser", { open: false }),
     change(opened, "setBuildInFreshSession", { fresh: false }),
+    change(opened, "setSingleKeyShortcuts", { on: false }),
   ]);
 
   expect(read).toEqual({
     file: opened.settings.file,
     id: "settings",
+    keyboard: keyboardDefaults,
     problem,
     runs: runDefaults,
     server: defaults,
   });
   expect(results.map((result) => result.error)).toEqual(
-    Array(6).fill({ code: "BAD_REQUEST", message: `refused: ${problem}` }),
+    Array(7).fill({ code: "BAD_REQUEST", message: `refused: ${problem}` }),
   );
   expect(readFileSync(file, "utf8")).toBe(broken);
 });

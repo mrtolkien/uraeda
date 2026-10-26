@@ -35,8 +35,17 @@ export type RunSettingsView = {
   buildInFreshSession: Setting<boolean>;
 };
 
+/** How the web UI's keys behave: whether the keys of one printable character act. */
+export type KeyboardSettingsView = {
+  singleKeyShortcuts: Setting<boolean>;
+};
+
 /** Every setting in force, by the file's table. */
-export type SettingsView = { runs: RunSettingsView; server: ServerSettingsView };
+export type SettingsView = {
+  keyboard: KeyboardSettingsView;
+  runs: RunSettingsView;
+  server: ServerSettingsView;
+};
 
 /** The source of a value given for this run, by the name of its flag or variable. */
 function givenSource({ name }: Given<unknown, HostsName | PortName>): Source {
@@ -77,13 +86,16 @@ export function checked(given: GivenValues, check: (typed: string) => number): R
 
 /**
  * The values in force, the one place of their order: the flag, the variable, the file, then the
- * default: no host names, port 4310, a browser opened, and the build in a fresh session. `file` is
- * null when there is none, or it cannot be read.
+ * default: no host names, port 4310, a browser opened, the build in a fresh session, and the
+ * single-key shortcuts on, which have no flag or variable. `file` is null when there is none, or it cannot be read.
  */
 export function inForce(options: RunValues, file: Settings | null): SettingsView {
   const saved = file?.server ?? {};
   const openBrowser = setting(undefined, saved.openBrowser, true);
   return {
+    keyboard: {
+      singleKeyShortcuts: setting(undefined, file?.keyboard.singleKeyShortcuts, true),
+    },
     runs: {
       buildInFreshSession: setting(undefined, file?.runs.buildInFreshSession, true),
     },
@@ -151,6 +163,11 @@ export class ServerSettings {
   /** The server's values in force, and the file's. */
   view(): ServerSettingsView {
     return this.#view.server;
+  }
+
+  /** The keyboard's values in force, and the file's. */
+  keyboard(): KeyboardSettingsView {
+    return this.#view.keyboard;
   }
 
   /** The runs' values in force, and the file's. */

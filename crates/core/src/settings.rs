@@ -24,6 +24,7 @@ const HEADER: &str =
 pub struct Settings {
     pub server: ServerSettings,
     pub runs: RunSettings,
+    pub keyboard: KeyboardSettings,
 }
 
 /// The `[server]` table.
@@ -42,6 +43,14 @@ pub struct ServerSettings {
 pub struct RunSettings {
     /// Whether the run after a spec's approval starts in a new agent session.
     pub build_in_fresh_session: Option<bool>,
+}
+
+/// The `[keyboard]` table: how the web UI's keys behave.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct KeyboardSettings {
+    /// Whether the keys of one printable character act: `true` when unset.
+    pub single_key_shortcuts: Option<bool>,
 }
 
 /// Uraeda's config folder: `URAEDA_CONFIG_DIR`, or else `$XDG_CONFIG_HOME/uraeda`, or else
@@ -148,6 +157,14 @@ pub fn set_open_browser(dir: &Path, open: bool) -> Result<Settings, ApiError> {
 pub fn set_build_in_fresh_session(dir: &Path, fresh: bool) -> Result<Settings, ApiError> {
     change_table(dir, "runs", |runs| {
         set(runs, "build_in_fresh_session", Value::from(fresh));
+        Ok(())
+    })
+}
+
+/// Sets whether the keys of one printable character act, in `[keyboard]`.
+pub fn set_single_key_shortcuts(dir: &Path, on: bool) -> Result<Settings, ApiError> {
+    change_table(dir, "keyboard", |keyboard| {
+        set(keyboard, "single_key_shortcuts", Value::from(on));
         Ok(())
     })
 }
