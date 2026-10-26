@@ -202,6 +202,7 @@ evaluation of task 14, and review, not a test of this repository.
 | Review focus: a decision naming a removed test                                 | 4, 5, 12    | the kept tests that decisions name                                                              |
 | Review focus: the contrast test's import                                       | 10          | `theme-tokens.test.ts` passing after `__browser__` is gone                                      |
 | Review focus: the fast check's discovery tests                                 | 10, 12      | `scripts/__tests__/fast-discovery.test.ts`, `fast-selection.test.ts`                            |
+| The spec page draws the replaced behaviour (task 8)                            | 8           | none: a view, left to the human's review in the sandbox, as the Testing decision asks           |
 
 ### Kept web UI tests
 
@@ -692,10 +693,13 @@ test declarations before 278, after 269 (9 removed, one row each).
 
 #### Task 15
 
-| File                                                 | Test                                    | Behaviour it guarded                                                          |
-| ---------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
-| `packages/web/src/__tests__/columnWidth.test.ts`     | the four clamping rows, old and new key | the navigation column's chosen limits, 220 and 480 px: a size, left to review |
-| `packages/web/src/__tests__/document-column.test.ts` | a stored width is clamped               | the documents' column's chosen limits, 400 and 720 px: a size, left to review |
+| File                                                 | Test                                                                  | Behaviour it guarded                                                                               |
+| ---------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `packages/web/src/__tests__/columnWidth.test.ts`     | the four clamping rows, old and new key                               | the navigation column's chosen limits, 220 and 480 px: a size, left to review                      |
+| `packages/web/src/__tests__/document-column.test.ts` | a stored width is clamped                                             | the documents' column's chosen limits, 400 and 720 px: a size, left to review                      |
+| `packages/web/src/__tests__/theme-tokens.test.ts`    | at $width px with a $pointer pointer, text is 120% and corners square | the theme's text sizes, control heights, and corners: sizes no decision states now, left to review |
+| `packages/web/src/__tests__/theme-tokens.test.ts`    | the fonts are JetBrains Mono, and Inter for reading                   | the theme's fonts: a look, checked by review in UI look                                            |
+| `packages/web/src/__tests__/theme-tokens.test.ts`    | the breakpoints are named at 768 and 1280 px                          | the width classes' pixel values, which UI layout no longer names                                   |
 
 ## Waves
 

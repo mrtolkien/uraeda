@@ -1,12 +1,11 @@
 // @vitest-environment node
 // The UI look decision's rules a test of the theme's tokens checks (SC-001, US1's look): every text
-// colour reaches 4.5:1 against its background, and borders and controls 3:1, in Latte and Mocha;
-// text is at 120% of Astryx's base size and corners are square, at every width and pointer. It reads
-// the built stylesheet the app loads, so it judges what ships, inherited tokens and rules included.
+// colour reaches 4.5:1 against its background, and borders and controls 3:1, in Latte and Mocha, the
+// contrast WCAG AA asks for. It reads the built stylesheet the app loads, so it judges what ships,
+// inherited tokens and rules included.
 import { readFileSync } from "node:fs";
 import { expect, test } from "vite-plus/test";
 import { contrast } from "../theme/contrast.ts";
-import { uraedaTheme } from "../theme/built/uraeda.js";
 
 const css = readFileSync(new URL("../theme/built/uraeda.css", import.meta.url), "utf8");
 
@@ -218,48 +217,4 @@ test.each(
   ),
 )("in %s, --color-border stands 3:1 from %s", (slot, back) => {
   expect(ratio("--color-border", back, slot)).toBeGreaterThanOrEqual(3);
-});
-
-/** A length token in px, from the rem or px the build writes. */
-function px(name: string, screen: Screen) {
-  const value = resolve(name, "mocha", screen);
-  const match = /^([\d.]+)(px|rem)$/.exec(value);
-  if (!match) {
-    throw new Error(`${name} is not a length: ${value}`);
-  }
-  return Number(match[1]) * (match[2] === "rem" ? 16 : 1);
-}
-
-const SCREENS: Array<Screen> = [390, 800, 1205, 1440, 1900].flatMap((width) =>
-  (["fine", "coarse"] as const).map((pointer) => ({ pointer, width })),
-);
-
-test.each(SCREENS)(
-  "at $width px with a $pointer pointer, text is 120% and corners square",
-  (screen) => {
-    // 14 px, Astryx's base size, at 120%.
-    expect(px("--text-body-size", screen)).toBeCloseTo(16.8, 5);
-    expect(px("--text-label-size", screen)).toBeCloseTo(16.8, 5);
-    expect(px("--text-reading-size", screen)).toBe(19);
-    for (const radius of ["inner", "element", "container", "page"]) {
-      expect(px(`--radius-${radius}`, screen), radius).toBe(0);
-    }
-    // A finger's controls stay 44 px tall.
-    expect(px("--size-element-md", screen)).toBe(screen.pointer === "coarse" ? 44 : 38.4);
-  },
-);
-
-test("the fonts are JetBrains Mono, and Inter for reading", () => {
-  for (const font of ["--font-family-body", "--font-family-heading", "--font-family-code"]) {
-    expect(resolve(font, "mocha")).toMatch(/^"JetBrains Mono Variable",/);
-  }
-  expect(resolve("--font-family-reading", "mocha")).toMatch(/^"Inter Variable",/);
-});
-
-test("the breakpoints are named at 768 and 1280 px", () => {
-  const { widthBreakpoints } = (
-    uraedaTheme as unknown as { __adaptations: { widthBreakpoints: Record<string, number> } }
-  ).__adaptations;
-  expect(widthBreakpoints.md).toBe(768);
-  expect(widthBreakpoints.xl).toBe(1280);
 });
