@@ -13,6 +13,7 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 import { where } from "./ReviewComments.tsx";
 import { type ChoicesState, type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
 import { ReviewImagesContext } from "./useReviewImages.ts";
+import { Empty } from "./layout/Empty.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -109,11 +110,7 @@ export function YourReview({
     <>
       <Band wide={wide} />
       <Heading level={2}>Your review</Heading>
-      {comments.length === 0 && (
-        <Text color="secondary" type="supporting">
-          No comment yet.
-        </Text>
-      )}
+      {comments.length === 0 && <Empty>No comment yet.</Empty>}
       {comments.map((comment) =>
         // A general comment has no block to show under: it is edited and removed here.
         comment.general ? (

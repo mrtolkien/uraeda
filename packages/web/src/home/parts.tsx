@@ -21,10 +21,6 @@ import { StatusMark } from "../StatusMark.tsx";
 const styles = stylex.create({
   // The core's two panes: the first the wider, as the mockup draws them.
   core: { alignItems: "start", gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)" },
-  empty: {
-    paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-2"],
-  },
   foot: {
     paddingInline: spacingVars["--spacing-1"],
   },
@@ -94,15 +90,6 @@ export function HomeRow({
       name={[title, sub, action ?? status?.label].filter(Boolean).join(", ")}
       sub={sub}
     />
-  );
-}
-
-/** A pane's line when it has no row. */
-export function Empty({ children }: { children: string }) {
-  return (
-    <Text color="secondary" display="block" type="supporting" xstyle={styles.empty}>
-      {children}
-    </Text>
   );
 }
 

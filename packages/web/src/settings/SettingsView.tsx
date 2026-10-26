@@ -4,7 +4,6 @@
 // without one is hidden. A section named in the address is scrolled into view.
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useLayoutEffect, useState } from "react";
@@ -23,6 +22,7 @@ import { AppearanceSettings, PlannedSettings, SignInSettings } from "./OtherSett
 import { RunSettings } from "./RunSettings.tsx";
 import { RefusalsProvider } from "./SettingRow.tsx";
 import { type ServerActions, ServerSettings, type ServerValues } from "./ServerSettings.tsx";
+import { Empty } from "../layout/Empty.tsx";
 
 /** One section's rows, those `shows` keeps. */
 function Rows({
@@ -140,7 +140,7 @@ export function SettingsView({
           {sections.length > 0 ? (
             <VStack gap={6}>{sections}</VStack>
           ) : (
-            <Text>No setting matches “{text.trim()}”.</Text>
+            <Empty>No setting matches “{text.trim()}”.</Empty>
           )}
         </VStack>
       </RefusalsProvider>

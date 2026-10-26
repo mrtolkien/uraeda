@@ -16,6 +16,7 @@ import { useOpenKeys } from "../useOpenKeys.ts";
 import { Path } from "./Path.tsx";
 import { Section } from "./Section.tsx";
 import { plural } from "../labels.ts";
+import { Empty } from "../layout/Empty.tsx";
 
 const styles = stylex.create({
   added: { color: colorVars["--color-text-green"] },
@@ -57,7 +58,7 @@ function moreFiles(count: number) {
 
 /** What Changes reads while the session changed no file. */
 function Nothing() {
-  return <Text color="secondary">{NOTHING}</Text>;
+  return <Empty>{NOTHING}</Empty>;
 }
 
 /** The files the session `session` edited, with their edits, or that it changed none yet. */

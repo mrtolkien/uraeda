@@ -9,7 +9,8 @@ import { useHash, useLocalPath, useRepoPath } from "../routes.tsx";
 import type { Feature, Row } from "../sidebar/cards.ts";
 import { doneRows } from "../sidebar/done.ts";
 import { StepIcon } from "../sidebar/StepIcon.tsx";
-import { Empty, HomeRow } from "./parts.tsx";
+import { HomeRow } from "./parts.tsx";
+import { Empty } from "../layout/Empty.tsx";
 
 /** How many done items home shows before "Show all". */
 const SHOWN = 5;
@@ -24,7 +25,7 @@ export function Recent({ features, rows }: { features: Array<Feature>; rows: Arr
   return (
     <Pane id="done" level={3} title="Recent">
       {done.length === 0 ? (
-        <Empty>Nothing done yet.</Empty>
+        <Empty isInset>Nothing done yet.</Empty>
       ) : (
         (all ? done : done.slice(0, SHOWN)).map((row) => (
           <HomeRow

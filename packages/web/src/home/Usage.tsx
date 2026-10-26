@@ -10,7 +10,7 @@ import { Suspense } from "react";
 import { useAgent } from "../data.ts";
 import { HarnessMark } from "../HarnessMark.tsx";
 import { Pane } from "../layout/Pane.tsx";
-import { Empty } from "./parts.tsx";
+import { Empty } from "../layout/Empty.tsx";
 
 const styles = stylex.create({
   body: {
@@ -62,7 +62,7 @@ function Windows() {
   const fiveHour = agent?.fiveHourLimit;
   const week = agent?.weekLimit;
   if (!agent || (!fiveHour && !week)) {
-    return <Empty>No run reported usage yet.</Empty>;
+    return <Empty isInset>No run reported usage yet.</Empty>;
   }
   return (
     <VStack gap={3} xstyle={styles.body}>
@@ -81,7 +81,7 @@ function Windows() {
 export function Usage() {
   return (
     <Pane level={3} title="Usage">
-      <Suspense fallback={<Empty>Reading the usage…</Empty>}>
+      <Suspense fallback={<Empty isInset>Reading the usage…</Empty>}>
         <Windows />
       </Suspense>
     </Pane>
