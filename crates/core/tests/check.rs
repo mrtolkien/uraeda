@@ -395,6 +395,11 @@ fn each_rule() {
             format!("warning: {RECORD}:5: 2026-10-20-newer does not name this record in its supersedes"),
         ),
         (
+            "supersedes a name written with .md",
+            |e| e.edit(RECORD, PULL_REQUEST, &with_fields("supersedes: [2026-10-19-fix-testing.md]")),
+            format!("warning: {RECORD}:5: supersedes names \"2026-10-19-fix-testing.md\", which is not a record: write its name without \".md\""),
+        ),
+        (
             "supersedes is not a list",
             |e| e.edit(RECORD, PULL_REQUEST, &with_fields("supersedes: x")),
             format!("{RECORD}:5: supersedes \"x\" is not a list of records"),
