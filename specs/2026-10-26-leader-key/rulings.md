@@ -786,3 +786,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the page's own, and only its Escape clashed.
 - **If wrong**: the figure's role in `LiveWindow.tsx` and one line in `keys/layers.ts`.
 - **Where**: fix pass E, finding 5 of the final review.
+
+## R133: The layer watch checks once per frame, and two existing tests wait for what they raced
+
+- **Decision**: `useLayerOpen` (`keys/layers.ts`) shares one observer and one check of the layer
+  rule: a burst of mutations, a `toggle`, or a `fullscreenchange` asks for one
+  `requestAnimationFrame`, whose callback runs `isLayerOpen()` once and tells every subscriber if
+  the answer changed. The keys themselves still ask `isLayerOpen(target)` as they are pressed, so a
+  key never waits for a frame; only what is drawn from the answer (the status line's hints, the
+  leader menu closing when a layer opens) follows at the next frame. Two existing tests change:
+  `keys-leader.test.tsx`, "a layer opening while the menu is shown closes it", advances its fake
+  clock by one frame (16 ms) where it advanced by 0, and `keys-picker.test.tsx`, "a pick opens its
+  page, and the page keeps the focus", waits for the preview of the first item, as its sibling tests
+  do, before pressing Enter. No assertion is loosened.
+- **Rationale**: the check reads the layout, and a streaming transcript changes the document many
+  times a frame: each change ran the check once per subscriber. The picker test pressed Enter as
+  soon as the option was listed, before the palette had made it the active one, so Enter picked
+  nothing: a race the test always had, which the extra frame exposed (failing about three runs in
+  four) and which no user can reach, since the preview names the active item.
+- **Alternatives considered**: a microtask in place of the frame: it passes the old tests, but it
+  still checks once per burst of mutation records, not once per frame, and a frame is the unit the
+  review asked for. Debouncing by time: unit tests must not depend on elapsed time.
+- **If wrong**: `schedule` in `keys/layers.ts` is the one place.
+- **Where**: fix pass E, finding 8 of the final review.
