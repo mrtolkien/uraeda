@@ -54,24 +54,6 @@ Rationale: human attention is the scarcest resource in the workflow.
 Rationale: the workflow is the product. Tools make it faster and safer, but must never be the only
 way to follow it.
 
-### VI. Code is checked and stays maintainable
-
-- Implementations MUST include tests of the behaviour that matters: each story's main scenarios, the
-  edge cases marked high, and the success criteria. Other scenarios MAY be checked by review.
-- A test MUST fail when behaviour that matters breaks, and MUST NOT fail when a change keeps it.
-- A test MUST NOT be loosened, skipped, or deleted to make a run pass, except at a human's request
-  or with a ruling the review lists.
-- Code SHOULD stay explicit and simple. New abstractions MUST be justified in the plan's complexity
-  tracking.
-- Each rule MUST live in one place. A copy in another layer or language MUST be justified in the
-  plan's complexity tracking.
-- Warnings, size, complexity, and duplication measured by the project's checks MUST NOT go up. An
-  exception MUST be approved by a human in the spec or plan.
-
-Rationale: "high-quality code" cannot be checked, but acceptance tests, justified complexity, and
-checks that never go back can. Agents grow and copy code feature after feature unless something
-measured stops them.
-
 ## Governance
 
 - Only humans amend this constitution. Each amendment is a commit explaining why it was made.
@@ -80,4 +62,4 @@ measured stops them.
 - Specs and plans MUST include a constitution check. Exceptions MUST be listed in the plan's
   complexity tracking and approved by a human.
 
-**Version**: 2.0.0 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-19
+**Version**: 2.1.0 | **Ratified**: 2026-10-07 | **Last Amended**: 2026-10-26

@@ -1,6 +1,7 @@
 # Inbox
 
 - After approving a spec the feature stayed in "needs you" until I ran a full refresh
+- Moving a draft to a feature takes upwards of 10s with many page changes and no clear feedback
 
 ## To test
 
