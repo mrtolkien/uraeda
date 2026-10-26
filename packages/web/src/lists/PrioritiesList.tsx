@@ -29,7 +29,7 @@ const TONES: Record<string, Tone> = {
 };
 
 /** An entry's marks, as text in its border: its running step, "draft", or "backlog". */
-function marksOf(entry: PriorityEntry) {
+export function marksOf(entry: PriorityEntry) {
   if (entry.running) {
     return `● ${stepTitle(entry.running.step)}`;
   }

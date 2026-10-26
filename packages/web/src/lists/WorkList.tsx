@@ -4,6 +4,7 @@
 // under it; the phone, and `stack`, set them one under the other. A card drags from anywhere: past
 // 5 px of a mouse press, or after half a second of a touch press. The keys move the selection, and
 // Enter or a click opens the card in its overlay (see `useListKeys`).
+import type { HeadingLevel } from "@astryxdesign/core/Heading";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
@@ -101,6 +102,7 @@ const TINTS: Record<Tone, PaneTint | undefined> = {
 /** A section as a pane: its title and count, its context, its cards, and its footer. */
 function SectionBody({
   isColumn,
+  level,
   onOpen,
   ref,
   rows,
@@ -108,6 +110,7 @@ function SectionBody({
   selected,
 }: {
   isColumn: boolean;
+  level?: HeadingLevel | undefined;
   onOpen: (row: WorkRow) => void;
   ref?: Ref<HTMLDivElement>;
   rows: ReadonlyArray<WorkRow>;
@@ -119,6 +122,7 @@ function SectionBody({
       <Pane
         actions={section.menu}
         count={rows.length}
+        {...(level ? { level } : {})}
         tint={TINTS[section.tone]}
         title={section.title}
         titleNode={section.titleNode}
@@ -152,6 +156,7 @@ function SectionBody({
 /** A section rows are dropped in, even when it is empty. */
 function DropSection(props: {
   isColumn: boolean;
+  level?: HeadingLevel | undefined;
   onOpen: (row: WorkRow) => void;
   rows: ReadonlyArray<WorkRow>;
   section: WorkSection;
@@ -239,6 +244,7 @@ function useShown(
 export function WorkList({
   isFocused = false,
   layout = "stack",
+  level,
   onAddBeside,
   onMove,
   onOpen,
@@ -247,6 +253,8 @@ export function WorkList({
 }: {
   isFocused?: boolean;
   layout?: WorkLayout;
+  /** The level of its panes' titles, where the page's headings put them. */
+  level?: HeadingLevel;
   onAddBeside?: (section: string, row: WorkRow) => void;
   onMove?: OnMove;
   onOpen?: (href: string) => void;
@@ -294,6 +302,7 @@ export function WorkList({
       <Body
         isColumn={isColumn}
         key={section.id}
+        level={level}
         onOpen={open}
         rows={rowsOf(section)}
         section={section}

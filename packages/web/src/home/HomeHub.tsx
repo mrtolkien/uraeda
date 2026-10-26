@@ -1,14 +1,16 @@
 // Home: the core, then the overview. Above a dashed "Overview" line, the problems that stop the
 // workflow when there are any, what waits on the human, In progress, and Sessions, as the sidebar's
 // cards, in the two columns that end nearest each other (`Core.tsx`); under it, the widgets two by
-// two: the priorities now, the usage, the inbox's latest notes, and what is done. From semi-wide,
+// two: the inbox's latest notes and the priorities now, then what is done and the usage. From semi-wide,
 // two columns; on the phone, one, in the same order.
 import { Fragment } from "react";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useInbox, usePriorities } from "../data.ts";
 import { Pane } from "../layout/Pane.tsx";
-import { useRepoPath } from "../routes.tsx";
+import { byRunning, marksOf } from "../lists/PrioritiesList.tsx";
+import { WorkList } from "../lists/WorkList.tsx";
+import { navigate, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
 import { plain } from "../Spans.tsx";
 import { coreParts, splitColumns } from "./Core.tsx";
@@ -16,7 +18,7 @@ import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { homeFeatures } from "./features.ts";
 import { Columns, HomeRow, Overview, PaneLink } from "./parts.tsx";
 import { Recent } from "./Recent.tsx";
-import { inboxSummary, prioritySection, runningStatus } from "./summary.ts";
+import { inboxSummary } from "./summary.ts";
 import { Usage } from "./Usage.tsx";
 import { plural } from "../labels.ts";
 import { Empty } from "../layout/Empty.tsx";
@@ -25,38 +27,46 @@ import { Empty } from "../layout/Empty.tsx";
 const PRIORITIES_SHOWN = 5;
 
 /**
- * The entries of Now, the running ones first with their status, a draft marked so, the first five:
- * a running entry opens its feature, another its pane.
+ * The first five entries of Now that are not running, which the core above already shows, as the
+ * priorities page draws them: the same cards, a draft marked so. A card opens its entry's pane.
  */
-function PrioritiesNow({ running }: { running: Array<string> }) {
+function PrioritiesNow() {
   const here = useRepoPath();
   const priorities = usePriorities();
-  const entries = (priorities ? prioritySection(priorities, "now") : []).slice(0, PRIORITIES_SHOWN);
-  return (
-    <Pane level={3} title="Priorities now">
-      {entries.length === 0 ? (
+  const entries = (
+    priorities ? byRunning(priorities).sections.find((s) => s.section === "now")?.entries ?? [] : []
+  ).slice(0, PRIORITIES_SHOWN);
+  const link = <PaneLink href={here("/priorities")} label="Open priorities" />;
+  if (entries.length === 0) {
+    return (
+      <Pane level={3} title="Priorities now">
         <Empty isInset>Nothing in Now.</Empty>
-      ) : (
-        entries.map((entry) => (
-          <HomeRow
-            href={here(entry.running ? `/f/${entry.running.folder}` : `/priorities/${entry.key}`)}
-            icon={<Icon color="secondary" icon="uraeda:list" size="md" />}
-            key={entry.key}
-            sub={
-              entry.running
-                ? `Ongoing · ${runningStatus(entry.running, running).label}`
-                : entry.draft
-                  ? entry.draft.backlog
-                    ? "Backlog"
-                    : "Draft"
-                  : "Not started"
-            }
-            title={plain(entry.spans)}
-          />
-        ))
-      )}
-      <PaneLink href={here("/priorities")} label="Open priorities" />
-    </Pane>
+        {link}
+      </Pane>
+    );
+  }
+  return (
+    <WorkList
+      level={3}
+      onOpen={navigate}
+      sections={[
+        {
+          footer: link,
+          id: "now",
+          isFixed: true,
+          rows: entries.map((entry) => ({
+            href: here(`/priorities/${entry.key}`),
+            isFixed: true,
+            key: entry.key,
+            lines: entry.nestedSpans.map(plain),
+            marks: marksOf(entry),
+            text: plain(entry.spans),
+          })),
+          title: "Priorities now",
+          tone: "blue",
+        },
+      ]}
+    />
   );
 }
 
@@ -123,10 +133,10 @@ export function HomeHub() {
       )}
       <Overview />
       <Columns>
-        <PrioritiesNow running={workspace.running} />
-        <Usage />
         <Inbox />
+        <PrioritiesNow />
         <Recent features={workspace.features} rows={rows} />
+        <Usage />
       </Columns>
     </VStack>
   );
