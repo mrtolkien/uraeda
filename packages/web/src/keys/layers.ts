@@ -1,14 +1,21 @@
 // The one rule of "a layer is open": what shows over the page and owns the keys while it does, so no
 // shortcut of the page acts under it. A shown dialog, an expanded popup's trigger (a menu or a
 // Selector, by `aria-haspopup`, or a combobox), an open popover that is not manual, or a key
-// pressed inside a dialog, a listbox, a menu, or a popover that is not manual (the rail's old rule). An expanded disclosure without `aria-haspopup`,
-// like the rail's logo, owns no key: only a popup's owner does.
+// pressed inside a dialog, a listbox, a menu, or a popover that is not manual (the rail's old
+// rule). An expanded disclosure without `aria-haspopup`, like the rail's logo, owns no key: only a
+// popup's owner does.
 import { useSyncExternalStore } from "react";
 
 const DIALOGS = 'dialog[open], [role="dialog"], [role="alertdialog"]';
 const EXPANDED = '[aria-expanded="true"][aria-haspopup], [role="combobox"][aria-expanded="true"]';
-const INSIDE =
-  'dialog, [role="dialog"], [role="alertdialog"], [role="listbox"], [role="menu"], [popover]:not([popover="manual"])';
+const INSIDE = [
+  "dialog",
+  '[role="dialog"]',
+  '[role="alertdialog"]',
+  '[role="listbox"]',
+  '[role="menu"]',
+  '[popover]:not([popover="manual"])',
+].join(", ");
 
 /**
  * Whether an element shows: closed, a layer may stay in the page, hidden, itself or in a popover
