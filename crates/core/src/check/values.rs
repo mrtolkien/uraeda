@@ -342,7 +342,10 @@ fn check_supersession(file: &File<'_>, front: &Frontmatter, problems: &mut Vec<P
             problems.push(file.problem(
                 line,
                 &rule,
-                format!("{key} {} is not a list of records", shown(value)),
+                match value {
+                    Value::Text(_) => format!("{key} {} is not a list of records", shown(value)),
+                    _ => format!("{key} is not a list of records"),
+                },
             ));
             continue;
         };
