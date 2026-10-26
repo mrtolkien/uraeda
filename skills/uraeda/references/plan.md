@@ -352,11 +352,13 @@ simpler private design from what the code shows:
   [extract, don't grow](code-quality.md#extract-dont-grow).
 - **A test step**: the tests the [testing](code-quality.md#testing) section asks for, their names
   and assertions as code, with the spec's exact values in them, including the human's approval
-  comments. Each test names the break it catches: see
-  [tests that can fail](code-quality.md#tests-that-can-fail). Derive expectations from the approved
-  behaviour, independently of the proposed implementation. A task marked **Risky** names the breaks
-  to make. The step also creates the helpers its tests use, so the first failure is about the
-  feature, not a missing helper. Checks of preserved behaviour may already pass before the change.
+  comments. An assertion picks out what the task adds, by its message or its kind, and never
+  compares a whole list of results: see [what a test asserts](code-quality.md#how-many). Each test
+  names the break it catches: see [tests that can fail](code-quality.md#tests-that-can-fail). Derive
+  expectations from the approved behaviour, independently of the proposed implementation. A task
+  marked **Risky** names the breaks to make. The step also creates the helpers its tests use, so the
+  first failure is about the feature, not a missing helper. Checks of preserved behaviour may
+  already pass before the change.
 - **A run step**: the command to run, and the output that means it worked. For a failing run, the
   first failure the run will actually hit: not "the test fails", but the message.
 - **A code step**: the responsibility, the files it belongs in, the specific values the spec pins.
@@ -383,7 +385,8 @@ fix what you find inline. This is a checklist you run yourself.
 2. **Test count**: count the new tests the test map names. More than the spec's key scenarios plus
    its high edge cases, or a test of its own for a rarer scenario, a lower edge case, or a
    review-focus item, breaks [how many](code-quality.md#how-many): make it a row or an assertion of
-   one of those tests, or write "none" and why.
+   one of those tests, or write "none" and why. Then, of each new test, name the existing or planned
+   test that would already fail if its behaviour broke: when there is one, drop the new test.
 3. **Step scan**: every step has a checkable outcome and the contracts its neighbours need. A line
    that decides nothing is a gap; private code the implementer can choose is unnecessary
    prescription. Fix both. Explain an algorithm when correctness depends on it.

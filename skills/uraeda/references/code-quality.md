@@ -79,10 +79,14 @@ project's parts, pure logic with many cases, and the reproduction of each bug fi
   tests than that. Each gets one test at most, and none where the stage asks none. A rarer scenario,
   a lower edge case, or a review-focus item joins one of those tests, as a row or an assertion, or
   has no test. The plan's test map says "none" and why for each row without one.
-- **The existing tests first.** Read the tests of the code a task changes before writing one. A
-  scenario an existing test already proves gets no new test: the test map names the one that proves
-  it. A new case of a behaviour that has a test goes into that test, as a row or an assertion. A new
-  test that would prove all an existing one proves replaces it, in the same commit.
+- **The existing tests first.** Read the tests of the code a task changes before writing one, and
+  ask of each new test: which test, existing or planned, would already fail if this behaviour broke?
+  When there is one, add nothing: the test map names it. A new case of a behaviour that has a test
+  goes into that test, as a row or an assertion. A new test that would prove all an existing one
+  proves replaces it, in the same commit.
+- **Existing data stays clear of the new rule.** When a change breaks an existing test only through
+  its data, such as a date the new rule now flags, move that data well away from the rule, never
+  onto its edge: the new rule's own tests own its edges.
 - **Assert only what the task adds.** A new test checks the behaviour the task adds or changes, and
   leaves what existing tests already check to them. When the code returns several results, such as a
   list of problems, a test of a new one picks it out, by its message or its kind, and asserts it
