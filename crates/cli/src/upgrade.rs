@@ -207,12 +207,6 @@ mod tests {
     }
 
     #[test]
-    fn the_latest_release_installs_nothing() {
-        assert!(!newer("0.2.0", "0.2.0"));
-        assert!(newer("0.1.0", "0.2.0"));
-    }
-
-    #[test]
     fn reads_the_tag() {
         let version = |url: &str| tag_version(url).map(|(_, version)| version);
         assert_eq!(

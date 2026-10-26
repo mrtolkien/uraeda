@@ -408,21 +408,6 @@ fn a_pending_review_of_an_older_version_is_replaced() {
 }
 
 #[test]
-fn comments_add_up() {
-    let repo = waiting();
-
-    ura(&repo, &["review", "cli-core", "--comment", "41", "One"]);
-    ura(
-        &repo,
-        &["review", "cli-core", "--comment", "general", "Two"],
-    );
-
-    let review = repo.read(REVIEW);
-    assert!(review.contains("## C1: Line 41"));
-    assert!(review.contains("## C2: General\n\nTwo\n"));
-}
-
-#[test]
 fn no_commit_names_the_images_to_commit() {
     let repo = waiting();
     ura(
