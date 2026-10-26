@@ -239,8 +239,9 @@ is open and not to the page: a text field's own keys (`Composer` Ctrl or Cmd+Ent
 leave, `fields/TextField.tsx`, `AddNote`, `QuickAdd`, `EditableLine`, `SlugField`, `AddRepository`,
 `sidebar/Search`, `RepositoryMenu`'s filter), a dialog's own keys while it is open
 (`lists/CategoryPane` Y, N, C), the radio group's own keys (`KindCards`), `StoryPick` and
-`embedLayout`'s Escape for their own overlays, and the sandbox's bar. The task that writes the test
-settles each file's entry and its reason, and any other hit is migrated.
+`embedLayout`'s Escape for their own overlays, the sandbox's bar, the sign-in page's Enter (it has
+no registry), and Escape inside the open rail (`shell/Rail.tsx`, R100). The task that writes the
+test settles each file's entry and its reason, and any other hit is migrated.
 
 ## Test map
 
@@ -1073,11 +1074,12 @@ git commit -m "feat(leader-key): the keyboard setting's section"
 
 **Files:**
 
-- Modify: `packages/web/src/statusHints.tsx` (only the cover hooks stay), `shell/StatusLine.tsx`
-  (`Hints` reads `useHints()` alone), every remaining `useStatusHints` caller
+- Modify: `packages/web/src/statusHints.tsx` (only the cover hooks stay, and its provider is now
+  `StatusLineCoverProvider`), `shell/StatusLine.tsx` (`Hints` reads `useHints()` alone), every
+  remaining `useStatusHints` caller (only the status line's room browser test was left)
 - Create: `packages/web/src/__tests__/keys-structural.test.ts`
-- Modify: `packages/web/src/__tests__/status-hints.test.tsx` (the registry's hint order, with a
-  ruling, or moved into `keys-hints.test.tsx`)
+- Delete: `packages/web/src/__tests__/status-hints.test.tsx`, its last test moved into
+  `keys-hints.test.tsx` on the registry's hint order (R100)
 - Test: the same
 
 **Interfaces:**
@@ -1087,18 +1089,19 @@ git commit -m "feat(leader-key): the keyboard setting's section"
   decision's structural test: it scans `packages/web/src` for `useHotkeys`,
   `addEventListener("keydown"` or `("keyup"`, and `onKeyDown` handlers, and fails for any file not
   in the allowlist, saying in its message how to fix it: declare the key with `useKeys`, or add the
-  file with its reason to the list.
+  file with its reason to the list. A second test says no file but `keys/layers.ts` carries its own
+  selectors for "a layer is open" (R100).
 
-- [ ] **Step 1: Write the failing test**: `keys-structural.test.ts` lists each allowlisted file with
+- [x] **Step 1: Write the failing test**: `keys-structural.test.ts` lists each allowlisted file with
       its reason (the allowlist of [Complexity tracking](#complexity-tracking)) and fails on any
       other hit. The break caught: a page that adds `useHotkeys` back.
-- [ ] **Step 2: Run it to check it fails**:
+- [x] **Step 2: Run it to check it fails**:
       `nix develop -c vp test run packages/web/src/__tests__/keys-structural.test.ts`; expected FAIL
       naming the files still listening, which Tasks 5 to 9 should have migrated: each one left is a
       miss to migrate, not an entry to add.
-- [ ] **Step 3: Delete** `useStatusHints`, `StatusHintsProvider`'s hint part, and
+- [x] **Step 3: Delete** `useStatusHints`, `StatusHintsProvider`'s hint part, and
       `useDeclaredHints`, and migrate what the failure names.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash

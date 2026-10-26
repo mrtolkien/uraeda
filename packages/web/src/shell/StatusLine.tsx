@@ -1,5 +1,5 @@
 // The status line, one line at the bottom of the window at every width: the hints of the keys that
-// work on the page (`statusHints.tsx`), the page's own controls (`TopBarSlot`, as the round's count
+// work on the page (the key registry's), the page's own controls (`TopBarSlot`, as the round's count
 // and Next on the phone), then how many cards need the human and how many sessions run, left out
 // where the page's controls leave them no room (R25 of the spec page), as the spec's Contents,
 // count, and Verdict at 390 px: the phone's tabs show them too. An Astryx
@@ -13,7 +13,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useRef } from "react";
 import { useNavigation } from "../sessionData.ts";
 import { type Data, needsYouEntries, runningSessions } from "../sidebar/entries.ts";
-import { useDeclaredHints, useStatusLineCovered } from "../statusHints.tsx";
+import { useStatusLineCovered } from "../statusHints.tsx";
 import { KeyCap } from "../keys/KeyCap.tsx";
 import { useHints } from "../keys/registry.tsx";
 import { useCountsFit } from "./useCountsFit.ts";
@@ -91,9 +91,9 @@ function needsYouCount(data: Data) {
   return needsYouEntries(data).length;
 }
 
-/** The hints, each its keys then what they do: the registry's, then those not yet moved to it. */
+/** The hints, each its keys then what they do, as the registry holds them. */
 function Hints() {
-  const hints = [...useHints(), ...useDeclaredHints()];
+  const hints = useHints();
   return (
     <div {...stylex.props(styles.hints)}>
       {hints.map((hint) => (
