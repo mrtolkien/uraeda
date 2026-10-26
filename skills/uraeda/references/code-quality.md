@@ -1,6 +1,6 @@
 # Code quality
 
-Six concepts that keep a project maintainable without the human reading its code, what each asks at
+Four concepts that keep a project maintainable without the human reading its code, what each asks at
 each step, and the checks behind it; then how a project sets those checks up.
 
 Agents extend the code they find. Feature after feature, functions and files grow, rules get copied
@@ -62,82 +62,76 @@ A rule only a reader remembers is followed until someone forgets it. A rule a to
 
 Checks: the project's linters and tests, in its usual validation command, so every step runs them.
 
-## Writing tests
+## Testing
 
-Each guarantee gets the cheapest check that fully owns it. A focused test, through the real
-components and an in-memory store, with the clock set by the test, owns local behaviour: it survives
-refactoring, where tests of internal functions break. A boundary test owns what only the real
-boundary shows: a git history, a native binding, a request and its response, a file on disk. A
-complete journey through the whole app proves that the parts connect, once for a story's main
-scenario, and does not repeat what a focused test owns. An agent writes them quickly.
+A test is evidence that the code does what the approved spec, the decisions, and the human's
+requests say. It never overrides them. Every test is also maintenance, so a project wants the right
+tests, not many.
 
-Coverage follows the spec: each main scenario, each high-risk edge, and each success criterion has a
-meaningful check. One test may own several sentences of the spec, and a sentence needs no test of
-its own when another check owns it. Every check derives its expectation from the spec, the
-decisions, and the human's intent, never from the code under test.
+### How many
 
-- **An exact contract is asserted exactly**: user text, a permission scope, a commit count, a byte
-  sequence. A check that passes with another value does not own it.
-- **A project's constitution stays in force.** When it requires more than this section, such as a
-  test per acceptance scenario, follow the constitution.
+The project's testing decision, `specs/decisions/testing.md`, says how much to test at its stage.
+Discovery asks a project without one to adopt it, once. Without one, test only what is costly to get
+wrong and rarely changes: stored formats, git and other writes, security, contracts between the
+project's parts, pure logic with many cases, and the reproduction of each bug fixed.
 
-- Tests are part of the codebase: organize them with the same care as the main code.
-- Create the helpers, fixtures, and fakes the tests need, in shared files: rendering the app,
-  seeding the store, setting the clock. Each test then holds no boilerplate.
-- Readability is a key feature of a test. Each one is short and readable by a human: Arrange, Act,
-  Assert, in that order, with a name that states the scenario. Test files stay short.
-- Write unit tests only for pure logic with many cases, as one table-driven test: one row per case.
-- A case that does not depend on another passes alone, in any order. A sequence that cannot be split
-  is one test.
-- A UI story's main scenario runs once in the project's browser runner: see
-  [UIs verified end to end](#uis-verified-end-to-end).
+- **Not every scenario gets a test.** The plan's test map gives a scenario its row with "none" and
+  the reason where the stage asks no test.
+- **One test per behaviour.** A test that repeats another's coverage is cut.
+- **A UI gets few tests**, only for behaviour that is costly to lose and that using the app would
+  not show, such as unsaved text or a git write. The human checks the rest by using the app.
+- **A project's constitution stays in force.** When it asks for more, such as a test per scenario,
+  follow it.
 
-Checks: the review of each task, which counts a test that breaks these rules as a finding.
+### What a test asserts
 
-## Tests that can fail
+What a caller or a user observes, never how the code does it: not the order of internal calls, a
+count, markup, or private state. An exact contract is asserted exactly: user text, a permission
+scope, a commit count, a byte sequence. A test that passes with another value does not own it. Every
+expectation comes from the spec, the decisions, and the human's intent, never from the code under
+test.
 
-A test that passes whatever the code does proves nothing. Each test names the break it exists for,
-and the risky ones are shown to catch it.
+### Writing one
 
-- **The plan**: each test step names the break each test catches, the realistic mistake that makes
-  it fail: "adding a month to the previous date, which drifts to the 30th".
-- **The implementer**, for a guarantee of security, git, writes, or an exact contract, and for every
-  task marked **Risky**, makes that break in the code once the test passes, sees the test fail,
-  reverts it, and reports the failure it saw in the task's commit body. For a low-risk check, the
-  reading of the test against its named break is the proof, and the review counts it.
-- **A spec conflict is reported**: a test that fails because the code is wrong gets the code fixed
-  within the task's scope. A human's safe, reversible request that contradicts the spec or a test is
-  carried out, and the report says what conflicts and what each way out costs, in the commit body,
-  or in a new round of questions when the human must decide. The work stops only for a request that
-  is unsafe or cannot be undone. The assertion is never weakened to pass.
-- **Waits**: unit tests never sleep for a fixed time or assert how long something took. They wait
-  for the condition, or set the clock. Benchmarks of a spec's success criteria are not unit tests.
-- **Existing tests**: removing, skipping, or loosening one, or raising a timeout, takes a ruling,
-  saying what it checked, which check owns it now, and why that no longer holds. A test is never
-  loosened to pass. The final review and the pull request list these changes apart from the rest.
-- **A human's request outranks a test**: when a requested change breaks a test and the change is
-  safe and reversible, the test changes, and the same response says which test and why. When it is
-  not safe or not reversible, the work stops, and the response says what conflicts and what each way
-  out costs.
-- **The reviews** count a test that asserts nothing, or nothing the spec asks, as an important
-  finding.
+- **Test-first** for logic, contracts, and bug fixes. A test of a UI may follow its code.
+- **Real components, in-memory stores, a clock the test sets.** A fake stands only at a boundary the
+  project does not own. A boundary test owns what only the real boundary shows: a git history, a
+  native binding, a request and its response, a file on disk.
+- **Short**: Arrange, Act, Assert, with a name that states the scenario. Shared helpers, fixtures,
+  and fakes hold the setup, so a test holds none.
+- **Independent**: a case passes alone, in any order. A sequence that cannot be split is one test.
+- **Pure logic with many cases** is one table-driven test, a row per case.
+- **No fixed wait, no elapsed time**: a test waits for the condition, or sets the clock. A benchmark
+  of a spec's success criterion is not a unit test.
 
-Checks: the reported failure, which the reviews of the tasks read. A mutation tool, where the
-project has one, does the same on the changed lines.
+### Tests that can fail
 
-## UIs verified end to end
+A test that passes whatever the code does proves nothing. Each test names the break it catches, the
+realistic mistake that makes it fail: "adding a month to the previous date, which drifts to the
+30th". For a guarantee of security, git, writes, or an exact contract, and for every task marked
+**Risky**, the implementer makes that break once the test passes, sees it fail, reverts it, and
+reports the failure in the task's commit body. For other tests, the reading of the test against its
+named break is the proof. A mutation tool, where the project has one, does the same. The reviews
+count a test that asserts nothing, or nothing the spec asks, as an important finding.
 
-A UI story is only done when its main scenario works in a browser, through the real app: components
-tested alone miss the routing, the styles, and the server.
+### When a test goes
 
-- **The plan's Test map** runs each UI story's main scenario in the project's browser runner,
-  through the real app. It drives the app as a user does: by roles, labels, and visible text. The
-  story's other scenarios and edges are focused tests, unless they depend on the routing, the
-  styles, or the server.
-- **A project without a browser runner**: adding one is a new dependency, so a question for the
-  human in discovery, like any other.
+A test gives way to the approved spec, the decisions, and the human's requests, and code never bends
+to keep a test. A test that fails is in one of four cases:
 
-Checks: the browser tests, in the project's validation.
+1. **It guards behaviour the approved spec lists as replaced**: rewrite or remove it in the task
+   that changes the behaviour. No ruling: the spec's approval covered it.
+2. **It guards behaviour the spec replaces but did not list**: remove it with a one-line ruling. The
+   final review lists it.
+3. **It fails because of the human's own request**: change it when the change is safe and
+   reversible, and say which test and why in the same response. Otherwise stop, and say what
+   conflicts and what each way out costs.
+4. **Nothing approved replaces what it guards**: the code is wrong. Fix the code, and say so in the
+   commit body. Never edit the assertion, skip the test, or raise a timeout, and never change code
+   only to keep a test green.
+
+Checks: the reviews of the tasks and the final review, which count a test that bends the code, or
+that went without one of these cases, as a finding.
 
 ## Setting up checks
 

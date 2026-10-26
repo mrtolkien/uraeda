@@ -30,6 +30,7 @@ The spec is a page the human approves in one sitting, without opening anything e
   first because they outlive the feature.
 - **The user stories**: what users get, each with its mockup and its key scenarios, exact values
   included.
+- **The behaviour it replaces**: optional, the behaviour that goes, with the tests that guard it.
 - **How it is built, and its limits**: the architecture's units, the edge cases, the success
   criteria, and the assumptions.
 - **What the human weighs last**: the constitution check and the risk tier, then the history of
@@ -274,8 +275,8 @@ tested on its own: a user could get value from P1 alone. A story holds, in order
 
 Scenarios are written as **Given** / **When** / **Then**, with exact values. Write "a weekly task
 due Monday the 5th", "it is due Monday the 12th", never "the next week". Each has at most 4 steps.
-The plan's tests use them as written, and the implementation must test each one. Every answer of the
-questions that changes behaviour shows up in a scenario.
+The plan's tests use them as written, for the scenarios the [testing](code-quality.md#testing)
+section asks to test. Every answer of the questions that changes behaviour shows up in a scenario.
 
 ## Mockups
 
@@ -319,6 +320,21 @@ example:
 - a generated image when the look matters more than the exact layout
 - code, when the UI is simple to build: a small component in the project's own stack, that the human
   can run or read
+
+## Replaced behaviour
+
+Optional, between the stories and the architecture: leave it out when the feature replaces nothing.
+It lists the behaviour of today that the feature removes or changes, and the tests that guard it,
+which discovery's map of the code found. Each replaced behaviour is an item, its name in bold, then
+the tests that guard it:
+
+```markdown
+- **A completed task gets no next date.** Guarded by `tests/tasks/complete-a-task.test.tsx`.
+```
+
+The human's approval of the spec covers removing or rewriting these tests: see
+[when a test goes](code-quality.md#when-a-test-goes). A test that guards replaced behaviour and is
+not listed here costs a ruling, so read the discovery's list again before submitting.
 
 ## Architecture
 
@@ -401,9 +417,9 @@ is an item, its id in bold, then its measure in a few words in parentheses, opti
   [Revising](#revising).
 
 ```markdown
-| I. Humans in control | II. Plain text | III. Async | IV. Review effort | V. Tools optional | VI. Checked code |
-| -------------------- | -------------- | ---------- | ----------------- | ----------------- | ---------------- |
-| ✅                   | ✅             | ✅         | ✅                | ⚠️                | ✅               |
+| I. Humans in control | II. Plain text | III. Async | IV. Review effort | V. Tools optional |
+| -------------------- | -------------- | ---------- | ----------------- | ----------------- |
+| ✅                   | ✅             | ✅         | ✅                | ⚠️                |
 ```
 
 ## Risk tier
@@ -443,7 +459,7 @@ plan's.
 
 The spec names no test: its scenarios, edge cases, and success criteria are what the tests check.
 The plan's `## Test map` maps each of them to its test: see [Plan](plan.md). How the tests are
-written is [writing tests](code-quality.md#writing-tests).
+written, and when one goes, is the [testing](code-quality.md#testing) section.
 
 ## Spec frontmatter
 
@@ -482,7 +498,7 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | "I'll list the options, the human picks during review"        | The questions are over. Decide the design, and state what you settled as assumptions.               |
 | "The plan will figure out the behaviour"                      | The plan argues from the spec. A behaviour the spec leaves vague, a later agent decides alone.      |
-| "Next week is close enough for a scenario"                    | Scenarios carry exact values: the tests copy them as written.                                       |
+| "Next week is close enough for a scenario"                    | Scenarios carry exact values: the plan's tests copy them as written.                                |
 | "This answer could mean two things, I'll take the likely one" | Pick it only if the readings differ little, and say so in the block. Otherwise, ask in a new round. |
 | "This choice deserves a decision"                             | Only an answer or a review comment creates one. Ask the human in a new round.                       |
 | "The spec should list the components and tests"               | Those are the plan's. The spec keeps the units, the data model, and what users get.                 |

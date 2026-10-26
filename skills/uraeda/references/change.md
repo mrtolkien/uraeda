@@ -116,9 +116,9 @@ investigation depends on what the proposal asks.
 the bug. A fix guessed from the symptom hides the bug and adds new ones.
 
 1. **Reproduce it.** Follow the proposal's steps, then write the smallest test that fails because of
-   the bug: a focused test, through the real components, following the
-   [writing tests](code-quality.md#writing-tests) rules. Run it and keep its failure. If it does not
-   fail every time, find what makes it fail: timing, order, data.
+   the bug, following the [testing](code-quality.md#testing) rules. It stays as the bug's one test.
+   Run it and keep its failure. If it does not fail every time, find what makes it fail: timing,
+   order, data.
 2. **Trace the root cause.** Follow the wrong value back through the code to where it first goes
    wrong, not where it shows. Check the recent changes to that code (`git log`), and compare with
    similar code that works. Fix the cause at its source.
@@ -254,11 +254,12 @@ Run the project's complete validation once, before any change, as the implementa
 [before the first task](implementation.md#before-the-first-task). Then make the change one item at a
 time, one commit per item:
 
-- **Tests first.** A test fails first for the bug or the new behaviour, for the intended reason: the
-  proposal's expected behaviour stands for a spec's acceptance scenarios. Checks of preserved
-  behaviour keep passing. Once the new test of a risky guarantee passes, make the break it exists
-  for, see it fail, and revert it, as [tests that can fail](code-quality.md#tests-that-can-fail)
-  says. A bug's fix commits the reproduction test with it.
+- **Tests first**, as [writing one](code-quality.md#writing-one) says. A test fails first for the
+  bug or the new behaviour, for the intended reason: the proposal's expected behaviour stands for a
+  spec's acceptance scenarios. Checks of preserved behaviour keep passing. Once the new test of a
+  risky guarantee passes, make the break it exists for, see it fail, and revert it, as
+  [tests that can fail](code-quality.md#tests-that-can-fail) says. A bug's fix commits the
+  reproduction test with it.
 - **The commit's body** states the root cause, for a bug, or the approach, for a change. It also
   states the behaviour that stays unchanged, with the test that checks it. A resumed agent and the
   reviewer read it there.
@@ -267,15 +268,14 @@ time, one commit per item:
   marker is a reason to upgrade.
 - **Benchmarks.** When the change touches what the constitution says to benchmark, record a baseline
   before the change, and compare after it, in the pull request.
-- **UI work.** Run the browser test of the changed story's main scenario through the real app, and
-  look at screenshots of each changed view. Commit them in the change's `screenshots/` when the
-  project's decisions ask for them. In the messages that report your work, link each story you wrote
-  or changed. Use a [story link](conventions.md#markdown), alone in its paragraph, with a blank line
-  before and after. Uraeda shows it live in the session, where the human can try it and comment on
-  it. Before linking a story, set the worktree up as the project's git decision asks, like its
-  install. A new worktree has none of its dependencies, and its Storybook does not start without
-  them. Then check that each story you link renders, in Uraeda or with the decision's
-  `preview-command`.
+- **UI work.** Review each changed view in the running app before handing it over, against the
+  project's decisions: [a UI gets few tests](code-quality.md#how-many). Screenshots are never
+  committed for review. In the messages that report your work, link each story you wrote or changed.
+  Use a [story link](conventions.md#markdown), alone in its paragraph, with a blank line before and
+  after. Uraeda shows it live in the session, where the human can try it and comment on it. Before
+  linking a story, set the worktree up as the project's git decision asks, like its install. A new
+  worktree has none of its dependencies, and its Storybook does not start without them. Then check
+  that each story you link renders, in Uraeda or with the decision's `preview-command`.
 - **Rulings.** The choices a later reader would want explained go in the change's `rulings.md`, from
   [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit,
   as the [implementation step](implementation.md#rulings) describes.

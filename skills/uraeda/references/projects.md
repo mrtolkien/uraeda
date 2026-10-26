@@ -19,6 +19,12 @@ config if it has one, and today's offenders marked in place, as
 [setting up checks](code-quality.md#setting-up-checks) describes. It stays `proposed` until the
 human approves it; then configure the linters and mark the offenders, in a commit of their own.
 
+Then propose a testing decision, `specs/decisions/testing.md`, from
+[the template](../assets/templates/specs/decisions/testing.md): the project's stage, and what its
+tests cover at that stage, as [how many](code-quality.md#how-many) describes. Recommend `early` for
+a new project. The stage is the human's: it stays `proposed` until they approve it, and moves only
+when they say so.
+
 For a project with a UI, propose next a preview decision, `specs/decisions/preview.md`, from
 [the template](../assets/templates/specs/decisions/preview.md): the Storybook in which mockups are
 stories, which Uraeda runs and shows live. Its `preview-folder` is the folder Storybook runs in, and

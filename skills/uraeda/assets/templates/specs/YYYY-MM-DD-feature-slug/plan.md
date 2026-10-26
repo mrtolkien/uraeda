@@ -68,13 +68,14 @@ task that carries it out. State which spec clause it supersedes when it explicit
 
 ## Test map
 
-Each scenario, edge case, and criterion of the spec, and the task whose tests cover it. [How the
-tests run: what they render, on which store, with which clock, and which checks use a real boundary.
-One test may own several rows.]
+Each scenario, edge case, and criterion of the spec, and the task whose tests cover it, or "none"
+and why. [How the tests run: what they render, on which store, with which clock, and which checks
+use a real boundary. One test may own several rows.]
 
 | Spec                                                              | Task | Test                       |
 | ----------------------------------------------------------------- | ---- | -------------------------- |
 | [US1 1, 2, more 1; an edge case; SC-001; Review focus: a subject] | [N]  | [`tests/exact/path`, what] |
+| [US2 3: a scenario the project's stage asks no test for]          | none | [none: why]                |
 
 ## Waves
 
