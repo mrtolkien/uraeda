@@ -278,8 +278,9 @@ decisions.
 
 ## R21: A popover stands apart by its border
 
-- **Decision**: every popover, a menu, a selector's list, and a palette, draws a hairline border in
-  the border colour, set once in the theme's `popover` component.
+- **Decision**: every Astryx popover, a menu or a selector's list on wider screens, draws a hairline
+  border in the border colour, set once in the theme's `popover` component. The phone's sheets and
+  the jump palette, a dialog, are not popovers and keep their own edges.
 - **Rationale**: the flat look sets every shadow to none, so a popover was a block of text floating
   over the page, its edge only its background's tint: over the page's own background, as the
   session's `…` opens over the composer, it showed no edge at all. A bordered floating window is the
@@ -288,3 +289,14 @@ decisions.
   stronger popover background, which still shows no edge over a matching surface.
 - **If wrong**: the `popover` entry in [`theme.ts`](/packages/web/src/theme/theme.ts).
 - **Where**: [`theme/theme.ts`](/packages/web/src/theme/theme.ts)
+
+## R22: The composer's image drawer is left as it was
+
+- **Decision**: with images attached, the session composer's drawer still draws over the agent's
+  last message on the desktop, as it did before this change; an inbox note names it.
+- **Rationale**: the drawer is the composer's layout, which this change does not touch: the
+  thumbnails it holds are the same before and after, and moving the composer is the session's layout
+  to decide, not a shared component's.
+- **Alternatives considered**: a background under the drawer, which hides the message instead.
+- **If wrong**: the composer's drawer in [`Composer.tsx`](/packages/web/src/Composer.tsx).
+- **Where**: [`ComposerImages.tsx`](/packages/web/src/ComposerImages.tsx)

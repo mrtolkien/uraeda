@@ -7,7 +7,7 @@ import { userEvent } from "vite-plus/test/browser";
 import { describe, expect, test } from "vite-plus/test";
 import { FEATURE_PAGES } from "../../.storybook/checkouts.ts";
 import { page } from "vite-plus/test/browser";
-import { atSize, checkLayout, colorScheme, commands, drawn, show } from "./helpers.tsx";
+import { atSize, checkLayout, checkPage, colorScheme, commands, drawn, show } from "./helpers.tsx";
 
 /** Where "Next" and the sessions' pane are drawn. */
 function nextAndAgent() {
@@ -49,6 +49,24 @@ describe("the Home on the phone", () => {
       screen.getByRole("region", { name: "Links" }),
     ].map((element) => element.getBoundingClientRect().top);
     expect(tops).toEqual([...tops].sort((a, b) => a - b));
+  });
+});
+
+describe("dropping a feature", () => {
+  atSize("both");
+
+  // The UI checks decision: no text cut, a confirmation's buttons included.
+  test("the drop's confirmation shows its buttons' words whole", async () => {
+    await commands.addFeaturePages();
+    await show(`/f/${FEATURE_PAGES.working}`, "Continue, implement the plan");
+    await userEvent.click(screen.getByRole("button", { name: "Feature actions" }));
+    // A popover's menu item on a desktop, a sheet's button on the phone.
+    const drop = await screen.findByText("Drop the feature…");
+    await userEvent.click(drop);
+    const dialog = await screen.findByRole("dialog", { name: /^Drop the feature/ });
+    await drawn();
+    expect(within(dialog).getByRole("button", { name: "Drop the feature" })).toBeTruthy();
+    checkPage(dialog);
   });
 });
 
