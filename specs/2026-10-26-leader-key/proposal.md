@@ -16,7 +16,7 @@ On _desktop_, it's important that:
 There will be two levels of shorcuts:
 
 - Page shortcuts: those can directly use letters like hjkl, oai, ... They are used to interact with
-  the center colum, right sidebar, an active modal, ...
+  the center colum, right sidebar, an active modal, ... Anything is fair game
   - Outside of the standard vim keys written above, keys should use mnemonics and be easy to
     remember: `n` for something new, `f` for files, `g` for `go` as a prefix (`gh` for go home for
     example)

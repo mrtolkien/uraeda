@@ -7,8 +7,8 @@
 > Features for v1.0.0
 
 - [Many times the implementation made undue changes due to forcing itself to pass bad tests. We need to rephrase the testing strategy.](/specs/2026-10-26-testing-communication/proposal.md)
+- [Leader key/shortcut map](/specs/2026-10-26-leader-key/proposal.md)
 
-- [Leader key/shortcut map](drafts/leader-key-shortcut-map.md)
 - Full interactive UI pass: manual small fixes
 - Empty inbox
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
