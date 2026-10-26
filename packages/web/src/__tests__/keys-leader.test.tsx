@@ -224,6 +224,26 @@ test("Space on a button starts the leader and the browser's own press is stopped
   expect(menu("Space")).not.toBeNull();
 });
 
+// Break: no keyup rule, so Firefox clicks the button when Space is released.
+test("the keyup of a Space the leader took is prevented too, and no other keyup is", () => {
+  show();
+  const button = screen.getByRole("button", { name: "Note button" });
+  expect(fireEvent.keyDown(button, { key: " " })).toBe(false);
+  expect(fireEvent.keyUp(button, { key: " " })).toBe(false);
+  // Only that one: the next Space, if the leader does not take it, keeps its keyup.
+  press("Escape");
+  const box = document.createElement("input");
+  box.type = "checkbox";
+  document.body.append(box);
+  expect(fireEvent.keyDown(box, { key: " " })).toBe(true);
+  expect(fireEvent.keyUp(box, { key: " " })).toBe(true);
+  expect(fireEvent.keyUp(button, { key: " " })).toBe(true);
+  // A key of the menu is taken on keydown, and nothing of it is left to release.
+  press(" ");
+  press("n");
+  expect(fireEvent.keyUp(document.body, { key: "n" })).toBe(true);
+});
+
 test("Space on a checkbox, radio, switch, or combobox, even by role, keeps its own", () => {
   show();
   for (const html of [
