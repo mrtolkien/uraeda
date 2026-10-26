@@ -491,3 +491,6 @@ export const flag = outline(
   h("path", { d: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" }),
   h("path", { d: "M4 22v-7" }),
 );
+
+/** A space bar, for the Space key: Lucide's `space`. */
+export const space = outline(h("path", { d: "M22 17v1c0 .5-.5 1-1 1H3c-.5 0-1-.5-1-1v-1" }));

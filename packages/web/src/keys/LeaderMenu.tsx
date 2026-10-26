@@ -1,26 +1,39 @@
 // The leader menu: the keys pressed so far in the title of a bordered pane, then what each next key
-// does, a group marked by an arrow. It sits at the window's bottom right, above the status line,
-// and on narrow screens spans the window's width, as the UI layout decision's sheets do. A mockup
-// of the leader-key spec: the registry (a later task) feeds it its entries.
+// does, each with its icon, a group marked by an arrow, in alphabetical order of their keys. It sits
+// at the window's bottom right, above the status line, and on narrow screens spans the window's
+// width, as the UI layout decision's sheets do. A mockup of the leader-key spec: the registry (a
+// later task) feeds it its entries, which come from the keys features declare.
+import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import type { ComponentProps } from "react";
 import { Pane } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { KeyCap } from "./KeyCap.tsx";
 
 /** What a key does at this step: a group opens the next step, anything else runs. */
-export type MenuEntry = { isGroup?: boolean; key: string; label: string };
+export type MenuEntry = {
+  icon: ComponentProps<typeof Icon>["icon"];
+  isGroup?: boolean;
+  key: string;
+  label: string;
+};
 
 const styles = stylex.create({
   entries: {
     columnGap: spacingVars["--spacing-6"],
     display: "grid",
     gridAutoFlow: "column",
-    gridTemplateRows: "repeat(10, auto)",
+    gridTemplateRows: "repeat(12, auto)",
     listStyle: "none",
     margin: 0,
     padding: 0,
+  },
+  entry: {
+    alignItems: "center",
+    display: "flex",
+    gap: spacingVars["--spacing-2"],
   },
   oneColumn: {
     gridAutoFlow: "row",
@@ -39,6 +52,27 @@ const styles = stylex.create({
   },
 });
 
+/** Whether a key is a letter or a digit: the keys that are not come first. */
+const isLetter = (key: string) => /^[\p{L}\p{N}]$/u.test(key);
+
+/** The entries in alphabetical order of their keys, Space and the symbols first. */
+export function sortedEntries(entries: ReadonlyArray<MenuEntry>): Array<MenuEntry> {
+  return entries.toSorted((a, b) => {
+    if (a.key === "space" || b.key === "space") {
+      return a.key === b.key ? 0 : a.key === "space" ? -1 : 1;
+    }
+    if (isLetter(a.key) !== isLetter(b.key)) {
+      return isLetter(a.key) ? 1 : -1;
+    }
+    return a.key.localeCompare(b.key, "en", { sensitivity: "base" }) || (a.key < b.key ? 1 : -1);
+  });
+}
+
+/** A key as the menu draws it: Space is its icon, any other the key as typed. */
+function Key({ name }: { name: string }) {
+  return <KeyCap>{name === "space" ? <Icon icon="uraeda:space" label="Space" /> : name}</KeyCap>;
+}
+
 /** The menu at a step: `path` is the keys pressed, `entries` the next keys. */
 export function LeaderMenu({
   entries,
@@ -52,11 +86,12 @@ export function LeaderMenu({
     <div {...stylex.props(styles.place, narrow && styles.sheet)}>
       <Pane isActive isGroup title={["Space", ...path].join(" ")}>
         <ul {...stylex.props(styles.entries, narrow && styles.oneColumn)}>
-          {entries.map((entry) => (
+          {sortedEntries(entries).map((entry) => (
             <li key={entry.key}>
-              <Text type="supporting">
-                <KeyCap>{entry.key}</KeyCap>{" "}
-                {entry.isGroup === true ? `→ ${entry.label}` : entry.label}
+              <Text type="supporting" xstyle={styles.entry}>
+                <Key name={entry.key} />
+                <Icon icon={entry.icon} size="sm" />
+                {entry.isGroup === true ? `${entry.label} →` : entry.label}
               </Text>
             </li>
           ))}
