@@ -13,7 +13,6 @@ import { type FigureRow, type FigureValue } from "./figureRows.ts";
 import { DiffCount, diffLine } from "../layout/DiffCount.tsx";
 
 const styles = stylex.create({
-  // Text's `success` and `error` are no colours of the theme: they draw as the primary text (C4).
   row: {
     alignItems: "baseline",
     columnGap: spacingVars["--spacing-3"],

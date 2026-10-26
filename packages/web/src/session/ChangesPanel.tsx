@@ -6,9 +6,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
-import * as stylex from "@stylexjs/stylex";
 import { useBranchChanges } from "../data.ts";
 import { StatusText } from "../fields/StatusText.tsx";
 import { useSession } from "../sessionData.ts";
@@ -17,11 +15,7 @@ import { Path } from "./Path.tsx";
 import { Section } from "./Section.tsx";
 import { plural } from "../labels.ts";
 import { Empty } from "../layout/Empty.tsx";
-
-const styles = stylex.create({
-  added: { color: colorVars["--color-text-green"] },
-  removed: { color: colorVars["--color-text-red"] },
-});
+import { DiffCount, diffLine } from "../layout/DiffCount.tsx";
 
 /** The branch's files listed before its "more files" button. */
 const FIRST_FILES = 2;
@@ -97,12 +91,7 @@ function Lines({ added, removed }: { added: number | null; removed: number | nul
       </Text>
     );
   }
-  return (
-    <Text type="supporting">
-      <span {...stylex.props(styles.added)}>+{added}</span>{" "}
-      <span {...stylex.props(styles.removed)}>-{removed}</span>
-    </Text>
-  );
+  return <DiffCount added={added} removed={removed} type="supporting" />;
 }
 
 /**
@@ -130,7 +119,7 @@ function OnTheBranch({ folder }: { folder: string }) {
   return (
     <VStack gap={1}>
       <PartTitle>
-        {`On the branch · ${fileCount(changes.count)} · +${changes.added} -${changes.removed}`}
+        {`On the branch · ${fileCount(changes.count)} · ${diffLine(changes.added, changes.removed)}`}
       </PartTitle>
       <List aria-label="The branch's files" density="compact">
         {shown.map((file) => (

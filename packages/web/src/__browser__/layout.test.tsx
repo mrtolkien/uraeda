@@ -402,7 +402,7 @@ async function implementation(mode: "light" | "dark") {
   if (window.innerWidth >= 768) {
     const column = await screen.findByRole("complementary", { name: COLUMN }, LIVE);
     await within(column).findByRole("link", { name: /task 7 of 11/ }, LIVE);
-    await within(column).findByText("On the branch · 3 files · +3 -0", undefined, LIVE);
+    await within(column).findByText("On the branch · 3 files · +3 −0", undefined, LIVE);
   } else {
     await screen.findByRole("link", { name: /task 7 of 11/ }, LIVE);
   }
@@ -496,7 +496,7 @@ describe("the session on the phone", () => {
       await implementation(mode);
       await userEvent.click(screen.getByRole("button", { name: "Activity" }));
       const open = await screen.findByRole("dialog", { name: "Activity" }, LIVE);
-      await within(open).findByText("On the branch · 3 files · +3 -0", undefined, LIVE);
+      await within(open).findByText("On the branch · 3 files · +3 −0", undefined, LIVE);
       await grown();
       await checkSession();
     },

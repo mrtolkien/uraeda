@@ -204,3 +204,15 @@ decisions.
   which changes every form's row of buttons.
 - **If wrong**: `SaveKeys` or the composer's key, beside each main button.
 - **Where**: [`fields/SaveKeys.tsx`](/packages/web/src/fields/SaveKeys.tsx)
+
+## R16: Lines added and removed read "+120 −4" everywhere
+
+- **Decision**: a session's changed files and their branch's total draw their counts with
+  `DiffCount` and `diffLine`, like a sidebar card and a feature's column: a minus sign, thousands
+  grouped, tabular figures, in the theme's green and red text colours. The tests that read the
+  session's changes, in its column and in the browser, read "−" where they read "-".
+- **Rationale**: the same count was drawn three ways, the session's with an ASCII hyphen and no
+  grouping; the text colours read at 4.5:1, which the success and error tokens are not held to.
+- **Alternatives considered**: the hyphen everywhere, which a screen reader may read as a dash.
+- **If wrong**: one line in [`DiffCount.tsx`](/packages/web/src/layout/DiffCount.tsx).
+- **Where**: [`layout/DiffCount.tsx`](/packages/web/src/layout/DiffCount.tsx)
