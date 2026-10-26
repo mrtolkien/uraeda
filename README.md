@@ -292,9 +292,6 @@ Every command works without a terminal, and the read commands print JSON with `-
 `ura lsp` is a language server for workflow files. It offers diagnostics as you type, completion of
 frontmatter values, and the human's actions, from commenting on a spec to approving it.
 
-- **Neovim**: [uraeda.nvim](editors/nvim/README.md), in `editors/nvim/`, with keys under `<leader>a`
-  to draft, start, comment, approve, answer, and commit.
-
 ## Inspirations
 
 - [superpowers](https://github.com/obra/superpowers): the flow from clarification to design to plan,
@@ -317,7 +314,7 @@ the layout tests find their WebKit browser:
 vp install         # dependencies
 vp run --filter uraeda-binding build  # the Rust core for Node, which vp dev and the tests rebuild when older
 vp run fast        # after each task: the checks a change can affect, and the ones left to ready
-vp run ready       # before a push: every check and test; CI also runs the Neovim tests
+vp run ready       # before a push: every check and test
 vp dev             # the web UI on http://127.0.0.1:4310, opening this repository first
 vp run dev         # the same, rebuilding the Rust core and restarting as it or the server changes
 vp run --filter @uraeda/ui build  # the npm package, in packages/uraeda, after the web UI's build

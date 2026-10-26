@@ -71,4 +71,3 @@ Approving must be deliberate, so commits stay out of code actions
 
 - [`crates/`](/crates/) and [`packages/`](/packages/), and every feature that adds logic, a command,
   an endpoint, or a page
-- [`editors/`](/editors/), and every feature that adds an editor integration

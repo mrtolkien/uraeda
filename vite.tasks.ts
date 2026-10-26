@@ -25,7 +25,7 @@ const rootConfig = [
 
 /**
  * The dev shell's variables the tests need, which Vite Task does not pass to a task unless listed:
- * the browsers, their fonts and EGL driver, and mini.test. Not part of a result, so not fingerprinted.
+ * the browsers, their fonts and EGL driver. Not part of a result, so not fingerprinted.
  */
 const testEnv = [
   "PLAYWRIGHT_BROWSERS_PATH",
@@ -33,7 +33,6 @@ const testEnv = [
   "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD",
   "FONTCONFIG_FILE",
   "__EGL_VENDOR_LIBRARY_DIRS",
-  "MINI_TEST",
   "URAEDA_TEST_TRACE",
 ];
 
@@ -198,10 +197,6 @@ export const tasks = {
     cache: false,
     command: "xdg-open coverage/rust/html/index.html && xdg-open coverage/typescript/index.html",
   },
-  "lua:fmt": {
-    cache: { input: ["editors/nvim/**", ...toolchainInputs], output: [] },
-    command: "stylua --check editors/nvim",
-  },
   ready: {
     command: "true",
     dependsOn: [
@@ -225,7 +220,6 @@ export const tasks = {
     dependsOn: [
       "binding:build",
       "web:theme",
-      "lua:fmt",
       "ts:check",
       "web:build",
       "ui:build",
@@ -319,16 +313,7 @@ export const tasks = {
     cwd: "packages/web",
     dependsOn: ["binding:touch"],
   },
-  // CI only (see the toolchain decision): the Neovim plugin's tests, on the `ura` they build.
-  "test:nvim": {
-    cache: false,
-    command: [
-      "cargo build -q -p uraeda-cli",
-      `${testRun("../..")} ${isolatedGit} nvim --headless --noplugin -u tests/minimal_init.lua -c 'lua MiniTest.run()'`,
-    ],
-    cwd: "editors/nvim",
-  },
-  // Every file `vp check` formats or lints, by extension: a Rust or Lua change does not rerun it.
+  // Every file `vp check` formats or lints, by extension: a Rust change does not rerun it.
   "ts:check": {
     cache: {
       input: [

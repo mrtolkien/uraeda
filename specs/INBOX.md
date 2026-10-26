@@ -81,8 +81,7 @@
   seconds and gate, and the simulated human's invalid-run rule is tested only with a file outside
   specs/, not another feature's folder or PRIORITIES.md
 - [agent] [fix-testing] Core flows: settings never place a config.toml in a repository to check it
-  is ignored, and nothing drafts a priorities line from a non-default checkout; the Neovim smoke
-  picks the waiting item by the picker label, not its index
+  is ignored, and nothing drafts a priorities line from a non-default checkout
 - [agent] [fix-testing] CLI install flow: the permission test returns silently as root, the kind of
   test the rebuild dropped elsewhere
 - [agent] [ui-sandbox] Sandbox seed: two seeds started within the same 100 ms after a killed seed

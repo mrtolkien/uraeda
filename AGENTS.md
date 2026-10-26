@@ -63,8 +63,6 @@ editing it.
   - `benchmarks/`: the runner of the benchmarks, in TypeScript, over the server's adapter
 - `benchmarks/`: the benchmark's suites, cases, simulated human, and each run's record, scores, and
   specs; `packages/benchmarks/` runs them (see its [README](benchmarks/README.md))
-- `editors/`: editor plugins, reaching workflow files only through `ura lsp`
-  - `nvim/`: the Neovim plugin, Lua, tested with mini.test
 - `fixtures/`: workflow files shared by the Rust and TypeScript tests, some broken on purpose
 
 The [stack](specs/decisions/stack.md) and [toolchain](specs/decisions/toolchain.md) decisions say

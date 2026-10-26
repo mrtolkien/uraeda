@@ -128,20 +128,6 @@ jobs:
           git status --porcelain
           test -z "$(git status --porcelain)"
 
-  neovim:
-    # CI only (see the toolchain decision): the Neovim plugin's tests, on the `ura` they build.
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - name: Run the Neovim plugin's tests
-        run: nix develop --command pnpm exec vp run --no-cache test:nvim
-      - name: Check the working tree is unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 20

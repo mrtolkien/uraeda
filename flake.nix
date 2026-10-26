@@ -40,9 +40,6 @@
             # The Rust tests' runner, and their coverage.
             cargo-nextest
             cargo-llvm-cov
-            # The Neovim plugin's formatter, and the Neovim its tests run in.
-            neovim
-            stylua
           ];
           # `nix develop` points the temporary folder at a `nix-shell.*` folder of its own, and
           # writes its shell's startup file in a `nix-develop-<its pid>-*` one: it removes neither
@@ -65,8 +62,6 @@
             fi
             unset root
           '';
-          # mini.test, which the Neovim plugin's tests run on, pinned by the flake's lock.
-          MINI_TEST = "${pkgs.vimPlugins.mini-test}";
           # The browsers of the web UI's layout tests: the playwright package pins the same version
           # as nixpkgs' driver, so its browsers run here without a download.
           PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";

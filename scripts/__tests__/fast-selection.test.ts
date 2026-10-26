@@ -305,7 +305,6 @@ test("a new focused test and the workflow's images need no full validation", () 
   const image = selectFast([change("specs/2026-10-19-fix-testing/diagram.webp", false, true)]);
   expect(image.checks).toEqual(["ts:check", "specs:check"]);
   expect(image.families).toEqual([]);
-  expect(selectFast([change("editors/nvim/lua/uraeda/init.lua")]).checks).toContain("ready");
   expect(selectFast([change(".github/workflows/ci.yml")]).checks).toContain("ready");
 });
 const projectOptions = (path: string) =>

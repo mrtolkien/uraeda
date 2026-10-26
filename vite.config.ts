@@ -229,9 +229,7 @@ export default {
   // The checks of `vp run ready`, in their own file.
   run: { tasks },
   staged: {
-    "!(*.{rs,lua})": "vp check --fix",
-    // StyLua finds `editors/nvim/stylua.toml` from each file's folder.
-    "*.lua": "stylua",
+    "!*.rs": "vp check --fix",
     // rustfmt finds the root's `rustfmt.toml` the same way.
     "*.rs": "rustfmt",
   },

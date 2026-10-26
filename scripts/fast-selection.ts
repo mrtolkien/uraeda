@@ -214,7 +214,7 @@ export function selectFast(changed: Array<Change>): FastSelection {
       // The workflow's own files, images included, which the specs check reads and no test does.
       checks.add("specs:check");
     } else if (!path.startsWith("crates/")) {
-      // Anything else, `editors/` (its Neovim tests) and `.github/` (CI's workflow, which the
+      // Anything else, `.github/` (CI's workflow, which the
       // toolchain test reads) included, is read by a check only `ready` runs.
       names.forEach((name) => whole.add(name));
       checks.add("ready");

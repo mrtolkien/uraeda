@@ -320,7 +320,7 @@ function projectNames(): Array<string> {
 }
 
 /** A command line that runs tests: a test runner, or the package's smoke test. */
-const TEST_RUNNER = /\b(?:vp test|cargo (?:llvm-cov )?nextest|nvim --headless)\b|smoke\.ts\b/;
+const TEST_RUNNER = /\b(?:vp test|cargo (?:llvm-cov )?nextest)\b|smoke\.ts\b/;
 
 /** `scripts/test-run.ts`, from the root or a task's folder, with its options. */
 const TEST_RUN = /^node (?:\.\.\/)*scripts\/test-run\.ts((?: --\S+ \S+)*) /;
@@ -537,8 +537,8 @@ test.each([
     "a test task outside a run folder, next to a wrapped one and a build",
     outsideRunFolder({
       "rust:test": { command: "env -u GIT_DIR cargo nextest run" },
-      "test:nvim": {
-        command: ["cargo build -q", "node ../../scripts/test-run.ts nvim --headless -u x.lua"],
+      "test:extra": {
+        command: ["cargo build -q", "node ../../scripts/test-run.ts vp test --project x"],
       },
       "ts:test": { command: "node scripts/test-run.ts vp test --project '!phone'" },
       "ui:smoke": { command: ["node scripts/build.ts", "node packages/uraeda/scripts/smoke.ts"] },
