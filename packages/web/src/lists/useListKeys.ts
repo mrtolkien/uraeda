@@ -6,42 +6,17 @@
 // row's handle, an open Selector, a menu, or a dialog.
 import { useListFocus } from "@astryxdesign/core/hooks";
 import { useCallback, useEffect } from "react";
+import { isLayerOpen } from "../keys/layers.ts";
 import { useStatusHints } from "../statusHints.tsx";
 import { type Columns, destination, type Move } from "./destination.ts";
 
 export type { Columns };
 
+// The one layer rule lives in `keys/layers.ts`; the callers that import it from here move in Task 6.
+export { isLayerOpen };
+
 /** The rows' links, in the list's order: each row marks its item with `data-row`. */
 const ROW = "[data-row] a[href]";
-
-/**
- * What shows over the page and owns the keys while open: a dialog, or a popover, a menu, or a
- * Selector, whose trigger says it is expanded. Closed, they may stay in the page, hidden; the
- * toasts' region is a popover of its own, always open, which owns no key.
- */
-const DIALOGS = 'dialog[open], [role="dialog"], [role="alertdialog"]';
-const EXPANDED = '[aria-expanded="true"][aria-haspopup]';
-
-/** Whether an element shows: closed, a layer may stay in the page, hidden. */
-function shown(element: Element) {
-  return element.getClientRects().length > 0;
-}
-
-/** Whether a layer is open: its own keys are not the list's. */
-export function isLayerOpen() {
-  if (document.querySelector(EXPANDED) !== null) {
-    return true;
-  }
-  if (Array.from(document.querySelectorAll(DIALOGS)).some(shown)) {
-    return true;
-  }
-  try {
-    return document.querySelector(':popover-open:not([popover="manual"])') !== null;
-  } catch {
-    // A browser without the popover API opens no popover.
-    return false;
-  }
-}
 
 /**
  * The keys, as the status line names them while the list shows: `h l` only with `columns`, then

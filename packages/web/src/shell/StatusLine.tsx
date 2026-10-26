@@ -16,6 +16,7 @@ import { needsYou } from "../sidebar/cards.ts";
 import { type Data, entriesOf, runningSessions } from "../sidebar/entries.ts";
 import { useDeclaredHints, useStatusLineCovered } from "../statusHints.tsx";
 import { KeyCap } from "../keys/KeyCap.tsx";
+import { useHints } from "../keys/registry.tsx";
 import { useCountsFit } from "./useCountsFit.ts";
 import { ruleStyles } from "../layout/rules.ts";
 
@@ -92,9 +93,9 @@ function needsYouCount(data: Data) {
     .length;
 }
 
-/** The hints, each its keys then what they do. */
+/** The hints, each its keys then what they do: the registry's, then those not yet moved to it. */
 function Hints() {
-  const hints = useDeclaredHints();
+  const hints = [...useHints(), ...useDeclaredHints()];
   return (
     <div {...stylex.props(styles.hints)}>
       {hints.map((hint) => (
