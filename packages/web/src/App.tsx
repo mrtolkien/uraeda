@@ -386,6 +386,8 @@ export function App({
   // Unsaved text older than 30 days goes as the app starts, before a field shows it.
   useState(() => pruneUnsaved(new Date()));
   useDropGuard();
+  // The device's setting, kept above the repository-keyed client so a repository switch keeps it.
+  const keysSwitch = useState(true);
   return (
     <FateClient client={clientFor(null)}>
       <ThemeModeProvider>
@@ -402,7 +404,7 @@ export function App({
                       <Suspense fallback={<Loading />}>
                         <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
                           <Suspense fallback={<Loading />}>
-                            <Shell>
+                            <Shell keysSwitch={keysSwitch}>
                               <Suspense fallback={<Loading />}>
                                 <Page key={pageKey(route, pathname, entryId)} route={route} />
                               </Suspense>

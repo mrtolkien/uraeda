@@ -579,3 +579,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: drop the `singleKeys` condition in `useAnswerKeys`.
 - **Where**: `keys/registry.tsx`, `lists/CategoryPane.tsx`, `decisions/DecisionsPage.tsx`; tests in
   `__browser__/keyboard-setting.test.tsx` and `__tests__/palette.test.tsx`.
+
+## R91: The single-key switch's state lives in `App`, with no test that fails first
+
+- **Decision**: the state the shell hands to `KeysProvider` is held by `App`, above the
+  repository-keyed client, and given to `Shell` as `keysSwitch`; a `Shell` without it (a story)
+  holds its own. A repository switch draws the shell anew, so a state held in it started at "on"
+  again and showed the letter hints until the settings were read. The change has no test that fails
+  before it: in happy-dom the new shell's settings read answers, and its effect runs, before any
+  observer sees the first commit (a status line recorded at every mutation of a repository switch,
+  with the switch off, never showed a letter hint, with or without the change), so a frame of the
+  browser's cannot be observed there. The hand-edited file reaching the keys is tested
+  (`settings.test.tsx`), and a pending `g` ending with the switch is tested
+  (`keys-leader.test.tsx`).
+- **Rationale**: the review read the code and the flash follows from it; holding the state above the
+  remount is the smallest change that makes it impossible.
+- **Alternatives considered**: a module-level cache of the last value: state outside React, which
+  every test file's module graph would carry between its tests. Reading the setting with a layout
+  effect: still after the first commit's layout effects, which show the hints.
+- **If wrong**: delete the `keysSwitch` prop and `App`'s state; `Shell` keeps its own.
+- **Where**: `Shell.tsx`, `App.tsx`.
