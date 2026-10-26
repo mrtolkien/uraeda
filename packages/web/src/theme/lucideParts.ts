@@ -55,3 +55,16 @@ export const hourglass = outline(
   }),
   h("path", { d: "M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" }),
 );
+
+/** A keyboard, for the Keyboard decision: Lucide's `keyboard`. */
+export const keyboard = outline(
+  h("path", { d: "M10 8h.01" }),
+  h("path", { d: "M12 12h.01" }),
+  h("path", { d: "M14 8h.01" }),
+  h("path", { d: "M16 12h.01" }),
+  h("path", { d: "M18 8h.01" }),
+  h("path", { d: "M6 8h.01" }),
+  h("path", { d: "M7 16h10" }),
+  h("path", { d: "M8 12h.01" }),
+  h("rect", { height: "16", rx: "2", width: "20", x: "2", y: "4" }),
+);
