@@ -7,7 +7,9 @@ import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
 import { PrioritiesList } from "./lists/PrioritiesList.tsx";
+import { useKeys } from "./keys/registry.tsx";
 import { useRestoreScroll } from "./routes.tsx";
+import { useOpenAddForm } from "./SidebarAdd.tsx";
 import { PrioritiesView } from "./views.ts";
 import { PageTitle } from "./layout/PageTitle.tsx";
 
@@ -21,6 +23,9 @@ import { PageTitle } from "./layout/PageTitle.tsx";
 export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; select?: string }) {
   const fate = useFateClient();
   const priorities = usePriorities();
+  const openForm = useOpenAddForm();
+  // The ＋ next to Priorities, from the keyboard: the form in its default place.
+  useKeys([{ hint: "a", icon: "plus", keys: "a", label: "add", run: () => openForm("priority") }]);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const [message, setMessage] = useState<string>();

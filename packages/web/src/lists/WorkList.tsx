@@ -11,11 +11,12 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
-import { Card, type WorkRow } from "./Card.tsx";
+import { Card, RowStateContext, type WorkRow } from "./Card.tsx";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
 import { isLayerOpen } from "../keys/layers.ts";
 import { itemTarget, type Placed } from "./itemMoves.ts";
 import { type Columns, type ItemMove, useListKeys } from "./useListKeys.ts";
+import { useRowKeys } from "./useRowKeys.ts";
 
 /** A section's colour: the ongoing entries green, Now blue, Later grey, the rest neutral. */
 export type Tone = "green" | "blue" | "neutral" | "gray";
@@ -273,25 +274,31 @@ function useItemMoves(
 /**
  * Puts the keyboard's focus on the selected card: at the start with `isFocused`, and once the overlay
  * of a card closed (`named` turns undefined), which leaves the page a moment after, so the focus
- * waits for the layer rule to say it left.
+ * waits for the layer rule to say it left. The same once the editor or the menu a key opened on a
+ * card closed (`held` turns undefined).
  */
 function useRefocus({
   focusSelected,
+  held,
   isFocused,
   named,
   selected,
 }: {
   focusSelected: () => void;
+  held: string | undefined;
   isFocused: boolean;
   named: string | undefined;
   selected: string | undefined;
 }) {
   const wasNamed = useRef(named !== undefined);
+  const wasHeld = useRef(held !== undefined);
   useEffect(() => {
     // The overlay closed: the card it showed is selected, and has the focus once the overlay's
     // layer, which leaves the page a moment after, no longer holds it.
-    const closed = wasNamed.current && named === undefined;
+    const closed =
+      (wasNamed.current && named === undefined) || (wasHeld.current && held === undefined);
     wasNamed.current = named !== undefined;
+    wasHeld.current = held !== undefined;
     if (!((isFocused && selected !== undefined) || closed)) {
       return undefined;
     }
@@ -305,20 +312,23 @@ function useRefocus({
     };
     focus();
     return () => cancelAnimationFrame(frame);
-  }, [isFocused, named, selected, focusSelected]);
+  }, [held, isFocused, named, selected, focusSelected]);
 }
 
 /**
  * The sections as panes, in the `layout`'s arrangement. `selected` is the key of the row the
  * address names, an open overlay's: the selection starts there and stays on it once the overlay
  * closes, with the focus. With `isFocused`, the keyboard's focus is put on it, with its ring.
- * `onOpen` opens a card, from a click or Enter, with its link's address. A drop calls `onMove` with
+ * `onOpen` opens a card, from a click or Enter, with its link's address. `onAddBeside(section, row)`
+ * is what `o` calls for the selected row, where the list adds in a place; a row's `editor` is what
+ * `i` shows in its place, and its `menu` is what `m` opens. A drop calls `onMove` with
  * the row's key, its section, and its index among that section's rows on screen; until it
  * resolves, the list stays as the drag left it.
  */
 export function WorkList({
   isFocused = false,
   layout = "stack",
+  onAddBeside,
   onMove,
   onOpen,
   sections,
@@ -326,6 +336,7 @@ export function WorkList({
 }: {
   isFocused?: boolean;
   layout?: WorkLayout;
+  onAddBeside?: (section: string, row: WorkRow) => void;
   onMove?: OnMove;
   onOpen?: (href: string) => void;
   sections: ReadonlyArray<WorkSection>;
@@ -348,6 +359,8 @@ export function WorkList({
   const shown = [...inRow, ...below].map(rowsOf);
   const rows = shown.flat();
   const isOpen = named !== undefined;
+  const placed = [...inRow, ...below].map((section, at) => ({ id: section.id, rows: shown[at] }));
+  const own = useRowKeys(placed, onAddBeside, setSelected);
   const onMoveItem = useItemMoves(
     onMove,
     [...inRow, ...below].map((section, at) => ({
@@ -366,9 +379,10 @@ export function WorkList({
     onEdit: () => false,
     onMoveItem,
     onSelect: (index) => setSelected(rows[index].key),
+    rowKeys: own.keys,
     selected: rows.findIndex((row) => row.key === selected),
   });
-  useRefocus({ focusSelected, isFocused, named, selected });
+  useRefocus({ focusSelected, held: own.held, isFocused, named, selected });
   const open = (row: WorkRow) => {
     setSelected(row.key);
     onOpen?.(row.href);
@@ -387,19 +401,21 @@ export function WorkList({
     );
   };
   return (
-    <div ref={ref}>
-      <DragDropProvider {...drag.provider}>
-        {/* The row scrolls sideways: a region the keyboard can scroll, which its panes' links reach. */}
-        <div
-          aria-label={asColumns ? "Columns" : undefined}
-          role={asColumns ? "region" : undefined}
-          tabIndex={asColumns ? 0 : undefined}
-          {...stylex.props(asColumns ? styles.row : styles.stack)}
-        >
-          {inRow.map((section) => drawn(section, asColumns))}
-        </div>
-        {below.map((section) => drawn(section, false))}
-      </DragDropProvider>
-    </div>
+    <RowStateContext value={own.state}>
+      <div ref={ref}>
+        <DragDropProvider {...drag.provider}>
+          {/* The row scrolls sideways: a region the keyboard can scroll, which its panes' links reach. */}
+          <div
+            aria-label={asColumns ? "Columns" : undefined}
+            role={asColumns ? "region" : undefined}
+            tabIndex={asColumns ? 0 : undefined}
+            {...stylex.props(asColumns ? styles.row : styles.stack)}
+          >
+            {inRow.map((section) => drawn(section, asColumns))}
+          </div>
+          {below.map((section) => drawn(section, false))}
+        </DragDropProvider>
+      </div>
+    </RowStateContext>
   );
 }

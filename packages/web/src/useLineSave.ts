@@ -13,24 +13,26 @@ const EMPTY = "A priority cannot be empty.";
  * nothing once saved. `cancel`, from Escape or Cancel, asks "Discard your changes?" first when the
  * text changed. Leaving the field does nothing. With `stayOpen`, as an Add row, a saved field
  * empties and stays open for the next line. `empty` is the refusal of an empty text, a priority's
- * by default.
+ * by default. With `startOpen`, as a line a key turned into its editor, it opens as it is drawn.
  */
 export function useLineSave({
   empty = EMPTY,
   field: key,
   onSave,
+  startOpen = false,
   stayOpen,
   value,
 }: {
   empty?: string;
   field: string;
   onSave: (text: string) => Promise<string | undefined>;
+  startOpen?: boolean;
   stayOpen: boolean;
   value: string;
 }) {
   const field = useTextField(key, value);
   const confirm = useConfirm();
-  const [open, setOpen] = useState(() => field.entry !== undefined);
+  const [open, setOpen] = useState(() => startOpen || field.entry !== undefined);
   const [error, setError] = useState<string>();
   const [status, setStatus] = useState<"saving" | "saved">();
   // A save under way: a second Enter or Save waits for it. Set and read in handlers only.

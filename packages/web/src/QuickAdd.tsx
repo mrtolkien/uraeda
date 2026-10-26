@@ -150,6 +150,23 @@ export type Added = {
   text: string;
 };
 
+/** The sections a line goes to, one picked. */
+function SectionPicker({
+  onChange,
+  section,
+}: {
+  onChange: (section: string) => void;
+  section: string;
+}) {
+  return (
+    <SegmentedControl label="Section" onChange={onChange} value={section}>
+      {[...TITLES].map(([id, title]) => (
+        <SegmentedControlItem key={id} label={title} value={id} />
+      ))}
+    </SegmentedControl>
+  );
+}
+
 /**
  * The form: it reads the priorities when it opens, for the version it adds to. Its text is the
  * unsaved store's `quick-add`, kept as the overlay closes and restored as it opens again; Cancel
@@ -159,18 +176,21 @@ export function AddForm({
   notice: shown,
   onAdded,
   onCancel,
+  section: start = "next",
 }: {
   /** What "Add and commit" said last, from the start: the stories' not-committed state. */
   notice?: CommitNotice;
   onAdded: (section: string, added: Added | undefined) => void;
   onCancel: () => void;
+  /** The section the form opens on, Next by default. */
+  section?: string;
 }) {
   const fate = useFateClient();
   const confirm = useConfirm();
   const priorities = usePriorities();
   const field = useTextField("quick-add", "");
   const text = field.text;
-  const [section, setSection] = useState("next");
+  const [section, setSection] = useState(start);
   const [message, setMessage] = useState<string>();
   const [notice, setNotice] = useState(shown);
 
@@ -235,15 +255,7 @@ export function AddForm({
         onKeyDown={enterAdds(() => text.trim() && commit.onAddAndCommit())}
         value={text}
       />
-      <SegmentedControl
-        label="Section"
-        onChange={(value: string) => setSection(value)}
-        value={section}
-      >
-        {[...TITLES].map(([id, title]) => (
-          <SegmentedControlItem key={id} label={title} value={id} />
-        ))}
-      </SegmentedControl>
+      <SectionPicker onChange={setSection} section={section} />
       {message && <AnnouncedBanner status="error" title={message} />}
       <CommitBanner notice={notice} />
       <AddButtons

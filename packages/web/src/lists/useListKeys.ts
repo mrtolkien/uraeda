@@ -52,8 +52,22 @@ const ITEM_MOVES: Keys<ItemMove> = [
   ["shift+ArrowRight", "right", "move item to the next column"],
 ];
 
+const NO_KEYS: ReadonlyArray<RowKey> = [];
+
 /** The hint of a key of the tables above, which only the first key of each pair names. */
 const HINTS: Record<string, string> = { h: "h l", j: "j k" };
+
+/**
+ * A key of the page that acts on the row the focus is on, or the selected one, `o`, `i`, `m`:
+ * `run` gets the row's index, and returns `false` where the row has nothing for it, which leaves the
+ * key to the page. `hint` is what the status line draws, none for a key it leaves out.
+ */
+export type RowKey = {
+  hint?: string;
+  keys: string;
+  label: string;
+  run: (row: number) => boolean | void;
+};
 
 /** Where a list's keys act, and what they do there. */
 type Acts = {
@@ -77,6 +91,7 @@ function bindingsOf({
   escapeLabel,
   isOff,
   onClose,
+  rowKeys,
 }: {
   acts: Acts;
   canMoveItems: boolean;
@@ -84,6 +99,7 @@ function bindingsOf({
   escapeLabel: string | null;
   isOff: boolean;
   onClose: () => boolean;
+  rowKeys: ReadonlyArray<RowKey>;
 }): ReadonlyArray<Binding> {
   const when = (target: EventTarget | null) => acts.rowAt(target) !== null;
   /** Runs `act` on the row of the key, or says the key is not the list's to take. */
@@ -109,9 +125,17 @@ function bindingsOf({
         when,
       }))
     : [];
+  const own: ReadonlyArray<Binding> = rowKeys.map(({ hint: named, keys, label, run }) => ({
+    ...(isOff || named === undefined ? {} : { hint: named }),
+    keys,
+    label,
+    run: onRow((row) => row !== -1 && run(row)),
+    when,
+  }));
   return [
     ...moves,
     ...items,
+    ...own,
     {
       ...(isOff ? {} : { hint: "⏎" }),
       keys: "Enter",
@@ -139,7 +163,7 @@ function bindingsOf({
  * each holds (see `Columns`): its keys move inside a column and between them. `onMoveItem(move,
  * row)` is given by a list whose items can move: `J K H L` and Shift with the arrows call it with
  * the row the focus is on, or the selected one when the focus is on the page; without it those
- * keys are not bound. `isOff` says a layer the list owns, like its overlay, holds the keys: the
+ * keys are not bound. `rowKeys` are the page's own keys on a row, bound once (`RowKey`). `isOff` says a layer the list owns, like its overlay, holds the keys: the
  * status line then names only Escape's. Returns the ref of the list's element, and what focuses
  * the selected row.
  */
@@ -151,6 +175,7 @@ export function useListKeys({
   onEdit,
   onMoveItem,
   onSelect,
+  rowKeys = NO_KEYS,
   selected,
 }: {
   columns?: Columns;
@@ -160,6 +185,7 @@ export function useListKeys({
   onEdit: () => boolean;
   onMoveItem?: (move: ItemMove, row: number) => void;
   onSelect: (index: number) => void;
+  rowKeys?: ReadonlyArray<RowKey>;
   selected: number;
 }) {
   const { focusItem, getItems, listRef } = useListFocus<HTMLDivElement>({ itemSelector: ROW });
@@ -196,6 +222,7 @@ export function useListKeys({
       escapeLabel,
       isOff,
       onClose,
+      rowKeys,
     }),
   );
 

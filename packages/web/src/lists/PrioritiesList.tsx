@@ -9,12 +9,14 @@ import type { usePriorities } from "../data.ts";
 import { EditableLine } from "../EditableLine.tsx";
 import { stepTitle } from "../labels.ts";
 import { titleOf } from "../QuickAdd.tsx";
+import { useOpenAddForm } from "../SidebarAdd.tsx";
 import { openDetail, PRIORITY } from "../pane/DetailOverlay.tsx";
 import { useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { PrioritiesView } from "../views.ts";
 import { fileIndex } from "./cardMoves.ts";
 import { PriorityMenu } from "./CardMenu.tsx";
+import { PriorityEditor } from "./RowEditors.tsx";
 import { type Tone, WorkList, type WorkRow, type WorkSection } from "./WorkList.tsx";
 
 /** The priorities as the page reads them. */
@@ -84,6 +86,10 @@ function sectionsOf(
     return place && <PriorityMenu found={place} hash={priorities.hash} onRefused={onRefused} />;
   };
   const row = (entry: PriorityEntry): WorkRow => ({
+    editor: (onDone: () => void) => {
+      const place = found(entry);
+      return place ? <PriorityEditor found={place} hash={priorities.hash} onDone={onDone} /> : null;
+    },
     href: here(`/priorities/${entry.key}`),
     isFixed: entry.running !== undefined,
     key: entry.key,
@@ -156,6 +162,7 @@ export function PrioritiesList({
   const fate = useFateClient();
   const here = useRepoPath();
   const pathname = useLocalPath();
+  const openForm = useOpenAddForm();
 
   const add = (section: string) => (text: string) =>
     run(() =>
@@ -197,6 +204,13 @@ export function PrioritiesList({
     <WorkList
       isFocused={isFocused}
       layout="columns"
+      // `o`: the form in the section of the line's own place in the file, not "Ongoing".
+      onAddBeside={(_, row) =>
+        openForm("priority", {
+          section: priorities.sections.find((s) => s.entries.some((e) => e.key === row.key))
+            ?.section,
+        })
+      }
       onMove={onMove}
       onOpen={(href) => openDetail(href, PRIORITY)}
       sections={all}

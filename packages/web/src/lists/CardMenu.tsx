@@ -5,7 +5,7 @@
 // within the card, and always when the pointer cannot hover, by the card's `--menu-opacity`.
 import { DropdownMenu, type DropdownMenuOption } from "@astryxdesign/core/DropdownMenu";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import type { Inbox } from "uraeda-server/fate";
 import { useMenuPresentation } from "../layout/useWidthClass.ts";
 import { type Found, usePriorityActions } from "../pane/usePriorityActions.ts";
@@ -14,6 +14,7 @@ import { navigate, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { type Placed, useNoteActions } from "../useNoteActions.ts";
 import { type Direction, moveIndex, movesOf } from "./cardMoves.ts";
+import { MenuStateContext } from "./Card.tsx";
 import { MORE_ICON } from "../layout/ActionsMenu.tsx";
 
 const styles = stylex.create({
@@ -22,7 +23,10 @@ const styles = stylex.create({
   trigger: { opacity: "var(--menu-opacity, 1)" },
 });
 
-/** What `…` opens: `items` under `label`, as a popover, or a bottom sheet on a narrow screen. */
+/**
+ * What `…` opens: `items` under `label`, as a popover, or a bottom sheet on a narrow screen. In a
+ * card, the list holds whether it is open, so the `m` key opens it as the button does.
+ */
 export function CardMenu({
   items,
   label,
@@ -33,7 +37,9 @@ export function CardMenu({
   onOpen?: () => void;
 }) {
   const presentation = useMenuPresentation();
-  const [isOpen, setOpen] = useState(false);
+  const held = useContext(MenuStateContext);
+  const [isOwnOpen, setOwnOpen] = useState(false);
+  const isOpen = held?.isOpen ?? isOwnOpen;
   return (
     <DropdownMenu
       alignment="end"
@@ -46,9 +52,11 @@ export function CardMenu({
         xstyle: [styles.trigger, isOpen && styles.open],
       }}
       hasChevron={false}
+      isMenuOpen={held?.isOpen}
       items={items}
       onOpenChange={(next: boolean) => {
-        setOpen(next);
+        setOwnOpen(next);
+        held?.onOpenChange(next);
         if (next) {
           onOpen?.();
         }

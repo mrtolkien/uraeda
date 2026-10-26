@@ -534,3 +534,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   whole shell, and stories and tests mount it with no client.
 - **If wrong**: the position is the order of `CATEGORIES`; moving it changes the two lists.
 - **Where**: task 11, `settings/categories.ts`, `settings/SingleKeysSetting.tsx`, `Shell.tsx`.
+## R40: How `a o i m` reach the priorities and the inbox
+
+- **Decision**: `useOpenAddForm()` still takes no argument and returns the opener, which takes the
+  place as its second argument: `open("priority", { section })`, `open("note", { category })`, a
+  `category` of `null` for "No category". `a` is declared by the page (`PrioritiesPage`,
+  `InboxPage`) and opens the form in its default place. `o`, `i`, `m` act on the row the focus is
+  on, or the selected one, and are declared by `WorkList` through `useListKeys`' new `rowKeys`: `o`
+  when the page gives `onAddBeside(section, row)` (the priorities pass the entry's own section in
+  the file, never "Ongoing"), `i` when a row has an `editor`, `m` when it has a `menu`; each is
+  bound only then. `i` swaps the card's link for the line's own field (`LineField`, started open,
+  `useLineSave`'s `startOpen`) saving through the view's own `rename` and `edit`, under the view's
+  own unsaved key, and those two no longer redirect to the new key unless the page is that line's
+  own overlay. `m` opens the card's `…` menu itself, held open by the list (`isMenuOpen`) so the key
+  and the button are one menu: on a note it is the note's whole menu, its Category choices among
+  them. `i` and `m` also select their row, so the focus has a card to return to, and the focus
+  returns to the selected card once the editor or a key-opened menu closes. A card edited in place
+  does not drag.
+- **Rationale**: the plan put the place on `useOpenAddForm`, which has no arguments; the opener is
+  the function the buttons call. The row is only known to the list, so the row keys live there, the
+  page owns what they do. The spec's "`m` moves it to another category" is the note menu's Category
+  item, which the menu holds with the note's other moves, and the plan says the keys open the card
+  menu. Sharing the view's unsaved key means a text typed in one editor is restored by the other.
+- **Alternatives considered**: `i` opening the line's overlay with its editor open: it needs a
+  signal into the pane and takes the page away. Clicking the menu's button from the key: no
+  controlled state, and a stale focus return. Opening the note's Category submenu directly: Astryx
+  gives no way to open a submenu.
+- **If wrong**: the keys are `lists/useRowKeys.ts`; the editors `lists/RowEditors.tsx`.
+- **Where**: task 8.
