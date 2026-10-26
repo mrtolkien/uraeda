@@ -10,6 +10,9 @@ import { plain } from "../Spans.tsx";
 import { type Placed, useNoteActions } from "../useNoteActions.ts";
 import { useLineSave } from "../useLineSave.ts";
 
+/** An editor in a card leaves the page as it is: the task view's own editor follows the new key. */
+const NO_REDIRECT = { redirects: false };
+
 /** The line's field, open, and `onDone` once it closed. */
 function RowEditor({
   empty,
@@ -45,7 +48,7 @@ export function PriorityEditor({
   hash: string;
   onDone: () => void;
 }) {
-  const actions = usePriorityActions(found, hash, () => undefined);
+  const actions = usePriorityActions(found, hash, () => undefined, NO_REDIRECT);
   const { entry } = found;
   return (
     <RowEditor
@@ -68,7 +71,7 @@ export function NoteEditor({
   onDone: () => void;
   placed: Placed & { note: InboxNote };
 }) {
-  const actions = useNoteActions(placed, hash, () => undefined);
+  const actions = useNoteActions(placed, hash, () => undefined, NO_REDIRECT);
   const { note } = placed;
   return (
     <RowEditor

@@ -9,7 +9,7 @@ import { refusal } from "./errors.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { TITLES } from "./QuickAdd.tsx";
 import { closeDetail } from "./pane/DetailOverlay.tsx";
-import { localPath, navigate, redirect, useLocalPath, useRepoPath } from "./routes.tsx";
+import { localPath, navigate, redirect, useRepoPath } from "./routes.tsx";
 import { DraftView, InboxView } from "./views.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
@@ -151,17 +151,18 @@ function useLeave(key: string) {
  * The note's actions, over the inbox's hash as read. A refusal shows as `message`, or under the
  * field for an edit, and a conflict reads the inbox and the priorities again. A move out of the
  * inbox returns to it. `onRenaming` holds the note's id and new text while its text, and so its
- * key, changes.
+ * key, changes. An edit that changes the note's key follows it to its new address, unless
+ * `redirects` is `false`, as for an editor in a card of a list, which leaves the page as it is.
  */
 export function useNoteActions(
   placed: Placed,
   hash: string,
   onRenaming: (renaming: Renaming | undefined) => void,
+  { redirects = true }: { redirects?: boolean } = {},
 ) {
   const fate = useFateClient();
   const toast = useUndoToast();
   const here = useRepoPath();
-  const pathname = useLocalPath();
   const [message, setMessage] = useState<string>();
   const { note } = placed;
   const input = { hash, note: note.id };
@@ -195,8 +196,7 @@ export function useNoteActions(
     const key = result.result?.categories
       .flatMap((c) => c.notes)
       .find((one) => one.id === note.id)?.key;
-    // Only the note's own overlay follows it: the list's editor in place leaves the page as it is.
-    if (key && key !== note.key && pathname === `/inbox/${note.key}`) {
+    if (redirects && key && key !== note.key) {
       redirect(here(`/inbox/${key}`));
     }
     onRenaming(undefined);

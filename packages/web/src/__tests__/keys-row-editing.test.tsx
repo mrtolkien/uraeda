@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atWidth, click, fixtureRepo, read, renderPage } from "./helpers.tsx";
+import { atRepo, atWidth, click, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
 
 const PRIORITIES = `# Priorities
 
@@ -87,6 +87,14 @@ function editorOf(text: string) {
   return screen.findByRole("textbox", { name: `Edit ${text}` });
 }
 
+/** Types `text` in a field and presses Enter. */
+async function save(field: HTMLElement, text: string) {
+  await type(field, text);
+  await act(async () => {
+    fireEvent.keyDown(field, { key: "Enter" });
+  });
+}
+
 /** Checks that the open add form is set to `section`. */
 async function expectSection(section: string) {
   const form = within(await screen.findByRole("dialog", { name: "New priority" }));
@@ -156,4 +164,32 @@ test("o on a Blocked line opens the form in Next, the default place (R80)", asyn
   await press("o", link);
 
   await expectSection("Next");
+});
+
+test("the task view follows a renamed line whose key has non-ASCII characters (R82)", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, "specs/PRIORITIES.md"), "# Priorities\n\n## Next\n\n- 日本語の行\n");
+  await renderPage("/priorities/日本語の行", repo);
+
+  await click(await screen.findByRole("button", { name: "Edit" }));
+  await save(screen.getByRole("textbox", { name: "Line" }), "日本語の行二");
+
+  await waitFor(() => expect(read(repo)).toContain("- 日本語の行二\n"));
+  await waitFor(() =>
+    expect(decodeURIComponent(window.location.pathname)).toBe(atRepo("/priorities/日本語の行二")),
+  );
+});
+
+test("the note's view follows a renamed note whose key has non-ASCII characters (R82)", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, "specs/INBOX.md"), "# Inbox\n\n- 日本語の行\n");
+  await renderPage("/inbox/日本語の行", repo);
+
+  await click(await screen.findByRole("button", { name: "Edit" }));
+  await save(screen.getByRole("textbox", { name: "Note" }), "日本語の行二");
+
+  await waitFor(() => expect(read(repo, "specs/INBOX.md")).toContain("- 日本語の行二\n"));
+  await waitFor(() =>
+    expect(decodeURIComponent(window.location.pathname)).toBe(atRepo("/inbox/日本語の行二")),
+  );
 });
