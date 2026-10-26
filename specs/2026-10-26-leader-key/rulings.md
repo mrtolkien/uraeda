@@ -264,3 +264,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   opened; the check in a human's Firefox is deferred. The fix is the `keyup` listener in
   `KeysProvider`.
 - **Where**: fix pass A, `keys/registry.tsx`; deferred check, Firefox by hand.
+
+## R24: A key pressed inside a popover is the popover's, and the layer rule's tests pin each part
+
+- **Decision**: `keys/layers.ts` adds the old rail's rule, a key pressed inside a `[popover]` that
+  is not manual (`target.closest("[popover]")` in `Rail.tsx`'s `useEscape` before task 2) to the
+  places a key is a layer's. New tests pin each other part of the rule so that dropping one fails:
+  an alert dialog, an expanded combobox (and not a collapsed one), a key inside a listbox, an alert
+  dialog, a dialog by role, and a bare `dialog`, a hidden dialog left in the page (by
+  `display: none`, itself or its holder; by the `hidden` attribute in `keys-layers.test.tsx`,
+  because happy-dom has no user-agent style for it), and a declaration clash inside one component's
+  own list. Each part of `layers.ts` was removed in turn and a test failed.
+- **Rationale**: the old rule treated a key inside any popover as the popover's, and the registry
+  lost it: a focused control inside an open popover that is neither a menu nor a dialog (the
+  Repositories popover's own content, a date picker) let `j` move the list behind it. A manual
+  popover stays out, as the toasts' region is open on every page.
+- **Alternatives considered**: reading `:popover-open` on the target's ancestors: the Popover API is
+  missing in happy-dom, so the unit test could not see it, and the focus inside a closed popover
+  cannot happen in a browser anyway.
+- **If wrong**: a popover that should let the page's keys through (a tooltip holding a focusable
+  control, which Astryx does not draw) is made manual.
+- **Where**: fix pass A, `keys/layers.ts`, `keys-registry.test.tsx`,
+  `__browser__/keys-layers.test.tsx`.

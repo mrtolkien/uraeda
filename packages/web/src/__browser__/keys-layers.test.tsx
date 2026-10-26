@@ -62,3 +62,22 @@ test("a manual popover, as the toasts' region, holds nothing", async () => {
   expect(ran).toEqual(["j"]);
   expect(hints()).toBe("j move");
 });
+
+test("a dialog left in the page with `hidden` is no layer, and an alert dialog shown is", () => {
+  ran.length = 0;
+  render(
+    <KeysProvider>
+      <Page />
+    </KeysProvider>,
+  );
+  const dialog = document.createElement("div");
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("hidden", "");
+  document.body.append(dialog);
+  fireEvent.keyDown(document.body, { key: "j" });
+  expect(ran).toEqual(["j"]);
+  dialog.setAttribute("role", "alertdialog");
+  dialog.removeAttribute("hidden");
+  fireEvent.keyDown(document.body, { key: "j" });
+  expect(ran).toEqual(["j"]);
+});

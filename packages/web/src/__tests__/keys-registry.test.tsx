@@ -137,6 +137,68 @@ test("under a dialog, an open menu, or an expanded popup, no binding runs", () =
   expect(ran).toEqual(["j", "j"]);
 });
 
+/** Puts a new `tag` element in `parent` and gives it. */
+function within(parent: Element, tag: string, attributes: Record<string, string> = {}) {
+  const child = document.createElement(tag);
+  for (const [name, value] of Object.entries(attributes)) {
+    child.setAttribute(name, value);
+  }
+  parent.append(child);
+  return child;
+}
+
+/** Whether `j` ran for a key pressed on `target`, with `layer` (any element) added to the page. */
+function runsWith(layer: (() => Element) | null, target?: () => Element) {
+  const ran: Array<string> = [];
+  render(
+    <KeysProvider>
+      <Harness keys="j" ran={ran} />
+    </KeysProvider>,
+  );
+  layer?.();
+  press("j", target?.() ?? document.body);
+  cleanup();
+  document.body.replaceChildren();
+  return ran.length === 1;
+}
+
+// Break: each part of the layer rule dropped, one at a time.
+test("what is a layer: an alert dialog, an expanded combobox, a key inside a part of one", () => {
+  expect(runsWith(null)).toBe(true);
+  expect(runsWith(() => add("div", { role: "alertdialog" }))).toBe(false);
+  expect(runsWith(() => add("div", { "aria-expanded": "true", role: "combobox" }))).toBe(false);
+  // A combobox that is collapsed is no layer.
+  expect(runsWith(() => add("div", { "aria-expanded": "false", role: "combobox" }))).toBe(true);
+  const parts: Record<string, () => Element> = {
+    alertdialog: () => add("div", { role: "alertdialog" }),
+    dialog: () => add("dialog"),
+    "dialog by role": () => add("div", { role: "dialog" }),
+    listbox: () => add("div", { role: "listbox" }),
+    popover: () => add("div", { popover: "auto" }),
+  };
+  for (const [name, part] of Object.entries(parts)) {
+    // Nothing else is open: the key is the layer's only because it was pressed inside it.
+    expect(
+      runsWith(null, () => within(part(), "button")),
+      name,
+    ).toBe(false);
+  }
+  // A manual popover, as the toasts', owns no key, inside or not.
+  expect(runsWith(null, () => within(add("div", { popover: "manual" }), "a"))).toBe(true);
+});
+
+test("a dialog left in the page and hidden is no layer", () => {
+  // (`hidden` too, in a real browser: `__browser__/keys-layers.test.tsx`; happy-dom has no UA style.)
+  expect(runsWith(() => add("div", { role: "dialog", style: "display: none" }))).toBe(true);
+  expect(runsWith(() => add("dialog"))).toBe(true);
+  // Hidden by what holds it.
+  expect(
+    runsWith(() => {
+      return within(add("div", { style: "display: none" }), "div", { role: "dialog" });
+    }),
+  ).toBe(true);
+});
+
 test("a dialog inside a popover that is not open, as the repository menu's, is no layer", () => {
   const ran: Array<string> = [];
   render(
@@ -176,6 +238,23 @@ function conflictOf(...parts: Array<ReactNode>) {
   );
   return document.body.textContent ?? "";
 }
+
+/** A component that declares `keys` as its own list, all at once. */
+function Own({ keys, ran }: { keys: ReadonlyArray<string>; ran: Array<string> }) {
+  useKeys(
+    keys.map((entry) => ({ keys: entry, label: `own ${entry}`, run: () => void ran.push(entry) })),
+  );
+  return null;
+}
+
+test("a key declared twice in one component's own list throws", () => {
+  const ran: Array<string> = [];
+  expect(conflictOf(<Own keys={["j", "k", "j"]} ran={ran} />)).toContain("twice");
+  cleanup();
+  expect(conflictOf(<Own keys={["g", "g h"]} ran={ran} />)).toContain("sequence");
+  cleanup();
+  expect(conflictOf(<Own keys={["j", "k", "g h", "g i"]} ran={ran} />)).toBe("");
+});
 
 // Break: no conflict check, so two meanings of a key go unseen until a human presses it.
 test("two bindings of one key throw, with the labels of both", () => {
