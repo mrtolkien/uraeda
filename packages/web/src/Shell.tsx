@@ -151,9 +151,19 @@ function Frame({
   );
 }
 
-export function Shell({ children }: { children: ReactNode }) {
+/** The single-key switch's state and its setter, as `useState` gives them. */
+export type KeysSwitch = readonly [boolean, (on: boolean) => void];
+
+/**
+ * The frame of a repository's pages. `keysSwitch` holds the single-key switch above the
+ * repository-keyed client, which draws the shell anew for each repository: the switch then keeps
+ * its value across the change, and the letter hints do not show for the moment before it is read
+ * again. Without it (a story), the shell keeps its own.
+ */
+export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitch?: KeysSwitch }) {
   const [slot, setSlot] = useState<ReactNode>(null);
-  const [singleKeys, setSingleKeys] = useState(true);
+  const own = useState(true);
+  const [singleKeys, setSingleKeys] = keysSwitch ?? own;
   const width = useWidthClass();
   const narrow = isNarrow(width);
   return (
