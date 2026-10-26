@@ -2,8 +2,9 @@
 // three presses from the home, the place entries are the destinations' own icon and label, and the
 // New, Find, and UI groups run what their buttons do.
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, expect, test } from "vite-plus/test";
+import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { DESTINATIONS } from "../destinations.ts";
+import { SHOW_AFTER } from "../keys/leader.ts";
 import { findBindings, newBindings, placeBindings } from "../keys/leaderTree.ts";
 import type { PickerKind } from "../keys/pickerSources.ts";
 import { navigate } from "../routeHistory.ts";
@@ -13,6 +14,8 @@ beforeEach(() => {
   atWidth(1440);
   window.localStorage.clear();
 });
+
+afterEach(() => vi.useRealTimers());
 
 const stored = () => window.localStorage.getItem("uraeda.theme");
 const press = (key: string) => fireEvent.keyDown(document.body, { key });
@@ -144,8 +147,10 @@ test("Space r opens the repository menu, and Space shows the whole top level (US
 
 test("the menu at Space lists the places, the groups, Continue, and Find anything", async () => {
   await atHome();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   press(" ");
-  const menu = await screen.findByRole("group", { name: "Space" }, { timeout: 2000 });
+  act(() => void vi.advanceTimersByTime(SHOW_AFTER));
+  const menu = screen.getByRole("group", { name: "Space" });
   for (const label of [
     "Find anything…",
     "Continue",
