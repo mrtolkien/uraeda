@@ -360,6 +360,15 @@ test("turning the switch off with the menu open closes it", () => {
   expect(ran).toEqual([]);
 });
 
+test("a pending g ends when the switch turns off, and is not back when it turns on", () => {
+  const { setSingleKeys } = show();
+  press("g");
+  setSingleKeys(false);
+  setSingleKeys(true);
+  press("i");
+  expect(ran).toEqual([]);
+});
+
 test("a copy while the menu is open ends it and is left to the browser", () => {
   show();
   press(" ");
