@@ -112,9 +112,20 @@ async function save(shot: Shot, out: string, view: string) {
 /** Takes a view, at both sizes and in both themes, or on one size when only it shows it. */
 export type Each = (view: string, act: (shot: Shot) => Promise<void>, only?: Size) => Promise<void>;
 
+/** The shots that failed, by name and first line of their error, which the run reports at its end. */
+const failed: Array<string> = [];
+
+process.on("exit", () => {
+  if (failed.length > 0) {
+    process.stdout.write(`${failed.length} shots failed:\n  ${failed.join("\n  ")}\n`);
+    process.exitCode = 1;
+  }
+});
+
 /**
  * What takes each view of the shots into `out`, unless `views` names others: every view when it is
- * empty.
+ * empty. A shot that fails is noted in `failed`, and the run goes on to the next, so one view the
+ * UI changed under it does not cost every view after it.
  */
 export function shooter(shots: Array<Shot>, out: string, views: Array<string>): Each {
   return async (view, act, only) => {
@@ -125,8 +136,14 @@ export function shooter(shots: Array<Shot>, out: string, views: Array<string>): 
       if (only && shot.size !== only) {
         continue;
       }
-      await act(shot);
-      await save(shot, out, view);
+      try {
+        await act(shot);
+        await save(shot, out, view);
+      } catch (error) {
+        const line = String(error instanceof Error ? error.message : error).split("\n")[0];
+        failed.push(`${view}-${shot.size}-${shot.mode}: ${line}`);
+        process.stdout.write(`  FAILED ${view}-${shot.size}-${shot.mode}: ${line}\n`);
+      }
     }
   };
 }
