@@ -291,7 +291,7 @@ features reuse the menu's look.
 - **A (recommended). A bordered box in the bottom right corner, above the status line, titled with
   the keys pressed, as Helix does.**
 
-  [Box, bottom right](mockups/bottom-right-box.html)
+  Box, bottom right (`mockups/bottom-right-box.html`, deleted)
 
   - [pro] hides only a corner, and matches the terminal look of panes titled in their border.
   - [con] about 10 entries per column, so a long group needs a second column.
@@ -300,21 +300,21 @@ features reuse the menu's look.
 - **B. A full-width panel above the status line, entries in columns, as which-key's classic
   layout.**
 
-  [Panel over the status line](mockups/bottom-panel.html)
+  Panel over the status line (`mockups/bottom-panel.html`, deleted)
 
   - [pro] fits 20 or more entries without scrolling.
   - [con] hides a whole band of the page.
 
 - **C. A centred modal that dims the page.**
 
-  [Centred modal](mockups/centered-modal.html)
+  Centred modal (`mockups/centered-modal.html`, deleted)
 
   - [pro] the easiest to notice.
   - [con] a dialog for what should feel instant, and it hides the page you act on.
 
 - **D. A strip that replaces the status line while the menu is open.**
 
-  [Status line strip](mockups/status-line-strip.html)
+  Status line strip (`mockups/status-line-strip.html`, deleted)
 
   - [pro] hides nothing and needs no new surface.
   - [con] wraps badly past 5 or 6 entries, and the status line's own hints disappear.
