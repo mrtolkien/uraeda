@@ -82,6 +82,9 @@ project's parts, pure logic with many cases, and the reproduction of each bug fi
 - **The existing tests first.** A scenario an existing test already proves gets no new test: the
   test map names the one that proves it. A behaviour with a test gets its new case there, not in a
   second test.
+- **One layer per rule.** A rule that two entry points reach, such as a check and a view built on
+  it, gets one test, through the entry point whose path runs all the code the rule depends on. A
+  test of the inner one adds nothing.
 - **A UI gets few tests**, only for behaviour that is costly to lose and that using the app would
   not show, such as unsaved text or a git write. The human checks the rest by using the app.
 - **A project's constitution stays in force.** When it asks for more, such as a test per scenario,
