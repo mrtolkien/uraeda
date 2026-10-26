@@ -1,7 +1,6 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
-import { useHotkeys } from "@astryxdesign/core/hooks";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -10,6 +9,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useEffect, useId } from "react";
 import type { Document, RoundItems, SettledGroup, SettledKind } from "uraeda-binding";
 import { OutlineRows, type OutlineRow, type StateNames } from "./layout/OutlineRows.tsx";
+import { useKeys } from "./keys/registry.tsx";
 import { openAnchor } from "./routeHistory.ts";
 import { PART_IDS } from "./roundPartIds.ts";
 import {
@@ -21,7 +21,6 @@ import {
   questionJumpedTo,
   useQuestionAtTop,
 } from "./roundJump.ts";
-import { useStatusHints } from "./statusHints.tsx";
 
 const styles = stylex.create({
   action: {
@@ -148,18 +147,17 @@ function useBlankJumps(questions: ReadonlyArray<NavQuestion>) {
 }
 
 /**
- * `n` and `p`, to the next and previous blank question, while `isActive`, whatever the column's
- * open tab, and the status line's hint for them. A jump under way ends with the page: the next
- * round's starts from its own top.
+ * `n` and `p`, to the next and previous blank question, whatever the column's open tab and the
+ * width, declared in the key registry with the status line's hint for them, `n p unanswered`. A
+ * jump under way ends with the page: the next round's starts from its own top.
  */
-export function useBlankKeys(questions: ReadonlyArray<NavQuestion>, isActive: boolean) {
+export function useBlankKeys(questions: ReadonlyArray<NavQuestion>) {
   const { next, previous } = useBlankJumps(questions);
   useEffect(() => endJump, []);
-  useHotkeys([
-    { isDisabled: !isActive, keys: "n", onPress: () => next(false) },
-    { isDisabled: !isActive, keys: "p", onPress: previous },
+  useKeys([
+    { hint: "n p", keys: "n", label: "unanswered", run: () => next(false) },
+    { keys: "p", label: "previous unanswered", run: previous },
   ]);
-  useStatusHints(isActive ? [{ keys: "n p", label: "unanswered" }] : []);
 }
 
 /** Next, to the next blank question, or Submit once none is, which `onSubmit` does. */

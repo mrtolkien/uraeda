@@ -943,22 +943,23 @@ git commit -m "feat(leader-key): the priorities' and the inbox's keys"
   session focuses the composer, and Escape in the composer leaves it for the page keeping its draft
   (the composer's own keydown stays, listed in the allowlist); on the New page `s`, `c`, `f` pick
   Session, Change, or Feature as a click would and `i` focuses the text box; the questions, the
-  triage, and the decisions check keep `n` and `p` ("unanswered", the same hint) on the registry.
-  `KindCards`' Y, N, C and radio keys are not moved.
+  triage, and the decisions check keep `n` and `p` ("unanswered", the same hint) on the registry,
+  now at every width (R50); `i` is the composer's own binding wherever one is drawn, and the New
+  page's Feature title declares its own (R51). `KindCards`' Y, N, C and radio keys are not moved.
 
-- [ ] **Step 1: Write the failing tests**: US3 2: a session's page, `i` focuses the composer, typing
+- [x] **Step 1: Write the failing tests**: US3 2: a session's page, `i` focuses the composer, typing
       "hello", Escape returns the focus to the page and the draft still reads "hello"; US3 5: the
       New page with Session picked, `f` picks the Feature card; `a` on Home opens the New page; US6
       1: the questions page's status line reads `n p unanswered`, drawn from the registry, and `n`
       jumps to the next blank question as today (US2 more 3). The break caught: Escape that clears
       the draft.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test run packages/web/src/__tests__/keys-pages.test.tsx`; expected FAIL
       `expected document.body to be the active element` after the composer's Escape is not handled.
-- [ ] **Step 3: Implement** each owner's keys with `useKeys`, and move `useBlankKeys` off
+- [x] **Step 3: Implement** each owner's keys with `useKeys`, and move `useBlankKeys` off
       `useHotkeys` and `useStatusHints`.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-26-leader-key/plan.md

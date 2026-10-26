@@ -7,6 +7,7 @@ import { Page } from "./layout/Page.tsx";
 import { dismissNote, HOME_NOTES, useNotes } from "./offers.ts";
 import { useHash, useRestoreScroll } from "./routes.tsx";
 import { NoSpecs } from "./layout/Missing.tsx";
+import { useNewKey } from "./useNewKey.ts";
 
 /**
  * The home screen, centred in the page: its core, what stops the workflow, what waits on the human,
@@ -25,6 +26,8 @@ export function Home() {
       document.getElementById("done")?.scrollIntoView();
     }
   }, [hash]);
+  // `a` starts something: there is nothing to start in a repository with no specs.
+  useNewKey(workspace ? !workspace.noSpecs : false);
   if (!workspace) {
     return null;
   }
