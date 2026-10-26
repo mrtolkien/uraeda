@@ -52,8 +52,9 @@ function counting(repo: string, fake: Fake, mutation: string) {
   const server = serverFetch(repo, fake.sessions);
   const calls = { count: 0 };
   const fetch: typeof globalThis.fetch = async (input, init) => {
-    if (typeof init?.body === "string" && init.body.includes(mutation)) {
-      calls.count++;
+    // Each mutation, though a request may batch several.
+    if (typeof init?.body === "string") {
+      calls.count += init.body.split(mutation).length - 1;
     }
     return server(input, init);
   };
@@ -100,6 +101,31 @@ test("Start the change from the agent's offer", async () => {
 });
 
 /** Review: an agent that writes CRLF line ends offers a card too. */
+/** UI behaviour: a git write blocks the next; Ctrl+Enter twice, then Start, start the change once. */
+test("Ctrl+Enter twice and Start, while the change starts, start it once", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await offered(fake, repo);
+  const { calls, fetch } = counting(repo, fake, "session.toChange");
+  await renderPage(`/sessions/${id}`, repo, { agent: fake, fetch });
+
+  const shown = await card();
+  const slug = (await shown.findByRole("textbox", { name: "Slug" })) as HTMLInputElement;
+  await waitFor(() => expect(slug.value).toBe(SLUG));
+  fake.adapter.script([]);
+  const proposal = shown.getByRole("textbox", { name: "Proposal" });
+  act(() => {
+    fireEvent.keyDown(proposal, { ctrlKey: true, key: "Enter" });
+    fireEvent.keyDown(proposal, { ctrlKey: true, key: "Enter" });
+    fireEvent.click(shown.getByRole("button", { name: "Start the change" }));
+  });
+
+  expect(
+    await screen.findByText(`Started as the change Login redirects twice, on change/${FOLDER}`),
+  ).toBeTruthy();
+  expect(calls.count).toBe(1);
+});
+
 /** UI coherence: the proposal is the app's text area, whose Ctrl+Enter is its card's main button. */
 test("Ctrl+Enter in the proposal starts the change", async () => {
   const repo = fixtureRepo();
