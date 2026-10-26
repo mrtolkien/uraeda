@@ -13,12 +13,12 @@ import { WriteButton } from "./writes/WriteButton.tsx";
 import { useDraft } from "./data.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { Page } from "./layout/Page.tsx";
-import { Paragraph } from "./layout/Paragraph.tsx";
 import { ConflictBanner, EditorText } from "./pane/DraftEditor.tsx";
 import { useDraftEditor } from "./pane/useDraftEditor.ts";
 import { useRestoreScroll } from "./routes.tsx";
 import type { useEditorActions } from "./useEditorActions.ts";
 import { SlugField } from "./SlugField.tsx";
+import { Missing } from "./layout/Missing.tsx";
 
 const SECTIONS: Record<string, string> = {
   blocked: "Blocked",
@@ -159,7 +159,7 @@ export function EditorPage({ path }: { path: string }) {
   if (!draft) {
     return (
       <Page>
-        <Paragraph>No draft {path}.</Paragraph>
+        <Missing title={`No draft ${path}.`} />
       </Page>
     );
   }
