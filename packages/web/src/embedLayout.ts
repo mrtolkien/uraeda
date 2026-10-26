@@ -132,6 +132,8 @@ export function useFullScreen(embed: RefObject<HTMLElement | null>) {
     }
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        // The page's own Escape does not run as well: the overlay was what Escape meant.
+        event.preventDefault();
         leave();
       }
     };

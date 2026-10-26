@@ -3,7 +3,8 @@
 // Selector, by `aria-haspopup`, or a combobox), an open popover that is not manual, or a key
 // pressed inside a dialog, a listbox, a menu, or a popover that is not manual (the rail's old
 // rule). An expanded disclosure without `aria-haspopup`, like the rail's logo, owns no key: only a
-// popup's owner does.
+// popup's owner does. A story full screen is a layer too: the browser's own full screen here, an
+// overlay (a dialog) where the browser has none.
 import { useSyncExternalStore } from "react";
 
 const DIALOGS = 'dialog[open], [role="dialog"], [role="alertdialog"]';
@@ -31,6 +32,10 @@ function shown(element: Element) {
  */
 export function isLayerOpen(target?: EventTarget | null) {
   if ((target as Partial<Element> | null | undefined)?.closest?.(INSIDE) != null) {
+    return true;
+  }
+  if (document.fullscreenElement != null) {
+    // A story shown full screen by the browser: the page behind it is not what the keys mean.
     return true;
   }
   if (document.querySelector(EXPANDED) !== null) {
@@ -71,9 +76,11 @@ function watch() {
     subtree: true,
   });
   document.addEventListener("toggle", notify, true);
+  document.addEventListener("fullscreenchange", notify);
   return () => {
     observer.disconnect();
     document.removeEventListener("toggle", notify, true);
+    document.removeEventListener("fullscreenchange", notify);
   };
 }
 

@@ -62,6 +62,8 @@ export function useStoryPick(field?: string) {
     }
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        // The page's own Escape does not run as well: pick mode was what Escape meant.
+        event.preventDefault();
         setPicking(false);
       }
     };
