@@ -157,19 +157,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   end of the previous or next section that takes drops, in the order the sections show: the ongoing
   entries, which hold running lines no drop lands in, are skipped, and an empty section counts. `K`
   and `J` move it one place within its section. The write is the one a drag's drop makes, through
-  the list's `onMove`, and a second key waits for the first move to be written. `onMoveItem` takes
-  the row as well, `(move, row)`, so the keys move the card the focus is on, which a click or `j`
-  selects but a Tab does not. The existing hint test for a list's Escape moves from
-  `status-hints.test.tsx` to `keys-hints.test.tsx` and reads the registry's hints, with the same
-  three assertions (named, renamed, left out where it does nothing); the old API's own test stays
-  until Task 12 retires it. The priorities page's key tests are in
+  the list's `onMove`, and a second key waits for the first move to be written and shown (R30).
+  `onMoveItem` takes the row as well, `(move, row)`, so the keys move the card the focus is on,
+  which a click or `j` selects but a Tab does not. The existing hint test for a list's Escape moves
+  from `status-hints.test.tsx` to `keys-hints.test.tsx` and reads the registry's hints, with the
+  same three assertions (named, renamed, left out where it does nothing); the old API's own test
+  stays until Task 12 retires it. The priorities page's key tests are in
   `__browser__/keys-shift.test.tsx`, a list alone's in `__tests__/keys-shift.test.tsx`.
 - **Rationale**: the spec says "to the previous or next column or section" and the scenario sends
   Next's line to Later, without a place in it; the end is the one place that needs no row to compare
   with, and the move menu's "bottom" does the same. The row argument costs nothing and avoids moving
-  a card other than the one with the focus ring. happy-dom takes the Repositories popover, always in
-  the page and "shown" to it, for an open layer, so no whole page's key can be tested there: the
-  existing list-keys tests are browser tests for the same reason.
+  a card other than the one with the focus ring. The priorities page's moves are written to a real
+  repository and read back, so their tests are browser tests, as the existing list-keys tests are.
+  (This ruling first said happy-dom took the Repositories popover for an open layer, so no whole
+  page's key could be tested there: R5's `checkVisibility` fix ended that, and it was no reason.)
 - **Alternatives considered**: the same row index in the neighbouring section, as `h` and `l` do for
   the selection: a card would land among others by its position, which says nothing of what the
   human means, and an empty section would need a special case. Moving only the selected card: a
@@ -323,3 +324,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a feature that stages keys before their group is named adds the group's line first
   in `groups.ts`.
 - **Where**: fix pass A, `keys/store.ts`.
+## R30: A second move key queues; each target is read when it runs
+
+- **Decision**: `WorkList`'s moves (`J K H L`, Shift with the arrows) go in a queue: a key pressed
+  while an earlier move is being written is kept, and runs once that write resolved and the list was
+  drawn in the order it wrote, with its target read from that list. A move whose write fails is
+  dropped (the page shows a refusal through `onMoveRefused`), and the next one still runs. A write
+  the list never shows (refused, or a no-op) holds the queue for 2 seconds at most (`SETTLE_MS` in
+  `WorkList.tsx`). The first move of an idle queue starts in the key's own event.
+- **Rationale**: R9 said a second key waits, and the first version dropped it: `J J` pressed
+  quickly, or a held `J`, moved the card one place. A move written over the old list's hash would
+  also be refused, so the wait is for the new list, not only for the write: the priorities' mutation
+  resolves some tens of milliseconds before the list shows its result.
+- **Alternatives considered**: ignoring a key during a write (R9's first reading): a held `J` would
+  stop after one place, which is not what a held key means. Waiting a fixed time after the write:
+  too short on a slow machine, too long on a fast one.
+- **If wrong**: `useItemMoves` in `lists/WorkList.tsx` is the one place; the old behaviour is its
+  `isMoving` guard.
+- **Where**: fix pass B, `lists/WorkList.tsx`, `__tests__/work-list-moves.test.tsx`,
+  `__browser__/keys-shift.test.tsx`.

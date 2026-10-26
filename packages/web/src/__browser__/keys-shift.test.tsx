@@ -44,12 +44,12 @@ async function section(title: string) {
     .map((line) => line.slice(2));
 }
 
-/** Opens the page with the focus on the card of `LINE`. */
-async function onLine() {
+/** Opens the page with the focus on the card of `line`, `LINE` by default. */
+async function onLine(line = LINE) {
   await commands.writeRepo(PRIORITIES, "specs/PRIORITIES.md");
-  await show("/priorities", LINE);
+  await show("/priorities", line);
   const link = screen
-    .getAllByRole("link", { name: new RegExp(LINE) })
+    .getAllByRole("link", { name: new RegExp(line) })
     .find((one) => one.closest("[data-row]") !== null) as HTMLElement;
   link.focus();
   expect(document.activeElement).toBe(link);
@@ -69,6 +69,14 @@ test("J moves the line one place down", async () => {
   await userEvent.keyboard("{Shift>}J{/Shift}");
 
   await expect.poll(() => section("Next")).toEqual(["Next line 1", "Next line 3", "Next line 2"]);
+});
+
+test("J pressed twice at once moves the line two places down: the second waits for the first write (R9)", async () => {
+  await onLine("Next line 1");
+
+  await userEvent.keyboard("JJ");
+
+  await expect.poll(() => section("Next")).toEqual(["Next line 2", "Next line 3", "Next line 1"]);
 });
 
 test("L moves the line to the end of the next section, Later", async () => {
