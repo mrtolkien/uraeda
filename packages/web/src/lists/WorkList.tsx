@@ -375,6 +375,7 @@ export function WorkList({
     // Enter opens the focused card's link; the overlay, once open, has its own Escape.
     escapeLabel: isOpen ? "close" : null,
     isOff: isOpen,
+    keys: rows.map((row) => row.key),
     onClose: () => false,
     onEdit: () => false,
     onMoveItem,

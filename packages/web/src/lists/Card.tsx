@@ -172,6 +172,8 @@ export function Card({
       // What the list's keys move between: see `useListKeys`.
       aria-current={isSelected ? "true" : undefined}
       data-row=""
+      // What the list's keys find the row by, whether or not it draws a link (see `useListKeys`).
+      data-row-key={row.key}
       ref={row.isFixed ? undefined : ref}
       {...stylex.props(
         styles.frame,
