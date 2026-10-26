@@ -63,7 +63,8 @@ export function uiTestOptions() {
       fileURLToPath(new URL("../binding/test-setup.ts", import.meta.url)),
       fileURLToPath(new URL("src/__tests__/setup.ts", import.meta.url)),
     ],
-    // Each test builds a git repository and reads it through the binding.
+    // Each test, and a file's setup, builds a git repository and reads it through the binding.
+    hookTimeout: gitTestTimeout,
     testTimeout: gitTestTimeout,
   };
 }
