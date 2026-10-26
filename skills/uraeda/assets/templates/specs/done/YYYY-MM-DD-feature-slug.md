@@ -2,19 +2,8 @@
 kind: [feature | change]
 finished: [YYYY-MM-DD: the day of the finishing commit]
 pull-request: [Optional: the pull request's URL]
-supersedes:
-  [
-    Optional: the older records whose behaviour this one replaces,
-    in whole or in part,
-    a list of record names,
-  ]
-superseded-by:
-  [
-    Optional,
-    added once merged by the newer record's feature:
-      the newer records that replace this one's behaviour,
-    a list of record names,
-  ]
+supersedes: [Optional: the older records whose behaviour this one replaces, by name]
+superseded-by: [Optional, added after the merge: the newer records that replace it]
 ---
 
 # Record: [Feature name]

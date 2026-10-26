@@ -191,7 +191,7 @@ Some changes need more than the light flow allows. Offer to make the change a fe
 - a constitution exception, or a new lint marker, since only a plan can carry its approval;
 - after three fixes that failed the reproduction test.
 
-The size of the diff is never a reason: it goes in the pull request.
+The size of the diff is never a reason.
 
 The upgrade moves the change in place: its branch, its folder, its code, and its sessions become the
 feature's. Offer it, and never make it alone:
@@ -267,7 +267,7 @@ time, one commit per item:
   before the item grows it ([extract, don't grow](code-quality.md#extract-dont-grow)). A new lint
   marker is a reason to upgrade.
 - **Benchmarks.** When the change touches what the constitution says to benchmark, record a baseline
-  before the change, and compare after it, in the pull request.
+  before the change, and compare after it, in the pull request's opening block.
 - **UI work.** Review each changed view in the running app before handing it over, against the
   project's decisions: [a UI gets few tests](code-quality.md#how-many). Screenshots are never
   committed for review. In the messages that report your work, link each story you wrote or changed.
@@ -281,8 +281,8 @@ time, one commit per item:
   as the [implementation step](implementation.md#rulings) describes.
 - **Findings outside the proposal.** A problem the change's items need fixed is part of the change.
   Any other problem is dropped, unless it passes the two tests of
-  [agents' notes](inbox.md#agents-notes): then note it with the change's slug, and name it in the
-  pull request's description.
+  [agents' notes](inbox.md#agents-notes): then note it with the change's slug: the record names it
+  under **Follow-ups**.
 
 Before each commit, run the validation the step needs, as the implementation step's
 [validation](implementation.md#each-task) says. When something only the human can decide comes up
@@ -308,8 +308,8 @@ Push only after the project's complete validation, run after the last commit, as
 Run the [finish](finish.md) step: the folder becomes its record, `kind: change`, and the finishing
 commit removes the change's entry from `PRIORITIES.md`. The pull request's body is written when it
 is marked ready, as [the finish step](finish.md#mark-the-pull-request-ready) says: "Pull request to
-review, about 5 minutes.", the points needing attention, and the record's text. Its points include
-the root cause or the approach in a line, and the points you settled without asking.
+review, about 5 minutes.", the points needing attention, among them the points you settled without
+asking, then the record's text, with a screenshot of each new view.
 
 Comments on the pull request are handled as for a feature, as
 [implementation](implementation.md#comments-on-the-pull-request) and
@@ -332,10 +332,10 @@ Comments on the pull request are handled as for a feature, as
 | Thought                                                   | Reality                                                                       |
 | --------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | "The fix is obvious, the test can come after"             | A fix without a failing test hides the bug. Reproduce it first.               |
-| "I'll write an assessment so the human can check my plan" | The pull request is the review. Settled points go in its description.         |
+| "I'll write an assessment so the human can check my plan" | The pull request is the review. Settled points go in its opening block.       |
 | "This decision is in the way, I'll work around it"        | Propose the change to the decision, and ask in a round.                       |
 | "It is a new field in the file, but a small one"          | Data users already have is an upgrade, whatever its size.                     |
-| "The diff is big, I'll stop and ask"                      | Size is never a stop: list it in the pull request.                            |
+| "The diff is big, I'll stop and ask"                      | Size is never a stop.                                                         |
 | "One more fix and it will pass"                           | After three failed fixes the approach is wrong: offer the upgrade.            |
 | "It's a small fix, I'll commit it to main from here"      | Offer it as a change: its branch, its tests, and its pull request.            |
 | "It is feature-sized, I'll make it a feature now"         | Offer it in a block or a round: the move waits for the human's yes.           |

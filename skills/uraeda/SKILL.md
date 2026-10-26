@@ -208,7 +208,8 @@ comes back to the human the same way every time, so they see at once what is ask
 3. **In a session the human follows**, say the same in one or two sentences, with the file's path.
    In a run nobody follows, the commit is the message: say nothing else.
 
-A pull request's description opens the same way, as the implementation step describes.
+A pull request's body opens the same way, as
+[the finish step](references/finish.md#mark-the-pull-request-ready) describes.
 
 **Once the human has answered or approved, the block becomes a record**, kept for later agents and
 readers: it says what the human was asked to weigh. Its callout becomes `> [!NOTE]`, and its first
