@@ -529,6 +529,14 @@ export function checkInsets(selector: string) {
 
 /** axe-core's WCAG 2.1 A and AA rules, on the whole document. */
 export async function checkAccessibility() {
+  // Colours read once settled: a button's transition caught midway, on a loaded machine, reads
+  // between its two colours, under its contrast. A looping animation, such as a spinner's, is left.
+  await Promise.all(
+    document
+      .getAnimations()
+      .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+      .map((animation) => animation.finished.catch(() => undefined)),
+  );
   const results = await axe.run(document, {
     runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] },
   });
