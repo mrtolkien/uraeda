@@ -83,7 +83,8 @@ test.each([
 
   await renderPage(`/f/${folder}/session`, repo, { agent: true });
 
-  const column = within(await screen.findByRole("complementary", { name: "Progress" }));
-  await column.findByRole("link", { name: "proposal.md" });
+  // The column lists no file since the feature page took them: its Activity tab, once drawn.
+  const column = within(await screen.findByRole("complementary", { name: "The session's column" }));
+  await column.findByRole("tab", { name: /^Activity/ });
   expect(column.queryByRole("link", { name: "Storybook" })).toBeNull();
 });
