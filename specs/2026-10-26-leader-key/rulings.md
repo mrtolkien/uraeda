@@ -729,3 +729,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the leader's icons: the cards were reviewed and approved with theirs.
 - **If wrong**: `keys/kinds.ts` and `newBindings` in `keys/leaderTree.ts`.
 - **Where**: Task 13, review of the screenshots of the leader menu's New group and the pickers.
+
+## R111: The picker's preview is plain wrapped lines, and three looks of the screenshots stay
+
+- **Decision**: the picker's preview draws the file's lines as plain text in the code font, wrapped
+  at the words (`KeyPicker.tsx`, `Preview`), where it used Astryx's `CodeBlock` with the markdown
+  language. Each line is its own block, so the text read by a test or a screen reader is unchanged.
+  Three looks of the reviewed screenshots stay as they are: the desktop picker's footer wraps its
+  last key (`Esc Close`) onto a second line in the list's column, as the decisions' palette did
+  before; the phone's sheet shows no footer, which scrolls below the list, since Astryx's palette
+  draws it and a phone has no keys to hint (the keyboard decision); and the status line on the phone
+  shows its page controls and counts but no key hints, by the same rule.
+- **Rationale**: Astryx's wrapped block breaks a word anywhere (`word-break: break-all`), so the
+  preview read "a human app" and "roved." across two lines, and no style of ours can reach the
+  block's inner element. The syntax colour of a raw file is not what the spec asks for ("Previews
+  are raw markdown").
+- **Alternatives considered**: keeping `CodeBlock` unwrapped: long lines scroll sideways, worse for
+  prose. A global stylesheet that overrides the block: the first hand-written CSS in the app, for a
+  colour.
+- **If wrong**: `Preview` in `keys/KeyPicker.tsx`.
+- **Where**: Task 13, review of the screenshots of the key picker.
