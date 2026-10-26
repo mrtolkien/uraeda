@@ -11,11 +11,12 @@ import type { EditorHooks } from "./Card.tsx";
 import { type Placed, useNoteActions } from "../useNoteActions.ts";
 import { useLineSave } from "../useLineSave.ts";
 
-/** The line's field, open, and `onDone` once it closed. */
+/** The line's field, open; `onDone` once it closed, and `onDirty` while it holds unsaved text. */
 function RowEditor({
   empty,
   field,
   label,
+  onDirty,
   onDone,
   onSave,
   value,
@@ -23,6 +24,7 @@ function RowEditor({
   empty?: string;
   field: string;
   label: string;
+  onDirty: (isDirty: boolean) => void;
   onDone: () => void;
   onSave: (text: string) => Promise<string | undefined>;
   value: string;
@@ -33,6 +35,11 @@ function RowEditor({
       onDone();
     }
   }, [line.open, onDone]);
+  const { dirty } = line.field;
+  useEffect(() => {
+    onDirty(dirty);
+    return () => onDirty(false);
+  }, [dirty, onDirty]);
   return line.open ? <LineField label={label} line={line} /> : null;
 }
 
@@ -55,6 +62,7 @@ export function PriorityEditor({
     <RowEditor
       field={`priorities#${entry.key}`}
       label={`Edit ${plain(entry.spans)}`}
+      onDirty={hooks.onDirty}
       onDone={hooks.onDone}
       onSave={actions.rename}
       value={entry.text}
@@ -82,6 +90,7 @@ export function NoteEditor({
       empty="A note needs text."
       field={`inbox#${note.key}`}
       label={`Edit ${plain(note.spans)}`}
+      onDirty={hooks.onDirty}
       onDone={hooks.onDone}
       onSave={actions.edit}
       value={note.text}

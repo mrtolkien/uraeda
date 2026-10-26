@@ -81,23 +81,21 @@ function sectionsOf(
     }
     return undefined;
   };
-  const menuOf = (entry: PriorityEntry) => {
+  const row = (entry: PriorityEntry): WorkRow => {
     const place = found(entry);
-    return place && <PriorityMenu found={place} hash={priorities.hash} onRefused={onRefused} />;
+    return {
+      // A line the file no longer holds has no editor and no menu: its keys have nothing to open.
+      editor:
+        place && ((hooks) => <PriorityEditor found={place} hash={priorities.hash} hooks={hooks} />),
+      href: here(`/priorities/${entry.key}`),
+      isFixed: entry.running !== undefined,
+      key: entry.key,
+      lines: entry.nestedSpans.map(plain),
+      marks: marksOf(entry),
+      menu: place && <PriorityMenu found={place} hash={priorities.hash} onRefused={onRefused} />,
+      text: plain(entry.spans),
+    };
   };
-  const row = (entry: PriorityEntry): WorkRow => ({
-    editor: (hooks) => {
-      const place = found(entry);
-      return place ? <PriorityEditor found={place} hash={priorities.hash} hooks={hooks} /> : null;
-    },
-    href: here(`/priorities/${entry.key}`),
-    isFixed: entry.running !== undefined,
-    key: entry.key,
-    lines: entry.nestedSpans.map(plain),
-    marks: marksOf(entry),
-    menu: menuOf(entry),
-    text: plain(entry.spans),
-  });
 
   const shown = byRunning(priorities);
   const ongoing: WorkSection = {

@@ -644,3 +644,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: fix pass C, review of task 8. `WorkList`'s `useItemMoves`, `useRefocus`, and the
   sections' order moved to `lists/useItemMoves.ts`, `lists/useRefocus.ts`, and `useShown`, to keep
   it under the function and file limits.
+
+## R83: `i` does nothing while another card's editor holds unsaved text
+
+- **Decision**: the card's editor tells the list whether it holds unsaved text (`onDirty`, in
+  `EditorHooks`). `i` on another card then does nothing, and the first editor stays open with its
+  text; with an unchanged editor, `i` on another card moves the editor there. A card whose line the
+  file no longer holds has no editor and no menu, so `i` and `m` leave the key to the page.
+- **Rationale**: the second `i` unmounted the first editor and its text stayed in the unsaved store,
+  unseen, until the human opened the same line again. Moving an unchanged editor loses nothing.
+- **Alternatives considered**: a second editor beside the first: two fields on one list, and the
+  Enter and Escape of each to tell apart. A confirm before leaving: a dialog for a key the human
+  pressed on a card they can see is not being edited.
+- **If wrong**: `useRowKeys`' `i` and `RowEditors`' `onDirty`.
+- **Where**: fix pass C, review of task 8.

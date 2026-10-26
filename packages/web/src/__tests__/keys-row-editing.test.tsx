@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
+import { openDetail, PRIORITY } from "../pane/DetailOverlay.tsx";
 import { atRepo, atWidth, click, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
 
 const PRIORITIES = `# Priorities
@@ -102,6 +103,16 @@ async function expectSection(section: string) {
   expect(form.getByRole("radio", { checked: true, name: section })).toBeTruthy();
 }
 
+/** The answer to the "Discard your changes?" question. */
+async function answer(button: string) {
+  await click(
+    within(await screen.findByRole("dialog", { name: "Discard your changes?" })).getByRole(
+      "button",
+      { name: button },
+    ),
+  );
+}
+
 test("m opens the menu of the card the focus is on, while an earlier card is edited", async () => {
   const repo = await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
   focus("Nalpha");
@@ -166,6 +177,16 @@ test("o on a Blocked line opens the form in Next, the default place (R80)", asyn
   await expectSection("Next");
 });
 
+test("o on a running entry opens the form in the section it has in the file", async () => {
+  await renderPage("/priorities");
+  await screen.findByRole("heading", { name: "Ongoing · 4" });
+  const link = focus("CLI TUIs");
+
+  await press("o", link);
+
+  await expectSection("Now");
+});
+
 test("a saved in-card line is selected and has the focus, though its key changed (R81)", async () => {
   const repo = await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
   await press("i", focus("Nbeta"));
@@ -215,4 +236,84 @@ test("the note's view follows a renamed note whose key has non-ASCII characters 
   await waitFor(() =>
     expect(decodeURIComponent(window.location.pathname)).toBe(atRepo("/inbox/日本語の行二")),
   );
+});
+
+test("i on another card while an editor holds unsaved text does nothing (R83)", async () => {
+  await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
+  await press("i", focus("Nalpha"));
+  await type(await editorOf("Nalpha"), "Nalpha, changed");
+
+  await press("i", focus("Nbeta"));
+
+  const fields = screen.getAllByRole("textbox", { name: /^Edit / });
+  expect(fields).toHaveLength(1);
+  expect((fields[0] as HTMLInputElement).value).toBe("Nalpha, changed");
+});
+
+test("i on another card while an editor is unchanged moves the editor there", async () => {
+  await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
+  await press("i", focus("Nalpha"));
+  await editorOf("Nalpha");
+
+  await press("i", focus("Nbeta"));
+
+  expect(await editorOf("Nbeta")).toBeTruthy();
+  expect(screen.getAllByRole("textbox", { name: /^Edit / })).toHaveLength(1);
+});
+
+test("Escape on a changed editor asks, and Keep editing leaves it open with its text", async () => {
+  const repo = await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
+  await press("i", focus("Nalpha"));
+  const field = await editorOf("Nalpha");
+  await type(field, "Nalpha, changed");
+
+  await press("Escape", field);
+  await answer("Keep editing");
+
+  expect((await editorOf("Nalpha")) as HTMLInputElement).toHaveProperty("value", "Nalpha, changed");
+  await press("Escape", field);
+  await answer("Discard");
+  await waitFor(() => expect(screen.queryByRole("textbox", { name: /^Edit / })).toBeNull());
+  expect(read(repo)).toBe(PRIORITIES);
+});
+
+test("m and the … button are one menu", async () => {
+  await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
+  await press("m", focus("Nbeta"));
+  await screen.findByRole("menuitem", { name: "Move to Later" });
+
+  expect(screen.getAllByRole("menu")).toHaveLength(1);
+  const button = screen.getByRole("button", { name: "Actions of Nbeta" });
+  expect(button.getAttribute("aria-expanded")).toBe("true");
+  await click(button);
+  await waitFor(() => expect(screen.queryByRole("menuitem")).toBeNull());
+});
+
+test("the task view restores what the card's editor holds unsaved, under the shared key", async () => {
+  await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
+  await press("i", focus("Nbeta"));
+  await type(await editorOf("Nbeta"), "Nbeta, by hand");
+
+  await act(async () => openDetail(atRepo("/priorities/nbeta"), PRIORITY));
+
+  const line = await screen.findByRole("textbox", { name: "Line" });
+  expect((line as HTMLInputElement).value).toBe("Nbeta, by hand");
+});
+
+test("the card's editor restores what the task view holds unsaved", async () => {
+  await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
+  await click(linkOf("Nbeta"));
+  const pane = within(await screen.findByRole("dialog", { name: "Priority" }));
+  await click(await pane.findByRole("button", { name: "Edit" }));
+  await type(screen.getByRole("textbox", { name: "Line" }), "Nbeta, by hand");
+  // Another row of the pane, then the pane closed: the unsaved text stays in the store.
+  await click(pane.getByRole("button", { name: "Next ›" }));
+  await waitFor(() => expect(pane.queryByRole("textbox", { name: "Line" })).toBeNull());
+  await click(pane.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Priority" })).toBeNull());
+
+  await press("i", focus("Nbeta"));
+
+  const field = await screen.findByRole("textbox", { name: /^Edit / });
+  expect((field as HTMLInputElement).value).toBe("Nbeta, by hand");
 });
