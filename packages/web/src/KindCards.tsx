@@ -40,7 +40,7 @@ const styles = stylex.create({
     columnGap: spacingVars["--spacing-2"],
     display: "flex",
   },
-  // On the picked card's tint, the rule in the accent, which keeps its 3:1 there in dark.
+  // On the picked card, the rule in the accent, as its border is.
   pickedFacts: { borderBlockStartColor: colorVars["--color-accent"] },
   // The facts under a rule, as the mockup draws them apart from the sentence.
   facts: {
@@ -208,7 +208,6 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
               icon={card.icon}
               isActive={isPicked}
               isGroup
-              isTinted={isPicked}
               title={card.name}
             >
               <div id={`${bodies}-${card.kind}`} {...stylex.props(styles.body)}>
