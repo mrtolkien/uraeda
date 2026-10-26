@@ -3,6 +3,7 @@
 // the first included, and whether the menu showing them is shown yet; the delays that show or end a
 // step are the leader's (`leader.ts`), over this. One-token bindings are not run here: the listener
 // runs those, with their fallbacks.
+import { isPrintable } from "./match.ts";
 import type { Binding } from "./store.ts";
 import { GROUPS } from "./groups.ts";
 import type { MenuEntry } from "./LeaderMenu.tsx";
@@ -27,6 +28,8 @@ const RUNS: MenuEntry["icon"] = "uraeda:enter";
 const tokensOf = (keys: string) => keys.split(" ");
 const startsWith = (tokens: ReadonlyArray<string>, prefix: ReadonlyArray<string>) =>
   prefix.every((token, index) => tokens[index] === token);
+
+const PASSED: Result = { consumed: false, ran: null, step: null };
 
 /** Keys that are no menu keys: a chord (not the leader's own), and Tab, which moves the focus. */
 const isPassing = (token: string) =>
@@ -58,7 +61,7 @@ export function next(
     return { consumed: true, ran: null, step: { ...step, path: [LEADER] } };
   }
   if (isPassing(token)) {
-    return { consumed: false, ran: null, step: null };
+    return PASSED;
   }
   const path = [...step.path, token];
   const done = all.findIndex((tokens) => tokens.length === path.length && startsWith(tokens, path));
@@ -67,6 +70,12 @@ export function next(
   }
   if (all.some((tokens) => tokens.length > path.length && startsWith(tokens, path))) {
     return { consumed: true, ran: null, step: { ...step, path } };
+  }
+  // A named key no binding uses is the browser's (F5 reloads, PageDown pages, Enter presses, an
+  // arrow moves): it ends the sequence and goes on. Only a printable key, or Space, is "x does
+  // nothing".
+  if (token !== "space" && !isPrintable(token)) {
+    return PASSED;
   }
   // An unbound key leaves a menu the human reads open; a sequence typed fast just ends.
   return step.isShown ? { consumed: true, ran: null, step } : ENDED;
