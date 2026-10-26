@@ -120,7 +120,9 @@ decisions.
   proposal's Edit), an `aside` at the row's end from semi-wide and under the title on the phone (the
   inbox's "Organize with an agent", the settings' search), the subject's state on a supporting line
   under it, and what the page is for in secondary text. The round's opening keeps its own title, the
-  distinct look the questions page's record approved.
+  distinct look the questions page's record approved. The decisions page keeps its level-1 pane,
+  "Constitution and decisions", whose border titles the page, and Home has no level-1 title, its
+  panes being the page.
 - **Rationale**: the title was drawn six ways, each page placing its badge, menu, search, and lines
   itself. The inbox's description now comes right under its title, before its banners, and a feature
   page's state line under its title, before the banner of a refused drop.
@@ -221,3 +223,55 @@ decisions.
 - **Alternatives considered**: the hyphen everywhere, which a screen reader may read as a dash.
 - **If wrong**: one line in [`DiffCount.tsx`](/packages/web/src/layout/DiffCount.tsx).
 - **Where**: [`layout/DiffCount.tsx`](/packages/web/src/layout/DiffCount.tsx)
+
+## R17: On the phone, a page's main tool takes the line under its title
+
+- **Decision**: what sits at the end of a page title's row on wider screens, such as the inbox's
+  "Organize with an agent" or the settings' search, takes a line of its own under the title on the
+  phone, at the column's full width. A feature's `…` and a proposal's Edit stay beside the title.
+- **Rationale**: the layout and look record placed the settings' search under the title on the
+  phone; the inbox's button, which wrapped there at its own width, now follows the same place, so a
+  page's tool sits the same way on every page.
+- **Alternatives considered**: the button at its own width under the title, which the search, meant
+  to fill the line, cannot share.
+- **If wrong**: the narrow branch in [`PageTitle.tsx`](/packages/web/src/layout/PageTitle.tsx).
+- **Where**: [`layout/PageTitle.tsx`](/packages/web/src/layout/PageTitle.tsx)
+
+## R18: An image picked for a note shows as the composer's do
+
+- **Decision**: a note's picked images are thumbnails in a row, each named by its file and with an
+  icon Remove under it, as the composer's images are; their file names no longer show as text beside
+  them.
+- **Rationale**: one kind of information, an image about to be sent, drawn one way; the name stays
+  the thumbnail's and its Remove button's name, "Remove first.png", for a screen reader.
+- **Alternatives considered**: the name beside every thumbnail, the composer's too, which a pasted
+  image's "image.png" makes noise of.
+- **If wrong**: a caption in
+  [`RemovableThumbnail.tsx`](/packages/web/src/attach/RemovableThumbnail.tsx).
+- **Where**: [`attach/RemovableThumbnail.tsx`](/packages/web/src/attach/RemovableThumbnail.tsx)
+
+## R19: The ＋ buttons' sheets hug their form
+
+- **Decision**: on the phone, "New priority" opens as a sheet as tall as its form, as "Add a note"
+  already did, where it opened at the sheet's default height.
+- **Rationale**: the two forms share one overlay; a short form in a tall sheet leaves an empty band
+  under it.
+- **Alternatives considered**: the default height for both, which leaves the note's band too.
+- **If wrong**: `sheetHeight` in [`SidebarAdd.tsx`](/packages/web/src/SidebarAdd.tsx).
+- **Where**: [`SidebarAdd.tsx`](/packages/web/src/SidebarAdd.tsx)
+
+## R20: Twelve views have no screenshot
+
+- **Decision**: the change's screenshots leave out twelve views the script could not reach: on the
+  phone, the session at its feature's implementation, with its column hidden and its sheet open, and
+  the sidebar's progress row; a feature's notes; a change's round opened from its session on the
+  phone; and the story embed and its pick mode at both sizes.
+- **Rationale**: the script's steps for them stopped on main too, the UI changed under them by
+  earlier features, and the run now goes on past them. Their components are covered by the views
+  that were taken: the session's page and column on the desktop, its header and actions on both
+  sizes, a spec's story pane, and the round on both sizes, and by the browser tests, which pass.
+- **Alternatives considered**: repairing every step of the script in this change, outside what the
+  proposal asks.
+- **If wrong**: their steps in [`scripts/`](/packages/web/scripts/) wait for text the UI no longer
+  shows; each is a locator to update.
+- **Where**: [`scripts/screenshots.ts`](/packages/web/scripts/screenshots.ts)
