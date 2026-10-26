@@ -111,3 +111,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the rule's old ending comes back, with one test that counts what a growing view
   mounts.
 - **Where**: `specs/decisions/ui-behaviour.md`, found by the review of wave 3.
+
+## R10: The sandbox of the preview frames is tested again
+
+- **Decision**: `preview-sandbox.test.tsx` asserts that the mockup embed, a story's frame, and the
+  mockup page each draw a frame sandboxed with `allow-scripts` and never `allow-same-origin`.
+- **Rationale**: the [Stack](/specs/decisions/stack.md) decision says the web UI MUST sandbox
+  previews apart from Uraeda's origin, "checked by the preview proxy's and the embed's tests", and
+  task 12 removed the last test of the embed's `sandbox` attribute: a preview running with Uraeda's
+  origin is a security cost the human's use of the page does not show.
+- **Where**: `packages/web/src/__tests__/preview-sandbox.test.tsx`, and its row in the Kept web UI
+  tests table.
