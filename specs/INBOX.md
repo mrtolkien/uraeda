@@ -3,6 +3,13 @@
 - After approving a spec the feature stayed in "needs you" until I ran a full refresh
 - Moving a draft to a feature takes upwards of 10s with many page changes and no clear feedback
 
+## Bugfix
+
+- [testing-communication] A stopped session marks the feature as "needing attention" even if another
+  session is running
+- Many, many issues with the "state" of a run: if a PR is up, it's "done" even if I restarted the
+  session
+
 ## To test
 
 - See if we can integrate Claude Design
@@ -31,8 +38,6 @@
 - [inbox-priorities] The HTML "phone mockups" in inbox/priorities specs showed up at 1440px wide.
   Generally, mockups kinda break the flow in the specs atm, particularly when there's multiple in a
   row.
-
-## Prompts
 
 ## Deferred fixes
 

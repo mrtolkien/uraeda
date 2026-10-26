@@ -9,7 +9,7 @@
 - [Many times the implementation made undue changes due to forcing itself to pass bad tests. We need to rephrase the testing strategy.](/specs/2026-10-26-testing-communication/proposal.md)
 - [Leader key/shortcut map](/specs/2026-10-26-leader-key/proposal.md)
 
-- Full interactive UI pass: manual small fixes
+- [Full interactive UI pass: manual small fixes](drafts/full-interactive-ui-pass-manual-small-fixes.md)
 - Empty inbox
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
