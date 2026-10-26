@@ -37,18 +37,22 @@ decisions.
 
 ## R3: Every fold's toggle is the same, and mounts its content only while open
 
-- **Decision**: `Foldable` draws every fold's toggle: its chevron first, its label at the reading
-  size, and its content mounted only while open. The three banners' toggles ("Organize with an
-  agent", "Check decisions", "Hook output") move their chevron to the start and their label to the
-  reading size, and a document's folds stop mounting their closed content.
+- **Decision**: `Foldable` draws every fold in a page's text: its chevron first, its label at the
+  reading size, and its content mounted only while open. The three banners' toggles ("Organize with
+  an agent", "Check decisions", "Hook output") move their chevron to the start and their label to
+  the reading size, and a document's folds stop mounting their closed content.
 - **Rationale**: four folds already looked this way, and the
   [UI behaviour](/specs/decisions/ui-behaviour.md) decision asks that folded content is not mounted,
   through one shared component.
 - **Alternatives considered**: keeping Astryx's default toggle in banners, as a lighter look in a
   small box; but it would be the one toggle drawn its own way.
-- **If wrong**: closed content no longer shows to the browser's find-in-page; a jump to an anchor
-  inside a fold opens the fold first, as `useHashFold` already did. Undo by passing `children`
-  unguarded in [`Foldable.tsx`](/packages/web/src/layout/Foldable.tsx).
+- **If wrong**: closed content was already hidden from the browser's find-in-page; what changes is
+  that state inside a closed fold now starts again when it opens. A jump to an anchor inside a fold
+  opens the fold first, as `useHashFold` already did. Undo by passing `children` unguarded in
+  [`Foldable.tsx`](/packages/web/src/layout/Foldable.tsx). A session's Activity rows keep Astryx's
+  own toggle: they are rows of a log, their label a file's path at the body size, in a list that
+  mounts a bounded number of rows and their output only while open, as the session's transcript work
+  built it.
 - **Where**: [`layout/Foldable.tsx`](/packages/web/src/layout/Foldable.tsx)
 
 ## R4: An empty line is secondary text at the body size
@@ -118,7 +122,8 @@ decisions.
   under it, and what the page is for in secondary text. The round's opening keeps its own title, the
   distinct look the questions page's record approved.
 - **Rationale**: the title was drawn six ways, each page placing its badge, menu, search, and lines
-  itself. The inbox's description now comes right under its title, before its banners.
+  itself. The inbox's description now comes right under its title, before its banners, and a feature
+  page's state line under its title, before the banner of a refused drop.
 - **Alternatives considered**: one slot for everything beside the title, wrapping; it would move the
   feature's `…` under its title on the phone, or keep the settings' search beside it there, which
   the layout and look record placed under it.
