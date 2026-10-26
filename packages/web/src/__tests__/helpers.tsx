@@ -23,9 +23,6 @@ import { forgetSignedOut } from "../sign-in/signedOut.ts";
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
 
-/** The binding the server runs on: the core's, or a fake spreading it. */
-type Binding = typeof binding;
-
 export { fixture, fixtureRepo, git };
 
 // Saves wait 400 ms for typing to stop, then go through git: a loaded CI runner took over 5 s to
@@ -159,46 +156,28 @@ export function atRepo(path: string): string {
 /**
  * Renders the UI at a path of a repository, `/priorities` for one, prefixed with the repository's
  * `/r/<name>`, with its requests sent to the server in process, whose list holds the repository.
- * `raw` renders the path as given, like `/` or `/r/old-site/`; `dataDir` gives the server the list
- * already in that data folder, the repository left out of it. Without `agent`, the agent is not
- * installed, and the pages keep their single buttons; `true` gives a new fake agent, which a test
- * can also build first with `fakeAgent`. `binding` gives the server a binding of its own, as one
- * whose call fails. `onSignedIn` replaces the sign-in screen's reload. `settings` gives the server's
- settings their config folder, a new empty one by default, and the host names of `--allowed-hosts`.
+ * Without `agent`, the agent is not installed, and the pages keep their single buttons; `agent`
+ * gives a fake agent built first with `fakeAgent`. `onSignedIn` replaces the sign-in screen's
+ * reload, and `reload` renders the page again, its history entry kept.
  */
 export async function renderPage(
   path = "/",
   repo = fixtureRepo(),
   options: {
-    agent?: boolean | Fake;
-    binding?: Binding;
-    dataDir?: string;
+    agent?: Fake;
     fetch?: typeof globalThis.fetch;
     onSignedIn?: () => void;
-    raw?: boolean;
     reload?: boolean;
-    settings?: SettingsOptions;
   } = {},
 ) {
-  const fake =
-    typeof options.agent === "object"
-      ? options.agent
-      : await fakeAgent({ installed: options.agent === true });
-  const fetch =
-    options.fetch ??
-    serverFetch(
-      options.dataDir === undefined ? repo : null,
-      fake.sessions,
-      options.dataDir,
-      options.binding,
-      options.settings,
-    );
+  const fake = options.agent ?? (await fakeAgent({ installed: false }));
+  const fetch = options.fetch ?? serverFetch(repo, fake.sessions);
   current = (await names.get(fetch)) ?? basename(repo);
   if (options.reload) {
     // A reload: the page goes, and its history entry, with its state, stays.
     cleanup();
   } else {
-    window.history.replaceState(null, "", options.raw ? path : atRepo(path));
+    window.history.replaceState(null, "", atRepo(path));
   }
   // The page suspends while fate loads: an awaited act lets React render the data.
   const rendered = await act(async () =>
@@ -210,9 +189,6 @@ export async function renderPage(
   );
   return { ...rendered, agent: fake.adapter, name: current, repo, sessions: fake.sessions };
 }
-
-/** The config folder of a test's server, and the host names of `--allowed-hosts`, when given. */
-type SettingsOptions = Parameters<typeof testSettings>[0];
 
 /** The hosts of the tests' apps, whose watches are closed after each test. */
 const opened: Array<Promise<Hosts>> = [];
@@ -268,18 +244,10 @@ export async function quiet() {
 
 /**
  * The server's app in process, as a `fetch`, on sessions whose agent is not installed by default,
- * with a list in a temporary data folder holding `repo`; or, given `dataDir`, the list already
- * there, which `repo` is added to unless it is null; on the core's binding, or `server`'s; on the
- * settings of `settings`, as `testSettings` takes them.
+ * with a list in a temporary data folder holding `repo`, on the core's binding.
  */
-export function serverFetch(
-  repo: string | null,
-  sessions?: Fake["sessions"],
-  dataDir = temporaryFolder("uraeda-data"),
-  server: Binding = binding,
-  settings?: SettingsOptions,
-): typeof globalThis.fetch {
-  const { added, created } = serverApp(repo, sessions, dataDir, server, undefined, settings);
+export function serverFetch(repo: string, sessions?: Fake["sessions"]): typeof globalThis.fetch {
+  const { added, created } = serverApp(repo, sessions, temporaryFolder("uraeda-data"));
   return fetchOn(created, added);
 }
 
@@ -292,7 +260,7 @@ export function serverFetch(
 export function signInServer(repo = fixtureRepo()) {
   const dataDir = temporaryFolder("uraeda-data");
   const { key, options } = testSignIn(dataDir);
-  const { added, created } = serverApp(repo, undefined, dataDir, binding, options);
+  const { added, created } = serverApp(repo, undefined, dataDir, options);
   const device = (from?: typeof globalThis.fetch) =>
     fetchOn(created, added, new Map(from && jars.get(from)));
   return { device, fetch: device(), key };
@@ -300,32 +268,27 @@ export function signInServer(repo = fixtureRepo()) {
 
 /** The app of `serverFetch`, made once its list holds `repo`, and the repository's name there. */
 function serverApp(
-  repo: string | null,
+  repo: string,
   sessions: Fake["sessions"] | undefined,
   dataDir: string,
-  server: Binding,
   signIn?: ReturnType<typeof testSignIn>["options"],
-  settingsOptions?: SettingsOptions,
 ) {
   if (!sessions) {
     sessions = fakeSessions({ installed: false }).sessions;
     managers.push(sessions);
   }
-  const added =
-    repo === null
-      ? Promise.resolve(undefined)
-      : binding.addRepository(dataDir, repo).then(({ repository }) => repository.name);
-  const hosts = added.then(() => Hosts.open({ binding: server, dataDir, sessions }));
+  const added = binding.addRepository(dataDir, repo).then(({ repository }) => repository.name);
+  const hosts = added.then(() => Hosts.open({ binding, dataDir, sessions }));
   opened.push(hosts);
   const previews = livePreviews();
   runners.push(previews);
-  // On a config folder of its own, empty unless given: no host name besides the server's own.
-  const settings = testSettings(settingsOptions);
+  // On a config folder of its own, empty: no host name besides the server's own.
+  const settings = testSettings();
   settled.push(settings);
   const created = Promise.all([hosts, settings]).then(([hosts, settings]) =>
     createApp({
       allowOrigins: [],
-      binding: server,
+      binding,
       dataDir,
       hosts,
       port,

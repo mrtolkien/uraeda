@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, expect, test } from "vite-plus/test";
+import { expect, test } from "vite-plus/test";
 import {
   answered as readAnswered,
   answersSoFar,
@@ -123,17 +123,6 @@ test("Submit stops when an answer could not be saved", async () => {
   expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).not.toBe(
     "discovery(web-ui): answer round 01",
   );
-});
-
-/** The window's own storage, while a test takes it away; `null` when it came from its prototype. */
-let storage: PropertyDescriptor | null | undefined;
-afterEach(() => {
-  if (storage) {
-    Object.defineProperty(window, "localStorage", storage);
-  } else if (storage === null) {
-    delete (window as { localStorage?: Storage }).localStorage;
-  }
-  storage = undefined;
 });
 
 const SUBMITTED = "discovery(web-ui): answer round 01";
