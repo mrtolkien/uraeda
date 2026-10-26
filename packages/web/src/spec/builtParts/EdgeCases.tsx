@@ -1,7 +1,7 @@
 // The edge cases: their table drawn as rows by importance, the niche ones folded behind their
 // count, not mounted while folded, the part's other blocks as written.
 import { Badge } from "@astryxdesign/core/Badge";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
+
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -15,6 +15,7 @@ import type { PartProps, SpecItems } from "../parts.ts";
 import { Runs } from "../RuleLine.tsx";
 import { builtStyles, type DrawingProps, inOrder, parentsOf } from "./shared.tsx";
 import { plural } from "../../labels.ts";
+import { Foldable } from "../../layout/Foldable.tsx";
 
 /** Each importance the format knows: its pill, and its rank, the most important first. */
 const IMPORTANCE: Record<string, { label: string; rank: number; variant: "neutral" | "warning" }> =
@@ -106,22 +107,17 @@ function EdgeList({ edges, props }: { edges: ReadonlyArray<Edge>; props: PartPro
           ))}
       </VStack>
       {niche.length > 0 && (
-        <Collapsible
-          chevronPosition="start"
+        <Foldable
           isOpen={isOpen}
+          label={plural(niche.length, "niche case")}
           onOpenChange={setChosen}
-          trigger={
-            <span {...stylex.props(builtStyles.fold)}>{plural(niche.length, "niche case")}</span>
-          }
         >
-          {isOpen && (
-            <VStack as="ul" gap={3} xstyle={builtStyles.list}>
-              {niche.map((edge) => (
-                <EdgeRow edge={edge} key={edge.row} props={props} />
-              ))}
-            </VStack>
-          )}
-        </Collapsible>
+          <VStack as="ul" gap={3} xstyle={builtStyles.list}>
+            {niche.map((edge) => (
+              <EdgeRow edge={edge} key={edge.row} props={props} />
+            ))}
+          </VStack>
+        </Foldable>
       )}
     </VStack>
   );
