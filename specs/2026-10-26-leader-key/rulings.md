@@ -196,3 +196,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: fix pass A, `keys/match.ts`. Existing tests whose keydowns were a capital with no
   Shift, which no keyboard sends without Caps Lock (`J K H L` in `keys-shift.test.tsx`, `G` in
   `keys-scroll.test.tsx`), now send `shiftKey: true`, the same assertions on a realistic event.
+
+## R21: A binding names only keys a keydown gives, and Ctrl or Cmd with a named key is a chord
+
+- **Decision**: `createKeyStore.set` throws, in every build but production and beside the clash
+  check, where a token of a binding is none `tokenOf` can give: Space is `space`; a printable
+  character is itself (`J`, `[`, `+`); `mod+` goes only before one printable character, lowercase
+  (`mod+k`, `mod+/`); a named key is spelt as `event.key` spells it, with `shift+` before it or not
+  (`ArrowDown`, `shift+Tab`, `F1`). `Space`, `escape`, `ctrl+k`, `shift+J`, `Shift+ArrowDown`,
+  `mod+ArrowDown`, `mod+K`, `alt+x`, and an empty token throw. `tokenOf` keeps the name of a named
+  key under Ctrl or Cmd as the browser spells it (`mod+ArrowDown`, `mod+shift+ArrowDown`) instead of
+  lowercasing it (`mod+arrowdown`): a chord no binding can name, which ends a pending sequence and
+  goes on to the browser (`isPassing` in `sequence.ts`). Both directions are tested: `isCanonical`
+  is true of every token `tokenOf` gives for a binding's keys, false of the chords it gives for no
+  binding.
+- **Rationale**: `mod+ArrowDown`, `Space`, `shift+J`, `escape`, `ctrl+k`, and `Shift+ArrowDown` were
+  declared and never ran, silently: a key that never matches is a bug a page's test should see at
+  once, as it does for a key that means two things. The plan names only `mod+k` as a modifier
+  binding; named keys with Ctrl or Cmd are the browser's and the OS's (Ctrl+ArrowDown moves a
+  desktop on macOS).
+- **Alternatives considered**: allowing `mod+` before a named key: no feature binds one, and each
+  would clash with the browser's. Allowing `mod+shift+k` and `alt+`: nothing declares them, and one
+  line adds them when something does. Warning with `console.error` instead of throwing: the clash
+  check throws, and a warning is lost in a test run.
+- **If wrong**: a feature that needs Ctrl+Arrow or Alt keys extends `isCanonical` in
+  `keys/match.ts`, and `tokenOf` already gives their tokens.
+- **Where**: fix pass A, `keys/match.ts`, `keys/store.ts`.

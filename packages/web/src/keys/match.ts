@@ -64,11 +64,40 @@ export function tokenOf(event: KeyboardEvent): string | null {
   // The case of a Latin letter is Shift's: Caps Lock turns `j` into `J`, the key that moves the
   // item and writes to git. Any other character is what was typed.
   const name =
-    key === " " ? "space" : LETTER.test(key) ? letter(key, event) : mod ? key.toLowerCase() : key;
+    key === " "
+      ? "space"
+      : LETTER.test(key)
+        ? letter(key, event)
+        : mod && isChar
+          ? key.toLowerCase()
+          : key;
   // Shift is in the character it typed, and Space with it is still Space; on a named key, or with
   // another modifier, it is the shortcut's.
   const isShift = event.shiftKey && ((!isChar && key !== " ") || mod || event.altKey);
   return `${mod ? "mod+" : ""}${event.altKey ? "alt+" : ""}${isShift ? "shift+" : ""}${name}`;
+}
+
+const NAMED = /^[A-Z][A-Za-z0-9]+$/;
+
+/**
+ * Whether a token of a binding is one `tokenOf` can give, so it can ever run: Space is `space`; a
+ * printable character is itself, in the case Shift gives it; `mod+` goes only before a printable
+ * character, lowercase; a named key is spelt as the browser spells it, with `shift+` before it or
+ * not. A modifier is lowercase, and Alt is no binding's.
+ */
+export function isCanonical(token: string) {
+  if (token === "space") {
+    return true;
+  }
+  if (isPrintable(token)) {
+    return token !== " ";
+  }
+  const modded = token.startsWith("mod+") ? token.slice(4) : null;
+  if (modded !== null) {
+    return isPrintable(modded) && modded !== " " && modded === modded.toLowerCase();
+  }
+  const named = token.startsWith("shift+") ? token.slice(6) : token;
+  return NAMED.test(named) && named !== "Space" && !NOT_KEYS.has(named);
 }
 
 /** Whether the binding's first key is one printable character or Space: a single-key shortcut. */
