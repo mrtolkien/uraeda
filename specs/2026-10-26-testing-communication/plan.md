@@ -284,7 +284,6 @@ test, and the behaviour it guarded: one row per removed test, or per file when a
 | `packages/server/src/__tests__/settings-watch.test.ts`  | a burst of writes is read once                                                      | The count of the binding's `readSettings` calls under fake timers: how the debounce works                                                                                              |
 | `packages/server/src/__tests__/stack.test.ts`           | under a coarse pointer, Astryx's elements are 44 px tall                            | A size in the built CSS, left to the human's review; no decision names the test                                                                                                        |
 | `packages/server/src/preview/__tests__/runner.test.ts`  | a state change is told                                                              | The runner's `onChange` callback firing on starting, ready, and stopped; the server's live "ready" update test keeps the observable result                                             |
-| `packages/server/src/sign-in/__tests__/store.test.ts`   | records a use at most once a day                                                    | A session's use written at most once a day, counted through file replacements; `refreshed` is kept by "ends a session 30 days after its last use"                                      |
 
 ## Waves
 
