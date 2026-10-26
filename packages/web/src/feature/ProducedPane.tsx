@@ -11,6 +11,7 @@ import { scrollBelowBar } from "../Folds.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { type FigureRow, type FigureValue } from "./figureRows.ts";
 import { DiffCount, diffLine } from "../layout/DiffCount.tsx";
+import { Empty } from "../layout/Empty.tsx";
 
 const styles = stylex.create({
   row: {
@@ -150,9 +151,7 @@ export function ProducedPane({
     <Pane title={done ? "What it produced" : "Produced so far"}>
       <div onClickCapture={jumpInPage(onOpen)}>
         <VStack gap={2}>
-          {rows.length === 0 && (
-            <Text color="secondary">No figures: its commits could not be traced</Text>
-          )}
+          {rows.length === 0 && <Empty>No figures: its commits could not be traced</Empty>}
           {rows.map((row) => (
             <Figure key={row.label} row={row} />
           ))}

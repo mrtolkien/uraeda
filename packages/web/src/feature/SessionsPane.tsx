@@ -25,6 +25,7 @@ import { SessionView } from "../views.ts";
 import { clearPending, markPending } from "../writes/store.ts";
 import { clock, day, duration } from "./times.ts";
 import { CardRow } from "../sidebar/CardRow.tsx";
+import { Empty } from "../layout/Empty.tsx";
 
 const styles = stylex.create({
   subagent: { paddingInlineStart: spacingVars["--spacing-6"] },
@@ -199,7 +200,7 @@ export function SessionsPane({
   return (
     <Pane count={sessions.length} title="Sessions">
       <VStack gap={3}>
-        {sessions.length === 0 && <Text color="secondary">No session yet.</Text>}
+        {sessions.length === 0 && <Empty>No session yet.</Empty>}
         {sessions.map((id, index) => (
           <Suspense fallback={null} key={id}>
             <SessionItem folder={folder} id={id} latest={index === 0} progress={progress} />
