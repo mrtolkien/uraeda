@@ -33,13 +33,13 @@ useful: the human mostly reviews the UI by using it.
 
 Agents bent code to keep old tests green, because nothing said what to do with a test whose
 behaviour the approved spec replaced, and the suite grew to about 3,900 tests with no limit
-([why tests are bent](../2026-10-26-testing-communication/clarifications-01.md#q2-what-happens-to-a-test-that-guards-behaviour-the-approved-spec-replaces)).
+([why tests are bent](../done/2026-10-26-testing-communication.md#q2-what-happens-to-a-test-that-guards-behaviour-the-approved-spec-replaces)).
 The human chose to scale testing with the stage, since in early development tests are "undue
 inertia"
-([stages](../2026-10-26-testing-communication/clarifications-01.md#q3-does-testing-effort-scale-with-the-projects-stage)).
+([stages](../done/2026-10-26-testing-communication.md#q3-does-testing-effort-scale-with-the-projects-stage)).
 They would "rather review actual behaviour with the sandbox" than keep UI tests
-([UI testing](../2026-10-26-testing-communication/clarifications-01.md#q4-how-should-the-web-ui-be-tested)),
-and kept the door open to the rare UI test that is extremely useful. Speed, retries, and flaky tests
+([UI testing](../done/2026-10-26-testing-communication.md#q4-how-should-the-web-ui-be-tested)), and
+kept the door open to the rare UI test that is extremely useful. Speed, retries, and flaky tests
 stay with the [toolchain](toolchain.md) decision.
 
 ## Alternatives considered

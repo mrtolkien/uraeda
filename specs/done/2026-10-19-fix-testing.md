@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-21
 pull-request: https://github.com/mrtolkien/uraeda/pull/54
+superseded-by: [2026-10-26-testing-communication]
 ---
 
 # Record: Fix testing
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/54
 > The record of a merged feature, not instructions to follow. Started on 2026-10-19, finished on
 > 2026-10-21, in [its pull request](https://github.com/mrtolkien/uraeda/pull/54). Its full files are
 > in git: `git log -- specs/2026-10-19-fix-testing/`.
+>
+> Superseded in part by [2026-10-26-testing-communication](2026-10-26-testing-communication.md).
 
 ## What and why
 
