@@ -972,9 +972,13 @@ git commit -m "feat(leader-key): each page's own keys on the registry"
 
 **Files:**
 
-- Create: `packages/web/src/keys/LeaderKeys.tsx` (a component calling `useKeys` for the tree)
-- Modify: `packages/web/src/Shell.tsx` (mounts it), `RepositoryMenu.tsx` (a way to open it by key),
-  `keys/groups.ts` if a group changes
+- Create: `packages/web/src/keys/LeaderKeys.tsx` (a component calling `useKeys` for the tree),
+  `keys/leaderTree.ts` (the places', Find's, and New's bindings as pure builders),
+  `keys/Continue.tsx` (`Space c` and its picker)
+- Modify: `packages/web/src/Shell.tsx` (mounts it), `RepositoryMenu.tsx` (a way to open it by key,
+  ruling R62), `sidebar/entries.ts` (`needsYouEntries`), `sidebar/cards.ts` and `Cards.tsx`
+  (`statusPath` moves to `cards.ts`), `shell/StatusLine.tsx` (counts through `needsYouEntries`),
+  `keys/scroll.ts` (exports `edge` for `g g`); `keys/groups.ts` needed no change
 - Test: `packages/web/src/__tests__/keys-go.test.tsx`, `keys-leader-tree.test.tsx`,
   `keys-continue.test.tsx`
 
@@ -991,10 +995,11 @@ git commit -m "feat(leader-key): each page's own keys on the registry"
   Latte, System, as the settings page's control; a ruling), `space r` (opens the repository menu),
   and the `g` sequences `g h i p d s ,` and `g g` (scroll to the top). Continue: with one card
   needing the human it opens it, with several it opens a picker of them whose Enter opens the
-  selected, with none the menu says "Nothing needs you" and nothing opens; the picker is `KeyPicker`
-  with a source of the cards. The `u [` and `u ]` entries come from their owners (Task 5).
+  selected, with none the menu's entry says "Nothing needs you" and a toast says it too, and nothing
+  opens (ruling R60); the picker is `KeyPicker` over the cards. The `u [` and `u ]` entries come
+  from their owners (Task 5).
 
-- [ ] **Step 1: Write the failing tests**: US2 1: `g` then `i` on the priorities page opens the
+- [x] **Step 1: Write the failing tests**: US2 1: `g` then `i` on the priorities page opens the
       inbox; US2 2 and 3: `g g` scrolls a scrolled page to the top; after `g` and 2 seconds a later
       `a` acts as `a` does; more 2: `g x` ends and `x` does nothing; SC-001: for each page of the
       top level (`h i p d s ,` and `n s`, `f d`, `u t`), pressing its keys from Home reaches it in
@@ -1003,13 +1008,13 @@ git commit -m "feat(leader-key): each page's own keys on the registry"
       you" and the page stays; SC-007: the menu's place entries carry the icon and label of each
       `DESTINATIONS` entry, and the navigation and the tabs do too. The break caught: a place entry
       with its own icon, which the one-icon test shows.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test run packages/web/src/__tests__/keys-go.test.tsx`; expected FAIL
       `expected "/r/fixture/priorities" to be "/r/fixture/inbox"`.
-- [ ] **Step 3: Implement** `LeaderKeys` with each binding calling the code that the buttons and the
+- [x] **Step 3: Implement** `LeaderKeys` with each binding calling the code that the buttons and the
       pages call, and mount it in `Shell.tsx`.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-26-leader-key/plan.md specs/2026-10-26-leader-key/rulings.md

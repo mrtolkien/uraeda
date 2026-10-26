@@ -4,6 +4,7 @@
 import type { SessionStatus } from "uraeda-server/fate";
 import type { useNavigation } from "../sessionData.ts";
 import { stepLabel, waiting } from "../labels.ts";
+import { sessionPath } from "../sessions.ts";
 import type { CardItem } from "./ItemCard.tsx";
 import type { StepKind } from "./StepIcon.tsx";
 
@@ -86,6 +87,20 @@ export function featureStatus(feature: Feature, row: Row | undefined): Status {
 /** Whether a status asks something of the human: the sidebar's "Needs you". */
 export const needsYou = (status: Status) =>
   status.status === "needs-you" || status.status === "attention";
+
+/**
+ * Where a card's status leads: what the human must do while it needs them, the page asking it for a
+ * gate or the feature's page for a problem; its session otherwise.
+ */
+export function statusPath(feature: Feature, status: Status) {
+  if (!needsYou(status)) {
+    return sessionPath(feature.folder);
+  }
+  if (feature.problems.length > 0) {
+    return `/f/${feature.folder}`;
+  }
+  return feature.step.waitsOn === "human" ? waiting(feature).href : sessionPath(feature.folder);
+}
 
 /** A feature's card, from its session's row when it has one. */
 export function toCard(feature: Feature, row: Row | undefined): CardItem {

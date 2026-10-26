@@ -462,3 +462,52 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and development: the second declares `isDisabled`, or the page passes which one is the page's.
 - **Where**: `Composer.tsx`, `useNewKey.ts`, `KindCards.tsx`, `NewPage.tsx`, `Home.tsx`,
   `shell/SessionsPage.tsx`.
+## R60: Continue opens what the card's status asks, and with none the entry and a toast say so
+
+- **Decision**: `Space c` takes the cards of the shell's Needs you pane, through one selection
+  (`needsYouEntries` in `sidebar/entries.ts`, which the status line's count now calls too, ordered
+  as the pane orders them), and opens each where the card's status button leads (`statusPath`, moved
+  to `sidebar/cards.ts` so the keys and the card share it): the page that asks the human something,
+  the feature's page for a problem, a session's page for a session. One card opens at once; several
+  open the key picker (`KeyPicker`, titled "Continue") over them, whose Enter opens the selected
+  after the picker closed, as R33 has it. With none, the menu's entry reads "Nothing needs you" in
+  the place of "Continue", and pressing it shows a toast with the same words and opens nothing.
+- **Rationale**: "open what needs you" is what the card's status button does; the card's own link
+  opens the feature's overview, which asks nothing. The spec's "the menu says" is met by the entry
+  while the menu is shown. A key typed fast shows no menu, and a completed leaf ends the sequence,
+  so a human who pressed `Space c` quickly would see nothing: the toast says it where they look.
+- **Alternatives considered**: keeping the menu shown after the leaf with a message: a new state in
+  `leader.ts`, `registry.tsx`, and `LeaderMenuHost` for one entry. Opening the card's own link: the
+  human lands on an overview and looks for what is asked.
+- **If wrong**: the entry's label is `useContinue`'s, and its `run` is the one place that decides.
+- **Where**: `keys/Continue.tsx`, `sidebar/entries.ts`, `sidebar/cards.ts`, `shell/StatusLine.tsx`;
+  tests in `__tests__/keys-continue.test.tsx`.
+
+## R61: `Space u t` cycles Mocha, Latte, System
+
+- **Decision**: the theme key sets the scheme the settings page's control sets (`useScheme`): from
+  System it picks Mocha, from Mocha Latte, from Latte System, so three presses return to where it
+  began. It is the same kept choice (`uraeda.theme`), so the settings page shows it at once.
+- **Rationale**: the lead's ruling, as the settings page offers the three in this order.
+- **Alternatives considered**: toggling between Mocha and Latte only: System could not be reached by
+  the keyboard from the menu.
+- **If wrong**: the order is `NEXT` in `keys/LeaderKeys.tsx`.
+- **Where**: `keys/LeaderKeys.tsx`; test in `__tests__/keys-leader-tree.test.tsx`.
+
+## R62: `Space r` opens the repository menu in a dialog of its own
+
+- **Decision**: the key opens the repository menu as a dialog (a sheet on narrow screens), drawn by
+  one host in the shell (`RepositoryMenuHost`, mounted by `LeaderKeys`) and opened by
+  `openRepositoryMenu()`, module state like the key picker's. The menu's content and the add form it
+  leads to are shared with the heading's menu (`useSwitcher`), which stays a popover that a click
+  opens.
+- **Rationale**: the heading's trigger is not always there: the folded rail has none, and the phone
+  shows it on the sessions page only, so a key that opened "the trigger's popover" would do nothing
+  on most phone pages and a folded rail. Two triggers can also be mounted at once (the column's and
+  a page's), which a key cannot choose between.
+- **Alternatives considered**: the key clicking the trigger when one is mounted: nothing where none
+  is. Declaring the key in each trigger: two triggers would declare it twice, which throws.
+- **If wrong**: the host is one component, `KeyedMenu`; point `openRepositoryMenu` at the heading's
+  state instead and keep the dialog as the fallback where no trigger is mounted.
+- **Where**: `RepositoryMenu.tsx`, `keys/LeaderKeys.tsx`; test in
+  `__tests__/keys-leader-tree.test.tsx`.

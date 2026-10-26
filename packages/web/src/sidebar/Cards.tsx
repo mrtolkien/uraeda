@@ -3,31 +3,15 @@
 import { Suspense } from "react";
 import { useFateClient } from "react-fate";
 import { useBranchChanges } from "../data.ts";
-import { waiting } from "../labels.ts";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
-import { sessionPath } from "../sessions.ts";
 import { SessionView } from "../views.ts";
 import { usePendingAction } from "../writes/store.ts";
-import { type Feature, needsYou, type Row, sessionCard, type Status, toCard } from "./cards.ts";
+import { type Feature, type Row, sessionCard, statusPath, toCard } from "./cards.ts";
 import type { Entry } from "./entries.ts";
 import { useOpenSettings } from "./FeatureSettingsDialog.tsx";
 import { type CardItem, ItemCard } from "./ItemCard.tsx";
 import { useOpenRename } from "./RenameSession.tsx";
 import { selects } from "./Row.tsx";
-
-/**
- * Where a card's status leads: what the human must do while it needs them, the page asking it for a
- * gate or the feature's page for a problem; its session otherwise.
- */
-function statusPath(feature: Feature, status: Status) {
-  if (!needsYou(status)) {
-    return sessionPath(feature.folder);
-  }
-  if (feature.problems.length > 0) {
-    return `/f/${feature.folder}`;
-  }
-  return feature.step.waitsOn === "human" ? waiting(feature).href : sessionPath(feature.folder);
-}
 
 /** A feature's or a change's card, with the lines its branch changed once read. */
 function FeatureCard({

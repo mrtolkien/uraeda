@@ -14,7 +14,15 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { fontWeightVars, sizeVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { createContext, type ReactNode, Suspense, use, useEffect, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  Suspense,
+  use,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { FateClient, useFateClient } from "react-fate";
 import { AddRepository } from "./AddRepository.tsx";
 import type { FateClient as Client } from "./clients.ts";
@@ -277,19 +285,25 @@ function Drawn({
 const MENU = "Repositories";
 const FORM = "Add a repository";
 
-function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: boolean }) {
-  const wide = !isNarrow(useWidthClass());
-  const [open, setOpen] = useState(false);
+/**
+ * The menu's content and the add form it leads to, over the caller's `isOpen` state: `isDeferred`
+ * says the menu is an overlay, whose sheet's history entry is gone before what follows runs, as on
+ * narrow screens, and not a popover.
+ */
+function useSwitcher(
+  current: string | null,
+  isDeferred: boolean,
+  setOpen: (open: boolean) => void,
+) {
   const [adding, setAdding] = useState(false);
-  const label = current === null ? "Uraeda" : `Uraeda ${current}`;
 
   /** Closes the menu, then runs what follows once its sheet's history entry is gone. */
   const closeThen = (run: () => void) => {
     setOpen(false);
-    if (wide) {
-      run();
-    } else {
+    if (isDeferred) {
       afterOverlayCloses(MENU, run);
+    } else {
+      run();
     }
   };
   const menu = (
@@ -302,6 +316,25 @@ function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: bo
       />
     </Suspense>
   );
+  const form = (
+    <Drawn isOpen={adding} label={FORM} onClose={() => setAdding(false)}>
+      <AddRepository
+        onAdded={(name) => {
+          setAdding(false);
+          afterOverlayCloses(FORM, () => navigate(repoPath(name, "/")));
+        }}
+        onCancel={() => setAdding(false)}
+      />
+    </Drawn>
+  );
+  return { form, menu };
+}
+
+function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: boolean }) {
+  const wide = !isNarrow(useWidthClass());
+  const [open, setOpen] = useState(false);
+  const { form, menu } = useSwitcher(current, !wide, setOpen);
+  const label = current === null ? "Uraeda" : `Uraeda ${current}`;
 
   const trigger = (
     <Button
@@ -348,15 +381,59 @@ function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: bo
           </Drawn>
         </>
       )}
-      <Drawn isOpen={adding} label={FORM} onClose={() => setAdding(false)}>
-        <AddRepository
-          onAdded={(name) => {
-            setAdding(false);
-            afterOverlayCloses(FORM, () => navigate(repoPath(name, "/")));
-          }}
-          onCancel={() => setAdding(false)}
-        />
-      </Drawn>
+      {form}
     </>
+  );
+}
+
+/** Whether the menu a key opened is open: the one host in the shell draws it. */
+let isKeyOpen = false;
+const keyListeners = new Set<() => void>();
+
+function setKeyOpen(open: boolean) {
+  isKeyOpen = open;
+  for (const listener of keyListeners) {
+    listener();
+  }
+}
+
+/**
+ * Opens the repository menu from a key, `Space r`: the navigation's heading may be folded away, or
+ * on a page that has none, so the menu is its own dialog (a sheet on narrow screens), drawn by
+ * `RepositoryMenuHost`, and the heading's popover stays what a click opens.
+ */
+export function openRepositoryMenu() {
+  setKeyOpen(true);
+}
+
+/** The key-opened menu's state, drawn from its opening until its history entry is gone. */
+function KeyedMenu({ current }: { current: string | null }) {
+  const isOpen = useSyncExternalStore(
+    (listener) => {
+      keyListeners.add(listener);
+      return () => void keyListeners.delete(listener);
+    },
+    () => isKeyOpen,
+    () => false,
+  );
+  const { form, menu } = useSwitcher(current, true, setKeyOpen);
+  // The page it was opened on goes, and the menu with it.
+  useEffect(() => () => setKeyOpen(false), []);
+  return (
+    <>
+      <Drawn isOpen={isOpen} label={MENU} onClose={() => setKeyOpen(false)}>
+        {menu}
+      </Drawn>
+      {form}
+    </>
+  );
+}
+
+/** Draws the menu `openRepositoryMenu` opens, on the global client; mounted once, in the shell. */
+export function RepositoryMenuHost({ current }: { current: string | null }) {
+  return (
+    <OnListClient>
+      <KeyedMenu current={current} />
+    </OnListClient>
   );
 }

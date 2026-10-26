@@ -12,8 +12,7 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useRef } from "react";
 import { useNavigation } from "../sessionData.ts";
-import { needsYou } from "../sidebar/cards.ts";
-import { type Data, entriesOf, runningSessions } from "../sidebar/entries.ts";
+import { type Data, needsYouEntries, runningSessions } from "../sidebar/entries.ts";
 import { useDeclaredHints, useStatusLineCovered } from "../statusHints.tsx";
 import { KeyCap } from "../keys/KeyCap.tsx";
 import { useHints } from "../keys/registry.tsx";
@@ -89,8 +88,7 @@ const styles = stylex.create({
 
 /** How many cards of the shell's panes need the human: those its Needs you pane holds. */
 function needsYouCount(data: Data) {
-  return entriesOf(data, { found: undefined, query: "" }).filter((entry) => needsYou(entry.status))
-    .length;
+  return needsYouEntries(data).length;
 }
 
 /** The hints, each its keys then what they do: the registry's, then those not yet moved to it. */

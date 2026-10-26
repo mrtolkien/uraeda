@@ -2,7 +2,16 @@
 // and the sessions without a workflow, which its panes split into Needs you, Sessions, and In
 // progress; and the counts the column's rows and the phone's tabs show.
 import type { useNavigation } from "../sessionData.ts";
-import { type Feature, featureStatus, inFlight, type Row, startOf, type Status } from "./cards.ts";
+import {
+  byStatus,
+  type Feature,
+  featureStatus,
+  inFlight,
+  needsYou,
+  type Row,
+  startOf,
+  type Status,
+} from "./cards.ts";
 
 /** The workspace and the sessions' list, as the shell reads them. */
 export type Data = ReturnType<typeof useNavigation>;
@@ -82,6 +91,16 @@ export function entriesOf(
         status: { label: row.statusLabel, status: row.status },
       })),
   ];
+}
+
+/**
+ * The cards that need the human, what the most urgent first: the entries of the shell's Needs you
+ * pane, which the status line counts and Continue opens.
+ */
+export function needsYouEntries(data: Data): Array<Entry> {
+  return byStatus(
+    entriesOf(data, { found: undefined, query: "" }).filter((entry) => needsYou(entry.status)),
+  );
 }
 
 /** An entry's key among the cards: its folder, or its session's ID. */

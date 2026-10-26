@@ -11,6 +11,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
 import { KeyPickerHost } from "./keys/KeyPickerHost.tsx";
+import { LeaderKeys } from "./keys/LeaderKeys.tsx";
 import { KeysProvider } from "./keys/registry.tsx";
 import { ScrollKeys } from "./keys/scroll.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
@@ -175,6 +176,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 <LeaderMenuHost />
                 <Writing />
                 <ScrollKeys />
+                <LeaderKeys />
                 <NotifyBanner />
                 <Notifier />
                 <UndoErrors />
