@@ -44,8 +44,8 @@ test("a second move key waits for the first move's write, and reads the list as 
   const { rerender } = render(list(["a", "b", "c"], onMove));
   const link = focus("a");
 
-  fireEvent.keyDown(link, { key: "J" });
-  fireEvent.keyDown(link, { key: "J" });
+  fireEvent.keyDown(link, { key: "J", shiftKey: true });
+  fireEvent.keyDown(link, { key: "J", shiftKey: true });
   expect(onMove.mock.calls).toEqual([["a", "next", 1]]);
 
   // The first write lands: the list is drawn in the order it wrote, then the second key moves.
@@ -61,9 +61,9 @@ test("a move that is refused does not stop the keys after it", async () => {
   render(list(["a", "b", "c"], onMove));
   const link = focus("a");
 
-  fireEvent.keyDown(link, { key: "J" });
+  fireEvent.keyDown(link, { key: "J", shiftKey: true });
   await waitFor(() => expect(onMove).toHaveBeenCalledTimes(1));
-  fireEvent.keyDown(link, { key: "J" });
+  fireEvent.keyDown(link, { key: "J", shiftKey: true });
 
   await waitFor(() => expect(onMove).toHaveBeenCalledTimes(2));
 });
@@ -74,7 +74,7 @@ test("the key moves the focused card, not the selected one", () => {
   // `a` is selected; the Tab key put the focus on `c`.
   const link = focus("c");
 
-  fireEvent.keyDown(link, { key: "K" });
+  fireEvent.keyDown(link, { key: "K", shiftKey: true });
 
   expect(onMove).toHaveBeenCalledWith("c", "next", 1);
 });
