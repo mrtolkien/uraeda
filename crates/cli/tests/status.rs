@@ -372,18 +372,6 @@ fn a_merged_feature_with_only_its_branch_left() {
     );
 }
 
-/// US1.6, review focus 5
-#[test]
-fn a_finished_branch_waits_for_its_pull_request() {
-    let repo = repo_with_priorities();
-    feature(&repo, WEB_UI, &[("proposal.md", proposal())]);
-    finish(&repo, WEB_UI);
-
-    let output = ura(&repo, &["status"]);
-
-    assert_eq!(output.row(WEB_UI)[1], "agent");
-}
-
 /// US1.5: without `gh`, a finished branch's step is the pull request's unknown state.
 #[test]
 fn a_finished_branch_without_gh_has_its_pull_request_unknown() {

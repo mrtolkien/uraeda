@@ -369,20 +369,4 @@ mod tests {
             );
         }
     }
-
-    #[test]
-    fn answer_lines() {
-        assert_eq!(
-            answer_line(Scope::User),
-            "Install the Uraeda skill for: your user"
-        );
-        assert_eq!(
-            answer_line(Scope::Repo),
-            "Install the Uraeda skill for: this repository"
-        );
-        let folders = |agents, claude| folders_line(Folders { agents, claude });
-        assert_eq!(folders(true, false), "Into: .agents/skills");
-        assert_eq!(folders(false, true), "Into: .claude/skills");
-        assert_eq!(folders(true, true), "Into: .agents/skills, .claude/skills");
-    }
 }

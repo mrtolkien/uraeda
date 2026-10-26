@@ -231,6 +231,22 @@ meaning, and the plan is corrected in the task's commit.
 Each judging task adds its own heading, `#### Task N`, with a table of three columns, the file, the
 test, and the behaviour it guarded: one row per removed test, or per file when a whole file goes.
 
+#### Task 6
+
+| File                              | Test                                           | Behaviour it guarded                                                                                                                            |
+| --------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `crates/cli/tests/status.rs`      | `a_finished_branch_waits_for_its_pull_request` | `ura status` shows a finished branch as waiting on the agent: `a_finished_branch_without_gh_has_its_pull_request_unknown` asserts the whole row |
+| `crates/cli/tests/review.rs`      | `comments_add_up`                              | a second comment is numbered C2 after C1: `a_pending_review_survives_an_unrelated_commit` asserts both comments and their numbers               |
+| `crates/cli/src/upgrade.rs`       | `the_latest_release_installs_nothing`          | `newer` is false for the same version: trivial code, a `!=`                                                                                     |
+| `crates/cli/src/install.rs`       | `answer_lines`                                 | the text of the two lines echoing a picker's answers: trivial formatting                                                                        |
+| `crates/cli/src/picker.rs`        | `nothing_checked_warns_until_space`            | the picker's private `warning` flag, set on Enter with nothing checked and cleared by space                                                     |
+| `crates/cli/src/picker.rs`        | `draws_the_scope_picker`                       | the exact screen text of the scope picker: wording and layout, left to the human's use                                                          |
+| `crates/cli/src/picker.rs`        | `draws_the_folder_picker`                      | the exact screen text of the folder picker: wording and layout                                                                                  |
+| `crates/cli/src/picker.rs`        | `draws_nothing_checked`                        | the exact screen text of the folder picker with nothing checked: wording and layout                                                             |
+| `crates/cli/src/picker.rs`        | `draws_the_init_question`                      | the exact screen text of `ura init`'s question: wording and layout                                                                              |
+| `crates/cli/src/picker.rs`        | `the_cursor_reads_without_colour`              | the foreground colour of the picker's cells, with and without colours: the look                                                                 |
+| `crates/lsp/tests/diagnostics.rs` | `a_changed_risk_tier_gives_one_diagnostic`     | a changed `risk-tier` gives one diagnostic, on line 4, with its message: `an_unsaved_change_shows_its_problem` asserts the same and more        |
+
 ## Waves
 
 The tasks of a wave are built at the same time, then merged and reviewed while the next wave starts.
@@ -606,18 +622,18 @@ git commit -m "test(testing-communication): unit tests for the navigation, stora
 - Modify: `crates/cli/tests/*.rs`, `crates/cli/src/**` (only `#[cfg(test)]` modules),
   `crates/lsp/tests/*.rs`
 
-- [ ] **Step 1: Judge each test** by [how a test is judged](#global-constraints), and remove the
+- [x] **Step 1: Judge each test** by [how a test is judged](#global-constraints), and remove the
       ones that go, listing them under [Removed tests](#removed-tests), "Task 6". The
       [CLI](/specs/decisions/cli.md) and [Problems](/specs/decisions/problems.md) decisions name
       "the CLI's tests": keep each test a rule of theirs relies on.
 
-- [ ] **Step 2: Run the task's validation**
+- [x] **Step 2: Run the task's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-cli -p uraeda-lsp`, then
   `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add crates/cli crates/lsp specs/2026-10-26-testing-communication/plan.md

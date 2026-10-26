@@ -146,26 +146,6 @@ fn example_spec_open() -> (Session, std::path::PathBuf, String) {
     (session, path, text)
 }
 
-/// SC-001's behaviour, its 300 ms measured by `bench_diagnostics_arrive_within_300_ms`: a changed
-/// `risk-tier` gives exactly one diagnostic.
-#[test]
-fn a_changed_risk_tier_gives_one_diagnostic() {
-    let (mut session, path, text) = example_spec_open();
-
-    session.change(
-        &path,
-        &text.replace("risk-tier: high", "risk-tier: extreme"),
-    );
-
-    assert_eq!(
-        messages(&session.diagnostics(&path)),
-        [(
-            4,
-            "risk-tier \"extreme\" is not one of low, medium, high".to_string()
-        )]
-    );
-}
-
 /// SC-001: run by `vp run bench`.
 #[test]
 #[ignore = "benchmark"]
