@@ -2,7 +2,7 @@
 // and changes, newest first; in the column, as many as fit in the room the rows above leave, and
 // gone, title included, when none fits. "…" opens Home's Done group, which lists every done feature
 // and change.
-import { Icon } from "@astryxdesign/core/Icon";
+
 import { SideNavItem } from "@astryxdesign/core/SideNav";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -10,7 +10,7 @@ import { type MouseEvent, type RefObject, useLayoutEffect, useRef, useState } fr
 import { Pane } from "../layout/Pane.tsx";
 import { useColumnFold } from "../shell/fold.ts";
 import { CardRow } from "./CardRow.tsx";
-import { StepIcon } from "./StepIcon.tsx";
+import { DoneIcon } from "./StepIcon.tsx";
 
 /** The most done rows the sidebar shows. */
 export const DONE_ROWS = 5;
@@ -113,18 +113,12 @@ export function DoneArea({
   return (
     <div ref={area} {...stylex.props(styles.area)}>
       <Pane isGroup title="Done">
-        {/* Home's Recent draws the same items with the same row, `CardRow`. */}
+        {/* Home's Recent draws the same items with the same row, `CardRow`, and icon. */}
         {shown.map((row) => (
           <CardRow
             endContent={null}
             href={row.href}
-            icon={
-              row.kind ? (
-                <Icon color="secondary" icon="uraeda:comment" size="sm" />
-              ) : (
-                <StepIcon step="done" />
-              )
-            }
+            icon={<DoneIcon isSession={row.kind !== undefined} />}
             isSelected={row.isSelected ?? false}
             key={row.folder}
             label={row.label}

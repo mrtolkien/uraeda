@@ -2,15 +2,16 @@
 // the latest first: five, then all of them once asked, or at `#done`, which the column's Done "…"
 // opens.
 import { Button } from "@astryxdesign/core/Button";
-import { Icon } from "@astryxdesign/core/Icon";
+
 import { useState } from "react";
 import { Pane } from "../layout/Pane.tsx";
 import { useHash, useLocalPath, useRepoPath } from "../routes.tsx";
 import type { Feature, Row } from "../sidebar/cards.ts";
 import { doneRows } from "../sidebar/done.ts";
-import { StepIcon } from "../sidebar/StepIcon.tsx";
+
 import { HomeRow } from "./parts.tsx";
 import { Empty } from "../layout/Empty.tsx";
+import { DoneIcon } from "../sidebar/StepIcon.tsx";
 
 /** How many done items home shows before "Show all". */
 const SHOWN = 5;
@@ -30,13 +31,7 @@ export function Recent({ features, rows }: { features: Array<Feature>; rows: Arr
         (all ? done : done.slice(0, SHOWN)).map((row) => (
           <HomeRow
             href={row.href}
-            icon={
-              row.kind ? (
-                <Icon color="secondary" icon="uraeda:comment" size="sm" />
-              ) : (
-                <StepIcon step="done" />
-              )
-            }
+            icon={<DoneIcon isSession={row.kind !== undefined} />}
             key={row.folder}
             sub={row.kind ? "Session" : "Merged"}
             title={row.title}
