@@ -87,7 +87,8 @@ export function checked(given: GivenValues, check: (typed: string) => number): R
 /**
  * The values in force, the one place of their order: the flag, the variable, the file, then the
  * default: no host names, port 4310, a browser opened, the build in a fresh session, and the
- * single-key shortcuts on, which have no flag or variable. `file` is null when there is none, or it cannot be read.
+ * single-key shortcuts on, which have no flag or variable. `file` is null when there is none, or it
+ * cannot be read.
  */
 export function inForce(options: RunValues, file: Settings | null): SettingsView {
   const saved = file?.server ?? {};
