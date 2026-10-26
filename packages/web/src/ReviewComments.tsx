@@ -6,7 +6,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useMemo } from "react";
 import type { CommentItem, Document } from "uraeda-binding";
 import { Paragraph } from "./layout/Paragraph.tsx";
-import { statusStyles } from "./Question.tsx";
+import { StatusText } from "./fields/StatusText.tsx";
 import { holderOf, placeOf } from "./reviewField.ts";
 
 const styles = stylex.create({
@@ -127,7 +127,7 @@ export function CommentNote({
         </HStack>
       </HStack>
       <Paragraph>{text}</Paragraph>
-      {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
+      {error && <StatusText tone="error">{error}</StatusText>}
     </div>
   );
 }

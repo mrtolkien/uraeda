@@ -4,13 +4,13 @@ import { Button } from "@astryxdesign/core/Button";
 import { Code } from "@astryxdesign/core/Code";
 import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useServerFetch } from "../attach/ServerFetch.tsx";
+import { StatusText } from "../fields/StatusText.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 
@@ -25,7 +25,6 @@ const styles = stylex.create({
     marginInline: "auto",
     maxWidth: "var(--size-form)",
   },
-  error: { color: colorVars["--color-error"] },
   // The command stays on one line, never broken at its dashes: a box of its own, not
   // `white-space`, whose atomic class the app's StyleX would emit over the theme's overrides.
   command: { display: "inline-block" },
@@ -123,9 +122,9 @@ export function SignInPage({
               />
             </HStack>
             {failure && "server" in failure && (
-              <Text role="alert" type="supporting" xstyle={styles.error}>
+              <StatusText role="alert" tone="error" type="supporting">
                 {failure.server}
-              </Text>
+              </StatusText>
             )}
           </VStack>
         </Page>

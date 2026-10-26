@@ -8,7 +8,7 @@ import { type Refusal, refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
-import { statusStyles } from "./Question.tsx";
+import { StatusText } from "./fields/StatusText.tsx";
 import { approveChoices, type Choices, ReviewChoices } from "./ReviewChoices.tsx";
 import { HookRefusal } from "./RoundSubmit.tsx";
 import { handOver } from "./sessions.ts";
@@ -189,10 +189,10 @@ export function VerdictNotices({
         <HookRefusal error={error} onRetry={retry} what="Your review is saved, not committed." />
       )}
       {file.committed && (
-        <span {...stylex.props(statusStyles.error)}>
+        <StatusText tone="error">
           {file.name} has changes not committed: the review is of the committed version. Commit or
           discard them first.
-        </span>
+        </StatusText>
       )}
     </>
   );
@@ -234,9 +234,7 @@ export function ReviewVerdict({
         />
       </div>
       {message && !hides?.(message) && (
-        <span {...stylex.props(message.ok ? statusStyles.saved : statusStyles.error)}>
-          {message.text}
-        </span>
+        <StatusText tone={message.ok ? "saved" : "error"}>{message.text}</StatusText>
       )}
       {comments === 0 && (
         <Text color="secondary" type="supporting">

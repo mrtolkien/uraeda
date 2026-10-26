@@ -10,7 +10,7 @@ import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { useBranchChanges } from "../data.ts";
-import { statusStyles } from "../Question.tsx";
+import { StatusText } from "../fields/StatusText.tsx";
 import { useSession } from "../sessionData.ts";
 import { useOpenKeys } from "../useOpenKeys.ts";
 import { Path } from "./Path.tsx";
@@ -117,7 +117,7 @@ function OnTheBranch({ folder }: { folder: string }) {
   }
   const { changes } = read;
   if (changes === null) {
-    return <span {...stylex.props(statusStyles.error)}>The changes could not be read.</span>;
+    return <StatusText tone="error">The changes could not be read.</StatusText>;
   }
   if (changes.count === 0) {
     return null;

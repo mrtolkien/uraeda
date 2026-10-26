@@ -15,7 +15,7 @@ import { SaveStatus } from "./fields/SaveStatus.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import type { Unsaved } from "./fields/unsaved.ts";
 import { useTextField } from "./fields/useTextField.ts";
-import { statusStyles } from "./Question.tsx";
+import { StatusText } from "./fields/StatusText.tsx";
 
 /** A comment field's images: the `useImageText` of the text the form holds. */
 export type CommentImages = ReturnType<typeof useImageText>;
@@ -215,7 +215,7 @@ function CommentFields({
           />
         )}
         {images && <AttachStatus status={images.status} />}
-        {(error ?? notice) && <span {...stylex.props(statusStyles.error)}>{error ?? notice}</span>}
+        {(error ?? notice) && <StatusText tone="error">{error ?? notice}</StatusText>}
         <HStack align="center" gap={2} justify="end" wrap="wrap">
           <SaveStatus dirty={dirty} state={IDLE} />
           {images && <AttachButton onFiles={(files) => void images.addFiles(files)} />}
