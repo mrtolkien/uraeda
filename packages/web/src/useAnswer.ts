@@ -34,6 +34,17 @@ type Answer = { comment: string; letters: ReadonlyArray<string> };
 const sameLetters = (a: ReadonlyArray<string>, b: ReadonlyArray<string>) =>
   a.length === b.length && a.every((letter, index) => letter === b[index]);
 
+/** The comment saved with `line` after it, on a line of its own: the line alone when none is saved. */
+export function savedWithLine(saved: string, line: string): string {
+  const trimmed = saved.trim();
+  return trimmed ? `${trimmed}\n${line}` : line;
+}
+
+/** The comment's unsaved text with `line` after it, on a line of its own. */
+export function unsavedWithLine(unsaved: string, line: string): string {
+  return `${unsaved.trimEnd()}\n${line}`;
+}
+
 /** What `saveWithLine` saves with: the saved comment and the letters picked, as refs. */
 type LineSave = {
   comment: { current: string };
@@ -51,15 +62,14 @@ type LineSave = {
 async function saveWithLine(line: string, answer: LineSave): Promise<string | undefined> {
   let refused: string | undefined;
   await answer.write(async (previous) => {
-    const saved = answer.comment.current.trim();
-    const comment = saved ? `${saved}\n${line}` : line;
+    const comment = savedWithLine(answer.comment.current, line);
     const result = await answer.run({ comment, letters: answer.letters.current }, previous);
     refused = result.ok ? undefined : result.message;
     return result;
   });
   const unsaved = answer.field.unsavedNow()?.text;
   if (refused === undefined && unsaved !== undefined) {
-    answer.field.change(`${unsaved.trimEnd()}\n${line}`);
+    answer.field.change(unsavedWithLine(unsaved, line));
   }
   return refused;
 }

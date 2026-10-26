@@ -131,16 +131,23 @@ const UPLOAD_TIMEOUT = 120_000;
 const words = (text: string) => text.split(/\s+/).filter(Boolean).join(" ");
 
 /**
- * The note an add whose answer was lost wrote after all: one of the inbox now, not in `before`,
- * that links a draft whose title, as the core reads it, has the words of `text`. The server may
+ * The note an add whose answer was lost wrote after all: one of `after`, not in `before`, that
+ * links a draft whose title, as the core reads it, has the words of `text`.
+ */
+export function lostAnswerNote(before: Notes, after: Notes, text: string) {
+  const note = addedNote(before, after);
+  return note?.draft && note.draftTitle && words(note.draftTitle) === words(text)
+    ? { draft: note.draft, note }
+    : undefined;
+}
+
+/**
+ * The note an add whose answer was lost wrote after all, as the inbox now shows it. The server may
  * finish an add the page stopped waiting for.
  */
 async function addedAfterAll(fate: Fate, before: Notes, text: string) {
   const now = await readInbox(fate).catch(() => undefined);
-  const note = now && addedNote(before, now.categories);
-  return note?.draft && note.draftTitle && words(note.draftTitle) === words(text)
-    ? { draft: note.draft, note }
-    : undefined;
+  return now && lostAnswerNote(before, now.categories, text);
 }
 
 /**

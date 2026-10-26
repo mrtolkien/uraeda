@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import {
+  differ,
   dropUnsaved,
   forgetUnsaved,
   hasUnsaved,
@@ -100,4 +101,16 @@ test.each([
   pruneUnsaved(NOW);
   dropUnsaved(key);
   expect(readUnsaved(key)).toBeUndefined();
+});
+
+test.each([
+  { a: "Fine", b: "Fine", differ: false, what: "the same text" },
+  { a: "Fine \n", b: "Fine", differ: false, what: "a space and a line break at the end" },
+  { a: "  Fine", b: "Fine", differ: false, what: "spaces at the start" },
+  { a: "", b: " \n ", differ: false, what: "nothing, and only spaces" },
+  { a: "Fine and more", b: "Fine", differ: true, what: "words added" },
+  { a: "Fine  text", b: "Fine text", differ: true, what: "a space inside" },
+  { a: "Fine\nsecond", b: "Fine", differ: true, what: "a line added" },
+])("$what: unsaved is $differ", ({ a, b, differ: expected }) => {
+  expect(differ(a, b)).toBe(expected);
 });

@@ -45,6 +45,9 @@ type Start = { page: number; seq: number | undefined; turn: string };
 const countOf = (pieces: ReadonlyArray<Piece>) =>
   pieces.reduce((total, piece) => total + piece.count, 0);
 
+/** How many messages the tail draws once "Show earlier messages" is pressed: 20 more than now. */
+export const shownAfterPress = (pieces: ReadonlyArray<Piece>) => countOf(pieces) + TAIL_MESSAGES;
+
 /** The pieces' identity: what makes the drawn list change. */
 const keyOf = (pieces: ReadonlyArray<Piece>) =>
   pieces.map((piece) => `${piece.turn}:${piece.page}:${piece.from}:${piece.earlier}`).join(" ");
@@ -123,6 +126,58 @@ function Settled({
   return null;
 }
 
+/** What `stepPage` reads of a page: where it is in the walk, its items, and what the tail needs. */
+type PageStep = {
+  /** The index of the turn the address names, or infinity. */
+  anchor: number;
+  /** Whether a page or a turn lies before this page. */
+  hasPrevious: boolean;
+  /** The page's turn, as its index in `turns`. */
+  index: number;
+  items: ReadonlyArray<{ kind: string; seq: number }>;
+  /** The messages still needed, from this page back. */
+  need: number;
+  page: number;
+  /** Where the tail starts, kept while the page is open. */
+  start: Start | undefined;
+  turns: ReadonlyArray<string>;
+};
+
+/**
+ * What the walk does with a page: whether it goes on to the page before, and what the page draws,
+ * from which of its items, how many messages, and whether messages lie before them. The tail keeps
+ * its start, so a message arriving moves nothing the reader sees; a start whose turn left the
+ * session is dropped, as the walk would look for it back to the first.
+ */
+export function stepPage({
+  anchor,
+  hasPrevious,
+  index,
+  items,
+  need,
+  page,
+  start,
+  turns,
+}: PageStep) {
+  const messages = items.flatMap((item, at) => (isMessage(item) ? [at] : []));
+  const kept = start && turns.includes(start.turn) ? start : undefined;
+  const keptHere = kept?.turn === turns[index] && kept.page === page;
+  const goOn =
+    hasPrevious &&
+    ((kept ? !keptHere : messages.length < need) ||
+      anchor < index ||
+      (anchor === index && page > 0));
+  const reached = anchor === index && page === 0;
+  const from =
+    goOn || reached ? 0 : cut(items, messages, keptHere ? kept : undefined, kept ? 0 : need);
+  return {
+    count: messages.filter((at) => at >= from).length,
+    earlier: !goOn && messages.some((at) => at < from),
+    from,
+    goOn,
+  };
+}
+
 /**
  * One step of the walk, for a page `pages` long: it counts the page's messages, and either draws
  * from the message that completes the count or goes on to the page before. The walk goes past the
@@ -139,21 +194,16 @@ function WalkPage({ pages, ...walking }: Walking & { pages: number }) {
   if (probe) {
     return probeBack(walking, previous, messages.length > 0);
   }
-  // The tail keeps its start: a message arriving moves nothing the reader sees.
-  // A start whose turn left the session is dropped: the walk would look for it back to the first.
-  const pinned = walking.start.current;
-  const kept = pinned && turns.includes(pinned.turn) ? pinned : undefined;
-  const keptHere = kept?.turn === turn && kept.page === page;
-  const goOn =
-    previous !== undefined &&
-    ((kept ? !keptHere : messages.length < need) ||
-      anchor < index ||
-      (anchor === index && page > 0));
-  const reached = anchor === index && page === 0;
-  const from =
-    goOn || reached ? 0 : cut(items, messages, keptHere ? kept : undefined, kept ? 0 : need);
-  const earlier = !goOn && messages.some((at) => at < from);
-  const count = messages.filter((at) => at >= from).length;
+  const { count, earlier, from, goOn } = stepPage({
+    anchor,
+    hasPrevious: previous !== undefined,
+    index,
+    items,
+    need,
+    page,
+    start: walking.start.current,
+    turns,
+  });
   const acc = [{ count, earlier, from, page, seq: items[from]?.seq, turn }, ...walking.acc];
   if (!goOn && !earlier && previous !== undefined) {
     // Pages or turns lie before, and may hold no message: the button shows only if one does.
@@ -289,7 +339,7 @@ export function Tail({
   }
   const more = (anchor: Element | null) => {
     // As many as drawn now, and 20 more: the start is not kept for the walk to go back from it.
-    const next = countOf(sink.current) + TAIL_MESSAGES;
+    const next = shownAfterPress(sink.current);
     release();
     void keepPlace(
       anchor ? topOf(anchor) : () => Number.NaN,
