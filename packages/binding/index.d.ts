@@ -759,6 +759,8 @@ export interface Decision {
   summary?: string
   /** The date of the last commit of the default branch touching it, `YYYY-MM-DD`. */
   changed?: string
+  /** Its file as read, frontmatter included: what a preview shows. */
+  text: string
   document: Document
   /**
    * The kept parts of its `## Rules` section, each with its strength and its check; empty for
