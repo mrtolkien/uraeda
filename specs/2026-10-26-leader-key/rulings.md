@@ -868,3 +868,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `onMac` and the `option` line in `tokenOf`.
 - **Where**: fix pass E, finding 10 of the final review; the deferred check is a typed `[` and `]`
   on a German Mac.
+
+## R137: Space under a screen reader's browse mode stays unverified, and the design does not rely on it
+
+- **Decision**: the approved spec marks "Space under a screen reader's browse mode" as unverified
+  and says the plan's first tasks check it. They did not: wave 1's one task checked the preview's
+  raw text, which was the part a failed check would stop the build for, and no task or ruling
+  recorded the screen readers. The check is deferred to a human, by hand, on the built app: with
+  NVDA (browse mode on a page that is not a field, Space on text, on a link, on a button, then the
+  menu opening, and NVDA+F2 or the pass-through key if Space is taken), and with VoiceOver on macOS
+  (quick nav on and off, Space with VO keys and without). What to look for: whether the leader menu
+  opens on Space on a non-field, whether Space on a button still presses it or only the leader runs,
+  and whether the menu's group is announced.
+- **Rationale**: a screen reader's browse mode takes single letters, and may take Space, before the
+  page sees them; that cannot be seen from a test or from a browser alone. The design does not
+  depend on the answer: Space on a non-field takes the leader, as the spec's behaviour; a button
+  keeps Enter; and every key has a non-key path (a button, a link, the status line's counts, the
+  menus), which the Keyboard decision's rule "a single-key shortcut MUST NOT be the only way to do
+  something" keeps, and Ctrl or Cmd+K opens the menu too, a chord rather than a bare key (whether a
+  reader passes it is part of the same check).
+- **Alternatives considered**: blocking the pull request on the check: it needs a machine and a tool
+  the build has not, and the spec already said unverified. Dropping Space for the leader: the spec's
+  choice, made with the human.
+- **If wrong**: a screen reader's user cannot open the leader menu with Space and uses Ctrl or Cmd+K
+  or the buttons; the fix, if the human wants one, is a key the reader passes through, a new
+  decision.
+- **Where**: fix pass E, finding 2 of the final review; deferred to the human, like R8 and R23.
