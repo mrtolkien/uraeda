@@ -63,19 +63,19 @@ export function newBindings(
 ): Array<Binding> {
   return [
     {
-      icon: DESTINATIONS.sessions.icon,
+      icon: KIND_ICONS.sessions,
       keys: "space n s",
       label: "Session",
       run: () => go("/new"),
     },
     {
-      icon: "uraeda:git-compare",
+      icon: KIND_ICONS.changes,
       keys: "space n c",
       label: "Change",
       run: () => go("/new?kind=change"),
     },
     {
-      icon: "uraeda:step-spec",
+      icon: KIND_ICONS.features,
       keys: "space n f",
       label: "Feature",
       run: () => go("/new?kind=feature"),

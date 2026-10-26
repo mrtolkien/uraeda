@@ -713,3 +713,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the lists are two constants in `keys-structural.test.ts`; an entry is one line.
 - **Where**: task 12, `__tests__/keys-structural.test.ts`, `statusHints.tsx`,
   `shell/StatusLine.tsx`, `__tests__/keys-hints.test.tsx`.
+## R110: A kind has one icon in the New group, the Find group, and the picker
+
+- **Decision**: `KIND_ICONS` (`keys/kinds.ts`) is the one place of the icons of the kinds the leader
+  names: the New group (`Space n s c f`) and the picker's rows read it. A feature is Lucide's
+  `file-text`, as its card on the New page draws it (it was a pencil in the picker and a spec page
+  in the New group), a change is the wrench, and a session is the sessions' icon. The pencil stays
+  the note's, as the Note button draws it. The New group's change icon, `git-compare`, is gone: it
+  is the icon of a session's changed files.
+- **Rationale**: the screenshots showed one kind drawn three ways in one menu tree, which the UI
+  coherence decision rules out ("the same information looks the same wherever the UI shows it"), and
+  a pencil that meant both a note and a feature.
+- **Alternatives considered**: a step icon per feature in the picker (the sidebar's): the picker
+  lists a kind, not a step, and the Find group's entry has no step. Changing the New page's cards to
+  the leader's icons: the cards were reviewed and approved with theirs.
+- **If wrong**: `keys/kinds.ts` and `newBindings` in `keys/leaderTree.ts`.
+- **Where**: Task 13, review of the screenshots of the leader menu's New group and the pickers.
