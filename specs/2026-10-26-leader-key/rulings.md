@@ -303,3 +303,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a guard that reads more than the focus (none now) would list an entry that does not
   run; the guard's reader is `leader.press`'s `event.target`.
 - **Where**: fix pass A, `keys/sequence.ts`, `keys/LeaderMenuHost.tsx`.
+
+## R26: A sequence through a group `groups.ts` does not name throws
+
+- **Decision**: `createKeyStore.set` throws, beside the clash check and in every build but
+  production, where a sequence goes through a group `keys/groups.ts` has no entry for: every prefix
+  of two or more tokens before the last (`space n` for `space n n`, `space n n` for `space n n z`).
+  The first key, `space` or `g`, is the root, not a group. The message names the binding, its label,
+  and the group. A binding with no sequence, or only one level, is never affected.
+- **Rationale**: its keys work and the menu draws nothing for the group, so no human can find them:
+  a mistake only a developer can see, best seen by the first test that mounts the page, as a clash
+  is. `console.error` would be lost in a test run, and the plan's Task 10 names every group it adds
+  in `groups.ts` with its keys.
+- **Alternatives considered**: a warning with `console.error`: the setup does not fail a test on it.
+  Drawing an entry with the keys as its label: a menu of entries with no name or icon looks finished
+  and is not.
+- **If wrong**: a feature that stages keys before their group is named adds the group's line first
+  in `groups.ts`.
+- **Where**: fix pass A, `keys/store.ts`.

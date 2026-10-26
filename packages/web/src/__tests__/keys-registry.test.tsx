@@ -316,6 +316,20 @@ test("the keys a keydown gives are all declared without a throw", () => {
   }
 });
 
+// Break: no check, so a group the menu draws nothing for is found by a human reading the menu.
+test("a sequence through a group groups.ts does not name throws, and says which", () => {
+  const ran: Array<string> = [];
+  expect(conflictOf(<Harness keys="space z z" ran={ran} />)).toContain('"space z"');
+  cleanup();
+  expect(conflictOf(<Harness keys="space n n z" ran={ran} />)).toContain("groups.ts");
+  cleanup();
+  // The leader's first key is the root, and a `g` sequence has no group above it.
+  for (const keys of ["space n n", "space f f", "space space", "space h", "g i", "g g"]) {
+    cleanup();
+    expect(conflictOf(<Harness keys={keys} ran={ran} />), keys).toBe("");
+  }
+});
+
 test("a key that is a leaf and the start of a sequence throws", () => {
   const ran: Array<string> = [];
   expect(
