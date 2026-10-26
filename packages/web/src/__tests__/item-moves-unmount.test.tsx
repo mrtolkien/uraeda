@@ -2,7 +2,7 @@
 // waiting with it, so no move is written for a list nobody sees, and no timer outlives it.
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
-import { useItemMoves } from "../lists/useItemMoves.ts";
+import { useItemMoves, waitForList } from "../lists/useItemMoves.ts";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -49,4 +49,18 @@ test("a wait for the list to show a move ends with the list", async () => {
 
   expect(onMove).toHaveBeenCalledTimes(1);
   expect(vi.getTimerCount()).toBe(0);
+});
+
+// Break: the settle timer resolving its wait but leaving the resolver for a reorder to find.
+test("a wait the list never settles leaves no resolver behind once its timer ends it", async () => {
+  const waiters = new Set<() => void>();
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+
+  const waited = waitForList(waiters, timers, 2000);
+  expect(waiters.size).toBe(1);
+  await vi.advanceTimersByTimeAsync(2000);
+  await waited;
+
+  expect(waiters.size).toBe(0);
+  expect(timers.size).toBe(0);
 });

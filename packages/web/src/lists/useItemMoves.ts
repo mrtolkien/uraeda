@@ -8,9 +8,36 @@ import type { OnMove } from "./useDragOrder.ts";
 /** How long a move waits for the list to show it before the next key's move goes on (R30). */
 const SETTLE_MS = 2000;
 
+/** Ends every wait for the list. */
+const settle = (waiters: Set<() => void>) => {
+  const all = [...waiters];
+  waiters.clear();
+  all.forEach((resolve) => resolve());
+};
+
 /** The order the rows show in, as text: what a written move changes. */
 const orderOfSections = (sections: ReadonlyArray<Placed>) =>
   JSON.stringify(sections.map((section) => [section.id, section.rows.map((row) => row.key)]));
+
+/**
+ * Waits for the list to show a move: `waiters` are the resolvers a reorder calls, and the wait
+ * ends on its own after `ms`. The timer ends the wait and takes its resolver out of `waiters`.
+ */
+export function waitForList(
+  waiters: Set<() => void>,
+  timers: Set<ReturnType<typeof setTimeout>>,
+  ms: number,
+): Promise<void> {
+  return new Promise<void>((resolve) => {
+    waiters.add(resolve);
+    const timer = setTimeout(() => {
+      timers.delete(timer);
+      waiters.delete(resolve);
+      resolve();
+    }, ms);
+    timers.add(timer);
+  });
+}
 
 /**
  * What the keys that move an item do: the move a drop would ask `onMove` for, one at a time. A key
@@ -27,13 +54,13 @@ export function useItemMoves(
   select: (key: string) => void,
 ) {
   const latest = useRef({ onMove, order: orderOfSections(sections), sections });
-  const shown = useRef<Array<() => void>>([]);
+  const shown = useRef(new Set<() => void>());
   useLayoutEffect(() => {
     const order = orderOfSections(sections);
     const isChanged = order !== latest.current.order;
     latest.current = { onMove, order, sections };
     if (isChanged) {
-      shown.current.splice(0).forEach((resolve) => resolve());
+      settle(shown.current);
     }
   });
   const waiting = useRef<Array<() => Promise<void>>>([]);
@@ -52,7 +79,7 @@ export function useItemMoves(
       queue.splice(0);
       pending.forEach(clearTimeout);
       pending.clear();
-      settled.splice(0).forEach((resolve) => resolve());
+      settle(settled);
     };
   }, []);
   if (onMove === undefined) {
@@ -66,18 +93,10 @@ export function useItemMoves(
     }
     select(key);
     await write?.(key, target.section, target.index);
-    await new Promise<void>((resolve) => {
-      if (latest.current.order !== order || !isMounted.current) {
-        resolve();
-        return;
-      }
-      shown.current.push(resolve);
-      const timer = setTimeout(() => {
-        timers.current.delete(timer);
-        resolve();
-      }, SETTLE_MS);
-      timers.current.add(timer);
-    });
+    if (latest.current.order !== order || !isMounted.current) {
+      return;
+    }
+    await waitForList(shown.current, timers.current, SETTLE_MS);
   };
   const drain = async () => {
     if (isWriting.current) {
