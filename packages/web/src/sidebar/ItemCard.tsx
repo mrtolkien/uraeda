@@ -10,7 +10,7 @@ import { Link } from "@astryxdesign/core/Link";
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { SessionStatus } from "uraeda-server/fate";
 import { HarnessMark, harnessMark } from "../HarnessMark.tsx";
@@ -22,6 +22,7 @@ import { CardRow } from "./CardRow.tsx";
 import { RailLink } from "./Row.tsx";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 import { useMenuPresentation } from "../layout/useWidthClass.ts";
+import { DiffCount } from "../layout/DiffCount.tsx";
 
 /** What the sidebar shows of a session, a change, or a feature. */
 export type CardItem = {
@@ -56,16 +57,10 @@ const styles = stylex.create({
     paddingBlockStart: spacingVars["--spacing-1"],
     paddingInline: spacingVars["--spacing-2"],
   },
-  added: { color: colorVars["--color-success"] },
   card: {
     // A row of its pane, which draws the border around its cards.
     marginBlockEnd: spacingVars["--spacing-1"],
     overflow: "hidden",
-  },
-  changes: {
-    // A row of its own, which never breaks between its two counts: no `white-space` rule, whose
-    // atomic class would reorder against the transcript's own.
-    flexShrink: 0,
   },
   progressText: {
     flexGrow: 1,
@@ -77,7 +72,6 @@ const styles = stylex.create({
     flexDirection: "column",
     gap: spacingVars["--spacing-1"],
   },
-  removed: { color: colorVars["--color-error"] },
   subagent: {
     paddingBlockEnd: spacingVars["--spacing-1"],
     paddingInlineStart: spacingVars["--spacing-6"],
@@ -193,18 +187,7 @@ function Activity({ item }: { item: CardItem }) {
       )}
       {changes && (
         // Read in the card's name, in words.
-        <HStack aria-hidden gap={1} xstyle={styles.changes}>
-          <Text
-            hasTabularNumbers
-            type="supporting"
-            xstyle={styles.added}
-          >{`+${changes.added}`}</Text>
-          <Text
-            hasTabularNumbers
-            type="supporting"
-            xstyle={styles.removed}
-          >{`−${changes.removed}`}</Text>
-        </HStack>
+        <DiffCount added={changes.added} isHidden removed={changes.removed} type="supporting" />
       )}
     </HStack>
   );

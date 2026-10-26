@@ -4,17 +4,16 @@
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { MouseEvent, ReactNode } from "react";
 import { scrollBelowBar } from "../Folds.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { type FigureRow, type FigureValue } from "./figureRows.ts";
+import { DiffCount, diffLine } from "../layout/DiffCount.tsx";
 
 const styles = stylex.create({
   // Text's `success` and `error` are no colours of the theme: they draw as the primary text (C4).
-  added: { color: colorVars["--color-success"] },
-  removed: { color: colorVars["--color-error"] },
   row: {
     alignItems: "baseline",
     columnGap: spacingVars["--spacing-3"],
@@ -25,8 +24,6 @@ const styles = stylex.create({
   },
   value: { alignItems: "flex-end", display: "flex", flexDirection: "column", textAlign: "start" },
 });
-
-const COUNT = new Intl.NumberFormat("en-US");
 
 /** A row of a pane of the column: its name at the start, its value at the end. */
 export function FactRow({ children, label }: { children: ReactNode; label: string }) {
@@ -44,7 +41,7 @@ function valueText(value: FigureValue): string {
     return value;
   }
   if ("added" in value) {
-    return `+${COUNT.format(value.added)} −${COUNT.format(value.removed)}`;
+    return diffLine(value.added, value.removed);
   }
   return value.lines.join(", ");
 }
@@ -55,16 +52,7 @@ function Value({ value }: { value: FigureValue }) {
     return <Text hasTabularNumbers>{value}</Text>;
   }
   if ("added" in value) {
-    return (
-      <span>
-        <Text hasTabularNumbers wrap="nowrap" xstyle={styles.added}>
-          +{COUNT.format(value.added)}
-        </Text>{" "}
-        <Text hasTabularNumbers wrap="nowrap" xstyle={styles.removed}>
-          −{COUNT.format(value.removed)}
-        </Text>
-      </span>
-    );
+    return <DiffCount added={value.added} removed={value.removed} />;
   }
   return (
     <>
