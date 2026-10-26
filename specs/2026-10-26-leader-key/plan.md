@@ -135,10 +135,10 @@ overwrites an unreadable or invalid file; a setting changed in the web UI applie
 
 From [Code quality](../decisions/code-quality.md): functions are at most 100 lines, files 500,
 nesting 4, parameters 7, and **no new limit marker may be added**: a task that grows a unit past a
-limit splits it first. Unit tests never depend on elapsed time. From the
-[constitution](../CONSTITUTION.md#vi-code-is-checked-and-stays-maintainable): a test is never
-loosened, skipped, or deleted to make a run pass, except with a ruling, and warnings, size,
-complexity, and duplication do not go up.
+limit splits it first. Unit tests never depend on elapsed time. From the constitution as it stood at
+2.0.0 (principle VI, removed in 2.1.0: see [R120](rulings.md)): a test is never loosened, skipped,
+or deleted to make a run pass, except with a ruling, and warnings, size, complexity, and duplication
+do not go up.
 
 From [Toolchain](../decisions/toolchain.md): after every task, `nix develop -c vp run fast`; before
 the push, `nix develop -c vp run ready`. A single test file runs with
@@ -216,9 +216,14 @@ They pass unchanged, except the two the spec changes, which take a ruling: `stat
 
 ## Constitution check
 
-| I. Humans stay in control | II. Git and plain text first | III. Asynchronous by default | IV. Review effort matches impact | V. Tools are optional | VI. Code is checked and stays maintainable |
-| ------------------------- | ---------------------------- | ---------------------------- | -------------------------------- | --------------------- | ------------------------------------------ |
-| ✅                        | ✅                           | ✅                           | ✅                               | ✅                    | ✅                                         |
+| I. Humans stay in control | II. Git and plain text first | III. Asynchronous by default | IV. Review effort matches impact | V. Tools are optional |
+| ------------------------- | ---------------------------- | ---------------------------- | -------------------------------- | --------------------- |
+| ✅                        | ✅                           | ✅                           | ✅                               | ✅                    |
+
+The constitution was amended to 2.1.0 on `main` while this was built, removing its sixth principle,
+"Code is checked and stays maintainable" (see [R120](rulings.md)). The plan was written against
+2.0.0 and its Global constraints still cite that principle: the rules it held, tests of what
+matters, no weakened test, and one home per rule, were followed anyway.
 
 ## Complexity tracking
 
@@ -1102,7 +1107,7 @@ git commit -m "feat(leader-key): the keyboard setting's section"
 - [x] **Step 3: Delete** `useStatusHints`, `StatusHintsProvider`'s hint part, and
       `useDeclaredHints`, and migrate what the failure names.
 - [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-26-leader-key/plan.md specs/2026-10-26-leader-key/rulings.md

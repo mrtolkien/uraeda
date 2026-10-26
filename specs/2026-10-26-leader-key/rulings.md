@@ -713,6 +713,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the lists are two constants in `keys-structural.test.ts`; an entry is one line.
 - **Where**: task 12, `__tests__/keys-structural.test.ts`, `statusHints.tsx`,
   `shell/StatusLine.tsx`, `__tests__/keys-hints.test.tsx`.
+
 ## R110: A kind has one icon in the New group, the Find group, and the picker
 
 - **Decision**: `KIND_ICONS` (`keys/kinds.ts`) is the one place of the icons of the kinds the leader
@@ -749,3 +750,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   colour.
 - **If wrong**: `Preview` in `keys/KeyPicker.tsx`.
 - **Where**: Task 13, review of the screenshots of the key picker.
+
+## R120: The constitution lost its sixth principle while this was built
+
+- **Decision**: a human amended the constitution on `main` to 2.1.0, removing principle VI, "Code is
+  checked and stays maintainable". The plan's constitution check now lists five principles, and the
+  approved spec's own check table, which lists six, is left as the human approved it.
+- **Rationale**: the amendment is the human's and conflicts with nothing built: the
+  [code quality decision](../decisions/code-quality.md) still holds the limits and the no-new-marker
+  rule that the plan applied, and the plan's tests, rulings, and one-home-per-rule checks stand on
+  their own. Nothing in the branch relied on principle VI to be allowed.
+- **Alternatives considered**: asking the human whether the plan's Global constraints should still
+  cite the removed principle: it changes no code, no test, and no decision.
+- **If wrong**: the text of one section of the plan changes.
+- **Where**: the plan's Constitution check and Global constraints, found by catching up with `main`.
