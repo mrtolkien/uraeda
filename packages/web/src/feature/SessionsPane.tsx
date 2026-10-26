@@ -4,7 +4,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
-import { SideNavItem } from "@astryxdesign/core/SideNav";
+
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -24,6 +24,7 @@ import { StatusMark } from "../StatusMark.tsx";
 import { SessionView } from "../views.ts";
 import { clearPending, markPending } from "../writes/store.ts";
 import { clock, day, duration } from "./times.ts";
+import { CardRow } from "../sidebar/CardRow.tsx";
 
 const styles = stylex.create({
   subagent: { paddingInlineStart: spacingVars["--spacing-6"] },
@@ -97,18 +98,21 @@ function Row({
   const here = useRepoPath();
   const working = session.status === "working";
   const last = session.turns.at(-1);
+  const started = `${day(session.startedAt)}, ${clock(session.startedAt)}`;
   return (
     <VStack gap={1}>
-      <SideNavItem
+      <CardRow
         endContent={
           <Text color="secondary" type="supporting">
-            {day(session.startedAt)}, {clock(session.startedAt)}
+            {started}
           </Text>
         }
         // The latest opens as the feature's session, which "Next" hands runs to.
         href={here(latest ? sessionPath(folder) : sessionIdPath(session.id))}
         icon={<StatusMark label={session.statusLabel} status={session.status} />}
+        isSelected={false}
         label={title}
+        name={`${session.statusLabel} ${title} ${started}`}
       />
       {session.subagents.map((subagent) => (
         <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
