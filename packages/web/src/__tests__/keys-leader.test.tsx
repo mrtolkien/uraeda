@@ -177,6 +177,18 @@ test("g then i runs g i, and g then a key no g sequence uses runs nothing", () =
   expect(menu("g")).toBeNull();
 });
 
+// Break: a shown g menu that stays open on a wrong key, so the next i runs g i.
+test("g, a pause, a key no g sequence uses, then i: the shown menu ended and nothing runs", () => {
+  show();
+  press("g");
+  wait(500);
+  expect(menu("g")).not.toBeNull();
+  press("x");
+  expect(menu("g")).toBeNull();
+  press("i");
+  expect(ran).toEqual([]);
+});
+
 test("a key bound to nothing keeps a shown menu open and runs nothing", () => {
   show();
   press(" ");
