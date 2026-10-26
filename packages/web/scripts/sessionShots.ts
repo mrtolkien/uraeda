@@ -35,8 +35,8 @@ export async function takeSessions(each: Each, first: Page, adapter: FakeAdapter
   await takeWorking(each, first, adapter);
 }
 
-/** The sidebar's progress row of the feature at Task 7 of 11. */
-const PROGRESS = /7\/11 · Session column/;
+/** The feature at Task 7 of 11: its sidebar row, or on the phone, the session column's line. */
+const PROGRESS = /7\/11 · Session column|[Tt]ask 7 of 11/;
 
 /** The session's page at its feature's implementation, its column shown. */
 async function implementation(page: Page) {
