@@ -766,3 +766,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   cite the removed principle: it changes no code, no test, and no decision.
 - **If wrong**: the text of one section of the plan changes.
 - **Where**: the plan's Constitution check and Global constraints, found by catching up with `main`.
+
+## R132: A story shown full screen is a layer, and the overlay is a dialog
+
+- **Decision**: the full-screen story's overlay (the window covering the screen where the browser
+  has no full screen for an element, as on an iPhone) has `role="dialog"` and `aria-modal` while it
+  covers the page, and `keys/layers.ts` counts the browser's own full screen
+  (`document.fullscreenElement`) as an open layer too, so `j`, `k`, Space, and the other keys of the
+  page do not act behind a story. The Escape that leaves the overlay (`embedLayout.ts`) and the one
+  that ends pick mode (`StoryPick.tsx`) call `preventDefault`, so the page's own Escape (a pane, the
+  rail) does not run as well. `__browser__/live-window.test.tsx` finds the overlay as a dialog named
+  by the story where it found a figure: the one existing assertion this changes, the role a query
+  asks for, with every size and position check as it was.
+- **Rationale**: the final review found `j`, `k`, and Space still acting on the page behind a
+  full-screen story, and Escape running twice. The overlay is a real one (fixed, over the shell's
+  bars), so a dialog is what it is to the layer rule and to a screen reader.
+- **Alternatives considered**: a marker attribute on the figure that the layer rule reads: a second
+  convention beside the roles the rule already knows. Counting pick mode as a layer: its frames are
+  the page's own, and only its Escape clashed.
+- **If wrong**: the figure's role in `LiveWindow.tsx` and one line in `keys/layers.ts`.
+- **Where**: fix pass E, finding 5 of the final review.

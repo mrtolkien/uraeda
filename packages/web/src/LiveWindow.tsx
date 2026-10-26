@@ -93,6 +93,8 @@ export function LiveWindow({
   const phone = fit !== undefined && fit.width < PHONE_BELOW;
   return (
     <figure
+      // An overlay covers the page and owns its keys: a dialog, to the layer rule and to a reader.
+      {...(screen.overlay ? { "aria-modal": true, role: "dialog" } : {})}
       aria-label={label}
       id={id}
       ref={figure}
