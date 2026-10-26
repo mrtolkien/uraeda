@@ -4,7 +4,7 @@
 // offer, a session that already has a workflow, a block still streaming.
 import { chmodSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { refreshPullRequests } from "uraeda-binding";
 import { addChange, temporaryFolder } from "uraeda-binding/test-utils";
 import { expect, onTestFinished, test } from "vite-plus/test";
@@ -100,6 +100,29 @@ test("Start the change from the agent's offer", async () => {
 });
 
 /** Review: an agent that writes CRLF line ends offers a card too. */
+/** UI coherence: the proposal is the app's text area, whose Ctrl+Enter is its card's main button. */
+test("Ctrl+Enter in the proposal starts the change", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent();
+  const id = await offered(fake, repo);
+  await renderPage(`/sessions/${id}`, repo, { agent: fake });
+
+  const shown = await card();
+  const slug = (await shown.findByRole("textbox", { name: "Slug" })) as HTMLInputElement;
+  await waitFor(() => expect(slug.value).toBe(SLUG));
+  fake.adapter.script([]);
+  act(() => {
+    fireEvent.keyDown(shown.getByRole("textbox", { name: "Proposal" }), {
+      ctrlKey: true,
+      key: "Enter",
+    });
+  });
+
+  expect(
+    await screen.findByText(`Started as the change Login redirects twice, on change/${FOLDER}`),
+  ).toBeTruthy();
+});
+
 test("an offer with CRLF line ends shows its card", async () => {
   const repo = fixtureRepo();
   const fake = await fakeAgent();
