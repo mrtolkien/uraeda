@@ -4,7 +4,7 @@
 // a new title, a note, or a line, as a draft opened in the editor.
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
-import { Heading } from "@astryxdesign/core/Heading";
+
 import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
@@ -29,6 +29,7 @@ import {
 import { plain } from "./Spans.tsx";
 import { composerDraft, useDraft } from "./useDraft.ts";
 import { type StartLine, type StartNote, useStartFrom } from "./useStartFrom.ts";
+import { PageTitle } from "./layout/PageTitle.tsx";
 
 const styles = stylex.create({
   // The button keeps its text whole; the line's text wraps beside it.
@@ -174,7 +175,7 @@ export function NewPage({ kind }: { kind: NewKind }) {
   return (
     <Page>
       <VStack gap={4}>
-        <Heading level={1}>New</Heading>
+        <PageTitle>New</PageTitle>
         <KindCards
           kind={kind}
           // The kind is the address's: Back leaves the page, not the kind.

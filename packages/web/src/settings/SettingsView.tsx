@@ -2,8 +2,7 @@
 // Reviews, each setting a row. The search sits at the end of the heading row on wide screens, and
 // under the heading on narrow ones; while it holds text, it filters the rows, and a section left
 // without one is hidden. A section named in the address is scrolled into view.
-import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
+
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useLayoutEffect, useState } from "react";
@@ -23,6 +22,7 @@ import { RunSettings } from "./RunSettings.tsx";
 import { RefusalsProvider } from "./SettingRow.tsx";
 import { type ServerActions, ServerSettings, type ServerValues } from "./ServerSettings.tsx";
 import { Empty } from "../layout/Empty.tsx";
+import { PageTitle } from "../layout/PageTitle.tsx";
 
 /** One section's rows, those `shows` keeps. */
 function Rows({
@@ -126,17 +126,7 @@ export function SettingsView({
     <Page>
       <RefusalsProvider>
         <VStack gap={6}>
-          {wide ? (
-            <HStack align="center" gap={4} justify="between">
-              <Heading level={1}>Settings</Heading>
-              {search}
-            </HStack>
-          ) : (
-            <VStack gap={4}>
-              <Heading level={1}>Settings</Heading>
-              {search}
-            </VStack>
-          )}
+          <PageTitle aside={search}>Settings</PageTitle>
           {sections.length > 0 ? (
             <VStack gap={6}>{sections}</VStack>
           ) : (

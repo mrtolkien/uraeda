@@ -1,5 +1,5 @@
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-import { Heading } from "@astryxdesign/core/Heading";
+
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
@@ -7,10 +7,11 @@ import { CommitBar } from "./CommitBar.tsx";
 import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
-import { Paragraph } from "./layout/Paragraph.tsx";
+
 import { PrioritiesList } from "./lists/PrioritiesList.tsx";
 import { useRestoreScroll } from "./routes.tsx";
 import { PrioritiesView } from "./views.ts";
+import { PageTitle } from "./layout/PageTitle.tsx";
 
 /**
  * Every line of `PRIORITIES.md`, by section, with the running ones apart in "Ongoing": each opens
@@ -49,10 +50,9 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
   return (
     <Page>
       <VStack gap={2}>
-        <Heading level={1}>Priorities</Heading>
-        <Paragraph color="secondary">
-          What is worked on, in order: Ongoing runs now, then Now, Next, and Later.
-        </Paragraph>
+        <PageTitle description="What is worked on, in order: Ongoing runs now, then Now, Next, and Later.">
+          Priorities
+        </PageTitle>
         {message && <AnnouncedBanner collapsible={false} status="error" title={message} />}
         <PrioritiesList
           isFocused={isFocused}

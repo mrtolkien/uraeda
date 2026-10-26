@@ -3,9 +3,9 @@
 // the data, then how it is built, and its history, folded; a group's heading counts what it holds.
 // The column of Contents and Review beside them, on the phone in the status line. The only file
 // that wires the parts: each takes what it needs from here.
-import { Badge } from "@astryxdesign/core/Badge";
+
 import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
+
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -54,6 +54,7 @@ import { SinceReviewPane, sinceFolds, sinceModel } from "./SinceReview.tsx";
 import { SpecOpening } from "./SpecOpening.tsx";
 import { StoryCard } from "./StoryCard.tsx";
 import { fileStatusBadge } from "../labels.ts";
+import { PageTitle } from "../layout/PageTitle.tsx";
 
 const styles = stylex.create({
   // What a group's heading counts, after its title, in the secondary colour.
@@ -136,16 +137,9 @@ function SpecTitle({
   const title = document.blocks.find((b) => b.id < first && b.kind === "heading" && b.level === 1);
   const status = fileStatusBadge(file.status);
   return (
-    <VStack gap={2}>
-      {status && (
-        <HStack>
-          <Badge label={status.label} variant={status.variant} />
-        </HStack>
-      )}
-      <Heading level={1}>
-        <Spans spans={title?.spans ?? []} />
-      </Heading>
-    </VStack>
+    <PageTitle status={status}>
+      <Spans spans={title?.spans ?? []} />
+    </PageTitle>
   );
 }
 

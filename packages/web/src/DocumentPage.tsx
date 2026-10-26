@@ -3,10 +3,8 @@
 // asked, Session; on the phone, in the status line. Selecting blocks and "Ask the agent" quote them
 // into the session.
 import { Button } from "@astryxdesign/core/Button";
-import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
+
 import { VStack } from "@astryxdesign/core/VStack";
-import * as stylex from "@stylexjs/stylex";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import type { useFile } from "./data.ts";
@@ -23,13 +21,9 @@ import { usePageSession } from "./spec/pageSession.ts";
 import { SpecColumn } from "./spec/SpecColumn.tsx";
 import { Contents } from "./spec/SpecContents.tsx";
 import { Spans } from "./Spans.tsx";
+import { PageTitle } from "./layout/PageTitle.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
-
-const styles = stylex.create({
-  // The title wraps beside it, and "Edit" keeps its whole word on a phone.
-  edit: { flexShrink: 0 },
-});
 
 /**
  * A workflow file, drawn from the core's document tree, in panes: a document with no `##` section
@@ -52,22 +46,23 @@ export function DocumentPage({ file }: { file: File }) {
     <Page>
       <Crumbs current={file.name} folder={file.folder} />
       <VStack gap={3}>
-        <HStack gap={2}>
-          {title && (
-            <Selectable block={title} selection={selection}>
-              <Heading id={title.anchor} level={1}>
-                <Spans spans={title.spans} />
-              </Heading>
-            </Selectable>
-          )}
-          {file.kind === "proposal" && (
-            <Button
-              label="Edit"
-              onClick={() => navigate(here(`/edit/${file.path}`))}
-              xstyle={styles.edit}
-            />
-          )}
-        </HStack>
+        {title && (
+          <PageTitle
+            actions={
+              file.kind === "proposal" && (
+                <Button label="Edit" onClick={() => navigate(here(`/edit/${file.path}`))} />
+              )
+            }
+            around={(heading) => (
+              <Selectable block={title} selection={selection}>
+                {heading}
+              </Selectable>
+            )}
+            id={title.anchor}
+          >
+            <Spans spans={title.spans} />
+          </PageTitle>
+        )}
         {sections.length === 0 ? (
           <Pane id="document" isOpenOnPhone title={file.name}>
             <SelectionRoom selection={selection}>{body}</SelectionRoom>

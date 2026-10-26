@@ -1,6 +1,6 @@
 // A feature's `data-model.md` opened alone: its title, then the same panes as the spec's "Data",
 // one per entity, from the core's sections, beside the documents' column.
-import { Heading } from "@astryxdesign/core/Heading";
+
 import { VStack } from "@astryxdesign/core/VStack";
 import { Blocks } from "../Blocks.tsx";
 import { Crumbs } from "../Crumbs.tsx";
@@ -13,6 +13,7 @@ import { SpecColumn } from "./SpecColumn.tsx";
 import { Contents } from "./SpecContents.tsx";
 import { DataPart } from "./DataPart.tsx";
 import type { File } from "./parts.ts";
+import { PageTitle } from "../layout/PageTitle.tsx";
 
 /** A data model, drawn in panes as the spec draws it; as a document if the core did not read it. */
 export function DataModelPage({ file }: { file: File }) {
@@ -28,9 +29,9 @@ export function DataModelPage({ file }: { file: File }) {
       {model ? (
         <VStack gap={3}>
           {title && (
-            <Heading level={1}>
+            <PageTitle>
               <Spans spans={title.spans} />
-            </Heading>
+            </PageTitle>
           )}
           <DataPart document={document} level={2} model={model} prefix="" />
         </VStack>

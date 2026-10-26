@@ -1,7 +1,7 @@
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
-import { Heading } from "@astryxdesign/core/Heading";
+
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
@@ -19,6 +19,7 @@ import { useRestoreScroll } from "./routes.tsx";
 import type { useEditorActions } from "./useEditorActions.ts";
 import { SlugField } from "./SlugField.tsx";
 import { Missing } from "./layout/Missing.tsx";
+import { PageTitle } from "./layout/PageTitle.tsx";
 
 const SECTIONS: Record<string, string> = {
   blocked: "Blocked",
@@ -37,21 +38,24 @@ type Draft = NonNullable<ReturnType<typeof useDraft>>;
 /** The draft's file and what became of it, its title, and its line in the priorities. */
 function EditorHeading({ draft, path }: { draft: Draft; path: string }) {
   return (
-    <>
-      <HStack gap={2} justify="between" wrap="wrap">
-        <Text type="code">{path.replace(/^specs\//, "")}</Text>
-        <Text color="secondary" type="supporting">
-          {draft.committed ? "committed" : "not committed"}
-        </Text>
-      </HStack>
-      <Heading level={1}>{draft.title}</Heading>
-      {draft.entry && (
-        <Text color="secondary" type="supporting">
-          {/* Committed or not shows beside the file's name already. */}
-          In Priorities, {SECTIONS[draft.entry.section] ?? draft.entry.section}
-        </Text>
-      )}
-    </>
+    <PageTitle
+      above={
+        <HStack gap={2} justify="between" wrap="wrap">
+          <Text type="code">{path.replace(/^specs\//, "")}</Text>
+          <Text color="secondary" type="supporting">
+            {draft.committed ? "committed" : "not committed"}
+          </Text>
+        </HStack>
+      }
+      // Committed or not shows beside the file's name already.
+      meta={
+        draft.entry && {
+          text: `In Priorities, ${SECTIONS[draft.entry.section] ?? draft.entry.section}`,
+        }
+      }
+    >
+      {draft.title}
+    </PageTitle>
   );
 }
 

@@ -3,7 +3,7 @@
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Code } from "@astryxdesign/core/Code";
-import { Heading } from "@astryxdesign/core/Heading";
+
 import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -18,6 +18,7 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 import { navigate, repoPath, useRestoreScroll } from "./routes.tsx";
 import { BareShell } from "./Shell.tsx";
 import { RepositoriesView } from "./views.ts";
+import { PageTitle } from "./layout/PageTitle.tsx";
 
 const styles = stylex.create({
   // The page's surface, which the shell paints on the other pages: the first run has none.
@@ -34,7 +35,7 @@ export function UnknownRepository({ mostRecent, name }: { mostRecent?: string; n
     <BareShell current={null}>
       <Page>
         <VStack gap={3}>
-          <Heading level={1}>No repository named “{name}”</Heading>
+          <PageTitle>No repository named “{name}”</PageTitle>
           <Paragraph>
             It is not in Uraeda&apos;s list.{" "}
             {mostRecent === undefined ? (
@@ -81,7 +82,7 @@ export function MissingFolder({ name, path }: { name: string; path: string }) {
     <BareShell current={name}>
       <Page>
         <VStack gap={3}>
-          <Heading level={1}>Folder not found</Heading>
+          <PageTitle>Folder not found</PageTitle>
           <Paragraph>
             {name} was at <Code size="inherit">{path}</Code>, which no longer holds a git
             repository. Move it back, or remove it from Uraeda.
@@ -106,10 +107,9 @@ export function FirstRun() {
     <div {...stylex.props(styles.surface)}>
       <Page>
         <VStack gap={3}>
-          <Heading level={1}>Add your first repository</Heading>
-          <Paragraph color="secondary">
-            Uraeda shows the specs and runs agents in git repositories on this machine.
-          </Paragraph>
+          <PageTitle description="Uraeda shows the specs and runs agents in git repositories on this machine.">
+            Add your first repository
+          </PageTitle>
           <AddRepository inline />
         </VStack>
       </Page>
