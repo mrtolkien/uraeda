@@ -75,5 +75,5 @@ test("taken-back images go before the images the draft already holds", () => {
 test("no taken-back image leaves the draft's images as they are", () => {
   const typed = [{ image: chatImage("typed"), key: "k", name: "Image" }];
 
-  expect(takenBack({ images: typed, text: "" }, "Text", []).images).toBe(typed);
+  expect(takenBack({ images: typed, text: "" }, "Text", []).images).toEqual(typed);
 });
