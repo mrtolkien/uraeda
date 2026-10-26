@@ -1,6 +1,6 @@
 // The settings page's states, as the spec's mockups: the form, with values a flag or a variable
-// overrides, with a file that cannot be read, opened at its Runs section, and searched, with a match
-// and without one.
+// overrides, with a file that cannot be read, opened at its Runs or Keyboard section, the keyboard
+// switch off, and searched, with a match and without one.
 // The Server values are records as the server's settings source gives them, passed in, as
 // `SettingsPage` passes the one it reads; Sign-in and Appearance are the real ones.
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -11,6 +11,7 @@ import { SettingsView } from "./SettingsView.tsx";
 /** The settings file of a machine reached through its tailnet name, nothing overridden. */
 const server: ServerValues = {
   file: "~/.config/uraeda/config.toml",
+  keyboard: { singleKeyShortcuts: { inForce: true, saved: null, source: { kind: "default" } } },
   problem: null,
   runs: { buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } } },
   server: {
@@ -32,6 +33,7 @@ const serverActions: ServerActions = {
   setBuildInFreshSession: async () => undefined,
   setOpenBrowser: async () => undefined,
   setPort: async () => undefined,
+  setSingleKeyShortcuts: async () => undefined,
 };
 
 const meta = {
@@ -86,6 +88,20 @@ export const Unreadable: Story = {
 
 /** Opened at `/settings/runs`: the form, scrolled to its Runs section. */
 export const Runs: Story = { args: { category: "runs" } };
+
+/** Opened at `/settings/keyboard`: the Keyboard section, its switch on, as the mockup draws it. */
+export const Keyboard: Story = { args: { category: "keyboard" } };
+
+/** The same row with the switch off, from `single_key_shortcuts = false` in the file. */
+export const KeyboardOff: Story = {
+  args: {
+    category: "keyboard",
+    server: {
+      ...server,
+      keyboard: { singleKeyShortcuts: { inForce: false, saved: false, source: { kind: "file" } } },
+    },
+  },
+};
 
 /** A search that leaves one row: "port" keeps the Port row, under Server. */
 export const Search: Story = { args: { initialSearch: "port" } };

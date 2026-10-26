@@ -21,7 +21,7 @@ export function useFreshDefault(step: string | null | undefined): boolean | unde
 }
 
 /** Draws nothing once its children fail: what they read stays unread. */
-class Unread extends Component<{ children: ReactNode }, { failed: boolean }> {
+export class Unread extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
 
   static getDerivedStateFromError() {

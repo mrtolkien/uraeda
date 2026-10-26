@@ -16,7 +16,7 @@ import { type Category, settingOf } from "./categories.ts";
 import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
 
 /** The settings record, as the page reads it: the file, its problem, and the values. */
-export type ServerValues = Pick<Settings, "file" | "problem" | "runs" | "server">;
+export type ServerValues = Pick<Settings, "file" | "keyboard" | "problem" | "runs" | "server">;
 
 /** Where a value in force comes from, as the record says. */
 type Source = ServerValues["server"]["port"]["source"];
@@ -32,6 +32,7 @@ export type ServerActions = {
   setBuildInFreshSession: (fresh: boolean) => Promise<string | undefined>;
   setOpenBrowser: (open: boolean) => Promise<string | undefined>;
   setPort: (port: string) => Promise<string | undefined>;
+  setSingleKeyShortcuts: (on: boolean) => Promise<string | undefined>;
 };
 
 const EMPTY_HOST = "A host name cannot be empty.";

@@ -25,6 +25,7 @@ import { StatusLine } from "./shell/StatusLine.tsx";
 import { Tabs } from "./shell/Tabs.tsx";
 import { FeatureSettingsHost } from "./sidebar/FeatureSettingsDialog.tsx";
 import { RenameSessionHost } from "./sidebar/RenameSession.tsx";
+import { SingleKeysSetting } from "./settings/SingleKeysSetting.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
 import { StatusHintsProvider } from "./statusHints.tsx";
 import { useWrites } from "./writes/store.ts";
@@ -152,6 +153,7 @@ function Frame({
 
 export function Shell({ children }: { children: ReactNode }) {
   const [slot, setSlot] = useState<ReactNode>(null);
+  const [singleKeys, setSingleKeys] = useState(true);
   const width = useWidthClass();
   const narrow = isNarrow(width);
   return (
@@ -159,7 +161,8 @@ export function Shell({ children }: { children: ReactNode }) {
       <FeatureSettingsHost>
         <RenameSessionHost>
           <StatusHintsProvider>
-            <KeysProvider>
+            <KeysProvider singleKeys={singleKeys}>
+              <SingleKeysSetting onRead={setSingleKeys} />
               <Frame
                 bottom={<StatusLine isNarrow={narrow} slot={slot} />}
                 isNarrow={narrow}

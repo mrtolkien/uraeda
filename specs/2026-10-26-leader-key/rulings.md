@@ -462,6 +462,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and development: the second declares `isDisabled`, or the page passes which one is the page's.
 - **Where**: `Composer.tsx`, `useNewKey.ts`, `KindCards.tsx`, `NewPage.tsx`, `Home.tsx`,
   `shell/SessionsPage.tsx`.
+
 ## R60: Continue opens what the card's status asks, and with none the entry and a toast say so
 
 - **Decision**: `Space c` takes the cards of the shell's Needs you pane, through one selection
@@ -511,3 +512,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   state instead and keep the dialog as the fallback where no trigger is mounted.
 - **Where**: `RepositoryMenu.tsx`, `keys/LeaderKeys.tsx`; test in
   `__tests__/keys-leader-tree.test.tsx`.
+
+## R70: The Keyboard section sits after Appearance, and the settings tests name it
+
+- **Decision**: the settings form's sections are Server, Appearance, **Keyboard**, Sign-in, Agents,
+  Runs, Reviews, and the section holds one setting, "Single-key shortcuts". The two lists of
+  `__tests__/settings.test.tsx` that spell the whole form, `SECTIONS` and `ALL`, gain "Keyboard" and
+  "Single-key shortcuts" at that place, and nothing else in them changes; the file's other tests
+  pass unchanged. The shell reads the setting through `SingleKeysSetting`, which draws nothing,
+  under a `Suspense` and an `Unread` boundary of its own (as the fresh-session default is read), and
+  hands the value to `KeysProvider`'s `singleKeys`: the page never waits for the settings, a record
+  that cannot be read leaves the shortcuts on, and the shortcuts follow a change at once. `Unread`
+  is exported from `HandOver.tsx` for it, and `uraeda:keyboard` joins the icons (Lucide's
+  `keyboard`, already drawn for the decision).
+- **Rationale**: Keyboard sits with the other settings of how this device behaves, ahead of the
+  sign-in and the settings to come; the plan did not say where. A settings file that cannot be read
+  gives the default from the server, on, and the section shows the file's problem in place of the
+  switch, as Runs does.
+- **Alternatives considered**: the section last: the settings to come (Agents, Runs, Reviews) would
+  then come before one that works. `KeysProvider` reading the settings itself: it would suspend the
+  whole shell, and stories and tests mount it with no client.
+- **If wrong**: the position is the order of `CATEGORIES`; moving it changes the two lists.
+- **Where**: task 11, `settings/categories.ts`, `settings/SingleKeysSetting.tsx`, `Shell.tsx`.

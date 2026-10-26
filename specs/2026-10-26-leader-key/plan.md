@@ -1027,13 +1027,15 @@ git commit -m "feat(leader-key): the leader's tree and the go keys"
 
 **Files:**
 
-- Create: `packages/web/src/settings/KeyboardSettings.tsx`
+- Create: `packages/web/src/settings/KeyboardSettings.tsx`, `settings/SingleKeysSetting.tsx` (R70)
 - Modify: `packages/web/src/settings/categories.ts` (the `keyboard` category and its setting),
   `settings/SettingsView.tsx`, `settings/SettingsPage.tsx` (`setSingleKeyShortcuts`),
   `settings/ServerSettings.tsx` (the action's type), `settings/SettingsView.stories.tsx`,
-  `packages/web/src/Shell.tsx` (`KeysProvider`'s `singleKeys` from the settings)
+  `packages/web/src/Shell.tsx` (`KeysProvider`'s `singleKeys` from the settings), `HandOver.tsx`
+  (exports `Unread`), `theme/icons.ts` (`uraeda:keyboard`)
 - Test: `packages/web/src/__tests__/settings.test.tsx`,
-  `packages/web/src/__browser__/keyboard-setting.test.tsx`
+  `packages/web/src/__browser__/keyboard-setting.test.tsx`, `__browser__/layout.test.tsx` (the
+  settings at Keyboard)
 
 **Interfaces:**
 
@@ -1044,7 +1046,7 @@ git commit -m "feat(leader-key): the leader's tree and the go keys"
   at once with its refusal under it, and the file's problem in place of the switch when the file
   cannot be read; `useSettings()` unreadable means shortcuts on.
 
-- [ ] **Step 1: Write the failing tests**: US5 more 1: with `single_key_shortcuts = false` in the
+- [x] **Step 1: Write the failing tests**: US5 more 1: with `single_key_shortcuts = false` in the
       file, the page loads with the switch off and `j` moves nothing while `↓` still does (US5 3);
       turning the switch off writes `[keyboard]\nsingle_key_shortcuts = false` to the file and
       Space, `g`, and a letter stop acting at once with the status line showing no letter hints (US5
@@ -1052,13 +1054,13 @@ git commit -m "feat(leader-key): the leader's tree and the go keys"
       shortcuts on and the page says so (edge case); the switch is a Keyboard row found by the
       settings search. A real-browser check of the switch at both sizes. The break caught: a
       `singleKeys` read once at mount, which an immediate effect test shows.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test run packages/web/src/__tests__/settings.test.tsx`; expected FAIL
       `Unable to find role "switch" and name "Single-key shortcuts"`.
-- [ ] **Step 3: Implement** the section, the category, the action, and the provider wiring.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then
+- [x] **Step 3: Implement** the section, the category, the action, and the provider wiring.
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then
       `nix develop -c vp run browser:desktop`. Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-26-leader-key/plan.md

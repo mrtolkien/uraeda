@@ -4,7 +4,14 @@
 import type { Icon } from "@astryxdesign/core/Icon";
 import type { ComponentProps } from "react";
 
-export type CategoryId = "server" | "appearance" | "sign-in" | "agents" | "runs" | "reviews";
+export type CategoryId =
+  | "server"
+  | "appearance"
+  | "keyboard"
+  | "sign-in"
+  | "agents"
+  | "runs"
+  | "reviews";
 
 /** An icon's name, as Astryx's `Icon` takes it. */
 export type IconName = ComponentProps<typeof Icon>["icon"];
@@ -70,6 +77,18 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         icon: "uraeda:palette",
         label: "Colour scheme",
         terms: ["theme"],
+      },
+    ],
+  },
+  {
+    icon: "uraeda:keyboard",
+    id: "keyboard",
+    label: "Keyboard",
+    settings: [
+      {
+        help: "The leader key, g sequences, and the letter keys of every page. Arrow keys, Enter, Escape, and Ctrl or Cmd+K keep working when this is off. A change applies at once.",
+        icon: "uraeda:keyboard",
+        label: "Single-key shortcuts",
       },
     ],
   },

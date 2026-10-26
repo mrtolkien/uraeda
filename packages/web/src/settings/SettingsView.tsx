@@ -1,5 +1,5 @@
-// The settings page: one form of bordered sections, Server, Appearance, Sign-in, Agents, Runs, and
-// Reviews, each setting a row. The search sits at the end of the heading row on wide screens, and
+// The settings page: one form of bordered sections, Server, Appearance, Keyboard, Sign-in, Agents,
+// Runs, and Reviews, each setting a row. The search sits at the end of the heading row on wide screens, and
 // under the heading on narrow ones; while it holds text, it filters the rows, and a section left
 // without one is hidden. A section named in the address is scrolled into view.
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -16,6 +16,7 @@ import {
   sectionId,
   shownLabels,
 } from "./categories.ts";
+import { KeyboardSettings } from "./KeyboardSettings.tsx";
 import { AppearanceSettings, PlannedSettings, SignInSettings } from "./OtherSettings.tsx";
 import { RunSettings } from "./RunSettings.tsx";
 import { RefusalsProvider } from "./SettingRow.tsx";
@@ -41,6 +42,8 @@ function Rows({
       return <ServerSettings {...props} />;
     case "appearance":
       return <AppearanceSettings category={category} />;
+    case "keyboard":
+      return <KeyboardSettings {...props} />;
     case "sign-in":
       return <SignInSettings category={category} shows={shows} />;
     case "runs":
