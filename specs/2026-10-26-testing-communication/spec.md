@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Testing strategy review
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-10-26: 4 comments in spec-review.md.
 >
 > - You approve a new way of testing: a test is evidence and never an authority, a spec lists the
 >   behaviour it replaces, the web UI has no automated tests, and the whole suite is rewritten in
