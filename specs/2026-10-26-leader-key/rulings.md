@@ -599,6 +599,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   effect: still after the first commit's layout effects, which show the hints.
 - **If wrong**: delete the `keysSwitch` prop and `App`'s state; `Shell` keeps its own.
 - **Where**: `Shell.tsx`, `App.tsx`.
+
 ## R80: `o` on a Blocked line opens the form in Next
 
 - **Decision**: the add form offers Now, Next, and Later (`TITLES`), never Blocked, so `o` on a line
