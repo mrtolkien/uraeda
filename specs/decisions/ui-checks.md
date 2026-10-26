@@ -6,14 +6,16 @@ icon: scan-eye
 
 # UI checks
 
-The human checks UI work by using it, in the sandbox, not through automated tests of the UI. The
-agent hands over a UI change with the sandbox ready to try, and with one screenshot of each new view
-in the pull request. Screenshots are never kept in the repository.
+The human checks UI work by using the running app, when they choose: after one change, or after
+several merged together. Automated tests of the UI are rare, and only for what using the app would
+not show. A pull request that adds a view shows one screenshot of it, and screenshots are never kept
+in the repository.
 
 ## Rules
 
-- UI work MUST be checked by the human live, in the sandbox, against the spec and the decisions the
-  view follows. Checked by review.
+- A UI change MUST be easy to try in the running app, through the sandbox. Checked by review.
+- The agent MUST NOT wait for a live review of each UI change: the human may review several
+  together, after merging. Checked by review.
 - A pull request that adds a view MUST show one screenshot of it, in the pull request only. Checked
   by review.
 - Screenshots MUST NOT be committed to the repository for review. Checked by review.
@@ -24,8 +26,8 @@ in the pull request. Screenshots are never kept in the repository.
 
 Nothing checked the desktop, and the components drifted from their spec unseen. Automated UI tests
 then grew to a suite that was slow, tied to the markup and the look, and made every visual change
-cost test edits. The human prefers to "review actual behaviour with the sandbox", and wants at most
-one screenshot of a new view, in the pull request
+cost test edits. The human prefers to "review actual behaviour with the sandbox", often several
+features at once after merging, and wants at most one screenshot of a new view, in the pull request
 ([how the UI is tested](../2026-10-26-testing-communication/clarifications-01.md#q4-how-should-the-web-ui-be-tested)).
 Pixel comparisons break across systems and fonts, against the [toolchain](toolchain.md) decision.
 
@@ -42,8 +44,8 @@ Pixel comparisons break across systems and fonts, against the [toolchain](toolch
 
 ## Consequences
 
-- A regression in a UI behaviour, an accessibility rule, or a layout is found by the human's review,
-  no longer by a test.
+- A regression in a UI behaviour, an accessibility rule, or a layout is found mostly by the human's
+  review, no longer by a test.
 - The sandbox must stay easy to start, since it is the check.
 - Pull requests of UI work carry images, kept by the forge and not by git.
 

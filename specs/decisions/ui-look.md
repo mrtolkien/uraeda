@@ -19,8 +19,8 @@ together, and more colour schemes can join it later.
   it reads better, such as long prose. Checked by review.
 - A new colour scheme MUST be added as a named scheme of the same theme, never as styles in a view.
   Checked by review.
-- Every text colour MUST reach WCAG's contrast for text against its background, and borders and
-  controls its contrast for components, in every scheme. Checked by a test of the theme's tokens.
+- Every text colour MUST reach 4.5:1 against its background, and borders and controls 3:1, the
+  contrast WCAG AA asks for, in every scheme. Checked by a test of the theme's tokens.
 - Text MUST be set at the reading size the human chose, once, in the theme. Checked by review.
 - Fonts MUST be bundled with the app under an open licence, and the UI MUST NOT load a file from
   another host. Checked by a test of the built app.
