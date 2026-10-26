@@ -1,5 +1,4 @@
 import { Button } from "@astryxdesign/core/Button";
-
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";

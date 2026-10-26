@@ -2,10 +2,8 @@
 // change made a feature, with the agent's reason. The server starts or moves it, and refuses what
 // it cannot do; the card shows the refusal under it.
 import { Button } from "@astryxdesign/core/Button";
-
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
-
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type ReactNode, Suspense, useCallback, useId, useEffect, useRef, useState } from "react";

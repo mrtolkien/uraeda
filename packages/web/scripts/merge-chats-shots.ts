@@ -46,10 +46,15 @@ async function offered(adapter: FakeAdapter, first: Page) {
 }
 
 /** The session's page, scrolled to its end, with its "…" open. */
+/** An action of the "…" opened: a popover's menu item, or a sheet's button on the phone. */
+const action = (page: Page, name: string) =>
+  page.getByRole("menuitem", { name }).or(page.getByRole("button", { exact: true, name }));
+
 async function actions(page: Page, path: string, text: string) {
   await show(page, path, text);
   await page.getByRole("button", { name: "Session actions" }).click();
-  await page.getByRole("menu").waitFor();
+  // A popover's menu, or on the phone a sheet, whose actions are buttons.
+  await action(page, "Rename").waitFor();
   await settle(page);
 }
 
@@ -94,7 +99,7 @@ export async function takeMergeChats(each: Each, first: Page, adapter: FakeAdapt
   await first.getByText(/^Started as the change Login redirects twice/).waitFor();
   await each("session-drop", async ({ page }) => {
     await actions(page, session, "Login redirects twice");
-    await page.getByRole("menuitem", { name: "Drop the change…" }).click();
+    await action(page, "Drop the change…").click();
     await page.getByRole("button", { name: "Keep the change" }).waitFor();
     await settle(page);
   });

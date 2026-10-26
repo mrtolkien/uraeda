@@ -6,7 +6,6 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { fileStatusBadge } from "../labels.ts";
@@ -26,12 +25,11 @@ export type TitleMeta = { marks?: ReactNode; text: ReactNode };
 /**
  * A page's title: `children`, its words, at level 1, `id` its anchor, `around` drawing it inside
  * another element, as a block a comment can select. `count` follows it, a badge without words, as
- * the inbox's review asked (C3). `actions` stay
- * beside it at every width, as a "…" menu; `aside` sits at the row's end on wider screens, and under
- * the title on the phone, as a search or a page's main tool. `above` is the line over it, a draft's
- * path; `status` a workflow file's status, as a badge over it; `meta` the supporting line
- * under it, the subject's state; `description` the secondary text under them, what the page is
- * for.
+ * the inbox's review asked (C3). `actions` stay beside it at every width, as a "…" menu; `aside`
+ * sits at the row's end on wider screens, and under the title on the phone, as a search or a page's
+ * main tool. `above` is the line over it, a draft's path; `status` a workflow file's status, as a
+ * badge over it; `meta` the supporting line under it, the subject's state; `description` the
+ * secondary text under them, what the page is for.
  */
 export function PageTitle({
   above,

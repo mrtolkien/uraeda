@@ -2,7 +2,6 @@
 // behind its confirmation, as the session's "…" has it. A dropped item leaves its page for Home,
 // where what stayed is said, once the priorities commit succeeded.
 import { type SessionItem, UNCOMMITTED, useDropItem } from "../dropItem.ts";
-
 import { addNote, HOME_NOTES } from "../offers.ts";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { useOpenSettings } from "../sidebar/FeatureSettingsDialog.tsx";

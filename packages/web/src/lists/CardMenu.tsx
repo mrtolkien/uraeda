@@ -4,7 +4,6 @@
 // the drag's `fileIndex` owns. The button shows on hover, on the selected card, on keyboard focus
 // within the card, and always when the pointer cannot hover, by the card's `--menu-opacity`.
 import { DropdownMenu, type DropdownMenuOption } from "@astryxdesign/core/DropdownMenu";
-
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useState } from "react";
 import type { Inbox } from "uraeda-server/fate";

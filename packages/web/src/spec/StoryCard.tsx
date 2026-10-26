@@ -3,7 +3,6 @@
 // others behind "N more scenarios", open as the history entry keeps the spec's folds, and not
 // mounted while folded. Every scenario takes a comment, as any block of the page does.
 import { Badge } from "@astryxdesign/core/Badge";
-
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";

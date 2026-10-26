@@ -2,7 +2,6 @@
 // for a check, and the banner of the check there is, which leads to answering it, then to applying
 // it. Without an agent on this machine, the button gives its message to copy.
 import { Button } from "@astryxdesign/core/Button";
-
 import { APPLY_DECISIONS_CHECK, RUN_DECISIONS_CHECK } from "uraeda-server/round-messages";
 import { MessageToCopy, RoundBanner, type StartChat } from "../StartChat.tsx";
 import { Foldable } from "../layout/Foldable.tsx";

@@ -2,13 +2,11 @@
 // the latest first: five, then all of them once asked, or at `#done`, which the column's Done "…"
 // opens.
 import { Button } from "@astryxdesign/core/Button";
-
 import { useState } from "react";
 import { Pane } from "../layout/Pane.tsx";
 import { useHash, useLocalPath, useRepoPath } from "../routes.tsx";
 import type { Feature, Row } from "../sidebar/cards.ts";
 import { doneRows } from "../sidebar/done.ts";
-
 import { HomeRow } from "./parts.tsx";
 import { Empty } from "../layout/Empty.tsx";
 import { DoneIcon } from "../sidebar/StepIcon.tsx";
