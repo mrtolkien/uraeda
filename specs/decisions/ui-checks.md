@@ -28,7 +28,7 @@ Nothing checked the desktop, and the components drifted from their spec unseen. 
 then grew to a suite that was slow, tied to the markup and the look, and made every visual change
 cost test edits. The human prefers to "review actual behaviour with the sandbox", often several
 features at once after merging, and wants at most one screenshot of a new view, in the pull request
-([how the UI is tested](../2026-10-26-testing-communication/clarifications-01.md#q4-how-should-the-web-ui-be-tested)).
+([how the UI is tested](../done/2026-10-26-testing-communication.md#q4-how-should-the-web-ui-be-tested)).
 Pixel comparisons break across systems and fonts, against the [toolchain](toolchain.md) decision.
 
 ## Alternatives considered

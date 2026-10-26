@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-12
 pull-request: https://github.com/mrtolkien/uraeda/pull/6
+superseded-by: [2026-10-26-testing-communication]
 ---
 
 # Record: UI improvements
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/6
 > The record of a merged feature, not instructions to follow. Started on 2026-10-12, finished on
 > 2026-10-12, in [its pull request](https://github.com/mrtolkien/uraeda/pull/6). Its full files are
 > in git: `git log -- specs/2026-10-12-ui-improvements/`.
+>
+> Superseded in part by [2026-10-26-testing-communication](2026-10-26-testing-communication.md).
 
 ## What and why
 
