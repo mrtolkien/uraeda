@@ -74,7 +74,8 @@ export function ConfirmHost({ children }: { children: ReactNode }) {
         <Overlay isOpen={open} label={shown.title} onClose={() => answer(false)} sheetHeight="hug">
           <VStack gap={4}>
             <Text>{shown.body}</Text>
-            <HStack gap={2} justify="end">
+            {/* Wrapping, so a long label stays whole rather than cut (the UI checks decision). */}
+            <HStack gap={2} justify="end" wrap="wrap">
               <Button label={shown.cancel} onClick={() => answer(false)} variant="secondary" />
               <Button
                 label={shown.confirm}

@@ -10,8 +10,6 @@
 
 - [agent] [coherence-pass] With images attached, the session composer's image drawer draws over the
   agent's last message, which reads cut mid-word behind the thumbnails, on the desktop
-- [agent] [coherence-pass] Dropping a change or a feature: the confirmation's buttons read "Keep the
-  chan…" and "Drop the chan…", cut at both sizes
 - I want to try monaspace font family for the website, using the different styles
 - In 1440px wide, the right column in questions/clarification is a bit too big...
 - I thought the UI I validated for questions had the questions BELOW the text, not on the side like
