@@ -7,7 +7,6 @@ import {
   colorVars,
   fontWeightVars,
   spacingVars,
-  typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useContext } from "react";
@@ -19,6 +18,7 @@ import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { proseStyles } from "./Prose.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import { holdsStory, StoryContext } from "./stories.tsx";
+import { legendStyles } from "./layout/legend.ts";
 
 const styles = stylex.create({
   // A point's box on the phone, its sign in its top border, its text at its inner edge.
@@ -40,32 +40,19 @@ const styles = stylex.create({
     marginBlockStart: spacingVars["--spacing-1"],
     padding: 0,
   },
-  boxSign: {
-    backgroundColor: colorVars["--color-background-card"],
-    fontWeight: fontWeightVars["--font-weight-bold"],
-    insetBlockStart: 0,
-    insetInlineStart: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-1"],
-    position: "absolute",
-    transform: "translateY(-50%)",
-  },
+  boxSign: { fontWeight: fontWeightVars["--font-weight-bold"] },
   con: { color: colorVars["--color-error"] },
   conBox: { borderColor: colorVars["--color-border-red"] },
   legend: {
-    // The letter, "★ Recommended", and "picked", centred on the option's top border, over it.
+    // The letter, "★ Recommended", and "picked", centred on the option's top border, over it, at
+    // the text's edge whatever the border's width.
     alignItems: "center",
-    backgroundColor: colorVars["--color-background-card"],
     display: "inline-flex",
-    fontSize: typeScaleVars["--text-supporting-size"],
     fontWeight: fontWeightVars["--font-weight-bold"],
     gap: spacingVars["--spacing-2"],
     insetBlockStart: "var(--option-legend-top)",
     insetInlineStart: "var(--option-legend-start)",
-    lineHeight: typeScaleVars["--text-supporting-leading"],
     maxWidth: "var(--option-legend-width)",
-    paddingInline: spacingVars["--spacing-1"],
-    position: "absolute",
-    transform: "translateY(-50%)",
     whiteSpace: "nowrap",
   },
   letter: {
@@ -160,7 +147,14 @@ function Points({ choice, document }: { choice: Choice; document: Document }) {
         wide ? styles.point : [styles.box, box],
       )}
     >
-      <span {...stylex.props(wide ? styles.sign : styles.boxSign, tone)}>{sign}</span>
+      <span
+        {...stylex.props(
+          wide ? styles.sign : [legendStyles.legend, legendStyles.onCard, styles.boxSign],
+          tone,
+        )}
+      >
+        {sign}
+      </span>
       <Spans spans={document.blocks[id]?.spans ?? []} />
     </li>
   );
@@ -225,7 +219,14 @@ export function OptionCard({
           disabled && styles.optionReadOnly,
         ]}
       >
-        <span {...stylex.props(styles.legend)}>
+        <span
+          {...stylex.props(
+            legendStyles.legend,
+            legendStyles.onCard,
+            legendStyles.text,
+            styles.legend,
+          )}
+        >
           <span {...stylex.props(styles.letter, selected && styles.letterOn)}>{choice.letter}</span>
           {choice.recommended && <span {...stylex.props(styles.tag)}>★ Recommended</span>}
           {selected && <span {...stylex.props(styles.pickedTag)}>picked</span>}
