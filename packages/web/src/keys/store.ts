@@ -1,6 +1,7 @@
 // What the key registry holds: the bindings every mounted component declared, in the order they
-// were declared, with the rules over them. A key never means two things, and a key is one `tokenOf`
-// can give, or it would never run: both throw in every build but production, so any page's test
+// were declared, with the rules over them. A key never means two things, a key is one `tokenOf` can
+// give, or it would never run, and a sequence goes through groups `groups.ts` names, or the menu
+// would draw nothing for them: all three throw in every build but production, so any page's test
 // catches them. The single-key switch drops the bindings whose first key is one printable
 // character, and the hints the status line draws come from the bindings that name one. A plain
 // store, read through `useSyncExternalStore`: a handler is never published, so a re-render with a
@@ -8,6 +9,7 @@
 import type { Icon } from "@astryxdesign/core/Icon";
 import type { ComponentProps } from "react";
 import type { StatusHint } from "../statusHints.tsx";
+import { GROUPS } from "./groups.ts";
 import { isCanonical, isSingleKey } from "./match.ts";
 
 /** An icon's name, as Astryx's `Icon` takes it. */
@@ -96,6 +98,24 @@ function assertCanonical(bindings: ReadonlyArray<Binding>) {
   }
 }
 
+/**
+ * Throws where a sequence goes through a group `groups.ts` does not name: its keys would work, and
+ * the menu would draw nothing for it. The first key is the root, not a group.
+ */
+function assertGroupsNamed(bindings: ReadonlyArray<Binding>) {
+  for (const { keys, label } of bindings) {
+    const path = tokens(keys);
+    for (let length = 2; length < path.length; length += 1) {
+      const group = path.slice(0, length).join(" ");
+      if (GROUPS[group] === undefined) {
+        throw new Error(
+          `"${keys}" (${label}) goes through the group "${group}", which groups.ts does not name`,
+        );
+      }
+    }
+  }
+}
+
 export function createKeyStore(initialSingleKeys: boolean) {
   const entries = new Map<string, Entry>();
   const listeners = new Set<() => void>();
@@ -150,6 +170,7 @@ export function createKeyStore(initialSingleKeys: boolean) {
     set(id: string, place: Place, bindings: ReadonlyArray<Binding>) {
       if (process.env.NODE_ENV !== "production") {
         assertCanonical(bindings);
+        assertGroupsNamed(bindings);
         const others = [...entries].filter(([other]) => other !== id);
         assertNoClash(
           others.flatMap(([, entry]) => entry.bindings),
