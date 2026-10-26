@@ -1,6 +1,5 @@
-// The document's column's stored width: a dragged width, kept in the browser, between 400 and
-// 720 px, also when the browser keeps one outside them (Review focus 6), and a fold that keeps a
-// session's dragged width.
+// The document's column's stored width: a dragged width kept in the browser, nothing when it is
+// not readable, and a fold that keeps a session's dragged width.
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import {
@@ -13,15 +12,6 @@ import {
 
 beforeEach(() => {
   window.localStorage.clear();
-});
-
-test("a stored width is clamped", () => {
-  window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ width: 900 }));
-  expect(readDocumentColumn().width).toBe(720);
-  window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ width: 200 }));
-  expect(readDocumentColumn().width).toBe(400);
-  window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ width: 560 }));
-  expect(readDocumentColumn().width).toBe(560);
 });
 
 test("nothing readable is no width", () => {

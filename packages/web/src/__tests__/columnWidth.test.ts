@@ -1,6 +1,6 @@
-// The navigation column's stored width and fold: kept under `uraeda.nav`, within 220 and 480 px;
-// what Astryx's old navigation kept under `astryx-resizable:uraeda.nav` is read once, its width
-// clamped and its fold kept, and moved to the new key.
+// The navigation column's stored width and fold: kept under `uraeda.nav`; what Astryx's old
+// navigation kept under `astryx-resizable:uraeda.nav` is read once, its fold kept, and moved to the
+// new key.
 import { afterEach, beforeEach, expect, test } from "vite-plus/test";
 import { NAV_KEY, readColumn } from "../shell/columnWidth.ts";
 
@@ -15,8 +15,6 @@ test("nothing kept reads as nothing", () => {
 
 test.each([
   ["a width, within the limits", { isCollapsed: false, size: 300 }, { width: 300 }],
-  ["a width past the most, clamped to 480", { isCollapsed: false, size: 900 }, { width: 480 }],
-  ["a width under the least, clamped to 220", { isCollapsed: false, size: 100 }, { width: 220 }],
   ["a fold, with its width", { isCollapsed: true, size: 300 }, { folded: true, width: 300 }],
   ["a fold without a width", { isCollapsed: true }, { folded: true }],
   ["a bare number, a width", 300, { width: 300 }],
@@ -50,8 +48,6 @@ test("the new key wins over the old, which stays", () => {
 test.each([
   ["a width", { width: 320 }, { width: 320 }],
   ["a fold, with its width", { folded: true, width: 300 }, { folded: true, width: 300 }],
-  ["a width past the most, clamped", { width: 900 }, { width: 480 }],
-  ["a width under the least, clamped", { width: 10 }, { width: 220 }],
   ["a width that is no number, left out", { folded: true, width: "wide" }, { folded: true }],
 ])("the new key with %s", (_, kept, column) => {
   window.localStorage.setItem(NAV_KEY, JSON.stringify(kept));

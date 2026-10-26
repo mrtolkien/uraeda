@@ -685,6 +685,13 @@ test declarations before 278, after 269 (9 removed, one row each).
 | `packages/web/samples/__tests__/storybook-states.test.ts` | Storybook's fixture holds the same features at the same steps                         | A snapshot of the 26 features Storybook's fixture held before the samples moved, and their steps: neither a stored format nor a contract, and adding a feature to the fixture cost an edit of the list ([Testing](/specs/decisions/testing.md), early stage rule) |
 | `scripts/__tests__/fast-check.test.ts`                    | fast's own checks wait for a heavy slot                                               | fast waiting while both heavy slots are held, with `vp` never called: "the changed files are listed with the user's globally ignored files left out" asserts the same waiting line and no call                                                                    |
 
+#### Task 15
+
+| File                                                 | Test                                    | Behaviour it guarded                                                          |
+| ---------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------- |
+| `packages/web/src/__tests__/columnWidth.test.ts`     | the four clamping rows, old and new key | the navigation column's chosen limits, 220 and 480 px: a size, left to review |
+| `packages/web/src/__tests__/document-column.test.ts` | a stored width is clamped               | the documents' column's chosen limits, 400 and 720 px: a size, left to review |
+
 ## Waves
 
 The tasks of a wave are built at the same time, then merged and reviewed while the next wave starts.
@@ -1426,15 +1433,16 @@ git commit -m "docs(testing-communication): the testing wording, tuned by the ev
 
 **Files:**
 
-- Modify: `specs/2026-10-26-testing-communication/plan.md`
+- Modify: `specs/2026-10-26-testing-communication/plan.md`; the tests the reading found:
+  `columnWidth.test.ts`, `document-column.test.ts`, `diagram.test.tsx`, `useDraft.test.ts`
 
-- [ ] **Step 1: Read every changed test of the branch** for SC-001: none asserts markup, a class
+- [x] **Step 1: Read every changed test of the branch** for SC-001: none asserts markup, a class
       name, a size, a call sequence, or private state. Fix a finding as the final review would.
 
-- [ ] **Step 2: Check [Removed tests](#removed-tests)** against `git diff` of the branch: each
+- [x] **Step 2: Check [Removed tests](#removed-tests)** against `git diff` of the branch: each
       removed test is there, by file and behaviour, for the record's **Replaced behaviour**.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add specs/2026-10-26-testing-communication/plan.md

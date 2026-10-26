@@ -143,3 +143,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: `figureRows` is a pure function with many cases, which the `early` stage keeps, and
   its cases are its whole specification: the rows' labels, order, and links, all in one place.
 - **Where**: task 13's Removed table loses their five rows (14 removed become 9).
+
+## R13: What the reading of SC-001 cut, and what it kept
+
+- **Decision**: the reading of every added or changed test cut the rows that pin the columns' chosen
+  pixel limits, made the diagram's fallback test read the shown source instead of a `<pre>`, and
+  compared a draft's images by value, not by identity. It kept four readings of the page that look
+  like markup or counts, because each is the observable of its rule: `diagram-hostile.test.tsx`
+  reads the page for a script, an event handler, or a `javascript:` link, and
+  `preview-sandbox.test.tsx` reads a frame's `sandbox` tokens, both security rules a decision names;
+  `writes-store.test.tsx` reads what the store's hooks return, the store's public face;
+  `notify.test.tsx` counts what it asks of the browser's `Notification`, a boundary the
+  Notifications decision is about.
+- **Rationale**: SC-001 asks that no test assert markup, a class name, a size, a call sequence, or
+  private state. A security rule about what reaches the page can only be read in the page, and a
+  stored width is data, but its limits are a look the human reviews.
+- **Where**: task 15.
