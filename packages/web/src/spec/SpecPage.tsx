@@ -3,7 +3,6 @@
 // the data, then how it is built, and its history, folded; a group's heading counts what it holds.
 // The column of Contents and Review beside them, on the phone in the status line. The only file
 // that wires the parts: each takes what it needs from here.
-
 import { Heading } from "@astryxdesign/core/Heading";
 
 import { Icon } from "@astryxdesign/core/Icon";

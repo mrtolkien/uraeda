@@ -2,7 +2,6 @@
 // and changes, newest first; in the column, as many as fit in the room the rows above leave, and
 // gone, title included, when none fits. "…" opens Home's Done group, which lists every done feature
 // and change.
-
 import { SideNavItem } from "@astryxdesign/core/SideNav";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";

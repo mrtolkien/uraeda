@@ -2,7 +2,6 @@
 // title, each lead paragraph (Goal, Architecture, Spec) a titled pane, then each section a pane, a
 // task's with its steps checked out of its total. The spec's column beside it, of Contents, Review
 // while it waits, and Session; on the phone, in the status line.
-
 import { VStack } from "@astryxdesign/core/VStack";
 import type { ReactNode } from "react";
 import type { Block, CommentItem, Document, PlanItems } from "uraeda-binding";

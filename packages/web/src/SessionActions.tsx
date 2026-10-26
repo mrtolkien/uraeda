@@ -1,7 +1,6 @@
 // A session's actions, in the "…" beside its composer's Send, where they stay in reach however long
 // the session: making it a change, or its change a feature, renaming it, archiving a session
 // without a workflow, and dropping a change or a feature, behind a confirmation.
-
 import { useEffect, useRef } from "react";
 import { type SessionItem, useDropItem } from "./dropItem.ts";
 import {

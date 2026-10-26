@@ -4,7 +4,6 @@
 // picked. On narrow ones, the reader replaces the list once an item is picked, with a way back.
 // The keys move through the principles, then the decisions, the reader following (`useListKeys`);
 // `/` or "Jump to…" opens a palette that finds any of them (`JumpPalette`).
-
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { useHotkeys } from "@astryxdesign/core/hooks";

@@ -1,6 +1,5 @@
 // A session's view: its header, transcript, and composer, drawn by the session's page and by a
 // round's Session column, where it scrolls in the column's box.
-
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";

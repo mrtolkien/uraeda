@@ -2,7 +2,6 @@
 // Reviews, each setting a row. The search sits at the end of the heading row on wide screens, and
 // under the heading on narrow ones; while it holds text, it filters the rows, and a section left
 // without one is hidden. A section named in the address is scrolled into view.
-
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useLayoutEffect, useState } from "react";
