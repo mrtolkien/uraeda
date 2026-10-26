@@ -7,6 +7,11 @@ import { atWidth, atRepo, fixtureRepo, git, quiet, renderPage } from "./helpers.
 
 beforeEach(() => atWidth(1440));
 
+// The page each fixture card's status sends to: recurring-tasks, the first of three, asks its spec,
+// and web-ui, the second, and the one left alone, its clarifications.
+const FIRST_PAGE = "spec.md";
+const WEB_UI_PAGE = "clarifications-01.md";
+
 const press = (key: string) => fireEvent.keyDown(document.body, { key });
 
 /** The home, drawn, with the requests answered; the repository's features left as they are. */
@@ -36,9 +41,28 @@ test("with three cards needing you, Space c lists them in a picker, and Enter op
   await waitFor(() => expect(screen.getAllByRole("option")).toHaveLength(3));
 
   await act(async () => void fireEvent.keyDown(field, { key: "Enter" }));
-  await waitFor(() => expect(window.location.pathname).not.toBe(atRepo("/")));
-  expect(window.location.pathname).toContain(folders[0]);
+  // Where the card's own status asks: its first card's, with the page that asks.
+  await waitFor(() =>
+    expect(window.location.pathname).toBe(atRepo(`/f/${folders[0]}/${FIRST_PAGE}`)),
+  );
   expect(screen.queryByRole("combobox", { name: "Continue" })).toBeNull();
+});
+
+test("ArrowDown then Enter in the picker opens the second card, at the page its status asks", async () => {
+  await atHome();
+  const folders = await waitingFolders();
+
+  press(" ");
+  press("c");
+  const field = await screen.findByRole("combobox", { name: "Continue" });
+  await waitFor(() => expect(screen.getAllByRole("option")).toHaveLength(3));
+
+  await act(async () => void fireEvent.keyDown(field, { key: "ArrowDown" }));
+  await act(async () => void fireEvent.keyDown(field, { key: "Enter" }));
+
+  await waitFor(() =>
+    expect(window.location.pathname).toBe(atRepo(`/f/${folders[1]}/${WEB_UI_PAGE}`)),
+  );
 });
 
 test("with one card needing you, Space c opens it at once", async () => {
@@ -50,7 +74,9 @@ test("with one card needing you, Space c opens it at once", async () => {
 
   press(" ");
   press("c");
-  await waitFor(() => expect(window.location.pathname).toContain(folders[0]));
+  await waitFor(() =>
+    expect(window.location.pathname).toBe(atRepo(`/f/${folders[0]}/${WEB_UI_PAGE}`)),
+  );
   expect(screen.queryByRole("combobox", { name: "Continue" })).toBeNull();
 });
 
@@ -76,4 +102,24 @@ test("with none, the menu says Nothing needs you, and the page stays (edge)", as
   press("c");
   expect(window.location.pathname).toBe(atRepo("/"));
   expect(screen.queryByRole("combobox", { name: "Continue" })).toBeNull();
+});
+
+test("with none, a Space c typed fast says Nothing needs you in a toast", async () => {
+  const repo = fixtureRepo();
+  git(
+    repo,
+    "branch",
+    "--quiet",
+    "-D",
+    "2026-10-06-recurring-tasks",
+    "2026-10-13-plan-review",
+    "2026-10-11-web-ui",
+  );
+  await atHome(repo);
+
+  press(" ");
+  press("c");
+
+  expect(await screen.findByText("Nothing needs you")).toBeTruthy();
+  expect(window.location.pathname).toBe(atRepo("/"));
 });

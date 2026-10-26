@@ -4,7 +4,8 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { DESTINATIONS } from "../destinations.ts";
-import { placeBindings } from "../keys/leaderTree.ts";
+import { findBindings, placeBindings } from "../keys/leaderTree.ts";
+import type { PickerKind } from "../keys/pickerSources.ts";
 import { navigate } from "../routeHistory.ts";
 import { atRepo, atWidth, quiet, renderPage } from "./helpers.tsx";
 
@@ -79,6 +80,49 @@ test("Space f d opens the decisions picker, and Space Space the one over everyth
   );
   keys(" ", " ");
   expect(await screen.findByRole("combobox", { name: "Find anything" })).toBeTruthy();
+});
+
+const FIND_KEYS: Array<[key: string, kind: PickerKind]> = [
+  ["f", "features"],
+  ["c", "changes"],
+  ["s", "sessions"],
+  ["d", "decisions"],
+  ["n", "notes"],
+  ["p", "priorities"],
+];
+
+test("each Space f key opens the picker of its own kind (US4)", () => {
+  const opened: Array<PickerKind | "all"> = [];
+  const bindings = findBindings((kind) => void opened.push(kind));
+  for (const [key] of FIND_KEYS) {
+    bindings
+      .find((binding) => binding.keys === `space f ${key}`)
+      ?.run(new KeyboardEvent("keydown"));
+  }
+  expect(opened).toEqual(FIND_KEYS.map(([, kind]) => kind));
+  bindings.find((binding) => binding.keys === "space space")?.run(new KeyboardEvent("keydown"));
+  expect(opened.at(-1)).toBe("all");
+});
+
+test("on the page, each Space f key opens the picker named for its kind", async () => {
+  await atHome();
+  for (const [key, kind] of FIND_KEYS) {
+    keys(" ", "f", key);
+    const field = await screen.findByRole("combobox", { name: `Find ${kind}` });
+    fireEvent.keyDown(field, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("combobox")).toBeNull());
+  }
+});
+
+test("Space h goes home from another page", async () => {
+  await atHome();
+  keys(" ", "i");
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/inbox")));
+  await quiet();
+
+  keys(" ", "h");
+
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/")));
 });
 
 test("Space u t cycles the theme: Mocha, Latte, then System (ruling R61)", async () => {

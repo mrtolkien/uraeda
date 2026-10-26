@@ -83,6 +83,18 @@ test("a pending g ends after 2 seconds, and a later key acts as itself (US2 3)",
   expect(window.location.pathname).toBe(atRepo("/"));
 });
 
+test("after the 2 seconds a go key's pending g is over, and `a` acts as the page's own (US2 3)", async () => {
+  await loaded("/");
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  press("g");
+  act(() => void vi.advanceTimersByTime(2000));
+
+  // `a` is no go key (`g a` is nothing): it opens the New page, as on Home it does.
+  press("a");
+
+  expect(window.location.pathname).toBe(atRepo("/new"));
+});
+
 test("g then a key no sequence uses ends it, and the key does nothing (US2 more 2)", async () => {
   await loaded("/priorities");
   press("g");
