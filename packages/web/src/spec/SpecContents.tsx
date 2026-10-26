@@ -53,7 +53,7 @@ function countsOf(document: Document, items: SpecItems, comments: ReadonlyArray<
 /**
  * The entries of "Contents", in the page's order: what you approve; "Since your review", while its
  * pane shows; your review answered, on a revision; the decisions, the listed ones then the others
- * the branch changes, all counted (R21); the stories; the data, when the feature has a data model;
+ * the branch changes, all counted (R21); the stories; the replaced behaviour, when the spec has it; the data, when the feature has a data model;
  * then the parts after them.
  */
 export function entriesOf({
@@ -98,6 +98,9 @@ export function entriesOf({
       ? [entry(groupId(items, GROUPS.stories), `${GROUPS.stories.title} · ${items.stories.length}`)]
       : []),
     ...items.stories.map((s) => entry(storyId(document, s), `${s.id} ${s.title}`, true)),
+    ...(partOf(items, "Replaced behaviour")
+      ? [entry(groupId(items, GROUPS.replaced), GROUPS.replaced.title)]
+      : []),
     ...(hasData ? [entry(GROUPS.data.id, GROUPS.data.title)] : []),
     ...BUILT_PARTS.flatMap((title) => {
       const part = partOf(items, title);

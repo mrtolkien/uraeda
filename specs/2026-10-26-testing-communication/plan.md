@@ -717,23 +717,26 @@ git commit -m "test(testing-communication): the server's and the binding's tests
 
 - Consumes: the `## Replaced behaviour` section of task 2.
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 Draw `## Replaced behaviour` as its own group between the user stories and the "How it is built"
 group, with its entry in the contents at the same place. No test: the Testing decision leaves this
-view to the human's review in the sandbox.
+view to the human's review in the sandbox. Built: the group sits right after the stories (before the
+data), with the `uraeda:arrow-right-left` icon; the sandbox's sample spec gets its section from
+`spec()` of `packages/web/samples/features.ts`, which inserts it before `## Architecture` in the
+shared recurring-tasks fixture's text, so `fixtures/` stays untouched.
 
 - [ ] **Step 2: Look at it**
 
 Run `vp run sandbox`, open the sample spec, and look at it at a phone's width and a desktop's, in
 both themes, as the UI checks decision asks.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web specs/2026-10-26-testing-communication/plan.md
