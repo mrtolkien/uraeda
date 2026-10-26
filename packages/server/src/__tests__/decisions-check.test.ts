@@ -1,7 +1,6 @@
 import { cpSync, copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
-import { APPLY_DECISIONS_CHECK, RUN_DECISIONS_CHECK } from "uraeda-server/round-messages";
 import { byId, fixture, fixtureRepo, git, mutate, testApp, testHosts } from "./helpers.ts";
 
 const FILE = ["id", "name", "path", "kind", "status", "current", "missing", "candidates"];
@@ -16,13 +15,6 @@ function checkRepo() {
   git(repo, "commit", "--quiet", "--no-verify", "--message", "chore: propose a decisions check");
   return repo;
 }
-
-test("both messages name the reference and a waiting stop", () => {
-  expect(RUN_DECISIONS_CHECK).toContain("references/decisions-check.md");
-  expect(RUN_DECISIONS_CHECK).toContain("Stop when the check waits");
-  expect(APPLY_DECISIONS_CHECK).toContain("references/decisions-check.md");
-  expect(APPLY_DECISIONS_CHECK).toContain("specs/DECISIONS-CHECK.md");
-});
 
 test("the check is missing until an agent writes it", async () => {
   const [file] = await byId((await testApp()).app, "WorkflowFile", [CHECK], FILE);

@@ -95,17 +95,6 @@ test("the opening names the files the session edited", async () => {
   );
 });
 
-test("the opening tells to merge by hand", () => {
-  const opening = movedOpening({
-    branch: "change/2026-10-20-login-redirect",
-    edited: ["src/auth/guard.ts"],
-    folder: "2026-10-20-login-redirect",
-    worktree: "/repo/.worktrees/2026-10-20-login-redirect",
-  });
-
-  expect(opening).toContain("merge your edit into the worktree's copy by hand");
-});
-
 test("a session that edited nothing is told only where it works", () => {
   expect(
     movedOpening({

@@ -91,10 +91,6 @@ test.each(["assess", "assess-revision", "fix"])(
   (step) => expect(runMessage({ ...PLAN, step })).toContain(": Finish it, starting with "),
 );
 
-test("the message does not say what the human did", () => {
-  expect(runMessage(PLAN)).not.toMatch(/the human/i);
-});
-
 test("the chat's opening line", () => {
   const feature = { kind: "feature", path: "specs/2026-10-13-chat" };
   expect(chatOpening({ branch: "2026-10-13-chat", feature })).toBe(

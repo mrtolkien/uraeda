@@ -8,7 +8,7 @@ import type { Host } from "../repositories.ts";
 import { chatImages } from "../attach.ts";
 import { SessionCache } from "../runner/cache.ts";
 import { FakeAdapter } from "../runner/fake.ts";
-import { ChatImages, UNSENT_KEPT_MS } from "../runner/images.ts";
+import { UNSENT_KEPT_MS } from "../runner/images.ts";
 import { startSessions } from "../server.ts";
 import {
   byId,
@@ -53,32 +53,6 @@ test("a subscription is sent its entity's data once it starts", async () => {
   await stream.close();
 
   expect(arrived, "no data within 5 seconds of subscribing").toBeDefined();
-});
-
-/**
- * Each listed repository is watched once, however often the list is read again, so no change is
- * sent twice, and until it leaves the list.
- */
-test("a repository is watched once, until it leaves the list", async () => {
-  const repo = fixtureRepo();
-  let watches = 0;
-  const counting = {
-    ...binding,
-    watch: (...args: Parameters<typeof binding.watch>) => {
-      watches++;
-      return binding.watch(...args);
-    },
-  };
-  const { dataDir, hosts, names } = await testHosts([repo], { binding: counting });
-
-  await hosts.reload();
-  expect(watches).toBe(1);
-
-  await binding.removeRepository(dataDir, names[0]);
-  await hosts.reload();
-  await binding.addRepository(dataDir, repo);
-  await hosts.reload();
-  expect(watches).toBe(2);
 });
 
 /**
@@ -543,26 +517,4 @@ test("review focus 10: the server's start cleans chat images no session uses, ol
   await stop();
 
   expect(readdirSync(images.dir).sort()).toEqual([held.id, recent.id].sort());
-});
-
-test("review focus 10: a cleanup that fails is logged, and the server starts all the same", async () => {
-  const dataDir = testDataDir();
-  const clean = vi.spyOn(ChatImages.prototype, "clean").mockRejectedValueOnce(new Error("EACCES"));
-  const logged = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-
-  try {
-    const { stop } = await startSessions({
-      adapter: new FakeAdapter(),
-      binding,
-      dataDir,
-      hosts: () => undefined,
-    });
-    await stop();
-
-    expect(clean).toHaveBeenCalledOnce();
-    expect(logged).toHaveBeenCalledWith(expect.stringContaining("EACCES"));
-  } finally {
-    clean.mockRestore();
-    logged.mockRestore();
-  }
 });

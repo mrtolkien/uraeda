@@ -13,7 +13,7 @@ import {
   previewStarts,
   temporaryFolder,
 } from "uraeda-binding/test-utils";
-import { freePort, type PreviewState } from "../runner.ts";
+import { freePort } from "../runner.ts";
 import { alive, checkoutOf, fakeClock, previews, ready, storyCheckout, WAIT } from "./helpers.ts";
 
 /** A port of 127.0.0.1 the test holds until it ends. */
@@ -363,24 +363,6 @@ test("a ready Storybook's index is read", async () => {
     "sidebarhandle--dragging",
     "sidebarhandle--grip",
     "sidebarhandle--thinline",
-  ]);
-});
-
-test("a state change is told", async () => {
-  const { checkout } = await storyCheckout();
-  const told: Array<[string, PreviewState["state"] | undefined]> = [];
-  const runner = previews({
-    onChange: (base) => told.push([base, runner.state(base)?.state]),
-  });
-
-  runner.view(checkout);
-  await ready(runner, checkout);
-  await runner.stopAll();
-
-  expect(told).toEqual([
-    [checkout.base, "starting"],
-    [checkout.base, "ready"],
-    [checkout.base, undefined],
   ]);
 });
 

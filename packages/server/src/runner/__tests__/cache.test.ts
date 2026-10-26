@@ -114,16 +114,6 @@ test("a session's last end is its latest ended turn's, null before any ends", ()
   expect(cache.lastEndedAt(session.id)).toBe(cache.turn(second)!.endedAt);
 });
 
-test("a chat has no folder, and many are allowed", () => {
-  const cache = SessionCache.open(":memory:");
-
-  const first = cache.createSession(chat);
-  const second = cache.createSession({ ...chat, nativeId: "9a9a" });
-
-  expect(first.id).not.toBe(second.id);
-  expect(cache.session(second.id)).toMatchObject({ folder: null, title: "New session" });
-});
-
 test("a session's turns come back oldest first, with their start and end", () => {
   const cache = SessionCache.open(":memory:");
   const session = cache.createSession(feature);

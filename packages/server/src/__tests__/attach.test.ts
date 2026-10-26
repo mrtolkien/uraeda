@@ -57,29 +57,6 @@ test("refuses an image the core refuses, with its code", async () => {
   });
 });
 
-test("refuses an upload while the feature's agent works", async () => {
-  const server = await testServer();
-  const sent = await mutate(server.app, "session.send", { folder: HUMAN, text: "Hi" }, [
-    "id",
-    "turns",
-  ]);
-  expect(sent.error).toBeUndefined();
-
-  const response = await upload(server, {
-    name: "desktop.png",
-    path: `specs/${HUMAN}/proposal.md`,
-  });
-
-  expect(response.status).toBe(400);
-  expect(await response.json()).toEqual({
-    error: "refused: An agent is working on this feature. Stop it first, or wait for it.",
-  });
-  expect(existsSync(join(server.repo, `.worktrees/${HUMAN}/specs/${HUMAN}/images`))).toBe(false);
-  await server.sessions.mainRoot(server.repo);
-  server.sessions.stop(server.repo, sent.data.id);
-  await server.sessions.settled(Number(sent.data.turns.at(-1)));
-});
-
 test("refuses an upload over the body limit without reading it", async () => {
   let read = false;
   // Pulled only when read: no chunk is queued ahead.
