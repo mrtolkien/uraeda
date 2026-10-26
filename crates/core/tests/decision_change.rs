@@ -316,18 +316,6 @@ fn a_removed_decision_has_every_part_removed_with_its_old_lines() {
 }
 
 #[test]
-fn a_renamed_decision_is_one_removed_and_one_new() {
-    let removed = compare("task-storage", Some(STORAGE), None);
-    let new = compare("local-storage", None, Some(STORAGE));
-
-    assert_eq!(
-        (removed.kind.as_str(), new.kind.as_str()),
-        ("removed", "new")
-    );
-    assert!(removed.compared && new.compared);
-}
-
-#[test]
 fn a_part_counts_its_lines_from_the_first_line_of_the_file() {
     let change = compare("task-storage", Some(STORAGE), Some(STORAGE));
 

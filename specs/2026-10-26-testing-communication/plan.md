@@ -362,6 +362,22 @@ and layout, look, and wiring are left to the human's review of the UI.
 | `packages/web/src/__browser__/helpers.tsx`, `setup.ts`, `forwarding-proxy.ts`, `colours.ts` | the browser tests' helpers (`contrast` and `luminance` moved to `packages/web/src/theme/contrast.ts`) | Rendering, layout checks, axe, and colour maths shared by the browser tests: they go with the tests that used them                                                                                                                         |
 | `packages/web/vite.browser.config.ts`, `vite.browser.color-scheme.ts`                       | the browser project (`phone` and `desktop`) and its colour-scheme plugin                              | The runner: WebKit through Playwright at two sizes, in light and dark; R2 removes it                                                                                                                                                       |
 
+#### Task 11
+
+| File                                   | Test                                            | Behaviour it guarded                                                                                                                                                                                                                                                             |
+| -------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `crates/core/tests/check.rs`           | `the_rounds_template_has_no_problems`           | The round template, its `#topic` placeholders pointed at the example, checks clean in the example: `every_fixture_round_passes` runs the same write and filter on the template and asserts no problems, under its "template" label                                               |
+| `crates/core/tests/check.rs`           | `an_awaiting_triage_has_no_problems`            | The fixture `INBOX-TRIAGE.md` checks clean at `specs/INBOX-TRIAGE.md`: `every_fixture_round_passes` loops over that same fixture and the skill's template                                                                                                                        |
+| `crates/core/tests/check.rs`           | `each_rule` row "edge case importance"          | The message "importance is high, normal, or niche": `an_edge_case_of_unknown_importance` asserts the exact summary, the rule `edges.importance`, and the severity                                                                                                                |
+| `crates/core/tests/check.rs`           | `each_rule` row "spec length"                   | The warning at 3,100 reviewed words on a waiting spec: `a_long_waiting_spec_is_reported` asserts the same string, the word count, and the rule `spec.length`                                                                                                                     |
+| `crates/core/tests/check.rs`           | `each_rule` row "spec block items"              | The warning "the block has 8 items: keep at most 7" on a spec: `a_spec_block_of_8_items` asserts the same message and the rule `block.items`                                                                                                                                     |
+| `crates/core/tests/check.rs`           | `each_rule` row "decision rules"                | The warning "12 rules: keep at most 10, or split the topic": `a_decision_of_12_rules` asserts the same, and that 10 rules do not warn                                                                                                                                            |
+| `crates/core/tests/check.rs`           | `each_rule` row "decision order"                | "a MUST rule after a SHOULD one: put the strongest first": the SHOULD-then-MUST case of `a_must_after_a_should` asserts the same message                                                                                                                                         |
+| `crates/core/tests/decision_change.rs` | `a_renamed_decision_is_one_removed_and_one_new` | A rename is a removed decision plus a new one, both compared: `a_renamed_decision_is_removed_and_new` asserts the same kinds through a real `git mv`, and `a_new_decision_has_every_part_added` and `a_removed_decision_has_every_part_removed_with_its_old_lines` own each side |
+| `crates/core/tests/settings.rs`        | `removes_the_first_of_two_names`                | Removing the first of two allowed host names leaves the second: `removing_a_name_takes_its_comments_with_it` removes `a.ts.net`, the first of two, in its `TWO` row and checks the file text                                                                                     |
+| `crates/core/tests/steps.rs`           | `implementation_names_the_first_unchecked_task` | The implementation step names the first unchecked task: `implementation_progress` asserts `step.task` on every row, including tasks finished out of order                                                                                                                        |
+| `crates/core/tests/watch.rs`           | `a_burst_of_writes_is_reported_together`        | Ten writes 10 ms apart arrive in at most 3 reports: how the debounce works, not what a caller sees, and it depended on elapsed time (same ruling as the settings-watch debounce test of task 7)                                                                                  |
+
 ## Waves
 
 The tasks of a wave are built at the same time, then merged and reviewed while the next wave starts.
@@ -950,17 +966,17 @@ git commit -m "test(testing-communication): remove the browser runner and its te
 - Modify: `crates/core/tests/*.rs`, `crates/core/tests/common/`, and the `#[cfg(test)]` modules of
   `crates/core/src/`
 
-- [ ] **Step 1: Judge each test** by [how a test is judged](#global-constraints), listing the
+- [x] **Step 1: Judge each test** by [how a test is judged](#global-constraints), listing the
       removed ones under [Removed tests](#removed-tests), "Task 11". Most core tests own stored
       formats, git, and contracts: expect most to stay. The decisions naming "the core's tests" and
       "the core's workspace tests" keep the tests their rules rely on, and task 2's tests stay.
 
-- [ ] **Step 2: Run the task's validation**
+- [x] **Step 2: Run the task's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core`, then `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add crates/core specs/2026-10-26-testing-communication/plan.md

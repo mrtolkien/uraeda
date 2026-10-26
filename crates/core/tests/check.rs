@@ -415,37 +415,6 @@ fn each_rule() {
             "specs/PRIORITIES.md: missing section \"## Next\"".into(),
         ),
         (
-            "edge case importance",
-            |e| e.edit(SPEC, "| Normal     | A repeating task is deleted", "| Urgent     | A repeating task is deleted"),
-            format!("{spec}:{}: importance is high, normal, or niche", spec_line("| Normal     | A repeating task is deleted")),
-        ),
-        (
-            "spec length",
-            |e| {
-                e.waiting(SPEC);
-                e.append_words(SPEC, "## Architecture", 3_100 - check::reviewed_words(&e.read(SPEC)));
-            },
-            format!("warning: {spec}: the spec's reviewed part is 3,100 words: aim at 2,000"),
-        ),
-        (
-            "spec block items",
-            |e| {
-                e.waiting(SPEC);
-                e.edit(SPEC, "> - Risk tier `high`", "> - One more point.\n> - Another point.\n> - Risk tier `high`");
-            },
-            format!("warning: {spec}:{}: the block has 8 items: keep at most 7", spec_line("> - Risk tier `high`") + 2),
-        ),
-        (
-            "decision rules",
-            |e| with_rules(e, &rules(12)),
-            format!("warning: {DECISION}:{}: 12 rules: keep at most 10, or split the topic", line_of(DECISION, "## Rules")),
-        ),
-        (
-            "decision order",
-            |e| with_rules(e, "- A rule SHOULD hold.\n- A rule MUST hold.\n"),
-            format!("warning: {DECISION}:{}: a MUST rule after a SHOULD one: put the strongest first", line_of(DECISION, "## Rules") + 3),
-        ),
-        (
             "decision order, a rule with no keyword between a MAY and a MUST",
             |e| with_rules(e, "- A rule MAY hold.\n- A rule with no keyword.\n- A rule MUST hold.\n"),
             format!("warning: {DECISION}:{}: a MUST rule after a MAY one: put the strongest first", line_of(DECISION, "## Rules") + 4),
@@ -1140,14 +1109,6 @@ fn triage() -> String {
     repository_file("fixtures/INBOX-TRIAGE.md")
 }
 
-#[test]
-fn an_awaiting_triage_has_no_problems() {
-    let example = Example::new();
-    example.write(TRIAGE, &triage());
-
-    assert_eq!(summary(&example.problems()), Vec::<String>::new());
-}
-
 /// The triage is checked as a round of questions, not as a free file.
 #[test]
 fn a_triage_is_checked_like_a_round() {
@@ -1277,27 +1238,6 @@ const ROUND: &str = "specs/2026-10-06-recurring-tasks/clarifications-01.md";
 /// The line of the first line of `text` that is `needle`, from 1.
 fn line_in(text: &str, needle: &str) -> usize {
     text.lines().position(|line| line == needle).unwrap() + 1
-}
-
-/// US1.1: the template's skeleton, its placeholders left as text and its topic links pointed at the
-/// example's discovery, has no problems. The links of other files to the example's questions are
-/// left out.
-#[test]
-fn the_rounds_template_has_no_problems() {
-    let example = Example::new();
-    let template = repository_file(
-        "skills/uraeda/assets/templates/specs/YYYY-MM-DD-feature-slug/clarifications-01.md",
-    )
-    .replace("#topic", "#next-due-date");
-    example.write(ROUND, &template);
-
-    let problems: Vec<Problem> = example
-        .problems()
-        .into_iter()
-        .filter(|p| p.file == ROUND)
-        .collect();
-
-    assert_eq!(summary(&problems), Vec::<String>::new());
 }
 
 /// US1.2, US1.3, and the edge case on `###` headings: one row per break of the example round,

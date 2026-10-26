@@ -438,36 +438,6 @@ fn a_new_worktree_is_reported_then_watched() {
     assert_eq!(changes.files, ["2026-10-11-web-ui/proposal.md"]);
 }
 
-/// Writes 10 ms apart are reported together. A thread the machine stalls for longer than the quiet
-/// window splits the burst, so the test counts fewer reports than writes, not exactly one: without
-/// the debounce, each write would be at least one report.
-#[test]
-fn a_burst_of_writes_is_reported_together() {
-    let repo = repo();
-    let (_watcher, receiver) = watching(&repo);
-    let writes = 10;
-
-    for n in 0..writes {
-        repo.write(
-            "specs/PRIORITIES.md",
-            &format!("# Priorities\n\n## Now\n\n- Idea {n}\n"),
-        );
-        std::thread::sleep(Duration::from_millis(10));
-    }
-
-    let mut reports = vec![next(&receiver)];
-    while let Ok(changes) = receiver.recv_timeout(Duration::from_millis(800)) {
-        reports.push(changes);
-    }
-    assert!(
-        reports.iter().all(|changes| changes.priorities),
-        "{reports:?}"
-    );
-    // One report, or a few when the test's thread stalls longer than the quiet window between two
-    // writes: never one a write.
-    assert!(reports.len() <= 3, "{reports:?}");
-}
-
 #[test]
 fn a_dropped_watcher_stops() {
     let repo = repo();
