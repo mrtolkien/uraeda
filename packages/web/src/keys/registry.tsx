@@ -192,6 +192,19 @@ export function useHints(): ReadonlyArray<StatusHint> {
 }
 
 /**
+ * Whether the single-key shortcuts are on: what a component that listens for a letter of its own
+ * (an allowlisted dialog's) and draws its key reads, so every letter key stops with the setting.
+ * On where no provider is mounted.
+ */
+export function useSingleKeys(): boolean {
+  const store = use(StoreContext)?.store;
+  return useSyncExternalStore(
+    store?.subscribe ?? noSubscription,
+    store?.getSingleKeys ?? (() => true),
+  );
+}
+
+/**
  * The leader's pending sequence, for the menu that draws it: the keys pressed so far, whether it is
  * shown yet, every binding to read its next keys from, and how to end it.
  */
