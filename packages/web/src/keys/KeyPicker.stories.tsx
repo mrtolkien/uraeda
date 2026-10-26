@@ -9,6 +9,7 @@ import { DESTINATIONS } from "../destinations.ts";
 import { Home } from "../Home.tsx";
 import { Shell } from "../Shell.tsx";
 import { KeyPicker } from "./KeyPicker.tsx";
+import { KIND_ICONS } from "./kinds.ts";
 import type { PickerItem } from "./pickerSources.ts";
 
 const UI_BEHAVIOUR = `---
@@ -45,7 +46,7 @@ const ITEMS: ReadonlyArray<PickerItem> = [
     title: "UI layout",
   },
   {
-    icon: "uraeda:step-proposal",
+    icon: KIND_ICONS.features,
     id: "/f/2026-10-26-leader-key",
     kind: "features",
     path: "/f/2026-10-26-leader-key",

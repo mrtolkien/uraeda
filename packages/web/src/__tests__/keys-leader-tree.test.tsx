@@ -4,7 +4,7 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { DESTINATIONS } from "../destinations.ts";
-import { findBindings, placeBindings } from "../keys/leaderTree.ts";
+import { findBindings, newBindings, placeBindings } from "../keys/leaderTree.ts";
 import type { PickerKind } from "../keys/pickerSources.ts";
 import { navigate } from "../routeHistory.ts";
 import { atRepo, atWidth, quiet, renderPage } from "./helpers.tsx";
@@ -216,4 +216,23 @@ test("the phone's tabs name theirs as the menu does (SC-007)", async () => {
     priorities,
     sessions,
   ]);
+});
+
+/** The icon of the binding on `keys`, among `all`. */
+const icon = (all: ReturnType<typeof newBindings>, keys: string) =>
+  all.find((binding) => binding.keys === keys)?.icon;
+
+test("a kind has one icon in the New group, the Find group, and the picker's rows (UI coherence)", () => {
+  const find = findBindings(() => {});
+  const added = newBindings(
+    () => {},
+    () => {},
+  );
+  // The kinds both groups name; the note is the Note button's pencil, which no kind has.
+  expect(icon(added, "space n f")).toBe(icon(find, "space f f"));
+  expect(icon(added, "space n c")).toBe(icon(find, "space f c"));
+  expect(icon(added, "space n s")).toBe(icon(find, "space f s"));
+  expect(
+    new Set([icon(added, "space n f"), icon(added, "space n c"), icon(added, "space n s")]).size,
+  ).toBe(3);
 });

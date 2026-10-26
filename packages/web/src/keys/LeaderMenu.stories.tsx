@@ -8,6 +8,7 @@ import { DESTINATIONS } from "../destinations.ts";
 import { Home } from "../Home.tsx";
 import { Shell } from "../Shell.tsx";
 import { LeaderMenu, type MenuEntry } from "./LeaderMenu.tsx";
+import { KIND_ICONS } from "./kinds.ts";
 
 /** The shell around the home, with the menu over it. */
 function Over({ children }: { children: ReactNode }) {
@@ -37,9 +38,9 @@ const TOP: ReadonlyArray<MenuEntry> = [
 ];
 
 const NEW: ReadonlyArray<MenuEntry> = [
-  { icon: DESTINATIONS.sessions.icon, key: "s", label: "Session" },
-  { icon: "uraeda:git-compare", key: "c", label: "Change" },
-  { icon: "uraeda:step-spec", key: "f", label: "Feature" },
+  { icon: KIND_ICONS.sessions, key: "s", label: "Session" },
+  { icon: KIND_ICONS.changes, key: "c", label: "Change" },
+  { icon: KIND_ICONS.features, key: "f", label: "Feature" },
   { icon: "uraeda:pencil", key: "n", label: "Note (inbox entry)" },
   { icon: DESTINATIONS.priorities.icon, key: "p", label: "Priority" },
 ];
