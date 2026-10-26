@@ -563,3 +563,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   gives no way to open a submenu.
 - **If wrong**: the keys are `lists/useRowKeys.ts`; the editors `lists/RowEditors.tsx`.
 - **Where**: task 8.
+
+## R90: An allowlisted letter key still follows the single-key switch
+
+- **Decision**: R1's allowlist keeps the category delete's Y, N, C out of the registry, but not out
+  of the setting: US5 says every letter key stops acting when the switch is off, so the dialog's
+  listener acts only while `useSingleKeys()` (the one reader of the switch, in `keys/registry.tsx`)
+  says on, and it draws the keys on its lines only then. The three buttons stay, and answer by
+  click. The same hook gates the "Jump to…" button's `/` (its `aria-keyshortcuts` and its key cap).
+  Any later allowlisted file that listens for a letter, or draws one, reads the same hook.
+- **Rationale**: a human who turned the shortcuts off so a typed letter never acts must not find one
+  that does, in a dialog, deleting notes.
+- **Alternatives considered**: moving the dialog's keys into the registry: the registry skips an
+  open layer, which the dialog is (R1's reason). Leaving the dialog's keys on: it breaks US5.
+- **If wrong**: drop the `singleKeys` condition in `useAnswerKeys`.
+- **Where**: `keys/registry.tsx`, `lists/CategoryPane.tsx`, `decisions/DecisionsPage.tsx`; tests in
+  `__browser__/keyboard-setting.test.tsx` and `__tests__/palette.test.tsx`.

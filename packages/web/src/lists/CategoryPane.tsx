@@ -1,6 +1,6 @@
 // The parts of a category's pane: its title, renamed in place; its menu, whose Delete asks what
 // becomes of the notes when there are any; and that question, three bordered lines that each show
-// their key, which work while it is open.
+// their key, which work while it is open and the single-key shortcuts are on.
 import { Button } from "@astryxdesign/core/Button";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
@@ -14,6 +14,7 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useState } from "react";
 import { LineField } from "../EditableLine.tsx";
+import { useSingleKeys } from "../keys/registry.tsx";
 import { Overlay, afterOverlayCloses } from "../layout/Overlay.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { CardMenu } from "./CardMenu.tsx";
@@ -98,10 +99,13 @@ const CHOICES: ReadonlyArray<{ answer: Answer; key: string; words: string }> = [
   { answer: "cancel", key: "C", words: "Cancel" },
 ];
 
-/** Y, N, and C answer while the question is open, whatever has the focus. */
-function useAnswerKeys(isOpen: boolean, onAnswer: (answer: Answer) => void) {
+/**
+ * Y, N, and C answer while the question is open, whatever has the focus, and while the single-key
+ * shortcuts are on: they are letter keys, which the setting stops everywhere (the buttons stay).
+ */
+function useAnswerKeys(isOpen: boolean, onAnswer: (answer: Answer) => void, singleKeys: boolean) {
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || !singleKeys) {
       return undefined;
     }
     const onKeyDown = (event: KeyboardEvent) => {
@@ -115,7 +119,7 @@ function useAnswerKeys(isOpen: boolean, onAnswer: (answer: Answer) => void) {
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [isOpen, onAnswer]);
+  }, [isOpen, onAnswer, singleKeys]);
 }
 
 /**
@@ -133,7 +137,8 @@ export function DeleteCategoryDialog({
   name: string;
   onAnswer: (answer: Answer) => void;
 }) {
-  useAnswerKeys(isOpen, onAnswer);
+  const singleKeys = useSingleKeys();
+  useAnswerKeys(isOpen, onAnswer, singleKeys);
   return (
     <Overlay
       isOpen={isOpen}
@@ -149,7 +154,7 @@ export function DeleteCategoryDialog({
         <VStack gap={2}>
           {CHOICES.map(({ answer, key, words }) => (
             <Button
-              endContent={<kbd {...stylex.props(styles.key)}>{key}</kbd>}
+              endContent={singleKeys ? <kbd {...stylex.props(styles.key)}>{key}</kbd> : undefined}
               key={answer}
               label={words}
               onClick={() => onAnswer(answer)}

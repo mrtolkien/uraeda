@@ -11,6 +11,7 @@ import { useState } from "react";
 import { afterEach, expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { LeaderMenuHost } from "../keys/LeaderMenuHost.tsx";
+import { DeleteCategoryDialog } from "../lists/CategoryPane.tsx";
 import { KeysProvider, useKeys } from "../keys/registry.tsx";
 import { RepositoryPathContext } from "../routes.tsx";
 import type { ServerActions, ServerValues } from "../settings/ServerSettings.tsx";
@@ -89,4 +90,35 @@ test("Space on the switch ticks it and is not the leader's, so the menu stays sh
   expect(saved).toEqual([false]);
   expect(prevented).toEqual([false]);
   expect(screen.queryByRole("group", { name: "Space" })).toBeNull();
+});
+
+/** The category delete's question, open, under a provider whose switch is `singleKeys`. */
+function ask(singleKeys: boolean) {
+  const answers: Array<string> = [];
+  render(
+    <KeysProvider singleKeys={singleKeys}>
+      <DeleteCategoryDialog count={3} isOpen name="UI" onAnswer={(a) => answers.push(a)} />
+    </KeysProvider>,
+  );
+  return answers;
+}
+
+test("with the switch on, Y answers the delete question and its lines show their keys", async () => {
+  const answers = ask(true);
+  expect(await screen.findByRole("button", { name: /^Yes, delete the notes\s*Y$/ })).toBeTruthy();
+
+  await userEvent.keyboard("y");
+
+  expect(answers).toEqual(["yes"]);
+});
+
+test("with the switch off, Y, N, and C answer nothing and show no key, and the buttons answer", async () => {
+  const answers = ask(false);
+  const yes = await screen.findByRole("button", { name: "Yes, delete the notes" });
+
+  await userEvent.keyboard("ync");
+
+  expect(answers).toEqual([]);
+  await userEvent.click(yes);
+  expect(answers).toEqual(["yes"]);
 });

@@ -23,7 +23,7 @@ import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { ListPaneContext } from "../lists/listPane.ts";
 import { useListKeys } from "../lists/useListKeys.ts";
 import { KeyPicker } from "../keys/KeyPicker.tsx";
-import { useKeys } from "../keys/registry.tsx";
+import { useKeys, useSingleKeys } from "../keys/registry.tsx";
 import { navigateHere, useRepoPath, useRestoreScroll } from "../routes.tsx";
 import { useStartChat } from "../StartChat.tsx";
 import { ConstitutionReader } from "./ConstitutionReader.tsx";
@@ -126,6 +126,8 @@ function LedgerList({
   const check = ledger.decisionsCheck;
   const shown = shownPath(ledger, open);
   const jump = useJump();
+  // `/` is a letter key: with the switch off it names no key (the button still opens the palette).
+  const singleKeys = useSingleKeys();
   const { ref } = useListKeys({
     // What Escape does, on the status line: back to the constitution, or nothing when it shows.
     escapeLabel: open && pane ? "constitution" : null,
@@ -148,8 +150,8 @@ function LedgerList({
       <VStack gap={4}>
         <HStack align="center" gap={3} wrap="wrap">
           <Button
-            aria-keyshortcuts="/"
-            endContent={<Kbd keys="/" />}
+            aria-keyshortcuts={singleKeys ? "/" : undefined}
+            endContent={singleKeys ? <Kbd keys="/" /> : undefined}
             icon={<Icon icon="search" />}
             label="Jump to…"
             onClick={jump.open}

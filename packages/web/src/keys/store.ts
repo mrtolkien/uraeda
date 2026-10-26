@@ -160,6 +160,7 @@ export function createKeyStore(initialSingleKeys: boolean) {
     /** Every binding, switch or not: the menu the Ctrl or Cmd+K chord opens walks its tree. */
     all: declared,
     getHints: () => hints,
+    getSingleKeys: () => singleKeys,
     /** The bindings of a one-token key that are on. */
     matching: (token: string) => active().filter((binding) => binding.keys === token),
     remove(id: string) {
@@ -181,8 +182,15 @@ export function createKeyStore(initialSingleKeys: boolean) {
       publish();
     },
     setSingleKeys(on: boolean) {
+      const changed = singleKeys !== on;
       singleKeys = on;
       publish();
+      if (changed) {
+        // A reader of the switch itself hears it, whether or not a hint's text changed.
+        for (const listener of listeners) {
+          listener();
+        }
+      }
     },
     subscribe(listener: () => void) {
       listeners.add(listener);
