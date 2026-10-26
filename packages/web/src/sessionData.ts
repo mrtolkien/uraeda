@@ -13,7 +13,7 @@ import {
 } from "./views.ts";
 
 /** The id of the sessions' list, as the server names it. */
-const SESSION_LIST_ID = "all";
+export const SESSION_LIST_ID = "all";
 
 /** A session, without its turns. */
 export function useSession(id: string) {

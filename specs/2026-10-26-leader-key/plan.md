@@ -784,10 +784,14 @@ in a text field moved the selection, the list-keys test red, restored.
 **Files:**
 
 - Create: `packages/web/src/keys/KeyPicker.tsx`, `keys/pickerSources.ts` (one source per kind:
-  features, changes, sessions, decisions, notes, priorities), `keys/KeyPicker.stories.tsx`
-- Modify: `packages/web/src/decisions/JumpPalette.tsx` (becomes the decisions source and its use of
-  the picker, or goes), `decisions/DecisionsPage.tsx` (`useJump` on `useKeys`, `inLayer` gone),
-  `decisions/jump.ts`
+  features, changes, sessions, decisions, notes, priorities), `keys/pickerState.ts` (the open state
+  behind `useKeyPicker`), `keys/KeyPickerHost.tsx` (the one host, mounted in `Shell.tsx`),
+  `keys/KeyPicker.stories.tsx`
+- Delete: `packages/web/src/decisions/JumpPalette.tsx` (its dialog, sheet, cursor footer, and search
+  are `KeyPicker`'s now)
+- Modify: `decisions/DecisionsPage.tsx` (`useJump` on `useKeys`, `inLayer` gone),
+  `decisions/jump.ts` (one ranking for both, `pickerItemOf`), `keys/layers.ts` (R5), `Shell.tsx`
+  (one mount line), `data.ts` and `sessionData.ts` (the record ids, exported)
 - Test: `packages/web/src/__tests__/palette.test.tsx`, `keys-picker.test.tsx`
 
 **Interfaces:**
@@ -808,6 +812,10 @@ export type PickerItem = {
   icon: IconName;
   path: string;
   preview: string;
+  /** What the row shows in the place of its icon, as a principle's numeral (R7). */
+  mark?: string;
+  /** A first sentence, which a search reads after the title (R7). */
+  summary?: string | null;
 };
 export function usePickerItems(kind: PickerKind | "all"): ReadonlyArray<PickerItem>; // suspends while it loads
 
@@ -819,20 +827,24 @@ export function KeyPicker(props: {
   items: ReadonlyArray<PickerItem>;
   /** What Enter does with an item: it opens its page, and the picker closes. */
   onPick: (item: PickerItem) => void;
+  /** Its search field's name, `title` by default; its placeholder; the kind beside each row (R7). */
+  label?: string;
+  placeholder?: string;
+  showKinds?: boolean;
 }): ReactNode;
 export function useKeyPicker(): { open: (kind: PickerKind | "all") => void };
 ```
 
-`KeyPicker` is mounted once, in `Shell.tsx`, through a small host; `useKeyPicker` opens it from
-anywhere. A feature's and a change's `preview` is its proposal's text, a decision's its file, a
-note's its text, a priority's its line with its children, and a session's is three plain lines:
-title, state, branch. The preview is raw markdown, shown as monospace text through the shared prose
-component's code path or a `<pre>` with a reason and an Astryx gap entry if no component fits. On
-narrow screens the picker is a sheet showing the list alone. Opening it adds a history entry, so
-Back closes it; Escape closes it and returns the focus to where it was. The kind's rows show their
-kind as a label in the all-kinds picker.
+`KeyPicker` is mounted once, in `Shell.tsx`, through a small host (`KeyPickerHost`, a sibling, not a
+provider); `useKeyPicker` opens it from anywhere, by module state (R7). A feature's and a change's
+`preview` is its proposal's text, a decision's its file, a note's its text, a priority's its line
+with its children, and a session's is three plain lines: title, state, branch. The preview is raw
+markdown, shown as monospace text through the shared prose component's code path or a `<pre>` with a
+reason and an Astryx gap entry if no component fits. On narrow screens the picker is a sheet showing
+the list alone. Opening it adds a history entry, so Back closes it; Escape closes it and returns the
+focus to where it was. The kind's rows show their kind as a label in the all-kinds picker.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `keys-picker.test.tsx`: US4 1, 2: opening the decisions picker and typing "ui" lists the matching
 decisions with the first selected and its file's raw text (frontmatter included) in the preview, and
@@ -846,17 +858,17 @@ raw file text, each with a ruling in `rulings.md` (the spec: "the decisions pick
 rendered preview for now"). Every other assertion of the file, `/` on an expanded disclosure and in
 a text field, "Jump to…", the three-letter test of SC-005, stays as it is.
 
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test run packages/web/src/__tests__/keys-picker.test.tsx`; expected FAIL
       `Failed to resolve import "../keys/KeyPicker.tsx"`.
-- [ ] **Step 3: Implement** the picker and the sources, move the decisions page's `/` to `useKeys`
+- [x] **Step 3: Implement** the picker and the sources, move the decisions page's `/` to `useKeys`
       (`when` the focus is not in a layer), with its hint `/ jump`, delete `inLayer`, and keep "Jump
       to…" and its `aria-keyshortcuts="/"` button. Check Firefox's quick find on `/` outside text
       fields: the page's key wins (the spec's niche edge case), and record what was checked in a
       ruling.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then
       `nix develop -c vp run browser:desktop` for the decisions palette checks. Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-26-leader-key/plan.md specs/2026-10-26-leader-key/rulings.md

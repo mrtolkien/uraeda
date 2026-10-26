@@ -3,10 +3,9 @@
 // is always open on wide and semi-wide screens, on the whole constitution until a decision is
 // picked. On narrow ones, the reader replaces the list once an item is picked, with a way back.
 // The keys move through the principles, then the decisions, the reader following (`useListKeys`);
-// `/` or "Jump to…" opens a palette that finds any of them (`JumpPalette`).
+// `/` or "Jump to…" opens the key picker over any of them (`KeyPicker`).
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
-import { useHotkeys } from "@astryxdesign/core/hooks";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Kbd } from "@astryxdesign/core/Kbd";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -23,16 +22,16 @@ import { Paragraph } from "../layout/Paragraph.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { ListPaneContext } from "../lists/listPane.ts";
 import { useListKeys } from "../lists/useListKeys.ts";
-import { useRepoPath, useRestoreScroll } from "../routes.tsx";
+import { KeyPicker } from "../keys/KeyPicker.tsx";
+import { useKeys } from "../keys/registry.tsx";
+import { navigateHere, useRepoPath, useRestoreScroll } from "../routes.tsx";
 import { useStartChat } from "../StartChat.tsx";
-import { useStatusHints } from "../statusHints.tsx";
 import { ConstitutionReader } from "./ConstitutionReader.tsx";
 import { ConstitutionRegion } from "./ConstitutionRegion.tsx";
 import { DecisionDetail } from "./DecisionDetail.tsx";
 import { DecisionList } from "./DecisionList.tsx";
 import { CheckButton, CheckMessage, DecisionsCheckBanner } from "./DecisionsCheckBanner.tsx";
-import { JumpPalette } from "./JumpPalette.tsx";
-import { jumpEntries } from "./jump.ts";
+import { jumpEntries, pickerItemOf } from "./jump.ts";
 import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts";
 import { NoSpecs } from "../layout/Missing.tsx";
 import { Empty } from "../layout/Empty.tsx";
@@ -84,36 +83,18 @@ function markedPrinciple(ledger: LedgerData, open: LedgerOpen | undefined): stri
 }
 
 /**
- * Whether a key pressed on `target` belongs to a layer: a dialog, a menu, or an open Selector, or
- * any part of them, owns its keys while it holds the focus, and a modal dialog while open. An
- * expanded disclosure, as the rail's logo, owns none: only a popup's owner does.
- */
-function inLayer(target: EventTarget | null) {
-  const layer =
-    'dialog, [role="dialog"], [role="listbox"], [role="menu"], ' +
-    '[aria-haspopup][aria-expanded="true"], [role="combobox"][aria-expanded="true"]';
-  return (
-    ((target as Partial<Element> | null)?.closest?.(layer) ?? null) !== null ||
-    document.querySelector("dialog[open]") !== null
-  );
-}
-
-/**
- * The palette's state, opened by "Jump to…" or by `/` anywhere on the page but in a text field or
- * an open layer, as the sort menu, whose keys are their own.
+ * The picker's state, opened by "Jump to…" or by `/` anywhere on the page: the registry leaves it
+ * to the page outside a text field and a layer, as the sort menu, whose keys are their own.
  */
 function useJump() {
   const [isJumping, setJumping] = useState(false);
-  useStatusHints([{ keys: "/", label: "jump" }]);
-  useHotkeys([
+  useKeys([
     {
-      isDisabled: isJumping,
+      hint: "/",
+      icon: "search",
       keys: "/",
-      onPress: (event: KeyboardEvent) => {
-        if (!inLayer(event.target)) {
-          setJumping(true);
-        }
-      },
+      label: "jump",
+      run: () => setJumping(true),
     },
   ]);
   return { close: () => setJumping(false), isJumping, open: () => setJumping(true) };
@@ -193,11 +174,14 @@ function LedgerList({
           </VStack>
         </div>
       </VStack>
-      <JumpPalette
-        constitution={ledger.constitution}
-        entries={jumpEntries(ledger, decisions)}
+      <KeyPicker
         isOpen={jump.isJumping}
+        items={jumpEntries(ledger, decisions).map(pickerItemOf)}
+        label="Jump to a decision or principle"
         onClose={jump.close}
+        onPick={(item) => navigateHere(item.path)}
+        placeholder="Find a decision…"
+        title="Jump to…"
       />
     </Pane>
   );

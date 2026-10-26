@@ -34,9 +34,9 @@ import {
 
 /** The ids of the records there is one of, as the server names them. */
 export const WORKSPACE_ID = "workspace";
-const PRIORITIES_ID = "priorities";
-const INBOX_ID = "inbox";
-const LEDGER_ID = "ledger";
+export const PRIORITIES_ID = "priorities";
+export const INBOX_ID = "inbox";
+export const LEDGER_ID = "ledger";
 const AGENT_ID = "agent";
 const PROPOSAL_HINTS_ID = "proposal";
 const REPOSITORIES_ID = "repositories";

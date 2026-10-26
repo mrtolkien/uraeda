@@ -137,6 +137,23 @@ test("under a dialog, an open menu, or an expanded popup, no binding runs", () =
   expect(ran).toEqual(["j", "j"]);
 });
 
+test("a dialog inside a popover that is not open, as the repository menu's, is no layer", () => {
+  const ran: Array<string> = [];
+  render(
+    <KeysProvider>
+      <Harness keys="j" ran={ran} />
+    </KeysProvider>,
+  );
+  // A window with no popover API opens none, and gives every element a box: the dialog in a closed
+  // popover must still not hold the page's keys.
+  const popover = add("div", { popover: "auto" });
+  const dialog = document.createElement("div");
+  dialog.setAttribute("role", "dialog");
+  popover.append(dialog);
+  press("j");
+  expect(ran).toEqual(["j"]);
+});
+
 test("an expanded disclosure that is no popup, as the rail's logo, owns no key", () => {
   const ran: Array<string> = [];
   render(
