@@ -50,8 +50,15 @@ It seems that at the moment:
 
 ## Notes
 
-Search in depth for good frontend testing practices, and see if they are even needed. Right now the
-frontend testing is slow, clumsy, and makes iteration complex.
+- Search in depth for good frontend testing practices, and see if they are even needed. Right now
+  the frontend testing is slow, clumsy, and makes iteration complex.
 
-Another option would be to scale testing effort with feature maturity. I feel like tests get more
-useful the more stable an application is, but in early stage development it's undue inertia.
+- Setup a small benchmark or evaluation: it should run uraeda on features (we already have a
+  benchmark of this type), then it should evaluate the quality of tests created: usefulness,
+  complexity, execution speed, ...
+  - Use Claude Code with Sonnet to run the evaluation
+  - No need to make it too complex: focus on one feature and evaluate the generated tests yourself.
+    Use it to tune our skill's wording and instructions.
+
+- Another option would be to scale testing effort with feature maturity. I feel like tests get more
+  useful the more stable an application is, but in early stage development it's undue inertia.
