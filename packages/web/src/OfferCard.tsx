@@ -2,22 +2,13 @@
 // change made a feature, with the agent's reason. The server starts or moves it, and refuses what
 // it cannot do; the card shows the refusal under it.
 import { Button } from "@astryxdesign/core/Button";
-import { Card } from "@astryxdesign/core/Card";
-import { Heading } from "@astryxdesign/core/Heading";
+
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import {
-  type ReactNode,
-  type RefObject,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, Suspense, useCallback, useId, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { useSlugProposal } from "./data.ts";
 import { refusal } from "./errors.ts";
@@ -26,6 +17,7 @@ import { useSettled } from "./NewChangePage.tsx";
 import { addNote, type OfferKind, proposalTitle, returnFocus, useAsks } from "./offers.ts";
 import { FeatureView } from "./views.ts";
 import { runWrite } from "./writes/store.ts";
+import { Pane } from "./layout/Pane.tsx";
 
 /** The session an offer moves: its ID, its change's folder for a feature's offer, and whether its agent works. */
 export type OfferSession = { folder?: string; id: string; working: boolean };
@@ -34,30 +26,30 @@ export type OfferSession = { folder?: string; id: string; working: boolean };
 const WORKING = "The agent is working";
 
 /**
- * The card's heading, focused each time the session's "…" asks for the card: at once for the card
- * it opened, `isOpened`, and at a later ask for the agent's.
+ * The card's pane's id, whose heading is focused each time the session's "…" asks for the card: at
+ * once for the card it opened, `isOpened`, and at a later ask for the agent's.
  */
-function useTakesFocus(session: string, isOpened: boolean): RefObject<HTMLHeadingElement | null> {
+function useTakesFocus(session: string, isOpened: boolean): string {
   const asks = useAsks(session);
-  const heading = useRef<HTMLHeadingElement>(null);
+  const id = `offer-${useId().replaceAll(":", "")}`;
   const seen = useRef(isOpened ? -1 : asks);
   useEffect(() => {
     if (seen.current !== asks) {
       seen.current = asks;
-      heading.current?.focus();
+      document.getElementById(`${id}-title`)?.focus();
     }
-  }, [asks]);
-  return heading;
+  }, [asks, id]);
+  return id;
 }
 
-/** The card's frame: its heading, named for the region, then its parts. */
+/** The card's frame: a pane titled by what it offers, named for the region, then its parts. */
 function Frame({
   children,
   heading,
   title,
 }: {
   children: ReactNode;
-  heading: RefObject<HTMLHeadingElement | null>;
+  heading: string;
   title: string;
 }) {
   // Once, as it first draws: a card drawn at the session's end keeps the end in view.
@@ -67,16 +59,11 @@ function Frame({
     }
   }, []);
   return (
-    <section aria-label={title} ref={frame}>
-      <Card padding={4}>
-        <VStack gap={3}>
-          <Heading level={3} ref={heading} tabIndex={-1}>
-            {title}
-          </Heading>
-          {children}
-        </VStack>
-      </Card>
-    </section>
+    <div ref={frame}>
+      <Pane id={heading} level={3} title={title}>
+        <VStack gap={3}>{children}</VStack>
+      </Pane>
+    </div>
   );
 }
 
@@ -243,7 +230,7 @@ function FeatureCard({ heading, latest, onClose, reason, session }: CardProps) {
 }
 
 type CardProps = {
-  heading: RefObject<HTMLHeadingElement | null>;
+  heading: string;
   latest: boolean;
   onClose: () => void;
   proposal: string;
