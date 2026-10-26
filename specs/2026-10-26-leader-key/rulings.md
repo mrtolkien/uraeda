@@ -150,3 +150,29 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: none: the spec says the page's key wins.
 - **If wrong**: a find bar opens beside the picker on `/`; the cost is a human closing it.
 - **Where**: task 7, deferred check.
+
+## R9: Where H and L send the item, and where Task 6's tests live
+
+- **Decision**: `H` and `L` (and Shift with the left and right arrows) move the selected item to the
+  end of the previous or next section that takes drops, in the order the sections show: the ongoing
+  entries, which hold running lines no drop lands in, are skipped, and an empty section counts. `K`
+  and `J` move it one place within its section. The write is the one a drag's drop makes, through
+  the list's `onMove`, and a second key waits for the first move to be written. `onMoveItem` takes
+  the row as well, `(move, row)`, so the keys move the card the focus is on, which a click or `j`
+  selects but a Tab does not. The existing hint test for a list's Escape moves from
+  `status-hints.test.tsx` to `keys-hints.test.tsx` and reads the registry's hints, with the same
+  three assertions (named, renamed, left out where it does nothing); the old API's own test stays
+  until Task 12 retires it. The priorities page's key tests are in
+  `__browser__/keys-shift.test.tsx`, a list alone's in `__tests__/keys-shift.test.tsx`.
+- **Rationale**: the spec says "to the previous or next column or section" and the scenario sends
+  Next's line to Later, without a place in it; the end is the one place that needs no row to compare
+  with, and the move menu's "bottom" does the same. The row argument costs nothing and avoids moving
+  a card other than the one with the focus ring. happy-dom takes the Repositories popover, always in
+  the page and "shown" to it, for an open layer, so no whole page's key can be tested there: the
+  existing list-keys tests are browser tests for the same reason.
+- **Alternatives considered**: the same row index in the neighbouring section, as `h` and `l` do for
+  the selection: a card would land among others by its position, which says nothing of what the
+  human means, and an empty section would need a special case. Moving only the selected card: a
+  focused card the selection does not name would not move, with its ring on it.
+- **If wrong**: the target is one function, `lists/itemMoves.ts`.
+- **Where**: task 6.
