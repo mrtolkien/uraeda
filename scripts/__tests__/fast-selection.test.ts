@@ -89,11 +89,7 @@ test("Composer chooses related focused UI without App, Rust or native prerequisi
   expect(selected.checks).toContain("ts:check");
   expect(selected.checks).not.toContain("binding:touch");
   expect(selected.deferred).toEqual(
-    expect.arrayContaining([
-      "application journeys",
-      "browser phone/desktop",
-      "production builds/package smoke",
-    ]),
+    expect.arrayContaining(["application journeys", "production builds/package smoke"]),
   );
 });
 test.each(["skills/uraeda/SKILL.md", "crates/core/src/lib.rs", "Cargo.lock"])(

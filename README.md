@@ -308,7 +308,7 @@ The tools are a Rust core, the `ura` CLI, and a web UI served with its server. T
 every feature and file with its structure. It performs every human step, answering, reviewing,
 drafting, and jotting down priorities. It also holds your sessions with the agent, from a phone too.
 With Rust, Node 24, and pnpm, or in `nix develop`, where `pnpm install` stands for `vp install` and
-the layout tests find their WebKit browser:
+the screenshot scripts find their WebKit browser:
 
 ```sh
 vp install         # dependencies

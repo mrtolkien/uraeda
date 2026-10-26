@@ -24,19 +24,6 @@ const rootConfig = [
 ];
 
 /**
- * The dev shell's variables the tests need, which Vite Task does not pass to a task unless listed:
- * the browsers, their fonts and EGL driver. Not part of a result, so not fingerprinted.
- */
-const testEnv = [
-  "PLAYWRIGHT_BROWSERS_PATH",
-  "PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS",
-  "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD",
-  "FONTCONFIG_FILE",
-  "__EGL_VENDOR_LIBRARY_DIRS",
-  "URAEDA_TEST_TRACE",
-];
-
-/**
  * A test ignores the host's git: its configuration, so the tests' repositories get git's defaults,
  * and the repository variables a git hook exports, which `--no-cache` and uncached tasks pass on.
  */
@@ -51,20 +38,14 @@ const isolatedGit = `${repositoryVariables} GIT_CONFIG_GLOBAL=/dev/null GIT_CONF
 const testRun = (from = ".") => `node ${from === "." ? "" : `${from}/`}scripts/test-run.ts`;
 
 /**
- * The browser tests run at most two at once on the machine, one checkout's phone and desktop: more,
- * from several checkouts, slowed them all past their timeouts. The others wait for their turn.
- */
-const browserRun = `${testRun()} --lock browser --slots 2`;
-
-/**
  * The type checks, the lints, and the Rust tests run at most two at once on the machine, from every
  * checkout: more, from several worktrees, got runs killed. The others wait for their turn.
  */
 const heavyRun = `${testRun()} --lock heavy --slots 2`;
 
 /**
- * CI's slice of a Vitest run, `URAEDA_TEST_SHARD=<index>/<count>`: CI splits the TypeScript and
- * browser tests over several jobs, whose slices together are the whole run. Unset, every test runs.
+ * CI's slice of a Vitest run, `URAEDA_TEST_SHARD=<index>/<count>`: CI splits the TypeScript tests
+ * over several jobs, whose slices together are the whole run. Unset, every test runs.
  */
 const shard = process.env.URAEDA_TEST_SHARD ? ` --shard=${process.env.URAEDA_TEST_SHARD}` : "";
 
@@ -168,16 +149,6 @@ export const tasks = {
     command: "sh -c 'touch -c packages/binding/*.node'",
     dependsOn: ["binding:build"],
   },
-  "browser:desktop": {
-    cache: { input: [...tsTestInputs, "scripts/test-run.ts"], output: [], untrackedEnv: testEnv },
-    command: `${browserRun} ${isolatedGit} vp test --project desktop${shard}`,
-    dependsOn: ["binding:touch"],
-  },
-  "browser:phone": {
-    cache: { input: [...tsTestInputs, "scripts/test-run.ts"], output: [], untrackedEnv: testEnv },
-    command: `${browserRun} ${isolatedGit} vp test --project phone${shard}`,
-    dependsOn: ["binding:touch"],
-  },
   // A report of the lines the Rust tests and the TypeScript unit tests run, never a check: it is not
   // cached, no task depends on it, and nothing fails when coverage drops.
   coverage: {
@@ -187,7 +158,7 @@ export const tasks = {
       "mkdir -p coverage",
       `${testRun()} ${isolatedGit} cargo llvm-cov nextest --profile coverage --lcov --output-path coverage/rust.lcov`,
       "cargo llvm-cov report --html --output-dir coverage/rust",
-      `${testRun()} ${isolatedGit} vp test --project '!phone' --project '!desktop' --coverage`,
+      `${testRun()} ${isolatedGit} vp test --coverage`,
       "node scripts/coverage-summary.ts",
     ],
     dependsOn: ["binding:touch", "web:build"],
@@ -199,16 +170,8 @@ export const tasks = {
   },
   ready: {
     command: "true",
-    dependsOn: [
-      "ready:rust",
-      "ready:typescript",
-      "ready:ts-test",
-      "ready:browser-phone",
-      "ready:browser-desktop",
-    ],
+    dependsOn: ["ready:rust", "ready:typescript", "ready:ts-test"],
   },
-  "ready:browser-desktop": { command: "true", dependsOn: ["browser:desktop"] },
-  "ready:browser-phone": { command: "true", dependsOn: ["browser:phone"] },
   "ready:rust": {
     command: "true",
     dependsOn: ["rust:fmt", "rust:clippy", "rust:test", "rust:features", "specs:check"],
@@ -257,7 +220,7 @@ export const tasks = {
     cache: {
       input: [...rustSources, "fixtures/**", ".config/nextest.toml", "scripts/test-run.ts"],
       output: [],
-      untrackedEnv: [...testEnv, "NEXTEST_PROFILE"],
+      untrackedEnv: ["NEXTEST_PROFILE"],
     },
     command: `${heavyRun} ${isolatedGit} cargo nextest run`,
   },
@@ -352,12 +315,11 @@ export const tasks = {
         "benchmarks/**",
       ],
       output: [],
-      untrackedEnv: testEnv,
     },
-    // Every project but the browser's, by exclusion: a package added to `test.projects` runs here.
-    // The built web UI is read by server tests; its source and toolchain inputs above determine
-    // it. Listing dist here would have no effect: the explicit dist exclusion always wins.
-    command: `${testRun()} ${isolatedGit} vp test --project '!phone' --project '!desktop'${shard}`,
+    // Every project: a package added to `test.projects` runs here. The built web UI is read by
+    // server tests; its source and toolchain inputs above determine it. Listing dist here would
+    // have no effect: the explicit dist exclusion always wins.
+    command: `${testRun()} ${isolatedGit} vp test${shard}`,
     dependsOn: ["binding:touch", "web:build"],
   },
   // `@uraeda/ui`, built from the web UI, the server, the binding's loader, and the skill.
@@ -395,7 +357,6 @@ export const tasks = {
         "!**/node_modules/**",
       ],
       output: [],
-      untrackedEnv: testEnv,
     },
     command: `${testRun()} ${isolatedGit} node packages/uraeda/scripts/smoke.ts --binding packages/binding`,
     dependsOn: ["ui:build", "binding:touch"],

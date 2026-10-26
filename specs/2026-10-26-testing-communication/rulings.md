@@ -75,3 +75,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   browser's own API.
 - **Where**: task 5; the browser test goes in task 10.
 - **If wrong**: `sandbox-pick.test.tsx` comes back from git, with the browser runner.
+
+## R7: The toolchain test's comment stripping keeps strings whole
+
+- **Decision**: `uncommented` in `packages/server/src/__tests__/toolchain.test.ts` removes comments
+  but keeps every string, so a glob such as `"packages/**"` opens no block comment.
+- **Rationale**: the old stripping read the `/*` of `"src/**"` as a block comment up to the next
+  `*/` of a later glob, so a `retry: 2` between two globs in the root `vite.config.ts` went
+  unreported: the rule "Test runners MUST NOT retry a failed test", checked by this test, had a
+  hole. Task 10, a risky change of this test, found it by breaking the rule on purpose.
+- **Where**: task 10, `toolchain.test.ts`; a fixture case (a retry between two globs) fails on the
+  old stripping.

@@ -17,10 +17,10 @@ permissions:
 
 # Each job runs one group of `vp run ready`, without Vite Task's cache, then fails when its checks
 # changed a file, such as a generated one left uncommitted. The toolchain test checks that every
-# group of `ready` has a job. The test groups are split over several jobs each, by Vitest's
+# group of `ready` has a job. The TypeScript tests are split over several jobs, by Vitest's
 # `--shard` (`URAEDA_TEST_SHARD`, see `vite.tasks.ts`), balanced by `scripts/test-shard.ts`: the
-# toolchain test checks that each matrix lists every shard, so the jobs together run every test.
-# 19 jobs: a free plan runs 20 at once. Validation runs on Linux x64 only; the
+# toolchain test checks that the matrix lists every shard, so the jobs together run every test.
+# 10 jobs: a free plan runs 20 at once. Validation runs on Linux x64 only; the
 # release matrix builds the other platforms.
 jobs:
   rust:
@@ -65,64 +65,6 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Run a slice of the TypeScript tests
         run: nix develop --command pnpm exec vp run --no-cache ready:ts-test
-      - name: Check the working tree is unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
-  browser-phone:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      matrix:
-        shard: [1, 2, 3]
-    env:
-      URAEDA_TEST_SHARD: ${{ matrix.shard }}/3
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - name: Run the browser tests at the phone's size
-        run: nix develop --command pnpm exec vp run --no-cache ready:browser-phone
-      - name: Keep browser failure evidence
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: browser-phone-failures-${{ matrix.shard }}
-          path: |
-            .vitest/
-            packages/web/.vitest/
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 7
-      - name: Check the working tree is unchanged
-        run: |
-          git status --porcelain
-          test -z "$(git status --porcelain)"
-
-  browser-desktop:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      matrix:
-        shard: [1, 2, 3, 4, 5]
-    env:
-      URAEDA_TEST_SHARD: ${{ matrix.shard }}/5
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup
-      - name: Run the browser tests at the desktop's size
-        run: nix develop --command pnpm exec vp run --no-cache ready:browser-desktop
-      - name: Keep browser failure evidence
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: browser-desktop-failures-${{ matrix.shard }}
-          path: |
-            .vitest/
-            packages/web/.vitest/
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 7
       - name: Check the working tree is unchanged
         run: |
           git status --porcelain

@@ -87,8 +87,7 @@ export default defineConfig({
   server: devServer(loadEnv(root, process.env, sources)),
   test: {
     ...uiTestOptions(),
-    // The browser project checks the layout; its tests run in WebKit, from the root's config.
     // The lint fixtures are files to lint, not tests: `only-test.test.tsx` holds a `test.only`.
-    exclude: ["src/__browser__/**", "src/__lint__/**", "**/node_modules/**"],
+    exclude: ["src/__lint__/**", "**/node_modules/**"],
   },
 });
