@@ -21,6 +21,7 @@ import { needsYou } from "./cards.ts";
 import { CardRow } from "./CardRow.tsx";
 import { RailLink } from "./Row.tsx";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
+import { useMenuPresentation } from "../layout/useWidthClass.ts";
 
 /** What the sidebar shows of a session, a change, or a feature. */
 export type CardItem = {
@@ -222,6 +223,7 @@ function More({
   item: CardItem;
   onSettings: (() => void) | undefined;
 }) {
+  const presentation = useMenuPresentation();
   const icon = <Icon color="secondary" icon="moreHorizontal" />;
   if (actions) {
     return (
@@ -230,7 +232,7 @@ function More({
         icon={icon}
         items={actions}
         label={`Actions of ${item.label}`}
-        presentation="adaptive"
+        presentation={presentation}
         size="sm"
       />
     );

@@ -22,7 +22,7 @@ import type { FateClient as Client } from "./clients.ts";
 import { useRepositories } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { afterOverlayCloses, Overlay } from "./layout/Overlay.tsx";
-import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass, useMenuPresentation } from "./layout/useWidthClass.ts";
 import { Logo } from "./Logo.tsx";
 import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
@@ -105,7 +105,7 @@ function RepositoryRow({
   onRemove: (name: string) => void;
   row: Row;
 }) {
-  const wide = !isNarrow(useWidthClass());
+  const presentation = useMenuPresentation();
   return (
     <ListItem
       description={
@@ -124,7 +124,7 @@ function RepositoryRow({
           alignment="end"
           items={[{ label: "Remove from Uraeda", onClick: () => onRemove(row.name) }]}
           label={`More for ${row.name}`}
-          presentation={wide ? "popover" : "bottom-sheet"}
+          presentation={presentation}
         />
       }
       isSelected={row.name === current}

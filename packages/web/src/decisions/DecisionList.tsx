@@ -14,6 +14,7 @@ import { decisionIcon } from "../theme/icons.ts";
 import { ruleCount } from "./ConstitutionRegion.tsx";
 import { statusLabel } from "./DecisionDetail.tsx";
 import { type DecisionSort, type LedgerDecision, SORTS, shortDate } from "./model.ts";
+import { useMenuPresentation } from "../layout/useWidthClass.ts";
 
 const styles = stylex.create({
   count: {
@@ -86,6 +87,7 @@ export function DecisionList({
   selected: string | undefined;
   sort: DecisionSort;
 }) {
+  const presentation = useMenuPresentation();
   return (
     <section aria-label="Decisions">
       <VStack gap={2}>
@@ -98,7 +100,7 @@ export function DecisionList({
             label="Sort decisions"
             onChange={(value: string) => onSort(value as DecisionSort)}
             options={SORTS}
-            presentation="adaptive"
+            presentation={presentation}
             size="sm"
             value={sort}
           />

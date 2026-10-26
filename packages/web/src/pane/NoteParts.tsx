@@ -6,7 +6,7 @@ import { Selector } from "@astryxdesign/core/Selector";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { ReactNode } from "react";
 import { useDraftTitles, useWorkspace } from "../data.ts";
-import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { isNarrow, useWidthClass, useMenuPresentation } from "../layout/useWidthClass.ts";
 import { TITLES } from "../QuickAdd.tsx";
 import type { useNoteActions } from "../useNoteActions.ts";
 
@@ -20,7 +20,7 @@ export function draftFile(path: string) {
 
 /** A menu of the priorities' sections, behind a button: Now, Next, Later. */
 function SectionMenu({ label, onPick }: { label: string; onPick: (section: string) => void }) {
-  const wide = !isNarrow(useWidthClass());
+  const presentation = useMenuPresentation();
   return (
     <DropdownMenu
       button={{ label }}
@@ -28,7 +28,7 @@ function SectionMenu({ label, onPick }: { label: string; onPick: (section: strin
         label: title,
         onClick: () => onPick(section),
       }))}
-      presentation={wide ? "popover" : "bottom-sheet"}
+      presentation={presentation}
     />
   );
 }
@@ -41,7 +41,7 @@ function DraftPicker({
   except?: string;
   onPick: (path: string, title: string) => void;
 }) {
-  const wide = !isNarrow(useWidthClass());
+  const presentation = useMenuPresentation();
   const paths = (useWorkspace()?.drafts ?? []).map(draftFile).filter((path) => path !== except);
   const drafts = useDraftTitles(paths);
   return (
@@ -59,7 +59,7 @@ function DraftPicker({
       }}
       options={(drafts ?? []).map((draft) => ({ label: draft.title, value: draft.path }))}
       placeholder="Add to a draft"
-      presentation={wide ? "popover" : "bottom-sheet"}
+      presentation={presentation}
       searchPlaceholder="Find a draft"
     />
   );
@@ -75,7 +75,7 @@ export function CategoryMenu({
   names: ReadonlyArray<string>;
   onPick: (category: string | undefined) => void;
 }) {
-  const wide = !isNarrow(useWidthClass());
+  const presentation = useMenuPresentation();
   const value = category === undefined ? NONE : `:${category}`;
   return (
     <Selector
@@ -89,7 +89,7 @@ export function CategoryMenu({
         { label: "No category", value: NONE },
         ...names.map((name) => ({ label: name, value: `:${name}` })),
       ]}
-      presentation={wide ? "popover" : "bottom-sheet"}
+      presentation={presentation}
       value={value}
     />
   );
