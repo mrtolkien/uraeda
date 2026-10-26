@@ -1,10 +1,10 @@
 // The base keymap's scroll fallback in a real browser (US2 5, US2 more 1; review focus 11): on the
 // spec page, `j` scrolls the page down a few lines and `k` back; with the focus in a nested scroller,
 // that region scrolls alone and the page stays.
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { atSize, show } from "./helpers.tsx";
+import { agent, atSize, drawn, LIVE, show } from "./helpers.tsx";
 
 atSize("desktop");
 
@@ -46,5 +46,42 @@ test("a nested scroller with the focus scrolls alone (US2 more 1)", async () => 
 
   await userEvent.keyboard("k");
   await expect.poll(() => region.scrollTop).toBe(0);
+  expect(window.scrollY).toBe(0);
+});
+
+test("on the real session page, the focus in the column's Changes scrolls that region alone (US2 more 1)", async () => {
+  const feature = "2026-10-12-cli-tuis";
+  await agent.addPlan(feature);
+  await agent.commitOnBranch(
+    feature,
+    Object.fromEntries(
+      Array.from({ length: 40 }, (_, index) => [
+        `src/f${String(index).padStart(2, "0")}.rs`,
+        "fn f() {}\n",
+      ]),
+    ),
+  );
+  await show(`/f/${feature}/session`, "CLI TUIs");
+  const column = await screen.findByRole("complementary", { name: "The session's column" }, LIVE);
+  const changes = within(column).getByRole("region", { name: "Changes" });
+  await userEvent.click(
+    await within(changes).findByRole("button", { name: "38 more files" }, LIVE),
+  );
+  await within(changes).findByText("src/f39.rs", undefined, LIVE);
+  await drawn();
+  expect(changes.scrollHeight).toBeGreaterThan(changes.clientHeight);
+  const log = screen.getByRole("log", { name: "Conversation" });
+  const logAt = log.scrollTop;
+  // The region takes the focus itself, as Tab reaches it: its keys are the browser's for a scroller.
+  changes.focus();
+  expect(document.activeElement).toBe(changes);
+
+  await userEvent.keyboard("j");
+  await expect.poll(() => changes.scrollTop).toBeGreaterThan(0);
+  expect(window.scrollY).toBe(0);
+  expect(log.scrollTop).toBe(logAt);
+
+  await userEvent.keyboard("k");
+  await expect.poll(() => changes.scrollTop).toBe(0);
   expect(window.scrollY).toBe(0);
 });

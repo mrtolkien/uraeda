@@ -343,3 +343,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `isMoving` guard.
 - **Where**: fix pass B, `lists/WorkList.tsx`, `__tests__/work-list-moves.test.tsx`,
   `__browser__/keys-shift.test.tsx`.
+
+## R31: The open rail's page Escape is a fallback: a pane closes first, then the rail folds
+
+- **Decision**: with the rail open (a hover opened it, the focus on the page), Escape pressed
+  outside the rail runs the page's own Escape first, and folds the rail only where no binding of the
+  page took it. One Escape closes the pane (or whatever the page's Escape closes), the second folds
+  the rail. Inside the rail, Escape is still the rail's own (`useRail`'s `onKeyDown`, which also
+  moves the focus to the logo). This changes the old rail: its document listener folded the rail on
+  every Escape, at the same time as a page's own Escape, and in a text field too; the registry's
+  rule keeps Escape in a text field and under a layer for their owners.
+- **Rationale**: one key, one thing (the registry's rule, R1): a fallback is how a shell default
+  yields to a page's binding, and a rail left open by a resting mouse is the lesser thing to close.
+  A text field's Escape (discarding a draft, closing a combobox) must not also fold the rail.
+- **Alternatives considered**: the rail first, then the pane: a human closing a pane with Escape
+  would see the rail fold instead and press again, on every page, for a rail they did not mean to
+  open. Both at once, as before: two actions on one key.
+- **If wrong**: `useEscape` in `shell/Rail.tsx` drops `fallback: true`, and the registry's conflict
+  check then names the pages that bind Escape too.
+- **Where**: fix pass B, `__tests__/keys-scroll.test.tsx` ("one Escape closes the pane and the next
+  folds the rail").
