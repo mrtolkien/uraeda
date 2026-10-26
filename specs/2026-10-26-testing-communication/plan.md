@@ -488,7 +488,7 @@ git commit -m "docs(testing-communication): one home for testing in the skill"
 - Produces: each rule below as an exported pure function, with a table-driven unit test, one row a
   case. The `.test.tsx` that guarded it is not touched here: task 12 removes it.
 
-- [ ] **Step 1: Write the unit tests, and the extractions they need**
+- [x] **Step 1: Write the unit tests, and the extractions they need**
 
 | Rule                                                                                                                                | Source                                              | Cases from                                                                 |
 | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -505,18 +505,31 @@ git commit -m "docs(testing-communication): one home for testing in the skill"
 
 Take each case's values from the old test, so the rule stays as it was.
 
-- [ ] **Step 2: Run them**
+Built: `withInserted`, `placeOf`, `differ`, `addedNote`, `storyComment`, `storyAnchor`, `asTyped`,
+`sentAt`, and `elapsed` were already exported and pure, and `takeBackInto` too, with a stub draft as
+`storyCommentsInto`'s test has. Extracted: `lostAnswerNote` (`NoteImage.tsx`, the match of
+`addedAfterAll` by words, which now calls it), `savedWithLine` and `unsavedWithLine`
+(`useAnswer.ts`, the strings `saveWithLine` writes), and from `tail.tsx` `stepPage` (what the walk
+does with one page: where it cuts, how many messages it draws, whether it goes on back) and
+`shownAfterPress` (what a press of "Show earlier messages" asks for). The tail's tests are rows of
+`stepPage`, one page each: the walk across pages and the button's probe stay in the components.
+Tests: `RecommendedMessage.test.ts`, `useDraft.test.ts`, `reviewField.test.ts`, `unsaved.test.ts`,
+`NoteImage.test.ts`, `storyComment.test.ts`, `useAnswer.test.ts`, `draft-text.test.ts`,
+`tail.test.ts`, `Transcript.test.ts`. The old tests have no case of a story comment's 40-character
+snippet or of taken-back images: their rows follow the rule in the source.
+
+- [x] **Step 2: Run them**
 
 - Run: the new test files, by path, under `nix develop -c vp test`.
 - Expected: PASS once each function is exported or extracted. A function moved out of a component
   keeps its callers' behaviour; the existing `.test.tsx` files still pass.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-26-testing-communication/plan.md

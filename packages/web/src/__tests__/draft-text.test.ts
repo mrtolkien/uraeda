@@ -1,7 +1,7 @@
 // @vitest-environment node
 // A draft's text as its edit box holds it: cut after the frontmatter, which a save joins back.
 import { expect, test } from "vite-plus/test";
-import { splitDraft, storedBody } from "../pane/draftText.ts";
+import { asTyped, splitDraft, storedBody } from "../pane/draftText.ts";
 
 /** A draft read as the core gives it: its text, and where its frontmatter ends. */
 const draft = (text: string, end?: number) => ({
@@ -45,4 +45,21 @@ test("a stored text with a frontmatter loses it, and one without it is left alon
 /** A body that opens with a break of `---` lines is text, not a frontmatter. */
 test("a stored body that opens with a thematic break keeps it", () => {
   expect(storedBody("---\nA break, then words.\n---\nMore.\n")).toBeUndefined();
+});
+
+/** A text field's value has LF line breaks, whatever the file has, and its cursor counts them so (R50). */
+test.each([
+  { expected: "one\ntwo\n", text: "one\r\ntwo\r\n", what: "CRLF line breaks" },
+  { expected: "one\ntwo", text: "one\rtwo", what: "a lone CR line break" },
+  { expected: "one\ntwo\n\nthree", text: "one\ntwo\r\n\r\nthree", what: "LF and CRLF mixed" },
+  { expected: "one\ntwo\n", text: "one\ntwo\n", what: "LF line breaks, left as they are" },
+])("typed or pasted text with $what is kept as LF", ({ expected, text }) => {
+  expect(asTyped(text)).toBe(expected);
+});
+
+test("a draft's text with CRLF line breaks is split as LF", () => {
+  expect(splitDraft(draft("---\r\ndiscovery: low\r\n---\r\n\r\n# Title\r\n", 3))).toEqual({
+    body: "# Title\n",
+    head: "---\ndiscovery: low\n---\n\n",
+  });
 });
