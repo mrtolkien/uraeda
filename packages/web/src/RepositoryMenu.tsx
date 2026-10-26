@@ -12,7 +12,12 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { fontWeightVars, sizeVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  fontWeightVars,
+  sizeVars,
+  spacingVars,
+  typeScaleVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import {
   createContext,
@@ -44,9 +49,10 @@ const styles = stylex.create({
     lineHeight: typeScaleVars["--text-large-leading"],
   },
   names: {
-    alignItems: "flex-start",
+    alignItems: "baseline",
+    columnGap: spacingVars["--spacing-2"],
     display: "flex",
-    flexDirection: "column",
+    flexWrap: "wrap",
     minWidth: 0,
   },
   path: {
@@ -54,15 +60,17 @@ const styles = stylex.create({
     overflowWrap: "anywhere",
   },
   repository: {
-    // The repository's name under "Uraeda" wraps anywhere too, inside the button's one-line label.
+    // The repository's name after "Uraeda" wraps anywhere too, inside the button's one-line label.
     overflowWrap: "anywhere",
     whiteSpace: "normal",
   },
   trigger: {
-    // The heading's trigger: "Uraeda" over the repository's name, two lines, the chevron at its end.
+    // The heading's trigger: "Uraeda | repository" on one line, wrapping when it must, and the
+    // chevron at its end.
     height: "auto",
     justifyContent: "space-between",
     minHeight: sizeVars["--size-element-md"],
+    paddingInlineStart: spacingVars["--spacing-1"],
     textAlign: "start",
   },
   unchecked: {
@@ -233,8 +241,8 @@ function Menu({
 }
 
 /**
- * The navigation's heading as the menu's trigger: "Uraeda" over the current repository's name, or
- * alone on a page of none, with a chevron, after the logo with `hasLogo`. It opens the menu, and
+ * The navigation's heading as the menu's trigger: "Uraeda | " and the current repository's name, or
+ * "Uraeda" alone on a page of none, with a chevron, after the logo with `hasLogo`. It opens the menu, and
  * the menu the add form.
  */
 export function RepositoryMenu({
@@ -347,13 +355,19 @@ function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: bo
       xstyle={styles.trigger}
     >
       <span {...stylex.props(styles.names)}>
-        <span {...stylex.props(styles.brand)}>Uraeda</span>
-        {/* Its accessible name, the label, is the text it shows, words apart. */}
-        {current !== null && " "}
-        {current !== null && (
-          <Text color="secondary" display="block" type="supporting" xstyle={styles.repository}>
-            {current}
-          </Text>
+        {current === null ? (
+          <span {...stylex.props(styles.brand)}>Uraeda</span>
+        ) : (
+          <>
+            <Text color="secondary" type="supporting">
+              Uraeda
+            </Text>
+            {/* Its accessible name, the label, is the text it shows, words apart. */}{" "}
+            <Text aria-hidden color="secondary" type="supporting">
+              |
+            </Text>{" "}
+            <span {...stylex.props(styles.brand, styles.repository)}>{current}</span>
+          </>
         )}
       </span>
     </Button>
