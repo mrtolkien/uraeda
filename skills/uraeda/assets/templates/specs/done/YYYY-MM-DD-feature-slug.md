@@ -2,6 +2,8 @@
 kind: [feature | change]
 finished: [YYYY-MM-DD: the day of the finishing commit]
 pull-request: [Optional: the pull request's URL]
+supersedes: [Optional: the older records this one replaces, a list of record names]
+superseded-by: [Optional: the newer records replacing this one, a list of record names]
 ---
 
 # Record: [Feature name]
@@ -25,6 +27,14 @@ pull-request: [Optional: the pull request's URL]
 
 [The approach in a few sentences, then the main components, each with a link to its code. For a
 change, the root cause or the approach, and the code it touched.]
+
+## Replaced behaviour
+
+[Optional: the behaviour the feature replaced, one line each, with the tests that guarded it.]
+
+## Gotchas
+
+[Optional: what the code and tests do not show, one line each, next to the choice it shaped.]
 
 ## Questions
 

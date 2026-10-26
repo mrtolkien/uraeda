@@ -310,7 +310,7 @@ git commit -m "docs(testing-communication): how a screenshot reaches a pull requ
   `## Replaced behaviour` and `## Gotchas` in the record template, after `## Design`, in that order.
   Task 9 rewrites their placeholder text; task 8 draws the spec's section.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `each_rule`'s table, beside the record rows, with the example's record (`RECORD`) and a second
 record written by the test:
@@ -336,12 +336,12 @@ The break each test catches:
   check drops.
 - Not a list: a text value accepted as one name.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test check --test fields`
 - Expected: FAIL, the first on `unknown field "supersedes"`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Read a YAML list of strings in the frontmatter, as a new `Value` variant or a reader beside `get`.
 In `values.rs`, add the two optional fields to the record's list, and check each name against the
@@ -352,13 +352,13 @@ placeholders, so the check allows them and orders them.
 Make the break each test names, once its test passes, see it fail, revert it, and say what failed in
 the commit body.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then
   `nix develop -c cargo run -q -p uraeda-cli -- check specs skills/uraeda/assets/example/specs`
 - Expected: PASS, and no problem in `specs` nor the example; the deferred checks named.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core skills/uraeda/assets/templates specs/2026-10-26-testing-communication/plan.md

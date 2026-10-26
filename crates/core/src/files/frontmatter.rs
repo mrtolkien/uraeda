@@ -11,6 +11,8 @@ pub enum Value {
     Integer(i64),
     Bool(bool),
     Null,
+    /// A YAML list of texts, like `[2026-10-19-fix-testing]`.
+    List(Vec<String>),
     Other,
 }
 
@@ -58,6 +60,15 @@ impl Frontmatter {
         }
     }
 
+    /// A field's value when it is a list of texts: an empty field is an empty list.
+    pub fn list(&self, key: &str) -> Option<&[String]> {
+        match self.get(key) {
+            Some(Value::List(items)) => Some(items),
+            Some(Value::Null) => Some(&[]),
+            _ => None,
+        }
+    }
+
     /// A field's value as written, without quotes: `0000000` stays text, where YAML reads a
     /// number.
     pub fn raw(&self, key: &str) -> Option<&str> {
@@ -82,6 +93,7 @@ enum Field {
     Bool(bool),
     Integer(i64),
     Text(String),
+    List(Vec<String>),
     Other(serde::de::IgnoredAny),
 }
 
@@ -123,6 +135,7 @@ pub fn parse(text: &str) -> Result<Frontmatter, FrontmatterError> {
                 Some(Field::Bool(value)) => Value::Bool(value),
                 Some(Field::Integer(value)) => Value::Integer(value),
                 Some(Field::Text(value)) => Value::Text(value),
+                Some(Field::List(items)) => Value::List(items),
                 Some(Field::Other(_)) => Value::Other,
             };
             (key, value)

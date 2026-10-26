@@ -60,6 +60,13 @@ More scenarios:
 
 1. **Given** [state], **When** [action], **Then** [outcome]
 
+## Replaced behaviour
+
+[Optional: each behaviour the spec replaces, in bold, with the tests that guard it. Leave the
+section out when nothing is replaced.]
+
+- **[The behaviour]** [what replaces it], guarded by [the tests that go].
+
 ## Architecture
 
 [The chosen approach in a few sentences, and why it fits. Links to the decisions and discovery

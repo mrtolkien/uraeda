@@ -186,6 +186,8 @@ fn every_kind_lists_the_fields_check_requires() {
                 ("kind", choice(&["feature", "change"])),
                 ("finished", plain(FieldKind::Date)),
                 ("pull-request", plain(FieldKind::Text)),
+                ("supersedes", plain(FieldKind::Text)),
+                ("superseded-by", plain(FieldKind::Text)),
             ],
         ),
         (
