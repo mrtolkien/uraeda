@@ -69,8 +69,9 @@ task that carries it out. State which spec clause it supersedes when it explicit
 ## Test map
 
 Each scenario, edge case, and criterion of the spec, and the task whose tests cover it, or "none"
-and why. [How the tests run: what they render, on which store, with which clock, and which checks
-use a real boundary. One test may own several rows.]
+and why. [The number of new tests, at most the spec's key scenarios plus its high edge cases. How
+the tests run: what they render, on which store, with which clock, and which checks use a real
+boundary. One test may own several rows.]
 
 | Spec                                                              | Task | Test                       |
 | ----------------------------------------------------------------- | ---- | -------------------------- |

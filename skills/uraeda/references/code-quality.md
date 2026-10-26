@@ -75,14 +75,17 @@ Discovery asks a project without one to adopt it, once. Without one, test only w
 wrong and rarely changes: stored formats, git and other writes, security, contracts between the
 project's parts, pure logic with many cases, and the reproduction of each bug fixed.
 
-- **The spec's key scenarios and high edge cases set the ceiling**: each gets one test at most, and
-  none where the stage asks none. A rarer scenario, a lower edge case, or a review-focus item joins
-  one of those tests, as a row or an assertion, or has no test. The plan's test map says "none" and
-  why for each row without one.
+- **The spec's key scenarios and high edge cases set the ceiling**: count them, and add no more new
+  tests than that. Each gets one test at most, and none where the stage asks none. A rarer scenario,
+  a lower edge case, or a review-focus item joins one of those tests, as a row or an assertion, or
+  has no test. The plan's test map says "none" and why for each row without one.
 - **The existing tests first.** Read the tests of the code a task changes before writing one. A
   scenario an existing test already proves gets no new test: the test map names the one that proves
   it. A new case of a behaviour that has a test goes into that test, as a row or an assertion. A new
   test that would prove all an existing one proves replaces it, in the same commit.
+- **Assert only what the task adds.** A new test checks the behaviour the task adds or changes, and
+  leaves what an existing test already checks to it: comparing a whole list of results, where one
+  result is new, asserts the others a second time.
 - **One layer per rule.** A rule that two entry points reach, such as a check and a view built on
   it, gets one test, through the entry point whose path runs all the code the rule depends on. A
   test of the inner one adds nothing.
