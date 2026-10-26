@@ -15,6 +15,7 @@ import { Columns, Empty, HomeRow, Overview, PaneLink } from "./parts.tsx";
 import { Recent } from "./Recent.tsx";
 import { inboxSummary, prioritySection, runningStatus } from "./summary.ts";
 import { Usage } from "./Usage.tsx";
+import { plural } from "../labels.ts";
 
 /** How many entries Priorities now shows: the rest are one tap away, on the priorities page. */
 const PRIORITIES_SHOWN = 5;
@@ -76,9 +77,7 @@ function Inbox() {
       )}
       <PaneLink
         href={here("/inbox")}
-        label={
-          count === 0 ? "Open the inbox" : `${count} ${count === 1 ? "note" : "notes"} to organize`
-        }
+        label={count === 0 ? "Open the inbox" : `${plural(count, "note")} to organize`}
       />
     </Pane>
   );

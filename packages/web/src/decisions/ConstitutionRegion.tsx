@@ -8,6 +8,7 @@ import type { Ledger } from "uraeda-server/fate";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
+import { plural } from "../labels.ts";
 
 /** The constitution, as the ledger sends it. */
 export type LedgerConstitution = NonNullable<Ledger["constitution"]>;
@@ -49,7 +50,7 @@ export function versionLine(
 
 /** "1 rule", "3 rules". */
 export function ruleCount(count: number): string {
-  return count === 1 ? "1 rule" : `${count} rules`;
+  return plural(count, "rule");
 }
 
 /** A principle's rules: the items of the lists under its heading. */

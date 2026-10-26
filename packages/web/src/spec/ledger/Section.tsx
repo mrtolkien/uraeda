@@ -9,6 +9,7 @@ import { type ReactNode, useId } from "react";
 import type { DecisionChange, PartChange, SectionChange } from "uraeda-binding";
 import { type Context, foldKeyOf } from "./context.ts";
 import { Fold, holdsAny, Part } from "./Rows.tsx";
+import { plural } from "../../labels.ts";
 
 /** What a ledger draws a decision's sections with: its context, but the section's own. */
 export type LedgerContext = Omit<Context, "heading" | "intent">;
@@ -19,7 +20,7 @@ const OTHERS = "Why, alternatives, consequences";
 /** "1 rule unchanged", "3 parts unchanged": the label of a section's kept parts. */
 function keptLabel(count: number, rules: boolean) {
   const noun = rules ? "rule" : "part";
-  return `${count} ${noun}${count === 1 ? "" : "s"} unchanged`;
+  return `${plural(count, noun)} unchanged`;
 }
 
 /**

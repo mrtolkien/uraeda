@@ -94,3 +94,8 @@ const FILE_STATUSES: Record<string, { label: string; variant: "error" | "success
 export function fileStatusBadge(status: string | undefined | null) {
   return FILE_STATUSES[status ?? ""];
 }
+
+/** A count and its noun, "1 note", "2 notes": `many` for a plural other than the noun and "s". */
+export function plural(count: number, one: string, many = `${one}s`) {
+  return `${count} ${count === 1 ? one : many}`;
+}

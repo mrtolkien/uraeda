@@ -1,6 +1,7 @@
 // A feature's or a change's stages as the timeline reads them: their names, and each one's line of
 // time, from the core's reading of its commits.
 import { clock, duration } from "./times.ts";
+import { plural } from "../labels.ts";
 
 /** Each stage's name, as the core sends it, in words. */
 export const LABELS: Record<string, string> = {
@@ -64,7 +65,7 @@ export function stageLine(history: StagesHistory, index: number): string | undef
     }
   }
   if (stage?.name === "questions" && (history.rounds ?? 0) > 0) {
-    parts.push(`${history.rounds} ${history.rounds === 1 ? "round" : "rounds"}`);
+    parts.push(plural(history.rounds ?? 0, "round"));
   }
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }

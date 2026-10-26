@@ -15,6 +15,7 @@ import { useSession } from "../sessionData.ts";
 import { useOpenKeys } from "../useOpenKeys.ts";
 import { Path } from "./Path.tsx";
 import { Section } from "./Section.tsx";
+import { plural } from "../labels.ts";
 
 const styles = stylex.create({
   added: { color: colorVars["--color-text-green"] },
@@ -32,7 +33,7 @@ const NOTHING = "No file changed yet.";
 
 /** "1 file", or "N files". */
 export function fileCount(count: number) {
-  return `${count} ${count === 1 ? "file" : "files"}`;
+  return plural(count, "file");
 }
 
 /** A part's title: its name and counts, over its rows. */
@@ -46,12 +47,12 @@ function PartTitle({ children }: { children: string }) {
 
 /** "1 edit", or "N edits". */
 function editCount(count: number) {
-  return `${count} ${count === 1 ? "edit" : "edits"}`;
+  return plural(count, "edit");
 }
 
 /** "N more files", the count past those shown. */
 function moreFiles(count: number) {
-  return `${count} more ${count === 1 ? "file" : "files"}`;
+  return plural(count, "more file", "more files");
 }
 
 /** What Changes reads while the session changed no file. */

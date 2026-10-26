@@ -17,6 +17,7 @@ import { After, Selectable, type Selection } from "../Selection.tsx";
 import { SinceWords } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
 import { type PartProps, type SpecItems, storyId } from "./parts.ts";
+import { plural } from "../labels.ts";
 
 /** The icon of each step word, as the core names them. */
 const STEP_ICONS: Record<string, string> = {
@@ -175,7 +176,7 @@ function MoreScenarios({
   const count = story.more.length;
   const label = isOpen
     ? "Fold the other scenarios"
-    : `${count} more ${count === 1 ? "scenario" : "scenarios"}`;
+    : plural(count, "more scenario", "more scenarios");
   return (
     <Collapsible
       chevronPosition="start"

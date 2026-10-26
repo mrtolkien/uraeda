@@ -3,6 +3,7 @@
 // decisions. Pure: the browser's clock is an argument, so a running turn's time and the elapsed
 // time grow with it (R5).
 import { clock, day, duration } from "./times.ts";
+import { plural } from "../labels.ts";
 
 /** A row's value: plain, lines added and removed, or one line per part. */
 export type FigureValue = string | { added: number; removed: number } | { lines: Array<string> };
@@ -41,11 +42,6 @@ export function tokenCount(count: number): string {
     .join("");
   const unit = parts.find((part) => part.type === "compact")?.value ?? "";
   return `${number} ${unit === "K" ? "k" : unit}`;
-}
-
-/** "1 round", "2 rounds". */
-function plural(count: number, word: string): string {
-  return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
 
 /** The tokens' row: in and out on two lines, "Not recorded" when none were counted. */

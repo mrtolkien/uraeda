@@ -3,6 +3,7 @@
 // sub-agent's row's. One table of the kinds' words serves them all, so a word changes in one place.
 import type { TranscriptItem } from "../TranscriptMessages.tsx";
 import { elapsed } from "../TurnLines.tsx";
+import { plural } from "../labels.ts";
 
 /** A tool call of a turn, as the chat draws it. */
 export type ToolItem = Extract<TranscriptItem, { kind: "tool" }>;
@@ -94,9 +95,7 @@ function times(count: number): string {
 
 /** "read 3 files", "ran 1 command", or with no unit "searched twice". */
 function counted(past: string, count: number, unit?: string): string {
-  return unit === undefined
-    ? `${past} ${times(count)}`
-    : `${past} ${count} ${unit}${count === 1 ? "" : "s"}`;
+  return unit === undefined ? `${past} ${times(count)}` : `${past} ${plural(count, unit)}`;
 }
 
 /** What a kind acts on when no target names it, "a file", or nothing for a search. */
@@ -273,7 +272,7 @@ export function activityText(label: string): string {
 
 /** "1 call", or "N calls". */
 export function callCount(count: number): string {
-  return `${count} ${count === 1 ? "call" : "calls"}`;
+  return plural(count, "call");
 }
 
 /**
@@ -295,8 +294,7 @@ export function subagentText({
  * its running sub-agents, "12 s · reading src/tasks/undo.ts · 2 sub-agents running".
  */
 export function liveText(lastingMs: number, doing: string, subagents: number): string {
-  const running =
-    subagents > 0 ? ` · ${subagents} sub-agent${subagents === 1 ? "" : "s"} running` : "";
+  const running = subagents > 0 ? ` · ${plural(subagents, "sub-agent")} running` : "";
   return `${elapsed(lastingMs)} · ${doing}${running}`;
 }
 

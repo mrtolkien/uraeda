@@ -13,6 +13,7 @@ import { useNavigation } from "../sessionData.ts";
 import { runningSessions } from "../sidebar/entries.ts";
 import { selects } from "../sidebar/Row.tsx";
 import { useShellPath } from "./ShellPanes.tsx";
+import { plural } from "../labels.ts";
 
 const styles = stylex.create({
   badge: {
@@ -98,7 +99,7 @@ function InboxCounted({ isCurrent }: { isCurrent: boolean }) {
   return (
     <Tab
       count={inbox?.count}
-      counted={(n) => (n === 1 ? "1 note" : `${n} notes`)}
+      counted={(n) => plural(n, "note")}
       icon="uraeda:inbox"
       isCurrent={isCurrent}
       label="Inbox"

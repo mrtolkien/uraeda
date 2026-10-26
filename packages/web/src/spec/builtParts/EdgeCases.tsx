@@ -14,6 +14,7 @@ import { plain, Spans } from "../../Spans.tsx";
 import type { PartProps, SpecItems } from "../parts.ts";
 import { Runs } from "../RuleLine.tsx";
 import { builtStyles, type DrawingProps, inOrder, parentsOf } from "./shared.tsx";
+import { plural } from "../../labels.ts";
 
 /** Each importance the format knows: its pill, and its rank, the most important first. */
 const IMPORTANCE: Record<string, { label: string; rank: number; variant: "neutral" | "warning" }> =
@@ -110,9 +111,7 @@ function EdgeList({ edges, props }: { edges: ReadonlyArray<Edge>; props: PartPro
           isOpen={isOpen}
           onOpenChange={setChosen}
           trigger={
-            <span {...stylex.props(builtStyles.fold)}>
-              {niche.length === 1 ? "1 niche case" : `${niche.length} niche cases`}
-            </span>
+            <span {...stylex.props(builtStyles.fold)}>{plural(niche.length, "niche case")}</span>
           }
         >
           {isOpen && (

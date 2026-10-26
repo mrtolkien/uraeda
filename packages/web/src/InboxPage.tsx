@@ -25,10 +25,11 @@ import { NOTE, openDetail } from "./pane/DetailOverlay.tsx";
 import { repoPath, useLocalPath, useRepoPath, useRepository, useRestoreScroll } from "./routes.tsx";
 import { imagePath, plain, Spans } from "./Spans.tsx";
 import { InboxView } from "./views.ts";
+import { plural } from "./labels.ts";
 
 /** "1 note", "10 notes". */
 export function notes(count: number) {
-  return `${count} ${count === 1 ? "note" : "notes"}`;
+  return plural(count, "note");
 }
 
 /** A note's marks, as tags before its text: `agent` in a colour of its own, then its feature's. */

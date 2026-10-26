@@ -9,6 +9,7 @@ import { CheckPane } from "./RoundParts.tsx";
 import { PART_IDS } from "./roundPartIds.ts";
 import { plain } from "./Spans.tsx";
 import { useOpenKeys } from "./useOpenKeys.ts";
+import { plural } from "./labels.ts";
 
 const styles = stylex.create({
   settled: {
@@ -47,8 +48,7 @@ function useHoodFold(
 }
 
 /** The line "Under the hood" folds to, "1 choice in the code only" for one point. */
-const foldedLabel = (count: number) =>
-  `${count} ${count === 1 ? "choice" : "choices"} in the code only`;
+const foldedLabel = (count: number) => `${plural(count, "choice")} in the code only`;
 
 /** A group of the round's end, a pane by its kind: Behaviour, or Under the hood folded. */
 function GroupPane({

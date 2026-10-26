@@ -17,6 +17,7 @@ import { LineField } from "../EditableLine.tsx";
 import { Overlay, afterOverlayCloses } from "../layout/Overlay.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { CardMenu } from "./CardMenu.tsx";
+import { plural } from "../labels.ts";
 
 /** What the question's three lines answer. */
 export type Answer = "yes" | "no" | "cancel";
@@ -87,7 +88,7 @@ export function CategoryTitle({
 
 /** The question's words: "Delete the 3 notes too?", `count` of them. */
 function ask(count: number) {
-  return `Delete the ${count} ${count === 1 ? "note" : "notes"} too?`;
+  return `Delete the ${plural(count, "note")} too?`;
 }
 
 /** The three lines of the question, by their key, words, and answer. */
