@@ -14,8 +14,8 @@ reviewed, and opens a pull request.
 A change has no discovery file, no spec, and no plan. The proposal is its approved scope: the human
 wrote it, and nothing else waits for their approval. The investigation lives in the commits: each
 code commit's body states the root cause or the approach, and what stays unchanged. An agent
-resuming the change reads it with `git log`. The human reads the pull request's description and the
-record. A file waits on the human only when there is something to decide: a round of questions.
+resuming the change reads it with `git log`. The human reads the pull request's body and the record.
+A file waits on the human only when there is something to decide: a round of questions.
 
 ## What a change is
 
@@ -32,8 +32,8 @@ A proposal that needs more than this is an [upgrade](#upgrading) to a feature, n
 Typos, formatting, and comments need no flow at all.
 
 A change's folder is `specs/changes/YYYY-MM-DD-<slug>/`. It holds `proposal.md`,
-`clarifications-NN.md`, `rulings.md`, `images/`, `mockups/`, and `screenshots/`, nothing else: with
-`ura`, `ura check` reports any other file.
+`clarifications-NN.md`, `rulings.md`, `images/`, and `mockups/`, nothing else: with `ura`,
+`ura check` reports any other file, but the `screenshots/` folder of an older change.
 
 ## Starting a change
 

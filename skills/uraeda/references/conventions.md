@@ -170,7 +170,7 @@ source of truth.
 - **Changes requested** need at least one comment.
 - **Approved with comments**: the comments do not change the approved file. The next step carries
   them out, and says how. For a spec, it is the plan, in its `## Review comments` section. For a
-  plan, it is the implementation, in the pull request's description.
+  plan, it is the implementation, in the pull request's body.
 
 With `ura`, `ura review` writes the comments, `--comment 50-52 "<text>"` or
 `--comment general "<text>"`, then records the verdict, `--approve` or `--request-changes`, with the
