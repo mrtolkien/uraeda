@@ -612,3 +612,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   form offers (R1 keeps Blocked a section the page does not add to).
 - **If wrong**: `onAddBeside` in `lists/PrioritiesList.tsx`.
 - **Where**: fix pass C, review of task 8.
+
+## R82: The in-card editors say they do not redirect; the views always do
+
+- **Decision**: `usePriorityActions` and `useNoteActions` take an option, `redirects`, true by
+  default. A rename or edit that changes the key follows it to its new address as before Task 8,
+  unless `redirects` is `false`, which only `RowEditors` passes. Neither hook reads the location any
+  more. This replaces R40's "unless the page is that line's own overlay".
+- **Rationale**: the guard compared the location with `/priorities/${key}` as typed, and the browser
+  percent-encodes a key with non-ASCII characters (a CJK line), so the task view's own redirect was
+  skipped for such lines. An option the caller sets cannot depend on how an address is written, and
+  the cards no longer re-render with every navigation through `useLocalPath`.
+- **Alternatives considered**: decoding the location before comparing: it keeps every card's menu
+  and editor subscribed to the location, and trusts the decoding to match the key's.
+- **If wrong**: the option's two hooks, and `NO_REDIRECT` in `lists/RowEditors.tsx`.
+- **Where**: fix pass C, review of task 8.
