@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Testing strategy review
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 10 minutes. Revised after your review: 4 comments, all done.
+> Approved on 2026-10-26.
 >
 > - You approve a new way of testing: tests follow the spec and the decisions and never override
 >   them, a spec lists the behaviour it replaces, web UI tests are kept only when extremely useful,
