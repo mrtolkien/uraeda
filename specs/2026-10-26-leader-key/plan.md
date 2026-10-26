@@ -1127,13 +1127,15 @@ git commit -m "refactor(leader-key): only the registry listens for keys"
   Keyboard section on and off, and the status line with its hints. Reviewed by the agent against the
   decisions, with a line per view in the pull request.
 
-- [ ] **Step 1: Run `nix develop -c vp run screenshots`** for the views above, in each size and
-      theme.
-- [ ] **Step 2: Review every image** against the decisions ([UI look](../decisions/ui-look.md),
+- [x] **Step 1: Run
+      `nix develop -c vp run --filter uraeda-web screenshots 2026-10-26-leader-key leader-key`** for
+      the views above, in each size and theme: `packages/web/scripts/leader-key-shots.ts` presses
+      the keys in the real app.
+- [x] **Step 2: Review every image** against the decisions ([UI look](../decisions/ui-look.md),
       [UI layout](../decisions/ui-layout.md), [UI coherence](../decisions/ui-coherence.md)), and fix
       what is off in a commit of its own.
-- [ ] **Step 3: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 4: Commit**
+- [x] **Step 3: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 4: Commit**
 
 ```bash
 git add specs/2026-10-26-leader-key/screenshots packages/web
