@@ -63,7 +63,7 @@ afterEach(async () => {
 });
 
 /** The fake agent as the server describes it: available, and reading images. */
-export function agentRecord(overrides: Partial<AgentRecord> = {}): AgentRecord {
+function agentRecord(overrides: Partial<AgentRecord> = {}): AgentRecord {
   return {
     available: true,
     capabilities: {

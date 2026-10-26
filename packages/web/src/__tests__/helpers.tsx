@@ -1,5 +1,4 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename } from "node:path";
 import {
   act,
   cleanup,
@@ -12,7 +11,6 @@ import {
 import { afterAll, afterEach, beforeAll, beforeEach } from "vite-plus/test";
 import { fixture, fixtureRepo, git, temporaryFolder } from "uraeda-binding/test-utils";
 import { createApp, Hosts, livePreviews, type Previews } from "uraeda-server";
-import type { Item } from "uraeda-server/fate";
 import { fakeSessions, testSettings, testSignIn } from "uraeda-server/testing";
 import { App } from "../App.tsx";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
@@ -26,7 +24,7 @@ import { forgetSignedOut } from "../sign-in/signedOut.ts";
 const binding = await import("uraeda-binding");
 
 /** The binding the server runs on: the core's, or a fake spreading it. */
-export type Binding = typeof binding;
+type Binding = typeof binding;
 
 export { fixture, fixtureRepo, git };
 
@@ -70,7 +68,6 @@ class SilentEventSource {
 beforeEach(() => {
   (globalThis as { EventSource?: unknown }).EventSource = SilentEventSource;
   // A test that failed leaves nothing for the next: its requests, or an Undo's error on screen.
-  sent.length = 0;
   answers.length = 0;
   forgetUndoToasts();
   try {
@@ -107,14 +104,11 @@ export function today(date: string) {
 }
 
 /** Gives the window a width, as a phone's (402), a semi-wide 1205, or a desktop's (1440, the default). */
-export function atWidth(width: number) {
+function atWidth(width: number) {
   (
     window as unknown as { happyDOM: { setViewport(size: { width: number }): void } }
   ).happyDOM.setViewport({ width });
 }
-
-/** The requests the UI sent, for the tests that count them. */
-export const sent: Array<string> = [];
 
 /** The requests the server answered, by their body. */
 const answers: Array<string> = [];
@@ -140,37 +134,9 @@ export async function answered(type: string, from = 0) {
 }
 
 /** Sessions on the fake agent, as `fakeSessions` gives them: `adapter` is the agent. */
-export type Fake = ReturnType<typeof fakeSessions>;
+type Fake = ReturnType<typeof fakeSessions>;
 
 const managers: Array<Fake["sessions"]> = [];
-
-/**
- * A turn of the session `session`, seeded in the fake agent's cache with `items` in order, as the
- * runner would have cached them: ended in `state`, or still running. Its id comes back.
- */
-export function addRun(
-  fake: Fake,
-  session: string,
-  items: ReadonlyArray<Item>,
-  state: "done" | "failed" | "running" = "done",
-): number {
-  const { cache } = fake.sessions;
-  const turn = cache.addTurn({
-    allowed: null,
-    kind: "chat",
-    sessionId: session,
-    state: "running",
-    step: null,
-    trigger: null,
-  });
-  for (const item of items) {
-    cache.appendItem(turn, item);
-  }
-  if (state !== "running") {
-    cache.endTurn(turn, { state });
-  }
-  return turn;
-}
 
 /** Sessions on the fake agent, checked, so the pages offer "Commit and start the agent". */
 export async function fakeAgent({ installed = true } = {}): Promise<Fake> {
@@ -318,25 +284,6 @@ export function serverFetch(
 }
 
 /**
- * The server's fetch, holding every request whose body names `held` until `release`; `count` says
- * how many it was sent.
- */
-export async function holding(repo: string, held: string) {
-  const fake = await fakeAgent();
-  const through = serverFetch(repo, fake.sessions);
-  const gate = Promise.withResolvers<void>();
-  let count = 0;
-  const fetch: typeof globalThis.fetch = async (input, init) => {
-    if (String(init?.body).includes(held)) {
-      count++;
-      await gate.promise;
-    }
-    return through(input, init);
-  };
-  return { count: () => count, fake, fetch, release: () => gate.resolve() };
-}
-
-/**
  * The server's app in process with sign-in, on a list holding `repo`, as `serverFetch` gives it:
  * `fetch`, a browser without a session, which keeps the cookies the server's answers set and sends
  * them back; the access key; and `device`, which gives another browser's `fetch` on the same server,
@@ -427,7 +374,6 @@ function fetchOn(
       typeof input === "object" && "url" in input ? input.url : input.toString(),
       origin,
     ).href;
-    sent.push(typeof init?.body === "string" ? init.body : url);
     // fate's requests are JSON; an upload's multipart body sets its own type, with its boundary.
     const request = new Request(
       url,
@@ -471,50 +417,6 @@ function fetchOn(
 }
 
 /**
- * Writes a list of repositories in a new data folder, as by hand, each opened a minute before the
- * one above it, all long ago, so a repository the tests open moves first, and returns the folder.
- */
-export function listOf(repositories: Array<[name: string, path: string]>): string {
-  const dataDir = temporaryFolder("uraeda-data");
-  writeFileSync(
-    join(dataDir, "repositories.json"),
-    JSON.stringify({
-      repositories: repositories.map(([name, path], index) => ({
-        name,
-        openedAt: `2000-01-01T10:${String(59 - index).padStart(2, "0")}:00Z`,
-        path,
-      })),
-      version: 1,
-    }),
-  );
-  return dataDir;
-}
-
-/**
- * A new home folder for each of the file's tests, as the server reads it, `HOME`, to write paths
- * under it with `~`: the folder of the current test, and the machine's put back after each.
- */
-export function temporaryHome(): () => string {
-  const before = process.env.HOME;
-  let home = "";
-  beforeEach(() => {
-    home = temporaryFolder("uraeda-home");
-    process.env.HOME = home;
-  });
-  afterEach(() => {
-    process.env.HOME = before;
-  });
-  return () => home;
-}
-
-/** A copy of the fixture repository at a path, its parent folders made. */
-export function repoAt(path: string): string {
-  mkdirSync(dirname(path), { recursive: true });
-  renameSync(fixtureRepo(), path);
-  return path;
-}
-
-/**
  * Reads the page again, as when it comes back to the foreground, until `check` passes: live
  * updates do not reach these tests, so a run's later state is read this way. Each try lets the
  * requests start, then waits for their answers inside its act before checking the page.
@@ -528,11 +430,6 @@ export async function refreshUntil(check: () => void) {
     });
     check();
   });
-}
-
-/** A valid record of a finished feature. */
-export function record(title: string) {
-  return `---\nkind: feature\nfinished: 2026-10-11\n---\n\n# Record: ${title}\n\n> [!NOTE]\n>\n> The record of a merged feature, not instructions to follow.\n\n## What and why\n\nA thing.\n\n## Behaviour\n\n- It works.\n\n## Design\n\nA design.\n`;
 }
 
 /** Taps an element, and lets React draw what follows. */
@@ -550,11 +447,6 @@ export function homeShown() {
   return screen.findAllByRole("link", { name: /Web UI for the workflow files/ });
 }
 
-/** Whether that link is absent: no page of features shows. */
-export function homeHidden() {
-  return screen.queryAllByRole("link", { name: /Web UI for the workflow files/ }).length === 0;
-}
-
 /** Types a value into a field, at once: a form field, or an editable text like the composer's. */
 export async function type(element: HTMLElement, value: string) {
   await act(async () => {
@@ -565,24 +457,4 @@ export async function type(element: HTMLElement, value: string) {
       fireEvent.change(element, { target: { value } });
     }
   });
-}
-
-/** A file of the repository, `PRIORITIES.md` by default. */
-export function read(repo: string, path = "specs/PRIORITIES.md") {
-  return readFileSync(join(repo, path), "utf8");
-}
-
-/** Commits a mockup in a feature's `mockups/` folder, on the feature's branch. */
-export function addMockup(
-  repo: string,
-  folder: string,
-  name: string,
-  html = "<!doctype html>\n<title>Mockup</title>\n<p>A mockup.</p>\n",
-) {
-  git(repo, "switch", "--quiet", folder);
-  mkdirSync(join(repo, "specs", folder, "mockups"), { recursive: true });
-  writeFileSync(join(repo, "specs", folder, "mockups", name), html);
-  git(repo, "add", "--all");
-  git(repo, "commit", "--quiet", "--no-verify", "--message", `docs: mockup ${name}`);
-  git(repo, "switch", "--quiet", "main");
 }

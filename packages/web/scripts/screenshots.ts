@@ -6,7 +6,7 @@
  *
  * Run it with `vp run --filter uraeda-web screenshots <folder>`, inside `nix develop` for WebKit. It serves
  * the UI with Vite over a fresh copy of `fixtures/repo`, the repository it opens first, listed in a
- * fresh data folder, its server in process on the fake agent, as the browser tests do, and drives
+ * fresh data folder, its server in process on the fake agent, and drives
  * WebKit with Playwright. Its output is for people to look
  * at: no test compares it.
  *
@@ -138,7 +138,7 @@ async function main() {
           baseURL: url,
           colorScheme: mode,
           viewport: size === "phone" ? { height: 874, width: 402 } : { height: 900, width: 1440 },
-          // A touch screen, as the browser tests' phone has.
+          // A touch screen, as a phone has.
           hasTouch: size === "phone",
           reducedMotion: "reduce",
           // The feature page's times, as its features' commits give them.

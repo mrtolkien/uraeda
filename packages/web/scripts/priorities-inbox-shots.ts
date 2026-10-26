@@ -2,7 +2,7 @@
  * The screenshots' views of the redesigned lists (`specs/2026-10-25-inbox-priorities/`): the
  * priorities as columns, the inbox as panes, a priority's detail in its overlay over the columns
  * (a dialog, and on the phone a sheet), and a category's delete asking what becomes of its notes.
- * Each view is checked as the browser tests check a page: nothing scrolls the page sideways.
+ * Each view is checked for a page that scrolls sideways.
  */
 import type { Page } from "playwright";
 import { type Each, forget, settle, show } from "./shots.ts";
