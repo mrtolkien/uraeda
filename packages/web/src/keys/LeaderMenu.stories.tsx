@@ -41,8 +41,8 @@ const NEW: ReadonlyArray<MenuEntry> = [
   { icon: KIND_ICONS.sessions, key: "s", label: "Session" },
   { icon: KIND_ICONS.changes, key: "c", label: "Change" },
   { icon: KIND_ICONS.features, key: "f", label: "Feature" },
-  { icon: "uraeda:pencil", key: "n", label: "Note (inbox entry)" },
-  { icon: DESTINATIONS.priorities.icon, key: "p", label: "Priority" },
+  { icon: KIND_ICONS.notes, key: "n", label: "Note (inbox entry)" },
+  { icon: KIND_ICONS.priorities, key: "p", label: "Priority" },
 ];
 
 const meta = {

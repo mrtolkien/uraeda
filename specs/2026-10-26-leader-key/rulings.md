@@ -828,3 +828,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   stays a text scan, which has no type information.
 - **If wrong**: the list and its counts are one constant in the test.
 - **Where**: fix pass E, finding 6 of the final review.
+
+## R135: The note is the inbox's icon in the New group, and the checks of SC-007 and the kinds' icons draw the real menu
+
+- **Decision**: the New group's note (`Space n n`) and priority (`Space n p`) entries read
+  `KIND_ICONS`, as the rest of the group does, so the note is drawn with the inbox's tray in the New
+  group, the Find group, and the picker's rows: R110's sentence that the pencil stays the note's is
+  reversed (the Note button on the pages keeps its own pencil: it is an action, not a kind). The
+  tests of SC-007 and of the kinds' icons no longer compare data: they render the app, open the
+  leader menu with the keys, and compare each entry's drawn icon (the paths of its icon) and label
+  to the navigation column's links and the phone's tabs, and each kind's icon in `Space n`,
+  `Space f`, and the picker's rows. The old test of the place entries compared `placeBindings` to
+  `DESTINATIONS`, which it reads by construction; the old test of the kinds' icons compared three
+  keys and left out the note and the picker: both are replaced by the stronger ones, no assertion
+  loosened.
+- **Rationale**: the final review found the note drawn three ways in one menu tree, against the UI
+  coherence decision, and a test of SC-007 that could not fail.
+- **Alternatives considered**: keeping the pencil for the note in the New group: the Find group and
+  the picker already draw the tray, and a kind then has two icons. A decision's picker rows are not
+  compared to the Find group's: each draws its own decision's icon.
+- **If wrong**: `newBindings` in `keys/leaderTree.ts` and `keys/kinds.ts`.
+- **Where**: fix pass E, finding 9 of the final review.
