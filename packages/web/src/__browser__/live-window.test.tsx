@@ -7,7 +7,7 @@
 // title wraps under its buttons, never under them.
 import { screen, within } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
-import { userEvent } from "vite-plus/test/browser";
+import { page, userEvent } from "vite-plus/test/browser";
 import { atRepo, atSize, checkPage, commands, show } from "./helpers.tsx";
 
 const FEATURE = "2026-10-17-spec-page";
@@ -179,7 +179,12 @@ describe("on the phone", () => {
     // The phone's width first, on the phone.
     await expect.poll(() => sizeOf(STORY).width).toBe(402);
 
-    await userEvent.click(within(live(STORY)).getByRole("radio", { name: "Desktop" }));
+    // A locator scoped to the window: each window has its own "Desktop", which an element's
+    // locator, built from its label alone, would find three times.
+    await page
+      .getByRole("region", { name: `live · ${STORY}` })
+      .getByRole("radio", { name: "Desktop" })
+      .click();
 
     await expect.poll(() => sizeOf(STORY).width).toBe(1440);
     expect(sizeOf(STORY).scale).toBeLessThan(50);
