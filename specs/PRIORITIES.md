@@ -14,6 +14,7 @@
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
+- Performance pass: the UI feels sluggish
 
 ## Next
 
