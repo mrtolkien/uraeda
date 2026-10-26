@@ -1,14 +1,19 @@
 // Which picker is open, as module state: `useKeyPicker` opens it from anywhere, a key of the leader
 // menu or a page's, and the one host in the shell (`KeyPickerHost`) draws it. Plain state behind
 // `useSyncExternalStore`, so opening it asks no provider around the page.
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import type { PickerKind } from "./pickerSources.ts";
 
-/** The picker's state: the kind it was last opened over, kept while it closes. */
-export type PickerState = { isOpen: boolean; kind: PickerKind | "all" | null };
+/**
+ * The picker's state: the kind it was last opened over, kept while it closes, and how many times
+ * it was opened, which tells a new opening from the one before.
+ */
+export type PickerState = { isOpen: boolean; kind: PickerKind | "all" | null; opening: number };
 
-const CLOSED: PickerState = { isOpen: false, kind: null };
+const CLOSED: PickerState = { isOpen: false, kind: null, opening: 0 };
 let state = CLOSED;
+/** The hosts that draw the picker now: with none, an opening has nothing to show it. */
+let hosts = 0;
 const listeners = new Set<() => void>();
 
 function set(next: PickerState) {
@@ -18,9 +23,14 @@ function set(next: PickerState) {
   }
 }
 
-/** Opens the picker over a kind, or over every kind. */
+/**
+ * Opens the picker over a kind, or over every kind. With no host drawing it, nothing opens: the
+ * next shell would show a picker nobody asked it for.
+ */
 function open(kind: PickerKind | "all") {
-  set({ isOpen: true, kind });
+  if (hosts > 0) {
+    set({ isOpen: true, kind, opening: state.opening + 1 });
+  }
 }
 
 /** Closes it, keeping its kind so what it drew stays until it is opened again. */
@@ -33,8 +43,14 @@ export function resetPicker() {
   set(CLOSED);
 }
 
-/** The picker's state, redrawing the caller as it changes. */
+/** The picker's state, redrawing the caller as it changes: the host's, which `open` needs. */
 export function usePickerState(): PickerState {
+  useEffect(() => {
+    hosts += 1;
+    return () => {
+      hosts -= 1;
+    };
+  }, []);
   return useSyncExternalStore(
     (listener) => {
       listeners.add(listener);

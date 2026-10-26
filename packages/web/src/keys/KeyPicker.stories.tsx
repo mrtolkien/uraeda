@@ -121,15 +121,15 @@ export const Decisions: Story = {
   args: {
     items: ITEMS.filter((item) => item.kind === "decisions"),
     showKinds: false,
-    title: "Find · decisions",
+    title: "Find decisions",
   },
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
-    await userEvent.type(await body.findByRole("combobox", { name: "Find · decisions" }), "ui");
+    await userEvent.type(await body.findByRole("combobox", { name: "Find decisions" }), "ui");
   },
 };
 
 /** `Space Space`: every kind in one list, each row labelled by its kind. */
 export const Everything: Story = {
-  args: { items: ITEMS, showKinds: true, title: "Find · everything" },
+  args: { items: ITEMS, showKinds: true, title: "Find anything" },
 };

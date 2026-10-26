@@ -3,7 +3,7 @@
 // (never while closed, so no page waits on it); a feature's and a change's proposal comes in one
 // more request after the list, as a batch of the files, and joins the previews when it arrives.
 import { useEffect, useState } from "react";
-import { useFateClient, useLiveView, useRequest, view, type ViewRef } from "react-fate";
+import { useFateClient, useLiveView, useRequestState, view, type ViewRef } from "react-fate";
 import type { WorkflowFile } from "uraeda-server/fate";
 import { INBOX_ID, LEDGER_ID, PRIORITIES_ID, useWorkspace, WORKSPACE_ID } from "../data.ts";
 import { DESTINATIONS } from "../destinations.ts";
@@ -50,13 +50,19 @@ const ProposalTextView = view<WorkflowFile>()({
 
 const PROPOSAL = "proposal.md";
 
+/** What a feature's or a change's preview says when its proposal could not be read. */
+export const PROPOSAL_FAILED = "Could not load the proposal.";
+
+/** The proposals read: by folder, or `failed` where the request did not answer. */
+type Proposals = { failed: boolean; texts: ReadonlyMap<string, string> };
+
 /**
  * The raw proposals of the folders, by folder, in one request once asked for and again when the
- * list changes; empty until they arrive.
+ * list changes; empty until they arrive, and `failed` where the request failed.
  */
-function useProposals(folders: ReadonlyArray<string>): ReadonlyMap<string, string> {
+function useProposals(folders: ReadonlyArray<string>): Proposals {
   const fate = useFateClient();
-  const [read, setRead] = useState<{ key: string; texts: ReadonlyMap<string, string> }>();
+  const [read, setRead] = useState<{ failed: boolean; key: string; texts: Proposals["texts"] }>();
   const key = folders.join("\n");
   useEffect(() => {
     if (key === "") {
@@ -77,14 +83,18 @@ function useProposals(folders: ReadonlyArray<string>): ReadonlyMap<string, strin
         texts.set(data.id.slice(0, -`/${PROPOSAL}`.length), data.current?.text ?? "");
       }
       if (current) {
-        setRead({ key, texts });
+        setRead({ failed: false, key, texts });
       }
-    })().catch(() => {});
+    })().catch(() => {
+      if (current) {
+        setRead({ failed: true, key, texts: NO_TEXTS });
+      }
+    });
     return () => {
       current = false;
     };
   }, [fate, key]);
-  return read?.key === key ? read.texts : NO_TEXTS;
+  return read?.key === key ? read : { failed: false, texts: NO_TEXTS };
 }
 
 const NO_TEXTS: ReadonlyMap<string, string> = new Map();
@@ -99,10 +109,7 @@ type Records = {
 };
 
 /** The features and changes, the kind asked for, each previewed as its proposal. */
-function featureItems(
-  workspace: Workspace | undefined,
-  proposals: ReadonlyMap<string, string>,
-): Array<PickerItem> {
+function featureItems(workspace: Workspace | undefined, proposals: Proposals): Array<PickerItem> {
   return (workspace?.features ?? []).map((feature) => {
     const isChange = feature.kind === "change";
     return {
@@ -110,13 +117,16 @@ function featureItems(
       id: `/f/${encodeURIComponent(feature.folder)}`,
       kind: isChange ? "changes" : "features",
       path: `/f/${encodeURIComponent(feature.folder)}`,
-      preview: proposals.get(feature.folder) ?? "",
+      preview: proposals.texts.get(feature.folder) ?? (proposals.failed ? PROPOSAL_FAILED : ""),
       title: feature.title,
     };
   });
 }
 
-/** The sessions, each previewed as its title, its state, and its branch, three plain lines. */
+/**
+ * The sessions, the live ones first and the archived after them (the same row says which), each
+ * previewed as its title, its state, and its branch, three plain lines.
+ */
 function sessionItems(
   rows: ReadonlyArray<{
     archived: boolean;
@@ -128,36 +138,53 @@ function sessionItems(
   workspace: Workspace | undefined,
 ): Array<PickerItem> {
   const branches = new Map(workspace?.features.map((feature) => [feature.folder, feature.branch]));
-  return rows
-    .filter((row) => !row.archived)
-    .map((row) => {
+  return [...rows.filter((row) => !row.archived), ...rows.filter((row) => row.archived)].map(
+    (row): PickerItem => {
       const branch = row.folder === null ? workspace?.currentBranch : branches.get(row.folder);
+      const state = row.archived ? `Archived · ${row.statusLabel}` : row.statusLabel;
       return {
         icon: DESTINATIONS.sessions.icon,
         id: sessionIdPath(row.id),
         kind: "sessions",
         path: sessionIdPath(row.id),
-        preview: [row.title, row.statusLabel, branch ?? "no branch"].join("\n"),
+        preview: [row.title, state, branch ?? "no branch"].join("\n"),
         title: row.title,
       };
-    });
+    },
+  );
 }
 
+/** What `usePickerItems` gives back: the items, and how the read of them went. */
+export type PickerRead = {
+  /** The error the read failed with, if it did. */
+  error: unknown;
+  /** Whether the records are read: the items are all there are, not those so far. */
+  isReady: boolean;
+  items: ReadonlyArray<PickerItem>;
+  /** Reads the records again, after a failure. */
+  refetch: () => Promise<unknown>;
+};
+
 /**
- * The items of a kind, or of every kind, in the order the kinds are named. Suspends while the
- * records load: the one request holds what the kind needs, and nothing else.
+ * The items of a kind, or of every kind, in the order the kinds are named, once `isEnabled`:
+ * nothing is read before, and never by suspending, so the picker's dialog shows while the one
+ * request, which holds what the kind needs and nothing else, is under way. Empty until it ends.
  */
-export function usePickerItems(kind: PickerKind | "all"): ReadonlyArray<PickerItem> {
+export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): PickerRead {
   const is = (...kinds: Array<PickerKind>) => kind === "all" || kinds.includes(kind);
-  const records = useRequest({
-    ...(is("features", "changes", "sessions") && {
-      workspace: { id: WORKSPACE_ID, view: WorkspaceView },
-    }),
-    ...(is("sessions") && { sessionList: { id: SESSION_LIST_ID, view: SessionListView } }),
-    ...(is("decisions") && { ledger: { id: LEDGER_ID, view: LedgerView } }),
-    ...(is("notes") && { inbox: { id: INBOX_ID, view: InboxView } }),
-    ...(is("priorities") && { priorities: { id: PRIORITIES_ID, view: PrioritiesView } }),
-  } as never) as unknown as Records;
+  const state = useRequestState(
+    {
+      ...(is("features", "changes", "sessions") && {
+        workspace: { id: WORKSPACE_ID, view: WorkspaceView },
+      }),
+      ...(is("sessions") && { sessionList: { id: SESSION_LIST_ID, view: SessionListView } }),
+      ...(is("decisions") && { ledger: { id: LEDGER_ID, view: LedgerView } }),
+      ...(is("notes") && { inbox: { id: INBOX_ID, view: InboxView } }),
+      ...(is("priorities") && { priorities: { id: PRIORITIES_ID, view: PrioritiesView } }),
+    } as never,
+    { enabled: isEnabled },
+  );
+  const records = (state.data ?? {}) as unknown as Records;
   const workspace = useLiveView(WorkspaceView, records.workspace);
   const sessionList = useLiveView(SessionListView, records.sessionList);
   const ledger = useLiveView(LedgerView, records.ledger);
@@ -170,7 +197,7 @@ export function usePickerItems(kind: PickerKind | "all"): ReadonlyArray<PickerIt
     : [];
   const proposals = useProposals(folders);
   const features = featureItems(workspace, proposals);
-  return [
+  const items = [
     ...features.filter((item) => item.kind === "features" && is("features")),
     ...features.filter((item) => item.kind === "changes" && is("changes")),
     ...(is("sessions") ? sessionItems(sessionList?.rows ?? [], workspace) : []),
@@ -196,4 +223,10 @@ export function usePickerItems(kind: PickerKind | "all"): ReadonlyArray<PickerIt
       })),
     ),
   ];
+  return {
+    error: state.error,
+    isReady: state.status === "ready",
+    items: state.status === "ready" ? items : [],
+    refetch: state.refetch,
+  };
 }
