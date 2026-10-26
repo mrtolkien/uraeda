@@ -1,10 +1,10 @@
 import { Button } from "@astryxdesign/core/Button";
-import { Heading } from "@astryxdesign/core/Heading";
+
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { useCallback, useEffect, useId, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
@@ -22,6 +22,7 @@ import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type Hashes, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
 import { useSave } from "./useSave.ts";
 import { Empty } from "./layout/Empty.tsx";
+import { Pane } from "./layout/Pane.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -186,15 +187,12 @@ export function NotesRead({
   onEdit: () => void;
 }) {
   const narrow = isNarrow(useWidthClass());
-  const title = useId();
   const { field, save } = notes;
   const written = field.text.trim() !== "";
   return (
-    <section aria-labelledby={title}>
+    // A pane of the round, as its other parts: on the phone, its titled top border alone.
+    <Pane icon="uraeda:pencil" isOpenOnPhone title="Notes">
       <VStack gap={2}>
-        <Heading id={title} level={2}>
-          Notes
-        </Heading>
         {!fieldShown && <NotesRestored notes={notes} />}
         {written ? (
           <Paragraph xstyle={styles.text}>{field.text}</Paragraph>
@@ -214,7 +212,7 @@ export function NotesRead({
           <SaveStatus dirty={field.dirty} state={save.state} />
         </HStack>
       </VStack>
-    </section>
+    </Pane>
   );
 }
 
