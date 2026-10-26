@@ -25,6 +25,7 @@ import {
   type SpecItems,
   unreadItems,
 } from "./parts.ts";
+import { ruleStyles } from "../layout/rules.ts";
 
 const styles = stylex.create({
   quote: {
@@ -35,9 +36,6 @@ const styles = stylex.create({
   },
   row: {
     // An answer, set apart from the one before by a hairline.
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: spacingVars["--spacing-0-5"],
     display: "grid",
     gap: spacingVars["--spacing-3"],
     paddingBlockStart: spacingVars["--spacing-3"],
@@ -110,7 +108,10 @@ export function ReviewAnswers({
           const item = document.blocks[block];
           return (
             item && (
-              <div key={block} {...stylex.props(styles.row, wide && styles.rowWide)}>
+              <div
+                key={block}
+                {...stylex.props(ruleStyles.between, styles.row, wide && styles.rowWide)}
+              >
                 <YourComment
                   comment={comments.find((c) => c.number === number)}
                   number={number}

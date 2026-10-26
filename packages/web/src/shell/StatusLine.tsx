@@ -9,7 +9,6 @@
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import {
-  borderVars,
   colorVars,
   fontWeightVars,
   spacingVars,
@@ -22,6 +21,7 @@ import { needsYou } from "../sidebar/cards.ts";
 import { type Data, entriesOf, runningSessions } from "../sidebar/entries.ts";
 import { useDeclaredHints, useStatusLineCovered } from "../statusHints.tsx";
 import { useCountsFit } from "./useCountsFit.ts";
+import { ruleStyles } from "../layout/rules.ts";
 
 const styles = stylex.create({
   count: {
@@ -74,9 +74,6 @@ const styles = stylex.create({
   line: {
     alignItems: "center",
     backgroundColor: colorVars["--color-background-muted"],
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: borderVars["--border-width"],
     boxSizing: "border-box",
     display: "flex",
     gap: spacingVars["--spacing-4"],
@@ -162,7 +159,7 @@ export function StatusLine({ isNarrow, slot }: { isNarrow: boolean; slot: ReactN
     return null;
   }
   return (
-    <footer aria-label="Status line" ref={line} {...stylex.props(styles.line)}>
+    <footer aria-label="Status line" ref={line} {...stylex.props(ruleStyles.above, styles.line)}>
       {!isNarrow && <Hints />}
       {slot !== null && (
         <div ref={controls} {...stylex.props(styles.slot)}>

@@ -4,10 +4,13 @@
 import type { ReactNode } from "react";
 import { Pane } from "./Pane.tsx";
 
-/** A comment's form under its part: a group, so it adds no landmark to the page's list. */
+/**
+ * A comment's form under its part: a group, so it adds no landmark to the page's list, its title a
+ * level under the panes of a document or a round it sits in.
+ */
 export function CommentBox({ children }: { children: ReactNode }) {
   return (
-    <Pane isGroup level={4} title="Comment">
+    <Pane isGroup level={3} title="Comment">
       {children}
     </Pane>
   );

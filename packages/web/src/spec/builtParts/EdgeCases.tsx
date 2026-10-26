@@ -16,6 +16,7 @@ import { Runs } from "../RuleLine.tsx";
 import { builtStyles, type DrawingProps, inOrder, parentsOf } from "./shared.tsx";
 import { plural } from "../../labels.ts";
 import { Foldable } from "../../layout/Foldable.tsx";
+import { ruleStyles } from "../../layout/rules.ts";
 
 /** Each importance the format knows: its pill, and its rank, the most important first. */
 const IMPORTANCE: Record<string, { label: string; rank: number; variant: "neutral" | "warning" }> =
@@ -42,7 +43,7 @@ function EdgeRow({ edge, props }: { edge: Edge; props: PartProps }) {
   const cell = (index: number, spans: Block["spans"]) =>
     words && !keepsSpans(spans) ? <Runs runs={words[index]!} /> : <Spans spans={spans} />;
   return (
-    <li {...stylex.props(builtStyles.row)}>
+    <li {...stylex.props(ruleStyles.between, builtStyles.row)}>
       <Selectable block={row} selection={props.selection}>
         <VStack gap={1} xstyle={builtStyles.reading}>
           <HStack align="start" gap={2}>

@@ -1,6 +1,7 @@
 // A fold: a toggle that opens what it holds, as a document's folds, a story's other scenarios, or a
-// banner's message do. Every fold of the UI is drawn here, so a toggle looks and reads the same on
-// every page (UI coherence), and what it holds is mounted only while open (UI behaviour).
+// banner's message do. Every fold in a page's text is drawn here, so a toggle looks and reads the
+// same on every page (UI coherence), and what it holds is mounted only while open (UI behaviour).
+// A session's Activity rows fold their output their own way, as rows of a log (`ActivityRows.tsx`).
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";

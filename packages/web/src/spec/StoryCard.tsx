@@ -6,7 +6,7 @@ import { Badge } from "@astryxdesign/core/Badge";
 
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import type { Block, Document } from "uraeda-binding";
@@ -19,6 +19,7 @@ import { Spans } from "../Spans.tsx";
 import { type PartProps, type SpecItems, storyId } from "./parts.ts";
 import { plural } from "../labels.ts";
 import { Foldable } from "../layout/Foldable.tsx";
+import { ruleStyles } from "../layout/rules.ts";
 
 /** The icon of each step word, as the core names them. */
 const STEP_ICONS: Record<string, string> = {
@@ -34,9 +35,6 @@ const styles = stylex.create({
   },
   scenario: {
     // A scenario, set apart from the one before by a hairline, its step words in a column.
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: spacingVars["--spacing-0-5"],
     columnGap: spacingVars["--spacing-3"],
     display: "grid",
     fontSize: "var(--text-reading-size)",
@@ -82,7 +80,7 @@ function ScenarioNode({
   return (
     <Selectable block={block} selection={selection}>
       <SinceWords block={block} isParagraph>
-        <div {...stylex.props(styles.scenario)}>
+        <div {...stylex.props(ruleStyles.between, styles.scenario)}>
           {steps.map(({ spans, word }, at) => (
             // The spaces between the cells, which the grid drops, keep the words apart when read.
             <div key={at} {...stylex.props(styles.contents)}>
