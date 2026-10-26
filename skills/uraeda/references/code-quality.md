@@ -85,11 +85,10 @@ project's parts, pure logic with many cases, and the reproduction of each bug fi
 
 ### What a test asserts
 
-What a caller or a user observes, never how the code does it: not the order of internal calls, a
-count, markup, or private state. An exact contract is asserted exactly: user text, a permission
-scope, a commit count, a byte sequence. A test that passes with another value does not own it. Every
-expectation comes from the spec, the decisions, and the human's intent, never from the code under
-test.
+What a caller or a user observes, never how the code does it. An exact contract is asserted exactly:
+user text, a permission scope, a commit count, a byte sequence. A test that passes with another
+value does not own it. Every expectation comes from the spec, the decisions, and the human's intent,
+never from the code under test.
 
 ### Writing one
 
