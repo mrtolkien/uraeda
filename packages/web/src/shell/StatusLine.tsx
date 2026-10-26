@@ -11,8 +11,10 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useRef } from "react";
+import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
-import { type Data, needsYouEntries, runningSessions } from "../sidebar/entries.ts";
+import { type Entry, needsYouEntries, runningSessions } from "../sidebar/entries.ts";
+import { statusPath } from "../sidebar/statusPath.ts";
 import { useStatusLineCovered } from "../statusHints.tsx";
 import { KeyCap } from "../keys/KeyCap.tsx";
 import { useHints } from "../keys/registry.tsx";
@@ -78,6 +80,14 @@ const styles = stylex.create({
   needs: {
     color: colorVars["--color-text-orange"],
   },
+  press: {
+    background: "none",
+    border: "none",
+    color: { ":hover": colorVars["--color-text-primary"], default: "inherit" },
+    cursor: "pointer",
+    font: "inherit",
+    padding: 0,
+  },
   slot: {
     alignItems: "center",
     display: "flex",
@@ -86,9 +96,13 @@ const styles = stylex.create({
   },
 });
 
-/** How many cards of the shell's panes need the human: those its Needs you pane holds. */
-function needsYouCount(data: Data) {
-  return needsYouEntries(data).length;
+/** Where the line's "need you" leads: the page of the one card that needs the human, else home. */
+function needsYouPath(entries: Array<Entry>) {
+  const [only] = entries;
+  if (entries.length !== 1 || !only) {
+    return "/";
+  }
+  return only.kind === "feature" ? statusPath(only.feature, only.status) : sessionIdPath(only.row.id);
 }
 
 /** The hints, each its keys then what they do, as the registry holds them. */
@@ -116,7 +130,9 @@ function Hints() {
  */
 function Counts({ fits, measured }: { fits: boolean; measured: RefObject<HTMLDivElement | null> }) {
   const data = useNavigation();
-  const waiting = needsYouCount(data);
+  const here = useRepoPath();
+  const entries = needsYouEntries(data);
+  const waiting = entries.length;
   return (
     <div
       aria-hidden={fits ? undefined : true}
@@ -125,7 +141,13 @@ function Counts({ fits, measured }: { fits: boolean; measured: RefObject<HTMLDiv
     >
       {waiting > 0 && (
         <Text type="supporting" xstyle={[styles.count, styles.needs]}>
-          {waiting} need you
+          <button
+            onClick={() => navigate(here(needsYouPath(entries)))}
+            type="button"
+            {...stylex.props(styles.press)}
+          >
+            {waiting} need you
+          </button>
         </Text>
       )}
       <Text color="secondary" type="supporting" xstyle={styles.count}>
