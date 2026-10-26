@@ -3,6 +3,7 @@ import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
+import { HStack } from "@astryxdesign/core/HStack";
 import { type ClipboardEvent, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
@@ -296,13 +297,15 @@ export function AddNote({
       />
       {images.length > 0 && (
         <VStack gap={2}>
-          {images.map((image) => (
-            <PickedImage
-              image={image}
-              key={image.preview ?? image.file.name}
-              onRemove={() => picked.remove(image)}
-            />
-          ))}
+          <HStack gap={2} wrap="wrap">
+            {images.map((image) => (
+              <PickedImage
+                image={image}
+                key={image.preview ?? image.file.name}
+                onRemove={() => picked.remove(image)}
+              />
+            ))}
+          </HStack>
           <AttachStatus status={status} />
           <Text color="secondary" type="supporting">
             {AS_DRAFT}
