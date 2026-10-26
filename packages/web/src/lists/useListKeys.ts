@@ -124,6 +124,8 @@ function bindingsOf({
       keys: "Escape",
       label: escapeLabel ?? "close",
       run: () => (onClose() ? undefined : false),
+      // As before the registry: Escape is the list's on a row or the page, not on a control elsewhere.
+      when,
     },
   ];
 }
