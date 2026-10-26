@@ -8,15 +8,14 @@ import {
   borderVars,
   colorVars,
   focusVars,
-  shadowVars,
   sizeVars,
   spacingVars,
-  typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { useSortable } from "@dnd-kit/react/sortable";
 import * as stylex from "@stylexjs/stylex";
 import type { MouseEvent, ReactNode } from "react";
+import { legendStyles } from "../layout/legend.ts";
 
 /** A card's line: what a list draws, and where a tap on it leads. */
 export interface WorkRow {
@@ -81,21 +80,10 @@ const styles = stylex.create({
   },
   lifted: {
     backgroundColor: colorVars["--color-background-card"],
-    boxShadow: shadowVars["--shadow-med"],
     zIndex: 1,
   },
   // The marks, centred on the top border and hiding it behind them, as a pane's title does.
-  marks: {
-    backgroundColor: colorVars["--color-background-body"],
-    color: "var(--color-text-lavender)",
-    fontSize: typeScaleVars["--text-supporting-size"],
-    insetBlockStart: 0,
-    insetInlineStart: spacingVars["--spacing-2"],
-    lineHeight: typeScaleVars["--text-supporting-leading"],
-    paddingInline: spacingVars["--spacing-1"],
-    position: "absolute",
-    transform: "translateY(-50%)",
-  },
+  marks: { color: "var(--color-text-lavender)" },
   // Room at the end for the `…` button, so the text never runs under it.
   menu: {
     insetBlockStart: spacingVars["--spacing-1"],
@@ -168,7 +156,18 @@ export function Card({
     >
       {/* dnd-kit's accessibility attributes (a button role, a tab stop) go on its handle: an empty, hidden element, so the card stays a link and the sensor takes a press anywhere on it. */}
       {!row.isFixed && <span aria-hidden="true" ref={handleRef} tabIndex={-1} />}
-      {row.marks !== undefined && <span {...stylex.props(styles.marks)}>{row.marks}</span>}
+      {row.marks !== undefined && (
+        <span
+          {...stylex.props(
+            legendStyles.legend,
+            legendStyles.onBody,
+            legendStyles.text,
+            styles.marks,
+          )}
+        >
+          {row.marks}
+        </span>
+      )}
       <Link
         href={row.href}
         onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
