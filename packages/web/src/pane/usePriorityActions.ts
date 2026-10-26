@@ -5,7 +5,7 @@ import { useFateClient } from "react-fate";
 import { readPrioritiesHash, usePriority } from "../data.ts";
 import { guarded, refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
-import { currentEntry, parseLocation, redirect, useRepoPath } from "../routes.tsx";
+import { currentEntry, parseLocation, redirect, useLocalPath, useRepoPath } from "../routes.tsx";
 import { closeDetail } from "./DetailOverlay.tsx";
 import { plain } from "../Spans.tsx";
 import { useMoveTo } from "./useMoveTo.ts";
@@ -37,6 +37,7 @@ export function usePriorityActions(
   const fate = useFateClient();
   const toast = useUndoToast();
   const here = useRepoPath();
+  const pathname = useLocalPath();
   const [message, setMessage] = useState<string>();
 
   /** Runs a change of the line: a refusal shows in the pane, and a conflict reloads the list. */
@@ -71,7 +72,8 @@ export function usePriorityActions(
     const key = result.result?.sections
       .flatMap((s) => s.entries)
       .find((e) => e.id === entry.id)?.key;
-    if (key && key !== entry.key) {
+    // Only the line's own overlay follows it: the list's editor in place leaves the page as it is.
+    if (key && key !== entry.key && pathname === `/priorities/${entry.key}`) {
       redirect(here(`/priorities/${key}`));
     }
     return undefined;

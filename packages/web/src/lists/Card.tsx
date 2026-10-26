@@ -14,11 +14,16 @@ import {
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { useSortable } from "@dnd-kit/react/sortable";
 import * as stylex from "@stylexjs/stylex";
-import type { MouseEvent, ReactNode } from "react";
+import { createContext, type MouseEvent, type ReactNode, useContext } from "react";
 import { legendStyles } from "../layout/legend.ts";
 
 /** A card's line: what a list draws, and where a tap on it leads. */
 export interface WorkRow {
+  /**
+   * What the card shows in the place of its link while it is edited in place (the `i` key): its
+   * editor, which calls `onDone` once it closed, saved or not.
+   */
+  editor?: (onDone: () => void) => ReactNode;
   /** Where a click or Enter on the card leads. */
   href: string;
   /** A picture under its text, such as a note's first image. */
@@ -37,6 +42,24 @@ export interface WorkRow {
   /** Its text, plain: the row's label when `label` is absent. */
   text: string;
 }
+
+/** What the list says of its cards: the one edited in place, and the one whose menu is open. */
+export type RowState = {
+  editing?: string;
+  menu?: string;
+  onEdited: () => void;
+  /** A card's menu opened or closed: `key` is the card's. */
+  onMenu: (key: string, isOpen: boolean) => void;
+};
+
+/** The list's state of its cards: nothing is edited, and no menu is open, outside a list. */
+export const RowStateContext = createContext<RowState>({ onEdited: () => {}, onMenu: () => {} });
+
+/** What a card tells its menu: whether the list holds it open, and the list hearing it open or close. */
+export type MenuState = { isOpen: boolean; onOpenChange: (isOpen: boolean) => void };
+
+/** The menu state of the card around a `…` menu, if it is in a card. */
+export const MenuStateContext = createContext<MenuState | undefined>(undefined);
 
 const styles = stylex.create({
   // The frame: a raw element, as the plan's Complexity tracking says (no Astryx component sets
@@ -130,10 +153,13 @@ export function Card({
   section: string;
 }) {
   const isReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const state = useContext(RowStateContext);
+  const isEditing = state.editing === row.key && row.editor !== undefined;
   const { handleRef, isDragging, ref } = useSortable({
     accept: "line",
     data: { text: row.text },
-    disabled: row.isFixed === true,
+    // A card edited in place does not drag: a press in its field selects text.
+    disabled: row.isFixed === true || isEditing,
     group: section,
     id: row.key,
     index,
@@ -168,20 +194,24 @@ export function Card({
           {row.marks}
         </span>
       )}
-      <Link
-        href={row.href}
-        onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
-          // A click that is a drag's end is already prevented, and a modified one is the browser's.
-          const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0);
-          if (onOpen && plain && !event.defaultPrevented) {
-            event.preventDefault();
-            onOpen(row);
-          }
-        }}
-        xstyle={[styles.stretched, styles.text]}
-      >
-        {row.label ?? row.text}
-      </Link>
+      {isEditing ? (
+        row.editor?.(state.onEdited)
+      ) : (
+        <Link
+          href={row.href}
+          onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+            // A click that is a drag's end is already prevented, and a modified one is the browser's.
+            const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0);
+            if (onOpen && plain && !event.defaultPrevented) {
+              event.preventDefault();
+              onOpen(row);
+            }
+          }}
+          xstyle={[styles.stretched, styles.text]}
+        >
+          {row.label ?? row.text}
+        </Link>
+      )}
       {row.lines.map((line, at) => (
         <Text color="secondary" display="block" key={at}>
           {line}
@@ -190,7 +220,18 @@ export function Card({
       {/* A block of its own: under the text, as a note's row draws it, not beside it. */}
       {row.image !== undefined && <div>{row.image}</div>}
       {/* After the link, so Tab from the card reaches it; over the link by its z-index. */}
-      {row.menu !== undefined && <span {...stylex.props(styles.menu)}>{row.menu}</span>}
+      {row.menu !== undefined && (
+        <span {...stylex.props(styles.menu)}>
+          <MenuStateContext
+            value={{
+              isOpen: state.menu === row.key,
+              onOpenChange: (isOpen) => state.onMenu(row.key, isOpen),
+            }}
+          >
+            {row.menu}
+          </MenuStateContext>
+        </span>
+      )}
     </li>
   );
 }

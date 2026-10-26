@@ -19,11 +19,22 @@ import { InboxView, PrioritiesView } from "./views.ts";
 /** The form a ＋ opened, if any. */
 type Form = "note" | "priority" | undefined;
 
-/** Opens a form, from a ＋ in the navigation. */
-const OpenContext = createContext<(form: Form) => void>(() => {});
+/**
+ * Where a form opens when a key asks for a place: a priorities section's id, or an inbox category's
+ * name, `null` for "No category". Without a place a form opens in its default one.
+ */
+export type AddPlace = { category?: string | null; section?: string };
 
-/** Opens the inbox's form, `"note"`, or the priorities', `"priority"`. */
-export function useOpenAddForm(): (form: Form) => void {
+/** Opens a form, from a ＋ in the navigation or a key, in `place` when given. */
+type OpenForm = (form: Form, place?: AddPlace) => void;
+
+const OpenContext = createContext<OpenForm>(() => {});
+
+/**
+ * Opens the inbox's form, `"note"`, or the priorities', `"priority"`, in its default place, or in
+ * the `place` given as the second argument: a section, or a category (R40).
+ */
+export function useOpenAddForm(): OpenForm {
   return useContext(OpenContext);
 }
 
@@ -106,7 +117,15 @@ function AddOverlay({
  * which commits the removal of a committed line. Closing it with Close, Back, or Escape keeps its
  * text.
  */
-function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function PriorityOverlay({
+  isOpen,
+  onClose,
+  section,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  section?: string;
+}) {
   const fate = useFateClient();
   const toast = useUndoToast();
 
@@ -141,7 +160,7 @@ function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
       loading="Loading the priorities"
       onClose={onClose}
     >
-      <AddForm onAdded={added} onCancel={onClose} />
+      <AddForm onAdded={added} onCancel={onClose} section={section} />
     </AddOverlay>
   );
 }
@@ -176,7 +195,15 @@ async function undoAdd(
  * image picked for a note is held here, so that the form gets it back as it opens again, until it
  * is added, removed, or cancelled (ruling R21).
  */
-function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function NoteOverlay({
+  category,
+  isOpen,
+  onClose,
+}: {
+  category?: string | null;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const fate = useFateClient();
   const toast = useUndoToast();
   const { route } = useRoute();
@@ -205,7 +232,14 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
 
   return (
     <AddOverlay isOpen={isOpen} label="Add a note" loading="Loading the inbox" onClose={onClose}>
-      <AddNote about={about} images={images} onAdded={added} onCancel={onClose} picked={picked} />
+      <AddNote
+        about={about}
+        category={category}
+        images={images}
+        onAdded={added}
+        onCancel={onClose}
+        picked={picked}
+      />
     </AddOverlay>
   );
 }
@@ -217,19 +251,23 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
  */
 export function SidebarAddForms({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState<Form>();
+  const [place, setPlace] = useState<AddPlace>({});
   const [drawn, setDrawn] = useState<ReadonlyArray<Form>>([]);
   const close = () => setOpen(undefined);
-  const openForm = (form: Form) => {
+  const openForm: OpenForm = (form, where = {}) => {
     setDrawn((forms) => (forms.includes(form) ? forms : [...forms, form]));
+    setPlace(where);
     setOpen(form);
   };
   return (
     <OpenContext value={openForm}>
       {children}
       {drawn.includes("priority") && (
-        <PriorityOverlay isOpen={open === "priority"} onClose={close} />
+        <PriorityOverlay isOpen={open === "priority"} onClose={close} section={place.section} />
       )}
-      {drawn.includes("note") && <NoteOverlay isOpen={open === "note"} onClose={close} />}
+      {drawn.includes("note") && (
+        <NoteOverlay category={place.category} isOpen={open === "note"} onClose={close} />
+      )}
     </OpenContext>
   );
 }

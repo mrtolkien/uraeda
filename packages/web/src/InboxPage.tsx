@@ -13,7 +13,10 @@ import { refusal } from "./errors.ts";
 import { OrganizeButton, OrganizeMessage, TriageBanner } from "./InboxTriage.tsx";
 import { useStartChat } from "./StartChat.tsx";
 import { Page } from "./layout/Page.tsx";
+import { useKeys } from "./keys/registry.tsx";
 import { NoteMenu } from "./lists/CardMenu.tsx";
+import { NoteEditor } from "./lists/RowEditors.tsx";
+import { useOpenAddForm } from "./SidebarAdd.tsx";
 import { CategoryMenu, CategoryTitle } from "./lists/CategoryPane.tsx";
 import { useCategoryActions } from "./lists/useCategoryActions.ts";
 import { draftFile } from "./pane/NoteParts.tsx";
@@ -85,6 +88,42 @@ function panesOf(inbox: NonNullable<ReturnType<typeof useInbox>>) {
 }
 
 /**
+ * The write of a note dropped, or moved by a key, in a category at an index: over the version the
+ * move started from, so an inbox changed meanwhile refuses it, and a conflict reads it again.
+ */
+function useNoteMove(
+  inbox: NonNullable<ReturnType<typeof useInbox>>,
+  categories: ReturnType<typeof panesOf>,
+  onRefused: (message: string | undefined) => void,
+) {
+  const fate = useFateClient();
+  return async (key: string, section: string, index: number) => {
+    const note = categories.flatMap((c) => c.notes).find((one) => one.key === key);
+    const target = categories.find((category) => sectionId(category.name) === section);
+    if (!note || !target) {
+      return;
+    }
+    onRefused(undefined);
+    const result = await fate.mutations.inbox.place({
+      input: {
+        hash: inbox.hash,
+        index: Math.min(index, target.notes.length),
+        note: note.id,
+        ...(target.name === undefined ? {} : { category: target.name }),
+      },
+      view: InboxView,
+    });
+    if (result.error) {
+      const failed = refusal(result.error);
+      onRefused(failed.message);
+      if (failed.kind === "conflict") {
+        rereadChanges(fate);
+      }
+    }
+  };
+}
+
+/**
  * The inbox's categories as sections of the shared list, "No category" first when it holds notes,
  * then each category in the file's order, the empty ones too, each note a row with its children; a
  * drop moves the note to its place in `INBOX.md`. A category's title renames it in place, and its
@@ -100,9 +139,9 @@ function InboxList({
   inbox: NonNullable<ReturnType<typeof useInbox>>;
   onRefused: (message: string | undefined) => void;
 }) {
-  const fate = useFateClient();
   const here = useRepoPath();
   const pathname = useLocalPath();
+  const openForm = useOpenAddForm();
   // The drafts' titles are read once a menu is opened, for "Add to a draft".
   const [wantsDrafts, setWantsDrafts] = useState(false);
   const paths = (useWorkspace()?.drafts ?? []).map(draftFile);
@@ -124,6 +163,13 @@ function InboxList({
           titleNode: <CategoryTitle name={category.name} onRename={actions.rename} />,
         }),
     rows: category.notes.map((note, index) => ({
+      editor: (onDone: () => void) => (
+        <NoteEditor
+          hash={inbox.hash}
+          onDone={onDone}
+          placed={{ category: category.name, index, note }}
+        />
+      ),
       href: here(`/inbox/${note.key}`),
       key: note.key,
       // The row is one link: a link of its text, like a note's draft, would nest in it.
@@ -149,34 +195,17 @@ function InboxList({
     .flatMap((category) => category.notes)
     .find((note) => pathname === `/inbox/${note.key}`)?.key;
 
-  const onMove = async (key: string, section: string, index: number) => {
-    const note = categories.flatMap((c) => c.notes).find((one) => one.key === key);
-    const target = categories.find((category) => sectionId(category.name) === section);
-    if (!note || !target) {
-      return;
-    }
-    onRefused(undefined);
-    // Over the version the drag started from: an inbox changed meanwhile refuses the move.
-    const result = await fate.mutations.inbox.place({
-      input: {
-        hash: inbox.hash,
-        index: Math.min(index, target.notes.length),
-        note: note.id,
-        ...(target.name === undefined ? {} : { category: target.name }),
-      },
-      view: InboxView,
-    });
-    if (result.error) {
-      const failed = refusal(result.error);
-      onRefused(failed.message);
-      if (failed.kind === "conflict") {
-        rereadChanges(fate);
-      }
-    }
-  };
+  const onMove = useNoteMove(inbox, categories, onRefused);
 
   return (
     <WorkList
+      // `o`: the form in the category of the note, `null` for the notes before the first.
+      onAddBeside={(section) =>
+        openForm("note", {
+          category:
+            categories.find((category) => sectionId(category.name) === section)?.name ?? null,
+        })
+      }
       onMove={onMove}
       onOpen={(href) => openDetail(href, NOTE)}
       sections={sections}
@@ -198,6 +227,9 @@ export function InboxPage() {
   const chat = useStartChat();
   const [message, setMessage] = useState<string>();
   const actions = useCategoryActions(inbox?.hash ?? "");
+  const openForm = useOpenAddForm();
+  // The ＋ next to Inbox, from the keyboard: the form in its default place.
+  useKeys([{ hint: "a", icon: "plus", keys: "a", label: "add", run: () => openForm("note") }]);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   if (!inbox) {

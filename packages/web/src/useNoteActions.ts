@@ -9,7 +9,7 @@ import { refusal } from "./errors.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { TITLES } from "./QuickAdd.tsx";
 import { closeDetail } from "./pane/DetailOverlay.tsx";
-import { localPath, navigate, redirect, useRepoPath } from "./routes.tsx";
+import { localPath, navigate, redirect, useLocalPath, useRepoPath } from "./routes.tsx";
 import { DraftView, InboxView } from "./views.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
@@ -161,6 +161,7 @@ export function useNoteActions(
   const fate = useFateClient();
   const toast = useUndoToast();
   const here = useRepoPath();
+  const pathname = useLocalPath();
   const [message, setMessage] = useState<string>();
   const { note } = placed;
   const input = { hash, note: note.id };
@@ -194,7 +195,8 @@ export function useNoteActions(
     const key = result.result?.categories
       .flatMap((c) => c.notes)
       .find((one) => one.id === note.id)?.key;
-    if (key && key !== note.key) {
+    // Only the note's own overlay follows it: the list's editor in place leaves the page as it is.
+    if (key && key !== note.key && pathname === `/inbox/${note.key}`) {
       redirect(here(`/inbox/${key}`));
     }
     onRenaming(undefined);

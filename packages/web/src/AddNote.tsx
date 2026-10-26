@@ -86,10 +86,10 @@ function CategoryField({
  * `inbox-add`, and a new category's name, under `inbox-add#category`, which brings its "New
  * category…" choice back with it.
  */
-function useTypedNote() {
+function useTypedNote(start?: string | null) {
   const note = useTextField("inbox-add", "");
   const name = useTextField("inbox-add#category", "");
-  const [category, setCategory] = useState(() => (name.text ? NEW : NONE));
+  const [category, setCategory] = useState(() => (name.text ? NEW : start ? `:${start}` : NONE));
   const naming = category === NEW;
   return {
     category,
@@ -231,19 +231,22 @@ function useAdd({
  */
 export function AddNote({
   about,
+  category,
   images,
   onAdded,
   onCancel,
   picked,
 }: {
   about?: string;
+  /** The category the form opens on: a name, or `null` for none, which is the default. */
+  category?: string | null;
   images: ReadonlyArray<Picked>;
   onAdded: (added: NoteAdded) => void;
   onCancel: () => void;
   picked: PickedChanges;
 }) {
   const confirm = useConfirm();
-  const typed = useTypedNote();
+  const typed = useTypedNote(category);
   const { add, message, names, notice, ready, status } = useAdd({ about, images, onAdded, typed });
   // A draft with its images is never committed by its add.
   const commits = images.length === 0;

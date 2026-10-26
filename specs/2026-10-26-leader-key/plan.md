@@ -893,30 +893,30 @@ git commit -m "feat(leader-key): the key picker and the decisions' slash"
 **Interfaces:**
 
 - Consumes: Task 2's `useKeys`; Task 6's `useListKeys` and `WorkList`'s `onMoveItem`.
-- Produces: `useOpenAddForm(form)` takes an optional second argument,
-  `{ section?: string; category?: string }`, which the form opens with; existing callers are
-  unchanged. The priorities declare `a` (the add form), `o` (the form in the selected row's
+- Produces: the opener `useOpenAddForm()` returns takes an optional second argument,
+  `{ section?: string; category?: string | null }`, which the form opens with; existing callers are
+  unchanged (R40). The priorities declare `a` (the add form), `o` (the form in the selected row's
   section), `i` (edits the selected line in place), `m` (opens the selected card's move menu); the
   inbox declares `a`, `o` (the selected note's category), `i`, `m` (move to another category), each
   with its hint and `when` the focus is on a row or the page. `J K H L` move notes where the inbox
   can move them, as on the priorities. `n` is not an add key.
 
-- [ ] **Step 1: Write the failing tests**: US3 1: the inbox with a note in "Ideas" selected, `o`
+- [x] **Step 1: Write the failing tests**: US3 1: the inbox with a note in "Ideas" selected, `o`
       opens the add form with category "Ideas"; the priorities with a Next line selected, `o` opens
       the form in Next; `a` opens it in its default place (Next); `i` turns the line into its editor
       with the line's text; `m` opens the move menu of that line (US3 3), whose items are the card
       menu's; the same on a note; `K` and `L` on notes move them as a drag would (US3 4 for notes);
       none of these keys act in the add form's text field or under a dialog. The break caught: `o`
       opening the form without the place, which a test of the form's category shows.
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test run packages/web/src/__tests__/keys-priorities.test.tsx`; expected
       FAIL `Unable to find role "dialog"` after pressing `o`.
-- [ ] **Step 3: Implement** the keys with `useKeys` in the pages that own the actions, calling what
+- [x] **Step 3: Implement** the keys with `useKeys` in the pages that own the actions, calling what
       the buttons and menus call (`useOpenAddForm`, the card actions, `EditableLine`), never a copy
       of them. Each needs to be reachable another way, as the decision says: the buttons exist
       today.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS.
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-26-leader-key/plan.md
