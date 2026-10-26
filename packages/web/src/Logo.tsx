@@ -1,6 +1,5 @@
-// Uraeda's logo: a tree drawn in an 8 × 8 grid of dots, in the text's colour, which its container
-// sets. `public/favicon.svg` draws the same tree in Catppuccin's green.
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+// Uraeda's logo: a tree drawn in an 8 × 8 grid of dots, in the theme's green. `public/favicon.svg` draws the same tree in Catppuccin's green.
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 
 /** The tree's rows, top to bottom: `x` is a dot. */
@@ -22,7 +21,7 @@ const DOTS = ROWS.flatMap((row, y) =>
 
 const styles = stylex.create({
   lg: { height: spacingVars["--spacing-8"], width: spacingVars["--spacing-8"] },
-  logo: { flexShrink: 0 },
+  logo: { color: colorVars["--color-success"], flexShrink: 0 },
   md: { height: spacingVars["--spacing-6"], width: spacingVars["--spacing-6"] },
   sm: { height: spacingVars["--spacing-4"], width: spacingVars["--spacing-4"] },
 });

@@ -1,6 +1,5 @@
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import {
-  borderVars,
   colorVars,
   fontWeightVars,
   spacingVars,
@@ -11,17 +10,10 @@ import type { SessionStatus } from "uraeda-server/fate";
 
 const styles = stylex.create({
   dot: {
+    borderRadius: 0,
     // Large enough for its mark to read, as the sidebar's rows draw it.
     height: spacingVars["--spacing-4"],
     width: spacingVars["--spacing-4"],
-  },
-  idle: {
-    // A ring when idle: apart from working by its shape, also when the pulse is off.
-    backgroundColor: "transparent",
-    borderColor: colorVars["--color-icon-secondary"],
-    borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
-    boxSizing: "border-box",
   },
   mark: {
     fontSize: typeScaleVars["--text-heading-6-size"],
@@ -29,6 +21,7 @@ const styles = stylex.create({
     lineHeight: "100%",
   },
   small: {
+    borderRadius: 0,
     // A sub-agent's row, and a line of text.
     height: spacingVars["--spacing-3"],
     width: spacingVars["--spacing-3"],
@@ -51,7 +44,7 @@ const DOTS = {
 /**
  * A session's status as a dot, named by its label for screen readers: a pulsing blue dot while it
  * works, a warning "!" when it needs the human, an error "!" when it needs their attention, a
- * success "✓" for a reply not seen yet, and a grey ring when idle.
+ * success "✓" for a reply not seen yet, and nothing when idle.
  */
 export function StatusMark({
   label,
@@ -62,6 +55,9 @@ export function StatusMark({
   small?: boolean;
   status: SessionStatus;
 }) {
+  if (status === "idle") {
+    return null;
+  }
   const { mark, variant } = DOTS[status];
   return (
     <StatusDot
@@ -69,11 +65,7 @@ export function StatusMark({
       isPulsing={status === "working"}
       label={label}
       variant={variant}
-      xstyle={[
-        small ? styles.small : styles.dot,
-        status === "working" && styles.working,
-        status === "idle" && styles.idle,
-      ]}
+      xstyle={[small ? styles.small : styles.dot, status === "working" && styles.working]}
     />
   );
 }
