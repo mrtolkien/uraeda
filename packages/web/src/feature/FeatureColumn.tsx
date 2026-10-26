@@ -11,7 +11,8 @@ import { SideColumn } from "../layout/SideColumn.tsx";
 import type { OpenKeys } from "../useOpenKeys.ts";
 import { figureRows } from "./figureRows.ts";
 import { LinksPane } from "./LinksPane.tsx";
-import { ProducedPane, useNow } from "./ProducedPane.tsx";
+import { ProducedPane } from "./ProducedPane.tsx";
+import { useNow } from "../useNow.ts";
 import { QUESTIONS_KEY } from "./Record.tsx";
 import { SessionsPane } from "./SessionsPane.tsx";
 
@@ -31,7 +32,8 @@ export function FeatureColumn({ feature, history, keys }: ColumnProps) {
   const done = isDone(history);
   const agent = feature.agent ?? null;
   // Elapsed counts to now while the feature is live, and a running turn's time until it ends.
-  const now = useNow(!done || agent?.runningSince != null);
+  // Every 30 s while it runs (R5).
+  const now = useNow(!done || agent?.runningSince != null ? 30_000 : null);
   const rows = figureRows({
     agent,
     change: feature.kind === "change",

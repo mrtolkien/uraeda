@@ -13,7 +13,8 @@ import {
   sizeVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type MouseEvent, type ReactNode, Suspense, useEffect, useState } from "react";
+import { type MouseEvent, type ReactNode, Suspense } from "react";
+import { useNow } from "../useNow.ts";
 import { redirect, usePathname } from "../routes.tsx";
 import { useTurnLog } from "../sessionData.ts";
 import { StatusMark } from "../StatusMark.tsx";
@@ -289,16 +290,6 @@ export function EarlierRecap({
   );
 }
 
-/** The time now, again each second: of the live line, and the running sub-agents' rows. */
-export function useNow() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  return now;
-}
-
 /** The activity of a running turn: its label, "Working" or "Thinking", and since when. */
 type Activity = { label: string; since: string };
 
@@ -333,7 +324,7 @@ function Ticking({
   href: string | undefined;
   subagents: number;
 }) {
-  const now = useNow();
+  const now = useNow(1000);
   const text = liveText(Math.max(now - Date.parse(activity.since), 0), doing, subagents);
   return <RecapLine activity={activity.label} href={href} live text={text} />;
 }
