@@ -76,6 +76,36 @@ async function undoCommitted(
  * which commits the removal of a committed line. Closing it with Close, Back, or Escape keeps its
  * text.
  */
+/**
+ * The overlay of a ＋ button's form, `label` its title: a dialog of the quick add's width on wider
+ * screens, a sheet as tall as the form on the phone, `loading` read while its file loads.
+ */
+function AddOverlay({
+  children,
+  isOpen,
+  label,
+  loading,
+  onClose,
+}: {
+  children: ReactNode;
+  isOpen: boolean;
+  label: string;
+  loading: string;
+  onClose: () => void;
+}) {
+  return (
+    <Overlay
+      isOpen={isOpen}
+      label={label}
+      onClose={onClose}
+      sheetHeight="hug"
+      size={{ width: "var(--size-quick-add)" }}
+    >
+      <Suspense fallback={<Spinner label={loading} />}>{children}</Suspense>
+    </Overlay>
+  );
+}
+
 function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const fate = useFateClient();
   const toast = useUndoToast();
@@ -105,16 +135,14 @@ function PriorityOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   };
 
   return (
-    <Overlay
+    <AddOverlay
       isOpen={isOpen}
       label="New priority"
+      loading="Loading the priorities"
       onClose={onClose}
-      size={{ width: "var(--size-quick-add)" }}
     >
-      <Suspense fallback={<Spinner label="Loading the priorities" />}>
-        <AddForm onAdded={added} onCancel={onClose} />
-      </Suspense>
-    </Overlay>
+      <AddForm onAdded={added} onCancel={onClose} />
+    </AddOverlay>
   );
 }
 
@@ -176,17 +204,9 @@ function NoteOverlay({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
   };
 
   return (
-    <Overlay
-      isOpen={isOpen}
-      label="Add a note"
-      onClose={onClose}
-      sheetHeight="hug"
-      size={{ width: "var(--size-quick-add)" }}
-    >
-      <Suspense fallback={<Spinner label="Loading the inbox" />}>
-        <AddNote about={about} images={images} onAdded={added} onCancel={onClose} picked={picked} />
-      </Suspense>
-    </Overlay>
+    <AddOverlay isOpen={isOpen} label="Add a note" loading="Loading the inbox" onClose={onClose}>
+      <AddNote about={about} images={images} onAdded={added} onCancel={onClose} picked={picked} />
+    </AddOverlay>
   );
 }
 
