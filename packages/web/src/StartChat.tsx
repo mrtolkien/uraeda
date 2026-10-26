@@ -2,23 +2,13 @@
 // branch: a chat started in the main checkout, and the message to give an agent elsewhere.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
+import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { VStack } from "@astryxdesign/core/VStack";
-import { typeScaleVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { navigate, sessionIdPath, useRepoPath } from "./routes.tsx";
 import { sendMessage } from "./sessions.ts";
-
-const styles = stylex.create({
-  message: {
-    fontFamily: typographyVars["--font-family-code"],
-    fontSize: typeScaleVars["--text-code-size"],
-    margin: 0,
-    whiteSpace: "pre-wrap",
-  },
-});
 
 /** A chat started from a page: `start` sends a message, `error` is the server's refusal. */
 export type StartChat = ReturnType<typeof useStartChat>;
@@ -74,7 +64,7 @@ export function RoundBanner({
       />
     ) : (
       <Banner collapsible={false} status="info" title={titles.answered}>
-        <AgentMessage text={apply} />
+        <MessageToCopy text={apply} />
       </Banner>
     );
   }
@@ -90,11 +80,11 @@ export function RoundBanner({
 }
 
 /** A message to give an agent in this repository, with a button that copies it. */
-export function AgentMessage({ text }: { text: string }) {
+export function MessageToCopy({ text }: { text: string }) {
   return (
     <VStack align="start" gap={2}>
       <Paragraph>Give this message to an agent in this repository:</Paragraph>
-      <pre {...stylex.props(styles.message)}>{text}</pre>
+      <CodeBlock code={text} hasCopyButton={false} isWrapped size="sm" width="100%" />
       <Button label="Copy the message" onClick={() => void navigator.clipboard?.writeText(text)} />
     </VStack>
   );

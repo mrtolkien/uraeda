@@ -1,9 +1,7 @@
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-
+import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
-import { typeScaleVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
 import { type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
 import { CommitActions } from "./CommitActions.tsx";
@@ -33,15 +31,6 @@ import { Foldable } from "./layout/Foldable.tsx";
 type File = NonNullable<ReturnType<typeof useFile>>;
 type Notes = ReturnType<typeof useRoundNotes>;
 
-const styles = stylex.create({
-  output: {
-    fontFamily: typographyVars["--font-family-code"],
-    fontSize: typeScaleVars["--text-code-size"],
-    margin: 0,
-    whiteSpace: "pre-wrap",
-  },
-});
-
 /** A hook's refusal: the answers are saved, the commit is not, and it can be tried again. */
 export function HookRefusal({
   error,
@@ -60,7 +49,7 @@ export function HookRefusal({
       title={`The pre-commit hook refused the commit. ${what}`}
     >
       <Foldable label="Hook output">
-        <pre {...stylex.props(styles.output)}>{error.output ?? error.message}</pre>
+        <CodeBlock code={error.output ?? error.message} isWrapped size="sm" width="100%" />
       </Foldable>
     </AnnouncedBanner>
   );
