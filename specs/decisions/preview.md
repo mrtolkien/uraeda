@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: eye
 preview-folder: packages/web
 preview-command: pnpm exec storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}
@@ -21,8 +21,8 @@ mockup may be an HTML page instead.
   to them. Checked by review and lint.
 - Storybook MUST run Uraeda's real server over fixture data, and stories MUST NOT fake its
   responses. Checked by review.
-- Stories MUST NOT run as tests: UI tests are Vitest tests, per the [UI checks](ui-checks.md)
-  decision. Checked by review.
+- Stories MUST NOT run as tests, since the web UI has no automated UI tests, per the
+  [UI checks](ui-checks.md) decision. Checked by review.
 - `vp run ready` MUST build Storybook, so a story that does not compile fails. Checked by the
   `storybook:build` task.
 - Storybook's packages MUST be pinned to exact versions. Checked by review.

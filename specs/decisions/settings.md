@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: settings
 ---
 
@@ -22,7 +22,7 @@ overrides a setting for one run, and settings stay apart from Uraeda's data and 
 - A setting MUST resolve from its flag, then its environment variable, the file, and its default,
   and a flag or variable MUST NOT be written into the file. Checked by the server's tests.
 - A setting changed in the web UI MUST apply at once when it can, and otherwise the page MUST say
-  when it applies. Checked by the settings page's tests.
+  when it applies. Checked by review.
 
 ## Why
 

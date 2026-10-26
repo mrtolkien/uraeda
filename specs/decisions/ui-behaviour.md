@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: mouse-pointer-click
 ---
 
@@ -13,21 +13,20 @@ Everything works by tap and by keyboard, not by hover.
 ## Rules
 
 - Small edits MUST happen in place, and a dialog MUST only confirm an irreversible action or hold a
-  short form. Checked by the UI tests.
+  short form. Checked by review.
 - Text MUST save only on an explicit action, and unsaved text MUST be marked and never dropped
-  without asking. Checked by the UI tests.
+  without asking. Checked by review.
 - Status MUST show next to what it concerns, and an error MUST stay there until dealt with, never
-  only in a toast. Checked by the UI tests.
+  only in a toast. Checked by review.
 - A git write MUST show its action at once and never a guessed status, and MUST block other git
-  writes until it ends. Checked by the UI tests.
-- Back and reload MUST keep the human's place and what they were reading. Checked by the UI tests.
-- Every action MUST work by tap and by keyboard, never by hover alone. Checked by the UI and browser
-  tests.
+  writes until it ends. Checked by review.
+- Back and reload MUST keep the human's place and what they were reading. Checked by review.
+- Every action MUST work by tap and by keyboard, never by hover alone. Checked by review.
 - A view of something that grows, such as a session's log, MUST mount a bounded number of rows, and
   folded content MUST NOT be mounted, so typing stays smooth in a session of thousands of items. A
   component that mounts hidden content is wrapped once, in a shared component. Checked by the UI
   tests, which count what draws and never time it.
-- Lists whose rows open a pane SHOULD share one keyboard behaviour. Checked by the UI tests.
+- Lists whose rows open a pane SHOULD share one keyboard behaviour. Checked by review.
 
 ## Why
 
