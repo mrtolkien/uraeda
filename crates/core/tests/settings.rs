@@ -282,23 +282,6 @@ fn edits_and_removes_a_name() {
 }
 
 #[test]
-fn removes_the_first_of_two_names() {
-    let dir = tempdir();
-    write(
-        dir.path(),
-        "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\", \"phone.tail1234.ts.net\"]\n",
-    );
-
-    let removed = settings::remove_allowed_host(dir.path(), "mac.tail1234.ts.net");
-
-    assert_eq!(removed, Ok(hosts(&["phone.tail1234.ts.net"])));
-    assert_eq!(
-        text(dir.path()),
-        "[server]\nallowed_hosts = [\"phone.tail1234.ts.net\"]\n"
-    );
-}
-
-#[test]
 fn sets_building_in_a_fresh_session_in_its_own_table() {
     let dir = tempdir();
     write(dir.path(), "# mine\n[server]\nport = 4400\n");

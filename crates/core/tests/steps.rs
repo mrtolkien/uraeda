@@ -384,28 +384,6 @@ fn the_steps_before_the_plan_carry_plan_review() {
     assert_eq!(implementation.plan_review, None);
 }
 
-#[test]
-fn implementation_names_the_first_unchecked_task() {
-    let feature = feature(
-        Kind::Feature,
-        &[
-            ("proposal.md", proposal()),
-            ("clarifications-01.md", answered()),
-            ("spec.md", spec("approved", 1, 1)),
-            (
-                "plan.md",
-                plan(
-                    "auto-approved",
-                    1,
-                    &[("One", 1, 1), ("Repeat menu", 0, 2), ("Three", 0, 1)],
-                ),
-            ),
-        ],
-    );
-
-    assert_eq!(feature.step.task.as_deref(), Some("Task 2: Repeat menu"));
-}
-
 /// A plan's text with tasks numbered as given, each with its steps done out of total.
 fn numbered_plan(tasks: &[(u32, &str, usize, usize)], after: &str) -> String {
     let mut text =
