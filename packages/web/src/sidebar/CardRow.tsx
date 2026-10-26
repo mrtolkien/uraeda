@@ -118,6 +118,7 @@ export function CardRow({
             </>
           )}
         </span>
+        {/* A space before its end too: its visible text, as the name reads it, never runs together. */}{" "}
         <span {...stylex.props(styles.end)}>{endContent}</span>
       </RouterAnchor>
       {actions && <span {...stylex.props(styles.actions)}>{actions}</span>}
