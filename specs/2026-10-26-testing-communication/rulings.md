@@ -1,0 +1,46 @@
+# Rulings: Testing strategy review
+
+The low-impact choices made while planning and building [the plan](plan.md), inside the limits of
+[the spec](spec.md) and the decisions. None binds future work: those are decisions.
+
+## R1: Each judging task lists the tests it removes
+
+- **Decision**: the web UI's `.test.tsx` files are judged in the plan, which lists the kept ones.
+  The tests of `crates/`, the server, the benchmarks, the scripts, and the web's logic files are
+  judged by their tasks, each adding its removed tests to the plan's **Removed tests**, which the
+  record copies.
+- **Rationale**: the spec asks the plan to name each removed test. About 3,200 tests outside the web
+  UI's rendering files would make the plan longer than the change; the global constraints give every
+  judging task the same rules, and task 15 checks the lists against the diff.
+- **Alternatives considered**: judging every test while planning: thousands of lines of plan that
+  restate the tests.
+- **Where**: tasks 6, 7, 10 to 13, and 15.
+
+## R2: The browser runner goes, with its two weakest candidates
+
+- **Decision**: no browser test is kept. The two candidates the triage found, a picked story
+  element's unsaved comment through a reload, and a variant's comment joining its answer, have their
+  logic extracted (`storyComment`, `saveWithLine`) and their wiring left to review.
+- **Rationale**: the Testing decision keeps a UI test only when it is extremely useful; these two
+  guard wiring between a real Storybook frame and code the unit tests now own, and keeping them
+  keeps Playwright's browser runner, its configuration, and two CI jobs.
+- **If wrong**: the runner comes back from git, with these two files.
+- **Where**: tasks 5 and 10.
+
+## R3: UI tests a decision names stay
+
+- **Decision**: `diagram.test.tsx`'s failure fallback and `notify.test.tsx` stay as kept UI tests,
+  with `diagram-hostile.test.tsx`.
+- **Rationale**: the Diagrams and Notifications decisions, which this spec did not change, say their
+  rules are "Checked by the diagram's tests" and "by the notifier's tests"; removing the tests would
+  edit what those decisions mean without the human's approval.
+- **Where**: the plan's **Kept web UI tests**, task 12.
+
+## R4: The evaluation's feature is a small check of the core
+
+- **Decision**: "Record dates": `ura check` warns when a record's `finished` date is before its
+  name's date, and a record's `kind` may be `chore`, which a test refuses today.
+- **Rationale**: the spec asks for a feature of the core or the server with logic and a contract.
+  The first rule is date logic with a message contract; the second replaces a behaviour an existing
+  test pins, which is the probe of US5's second scenario.
+- **Where**: task 14.
