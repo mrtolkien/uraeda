@@ -87,6 +87,23 @@ test("it does not run in a text field, or while composing", () => {
   expect(ran).toEqual([]);
 });
 
+test("a checkbox, a radio, and a button are no text field: the page's keys run on them", () => {
+  const ran: Array<string> = [];
+  render(
+    <KeysProvider>
+      <Harness keys="j" ran={ran} />
+    </KeysProvider>,
+  );
+  for (const type of ["checkbox", "radio", "button", "submit", "range"]) {
+    press("j", add("input", { type }));
+  }
+  expect(ran).toEqual(["j", "j", "j", "j", "j"]);
+  // A text-like input is still a text field, typed or not.
+  press("j", add("input", { type: "text" }));
+  press("j", add("input", { type: "search" }));
+  expect(ran).toHaveLength(5);
+});
+
 // Break: a layer rule that differs by caller, as the three copies did.
 test("under a dialog, an open menu, or an expanded popup, no binding runs", () => {
   const ran: Array<string> = [];

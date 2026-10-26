@@ -17,7 +17,10 @@ export type Binding = {
   fallback?: boolean;
   /** The status line's text for the key or keys, "j k": absent means no hint. */
   hint?: string;
-  /** Still named while a layer is open, for the keys a layer's owner declares. */
+  /**
+   * Still named while a layer is open, for the keys a layer's owner declares. Only the hint stays:
+   * the binding's `run` never fires under a layer, whose owner takes its own keys.
+   */
   hintInLayer?: boolean;
   icon?: IconName;
   /**
@@ -29,7 +32,11 @@ export type Binding = {
   label: string;
   /** Returning `false` says nothing was done, and the key goes on to a fallback. */
   run: (event: KeyboardEvent) => void | false;
-  /** An extra guard on the event's target; absent means any target outside a text field. */
+  /**
+   * An extra guard on the event's target; absent means any target outside a text field. A key's
+   * conflicts are checked among every declared binding whatever its guard says: a component whose
+   * keys are not the active ones declares none.
+   */
   when?: (target: EventTarget | null) => boolean;
 };
 
@@ -80,13 +87,14 @@ export function createKeyStore(initialSingleKeys: boolean) {
   let singleKeys = initialSingleKeys;
   let hints: ReadonlyArray<Hint> = [];
 
-  /** The bindings that are on, the page's first, each place in the order they were declared. */
-  const active = () =>
-    (["page", "shell"] as const)
-      .flatMap((place) =>
-        [...entries.values()].filter((entry) => entry.place === place).flatMap((e) => e.bindings),
-      )
-      .filter((binding) => singleKeys || !isSingleKey(binding.keys));
+  /** Every declared binding, the page's first, each place in the order they were declared. */
+  const declared = () =>
+    (["page", "shell"] as const).flatMap((place) =>
+      [...entries.values()].filter((entry) => entry.place === place).flatMap((e) => e.bindings),
+    );
+
+  /** The bindings that are on: with the switch off, not the single-key ones. */
+  const active = () => declared().filter((binding) => singleKeys || !isSingleKey(binding.keys));
 
   /** Publishes the hints, to the readers only when their text changed. */
   const publish = () => {
@@ -114,6 +122,8 @@ export function createKeyStore(initialSingleKeys: boolean) {
 
   return {
     active,
+    /** Every binding, switch or not: the menu the Ctrl or Cmd+K chord opens walks its tree. */
+    all: declared,
     getHints: () => hints,
     /** The bindings of a one-token key that are on. */
     matching: (token: string) => active().filter((binding) => binding.keys === token),

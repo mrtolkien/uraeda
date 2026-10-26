@@ -9,6 +9,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
+import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
 import { KeysProvider } from "./keys/registry.tsx";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
@@ -169,6 +170,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   ) : null
                 }
               >
+                <LeaderMenuHost />
                 <Writing />
                 <NotifyBanner />
                 <Notifier />

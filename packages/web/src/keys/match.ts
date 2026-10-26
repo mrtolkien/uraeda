@@ -11,7 +11,16 @@ const NOT_KEYS = new Set([
   "CapsLock",
   "Control",
   "Dead",
+  "Fn",
+  "FnLock",
+  "Hyper",
   "Meta",
+  "NumLock",
+  "OS",
+  "ScrollLock",
+  "Super",
+  "Symbol",
+  "SymbolLock",
   "Process",
   "Shift",
   "Unidentified",
@@ -43,9 +52,9 @@ export function tokenOf(event: KeyboardEvent): string | null {
   }
   const mod = event.ctrlKey || event.metaKey;
   const name = key === " " ? "space" : mod ? key.toLowerCase() : key;
-  // Shift is in the character it typed; on a named key, or with another modifier, it is the
-  // shortcut's.
-  const isShift = event.shiftKey && (!isChar || mod || event.altKey);
+  // Shift is in the character it typed, and Space with it is still Space; on a named key, or with
+  // another modifier, it is the shortcut's.
+  const isShift = event.shiftKey && ((!isChar && key !== " ") || mod || event.altKey);
   return `${mod ? "mod+" : ""}${event.altKey ? "alt+" : ""}${isShift ? "shift+" : ""}${name}`;
 }
 
