@@ -1,4 +1,3 @@
-import { Heading } from "@astryxdesign/core/Heading";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -9,6 +8,7 @@ import { Paragraph } from "../layout/Paragraph.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { plural } from "../labels.ts";
+import { GroupTitle } from "../layout/GroupTitle.tsx";
 
 /** The constitution, as the ledger sends it. */
 export type LedgerConstitution = NonNullable<Ledger["constitution"]>;
@@ -17,10 +17,6 @@ export type LedgerConstitution = NonNullable<Ledger["constitution"]>;
 export type LedgerPrinciple = LedgerConstitution["principles"][number];
 
 const styles = stylex.create({
-  count: {
-    color: colorVars["--color-text-secondary"],
-    fontWeight: fontWeightVars["--font-weight-normal"],
-  },
   numeral: {
     // The numerals in one column, as the decisions' icons are.
     color: colorVars["--color-text-secondary"],
@@ -79,12 +75,9 @@ export function ConstitutionRegion({
       <VStack gap={2}>
         {/* A list's heading, as small as the decisions': the list is a narrow column. */}
         <VStack gap={1}>
-          <Heading accessibilityLevel={2} level={4}>
-            Constitution{" "}
-            {constitution && (
-              <span {...stylex.props(styles.count)}>· {constitution.principles.length}</span>
-            )}
-          </Heading>
+          <GroupTitle count={constitution?.principles.length} level={2}>
+            Constitution
+          </GroupTitle>
           {constitution && (
             <Text color="secondary" type="supporting">
               In one file, highest first.

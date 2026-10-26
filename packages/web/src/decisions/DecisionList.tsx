@@ -1,5 +1,4 @@
 import { Badge } from "@astryxdesign/core/Badge";
-import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
@@ -15,12 +14,9 @@ import { statusLabel } from "./DecisionDetail.tsx";
 import { type DecisionSort, type LedgerDecision, SORTS, shortDate } from "./model.ts";
 import { useMenuPresentation } from "../layout/useWidthClass.ts";
 import { Empty } from "../layout/Empty.tsx";
+import { GroupTitle } from "../layout/GroupTitle.tsx";
 
 const styles = stylex.create({
-  count: {
-    color: colorVars["--color-text-secondary"],
-    fontWeight: "normal",
-  },
   icon: {
     color: colorVars["--color-text-secondary"],
     display: "inline-flex",
@@ -91,20 +87,23 @@ export function DecisionList({
   return (
     <section aria-label="Decisions">
       <VStack gap={2}>
-        <HStack align="center" gap={3} justify="between" wrap="wrap">
-          <Heading accessibilityLevel={2} level={4}>
-            Decisions <span {...stylex.props(styles.count)}>· {decisions.length}</span>
-          </Heading>
-          <Selector
-            isLabelHidden
-            label="Sort decisions"
-            onChange={(value: string) => onSort(value as DecisionSort)}
-            options={SORTS}
-            presentation={presentation}
-            size="sm"
-            value={sort}
-          />
-        </HStack>
+        <GroupTitle
+          actions={
+            <Selector
+              isLabelHidden
+              label="Sort decisions"
+              onChange={(value: string) => onSort(value as DecisionSort)}
+              options={SORTS}
+              presentation={presentation}
+              size="sm"
+              value={sort}
+            />
+          }
+          count={decisions.length}
+          level={2}
+        >
+          Decisions
+        </GroupTitle>
         {decisions.length === 0 ? (
           <Empty>No decisions yet.</Empty>
         ) : (

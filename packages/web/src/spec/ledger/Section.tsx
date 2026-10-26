@@ -3,13 +3,13 @@
 // consequences", with their count of changed parts for a decision changed. With `full`, as on the
 // decision's own page, every section shows, nothing folded, each part in the file's order, marked
 // in place.
-import { Heading } from "@astryxdesign/core/Heading";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type ReactNode, useId } from "react";
 import type { DecisionChange, PartChange, SectionChange } from "uraeda-binding";
 import { type Context, foldKeyOf } from "./context.ts";
 import { Fold, holdsAny, Part } from "./Rows.tsx";
 import { plural } from "../../labels.ts";
+import { GroupTitle } from "../../layout/GroupTitle.tsx";
 
 /** What a ledger draws a decision's sections with: its context, but the section's own. */
 export type LedgerContext = Omit<Context, "heading" | "intent">;
@@ -80,9 +80,9 @@ function Section({
   return (
     <div aria-labelledby={headingId} role="group">
       <VStack gap={1}>
-        <Heading id={id} level={4}>
+        <GroupTitle id={id} level={4}>
           <span id={headingId}>{section.title}</span>
-        </Heading>
+        </GroupTitle>
         {rows}
       </VStack>
     </div>
