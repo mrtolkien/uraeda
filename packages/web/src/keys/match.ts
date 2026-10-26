@@ -33,6 +33,12 @@ export function isPrintable(key: string) {
 
 const LETTER = /^[a-zA-Z]$/;
 
+/** Whether the browser runs on macOS, where Option types characters as AltGr does elsewhere. */
+function onMac() {
+  const { userAgentData } = navigator as { userAgentData?: { platform?: string } };
+  return /mac/i.test(userAgentData?.platform || navigator.platform || "");
+}
+
 /**
  * A Latin letter in the case Shift gives it, not Caps Lock's; with a modifier it is lowercase, and
  * Shift is the token's own.
@@ -46,7 +52,8 @@ const letter = (key: string, { altKey, ctrlKey, metaKey, shiftKey }: KeyboardEve
  * token: holding `j` goes on moving, and what a repeat starts is the sequences' rule.
  *
  * AltGr is not a modifier: it reports `ctrlKey` and `altKey` together on Windows, and `[` and `]`
- * on AZERTY need it, so a printable character typed with AltGr is that character.
+ * on AZERTY need it, so a printable character typed with AltGr is that character, and with Option
+ * on a Mac (R136).
  */
 export function tokenOf(event: KeyboardEvent): string | null {
   const { key } = event;
@@ -57,7 +64,11 @@ export function tokenOf(event: KeyboardEvent): string | null {
   const isChar = isPrintable(key) && key !== " ";
   const altGraph =
     event.getModifierState("AltGraph") || (event.ctrlKey && event.altKey && !event.metaKey);
-  if (isChar && altGraph) {
+  // Option on macOS types characters the way AltGr does: `[` and `]` on a German or French layout
+  // are Option+5 and Option+6. A Latin letter with it, or a chord with Command or Control, is no
+  // character typed, and nothing binds Alt.
+  const option = event.altKey && !event.ctrlKey && !event.metaKey && !LETTER.test(key) && onMac();
+  if (isChar && (altGraph || option)) {
     return key;
   }
   const mod = event.ctrlKey || event.metaKey;
