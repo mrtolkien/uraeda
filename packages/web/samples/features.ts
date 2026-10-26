@@ -478,7 +478,7 @@ export function fakeGh(pullRequests: Array<FakePullRequest>) {
 
 /**
  * Puts first on this process's PATH a `gh` that lists `FEATURE_PAGES.pullRequest`'s pull request,
- * #31, open, as `feature-page.test.tsx` fakes it (R24).
+ * #31, open.
  */
 export function listPullRequest() {
   fakeGh([PULL_REQUEST]);

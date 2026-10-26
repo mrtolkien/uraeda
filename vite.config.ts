@@ -200,12 +200,8 @@ export default {
         },
       },
       {
-        // The one place Astryx's Markdown is drawn, bar a test's mock of it and a story's mockup.
-        files: [
-          "packages/web/src/Prose.tsx",
-          "packages/web/src/__tests__/session-cost.test.tsx",
-          "packages/web/src/SessionMockups.stories.tsx",
-        ],
+        // The one place Astryx's Markdown is drawn, bar a story's mockup.
+        files: ["packages/web/src/Prose.tsx", "packages/web/src/SessionMockups.stories.tsx"],
         rules: { "no-restricted-imports": "off" },
       },
       {
