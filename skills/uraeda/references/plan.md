@@ -387,7 +387,9 @@ fix what you find inline. This is a checklist you run yourself.
    review-focus item, breaks [how many](code-quality.md#how-many): make it a row or an assertion of
    one of those tests, or write "none" and why. Then, of each new test, name the existing, planned,
    or rewritten test that would already fail if its behaviour broke: when there is one, drop the new
-   test. Last, no new assertion compares a whole list of results, even where the existing tests do.
+   test. Last, no new assertion compares a whole list of results, even where the existing tests do,
+   and none asserts again what an existing test asserts, such as an error a scenario says still
+   holds.
 3. **Step scan**: every step has a checkable outcome and the contracts its neighbours need. A line
    that decides nothing is a gap; private code the implementer can choose is unnecessary
    prescription. Fix both. Explain an algorithm when correctness depends on it.
