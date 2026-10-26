@@ -10,18 +10,14 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import {
-  colorVars,
-  fontWeightVars,
-  spacingVars,
-  typeScaleVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { Span } from "uraeda-binding";
 import { LineField } from "../EditableLine.tsx";
 import { Spans } from "../Spans.tsx";
 import type { useLineSave } from "../useLineSave.ts";
+import { Heading } from "@astryxdesign/core/Heading";
 
 const styles = stylex.create({
   bar: {
@@ -59,14 +55,6 @@ const styles = stylex.create({
   },
   footerSteps: {
     paddingBlockStart: spacingVars["--spacing-2"],
-  },
-  text: {
-    // The entry's line, the pane's title.
-    fontSize: typeScaleVars["--text-heading-2-size"],
-    fontWeight: fontWeightVars["--font-weight-semibold"],
-    lineHeight: typeScaleVars["--text-heading-2-leading"],
-    margin: 0,
-    textWrap: "pretty",
   },
 });
 
@@ -125,10 +113,10 @@ export function EntryText({
         <LineField label={label} line={line} />
       ) : (
         // The pane's title: a heading, read at a heading's size.
-        <h2 {...stylex.props(styles.text)}>
+        <Heading level={2}>
           {marks}
           <Spans spans={spans} />
-        </h2>
+        </Heading>
       )}
       {nested.length > 0 && (
         <ul {...stylex.props(styles.children)}>
