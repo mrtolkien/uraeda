@@ -88,8 +88,11 @@ project's parts, pure logic with many cases, and the reproduction of each bug fi
 - **Assert only what the task adds.** A new test checks the behaviour the task adds or changes, and
   leaves what existing tests already check to them. When the code returns several results, such as a
   list of problems, a test of a new one picks it out, by its message or its kind, and asserts it
-  alone, or its absence: it never compares the whole list. A case existing tests already run, such
-  as the unchanged path of valid input, gets no new test.
+  alone, or its absence: it never compares the whole list. A scenario that says an existing
+  behaviour still holds, such as "only the existing error, and no warning", has two halves: the
+  existing test owns the old half, and the new test asserts the new half alone, here the warning's
+  absence. A case existing tests already run, such as the unchanged path of valid input, gets no new
+  test.
 - **One layer per rule.** A rule that two entry points reach, such as a check and a view built on
   it, gets one test, through the entry point whose path runs all the code the rule depends on. A
   test of the inner one adds nothing.
