@@ -55,6 +55,16 @@ test("Space, a named key with Shift, and Ctrl or Cmd+K have their own tokens", (
   expect(tokenOf(press("Escape"))).toBe("Escape");
 });
 
+test("Space typed with Shift is still Space", () => {
+  expect(tokenOf(press(" ", { shiftKey: true }))).toBe("space");
+});
+
+test("the keys of a keyboard's extra layers are no shortcut, so a wrong key ends nothing", () => {
+  for (const key of ["Fn", "FnLock", "NumLock", "ScrollLock", "Hyper", "Super", "OS"]) {
+    expect(tokenOf(press(key))).toBeNull();
+  }
+});
+
 test("a single-key shortcut starts with one printable character or Space", () => {
   for (const keys of ["j", "J", "+", "[", "/", ",", "space", "g h", "space n n"]) {
     expect(isSingleKey(keys)).toBe(true);

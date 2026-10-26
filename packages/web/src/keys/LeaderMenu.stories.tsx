@@ -57,10 +57,10 @@ type Story = StoryObj<typeof meta>;
 
 /** Space pressed, half a second ago: the top level, destinations first, then the groups. */
 export const TopLevel: Story = {
-  args: { children: <LeaderMenu entries={TOP} path={[]} /> },
+  args: { children: <LeaderMenu entries={TOP} path={["Space"]} /> },
 };
 
 /** Space then `n`: the New group, titled `Space n`. */
 export const NewGroup: Story = {
-  args: { children: <LeaderMenu entries={NEW} path={["n"]} /> },
+  args: { children: <LeaderMenu entries={NEW} path={["Space", "n"]} /> },
 };

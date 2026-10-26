@@ -566,9 +566,13 @@ next key).
 
 **Files:**
 
-- Create: `packages/web/src/keys/sequence.ts` (the pure state machine), `keys/LeaderMenuHost.tsx`
-- Modify: `packages/web/src/keys/registry.tsx` (the listener hands keys to `sequence.ts`; the delay
-  and the wait are timers here), `keys/LeaderMenu.tsx` (title from the path),
+- Create: `packages/web/src/keys/sequence.ts` (the pure state machine, and `entriesAt`, the menu's
+  entries at a step), `keys/leader.ts` (the pending step and its two timers, split out of
+  `registry.tsx` to keep it small), `keys/fields.ts` (the one rule of who owns a key: a text field's
+  keys, and the controls that keep Space), `keys/LeaderMenuHost.tsx`
+- Modify: `packages/web/src/keys/registry.tsx` (the listener hands keys to `leader.ts`; it exports
+  `useLeader()`, the pending step, the bindings, and `end`, for the host), `keys/store.ts` (`all()`:
+  every binding, switch or not), `keys/match.ts`, `keys/LeaderMenu.tsx` (title from the path),
   `keys/LeaderMenu.stories.tsx`, `packages/web/src/Shell.tsx` (mounts the host)
 - Test: `packages/web/src/__tests__/keys-sequence.test.ts`, `keys-leader.test.tsx`,
   `packages/web/src/__browser__/leader-space.test.tsx`
@@ -605,7 +609,7 @@ link, and a row, with `preventDefault` on keydown, so the control is not pressed
 presses it; a text field, a contenteditable region, a checkbox, a radio, a switch, a select, and a
 combobox (also their `role=` forms) keep Space.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `keys-sequence.test.ts` (no timers): from no step, Space gives `Space` pending; `n` then gives the
 group; `n` again runs `space n n`; an unbound key in a shown menu is consumed and keeps the step;
@@ -637,15 +641,15 @@ opens the menu and the button's click handler is not called, Enter still calls i
 and on a row do not follow them; Space ticks a checkbox and picks a radio card, opening no menu; at
 phone width the menu spans the window's width above the page in one column (US1 more 6).
 
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test run packages/web/src/__tests__/keys-sequence.test.ts packages/web/src/__tests__/keys-leader.test.tsx`;
       expected FAIL `Failed to resolve import "../keys/sequence.ts"`.
-- [ ] **Step 3: Implement** `sequence.ts`, the timers and Space rules in `registry.tsx`, the host
+- [x] **Step 3: Implement** `sequence.ts`, the timers and Space rules in `registry.tsx`, the host
       (`LeaderMenuHost`, which reads the registry's step and draws `LeaderMenu`, closing on a route
       change), the title change, and the story updates; mount the host in `Shell.tsx`.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`, then
       `nix develop -c vp run browser:desktop` for `leader-space.test.tsx`. Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-26-leader-key/plan.md

@@ -1,8 +1,8 @@
 // The key registry: every shortcut that acts on the page is declared here, by the component that
 // owns the action, while it is mounted, and heard by one listener on the window. A key is matched by
-// the character typed (`match.ts`), never in a text field or under an open layer (`layers.ts`),
-// and with the single-key switch off, only the keys that are not one printable character run
-// (`store.ts`). The status line draws the hints of what is declared; no page, list, or shell part
+// the character typed (`match.ts`), never in a text field or under an open layer (`layers.ts`), and
+// with the single-key switch off, only the keys that are not one printable character run
+// (`store.ts`). Sequences, and the leader's menu they open, are `leader.ts`'s. The status line draws the hints of what is declared; no page, list, or shell part
 // listens for keys of its own, except the allowlist of the plan's Complexity tracking.
 import {
   createContext,
@@ -16,30 +16,22 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { StatusHint } from "../statusHints.tsx";
+import { inTextField, keepsSpace } from "./fields.ts";
+import { createLeader, type Leader, type Pressed } from "./leader.ts";
 import { useLayerOpen, isLayerOpen } from "./layers.ts";
 import { tokenOf } from "./match.ts";
+import type { Step } from "./sequence.ts";
 import { type Binding, createKeyStore, type KeyStore, type Place } from "./store.ts";
 
 export type { Binding } from "./store.ts";
 
-const StoreContext = createContext<KeyStore | null>(null);
+/** What the provider holds: the declared bindings, and the sequence the leader has pending. */
+type Registry = { leader: Leader; store: KeyStore };
 
-/** A text field owns its keys, as typed: the registry never hears them. */
-const TEXT_FIELD =
-  'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]';
+const StoreContext = createContext<Registry | null>(null);
 
-/** Runs the first binding of the key that did something, else its fallback. */
-function dispatch(store: KeyStore, event: KeyboardEvent) {
-  const token = event.defaultPrevented ? null : tokenOf(event);
-  const target = event.target;
-  if (
-    token === null ||
-    (target as Partial<Element> | null)?.closest?.(TEXT_FIELD) != null ||
-    isLayerOpen(target)
-  ) {
-    return;
-  }
-  const matching = store.matching(token).filter((binding) => binding.when?.(target) ?? true);
+/** Runs the first binding that did something, a fallback only when no other did. */
+function runFirst(matching: ReadonlyArray<Binding>, event: KeyboardEvent) {
   const ordered = [
     ...matching.filter((b) => b.fallback !== true),
     ...matching.filter((b) => b.fallback === true),
@@ -50,6 +42,39 @@ function dispatch(store: KeyStore, event: KeyboardEvent) {
       return;
     }
   }
+}
+
+/**
+ * Hands a key to what pends (a sequence, the leader's menu), else runs the bindings of the key. A
+ * text field and an open layer own their keys, and end what pends.
+ */
+function dispatch({ leader, store }: Registry, event: KeyboardEvent) {
+  const token = event.defaultPrevented ? null : tokenOf(event);
+  const target = event.target;
+  if (token === null) {
+    return;
+  }
+  if (inTextField(target) || isLayerOpen(target)) {
+    leader.end();
+    return;
+  }
+  const allowed = (binding: Binding) => binding.when?.(target) ?? true;
+  // Space on a checkbox, a radio, a switch, or a combobox is theirs, unless the menu is open.
+  const isKept = token === "space" && leader.get() === null && keepsSpace(target);
+  const { consumed, ran }: Pressed = isKept
+    ? { consumed: false, ran: null }
+    : leader.press(token, event, store);
+  if (ran !== null) {
+    runFirst(
+      store.all().filter((binding) => binding.keys === ran && allowed(binding)),
+      event,
+    );
+  }
+  if (consumed) {
+    event.preventDefault();
+    return;
+  }
+  runFirst(store.matching(token).filter(allowed), event);
 }
 
 /**
@@ -64,16 +89,26 @@ export function KeysProvider({
   children: ReactNode;
   singleKeys?: boolean;
 }) {
-  const [store] = useState(() => createKeyStore(singleKeys));
+  const [registry] = useState<Registry>(() => ({
+    leader: createLeader(),
+    store: createKeyStore(singleKeys),
+  }));
   useLayoutEffect(() => {
-    store.setSingleKeys(singleKeys);
-  }, [store, singleKeys]);
+    registry.store.setSingleKeys(singleKeys);
+    if (!singleKeys) {
+      // Off means off: a menu open when it turns off closes, the chord's too.
+      registry.leader.end();
+    }
+  }, [registry, singleKeys]);
   useLayoutEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => dispatch(store, event);
+    const onKeyDown = (event: KeyboardEvent) => dispatch(registry, event);
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [store]);
-  return <StoreContext value={store}>{children}</StoreContext>;
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      registry.leader.dispose();
+    };
+  }, [registry]);
+  return <StoreContext value={registry}>{children}</StoreContext>;
 }
 
 /** A binding without its handlers, which the registry reads at the key, not at the render. */
@@ -86,7 +121,7 @@ type Shape = Omit<Binding, "run" | "when"> & { hasWhen: boolean };
  * where a key would mean two things.
  */
 export function useKeys(bindings: ReadonlyArray<Binding>, place: Place = "page") {
-  const store = use(StoreContext);
+  const store = use(StoreContext)?.store;
   const id = useId();
   const latest = useRef(bindings);
   useLayoutEffect(() => {
@@ -122,7 +157,7 @@ const noSubscription = () => () => {};
  * shell's. While a layer is open, only those that stay for it.
  */
 export function useHints(): ReadonlyArray<StatusHint> {
-  const store = use(StoreContext);
+  const store = use(StoreContext)?.store;
   const hints = useSyncExternalStore(
     store?.subscribe ?? noSubscription,
     store?.getHints ?? (() => NONE),
@@ -135,4 +170,25 @@ export function useHints(): ReadonlyArray<StatusHint> {
         .map(({ keys, label }) => ({ keys, label })),
     [hints, isLayerShown],
   );
+}
+
+/**
+ * The leader's pending sequence, for the menu that draws it: the keys pressed so far, whether it is
+ * shown yet, every binding to read its next keys from, and how to end it.
+ */
+export function useLeader(): {
+  bindings: ReadonlyArray<Binding>;
+  end: () => void;
+  step: Step | null;
+} {
+  const registry = use(StoreContext);
+  const step = useSyncExternalStore(
+    registry?.leader.subscribe ?? noSubscription,
+    registry?.leader.get ?? (() => null),
+  );
+  return {
+    bindings: step === null || registry === null ? NONE : registry.store.all(),
+    end: registry?.leader.end ?? (() => {}),
+    step,
+  };
 }

@@ -1,8 +1,7 @@
 // The leader menu: the keys pressed so far in the title of a bordered pane, then what each next key
 // does, each with its icon, a group marked by an arrow, in alphabetical order of their keys. It sits
 // at the window's bottom right, above the status line, and on narrow screens spans the window's
-// width, as the UI layout decision's sheets do. A mockup of the leader-key spec: the registry (a
-// later task) feeds it its entries, which come from the keys features declare.
+// width, as the UI layout decision's sheets do. `LeaderMenuHost` feeds it the registry's step.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -73,7 +72,10 @@ function Key({ name }: { name: string }) {
   return <KeyCap>{name === "space" ? <Icon icon="uraeda:space" label="Space" /> : name}</KeyCap>;
 }
 
-/** The menu at a step: `path` is the keys pressed, `entries` the next keys. */
+/** A key of the path as the title writes it: Space is `Space`, any other as typed. */
+const written = (key: string) => (key === "space" ? "Space" : key);
+
+/** The menu at a step: `path` is the keys pressed, the first included, `entries` the next keys. */
 export function LeaderMenu({
   entries,
   path,
@@ -84,7 +86,7 @@ export function LeaderMenu({
   const narrow = isNarrow(useWidthClass());
   return (
     <div {...stylex.props(styles.place, narrow && styles.sheet)}>
-      <Pane isActive isGroup title={["Space", ...path].join(" ")}>
+      <Pane isActive isGroup title={path.map(written).join(" ")}>
         <ul {...stylex.props(styles.entries, narrow && styles.oneColumn)}>
           {sortedEntries(entries).map((entry) => (
             <li key={entry.key}>
