@@ -79,9 +79,10 @@ project's parts, pure logic with many cases, and the reproduction of each bug fi
   none where the stage asks none. A rarer scenario, a lower edge case, or a review-focus item joins
   one of those tests, as a row or an assertion, or has no test. The plan's test map says "none" and
   why for each row without one.
-- **The existing tests first.** A scenario an existing test already proves gets no new test: the
-  test map names the one that proves it. A behaviour with a test gets its new case there, not in a
-  second test.
+- **The existing tests first.** Read the tests of the code a task changes before writing one. A
+  scenario an existing test already proves gets no new test: the test map names the one that proves
+  it. A new case of a behaviour that has a test goes into that test, as a row or an assertion. A new
+  test that would prove all an existing one proves replaces it, in the same commit.
 - **One layer per rule.** A rule that two entry points reach, such as a check and a view built on
   it, gets one test, through the entry point whose path runs all the code the rule depends on. A
   test of the inner one adds nothing.
