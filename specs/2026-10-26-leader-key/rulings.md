@@ -286,3 +286,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   control, which Astryx does not draw) is made manual.
 - **Where**: fix pass A, `keys/layers.ts`, `keys-registry.test.tsx`,
   `__browser__/keys-layers.test.tsx`.
+
+## R25: The leader menu lists only the entries whose `when` holds at the focus
+
+- **Decision**: `entriesAt(bindings, path, target)` skips a binding whose `when` is false for
+  `target`, as `leader.press` does at the key, so an entry or a group whose every binding is guarded
+  off is not listed, and one key with two bindings is listed if either guard holds. The menu's host
+  passes `document.activeElement`, which is where the key that began the sequence went, as the menu
+  shows half a second after it. `target` defaults to `null`, which `when` functions of the
+  registry's own tree read as "no target".
+- **Rationale**: the menu showed an entry the key would not run: a human reads the menu to choose,
+  and a dead entry is a lie in it.
+- **Alternatives considered**: keeping the event's target in the leader's step: one more field on
+  every step for a focus that rarely moves in half a second; and a focus that did move is better
+  followed than the stale one.
+- **If wrong**: a guard that reads more than the focus (none now) would list an entry that does not
+  run; the guard's reader is `leader.press`'s `event.target`.
+- **Where**: fix pass A, `keys/sequence.ts`, `keys/LeaderMenuHost.tsx`.

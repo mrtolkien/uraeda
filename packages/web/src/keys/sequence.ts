@@ -83,14 +83,21 @@ export function next(
 
 /**
  * What each next key does at `path`, in the order the bindings were declared: a leaf runs, a group
- * opens the next step. A group no feature named in `groups.ts` has no entry, though its keys work.
+ * opens the next step. A binding whose `when` is false for `target`, where the key is pressed, is
+ * not listed, as `leader.press` does not run it. A group no feature named in `groups.ts` has no
+ * entry, though the store throws for one.
  */
 export function entriesAt(
-  bindings: ReadonlyArray<Pick<Binding, "icon" | "keys" | "label">>,
+  bindings: ReadonlyArray<Pick<Binding, "icon" | "keys" | "label" | "when">>,
   path: ReadonlyArray<string>,
+  target: EventTarget | null = null,
 ): Array<MenuEntry> {
   const entries = new Map<string, MenuEntry>();
   for (const binding of bindings) {
+    // A binding whose guard is false for the target does not run at the key, so it is not listed.
+    if (binding.when?.(target) === false) {
+      continue;
+    }
     const tokens = tokensOf(binding.keys);
     const key = tokens[path.length];
     if (key === undefined || entries.has(key) || !startsWith(tokens, path)) {

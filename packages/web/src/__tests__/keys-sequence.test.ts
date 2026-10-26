@@ -128,3 +128,28 @@ test("a group no feature named has no entry, though its keys work", () => {
   expect(top.some((entry) => entry.key === "x")).toBe(false);
   expect(press(hidden("space", "x"), "y").ran).toBe("space x y");
 });
+
+// Break: the menu listing what `when` stops at the key, so a human presses an entry that is dead.
+test("an entry whose every binding is guarded off for the target is not listed", () => {
+  const guarded = [
+    { keys: "space w", label: "Wide", when: (target: EventTarget | null) => target === window },
+    { keys: "space n n", label: "Note", when: () => false },
+    { keys: "space n s", label: "Session" },
+    // Two bindings of one key: the guard that holds lists it.
+    { keys: "space e", label: "Off", when: () => false },
+    { keys: "space e", label: "On", when: () => true },
+  ];
+  const keys = (target: EventTarget | null) =>
+    entriesAt(guarded, ["space"], target).map((entry) => [entry.key, entry.label]);
+  expect(keys(document.body)).toEqual([
+    ["n", "New"],
+    ["e", "On"],
+  ]);
+  expect(keys(window)).toEqual([
+    ["w", "Wide"],
+    ["n", "New"],
+    ["e", "On"],
+  ]);
+  // Inside the group, the guarded leaf is gone too.
+  expect(entriesAt(guarded, ["space", "n"], null).map((entry) => entry.key)).toEqual(["s"]);
+});

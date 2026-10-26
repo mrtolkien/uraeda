@@ -45,6 +45,13 @@ function Page() {
     },
     { keys: "space space", label: "Find anything", run: () => void ran.push("space space") },
     { keys: "a", label: "Add", run: () => void ran.push("a") },
+    {
+      icon: "uraeda:pencil",
+      keys: "space b",
+      label: "Button only",
+      run: () => void ran.push("space b"),
+      when: (target) => (target as Element | null)?.closest?.("button") != null,
+    },
   ]);
   return null;
 }
@@ -130,6 +137,21 @@ test("while hidden, the delay restarts at each key", () => {
   expect(menu("Space n")).toBeNull();
   wait(200);
   expect(menu("Space n")).not.toBeNull();
+});
+
+test("the menu lists an entry whose guard holds at the focus, and not one whose guard does not", () => {
+  show();
+  press(" ");
+  wait(500);
+  expect(screen.queryByText("Button only")).toBeNull();
+  press("Escape");
+  const button = screen.getByRole("button", { name: "Note button" });
+  button.focus();
+  press(" ", {}, button);
+  wait(500);
+  expect(screen.getByText("Button only")).toBeTruthy();
+  press("b", {}, button);
+  expect(ran).toEqual(["space b"]);
 });
 
 test("a pending g shows its menu at 500 ms, ends at 2 s, and then a is a again", () => {
