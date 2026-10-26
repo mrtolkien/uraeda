@@ -298,6 +298,7 @@ test("a pick opens its page, and the page keeps the focus: the opener does not t
   await waitFor(() =>
     expect(screen.getAllByRole("option")[0]?.textContent).toMatch(/^UI behaviour/),
   );
+  await waitFor(() => expect(preview().textContent).toContain("# UI behaviour"));
   await press(field, "Enter");
   await waitFor(() => expect(window.location.pathname).toBe(atRepo("/decisions/ui-behaviour")));
 
