@@ -298,9 +298,10 @@ export function useImageText(options: ImageTextOptions) {
     busy,
     /**
      * Spread on the field's `TextArea`: its ref, its paste and focus, and its outline as the drop's
-     * target.
+     * target, on the field's box: Astryx 0.7 ignores a text field's own `xstyle`.
      */
     fieldProps: {
+      controlXstyle: isTarget ? dropStyles.target : undefined,
       onFocus: () => {
         focused.current = ref.current;
       },
@@ -312,7 +313,6 @@ export function useImageText(options: ImageTextOptions) {
         }
       },
       ref,
-      xstyle: isTarget ? dropStyles.target : undefined,
     },
     /** The hint over the field while it is the drop's target. */
     hint,

@@ -268,6 +268,8 @@ export function AddNote({
       )}
       <DropHint hint={drop.hint}>
         <TextField
+          // The field's box, which a text field's own style no longer reaches (Astryx 0.7).
+          controlXstyle={drop.isTarget ? dropStyles.target : undefined}
           hasAutoFocus
           isLabelHidden
           kind="line"
@@ -285,7 +287,6 @@ export function AddNote({
           placeholder="What did you notice?"
           ref={field}
           value={typed.note.text}
-          xstyle={drop.isTarget ? dropStyles.target : undefined}
         />
       </DropHint>
       <CategoryField
