@@ -11,10 +11,12 @@ import { SearchField, useSessionQuery } from "../sidebar/Search.tsx";
 import { AddNoteButton, AddPriorityButton } from "../SidebarAdd.tsx";
 import { ShellPanes } from "./ShellPanes.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
+import { useNewKey } from "../useNewKey.ts";
 
 export function SessionsPage() {
   const current = useRepository();
   const { query, setText, text } = useSessionQuery();
+  useNewKey();
   return (
     <Page isTight>
       <VStack gap={3}>

@@ -25,6 +25,7 @@ import { DropHint, dropStyles } from "./attach/DropHint.tsx";
 import { useImageDrop } from "./attach/useImageDrop.ts";
 import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
 import { useAgent } from "./data.ts";
+import { useKeys } from "./keys/registry.tsx";
 import { refusal } from "./errors.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { FreshDefault, useFreshRun } from "./HandOver.tsx";
@@ -219,15 +220,30 @@ function useSend(
 }
 
 /**
- * Ctrl+Enter or Cmd+Enter sends, as it saves every other field (the UI coherence decision); Enter
- * adds a line, on every screen. Astryx sends text alone on Enter: a message of images alone, or
- * images still being saved, are this handler's (an Astryx gap, see the plan).
+ * The keys the field owns, as it is a text field and the registry never hears it. Ctrl+Enter or
+ * Cmd+Enter sends, as it saves every other field (the UI coherence decision); Enter adds a line, on
+ * every screen. Astryx sends text alone on Enter: a message of images alone, or images still being
+ * saved, are this handler's (an Astryx gap, see the plan). Escape leaves the field for the page,
+ * keeping the draft, which `i`, the registry's key, comes back to unless the field is disabled (a
+ * menu of the field's own takes Escape first).
  */
-function useEnter(
+function useFieldKeys(
   input: RefObject<ChatComposerInputHandle | null>,
-  send: (() => void) | undefined,
+  { isDisabled, send }: { isDisabled: boolean; send: (() => void) | undefined },
 ) {
+  useKeys([
+    {
+      keys: "i",
+      label: "Write a message",
+      run: () => (isDisabled ? false : input.current?.focus()),
+    },
+  ]);
   return (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape" && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      (event.target as HTMLElement).blur();
+      return;
+    }
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
       return;
     }
@@ -381,7 +397,10 @@ export function Composer(given: ComposerProps) {
     canSend,
     sent: attaching.sent,
   });
-  const onKeyDown = useEnter(input, canSend ? () => submit(value.trim()) : undefined);
+  const onKeyDown = useFieldKeys(input, {
+    isDisabled: Boolean(unavailable),
+    send: canSend ? () => submit(value.trim()) : undefined,
+  });
   const placeholder = `Message ${name}`;
   const buttons = sendButtons({
     actions: props.actions,

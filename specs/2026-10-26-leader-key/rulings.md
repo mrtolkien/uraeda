@@ -426,3 +426,39 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   Listing them among the live ones: they would crowd the recent sessions a human looks for first.
 - **If wrong**: the title is `titleOf` in the host; the order is `sessionItems`.
 - **Where**: fix pass B, `keys/KeyPickerHost.tsx`, `keys/pickerSources.ts`.
+
+## R50: The questions' `n` and `p` work at every width
+
+- **Decision**: `useBlankKeys` declares `n` and `p` whatever the width, where it declared them, and
+  their `useStatusHints` hint, only on wide screens. The status line already shows no hint on a
+  phone, so `n p unanswered` stays a wide hint, and a keyboard on a tablet or a narrow window now
+  jumps to the next and previous blank question too. Its second parameter, `isActive`, is gone;
+  `RoundOutline`'s own `isActive` (following the page's scroll) is not touched. An open outline
+  sheet is a layer, so the keys do not run under it.
+- **Rationale**: the Keyboard decision says keys must work at every width and only their hints hide;
+  the old gate on `wide` was a copy of the hint's.
+- **Alternatives considered**: keeping the gate: the key is a registry binding and the registry has
+  no width rule, so the page would add one that the decision forbids. The test of `n` stays as it
+  is: no test pressed it on a phone.
+- **If wrong**: `useBlankKeys(nav)` takes `isOn` again and `RoundColumn` passes `wide`.
+- **Where**: `RoundOutline.tsx`, `RoundColumn.tsx`.
+
+## R51: Who declares `i`, `a`, and `s c f` on the other pages, and what is hinted
+
+- **Decision**: `i` is declared by the `Composer`, whichever page draws one (a session's page, a
+  session in a column, the New page's session and change), and focuses its field; the New page's
+  Feature kind has a title field and declares its own `i` for it, so no page has two. Escape in the
+  composer is its own keydown, which the registry never hears: it blurs the field, so the focus goes
+  to the page, and keeps the draft (a trigger menu of the field takes Escape first). `a` is
+  `useNewKey`, called by Home, where it is off in a repository with no specs, and by the Sessions
+  page. `s c f` are declared by `KindCards` with the picks they do on a click, without moving the
+  focus. None of these has a hint: only `n p unanswered` among them is, as it was, and the spec's
+  table gives these keys no hint.
+- **Rationale**: the owner of the action declares the key, once; a composer's `i` is the same on
+  every page. A page without a text box gives `i` no meaning.
+- **Alternatives considered**: `i` in `SessionPage` and `NewPage`: two more copies, and the column's
+  composer left out. Hinting `a new` and `i write`: more words on a line the spec keeps short.
+- **If wrong**: two composers mounted at once make the registry throw `i` is bound twice, in tests
+  and development: the second declares `isDisabled`, or the page passes which one is the page's.
+- **Where**: `Composer.tsx`, `useNewKey.ts`, `KindCards.tsx`, `NewPage.tsx`, `Home.tsx`,
+  `shell/SessionsPage.tsx`.

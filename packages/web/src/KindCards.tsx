@@ -9,6 +9,7 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type KeyboardEvent, useId, useRef } from "react";
+import { useKeys } from "./keys/registry.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { proseStyles } from "./Prose.tsx";
@@ -66,6 +67,8 @@ type Kind = {
   endsWith: string;
   example: string;
   icon: string;
+  /** The key that picks the card, a mnemonic of its name. */
+  key: "c" | "f" | "s";
   kind: NewKind;
   name: string;
   sentence: string;
@@ -78,6 +81,7 @@ const KINDS: Array<Kind> = [
     endsWith: "the chat",
     example: "“Why is CI slow?”",
     icon: "uraeda:bot",
+    key: "s",
     kind: "session",
     name: "Session",
     sentence: "Talk to the agent in the main checkout, like plain Claude Code.",
@@ -87,6 +91,7 @@ const KINDS: Array<Kind> = [
     endsWith: "a pull request",
     example: "“Fix the due-date typo”",
     icon: "uraeda:wrench",
+    key: "c",
     kind: "change",
     name: "Change",
     sentence: "A bug fix or a small change, on its own branch.",
@@ -96,6 +101,7 @@ const KINDS: Array<Kind> = [
     endsWith: "a spec, then a pull request",
     example: "“Add recurring tasks”",
     icon: "uraeda:file-text",
+    key: "f",
     kind: "feature",
     name: "Feature",
     sentence: "A larger piece of work, designed with the agent before any code.",
@@ -147,6 +153,14 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
   const narrow = isNarrow(useWidthClass());
   const cards = useRef<Array<HTMLDivElement | null>>([]);
   const bodies = useId();
+  // `s c f` pick a card as a click would; the radio's own keys, below, move between them.
+  useKeys(
+    KINDS.map((card) => ({
+      keys: card.key,
+      label: `Pick ${card.name}`,
+      run: () => onPick(card.kind),
+    })),
+  );
   const keyDown = (event: KeyboardEvent, index: number) => {
     // A key with a modifier is the browser's or the system's, as Alt+Left is Back.
     if (event.altKey || event.ctrlKey || event.metaKey) {

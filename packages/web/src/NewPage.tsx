@@ -11,9 +11,11 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
+import { useRef } from "react";
 import { Composer } from "./Composer.tsx";
 import { useInbox, usePriorities } from "./data.ts";
 import { useTextField } from "./fields/useTextField.ts";
+import { useKeys } from "./keys/registry.tsx";
 import { KindCards } from "./KindCards.tsx";
 import { Page } from "./layout/Page.tsx";
 import { NewChange } from "./NewChangePage.tsx";
@@ -147,6 +149,9 @@ function FeaturePart() {
   const lines = useLines(starts.feature);
   // Kept as a new change's text is: leaving the page does not ask.
   const title = useTextField("new-feature", "", { drawn: false });
+  // `i` brings the focus to the title, as the composer's `i` does for the other kinds.
+  const field = useRef<HTMLInputElement>(null);
+  useKeys([{ keys: "i", label: "Write the title", run: () => field.current?.focus() }]);
   const write = async () => {
     const text = title.text.trim();
     // A refused title stays, to change and write again.
@@ -158,7 +163,7 @@ function FeaturePart() {
     <>
       {/* On the phone, the button goes under the field rather than squeezing its text. */}
       <HStack align="end" gap={2} wrap="wrap">
-        <TextInput label="Title" onChange={title.change} value={title.text} />
+        <TextInput label="Title" onChange={title.change} ref={field} value={title.text} />
         <Button clickAction={write} isDisabled={!title.text.trim()} label="Write the proposal" />
       </HStack>
       {starts.error && <AnnouncedBanner collapsible={false} status="error" title={starts.error} />}
