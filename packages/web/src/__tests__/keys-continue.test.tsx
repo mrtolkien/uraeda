@@ -2,10 +2,12 @@
 // opens it, with several a small picker lists them and Enter opens the selected, with none the menu
 // says "Nothing needs you" and the page stays.
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, expect, test } from "vite-plus/test";
+import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
+import { SHOW_AFTER } from "../keys/leader.ts";
 import { atWidth, atRepo, fixtureRepo, git, quiet, renderPage } from "./helpers.tsx";
 
 beforeEach(() => atWidth(1440));
+afterEach(() => vi.useRealTimers());
 
 // The page each fixture card's status sends to: recurring-tasks, the first of three, asks its spec,
 // and web-ui, the second, and the one left alone, its clarifications.
@@ -94,8 +96,10 @@ test("with none, the menu says Nothing needs you, and the page stays (edge)", as
   await atHome(repo);
   expect(screen.queryByRole("group", { name: "Needs you" })).toBeNull();
 
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   press(" ");
-  const menu = await screen.findByRole("group", { name: "Space" }, { timeout: 2000 });
+  act(() => void vi.advanceTimersByTime(SHOW_AFTER));
+  const menu = screen.getByRole("group", { name: "Space" });
   expect(within(menu).getByText("Nothing needs you")).toBeTruthy();
   expect(within(menu).queryByText("Continue")).toBeNull();
 
