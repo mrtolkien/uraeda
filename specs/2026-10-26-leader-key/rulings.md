@@ -534,6 +534,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   whole shell, and stories and tests mount it with no client.
 - **If wrong**: the position is the order of `CATEGORIES`; moving it changes the two lists.
 - **Where**: task 11, `settings/categories.ts`, `settings/SingleKeysSetting.tsx`, `Shell.tsx`.
+
 ## R40: How `a o i m` reach the priorities and the inbox
 
 - **Decision**: `useOpenAddForm()` still takes no argument and returns the opener, which takes the
