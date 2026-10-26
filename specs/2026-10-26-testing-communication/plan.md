@@ -1400,7 +1400,7 @@ Run by the coordinator, outside the repository: only the scores and the wording 
 
 - Consumes: tasks 2, 3, and 9 merged.
 
-- [ ] **Step 1: Set up the copies**
+- [x] **Step 1: Set up the copies**
 
 A run is one clone of this repository at the branch's start (the commit before task 1), on the same
 disk, with its `origin` removed, and the skill's wording under test copied over its
@@ -1419,7 +1419,7 @@ The evaluation feature, small, in the core, with logic and a contract: **Record 
   `kind "chore" is not one of feature, change`. The new wording's copy lists it under the spec's
   replaced behaviour; the old wording's copy says it in the architecture.
 
-- [ ] **Step 2: Run and score**
+- [x] **Step 2: Run and score**
 
 Up to 12 runs of `claude -p --model sonnet`, at most 2 old and the rest new. Score each run's added
 and changed tests by:
@@ -1430,11 +1430,11 @@ and changed tests by:
 - **SC-004**: the added tests finish in under 10 seconds.
 - **SC-001**: no assertion of markup, a class name, a size, a call sequence, or private state.
 
-- [ ] **Step 3: Revise the wording** between runs where a run fails a criterion, keeping it generic
+- [x] **Step 3: Revise the wording** between runs where a run fails a criterion, keeping it generic
       (SC-007). Stop when SC-002 to SC-004 hold in three new runs in a row, or after five revisions,
       whichever comes first (SC-008); with the 12-run cap reached first, stop there, and say which.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add skills specs/2026-10-26-testing-communication/rulings.md specs/2026-10-26-testing-communication/plan.md

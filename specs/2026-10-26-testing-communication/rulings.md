@@ -160,3 +160,45 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   private state. A security rule about what reaches the page can only be read in the page, and a
   stored width is data, but its limits are a look the human reviews.
 - **Where**: task 15.
+
+## R14: The evaluation's runs and scores
+
+- **Decision**: the testing wording ships at its fourth revision, after the 12 runs the spec
+  approved: 2 with the wording of the branch's start, 10 with this branch's. SC-008 stopped on the
+  run cap, not on three passing runs in a row.
+- **Rationale**: each run was Claude Code with Sonnet, `claude -p`, in a clone of the repository at
+  the branch's start with no remote, the wording under test over its `skills/uraeda/` (and, for a
+  new run, the testing decision and the core's template sections), told to read the skill from its
+  own checkout, and allowed only to edit files and run git and the dev shell. It wrote the plan of
+  the "Record dates" spec (R4) and built it. A run that a usage limit stopped was resumed in its own
+  session. Added tests are counted as the test runner counts them; a run fails SC-003 when either of
+  two fresh reviewers, or the OpenCode reviewer, finds a pair of tests that repeat each other's
+  coverage, in either direction. Scores, with the ceiling of SC-003 at 5:
+
+  | Run   | Wording    | Tests added                               | Repeats found                                              | SC-002 | SC-003 | SC-004 |
+  | ----- | ---------- | ----------------------------------------- | ---------------------------------------------------------- | ------ | ------ | ------ |
+  | old 1 | start      | 7                                         | a row of an existing test                                  | ✅     | ❌     | ✅     |
+  | old 2 | start      | 10                                        | rows of existing tests                                     | ✅     | ❌     | ✅     |
+  | 1     | revision 0 | 6                                         | a rarer scenario and a review-focus item tested apart      | ✅     | ❌     | ✅     |
+  | 2     | revision 1 | 2                                         | three rows repeating existing ones                         | ✅     | ❌     | ✅     |
+  | 3     | revision 2 | 3                                         | the kind tested in the check and in the view built on it   | ✅     | ❌     | ✅     |
+  | 4     | revision 2 | 3                                         | the same                                                   | ✅     | ❌     | ✅     |
+  | 5     | revision 3 | 2                                         | none (one reviewer noted two existing rows made redundant) | ✅     | ✅     | ✅     |
+  | 6     | revision 3 | 2                                         | two existing rows made redundant                           | ✅     | ❌     | ✅     |
+  | 7     | revision 3 | 3                                         | the same                                                   | ✅     | ❌     | ✅     |
+  | 8     | revision 4 | 3                                         | the same                                                   | ✅     | ❌     | ✅     |
+  | 9     | revision 4 | 5, 2 of them a split of an existing table | none                                                       | ✅     | ✅     | ✅     |
+  | 10    | revision 4 | 2                                         | two existing rows made redundant                           | ✅     | ❌     | ✅     |
+
+  Every run, old or new, rewrote the test that refused `chore` rather than keeping code for it
+  (SC-002), and the added tests took 0.1 to 0.3 seconds (SC-004). The new wording cut the added
+  tests from 7 and 10 to 2 or 3, and none asserted how the code works. Each revision answered the
+  last runs' failure: 1, the key scenarios and high edge cases set the ceiling; 2, the existing
+  tests first, a row per case and not per value; 3, one test per rule, through the layer that runs
+  all of it; 4, a new test that proves all an old one proves replaces it. The failure left is the
+  fourth: a stricter new row beside an existing row that only checks a message is present, which the
+  runs kept. The runs used about 37 US dollars of usage at API prices.
+
+- **If wrong**: the wording is plain text in `code-quality.md#how-many`; a later feature can tune it
+  again with the same harness.
+- **Where**: task 14.
