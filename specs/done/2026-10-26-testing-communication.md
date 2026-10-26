@@ -85,12 +85,35 @@ from it, and the supersession on both sides.
   scripts.
 - The evaluation: twelve runs of Claude Code with Sonnet in throwaway clones at the branch's start,
   two with the old wording and ten with the new, building a small spec of the core that adds a
-  warning and replaces a behaviour an existing test pinned. Every run rewrote that test rather than
-  bend the code. The new wording cut the tests added from 7 and 10 to 2 or 3, all within the spec's
-  ceiling of 5, all under 0.3 seconds. Two fresh reviewers and the OpenCode reviewer found no
-  repeated coverage in 2 of the 10 new runs; the rest kept an existing row beside a stricter new
-  one. The runs stopped at the 12 the spec approved, after four revisions of the wording, before
-  three passing runs in a row.
+  warning and replaces a behaviour an existing test pinned. Added tests are counted as the test
+  runner counts them; a run fails SC-003 when either of two fresh reviewers, or the OpenCode
+  reviewer, finds two tests repeating each other's coverage, in either direction, a new test that
+  makes an existing one redundant included. The ceiling of SC-003 is 5.
+
+  | Run   | Wording    | Tests added             | Repeats found                                            | SC-002 | SC-003 | SC-004 |
+  | ----- | ---------- | ----------------------- | -------------------------------------------------------- | ------ | ------ | ------ |
+  | old 1 | start      | 7                       | a row of an existing test                                | ✅     | ❌     | ✅     |
+  | old 2 | start      | 10                      | rows of existing tests                                   | ✅     | ❌     | ✅     |
+  | 1     | revision 0 | 6                       | a rarer scenario and a review-focus item tested apart    | ✅     | ❌     | ✅     |
+  | 2     | revision 1 | 2                       | three rows repeating existing ones                       | ✅     | ❌     | ✅     |
+  | 3     | revision 2 | 3                       | the kind tested in the check and in the view built on it | ✅     | ❌     | ✅     |
+  | 4     | revision 2 | 3                       | the same                                                 | ✅     | ❌     | ✅     |
+  | 5     | revision 3 | 2                       | two existing rows made redundant, by one reviewer        | ✅     | ❌     | ✅     |
+  | 6     | revision 3 | 2                       | two existing rows made redundant                         | ✅     | ❌     | ✅     |
+  | 7     | revision 3 | 3                       | the same                                                 | ✅     | ❌     | ✅     |
+  | 8     | revision 4 | 3                       | the same                                                 | ✅     | ❌     | ✅     |
+  | 9     | revision 4 | 5, 2 a split of a table | none                                                     | ✅     | ✅     | ✅     |
+  | 10    | revision 4 | 2                       | two existing rows made redundant                         | ✅     | ❌     | ✅     |
+
+  Every run rewrote the replaced test rather than bend the code (SC-002), and the added tests took
+  0.1 to 0.3 seconds (SC-004). After the first revision, the new wording cut the tests added from 7
+  and 10 to 2 or 3, but for run 9's 5, 2 of them from splitting an existing table, and none asserted
+  how the code works. Only run 9 passed SC-003. Each revision answered the last runs' failure: 1,
+  the key scenarios and high edge cases set the ceiling; 2, the existing tests first, a row per case
+  and not per value; 3, one test per rule, through the layer that runs all of it; 4, a new test that
+  proves all an old one proves replaces it. The failure left is the fourth: a stricter new row kept
+  beside an existing row that only checks a message is present. The runs stopped at the 12 the spec
+  approved, after four revisions, before three passing runs in a row (SC-008).
 
 ## Replaced behaviour
 
@@ -361,11 +384,6 @@ from it, and the supersession on both sides.
 
 ## Gotchas
 
-- **The evaluation's runs read the skill from their own checkout**: the installed `uraeda` skill of
-  `~/.claude/skills/` links to the main checkout, so a copy told to "use the skill" loads the main
-  checkout's wording, not the one under test.
-- **The evaluation's runs ran with edits accepted and a short list of allowed commands**: a run with
-  every permission bypassed was refused by Claude Code's auto mode as creating an unsafe agent.
 - **Vitest bounds a hook by its own default, 10 seconds**, even when the tests have a longer
   `testTimeout`: the web tests' setup, which builds a repository through the binding, timed out
   under load until [`vite.transforms.ts`](/packages/web/vite.transforms.ts) gave hooks the same
@@ -459,7 +477,8 @@ keep the skill's wording generic."
   out under load.
 - The toolchain test's comment stripping keeps strings whole, after a retry setting between two glob
   strings escaped it.
-- The evaluation stopped on its run cap, not on three passing runs in a row.
+- The evaluation stopped on its run cap, not on three passing runs in a row, with one run of ten
+  passing every criterion.
 
 ## Follow-ups
 
