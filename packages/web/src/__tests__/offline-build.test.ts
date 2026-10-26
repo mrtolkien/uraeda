@@ -2,8 +2,8 @@
 // The UI look decision's offline rule, "checked by a test of the built app" (SC-002): the build the
 // server serves, `packages/web/dist`, which `ready` builds before these tests, loads nothing from
 // another host. Its page links and loads only its own files, and its stylesheets and scripts import
-// no stylesheet, font, or image from an address with a host. `__browser__/offline.test.tsx` checks
-// the same of the page Vitest's dev server draws.
+// no stylesheet, font, or image from an address with a host. This test owns the rule: the browser
+// test that once checked the page Vitest's dev server drew is gone.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";

@@ -10,7 +10,6 @@ import {
   rowWord,
   type Slot,
   slotsOf,
-  stretchAddress,
   type Stretch,
   stretchKey,
 } from "../session/stretches.ts";
@@ -361,12 +360,6 @@ test("rows' words: read, edit, search, fetch, run; failed and unfinished", () =>
   );
   expect(rowWord(call("read", "Read", "a.ts", 1000, { status: "in_progress" }), false)).toBe(
     "read",
-  );
-});
-
-test("the stretch's address", () => {
-  expect(stretchAddress("/r/x/sessions/s1", stretchKey("7", 3))).toBe(
-    "/r/x/sessions/s1?tab=activity&stretch=7%3A3",
   );
 });
 

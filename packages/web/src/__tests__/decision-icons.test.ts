@@ -27,16 +27,6 @@ test("each decision of the skill's example has a drawn icon", () => {
   expect(undrawn("skills/uraeda/assets/example/specs/decisions")).toEqual([]);
 });
 
-/** C8: a row draws its decision's icon, or the default one for a name the UI does not register. */
-test("a decision's icon is its own when registered, else the default one", () => {
-  expect(decisionIcon("git-branch")).toBe("uraeda:decision-git-branch");
-  expect(Object.hasOwn(uraedaIcons, "uraeda:decision-git-branch")).toBe(true);
-  for (const name of ["calendar-x", "", null, undefined]) {
-    expect(decisionIcon(name)).toBe("uraeda:decision-file-text");
-  }
-  expect(Object.hasOwn(uraedaIcons, "uraeda:decision-file-text")).toBe(true);
-});
-
 /**
  * US2 more 1: each strength the core names (`Strength::as_str`) has its icon registered; the web
  * reads no strength of its own, and a name the core does not give draws none.

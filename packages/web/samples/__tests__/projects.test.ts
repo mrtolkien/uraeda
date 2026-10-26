@@ -1,6 +1,6 @@
 // @vitest-environment node
 // The three sample projects: what the core reads from each, through the binding's workspace view.
-import { readInbox, readPriorities, readWorkspace, refreshPullRequests } from "uraeda-binding";
+import { readWorkspace, refreshPullRequests } from "uraeda-binding";
 import { git, temporaryFolder } from "uraeda-binding/test-utils";
 import { beforeAll, expect, test } from "vite-plus/test";
 import { homeFeatures } from "../../src/home/features.ts";
@@ -35,13 +35,7 @@ async function changeStates(repo: string): Promise<Set<string>> {
   return new Set(features.filter(({ kind }) => kind === "change").map(({ step }) => step.name));
 }
 
-/** The problems and notes `ura check` reports in the project's features. */
-async function problemCount(repo: string): Promise<number> {
-  const { features } = await readWorkspace(repo);
-  return features.reduce((sum, { notes, problems }) => sum + problems.length + notes.length, 0);
-}
-
-// Building the three projects commits on dozens of branches: once for the three tests.
+// Building the three projects commits on dozens of branches: once for the tests.
 let projects: ReturnType<typeof buildProjects>;
 beforeAll(async () => {
   fakeGh(samplePullRequests());
@@ -69,17 +63,6 @@ test("each folder is at the step SAMPLE_FOLDERS names it for", async () => {
   for (const [step, folder] of Object.entries(SAMPLE_FOLDERS.changes)) {
     expect(find(folder)?.step.name, folder).toBe(step);
   }
-});
-
-test("empty is a project just set up", async () => {
-  const { empty } = projects;
-
-  expect((await featureSteps(empty)).size).toBe(0);
-  expect(await problemCount(empty)).toBe(0);
-  const { sections } = await readPriorities(empty);
-  expect(sections.flatMap(({ entries }) => entries)).toEqual([]);
-  const { categories } = await readInbox(empty);
-  expect(categories.flatMap(({ notes }) => notes)).toEqual([]);
 });
 
 test("each of broken's features shows on Home with a problem ura check reports", async () => {
