@@ -1,6 +1,6 @@
 // What the keys that move an item do in a list of cards (R30): the move a drop would ask for, one
 // at a time.
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { itemTarget, type Placed } from "./itemMoves.ts";
 import type { ItemMove } from "./useListKeys.ts";
 import type { OnMove } from "./useDragOrder.ts";
@@ -38,6 +38,23 @@ export function useItemMoves(
   });
   const waiting = useRef<Array<() => Promise<void>>>([]);
   const isWriting = useRef(false);
+  // The list going takes its queue and its waits with it: no move is written for a list nobody
+  // sees, and no settle timer outlives it.
+  const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const isMounted = useRef(false);
+  useEffect(() => {
+    const pending = timers.current;
+    const queue = waiting.current;
+    const settled = shown.current;
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      queue.splice(0);
+      pending.forEach(clearTimeout);
+      pending.clear();
+      settled.splice(0).forEach((resolve) => resolve());
+    };
+  }, []);
   if (onMove === undefined) {
     return undefined;
   }
@@ -50,12 +67,16 @@ export function useItemMoves(
     select(key);
     await write?.(key, target.section, target.index);
     await new Promise<void>((resolve) => {
-      if (latest.current.order !== order) {
+      if (latest.current.order !== order || !isMounted.current) {
         resolve();
         return;
       }
       shown.current.push(resolve);
-      setTimeout(resolve, SETTLE_MS);
+      const timer = setTimeout(() => {
+        timers.current.delete(timer);
+        resolve();
+      }, SETTLE_MS);
+      timers.current.add(timer);
     });
   };
   const drain = async () => {
