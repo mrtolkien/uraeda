@@ -265,7 +265,7 @@ The tasks of a wave are built at the same time, then merged and reviewed while t
   the way an agent attaches an image to a pull request body without committing it, or that none
   exists on this forge, and what the body says instead.
 
-- [ ] **Step 1: Find what the forge and its tool allow**
+- [x] **Step 1: Find what the forge and its tool allow**
 
 Read `gh pr create --help`, `gh pr edit --help`, `gh api --help`, and GitHub's documentation for
 attaching images to issues and pull requests, and for the REST API's issue and pull request bodies.
@@ -274,14 +274,14 @@ unless the documentation shows a supported upload an agent can make with `gh`.
 
 - Expected: a supported way named with its source, or none.
 
-- [ ] **Step 2: Write the ruling**
+- [x] **Step 2: Write the ruling**
 
 The ruling says what was found, with its sources, and what the skill's wording does: attach the
 screenshot through the supported way; or, when the forge's tool offers none, say in the body that it
 carries no image, and name the command that starts the sandbox (`vp run sandbox` here, the project's
 own command in general), as the spec's edge case says.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add specs/2026-10-26-testing-communication/rulings.md specs/2026-10-26-testing-communication/plan.md
