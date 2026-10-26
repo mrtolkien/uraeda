@@ -48,3 +48,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   token: a second return shape for one rule that only Task 4 needs, and it has the event.
 - **If wrong**: `tokenOf` is the one place; the registry's listener would pass `event.repeat` on.
 - **Where**: task 2, `keys/match.ts`.
+
+## R4: Existing settings tests gain the `keyboard` field they now read
+
+- **Decision**: `Settings` gains the `keyboard` table, always present like `runs`, so the existing
+  settings tests that spell a whole `Settings` value or a whole record gain the field: Rust's
+  `reads_each_file` (`..Settings::default()` on its `full` value), the binding contract's two
+  `toEqual` of a whole `Settings` (`keyboard: {}`), the server's `settings.test.ts` fixtures
+  (`keyboard: {}`), and `settings-fate.test.ts` (the selection lists `keyboard`, its two
+  whole-record expectations hold the defaults, and the broken-file test also tries
+  `setSingleKeyShortcuts`, seven refusals instead of six). Nothing is loosened: each assertion still
+  checks every value it checked, and the new field is checked as well.
+- **Rationale**: a whole-value assertion cannot pass over a type that has a new field without naming
+  it; the alternative is a loosened `toMatchObject`.
+- **Alternatives considered**: `keyboard` optional and absent unless set: the other tables are
+  always present, and the web's record would need a special case.
+- **If wrong**: the added lines are the whole change; removing them restores the old tests.
+- **Where**: task 3.

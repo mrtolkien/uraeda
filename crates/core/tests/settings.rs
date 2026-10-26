@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use tempfile::TempDir;
 use uraeda_core::api::ApiError;
-use uraeda_core::settings::{self, RunSettings, ServerSettings, Settings};
+use uraeda_core::settings::{self, KeyboardSettings, RunSettings, ServerSettings, Settings};
 
 const HOST_PROBLEM: &str =
     "is not a host name: use letters, digits, hyphens, and dots, like mac.tail1234.ts.net.";
@@ -69,6 +69,7 @@ fn reads_each_file() {
         runs: RunSettings {
             build_in_fresh_session: Some(false),
         },
+        ..Settings::default()
     };
     let list = "The allowed host names are a list, like [\"mac.tail1234.ts.net\"].";
     let rows: [(Option<&str>, Result<Settings, String>); 15] = [
@@ -468,4 +469,98 @@ fn reports_a_failed_write() {
     let message = format!("Could not save {}: permission denied.", shown(dir.path()));
     assert_eq!(saved, Err(refused(&message)));
     assert_eq!(text(dir.path()), "[server]\nport = 4310\n");
+}
+
+/// A file's text, or none, and what its keyboard table reads as, or the problem.
+type KeyboardRow<'a> = (Option<&'a str>, Result<Option<bool>, String>);
+
+#[test]
+fn reads_the_keyboard_table() {
+    let dir = tempdir();
+    let rows: [KeyboardRow; 5] = [
+        (None, Ok(None)),
+        (Some("[agents]\nmodel = \"x\"\n"), Ok(None)),
+        (Some("[keyboard]\n"), Ok(None)),
+        (
+            Some("[keyboard]\nsingle_key_shortcuts = false\n"),
+            Ok(Some(false)),
+        ),
+        (
+            Some("[keyboard]\nsingle_key_shortcuts = 1\n"),
+            Err("line 2, single_key_shortcuts: Single-key shortcuts is true or false.".into()),
+        ),
+    ];
+    for (contents, expected) in rows {
+        let _ = fs::remove_file(file(dir.path()));
+        if let Some(contents) = contents {
+            write(dir.path(), contents);
+        }
+
+        let read = settings::read(dir.path());
+
+        let expected = expected
+            .map(|single_key_shortcuts| Settings {
+                keyboard: KeyboardSettings {
+                    single_key_shortcuts,
+                },
+                ..Settings::default()
+            })
+            .map_err(|problem| unreadable(dir.path(), &problem));
+        assert_eq!(read, expected, "for {contents:?}");
+    }
+    write(dir.path(), "keyboard = true\n");
+    assert_eq!(
+        settings::read(dir.path()),
+        Err(unreadable(
+            dir.path(),
+            "line 1, keyboard: [keyboard] is a table of settings."
+        ))
+    );
+}
+
+#[test]
+fn sets_single_key_shortcuts_in_its_own_table_keeping_the_hand_edits() {
+    let dir = tempdir();
+    write(dir.path(), "# mine\n[server]\nport = 4400\n");
+
+    let saved = settings::set_single_key_shortcuts(dir.path(), false).unwrap();
+
+    assert_eq!(saved.keyboard.single_key_shortcuts, Some(false));
+    assert_eq!(saved.server.port, Some(4400));
+    assert_eq!(
+        text(dir.path()),
+        "# mine\n[server]\nport = 4400\n\n[keyboard]\nsingle_key_shortcuts = false\n"
+    );
+}
+
+#[test]
+fn a_second_write_keeps_a_comment_on_the_value() {
+    let dir = tempdir();
+    write(
+        dir.path(),
+        "# mine\n[keyboard]\nsingle_key_shortcuts = false # mouse only\n\n[server]\nport = 4400\n",
+    );
+
+    let saved = settings::set_single_key_shortcuts(dir.path(), true).unwrap();
+
+    assert_eq!(saved.keyboard.single_key_shortcuts, Some(true));
+    assert_eq!(
+        text(dir.path()),
+        "# mine\n[keyboard]\nsingle_key_shortcuts = true # mouse only\n\n[server]\nport = 4400\n"
+    );
+}
+
+#[test]
+fn refuses_a_keyboard_write_to_a_broken_file() {
+    for before in ["[server\n", "[keyboard]\nsingle_key_shortcuts = 1\n"] {
+        let dir = tempdir();
+        write(dir.path(), before);
+        let expected = settings::read(dir.path()).unwrap_err();
+        assert_eq!(expected.code, "unreadable");
+
+        let change = settings::set_single_key_shortcuts(dir.path(), false);
+
+        assert_eq!(change, Err(expected), "for {before:?}");
+        assert_eq!(text(dir.path()), before);
+    }
 }

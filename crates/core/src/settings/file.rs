@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use toml_edit::{Document, Item, Key, TableLike};
 
 use super::rules;
-use super::{RunSettings, ServerSettings, Settings};
+use super::{KeyboardSettings, RunSettings, ServerSettings, Settings};
 
 /// The file, in the config folder.
 pub const FILE: &str = "config.toml";
@@ -87,7 +87,12 @@ pub fn parse(text: &str) -> Result<Settings, String> {
     };
     let server = table(&document, "server", parse_server).map_err(at)?;
     let runs = table(&document, "runs", parse_runs).map_err(at)?;
-    Ok(Settings { server, runs })
+    let keyboard = table(&document, "keyboard", parse_keyboard).map_err(at)?;
+    Ok(Settings {
+        server,
+        runs,
+        keyboard,
+    })
 }
 
 /// The values of the table `name`, read by `values`: the defaults when the file has no such table.
@@ -159,6 +164,22 @@ fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
             )
         })?;
         settings.build_in_fresh_session = Some(fresh);
+    }
+    Ok(settings)
+}
+
+/// The `[keyboard]` table's values.
+fn parse_keyboard(keyboard: &dyn TableLike) -> Result<KeyboardSettings, Problem> {
+    let mut settings = KeyboardSettings::default();
+    if let Some((key, item)) = keyboard.get_key_value("single_key_shortcuts") {
+        let on = item.as_bool().ok_or_else(|| {
+            (
+                offset(key, item),
+                "single_key_shortcuts",
+                "Single-key shortcuts is true or false.".to_owned(),
+            )
+        })?;
+        settings.single_key_shortcuts = Some(on);
     }
     Ok(settings)
 }

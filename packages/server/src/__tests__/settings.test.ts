@@ -14,6 +14,7 @@ const LAPTOP = "laptop.tail1234.ts.net";
 
 /** A file holding every server setting. */
 const file: Settings = {
+  keyboard: {},
   runs: {},
   server: { allowedHosts: [MAC], openBrowser: true, port: 4310 },
 };
@@ -39,7 +40,7 @@ test.each<{
     },
   },
   {
-    file: { runs: {}, server: {} },
+    file: { keyboard: {}, runs: {}, server: {} },
     name: "the defaults, for keys the file does not hold",
     options: none,
     view: {
@@ -49,7 +50,11 @@ test.each<{
     },
   },
   {
-    file: { runs: {}, server: { allowedHosts: [MAC], openBrowser: false, port: 4400 } },
+    file: {
+      keyboard: {},
+      runs: {},
+      server: { allowedHosts: [MAC], openBrowser: false, port: 4400 },
+    },
     name: "the file over the defaults",
     options: none,
     view: {
@@ -134,6 +139,18 @@ test("the build starts in a fresh session by default, and the file's value turns
   ).toEqual({ inForce: false, saved: false, source: { kind: "file" } });
 });
 
+test("single-key shortcuts are on by default, and the file's value turns them off", () => {
+  expect(inForce(none, null).keyboard.singleKeyShortcuts).toEqual({
+    inForce: true,
+    saved: null,
+    source: { kind: "default" },
+  });
+  expect(inForce(none, file).keyboard.singleKeyShortcuts.inForce).toBe(true);
+  expect(
+    inForce(none, { ...file, keyboard: { singleKeyShortcuts: false } }).keyboard.singleKeyShortcuts,
+  ).toEqual({ inForce: false, saved: false, source: { kind: "file" } });
+});
+
 /** Opens the settings of `dir`, closed after the test. */
 async function opened(dir: string, options: GivenValues = none) {
   const settings = await ServerSettings.open({ binding, dir, options });
@@ -169,6 +186,33 @@ test("a broken file gives the defaults and its problem, printed once", async () 
     [`uraeda: ${problem} The server uses its defaults until the file is fixed.\n`],
   ]);
   expect(readFileSync(join(dir, "config.toml"), "utf8")).toBe("[server]\nport = 0\n");
+});
+
+/** US5, edge case: a file the core cannot read leaves the shortcuts on. */
+test("a file that cannot be read leaves single-key shortcuts on", async () => {
+  const dir = temporaryFolder("uraeda-config");
+  writeFileSync(join(dir, "config.toml"), "[keyboard]\nsingle_key_shortcuts = 1\n");
+  stderr();
+
+  const settings = await opened(dir);
+
+  expect(settings.problem).toMatch(
+    /line 2, single_key_shortcuts: Single-key shortcuts is true or false\./,
+  );
+  expect(settings.keyboard().singleKeyShortcuts).toEqual({
+    inForce: true,
+    saved: null,
+    source: { kind: "default" },
+  });
+
+  writeFileSync(join(dir, "config.toml"), "[keyboard]\nsingle_key_shortcuts = false\n");
+  await settings.reload();
+  expect(settings.problem).toBeNull();
+  expect(settings.keyboard().singleKeyShortcuts).toEqual({
+    inForce: false,
+    saved: false,
+    source: { kind: "file" },
+  });
 });
 
 test("a hand edit reaches the view once read again, and each listener once", async () => {

@@ -1,7 +1,12 @@
 // The settings in fate: the record `Settings`, the values in force as `ServerSettings` holds them,
 // the file's, and their sources, read on every endpoint.
 import { dataView } from "@nkzw/fate/server";
-import type { RunSettingsView, ServerSettings, ServerSettingsView } from "../settings.ts";
+import type {
+  KeyboardSettingsView,
+  RunSettingsView,
+  ServerSettings,
+  ServerSettingsView,
+} from "../settings.ts";
 import type { Context } from "./context.ts";
 
 /** The id of the one `Settings` record. */
@@ -10,11 +15,12 @@ export const SETTINGS_ID = "settings";
 /**
  * The settings: the settings file, with `~` for the home folder; why it cannot be read, or null;
  * and each setting's value in force, the file's, and where the value in force comes from, the
- * server's and the runs'.
+ * server's, the runs', and the keyboard's.
  */
 export type SettingsRecord = {
   file: string;
   id: string;
+  keyboard: KeyboardSettingsView;
   problem: string | null;
   runs: RunSettingsView;
   server: ServerSettingsView;
@@ -23,6 +29,7 @@ export type SettingsRecord = {
 export const settingsDataView = dataView<SettingsRecord>("Settings")({
   file: true,
   id: true,
+  keyboard: true,
   problem: true,
   runs: true,
   server: true,
@@ -33,6 +40,7 @@ export function settingsRecord(settings: ServerSettings): SettingsRecord {
   return {
     file: settings.file,
     id: SETTINGS_ID,
+    keyboard: settings.keyboard(),
     problem: settings.problem,
     runs: settings.runs(),
     server: settings.view(),
