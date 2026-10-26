@@ -65,3 +65,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   always present, and the web's record would need a special case.
 - **If wrong**: the added lines are the whole change; removing them restores the old tests.
 - **Where**: task 3.
+
+## R5: A dialog inside a closed popover is not a layer, in happy-dom too
+
+- **Decision**: `keys/layers.ts`'s `shown` asks `checkVisibility()` as well as `getClientRects()`:
+  an element is shown only when both say so. Task 2's rule counted every `[role="dialog"]` in the
+  document whose `getClientRects()` had a rect, and happy-dom gives every element one, so the
+  repository menu's closed popover (a `role="dialog"` inside a `display: none` popover, on every
+  page) made the real app "a layer is open" for every key in a happy-dom test: no binding ran and no
+  hint showed. A real browser gives a hidden element no rect, so nothing changes there.
+- **Rationale**: Task 5 is the first task to press a key on the whole app in a happy-dom test (the
+  folds, the status line's `[ fold`), and the existing `status-line.test.tsx` and `] folds…` tests
+  of the column failed on it. Every task that tests keys on the real page needs the same.
+- **Alternatives considered**: closing the repository menu's popover out of the DOM in tests, or
+  making each test remove it: a workaround per test for a rule that is wrong in one environment.
+  Dropping the `role="dialog"` selector: a real shown dialog would no longer hold the keys.
+- **If wrong**: `shown` is one function; `checkVisibility` is in every browser the app supports
+  (Chrome 105, Firefox 106, Safari 17.4), and the `?.` keeps the old answer where it is missing.
+- **Where**: task 5, `keys/layers.ts`.

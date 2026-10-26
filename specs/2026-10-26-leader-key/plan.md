@@ -665,11 +665,12 @@ test red) and the delay measured from the first key (the restart test red), each
 
 **Files:**
 
-- Create: `packages/web/src/keys/scroll.ts` (`useScrollKeys()`, the fallback bindings of `j k`,
-  `↓ ↑`, `+ -`, `Home End`, `G`)
+- Create: `packages/web/src/keys/scroll.ts` (`useScrollKeys()` and its mount `ScrollKeys`, the
+  fallback bindings of `j k`, `↓ ↑`, `+ -`, `Home End`, `G`)
 - Modify: `packages/web/src/shell/Column.tsx` (`[`), `packages/web/src/layout/SideColumn.tsx` (`]`),
   `packages/web/src/shell/Rail.tsx` (`useEscape`, `isOverlayOpen`), `Shell.tsx` (mounts
-  `useScrollKeys` through a component)
+  `ScrollKeys`), `keys/layers.ts` (a closed popover's dialog is not shown, in happy-dom too: ruling
+  R5)
 - Test: `packages/web/src/__tests__/keys-scroll.test.tsx`, `rail.test.tsx` (unchanged),
   `packages/web/src/__browser__/scroll-keys.test.tsx`
 
@@ -678,14 +679,15 @@ test red) and the delay measured from the first key (the restart test red), each
 - Consumes: Task 2's `useKeys`, `Binding` with `fallback`, `isLayerOpen`.
 - Produces: the fallback bindings, the owners' declarations: `Column` declares `[` and `space u [`
   ("Fold navigation"), `SideColumn` declares `]` and `space u ]` ("Fold right column"), each with
-  its hint (`[` "fold", as today), only while wide, as `useHotkeys` was disabled; the rail declares
-  `Escape` as a fallback binding that folds an open rail, returning `false` when it is not open. The
+  its hint (`[` "fold", as today; `]` had none and has none), only while wide, as `useHotkeys` was
+  disabled; the rail declares `Escape` as a fallback binding, only while it is open, that folds the
+  rail and is skipped for a key pressed inside it (the rail's own `onKeyDown` took that one). The
   old `isOverlayOpen` and `useHotkeys` calls are gone from these three files. `G` scrolls to the
   page's bottom, and `Home`, `End` to the top and the bottom when no list handled them. Scrolling
   moves a few lines at a time (3 lines of the page's line height, one `scrollBy`), smooth scrolling
   off.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `keys-scroll.test.tsx`: on a page with no rows and a tall main column, `j`, `ArrowDown`, `+` call
 `scrollBy` with a positive top; `k`, `ArrowUp`, `-` negative (US2 5); `G` scrolls to the bottom and
@@ -699,17 +701,17 @@ as well as the list's move.
 `__browser__/scroll-keys.test.tsx`: on the real spec page at desktop size, `j` scrolls it down and
 `k` back, a nested scroller with the focus scrolls alone.
 
-- [ ] **Step 2: Run them to check they fail**:
+- [x] **Step 2: Run them to check they fail**:
       `nix develop -c vp test run packages/web/src/__tests__/keys-scroll.test.tsx`; expected FAIL
       `Failed to resolve import "../keys/scroll.ts"`.
-- [ ] **Step 3: Implement** `scroll.ts` and move the three owners onto `useKeys`. The scroll target
+- [x] **Step 3: Implement** `scroll.ts` and move the three owners onto `useKeys`. The scroll target
       is the nearest scrollable ancestor of the focused element, else the page's main scrolling
       element (read the layout to find which element scrolls: `layout/Page.tsx` and the shell). The
       Rail keeps its own pointer handling; only its keys move. If a unit crosses a limit, split it
       first, in a commit of its own.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`; the existing
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`; the existing
       `rail.test.tsx` and the column tests pass unchanged. Expected: PASS.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-26-leader-key/plan.md

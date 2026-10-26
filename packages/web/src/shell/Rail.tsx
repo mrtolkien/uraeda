@@ -14,6 +14,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useKeys } from "../keys/registry.tsx";
 import { Logo } from "../Logo.tsx";
 import { useLocalPath } from "../routes.tsx";
 
@@ -49,43 +50,28 @@ function useOutside(isOpen: boolean, ref: RefObject<HTMLElement | null>, close: 
 }
 
 /**
- * Whether a dialog or a popover is open, which Escape closes before the rail: a manual popover,
- * like the toasts' region, is open on every page, and Escape never closes it.
- */
-function isOverlayOpen() {
-  try {
-    return document.querySelector('dialog[open], :popover-open:not([popover="manual"])') !== null;
-  } catch {
-    return document.querySelector("dialog[open]") !== null;
-  }
-}
-
-/**
  * Folds the rail on Escape pressed outside it, while it is open: a hover opens it with the focus
- * anywhere on the page. Escape inside it is the rail's own, and one a dialog or a popover took is
- * theirs.
+ * anywhere on the page. A fallback of the registry, so a binding of the page's own takes Escape
+ * first, and the registry's one layer rule keeps it from one a dialog or a popover took. Escape
+ * inside the rail is the rail's own (`useRail`'s `onKeyDown`).
  */
 function useEscape(isOpen: boolean, ref: RefObject<HTMLElement | null>, close: () => void) {
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    const down = (event: globalThis.KeyboardEvent) => {
-      const target = event.target as Element | null;
-      if (
-        event.key !== "Escape" ||
-        event.defaultPrevented ||
-        ref.current?.contains(target) ||
-        target?.closest?.("dialog, [popover], [role='dialog']") ||
-        isOverlayOpen()
-      ) {
-        return;
-      }
-      close();
-    };
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
-  }, [isOpen, ref, close]);
+  useKeys(
+    isOpen
+      ? [
+          {
+            fallback: true,
+            keys: "Escape",
+            label: "Fold the rail",
+            run: () => {
+              close();
+            },
+            when: (target) => !ref.current?.contains(target as Node | null),
+          },
+        ]
+      : [],
+    "shell",
+  );
 }
 
 /**
