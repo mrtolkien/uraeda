@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 2
+status: awaiting-human
+revision: 3
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,46 +8,32 @@ plan-review: false
 
 # Spec: Leader key/shortcut map
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-10-26: 1 comment in spec-review.md.
+> Spec to review, about 5 minutes.
 >
 > - You approve a Space leader menu, `g` sequences, and one base keymap on every page, all declared
 >   in one key registry, with a setting in the settings file that turns single-key shortcuts off.
-> - Since your review, all seven comments are done but one part: shifted `+` and `-` cannot move an
->   item, because `+` already needs Shift. `J K H L` and Shift with the arrows do.
-> - Changed decision: [Keyboard](../decisions/keyboard.md) now says each key is declared with its
->   label, icon, and whether the status line shows it. The menu and the sidebar share one list of
->   places and their icons.
-> - New: `c` is Continue, which goes to what needs you, with a small picker when there is more than
->   one. The New page's kinds have keys: `s`, `c`, `f`.
-> - Read one way: the menu is in alphabetical order of its keys, `+` is next and `-` previous, and
->   the shifted movement keys move the selected item itself.
+> - Since your review: on pages with no selectable rows, such as a session, the questions, and a
+>   spec, `j k`, the arrows, `+`, and `-` scroll the page. They are not hinted in the status line.
+> - Read one way: the keys scroll the area holding the focus, else the page's main column, a few
+>   lines at a time. Pages with rows keep moving the selection, and the view follows it.
+> - Decision [Keyboard](../decisions/keyboard.md) is unchanged except one word: its base keymap rule
+>   says "move or scroll".
 > - Unverified, unchanged: Space under a screen reader's browse mode, and the preview's raw file
 >   text, which the plan's first tasks check.
-> - Risk tier `medium`, unchanged. The plan does not wait for your review. Users drive the whole web
->   UI from the keyboard. Space opens a leader menu of nested groups and searches, `g` sequences go
->   to pages, and every page shares one base keymap. One registry declares every key, so a key
->   search and a dynamic status line can come later. See the [proposal](proposal.md),
->   [discovery](discovery-01.md), and [clarifications](clarifications-01.md).
+> - Risk tier `medium`, unchanged. The plan does not wait for your review.
+
+Users drive the whole web UI from the keyboard. Space opens a leader menu of nested groups and
+searches, `g` sequences go to pages, and every page shares one base keymap. One registry declares
+every key, so a key search and a dynamic status line can come later. See the
+[proposal](proposal.md), [discovery](discovery-01.md), and [clarifications](clarifications-01.md).
 
 ## Your review
 
-- **C1** (icons, one definition, derive from features): done. The menu shows the Space key as its
-  icon and every entry with one. The sidebar, the phone's tabs, and the menu read one list of
-  places, and the menu's entries come from the keys each feature declares, with their label and
-  icon.
-- **C2** (a key for Needs you): done. `c` is Continue: it opens the one thing that needs you, or a
-  small picker of them when there are several.
-- **C3** (alphabetical menu): done. Entries are in alphabetical order of their keys, Space and the
-  symbols first.
-- **C4** (`+` and `-`): done. `+` moves to the next row and `-` to the previous, like `j` and `k`.
-- **C5** (New page keys): done. On the New page, `s`, `c`, and `f` pick Session, Change, or Feature.
-- **C6** (shifted movement): done, in part. `J K H L` and Shift with the arrows move the selected
-  item itself. Shift with `+` and `-` is not offered: `+` already needs Shift, and Shift with `-`
-  types `_`, so the keys could not be told apart.
-- **C7** (which keys the status line shows): done. Each key is declared with whether its hint shows:
-  the line shows `j k`, and not the arrows, `+`, or `-`.
+- **C1** (vertical keys scroll the pages): done. On every page without selectable rows, `j k`, the
+  arrows, `+`, and `-` scroll the page, with no hint in the status line. Pages with rows keep moving
+  the selection, which the view follows.
 
 ## Decisions
 
@@ -127,7 +113,7 @@ The base keymap, outside text fields and with no layer open:
 
 | Keys                                     | Do                                                                                                           |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `j` `k`, `↓` `↑`, `+` `-`                | move to the next or previous row, card, or option                                                            |
+| `j` `k`, `↓` `↑`, `+` `-`                | move to the next or previous row, card, or option; on a page with no rows, scroll the page                   |
 | `h` `l`, `←` `→`                         | move between columns, where a page has them                                                                  |
 | `J` `K` `H` `L`, `Shift` with the arrows | move the selected item itself: down, up, to the previous or next column or section, where items can be moved |
 | `Home` `End`                             | first and last row                                                                                           |
@@ -139,7 +125,9 @@ The base keymap, outside text fields and with no layer open:
 | `i`                                      | edit the selected item in place, or focus the page's text box                                                |
 | `g` then `h` `i` `p` `d` `s` `,`         | go to Home, Inbox, Priorities, Decisions, Sessions, Settings                                                 |
 
-A key a page has no use for is unbound there and not hinted.
+A key a page has no use for is unbound there and not hinted. On a page with no selectable rows, like
+a session, the questions, a spec, a plan, or the settings, the vertical keys scroll instead, a few
+lines at a time. The scrolling is not hinted: it is what a page does anyway.
 
 Key scenarios:
 
@@ -150,12 +138,16 @@ Key scenarios:
    a later `a` acts as `a` does on that page.
 4. **Given** the priorities page with a Next entry selected, **When** you press `j`, **Then** the
    selection moves to the next row and its pane follows, as today.
+5. **Given** a spec page taller than the window, **When** you press `j`, `↓`, or `+`, **Then** the
+   page scrolls down a few lines, and `k`, `↑`, or `-` scrolls back up.
 
 More scenarios:
 
-1. **Given** you pressed `g`, **When** you press `x`, which no `g` sequence uses, **Then** the
+1. **Given** a session beside a document, with the focus in the session, **When** you press `j`,
+   **Then** the session scrolls and the document stays.
+2. **Given** you pressed `g`, **When** you press `x`, which no `g` sequence uses, **Then** the
    sequence ends and `x` does nothing.
-2. **Given** the questions page, **When** you press `n`, **Then** it jumps to the next unanswered
+3. **Given** the questions page, **When** you press `n`, **Then** it jumps to the next unanswered
    question, as today.
 
 ### US3: A few keys of each page's own (P2)
@@ -267,6 +259,9 @@ chose, rather than adding a library: [the options](discovery-01.md#the-key-libra
   holds for the step, sorted by key, so it grows with the features. It owns the one window listener,
   matching by the typed character, skipping text fields, composition, and open layers, and it owns
   sequences with their 2-second wait. It refuses two meanings for one key on a page.
+- **The scroll fallback** is a binding of the vertical keys that the registry gives to the page's
+  rows when it has registered them, and otherwise scrolls the area holding the focus, or the page's
+  main column. A list keeps its own behaviour, whose selection the view follows.
 - **The off switch** is read by the registry. Off, it drops every binding of a single character, and
   keeps the modifier chord for the menu.
 - **The leader menu** draws the registry's current step after a half-second delay, in the bottom
@@ -284,7 +279,6 @@ Tradeoffs:
 - Matching by hand means we own sequences, composition, and their tests, and have no layout
   fallback.
 - The decisions picker loses its rendered preview for now: raw markdown shows instead.
-- Moving every existing shortcut onto the registry touches about ten files in one feature.
 - `Escape` leaves a composer for the page, a new meaning for it there.
 
 ## Edge cases
@@ -301,7 +295,6 @@ Tradeoffs:
 | Normal     | The page changes while the menu is open       | the menu closes                                                 |
 | Normal     | A letter on AZERTY or Dvorak                  | it matches the character typed, so `h j k l` follow the letters |
 | Normal     | Escape in a composer with unsent text         | focus leaves; the draft stays                                   |
-| Normal     | `K` on the first line of its section          | nothing moves                                                   |
 | Niche      | `/` with the browser's quick find             | the page's key wins outside text fields                         |
 
 ## Success criteria
@@ -328,7 +321,6 @@ what your answers and notes changed:
 - `gg` goes to the top of the page.
 - `n` means different things on different pages; `a` is the base add key.
 - Previews are raw markdown.
-- The menu's order: alphabetical by key, Space and the symbols first, as your review asked.
 
 Settled while writing this spec:
 
@@ -339,7 +331,6 @@ Settled while writing this spec:
 - **`,`** is Settings, as the one top-level key left.
 - **`o`** differs from `a` by the place: the selected row's section or category, not the default.
 - **The setting** has no flag or variable, like the run settings.
-- **Settings in the file** are read as the others are, a missing key meaning on.
 - **A session's preview** is its title, state, and branch: it has no markdown.
 - **`+` and `-`** move to the next and the previous row, in that order, like `j` and `k`.
 - **Shifted movement** moves the selected item with the same mechanism as a drag, and only where
@@ -359,6 +350,25 @@ Settled while writing this spec:
 **Medium**: the settings file gains a table, and every page's keys move onto a new registry.
 
 ## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-10-26: the vertical keys should scroll pages without rows.
+>
+> - You approve a Space leader menu, `g` sequences, and one base keymap on every page, all declared
+>   in one key registry, with a setting in the settings file that turns single-key shortcuts off.
+> - Since your review, all seven comments are done but one part: shifted `+` and `-` cannot move an
+>   item, because `+` already needs Shift. `J K H L` and Shift with the arrows do.
+> - Changed decision: [Keyboard](../decisions/keyboard.md) now says each key is declared with its
+>   label, icon, and whether the status line shows it. The menu and the sidebar share one list of
+>   places and their icons.
+> - New: `c` is Continue, which goes to what needs you, with a small picker when there is more than
+>   one. The New page's kinds have keys: `s`, `c`, `f`.
+> - Read one way: the menu is in alphabetical order of its keys, `+` is next and `-` previous, and
+>   the shifted movement keys move the selected item itself.
+> - Unverified, unchanged: Space under a screen reader's browse mode, and the preview's raw file
+>   text, which the plan's first tasks check.
+> - Risk tier `medium`, unchanged. The plan does not wait for your review.
 
 > [!NOTE]
 >

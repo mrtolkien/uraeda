@@ -24,9 +24,9 @@ only way to do something.
   wait a short moment, so quick typing shows nothing. Checked by the UI tests.
 - Keys MUST work at every width, and MUST NOT show their hints on narrow screens. Checked by the UI
   tests.
-- Every page MUST share one base keymap, arrows or `h j k l` to move, `a`, `i`, and `o` to add and
-  edit, and `gg` and `g` sequences to go, and its own keys MUST be few and mnemonic. Checked by
-  review.
+- Every page MUST share one base keymap, arrows or `h j k l` to move or scroll, `a`, `i`, and `o` to
+  add and edit, and `gg` and `g` sequences to go, and its own keys MUST be few and mnemonic. Checked
+  by review.
 - A key MUST NOT mean two things on one page, though two pages may give it different meanings.
   Checked by the registry's tests.
 - The status line SHOULD show the keys that work on the page, drawn from the registry. Checked by
