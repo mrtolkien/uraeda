@@ -135,6 +135,12 @@ async function takeWaiting(each: Each) {
 export async function takeSpecPage(each: Each) {
   await takeWaiting(each);
   await each("spec-page-approved", ({ page }) => open(page, APPROVED_PAGE));
+  await each("spec-replaced", async ({ page }) => {
+    await forget(page);
+    await show(page, APPROVED_PAGE, "Replaced behaviour");
+    await toTop(page, "Replaced behaviour");
+    await settle(page);
+  });
   await each("spec-decision", async ({ page }) => {
     await forget(page);
     await show(page, DECISION_PAGE, "Task storage");
