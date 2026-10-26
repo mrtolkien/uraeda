@@ -353,11 +353,11 @@ simpler private design from what the code shows:
   commits on its own with a `refactor` message, before the failing test of the new behaviour. See
   [extract, don't grow](code-quality.md#extract-dont-grow).
 - **A test step**: the tests the [testing](code-quality.md#testing) section asks for, their names
-  and assertions as code, with the spec's exact values in them, including the human's approval
-  comments. An assertion picks out what the task adds, by its message or its kind, and never
-  compares a whole list of results: see [how many](code-quality.md#how-many). Where a scenario says
-  an old result still holds, the existing test keeps asserting it, and the new assertion is only
-  what changes. Each test names the break it catches: see
+  and assertions as code, with the spec's exact values for what the task adds, including the human's
+  approval comments. An assertion picks out what the task adds, by its message or its kind, and
+  never compares a whole list of results: see [how many](code-quality.md#how-many). Where a scenario
+  says an old result still holds, the existing test keeps asserting it, and the new assertion is
+  only what changes. Each test names the break it catches: see
   [tests that can fail](code-quality.md#tests-that-can-fail). Derive expectations from the approved
   behaviour, independently of the proposed implementation. A task marked **Risky** names the breaks
   to make. The step also creates the helpers its tests use, so the first failure is about the
