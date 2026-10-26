@@ -1,7 +1,7 @@
 // What a keydown means to the key registry (review focus 1, 2, 3): the character typed, whatever
 // Shift does, AltGr as no modifier, and no token for a composition, a dead key, or a lone modifier.
 import { expect, test } from "vite-plus/test";
-import { isSingleKey, tokenOf } from "../keys/match.ts";
+import { isCanonical, isSingleKey, tokenOf } from "../keys/match.ts";
 
 /**
  * A keydown as a browser reports it: happy-dom's `getModifierState` answers `AltGraph` with Alt, so
@@ -79,6 +79,17 @@ test("Space, a named key with Shift, and Ctrl or Cmd+K have their own tokens", (
   expect(tokenOf(press("Escape"))).toBe("Escape");
 });
 
+// A named key with Ctrl or Cmd keeps its name as the browser gives it, which no binding can
+// declare (`store.ts` rejects `mod+` before a named key): the chord ends a sequence and goes on.
+test("Ctrl or Cmd with a named key keeps the key's name, and with a letter, lowercases it", () => {
+  expect(tokenOf(press("ArrowDown", { ctrlKey: true }))).toBe("mod+ArrowDown");
+  expect(tokenOf(press("Home", { metaKey: true }))).toBe("mod+Home");
+  expect(tokenOf(press("ArrowDown", { ctrlKey: true, shiftKey: true }))).toBe(
+    "mod+shift+ArrowDown",
+  );
+  expect(tokenOf(press("K", { ctrlKey: true }))).toBe("mod+k");
+});
+
 test("Space typed with Shift is still Space", () => {
   expect(tokenOf(press(" ", { shiftKey: true }))).toBe("space");
 });
@@ -95,5 +106,29 @@ test("a single-key shortcut starts with one printable character or Space", () =>
   }
   for (const keys of ["ArrowDown", "shift+ArrowDown", "Home", "Enter", "Escape", "mod+k"]) {
     expect(isSingleKey(keys)).toBe(false);
+  }
+});
+
+// What `tokenOf` gives for a keydown is what a binding can declare, and nothing else is.
+test("a token is canonical where tokenOf can give it, and not otherwise", () => {
+  const given = [
+    press(" "),
+    press("j"),
+    press("J", { shiftKey: true }),
+    press("["),
+    press("k", { ctrlKey: true }),
+    press("ArrowDown"),
+    press("ArrowDown", { shiftKey: true }),
+    press("F5"),
+    press("Escape"),
+  ].map(tokenOf);
+  for (const token of given) {
+    expect(isCanonical(token ?? ""), `${token}`).toBe(true);
+  }
+  // Ctrl or Cmd with a named key is given, and is no binding's.
+  expect(isCanonical("mod+ArrowDown")).toBe(false);
+  expect(isCanonical("mod+shift+k")).toBe(false);
+  for (const token of ["Space", "escape", "ctrl+k", "mod+K", "shift+J", "Shift", "alt+x", ""]) {
+    expect(isCanonical(token), token).toBe(false);
   }
 });

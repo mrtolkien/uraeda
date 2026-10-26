@@ -1,13 +1,14 @@
 // What the key registry holds: the bindings every mounted component declared, in the order they
-// were declared, with the rules over them. A key never means two things, which throws in every
-// build but production, so any page's test catches it; the single-key switch drops the bindings
-// whose first key is one printable character; and the hints the status line draws come from the
-// bindings that name one. A plain store, read through `useSyncExternalStore`: a handler is never
-// published, so a re-render with a new closure tells no reader.
+// were declared, with the rules over them. A key never means two things, and a key is one `tokenOf`
+// can give, or it would never run: both throw in every build but production, so any page's test
+// catches them. The single-key switch drops the bindings whose first key is one printable
+// character, and the hints the status line draws come from the bindings that name one. A plain
+// store, read through `useSyncExternalStore`: a handler is never published, so a re-render with a
+// new closure tells no reader.
 import type { Icon } from "@astryxdesign/core/Icon";
 import type { ComponentProps } from "react";
 import type { StatusHint } from "../statusHints.tsx";
-import { isSingleKey } from "./match.ts";
+import { isCanonical, isSingleKey } from "./match.ts";
 
 /** An icon's name, as Astryx's `Icon` takes it. */
 export type IconName = ComponentProps<typeof Icon>["icon"];
@@ -26,7 +27,7 @@ export type Binding = {
   /**
    * One token, or tokens separated by spaces for a sequence: "j", "J", "ArrowDown", "Home",
    * "shift+ArrowDown", "mod+k", "g h", "space n n". Space is "space"; a printable key is the
-   * character typed.
+   * character typed; a named key is as `event.key` spells it. A token `tokenOf` cannot give throws.
    */
   keys: string;
   label: string;
@@ -79,6 +80,20 @@ function assertNoClash(others: ReadonlyArray<Binding>, mine: ReadonlyArray<Bindi
       }
     }
   });
+}
+
+/** Throws where a binding's keys are not tokens `tokenOf` gives: such a binding never runs. */
+function assertCanonical(bindings: ReadonlyArray<Binding>) {
+  for (const { keys, label } of bindings) {
+    const bad = tokens(keys).find((token) => !isCanonical(token));
+    if (bad !== undefined) {
+      throw new Error(
+        `"${keys}" (${label}) can never run: "${bad}" is not a key as the browser names it ` +
+          `(modifiers lowercase, "mod+" only before a printable character, named keys as in ` +
+          `event.key, Space as "space")`,
+      );
+    }
+  }
 }
 
 export function createKeyStore(initialSingleKeys: boolean) {
@@ -134,6 +149,7 @@ export function createKeyStore(initialSingleKeys: boolean) {
     /** Declares, or replaces, a component's bindings: it keeps its place in the order. */
     set(id: string, place: Place, bindings: ReadonlyArray<Binding>) {
       if (process.env.NODE_ENV !== "production") {
+        assertCanonical(bindings);
         const others = [...entries].filter(([other]) => other !== id);
         assertNoClash(
           others.flatMap(([, entry]) => entry.bindings),

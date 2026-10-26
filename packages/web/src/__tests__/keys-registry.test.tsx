@@ -188,6 +188,55 @@ test("two bindings of one key throw, with the labels of both", () => {
   expect(text).toContain("scroll");
 });
 
+// Break: no check of the token, so `mod+ArrowDown` and `Space` are declared and never run.
+test("a binding that names a key no keydown gives throws, and says which", () => {
+  const ran: Array<string> = [];
+  for (const keys of [
+    "mod+ArrowDown",
+    "mod+K",
+    "Space",
+    "shift+J",
+    "escape",
+    "ctrl+k",
+    "Shift+ArrowDown",
+    "alt+x",
+    "arrowdown",
+    "g  h",
+    "g Space",
+    "shift+Shift",
+    "",
+  ]) {
+    cleanup();
+    expect(conflictOf(<Harness keys={keys} ran={ran} />), keys).toContain("can never run");
+  }
+});
+
+test("the keys a keydown gives are all declared without a throw", () => {
+  const ran: Array<string> = [];
+  for (const keys of [
+    "j",
+    "J",
+    "+",
+    "[",
+    "space",
+    "space n n",
+    "g h",
+    "mod+k",
+    "mod+/",
+    "ArrowDown",
+    "shift+ArrowDown",
+    "Home",
+    "Enter",
+    "Escape",
+    "Backspace",
+    "F1",
+    "shift+Tab",
+  ]) {
+    cleanup();
+    expect(conflictOf(<Harness keys={keys} ran={ran} />), keys).toBe("");
+  }
+});
+
 test("a key that is a leaf and the start of a sequence throws", () => {
   const ran: Array<string> = [];
   expect(
