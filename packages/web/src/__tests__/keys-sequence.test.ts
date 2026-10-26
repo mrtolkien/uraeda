@@ -47,7 +47,30 @@ test("a shown menu stays shown as it goes down", () => {
 test("an unbound key in a shown menu is consumed, and the menu stays where it was", () => {
   const step = shown("space", "n");
   expect(press(step, "z")).toEqual({ consumed: true, ran: null, step });
-  expect(press(step, "ArrowDown")).toEqual({ consumed: true, ran: null, step });
+  expect(press(step, "+")).toEqual({ consumed: true, ran: null, step });
+});
+
+// Break: the menu consuming every key, which blocks F5's reload while `g` is pending.
+test("a named key that is no menu key ends the sequence and goes on to the browser", () => {
+  for (const token of [
+    "F1",
+    "F5",
+    "F12",
+    "PageUp",
+    "PageDown",
+    "Enter",
+    "ArrowDown",
+    "End",
+    "Tab",
+  ]) {
+    for (const step of [hidden("g"), shown("space", "n"), shown("space")]) {
+      expect(press(step, token), `${token} at ${step.path}`).toEqual({
+        consumed: false,
+        ran: null,
+        step: null,
+      });
+    }
+  }
 });
 
 test("an unbound key of a menu not yet shown ends the sequence and runs nothing", () => {

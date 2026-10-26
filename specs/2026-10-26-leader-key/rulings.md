@@ -222,3 +222,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a feature that needs Ctrl+Arrow or Alt keys extends `isCanonical` in
   `keys/match.ts`, and `tokenOf` already gives their tokens.
 - **Where**: fix pass A, `keys/match.ts`, `keys/store.ts`.
+
+## R22: A pending sequence swallows printable keys only, and a named key ends it and goes on
+
+- **Decision**: while a sequence is pending or the menu is shown, a key that completes or continues
+  a sequence, Escape, Backspace, and the leader chord are the menu's; a printable key or Space that
+  no binding uses is consumed ("`x` does nothing", and a shown menu stays open); every other key
+  ends the sequence and goes on un-prevented, to the browser and then to the page's bindings: F1 to
+  F12, PageUp, PageDown, Home, End, Enter, the arrows, Tab, and any chord. `g` then F5 reloads.
+  Tested at the machine (`keys-sequence.test.ts`) and wired, with the keydown's `defaultPrevented`
+  (`keys-leader.test.tsx`). The one existing assertion that changes:
+  `an unbound key in a shown menu` in `keys-sequence.test.ts` took ArrowDown as consumed with the
+  menu staying open; it now asserts `+` there, and ArrowDown is in the new test of the named keys.
+- **Rationale**: preventing every key while a `g` is pending blocks the browser's own keys for two
+  seconds, a menu shown for as long as the human reads it, which includes reload, find, and paging;
+  the spec's one rule is about letters ("`x` ... does nothing").
+- **Alternatives considered**: ending only on F-keys: Enter and the arrows have the same fault (a
+  focused button that Enter would press, a page the arrows scroll). Keeping the menu open on a named
+  key: the human who pressed PageDown wants the page to page, and the menu has no use of it.
+- **If wrong**: a named key the leader tree needs (none now) binds like any other: a bound token is
+  matched before this rule.
+- **Where**: fix pass A, `keys/sequence.ts`.

@@ -68,6 +68,7 @@ function show({ singleKeys = true }: { singleKeys?: boolean } = {}) {
   return { setSingleKeys: (on: boolean) => view.rerender(page(on)) };
 }
 
+/** Presses a key, and says whether it went on to the browser (not prevented). */
 const press = (key: string, init: KeyboardEventInit = {}, target: Element = document.body) =>
   fireEvent.keyDown(target, { key, ...init });
 const wait = (ms: number) => act(() => void vi.advanceTimersByTime(ms));
@@ -160,6 +161,34 @@ test("a key bound to nothing keeps a shown menu open and runs nothing", () => {
   wait(500);
   press("z");
   press("a");
+  expect(menu("Space")).not.toBeNull();
+  expect(ran).toEqual([]);
+});
+
+// Break: a pending sequence or a shown menu preventing every key, so `g` then F5 never reloads.
+test("a pending g or a shown menu lets F5, PageDown, Enter, and the arrows through, and ends", () => {
+  show();
+  for (const key of ["F5", "F1", "PageDown", "Enter", "ArrowDown", "Tab"]) {
+    press("g");
+    expect(press(key), `${key} after g`).toBe(true);
+    press(" ");
+    wait(500);
+    expect(menu("Space")).not.toBeNull();
+    expect(press(key), `${key} in the menu`).toBe(true);
+    expect(menu("Space")).toBeNull();
+    // Nothing is pending: `i` is no `g i`.
+    press("i");
+  }
+  expect(ran).toEqual([]);
+});
+
+test("a printable key the menu has no use for is consumed: x does nothing", () => {
+  show();
+  press("g");
+  expect(press("x")).toBe(false);
+  press(" ");
+  wait(500);
+  expect(press("z")).toBe(false);
   expect(menu("Space")).not.toBeNull();
   expect(ran).toEqual([]);
 });
