@@ -1,5 +1,5 @@
 // CI's slices of a Vitest run (`--shard`, see `vite.tasks.ts`), balanced by each file's time instead
-// of Vitest's hash of its path, which put the longest browser files in one slice.
+// of Vitest's hash of its path, which could put the longest files in one slice.
 import { readFileSync } from "node:fs";
 import { relative } from "node:path";
 import { BaseSequencer, type TestSpecification } from "vite-plus/test/node";

@@ -7,8 +7,8 @@
  * the machine's. A run killed with this script too leaves its folder, which the next run removes.
  *
  * With `--lock`, at most `--slots` runs of that name execute at once on the machine, across every
- * checkout: the others wait, and say so. Several worktrees running their browser tests at once
- * slowed them all past their timeouts.
+ * checkout: the others wait, and say so. Several worktrees running heavy tests at once slowed
+ * them all past their timeouts.
  */
 import { spawn } from "node:child_process";
 import {

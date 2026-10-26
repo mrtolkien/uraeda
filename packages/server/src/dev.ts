@@ -59,7 +59,8 @@ export async function stopDevRuns(): Promise<void> {
 /**
  * Reads the list of repositories again in every started server, as their watch of the list does
  * after a quiet moment: a repository added to or removed from the list through the binding is
- * served, or no longer, once it resolves. The browser tests list their own repository this way.
+ * served, or no longer, once it resolves. The Storybook fixture's tests list their own repository
+ * this way.
  */
 export async function reloadRepositories(): Promise<void> {
   for (const pending of servers.values()) {
@@ -117,10 +118,10 @@ export async function devFrames(port: number): Promise<FrameSecret | undefined> 
  * `adapter` says otherwise, from `.env` too unless `file` is false. `allowOrigins` gives the
  * origins the server of a port allows besides its own, none by default. `lockedList` locks the
  * server's list, as Uraeda's own Storybook does: see `unlockedList`. Sessions are checked unless
- * `signIn` is false, as for the browser tests and Uraeda's own Storybook; a key the start makes is
- * printed, as `uraeda` prints it. `started` is called with the server once it has started, as the
- * sandbox starts its turn at work. A start that fails answers 500 with its reason, and the next
- * request tries again.
+ * `signIn` is false, as for the screenshot scripts and Uraeda's own Storybook; a key the start
+ * makes is printed, as `uraeda` prints it. `started` is called with the server once it has
+ * started, as the sandbox starts its turn at work. A start that fails answers 500 with its
+ * reason, and the next request tries again.
  */
 export function devHandler(
   root: string | null,
@@ -143,8 +144,8 @@ export function devHandler(
   const start = async (port: number): Promise<Started> => {
     const binding = await loadBinding();
     const dataDir = loadDataDir(root, binding, process.env, sources);
-    // Read with the first request, as the data folder is: the browser tests' setup sets them after
-    // Vite's server is made.
+    // Read with the first request, as the data folder is: the screenshot script's setup sets them
+    // after Vite's server is made.
     const { allowedHosts, given, port: portVariable, repo } = loadEnv(root, process.env, sources);
     // The server's routes follow the settings file, as the packaged server's do; Vite's own pages
     // keep the variable's host names (R1).
