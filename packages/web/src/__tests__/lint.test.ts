@@ -83,7 +83,6 @@ test("no stylesheet but Astryx's and the fonts' is imported (SC-001)", () => {
 /** Files that still set the reading size by hand: each moves to `Prose.tsx`'s styles, none joins. */
 const LEGACY_READING = [
   "Folds.tsx",
-  "Question.tsx",
   "RoundPage.tsx",
   "spec/DecisionCard.tsx",
   "spec/SpecOpening.tsx",
