@@ -40,8 +40,8 @@ before new behaviour goes in, not after.
   **Complexity tracking** lists every new abstraction, and every unit a task grows past a limit or
   leaves over one, with the reason.
 - **The reviews of the tasks** flag what the tasks grew, not sizes that were already there.
-- **The final review** reports each function and file the branch grew, with its length before and
-  after, in the pull request's description.
+- **The final review** checks each function and file the branch grew: one it grew past a limit is a
+  point of the pull request's opening block.
 
 Checks: the limits in the project's linters, and the markers on today's offenders, which fail once
 their code is fixed. A new marker is a constitution exception: the human approves it in the plan.

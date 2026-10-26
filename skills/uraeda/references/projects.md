@@ -138,7 +138,7 @@ Once a feature's final review or a change's review is done, its folder is replac
 `specs/done/YYYY-MM-DD-<slug>.md`, in the last commit of its branch, before its pull request is
 ready: the default branch keeps what the feature does and why, and git keeps the rest. Links into
 the folder are rewritten to the record, whose questions keep their anchors. Records are frozen once
-merged. See [Finish](finish.md).
+merged, but for a broken link and the link to a newer record. See [Finish](finish.md).
 
 After the merge, the branch and its worktree stay until the human runs `ura clean`, which removes
 them unless that would lose work.

@@ -136,8 +136,8 @@ started entry. Its message: `finish(<slug>): <feature name>`. Run `ura check` fi
 
 ## Mark the pull request ready
 
-Write the pull request's body from the record, in this order, then mark it ready with `gh pr ready`.
-It is the feature's last human gate. If the default branch moved since the
+Write the pull request's body from the record, in three parts, then mark it ready with
+`gh pr ready`. It is the feature's last human gate. If the default branch moved since the
 [catch-up](implementation.md#catch-up-with-the-default-branch), catch up again first.
 
 1. **The opening block**, a `> [!IMPORTANT]` block as
