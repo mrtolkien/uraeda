@@ -119,12 +119,7 @@ function Work({
       <ShellPane count={waiting.length} isHiddenEmpty title="Needs you" tone="attention">
         <Cards entries={waiting} pathname={pathname} />
       </ShellPane>
-      <ShellPane
-        count={sessions.length}
-        empty="No session running."
-        isHiddenEmpty={!!found}
-        title="Sessions"
-      >
+      <ShellPane count={sessions.length} isHiddenEmpty title="Sessions">
         <Cards entries={sessions} pathname={pathname} />
       </ShellPane>
       <ShellPane
