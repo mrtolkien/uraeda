@@ -26,5 +26,7 @@ export function LeaderMenuHost() {
   if (step === null || !step.isShown) {
     return null;
   }
-  return <LeaderMenu entries={entriesAt(bindings, step.path)} path={step.path} />;
+  return (
+    <LeaderMenu entries={entriesAt(bindings, step.path, document.activeElement)} path={step.path} />
+  );
 }
