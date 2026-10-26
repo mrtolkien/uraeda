@@ -230,8 +230,10 @@ export const uraedaTheme = defineTheme({
     // Buttons and badges in the UI's font, where Astryx has them inherit it: inside reading text,
     // a control keeps the monospace font (the UI look decision).
     button: { base: { fontFamily: "var(--font-family-body)" } },
-    // Square badges and switches, as the terminal look's corners; status dots stay round.
+    // Square badges, switches and progress bars, as the terminal look's corners; status dots stay round.
     badge: { base: { "--radius-full": "0px", fontFamily: "var(--font-family-body)" } },
+    "progress-bar": { base: { "--radius-full": "0px" } },
+    "status-dot": { base: { "--radius-full": "0px" } },
     switch: { base: { "--radius-full": "0px" } },
     // A popover, a menu's included, stands apart by a border, as a terminal's floating window does,
     // where the flat look sets every shadow to none and left its text floating over the page.
@@ -427,6 +429,7 @@ export const uraedaTheme = defineTheme({
     "--color-warning": pair("yellow"),
     "--color-warning-muted": tint("yellow"),
     // Square corners; `--radius-full` stays round for dots and avatars.
+    "--radius-chat": "0px",
     "--radius-container": "0px",
     "--radius-element": "0px",
     "--radius-inner": "0px",

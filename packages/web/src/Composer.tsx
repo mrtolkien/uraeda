@@ -433,6 +433,8 @@ export function Composer(given: ComposerProps) {
               <ComposerImages focusAt={focusAt} images={images} onRemove={attaching.remove} />
             ) : undefined
           }
+          // A border, as a text field has, so it reads as writable: the flat look has no shadow.
+          elevation="none"
           footerActions={footerActions(props, attach, { insert, unavailable })}
           input={
             <ComposerInput

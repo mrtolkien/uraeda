@@ -211,7 +211,8 @@ export const uraedaTheme = {
     "--spacing-1-5": "7.2px",
     "--size-element-lg": "43.2px",
     "--size-element-md": "38.4px",
-    "--size-element-sm": "33.6px"
+    "--size-element-sm": "33.6px",
+    "--radius-chat": "0px"
   },
   localTokens: {
     "--astryx-theme-neutral-color-status-fill-accent": "light-dark(#7b2fe0, #cba6f7)",
@@ -499,6 +500,9 @@ export const uraedaTheme = {
       },
       "variant:accent": {
         "backgroundColor": "var(--astryx-theme-neutral-color-status-fill-accent)"
+      },
+      "base": {
+        "--radius-full": "0px"
       }
     },
     "avatar-status-dot": {
@@ -578,7 +582,8 @@ export const uraedaTheme = {
     },
     "progress-bar": {
       "base": {
-        "--color-background-muted": "var(--color-border-emphasized)"
+        "--color-background-muted": "var(--color-border-emphasized)",
+        "--radius-full": "0px"
       },
       "variant:accent": {
         "--color-accent": "var(--astryx-theme-neutral-color-status-fill-accent)"

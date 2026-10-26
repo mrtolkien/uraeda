@@ -2,10 +2,16 @@ import { Button } from "@astryxdesign/core/Button";
 import { ChatSendButton } from "@astryxdesign/core/Chat";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
+import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import type { ComposerProps } from "./Composer.tsx";
 import { type Inserted, RecommendedMessage } from "./RecommendedMessage.tsx";
+
+const styles = stylex.create({
+  // Square, as the terminal look's other buttons are: Astryx draws its send button round.
+  square: { borderRadius: 0 },
+});
 
 /** The send key drawn in the button, beside its label: Ctrl and the Enter key. */
 function SendKeys() {
@@ -53,7 +59,12 @@ export function sendButtons({
 }): { sendActions?: ReactNode; sendButton?: ReactNode } {
   // Astryx's Send takes text alone: this one takes a message of images too (an Astryx gap).
   const sendButton = (
-    <ChatSendButton isDisabled={!canSend || pending} isStopShown={false} onSend={send} />
+    <ChatSendButton
+      isDisabled={!canSend || pending}
+      isStopShown={false}
+      onSend={send}
+      xstyle={styles.square}
+    />
   );
   const allowAll = allow && allow.count >= 2 && (
     <Button
@@ -90,7 +101,11 @@ export function sendButtons({
     };
   }
   return working
-    ? { sendActions: beside(hasContent ? sendButton : undefined) }
+    ? {
+        sendActions: beside(hasContent ? sendButton : undefined),
+        // Stop, which the composer draws itself by its context: square as well.
+        sendButton: <ChatSendButton xstyle={styles.square} />,
+      }
     : { ...(others ? { sendActions: others } : {}), sendButton };
 }
 

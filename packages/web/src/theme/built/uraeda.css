@@ -278,6 +278,7 @@
     --size-element-lg: 43.2px;
     --size-element-md: 38.4px;
     --size-element-sm: 33.6px;
+    --radius-chat: 0px;
     --astryx-theme-neutral-color-status-fill-accent: light-dark(#7b2fe0, #cba6f7);
     --astryx-theme-neutral-color-status-fill-success: light-dark(#2c6f1f, #a6e3a1);
     --astryx-theme-neutral-color-status-fill-warning: light-dark(#875800, #f9e2af);
@@ -547,6 +548,10 @@
     background-color: var(--astryx-theme-neutral-color-status-fill-accent);
   }
 
+  .astryx-status-dot {
+    --radius-full: 0px;
+  }
+
   .astryx-avatar-status-dot[data-variant="success"] {
     background-color: var(--astryx-theme-neutral-color-status-fill-success);
   }
@@ -630,6 +635,7 @@
 
   .astryx-progress-bar {
     --color-background-muted: var(--color-border-emphasized);
+    --radius-full: 0px;
   }
 
   .astryx-progress-bar[data-variant="accent"] {
