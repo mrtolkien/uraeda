@@ -2,7 +2,7 @@
 // with the item under the cursor previewed beside the list as raw markdown, on wide and semi-wide
 // screens. Astryx's `CommandPalette` draws the search and the list, inline in a dialog of our own,
 // so the preview can sit beside them: an Astryx gap (plan, Complexity tracking), for the palette
-// has no preview slot, and its `CodeBlock` draws the markdown. A part in its footer reads the cursor
+// has no preview slot, and the markdown is drawn as plain wrapped text. A part in its footer reads the cursor
 // from the palette's context, puts it on the first result after each letter, so Enter opens it, and
 // lifts it to the preview (rulings R1 and R28 of the layout look). On narrow screens it is a sheet,
 // its list alone. Opening it adds a history entry, so Back closes it; Escape closes it, and the
@@ -10,7 +10,6 @@
 // element that had the focus as they open, whatever it is, and give it back as they close), so a pick
 // is left to the page it opens (R33).
 import { BottomSheet } from "@astryxdesign/core/BottomSheet";
-import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import {
   CommandPalette,
   CommandPaletteFooter,
@@ -26,6 +25,7 @@ import {
   colorVars,
   fontWeightVars,
   spacingVars,
+  typographyVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import type { SearchableItem, SearchSource } from "@astryxdesign/core/Typeahead";
 import * as stylex from "@stylexjs/stylex";
@@ -67,6 +67,8 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-semibold"],
     minWidth: spacingVars["--spacing-6"],
   },
+  // As the file is written, its lines wrapped at the words: Astryx's wrapped code block breaks a
+  // word anywhere ("app" and "roved."), which reads badly in prose.
   preview: {
     borderInlineStartColor: colorVars["--color-border"],
     borderInlineStartStyle: "solid",
@@ -75,9 +77,25 @@ const styles = stylex.create({
     minWidth: 0,
     overflowY: "auto",
   },
+  raw: {
+    fontFamily: typographyVars["--font-family-code"],
+    margin: 0,
+    overflowWrap: "break-word",
+    padding: spacingVars["--spacing-4"],
+    whiteSpace: "pre-wrap",
+  },
   row: {
     flexGrow: 1,
     minWidth: 0,
+  },
+  // The row fills the item, so the kind is at its end whatever the title's length.
+  rowFill: {
+    width: "100%",
+  },
+  // The sheet's handle floats over the top of its content, which would hide the search field's
+  // outline: the list starts below it.
+  sheet: {
+    paddingBlockStart: spacingVars["--spacing-6"],
   },
 });
 
@@ -147,15 +165,15 @@ function Preview({ item }: { item: PickerItem | undefined }) {
   return (
     <section aria-label="Preview" {...stylex.props(styles.preview)}>
       {item && (
-        <CodeBlock
-          code={item.preview}
-          container="section"
-          hasCopyButton={false}
-          hasLanguageLabel={false}
-          isWrapped
-          language="markdown"
-          width="100%"
-        />
+        <div {...stylex.props(styles.raw)}>
+          {/* A line is its own block, an empty one held open by a break. */}
+          {item.preview
+            .split("\n")
+            .map((text, id) => ({ id, text }))
+            .map(({ id, text }) => (
+              <div key={id}>{text === "" ? <br /> : text}</div>
+            ))}
+        </div>
       )}
     </section>
   );
@@ -164,7 +182,7 @@ function Preview({ item }: { item: PickerItem | undefined }) {
 /** A row of the list: the mark, the title, and, among several kinds, the kind. */
 function Row({ item, showKind }: { item: PickerItem; showKind: boolean }) {
   return (
-    <HStack align="center" gap={2}>
+    <HStack align="center" gap={2} xstyle={styles.rowFill}>
       <Mark item={item} />
       <span {...stylex.props(styles.row)}>{item.title}</span>
       {showKind && (
@@ -274,7 +292,7 @@ function Body({
     />
   );
   return narrow ? (
-    list
+    <div {...stylex.props(styles.sheet)}>{list}</div>
   ) : (
     <div {...stylex.props(styles.body)}>
       {list}
