@@ -84,8 +84,10 @@ project's parts, pure logic with many cases, and the reproduction of each bug fi
   it. A new case of a behaviour that has a test goes into that test, as a row or an assertion. A new
   test that would prove all an existing one proves replaces it, in the same commit.
 - **Assert only what the task adds.** A new test checks the behaviour the task adds or changes, and
-  leaves what an existing test already checks to it: comparing a whole list of results, where one
-  result is new, asserts the others a second time.
+  leaves what existing tests already check to them. When the code returns several results, such as a
+  list of problems, a test of a new one picks it out, by its message or its kind, and asserts it
+  alone, or its absence: it never compares the whole list. A case existing tests already run, such
+  as the unchanged path of valid input, gets no new test.
 - **One layer per rule.** A rule that two entry points reach, such as a check and a view built on
   it, gets one test, through the entry point whose path runs all the code the rule depends on. A
   test of the inner one adds nothing.
