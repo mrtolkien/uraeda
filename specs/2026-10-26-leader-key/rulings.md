@@ -353,9 +353,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   moves the focus to the logo). This changes the old rail: its document listener folded the rail on
   every Escape, at the same time as a page's own Escape, and in a text field too; the registry's
   rule keeps Escape in a text field and under a layer for their owners.
-- **Rationale**: one key, one thing (the registry's rule, R1): a fallback is how a shell default
-  yields to a page's binding, and a rail left open by a resting mouse is the lesser thing to close.
-  A text field's Escape (discarding a draft, closing a combobox) must not also fold the rail.
+- **Rationale**: one key, one thing: a fallback is how a shell default yields to a page's binding,
+  and a rail left open by a resting mouse is the lesser thing to close. A text field's Escape
+  (discarding a draft, closing a combobox) must not also fold the rail.
 - **Alternatives considered**: the rail first, then the pane: a human closing a pane with Escape
   would see the rail fold instead and press again, on every page, for a rail they did not mean to
   open. Both at once, as before: two actions on one key.
@@ -363,3 +363,65 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   check then names the pages that bind Escape too.
 - **Where**: fix pass B, `__tests__/keys-scroll.test.tsx` ("one Escape closes the pane and the next
   folds the rail").
+
+## R32: The key picker shows at once and never suspends; a failed read closes it with a toast
+
+- **Decision**: `usePickerItems(kind, isEnabled)` reads with `useRequestState` (fate's request that
+  does not suspend, and reads nothing until `isEnabled`, which is "the picker was opened once"),
+  where R7 had it suspend. The dialog shows at the opening, its list saying "Loading…" and its
+  search field there to type in (what is typed meanwhile is kept and searched when the items arrive:
+  the footer searches the field's text, not the palette's committed query, which a letter typed as
+  the items arrive had not reached). A read that fails closes the picker and shows the toast "Could
+  not load the list to search."; the page stays. The next opening reads again. Proposals that fail
+  to load (one request after the list) make their previews say "Could not load the proposal.", and
+  leave the list as it is. Reopening over another kind starts with no cursor (the open picker's body
+  owns it), and shows "Loading…" until its items are read, not the first kind's. `open()` with no
+  host mounted does nothing, so a shell drawn later does not show a picker nobody asked for.
+- **Rationale**: a suspended read with `fallback={null}` showed nothing while the records loaded,
+  and the keys typed meanwhile went to the page; a failed one threw into the app's error boundary,
+  replacing the whole view with "Could not reach the Uraeda server" for a list of search results.
+- **Alternatives considered**: a Suspense and an error boundary beside the dialog, lifting the items
+  up by an effect: the same result with two more components, and fate's cached failure had to be
+  released by hand to retry. Showing nothing until loaded (R7's first version): the problem above.
+- **If wrong**: `usePickerItems` returns `{ error, isReady, items, refetch }`; the host is the one
+  reader.
+- **Where**: fix pass B, `keys/KeyPickerHost.tsx`, `keys/pickerSources.ts`, `keys/pickerState.ts`,
+  `keys/KeyPicker.tsx`; tests in `__tests__/keys-picker.test.tsx`.
+
+## R33: The picker's own focus return goes; a pick opens its page after the dialog closed
+
+- **Decision**: `useReturnFocus` in `keys/KeyPicker.tsx` is deleted. Astryx's `Dialog` (and
+  `BottomSheet`) keep the element that held the focus as they open, in a layout effect, whatever it
+  is, and give the focus back as they close: a button that opened it, or a link a script focused
+  (tests: Escape and Back, in `__tests__/keys-picker.test.tsx`, and in WebKit in
+  `__browser__/decisions.test.tsx`, which pass without the hook). The hook read `activeElement` and
+  set state while rendering, and refocused the opener in a frame after the close, which took the
+  focus from the page a pick had just opened. The dialog's own return happens as it closes, and a
+  pick used to navigate in the same commit, so the page opened first and the dialog then returned
+  the focus to the old opener; the host now sets the pick aside, closes, and navigates from an
+  effect of the commit in which the picker is closed, after the dialog's own.
+- **Rationale**: one owner of the focus return, and the page a pick opens has the last word.
+- **Alternatives considered**: keeping the hook with a flag that a pick skips: the dialog's own
+  return still comes after the navigation. Closing, then navigating after a timer: it needs a guess
+  of how long the close takes.
+- **If wrong**: if a browser is found where the dialog does not return the focus, the hook returns
+  as a layout effect that follows `focusin` while closed, and the same flag.
+- **Where**: fix pass B, `keys/KeyPicker.tsx`, `keys/KeyPickerHost.tsx`.
+
+## R34: The picker's titles read as words, and archived sessions are listed last
+
+- **Decision**: the picker's title, which is its dialog's and its search field's name, is "Find
+  decisions", "Find features", "Find sessions", and so on, and "Find anything" over every kind,
+  where it was "Find · decisions" and "Find · everything". The assertions of
+  `__tests__/keys-picker.test.tsx` that look the combobox up by that name, and the stories', change
+  to the new names, and nothing else in them. The sessions kind lists the archived sessions too,
+  after the live ones, their preview's second line reading "Archived · " before the state: the
+  session list the page already holds says which are archived, and an archived session still has its
+  page.
+- **Rationale**: the middle dot read as a separator in a screen reader's announcement of the field,
+  and "everything" is not what the leader menu calls it ("Find anything"). Leaving archived sessions
+  out hid a page that exists, at no saving.
+- **Alternatives considered**: a separate "archived" kind: another kind the spec does not name.
+  Listing them among the live ones: they would crowd the recent sessions a human looks for first.
+- **If wrong**: the title is `titleOf` in the host; the order is `sessionItems`.
+- **Where**: fix pass B, `keys/KeyPickerHost.tsx`, `keys/pickerSources.ts`.

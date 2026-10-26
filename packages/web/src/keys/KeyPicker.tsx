@@ -6,7 +6,9 @@
 // from the palette's context, puts it on the first result after each letter, so Enter opens it, and
 // lifts it to the preview (rulings R1 and R28 of the layout look). On narrow screens it is a sheet,
 // its list alone. Opening it adds a history entry, so Back closes it; Escape closes it, and the
-// focus returns to where it was.
+// focus returns to where it was: the dialog's own (Astryx's `Dialog` and `BottomSheet` keep the
+// element that had the focus as they open, whatever it is, and give it back as they close), so a pick
+// is left to the page it opens (R33).
 import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import {
@@ -27,7 +29,15 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import type { SearchableItem, SearchSource } from "@astryxdesign/core/Typeahead";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { searchRanked } from "../decisions/jump.ts";
 import { afterOverlayCloses } from "../layout/Overlay.tsx";
 import { useBackCloses } from "../layout/useBackCloses.ts";
@@ -94,15 +104,22 @@ function Mark({ item }: { item: PickerItem }) {
  * it opens and as a letter is typed.
  */
 function CursorFooter({
+  field,
   onCursor,
   source,
 }: {
+  /** The search field: its text is what the human sees, whatever the palette has committed. */
+  field: RefObject<HTMLInputElement | null>;
   onCursor: (id: string | undefined) => void;
   source: SearchSource<PickerEntry>;
 }) {
   const palette = useCommandPaletteContext();
   const searched = useRef(source);
-  const searchAgain = useEffectEvent(() => palette?.setSearch(palette.search));
+  // The field's text, not the palette's: a letter typed as the items arrive is in the field while
+  // the palette still holds the query before it, and searching that would drop the letter.
+  const searchAgain = useEffectEvent(() =>
+    palette?.setSearch(field.current?.value ?? palette.search),
+  );
   useEffect(() => {
     if (searched.current !== source) {
       searched.current = source;
@@ -161,6 +178,7 @@ function Row({ item, showKind }: { item: PickerItem; showKind: boolean }) {
 
 /** The palette's search and list, inline, its cursor told to `onCursor`. */
 function Search({
+  isLoading,
   items,
   label,
   maxHeight,
@@ -170,6 +188,7 @@ function Search({
   placeholder,
   showKinds,
 }: {
+  isLoading: boolean;
   items: ReadonlyArray<PickerItem>;
   label: string;
   /** The palette's height at most: the dialog's, or the sheet's whole. */
@@ -208,8 +227,9 @@ function Search({
   }, []);
   return (
     <CommandPalette<PickerEntry>
-      emptySearchText="Nothing matches."
-      footer={<CursorFooter onCursor={onCursor} source={source} />}
+      emptyBootstrapText={isLoading ? "Loading…" : "Nothing to find."}
+      emptySearchText={isLoading ? "Loading…" : "Nothing matches."}
+      footer={<CursorFooter field={field} onCursor={onCursor} source={source} />}
       input={<CommandPaletteInput label={label} placeholder={placeholder} ref={field} />}
       isInline
       isOpen
@@ -228,28 +248,39 @@ function Search({
   );
 }
 
-/**
- * Puts the focus back where it was when the picker opened, as it closes: what held it is read as
- * the picker opens, before the dialog takes it.
- */
-function useReturnFocus(isOpen: boolean) {
-  const [opener, setOpener] = useState<Element | null>(null);
-  if (isOpen && opener === null) {
-    setOpener(document.activeElement);
-  } else if (!isOpen && opener !== null) {
-    setOpener(null);
-  }
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    return () => {
-      // After the dialog has gone: it hands the focus back to the page itself, and not always here.
-      requestAnimationFrame(() => (opener as HTMLElement | null)?.focus?.());
-    };
-    // The opener is the element at the opening: it is read once, with `isOpen`.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+/** What the open picker draws: its list, and beside it, on wide screens, the cursor's preview. */
+function Body({
+  isNarrow: narrow,
+  items,
+  ...search
+}: {
+  isLoading: boolean;
+  isNarrow: boolean;
+  items: ReadonlyArray<PickerItem>;
+  label: string;
+  onOpenChange: (open: boolean) => void;
+  onPick: (id: string) => void;
+  placeholder: string;
+  showKinds: boolean;
+}) {
+  // Its own state: a picker opened again starts with no cursor, and so no old item's preview.
+  const [cursor, setCursor] = useState<string>();
+  const list = (
+    <Search
+      items={items}
+      maxHeight={narrow ? "100%" : "var(--size-palette-height)"}
+      onCursor={setCursor}
+      {...search}
+    />
+  );
+  return narrow ? (
+    list
+  ) : (
+    <div {...stylex.props(styles.body)}>
+      {list}
+      <Preview item={items.find((item) => item.id === cursor)} />
+    </div>
+  );
 }
 
 /**
@@ -259,6 +290,7 @@ function useReturnFocus(isOpen: boolean) {
  * `showKinds` labels each row with its kind, for a picker over several.
  */
 export function KeyPicker({
+  isLoading = false,
   isOpen,
   items,
   label,
@@ -268,6 +300,8 @@ export function KeyPicker({
   showKinds = false,
   title,
 }: {
+  /** Its items are still being read: the list says "Loading…" and the search is kept. */
+  isLoading?: boolean;
   isOpen: boolean;
   items: ReadonlyArray<PickerItem>;
   label?: string;
@@ -279,9 +313,7 @@ export function KeyPicker({
   title: string;
 }): ReactNode {
   const narrow = isNarrow(useWidthClass());
-  const [cursor, setCursor] = useState<string>();
   const close = useBackCloses(title, isOpen, onClose);
-  useReturnFocus(isOpen);
   // Escape reaches the palette's field and the dialog's both: the first closes it.
   const closing = useRef(false);
   useEffect(() => {
@@ -300,12 +332,12 @@ export function KeyPicker({
       afterOverlayCloses(title, () => onPick(item));
     }
   };
-  const search = isOpen && (
-    <Search
+  const body = isOpen && (
+    <Body
+      isLoading={isLoading}
+      isNarrow={narrow}
       items={items}
       label={label ?? title}
-      maxHeight={narrow ? "100%" : "var(--size-palette-height)"}
-      onCursor={setCursor}
       onOpenChange={onOpenChange}
       onPick={pick}
       placeholder={placeholder}
@@ -321,7 +353,7 @@ export function KeyPicker({
         onOpenChange={onOpenChange}
         padding={0}
       >
-        {search}
+        {body}
       </BottomSheet>
     );
   }
@@ -334,12 +366,7 @@ export function KeyPicker({
       padding={0}
       width="var(--size-palette)"
     >
-      {search && (
-        <div {...stylex.props(styles.body)}>
-          {search}
-          <Preview item={items.find((item) => item.id === cursor)} />
-        </div>
-      )}
+      {body}
     </Dialog>
   );
 }
