@@ -89,7 +89,11 @@ function CategoryField({
 function useTypedNote(start?: string | null) {
   const note = useTextField("inbox-add", "");
   const name = useTextField("inbox-add#category", "");
-  const [category, setCategory] = useState(() => (name.text ? NEW : start ? `:${start}` : NONE));
+  // A category the form was opened on, `null` for none, wins over a name left behind; a plain
+  // opening, with no place, brings the name back with its "New category…".
+  const [category, setCategory] = useState(() =>
+    start !== undefined ? (start ? `:${start}` : NONE) : name.text ? NEW : NONE,
+  );
   const naming = category === NEW;
   return {
     category,

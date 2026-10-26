@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atWidth, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
+import { atWidth, click, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
 
 const PATH = "specs/INBOX.md";
 
@@ -60,6 +60,23 @@ async function formCategory() {
 test("o opens the add form with the category of the selected note (US3 1)", async () => {
   const { link } = await onNote("Idea two");
 
+  await press("o", link);
+
+  expect(await formCategory()).toContain("Ideas");
+});
+
+// Break: the remembered new-category name beating the category `o` chose.
+test("o opens on the note's category, though an unsaved new category's name was left behind", async () => {
+  const { link } = await onNote("Idea two");
+  await press("a", link);
+  const form = within(await screen.findByRole("dialog", { name: "Add a note" }));
+  await click(form.getByRole("combobox", { name: "Category" }));
+  await click(await screen.findByRole("option", { name: "New category…" }));
+  await type(form.getByRole("textbox", { name: "Category name" }), "Foo");
+  await click(form.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add a note" })).toBeNull());
+
+  act(() => link.focus());
   await press("o", link);
 
   expect(await formCategory()).toContain("Ideas");
