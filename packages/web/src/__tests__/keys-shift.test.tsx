@@ -43,10 +43,10 @@ function Rows({
 }
 
 const MOVERS: ReadonlyArray<KeyboardEventInit> = [
-  { key: "J" },
-  { key: "K" },
-  { key: "H" },
-  { key: "L" },
+  { key: "J", shiftKey: true },
+  { key: "K", shiftKey: true },
+  { key: "H", shiftKey: true },
+  { key: "L", shiftKey: true },
   { key: "ArrowDown", shiftKey: true },
   { key: "ArrowUp", shiftKey: true },
   { key: "ArrowLeft", shiftKey: true },
@@ -104,7 +104,12 @@ test("the list's keys act on a row or the page, not on a control elsewhere or in
   document.body.append(...outside);
   for (const target of outside) {
     target.focus();
-    for (const init of [{ key: "j" }, { key: "ArrowDown" }, { key: "J" }, { key: "Enter" }]) {
+    for (const init of [
+      { key: "j" },
+      { key: "ArrowDown" },
+      { key: "J", shiftKey: true },
+      { key: "Enter" },
+    ]) {
       fireEvent.keyDown(target, init);
     }
   }
@@ -113,7 +118,7 @@ test("the list's keys act on a row or the page, not on a control elsewhere or in
 
   // On the page, the same keys are the list's.
   fireEvent.keyDown(document.body, { key: "j" });
-  fireEvent.keyDown(document.body, { key: "J" });
+  fireEvent.keyDown(document.body, { key: "J", shiftKey: true });
   expect(selects).toHaveBeenCalledWith(1);
   expect(moves).toHaveBeenCalledWith("down", 0);
 });

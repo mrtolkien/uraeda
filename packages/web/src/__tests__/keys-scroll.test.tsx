@@ -36,9 +36,9 @@ afterEach(() => {
   scrollTo.mockReset();
 });
 
-/** Presses a key on `target`, as a user's reaches the window. */
+/** Presses a key on `target`, as a user's reaches the window: a capital is typed with Shift. */
 const press = (key: string, target: Element = document.body, init: KeyboardEventInit = {}) =>
-  fireEvent.keyDown(target, { key, ...init });
+  fireEvent.keyDown(target, { key, shiftKey: /^[A-Z]$/.test(key), ...init });
 
 /** The `top` of each call of a mocked scroll. */
 const tops = (mock: typeof scrollBy) =>
