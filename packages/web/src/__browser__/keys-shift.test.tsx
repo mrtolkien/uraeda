@@ -74,7 +74,7 @@ test("J moves the line one place down", async () => {
 test("J pressed twice at once moves the line two places down: the second waits for the first write (R9)", async () => {
   await onLine("Next line 1");
 
-  await userEvent.keyboard("JJ");
+  await userEvent.keyboard("{Shift>}JJ{/Shift}");
 
   await expect.poll(() => section("Next")).toEqual(["Next line 2", "Next line 3", "Next line 1"]);
 });
