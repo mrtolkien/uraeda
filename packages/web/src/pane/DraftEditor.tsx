@@ -18,6 +18,7 @@ import { TextField } from "../fields/TextField.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { StoriesProvider } from "../stories.tsx";
 import type { DraftEditorState } from "./useDraftEditor.ts";
+import { plural } from "../labels.ts";
 
 type Draft = NonNullable<ReturnType<typeof useDraft>>;
 type Hints = ReturnType<typeof useProposalHints>;
@@ -136,11 +137,7 @@ export function DraftEditor({ draft, editor }: { draft: Draft; editor: DraftEdit
     <VStack gap={3}>
       <ConflictBanner editor={editor} />
       <EditorText draft={draft} editor={editor} />
-      {changes > 0 && (
-        <Text color="secondary" type="supporting">
-          Your {changes} priority {changes === 1 ? "change is" : "changes are"} committed with it.
-        </Text>
-      )}
+      <PriorityChanges changes={changes} />
       <HStack gap={2} wrap="wrap">
         <AttachButton onFiles={(files) => void editor.images.addFiles(files)} />
         <WriteButton
@@ -150,5 +147,16 @@ export function DraftEditor({ draft, editor }: { draft: Draft; editor: DraftEdit
         />
       </HStack>
     </VStack>
+  );
+}
+
+/** Under a draft's Commit, the priorities' changes waiting, which its commit takes with it. */
+export function PriorityChanges({ changes }: { changes: number }) {
+  return (
+    changes > 0 && (
+      <Text color="secondary" type="supporting">
+        Your {plural(changes, "priority change")} {changes === 1 ? "is" : "are"} committed with it.
+      </Text>
+    )
   );
 }

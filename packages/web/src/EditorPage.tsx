@@ -13,7 +13,7 @@ import { WriteButton } from "./writes/WriteButton.tsx";
 import { useDraft } from "./data.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { Page } from "./layout/Page.tsx";
-import { ConflictBanner, EditorText } from "./pane/DraftEditor.tsx";
+import { ConflictBanner, EditorText, PriorityChanges } from "./pane/DraftEditor.tsx";
 import { useDraftEditor } from "./pane/useDraftEditor.ts";
 import { useRestoreScroll } from "./routes.tsx";
 import type { useEditorActions } from "./useEditorActions.ts";
@@ -121,11 +121,7 @@ function EditorEnd({
   const changes = draft.priorityChanges;
   return (
     <>
-      {isDraft && changes > 0 && (
-        <Text color="secondary" type="supporting">
-          Your {changes} priority {changes === 1 ? "change is" : "changes are"} committed with it.
-        </Text>
-      )}
+      {isDraft && <PriorityChanges changes={changes} />}
       {isDraft ? (
         <HStack gap={2} wrap="wrap">
           {leading}

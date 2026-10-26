@@ -14,6 +14,7 @@ import { where } from "./ReviewComments.tsx";
 import { type ChoicesState, type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
 import { ReviewImagesContext } from "./useReviewImages.ts";
 import { Empty } from "./layout/Empty.tsx";
+import { plural } from "./labels.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -49,8 +50,8 @@ export function StaleBanner({
     <Banner
       endContent={<Button clickAction={onStartOver} label="Start over" />}
       status="warning"
-      title={`The ${kind} changed since your comments: your ${count} pending ${
-        count === 1 ? "comment is" : "comments are"
+      title={`The ${kind} changed since your comments: your ${plural(count, "pending comment")} ${
+        count === 1 ? "is" : "are"
       } on the previous version. Adding a comment replaces it.`}
     />
   );
