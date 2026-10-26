@@ -8,11 +8,11 @@ import { type ReactNode, useRef } from "react";
 import { Pane, type PaneTone } from "../layout/Pane.tsx";
 import { currentEntry, navigate, useLocalPath, useRepoPath } from "../routes.tsx";
 import { useNavigation, useSessionSearch } from "../sessionData.ts";
-import { byStart, byStatus, needsYou, type Row } from "../sidebar/cards.ts";
+import { byStart, type Row } from "../sidebar/cards.ts";
 import { EntryCard } from "../sidebar/Cards.tsx";
 import { DoneArea } from "../sidebar/DoneArea.tsx";
 import { doneRows, useKeptSession } from "../sidebar/done.ts";
-import { type Data, type Entry, entriesOf, entryKey } from "../sidebar/entries.ts";
+import { type Data, type Entry, entriesOf, entryKey, splitNeedsYou } from "../sidebar/entries.ts";
 import { useColumnFold } from "./fold.ts";
 import { Empty } from "../layout/Empty.tsx";
 import { ruleStyles } from "../layout/rules.ts";
@@ -110,8 +110,8 @@ function Work({
   if (found && entries.length === 0) {
     return <Empty isInset>No session matches “{query}”.</Empty>;
   }
-  const waiting = byStatus(entries.filter((entry) => needsYou(entry.status)));
-  const rest = byStart(entries.filter((entry) => !needsYou(entry.status)));
+  const { rest: others, waiting } = splitNeedsYou(entries);
+  const rest = byStart(others);
   const sessions = rest.filter((entry) => entry.kind === "session");
   const progress = rest.filter((entry) => entry.kind === "feature");
   return (

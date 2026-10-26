@@ -3,6 +3,7 @@
 // from `destinations.ts`, which the navigation column and the phone's tabs read too, so a place is
 // drawn the same everywhere (UI coherence): a place's icon and label are never written here.
 import { DESTINATIONS, type Destination } from "../destinations.ts";
+import { KIND_ICONS } from "./kinds.ts";
 import type { PickerKind } from "./pickerSources.ts";
 import type { Binding } from "./store.ts";
 
@@ -27,23 +28,21 @@ export function placeBindings(prefix: string, go: (path: string) => void): Array
 }
 
 /** The kinds `Space f` finds, by their key, as the picker's sources name them. */
-const FIND: ReadonlyArray<
-  readonly [key: string, kind: PickerKind, label: string, icon: Binding["icon"]]
-> = [
-  ["f", "features", "Features", "uraeda:step-proposal"],
-  ["c", "changes", "Changes", "wrench"],
-  ["s", "sessions", "Sessions", DESTINATIONS.sessions.icon],
-  ["d", "decisions", "Decisions", DESTINATIONS.decisions.icon],
-  ["n", "notes", "Notes", DESTINATIONS.inbox.icon],
-  ["p", "priorities", "Priorities", DESTINATIONS.priorities.icon],
+const FIND: ReadonlyArray<readonly [key: string, kind: PickerKind, label: string]> = [
+  ["f", "features", "Features"],
+  ["c", "changes", "Changes"],
+  ["s", "sessions", "Sessions"],
+  ["d", "decisions", "Decisions"],
+  ["n", "notes", "Notes"],
+  ["p", "priorities", "Priorities"],
 ];
 
 /** `Space Space`, find anything, and `Space f` with a key per kind. */
 export function findBindings(open: (kind: PickerKind | "all") => void): Array<Binding> {
   return [
     { icon: "search", keys: "space space", label: "Find anything…", run: () => open("all") },
-    ...FIND.map(([key, kind, label, icon]) => ({
-      icon,
+    ...FIND.map(([key, kind, label]) => ({
+      icon: KIND_ICONS[kind],
       keys: `space f ${key}`,
       label,
       run: () => open(kind),

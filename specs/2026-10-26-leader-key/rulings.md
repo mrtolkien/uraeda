@@ -449,11 +449,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   session in a column, the New page's session and change), and focuses its field; the New page's
   Feature kind has a title field and declares its own `i` for it, so no page has two. Escape in the
   composer is its own keydown, which the registry never hears: it blurs the field, so the focus goes
-  to the page, and keeps the draft (a trigger menu of the field takes Escape first). `a` is
-  `useNewKey`, called by Home, where it is off in a repository with no specs, and by the Sessions
-  page. `s c f` are declared by `KindCards` with the picks they do on a click, without moving the
-  focus. None of these has a hint: only `n p unanswered` among them is, as it was, and the spec's
-  table gives these keys no hint.
+  to the page, and keeps the draft (the composer has no trigger menu, so nothing takes Escape
+  first). `a` is `useNewKey`, called by Home, where it is off in a repository with no specs, and by
+  the Sessions page. `s c f` are declared by `KindCards` with the picks they do on a click, without
+  moving the focus. None of these has a hint: only `n p unanswered` among them is, as it was, and
+  the spec's table gives these keys no hint.
 - **Rationale**: the owner of the action declares the key, once; a composer's `i` is the same on
   every page. A page without a text box gives `i` no meaning.
 - **Alternatives considered**: `i` in `SessionPage` and `NewPage`: two more copies, and the column's

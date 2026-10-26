@@ -9,6 +9,7 @@ import { useNavigation } from "../sessionData.ts";
 import { statusPath, stepOf } from "../sidebar/cards.ts";
 import { type Entry, needsYouEntries } from "../sidebar/entries.ts";
 import { KeyPicker } from "./KeyPicker.tsx";
+import { KIND_ICONS } from "./kinds.ts";
 import type { PickerItem } from "./pickerSources.ts";
 import type { Binding } from "./store.ts";
 
@@ -20,7 +21,7 @@ function itemOf(entry: Entry): PickerItem {
   if (entry.kind === "session") {
     const path = sessionIdPath(entry.row.id);
     return {
-      icon: "uraeda:activity",
+      icon: KIND_ICONS.sessions,
       id: path,
       kind: "sessions",
       path,
@@ -31,7 +32,7 @@ function itemOf(entry: Entry): PickerItem {
   const { feature } = entry;
   const isChange = feature.kind === "change";
   return {
-    icon: isChange ? "wrench" : "uraeda:step-proposal",
+    icon: KIND_ICONS[isChange ? "changes" : "features"],
     id: `/f/${encodeURIComponent(feature.folder)}`,
     kind: isChange ? "changes" : "features",
     path: statusPath(feature, entry.status),

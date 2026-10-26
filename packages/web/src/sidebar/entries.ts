@@ -94,13 +94,25 @@ export function entriesOf(
 }
 
 /**
+ * Splits entries into the cards that need the human, the most urgent first, and the rest as they
+ * were: the one rule of the shell's Needs you pane.
+ */
+export function splitNeedsYou(entries: ReadonlyArray<Entry>): {
+  rest: Array<Entry>;
+  waiting: Array<Entry>;
+} {
+  return {
+    rest: entries.filter((entry) => !needsYou(entry.status)),
+    waiting: byStatus(entries.filter((entry) => needsYou(entry.status))),
+  };
+}
+
+/**
  * The cards that need the human, what the most urgent first: the entries of the shell's Needs you
  * pane, which the status line counts and Continue opens.
  */
 export function needsYouEntries(data: Data): Array<Entry> {
-  return byStatus(
-    entriesOf(data, { found: undefined, query: "" }).filter((entry) => needsYou(entry.status)),
-  );
+  return splitNeedsYou(entriesOf(data, { found: undefined, query: "" })).waiting;
 }
 
 /** An entry's key among the cards: its folder, or its session's ID. */
