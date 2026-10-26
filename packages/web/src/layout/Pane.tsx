@@ -398,6 +398,7 @@ export function Pane({
   return (
     <section
       aria-labelledby={titleId}
+      data-tone={tone}
       id={id}
       ref={own}
       role={isGroup ? "group" : undefined}

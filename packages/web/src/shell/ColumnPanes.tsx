@@ -9,6 +9,7 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, Suspense } from "react";
 import { useInbox } from "../data.ts";
+import { Logo } from "../Logo.tsx";
 import { RepositoryMenu } from "../RepositoryMenu.tsx";
 import { useRepoPath, useRepository } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
@@ -23,18 +24,29 @@ import { ShellPane } from "./ShellPanes.tsx";
 const styles = stylex.create({
   actions: {
     display: "flex",
-    gap: spacingVars["--spacing-2"],
+    flexDirection: "column",
+    gap: spacingVars["--spacing-1"],
+  },
+  // Left-aligned, its icon under the heading's: the closed rail shows the icon alone.
+  action: {
+    justifyContent: "start",
+    // Their icons, 20 px, stand under the rows' below.
+    paddingInlineStart: `calc(${spacingVars["--spacing-2"]} + 4.6px)`,
+    width: "100%",
   },
   heading: {
     // The fold button or the logo first, at the same spot folded and unfolded (C3), then the menu.
     alignItems: "flex-start",
     display: "flex",
-    gap: spacingVars["--spacing-1"],
+    gap: 0,
     minWidth: 0,
   },
-  hidden: {
-    // Still focusable, and shown once focused: only its look waits for the pointer.
-    opacity: { ":focus-visible": 1, "@media (hover: none)": 1, default: 0 },
+  logo: {
+    alignItems: "center",
+    display: "flex",
+    flexShrink: 0,
+    height: "var(--size-element-md)",
+    paddingInline: spacingVars["--spacing-2"],
   },
   menu: {
     flexGrow: 1,
@@ -49,15 +61,22 @@ const count = (n: number) => <Badge aria-hidden label={String(n)} variant="neutr
  * The wide column's fold button, which folds it to its rail and unfolds it: shown under the
  * pointer while unfolded, and always to the keyboard, on touch, and folded.
  */
-function FoldButton({ isRevealed }: { isRevealed: boolean }) {
+function FoldButton() {
   const { isFolded, toggle } = useColumnFold();
+  if (!isFolded) {
+    // Unfolded, the logo stays and the status line's "[ fold" folds.
+    return (
+      <span {...stylex.props(styles.logo)}>
+        <Logo />
+      </span>
+    );
+  }
   return (
     <IconButton
       icon={<Icon icon="uraeda:panel-left" />}
-      label={isFolded ? "Expand navigation" : "Collapse navigation"}
+      label="Expand navigation"
       onClick={toggle}
       variant="ghost"
-      xstyle={isFolded || isRevealed ? undefined : styles.hidden}
     />
   );
 }
@@ -67,7 +86,6 @@ function FoldButton({ isRevealed }: { isRevealed: boolean }) {
  * on a semi-wide one, `logo`, the rail's logo button, then the menu. Folded, its first button alone.
  */
 export function ColumnHeading({
-  isRevealed,
   logo,
 }: {
   /** Whether the pointer is over the column, which shows the fold button. */
@@ -79,10 +97,10 @@ export function ColumnHeading({
   const current = useRepository();
   return (
     <div {...stylex.props(styles.heading)}>
-      {logo ?? <FoldButton isRevealed={isRevealed} />}
+      {logo ?? <FoldButton />}
       {!isFolded && (
         <div {...stylex.props(styles.menu)}>
-          <RepositoryMenu current={current} hasLogo={logo === undefined} />
+          <RepositoryMenu current={current} hasLogo={false} />
         </div>
       )}
     </div>
@@ -100,16 +118,20 @@ export function ColumnActions() {
   return (
     <div {...stylex.props(styles.actions)}>
       <Button
+        data-rail-fit
         href={here("/new")}
         icon={<Icon icon="uraeda:plus" />}
         label="New"
         variant="primary"
+        xstyle={styles.action}
       />
       <Button
+        data-rail-fit
         icon={<Icon icon="uraeda:pencil" />}
         label="Note"
         onClick={() => open("note")}
         variant="secondary"
+        xstyle={styles.action}
       />
     </div>
   );
@@ -177,7 +199,7 @@ export function Navigate({ pathname }: { pathname: string }) {
 /** The column's foot: the 5 h window, once a run reports it, and Settings. */
 export function ColumnFoot({ pathname }: { pathname: string }) {
   return (
-    <div>
+    <div data-rail-foot>
       <Allowance />
       <Item
         icon={<Icon icon={DESTINATIONS.settings.icon} />}
