@@ -1,7 +1,6 @@
 // A note with an image (US6): the image picked in the add form, and the add that makes the note a
 // draft folder holding it, in one call to the core, which encodes the image (the attachments
 // decision).
-
 import { useAnnounce } from "@astryxdesign/core/hooks";
 import { useState } from "react";
 import { useFateClient } from "react-fate";

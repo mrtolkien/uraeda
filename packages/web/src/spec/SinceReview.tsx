@@ -2,7 +2,6 @@
 // you reviewed, as the core compared them, each a button jumping to it, and the parts removed,
 // struck, under a fold. Which blocks hold a change, so the page marks them Δ, and which entries of
 // "Contents" own one. A place is an entry of "Contents", in a story its journey or a scenario.
-
 import { List, ListItem } from "@astryxdesign/core/List";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";

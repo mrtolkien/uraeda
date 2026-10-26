@@ -1,7 +1,6 @@
 // `/sessions`, the phone's Sessions tab: what the column holds that the tabs do not. The repository
 // menu, the inbox's and the priorities' ＋, the search, then the shell's panes, Needs you, Sessions,
 // In progress, and Done, and the 5 h window. On a wider screen, the same panes as the column's.
-
 import { HStack } from "@astryxdesign/core/HStack";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Page } from "../layout/Page.tsx";
