@@ -75,9 +75,12 @@ Discovery asks a project without one to adopt it, once. Without one, test only w
 wrong and rarely changes: stored formats, git and other writes, security, contracts between the
 project's parts, pure logic with many cases, and the reproduction of each bug fixed.
 
-- **Not every scenario gets a test.** The plan's test map gives a scenario its row with "none" and
-  the reason where the stage asks no test.
-- **One test per behaviour.** A test that repeats another's coverage is cut.
+- **The spec's key scenarios and high edge cases set the ceiling**: each gets one test at most, and
+  none where the stage asks none. A rarer scenario, a lower edge case, or a review-focus item joins
+  one of those tests, as a row or an assertion, or has no test. The plan's test map says "none" and
+  why for each row without one.
+- **One test per behaviour.** A test that repeats another's coverage, new or existing, is not
+  written: extend the test that owns the behaviour instead.
 - **A UI gets few tests**, only for behaviour that is costly to lose and that using the app would
   not show, such as unsaved text or a git write. The human checks the rest by using the app.
 - **A project's constitution stays in force.** When it asks for more, such as a test per scenario,

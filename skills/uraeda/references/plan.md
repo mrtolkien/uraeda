@@ -225,11 +225,12 @@ What goes in each section:
 
 - **Review focus**: the spec is a vision document. It says what the software must do, not everything
   it will meet. Its silence on an input is not permission for that input to break the program. Write
-  the list here, once, with the spec in front of you. Then, for each line, add the test that pins it
-  to the task that owns the code, in that task's own step style. These are the only behaviours the
-  plan adds to the spec, which is why they come first, and why the review block always mentions
-  them. A review-focus item never narrows a rule of the spec. A new limit, like a maximum length or
-  count, is a question for the human, not a review-focus item.
+  the list here, once, with the spec in front of you. Then, for each line the project's stage asks a
+  test for, pin it in the task that owns the code, in a test that already exists or as a row of one:
+  see [how many](code-quality.md#how-many). These are the only behaviours the plan adds to the spec,
+  which is why they come first, and why the review block always mentions them. A review-focus item
+  never narrows a rule of the spec. A new limit, like a maximum length or count, is a question for
+  the human, not a review-focus item.
 - **Global constraints**: copy approved rules, do not paraphrase. When a decision says "Components
   MUST NOT call IndexedDB or the `idb` library directly", the plan says exactly that. When an
   approval comment replaces a spec clause, use that comment with its source. Explain the replacement
@@ -391,9 +392,9 @@ fix what you find inline. This is a checklist you run yourself.
    bug. A task that changes the behaviour of an existing function declares it in **Produces**. No
    two functions share a name, test helpers included.
 5. **Review focus**: for each input class or failure mode the spec implies, is there a task whose
-   tests exercise it? The most consequential uncovered ones go in **Review focus**, each with its
-   test added to the owning task. An empty section means you checked and found none, not that you
-   skipped the check.
+   tests exercise it? The most consequential uncovered ones go in **Review focus**, each pinned in
+   the owning task's tests where the stage asks it. An empty section means you checked and found
+   none, not that you skipped the check.
 6. **Order**: each task can be built and tested with what the earlier tasks made. Each expected
    failure is the first one its run will actually hit. No two tasks of a wave consume each other or
    change the same function, type, or rule. Outside behaviour the spec marks unverified is checked
