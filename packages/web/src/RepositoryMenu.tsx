@@ -110,11 +110,11 @@ function RepositoryRow({
     <ListItem
       description={
         row.missing ? (
-          <span {...stylex.props(styles.path)}>
+          <div {...stylex.props(styles.path)}>
             <StatusText tone="error" type="supporting">
               Folder not found: {row.home}
             </StatusText>
-          </span>
+          </div>
         ) : (
           <Text color="secondary" display="block" type="supporting" xstyle={styles.path}>
             {row.home}
