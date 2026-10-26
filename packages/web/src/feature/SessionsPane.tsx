@@ -16,7 +16,7 @@ import { useAgent } from "../data.ts";
 import { refusal } from "../errors.ts";
 import { stepLabel } from "../labels.ts";
 import { Pane } from "../layout/Pane.tsx";
-import { statusStyles } from "../Question.tsx";
+import { StatusText } from "../fields/StatusText.tsx";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { useSession, useTurn } from "../sessionData.ts";
 import { sessionPath } from "../sessions.ts";
@@ -74,7 +74,7 @@ function Stop({ folder, id }: { folder: string; id: string }) {
       <HStack>
         <Button clickAction={stop} label="Stop" size="sm" variant="destructive" />
       </HStack>
-      {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
+      {error && <StatusText tone="error">{error}</StatusText>}
     </>
   );
 }
@@ -173,7 +173,7 @@ function NewSession({ folder }: { folder: string }) {
   return (
     <>
       <Button clickAction={start} label="New session" size="sm" variant="secondary" />
-      {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
+      {error && <StatusText tone="error">{error}</StatusText>}
     </>
   );
 }

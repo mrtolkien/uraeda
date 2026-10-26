@@ -31,7 +31,7 @@ import { type ScrolledAway, useFollowEnd, useOpenAtEnd, useScrolledAway } from "
 import { Attention } from "./SessionAttention.tsx";
 import { Page } from "./layout/Page.tsx";
 import { SessionColumn } from "./session/SessionColumn.tsx";
-import { statusStyles } from "./Question.tsx";
+import { StatusText } from "./fields/StatusText.tsx";
 import { useRepoPath } from "./routes.tsx";
 import { stretchAddress } from "./session/stretches.ts";
 import { sessionPath } from "./sessions.ts";
@@ -185,7 +185,7 @@ function SessionLog({
         </StoriesProvider>
       </div>
       <Attention folder={crumbs} session={session} />
-      {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
+      {error && <StatusText tone="error">{error}</StatusText>}
     </VStack>
   );
 }

@@ -12,7 +12,7 @@ import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
-import { statusStyles } from "./Question.tsx";
+import { StatusText } from "./fields/StatusText.tsx";
 import { jumpTo } from "./roundJump.ts";
 import { NOTES_CHANGED, NotesRead, type useRoundNotes } from "./RoundNotes.tsx";
 import { PART_IDS } from "./roundPartIds.ts";
@@ -216,7 +216,7 @@ export function RoundEnd({
     <VStack gap={3} id={PART_IDS.notes} ref={end} xstyle={margin}>
       <NotesRead fieldShown={notesShown} notes={notes} onEdit={onEditNotes} />
       {blank.length > 0 && <QuestionsLeft blank={blank} />}
-      {refused || (error && <span {...stylex.props(statusStyles.error)}>{error.message}</span>)}
+      {refused || (error && <StatusText tone="error">{error.message}</StatusText>)}
       <div ref={submitRow}>
         {isDefaultRound(target) ? (
           // A default-branch round hands nothing over: its page offers to apply it.

@@ -12,7 +12,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { use } from "react";
 import type { CommentItem, Document } from "uraeda-binding";
-import { statusStyles } from "../Question.tsx";
+import { StatusText } from "../fields/StatusText.tsx";
 import type { Review } from "../review/useReview.tsx";
 import { commentId, where } from "../ReviewComments.tsx";
 import { holderOf } from "../reviewField.ts";
@@ -150,9 +150,7 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
         }
       />
       {message && !images?.hides?.(message) && (
-        <span {...stylex.props(message.ok ? statusStyles.saved : statusStyles.error)}>
-          {message.text}
-        </span>
+        <StatusText tone={message.ok ? "saved" : "error"}>{message.text}</StatusText>
       )}
       <Text color="secondary" type="supporting">
         {rest} with the verdict at{" "}

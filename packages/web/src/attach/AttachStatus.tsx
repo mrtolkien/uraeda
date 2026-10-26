@@ -1,9 +1,6 @@
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
+import { StatusText } from "../fields/StatusText.tsx";
 import type { AttachStatus as Status } from "./useAttach.ts";
-
-const styles = stylex.create({ error: { color: colorVars["--color-error"] } });
 
 /**
  * The last upload's status under its field: "Adding <name>…", "Added <name>", or the refusal,
@@ -14,9 +11,9 @@ export function AttachStatus({ status }: { status?: Status }) {
     return null;
   }
   return status.error ? (
-    <Text type="supporting" xstyle={styles.error}>
+    <StatusText tone="error" type="supporting">
       {status.text}
-    </Text>
+    </StatusText>
   ) : (
     <Text color="secondary" type="supporting">
       {status.text}

@@ -25,7 +25,7 @@ import {
 import { TURN_PAGE } from "uraeda-server/limits";
 import { atEnd, scroller } from "../following.ts";
 import { keepPlace, scrollInstantly, topOf } from "../keepPlace.ts";
-import { statusStyles } from "../Question.tsx";
+import { StatusText } from "../fields/StatusText.tsx";
 import { CHANGE } from "../routeHistory.ts";
 import { currentEntry, updateEntry, useSearch } from "../routes.tsx";
 import { useSession, useTurn } from "../sessionData.ts";
@@ -172,7 +172,11 @@ function RunPart({
         <Heading accessibilityLevel={3} level={6}>
           <Text color="secondary" type="supporting">
             {`Run ${number} · `}
-            <span {...stylex.props(length === "failed" && statusStyles.error)}>{length}</span>
+            {length === "failed" ? (
+              <StatusText tone="error">{length}</StatusText>
+            ) : (
+              <span>{length}</span>
+            )}
           </Text>
         </Heading>
         {turn.startedAt && (

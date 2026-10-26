@@ -12,7 +12,7 @@ import { useFateClient } from "react-fate";
 import type { ChatImage, Item } from "uraeda-server/fate";
 import { agentStories, MessageStories } from "./AgentStories.tsx";
 import { refusal } from "./errors.ts";
-import { statusStyles } from "./Question.tsx";
+import { StatusText } from "./fields/StatusText.tsx";
 import { ProseMarkdown } from "./Prose.tsx";
 import { MessageBody } from "./MessageBody.tsx";
 import { EarlierRecap, StretchRecap } from "./session/RecapLine.tsx";
@@ -137,7 +137,7 @@ function Message({
                 variant="ghost"
               />
             )}
-            {error && <span {...stylex.props(statusStyles.error)}>{error}</span>}
+            {error && <StatusText tone="error">{error}</StatusText>}
           </HStack>
         ) : undefined
       }

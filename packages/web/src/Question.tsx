@@ -3,7 +3,7 @@ import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, spacingVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useMemo } from "react";
 import type { Document, QuestionItem, Span } from "uraeda-binding";
@@ -35,11 +35,6 @@ const styles = stylex.create({
     lineHeight: typeScaleVars["--text-heading-3-leading"],
     marginBlock: 0,
   },
-});
-
-export const statusStyles = stylex.create({
-  error: { color: colorVars["--color-error"] },
-  saved: { color: colorVars["--color-success"] },
 });
 
 /** Whether one of a question's options holds a story, drawn under its card. */
