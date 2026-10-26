@@ -32,6 +32,7 @@ export function Overlay({
   isOpen,
   label,
   onClose,
+  purpose = "form",
   sheetHeight = "tall",
   sheetRef,
   size,
@@ -47,6 +48,8 @@ export function Overlay({
   isOpen: boolean;
   label: string;
   onClose: () => void;
+  /** `info` also closes on a click outside; `form`, the default, only on Close, Back, or Escape. */
+  purpose?: "form" | "info";
   /**
    * On narrow screens, the sheet's height: Astryx's `tall` (92%), `capped` (62%), or `hug`, as tall
    * as its content, up to 92%.
@@ -77,7 +80,7 @@ export function Overlay({
         maxHeight={size?.height}
         onOpenChange={onOpenChange}
         padding={4}
-        purpose="form"
+        purpose={purpose}
         width={size?.width}
       >
         <DialogHeader hasDivider={false} onOpenChange={onOpenChange} title={label} />
@@ -108,7 +111,7 @@ export function Overlay({
       label={label}
       onOpenChange={onOpenChange}
       padding={4}
-      purpose="form"
+      purpose={purpose}
       ref={sheetRef}
     >
       {fills ? <div {...stylex.props(styles.fill)}>{sheet}</div> : sheet}

@@ -103,6 +103,7 @@ function AddOverlay({
       isOpen={isOpen}
       label={label}
       onClose={onClose}
+      purpose="info"
       sheetHeight="hug"
       size={{ width: "var(--size-quick-add)" }}
     >
