@@ -127,7 +127,8 @@ git commit -m "refactor([number]): [the restructuring]"
 test("[the scenario, in words]", async () => {
   // Arrange, with the shared helpers
   // Act
-  // Assert, with values derived from the approved behaviour, independently of implementation
+  // Assert, with values derived from the approved behaviour, independently of implementation:
+  // only what the task adds, picked out of the results; an old result stays with its test
 });
 ```
 
