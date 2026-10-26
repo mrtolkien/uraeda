@@ -599,3 +599,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   effect: still after the first commit's layout effects, which show the hints.
 - **If wrong**: delete the `keysSwitch` prop and `App`'s state; `Shell` keeps its own.
 - **Where**: `Shell.tsx`, `App.tsx`.
+## R80: `o` on a Blocked line opens the form in Next
+
+- **Decision**: the add form offers Now, Next, and Later (`TITLES`), never Blocked, so `o` on a line
+  of Blocked opens it in its default place, Next, the same as `a`. `o` on a line of any other
+  section, or on a running entry, still opens it in the section the line has in the file.
+- **Rationale**: handing the form `blocked` left no radio checked, and the add would have written a
+  Blocked line the form cannot show. Next is where `a` goes; a Blocked line has no better neighbour
+  among the three.
+- **Alternatives considered**: Now, where a line unblocked usually goes: a guess about the human's
+  next step, where Next is the form's own default. Adding Blocked to the form: a change of what the
+  form offers (R1 keeps Blocked a section the page does not add to).
+- **If wrong**: `onAddBeside` in `lists/PrioritiesList.tsx`.
+- **Where**: fix pass C, review of task 8.

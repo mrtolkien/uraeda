@@ -148,3 +148,12 @@ test("m on a note opens the note's menu, while an earlier note is edited", async
   await waitFor(() => expect(read(repo, "specs/INBOX.md")).not.toContain("Ngamma"));
   expect(read(repo, "specs/INBOX.md")).toContain("- Nbeta\n");
 });
+
+test("o on a Blocked line opens the form in Next, the default place (R80)", async () => {
+  await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Blocked · 1");
+  const link = focus("Blocked line 1");
+
+  await press("o", link);
+
+  await expectSection("Next");
+});
