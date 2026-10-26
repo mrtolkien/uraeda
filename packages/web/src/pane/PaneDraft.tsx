@@ -5,12 +5,12 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { Blocks } from "../Blocks.tsx";
 import { MAIN_CHECKOUT, useDraft } from "../data.ts";
 import { useTextField } from "../fields/useTextField.ts";
-import { Paragraph } from "../layout/Paragraph.tsx";
 import { SlugField } from "../SlugField.tsx";
 import { StoriesProvider } from "../stories.tsx";
 import { DraftEditor } from "./DraftEditor.tsx";
 import { useDraftEditor } from "./useDraftEditor.ts";
 import { WriteButton } from "../writes/WriteButton.tsx";
+import { Empty } from "../layout/Empty.tsx";
 
 /**
  * An entry's draft: drawn to read, or, while the entry is edited (`isEditing`) or its text holds
@@ -22,7 +22,7 @@ export function PaneDraft({ isEditing, path }: { isEditing: boolean; path: strin
   const slug = useTextField(`${path}#slug`, draft?.slug ?? "");
   const editor = useDraftEditor({ draft, isDrawnFirst: false, path, slug });
   if (!draft) {
-    return <Paragraph>No draft {path}.</Paragraph>;
+    return <Empty>No draft {path}.</Empty>;
   }
   // The draft's title is the entry's text, shown above it already.
   const ids = draft.document.blocks

@@ -4,11 +4,11 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import type { Ledger } from "uraeda-server/fate";
-import { Paragraph } from "../layout/Paragraph.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { plural } from "../labels.ts";
 import { GroupTitle } from "../layout/GroupTitle.tsx";
+import { Empty } from "../layout/Empty.tsx";
 
 /** The constitution, as the ledger sends it. */
 export type LedgerConstitution = NonNullable<Ledger["constitution"]>;
@@ -108,7 +108,7 @@ export function ConstitutionRegion({
             })}
           </List>
         ) : (
-          <Paragraph>No constitution yet.</Paragraph>
+          <Empty>No constitution yet.</Empty>
         )}
       </VStack>
     </section>
