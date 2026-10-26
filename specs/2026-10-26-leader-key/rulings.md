@@ -894,3 +894,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   or the buttons; the fix, if the human wants one, is a key the reader passes through, a new
   decision.
 - **Where**: fix pass E, finding 2 of the final review; deferred to the human, like R8 and R23.
+
+## R138: What the registry's bindings declare differs from the Keyboard decision's wording
+
+- **Decision**: flagged for the human to confirm, with the decision left as it is (only a human
+  amends it). The decision says each shortcut is declared "with its label, icon, group, and whether
+  the status line shows it". What was built: `label` and `run` are required; the status line's text
+  is the optional `hint` (a binding with none is not named); the `icon` is optional (`Binding.icon`,
+  `keys/store.ts`) and is drawn only by the leader menu (a leaf with none shows the "runs" icon);
+  and there is no `group` field: a group is the prefix of a sequence's keys, named once in
+  `keys/groups.ts`, which throws for a prefix it does not name. So the page's own keys (`j`, `n`,
+  `e`, and the rest) have a label and a hint but no icon or group, since no menu lists them, and the
+  leader tree's entries have all of a label, an icon, and their group by key prefix.
+- **Rationale**: an icon on `j` or on `Escape` would be drawn nowhere, and a group on a single key
+  would restate its prefix; the structural test and the store's conflict check keep "a page cannot
+  grab a key on its own", which is the rule's point.
+- **Alternatives considered**: a required `icon` and `group` on every binding: dead fields on most
+  of them, or a made-up icon per key. Changing the decision's wording: only a human may.
+- **If wrong**: either the decision's rule says "its label, its hint, and, in the leader menu, its
+  icon and group", or `Binding` gains required fields; the pull request names this for the human.
+- **Where**: fix pass E, finding 3 of the final review; to confirm in the pull request.
