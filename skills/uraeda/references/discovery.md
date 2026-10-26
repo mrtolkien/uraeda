@@ -139,7 +139,8 @@ three sides below.
   ([extract, don't grow](code-quality.md#extract-dont-grow)), and a responsibility tangled with
   another.
 - List the files the feature will likely change or add, under every option: never assume an option
-  the human has not chosen.
+  the human has not chosen. With them, list the tests that guard behaviour the feature changes, by
+  file and test name, for the spec's [replaced behaviour](spec.md#replaced-behaviour).
 - Check recent commits on the files you read (`git log`): they explain choices the code does not.
 
 **Outside the code**
@@ -259,7 +260,8 @@ What goes in each section:
 - **The code**: the important reads, each with what it showed and what is in the way. Then the
   proposal's path and the existing actions that meet the feature, and the overlaps with other
   features in flight. Then each rule the feature touches, with the code that owns it and every copy,
-  when it touches one. Last, the likely changes, each with the options it depends on.
+  when it touches one. Last, the likely changes, each with the options it depends on, and the tests
+  that guard behaviour they change.
 - **The proposal**: one section per constraint that cannot be met as written, ambiguity, or gap.
 - **Worth it and feasibility**, left out when the feature is small and relies on nothing new: the
   feature's cost against its gain. Then the outside behaviour it relies on, each checked or named as
@@ -319,6 +321,13 @@ no `specs/decisions/preview.md`, the round asks once whether to adopt one, from
 [setting up a project](projects.md#setting-up-a-project) describes. A "no" becomes that decision,
 saying the project has no preview, without its two preview fields, and with a date in its **Revisit
 when**. Its mockups stay HTML, and no round asks again before that date.
+
+**A project without a testing decision.** When the project has no `specs/decisions/testing.md`, the
+round asks once whether to adopt one, from
+[the template](../assets/templates/specs/decisions/testing.md), as
+[how many](code-quality.md#how-many) describes. The recommended option for a new project is the
+`early` stage. A "no" becomes that decision, saying the project follows the skill's defaults, with a
+date in its **Revisit when**, and no round asks again before that date.
 
 Ask everything at once: anticipate the questions their answers would raise, and ask them now, as
 follow-ups, so the human answers once. There is no limit on the number of questions: early in a

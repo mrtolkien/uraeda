@@ -84,7 +84,7 @@ specs/
   decisions/                # decision ledger, one file per topic: due-dates.md
   done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change, in place of its folder
   changes/                  # one folder per change, YYYY-MM-DD-<slug>/: proposal.md (human),
-                            # clarifications-NN.md, rulings.md, images/, mockups/, screenshots/
+                            # clarifications-NN.md, rulings.md, images/, mockups/
   YYYY-MM-DD-feature-slug/  # one folder per feature, dated the day it starts
     proposal.md             # human: what and why, in their own words
     discovery-01.md         # agent: findings and options, never decisions
@@ -93,7 +93,7 @@ specs/
     clarifications-02.md
     spec.md                 # agent: what you approve, decisions, stories, architecture; amended
     spec-review.md          # human: comments on the spec, with the verdict, when there are any
-    plan.md                 # agent: tasks with files and test-first steps, checked off as built
+    plan.md                 # agent: tasks with files and steps, checked off as built
     plan-review.md          # human: comments on the plan, when it is reviewed with comments
     rulings.md              # agent: low-impact choices made while planning and building
     data-model.md           # agent, with the spec: the stored data or file formats it changes
@@ -254,7 +254,7 @@ Read a step's reference before running it, and the others when the step needs th
 - [Finish](references/finish.md): replacing a folder with its record, and cleaning up after merge.
 - [Change](references/change.md): the light flow, for a bug fix or a small change, from its proposal
   to its pull request.
-- [Code quality](references/code-quality.md): the six code-quality concepts each step links to, and
+- [Code quality](references/code-quality.md): the four code-quality concepts each step links to, and
   how a project sets up its checks.
 - [Writing for the human](references/writing.md): the writing rules of every file the human reads,
   and the shape of a round of questions; read it before writing one.

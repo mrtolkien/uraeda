@@ -175,7 +175,7 @@ records are edited at all; and whether debugging learnings belong in agent memor
   tests of the behaviour that matters: each story's main scenarios, the edge cases marked high, and
   the success criteria", and "A test MUST NOT be loosened, skipped, or deleted to make a run pass,
   except at a human's request or with a ruling the review lists." Only a human amends it.
-- [`skills/uraeda/references/code-quality.md`](/skills/uraeda/references/code-quality.md#writing-tests)
+- [`skills/uraeda/references/code-quality.md`](/skills/uraeda/references/code-quality.md#testing)
   and [`#tests-that-can-fail`](/skills/uraeda/references/code-quality.md#tests-that-can-fail): the
   skill's whole testing guidance is about 70 lines, spread over "Writing tests", "Tests that can
   fail" and "UIs verified end to end", plus rules in

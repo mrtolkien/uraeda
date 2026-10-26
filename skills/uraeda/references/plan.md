@@ -93,8 +93,8 @@ when the implementation shows a better fit.
   structural step that splits it: see [extract, don't grow](code-quality.md#extract-dont-grow).
 - Tests are code too. They follow the project's test layout. They share helpers, fixtures, and fakes
   (rendering the app, seeding the store, setting the clock), so each test stays a few lines long.
-  The [writing tests](code-quality.md#writing-tests) rules apply: focused tests for local behaviour,
-  boundary tests for contracts, Arrange, Act, Assert.
+  The [testing](code-quality.md#testing) rules apply: how many tests, what they assert, and how to
+  write them.
 - A view whose mockups are stories of the project's own Storybook starts from them: the picked
   variant's component is the starting point, not a rewrite. The first task of that view names the
   story in its **Files**, as `Start from`. It adds the tests of the view's scenarios, then wires the
@@ -146,7 +146,7 @@ task per wave, and is built in sequence.
 
 Each step is one action with a checkable result:
 
-- "Write the failing tests" is a step.
+- "Write the failing tests" is a step, when the task has tests.
 - "Run them to check they fail" is a step.
 - "Implement the code that makes them pass" is a step.
 - "Run the task's validation" is a step: the project's fast check when it has one, else its usual
@@ -258,9 +258,9 @@ What goes in each section:
   spec to its task and test. A review-focus item gets its row, named "Review focus:" with its
   subject. It opens with a sentence on how the tests run: what they render, on which store, with
   which clock, and which checks use a real boundary. A row names the check that owns the guarantee:
-  one test may own several rows, and a row needs no test of its own when another owns it. The
-  [writing tests](code-quality.md#writing-tests) rules say how to write them. An error the code
-  handles but no edge case names gets its row too.
+  one test may own several rows, and a row needs no test of its own when another owns it. A row
+  where the stage asks no test says "none" and why: see [how many](code-quality.md#how-many). An
+  error the code handles but no edge case names gets its row too.
 - **Waves**: one line per wave, following [Waves](#waves): its tasks, and, for a wave of several,
   the shared files they each add to, if any. The implementation reads this section to decide what
   runs at the same time.
@@ -349,14 +349,13 @@ simpler private design from what the code shows:
   restructures the unit, removes its marker, and runs the tests, which pass before and after. It
   commits on its own with a `refactor` message, before the failing test of the new behaviour. See
   [extract, don't grow](code-quality.md#extract-dont-grow).
-- **A test step**: the tests' names and their assertions, as code, with the spec's exact values in
-  them, including the human's approval comments. Each test names the break it catches, the realistic
-  mistake that makes it fail: see [tests that can fail](code-quality.md#tests-that-can-fail). Derive
-  expectations from the approved behaviour, independently of the proposed implementation. Focused
-  tests by default, a boundary test for a git, native, or request contract, short, Arrange, Act,
-  Assert, on the shared helpers. A task marked **Risky** names the breaks to make. The step also
-  creates the helpers its tests use, so the first failure is about the feature, not a missing
-  helper. Checks of preserved behaviour may already pass before the change.
+- **A test step**: the tests the [testing](code-quality.md#testing) section asks for, their names
+  and assertions as code, with the spec's exact values in them, including the human's approval
+  comments. Each test names the break it catches: see
+  [tests that can fail](code-quality.md#tests-that-can-fail). Derive expectations from the approved
+  behaviour, independently of the proposed implementation. A task marked **Risky** names the breaks
+  to make. The step also creates the helpers its tests use, so the first failure is about the
+  feature, not a missing helper. Checks of preserved behaviour may already pass before the change.
 - **A run step**: the command to run, and the output that means it worked. For a failing run, the
   first failure the run will actually hit: not "the test fails", but the message.
 - **A code step**: the responsibility, the files it belongs in, the specific values the spec pins.
@@ -378,8 +377,8 @@ fix what you find inline. This is a checklist you run yourself.
 
 1. **Spec coverage**: skim each user story, acceptance scenario, edge case, success criterion, and
    global constraint. Can you point to its row of the test map, a task, and a check that owns it,
-   exact text and timings included? Add a task for any requirement without one. A test that replaces
-   or loosens an existing one has its ruling.
+   exact text and timings included? Add a task for any requirement without one. A test that goes or
+   changes follows [when a test goes](code-quality.md#when-a-test-goes).
 2. **Step scan**: every step has a checkable outcome and the contracts its neighbours need. A line
    that decides nothing is a gap; private code the implementer can choose is unnecessary
    prescription. Fix both. Explain an algorithm when correctness depends on it.

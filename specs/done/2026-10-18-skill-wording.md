@@ -27,7 +27,7 @@ follow-ups the core cannot show. The human listed the fixes in one proposal.
   template, its template's "You approve" item is one sentence like the rule says, and its Rules line
   lists MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY.
 - The rules for writing tests live in
-  [`code-quality.md`](/skills/uraeda/references/code-quality.md#writing-tests), which now has six
+  [`code-quality.md`](/skills/uraeda/references/code-quality.md#testing), which now has six
   concepts. `spec.md`, `plan.md`, and `change.md` link them.
 - A review-focus item has its row in the test map, named "Review focus:", in the template and in the
   example's plan.

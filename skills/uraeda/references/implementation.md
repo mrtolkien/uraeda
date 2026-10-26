@@ -99,28 +99,20 @@ again from the repository.
    **Consumes** against what the earlier tasks actually produced in the code, and trace the affected
    callers and owners of changed rules and state.
 2. **Work its steps in order.** A structural step comes first, and is committed on its own, with its
-   box checked. Write the tests first. Tests of new behaviour must fail for the intended reason
-   before implementation; checks of preserved behaviour may already pass and must keep passing. Then
-   implement, and run every command the plan gives. Once a new test of a risky guarantee passes,
-   make the break its step names, see the test fail, revert it, and report the failure seen in the
-   task's commit body: see [tests that can fail](code-quality.md#tests-that-can-fail). Unit tests
-   never sleep for a fixed time. A problem found outside the task is fixed on the branch when it
-   matters to the feature, dropped when it does not, and noted in the inbox only when it passes the
-   two tests of [agents' notes](inbox.md#agents-notes). Compare each output with the step's
-   **Expected** line:
+   box checked. Write the task's tests first, as [writing one](code-quality.md#writing-one) says.
+   Tests of new behaviour must fail for the intended reason before implementation; checks of
+   preserved behaviour may already pass and must keep passing. Then implement, and run every command
+   the plan gives. Once a new test of a risky guarantee passes, make the break its step names, see
+   the test fail, revert it, and report the failure seen in the task's commit body: see
+   [tests that can fail](code-quality.md#tests-that-can-fail). A problem found outside the task is
+   fixed on the branch when it matters to the feature, dropped when it does not, and noted in the
+   inbox only when it passes the two tests of [agents' notes](inbox.md#agents-notes). Compare each
+   output with the step's **Expected** line:
    - **It matches**: go to the next step.
    - **The code is wrong**: find the root cause before changing anything: reproduce the failure,
      trace the wrong value back to where it first goes wrong, and test one hypothesis at a time, as
-     a [change](change.md#investigating) does for a bug. Never change a test or an expected value to
-     make a run pass. Removing, skipping, or loosening an existing test, or raising a timeout, takes
-     a ruling. A test that fails because of a change the human requested is changed when the change
-     is safe and reversible, and the same response says which test and why; otherwise the work
-     stops, and the response says what conflicts and what each way out costs. A safe, reversible
-     request that contradicts the spec or a test is carried out, never refused: the same response
-     reports what conflicts and what each way out costs, and the human arbitrates. The work stops
-     only for a request that is unsafe or cannot be undone, and then the report says the same, in
-     the commit body, or in a new round of questions when the human must decide. The assertion an
-     agent chose is never weakened to pass.
+     a [change](change.md#investigating) does for a bug. For a failing existing test, see
+     [when a test goes](code-quality.md#when-a-test-goes).
    - **The plan is wrong**: a name that does not match its producer, a command that cannot run, a
      failure that cannot happen. Make the smallest change that satisfies the spec, edit the plan's
      text to describe what was built, so later tasks read the right names, and write a ruling in
@@ -136,9 +128,9 @@ again from the repository.
    - **Before each commit**: the project's fast check when an active decision defines one, which
      selects the checks the change can affect and names the checks it defers. Otherwise the
      project's validation once: when it is one cached command, run it whole, as its cache skips what
-     the task did not change; else run its slow suites, such as browser tests and screenshots, only
-     when the task changes what they cover: a UI behaviour, a layout, a route. Write the deferred
-     checks in the commit body.
+     the task did not change; else run its slow suites, such as end-to-end tests, only when the task
+     changes what they cover: a UI behaviour, a layout, a route. Write the deferred checks in the
+     commit body.
    - **At the final review, and before every push**: the project's complete validation, every check
      it runs locally, slow suites included. A green fast check never stands for it.
 
@@ -269,9 +261,10 @@ Review the changed subsystem and affected callers, including relevant code outsi
   risky guarantees, verify this in isolated tests with a focused fault injection or temporary
   removal of the protection, then restore it. Exercise relevant sequences, failures, retries, and
   changes made elsewhere; use property-based tests when they provide useful coverage. List the tests
-  the branch removed, skipped, or loosened, and its timeout changes, with their rulings. Check
-  explicit architectural constraints separately from functional outcomes, through existing checks
-  where practical. Report what was actually exercised and any unverified assumptions.
+  the branch removed by the spec's list or by ruling, as
+  [when a test goes](code-quality.md#when-a-test-goes) says. Check explicit architectural
+  constraints separately from functional outcomes, through existing checks where practical. Report
+  what was actually exercised and any unverified assumptions.
 - **Change cost**: identify duplicated decisions, unnecessary indirection, and obsolete paths. Trace
   where a likely follow-up change would belong without implementing that feature. Would it need the
   same rule edited in several places, or unrelated internals understood together? Judge the

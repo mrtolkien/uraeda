@@ -48,6 +48,7 @@ in the way.]
 
 - [`path`](/path): [what changes, and why. Under every option, or "with option [X] of
   [topic](#topic)"]
+- [Optional: each test that guards behaviour the feature changes, by file and name]
 
 ## The proposal
 

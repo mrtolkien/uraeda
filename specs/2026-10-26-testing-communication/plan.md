@@ -380,6 +380,8 @@ git commit -m "feat(testing-communication): records name what they supersede, an
 - Create: `skills/uraeda/assets/templates/specs/decisions/testing.md`,
   `skills/uraeda/assets/example/specs/decisions/testing.md`
 - Modify: `specs/INBOX.md` (the `[fix-testing]` note on the constitution template's rule VI)
+- Modify, to fix a link to a removed anchor: `specs/done/2026-10-18-skill-wording.md`,
+  `specs/2026-10-26-testing-communication/discovery-01.md`
 
 **Interfaces:**
 
@@ -387,14 +389,14 @@ git commit -m "feat(testing-communication): records name what they supersede, an
   subsections, among them one on when a test goes or changes (`#when-a-test-goes`). Task 9 and task
   14 link to and edit them.
 
-- [ ] **Step 1: Read the sources**
+- [x] **Step 1: Read the sources**
 
 The spec's US1, its replaced behaviour, and its assumptions; the Testing decision; the discovery's
 [what they have in common](discovery-01.md#what-they-have-in-common); superpowers'
 [test-driven development skill](https://raw.githubusercontent.com/obra/superpowers/main/skills/test-driven-development/SKILL.md)
 for its tone. Agent-facing references describe, as superpowers' do.
 
-- [ ] **Step 2: Write the testing section of `code-quality.md`**
+- [x] **Step 2: Write the testing section of `code-quality.md`**
 
 One section, `## Testing`, replacing the three, short, naming no language, test runner, or library
 (SC-007). It says, each once:
@@ -428,7 +430,7 @@ One section, `## Testing`, replacing the three, short, naming no language, test 
 
 Keep `## Rules enforced by tools` and the other concepts; fix their links into the old sections.
 
-- [ ] **Step 3: Point the other steps to it**
+- [x] **Step 3: Point the other steps to it**
 
 - `plan.md`: a test step carries the scenario's values only for the tests the testing section asks
   for; the test map has a row for every scenario, edge case, and criterion, with "none" and the
@@ -451,7 +453,7 @@ Keep `## Rules enforced by tools` and the other concepts; fix their links into t
 - `SKILL.md`: the folder listing's `plan.md` line and the changes line drop "test-first steps" and
   `screenshots/`.
 
-- [ ] **Step 4: Templates, the example, and the inbox**
+- [x] **Step 4: Templates, the example, and the inbox**
 
 - The testing decision's template, from the decision template's shape, with the stage (`early`,
   `growing`, `stable`) and what each tests, and the kept UI tests' bar.
@@ -461,13 +463,13 @@ Keep `## Rules enforced by tools` and the other concepts; fix their links into t
 - The plan template's test map shows a row with "none" and its reason.
 - `specs/INBOX.md`: remove the `[fix-testing]` note about the template's rule VI: it is closed.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then
   `nix develop -c cargo run -q -p uraeda-cli -- check specs skills/uraeda/assets/example/specs`
 - Expected: PASS, every link resolving.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add skills specs/INBOX.md specs/2026-10-26-testing-communication/plan.md
