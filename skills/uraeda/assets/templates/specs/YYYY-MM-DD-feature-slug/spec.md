@@ -65,7 +65,7 @@ More scenarios:
 [Optional: each behaviour the spec replaces, in bold, with the tests that guard it. Leave the
 section out when nothing is replaced.]
 
-- **[The behaviour]** [what replaces it], guarded by [the tests that go].
+- **[The behaviour replaced.]** Guarded by [the tests that guard it].
 
 ## Architecture
 

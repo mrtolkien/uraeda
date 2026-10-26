@@ -48,15 +48,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R5: How a screenshot reaches the pull request
 
 - **Decision**: the screenshot of a new view is taken into a file outside the repository, referenced
-  in the body as `![<view>](./<file>.png)`, and uploaded with
-  `gh pr edit --body-file <body> --attach './<file>.png#<view>'`, which rewrites the reference to
+  in the body by its path, `![<view>](<path>)`, and uploaded by the same path with
+  `gh pr edit <number> --body-file <body> --attach '<path>#<view>'`, which rewrites the reference to
   the uploaded asset. Without a forge tool that attaches images, the body says it carries no image,
   and names the command that starts the sandbox.
 - **Rationale**: `gh` 2.102's `gh pr create --help` and `gh pr edit --help` document `--attach`:
   "Use `--attach` to upload an image or video... If the body references an attached file, such as
   `![alt](./login.png)`, that reference is rewritten to point at the uploaded asset instead." The
   forge keeps the asset, not git. Nothing was uploaded to check it: this feature adds no view, and
-  the repository is public.
+  the repository is public. Whether `gh` matches a reference by its path as given or by its file
+  name is not documented: the finish step uses one path for both, so either matches.
 - **If wrong**: an older `gh` refuses the flag; the body then follows the fallback, as the spec's
   edge case says.
 - **Where**: task 1; task 9 writes it into the finish step.

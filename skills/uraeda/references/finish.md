@@ -155,11 +155,11 @@ Write the pull request's body from the record, in three parts, then mark it read
    repeats no section of the folder and adds none: no size table, no list of tests changed, no
    rulings section. What a later agent needs is in the record, with the tests removed.
 3. **One screenshot per new view**, in the record's text, after the line of **Behaviour** that
-   describes the view, as `![<view>](./<file>.png)`. Take it of the running app, into a file outside
-   the repository, and attach it with
-   `gh pr edit --body-file <body> --attach './<file>.png#<view>'`: the forge keeps the image and the
-   reference now points to it. Never commit the image. When `gh` cannot attach it, a forge or a `gh`
-   without `--attach`, leave the image out and add the line "No screenshot: the forge could not
+   describes the view, as `![<view>](<path>)`. Take it of the running app, into a file outside the
+   repository, and attach it by the same path, from the branch's worktree:
+   `gh pr edit <number> --body-file <body> --attach '<path>#<view>'`. The forge keeps the image, and
+   the reference now points to it. Never commit the image. When `gh` cannot attach it, a forge or a
+   `gh` without `--attach`, leave the image out and add the line "No screenshot: the forge could not
    attach one. Run `<the command that starts the sandbox>` to see the view." A change that adds no
    view has no screenshot.
 

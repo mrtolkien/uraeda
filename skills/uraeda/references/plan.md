@@ -150,7 +150,7 @@ Each step is one action with a checkable result:
 - "Run them to check they fail" is a step.
 - "Implement the code that makes them pass" is a step.
 - "Run the task's validation" is a step: the project's fast check when it has one, else its usual
-  validation. It names the slow suites, such as browser tests, only for a task that changes what
+  validation. It names the slow suites, such as end-to-end tests, only for a task that changes what
   they cover, and the checks it defers to the complete validation before the push.
 - "Commit" is a step.
 

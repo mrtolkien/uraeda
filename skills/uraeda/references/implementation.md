@@ -33,7 +33,7 @@ the session: do not stop to check in between tasks. Git is the only memory: the 
 4. If the human reviewed the plan, turn its `> [!IMPORTANT]` block into a record, in the first
    task's commit: see [Coming back to the human](../SKILL.md#coming-back-to-the-human). When they
    approved it with comments, `plan-review.md` holds them: carry each one out, and say how in the
-   pull request's description.
+   pull request's body.
 5. Run the project's complete validation once, before any change: formatter, linter, type checker,
    tests. A failure that is already there is reported in the pull request, not fixed in passing.
 
