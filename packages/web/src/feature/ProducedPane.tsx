@@ -6,7 +6,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type MouseEvent, type ReactNode, useEffect, useState } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { scrollBelowBar } from "../Folds.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { type FigureRow, type FigureValue } from "./figureRows.ts";
@@ -27,25 +27,6 @@ const styles = stylex.create({
 });
 
 const COUNT = new Intl.NumberFormat("en-US");
-
-/** How often a figure that grows with the clock is drawn again, in ms. */
-const TICK_MS = 30_000;
-
-/**
- * The browser's clock, drawn again every 30 s while `ticking`, so a figure counted to now grows
- * without a refresh (R5).
- */
-export function useNow(ticking: boolean): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!ticking) {
-      return;
-    }
-    const timer = setInterval(() => setNow(Date.now()), TICK_MS);
-    return () => clearInterval(timer);
-  }, [ticking]);
-  return now;
-}
 
 /** A row of a pane of the column: its name at the start, its value at the end. */
 export function FactRow({ children, label }: { children: ReactNode; label: string }) {

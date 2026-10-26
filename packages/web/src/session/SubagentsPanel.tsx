@@ -11,7 +11,7 @@ import type { Session } from "uraeda-server/fate";
 import { useSession } from "../sessionData.ts";
 import { StatusMark } from "../StatusMark.tsx";
 import { elapsed } from "../TurnLines.tsx";
-import { useNow } from "./RecapLine.tsx";
+import { useNow } from "../useNow.ts";
 import { Section } from "./Section.tsx";
 import { subagentText } from "./stretches.ts";
 
@@ -91,7 +91,7 @@ function SubagentRow({ now, row: { endedAt, subagent } }: { now: number; row: Ro
 /** The session `session`'s sub-agents, from its record, read here. */
 function Subagents({ session }: { session: string }) {
   const record = useSession(session);
-  const now = useNow();
+  const now = useNow(1000);
   const rows = useKeptRows(topLevel(record?.subagents ?? []), now);
   if (rows.length === 0) {
     return <Text color="secondary">No sub-agent running.</Text>;
