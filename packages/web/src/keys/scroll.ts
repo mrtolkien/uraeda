@@ -61,8 +61,8 @@ function step(event: KeyboardEvent, direction: 1 | -1) {
   }
 }
 
-/** Scrolls the area to its top or its bottom, with no animation. */
-function edge(event: KeyboardEvent, to: "bottom" | "top") {
+/** Scrolls the area to its top or its bottom, with no animation: `g g` is the top too. */
+export function edge(event: KeyboardEvent, to: "bottom" | "top") {
   const area = areaOf(event.target);
   const height = (area ?? document.documentElement).scrollHeight;
   const options = { behavior: "instant", top: to === "top" ? 0 : height } as const;
