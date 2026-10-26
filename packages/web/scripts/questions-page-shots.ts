@@ -163,7 +163,8 @@ async function takeDocuments(each: Each) {
   });
   await each("documents-spec-story", async ({ page }) => {
     await openDocument(page, SPEC, "Complete a repeating task");
-    await toTop(page, region(page, "Make a task repeat"));
+    // A story's pane is named by its id, its title, and its priority: "US1 · Make a task repeat P1".
+    await toTop(page, page.getByRole("region", { name: /Make a task repeat/ }).first());
   });
   await each(
     "documents-spec-selected",
