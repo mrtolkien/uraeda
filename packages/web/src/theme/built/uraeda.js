@@ -608,6 +608,13 @@ export const uraedaTheme = {
         "fontSize": "0.9em"
       }
     },
+    "popover": {
+      "base": {
+        "borderColor": "var(--color-border)",
+        "borderStyle": "solid",
+        "borderWidth": "var(--border-width)"
+      }
+    },
     "lightbox": {
       "base": {
         ":is(*) button": {
