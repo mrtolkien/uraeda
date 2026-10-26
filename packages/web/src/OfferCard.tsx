@@ -153,7 +153,20 @@ function ChangeCard({ heading, latest, onClose, proposal: given, session }: Card
   const [typed, setTyped] = useState<string>();
   const [proposed, setProposed] = useState("");
   const [error, setError] = useState<string>();
+  // One start at a time, from the button or Ctrl+Enter: a git write blocks the next (UI behaviour).
+  const starting = useRef(false);
   const start = async () => {
+    if (starting.current) {
+      return;
+    }
+    starting.current = true;
+    try {
+      await startChange();
+    } finally {
+      starting.current = false;
+    }
+  };
+  const startChange = async () => {
     setError(undefined);
     const text = proposal.trim();
     const slug = typed?.trim();
