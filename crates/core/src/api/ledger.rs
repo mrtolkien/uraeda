@@ -80,6 +80,8 @@ pub struct Decision {
     pub summary: Option<String>,
     /// The date of the last commit of the default branch touching it, `YYYY-MM-DD`.
     pub changed: Option<String>,
+    /// Its file as read, frontmatter included: what a preview shows.
+    pub text: String,
     pub document: Document,
     /// The kept parts of its `## Rules` section, each with its strength and its check; empty for
     /// an unreadable file or one without the section.
@@ -317,6 +319,7 @@ fn decision(file: &str, text: &str, changed: Option<String>, problems: &[Problem
         unreadable,
         rules,
         name,
+        text: text.to_string(),
         document,
     }
 }

@@ -95,6 +95,18 @@ fn the_ledger_reads_the_constitution() {
     assert_eq!(texts.len(), 3, "{texts:?}");
 }
 
+/// The picker's preview of a decision shows its file as written, frontmatter included.
+#[test]
+fn a_decision_carries_its_file_as_written() {
+    let repo = TestRepo::new();
+    repo.write("specs/decisions/git.md", GIT);
+    commit_on(&repo, "decision: git", "2026-10-12");
+
+    let ledger = api::read_ledger(repo.path()).unwrap();
+
+    assert_eq!(decision(&ledger.decisions, "git").text, GIT);
+}
+
 /// US8 scenarios 1, 3, and 7: each decision's fields, and the date of the last commit touching it.
 #[test]
 fn the_ledger_reads_each_decision() {

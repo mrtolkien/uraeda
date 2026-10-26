@@ -308,9 +308,9 @@ and the binding are checked at their own boundary.
 
 - Modify: `crates/core/src/api/ledger.rs` (`Decision` gains `text`), `crates/core/src/view.rs` if
   the type is declared there
-- Modify: `packages/server/src/fate/views.ts` and the ledger's fate view, so `Ledger` serves
-  `decisions[].text`
-- Modify: `packages/web/src/views.ts` (the ledger view selects `text`)
+- No change needed in `packages/server/src/fate/views-ledger.ts` or `packages/web/src/views.ts`: the
+  ledger record spreads each decision and the web's ledger view selects `decisions: true`, so
+  `decisions[].text` is served and selected once the core has the field
 - Test: `crates/core/tests/ledger.rs`, `packages/server/src/__tests__/preview-text.test.ts`
 - Generated and committed: `packages/binding/index.d.ts`
 
@@ -323,7 +323,7 @@ and the binding are checked at their own boundary.
   through `useFile(folder, "proposal.md")`, a note's `text`, and a priority's lines. Task 7 uses
   them by these names.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/ledger.rs
@@ -346,21 +346,21 @@ test("each kind a preview shows has its raw text through the server", async () =
 The break it catches: a kind whose raw text the picker would need and the server does not send,
 which Task 7 would find late.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test ledger a_decision_carries`, then
   `nix develop -c vp test run packages/server/src/__tests__/preview-text.test.ts`
 - Expected: FAIL, `no field text on type Decision`, then
   `Cannot read properties of undefined (reading 'text')` on the decision.
 
-- [ ] **Step 3: Add `text` to `Decision`** in the core from the `Texts` already read, in the one
+- [x] **Step 3: Add `text` to `Decision`** in the core from the `Texts` already read, in the one
       place the ledger builds a decision; build the binding with
       `nix develop -c vp run --filter uraeda-binding build` so `index.d.ts` follows (never edited by
       hand); serve it in the ledger's fate view and select it in the web's view.
-- [ ] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS. If a kind
+- [x] **Step 4: Run the task's validation**: `nix develop -c vp run fast`. Expected: PASS. If a kind
       of the test cannot be served without a larger change than a field, stop: this is the spec's
       unverified item, and the stories that rely on it go back to the human.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages specs/2026-10-26-leader-key/plan.md
