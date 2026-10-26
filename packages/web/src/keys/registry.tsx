@@ -55,8 +55,14 @@ function runFirst(matching: ReadonlyArray<Binding>, event: KeyboardEvent) {
  * text field and an open layer own their keys, and end what pends.
  */
 function dispatch({ leader, store }: Registry, event: KeyboardEvent) {
-  const token = event.defaultPrevented ? null : tokenOf(event);
   const target = event.target;
+  if (event.defaultPrevented) {
+    // The field or control already took the key (a composer's Enter, Space on a radio): what
+    // pends ends, as it does for any key a field owns.
+    leader.end();
+    return;
+  }
+  const token = tokenOf(event);
   if (token === null) {
     return;
   }

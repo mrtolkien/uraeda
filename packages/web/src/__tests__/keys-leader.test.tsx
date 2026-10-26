@@ -189,6 +189,38 @@ test("g, a pause, a key no g sequence uses, then i: the shown menu ended and not
   expect(ran).toEqual([]);
 });
 
+// Break: a key the field already prevented returning before the pending step ends.
+test("a key the focused field already handled ends a shown menu", () => {
+  ran.length = 0;
+  render(
+    <KeysProvider>
+      <Page />
+      <LeaderMenuHost />
+      <div
+        contentEditable
+        onKeyDown={(event) => event.preventDefault()}
+        role="textbox"
+        suppressContentEditableWarning
+        tabIndex={0}
+      />
+    </KeysProvider>,
+  );
+  press(" ");
+  wait(500);
+  expect(menu("Space")).not.toBeNull();
+  press("Enter", {}, screen.getByRole("textbox"));
+  expect(menu("Space")).toBeNull();
+});
+
+// Break: any null token (a dead key, a lone modifier) ending the menu.
+test("a lone modifier does not end a shown menu", () => {
+  show();
+  press(" ");
+  wait(500);
+  press("Shift");
+  expect(menu("Space")).not.toBeNull();
+});
+
 test("a key bound to nothing keeps a shown menu open and runs nothing", () => {
   show();
   press(" ");
