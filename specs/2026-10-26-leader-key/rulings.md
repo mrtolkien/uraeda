@@ -195,7 +195,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   key; the change is `letter` in `keys/match.ts`.
 - **Where**: fix pass A, `keys/match.ts`. Existing tests whose keydowns were a capital with no
   Shift, which no keyboard sends without Caps Lock (`J K H L` in `keys-shift.test.tsx`, `G` in
-  `keys-scroll.test.tsx`), now send `shiftKey: true`, the same assertions on a realistic event.
+  `keys-scroll.test.tsx`), now send `shiftKey: true`, and `__browser__/keys-shift.test.tsx` types
+  `{Shift>}J{/Shift}` for `J K H L` (the browser's `keyboard("J")` sends no Shift): the same
+  assertions on a realistic event.
 
 ## R21: A binding names only keys a keydown gives, and Ctrl or Cmd with a named key is a chord
 
