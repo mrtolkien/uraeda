@@ -11,7 +11,8 @@ type Rows = { id: string; rows: ReadonlyArray<WorkRow> };
 
 /**
  * The row keys of a list whose `sections` are in the order they show, and the state they set.
- * `onAddBeside(section, row)` is given by a list that adds in a place: its `o`. `i` and `m` select
+ * `onAddBeside(section, row)` is given by a list that adds in a place: its `o`. `i` does nothing
+ * while another card's editor holds unsaved text (R83). `i` and `m` select
  * their row, so the focus has a card to return to, though a Tab put it there. `held` is the key of
  * the card whose editor or key-opened menu holds the focus, until it closes: the list takes the focus
  * back to the selected card then. `renamed` is the key of a line just saved in its card, until the
@@ -27,6 +28,8 @@ export function useRowKeys(
   const [keyed, setKeyed] = useState<string>();
   const [renamed, setRenamed] = useState<string>();
   const onRefocused = useCallback(() => setRenamed(undefined), []);
+  // Whether the editor open holds unsaved text.
+  const [isDirty, setDirty] = useState(false);
   const rows = sections.flatMap((section) => section.rows);
   // A card that left the list, renamed or deleted, takes its editor and its menu with it.
   const isShown = (key: string | undefined) => rows.some((row) => row.key === key);
@@ -41,6 +44,7 @@ export function useRowKeys(
   const state: RowState = {
     editing,
     menu,
+    onDirty: setDirty,
     onEdited: () => setEditing(undefined),
     // The saved line has a new key: it is the selected one, and gets the focus once it is drawn.
     onMenu: (key, isOpen) => {
@@ -77,7 +81,9 @@ export function useRowKeys(
       keys: "i",
       label: "edit",
       run: (at) => {
-        if (rows[at]?.editor === undefined) {
+        // Another card's editor holding unsaved text stays open: its text would be dropped unseen.
+        const isOther = editing !== undefined && editing !== rows[at]?.key;
+        if (rows[at]?.editor === undefined || (isOther && isDirty)) {
           return false;
         }
         select(rows[at].key);

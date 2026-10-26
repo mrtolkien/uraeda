@@ -17,8 +17,15 @@ import * as stylex from "@stylexjs/stylex";
 import { createContext, type MouseEvent, type ReactNode, useContext } from "react";
 import { legendStyles } from "../layout/legend.ts";
 
-/** What a card's editor tells the list: that it closed, and the new key of the line it saved. */
-export type EditorHooks = { onDone: () => void; onRenamed: (key: string) => void };
+/**
+ * What a card's editor tells the list: that it closed, whether it holds text not saved yet, and the
+ * new key of the line it saved.
+ */
+export type EditorHooks = {
+  onDirty: (isDirty: boolean) => void;
+  onDone: () => void;
+  onRenamed: (key: string) => void;
+};
 
 /** A card's line: what a list draws, and where a tap on it leads. */
 export interface WorkRow {
@@ -51,6 +58,8 @@ export interface WorkRow {
 export type RowState = {
   editing?: string;
   menu?: string;
+  /** The editor of the card edited holds unsaved text, or no longer does. */
+  onDirty: (isDirty: boolean) => void;
   onEdited: () => void;
   /** A card's menu opened or closed: `key` is the card's. */
   onMenu: (key: string, isOpen: boolean) => void;
@@ -60,6 +69,7 @@ export type RowState = {
 
 /** The list's state of its cards: nothing is edited, and no menu is open, outside a list. */
 export const RowStateContext = createContext<RowState>({
+  onDirty: () => {},
   onEdited: () => {},
   onMenu: () => {},
   onRenamed: () => {},
@@ -143,6 +153,26 @@ const styles = stylex.create({
   text: { overflowWrap: "anywhere" },
 });
 
+/** The card's text as the link stretched over it: a plain click opens it with `onOpen`. */
+function RowLink({ onOpen, row }: { onOpen?: (row: WorkRow) => void; row: WorkRow }) {
+  return (
+    <Link
+      href={row.href}
+      onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+        // A click that is a drag's end is already prevented, and a modified one is the browser's.
+        const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0);
+        if (onOpen && plain && !event.defaultPrevented) {
+          event.preventDefault();
+          onOpen(row);
+        }
+      }}
+      xstyle={[styles.stretched, styles.text]}
+    >
+      {row.label ?? row.text}
+    </Link>
+  );
+}
+
 /**
  * One card. A card that moves is a sortable of its section, dragged from anywhere, with reduced
  * motion jumping to its place; a fixed one, such as a running entry, is only drawn. `index` is its
@@ -207,22 +237,13 @@ export function Card({
         </span>
       )}
       {isEditing ? (
-        row.editor?.({ onDone: state.onEdited, onRenamed: state.onRenamed })
+        row.editor?.({
+          onDirty: state.onDirty,
+          onDone: state.onEdited,
+          onRenamed: state.onRenamed,
+        })
       ) : (
-        <Link
-          href={row.href}
-          onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
-            // A click that is a drag's end is already prevented, and a modified one is the browser's.
-            const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0);
-            if (onOpen && plain && !event.defaultPrevented) {
-              event.preventDefault();
-              onOpen(row);
-            }
-          }}
-          xstyle={[styles.stretched, styles.text]}
-        >
-          {row.label ?? row.text}
-        </Link>
+        <RowLink onOpen={onOpen} row={row} />
       )}
       {row.lines.map((line, at) => (
         <Text color="secondary" display="block" key={at}>
