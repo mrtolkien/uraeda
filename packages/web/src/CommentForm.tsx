@@ -2,7 +2,6 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useRef, useState } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
@@ -16,6 +15,7 @@ import { TextField } from "./fields/TextField.tsx";
 import type { Unsaved } from "./fields/unsaved.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { StatusText } from "./fields/StatusText.tsx";
+import { ruleStyles } from "./layout/rules.ts";
 
 /** A comment field's images: the `useImageText` of the text the form holds. */
 export type CommentImages = ReturnType<typeof useImageText>;
@@ -27,11 +27,8 @@ const styles = stylex.create({
   quote: {
     // The commented lines, quoted with the selection's bar.
     borderInlineStartColor: "var(--color-selection-edge)",
-    borderInlineStartStyle: "solid",
-    borderInlineStartWidth: spacingVars["--spacing-1"],
     display: "block",
     overflowWrap: "anywhere",
-    paddingInlineStart: spacingVars["--spacing-3"],
   },
 });
 
@@ -188,7 +185,7 @@ function CommentFields({
           {anchor}
         </Text>
         {quote && (
-          <div {...stylex.props(styles.quote)}>
+          <div {...stylex.props(ruleStyles.bar, styles.quote)}>
             <Text type="supporting">{quote}</Text>
           </div>
         )}

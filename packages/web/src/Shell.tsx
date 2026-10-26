@@ -6,7 +6,7 @@
 // navigation for the phone.
 import { LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack } from "@astryxdesign/core/VStack";
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
@@ -24,13 +24,11 @@ import { SidebarAddForms } from "./SidebarAdd.tsx";
 import { StatusHintsProvider } from "./statusHints.tsx";
 import { useWrites } from "./writes/store.ts";
 import { WriteProgress } from "./writes/WriteFeedback.tsx";
+import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
   bare: {
     // A page of no repository: the menu alone, above the page.
-    borderBlockEndColor: colorVars["--color-border"],
-    borderBlockEndStyle: "solid",
-    borderBlockEndWidth: borderVars["--border-width"],
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-2"],
   },
@@ -190,7 +188,7 @@ export function BareShell({ children, current }: { children: ReactNode; current:
   return (
     <Frame
       top={
-        <nav aria-label="Navigation" {...stylex.props(styles.bare)}>
+        <nav aria-label="Navigation" {...stylex.props(ruleStyles.below, styles.bare)}>
           <RepositoryMenu current={current} hasLogo />
         </nav>
       }

@@ -1,7 +1,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -15,14 +15,12 @@ import { Overlay } from "./layout/Overlay.tsx";
 import { anchor, textOf } from "./ReviewCommentForm.tsx";
 import { useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { FileView } from "./views.ts";
+import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
   frame: {
     // The mockup as tall as the screen, the page's full width.
     backgroundColor: colorVars["--color-background-surface"],
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: borderVars["--border-width"],
     borderWidth: 0,
     boxSizing: "border-box",
     display: "block",
@@ -105,7 +103,12 @@ export function MockupPage({ folder, name }: { folder: string; name: string }) {
           {reviewing && <Button label="Comment" onClick={() => setOpen(true)} />}
         </HStack>
       </div>
-      <iframe sandbox="allow-scripts" src={source} title={name} {...stylex.props(styles.frame)} />
+      <iframe
+        sandbox="allow-scripts"
+        src={source}
+        title={name}
+        {...stylex.props(ruleStyles.above, styles.frame)}
+      />
       {reviewing && (
         <Overlay isOpen={open} label="Comment" onClose={() => setOpen(false)}>
           <MockupComment

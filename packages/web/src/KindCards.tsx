@@ -5,7 +5,7 @@
 // forbids, so the group is drawn by the page, each card a raw element holding the shared `Pane`.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type KeyboardEvent, useId, useRef } from "react";
@@ -13,6 +13,7 @@ import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { proseStyles } from "./Prose.tsx";
 import type { NewKind } from "./routes.tsx";
+import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
   body: {
@@ -42,9 +43,6 @@ const styles = stylex.create({
   pickedFacts: { borderBlockStartColor: colorVars["--color-accent"] },
   // The facts under a rule, as the mockup draws them apart from the sentence.
   facts: {
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: borderVars["--border-width"],
     display: "flex",
     flexDirection: "column",
     gap: spacingVars["--spacing-1"],
@@ -202,7 +200,9 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
               <div id={`${bodies}-${card.kind}`} {...stylex.props(styles.body)}>
                 <div {...stylex.props(proseStyles.reading)}>{card.sentence}</div>
                 {!narrow && <Text color="secondary">{card.example}</Text>}
-                <dl {...stylex.props(styles.facts, isPicked && styles.pickedFacts)}>
+                <dl
+                  {...stylex.props(ruleStyles.above, styles.facts, isPicked && styles.pickedFacts)}
+                >
                   <Fact icon="uraeda:flag" label="Ends with" value={card.endsWith} />
                   <Fact icon="uraeda:hourglass" label="Waits on you" value={card.waitsOnYou} />
                 </dl>
