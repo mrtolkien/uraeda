@@ -10,6 +10,7 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
+import { KeyPickerHost } from "./keys/KeyPickerHost.tsx";
 import { KeysProvider } from "./keys/registry.tsx";
 import { ScrollKeys } from "./keys/scroll.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
@@ -177,6 +178,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 <NotifyBanner />
                 <Notifier />
                 <UndoErrors />
+                <KeyPickerHost />
                 <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
               </Frame>
             </KeysProvider>
