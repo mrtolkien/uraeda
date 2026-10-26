@@ -3,7 +3,7 @@
 // where what stayed is said, once the priorities commit succeeded.
 import { MoreMenu } from "@astryxdesign/core/MoreMenu";
 import { type SessionItem, UNCOMMITTED, useDropItem } from "../dropItem.ts";
-import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { useMenuPresentation } from "../layout/useWidthClass.ts";
 import { addNote, HOME_NOTES } from "../offers.ts";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { useOpenSettings } from "../sidebar/FeatureSettingsDialog.tsx";
@@ -25,7 +25,7 @@ export function FeatureMenu({
   const here = useRepoPath();
   const settings = useOpenSettings();
   const dropItem = useDropItem();
-  const wide = !isNarrow(useWidthClass());
+  const presentation = useMenuPresentation();
   const drop = async () => {
     const result = await dropItem(item);
     if (result.kind === "refused") {
@@ -47,7 +47,7 @@ export function FeatureMenu({
         { label: `Drop the ${item.kind}…`, onClick: () => void drop() },
       ]}
       label={`${name} actions`}
-      presentation={wide ? "popover" : "bottom-sheet"}
+      presentation={presentation}
       size="sm"
     />
   );

@@ -48,3 +48,12 @@ export function useWidthClass(): WidthClass {
 export function widthClassNow(): WidthClass {
   return widthClass(window.matchMedia(SEMI_QUERY).matches, window.matchMedia(WIDE_QUERY).matches);
 }
+
+/**
+ * Where a menu or a selector opens, as the UI layout decision asks: a bottom sheet on narrow
+ * screens, a popover from semi-wide. The width decides, not the pointer, unlike Astryx's
+ * `adaptive`, so a narrow window with a mouse gets the sheet a phone does.
+ */
+export function useMenuPresentation(): "bottom-sheet" | "popover" {
+  return isNarrow(useWidthClass()) ? "bottom-sheet" : "popover";
+}

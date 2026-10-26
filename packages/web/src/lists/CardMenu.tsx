@@ -8,7 +8,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useState } from "react";
 import type { Inbox } from "uraeda-server/fate";
-import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { useMenuPresentation } from "../layout/useWidthClass.ts";
 import { type Found, usePriorityActions } from "../pane/usePriorityActions.ts";
 import { TITLES } from "../QuickAdd.tsx";
 import { navigate, useRepoPath } from "../routes.tsx";
@@ -32,7 +32,7 @@ export function CardMenu({
   label: string;
   onOpen?: () => void;
 }) {
-  const wide = !isNarrow(useWidthClass());
+  const presentation = useMenuPresentation();
   const [isOpen, setOpen] = useState(false);
   return (
     <DropdownMenu
@@ -54,7 +54,7 @@ export function CardMenu({
         }
       }}
       placement="below"
-      presentation={wide ? "popover" : "bottom-sheet"}
+      presentation={presentation}
     />
   );
 }
