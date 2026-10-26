@@ -1,11 +1,4 @@
 import { Button } from "@astryxdesign/core/Button";
-import {
-  borderVars,
-  colorVars,
-  radiusVars,
-  spacingVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { Document } from "uraeda-binding";
@@ -21,6 +14,7 @@ import { plain } from "./Spans.tsx";
 import type { Range, useCommentDraft } from "./useCommentDraft.ts";
 import type { Adding, useReviewActions } from "./useReviewActions.ts";
 import { ReviewImagesContext, useReviewImages } from "./useReviewImages.ts";
+import { CommentBox } from "./layout/CommentBox.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 type Draft = ReturnType<typeof useCommentDraft>;
@@ -36,18 +30,6 @@ export type ReviewField = {
   saved: string;
   subject?: string;
 };
-
-const styles = stylex.create({
-  inline: {
-    // The comment field under the block on wide screens.
-    borderColor: colorVars["--color-border"],
-    borderRadius: radiusVars["--radius-container"],
-    borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
-    marginBlockEnd: spacingVars["--spacing-4"],
-    padding: spacingVars["--spacing-3"],
-  },
-});
 
 /**
  * Where a comment on lines goes, as the review writes it: `Lines 4–6, under "Rules"`, or, on a
@@ -87,7 +69,8 @@ export function FormSlot({ boxed, container }: { boxed: boolean; container: HTML
       }
     };
   }, [container]);
-  return <div ref={slot} {...stylex.props(boxed && styles.inline)} />;
+  const box = <div ref={slot} />;
+  return boxed ? <CommentBox>{box}</CommentBox> : box;
 }
 
 /**

@@ -1,10 +1,3 @@
-import {
-  borderVars,
-  colorVars,
-  radiusVars,
-  spacingVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import type { Block, Document, SettledGroup, SettledPoint } from "uraeda-binding";
 import { topBlock } from "./Folds.tsx";
@@ -24,20 +17,9 @@ import {
 import { PointActions } from "./RoundParts.tsx";
 import { type SettledPart, SettledGroups } from "./SettledGroups.tsx";
 import { useSettledWrites } from "./settledWrites.ts";
+import { CommentBox } from "./layout/CommentBox.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
-
-const styles = stylex.create({
-  inline: {
-    // The comment form under its point on wide screens.
-    borderColor: colorVars["--color-border"],
-    borderRadius: radiusVars["--radius-container"],
-    borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
-    marginBlock: spacingVars["--spacing-2"],
-    padding: spacingVars["--spacing-3"],
-  },
-});
 
 /**
  * The comment form open on some of a round's settled points, `points`, `shown` while the round
@@ -115,8 +97,7 @@ export function SettledPoints({
     return null;
   }
 
-  const inPage = (here: boolean) =>
-    wide && here && <div {...stylex.props(styles.inline)}>{form}</div>;
+  const inPage = (here: boolean) => wide && here && <CommentBox>{form}</CommentBox>;
   const pointOf = (block: Block) => points.find((p) => p.block === block.id);
   /** Whether the new comment's form is open on this block's point: by subject, as blocks move. */
   const newOn = (block: Block) =>
