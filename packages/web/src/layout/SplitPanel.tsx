@@ -5,11 +5,12 @@
 // is a region named by its panel, in the tab order, so the keyboard scrolls it: the column around
 // them no longer scrolls. Each part is a container of its width, which its rows' parts size by. The
 // session column splits Activity, or Sub-agents, over Changes this way.
-import { Heading } from "@astryxdesign/core/Heading";
+
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useId } from "react";
 import type { ColumnPanel } from "./DocumentColumn.tsx";
+import { GroupTitle } from "./GroupTitle.tsx";
 
 const styles = stylex.create({
   // The bottom panel: a rule across the column's whole width over it, as between a terminal's
@@ -66,9 +67,11 @@ function Split({
         {top}
       </section>
       <section aria-labelledby={headingId} tabIndex={0} {...stylex.props(styles.bottom)}>
-        <Heading accessibilityLevel={3} id={headingId} level={4} xstyle={styles.heading}>
-          {label}
-        </Heading>
+        <div {...stylex.props(styles.heading)}>
+          <GroupTitle id={headingId} level={3}>
+            {label}
+          </GroupTitle>
+        </div>
         {bottom}
       </section>
     </div>
