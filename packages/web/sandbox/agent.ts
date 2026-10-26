@@ -51,6 +51,9 @@ function shares(total: number, count: number): Array<number> {
   );
 }
 
+/** When a usage window resets, `count` hours from now, as the agent reports it. */
+const inHours = (count: number) => new Date(Date.now() + count * 3_600_000).toISOString();
+
 /** The plan the turn at work reads: the implementation feature's. */
 const PLAN = `specs/${SAMPLE_FOLDERS.features.implementation}/plan.md`;
 
@@ -150,25 +153,33 @@ export class SandboxAgent extends FakeAdapter {
   /** The turn at work: tool calls streamed for 10 minutes, each running for its share. */
   atWork(): Array<FakeStep> {
     const waits = shares(AT_WORK_MS, AT_WORK_CALLS);
-    return waits.flatMap((ms, index): Array<FakeStep> => {
-      const call = TOOL_CALLS[index % TOOL_CALLS.length];
-      if (call === undefined) {
-        return [];
-      }
-      const id = `at-work-${index}`;
-      return [
-        {
-          id,
-          input: call.input,
-          kind: call.kind,
-          name: call.name,
-          target: call.target,
-          type: "toolStart",
-        },
-        this.#waiting(ms),
-        { id, isError: false, output: call.output, type: "toolEnd" },
-      ];
-    });
+    const usage: FakeStep = {
+      fiveHour: { percentUsed: 42, resetsAt: inHours(3) },
+      type: "usage",
+      week: { percentUsed: 18, resetsAt: inHours(72) },
+    };
+    return [
+      usage,
+      ...waits.flatMap((ms, index): Array<FakeStep> => {
+        const call = TOOL_CALLS[index % TOOL_CALLS.length];
+        if (call === undefined) {
+          return [];
+        }
+        const id = `at-work-${index}`;
+        return [
+          {
+            id,
+            input: call.input,
+            kind: call.kind,
+            name: call.name,
+            target: call.target,
+            type: "toolStart",
+          },
+          this.#waiting(ms),
+          { id, isError: false, output: call.output, type: "toolEnd" },
+        ];
+      }),
+    ];
   }
 }
 
