@@ -353,12 +353,13 @@ simpler private design from what the code shows:
 - **A test step**: the tests the [testing](code-quality.md#testing) section asks for, their names
   and assertions as code, with the spec's exact values in them, including the human's approval
   comments. An assertion picks out what the task adds, by its message or its kind, and never
-  compares a whole list of results: see [how many](code-quality.md#how-many). Each test names the
-  break it catches: see [tests that can fail](code-quality.md#tests-that-can-fail). Derive
-  expectations from the approved behaviour, independently of the proposed implementation. A task
-  marked **Risky** names the breaks to make. The step also creates the helpers its tests use, so the
-  first failure is about the feature, not a missing helper. Checks of preserved behaviour may
-  already pass before the change.
+  compares a whole list of results: see [how many](code-quality.md#how-many). Where a scenario says
+  an old result still holds, the existing test keeps asserting it, and the new assertion is only
+  what changes. Each test names the break it catches: see
+  [tests that can fail](code-quality.md#tests-that-can-fail). Derive expectations from the approved
+  behaviour, independently of the proposed implementation. A task marked **Risky** names the breaks
+  to make. The step also creates the helpers its tests use, so the first failure is about the
+  feature, not a missing helper. Checks of preserved behaviour may already pass before the change.
 - **A run step**: the command to run, and the output that means it worked. For a failing run, the
   first failure the run will actually hit: not "the test fails", but the message.
 - **A code step**: the responsibility, the files it belongs in, the specific values the spec pins.
