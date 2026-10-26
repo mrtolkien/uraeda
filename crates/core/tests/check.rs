@@ -206,7 +206,7 @@ fn a_proposed_change_section_is_unknown_in_a_decision() {
     assert!(problems.contains(&expected), "{expected}\nin {problems:#?}");
 }
 
-/// One row per rule: how to break the example, and the problem expected.
+/// One row per rule without a test of its own: how to break the example, and the problem expected.
 #[test]
 #[expect(
     clippy::too_many_lines,
@@ -1974,8 +1974,8 @@ fn the_trimmed_round_fails_only_its_numbering() {
 }
 
 /// US1.8 and SC-002: the example round, the templates, and every fixture round report neither a
-/// problem nor a warning. The template and the triages are checked in the example, as the
-/// template's own test does; the fixture rounds in place, as `FIXTURE_ROUNDS` says.
+/// problem nor a warning. The template and the triages are checked in the example, which covers the
+/// rounds template itself; the fixture rounds in place, as `FIXTURE_ROUNDS` says.
 #[test]
 fn every_fixture_round_passes() {
     let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
