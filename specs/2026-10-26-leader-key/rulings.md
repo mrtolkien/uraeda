@@ -161,8 +161,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `onMoveItem` takes the row as well, `(move, row)`, so the keys move the card the focus is on,
   which a click or `j` selects but a Tab does not. The existing hint test for a list's Escape moves
   from `status-hints.test.tsx` to `keys-hints.test.tsx` and reads the registry's hints, with the
-  same three assertions (named, renamed, left out where it does nothing); the old API's own test
-  stays until Task 12 retires it. The priorities page's key tests are in
+  same three exact lines (named, renamed, left out where it does nothing: the first draft of the
+  move weakened them to `toContain`, and the fix pass restored the old `toBe` on the whole line);
+  the old API's own test stays until Task 12 retires it. The priorities page's key tests are in
   `__browser__/keys-shift.test.tsx`, a list alone's in `__tests__/keys-shift.test.tsx`.
 - **Rationale**: the spec says "to the previous or next column or section" and the scenario sends
   Next's line to Later, without a place in it; the end is the one place that needs no row to compare
@@ -700,7 +701,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `StatusLineCoverProvider`; `StatusHint`'s type is the key store's. The last test of the old API,
   "a declarer whose hints change keeps its place before the others", moves from
   `status-hints.test.tsx` to `keys-hints.test.tsx` (as R9 moved its sibling) and reads the registry:
-  the same property, a declarer's hints change and keep their place in the line, in place of the old
+  the same property, a declarer's hints change and keep their place in the line, with the old test's
+  two exact lines (`j k move · n p unanswered`, then with `⏎ open` between), in place of the old
   API's hook. The browser test of the status line's room declares its twelve long hints with
   `useKeys` under `KeysProvider`.
 - **Rationale**: nothing had to be migrated: waves 3 and 4 moved every page's key. The rail's Escape
