@@ -2,9 +2,10 @@
 // banner of the triage there is, which leads to answering it, then to applying it. Without an agent
 // on this machine, each gives its message to copy, for an agent elsewhere.
 import { Button } from "@astryxdesign/core/Button";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
+
 import { APPLY_TRIAGE, ORGANIZE_INBOX } from "uraeda-server/round-messages";
 import { AgentMessage, RoundBanner, type StartChat } from "./StartChat.tsx";
+import { Foldable } from "./layout/Foldable.tsx";
 
 /** "Organize with an agent": starts the triage's chat, disabled while a triage exists. */
 export function OrganizeButton({ chat, triage }: { chat: StartChat; triage: string | null }) {
@@ -20,9 +21,9 @@ export function OrganizeButton({ chat, triage }: { chat: StartChat; triage: stri
 /** Without an agent on this machine, "Organize with an agent" opens its message, to copy. */
 export function OrganizeMessage() {
   return (
-    <Collapsible trigger="Organize with an agent">
+    <Foldable label="Organize with an agent">
       <AgentMessage text={ORGANIZE_INBOX} />
-    </Collapsible>
+    </Foldable>
   );
 }
 

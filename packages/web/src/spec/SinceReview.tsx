@@ -2,10 +2,9 @@
 // you reviewed, as the core compared them, each a button jumping to it, and the parts removed,
 // struck, under a fold. Which blocks hold a change, so the page marks them Δ, and which entries of
 // "Contents" own one. A place is an entry of "Contents", in a story its journey or a scenario.
-import { Collapsible } from "@astryxdesign/core/Collapsible";
+
 import { List, ListItem } from "@astryxdesign/core/List";
 import { VStack } from "@astryxdesign/core/VStack";
-import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { Block, Document, LineRange, SinceChange, SinceReview } from "uraeda-binding";
 import { type Fold, foldOf } from "../Folds.tsx";
@@ -18,13 +17,9 @@ import { entryOfBlock, entryOwners, placeInStory, type SpecItems } from "./parts
 import { Runs } from "./RuleLine.tsx";
 import type { Entry } from "./SpecContents.tsx";
 import { plural } from "../labels.ts";
+import { Foldable } from "../layout/Foldable.tsx";
 
 const styles = stylex.create({
-  foldLabel: {
-    alignItems: "center",
-    display: "flex",
-    minHeight: sizeVars["--size-element-md"],
-  },
   removed: { margin: 0 },
 });
 
@@ -149,23 +144,20 @@ function Removed({ removed }: { removed: ReadonlyArray<SinceChange> }) {
   const keys = useOpenKeys();
   const isOpen = keys.open.includes(REMOVED_KEY);
   return (
-    <Collapsible
-      chevronPosition="start"
+    <Foldable
       isOpen={isOpen}
+      label={`${parts(removed.length)} removed`}
       onOpenChange={(open: boolean) => keys.onOpenChange(REMOVED_KEY, open)}
-      trigger={<span {...stylex.props(styles.foldLabel)}>{parts(removed.length)} removed</span>}
     >
-      {isOpen && (
-        <VStack gap={2}>
-          {removed.map((change, index) => (
-            <Paragraph key={index} xstyle={styles.removed}>
-              {change.heading && `${change.heading}: `}
-              <Runs runs={change.runs} whole />
-            </Paragraph>
-          ))}
-        </VStack>
-      )}
-    </Collapsible>
+      <VStack gap={2}>
+        {removed.map((change, index) => (
+          <Paragraph key={index} xstyle={styles.removed}>
+            {change.heading && `${change.heading}: `}
+            <Runs runs={change.runs} whole />
+          </Paragraph>
+        ))}
+      </VStack>
+    </Foldable>
   );
 }
 

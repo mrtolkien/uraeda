@@ -3,10 +3,10 @@
 // others behind "N more scenarios", open as the history entry keeps the spec's folds, and not
 // mounted while folded. Every scenario takes a comment, as any block of the page does.
 import { Badge } from "@astryxdesign/core/Badge";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
+
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import type { Block, Document } from "uraeda-binding";
@@ -18,6 +18,7 @@ import { SinceWords } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
 import { type PartProps, type SpecItems, storyId } from "./parts.ts";
 import { plural } from "../labels.ts";
+import { Foldable } from "../layout/Foldable.tsx";
 
 /** The icon of each step word, as the core names them. */
 const STEP_ICONS: Record<string, string> = {
@@ -28,13 +29,6 @@ const STEP_ICONS: Record<string, string> = {
 
 const styles = stylex.create({
   contents: { display: "contents" },
-  foldLabel: {
-    // The toggle's label, at the reading size, its row a control's height for a finger.
-    alignItems: "center",
-    display: "flex",
-    fontSize: "var(--text-reading-size)",
-    minHeight: sizeVars["--size-element-md"],
-  },
   more: {
     paddingBlockStart: spacingVars["--spacing-3"],
   },
@@ -178,23 +172,11 @@ function MoreScenarios({
     ? "Fold the other scenarios"
     : plural(count, "more scenario", "more scenarios");
   return (
-    <Collapsible
-      chevronPosition="start"
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      trigger={<span {...stylex.props(styles.foldLabel)}>{label}</span>}
-    >
-      {isOpen && (
-        <div {...stylex.props(styles.more)}>
-          <Scenarios
-            document={document}
-            intro={intro}
-            scenarios={story.more}
-            selection={selection}
-          />
-        </div>
-      )}
-    </Collapsible>
+    <Foldable isOpen={isOpen} label={label} onOpenChange={onOpenChange}>
+      <div {...stylex.props(styles.more)}>
+        <Scenarios document={document} intro={intro} scenarios={story.more} selection={selection} />
+      </div>
+    </Foldable>
   );
 }
 

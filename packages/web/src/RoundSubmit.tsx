@@ -1,5 +1,5 @@
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-import { Collapsible } from "@astryxdesign/core/Collapsible";
+
 import { Link } from "@astryxdesign/core/Link";
 import { VStack } from "@astryxdesign/core/VStack";
 import { typeScaleVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -28,6 +28,7 @@ import { navigateHere } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { useSaveSettled } from "./settledWrites.ts";
 import { plural } from "./labels.ts";
+import { Foldable } from "./layout/Foldable.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 type Notes = ReturnType<typeof useRoundNotes>;
@@ -58,9 +59,9 @@ export function HookRefusal({
       status="error"
       title={`The pre-commit hook refused the commit. ${what}`}
     >
-      <Collapsible trigger="Hook output">
+      <Foldable label="Hook output">
         <pre {...stylex.props(styles.output)}>{error.output ?? error.message}</pre>
-      </Collapsible>
+      </Foldable>
     </AnnouncedBanner>
   );
 }

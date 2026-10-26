@@ -24,6 +24,9 @@ export const proseStyles = stylex.create({
     lineHeight: "var(--text-reading-line)",
     textWrap: "pretty",
   },
+  // The reading size alone, for a control that reads as text, such as a fold's toggle: its font
+  // stays the UI's.
+  size: { fontSize: "var(--text-reading-size)" },
   // About 110 characters of text a line, the theme's reading measure.
   measure: { maxWidth: "var(--size-reading-measure)" },
   // Astryx's markdown sets its text in the body font: its text takes the reading font instead.

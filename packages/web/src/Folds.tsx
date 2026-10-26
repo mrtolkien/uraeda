@@ -1,9 +1,9 @@
-import { Collapsible } from "@astryxdesign/core/Collapsible";
-import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
 import type { Block, Document, SpecItems } from "uraeda-binding";
 import { currentEntry, useEntryId, useHash } from "./routes.tsx";
+import { Foldable } from "./layout/Foldable.tsx";
 
 const styles = stylex.create({
   fold: {
@@ -14,13 +14,6 @@ const styles = stylex.create({
     fontSize: "var(--text-reading-size)",
     lineHeight: "var(--text-reading-line)",
     paddingBlockStart: spacingVars["--spacing-2"],
-  },
-  foldLabel: {
-    // A fold's label, at the reading size, its row a control's height for a finger.
-    alignItems: "center",
-    display: "flex",
-    fontSize: "var(--text-reading-size)",
-    minHeight: sizeVars["--size-element-md"],
   },
 });
 
@@ -230,14 +223,13 @@ export function FoldNode({
 }) {
   return (
     <div id={title?.anchor} {...stylex.props(styles.fold)}>
-      <Collapsible
-        chevronPosition="start"
+      <Foldable
         isOpen={folds.open.includes(fold.key)}
+        label={fold.label}
         onOpenChange={(isOpen: boolean) => folds.onOpenChange(fold.key, isOpen)}
-        trigger={<span {...stylex.props(styles.foldLabel)}>{fold.label}</span>}
       >
         <div {...stylex.props(styles.foldBody)}>{children}</div>
-      </Collapsible>
+      </Foldable>
     </div>
   );
 }
