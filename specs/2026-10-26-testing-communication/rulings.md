@@ -97,3 +97,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   cross-site requests, a security rule, so the file stays, and the toolchain decision asks a test
   failing without a bug to be fixed in the pull request that finds it.
 - **Where**: `packages/web/vite.transforms.ts`, found by the validation of wave 3.
+
+## R9: UI behaviour's last rule is checked by review, as the approved spec says
+
+- **Decision**: the rule on growing views in [UI behaviour](../decisions/ui-behaviour.md) ends
+  "Checked by review." instead of "Checked by the UI tests, which count what draws and never time
+  it."
+- **Rationale**: the approved spec's decisions say of UI behaviour: "Its rules end 'Checked by
+  review' instead of the UI tests." The decision's text, written with the spec, missed this one
+  rule, and task 12 removed the tests that counted draws, as the Testing decision asks of tests of
+  how the code does it. The bounded number of rows keeps its unit test, `tail.test.ts`. The pull
+  request names this edit, since the decision changed after the spec's approval.
+- **If wrong**: the rule's old ending comes back, with one test that counts what a growing view
+  mounts.
+- **Where**: `specs/decisions/ui-behaviour.md`, found by the review of wave 3.

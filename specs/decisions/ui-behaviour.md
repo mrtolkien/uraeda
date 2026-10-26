@@ -24,8 +24,7 @@ Everything works by tap and by keyboard, not by hover.
 - Every action MUST work by tap and by keyboard, never by hover alone. Checked by review.
 - A view of something that grows, such as a session's log, MUST mount a bounded number of rows, and
   folded content MUST NOT be mounted, so typing stays smooth in a session of thousands of items. A
-  component that mounts hidden content is wrapped once, in a shared component. Checked by the UI
-  tests, which count what draws and never time it.
+  component that mounts hidden content is wrapped once, in a shared component. Checked by review.
 - Lists whose rows open a pane SHOULD share one keyboard behaviour. Checked by review.
 
 ## Why
