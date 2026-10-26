@@ -122,3 +122,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   origin is a security cost the human's use of the page does not show.
 - **Where**: `packages/web/src/__tests__/preview-sandbox.test.tsx`, and its row in the Kept web UI
   tests table.
+
+## R10: The writes store's test comes back
+
+- **Decision**: `packages/web/src/__tests__/writes-store.test.tsx` is restored as it was at the
+  start of the branch, and its row leaves task 12's Removed table.
+- **Rationale**: it tests the pending label's state machine (`runWrite`, `usePendingAction`) through
+  a hook, not a page: an action shown until the server's status changes, 10 seconds pass, or the
+  write fails, overlapping writes keeping the label, and a failed write after a status change that
+  once showed a stale git-write status again, a bug reproduced. It is logic with many cases and a
+  reproduced bug, which the `early` stage keeps, and no unit test replaced it. Its timers are
+  Vitest's fake ones, so it depends on no elapsed time.
+- **Where**: the Kept web UI tests table, and task 12's Removed table.
