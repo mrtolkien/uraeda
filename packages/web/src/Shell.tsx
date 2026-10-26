@@ -27,7 +27,7 @@ import { FeatureSettingsHost } from "./sidebar/FeatureSettingsDialog.tsx";
 import { RenameSessionHost } from "./sidebar/RenameSession.tsx";
 import { SingleKeysSetting } from "./settings/SingleKeysSetting.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
-import { StatusHintsProvider } from "./statusHints.tsx";
+import { StatusLineCoverProvider } from "./statusHints.tsx";
 import { useWrites } from "./writes/store.ts";
 import { WriteProgress } from "./writes/WriteFeedback.tsx";
 import { ruleStyles } from "./layout/rules.ts";
@@ -170,7 +170,7 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
     <SidebarAddForms>
       <FeatureSettingsHost>
         <RenameSessionHost>
-          <StatusHintsProvider>
+          <StatusLineCoverProvider>
             <KeysProvider singleKeys={singleKeys}>
               <SingleKeysSetting onRead={setSingleKeys} />
               <Frame
@@ -197,7 +197,7 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
                 <TopBarSlotProvider onChange={setSlot}>{children}</TopBarSlotProvider>
               </Frame>
             </KeysProvider>
-          </StatusHintsProvider>
+          </StatusLineCoverProvider>
         </RenameSessionHost>
       </FeatureSettingsHost>
     </SidebarAddForms>

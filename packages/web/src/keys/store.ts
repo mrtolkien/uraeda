@@ -8,7 +8,6 @@
 // new closure tells no reader.
 import type { Icon } from "@astryxdesign/core/Icon";
 import type { ComponentProps } from "react";
-import type { StatusHint } from "../statusHints.tsx";
 import { GROUPS } from "./groups.ts";
 import { isCanonical, isSingleKey } from "./match.ts";
 
@@ -45,6 +44,9 @@ export type Binding = {
 
 /** Who declares: a page or a list, whose hints show first, or the shell, whose hints follow. */
 export type Place = "page" | "shell";
+
+/** A key that works, and what it does, as the status line shows it: "j k" "move". */
+export type StatusHint = { keys: string; label: string };
 
 /** A hint of the registry, and whether it stays while a layer is open. */
 export type Hint = StatusHint & { inLayer: boolean };

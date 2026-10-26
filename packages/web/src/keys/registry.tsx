@@ -16,13 +16,18 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { StatusHint } from "../statusHints.tsx";
 import { inTextField, keepsSpace } from "./fields.ts";
 import { createLeader, type Leader, type Pressed } from "./leader.ts";
 import { useLayerOpen, isLayerOpen } from "./layers.ts";
 import { tokenOf } from "./match.ts";
 import type { Step } from "./sequence.ts";
-import { type Binding, createKeyStore, type KeyStore, type Place } from "./store.ts";
+import {
+  type Binding,
+  createKeyStore,
+  type KeyStore,
+  type Place,
+  type StatusHint,
+} from "./store.ts";
 
 export type { Binding } from "./store.ts";
 

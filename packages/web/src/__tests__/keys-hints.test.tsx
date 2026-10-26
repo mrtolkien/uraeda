@@ -125,3 +125,35 @@ test("a list in columns names h l, and its other keys have no hint of their own"
   expect(line()).not.toContain("next row");
   expect(line()).not.toContain("Home");
 });
+
+/** A component declaring `keys` with a hint, as a page or a list does. */
+function Hinting({ keys }: { keys: ReadonlyArray<[key: string, label: string]> }) {
+  useKeys(keys.map(([key, label]) => ({ hint: key, keys: key, label, run: () => {} })));
+  return null;
+}
+
+/** The registry's hints of a page whose first declarer has `first`, and one more after it. */
+const withFirst = (first: ReadonlyArray<[string, string]>) => (
+  <KeysProvider>
+    <Hinting keys={first} />
+    <Hinting keys={[["n", "unanswered"]]} />
+    <StatusLine isNarrow={false} slot={null} />
+  </KeysProvider>
+);
+
+// R100, moved from `status-hints.test.tsx`: the registry's hints keep each declarer's place.
+test("a declarer whose hints change keeps its place before the others", () => {
+  const { rerender } = render(withFirst([["j", "move"]]));
+  expect(line()).toContain("j move");
+  expect(line().indexOf("j move")).toBeLessThan(line().indexOf("n unanswered"));
+
+  rerender(
+    withFirst([
+      ["j", "move"],
+      ["k", "open"],
+    ]),
+  );
+  expect(line()).toContain("k open");
+  expect(line().indexOf("j move")).toBeLessThan(line().indexOf("k open"));
+  expect(line().indexOf("k open")).toBeLessThan(line().indexOf("n unanswered"));
+});

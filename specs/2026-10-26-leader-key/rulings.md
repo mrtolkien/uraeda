@@ -675,3 +675,41 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   wider change of every caller's signature, and `selected` and `columns` stay indexes either way.
 - **If wrong**: `lists/useListKeys.ts` (`indexOfLink`, `focusRowAt`) and `Card`'s `data-row-key`.
 - **Where**: fix pass C, review of task 8.
+
+## R100: What the structural test lists, and where the old hint API's last test went
+
+- **Decision**: `keys-structural.test.ts` scans every source file of `packages/web/src` (not the
+  tests, browser tests, or lint samples) for `useHotkeys`, a `keydown`, `keyup`, or `keypress`
+  listener, and an `onKeyDown`, `onKeyUp`, or `onKeyPress` handler, and fails for a file not on its
+  list, in a message saying to declare the key with `useKeys` or add the file with its reason. It
+  also fails for a listed file that no longer listens, so the list never goes stale. The list is
+  R1's: the text fields' own keys (`AddNote`, `AddRepository`, `Composer`, `EditableLine`,
+  `QuickAdd`, `SlugField`, `fields/TextField`, `sidebar/Search`, `RepositoryMenu`'s filter), the
+  category delete's Y, N, C (R90), `KindCards`' radio keys, `StoryPick` and `embedLayout`'s Escape,
+  the sandbox's bar, and the registry's own listener, plus two files R1's list did not name:
+  `sign-in/SignInPage.tsx` (an Enter in the access key field, on a page outside the shell and its
+  registry) and `shell/Rail.tsx` (Escape pressed inside the open rail folds it and returns the focus
+  to the logo: a key of the element the focus is on, as a radio group's, while the same Escape
+  pressed outside the rail is already the registry's fallback). A second test says the one rule of
+  "a layer is open" is `keys/layers.ts`: no other file has a selector for an expanded popup
+  (`[aria-haspopup`, `[aria-expanded=`), an open popover (`:popover-open`), or a shown dialog
+  (`dialog[open]`, `dialog:modal`, `[role="dialog"]`), but the sandbox's bar (it places its host in
+  the topmost modal dialog) and `pane/DetailOverlay` (it finds the dialog around a pane to focus its
+  first button), each with its reason. `useStatusHints`, `useDeclaredHints`, and the hint part of
+  `StatusHintsProvider` are deleted, and the provider, which kept only the cover, is now
+  `StatusLineCoverProvider`; `StatusHint`'s type is the key store's. The last test of the old API,
+  "a declarer whose hints change keeps its place before the others", moves from
+  `status-hints.test.tsx` to `keys-hints.test.tsx` (as R9 moved its sibling) and reads the registry:
+  the same property, a declarer's hints change and keep their place in the line, in place of the old
+  API's hook. The browser test of the status line's room declares its twelve long hints with
+  `useKeys` under `KeysProvider`.
+- **Rationale**: nothing had to be migrated: waves 3 and 4 moved every page's key. The rail's Escape
+  could move into the registry only by dropping the rule that the key inside the rail is the rail's,
+  which a page's own Escape would then take first. A test removed with the API it tested would lose
+  the one property the status line's order rests on, so it stays, on the registry.
+- **Alternatives considered**: moving the rail's Escape into the registry: a behaviour change in a
+  task that is about structure. Listing the sign-in page as a page key: it has no registry to
+  declare in.
+- **If wrong**: the lists are two constants in `keys-structural.test.ts`; an entry is one line.
+- **Where**: task 12, `__tests__/keys-structural.test.ts`, `statusHints.tsx`,
+  `shell/StatusLine.tsx`, `__tests__/keys-hints.test.tsx`.
