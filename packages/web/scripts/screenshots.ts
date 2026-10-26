@@ -342,9 +342,8 @@ async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
     const line = page.getByRole("link", { name: /Git listener process/ });
     const above = (await page.getByRole("link", { name: /Claude Code runner/ }).boundingBox())!;
     if (size === "desktop") {
-      const handle = (await page
-        .getByRole("button", { name: "Move Git listener process" })
-        .boundingBox())!;
+      // The card itself is the handle: a press on it and a move drags it.
+      const handle = (await line.boundingBox())!;
       const x = handle.x + handle.width / 2;
       const y = handle.y + handle.height / 2;
       await page.mouse.move(x, y);
