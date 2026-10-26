@@ -360,6 +360,17 @@ test("a navigation while the menu is shown closes it", () => {
   expect(ran).toEqual([]);
 });
 
+// Break: the host closing only when the pathname changes (/new, then /new?kind=change).
+test("a change of the query alone, the Change card's, closes a shown menu", () => {
+  act(() => navigate("/new"));
+  show();
+  press(" ");
+  wait(500);
+  expect(menu("Space")).not.toBeNull();
+  act(() => navigate("/new?kind=change"));
+  expect(menu("Space")).toBeNull();
+});
+
 test("a layer opening while the menu is shown closes it", async () => {
   show();
   press(" ");
