@@ -19,6 +19,7 @@ import { FeatureView } from "./views.ts";
 import { runWrite } from "./writes/store.ts";
 import { Pane } from "./layout/Pane.tsx";
 import { TextField } from "./fields/TextField.tsx";
+import { StatusText } from "./fields/StatusText.tsx";
 
 /** The session an offer moves: its ID, its change's folder for a feature's offer, and whether its agent works. */
 export type OfferSession = { folder?: string; id: string; working: boolean };
@@ -102,9 +103,9 @@ function Actions({
         )}
       </HStack>
       {error && (
-        <Text color="error" role="alert" type="supporting">
+        <StatusText role="alert" tone="error" type="supporting">
           {error}
-        </Text>
+        </StatusText>
       )}
     </>
   );

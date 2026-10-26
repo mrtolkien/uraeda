@@ -2,7 +2,6 @@
 // drawn beside the shell, as a feature's settings are. The server refuses a blank title.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
@@ -11,6 +10,7 @@ import { refusal } from "../errors.ts";
 import { Overlay } from "../layout/Overlay.tsx";
 import { SessionView } from "../views.ts";
 import type { Row } from "./cards.ts";
+import { StatusText } from "../fields/StatusText.tsx";
 
 /** The session renamed: its ID and its title. */
 type Renamed = Pick<Row, "id" | "title">;
@@ -56,9 +56,9 @@ function Rename({ onClose, row }: { onClose: () => void; row: Renamed }) {
         value={title}
       />
       {error && (
-        <Text color="error" role="alert" type="supporting">
+        <StatusText role="alert" tone="error" type="supporting">
           {error}
-        </Text>
+        </StatusText>
       )}
       <HStack align="center" gap={2} justify="end">
         <Button label="Cancel" onClick={onClose} />

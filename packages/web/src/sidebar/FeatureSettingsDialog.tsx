@@ -1,7 +1,6 @@
 // "Feature settings", opened from a card's "…": a dialog on wide screens, a bottom sheet on the
 // phone, drawn beside the shell, as the ＋ forms are. Saving keeps the name in the server's list,
 // for the repository (R2).
-import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -10,6 +9,7 @@ import { Overlay } from "../layout/Overlay.tsx";
 import { FeatureView } from "../views.ts";
 import type { Feature as Card } from "./cards.ts";
 import { FeatureSettingsForm } from "./FeatureSettings.tsx";
+import { StatusText } from "../fields/StatusText.tsx";
 
 /** What the settings read of a feature: its page has these as well as the shell's card. */
 type Feature = Pick<Card, "folder" | "label" | "slug">;
@@ -45,9 +45,9 @@ function Settings({ feature, onClose }: { feature: Feature; onClose: () => void 
         slug={feature.slug}
       />
       {error && (
-        <Text color="error" role="alert" type="supporting">
+        <StatusText role="alert" tone="error" type="supporting">
           {error}
-        </Text>
+        </StatusText>
       )}
     </VStack>
   );

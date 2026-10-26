@@ -31,6 +31,7 @@ import {
   useStoryPick,
 } from "./StoryPick.tsx";
 import { PreviewView } from "./views.ts";
+import { StatusText } from "./fields/StatusText.tsx";
 
 const styles = stylex.create({
   error: {
@@ -79,7 +80,7 @@ export function TryAgain({ folder }: { folder: string }) {
   return (
     <>
       <Button clickAction={restart} label="Try again" size="sm" />
-      {message && <Text color="error">{message}</Text>}
+      {message && <StatusText tone="error">{message}</StatusText>}
     </>
   );
 }

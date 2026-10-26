@@ -1,14 +1,16 @@
-// What an action did, next to what it concerns (UI behaviour): an error in the theme's error colour,
-// kept until it is dealt with, or a save done in its success colour. Every status of the UI is
-// drawn here, so an error reads the same on every page (UI coherence).
+// What an action did, next to what it concerns (UI behaviour): an error in red, kept until it is
+// dealt with, a warning in yellow, or a save done in green, each the theme's text colour of its hue,
+// which reads at 4.5:1 (UI look). Every status of the UI is drawn here, so an error reads the same
+// on every page (UI coherence). Astryx's `Text` has no error colour: `color="error"` draws primary.
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 
 const styles = stylex.create({
-  error: { color: colorVars["--color-error"] },
-  saved: { color: colorVars["--color-success"] },
+  error: { color: colorVars["--color-text-red"] },
+  saved: { color: colorVars["--color-text-green"] },
+  warning: { color: colorVars["--color-text-yellow"] },
 });
 
 /**
@@ -23,7 +25,7 @@ export function StatusText({
 }: {
   children: ReactNode;
   role?: "alert" | "status";
-  tone: "error" | "saved";
+  tone: "error" | "saved" | "warning";
   type?: "supporting";
 }) {
   return type ? (
