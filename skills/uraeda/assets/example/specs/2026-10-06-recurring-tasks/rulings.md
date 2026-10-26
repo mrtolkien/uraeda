@@ -31,7 +31,4 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   "Gymevery day" stays as typed.
 - **Rationale**: the plan's table only has phrases after a space, and a title ending in "...every
   day" glued to a word is more likely a typo than a rule.
-- **Alternatives considered**: a word boundary instead of a space: same result for the table's
-  phrases, harder to read in the regular expression.
-- **If wrong**: one character in the regular expression, with a row added to the table-driven test.
 - **Where**: task 5, `src/lib/repeat.ts`.

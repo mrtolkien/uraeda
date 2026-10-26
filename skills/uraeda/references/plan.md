@@ -418,8 +418,8 @@ structure, a file's name. Settle them yourself: that is the plan's job. A later 
 explained: it was a close call, or it bends a pattern of the codebase. Then write it in the
 feature's `rulings.md`, from
 [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md). It holds what was
-decided, why, the alternatives, and what it costs if wrong. A ruling never binds future work: a
-choice that would is a decision, and a reason to stop.
+decided, why, and, when they help, the alternatives and what it costs if wrong. A ruling never binds
+future work: a choice that would is a decision, and a reason to stop.
 
 ## Stopping to go back to the human
 
