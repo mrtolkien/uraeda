@@ -7,11 +7,9 @@ import type { InboxNote } from "uraeda-binding";
 import { LineField } from "../EditableLine.tsx";
 import { type Found, usePriorityActions } from "../pane/usePriorityActions.ts";
 import { plain } from "../Spans.tsx";
+import type { EditorHooks } from "./Card.tsx";
 import { type Placed, useNoteActions } from "../useNoteActions.ts";
 import { useLineSave } from "../useLineSave.ts";
-
-/** An editor in a card leaves the page as it is: the task view's own editor follows the new key. */
-const NO_REDIRECT = { redirects: false };
 
 /** The line's field, open, and `onDone` once it closed. */
 function RowEditor({
@@ -42,19 +40,22 @@ function RowEditor({
 export function PriorityEditor({
   found,
   hash,
-  onDone,
+  hooks,
 }: {
   found: Found;
   hash: string;
-  onDone: () => void;
+  hooks: EditorHooks;
 }) {
-  const actions = usePriorityActions(found, hash, () => undefined, NO_REDIRECT);
+  const actions = usePriorityActions(found, hash, () => undefined, {
+    onRenamed: hooks.onRenamed,
+    redirects: false,
+  });
   const { entry } = found;
   return (
     <RowEditor
       field={`priorities#${entry.key}`}
       label={`Edit ${plain(entry.spans)}`}
-      onDone={onDone}
+      onDone={hooks.onDone}
       onSave={actions.rename}
       value={entry.text}
     />
@@ -64,21 +65,24 @@ export function PriorityEditor({
 /** A note, edited in place: `placed` is its note and place, over the inbox of `hash`. */
 export function NoteEditor({
   hash,
-  onDone,
+  hooks,
   placed,
 }: {
   hash: string;
-  onDone: () => void;
+  hooks: EditorHooks;
   placed: Placed & { note: InboxNote };
 }) {
-  const actions = useNoteActions(placed, hash, () => undefined, NO_REDIRECT);
+  const actions = useNoteActions(placed, hash, () => undefined, {
+    onRenamed: hooks.onRenamed,
+    redirects: false,
+  });
   const { note } = placed;
   return (
     <RowEditor
       empty="A note needs text."
       field={`inbox#${note.key}`}
       label={`Edit ${plain(note.spans)}`}
-      onDone={onDone}
+      onDone={hooks.onDone}
       onSave={actions.edit}
       value={note.text}
     />

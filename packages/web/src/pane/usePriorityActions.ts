@@ -15,6 +15,9 @@ import { PrioritiesView } from "../views.ts";
 /** A line found in the priorities, with its section and its place in it. */
 export type Found = NonNullable<ReturnType<typeof usePriority>["found"]>;
 
+/** What a line's editor asks of the actions: see `usePriorityActions` and `useNoteActions`. */
+export type ActionOptions = { onRenamed?: (key: string) => void; redirects?: boolean };
+
 /**
  * The page an overlay was opened from, within its repository, which it returns to once its line
  * is deleted.
@@ -24,22 +27,61 @@ function origin() {
 }
 
 /**
+ * Saves the line's new text, `rename`, over the priorities of `hash`: it resolves with the refusal,
+ * if any, and otherwise tells `onRenamed` the line's key and follows it, as `usePriorityActions`
+ * says.
+ */
+function useRename(
+  { entry }: Found,
+  hash: string,
+  onRenaming: (id: string | undefined) => void,
+  { onRenamed, redirects = true }: ActionOptions,
+) {
+  const fate = useFateClient();
+  const here = useRepoPath();
+  return async (text: string) => {
+    onRenaming(entry.id);
+    const result = await guarded(() =>
+      fate.mutations.priorities.edit({
+        input: { entry: entry.id, hash, text },
+        view: PrioritiesView,
+      }),
+    );
+    if (result.error) {
+      onRenaming(undefined);
+      return refusal(result.error).message;
+    }
+    const key = result.result?.sections
+      .flatMap((s) => s.entries)
+      .find((e) => e.id === entry.id)?.key;
+    if (key !== undefined) {
+      onRenamed?.(key);
+      if (redirects && key !== entry.key) {
+        redirect(here(`/priorities/${key}`));
+      }
+    }
+    return undefined;
+  };
+}
+
+/**
  * The pane's actions on `found`, over the priorities of `hash`, and the last refusal to show.
  * `onRenaming` gets the line's id while its text is saved, as its key changes before its address
  * does, and nothing once the save is refused. A rename that changes the line's key follows it to
  * its new address, unless `redirects` is `false`, as for an editor in a card of a list, which
- * leaves the page as it is.
+ * leaves the page as it is. `onRenamed` gets the line's new key once a rename is saved.
  */
 export function usePriorityActions(
   found: Found,
   hash: string,
   onRenaming: (id: string | undefined) => void,
-  { redirects = true }: { redirects?: boolean } = {},
+  options: ActionOptions = {},
 ) {
   const { entry, index, section } = found;
   const fate = useFateClient();
   const toast = useUndoToast();
   const here = useRepoPath();
+  const rename = useRename(found, hash, onRenaming, options);
   const [message, setMessage] = useState<string>();
 
   /** Runs a change of the line: a refusal shows in the pane, and a conflict reloads the list. */
@@ -57,27 +99,6 @@ export function usePriorityActions(
       }
     }
     return result;
-  };
-
-  const rename = async (text: string) => {
-    onRenaming(entry.id);
-    const result = await guarded(() =>
-      fate.mutations.priorities.edit({
-        input: { entry: entry.id, hash, text },
-        view: PrioritiesView,
-      }),
-    );
-    if (result.error) {
-      onRenaming(undefined);
-      return refusal(result.error).message;
-    }
-    const key = result.result?.sections
-      .flatMap((s) => s.entries)
-      .find((e) => e.id === entry.id)?.key;
-    if (redirects && key && key !== entry.key) {
-      redirect(here(`/priorities/${key}`));
-    }
-    return undefined;
   };
 
   const move = (to: string) =>

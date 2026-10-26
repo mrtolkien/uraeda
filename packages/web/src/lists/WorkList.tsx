@@ -8,14 +8,14 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, type Ref, useState } from "react";
 import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, RowStateContext, type WorkRow } from "./Card.tsx";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
-import { isLayerOpen } from "../keys/layers.ts";
-import { itemTarget, type Placed } from "./itemMoves.ts";
-import { type Columns, type ItemMove, useListKeys } from "./useListKeys.ts";
+import { useItemMoves } from "./useItemMoves.ts";
+import { type Columns, useListKeys } from "./useListKeys.ts";
+import { useRefocus } from "./useRefocus.ts";
 import { useRowKeys } from "./useRowKeys.ts";
 
 /** A section's colour: the ongoing entries green, Now blue, Later grey, the rest neutral. */
@@ -195,124 +195,35 @@ function useSelection(named: string | undefined) {
   return [selected, setSelected] as const;
 }
 
-/** How long a move waits for the list to show it before the next key's move goes on (R30). */
-const SETTLE_MS = 2000;
-
-/** The order the rows show in, as text: what a written move changes. */
-const orderOfSections = (sections: ReadonlyArray<Placed>) =>
-  JSON.stringify(sections.map((section) => [section.id, section.rows.map((row) => row.key)]));
-
 /**
- * What the keys that move an item do: the move a drop would ask `onMove` for, one at a time. A key
- * pressed while an earlier move is being written waits for it, and for the list to show it, and
- * its target is read from the list as that move left it, so a held `J` goes down one place at a
- * time; a move the list never shows (refused, or a no-op) holds the keys after it for `SETTLE_MS`
- * at most. A move whose write fails is dropped, and the ones after it still run. `sections` are
- * those on screen, in order, and the moved row is selected. Absent where the list has no
- * `onMove`: its items cannot move.
+ * What the list shows, in order: the `drag`'s sections with the rows as a drag left them (`rowsOf`),
+ * the ones `inRow` and the ones `below` it, the rows of each in the order they show (`shown`), all
+ * of them (`rows`), and each section's id and rows (`placed`), which the keys move along.
  */
-function useItemMoves(
+function useShown(
+  sections: ReadonlyArray<WorkSection>,
+  layout: WorkLayout,
   onMove: OnMove | undefined,
-  sections: ReadonlyArray<Placed>,
-  select: (key: string) => void,
 ) {
-  const latest = useRef({ onMove, order: orderOfSections(sections), sections });
-  const shown = useRef<Array<() => void>>([]);
-  useLayoutEffect(() => {
-    const order = orderOfSections(sections);
-    const isChanged = order !== latest.current.order;
-    latest.current = { onMove, order, sections };
-    if (isChanged) {
-      shown.current.splice(0).forEach((resolve) => resolve());
-    }
-  });
-  const waiting = useRef<Array<() => Promise<void>>>([]);
-  const isWriting = useRef(false);
-  if (onMove === undefined) {
-    return undefined;
-  }
-  const run = async (key: string, move: ItemMove) => {
-    const { onMove: write, order, sections: now } = latest.current;
-    const target = itemTarget(now, key, move);
-    if (target === undefined) {
-      return;
-    }
-    select(key);
-    await write?.(key, target.section, target.index);
-    await new Promise<void>((resolve) => {
-      if (latest.current.order !== order) {
-        resolve();
-        return;
-      }
-      shown.current.push(resolve);
-      setTimeout(resolve, SETTLE_MS);
-    });
-  };
-  const drain = async () => {
-    if (isWriting.current) {
-      return;
-    }
-    isWriting.current = true;
-    try {
-      for (let next = waiting.current.shift(); next; next = waiting.current.shift()) {
-        // A refused write is the caller's to show (see `onMoveRefused`): here it only ends the move.
-        await next().catch(() => undefined);
-      }
-    } finally {
-      isWriting.current = false;
-    }
-  };
-  return (move: ItemMove, row: number) => {
-    const key = sections.flatMap((section) => section.rows)[row]?.key;
-    if (key !== undefined) {
-      waiting.current.push(() => run(key, move));
-      void drain();
-    }
-  };
-}
-
-/**
- * Puts the keyboard's focus on the selected card: at the start with `isFocused`, and once the overlay
- * of a card closed (`named` turns undefined), which leaves the page a moment after, so the focus
- * waits for the layer rule to say it left. The same once the editor or the menu a key opened on a
- * card closed (`held` turns undefined).
- */
-function useRefocus({
-  focusSelected,
-  held,
-  isFocused,
-  named,
-  selected,
-}: {
-  focusSelected: () => void;
-  held: string | undefined;
-  isFocused: boolean;
-  named: string | undefined;
-  selected: string | undefined;
-}) {
-  const wasNamed = useRef(named !== undefined);
-  const wasHeld = useRef(held !== undefined);
-  useEffect(() => {
-    // The overlay closed: the card it showed is selected, and has the focus once the overlay's
-    // layer, which leaves the page a moment after, no longer holds it.
-    const closed =
-      (wasNamed.current && named === undefined) || (wasHeld.current && held === undefined);
-    wasNamed.current = named !== undefined;
-    wasHeld.current = held !== undefined;
-    if (!((isFocused && selected !== undefined) || closed)) {
-      return undefined;
-    }
-    let frame = 0;
-    const focus = () => {
-      if (isLayerOpen()) {
-        frame = requestAnimationFrame(focus);
-      } else {
-        focusSelected();
-      }
-    };
-    focus();
-    return () => cancelAnimationFrame(frame);
-  }, [held, isFocused, named, selected, focusSelected]);
+  const drag = useDragOrder(sections, onMove);
+  const byKey = new Map(
+    drag.sections.flatMap((section) => section.rows.map((row) => [row.key, row] as const)),
+  );
+  const rowsOf = (section: WorkSection) =>
+    section.isFixed
+      ? section.rows
+      : (drag.order[section.id] ?? []).flatMap((key) => byKey.get(key) ?? []);
+  const isNarrowScreen = isNarrow(useWidthClass());
+  const asColumns = layout === "columns" && !isNarrowScreen;
+  const below = asColumns ? drag.sections.filter((section) => section.title === BELOW) : [];
+  const inRow = drag.sections.filter((section) => !below.includes(section));
+  const shown = [...inRow, ...below].map(rowsOf);
+  const placed = [...inRow, ...below].map((section, at) => ({
+    id: section.id,
+    isFixed: section.isFixed,
+    rows: shown[at],
+  }));
+  return { asColumns, below, drag, inRow, placed, rows: shown.flat(), rowsOf, shown };
 }
 
 /**
@@ -343,33 +254,14 @@ export function WorkList({
   selected?: string;
 }) {
   const [selected, setSelected] = useSelection(named);
-  const drag = useDragOrder(sections, onMove);
-  const byKey = new Map(
-    drag.sections.flatMap((section) => section.rows.map((row) => [row.key, row] as const)),
-  );
-  const rowsOf = (section: WorkSection) =>
-    section.isFixed
-      ? section.rows
-      : (drag.order[section.id] ?? []).flatMap((key) => byKey.get(key) ?? []);
-  const isNarrowScreen = isNarrow(useWidthClass());
-  const asColumns = layout === "columns" && !isNarrowScreen;
-  const below = asColumns ? drag.sections.filter((section) => section.title === BELOW) : [];
-  const inRow = drag.sections.filter((section) => !below.includes(section));
-  // The rows in the order they show, which the keys move along, and the indexes each column holds.
-  const shown = [...inRow, ...below].map(rowsOf);
-  const rows = shown.flat();
-  const isOpen = named !== undefined;
-  const placed = [...inRow, ...below].map((section, at) => ({ id: section.id, rows: shown[at] }));
-  const own = useRowKeys(placed, onAddBeside, setSelected);
-  const onMoveItem = useItemMoves(
+  const { asColumns, below, drag, inRow, placed, rows, rowsOf, shown } = useShown(
+    sections,
+    layout,
     onMove,
-    [...inRow, ...below].map((section, at) => ({
-      id: section.id,
-      isFixed: section.isFixed,
-      rows: shown[at],
-    })),
-    setSelected,
   );
+  const isOpen = named !== undefined;
+  const own = useRowKeys(placed, onAddBeside, setSelected);
+  const onMoveItem = useItemMoves(onMove, placed, setSelected);
   const { focusSelected, ref } = useListKeys({
     columns: asColumns ? columnsOf(shown) : undefined,
     // Enter opens the focused card's link; the overlay, once open, has its own Escape.
@@ -383,7 +275,15 @@ export function WorkList({
     rowKeys: own.keys,
     selected: rows.findIndex((row) => row.key === selected),
   });
-  useRefocus({ focusSelected, held: own.held, isFocused, named, selected });
+  useRefocus({
+    focusSelected,
+    held: own.held,
+    isFocused,
+    named,
+    onRefocused: own.onRefocused,
+    renamed: own.renamed,
+    selected,
+  });
   const open = (row: WorkRow) => {
     setSelected(row.key);
     onOpen?.(row.href);

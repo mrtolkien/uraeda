@@ -276,9 +276,10 @@ export function useListKeys({
   );
 
   const focusSelected = useCallback(() => {
-    if (selected !== -1) {
-      focusRowAt(latest.current.getItems(), latest.current.keys, selected, focusItem);
-    }
+    return (
+      selected !== -1 &&
+      focusRowAt(latest.current.getItems(), latest.current.keys, selected, focusItem)
+    );
   }, [focusItem, selected]);
   return { focusSelected, ref: listRef };
 }

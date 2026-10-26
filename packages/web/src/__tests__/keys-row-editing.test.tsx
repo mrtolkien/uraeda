@@ -166,6 +166,29 @@ test("o on a Blocked line opens the form in Next, the default place (R80)", asyn
   await expectSection("Next");
 });
 
+test("a saved in-card line is selected and has the focus, though its key changed (R81)", async () => {
+  const repo = await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
+  await press("i", focus("Nbeta"));
+
+  await save(await editorOf("Nbeta"), "Nbeta renamed");
+
+  await waitFor(() => expect(read(repo)).toContain("- Nbeta renamed\n"));
+  await waitFor(() => expect(document.activeElement).toBe(linkOf("Nbeta renamed")));
+  expect(cardOf("Nbeta renamed").getAttribute("aria-current")).toBe("true");
+  expect(window.location.pathname).toBe(atRepo("/priorities"));
+});
+
+test("a saved in-card note is selected and has the focus, though its key changed (R81)", async () => {
+  const repo = await open("/inbox", "specs/INBOX.md", INBOX, "Ideas · 3");
+  await press("i", focus("Nbeta"));
+
+  await save(await editorOf("Nbeta"), "Nbeta renamed");
+
+  await waitFor(() => expect(read(repo, "specs/INBOX.md")).toContain("- Nbeta renamed\n"));
+  await waitFor(() => expect(document.activeElement).toBe(linkOf("Nbeta renamed")));
+  expect(cardOf("Nbeta renamed").getAttribute("aria-current")).toBe("true");
+});
+
 test("the task view follows a renamed line whose key has non-ASCII characters (R82)", async () => {
   const repo = fixtureRepo();
   writeFileSync(join(repo, "specs/PRIORITIES.md"), "# Priorities\n\n## Next\n\n- 日本語の行\n");

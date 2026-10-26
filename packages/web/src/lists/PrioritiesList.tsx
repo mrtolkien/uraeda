@@ -86,9 +86,9 @@ function sectionsOf(
     return place && <PriorityMenu found={place} hash={priorities.hash} onRefused={onRefused} />;
   };
   const row = (entry: PriorityEntry): WorkRow => ({
-    editor: (onDone: () => void) => {
+    editor: (hooks) => {
       const place = found(entry);
-      return place ? <PriorityEditor found={place} hash={priorities.hash} onDone={onDone} /> : null;
+      return place ? <PriorityEditor found={place} hash={priorities.hash} hooks={hooks} /> : null;
     },
     href: here(`/priorities/${entry.key}`),
     isFixed: entry.running !== undefined,
