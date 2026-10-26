@@ -6,11 +6,11 @@ import { useEffect, useState } from "react";
 import { useFateClient, useLiveView, useRequestState, view, type ViewRef } from "react-fate";
 import type { WorkflowFile } from "uraeda-server/fate";
 import { INBOX_ID, LEDGER_ID, PRIORITIES_ID, useWorkspace, WORKSPACE_ID } from "../data.ts";
-import { DESTINATIONS } from "../destinations.ts";
 import { jumpEntries, pickerItemOf } from "../decisions/jump.ts";
 import { sessionIdPath } from "../routes.tsx";
 import { SESSION_LIST_ID } from "../sessionData.ts";
 import { InboxView, LedgerView, PrioritiesView, SessionListView, WorkspaceView } from "../views.ts";
+import { KIND_ICONS } from "./kinds.ts";
 import type { IconName } from "./store.ts";
 
 export type PickerKind = "features" | "changes" | "sessions" | "decisions" | "notes" | "priorities";
@@ -113,7 +113,7 @@ function featureItems(workspace: Workspace | undefined, proposals: Proposals): A
   return (workspace?.features ?? []).map((feature) => {
     const isChange = feature.kind === "change";
     return {
-      icon: isChange ? "wrench" : "uraeda:step-proposal",
+      icon: KIND_ICONS[isChange ? "changes" : "features"],
       id: `/f/${encodeURIComponent(feature.folder)}`,
       kind: isChange ? "changes" : "features",
       path: `/f/${encodeURIComponent(feature.folder)}`,
@@ -143,7 +143,7 @@ function sessionItems(
       const branch = row.folder === null ? workspace?.currentBranch : branches.get(row.folder);
       const state = row.archived ? `Archived · ${row.statusLabel}` : row.statusLabel;
       return {
-        icon: DESTINATIONS.sessions.icon,
+        icon: KIND_ICONS.sessions,
         id: sessionIdPath(row.id),
         kind: "sessions",
         path: sessionIdPath(row.id),
@@ -204,7 +204,7 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
     ...(ledger ? jumpEntries(ledger, ledger.decisions).map(pickerItemOf) : []),
     ...(inbox?.categories ?? []).flatMap((category) =>
       category.notes.map((note): PickerItem => ({
-        icon: DESTINATIONS.inbox.icon,
+        icon: KIND_ICONS.notes,
         id: `/inbox/${encodeURIComponent(note.key)}`,
         kind: "notes",
         path: `/inbox/${encodeURIComponent(note.key)}`,
@@ -214,7 +214,7 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
     ),
     ...(priorities?.sections ?? []).flatMap((section) =>
       section.entries.map((entry): PickerItem => ({
-        icon: DESTINATIONS.priorities.icon,
+        icon: KIND_ICONS.priorities,
         id: `/priorities/${encodeURIComponent(entry.key)}`,
         kind: "priorities",
         path: `/priorities/${encodeURIComponent(entry.key)}`,

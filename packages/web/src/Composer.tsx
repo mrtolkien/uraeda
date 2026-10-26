@@ -224,8 +224,8 @@ function useSend(
  * Cmd+Enter sends, as it saves every other field (the UI coherence decision); Enter adds a line, on
  * every screen. Astryx sends text alone on Enter: a message of images alone, or images still being
  * saved, are this handler's (an Astryx gap, see the plan). Escape leaves the field for the page,
- * keeping the draft, which `i`, the registry's key, comes back to unless the field is disabled (a
- * menu of the field's own takes Escape first).
+ * keeping the draft, which `i`, the registry's key, comes back to unless the field is disabled. The
+ * composer has no menu of its own (no `@` or `/` triggers), so its Escape is always this one.
  */
 function useFieldKeys(
   input: RefObject<ChatComposerInputHandle | null>,
