@@ -205,6 +205,7 @@ export const uraedaIcons = {
   "uraeda:hourglass": hourglass,
   "uraeda:inbox": inbox,
   "uraeda:key-round": keyRound,
+  "uraeda:keyboard": keyboard,
   "uraeda:layers": layers,
   "uraeda:lightbulb": lightbulb,
   "uraeda:list": list,

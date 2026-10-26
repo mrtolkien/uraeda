@@ -60,6 +60,7 @@ function OnSettings({ category }: { category?: string }) {
       run(() => change.setBuildInFreshSession({ input: { fresh }, view })),
     setOpenBrowser: (open) => run(() => change.setOpenBrowser({ input: { open }, view })),
     setPort: (port) => run(() => change.setPort({ input: { port }, view })),
+    setSingleKeyShortcuts: (on) => run(() => change.setSingleKeyShortcuts({ input: { on }, view })),
   };
   return (
     <SettingsView
