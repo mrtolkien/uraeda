@@ -809,3 +809,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   review asked for. Debouncing by time: unit tests must not depend on elapsed time.
 - **If wrong**: `schedule` in `keys/layers.ts` is the one place.
 - **Where**: fix pass E, finding 8 of the final review.
+
+## R134: The structural test counts listeners per file and reads more forms
+
+- **Decision**: `keys-structural.test.ts` records how many key listeners each allowlisted file has,
+  and fails when a file's count grows: a second listener added to a file that was allowed for the
+  first no longer passes unseen. The scan also reads the property form (`element.onkeydown = ...`)
+  and any `addEventListener` whose event name is not a literal (a variable or a loop's), and the
+  layer rule's scan reads a `closest("dialog, [popover]")` copy of `keys/layers.ts`'s rule. The
+  non-literal names turned up five files R100's list did not have, each with its reason: `Folds.tsx`
+  and `keepPlace.ts` listen for `keydown` among the human's input to end a scripted scroll or to
+  note that the page was used, and act on no key; `attach/useImageDrop.ts` names drag events in a
+  loop; `routes.tsx` and `session/ActivityPanel.tsx` listen for the navigation event by its
+  constant. The counts recorded are what the scan counts now, comments included.
+- **Rationale**: the final review found the test checked a file, not its listeners, and missed two
+  forms a human might write.
+- **Alternatives considered**: reading the event name's value by a type check: the structural test
+  stays a text scan, which has no type information.
+- **If wrong**: the list and its counts are one constant in the test.
+- **Where**: fix pass E, finding 6 of the final review.
