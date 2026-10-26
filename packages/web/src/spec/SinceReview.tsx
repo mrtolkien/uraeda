@@ -17,6 +17,7 @@ import { useOpenKeys } from "../useOpenKeys.ts";
 import { entryOfBlock, entryOwners, placeInStory, type SpecItems } from "./parts.ts";
 import { Runs } from "./RuleLine.tsx";
 import type { Entry } from "./SpecContents.tsx";
+import { plural } from "../labels.ts";
 
 const styles = stylex.create({
   foldLabel: {
@@ -127,7 +128,7 @@ export function sinceFolds(
 }
 
 /** "1 part" or "3 parts". */
-const parts = (count: number) => `${count} ${count === 1 ? "part" : "parts"}`;
+const parts = (count: number) => plural(count, "part");
 
 /** The pane's title: what it counts, the places changed, else the parts removed. */
 function titleOf({ places, removed, since }: SinceModel) {

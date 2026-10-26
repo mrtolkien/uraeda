@@ -12,6 +12,7 @@ import { refusal } from "./errors.ts";
 import { closeUndoToasts } from "./layout/useUndoToast.ts";
 import { PrioritiesView } from "./views.ts";
 import { WriteButton } from "./writes/WriteButton.tsx";
+import { plural } from "./labels.ts";
 
 const styles = stylex.create({
   bar: {
@@ -70,9 +71,7 @@ export function CommitBar({ changes }: { changes: number }) {
       <VStack gap={2}>
         {message && <AnnouncedBanner collapsible={false} status="error" title={message} />}
         <HStack align="center" gap={2} wrap="wrap">
-          <Text>
-            {changes} {changes === 1 ? "change" : "changes"} to commit
-          </Text>
+          <Text>{plural(changes, "change")} to commit</Text>
           <HStack gap={2} justify="end">
             {confirm ? (
               <>

@@ -27,6 +27,7 @@ import {
 import { navigateHere } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { useSaveSettled } from "./settledWrites.ts";
+import { plural } from "./labels.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 type Notes = ReturnType<typeof useRoundNotes>;
@@ -131,7 +132,7 @@ function QuestionsLeft({ blank }: { blank: ReadonlyArray<QuestionItem> }) {
       status="error"
       title={
         <>
-          {blank.length} {blank.length === 1 ? "question" : "questions"} left:{" "}
+          {plural(blank.length, "question")} left:{" "}
           {blank.map((q, index) => (
             <span key={q.id}>
               {index > 0 && ", "}

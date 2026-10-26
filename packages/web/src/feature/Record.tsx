@@ -11,6 +11,7 @@ import { useRepoPath } from "../routes.tsx";
 import type { OpenKeys } from "../useOpenKeys.ts";
 import { DecisionCard } from "../spec/DecisionCard.tsx";
 import { decisionId, GROUPS } from "../spec/parts.ts";
+import { plural } from "../labels.ts";
 
 const styles = stylex.create({
   // The decisions in a layer of their own, under the top bar: on the phone, a card's sticking head,
@@ -115,7 +116,7 @@ function Questions({
       }}
       id="record-questions"
       title="Questions"
-      titleSuffix={`in ${rounds} ${rounds === 1 ? "round" : "rounds"}`}
+      titleSuffix={`in ${plural(rounds, "round")}`}
     >
       <Blocks document={document} ids={body} />
     </Pane>
