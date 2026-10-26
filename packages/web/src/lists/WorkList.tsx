@@ -8,7 +8,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
+import { type ReactNode, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, type WorkRow } from "./Card.tsx";
@@ -194,33 +194,78 @@ function useSelection(named: string | undefined) {
   return [selected, setSelected] as const;
 }
 
+/** How long a move waits for the list to show it before the next key's move goes on (R30). */
+const SETTLE_MS = 2000;
+
+/** The order the rows show in, as text: what a written move changes. */
+const orderOfSections = (sections: ReadonlyArray<Placed>) =>
+  JSON.stringify(sections.map((section) => [section.id, section.rows.map((row) => row.key)]));
+
 /**
- * What the keys that move the selected item do: the move a drop would ask `onMove` for, one at a
- * time, as a second one before the first is written would be read against a list that changed.
- * `sections` are those on screen, in order, and the moved row is selected. Absent where the list
- * has no `onMove`: its items cannot move.
+ * What the keys that move an item do: the move a drop would ask `onMove` for, one at a time. A key
+ * pressed while an earlier move is being written waits for it, and for the list to show it, and
+ * its target is read from the list as that move left it, so a held `J` goes down one place at a
+ * time; a move the list never shows (refused, or a no-op) holds the keys after it for `SETTLE_MS`
+ * at most. A move whose write fails is dropped, and the ones after it still run. `sections` are
+ * those on screen, in order, and the moved row is selected. Absent where the list has no
+ * `onMove`: its items cannot move.
  */
 function useItemMoves(
   onMove: OnMove | undefined,
   sections: ReadonlyArray<Placed>,
   select: (key: string) => void,
 ) {
-  const isMoving = useRef(false);
+  const latest = useRef({ onMove, order: orderOfSections(sections), sections });
+  const shown = useRef<Array<() => void>>([]);
+  useLayoutEffect(() => {
+    const order = orderOfSections(sections);
+    const isChanged = order !== latest.current.order;
+    latest.current = { onMove, order, sections };
+    if (isChanged) {
+      shown.current.splice(0).forEach((resolve) => resolve());
+    }
+  });
+  const waiting = useRef<Array<() => Promise<void>>>([]);
+  const isWriting = useRef(false);
   if (onMove === undefined) {
     return undefined;
   }
-  return async (move: ItemMove, row: number) => {
-    const key = sections.flatMap((section) => section.rows)[row]?.key;
-    const target = key === undefined ? undefined : itemTarget(sections, key, move);
-    if (key === undefined || target === undefined || isMoving.current) {
+  const run = async (key: string, move: ItemMove) => {
+    const { onMove: write, order, sections: now } = latest.current;
+    const target = itemTarget(now, key, move);
+    if (target === undefined) {
       return;
     }
     select(key);
-    isMoving.current = true;
+    await write?.(key, target.section, target.index);
+    await new Promise<void>((resolve) => {
+      if (latest.current.order !== order) {
+        resolve();
+        return;
+      }
+      shown.current.push(resolve);
+      setTimeout(resolve, SETTLE_MS);
+    });
+  };
+  const drain = async () => {
+    if (isWriting.current) {
+      return;
+    }
+    isWriting.current = true;
     try {
-      await onMove(key, target.section, target.index);
+      for (let next = waiting.current.shift(); next; next = waiting.current.shift()) {
+        // A refused write is the caller's to show (see `onMoveRefused`): here it only ends the move.
+        await next().catch(() => undefined);
+      }
     } finally {
-      isMoving.current = false;
+      isWriting.current = false;
+    }
+  };
+  return (move: ItemMove, row: number) => {
+    const key = sections.flatMap((section) => section.rows)[row]?.key;
+    if (key !== undefined) {
+      waiting.current.push(() => run(key, move));
+      void drain();
     }
   };
 }
