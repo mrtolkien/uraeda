@@ -380,36 +380,40 @@ fix what you find inline. This is a checklist you run yourself.
    global constraint. Can you point to its row of the test map, a task, and a check that owns it,
    exact text and timings included? Add a task for any requirement without one. A test that goes or
    changes follows [when a test goes](code-quality.md#when-a-test-goes).
-2. **Step scan**: every step has a checkable outcome and the contracts its neighbours need. A line
+2. **Test count**: count the new tests the test map names. More than the spec's key scenarios plus
+   its high edge cases, or a test of its own for a rarer scenario, a lower edge case, or a
+   review-focus item, breaks [how many](code-quality.md#how-many): make it a row or an assertion of
+   one of those tests, or write "none" and why.
+3. **Step scan**: every step has a checkable outcome and the contracts its neighbours need. A line
    that decides nothing is a gap; private code the implementer can choose is unnecessary
    prescription. Fix both. Explain an algorithm when correctness depends on it.
-3. **Expected values**: work out each test's expectation from the approved rules, then check the
+4. **Expected values**: work out each test's expectation from the approved rules, then check the
    proposed algorithm against it. Follow stateful cases across successive operations and relevant
    failure paths: a month-end clamp that holds once can drift the second time. Which plausible
    incorrect behaviour would each important test detect?
-4. **Type consistency**: the types, signatures, and names used in later tasks match what earlier
+5. **Type consistency**: the types, signatures, and names used in later tasks match what earlier
    tasks define. A function called `clearLayers()` in task 3 but `clearFullLayers()` in task 7 is a
    bug. A task that changes the behaviour of an existing function declares it in **Produces**. No
    two functions share a name, test helpers included.
-5. **Review focus**: for each input class or failure mode the spec implies, is there a task whose
+6. **Review focus**: for each input class or failure mode the spec implies, is there a task whose
    tests exercise it? The most consequential uncovered ones go in **Review focus**, each pinned in
    the owning task's tests where the stage asks it. An empty section means you checked and found
    none, not that you skipped the check.
-6. **Order**: each task can be built and tested with what the earlier tasks made. Each expected
+7. **Order**: each task can be built and tested with what the earlier tasks made. Each expected
    failure is the first one its run will actually hit. No two tasks of a wave consume each other or
    change the same function, type, or rule. Outside behaviour the spec marks unverified is checked
    by the first task, and each risky task has its **Risky** line.
-7. **Proportion**: compare the plan's length to the code it describes. If code blocks are most of
+8. **Proportion**: compare the plan's length to the code it describes. If code blocks are most of
    the document, replace private bodies with responsibilities, required contracts, test names, and
    assertions. Keep instructions that change a decision or make an outcome checkable; link shared
    context rather than repeating it in tasks.
-8. **The spec itself**: when two of its sections disagree, or an edge case cannot be met with its
+9. **The spec itself**: when two of its sections disagree, or an edge case cannot be met with its
    data, do not pick one. Stop, as described in
    [Stopping to go back to the human](#stopping-to-go-back-to-the-human).
-9. **Ownership and change cost**: each changed rule and resource has an owner, its affected callers
-   are covered, and the necessary simplification stays within the feature. Justify any duplicated
-   enforcement or new indirection through a concrete constraint or approved need. Every task that
-   touches a unit over its limit starts with a structural step, and every test names its break.
+10. **Ownership and change cost**: each changed rule and resource has an owner, its affected callers
+    are covered, and the necessary simplification stays within the feature. Justify any duplicated
+    enforcement or new indirection through a concrete constraint or approved need. Every task that
+    touches a unit over its limit starts with a structural step, and every test names its break.
 
 ## Rulings while planning
 
