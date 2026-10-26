@@ -849,3 +849,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   compared to the Find group's: each draws its own decision's icon.
 - **If wrong**: `newBindings` in `keys/leaderTree.ts` and `keys/kinds.ts`.
 - **Where**: fix pass E, finding 9 of the final review.
+
+## R136: On a Mac, a character typed with Option is that character
+
+- **Decision**: `tokenOf` (`keys/match.ts`) gives a printable character, other than a Latin letter,
+  typed with Option on macOS as that character, as it does one typed with AltGr: `[` and `]` on a
+  German or French Mac layout (Option+5, Option+6) fire the bindings `[` and `]`, as they did under
+  the old hotkeys hook. A Latin letter with Option, a chord with Option and Command or Control, and
+  Alt anywhere else stay `alt+<key>`, which no binding names. The platform is read as a browser
+  gives it (`navigator.userAgentData.platform`, else `navigator.platform`). The tests stub the
+  platform; a run on a real Mac with a German or French layout is deferred.
+- **Rationale**: the final review found those layouts could not fold or unfold the rail's sections,
+  and the fix is a few lines and safe: no binding uses Alt, so the only keys it can newly run are
+  the characters a Mac types with Option, which are not the bindings' letters.
+- **Alternatives considered**: recording the limit only: a regression from the hotkeys hook on two
+  common layouts. Reading `code` for those keys: matching is on the character typed, for the
+  layouts' sake.
+- **If wrong**: `onMac` and the `option` line in `tokenOf`.
+- **Where**: fix pass E, finding 10 of the final review; the deferred check is a typed `[` and `]`
+  on a German Mac.

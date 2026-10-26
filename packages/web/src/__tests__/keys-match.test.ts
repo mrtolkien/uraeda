@@ -1,6 +1,6 @@
 // What a keydown means to the key registry (review focus 1, 2, 3): the character typed, whatever
 // Shift does, AltGr as no modifier, and no token for a composition, a dead key, or a lone modifier.
-import { expect, test } from "vite-plus/test";
+import { afterEach, expect, test, vi } from "vite-plus/test";
 import { isCanonical, isSingleKey, tokenOf } from "../keys/match.ts";
 
 /**
@@ -33,6 +33,33 @@ test("a character typed with AltGr is that character, and a real Ctrl shortcut i
   expect(tokenOf(press("[", { altKey: true, ctrlKey: true }))).toBe("[");
   expect(tokenOf(press("[", { ctrlKey: true }))).not.toBe("[");
   expect(tokenOf(press("x", { altKey: true }))).not.toBe("x");
+});
+
+/** Reports the platform as `platform`, as a browser on that system does. */
+const onPlatform = (platform: string) =>
+  vi.spyOn(navigator, "platform", "get").mockReturnValue(platform);
+
+afterEach(() => vi.restoreAllMocks());
+
+// Break: reading Option as a modifier on a Mac: `[` and `]` on a German or French Mac are Option+5
+// and Option+6, and the old hotkeys hook ran them too (R136).
+test("on a Mac, a character typed with Option is that character, and a letter with Option is not", () => {
+  onPlatform("MacIntel");
+  expect(tokenOf(press("[", { altKey: true }))).toBe("[");
+  expect(tokenOf(press("]", { altKey: true }))).toBe("]");
+  // `{` is Shift and Option there: still the character.
+  expect(tokenOf(press("{", { altKey: true, shiftKey: true }))).toBe("{");
+  // A Latin letter with Option, and a command or control chord with it, are no character typed.
+  expect(tokenOf(press("x", { altKey: true }))).toBe("alt+x");
+  expect(tokenOf(press("[", { altKey: true, metaKey: true }))).not.toBe("[");
+  expect(tokenOf(press(" ", { altKey: true }))).toBe("alt+space");
+});
+
+test("off a Mac, Alt with a character is a shortcut's modifier, as before", () => {
+  onPlatform("Win32");
+  expect(tokenOf(press("[", { altKey: true }))).toBe("alt+[");
+  onPlatform("Linux x86_64");
+  expect(tokenOf(press("]", { altKey: true }))).toBe("alt+]");
 });
 
 // Break: the token taken from `event.key` as typed, so Caps Lock turns `j` into `J`, which moves
