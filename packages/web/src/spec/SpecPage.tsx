@@ -1,8 +1,8 @@
 // The spec page: a spec read as one page you approve in one sitting, waiting for your review or
 // not, each part a titled pane. What you approve, your review answered, the decisions, the stories,
-// the data, then how it is built, and its history, folded; a group's heading counts what it holds.
-// The column of Contents and Review beside them, on the phone in the status line. The only file
-// that wires the parts: each takes what it needs from here.
+// the replaced behaviour, the data, then how it is built, and its history, folded; a group's
+// heading counts what it holds. The column of Contents and Review beside them, on the phone in the
+// status line. The only file that wires the parts: each takes what it needs from here.
 import { Heading } from "@astryxdesign/core/Heading";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -141,7 +141,10 @@ function SpecTitle({
   );
 }
 
-/** The groups after the answers: the decisions, the stories, the data, and how it is built. */
+/**
+ * The groups after the answers: the decisions, the stories, the replaced behaviour, the data, and
+ * how it is built.
+ */
 function Groups({
   changes,
   data,
@@ -156,6 +159,7 @@ function Groups({
   const decisions = partOf(items, "Decisions");
   const hasBuilt = BUILT_PARTS.some((title) => partOf(items, title));
   const stories = partOf(items, "User stories");
+  const replaced = partOf(items, "Replaced behaviour");
   const intro = storiesIntro(items);
   return (
     <>
@@ -184,6 +188,16 @@ function Groups({
           {items.stories.map((story) => (
             <StoryCard {...part} key={story.id} story={story} />
           ))}
+        </Group>
+      )}
+      {replaced && (
+        <Group
+          icon="uraeda:arrow-right-left"
+          id={groupId(items, GROUPS.replaced)}
+          title={GROUPS.replaced.title}
+          wide={part.wide}
+        >
+          <Blocks document={part.document} ids={replaced.blocks} selection={part.selection} />
         </Group>
       )}
       {data && (

@@ -219,9 +219,20 @@ function lines(count: number, prefix: string): string {
 export const proposal = (title: string) =>
   `# ${title}\n\n## What\n\nRounds of questions read as a flat list.\n\n## Why\n\nThey take too long to answer.\n`;
 
-/** The spec of the recurring tasks, its status `status`. */
+/** The behaviour the sample spec replaces, between its stories and its architecture. */
+const REPLACED = `## Replaced behaviour
+
+- **A completed task gets no next date.** Guarded by \`tests/tasks/complete-a-task.test.tsx\`.
+- **A task repeats only on a fixed interval.** Guarded by \`tests/tasks/repeat-every-n-days.test.tsx\`
+  and \`tests/tasks/repeat-end-of-month.test.tsx\`.
+
+`;
+
+/** The spec of the recurring tasks, its status `status`, with a replaced behaviour added. */
 export const spec = (status: string) =>
-  recurring("spec.md").replace(/^status: .*$/m, `status: ${status}`);
+  recurring("spec.md")
+    .replace(/^status: .*$/m, `status: ${status}`)
+    .replace("## Architecture\n", `${REPLACED}## Architecture\n`);
 
 /** A UTC time of Oct 17 or Oct 18, 2026, "17 10:52" giving Oct 17 at 10:52. */
 export const at = (time: string) => `2026-10-${time.replace(" ", "T")}:00Z`;

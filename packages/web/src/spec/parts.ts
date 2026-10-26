@@ -41,6 +41,7 @@ export const GROUPS = {
   data: { id: "data", title: "Data" },
   decisions: { id: "decisions", part: "Decisions", title: "Decisions" },
   history: { id: "history", part: "History", title: "History" },
+  replaced: { id: "replaced-behaviour", part: "Replaced behaviour", title: "Replaced behaviour" },
   stories: { id: "user-stories", part: "User stories", title: "User stories" },
 } as const;
 
@@ -74,6 +75,7 @@ const KNOWN_PARTS = new Set([
   "Decisions",
   "Edge cases",
   "History",
+  "Replaced behaviour",
   "Risk tier",
   "Success criteria",
   "User stories",
@@ -171,6 +173,7 @@ export function entryOwners(document: Document, items: SpecItems): Map<number, s
   ownPart(partOf(items, "Your review"), groupId(items, GROUPS.answers));
   ownPart(partOf(items, "Decisions"), groupId(items, GROUPS.decisions));
   ownPart(partOf(items, "User stories"), groupId(items, GROUPS.stories));
+  ownPart(partOf(items, "Replaced behaviour"), groupId(items, GROUPS.replaced));
   for (const decision of items.decisions) {
     owners.set(decision.block, decisionId(decision.name));
   }
