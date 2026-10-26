@@ -5,7 +5,7 @@ import { Button } from "@astryxdesign/core/Button";
 
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
-import { TextArea } from "@astryxdesign/core/TextArea";
+
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type ReactNode, Suspense, useCallback, useId, useEffect, useRef, useState } from "react";
@@ -18,6 +18,7 @@ import { addNote, type OfferKind, proposalTitle, returnFocus, useAsks } from "./
 import { FeatureView } from "./views.ts";
 import { runWrite } from "./writes/store.ts";
 import { Pane } from "./layout/Pane.tsx";
+import { TextField } from "./fields/TextField.tsx";
 
 /** The session an offer moves: its ID, its change's folder for a feature's offer, and whether its agent works. */
 export type OfferSession = { folder?: string; id: string; working: boolean };
@@ -175,7 +176,13 @@ function ChangeCard({ heading, latest, onClose, proposal: given, session }: Card
   };
   return (
     <Frame heading={heading} title="Start a change">
-      <TextArea label="Proposal" onChange={setProposal} rows={5} value={proposal} />
+      <TextField
+        kind="comment"
+        label="Proposal"
+        onChange={setProposal}
+        onSubmit={latest && !session.working ? () => void start() : undefined}
+        value={proposal}
+      />
       <Suspense fallback={null}>
         <ProposedSlug onProposed={setProposed} proposal={proposal} />
       </Suspense>
