@@ -324,6 +324,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a feature that stages keys before their group is named adds the group's line first
   in `groups.ts`.
 - **Where**: fix pass A, `keys/store.ts`.
+
 ## R30: A second move key queues; each target is read when it runs
 
 - **Decision**: `WorkList`'s moves (`J K H L`, Shift with the arrows) go in a queue: a key pressed
