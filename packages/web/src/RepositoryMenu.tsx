@@ -27,6 +27,7 @@ import { Logo } from "./Logo.tsx";
 import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
 import { ActionsMenu } from "./layout/ActionsMenu.tsx";
+import { StatusText } from "./fields/StatusText.tsx";
 
 const styles = stylex.create({
   brand: {
@@ -110,9 +111,11 @@ function RepositoryRow({
     <ListItem
       description={
         row.missing ? (
-          <Text color="error" display="block" type="supporting" xstyle={styles.path}>
-            Folder not found: {row.home}
-          </Text>
+          <span {...stylex.props(styles.path)}>
+            <StatusText tone="error" type="supporting">
+              Folder not found: {row.home}
+            </StatusText>
+          </span>
         ) : (
           <Text color="secondary" display="block" type="supporting" xstyle={styles.path}>
             {row.home}

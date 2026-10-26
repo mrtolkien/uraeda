@@ -1,6 +1,5 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -24,6 +23,7 @@ import { TextField } from "./fields/TextField.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { startingLetters } from "./readLetters.ts";
 import type { useAnswer } from "./useAnswer.ts";
+import { StatusText } from "./fields/StatusText.tsx";
 
 const styles = stylex.create({
   actions: {
@@ -236,10 +236,10 @@ export function AnswerComment({
         </CommentField>
       </div>
       {reads.length > 0 && (
-        <Text color="warning" role="status" type="supporting">
+        <StatusText role="status" tone="warning" type="supporting">
           Saved with no letter picked, this reads as picking {reads.join(" and ")}, and opens its
           follow-ups. Start with another word to keep it a comment.
-        </Text>
+        </StatusText>
       )}
     </VStack>
   );
