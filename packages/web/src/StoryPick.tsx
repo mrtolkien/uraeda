@@ -8,7 +8,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Text } from "@astryxdesign/core/Text";
 import { ToggleButton } from "@astryxdesign/core/ToggleButton";
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useContext, useEffect, useState, useSyncExternalStore } from "react";
 import type { StoryTarget } from "uraeda-binding";
@@ -18,12 +18,10 @@ import { Overlay } from "./layout/Overlay.tsx";
 import { type Picked, storyAnchor, storyComment } from "./storyComment.ts";
 import { RepositoryPathContext } from "./routes.tsx";
 import type { PickMode } from "./StoryFrames.tsx";
+import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
   form: {
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: borderVars["--border-width"],
     padding: spacingVars["--spacing-3"],
   },
   hint: {
@@ -198,7 +196,7 @@ export function StoryCommentForm({
     />
   );
   if (wide) {
-    return fields && <div {...stylex.props(styles.form)}>{fields}</div>;
+    return fields && <div {...stylex.props(ruleStyles.above, styles.form)}>{fields}</div>;
   }
   return (
     <Overlay isOpen={form !== undefined} label="Comment" onClose={close}>

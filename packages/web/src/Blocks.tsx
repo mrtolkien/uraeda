@@ -20,6 +20,7 @@ import { TableNode } from "./BlockTable.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
 import { EmbedNode } from "./EmbedNode.tsx";
 import { useMockupAt, useStoryAt } from "./stories.tsx";
+import { ruleStyles } from "./layout/rules.ts";
 
 const SIGNS: Record<string, string> = {
   ask: "?",
@@ -50,10 +51,7 @@ const styles = stylex.create({
   callout: {
     // A callout: a bar down its side, coloured by its kind, its title above its text.
     borderInlineStartColor: colorVars["--color-accent"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartWidth: spacingVars["--spacing-1"],
     marginBlockEnd: spacingVars["--spacing-4"],
-    paddingInlineStart: spacingVars["--spacing-3"],
   },
   calloutImportant: { borderInlineStartColor: colorVars["--color-border-purple"] },
   calloutTip: { borderInlineStartColor: colorVars["--color-success"] },
@@ -345,7 +343,7 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
     case "callout": {
       const kind = block.calloutKind ?? "note";
       return (
-        <div role="note" {...stylex.props(styles.callout, CALLOUT_STYLES[kind])}>
+        <div role="note" {...stylex.props(ruleStyles.bar, styles.callout, CALLOUT_STYLES[kind])}>
           <span {...stylex.props(styles.calloutTitle)}>
             {block.spans.length ? (
               <SinceWords block={block}>{spans}</SinceWords>

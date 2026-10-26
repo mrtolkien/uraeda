@@ -5,20 +5,17 @@
 // is a region named by its panel, in the tab order, so the keyboard scrolls it: the column around
 // them no longer scrolls. Each part is a container of its width, which its rows' parts size by. The
 // session column splits Activity, or Sub-agents, over Changes this way.
-
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useId } from "react";
 import type { ColumnPanel } from "./DocumentColumn.tsx";
 import { GroupTitle } from "./GroupTitle.tsx";
+import { ruleStyles } from "./rules.ts";
 
 const styles = stylex.create({
   // The bottom panel: a rule across the column's whole width over it, as between a terminal's
   // panes, its content kept in the column's inset (`SideColumn.tsx`'s `full`).
   bottom: {
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: borderVars["--border-width"],
     containerType: "inline-size",
     flexShrink: 0,
     marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
@@ -66,7 +63,11 @@ function Split({
       <section aria-label={topLabel} tabIndex={0} {...stylex.props(styles.top)}>
         {top}
       </section>
-      <section aria-labelledby={headingId} tabIndex={0} {...stylex.props(styles.bottom)}>
+      <section
+        aria-labelledby={headingId}
+        tabIndex={0}
+        {...stylex.props(ruleStyles.above, styles.bottom)}
+      >
         <div {...stylex.props(styles.heading)}>
           <GroupTitle id={headingId} level={3}>
             {label}

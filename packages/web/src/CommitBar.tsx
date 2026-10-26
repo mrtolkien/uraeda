@@ -3,7 +3,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
@@ -13,15 +13,13 @@ import { closeUndoToasts } from "./layout/useUndoToast.ts";
 import { PrioritiesView } from "./views.ts";
 import { WriteButton } from "./writes/WriteButton.tsx";
 import { plural } from "./labels.ts";
+import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
   bar: {
     // The bar stays at the bottom of the screen while there is something to commit, above the
     // shell's status line, fixed at the window's bottom.
     backgroundColor: colorVars["--color-background-body"],
-    borderBlockStartColor: colorVars["--color-border"],
-    borderBlockStartStyle: "solid",
-    borderBlockStartWidth: borderVars["--border-width"],
     bottom: "var(--size-status-line, 0px)",
     marginBlockStart: spacingVars["--spacing-4"],
     paddingBlock: spacingVars["--spacing-2"],
@@ -67,7 +65,7 @@ export function CommitBar({ changes }: { changes: number }) {
   };
 
   return (
-    <div {...stylex.props(styles.bar)}>
+    <div {...stylex.props(ruleStyles.above, styles.bar)}>
       <VStack gap={2}>
         {message && <AnnouncedBanner collapsible={false} status="error" title={message} />}
         <HStack align="center" gap={2} wrap="wrap">

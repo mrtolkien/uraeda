@@ -8,18 +8,16 @@ import type { CommentItem, Document } from "uraeda-binding";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { StatusText } from "./fields/StatusText.tsx";
 import { holderOf, placeOf } from "./reviewField.ts";
+import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
   pending: {
     // A pending comment under its block: a bar down its side.
     borderInlineStartColor: colorVars["--color-warning"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartWidth: spacingVars["--spacing-1"],
     marginBlockEnd: spacingVars["--spacing-2"],
     marginBlockStart: spacingVars["--spacing-0-5"],
     marginInlineStart: spacingVars["--spacing-6"],
     overflowWrap: "anywhere",
-    paddingInlineStart: spacingVars["--spacing-3"],
   },
 });
 
@@ -96,7 +94,7 @@ export function CommentNote({
   text: string;
 }) {
   return (
-    <div aria-label={name} id={id} role="group" {...stylex.props(styles.pending)}>
+    <div aria-label={name} id={id} role="group" {...stylex.props(ruleStyles.bar, styles.pending)}>
       <HStack align="center" gap={2} justify="between" wrap="wrap">
         <Text color="secondary" type="supporting">
           {label}
