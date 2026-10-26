@@ -661,6 +661,34 @@ browser was asked (R3). `diagram.test.tsx` and `diagram-hostile.test.tsx` lose n
 | `packages/web/src/__tests__/helpers.tsx`                      | `addRun`, `holding`, `listOf`, `temporaryHome`, `repoAt`, `record`, `homeHidden`, `read`, `addMockup`, `sent`, and the exports `Binding`, `Fake`, `atWidth` | Setup only the removed tests used: seeding runs, holding requests, a list of repositories, a home folder, a record, a mockup; the request log `sent` that only they read                                                                                                      |
 | `packages/web/src/__focused__/helpers.tsx`                    | the export of `agentRecord`                                                                                                                                 | Used by the composer tests removed: `renderComposer` still calls it                                                                                                                                                                                                           |
 
+#### Task 13
+
+Kept whole, as the decisions name them: `lint.test.ts`
+([Code quality](/specs/decisions/code-quality.md)), `theme-tokens.test.ts` and
+`offline-build.test.ts` ([UI look](/specs/decisions/ui-look.md)), the sandbox's tests
+([Sandbox](/specs/decisions/sandbox.md)), and the benchmark runner's tests
+([Benchmarks](/specs/decisions/benchmarks.md)). `build.test.ts` keeps its test of the build's
+output, which the Sandbox decision names. `keep-place.test.ts` stays whole: its tests reproduce bugs
+fixed in earlier features (R29 and R32), races that using the page does not show. Judged files: 46;
+test declarations before 278, after 264 (14 removed, one row each).
+
+| File                                                      | Test                                                                                         | Behaviour it guarded                                                                                                                                                                                                                                              |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/web/src/__tests__/build.test.ts`                | the main bundle holds no pele, which chunks of their own hold                                | Where the bundler puts the diagram library: how the build is cut, and [Diagrams](/specs/decisions/diagrams.md) checks "load the library only when a page holds a diagram" by review                                                                               |
+| `packages/web/src/__tests__/decision-icons.test.ts`       | a decision's icon is its own when registered, else the default one                           | A lookup of one registered name and a fallback for four others: trivial code                                                                                                                                                                                      |
+| `packages/web/src/__tests__/document-column.test.ts`      | the width before a drag is a third of the window, between 400 and 600 px                     | The documents' column's size at four window widths: a size, which using the page shows                                                                                                                                                                            |
+| `packages/web/src/__tests__/document-column.test.ts`      | the session column is narrower than the documents' at semi-wide (C2)                         | The session column's size at two window widths: a size, which using the page shows                                                                                                                                                                                |
+| `packages/web/src/__tests__/document-column.test.ts`      | a session's dragged width reads as itself in Session, and as 400 px in the documents'        | The size a hook reads for each column from one stored value: a size; the kept "folding and unfolding" test asserts the stored value itself                                                                                                                        |
+| `packages/web/src/__tests__/figure-rows.test.ts`          | a live feature reads lines, tokens, agent time, and elapsed, the lines leading to the stages | The labels, order, captions, and links of a live feature's figures: a display the human sees on opening the page, not costly to lose ([Testing](/specs/decisions/testing.md), web UI rule)                                                                        |
+| `packages/web/src/__tests__/figure-rows.test.ts`          | a done feature reads total time, questions and decisions leading to the record               | The labels, order, captions, and links of a done feature's figures: a display, as above; its durations are asserted by the kept agent-time and elapsed tests and `times.test.ts`, its token text by `tokenCount`'s                                                |
+| `packages/web/src/__tests__/figure-rows.test.ts`          | a change shows questions and decisions only when it has some                                 | Which rows a change shows: a display, as above                                                                                                                                                                                                                    |
+| `packages/web/src/__tests__/figure-rows.test.ts`          | a feature at zero questions leads nowhere                                                    | A row's caption and missing link: trivial code                                                                                                                                                                                                                    |
+| `packages/web/src/__tests__/figure-rows.test.ts`          | a done feature whose commits were not traced has no rows                                     | An empty list of rows when the history is not found: trivial code                                                                                                                                                                                                 |
+| `packages/web/src/__tests__/stretches.test.ts`            | the stretch's address                                                                        | The query string of a stretch's link: a URL template, trivial code                                                                                                                                                                                                |
+| `packages/web/samples/__tests__/projects.test.ts`         | empty is a project just set up                                                               | The sample `empty` holding no feature, problem, priority, or note: its builder's output, which the sandbox shows at once, and no rule names it                                                                                                                    |
+| `packages/web/samples/__tests__/storybook-states.test.ts` | Storybook's fixture holds the same features at the same steps                                | A snapshot of the 26 features Storybook's fixture held before the samples moved, and their steps: neither a stored format nor a contract, and adding a feature to the fixture cost an edit of the list ([Testing](/specs/decisions/testing.md), early stage rule) |
+| `scripts/__tests__/fast-check.test.ts`                    | fast's own checks wait for a heavy slot                                                      | fast waiting while both heavy slots are held, with `vp` never called: "the changed files are listed with the user's globally ignored files left out" asserts the same waiting line and no call                                                                    |
+
 ## Waves
 
 The tasks of a wave are built at the same time, then merged and reviewed while the next wave starts.
@@ -1326,17 +1354,17 @@ git commit -m "test(testing-communication): the web UI keeps only its extremely 
   `fast-selection.test.ts` and `fast-discovery.test.ts`); the `uraeda-web:` weights of files it
   deletes
 
-- [ ] **Step 1: Judge each test** by [how a test is judged](#global-constraints), listing the
+- [x] **Step 1: Judge each test** by [how a test is judged](#global-constraints), listing the
       removed ones under [Removed tests](#removed-tests), "Task 13". Keep the tests decisions name:
       `lint.test.ts` (Code quality), `theme-tokens.test.ts` and `offline-build.test.ts` (UI look),
       the sandbox's tests (Sandbox), the runner's tests (Benchmarks).
 
-- [ ] **Step 2: Run the task's validation**
+- [x] **Step 2: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, then `nix develop -c vp run ready`
 - Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add -A packages/web packages/benchmarks scripts specs/2026-10-26-testing-communication/plan.md

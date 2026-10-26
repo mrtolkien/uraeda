@@ -128,15 +128,6 @@ test("the changed files are listed with the user's globally ignored files left o
   expect(calls(root)).toBe("");
 }, 90_000);
 
-test("fast's own checks wait for a heavy slot", async () => {
-  const { bin, root } = checkout("notes.md");
-  const { output } = await fastCheck(root, bin, {
-    until: "Waiting for 2 other runs of the heavy tests",
-  });
-  expect(output).toContain("Waiting for 2 other runs of the heavy tests");
-  expect(calls(root)).toBe("");
-}, 20_000);
-
 test("the type check never runs while the binding's generated files are rebuilt", () => {
   const stages = checkStages(
     selectFast([{ added: false, deleted: false, path: "crates/binding/src/lib.rs" }]),
