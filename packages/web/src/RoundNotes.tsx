@@ -21,6 +21,7 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { type Hashes, type RoundTarget, useRoundWrites } from "./roundTarget.ts";
 import { useSave } from "./useSave.ts";
+import { Empty } from "./layout/Empty.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -198,10 +199,10 @@ export function NotesRead({
         {written ? (
           <Paragraph xstyle={styles.text}>{field.text}</Paragraph>
         ) : (
-          <Paragraph color="secondary">
+          <Empty>
             No notes yet. Write one from anywhere: the Notes{" "}
             {narrow ? "button below" : "tab of the column"}.
-          </Paragraph>
+          </Empty>
         )}
         <HStack align="center" gap={2} wrap="wrap">
           <Button

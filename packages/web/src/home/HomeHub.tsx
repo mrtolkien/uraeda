@@ -11,11 +11,12 @@ import { useNavigation } from "../sessionData.ts";
 import { plain } from "../Spans.tsx";
 import { InProgress, NeedsYou, Problems, Sessions } from "./Core.tsx";
 import { homeFeatures } from "./features.ts";
-import { Columns, Empty, HomeRow, Overview, PaneLink } from "./parts.tsx";
+import { Columns, HomeRow, Overview, PaneLink } from "./parts.tsx";
 import { Recent } from "./Recent.tsx";
 import { inboxSummary, prioritySection, runningStatus } from "./summary.ts";
 import { Usage } from "./Usage.tsx";
 import { plural } from "../labels.ts";
+import { Empty } from "../layout/Empty.tsx";
 
 /** How many entries Priorities now shows: the rest are one tap away, on the priorities page. */
 const PRIORITIES_SHOWN = 5;
@@ -31,7 +32,7 @@ function PrioritiesNow({ running }: { running: Array<string> }) {
   return (
     <Pane level={3} title="Priorities now">
       {entries.length === 0 ? (
-        <Empty>Nothing in Now.</Empty>
+        <Empty isInset>Nothing in Now.</Empty>
       ) : (
         entries.map((entry) => (
           <HomeRow
@@ -63,7 +64,7 @@ function Inbox() {
   return (
     <Pane count={count} level={3} title="Inbox">
       {count === 0 ? (
-        <Empty>The inbox is empty.</Empty>
+        <Empty isInset>The inbox is empty.</Empty>
       ) : (
         latest.map((note) => (
           <HomeRow

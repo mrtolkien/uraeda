@@ -26,6 +26,7 @@ import { repoPath, useLocalPath, useRepoPath, useRepository, useRestoreScroll } 
 import { imagePath, plain, Spans } from "./Spans.tsx";
 import { InboxView } from "./views.ts";
 import { plural } from "./labels.ts";
+import { Empty } from "./layout/Empty.tsx";
 
 /** "1 note", "10 notes". */
 export function notes(count: number) {
@@ -219,9 +220,7 @@ export function InboxPage() {
         {chat.error && <AnnouncedBanner collapsible={false} status="error" title={chat.error} />}
         {message && <AnnouncedBanner collapsible={false} status="error" title={message} />}
         {inbox.count === 0 && (
-          <Paragraph color="secondary">
-            The inbox is empty. Notes you add with ＋ next to Inbox land here.
-          </Paragraph>
+          <Empty>The inbox is empty. Notes you add with ＋ next to Inbox land here.</Empty>
         )}
         <Paragraph color="secondary">
           Things noticed, not decided: turn each into a priority, a draft, or nothing.

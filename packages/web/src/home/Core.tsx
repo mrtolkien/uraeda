@@ -6,7 +6,8 @@ import { stepLabel, waiting } from "../labels.ts";
 import { sessionIdPath, useRepoPath } from "../routes.tsx";
 import { byStatus, type Feature, featureStatus, type Row, stepOf } from "../sidebar/cards.ts";
 import { StepIcon } from "../sidebar/StepIcon.tsx";
-import { Empty, HomeRow } from "./parts.tsx";
+import { HomeRow } from "./parts.tsx";
+import { Empty } from "../layout/Empty.tsx";
 
 /**
  * The features whose files stop the workflow, each with its first problem, opening its page:
@@ -39,7 +40,7 @@ export function NeedsYou({ features }: { features: Array<Feature> }) {
   return (
     <Pane count={features.length} title="Needs you" tone="attention">
       {features.length === 0 ? (
-        <Empty>Nothing waits on you.</Empty>
+        <Empty isInset>Nothing waits on you.</Empty>
       ) : (
         features.map((feature) => {
           const { href, line, name, verb } = waiting(feature);
@@ -77,7 +78,7 @@ export function InProgress({ features, rows }: { features: Array<Feature>; rows:
   return (
     <Pane count={features.length} title="In progress">
       {features.length === 0 ? (
-        <Empty>Nothing in progress.</Empty>
+        <Empty isInset>Nothing in progress.</Empty>
       ) : (
         features.map((feature) => {
           const row = rows.find((candidate) => candidate.folder === feature.folder);
@@ -112,7 +113,7 @@ export function Sessions({ rows }: { rows: Array<Row> }) {
   return (
     <Pane count={sessions.length} title="Sessions">
       {sessions.length === 0 ? (
-        <Empty>No session running.</Empty>
+        <Empty isInset>No session running.</Empty>
       ) : (
         sessions.map(({ row, status }) => (
           <HomeRow

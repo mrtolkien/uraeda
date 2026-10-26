@@ -18,6 +18,7 @@ import { useLineSave } from "../useLineSave.ts";
 import { EntryPane, EntryText, RunningPart, Steps } from "./EntryPane.tsx";
 import { PaneDraft } from "./PaneDraft.tsx";
 import { type Found, usePriorityActions } from "./usePriorityActions.ts";
+import { Empty } from "../layout/Empty.tsx";
 
 /** The file a line links, from the repository's top level, if any. */
 function linkOf(spans: ReadonlyArray<Span>) {
@@ -66,7 +67,7 @@ function Kind({
   }
   return (
     <VStack gap={2}>
-      <Paragraph color="secondary">No draft yet.</Paragraph>
+      <Empty>No draft yet.</Empty>
       {/* A long label takes its own line rather than being cut. */}
       <HStack gap={2} wrap="wrap">
         <Button clickAction={draft} label="Draft" variant="primary" />

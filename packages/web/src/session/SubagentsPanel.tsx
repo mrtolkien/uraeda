@@ -14,6 +14,7 @@ import { elapsed } from "../TurnLines.tsx";
 import { useNow } from "../useNow.ts";
 import { Section } from "./Section.tsx";
 import { subagentText } from "./stretches.ts";
+import { Empty } from "../layout/Empty.tsx";
 
 /** A running sub-agent, as the session's record lists it. */
 type Subagent = Session["subagents"][number];
@@ -94,7 +95,7 @@ function Subagents({ session }: { session: string }) {
   const now = useNow(1000);
   const rows = useKeptRows(topLevel(record?.subagents ?? []), now);
   if (rows.length === 0) {
-    return <Text color="secondary">No sub-agent running.</Text>;
+    return <Empty>No sub-agent running.</Empty>;
   }
   return (
     <List aria-label="The session's sub-agents" density="compact">
@@ -108,7 +109,7 @@ function Subagents({ session }: { session: string }) {
 /** The Sub-agents of the session `session`, or, before it exists, that none runs. */
 export function SubagentsPanel({ session }: { session?: string | undefined }) {
   if (session === undefined) {
-    return <Text color="secondary">No sub-agent running.</Text>;
+    return <Empty>No sub-agent running.</Empty>;
   }
   return (
     <Section>

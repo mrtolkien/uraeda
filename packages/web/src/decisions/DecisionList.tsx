@@ -8,13 +8,13 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
-import { Paragraph } from "../layout/Paragraph.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { decisionIcon } from "../theme/icons.ts";
 import { ruleCount } from "./ConstitutionRegion.tsx";
 import { statusLabel } from "./DecisionDetail.tsx";
 import { type DecisionSort, type LedgerDecision, SORTS, shortDate } from "./model.ts";
 import { useMenuPresentation } from "../layout/useWidthClass.ts";
+import { Empty } from "../layout/Empty.tsx";
 
 const styles = stylex.create({
   count: {
@@ -106,7 +106,7 @@ export function DecisionList({
           />
         </HStack>
         {decisions.length === 0 ? (
-          <Paragraph>No decisions yet.</Paragraph>
+          <Empty>No decisions yet.</Empty>
         ) : (
           <List aria-label="Decisions" hasDividers>
             {decisions.map((decision) => (

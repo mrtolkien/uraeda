@@ -37,6 +37,7 @@ import { drawnRows, rowCount, type Run, runsOf } from "./activityRuns.ts";
 import { RowList, rowWeight } from "./ActivityRows.tsx";
 import { Section } from "./Section.tsx";
 import { STRETCH_PARAMETER } from "./stretches.ts";
+import { Empty } from "../layout/Empty.tsx";
 
 /** How many rows the Activity mounts at first, and how many "Show earlier runs" adds. */
 export const ACTIVITY_ROWS = 200;
@@ -54,7 +55,7 @@ const styles = stylex.create({
 
 /** What the Activity reads before the session's first call, as before its first message. */
 export function NoCall() {
-  return <Text color="secondary">No call yet.</Text>;
+  return <Empty>No call yet.</Empty>;
 }
 
 /** The stretch the address names: its key, its turn's place, and its first item's page. */
