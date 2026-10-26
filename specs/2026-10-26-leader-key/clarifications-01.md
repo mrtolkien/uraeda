@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Leader key/shortcut map
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 9 questions, about 25 minutes.
+> Answered on 2026-10-26.
 >
 > - Verdict: worth building, with changes: it is too large for one spec, Space and `n` clash with
 >   existing behaviour, and single-key shortcuts need an off switch.
@@ -101,7 +101,9 @@ registry built now shapes every later keyboard feature.
   - [pro] the smallest first step.
   - [con] the menu would only go to pages, and the proposal asks for pickers.
 
-**Answer:**
+**Answer:** B: All pages will have extremely similar keymaps: arrows/hjkl for navigation, aio for
+insertion/creation, and then a few page-specific shortcuts. While it will be more stories, they
+should be easy to validate. I'm mostly validating keymaps.
 
 ## Q2: Should Vimium-style link hints be part of this feature?
 
@@ -120,7 +122,7 @@ leader menu.
   - [pro] every link becomes reachable from the keyboard now.
   - [con] a hint overlay on every page, tests per page, and a key to give up.
 
-**Answer:**
+**Answer:** A: We don't need this if we have a good leader menu
 
 ## Q3: What should Space do when the focus is on a button?
 
@@ -152,7 +154,7 @@ expectation of buttons, and for a keyboard-first user it decides whether Space w
   - [pro] no conflict with any control.
   - [con] departs from the proposal and from the LazyVim and Helix muscle memory you named.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: How should the shortcuts be turned off, as accessibility asks?
 
@@ -177,7 +179,7 @@ to ask for. A remap editor is a feature of its own.
   - [pro] the most complete.
   - [con] a keymap editor, which the proposal names as later work.
 
-**Answer:**
+**Answer:** B
 
 ## Q5: Which key library should the registry use?
 
@@ -211,7 +213,7 @@ More in [discovery](discovery-01.md#libraries).
   - [pro] small and widely used.
   - [con] no list of its bindings, so our registry would still hold every key itself.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: What should the first leader menu hold?
 
@@ -248,7 +250,7 @@ feature that adds entries.
   - [pro] the smallest menu to approve.
   - [con] a menu that does not yet show the nested groups you asked for.
 
-**Answer:**
+**Answer:** A: Use u instead of v for _ui_ toggles
 
 ## Q7: Which pickers should the first version have?
 
@@ -275,7 +277,7 @@ one component.
   - [pro] nothing new to build.
   - [con] the menu can search nothing else.
 
-**Answer:**
+**Answer:** B: Show the previews as raw markdown for the moment so the preview is easy to add
 
 ## Q8: How should the leader menu look?
 
@@ -317,7 +319,7 @@ features reuse the menu's look.
   - [pro] hides nothing and needs no new surface.
   - [con] wraps badly past 5 or 6 entries, and the status line's own hints disappear.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: Should keyboard rules become a decision?
 
@@ -341,7 +343,7 @@ only starts when the spec that lists it is approved, so you can still change its
   - [pro] nothing new to approve.
   - [con] the spec is replaced by a record, so the rules vanish from where agents look.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -376,3 +378,12 @@ only starts when the spec that lists it is approved, so you can still change its
   verify.
 
 **Notes:**
+
+- **n**: Yes, New and Next can exist on different page with an n binding
+- **No keys on narrow screens.**: Well all keys should work on narrow screens too, it'll just be
+  that usually phones don't have a keyboard available without open text input.
+
+  Just don't show the hints on the phone, but the behaviour stays there.
+
+- **Page**: Ok, but I also need gg to go to the top of the page!
+- **A sequence like**: Go up to 2s
