@@ -28,8 +28,12 @@ decisions.
   pointer, so a narrow window with a mouse got a popover there and a sheet in the six other menus.
 - **Alternatives considered**: `adaptive` everywhere, which breaks the decision's rule for a narrow
   window with a mouse.
-- **If wrong**: one function in [`useWidthClass.ts`](/packages/web/src/layout/useWidthClass.ts).
-- **Where**: [`useWidthClass.ts`](/packages/web/src/layout/useWidthClass.ts)
+- **If wrong**: one function in [`useWidthClass.ts`](/packages/web/src/layout/useWidthClass.ts). The
+  session's `…`, which took Astryx's default, now opens as a sheet on the phone too, where its
+  actions are buttons in a list rather than menu items: its test reads either, and still checks that
+  Archive archives and Unarchive shows.
+- **Where**: [`useWidthClass.ts`](/packages/web/src/layout/useWidthClass.ts),
+  [`layout/ActionsMenu.tsx`](/packages/web/src/layout/ActionsMenu.tsx)
 
 ## R3: Every fold's toggle is the same, and mounts its content only while open
 

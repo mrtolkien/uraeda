@@ -1,12 +1,13 @@
 // The feature's "…" beside its title: Rename, which opens the shell card's settings, and Drop,
 // behind its confirmation, as the session's "…" has it. A dropped item leaves its page for Home,
 // where what stayed is said, once the priorities commit succeeded.
-import { MoreMenu } from "@astryxdesign/core/MoreMenu";
+
 import { type SessionItem, UNCOMMITTED, useDropItem } from "../dropItem.ts";
-import { useMenuPresentation } from "../layout/useWidthClass.ts";
+
 import { addNote, HOME_NOTES } from "../offers.ts";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { useOpenSettings } from "../sidebar/FeatureSettingsDialog.tsx";
+import { ActionsMenu } from "../layout/ActionsMenu.tsx";
 
 /**
  * "Feature actions", or "Change actions": "Rename" and "Drop the feature…" or "Drop the change…". A
@@ -25,7 +26,6 @@ export function FeatureMenu({
   const here = useRepoPath();
   const settings = useOpenSettings();
   const dropItem = useDropItem();
-  const presentation = useMenuPresentation();
   const drop = async () => {
     const result = await dropItem(item);
     if (result.kind === "refused") {
@@ -40,15 +40,12 @@ export function FeatureMenu({
   };
   const name = item.kind === "change" ? "Change" : "Feature";
   return (
-    <MoreMenu
-      alignment="end"
+    <ActionsMenu
       items={[
         { label: "Rename", onClick: () => settings(feature) },
         { label: `Drop the ${item.kind}…`, onClick: () => void drop() },
       ]}
       label={`${name} actions`}
-      presentation={presentation}
-      size="sm"
     />
   );
 }

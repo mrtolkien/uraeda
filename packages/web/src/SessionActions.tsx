@@ -1,7 +1,7 @@
 // A session's actions, in the "…" beside its composer's Send, where they stay in reach however long
 // the session: making it a change, or its change a feature, renaming it, archiving a session
 // without a workflow, and dropping a change or a feature, behind a confirmation.
-import { MoreMenu } from "@astryxdesign/core/MoreMenu";
+
 import { useEffect, useRef } from "react";
 import { type SessionItem, useDropItem } from "./dropItem.ts";
 import {
@@ -14,6 +14,7 @@ import {
 } from "./offers.ts";
 import { useOpenRename } from "./sidebar/RenameSession.tsx";
 import type { Controls } from "./useSessionControls.ts";
+import { ActionsMenu } from "./layout/ActionsMenu.tsx";
 
 /**
  * Drops the session's change or feature once confirmed, then marks it dropped and leaves the notes
@@ -87,12 +88,6 @@ export function SessionActions({
     ...(live ? [{ label: `Drop the ${live.kind}…`, onClick: () => void drop() }] : []),
   ];
   return (
-    <MoreMenu
-      isMenuOpen={isMenuOpen}
-      items={items}
-      label="Session actions"
-      ref={trigger}
-      size="sm"
-    />
+    <ActionsMenu isMenuOpen={isMenuOpen} items={items} label="Session actions" ref={trigger} />
   );
 }
