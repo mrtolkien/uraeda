@@ -140,12 +140,12 @@ async function actions() {
   return (await shownActions()).map((item) => item.textContent);
 }
 
-/** The actions of the "…" opened, a popover's menu items or a sheet's buttons. */
+/** The actions of the "…" opened, a popover's menu items or the buttons of a sheet's list. */
 async function shownActions() {
   return waitFor(() => {
     const items = screen.queryAllByRole("menuitem");
-    const sheet = screen.queryByRole("dialog");
-    const found = items.length > 0 ? items : sheet ? within(sheet).queryAllByRole("button") : [];
+    const list = screen.queryByRole("dialog")?.querySelector("ul");
+    const found = items.length > 0 ? items : list ? within(list).queryAllByRole("button") : [];
     expect(found.length).toBeGreaterThan(0);
     return found;
   });
@@ -153,7 +153,11 @@ async function shownActions() {
 
 /** The action named `name` of the "…" opened. */
 async function action(name: string) {
-  return (await shownActions()).find((item) => item.textContent === name)!;
+  const found = (await shownActions()).find((item) => item.textContent === name);
+  if (!found) {
+    throw new Error(`The "…" has no action named "${name}".`);
+  }
+  return found;
 }
 
 /** The change `login-redirect`, with a session. */
