@@ -2,7 +2,6 @@
 // changes in progress, each the oldest started first, then the latest done items. The column draws
 // them under Navigate, as many done items as fit; the phone's sessions page draws them as its own.
 // During a search, only the cards it found.
-import { Text } from "@astryxdesign/core/Text";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useRef } from "react";
@@ -15,12 +14,9 @@ import { DoneArea } from "../sidebar/DoneArea.tsx";
 import { doneRows, useKeptSession } from "../sidebar/done.ts";
 import { type Data, type Entry, entriesOf, entryKey } from "../sidebar/entries.ts";
 import { useColumnFold } from "./fold.ts";
+import { Empty } from "../layout/Empty.tsx";
 
 const styles = stylex.create({
-  empty: {
-    paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-2"],
-  },
   rail: {
     // Folded: a group of icons under a line, in the rail's column.
     alignItems: "center",
@@ -86,13 +82,7 @@ export function ShellPane({
       {...(count === undefined ? {} : { count })}
       {...(tone ? { tone } : {})}
     >
-      {isEmpty && empty ? (
-        <Text color="secondary" display="block" type="supporting" xstyle={styles.empty}>
-          {empty}
-        </Text>
-      ) : (
-        children
-      )}
+      {isEmpty && empty ? <Empty isInset>{empty}</Empty> : children}
     </Pane>
   );
 }
@@ -120,11 +110,7 @@ function Work({
 }) {
   const entries = entriesOf(data, { found, ...(kept ? { kept } : {}), query });
   if (found && entries.length === 0) {
-    return (
-      <Text color="secondary" display="block" xstyle={styles.empty}>
-        No session matches “{query}”.
-      </Text>
-    );
+    return <Empty isInset>No session matches “{query}”.</Empty>;
   }
   const waiting = byStatus(entries.filter((entry) => needsYou(entry.status)));
   const rest = byStart(entries.filter((entry) => !needsYou(entry.status)));
