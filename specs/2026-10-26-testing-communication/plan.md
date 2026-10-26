@@ -726,7 +726,7 @@ data), with the `uraeda:arrow-right-left` icon; the sandbox's sample spec gets i
 `spec()` of `packages/web/samples/features.ts`, which inserts it before `## Architecture` in the
 shared recurring-tasks fixture's text, so `fixtures/` stays untouched.
 
-- [ ] **Step 2: Look at it**
+- [x] **Step 2: Look at it**
 
 Run `vp run sandbox`, open the sample spec, and look at it at a phone's width and a desktop's, in
 both themes, as the UI checks decision asks.
