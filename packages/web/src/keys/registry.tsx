@@ -2,8 +2,9 @@
 // owns the action, while it is mounted, and heard by one listener on the window. A key is matched by
 // the character typed (`match.ts`), never in a text field or under an open layer (`layers.ts`), and
 // with the single-key switch off, only the keys that are not one printable character run
-// (`store.ts`). Sequences, and the leader's menu they open, are `leader.ts`'s. The status line draws the hints of what is declared; no page, list, or shell part
-// listens for keys of its own, except the allowlist of the plan's Complexity tracking.
+// (`store.ts`). Sequences, and the leader's menu they open, are `leader.ts`'s. The status line draws
+// the hints of what is declared; no page, list, or shell part listens for keys of its own, except
+// the allowlist of the plan's Complexity tracking.
 import {
   createContext,
   type ReactNode,
