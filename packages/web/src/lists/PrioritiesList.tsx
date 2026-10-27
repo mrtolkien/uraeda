@@ -2,11 +2,10 @@
 // then Now, Next, Later, and Blocked, in the file's order, as columns, each with its context, its
 // colour, and its Add row. Blocked shows only when it has lines.
 // The file keeps the started entries at the top of Now; on screen they show apart.
-import { Icon } from "@astryxdesign/core/Icon";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { PriorityEntry } from "uraeda-server/fate";
 import type { usePriorities } from "../data.ts";
-import { EditableLine } from "../EditableLine.tsx";
 import { stepKindOf } from "../sidebar/cards.ts";
 import { STEP_ICONS } from "../sidebar/StepIcon.tsx";
 import { TITLES, titleOf } from "../QuickAdd.tsx";
@@ -45,6 +44,9 @@ export function lookOf(entry: PriorityEntry) {
   return entry.draft ? { icon: "uraeda:file-text" as const, isLinked: true } : {};
 }
 
+/** The width, in px, the list needs for its columns: under it, the sections stack. */
+const COLUMNS_FROM = 1000;
+
 /** The refusal of a menu nobody listens to. */
 const NOTHING = () => undefined;
 
@@ -69,13 +71,11 @@ export function byRunning(priorities: Pick<Priorities, "sections">) {
 
 /**
  * The sections the page draws: "Ongoing" first, only when something runs, then each section of the
- * file with its context and its Add row, but a Blocked without lines (R1). `add` writes a line to a
- * section.
+ * file with its context and its Add row, but a Blocked without lines (R1).
  */
 function sectionsOf(
   priorities: Priorities,
   here: ReturnType<typeof useRepoPath>,
-  add: (section: string) => (text: string) => Promise<string | undefined>,
   onRefused: (message: string | undefined) => void,
 ): Array<WorkSection> {
   const found = (entry: PriorityEntry) => {
@@ -123,22 +123,25 @@ function sectionsOf(
     const title = titleOf(section.section);
     return {
       context: section.context ?? undefined,
-      footer: (
-        <EditableLine
-          display={
-            <>
-              <Icon icon="uraeda:plus" size="sm" /> Add to {title}
-            </>
-          }
-          field={`priorities#add:${section.section}`}
-          label={`Add to ${title}`}
-          onSave={add(section.section)}
-          stayOpen
-          value=""
-        />
-      ),
       id: section.section,
-      rows: section.entries.map(row),
+      // The section's last row adds a line: the keyboard's cursor stops on it, and Enter opens the
+      // form (the form has no Blocked, R80).
+      rows: [
+        ...section.entries.map(row),
+        ...(TITLES.has(section.section)
+          ? [
+              {
+                href: here(`/priorities#add-${section.section}`),
+                icon: "uraeda:plus" as const,
+                isAdd: true,
+                isFixed: true,
+                key: `add:${section.section}`,
+                lines: [],
+                text: `Add to ${title}`,
+              },
+            ]
+          : []),
+      ],
       title,
       tone: TONES[section.section] ?? "neutral",
     };
@@ -170,14 +173,6 @@ export function PrioritiesList({
   const here = useRepoPath();
   const pathname = useLocalPath();
   const openForm = useOpenAddForm();
-
-  const add = (section: string) => (text: string) =>
-    run(() =>
-      fate.mutations.priorities.add({
-        input: { hash: priorities.hash, section, text },
-        view: PrioritiesView,
-      }),
-    );
 
   const onMove = async (key: string, section: string, index: number) => {
     const entry = priorities.sections
@@ -227,6 +222,12 @@ export function PrioritiesList({
    * page. A line with neither opens nothing: `p` makes its draft.
    */
   const open = (href: string) => {
+    // An add row: the form of its section.
+    const adding = /#add-([a-z]+)$/.exec(href)?.[1];
+    if (adding !== undefined) {
+      openForm("priority", { section: adding });
+      return;
+    }
     const entry = priorities.sections
       .flatMap((s) => s.entries)
       .find((candidate) => here(`/priorities/${candidate.key}`) === href);
@@ -260,21 +261,46 @@ export function PrioritiesList({
     })();
   };
 
-  const all = sectionsOf(priorities, here, add, onMoveRefused ?? NOTHING);
+  const all = sectionsOf(priorities, here, onMoveRefused ?? NOTHING);
+  // Whether the columns have the room they need, read from this list's own width before it paints,
+  // and again as it changes.
+  const room = useRef<HTMLDivElement>(null);
+  const [hasRoom, setHasRoom] = useState<boolean>();
+  useLayoutEffect(() => {
+    const element = room.current;
+    if (!element) {
+      return undefined;
+    }
+    const read = () => setHasRoom(element.clientWidth >= COLUMNS_FROM);
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  // The page opens on the highest row of Now, with the keyboard's focus on it, once.
+  const firstNow = all.find((section) => section.id === "now")?.rows[0]?.key;
+  const [isArriving, setArriving] = useState(true);
+  useEffect(() => setArriving(false), []);
   const selected =
     select ??
     all.flatMap((section) => section.rows).find((r) => pathname === `/priorities/${r.key}`)?.key;
 
   return (
+    // Its width is the room the columns have: with less than `COLUMNS_FROM`, the sections stack, as
+    // on the phone. Only this page: no size class of the layout.
+    <div ref={room}>
     <WorkList
-      isFocused={isFocused}
+      initial={firstNow}
+      isFocused={isFocused || isArriving}
       isRoomy
-      layout="columns"
+      layout={hasRoom === false ? "stack" : "columns"}
       // `o`: the form in the section of the line's own place in the file, not "Ongoing"; the form
       // has no Blocked (R80), so a line there opens it in the default place.
-      onAddBeside={(_, row) => {
+      onAddBeside={(sectionId, row) => {
+        // An add row names its own section; a line, the one it is in, in the file.
         const own = priorities.sections.find((s) => s.entries.some((e) => e.key === row.key));
-        openForm("priority", { section: own && TITLES.has(own.section) ? own.section : undefined });
+        const id = own?.section ?? sectionId;
+        openForm("priority", { section: TITLES.has(id) ? id : undefined });
       }}
       onDelete={(row) => void onDelete(row)}
       onMove={onMove}
@@ -283,5 +309,6 @@ export function PrioritiesList({
       sections={all}
       selected={selected}
     />
+    </div>
   );
 }

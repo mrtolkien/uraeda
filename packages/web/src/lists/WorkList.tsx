@@ -10,7 +10,14 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import * as stylex from "@stylexjs/stylex";
-import { type ComponentProps, type ReactNode, type Ref, useEffect, useState } from "react";
+import {
+  type ComponentProps,
+  type ReactNode,
+  type Ref,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, RowStateContext, type WorkRow } from "./Card.tsx";
@@ -52,6 +59,10 @@ export interface WorkSection {
 
 /** How the sections are arranged: panes in a row that scrolls, or one under the other. */
 export type WorkLayout = "columns" | "stack";
+
+/** How long the mouse rests on a row before its pane shows, and how long after it leaves it stays. */
+const HOVER_MS = 600;
+const LEAVE_MS = 150;
 
 /** The title of the section that is drawn under the row of columns. */
 const BELOW = "Blocked";
@@ -97,17 +108,17 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-1"],
     paddingInlineStart: spacingVars["--spacing-2"],
   },
-  // The panes of the row, side by side, whose row scrolls sideways. It runs to the window's right
-  // edge, past the page's inset, so a column scrolled to the end is not cut off short of it; the
-  // inset is kept after the last one.
+  // The panes of the row, side by side, whose row scrolls sideways. It runs to both edges of the
+  // page, past its inset, so a scrolled column is not cut off short of the sidebar or the window;
+  // the inset is kept before the first one and after the last one.
   row: {
     alignItems: "flex-start",
     display: "flex",
     gap: spacingVars["--spacing-3"],
-    marginInlineEnd: "var(--page-bleed, 0px)",
+    marginInline: "var(--page-bleed, 0px)",
     overflowX: "auto",
     paddingBlockEnd: spacingVars["--spacing-2"],
-    paddingInlineEnd: "var(--page-inset, 0px)",
+    paddingInline: "var(--page-inset, 0px)",
   },
   // The panes one under the other.
   stack: {
@@ -131,6 +142,7 @@ function SectionBody({
   isRoomy,
   level,
   onHover,
+  onHoverEnd,
   onOpen,
   ref,
   rows,
@@ -141,6 +153,7 @@ function SectionBody({
   isRoomy?: boolean;
   level?: HeadingLevel | undefined;
   onHover: (row: WorkRow) => void;
+  onHoverEnd: (row: WorkRow) => void;
   onOpen: (row: WorkRow) => void;
   ref?: Ref<HTMLDivElement>;
   rows: ReadonlyArray<WorkRow>;
@@ -156,7 +169,7 @@ function SectionBody({
     >
       <Pane
         actions={section.menu}
-        count={section.count ?? rows.length}
+        count={section.count ?? rows.filter((row) => !row.isAdd).length}
         {...(section.icon ? { icon: section.icon } : {})}
         {...(level ? { level } : {})}
         tint={TINTS[section.tone]}
@@ -178,6 +191,7 @@ function SectionBody({
                 isSelected={row.key === selected}
                 key={row.key}
                 onHover={onHover}
+                onHoverEnd={onHoverEnd}
                 onOpen={onOpen}
                 row={section.isFixed ? { ...row, isFixed: true } : row}
                 section={section.id}
@@ -198,6 +212,7 @@ function DropSection(props: {
   isRoomy?: boolean;
   level?: HeadingLevel | undefined;
   onHover: (row: WorkRow) => void;
+  onHoverEnd: (row: WorkRow) => void;
   onOpen: (row: WorkRow) => void;
   rows: ReadonlyArray<WorkRow>;
   section: WorkSection;
@@ -229,8 +244,8 @@ function columnsOf(sections: ReadonlyArray<ReadonlyArray<WorkRow>>): Columns {
  * The selection of the list: the key the address names, once it names one, and that card after the
  * address stops naming it, as the overlay closes. It moves with the keys and with a click.
  */
-function useSelection(named: string | undefined) {
-  const [selected, setSelected] = useState(named);
+function useSelection(named: string | undefined, initial: string | undefined) {
+  const [selected, setSelected] = useState(named ?? initial);
   const [seen, setSeen] = useState(named);
   if (named !== seen) {
     setSeen(named);
@@ -251,14 +266,25 @@ function useShown(
   layout: WorkLayout,
   onMove: OnMove | undefined,
 ) {
-  const drag = useDragOrder(sections, onMove);
+  // The rows that add are no lines: a drag knows none of them, and they stay at the section's end.
+  const drag = useDragOrder(
+    sections.map((section) => ({
+      ...section,
+      rows: section.rows.filter((row) => !row.isAdd),
+    })),
+    onMove,
+  );
   const byKey = new Map(
     drag.sections.flatMap((section) => section.rows.map((row) => [row.key, row] as const)),
   );
-  const rowsOf = (section: WorkSection) =>
-    section.isFixed
+  const addsOf = (section: WorkSection) =>
+    sections.find((one) => one.id === section.id)?.rows.filter((row) => row.isAdd) ?? [];
+  const rowsOf = (section: WorkSection) => [
+    ...(section.isFixed
       ? section.rows
-      : (drag.order[section.id] ?? []).flatMap((key) => byKey.get(key) ?? []);
+      : (drag.order[section.id] ?? []).flatMap((key) => byKey.get(key) ?? [])),
+    ...addsOf(section),
+  ];
   const isNarrowScreen = isNarrow(useWidthClass());
   const asColumns = layout === "columns" && !isNarrowScreen;
   const below = asColumns ? drag.sections.filter((section) => section.title === BELOW) : [];
@@ -283,6 +309,7 @@ function useShown(
  * resolves, the list stays as the drag left it.
  */
 export function WorkList({
+  initial,
   isFocused = false,
   isRoomy = false,
   layout = "stack",
@@ -295,6 +322,8 @@ export function WorkList({
   sections,
   selected: named,
 }: {
+  /** The key of the row selected until another is, where the address names none. */
+  initial?: string;
   isFocused?: boolean;
   /** The columns start at 500 px, not 400: for lines that run long, as the priorities'. */
   isRoomy?: boolean;
@@ -311,7 +340,7 @@ export function WorkList({
   sections: ReadonlyArray<WorkSection>;
   selected?: string;
 }) {
-  const [selected, setSelected] = useSelection(named);
+  const [selected, setSelected] = useSelection(named, initial);
   const { asColumns, below, drag, inRow, placed, rows, rowsOf, shown } = useShown(
     sections,
     layout,
@@ -322,6 +351,23 @@ export function WorkList({
   // selection, as the keys and the mouse move it, until Escape or Enter again.
   const [isPeeking, setPeeking] = useState(false);
   const peeked = isPeeking ? rows.find((row) => row.key === selected) : undefined;
+  // The pane of the row the mouse rests on: it goes when the mouse leaves, or the selection moves.
+  const [hoverKey, setHoverKey] = useState<string>();
+  const dwelling = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const leaving = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => {
+    if (hoverKey !== undefined && hoverKey !== selected) {
+      setHoverKey(undefined);
+    }
+  }, [hoverKey, selected]);
+  useEffect(
+    () => () => {
+      clearTimeout(dwelling.current);
+      clearTimeout(leaving.current);
+    },
+    [],
+  );
+  const hovered = hoverKey === undefined ? undefined : rows.find((row) => row.key === hoverKey);
   const own = useRowKeys(placed, onAddBeside, setSelected, {
     canMoveItems: onMove !== undefined,
     onDelete,
@@ -377,10 +423,18 @@ export function WorkList({
   // The mouse moving over a card selects it and takes the focus to it, so the keys act on what the
   // pointer is on. Not while a card is edited or its menu is open, nor during a drag.
   const hover = (row: WorkRow) => {
-    if (row.key === selected || own.state.editing !== undefined || own.state.menu !== undefined) {
-      return;
+    clearTimeout(leaving.current);
+    const isBusy =
+      own.state.editing !== undefined ||
+      own.state.menu !== undefined ||
+      document.querySelector("[data-dragging], [data-dnd-dragging]") !== null;
+    // A pointer that rests on a row that peeks brings up its pane after `HOVER_MS`; one that moves
+    // starts the wait again.
+    if (row.peek && !isBusy && hoverKey !== row.key) {
+      clearTimeout(dwelling.current);
+      dwelling.current = setTimeout(() => setHoverKey(row.key), HOVER_MS);
     }
-    if (document.querySelector("[data-dragging], [data-dnd-dragging]")) {
+    if (row.key === selected || isBusy) {
       return;
     }
     setSelected(row.key);
@@ -389,6 +443,12 @@ export function WorkList({
         `[data-row-key="${CSS.escape(row.key)}"] :is([data-row-link] button, a[href])`,
       )
       ?.focus({ preventScroll: true });
+  };
+  /** The pointer left a row, or the pane: the pane goes soon after, unless it is on the other. */
+  const unhover = () => {
+    clearTimeout(dwelling.current);
+    clearTimeout(leaving.current);
+    leaving.current = setTimeout(() => setHoverKey(undefined), LEAVE_MS);
   };
   const drawn = (section: WorkSection, isColumn: boolean) => {
     const Body = section.isFixed ? SectionBody : DropSection;
@@ -399,6 +459,7 @@ export function WorkList({
         key={section.id}
         level={level}
         onHover={hover}
+        onHoverEnd={unhover}
         onOpen={open}
         rows={rowsOf(section)}
         section={section}
@@ -424,7 +485,13 @@ export function WorkList({
           </div>
           {below.map((section) => drawn(section, false))}
         </DragDropProvider>
-        {peeked && <Peek row={peeked} />}
+        {(peeked ?? hovered) && (
+          <Peek
+            onPointerEnter={() => clearTimeout(leaving.current)}
+            onPointerLeave={unhover}
+            row={(peeked ?? hovered)!}
+          />
+        )}
       </div>
     </RowStateContext>
   );

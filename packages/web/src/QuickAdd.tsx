@@ -4,7 +4,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { VStack } from "@astryxdesign/core/VStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { type KeyboardEvent, type ReactNode, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { AddCommit } from "uraeda-binding";
 import { usePriorities } from "./data.ts";
@@ -193,6 +193,13 @@ export function AddForm({
   const [section, setSection] = useState(start);
   const [message, setMessage] = useState<string>();
   const [notice, setNotice] = useState(shown);
+  // The field takes the focus once the dialog has settled: the dialog's own focus goes to its first
+  // control as it opens, which an autofocus alone sometimes loses to, as a key that opened it.
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const timer = setTimeout(() => box.current?.querySelector("textarea")?.focus(), 120);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Adds the line, uncommitted, and closes the form: the page's bar commits what was written.
   const add = async () => {
@@ -230,16 +237,18 @@ export function AddForm({
         // Its saved text is always empty: it never changes since.
         <RestoreNotice changed="" onDiscard={field.discard} restored={field.restored} />
       )}
-      <TextField
-        hasAutoFocus
-        isLabelHidden
-        kind="line"
-        label="Priority"
-        onChange={field.change}
-        // A line: Enter adds it, and closes the form.
-        onKeyDown={enterAdds(() => text.trim() && void add())}
-        value={text}
-      />
+      <div ref={box}>
+        <TextField
+          hasAutoFocus
+          isLabelHidden
+          kind="line"
+          label="Priority"
+          onChange={field.change}
+          // A line: Enter adds it, and closes the form.
+          onKeyDown={enterAdds(() => text.trim() && void add())}
+          value={text}
+        />
+      </div>
       <SectionPicker onChange={setSection} section={section} />
       {message && <AnnouncedBanner status="error" title={message} />}
       <CommitBanner notice={notice} />

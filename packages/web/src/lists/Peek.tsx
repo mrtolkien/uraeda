@@ -58,7 +58,16 @@ function place(box: HTMLElement, key: string) {
  * The pane of `row`, whole: its text with its formatting, and every child line. It follows the row
  * as the list scrolls or the window resizes.
  */
-export function Peek({ row }: { row: WorkRow }) {
+export function Peek({
+  onPointerEnter,
+  onPointerLeave,
+  row,
+}: {
+  /** The pointer is on the pane: one that hovers keeps it, and one that rests on it too. */
+  onPointerEnter?: () => void;
+  onPointerLeave?: () => void;
+  row: WorkRow;
+}) {
   const box = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const element = box.current;
@@ -76,7 +85,12 @@ export function Peek({ row }: { row: WorkRow }) {
     };
   }, [row]);
   return (
-    <div ref={box} {...stylex.props(styles.box)}>
+    <div
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      ref={box}
+      {...stylex.props(styles.box)}
+    >
       <VStack gap={2}>
         <Text display="block">{row.label ?? row.text}</Text>
         {row.lines.map((line, at) => (

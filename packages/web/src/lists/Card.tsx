@@ -51,6 +51,8 @@ export interface WorkRow {
   label?: ReactNode;
   /** Its children, each a grey line under its text. */
   lines: ReadonlyArray<string>;
+  /** A row that adds a line, "Add to Next": Enter on it opens the form. It is no line: never counted, dragged, or moved. */
+  isAdd?: boolean;
   /** An icon in the place of its bullet, as a draft's file or a running entry's work. */
   icon?: ComponentProps<typeof Icon>["icon"];
   /** Its text is a link to a file, as a line's draft is: drawn as a hyperlink. */
@@ -223,7 +225,7 @@ function RowLink({ onOpen, row }: { onOpen?: (row: WorkRow) => void; row: WorkRo
     <Link
       // The normal text colour, not the link's accent; three lines at most, then an ellipsis, with
       // the whole text in a tooltip.
-      color={row.isLinked ? "accent" : "primary"}
+      color={row.isAdd ? "secondary" : row.isLinked ? "accent" : "primary"}
       hasUnderline={row.isLinked === true}
       {...(onOpen ? {} : { href: row.href })}
       maxLines={3}
@@ -254,12 +256,15 @@ export function Card({
   index,
   isSelected,
   onHover,
+  onHoverEnd,
   onOpen,
   row,
   section,
 }: {
   index: number;
   isSelected: boolean;
+  /** The mouse left the card. */
+  onHoverEnd?: (row: WorkRow) => void;
   /** The mouse moved over the card: the selection and the focus follow it. */
   onHover?: (row: WorkRow) => void;
   /** Opens the card on a plain click or Enter, in place of following its link. */
@@ -289,6 +294,11 @@ export function Card({
       data-row=""
       // What the list's keys find the row by, whether or not it draws a link (see `useListKeys`).
       data-row-key={row.key}
+      onPointerLeave={(event) => {
+        if (event.pointerType === "mouse") {
+          onHoverEnd?.(row);
+        }
+      }}
       // Only a mouse that moved: a card scrolled under a still pointer takes nothing.
       onPointerMove={(event) => {
         if (event.pointerType === "mouse" && (event.movementX !== 0 || event.movementY !== 0)) {
