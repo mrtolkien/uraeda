@@ -354,6 +354,7 @@ export function Pane({
   titleNode,
   titleSuffix,
   tone,
+  xstyle,
 }: {
   actions?: ReactNode;
   children: ReactNode;
@@ -371,6 +372,8 @@ export function Pane({
   titleNode?: ReactNode;
   titleSuffix?: ReactNode;
   tone?: PaneTone;
+  /** Styles for the pane's frame, as the leader menu's sizing. */
+  xstyle?: ReadonlyArray<stylex.StyleXStyles | false | undefined>;
 }) {
   const titleId = useId();
   const own = useRef<HTMLElement>(null);
@@ -408,6 +411,7 @@ export function Pane({
         margin,
         border,
         isTinted && styles.tinted,
+        xstyle,
       )}
     >
       <Heading

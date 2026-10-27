@@ -4,9 +4,9 @@
 // width, as the UI layout decision's sheets do. `LeaderMenuHost` feeds it the registry's step.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { easeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ComponentProps } from "react";
+import { type ComponentProps, type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { Pane } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { KeyCap } from "./KeyCap.tsx";
@@ -19,7 +19,25 @@ export type MenuEntry = {
   label: string;
 };
 
+/** How long the menu takes to slide in and out, which the host waits out before it unmounts it. */
+export const SLIDE_MS = 200;
+
+const rise = stylex.keyframes({
+  from: { opacity: 0, transform: "translateY(1.5rem)" },
+  to: { opacity: 1, transform: "translateY(0)" },
+});
+
+const sink = stylex.keyframes({
+  from: { opacity: 1, transform: "translateY(0)" },
+  to: { opacity: 0, transform: "translateY(1.5rem)" },
+});
+
 const styles = stylex.create({
+  closing: {
+    animationName: sink,
+    // Gone from the keys' reach as it leaves: it stays drawn only until it has slid away.
+    pointerEvents: "none",
+  },
   entries: {
     columnGap: spacingVars["--spacing-6"],
     display: "grid",
@@ -34,11 +52,30 @@ const styles = stylex.create({
     display: "flex",
     gap: spacingVars["--spacing-2"],
   },
+  // The pane's frame, which eases to the size the menu's step needs. The content stays at the
+  // frame's top left and is clipped to it, but for the title over the top border.
+  frame: {
+    boxSizing: "border-box",
+    clipPath: "inset(-1lh 0 0 0)",
+    transitionDuration: {
+      "@media (prefers-reduced-motion: reduce)": "0s",
+      default: `${SLIDE_MS}ms`,
+    },
+    transitionProperty: "height, width",
+    transitionTimingFunction: easeVars["--ease-standard"],
+  },
   oneColumn: {
     gridAutoFlow: "row",
     gridTemplateRows: "none",
   },
   place: {
+    animationDuration: {
+      "@media (prefers-reduced-motion: reduce)": "0s",
+      default: `${SLIDE_MS}ms`,
+    },
+    animationFillMode: "forwards",
+    animationName: rise,
+    animationTimingFunction: easeVars["--ease-standard"],
     insetBlockEnd: `calc(var(--size-status-line, 0px) + ${spacingVars["--spacing-2"]})`,
     insetInlineEnd: spacingVars["--spacing-3"],
     minWidth: "var(--size-leader-menu, 16rem)",
@@ -48,6 +85,20 @@ const styles = stylex.create({
   sheet: {
     insetInline: spacingVars["--spacing-2"],
     minWidth: 0,
+  },
+  sized: (width: number, height: number) => ({
+    height: `${height}px`,
+    width: `${width}px`,
+  }),
+  // A copy of the menu at its natural size, unseen, which `size` is measured on.
+  twin: {
+    insetBlockEnd: 0,
+    insetInlineEnd: 0,
+    minWidth: "var(--size-leader-menu, 16rem)",
+    pointerEvents: "none",
+    position: "absolute",
+    visibility: "hidden",
+    width: "max-content",
   },
 });
 
@@ -67,41 +118,123 @@ export function sortedEntries(entries: ReadonlyArray<MenuEntry>): Array<MenuEntr
   });
 }
 
-/** A key as the menu draws it: Space is its icon, any other the key as typed. */
+/**
+ * A key drawn as a glyph about as wide as a letter: Astryx's `space` and `delete` icons span the
+ * whole em, which sets them apart from the other keys.
+ */
+function Glyph({ children, label, width }: { children: ReactNode; label: string; width: number }) {
+  return (
+    <svg
+      aria-label={label}
+      fill="none"
+      height="1em"
+      role="img"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      style={{ display: "inline-block", verticalAlign: "-0.125em" }}
+      viewBox={`0 0 ${width} 24`}
+      width={`${width / 24}em`}
+    >
+      {children}
+    </svg>
+  );
+}
+
+/** Space, as the open box of a space bar, narrow. */
+const SpaceGlyph = () => (
+  <Glyph label="Space" width={14}>
+    <path d="M2 14v4h10v-4" />
+  </Glyph>
+);
+
+/** Backspace, as the symbol of its key, a tag pointing left with a cross in it, narrow. */
+const BackGlyph = () => (
+  <Glyph label="Backspace" width={18}>
+    <path d="M7 6h10v12H7l-5-6z" />
+    <path d="m10 9.5 4 5" />
+    <path d="m14 9.5-4 5" />
+  </Glyph>
+);
+
+/** A key as the menu draws it: Space is its glyph, any other the key as typed. */
 function Key({ name }: { name: string }) {
-  return <KeyCap>{name === "space" ? <Icon icon="uraeda:space" label="Space" /> : name}</KeyCap>;
+  return <KeyCap>{name === "space" ? <SpaceGlyph /> : name}</KeyCap>;
 }
 
 /** A key of the path as the title writes it: Space is `Space`, any other as typed. */
 const written = (key: string) => (key === "space" ? "Space" : key);
 
-/** The menu at a step: `path` is the keys pressed, the first included, `entries` the next keys. */
+/**
+ * The menu at a step: `path` is the keys pressed, the first included, `entries` the next keys. It
+ * slides up from the bottom as it appears, and down again once `isClosing`.
+ */
 export function LeaderMenu({
   entries,
+  isClosing = false,
   path,
 }: {
   entries: ReadonlyArray<MenuEntry>;
+  isClosing?: boolean;
   path: ReadonlyArray<string>;
 }) {
   const narrow = isNarrow(useWidthClass());
+  // The frame's size follows the menu's natural size, which a hidden copy of the menu measures:
+  // the frame eases between the sizes, since a box cannot ease between two automatic ones.
+  const twin = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ height: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    const natural = twin.current?.firstElementChild;
+    if (narrow || !natural) {
+      return undefined;
+    }
+    const measure = () => {
+      const { height, width } = natural.getBoundingClientRect();
+      setSize((was) =>
+        was?.width === Math.ceil(width) && was.height === Math.ceil(height)
+          ? was
+          : { height: Math.ceil(height), width: Math.ceil(width) },
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(natural);
+    return () => observer.disconnect();
+  }, [narrow]);
+  const pane = (xstyle?: ComponentProps<typeof Pane>["xstyle"]) => (
+    <Pane isActive isGroup title={path.map(written).join(" ")} xstyle={xstyle}>
+      <ul {...stylex.props(styles.entries, narrow && styles.oneColumn)}>
+        {sortedEntries(entries).map((entry) => (
+          <li key={entry.key}>
+            <Text type="supporting" xstyle={styles.entry}>
+              <Key name={entry.key} />
+              <Icon icon={entry.icon} size="sm" />
+              {entry.isGroup === true ? `${entry.label} →` : entry.label}
+            </Text>
+          </li>
+        ))}
+      </ul>
+      <Text color="secondary" type="supporting">
+        <KeyCap>
+          <BackGlyph />
+        </KeyCap>{" "}
+        back <KeyCap>esc</KeyCap> close
+      </Text>
+    </Pane>
+  );
   return (
-    <div {...stylex.props(styles.place, narrow && styles.sheet)}>
-      <Pane isActive isGroup title={path.map(written).join(" ")}>
-        <ul {...stylex.props(styles.entries, narrow && styles.oneColumn)}>
-          {sortedEntries(entries).map((entry) => (
-            <li key={entry.key}>
-              <Text type="supporting" xstyle={styles.entry}>
-                <Key name={entry.key} />
-                <Icon icon={entry.icon} size="sm" />
-                {entry.isGroup === true ? `${entry.label} →` : entry.label}
-              </Text>
-            </li>
-          ))}
-        </ul>
-        <Text color="secondary" type="supporting">
-          <KeyCap>⌫</KeyCap> back <KeyCap>esc</KeyCap> close
-        </Text>
-      </Pane>
+    <div {...stylex.props(styles.place, narrow && styles.sheet, isClosing && styles.closing)}>
+      {narrow ? (
+        pane()
+      ) : (
+        <>
+          {pane([styles.frame, size !== null && styles.sized(size.width, size.height)])}
+          <div aria-hidden inert ref={twin} {...stylex.props(styles.twin)}>
+            {pane()}
+          </div>
+        </>
+      )}
     </div>
   );
 }
