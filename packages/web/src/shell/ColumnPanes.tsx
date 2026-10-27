@@ -8,7 +8,8 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, Suspense } from "react";
-import { useInbox } from "../data.ts";
+import { useInbox, usePriorities } from "../data.ts";
+import { plural } from "../labels.ts";
 import { Logo } from "../Logo.tsx";
 import { RepositoryMenu } from "../RepositoryMenu.tsx";
 import { useRepoPath, useRepository } from "../routes.tsx";
@@ -107,16 +108,66 @@ export function ColumnHeading({
   );
 }
 
-/** New, which opens the New page, and Note, which opens the inbox's form; none in the rail. */
+/**
+ * Commit, while something waits for one: the one place the inbox's, the priorities', and the drafts'
+ * edits are committed, with what a commit would hold. First, as the thing to do before the rest; an
+ * icon alone in the rail.
+ */
+function CommitAction({ isFolded }: { isFolded: boolean }) {
+  const here = useRepoPath();
+  const count = usePriorities()?.changes ?? 0;
+  if (count === 0) {
+    return null;
+  }
+  const label = `Commit · ${count}`;
+  return isFolded ? (
+    <IconButton
+      data-rail-fit
+      href={here("/commit")}
+      icon={<Icon icon="check" />}
+      label={`Commit, ${plural(count, "change")}`}
+      variant="primary"
+    />
+  ) : (
+    <Button
+      data-rail-fit
+      href={here("/commit")}
+      icon={<Icon icon="check" />}
+      label={label}
+      variant="primary"
+      xstyle={styles.action}
+    />
+  );
+}
+
+/**
+ * Commit, while something waits; New, which opens the New page; and Note, which opens the inbox's
+ * form. In the rail, Commit alone.
+ */
 export function ColumnActions() {
   const here = useRepoPath();
   const open = useOpenAddForm();
   const { isFolded } = useColumnFold();
-  if (isFolded) {
-    return null;
-  }
   return (
     <div {...stylex.props(styles.actions)}>
+      <Suspense fallback={null}>
+        <CommitAction isFolded={isFolded} />
+      </Suspense>
+      {!isFolded && <NewAndNote here={here} open={open} />}
+    </div>
+  );
+}
+
+/** New and Note, the two buttons that start something. */
+function NewAndNote({
+  here,
+  open,
+}: {
+  here: ReturnType<typeof useRepoPath>;
+  open: ReturnType<typeof useOpenAddForm>;
+}) {
+  return (
+    <>
       <Button
         data-rail-fit
         href={here("/new")}
@@ -133,7 +184,7 @@ export function ColumnActions() {
         variant="secondary"
         xstyle={styles.action}
       />
-    </div>
+    </>
   );
 }
 

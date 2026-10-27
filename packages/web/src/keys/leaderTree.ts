@@ -40,6 +40,19 @@ export function goNewBinding(go: (path: string) => void): Binding {
   };
 }
 
+/**
+ * `g c`: the commit page, as the go keys' one more place. Not one of `PLACES`: `Space c` is
+ * Continue's, so only the go keys can take `c` for the page.
+ */
+export function goCommitBinding(go: (path: string) => void): Binding {
+  return {
+    icon: DESTINATIONS.commit.icon,
+    keys: "g c",
+    label: DESTINATIONS.commit.label,
+    run: () => go(DESTINATIONS.commit.path),
+  };
+}
+
 /** The kinds `Space f` finds, by their key, as the picker's sources name them. */
 const FIND: ReadonlyArray<readonly [key: string, kind: PickerKind, label: string]> = [
   ["f", "features", "Features"],

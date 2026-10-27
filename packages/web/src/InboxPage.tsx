@@ -6,7 +6,6 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
-import { CommitBar } from "./CommitBar.tsx";
 import { rereadChanges, useAgent, useDraftTitles, useInbox, useWorkspace } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
 import { refusal } from "./errors.ts";
@@ -266,7 +265,6 @@ export function InboxPage() {
           value=""
         />
         <InboxList actions={actions} inbox={inbox} onRefused={setMessage} />
-        <CommitBar changes={inbox.changes} />
       </VStack>
     </Page>
   );

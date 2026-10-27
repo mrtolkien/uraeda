@@ -9,7 +9,7 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
-import { useInbox } from "../data.ts";
+import { useInbox, usePriorities } from "../data.ts";
 import { useRepoPath } from "../routes.tsx";
 import { DESTINATIONS } from "../destinations.ts";
 import { useNavigation } from "../sessionData.ts";
@@ -111,6 +111,26 @@ function Tab({
   );
 }
 
+/** The commit tab, while something waits for a commit: the one place they are committed. */
+function CommitTab({ isCurrent }: { isCurrent: boolean }) {
+  const count = usePriorities()?.changes ?? 0;
+  if (count === 0) {
+    return null;
+  }
+  return (
+    <Tab
+      badge="warning"
+      count={count}
+      counted={(n) => plural(n, "change")}
+      icon={DESTINATIONS.commit.icon}
+      isCurrent={isCurrent}
+      label={DESTINATIONS.commit.label}
+      to={DESTINATIONS.commit.path}
+      variant="primary"
+    />
+  );
+}
+
 /** The inbox's tab, with its notes' count once read. */
 function InboxCounted({ isCurrent }: { isCurrent: boolean }) {
   const inbox = useInbox();
@@ -198,6 +218,9 @@ export function Tabs({
         label={DESTINATIONS.settings.label}
         to={DESTINATIONS.settings.path}
       />
+      <Suspense fallback={null}>
+        <CommitTab isCurrent={at(DESTINATIONS.commit.path)} />
+      </Suspense>
       <Tab
         icon={DESTINATIONS.new.icon}
         isCurrent={at(DESTINATIONS.new.path)}

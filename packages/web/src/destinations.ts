@@ -10,6 +10,7 @@ type IconName = ComponentProps<typeof Icon>["icon"];
 export type Destination = { icon: IconName; label: string; path: string };
 
 export const DESTINATIONS = {
+  commit: { icon: "check", label: "Commit", path: "/commit" },
   decisions: { icon: "uraeda:decision-ruler", label: "Decisions", path: "/decisions" },
   home: { icon: "uraeda:home", label: "Home", path: "/" },
   inbox: { icon: "uraeda:inbox", label: "Inbox", path: "/inbox" },

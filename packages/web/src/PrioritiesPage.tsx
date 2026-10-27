@@ -2,7 +2,6 @@ import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
-import { CommitBar } from "./CommitBar.tsx";
 import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Page } from "./layout/Page.tsx";
@@ -65,7 +64,6 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
           run={run}
           select={select}
         />
-        <CommitBar changes={priorities.changes} />
       </VStack>
     </Page>
   );

@@ -23,6 +23,7 @@ import { FeaturePage } from "./feature/FeaturePage.tsx";
 import { ConfirmHost } from "./fields/Confirm.tsx";
 import { LeaveGuard } from "./fields/LeaveGuard.tsx";
 import { pruneUnsaved } from "./fields/unsaved.ts";
+import { CommitPage } from "./CommitPage.tsx";
 import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
 import { MockupPage } from "./MockupPage.tsx";
@@ -156,6 +157,8 @@ function RoutePage({ route }: { route: Route }) {
       return <LedgerRoute open={{ kind: "decision", name: route.name }} />;
     case "principle":
       return <LedgerRoute open={{ kind: "principle", slug: route.slug }} />;
+    case "commit":
+      return <CommitPage />;
     case "edit":
       return <EditorPage key={route.path} path={route.path} />;
     case "mockup":
