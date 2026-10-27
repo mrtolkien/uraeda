@@ -1,24 +1,39 @@
-import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-import { Button } from "@astryxdesign/core/Button";
-import { Divider } from "@astryxdesign/core/Divider";
+// A draft or a proposal's page, laid out as a terminal tool would: the title, one line of what it
+// is, its research effort, then the text in a pane, and, for a draft, a Start pane beside it. Every
+// action has a key, which the status line names: `i` edits, Escape leaves the field, `r` sets the
+// research effort, `f` and `c` pick a feature or a change, and `s` goes to the slug, where Enter
+// starts it, as Ctrl+Enter does in the text. A proposal's `s` saves.
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
-import type { ReactNode } from "react";
-import { AttachButton } from "./attach/AttachButton.tsx";
-import { CommitActions } from "./CommitActions.tsx";
-import { WriteButton } from "./writes/WriteButton.tsx";
+import * as stylex from "@stylexjs/stylex";
+import { useEffect, useRef, useState } from "react";
 import { useDraft } from "./data.ts";
+import { DraftStart, type StartKind } from "./DraftStart.tsx";
+import { DraftText } from "./DraftText.tsx";
 import { useTextField } from "./fields/useTextField.ts";
+import { useKeys } from "./keys/registry.tsx";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
+import { Missing } from "./layout/Missing.tsx";
 import { Page } from "./layout/Page.tsx";
-import { ConflictBanner, EditorText, PriorityChanges } from "./pane/DraftEditor.tsx";
+import { PageTitle } from "./layout/PageTitle.tsx";
+import { useWidthClass } from "./layout/useWidthClass.ts";
+import { ConflictBanner } from "./pane/DraftEditor.tsx";
 import { useDraftEditor } from "./pane/useDraftEditor.ts";
 import { useRestoreScroll } from "./routes.tsx";
-import type { useEditorActions } from "./useEditorActions.ts";
-import { SlugField } from "./SlugField.tsx";
-import { Missing } from "./layout/Missing.tsx";
-import { PageTitle } from "./layout/PageTitle.tsx";
+
+const styles = stylex.create({
+  // The text beside its Start, on a wide screen; the text alone, or stacked, elsewhere.
+  columns: {
+    alignItems: "start",
+    display: "grid",
+    gap: spacingVars["--spacing-4"],
+    gridTemplateColumns: "minmax(0, 2fr) minmax(22rem, 1fr)",
+  },
+  stacked: { display: "flex", flexDirection: "column", gap: spacingVars["--spacing-4"] },
+});
 
 const SECTIONS: Record<string, string> = {
   blocked: "Blocked",
@@ -34,126 +49,131 @@ function levelLabel(level: string) {
 
 type Draft = NonNullable<ReturnType<typeof useDraft>>;
 
-/** The draft's file and what became of it, its title, and its line in the priorities. */
+/** The title, and under it one line: the file, the priorities' section it is in, and its state. */
 function EditorHeading({ draft, path }: { draft: Draft; path: string }) {
-  return (
-    <PageTitle
-      above={
-        <HStack gap={2} justify="between" wrap="wrap">
-          <Text type="code">{path.replace(/^specs\//, "")}</Text>
-          <Text color="secondary" type="supporting">
-            {draft.committed ? "committed" : "not committed"}
-          </Text>
-        </HStack>
-      }
-      // Committed or not shows beside the file's name already.
-      meta={
-        draft.entry && {
-          text: `In Priorities, ${SECTIONS[draft.entry.section] ?? draft.entry.section}`,
-        }
-      }
-    >
-      {draft.title}
-    </PageTitle>
-  );
+  const parts = [
+    path.replace(/^specs\//, ""),
+    ...(draft.entry ? [SECTIONS[draft.entry.section] ?? draft.entry.section] : []),
+    draft.committed ? "committed" : "not committed",
+  ];
+  return <PageTitle meta={{ text: parts.join(" · ") }}>{draft.title}</PageTitle>;
 }
 
-/** The discovery effort of a proposal that has one, set in its frontmatter. */
-function DiscoveryEffort({ draft, onChange }: { draft: Draft; onChange: (level: string) => void }) {
-  if (draft.discovery == null) {
-    return null;
-  }
+/** "Research effort", and its picker, for a proposal that has one in its frontmatter. */
+function ResearchEffort({
+  draft,
+  onChange,
+  value,
+}: {
+  draft: Draft;
+  onChange: (level: string) => void;
+  /** The level shown: the one just picked, while its write is on its way. */
+  value: string;
+}) {
   return (
-    <VStack gap={1}>
-      <SegmentedControl label="Discovery effort" onChange={onChange} value={draft.discovery}>
+    <HStack align="center" gap={3} wrap="wrap">
+      <Text color="secondary">Research effort</Text>
+      <SegmentedControl label="Research effort" onChange={onChange} value={value}>
         {draft.discoveryLevels.map((level) => (
           <SegmentedControlItem key={level} label={levelLabel(level)} value={level} />
         ))}
       </SegmentedControl>
-      <Text color="secondary" type="supporting">
-        How far the agent researches before asking: low reads the code and its docs, medium also
-        compares a few alternatives online, high looks far and wide.
-      </Text>
-    </VStack>
+    </HStack>
   );
 }
 
-/** A draft's slug, and Start, which turns it into a feature. */
-function StartDraft({
-  slug,
-  start,
-}: {
-  slug: ReturnType<typeof useTextField>;
-  start: (continues: boolean) => Promise<boolean>;
-}) {
-  return (
-    <>
-      <Divider />
-      <SlugField field={slug} />
-      <CommitActions
-        continueLabel="Start the feature and the agent"
-        label="Start the feature"
-        onCommit={start}
-        onlyLabel="Start only"
-        runningLabel="Starting the feature…"
-      />
-      <Text color="secondary" type="supporting">
-        Creates its branch and worktree, and moves the line to Now.
-      </Text>
-    </>
-  );
-}
-
-/** The editor's end: what Commit takes with it, Commit, a draft's Start, and what they did. */
-function EditorEnd({
-  actions,
-  draft,
-  leading,
-  slug,
-}: {
-  actions: ReturnType<typeof useEditorActions>;
-  draft: Draft;
-  leading: ReactNode;
-  slug: ReturnType<typeof useTextField>;
-}) {
-  const isDraft = draft.kind === "draft";
-  const changes = draft.priorityChanges;
-  return (
-    <>
-      {isDraft && <PriorityChanges changes={changes} />}
-      {isDraft ? (
-        <HStack gap={2} wrap="wrap">
-          {leading}
-          <WriteButton label="Commit" onClick={() => actions.commit(false)} variant="secondary" />
-        </HStack>
-      ) : (
-        <CommitActions folder={draft.folder} label="Commit" onCommit={actions.commit}>
-          {leading}
-        </CommitActions>
-      )}
-      {isDraft && <StartDraft slug={slug} start={actions.start} />}
-      {actions.message && (
-        <AnnouncedBanner
-          collapsible={false}
-          status={actions.message.ok ? "success" : "error"}
-          title={actions.message.text}
-        />
-      )}
-    </>
-  );
+/** Calls `focus` on the next frames until the element it finds is there: a field that mounts late. */
+function focusSoon(find: () => HTMLElement | null | undefined) {
+  let tries = 0;
+  const attempt = () => {
+    const element = find();
+    if (element) {
+      element.focus();
+    } else if (tries++ < 20) {
+      requestAnimationFrame(attempt);
+    }
+  };
+  requestAnimationFrame(attempt);
 }
 
 /**
- * A draft or a proposal: drawn once written, with Edit, or edited as text, with the template's
- * guidance for each empty section; saved with Save or Ctrl+Enter over the version it was read at,
- * its unsaved text kept until then, committed, and, for a draft, started as a feature.
+ * A draft or a proposal: drawn once written, edited as text, with the template's guidance for each
+ * empty section; saved with Save or Ctrl+Enter over the version it was read at, its unsaved text
+ * kept until then, committed, and, for a draft, started as a feature or a change.
  */
 export function EditorPage({ path }: { path: string }) {
   const draft = useDraft(path);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const slug = useTextField(`${path}#slug`, draft?.slug ?? "");
-  const editor = useDraftEditor({ draft, isDrawnFirst: true, path, slug });
+  const editor = useDraftEditor({ draft, isDrawnFirst: false, path, slug });
+  const isWide = useWidthClass() === "wide";
+  const box = useRef<HTMLDivElement>(null);
+  const slugBox = useRef<HTMLDivElement>(null);
+  const [kind, setKind] = useState<StartKind>("feature");
+  const isDraft = draft?.kind === "draft";
+
+  const edit = () => {
+    editor.setDrawn(false);
+    focusSoon(() => box.current?.querySelector("textarea"));
+  };
+  // What is drawn is the saved text: unsaved words are saved first.
+  const preview = () => {
+    editor.saveText();
+    editor.setDrawn(true);
+  };
+  const focusSlug = () => focusSoon(() => slugBox.current?.querySelector("input"));
+  // The effort picked shows at once, and the file's follows: it goes back to the file's once the
+  // file says the same, or the write was refused.
+  const [chosen, setChosen] = useState<string>();
+  const failed = editor.conflict !== undefined || editor.actions.message?.ok === false;
+  useEffect(() => {
+    if (chosen !== undefined && (draft?.discovery === chosen || failed)) {
+      setChosen(undefined);
+    }
+  }, [chosen, draft?.discovery, failed]);
+  const level = chosen ?? draft?.discovery ?? undefined;
+  const setLevel = (to: string) => {
+    setChosen(to);
+    void editor.actions.setDiscovery(to);
+  };
+  // Starts it as the kind picked: the branch and worktree, then its session, saved text first.
+  const startNow = () => void editor.actions.start(true, kind);
+  const levels = draft?.discoveryLevels ?? [];
+  const cycle = () => {
+    const next = levels[(levels.indexOf(level ?? "") + 1) % levels.length];
+    if (next !== undefined) {
+      setLevel(next);
+    }
+  };
+  useKeys(
+    draft
+      ? [
+          { hint: "i", keys: "i", label: "edit", run: edit },
+          ...(editor.drawn ? [] : [{ hint: "p", keys: "p", label: "preview", run: preview }]),
+          ...(draft.discovery == null
+            ? []
+            : [{ hint: "r", keys: "r", label: "research", run: cycle }]),
+          ...(isDraft
+            ? [
+                { hint: "f", keys: "f", label: "feature", run: () => setKind("feature") },
+                { hint: "c", keys: "c", label: "change", run: () => setKind("change") },
+              ]
+            : []),
+          // Last, in the order of use: a draft's `s` brings the focus to the slug, and Ctrl+Enter
+          // starts it, in the text field too, which has its own; a proposal has no slug, and its
+          // `s` saves.
+          ...(isDraft
+            ? [
+                { hint: "s", keys: "s", label: "slug", run: focusSlug },
+                { hint: "⌃⏎", keys: "mod+Enter", label: "start", run: startNow },
+              ]
+            : editor.field.dirty
+              ? [{ hint: "s", keys: "s", label: "save", run: editor.saveText }]
+              : []),
+        ]
+      : [],
+  );
 
   if (!draft) {
     return (
@@ -162,30 +182,39 @@ export function EditorPage({ path }: { path: string }) {
       </Page>
     );
   }
+  const message = editor.actions.message;
   return (
     <Page>
       <VStack gap={4}>
         <EditorHeading draft={draft} path={path} />
         <ConflictBanner editor={editor} />
-        <DiscoveryEffort
-          draft={draft}
-          onChange={(level) => void editor.actions.setDiscovery(level)}
-        />
-        <EditorText draft={draft} editor={editor} />
-        <EditorEnd
-          actions={editor.actions}
-          draft={draft}
-          leading={
-            <>
-              <Button
-                label={editor.drawn ? "Edit" : "Preview"}
-                onClick={() => editor.setDrawn(!editor.drawn)}
-              />
-              <AttachButton onFiles={(files) => void editor.images.addFiles(files)} />
-            </>
-          }
-          slug={slug}
-        />
+        {level !== undefined && <ResearchEffort draft={draft} onChange={setLevel} value={level} />}
+        <div {...stylex.props(isDraft && isWide ? styles.columns : styles.stacked)}>
+          <DraftText
+            boxRef={box}
+            draft={draft}
+            editor={editor}
+            onEdit={edit}
+            onSubmit={isDraft ? startNow : editor.saveText}
+            path={path}
+          />
+          {isDraft && (
+            <DraftStart
+              actions={editor.actions}
+              kind={kind}
+              onKind={setKind}
+              slug={slug}
+              slugRef={slugBox}
+            />
+          )}
+        </div>
+        {message && (
+          <AnnouncedBanner
+            collapsible={false}
+            status={message.ok ? "success" : "error"}
+            title={message.text}
+          />
+        )}
       </VStack>
     </Page>
   );
