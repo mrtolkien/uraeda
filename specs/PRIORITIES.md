@@ -8,14 +8,14 @@
 
 - [Full interactive UI pass: manual small fixes](drafts/full-interactive-ui-pass-manual-small-fixes.md)
 - Write down our UI decisions and strategy based on the "UI fixes" worktree
-- Empty inbox
+- Amend the latest commits if the commits only touch workflow files
 - Add `?` in status, after leader, for shortcuts
 - Cooler home view: logo, progress, gauges, ...
 - Performance pass: the UI feels sluggish
+- Empty inbox
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
-- Amend the latest commits if the commits only touch workflow files
 
 ## Next
 
