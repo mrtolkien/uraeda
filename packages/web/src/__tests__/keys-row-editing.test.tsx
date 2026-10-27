@@ -123,9 +123,12 @@ test("m opens the menu of the card the focus is on, while an earlier card is edi
   await press("m", linkOf("Ngamma"));
   await click(await screen.findByRole("menuitem", { name: "Delete" }));
 
-  await waitFor(() => expect(read(repo)).not.toContain("Ngamma"));
-  expect(read(repo)).toContain("- Nbeta\n");
-  expect(read(repo)).toContain("- Nalpha\n");
+  await waitFor(() => {
+    const text = read(repo);
+    expect(text).not.toContain("Ngamma");
+    expect(text).toContain("- Nbeta\n");
+    expect(text).toContain("- Nalpha\n");
+  });
 });
 
 test("o adds in the section of the card the focus is on, while another section's card is edited", async () => {
@@ -164,8 +167,13 @@ test("m on a note opens the note's menu, while an earlier note is edited", async
   await press("m", linkOf("Ngamma"));
   await click(await screen.findByRole("menuitem", { name: "Delete" }));
 
-  await waitFor(() => expect(read(repo, "specs/INBOX.md")).not.toContain("Ngamma"));
-  expect(read(repo, "specs/INBOX.md")).toContain("- Nbeta\n");
+  // Read together: the file is read while the core may still be writing it, and a read between
+  // the two writes sees no text at all.
+  await waitFor(() => {
+    const text = read(repo, "specs/INBOX.md");
+    expect(text).not.toContain("Ngamma");
+    expect(text).toContain("- Nbeta\n");
+  });
 });
 
 test("o on a Blocked line opens the form in Next, the default place (R80)", async () => {
