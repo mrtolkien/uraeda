@@ -237,19 +237,20 @@ export function Column({ isWide }: { isWide: boolean }) {
     }),
     [toggleStored],
   );
-  // The fold is the column's own key, wide only: the leader's `u [` is the same, named in full.
+  // The fold is the column's own key: wide, it folds the column; semi-wide, it opens the rail over
+  // the page, or folds it again. The leader's `u [` is the same, named in full.
+  const toggleSidebar = isWide ? fold.toggle : rail.tap;
   useKeys(
-    isWide
-      ? [
-          { hint: "[", keys: "[", label: "fold", run: fold.toggle },
-          {
-            icon: "uraeda:panel-left",
-            keys: "space u [",
-            label: "Fold navigation",
-            run: fold.toggle,
-          },
-        ]
-      : [],
+    [
+      // One hint for both sidebars' keys: the right column's `]` declares none.
+      { hint: "[ ]", keys: "[", label: "fold", run: toggleSidebar },
+      {
+        icon: "uraeda:panel-left",
+        keys: "space u [",
+        label: "Fold navigation",
+        run: toggleSidebar,
+      },
+    ],
     "shell",
   );
   return (

@@ -3,6 +3,7 @@
 import { colorVars, fontWeightVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
+import { SpaceGlyph } from "./Glyphs.tsx";
 
 const styles = stylex.create({
   key: {
@@ -13,7 +14,7 @@ const styles = stylex.create({
   },
 });
 
-/** The keys, as typed: "j k", "space", "⏎". */
+/** The keys, as typed: "j k", "⏎". Space, written "space", is its narrow glyph. */
 export function KeyCap({ children }: { children: ReactNode }) {
-  return <kbd {...stylex.props(styles.key)}>{children}</kbd>;
+  return <kbd {...stylex.props(styles.key)}>{children === "space" ? <SpaceGlyph /> : children}</kbd>;
 }

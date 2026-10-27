@@ -17,7 +17,8 @@ import { type Entry, needsYouEntries, runningSessions } from "../sidebar/entries
 import { statusPath } from "../sidebar/statusPath.ts";
 import { useStatusLineCovered } from "../statusHints.tsx";
 import { KeyCap } from "../keys/KeyCap.tsx";
-import { useHints } from "../keys/registry.tsx";
+import { keepFocus } from "../keys/press.ts";
+import { useHints, usePress } from "../keys/registry.tsx";
 import { useCountsFit } from "./useCountsFit.ts";
 import { ruleStyles } from "../layout/rules.ts";
 
@@ -105,21 +106,34 @@ function needsYouPath(entries: Array<Entry>) {
   return only.kind === "feature" ? statusPath(only.feature, only.status) : sessionIdPath(only.row.id);
 }
 
-/** The hints, each its keys then what they do, as the registry holds them. */
-function Hints() {
+/**
+ * The hints, each its keys then what they do, as the registry holds them. On the phone, which has
+ * no keys, only the leader's: a tap on it opens the menu, the way to the others.
+ */
+function Hints({ isNarrow }: { isNarrow: boolean }) {
   const hints = useHints();
+  const press = usePress();
   return (
     <div {...stylex.props(styles.hints)}>
-      {hints.map((hint) => (
-        <Text
-          color="secondary"
-          key={`${hint.keys} ${hint.label}`}
-          type="supporting"
-          xstyle={styles.hint}
-        >
-          <KeyCap>{hint.keys}</KeyCap> {hint.label}
-        </Text>
-      ))}
+      {hints
+        .filter((hint) => !isNarrow || hint.press === "space")
+        .map((hint) => (
+          <Text
+            color="secondary"
+            key={`${hint.keys} ${hint.label}`}
+            type="supporting"
+            xstyle={styles.hint}
+          >
+            <button
+              onClick={() => press(hint.press)}
+              onMouseDown={keepFocus}
+              type="button"
+              {...stylex.props(styles.press)}
+            >
+              <KeyCap>{hint.keys}</KeyCap> {hint.label}
+            </button>
+          </Text>
+        ))}
     </div>
   );
 }
@@ -158,7 +172,7 @@ function Counts({ fits, measured }: { fits: boolean; measured: RefObject<HTMLDiv
   );
 }
 
-/** The line: the hints, left out on the phone, which has no keys, or the page's slot, then the counts. */
+/** The line: the hints, only the leader's on the phone, which has no keys, the page's slot, then the counts. */
 export function StatusLine({ isNarrow, slot }: { isNarrow: boolean; slot: ReactNode }) {
   // Left out under a sheet that leaves the page usable, which rises from the same edge.
   const isCovered = useStatusLineCovered();
@@ -171,7 +185,7 @@ export function StatusLine({ isNarrow, slot }: { isNarrow: boolean; slot: ReactN
   }
   return (
     <footer aria-label="Status line" ref={line} {...stylex.props(ruleStyles.above, styles.line)}>
-      {!isNarrow && <Hints />}
+      <Hints isNarrow={isNarrow} />
       {slot !== null && (
         <div ref={controls} {...stylex.props(styles.slot)}>
           {slot}

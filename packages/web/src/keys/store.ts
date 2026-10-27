@@ -19,6 +19,10 @@ export type Binding = {
   fallback?: boolean;
   /** The status line's text for the key or keys, "j k": absent means no hint. */
   hint?: string;
+  /** The words the status line says after the hint's keys, where they are not the binding's label. */
+  hintLabel?: string;
+  /** The keys a click on the hint presses, where they are not the binding's own: "space". */
+  hintPress?: string;
   /**
    * Still named while a layer is open, for the keys a layer's owner declares. Only the hint stays:
    * the binding's `run` never fires under a layer, whose owner takes its own keys.
@@ -46,7 +50,12 @@ export type Binding = {
 export type Place = "page" | "shell";
 
 /** A key that works, and what it does, as the status line shows it: "j k" "move". */
-export type StatusHint = { keys: string; label: string };
+export type StatusHint = {
+  keys: string;
+  label: string;
+  /** The keys of the binding that named it, which a click on the hint presses. */
+  press: string;
+};
 
 /** A hint of the registry, and whether it stays while a layer is open. */
 export type Hint = StatusHint & { inLayer: boolean };
@@ -118,6 +127,9 @@ function assertGroupsNamed(bindings: ReadonlyArray<Binding>) {
   }
 }
 
+/** The hints that come first in the status line, by their keys, in this order. */
+const FIRST_HINTS = ["space", "[ ]"];
+
 export function createKeyStore(initialSingleKeys: boolean) {
   const entries = new Map<string, Entry>();
   const listeners = new Set<() => void>();
@@ -140,7 +152,8 @@ export function createKeyStore(initialSingleKeys: boolean) {
       const hint = {
         inLayer: binding.hintInLayer === true,
         keys: binding.hint,
-        label: binding.label,
+        label: binding.hintLabel ?? binding.label,
+        press: binding.hintPress ?? binding.keys,
       };
       const id = `${hint.keys} ${hint.label}`;
       if (hint.keys === undefined || seen.has(id)) {
@@ -149,6 +162,13 @@ export function createKeyStore(initialSingleKeys: boolean) {
       seen.add(id);
       return [{ ...hint, keys: hint.keys }];
     });
+    // The leader's hint, "space menu", is always the first, the way into every other key, and the
+    // sidebars' folds the second; the others keep their order after them.
+    const rank = (keys: string) => {
+      const at = FIRST_HINTS.indexOf(keys);
+      return at === -1 ? FIRST_HINTS.length : at;
+    };
+    next.sort((a, b) => rank(a.keys) - rank(b.keys));
     if (JSON.stringify(next) !== JSON.stringify(hints)) {
       hints = next;
       for (const listener of listeners) {

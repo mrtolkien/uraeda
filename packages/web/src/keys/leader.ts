@@ -66,6 +66,14 @@ export function createLeader() {
       }
     },
     get: () => step,
+    /** Shows the menu of the sequence pending now, with no wait: a click asked for it. */
+    show() {
+      if (step !== null && !step.isShown) {
+        step = { ...step, isShown: true };
+        arm();
+        notify();
+      }
+    },
     /**
      * Feeds a key to the sequence. A step already pending, or begun by the chord, walks every
      * binding, the single-key ones too: only the chord can have begun it with the switch off.

@@ -32,6 +32,11 @@ export function LeaderKeys() {
     ...newBindings(navigateHere, openForm),
     continuing,
     {
+      // The leader's one hint, "space menu": it shows while the sequences do, and goes with them
+      // when the single-key switch is off.
+      hint: "space",
+      hintLabel: "menu",
+      hintPress: "space",
       icon: "uraeda:layers",
       keys: "space r",
       label: "Switch repository…",

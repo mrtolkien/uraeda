@@ -6,10 +6,13 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { easeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ComponentProps, type ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { type ComponentProps, useLayoutEffect, useRef, useState } from "react";
 import { Pane } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { brighten } from "../sidebar/brighten.ts";
+import { BackGlyph } from "./Glyphs.tsx";
 import { KeyCap } from "./KeyCap.tsx";
+import { keepFocus, pressKeys } from "./press.ts";
 
 /** What a key does at this step: a group opens the next step, anything else runs. */
 export type MenuEntry = {
@@ -54,6 +57,19 @@ const styles = stylex.create({
   },
   // The pane's frame, which eases to the size the menu's step needs. The content stays at the
   // frame's top left and is clipped to it, but for the title over the top border.
+  // A row or a footer key that presses its key when clicked, as a link in the text.
+  press: {
+    background: "none",
+    border: "none",
+    color: "inherit",
+    font: "inherit",
+    padding: 0,
+    textAlign: "start",
+  },
+  full: {
+    display: "block",
+    width: "100%",
+  },
   frame: {
     boxSizing: "border-box",
     clipPath: "inset(-1lh 0 0 0)",
@@ -118,49 +134,9 @@ export function sortedEntries(entries: ReadonlyArray<MenuEntry>): Array<MenuEntr
   });
 }
 
-/**
- * A key drawn as a glyph about as wide as a letter: Astryx's `space` and `delete` icons span the
- * whole em, which sets them apart from the other keys.
- */
-function Glyph({ children, label, width }: { children: ReactNode; label: string; width: number }) {
-  return (
-    <svg
-      aria-label={label}
-      fill="none"
-      height="1em"
-      role="img"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      style={{ display: "inline-block", verticalAlign: "-0.125em" }}
-      viewBox={`0 0 ${width} 24`}
-      width={`${width / 24}em`}
-    >
-      {children}
-    </svg>
-  );
-}
-
-/** Space, as the open box of a space bar, narrow. */
-const SpaceGlyph = () => (
-  <Glyph label="Space" width={14}>
-    <path d="M2 14v4h10v-4" />
-  </Glyph>
-);
-
-/** Backspace, as the symbol of its key, a tag pointing left with a cross in it, narrow. */
-const BackGlyph = () => (
-  <Glyph label="Backspace" width={18}>
-    <path d="M7 6h10v12H7l-5-6z" />
-    <path d="m10 9.5 4 5" />
-    <path d="m14 9.5-4 5" />
-  </Glyph>
-);
-
 /** A key as the menu draws it: Space is its glyph, any other the key as typed. */
 function Key({ name }: { name: string }) {
-  return <KeyCap>{name === "space" ? <SpaceGlyph /> : name}</KeyCap>;
+  return <KeyCap>{name}</KeyCap>;
 }
 
 /** A key of the path as the title writes it: Space is `Space`, any other as typed. */
@@ -207,19 +183,41 @@ export function LeaderMenu({
       <ul {...stylex.props(styles.entries, narrow && styles.oneColumn)}>
         {sortedEntries(entries).map((entry) => (
           <li key={entry.key}>
-            <Text type="supporting" xstyle={styles.entry}>
-              <Key name={entry.key} />
-              <Icon icon={entry.icon} size="sm" />
-              {entry.isGroup === true ? `${entry.label} →` : entry.label}
-            </Text>
+            <button
+              onClick={() => pressKeys(entry.key)}
+              onMouseDown={keepFocus}
+              type="button"
+              {...stylex.props(styles.press, styles.full, brighten)}
+            >
+              <Text type="supporting" xstyle={styles.entry}>
+                <Key name={entry.key} />
+                <Icon icon={entry.icon} size="sm" />
+                {entry.isGroup === true ? `${entry.label} →` : entry.label}
+              </Text>
+            </button>
           </li>
         ))}
       </ul>
       <Text color="secondary" type="supporting">
-        <KeyCap>
-          <BackGlyph />
-        </KeyCap>{" "}
-        back <KeyCap>esc</KeyCap> close
+        <button
+          onClick={() => pressKeys("Backspace")}
+          onMouseDown={keepFocus}
+          type="button"
+          {...stylex.props(styles.press, brighten)}
+        >
+          <KeyCap>
+            <BackGlyph />
+          </KeyCap>{" "}
+          back
+        </button>{" "}
+        <button
+          onClick={() => pressKeys("Escape")}
+          onMouseDown={keepFocus}
+          type="button"
+          {...stylex.props(styles.press, brighten)}
+        >
+          <KeyCap>esc</KeyCap> close
+        </button>
       </Text>
     </Pane>
   );
