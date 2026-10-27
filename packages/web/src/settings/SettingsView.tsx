@@ -1,10 +1,13 @@
 // The settings page: one form of bordered sections, Server, Appearance, Keyboard, Sign-in, Agents,
 // Runs, and Reviews, each setting a row. The search sits at the end of the heading row on wide screens, and
 // under the heading on narrow ones; while it holds text, it filters the rows, and a section left
-// without one is hidden. A section named in the address is scrolled into view.
+// without one is hidden. The title and the search stay in view as the page scrolls. A section named
+// in the address is scrolled into view, below them.
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useLayoutEffect, useState } from "react";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
+import { type RefObject, useLayoutEffect, useRef, useState } from "react";
 import { Page } from "../layout/Page.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
@@ -23,6 +26,21 @@ import { RefusalsProvider } from "./SettingRow.tsx";
 import { type ServerActions, ServerSettings, type ServerValues } from "./ServerSettings.tsx";
 import { Empty } from "../layout/Empty.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
+
+const styles = stylex.create({
+  // The title and the search, which stay in view as the sections scroll under them: on a phone,
+  // under the tabs, which stay too. Over the page's own surface, a step taller than its content each
+  // side so that nothing shows around it, with the page's layout unchanged.
+  bar: {
+    backgroundColor: colorVars["--color-background-surface"],
+    marginBlock: `calc(-1 * ${spacingVars["--spacing-2"]})`,
+    paddingBlock: spacingVars["--spacing-2"],
+    position: "sticky",
+    top: 0,
+    zIndex: 1,
+  },
+  barPhone: { top: spacingVars["--spacing-12"] },
+});
 
 /** One section's rows, those `shows` keeps. */
 function Rows({
@@ -77,14 +95,22 @@ function SearchField({
   );
 }
 
-/** Scrolls the section `id` names into view, unless the page has a place of its own to return to. */
-function useScrollToSection(id: CategoryId | undefined) {
+/**
+ * Scrolls the section `id` names into view, unless the page has a place of its own to return to,
+ * below the sticky `bar`, with room for the pane's title, which stands half over its border.
+ */
+function useScrollToSection(id: CategoryId | undefined, bar: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     if (id === undefined || typeof currentEntry().scroll === "number") {
       return;
     }
-    document.getElementById(sectionId(id))?.scrollIntoView?.({ block: "start" });
-  }, [id]);
+    const target = document.getElementById(sectionId(id));
+    if (target && bar.current) {
+      const stuckAt = Number.parseFloat(getComputedStyle(bar.current).top) || 0;
+      target.style.scrollMarginTop = `${stuckAt + bar.current.offsetHeight + 16}px`;
+    }
+    target?.scrollIntoView?.({ block: "start" });
+  }, [bar, id]);
 }
 
 /**
@@ -105,7 +131,8 @@ export function SettingsView({
 }) {
   const wide = !isNarrow(useWidthClass());
   const [text, setText] = useState(initialSearch);
-  useScrollToSection(id);
+  const bar = useRef<HTMLDivElement>(null);
+  useScrollToSection(id, bar);
   const search = <SearchField onChange={setText} text={text} wide={wide} />;
   const sections = CATEGORIES.map((category) => ({ category, shown: shownLabels(category, text) }))
     .filter(({ shown }) => shown.size > 0)
@@ -128,7 +155,9 @@ export function SettingsView({
     <Page>
       <RefusalsProvider>
         <VStack gap={6}>
-          <PageTitle aside={search}>Settings</PageTitle>
+          <div ref={bar} {...stylex.props(styles.bar, !wide && styles.barPhone)}>
+            <PageTitle aside={search}>Settings</PageTitle>
+          </div>
           {sections.length > 0 ? (
             <VStack gap={6}>{sections}</VStack>
           ) : (
