@@ -1,7 +1,8 @@
 // The scroll fallback of the base keymap: on a page with no rows to move through, the vertical keys
 // scroll, as a registry default that no page copies. It runs only where no binding of the page
 // handled the key (a list that declared `j` moves its selection and nothing scrolls), on the area
-// holding the focus, else the page. The scrolling is what a page does anyway, so it has no hint.
+// holding the focus, else the page, gliding as a browser's arrow keys do. The scrolling is what a
+// page does anyway, so it has no hint.
 import { useKeys } from "./registry.tsx";
 import type { Binding } from "./store.ts";
 
@@ -50,15 +51,66 @@ function lineOf(area: Area) {
   return Number.isFinite(font) ? font * NORMAL_LINE : FALLBACK_LINE;
 }
 
-/** Scrolls the area a few lines, `direction` 1 for down and -1 for up, with no animation. */
+/** How fast a glide closes on its target, in ms: the distance left shrinks by `1/e` in each. */
+const GLIDE_MS = 90;
+
+/** A glide of an area: where it heads, where it left the area, and its next frame, if any. */
+type Glide = { frame: number; last: number; placed: number; target: number };
+
+const glides = new WeakMap<Element, Glide>();
+
+/** Whether the human asked the system for less motion. */
+const wantsLess = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/**
+ * Moves the area by `distance` px, gliding as a browser's arrow keys do: each key adds to where the
+ * area is heading, so quick presses and a held key run on in one smooth motion rather than each
+ * starting over. A scroll by anything else, a wheel or a drag, ends the glide.
+ */
+function glideBy(area: Area, distance: number) {
+  const element = area ?? document.scrollingElement ?? document.documentElement;
+  const farthest = element.scrollHeight - element.clientHeight;
+  const clamp = (top: number) => Math.min(Math.max(top, 0), Math.max(farthest, 0));
+  if (wantsLess()) {
+    element.scrollTop = clamp(element.scrollTop + distance);
+    return;
+  }
+  const glide = glides.get(element) ?? { frame: 0, last: 0, placed: 0, target: 0 };
+  glides.set(element, glide);
+  const isRunning = glide.frame !== 0;
+  glide.target = clamp((isRunning ? glide.target : element.scrollTop) + distance);
+  if (isRunning) {
+    return;
+  }
+  glide.last = performance.now();
+  glide.placed = element.scrollTop;
+  const tick = (now: number) => {
+    const elapsed = now - glide.last;
+    glide.last = now;
+    // Moved by something else since the last frame: it takes over.
+    if (Math.abs(element.scrollTop - glide.placed) > 2) {
+      glide.frame = 0;
+      return;
+    }
+    const left = glide.target - element.scrollTop;
+    const move = left * (1 - Math.exp(-elapsed / GLIDE_MS));
+    // At least a pixel, which a scroll position can hold, and never past the target.
+    const by = Math.abs(move) < 1 ? Math.sign(left) : move;
+    element.scrollTop += Math.abs(by) >= Math.abs(left) ? left : by;
+    glide.placed = element.scrollTop;
+    if (Math.abs(glide.target - element.scrollTop) < 0.5) {
+      glide.frame = 0;
+      return;
+    }
+    glide.frame = requestAnimationFrame(tick);
+  };
+  glide.frame = requestAnimationFrame(tick);
+}
+
+/** Scrolls the area a few lines, `direction` 1 for down and -1 for up, gliding. */
 function step(event: KeyboardEvent, direction: 1 | -1) {
   const area = areaOf(event.target);
-  const options = { behavior: "instant", top: direction * LINES * lineOf(area) } as const;
-  if (area === null) {
-    window.scrollBy(options);
-  } else {
-    area.scrollBy(options);
-  }
+  glideBy(area, direction * LINES * lineOf(area));
 }
 
 /** Scrolls the area to its top or its bottom, with no animation: `g g` is the top too. */
