@@ -148,6 +148,9 @@ const styles = stylex.create({
   stretched: {
     "::after": { content: '""', inset: 0, position: "absolute" },
     color: "inherit",
+    // No ring of its own around the text: the card's frame draws the focus ring, and a second one,
+    // as wide as the text, showed as bars inside a selected card.
+    outlineStyle: { ":focus-visible": "none", default: null },
     textDecoration: "none",
   },
   text: { overflowWrap: "anywhere" },
@@ -157,7 +160,11 @@ const styles = stylex.create({
 function RowLink({ onOpen, row }: { onOpen?: (row: WorkRow) => void; row: WorkRow }) {
   return (
     <Link
+      // The normal text colour, not the link's accent; two lines at most, then an ellipsis, with the
+      // whole text in a tooltip.
+      color="primary"
       href={row.href}
+      maxLines={2}
       onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
         // A click that is a drag's end is already prevented, and a modified one is the browser's.
         const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0);
