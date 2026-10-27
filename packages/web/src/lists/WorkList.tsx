@@ -61,10 +61,10 @@ const styles = stylex.create({
   cards: {
     display: "flex",
     flexDirection: "column",
-    gap: spacingVars["--spacing-3"],
+    gap: spacingVars["--spacing-1"],
     listStyle: "none",
     margin: 0,
-    paddingBlock: spacingVars["--spacing-2"],
+    paddingBlock: spacingVars["--spacing-1"],
     paddingInline: 0,
   },
   // A column of the row: at least 400 px, growing to share the row's width; a row of more columns
@@ -76,9 +76,22 @@ const styles = stylex.create({
     flexShrink: 0,
     minWidth: 0,
   },
+  // A column of a list whose lines are long, as the priorities': at least 500 px.
+  roomy: { "--column-least": "500px" },
+  // The pane's side room, which its text, its rows, and its footer share: a bullet sits near the
+  // border, as a list's does.
+  snug: { "--pane-inset": spacingVars["--spacing-1"] },
+  // The section's note, as the file writes it, `> [!NOTE]`: drawn as a callout, a blue bar at its
+  // start on a surface of its own.
   context: {
+    backgroundColor: colorVars["--color-background-surface"],
+    borderInlineStartColor: colorVars["--color-text-blue"],
+    borderInlineStartStyle: "solid",
+    borderInlineStartWidth: "3px",
     color: colorVars["--color-text-secondary"],
-    paddingBlockEnd: spacingVars["--spacing-1"],
+    marginBlockEnd: spacingVars["--spacing-1"],
+    paddingBlock: spacingVars["--spacing-1"],
+    paddingInline: spacingVars["--spacing-2"],
   },
   footer: {
     paddingBlock: spacingVars["--spacing-1"],
@@ -115,6 +128,7 @@ const TINTS: Record<Tone, PaneTint | undefined> = {
 /** A section as a pane: its title and count, its context, its cards, and its footer. */
 function SectionBody({
   isColumn,
+  isRoomy,
   level,
   onHover,
   onOpen,
@@ -124,6 +138,7 @@ function SectionBody({
   selected,
 }: {
   isColumn: boolean;
+  isRoomy?: boolean;
   level?: HeadingLevel | undefined;
   onHover: (row: WorkRow) => void;
   onOpen: (row: WorkRow) => void;
@@ -137,7 +152,7 @@ function SectionBody({
       // What the list brings into view, whole, when its selection is in it.
       data-column={isColumn ? "" : undefined}
       ref={ref}
-      {...stylex.props(isColumn && styles.column)}
+      {...stylex.props(isColumn && styles.column, isColumn && isRoomy && styles.roomy)}
     >
       <Pane
         actions={section.menu}
@@ -147,6 +162,7 @@ function SectionBody({
         tint={TINTS[section.tone]}
         title={section.title}
         titleNode={section.titleNode}
+        xstyle={[styles.snug]}
       >
         {section.context && (
           <Text color="secondary" display="block" xstyle={styles.context}>
@@ -179,6 +195,7 @@ function SectionBody({
 /** A section rows are dropped in, even when it is empty. */
 function DropSection(props: {
   isColumn: boolean;
+  isRoomy?: boolean;
   level?: HeadingLevel | undefined;
   onHover: (row: WorkRow) => void;
   onOpen: (row: WorkRow) => void;
@@ -267,6 +284,7 @@ function useShown(
  */
 export function WorkList({
   isFocused = false,
+  isRoomy = false,
   layout = "stack",
   level,
   onAddBeside,
@@ -278,6 +296,8 @@ export function WorkList({
   selected: named,
 }: {
   isFocused?: boolean;
+  /** The columns start at 500 px, not 400: for lines that run long, as the priorities'. */
+  isRoomy?: boolean;
   layout?: WorkLayout;
   /** The level of its panes' titles, where the page's headings put them. */
   level?: HeadingLevel;
@@ -375,6 +395,7 @@ export function WorkList({
     return (
       <Body
         isColumn={isColumn}
+        isRoomy={isRoomy}
         key={section.id}
         level={level}
         onHover={hover}

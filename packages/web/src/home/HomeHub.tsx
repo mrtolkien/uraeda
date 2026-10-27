@@ -7,7 +7,7 @@ import { Fragment } from "react";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { useInbox, usePriorities } from "../data.ts";
-import { byRunning, marksOf } from "../lists/PrioritiesList.tsx";
+import { byRunning, lookOf, marksOf } from "../lists/PrioritiesList.tsx";
 import { WorkList, type WorkSection } from "../lists/WorkList.tsx";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
@@ -91,6 +91,7 @@ function Lists({
       isFixed: true,
       rows: entries.map((entry) => ({
         href: here(`/priorities/${entry.key}`),
+        ...lookOf(entry),
         isFixed: true,
         key: entry.key,
         lines: entry.nestedSpans.map(plain),

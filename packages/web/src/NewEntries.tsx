@@ -55,7 +55,7 @@ export function withAdded(text: string, added: string): string {
 const holds = (needle: string, parts: ReadonlyArray<string>) =>
   needle === "" || parts.some((part) => part.toLowerCase().includes(needle));
 
-/** A card's marks, as text in its border: its category or section, and "draft" if it has one. */
+/** A row's marks, as small text after its own: its category or section. */
 const marksOf = (...marks: ReadonlyArray<string | false | undefined>) => {
   const shown = marks.filter(Boolean);
   return shown.length === 0 ? undefined : shown.join(" · ");
@@ -76,6 +76,8 @@ function useEntries(search: string) {
     byHref.set(href, entry);
     return {
       href,
+      // A line with a draft reads as a link to its file.
+      ...(entry.draftHref ? { icon: "uraeda:file-text" as const, isLinked: true } : {}),
       isFixed: true,
       key,
       lines: entry.lines,
@@ -104,7 +106,7 @@ function useEntries(search: string) {
           entry,
           here(`/inbox/${note.key}`),
           `note:${note.key}`,
-          marksOf(category.name, note.draft !== undefined && "draft"),
+          marksOf(category.name),
         ),
       ];
     }),
@@ -131,7 +133,7 @@ function useEntries(search: string) {
             entry,
             here(`/priorities/${line.key}`),
             `line:${line.key}`,
-            marksOf(titleOf(section.section), line.draft && "draft"),
+            marksOf(titleOf(section.section)),
           ),
         ];
       }),

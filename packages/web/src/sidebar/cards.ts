@@ -70,6 +70,17 @@ const KINDS: Record<string, StepKind> = {
 };
 
 /**
+ * The icon kind of a step on its own, as a priority's running entry carries it: a human gate by the
+ * kind of file it waits on, else by the step's name.
+ */
+export function stepKindOf(step: { fileKind?: string | null; name: string }): StepKind {
+  if (step.name === "human-gate") {
+    return (step.fileKind ? GATES[step.fileKind]?.kind : undefined) ?? "proposal";
+  }
+  return KINDS[step.name] ?? "problem";
+}
+
+/**
  * A feature's step, as its card draws it: a problem whatever its step, then a gate by what it
  * asks, else by the step's name. Its notes stay off the card, on its page.
  */

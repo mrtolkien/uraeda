@@ -1,11 +1,11 @@
-// A line of the priorities or the inbox as a small card: a square frame with its whole text
-// wrapping, its sub-lines under it, and its marks set in its top border as a pane's title is. The
-// whole card is one link, stretched over it, and drags from anywhere past 5 px of a mouse press, or
-// after half a second of a touch press (see `SENSORS`). The `…` button's slot sits at its corner.
+// A line of the priorities or the inbox as a row of a list: a bullet and its text, three lines at
+// most, its marks before the text, and its sub-lines under it, with no frame of its own. The whole
+// row is one control, stretched over it, and drags from anywhere past 5 px of a mouse press, or
+// after half a second of a touch press (see `SENSORS`). The `…` button shows over its end.
+import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import {
-  borderVars,
   colorVars,
   focusVars,
   sizeVars,
@@ -14,8 +14,13 @@ import {
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { useSortable } from "@dnd-kit/react/sortable";
 import * as stylex from "@stylexjs/stylex";
-import { createContext, type MouseEvent, type ReactNode, useContext } from "react";
-import { legendStyles } from "../layout/legend.ts";
+import {
+  type ComponentProps,
+  createContext,
+  type MouseEvent,
+  type ReactNode,
+  useContext,
+} from "react";
 
 /**
  * What a card's editor tells the list: that it closed, whether it holds text not saved yet, and the
@@ -46,7 +51,11 @@ export interface WorkRow {
   label?: ReactNode;
   /** Its children, each a grey line under its text. */
   lines: ReadonlyArray<string>;
-  /** Its marks, as text set in its top border. */
+  /** An icon in the place of its bullet, as a draft's file or a running entry's work. */
+  icon?: ComponentProps<typeof Icon>["icon"];
+  /** Its text is a link to a file, as a line's draft is: drawn as a hyperlink. */
+  isLinked?: boolean;
+  /** Its marks, as small text after its own. */
   marks?: ReactNode;
   /** Enter shows its whole content in a pane beside it, in place of following `href`. */
   peek?: boolean;
@@ -84,9 +93,23 @@ export type MenuState = { isOpen: boolean; onOpenChange: (isOpen: boolean) => vo
 export const MenuStateContext = createContext<MenuState | undefined>(undefined);
 
 const styles = stylex.create({
-  // The frame: a raw element, as the plan's Complexity tracking says (no Astryx component sets
-  // marks in a border).
+  // The row: a line of the list as a bullet and its text, with no frame of its own. A raw element,
+  // as the plan's Complexity tracking says.
   frame: {
+    // The bullet, in the gutter before the text: in a box of the icons' size, centred as they are,
+    // so that bullets and icons line up in one column, on the middle of the first line.
+    "::before": {
+      alignItems: "center",
+      color: colorVars["--color-text-secondary"],
+      content: '"•"',
+      display: "flex",
+      height: "1.5rem",
+      insetBlockStart: "0.125rem",
+      insetInlineStart: "0.125rem",
+      justifyContent: "center",
+      position: "absolute",
+      width: "1rem",
+    },
     // The `…` button's opacity, which `CardMenu` reads: shown under the pointer, on keyboard focus
     // within the card, and always when the pointer cannot hover, a touch screen.
     "--menu-opacity": {
@@ -95,10 +118,7 @@ const styles = stylex.create({
       "@media (hover: none)": 1,
       default: 0,
     },
-    borderColor: colorVars["--color-border"],
-    borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
-    // The focus ring of the link, drawn on the frame, from the pseudo-class alone: a default of the
+    // The focus ring of the link, drawn on the row, from the pseudo-class alone: a default of the
     // app's own, unlayered, would override Astryx's layered rule on any element that shares the
     // atomic class.
     outlineColor: { ":has(:focus-visible)": colorVars["--color-accent"], default: null },
@@ -109,14 +129,15 @@ const styles = stylex.create({
     outlineStyle: { ":has(:focus-visible)": "solid", default: null },
     outlineWidth: { ":has(:focus-visible)": focusVars["--focus-outline-width"], default: null },
     // No margin: a card lifted by a drag is positioned from its border box, and a margin would
-    // offset it. The list's gap leaves room for the marks over the border.
-    // The whole card is tappable: a target as tall as a control, the theme's 44 px on a touch screen.
+    // offset it. The whole row is tappable: on a touch screen as tall as a control, the theme's
+    // 44 px; with a mouse only as tall as its text.
     cursor: "pointer",
-    minHeight: sizeVars["--size-element-sm"],
+    minHeight: { "@media (hover: none)": sizeVars["--size-element-sm"], default: null },
     minWidth: 0,
-    paddingBlock: spacingVars["--spacing-1"],
+    paddingBlock: "0.125rem",
     paddingInlineEnd: spacingVars["--spacing-2"],
-    paddingInlineStart: spacingVars["--spacing-2"],
+    // The gutter: a 1 rem bullet or icon at the row's edge, and a little room before the text.
+    paddingInlineStart: "1.5rem",
     position: "relative",
     // The long press on a phone does not select text or open the link's menu.
     userSelect: "none",
@@ -127,8 +148,24 @@ const styles = stylex.create({
     backgroundColor: colorVars["--color-background-card"],
     zIndex: 1,
   },
-  // The marks, centred on the top border and hiding it behind them, as a pane's title does.
-  marks: { color: "var(--color-text-lavender)" },
+  // The marks, after the text: small, and apart from it.
+  marks: {
+    color: "var(--color-text-lavender)",
+    fontSize: "0.85em",
+    marginInlineStart: spacingVars["--spacing-2"],
+  },
+  // An icon takes the bullet's place in the gutter.
+  iconed: { "::before": { content: "none" } },
+  gutterIcon: {
+    alignItems: "center",
+    display: "flex",
+    height: "1.5rem",
+    insetBlockStart: "0.125rem",
+    insetInlineStart: "0.125rem",
+    justifyContent: "center",
+    position: "absolute",
+    width: "1rem",
+  },
   // The `…` button, over the end of the text where it shows (on hover, or selected): the text takes
   // the card's whole width, and the button hides what is under it with the card's own background.
   menu: {
@@ -147,11 +184,11 @@ const styles = stylex.create({
   },
   menuOpen: { opacity: 1 },
   menuSelected: { backgroundColor: colorVars["--color-accent-muted"] },
-  // The mauve tint of a selected row, apart from the pane's own background.
+  // The mauve tint of a selected row, apart from the pane's own background, with a bar at its start.
   selected: {
     "--menu-opacity": 1,
     backgroundColor: colorVars["--color-accent-muted"],
-    borderColor: colorVars["--color-accent"],
+    boxShadow: `inset 2px 0 0 0 ${colorVars["--color-accent"]}`,
   },
   // The link's text, and the link stretched over the whole card by its pseudo-element.
   stretched: {
@@ -184,11 +221,12 @@ const styles = stylex.create({
 function RowLink({ onOpen, row }: { onOpen?: (row: WorkRow) => void; row: WorkRow }) {
   const link = (
     <Link
-      // The normal text colour, not the link's accent; two lines at most, then an ellipsis, with the
-      // whole text in a tooltip.
-      color="primary"
+      // The normal text colour, not the link's accent; three lines at most, then an ellipsis, with
+      // the whole text in a tooltip.
+      color={row.isLinked ? "accent" : "primary"}
+      hasUnderline={row.isLinked === true}
       {...(onOpen ? {} : { href: row.href })}
-      maxLines={2}
+      maxLines={3}
       onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
         // A click that is a drag's end is already prevented, and a modified one is the browser's.
         const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0);
@@ -200,6 +238,7 @@ function RowLink({ onOpen, row }: { onOpen?: (row: WorkRow) => void; row: WorkRo
       xstyle={[styles.stretched, styles.text]}
     >
       {row.label ?? row.text}
+      {row.marks !== undefined && <span {...stylex.props(styles.marks)}>{row.marks}</span>}
     </Link>
   );
   // What the list's keys find the row's control by: `useListKeys`.
@@ -259,22 +298,16 @@ export function Card({
       ref={row.isFixed ? undefined : ref}
       {...stylex.props(
         styles.frame,
+        row.icon !== undefined && styles.iconed,
         isSelected && styles.selected,
         isDragging && styles.lifted,
       )}
     >
       {/* dnd-kit's accessibility attributes (a button role, a tab stop) go on its handle: an empty, hidden element, so the card stays a link and the sensor takes a press anywhere on it. */}
       {!row.isFixed && <span aria-hidden="true" ref={handleRef} tabIndex={-1} />}
-      {row.marks !== undefined && (
-        <span
-          {...stylex.props(
-            legendStyles.legend,
-            legendStyles.onBody,
-            legendStyles.text,
-            styles.marks,
-          )}
-        >
-          {row.marks}
+      {row.icon !== undefined && (
+        <span aria-hidden="true" {...stylex.props(styles.gutterIcon)}>
+          <Icon color="secondary" icon={row.icon} size="sm" />
         </span>
       )}
       {isEditing ? (

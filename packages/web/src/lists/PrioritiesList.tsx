@@ -7,7 +7,8 @@ import { useFateClient } from "react-fate";
 import type { PriorityEntry } from "uraeda-server/fate";
 import type { usePriorities } from "../data.ts";
 import { EditableLine } from "../EditableLine.tsx";
-import { stepTitle } from "../labels.ts";
+import { stepKindOf } from "../sidebar/cards.ts";
+import { STEP_ICONS } from "../sidebar/StepIcon.tsx";
 import { TITLES, titleOf } from "../QuickAdd.tsx";
 import { useOpenAddForm } from "../SidebarAdd.tsx";
 import { refusal } from "../errors.ts";
@@ -28,15 +29,20 @@ const TONES: Record<string, Tone> = {
   now: "blue",
 };
 
-/** An entry's marks, as text in its border: its running step, "draft", or "backlog". */
+/** An entry's marks, as text after its own: "backlog". A running entry's step is its icon. */
 export function marksOf(entry: PriorityEntry) {
+  return !entry.running && entry.draft?.backlog ? "backlog" : undefined;
+}
+
+/**
+ * What an entry's row draws of it besides its text: the icon of the step running on it, as the
+ * sidebar draws it, or an icon for the file of its draft, which also draws its text as a hyperlink.
+ */
+export function lookOf(entry: PriorityEntry) {
   if (entry.running) {
-    return `● ${stepTitle(entry.running.step)}`;
+    return { icon: STEP_ICONS[stepKindOf(entry.running.step)] };
   }
-  if (!entry.draft) {
-    return undefined;
-  }
-  return entry.draft.backlog ? "backlog" : "draft";
+  return entry.draft ? { icon: "uraeda:file-text" as const, isLinked: true } : {};
 }
 
 /** The refusal of a menu nobody listens to. */
@@ -91,6 +97,7 @@ function sectionsOf(
       isFixed: entry.running !== undefined,
       key: entry.key,
       lines: entry.nestedSpans.map(plain),
+      ...lookOf(entry),
       marks: marksOf(entry),
       // A line with a draft, or running, opens its page; any other shows itself in a pane.
       peek: !entry.running && !entry.draft,
@@ -261,6 +268,7 @@ export function PrioritiesList({
   return (
     <WorkList
       isFocused={isFocused}
+      isRoomy
       layout="columns"
       // `o`: the form in the section of the line's own place in the file, not "Ongoing"; the form
       // has no Blocked (R80), so a line there opens it in the default place.
