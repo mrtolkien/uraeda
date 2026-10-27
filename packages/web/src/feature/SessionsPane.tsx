@@ -116,7 +116,7 @@ function Row({
       />
       {session.subagents.map((subagent) => (
         <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
-          <StatusMark label="Working" small status="working" />
+          <StatusMark isSubagent label="Working" small status="working" />
           <Text color="secondary" maxLines={1} type="supporting">
             {subagent.description}
           </Text>

@@ -376,7 +376,7 @@ export function ItemCard({
       />
       {item.subagents?.map((subagent) => (
         <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
-          <StatusMark label="Working" small status="working" />
+          <StatusMark isSubagent label="Working" small status="working" />
           <Text color="secondary" type="supporting">
             {subagent.description}
           </Text>

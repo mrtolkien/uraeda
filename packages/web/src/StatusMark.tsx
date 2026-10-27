@@ -31,6 +31,11 @@ const styles = stylex.create({
     // Blue while working, as the mockup draws it: the theme's accent is its ink, near the idle grey.
     backgroundColor: colorVars["--color-icon-blue"],
   },
+  // A sub-agent at work: Catppuccin's maroon (a local token of the theme), set apart from the
+  // session's blue and the buttons' mauve.
+  subagent: {
+    backgroundColor: "var(--color-fill-maroon)",
+  },
 });
 
 /** Each status's colour, and its mark beside the colour, so it never reads by colour alone. */
@@ -49,10 +54,13 @@ const DOTS = {
  * when idle.
  */
 export function StatusMark({
+  isSubagent = false,
   label,
   small = false,
   status,
 }: {
+  /** A sub-agent's mark, in maroon where a session's own is blue. */
+  isSubagent?: boolean;
   label: string;
   small?: boolean;
   status: SessionStatus;
@@ -73,7 +81,10 @@ export function StatusMark({
       icon={icon}
       label={label}
       variant={variant}
-      xstyle={[small ? styles.small : styles.dot, status === "working" && styles.working]}
+      xstyle={[
+        small ? styles.small : styles.dot,
+        status === "working" && (isSubagent ? styles.subagent : styles.working),
+      ]}
     />
   );
 }

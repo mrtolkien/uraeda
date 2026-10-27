@@ -80,7 +80,7 @@ function SubagentRow({ now, row: { endedAt, subagent } }: { now: number; row: Ro
       label={<Text weight="bold">{subagent.description}</Text>}
       startContent={
         endedAt === undefined ? (
-          <StatusMark label="Working" small status="working" />
+          <StatusMark isSubagent label="Working" small status="working" />
         ) : (
           <Icon icon="uraeda:badge-check" label="Done" size="sm" />
         )

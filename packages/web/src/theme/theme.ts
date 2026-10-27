@@ -76,6 +76,7 @@ const LATTE = {
   green: "#2c6f1f",
   lavender: "#4254c8",
   mantle: "#e6e9ef",
+  maroon: "#e64553",
   mauve: "#7b2fe0",
   overlay: "#7c7f93",
   peach: "#a63f00",
@@ -100,6 +101,7 @@ const MOCHA = {
   green: "#a6e3a1",
   lavender: "#b4befe",
   mantle: "#181825",
+  maroon: "#eba0ac",
   mauve: "#cba6f7",
   overlay: "#6c7086",
   peach: "#fab387",
@@ -282,6 +284,8 @@ export const uraedaTheme = defineTheme({
       '"Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     // Catppuccin's lavender, a hue Astryx has no name for.
     "--color-text-lavender": pair("lavender"),
+    // Catppuccin's maroon, the fill of a sub-agent's mark, apart from its session's blue.
+    "--color-fill-maroon": pair("maroon"),
     // Catppuccin's sapphire, a live window's border and title, apart from the panes' lavender.
     "--color-border-sapphire": pair("sapphire"),
     "--color-text-sapphire": pair("sapphire"),

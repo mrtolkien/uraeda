@@ -26,6 +26,8 @@ import { type ActivityItem, type RowWords, rowWords, type ToolItem } from "./str
 const styles = stylex.create({
   // A part of a row's word, never broken.
   group: { whiteSpace: "nowrap" },
+  // A sub-agent's row icon, in the maroon of its marks elsewhere (`StatusMark`).
+  subagentIcon: { color: "var(--color-fill-maroon)" },
   // What a row acted on breaks after its slashes first, then anywhere, a long path or command whole
   // on the row's lines, as the changes' paths: no text is cut. In a fold's toggle, which sets a
   // larger text and grows to its content, it takes the row's text, and no width of its own, so it
@@ -175,7 +177,11 @@ function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
         live ? (
           <StatusMark label="Live" small status="working" />
         ) : (
-          <Icon icon={iconOf(item)} size="sm" />
+          <Icon
+            icon={iconOf(item)}
+            size="sm"
+            xstyle={item.kind === "tool" && item.subagent ? styles.subagentIcon : undefined}
+          />
         )
       }
       xstyle={live ? styles.live : undefined}
