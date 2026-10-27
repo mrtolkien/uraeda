@@ -16,7 +16,7 @@ const settle = (waiters: Set<() => void>) => {
 };
 
 /** The order the rows show in, as text: what a written move changes. */
-const orderOfSections = (sections: ReadonlyArray<Placed>) =>
+export const orderOfSections = (sections: ReadonlyArray<Placed>) =>
   JSON.stringify(sections.map((section) => [section.id, section.rows.map((row) => row.key)]));
 
 /**
@@ -40,25 +40,49 @@ export function waitForList(
 }
 
 /**
- * What the keys that move an item do: the move a drop would ask `onMove` for, one at a time. A key
- * pressed while an earlier move is being written waits for it, and for the list to show it, and
- * its target is read from the list as that move left it, so a held `J` goes down one place at a
- * time; a move the list never shows (refused, or a no-op) holds the keys after it for `SETTLE_MS`
- * at most. A move whose write fails is dropped, and the ones after it still run. `sections` are
- * those on screen, in order, and the moved row is selected. Absent where the list has no
- * `onMove`: its items cannot move.
+ * A move made by a key whose write has not shown yet: the list shows it ahead of its write. Once
+ * written, `base` is the file's order it was written over: a list in another order shows it.
+ */
+export type Ahead = { base?: string; id: number; key: string; move: ItemMove };
+
+/**
+ * The moves still ahead of the file in `live`'s order: not one whose write the file already
+ * shows, in the very render it does, for no move to be made twice on screen.
+ */
+export const stillAhead = (ahead: ReadonlyArray<Ahead>, live: ReadonlyArray<Placed>) => {
+  const order = orderOfSections(live);
+  return ahead.filter((one) => one.base === undefined || one.base === order);
+};
+
+/**
+ * What the keys that move an item do: the move a drop would ask `onMove` for. With `setAhead`, the
+ * list shows each move at once, and its writes follow in the background, one at a time: a write
+ * waits for the one before it, and for the list to show it, and its target is read from the list as
+ * that move left it; a move the list never shows (a no-op) holds the writes after it for `SETTLE_MS`
+ * at most. A refused write drops the moves after it, which were made from it, and the list goes
+ * back to the file's order. `sections` are those on screen, in order, the moves ahead made, and the
+ * moved row is selected; `live` are the same as the file has them, `sections` by default. Absent
+ * where the list has no `onMove`: its items cannot move.
  */
 export function useItemMoves(
   onMove: OnMove | undefined,
   sections: ReadonlyArray<Placed>,
   select: (key: string) => void,
+  {
+    live = sections,
+    setAhead,
+  }: {
+    live?: ReadonlyArray<Placed>;
+    setAhead?: (change: (ahead: ReadonlyArray<Ahead>) => ReadonlyArray<Ahead>) => void;
+  } = {},
 ) {
-  const latest = useRef({ onMove, order: orderOfSections(sections), sections });
+  const latest = useRef({ onMove, order: orderOfSections(live), sections: live });
   const shown = useRef(new Set<() => void>());
+  const made = useRef(0);
   useLayoutEffect(() => {
-    const order = orderOfSections(sections);
+    const order = orderOfSections(live);
     const isChanged = order !== latest.current.order;
-    latest.current = { onMove, order, sections };
+    latest.current = { onMove, order, sections: live };
     if (isChanged) {
       settle(shown.current);
     }
@@ -85,18 +109,33 @@ export function useItemMoves(
   if (onMove === undefined) {
     return undefined;
   }
-  const run = async (key: string, move: ItemMove) => {
+  const drop = (id: number) => setAhead?.((ahead) => ahead.filter((one) => one.id !== id));
+  const run = async ({ id, key, move }: Ahead) => {
     const { onMove: write, order, sections: now } = latest.current;
     const target = itemTarget(now, key, move);
     if (target === undefined) {
+      drop(id);
       return;
     }
-    select(key);
-    await write?.(key, target.section, target.index);
-    if (latest.current.order !== order || !isMounted.current) {
-      return;
+    if (setAhead === undefined) {
+      select(key);
     }
-    await waitForList(shown.current, timers.current, SETTLE_MS);
+    setAhead?.((ahead) => ahead.map((one) => (one.id === id ? { ...one, base: order } : one)));
+    try {
+      const isWritten = await write?.(key, target.section, target.index);
+      if (isWritten === false) {
+        // Refused: the moves made after it were made from it.
+        waiting.current.splice(0);
+        setAhead?.(() => []);
+        return;
+      }
+      if (latest.current.order !== order || !isMounted.current) {
+        return;
+      }
+      await waitForList(shown.current, timers.current, SETTLE_MS);
+    } finally {
+      drop(id);
+    }
   };
   const drain = async () => {
     if (isWriting.current) {
@@ -114,9 +153,16 @@ export function useItemMoves(
   };
   return (move: ItemMove, row: number) => {
     const key = sections.flatMap((section) => section.rows)[row]?.key;
-    if (key !== undefined) {
-      waiting.current.push(() => run(key, move));
-      void drain();
+    if (key === undefined || (setAhead && itemTarget(sections, key, move) === undefined)) {
+      return;
     }
+    made.current += 1;
+    const ahead = { id: made.current, key, move };
+    if (setAhead) {
+      setAhead((before) => [...before, ahead]);
+      select(key);
+    }
+    waiting.current.push(() => run(ahead));
+    void drain();
   };
 }

@@ -150,6 +150,54 @@ function sectionsOf(
   return ongoing.rows.length > 0 ? [ongoing, ...sections] : sections;
 }
 
+/** How long a write waits for the list to show the one before it, at most. */
+const DRAWN_MS = 2000;
+
+/**
+ * The list's writes, one after another, as the keys made them ahead of the file: each reads the
+ * priorities as the write before it left them, once drawn, for their version and their lines'
+ * places, so that a second delete is not refused for the first. `write` resolves with its
+ * refusal, if any.
+ */
+function useWritesInTurn(priorities: Priorities) {
+  const latest = useRef(priorities);
+  const waiting = useRef(new Set<{ hash: string; resolve: () => void }>());
+  useLayoutEffect(() => {
+    latest.current = priorities;
+    for (const waiter of waiting.current) {
+      if (waiter.hash !== priorities.hash) {
+        waiting.current.delete(waiter);
+        waiter.resolve();
+      }
+    }
+  }, [priorities]);
+  /** Once the list shows another version than `hash`, or after `DRAWN_MS`. */
+  const drawnAfter = (hash: string) =>
+    latest.current.hash === hash
+      ? new Promise<void>((resolve) => {
+          const waiter = { hash, resolve };
+          waiting.current.add(waiter);
+          setTimeout(() => {
+            waiting.current.delete(waiter);
+            resolve();
+          }, DRAWN_MS);
+        })
+      : Promise.resolve();
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  return (write: (now: Priorities) => Promise<string | undefined>) => {
+    const turn = queue.current.then(async () => {
+      const now = latest.current;
+      const failed = await write(now);
+      if (failed === undefined) {
+        await drawnAfter(now.hash);
+      }
+      return failed;
+    });
+    queue.current = turn.catch(() => undefined);
+    return turn;
+  };
+}
+
 /**
  * The priorities' sections, with "Ongoing" first, and each section's Add row. `select` is the key
  * of a row to select, for a mockup; otherwise the row whose overlay is open is. `isFocused` puts the
@@ -174,44 +222,50 @@ export function PrioritiesList({
   const pathname = useLocalPath();
   const openForm = useOpenAddForm();
 
+  const inTurn = useWritesInTurn(priorities);
+
   const onMove = async (key: string, section: string, index: number) => {
-    const entry = priorities.sections
-      .flatMap((s) => s.entries)
-      .find((candidate) => candidate.key === key);
-    const target = priorities.sections.find((s) => s.section === section);
-    if (!entry || !target) {
-      return;
-    }
-    // Over the version the drag started from: a list changed meanwhile refuses the move.
-    const failed = await run(() =>
-      fate.mutations.priorities.move({
-        input: {
-          entry: entry.id,
-          hash: priorities.hash,
-          index: fileIndex(target.entries, key, index),
-          section,
-        },
-        view: PrioritiesView,
-      }),
-    );
+    const failed = await inTurn((now) => {
+      const entry = now.sections.flatMap((s) => s.entries).find((one) => one.key === key);
+      const target = now.sections.find((s) => s.section === section);
+      if (!entry || !target) {
+        return Promise.resolve("The line or its section is no longer in PRIORITIES.md.");
+      }
+      return run(() =>
+        fate.mutations.priorities.move({
+          input: {
+            entry: entry.id,
+            hash: now.hash,
+            index: fileIndex(target.entries, key, index),
+            section,
+          },
+          view: PrioritiesView,
+        }),
+      );
+    });
     onMoveRefused?.(failed);
+    return failed === undefined;
   };
 
-  /** `d`, once confirmed: the line leaves the file, a refusal shows where a move's does. */
+  /**
+   * `d`, once confirmed: the line leaves the file, a refusal shows where a move's does. Resolves
+   * with whether it left.
+   */
   const onDelete = async (row: WorkRow) => {
-    const entry = priorities.sections
-      .flatMap((s) => s.entries)
-      .find((candidate) => candidate.key === row.key);
-    if (!entry) {
-      return;
-    }
-    const failed = await run(() =>
-      fate.mutations.priorities.remove({
-        input: { entry: entry.id, hash: priorities.hash },
-        view: PrioritiesView,
-      }),
-    );
+    const failed = await inTurn((now) => {
+      const entry = now.sections.flatMap((s) => s.entries).find((one) => one.key === row.key);
+      if (!entry) {
+        return Promise.resolve("The line is no longer in PRIORITIES.md.");
+      }
+      return run(() =>
+        fate.mutations.priorities.remove({
+          input: { entry: entry.id, hash: now.hash },
+          view: PrioritiesView,
+        }),
+      );
+    });
     onMoveRefused?.(failed);
+    return failed === undefined;
   };
 
   const entryOf = (key: string) =>
@@ -302,7 +356,7 @@ export function PrioritiesList({
         const id = own?.section ?? sectionId;
         openForm("priority", { section: TITLES.has(id) ? id : undefined });
       }}
-      onDelete={(row) => void onDelete(row)}
+      onDelete={onDelete}
       onMove={onMove}
       onOpen={open}
       onPromote={onPromote}

@@ -24,9 +24,14 @@ export interface DragSection {
 
 /**
  * Moves a row: to `section`, at `index` among that section's rows on screen once the row is taken
- * out of them, `Number.MAX_SAFE_INTEGER` for its end. Resolves once the move is written.
+ * out of them, `Number.MAX_SAFE_INTEGER` for its end. Resolves once the move is written, `false`
+ * when it was refused.
  */
-export type OnMove = (row: string, section: string, index: number) => Promise<void> | void;
+export type OnMove = (
+  row: string,
+  section: string,
+  index: number,
+) => Promise<boolean | void> | boolean | void;
 
 /** The rows of each section that moves, by key, in order: what a drag reorders. */
 function orderOf(sections: ReadonlyArray<DragSection>): Order {
@@ -160,6 +165,7 @@ export function useDragOrder<Section extends DragSection>(
   // oxlint-disable-next-line react/refs -- before the code quality decision: read by the announcer's callbacks during a drag, not while rendering
   const announcements = announcer(() => ({ order: after.current ?? order, titles }));
   return {
+    isDragging: dragged !== undefined,
     order,
     provider: {
       onDragEnd: (event: DragEndEvent) => void onDragEnd(event),

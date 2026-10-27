@@ -14,7 +14,9 @@ import {
   type ComponentProps,
   type ReactNode,
   type Ref,
+  type RefObject,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -23,7 +25,8 @@ import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, RowStateContext, type WorkRow } from "./Card.tsx";
 import { Peek } from "./Peek.tsx";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
-import { useItemMoves } from "./useItemMoves.ts";
+import { withMoves } from "./itemMoves.ts";
+import { type Ahead, stillAhead, useItemMoves } from "./useItemMoves.ts";
 import { type Columns, useListKeys } from "./useListKeys.ts";
 import { useRefocus } from "./useRefocus.ts";
 import { useRowKeys } from "./useRowKeys.ts";
@@ -265,6 +268,7 @@ function useShown(
   sections: ReadonlyArray<WorkSection>,
   layout: WorkLayout,
   onMove: OnMove | undefined,
+  ahead: ReadonlyArray<Ahead>,
 ) {
   // The rows that add are no lines: a drag knows none of them, and they stay at the section's end.
   const drag = useDragOrder(
@@ -279,27 +283,118 @@ function useShown(
   );
   const addsOf = (section: WorkSection) =>
     sections.find((one) => one.id === section.id)?.rows.filter((row) => row.isAdd) ?? [];
-  const rowsOf = (section: WorkSection) => [
-    ...(section.isFixed
-      ? section.rows
-      : (drag.order[section.id] ?? []).flatMap((key) => byKey.get(key) ?? [])),
-    ...addsOf(section),
-  ];
   const isNarrowScreen = isNarrow(useWidthClass());
   const asColumns = layout === "columns" && !isNarrowScreen;
   const below = asColumns ? drag.sections.filter((section) => section.title === BELOW) : [];
   const inRow = drag.sections.filter((section) => !below.includes(section));
+  const rowsIn = (order: Record<string, ReadonlyArray<string>>) => (section: WorkSection) => [
+    ...(section.isFixed
+      ? section.rows
+      : (order[section.id] ?? []).flatMap((key) => byKey.get(key) ?? [])),
+    ...addsOf(section),
+  ];
+  const placedIn = (rowsOf: (section: WorkSection) => ReadonlyArray<WorkRow>) =>
+    [...inRow, ...below].map((section) => ({
+      id: section.id,
+      isFixed: section.isFixed,
+      rows: rowsOf(section),
+    }));
+  // The file's order, then the moves the keys made ahead of their writes.
+  const live = placedIn(rowsIn(drag.order));
+  const moves = stillAhead(ahead, live);
+  const rowsOf = rowsIn(moves.length > 0 ? withMoves(drag.order, live, moves) : drag.order);
   const shown = [...inRow, ...below].map(rowsOf);
-  const placed = [...inRow, ...below].map((section, at) => ({
-    id: section.id,
-    isFixed: section.isFixed,
-    rows: shown[at],
-  }));
-  return { asColumns, below, drag, inRow, placed, rows: shown.flat(), rowsOf, shown };
+  const placed = placedIn(rowsOf);
+  return { asColumns, below, drag, inRow, live, placed, rows: shown.flat(), rowsOf, shown };
 }
 
 /** How long the row of columns takes to glide sideways to the selection's column. */
 const GLIDE_MS = 200;
+
+/** The glide of a row that changed place: as a key moved it, or a row before it went. */
+const SHIFT = { duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" };
+
+/** Where each row of a list was, by key, in the list's own content, and the glides that run. */
+type Shifts = {
+  places: Map<string, { x: number; y: number }>;
+  running: WeakMap<Element, Animation>;
+};
+
+/**
+ * Reads where each row of `root` is now, and with `isMoving`, glides each that changed place from
+ * where it was. A row gliding starts again from where it shows; without `isMoving`, it glides on,
+ * and its place is read where it lands.
+ */
+function shiftRows(root: HTMLElement, shifts: Shifts, isMoving: boolean) {
+  const origin = root.getBoundingClientRect();
+  const left = root.querySelector("[data-list-page]")?.scrollLeft ?? 0;
+  const placeOf = (box: DOMRect) => ({ x: box.left - origin.left + left, y: box.top - origin.top });
+  const next = new Map<string, { x: number; y: number }>();
+  for (const row of root.querySelectorAll<HTMLElement>("[data-row-key]")) {
+    const key = row.dataset.rowKey ?? "";
+    const running = shifts.running.get(row);
+    const isGliding = running?.playState === "running";
+    if (!isMoving && isGliding) {
+      next.set(key, shifts.places.get(key) ?? placeOf(row.getBoundingClientRect()));
+      continue;
+    }
+    const seen = isGliding ? placeOf(row.getBoundingClientRect()) : undefined;
+    // A glide toward the same place runs on: where the row lands is where it shows, its glide aside.
+    if (seen) {
+      const [x = 0, y = 0] = getComputedStyle(row).translate.split(" ").map(parseFloat);
+      const lands = shifts.places.get(key);
+      if (lands && Math.abs(seen.x - x - lands.x) < 1 && Math.abs(seen.y - y - lands.y) < 1) {
+        next.set(key, lands);
+        continue;
+      }
+    }
+    running?.cancel();
+    const at = placeOf(row.getBoundingClientRect());
+    next.set(key, at);
+    const before = seen ?? shifts.places.get(key);
+    if (!isMoving || !before) {
+      continue;
+    }
+    const dx = before.x - at.x;
+    const dy = before.y - at.y;
+    if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1) {
+      shifts.running.set(row, row.animate({ translate: [`${dx}px ${dy}px`, "0 0"] }, SHIFT));
+    }
+  }
+  shifts.places = next;
+}
+
+/**
+ * Glides each row of `list` that changed place since the last render from where it was, as a drag
+ * does: dnd-kit animates only during one. Where it was is read in the list's own content, so the
+ * page's scroll and the columns' are no move. Nothing glides while `isStill`, during a drag and as
+ * it ends, nor as `layout` changes or the list resizes, nor for a human who asked for less motion.
+ */
+function useRowShifts(list: RefObject<HTMLElement | null>, isStill: boolean, layout: string) {
+  const shifts = useRef<Shifts>({ places: new Map(), running: new WeakMap() });
+  const last = useRef({ isStill, layout });
+  useLayoutEffect(() => {
+    const isMoving =
+      !isStill &&
+      !last.current.isStill &&
+      last.current.layout === layout &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    last.current = { isStill, layout };
+    if (list.current) {
+      shiftRows(list.current, shifts.current, isMoving);
+    }
+  });
+  // A resize moves every row with no render: their places are read again, still.
+  useLayoutEffect(() => {
+    const root = list.current;
+    if (!root) {
+      return undefined;
+    }
+    const observer = new ResizeObserver(() => shiftRows(root, shifts.current, false));
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [list]);
+}
 
 /**
  * Glides `scroller` sideways from `glide.rest`, where it rested, to where it is now, over
@@ -365,8 +460,11 @@ export function WorkList({
   /** The level of its panes' titles, where the page's headings put them. */
   level?: HeadingLevel;
   onAddBeside?: (section: string, row: WorkRow) => void;
-  /** What `d` calls for the selected row, once the human confirmed: it deletes the line. */
-  onDelete?: (row: WorkRow) => void;
+  /**
+   * What `d` calls for the selected row, once the human confirmed: it deletes the line, and may
+   * resolve with `false` when the write is refused, for the row to come back.
+   */
+  onDelete?: (row: WorkRow) => Promise<boolean | void> | void;
   onMove?: OnMove;
   onOpen?: (href: string) => void;
   /** What `p` calls for the selected row; returning `false` says it has nothing to promote. */
@@ -375,11 +473,58 @@ export function WorkList({
   selected?: string;
 }) {
   const [selected, setSelected] = useSelection(named, initial);
-  const { asColumns, below, drag, inRow, placed, rows, rowsOf, shown } = useShown(
-    sections,
+  // The moves the keys made, and the rows `d` deleted, that show before their writes do.
+  const [ahead, setAhead] = useState<ReadonlyArray<Ahead>>([]);
+  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
+  const kept =
+    gone.size === 0
+      ? sections
+      : sections.map((section) => ({
+          ...section,
+          rows: section.rows.filter((row) => !gone.has(row.key)),
+        }));
+  const { asColumns, below, drag, inRow, live, placed, rows, rowsOf, shown } = useShown(
+    kept,
     layout,
     onMove,
+    ahead,
   );
+  // A row deleted ahead stops being hidden once the file no longer has it.
+  useLayoutEffect(() => {
+    const all = new Set(sections.flatMap((section) => section.rows.map((row) => row.key)));
+    if ([...gone].some((key) => !all.has(key))) {
+      setGone(new Set([...gone].filter((key) => all.has(key))));
+    }
+  }, [gone, sections]);
+  /**
+   * `d`, confirmed: the row goes at once, and the selection to the row after it, or before it; it
+   * comes back if the write is refused.
+   */
+  const deleteAhead =
+    onDelete &&
+    ((row: WorkRow) => {
+      const section = placed.find((one) => one.rows.some((other) => other.key === row.key));
+      const lines = section?.rows.filter((other) => !other.isAdd) ?? [];
+      const at = lines.findIndex((other) => other.key === row.key);
+      const next = lines[at + 1] ?? lines[at - 1] ?? section?.rows.find((other) => other.isAdd);
+      setGone((before) => new Set([...before, row.key]));
+      if (next) {
+        setSelected(next.key);
+        // With the focus, once drawn: the question gave it back to the row that went.
+        requestAnimationFrame(() =>
+          document
+            .querySelector<HTMLElement>(
+              `[data-row-key="${CSS.escape(next.key)}"] :is([data-row-link] button, a[href])`,
+            )
+            ?.focus({ preventScroll: true }),
+        );
+      }
+      void Promise.resolve(onDelete(row)).then((isDeleted) => {
+        if (isDeleted === false) {
+          setGone((before) => new Set([...before].filter((key) => key !== row.key)));
+        }
+      });
+    });
   const isOpen = named !== undefined;
   // Whether the pane of the selected row shows: Enter on a row that peeks, and it follows the
   // selection, as the keys and the mouse move it, until Escape or Enter again.
@@ -404,15 +549,15 @@ export function WorkList({
   const hovered = hoverKey === undefined ? undefined : rows.find((row) => row.key === hoverKey);
   const own = useRowKeys(placed, onAddBeside, setSelected, {
     canMoveItems: onMove !== undefined,
-    onDelete,
+    onDelete: deleteAhead,
     onPromote,
   });
-  const onMoveItem = useItemMoves(onMove, placed, setSelected);
+  const onMoveItem = useItemMoves(onMove, placed, setSelected, { live, setAhead });
   // The selection's column comes into view whole, any part of it outside the window moves the page
   // or the row: a key that changes column may land beyond the edge. The row glides there sideways
   // from where it rested, which the focus moved to the new column has already jumped from.
   const sideways = useRef({ frame: 0, rest: 0 });
-  useEffect(() => {
+  useLayoutEffect(() => {
     const glide = sideways.current;
     if (!asColumns || selected === undefined) {
       glide.rest = 0;
@@ -444,6 +589,7 @@ export function WorkList({
     rowKeys: own.keys,
     selected: rows.findIndex((row) => row.key === selected),
   });
+  useRowShifts(ref, drag.isDragging, asColumns ? "columns" : "stack");
   useRefocus({
     focusSelected,
     held: own.held,

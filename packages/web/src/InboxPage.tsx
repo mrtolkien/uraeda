@@ -100,7 +100,7 @@ function useNoteMove(
     const note = categories.flatMap((c) => c.notes).find((one) => one.key === key);
     const target = categories.find((category) => sectionId(category.name) === section);
     if (!note || !target) {
-      return;
+      return false;
     }
     onRefused(undefined);
     const result = await fate.mutations.inbox.place({
@@ -119,6 +119,7 @@ function useNoteMove(
         rereadChanges(fate);
       }
     }
+    return !result.error;
   };
 }
 
