@@ -298,6 +298,40 @@ function useShown(
   return { asColumns, below, drag, inRow, placed, rows: shown.flat(), rowsOf, shown };
 }
 
+/** How long the row of columns takes to glide sideways to the selection's column. */
+const GLIDE_MS = 200;
+
+/**
+ * Glides `scroller` sideways from `glide.rest`, where it rested, to where it is now, over
+ * `GLIDE_MS`, easing out; at once for a human who asked for less motion. A scroll by anything else,
+ * a wheel or a drag, ends the glide.
+ */
+function glideAcross(scroller: HTMLElement, glide: { frame: number; rest: number }) {
+  const from = glide.rest;
+  const to = scroller.scrollLeft;
+  cancelAnimationFrame(glide.frame);
+  glide.frame = 0;
+  if (to === from || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    glide.rest = to;
+    return;
+  }
+  scroller.scrollLeft = from;
+  const start = performance.now();
+  const tick = (now: number) => {
+    // Moved by something else since the last frame: it takes over.
+    if (Math.abs(scroller.scrollLeft - glide.rest) > 2) {
+      glide.frame = 0;
+      glide.rest = scroller.scrollLeft;
+      return;
+    }
+    const done = Math.min((now - start) / GLIDE_MS, 1);
+    scroller.scrollLeft = from + (to - from) * (1 - (1 - done) ** 3);
+    glide.rest = scroller.scrollLeft;
+    glide.frame = done < 1 ? requestAnimationFrame(tick) : 0;
+  };
+  glide.frame = requestAnimationFrame(tick);
+}
+
 /**
  * The sections as panes, in the `layout`'s arrangement. `selected` is the key of the row the
  * address names, an open overlay's: the selection starts there and stays on it once the overlay
@@ -375,13 +409,21 @@ export function WorkList({
   });
   const onMoveItem = useItemMoves(onMove, placed, setSelected);
   // The selection's column comes into view whole, any part of it outside the window moves the page
-  // or the row: a key that changes column may land beyond the edge.
+  // or the row: a key that changes column may land beyond the edge. The row glides there sideways
+  // from where it rested, which the focus moved to the new column has already jumped from.
+  const sideways = useRef({ frame: 0, rest: 0 });
   useEffect(() => {
+    const glide = sideways.current;
     if (!asColumns || selected === undefined) {
+      glide.rest = 0;
       return;
     }
     const row = document.querySelector(`[data-row-key="${CSS.escape(selected)}"]`);
+    const scroller = row?.closest<HTMLElement>("[data-list-page]");
     row?.closest("[data-column]")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (scroller) {
+      glideAcross(scroller, glide);
+    }
   }, [asColumns, selected]);
   const { focusSelected, ref } = useListKeys({
     columns: asColumns ? columnsOf(shown) : undefined,
@@ -477,6 +519,12 @@ export function WorkList({
             // A click in the room under a short column focuses this region: the list's keys still
             // act there, as on the page itself (see `useListKeys`).
             data-list-page={asColumns ? "" : undefined}
+            // A wheel, a drag, or a jump with no glide: where the row rests now.
+            onScroll={(event) => {
+              if (sideways.current.frame === 0) {
+                sideways.current.rest = event.currentTarget.scrollLeft;
+              }
+            }}
             role={asColumns ? "region" : undefined}
             tabIndex={asColumns ? 0 : undefined}
             {...stylex.props(asColumns ? styles.row : styles.stack)}
