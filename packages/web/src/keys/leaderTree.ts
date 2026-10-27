@@ -27,6 +27,19 @@ export function placeBindings(prefix: string, go: (path: string) => void): Array
   }));
 }
 
+/**
+ * `g n`: the New page, as the go keys' one more place. Not one of `PLACES`: `Space n` is the New
+ * keys' group, so only the go keys can take `n` for the page.
+ */
+export function goNewBinding(go: (path: string) => void): Binding {
+  return {
+    icon: DESTINATIONS.new.icon,
+    keys: "g n",
+    label: DESTINATIONS.new.label,
+    run: () => go(DESTINATIONS.new.path),
+  };
+}
+
 /** The kinds `Space f` finds, by their key, as the picker's sources name them. */
 const FIND: ReadonlyArray<readonly [key: string, kind: PickerKind, label: string]> = [
   ["f", "features", "Features"],

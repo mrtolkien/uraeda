@@ -198,7 +198,13 @@ export function Tabs({
         label={DESTINATIONS.settings.label}
         to={DESTINATIONS.settings.path}
       />
-      <Tab icon="uraeda:plus" isCurrent={at("/new")} label="New" to="/new" variant="primary" />
+      <Tab
+        icon={DESTINATIONS.new.icon}
+        isCurrent={at(DESTINATIONS.new.path)}
+        label={DESTINATIONS.new.label}
+        to={DESTINATIONS.new.path}
+        variant="primary"
+      />
     </nav>
   );
 }

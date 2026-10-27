@@ -13,6 +13,7 @@ export const DESTINATIONS = {
   decisions: { icon: "uraeda:decision-ruler", label: "Decisions", path: "/decisions" },
   home: { icon: "uraeda:home", label: "Home", path: "/" },
   inbox: { icon: "uraeda:inbox", label: "Inbox", path: "/inbox" },
+  new: { icon: "uraeda:plus", label: "New", path: "/new" },
   priorities: { icon: "uraeda:list", label: "Priorities", path: "/priorities" },
   sessions: { icon: "uraeda:activity", label: "Sessions", path: "/sessions" },
   settings: { icon: "uraeda:settings", label: "Settings", path: "/settings" },

@@ -10,7 +10,7 @@ import { useOpenAddForm } from "../SidebarAdd.tsx";
 import { type Scheme, useScheme } from "../theme.tsx";
 import { useContinue } from "./Continue.tsx";
 import { useKeyPicker } from "./KeyPicker.tsx";
-import { findBindings, newBindings, placeBindings } from "./leaderTree.ts";
+import { findBindings, goNewBinding, newBindings, placeBindings } from "./leaderTree.ts";
 import { useKeys } from "./registry.tsx";
 import { edge } from "./scroll.ts";
 import type { Binding } from "./store.ts";
@@ -28,6 +28,7 @@ export function LeaderKeys() {
   const bindings: Array<Binding> = [
     ...placeBindings("space", navigateHere),
     ...placeBindings("g", navigateHere),
+    goNewBinding(navigateHere),
     ...findBindings(picker.open),
     ...newBindings(navigateHere, openForm),
     continuing,
