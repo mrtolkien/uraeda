@@ -1,7 +1,8 @@
-// The account's latest reported five-hour allowance, in the "Usage" pane at the column's foot:
-// hidden while folded, and until a run reports it.
+// The account's latest reported five-hour allowance, in the "Usage" pane at the column's foot, and
+// until a run reports it, nothing. In the closed rail the pane is hidden and a small bar stands in
+// for it, on the icons' axis: what is left of the window, red once it is nearly gone.
 import { VStack } from "@astryxdesign/core/VStack";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { Suspense } from "react";
 import { useAgent } from "../data.ts";
@@ -9,7 +10,36 @@ import { UsageWindow } from "../UsageWindow.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { useColumnFold } from "../shell/fold.ts";
 
+/** What is left, in percent, at which the allowance reads as nearly gone: `UsageWindow`'s too. */
+const LOW = 20;
+
 const styles = stylex.create({
+  // Room under the pane, which Settings, the row below it, would otherwise sit too close to.
+  apart: {
+    marginBlockEnd: spacingVars["--spacing-2"],
+  },
+  // The rail's bar: hidden but in the closed rail (`Column.tsx` shows `data-rail-only`), centred in
+  // the 38 px box the rail's rows have.
+  rail: {
+    alignItems: "center",
+    display: "none",
+    justifyContent: "center",
+    // The foot is inset 6.8 px from the rail's edge, and the rows' boxes 7.3 px.
+    marginInlineStart: "0.5px",
+    paddingBlock: spacingVars["--spacing-2"],
+    width: "38px",
+  },
+  track: {
+    backgroundColor: colorVars["--color-border"],
+    height: "6px",
+    overflow: "hidden",
+    width: "28px",
+  },
+  fill: (width: string, color: string) => ({
+    backgroundColor: color,
+    height: "100%",
+    width,
+  }),
   usage: {
     paddingBlockEnd: spacingVars["--spacing-2"],
     paddingBlockStart: spacingVars["--spacing-1"],
@@ -24,12 +54,35 @@ function Bar() {
   if (!agent || !limit || isFolded) {
     return null;
   }
+  const remaining = Math.min(100, Math.max(0, 100 - limit.percentUsed));
   return (
-    <Pane isGroup title="Usage">
-      <VStack gap={1} xstyle={styles.usage}>
-        <UsageWindow kind={agent.kind} limit={limit} name="5h" />
-      </VStack>
-    </Pane>
+    <>
+      <Pane isGroup title="Usage" xstyle={[styles.apart]}>
+        <VStack gap={1} xstyle={styles.usage}>
+          <UsageWindow kind={agent.kind} limit={limit} name="5h" />
+        </VStack>
+      </Pane>
+      <div data-rail-only {...stylex.props(styles.rail)}>
+        <div
+          aria-label="5h allowance remaining"
+          aria-valuemax={100}
+          aria-valuemin={0}
+          aria-valuenow={Math.round(remaining)}
+          role="progressbar"
+          title={`5h: ${Math.round(remaining)}% left`}
+          {...stylex.props(styles.track)}
+        >
+          <div
+            {...stylex.props(
+              styles.fill(
+                `${remaining}%`,
+                remaining <= LOW ? colorVars["--color-text-red"] : colorVars["--color-accent"],
+              ),
+            )}
+          />
+        </div>
+      </div>
+    </>
   );
 }
 
