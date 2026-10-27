@@ -1,0 +1,189 @@
+// What the New page starts from, the same under all three cards: the inbox's notes and the
+// priorities' lines not yet started, as the lists draw them everywhere else (`WorkList`): cards in
+// two columns, `j k` between them and `h l` across, the search filtering them. Selecting a card
+// inserts its text in the composer, with a link to the file it is in; a card with a draft opens
+// that draft's page instead.
+import { useInbox, usePriorities } from "./data.ts";
+import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
+import { draftFile } from "./pane/NoteParts.tsx";
+import { titleOf } from "./QuickAdd.tsx";
+import { navigate, useRepoPath } from "./routes.tsx";
+import { plain } from "./Spans.tsx";
+
+/** What an entry is: a note of the inbox, or a line of the priorities. */
+export type SourceKind = "line" | "note";
+
+/** A note or a line, as the page reads it: its text, its nested lines, and its draft's page. */
+export type Entry = {
+  /** The path the editor takes for its draft, when it has one. */
+  draft?: string;
+  /** The page of its draft, which a card with one opens. */
+  draftHref?: string;
+  /** The file it is in. */
+  file: string;
+  id: string;
+  kind: SourceKind;
+  lines: ReadonlyArray<string>;
+  text: string;
+};
+
+/** An entry the composer was filled from: what a start takes out of its file. */
+export type Source = Pick<Entry, "draft" | "id" | "kind"> & {
+  /** The text inserted, to tell whether the composer still holds what it was filled with. */
+  inserted: string;
+};
+
+/** The file each kind of entry is in. */
+const FILES: Record<SourceKind, string> = { line: "specs/PRIORITIES.md", note: "specs/INBOX.md" };
+
+/**
+ * What an entry becomes in the composer: its text, its nested lines as bullets under it, and a link
+ * to its file on a line of its own, so that the text alone is the first line, a change's title.
+ */
+export function insertion(entry: Entry): string {
+  const name = entry.file.split("/").pop() ?? entry.file;
+  const nested = entry.lines.map((line) => `\n- ${line}`).join("");
+  return `${entry.text}${nested}\nFrom [${name}](${entry.file})`;
+}
+
+/** What is in the composer, then `added`, a paragraph under it: just `added` in an empty one. */
+export function withAdded(text: string, added: string): string {
+  return text.trim() === "" ? added : `${text.trimEnd()}\n\n${added}`;
+}
+
+/** Whether any of `parts` holds `needle`, in any case: every entry matches an empty search. */
+const holds = (needle: string, parts: ReadonlyArray<string>) =>
+  needle === "" || parts.some((part) => part.toLowerCase().includes(needle));
+
+/** A card's marks, as text in its border: its category or section, and "draft" if it has one. */
+const marksOf = (...marks: ReadonlyArray<string | false | undefined>) => {
+  const shown = marks.filter(Boolean);
+  return shown.length === 0 ? undefined : shown.join(" · ");
+};
+
+/**
+ * The entries as the list's sections, "Inbox" and "Priorities", the notes that are not in a draft
+ * apart from the lines that have not started, and each card's entry by its address. The search
+ * keeps the cards whose text, or a nested line, holds it.
+ */
+function useEntries(search: string) {
+  const here = useRepoPath();
+  const inbox = useInbox();
+  const priorities = usePriorities();
+  const needle = search.trim().toLowerCase();
+  const byHref = new Map<string, Entry>();
+  const rowOf = (entry: Entry, href: string, key: string, marks: string | undefined): WorkRow => {
+    byHref.set(href, entry);
+    return {
+      href,
+      isFixed: true,
+      key,
+      lines: entry.lines,
+      ...(marks === undefined ? {} : { marks }),
+      text: entry.text,
+    };
+  };
+  const notes = (inbox?.categories ?? []).flatMap((category) =>
+    category.notes.flatMap((note) => {
+      const entry: Entry = {
+        ...(note.draft === undefined ? {} : { draft: note.draft }),
+        ...(note.draft === undefined
+          ? {}
+          : { draftHref: here(`/edit/${draftFile(note.draft)}`) }),
+        file: FILES.note,
+        id: note.id,
+        kind: "note",
+        lines: note.nestedSpans.map(plain),
+        text: plain(note.spans),
+      };
+      if (!holds(needle, [entry.text, ...entry.lines])) {
+        return [];
+      }
+      return [
+        rowOf(
+          entry,
+          here(`/inbox/${note.key}`),
+          `note:${note.key}`,
+          marksOf(category.name, note.draft !== undefined && "draft"),
+        ),
+      ];
+    }),
+  );
+  const lines = (priorities?.sections ?? []).flatMap((section) =>
+    section.entries
+      // Not running, and linking no file but a draft: those have started.
+      .filter((line) => !line.running && (line.draft || !line.spans.some((span) => span.link)))
+      .flatMap((line) => {
+        const entry: Entry = {
+          ...(line.draft ? { draft: line.draft.path } : {}),
+          ...(line.draft ? { draftHref: here(`/edit/${line.draft.path}`) } : {}),
+          file: FILES.line,
+          id: line.id,
+          kind: "line",
+          lines: line.nestedSpans.map(plain),
+          text: plain(line.spans),
+        };
+        if (!holds(needle, [entry.text, ...entry.lines])) {
+          return [];
+        }
+        return [
+          rowOf(
+            entry,
+            here(`/priorities/${line.key}`),
+            `line:${line.key}`,
+            marksOf(titleOf(section.section), line.draft && "draft"),
+          ),
+        ];
+      }),
+  );
+  const empty = (nothing: string) => (needle === "" ? { context: nothing } : { context: "No match." });
+  const sections: Array<WorkSection> = [
+    {
+      ...(notes.length === 0 ? empty("The inbox is empty.") : {}),
+      icon: "uraeda:inbox",
+      id: "inbox",
+      isFixed: true,
+      rows: notes,
+      title: "Inbox",
+      tone: "neutral",
+    },
+    {
+      ...(lines.length === 0 ? empty("Nothing to start from.") : {}),
+      icon: "uraeda:list",
+      id: "priorities",
+      isFixed: true,
+      rows: lines,
+      title: "Priorities",
+      tone: "blue",
+    },
+  ];
+  return { byHref, sections };
+}
+
+/**
+ * The list under the composer, whatever the kind: `onInsert` takes the entry a card selects, unless
+ * the entry has a draft, whose page opens.
+ */
+export function EntryLists({
+  onInsert,
+  search,
+}: {
+  onInsert: (entry: Entry) => void;
+  search: string;
+}) {
+  const { byHref, sections } = useEntries(search);
+  return (
+    <WorkList
+      layout="columns"
+      onOpen={(href) => {
+        const entry = byHref.get(href);
+        if (entry?.draftHref) {
+          navigate(entry.draftHref);
+        } else if (entry) {
+          onInsert(entry);
+        }
+      }}
+      sections={sections}
+    />
+  );
+}
