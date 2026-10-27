@@ -154,6 +154,15 @@ const styles = stylex.create({
     textDecoration: "none",
   },
   text: { overflowWrap: "anywhere" },
+  // A child line of the card: a bullet and its text, tabbed in from the card's own text.
+  subline: {
+    alignItems: "baseline",
+    color: colorVars["--color-text-secondary"],
+    display: "flex",
+    gap: spacingVars["--spacing-2"],
+    paddingInlineStart: spacingVars["--spacing-3"],
+  },
+  sublineText: { flex: 1, minWidth: 0, overflowWrap: "anywhere" },
 });
 
 /** The card's text as the link stretched over it: a plain click opens it with `onOpen`. */
@@ -253,9 +262,13 @@ export function Card({
         <RowLink onOpen={onOpen} row={row} />
       )}
       {row.lines.map((line, at) => (
-        <Text color="secondary" display="block" key={at}>
-          {line}
-        </Text>
+        // A bullet, indented under the text, in the smaller type, two lines at most.
+        <span key={at} {...stylex.props(styles.subline)}>
+          <span aria-hidden="true">•</span>
+          <Text color="secondary" maxLines={2} type="supporting" xstyle={styles.sublineText}>
+            {line}
+          </Text>
+        </span>
       ))}
       {/* A block of its own: under the text, as a note's row draws it, not beside it. */}
       {row.image !== undefined && <div>{row.image}</div>}
