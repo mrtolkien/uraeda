@@ -113,7 +113,8 @@ export function coreParts({
 /**
  * Splits the panes into two columns, each keeping their reading order, so that the columns end as
  * near each other as they can: the least empty space under the shorter one. The first split that
- * reaches the least difference wins, so ties keep the panes on the left.
+ * reaches the least difference wins, so ties keep the panes on the left, and, among those, the one
+ * that keeps the first pane there.
  */
 export function splitColumns(parts: Array<CorePart>): [Array<CorePart>, Array<CorePart>] {
   let best = 0;
@@ -122,7 +123,9 @@ export function splitColumns(parts: Array<CorePart>): [Array<CorePart>, Array<Co
     const right = parts.reduce((sum, p, i) => sum + (mask & (1 << i) ? p.height : 0), 0);
     const left = parts.reduce((sum, p) => sum + p.height, 0) - right;
     const waste = Math.abs(left - right);
-    if (waste < least) {
+    // A split as good as the best, but with the first pane on the left, wins it: the first is the
+    // most important, as with two panes, where the splits are mirrors and always tie.
+    if (waste < least || (waste === least && best & 1 && !(mask & 1))) {
       least = waste;
       best = mask;
     }
