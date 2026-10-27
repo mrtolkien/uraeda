@@ -365,21 +365,40 @@ export async function workflowMessage(repo: string, folder: string): Promise<str
   });
 }
 
-/** Starts `work` on `folder`'s session, as "Continue" does. */
+/**
+ * Starts `work` on `folder`'s session, as "Continue" does. With `kind`, the session is one of that
+ * agent's, to show its mark: a session records the agent it was made by, so the fake agent is that
+ * kind while the session is made and the turn sent, and a session of another kind, left by an
+ * earlier start, is retagged. Callers run one after another, so the kind never mixes.
+ */
 async function startAtWork(
   sessions: Sessions,
   repo: string,
   folder: string,
   work: AtWork,
+  kind?: string,
 ): Promise<{ turn: number }> {
   const agent = sessions.adapter as Partial<SandboxAgent>;
   if (agent.playAtWorkOn === undefined) {
     throw new Error("The turn at work runs on the sandbox's agent.");
   }
-  const session = await sessions.featureSession(repo, folder);
-  const text = await workflowMessage(repo, folder);
-  agent.playAtWorkOn(text, work);
-  return sessions.send(repo, session.id, { text, workflow: { trigger: "manual" } });
+  const adapter = sessions.adapter;
+  const usual = adapter.kind;
+  if (kind !== undefined) {
+    adapter.kind = kind;
+  }
+  try {
+    const session = await sessions.featureSession(repo, folder);
+    if (kind !== undefined && session.agent !== kind) {
+      // The one session of the feature, retagged: a second would be the card's older, stopped one.
+      sessions.cache.db.prepare("UPDATE sessions SET agent = ? WHERE id = ?").run(kind, session.id);
+    }
+    const text = await workflowMessage(repo, folder);
+    agent.playAtWorkOn(text, work);
+    return await sessions.send(repo, session.id, { text, workflow: { trigger: "manual" } });
+  } finally {
+    adapter.kind = usual;
+  }
 }
 
 /**
@@ -394,16 +413,15 @@ export function atWork(sessions: Sessions, repo: string): Promise<{ turn: number
 export const realisticRepo = (sample: string) => join(dirname(sample), "realistic");
 
 /**
- * Starts the two turns at work of the realistic project at each start like `atWork`: its spec's
- * writing, and its plan's building with three sub-agents.
+ * Starts the two turns at work of the realistic project at each start like `atWork`: its plan's
+ * building with three sub-agents, by Claude Code, and its spec's writing, by Codex, so each mark
+ * shows. One after the other: a session takes the kind the fake agent has as it is made.
  */
-export function atWorkOnRealistic(sessions: Sessions, sample: string): Promise<unknown> {
+export async function atWorkOnRealistic(sessions: Sessions, sample: string): Promise<void> {
   const repo = realisticRepo(sample);
   const { building: folder, specifying: specFolder } = REALISTIC_FOLDERS;
-  return Promise.all([
-    startAtWork(sessions, repo, folder, building(folder)),
-    startAtWork(sessions, repo, specFolder, specifying(specFolder)),
-  ]);
+  await startAtWork(sessions, repo, folder, building(folder), "claude");
+  await startAtWork(sessions, repo, specFolder, specifying(specFolder), "codex");
 }
 
 /** Starts the turn at work on the discovery feature's session, at each start like `atWork`. */

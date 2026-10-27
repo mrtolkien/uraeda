@@ -107,13 +107,19 @@ export function sandboxConfig({
           signIn: false,
           started: (server) => {
             const repo = process.env.URAEDA_REPO ?? "";
-            for (const start of [atWork, atWorkOnDiscovery, atWorkOnRealistic]) {
-              start(server.sessions, repo).catch((error: Error) =>
-                process.stderr.write(
-                  `uraeda: the turn at work did not start in ${repo}: ${error.message}\n`,
-                ),
-              );
-            }
+            // One after the other: the realistic project's sessions take another agent kind as
+            // they are made, which a start beside them would copy.
+            void (async () => {
+              for (const start of [atWork, atWorkOnDiscovery, atWorkOnRealistic]) {
+                try {
+                  await start(server.sessions, repo);
+                } catch (error) {
+                  process.stderr.write(
+                    `uraeda: the turn at work did not start in ${repo}: ${(error as Error).message}\n`,
+                  );
+                }
+              }
+            })();
           },
         },
         checkout,
