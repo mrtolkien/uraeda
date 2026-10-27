@@ -24,6 +24,8 @@ const styles = stylex.create({
     // A session's column on wide screens: about 115 characters a line, not the page's full width.
     maxWidth: "var(--size-session-max)",
   },
+  // The whole width of the window, for a page of columns.
+  full: { maxWidth: "none" },
   snug: {
     // On the phone, an 8 px inset, for a page that is read as text from edge to edge: a session.
     "--page-bleed": `calc(-1 * ${spacingVars["--spacing-2"]})`,
@@ -50,16 +52,19 @@ const styles = stylex.create({
 export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>(null);
 
 /**
- * A page's content: its inset, and its column on wide screens. `isTight` gives it the smallest inset
- * on the phone, 12 px, and `isSnug` 8 px.
+ * A page's content: its inset, and its column on wide screens, or with `isFull` the window's whole
+ * width. `isTight` gives it the smallest inset on the phone, 12 px, and `isSnug` 8 px.
  */
 export function Page({
   children,
+  isFull = false,
   isSession = false,
   isSnug = false,
   isTight = false,
 }: {
   children: ReactNode;
+  /** The window's whole width, not the page's column: a page of columns, the priorities'. */
+  isFull?: boolean;
   /** A session's column on wide screens: a line of text, not the page's full width. */
   isSession?: boolean;
   isSnug?: boolean;
@@ -76,6 +81,7 @@ export function Page({
           isTight && styles.tight,
           isSnug && styles.snug,
           wide && styles.wide,
+          isFull && styles.full,
           wide && isSession && styles.session,
         )}
       >

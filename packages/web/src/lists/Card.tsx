@@ -48,6 +48,8 @@ export interface WorkRow {
   lines: ReadonlyArray<string>;
   /** Its marks, as text set in its top border. */
   marks?: ReactNode;
+  /** Enter shows its whole content in a pane beside it, in place of following `href`. */
+  peek?: boolean;
   /** The `…` button, at the card's corner. */
   menu?: ReactNode;
   /** Its text, plain: the row's label when `label` is absent. */
@@ -127,17 +129,24 @@ const styles = stylex.create({
   },
   // The marks, centred on the top border and hiding it behind them, as a pane's title does.
   marks: { color: "var(--color-text-lavender)" },
-  // Room at the end for the `…` button, so the text never runs under it.
+  // The `…` button, over the end of the text where it shows (on hover, or selected): the text takes
+  // the card's whole width, and the button hides what is under it with the card's own background.
   menu: {
-    insetBlockStart: spacingVars["--spacing-1"],
-    insetInlineEnd: spacingVars["--spacing-1"],
+    alignItems: "center",
+    backgroundColor: colorVars["--color-background-body"],
+    display: "flex",
+    // The card's inner height, less the focus ring drawn just inside its border: the button never
+    // covers the border or the ring.
+    insetBlock: focusVars["--focus-outline-width"],
+    insetInlineEnd: focusVars["--focus-outline-width"],
+    opacity: "var(--menu-opacity, 1)",
+    paddingInline: spacingVars["--spacing-1"],
     position: "absolute",
     // Over the stretched link, so a press on it reaches it.
     zIndex: 2,
   },
-  withMenu: {
-    paddingInlineEnd: `calc(${sizeVars["--size-element-sm"]} + ${spacingVars["--spacing-2"]})`,
-  },
+  menuOpen: { opacity: 1 },
+  menuSelected: { backgroundColor: colorVars["--color-accent-muted"] },
   // The mauve tint of a selected row, apart from the pane's own background.
   selected: {
     "--menu-opacity": 1,
@@ -151,6 +160,8 @@ const styles = stylex.create({
     // No ring of its own around the text: the card's frame draws the focus ring, and a second one,
     // as wide as the text, showed as bars inside a selected card.
     outlineStyle: { ":focus-visible": "none", default: null },
+    // A button's text is centred, a link's is not.
+    textAlign: "start",
     textDecoration: "none",
   },
   text: { overflowWrap: "anywhere" },
@@ -165,14 +176,18 @@ const styles = stylex.create({
   sublineText: { flex: 1, minWidth: 0, overflowWrap: "anywhere" },
 });
 
-/** The card's text as the link stretched over it: a plain click opens it with `onOpen`. */
+/**
+ * The card's text as the control stretched over it: a plain click opens it with `onOpen`. A list
+ * that opens its cards itself draws a button, with no address: the browser shows an address at the
+ * window's bottom for a link under the pointer or the focus, over the status line.
+ */
 function RowLink({ onOpen, row }: { onOpen?: (row: WorkRow) => void; row: WorkRow }) {
-  return (
+  const link = (
     <Link
       // The normal text colour, not the link's accent; two lines at most, then an ellipsis, with the
       // whole text in a tooltip.
       color="primary"
-      href={row.href}
+      {...(onOpen ? {} : { href: row.href })}
       maxLines={2}
       onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
         // A click that is a drag's end is already prevented, and a modified one is the browser's.
@@ -187,6 +202,8 @@ function RowLink({ onOpen, row }: { onOpen?: (row: WorkRow) => void; row: WorkRo
       {row.label ?? row.text}
     </Link>
   );
+  // What the list's keys find the row's control by: `useListKeys`.
+  return onOpen ? <span data-row-link="">{link}</span> : link;
 }
 
 /**
@@ -197,12 +214,15 @@ function RowLink({ onOpen, row }: { onOpen?: (row: WorkRow) => void; row: WorkRo
 export function Card({
   index,
   isSelected,
+  onHover,
   onOpen,
   row,
   section,
 }: {
   index: number;
   isSelected: boolean;
+  /** The mouse moved over the card: the selection and the focus follow it. */
+  onHover?: (row: WorkRow) => void;
   /** Opens the card on a plain click or Enter, in place of following its link. */
   onOpen?: (row: WorkRow) => void;
   row: WorkRow;
@@ -230,10 +250,15 @@ export function Card({
       data-row=""
       // What the list's keys find the row by, whether or not it draws a link (see `useListKeys`).
       data-row-key={row.key}
+      // Only a mouse that moved: a card scrolled under a still pointer takes nothing.
+      onPointerMove={(event) => {
+        if (event.pointerType === "mouse" && (event.movementX !== 0 || event.movementY !== 0)) {
+          onHover?.(row);
+        }
+      }}
       ref={row.isFixed ? undefined : ref}
       {...stylex.props(
         styles.frame,
-        row.menu !== undefined && styles.withMenu,
         isSelected && styles.selected,
         isDragging && styles.lifted,
       )}
@@ -274,7 +299,13 @@ export function Card({
       {row.image !== undefined && <div>{row.image}</div>}
       {/* After the link, so Tab from the card reaches it; over the link by its z-index. */}
       {row.menu !== undefined && (
-        <span {...stylex.props(styles.menu)}>
+        <span
+          {...stylex.props(
+            styles.menu,
+            isSelected && styles.menuSelected,
+            state.menu === row.key && styles.menuOpen,
+          )}
+        >
           <MenuStateContext
             value={{
               isOpen: state.menu === row.key,

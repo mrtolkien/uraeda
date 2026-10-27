@@ -10,10 +10,11 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { DragDropProvider, useDroppable } from "@dnd-kit/react";
 import * as stylex from "@stylexjs/stylex";
-import { type ComponentProps, type ReactNode, type Ref, useState } from "react";
+import { type ComponentProps, type ReactNode, type Ref, useEffect, useState } from "react";
 import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, RowStateContext, type WorkRow } from "./Card.tsx";
+import { Peek } from "./Peek.tsx";
 import { type OnMove, useDragOrder } from "./useDragOrder.ts";
 import { useItemMoves } from "./useItemMoves.ts";
 import { type Columns, useListKeys } from "./useListKeys.ts";
@@ -66,7 +67,8 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: 0,
   },
-  // A column of the row: at least 400 px, growing to share the row's width.
+  // A column of the row: at least 400 px, growing to share the row's width; a row of more columns
+  // than fit scrolls sideways, and brings the selection's column into view.
   column: {
     "--column-least": "400px",
     flexBasis: "var(--column-least)",
@@ -82,13 +84,17 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-1"],
     paddingInlineStart: spacingVars["--spacing-2"],
   },
-  // The panes of the row, side by side, whose row scrolls sideways.
+  // The panes of the row, side by side, whose row scrolls sideways. It runs to the window's right
+  // edge, past the page's inset, so a column scrolled to the end is not cut off short of it; the
+  // inset is kept after the last one.
   row: {
     alignItems: "flex-start",
     display: "flex",
     gap: spacingVars["--spacing-3"],
+    marginInlineEnd: "var(--page-bleed, 0px)",
     overflowX: "auto",
     paddingBlockEnd: spacingVars["--spacing-2"],
+    paddingInlineEnd: "var(--page-inset, 0px)",
   },
   // The panes one under the other.
   stack: {
@@ -110,6 +116,7 @@ const TINTS: Record<Tone, PaneTint | undefined> = {
 function SectionBody({
   isColumn,
   level,
+  onHover,
   onOpen,
   ref,
   rows,
@@ -118,6 +125,7 @@ function SectionBody({
 }: {
   isColumn: boolean;
   level?: HeadingLevel | undefined;
+  onHover: (row: WorkRow) => void;
   onOpen: (row: WorkRow) => void;
   ref?: Ref<HTMLDivElement>;
   rows: ReadonlyArray<WorkRow>;
@@ -125,7 +133,12 @@ function SectionBody({
   selected?: string;
 }) {
   return (
-    <div ref={ref} {...stylex.props(isColumn && styles.column)}>
+    <div
+      // What the list brings into view, whole, when its selection is in it.
+      data-column={isColumn ? "" : undefined}
+      ref={ref}
+      {...stylex.props(isColumn && styles.column)}
+    >
       <Pane
         actions={section.menu}
         count={section.count ?? rows.length}
@@ -148,6 +161,7 @@ function SectionBody({
                 index={index}
                 isSelected={row.key === selected}
                 key={row.key}
+                onHover={onHover}
                 onOpen={onOpen}
                 row={section.isFixed ? { ...row, isFixed: true } : row}
                 section={section.id}
@@ -166,6 +180,7 @@ function SectionBody({
 function DropSection(props: {
   isColumn: boolean;
   level?: HeadingLevel | undefined;
+  onHover: (row: WorkRow) => void;
   onOpen: (row: WorkRow) => void;
   rows: ReadonlyArray<WorkRow>;
   section: WorkSection;
@@ -255,8 +270,10 @@ export function WorkList({
   layout = "stack",
   level,
   onAddBeside,
+  onDelete,
   onMove,
   onOpen,
+  onPromote,
   sections,
   selected: named,
 }: {
@@ -265,8 +282,12 @@ export function WorkList({
   /** The level of its panes' titles, where the page's headings put them. */
   level?: HeadingLevel;
   onAddBeside?: (section: string, row: WorkRow) => void;
+  /** What `d` calls for the selected row, once the human confirmed: it deletes the line. */
+  onDelete?: (row: WorkRow) => void;
   onMove?: OnMove;
   onOpen?: (href: string) => void;
+  /** What `p` calls for the selected row; returning `false` says it has nothing to promote. */
+  onPromote?: (row: WorkRow) => boolean | void;
   sections: ReadonlyArray<WorkSection>;
   selected?: string;
 }) {
@@ -277,15 +298,38 @@ export function WorkList({
     onMove,
   );
   const isOpen = named !== undefined;
-  const own = useRowKeys(placed, onAddBeside, setSelected);
+  // Whether the pane of the selected row shows: Enter on a row that peeks, and it follows the
+  // selection, as the keys and the mouse move it, until Escape or Enter again.
+  const [isPeeking, setPeeking] = useState(false);
+  const peeked = isPeeking ? rows.find((row) => row.key === selected) : undefined;
+  const own = useRowKeys(placed, onAddBeside, setSelected, {
+    canMoveItems: onMove !== undefined,
+    onDelete,
+    onPromote,
+  });
   const onMoveItem = useItemMoves(onMove, placed, setSelected);
+  // The selection's column comes into view whole, any part of it outside the window moves the page
+  // or the row: a key that changes column may land beyond the edge.
+  useEffect(() => {
+    if (!asColumns || selected === undefined) {
+      return;
+    }
+    const row = document.querySelector(`[data-row-key="${CSS.escape(selected)}"]`);
+    row?.closest("[data-column]")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [asColumns, selected]);
   const { focusSelected, ref } = useListKeys({
     columns: asColumns ? columnsOf(shown) : undefined,
     // Enter opens the focused card's link; the overlay, once open, has its own Escape.
-    escapeLabel: isOpen ? "close" : null,
+    escapeLabel: isOpen || peeked ? "close" : null,
     isOff: isOpen,
     keys: rows.map((row) => row.key),
-    onClose: () => false,
+    onClose: () => {
+      if (!peeked) {
+        return false;
+      }
+      setPeeking(false);
+      return true;
+    },
     onEdit: () => false,
     onMoveItem,
     onSelect: (index) => setSelected(rows[index].key),
@@ -303,7 +347,28 @@ export function WorkList({
   });
   const open = (row: WorkRow) => {
     setSelected(row.key);
+    if (row.peek) {
+      // Enter again, on the row whose pane shows, closes it.
+      setPeeking(!(isPeeking && selected === row.key));
+      return;
+    }
     onOpen?.(row.href);
+  };
+  // The mouse moving over a card selects it and takes the focus to it, so the keys act on what the
+  // pointer is on. Not while a card is edited or its menu is open, nor during a drag.
+  const hover = (row: WorkRow) => {
+    if (row.key === selected || own.state.editing !== undefined || own.state.menu !== undefined) {
+      return;
+    }
+    if (document.querySelector("[data-dragging], [data-dnd-dragging]")) {
+      return;
+    }
+    setSelected(row.key);
+    document
+      .querySelector<HTMLElement>(
+        `[data-row-key="${CSS.escape(row.key)}"] :is([data-row-link] button, a[href])`,
+      )
+      ?.focus({ preventScroll: true });
   };
   const drawn = (section: WorkSection, isColumn: boolean) => {
     const Body = section.isFixed ? SectionBody : DropSection;
@@ -312,6 +377,7 @@ export function WorkList({
         isColumn={isColumn}
         key={section.id}
         level={level}
+        onHover={hover}
         onOpen={open}
         rows={rowsOf(section)}
         section={section}
@@ -326,6 +392,9 @@ export function WorkList({
           {/* The row scrolls sideways: a region the keyboard can scroll, which its panes' links reach. */}
           <div
             aria-label={asColumns ? "Columns" : undefined}
+            // A click in the room under a short column focuses this region: the list's keys still
+            // act there, as on the page itself (see `useListKeys`).
+            data-list-page={asColumns ? "" : undefined}
             role={asColumns ? "region" : undefined}
             tabIndex={asColumns ? 0 : undefined}
             {...stylex.props(asColumns ? styles.row : styles.stack)}
@@ -334,6 +403,7 @@ export function WorkList({
           </div>
           {below.map((section) => drawn(section, false))}
         </DragDropProvider>
+        {peeked && <Peek row={peeked} />}
       </div>
     </RowStateContext>
   );

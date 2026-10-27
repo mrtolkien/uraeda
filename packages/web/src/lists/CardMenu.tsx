@@ -20,7 +20,15 @@ import { MORE_ICON } from "../layout/ActionsMenu.tsx";
 const styles = stylex.create({
   // The card's variable, shown while the menu is open, though the pointer left the card for it.
   open: { opacity: 1 },
-  trigger: { opacity: "var(--menu-opacity, 1)" },
+  // With a mouse, a button well inside the card, never touching its borders: a one-line card is as
+  // tall as an `sm` button. A touch screen keeps the control's own size, as its target.
+  trigger: {
+    height: { "@media (hover: hover)": "1.5rem", default: null },
+    minHeight: { "@media (hover: hover)": 0, default: null },
+    minWidth: { "@media (hover: hover)": 0, default: null },
+    opacity: "var(--menu-opacity, 1)",
+    width: { "@media (hover: hover)": "1.5rem", default: null },
+  },
 });
 
 /**

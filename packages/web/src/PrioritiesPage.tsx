@@ -24,8 +24,9 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
   const fate = useFateClient();
   const priorities = usePriorities();
   const openForm = useOpenAddForm();
-  // The ＋ next to Priorities, from the keyboard: the form in its default place.
-  useKeys([{ hint: "a", icon: "plus", keys: "a", label: "add", run: () => openForm("priority") }]);
+  // The ＋ next to Priorities, from the keyboard: the form in its default place. Not named in the
+  // status line.
+  useKeys([{ icon: "plus", keys: "a", label: "add", run: () => openForm("priority") }]);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const [message, setMessage] = useState<string>();
@@ -51,7 +52,7 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
   }
 
   return (
-    <Page>
+    <Page isFull>
       <VStack gap={2}>
         <PageTitle description="What is worked on, in order: Ongoing runs now, then Now, Next, and Later.">
           Priorities

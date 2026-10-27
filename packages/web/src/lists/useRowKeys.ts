@@ -3,6 +3,7 @@
 // and acts on the row the focus is on, or the selected one (see `useListKeys`'s `rowKeys`). The state
 // they set is what `Card` reads: which card is edited, and which card's menu is held open.
 import { useCallback, useState } from "react";
+import { deleteLine, useConfirm } from "../fields/Confirm.tsx";
 import type { RowState, WorkRow } from "./Card.tsx";
 import type { RowKey } from "./useListKeys.ts";
 
@@ -22,7 +23,20 @@ export function useRowKeys(
   sections: ReadonlyArray<Rows>,
   onAddBeside: ((section: string, row: WorkRow) => void) | undefined,
   select: (key: string) => void,
+  {
+    canMoveItems = false,
+    onDelete,
+    onPromote,
+  }: {
+    /** The list moves its rows with `m` and a key after it, so `m` opens no menu. */
+    canMoveItems?: boolean;
+    /** What `d` calls once the human confirmed: it deletes the line. */
+    onDelete?: ((row: WorkRow) => void) | undefined;
+    /** What `p` calls: it makes the line a draft; `false` says the row has nothing to promote. */
+    onPromote?: ((row: WorkRow) => boolean | void) | undefined;
+  } = {},
 ) {
+  const confirm = useConfirm();
   const [editing, setEditing] = useState<string>();
   const [menu, setMenu] = useState<string>();
   const [keyed, setKeyed] = useState<string>();
@@ -91,7 +105,43 @@ export function useRowKeys(
       },
     });
   }
-  if (rows.some((row) => row.menu !== undefined)) {
+  if (onPromote !== undefined) {
+    keys.push({
+      hint: "p",
+      keys: "p",
+      label: "promote to draft",
+      run: (at) => {
+        const row = rows[at];
+        if (row === undefined || row.isFixed === true) {
+          return false;
+        }
+        select(row.key);
+        return onPromote(row);
+      },
+    });
+  }
+  if (onDelete !== undefined) {
+    keys.push({
+      hint: "d",
+      keys: "d",
+      label: "delete",
+      run: (at) => {
+        const row = rows[at];
+        if (row === undefined || row.isFixed === true) {
+          return false;
+        }
+        select(row.key);
+        // The question takes `d` again for yes: `d d` deletes, as `y` does.
+        void confirm(deleteLine(row.text)).then((isConfirmed) => {
+          if (isConfirmed) {
+            onDelete(row);
+          }
+        });
+      },
+    });
+  }
+  // With item moves, `m` leads to their keys (`useListKeys`); else it opens the card's menu.
+  if (!canMoveItems && rows.some((row) => row.menu !== undefined)) {
     keys.push({
       hint: "m",
       keys: "m",

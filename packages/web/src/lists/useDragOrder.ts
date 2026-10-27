@@ -68,7 +68,7 @@ function announcer(now: () => { order: Order; titles: Map<string, string> }) {
 /**
  * The sensors of a drag, from anywhere on a card: a mouse or a pen after 5 px of a press, so a
  * shorter press stays a click; a touch after half a second, with 5 px of tolerance. A press on a
- * button, such as a card's `…`, never starts one.
+ * button of the card other than its own, such as its `…`, never starts one.
  */
 export const SENSORS = [
   PointerSensor.configure({
@@ -78,7 +78,11 @@ export const SENSORS = [
         ? [new PointerActivationConstraints.Delay({ tolerance: 5, value: 500 })]
         : [new PointerActivationConstraints.Distance({ value: 5 })],
     activatorElements: (source) => [source.element],
-    preventActivation: (event) => Boolean((event.target as Element | null)?.closest("button")),
+    preventActivation: (event) => {
+      // The card's own button, the one that opens it, is the card: only another one, as `…`, is not.
+      const button = (event.target as Element | null)?.closest("button");
+      return button != null && button.closest("[data-row-link]") === null;
+    },
   }),
 ];
 

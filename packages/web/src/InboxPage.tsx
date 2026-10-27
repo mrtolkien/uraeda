@@ -228,8 +228,9 @@ export function InboxPage() {
   const [message, setMessage] = useState<string>();
   const actions = useCategoryActions(inbox?.hash ?? "");
   const openForm = useOpenAddForm();
-  // The ＋ next to Inbox, from the keyboard: the form in its default place.
-  useKeys([{ hint: "a", icon: "plus", keys: "a", label: "add", run: () => openForm("note") }]);
+  // The ＋ next to Inbox, from the keyboard: the form in its default place. Not named in the status
+  // line.
+  useKeys([{ icon: "plus", keys: "a", label: "add", run: () => openForm("note") }]);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   if (!inbox) {

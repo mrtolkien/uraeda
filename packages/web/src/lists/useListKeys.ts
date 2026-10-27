@@ -12,8 +12,11 @@ import { type Columns, destination, type Move } from "./destination.ts";
 
 export type { Columns };
 
-/** The rows' links, in the list's order: each row marks its item with `data-row`. */
-const ROW = "[data-row] a[href]";
+/**
+ * The rows' links, in the list's order: each row marks its item with `data-row`, and a row a list
+ * opens itself holds a button, in a `data-row-link`, where the others hold a link.
+ */
+const ROW = "[data-row] a[href], [data-row-link] button";
 
 /** The key a row names itself with, `data-row-key`: what the list's own order is read by. */
 const ROW_KEY = "data-row-key";
@@ -53,6 +56,11 @@ const ITEM_MOVES: Keys<ItemMove> = [
   ["shift+ArrowLeft", "left", "move item to the previous column"],
   ["L", "right", "move item to the next column"],
   ["shift+ArrowRight", "right", "move item to the next column"],
+  // `m` and the key of the move, as the leader's menu shows them: the same moves, one at a time.
+  ["m j", "down", "move item down"],
+  ["m k", "up", "move item up"],
+  ["m h", "left", "move item to the previous column"],
+  ["m l", "right", "move item to the next column"],
 ];
 
 const NO_KEYS: ReadonlyArray<RowKey> = [];
@@ -158,6 +166,10 @@ function bindingsOf({
   );
   const items: ReadonlyArray<Binding> = canMoveItems
     ? ITEM_MOVES.map(([keys, move, label]) => ({
+        // `m` is the one hint of the sequences: the keys after it show in the leader's menu.
+        ...(keys === "m j" && !isOff
+          ? { hint: "m", hintLabel: "move", hintPress: "m" }
+          : {}),
         keys,
         label,
         run: onRow((row) => acts.item(move, row)),
@@ -259,7 +271,11 @@ export function useListKeys({
     },
     rowAt: (target) => {
       const row = indexOfLink(getItems(), keys, target);
-      const onPage = target === document.body || target === document.documentElement;
+      // The page, or the list's own region, which a click in the room under a short column focuses.
+      const onPage =
+        target === document.body ||
+        target === document.documentElement ||
+        (target instanceof HTMLElement && target.hasAttribute("data-list-page"));
       return row !== -1 || onPage ? (row === -1 ? selected : row) : null;
     },
   };

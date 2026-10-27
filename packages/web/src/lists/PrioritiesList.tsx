@@ -10,10 +10,10 @@ import { EditableLine } from "../EditableLine.tsx";
 import { stepTitle } from "../labels.ts";
 import { TITLES, titleOf } from "../QuickAdd.tsx";
 import { useOpenAddForm } from "../SidebarAdd.tsx";
-import { openDetail, PRIORITY } from "../pane/DetailOverlay.tsx";
-import { useLocalPath, useRepoPath } from "../routes.tsx";
+import { refusal } from "../errors.ts";
+import { navigate, useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
-import { PrioritiesView } from "../views.ts";
+import { DraftView, PrioritiesView } from "../views.ts";
 import { fileIndex } from "./cardMoves.ts";
 import { PriorityMenu } from "./CardMenu.tsx";
 import { PriorityEditor } from "./RowEditors.tsx";
@@ -92,6 +92,8 @@ function sectionsOf(
       key: entry.key,
       lines: entry.nestedSpans.map(plain),
       marks: marksOf(entry),
+      // A line with a draft, or running, opens its page; any other shows itself in a pane.
+      peek: !entry.running && !entry.draft,
       menu: place && <PriorityMenu found={place} hash={priorities.hash} onRefused={onRefused} />,
       text: plain(entry.spans),
     };
@@ -193,6 +195,64 @@ export function PrioritiesList({
     onMoveRefused?.(failed);
   };
 
+  /** `d`, once confirmed: the line leaves the file, a refusal shows where a move's does. */
+  const onDelete = async (row: WorkRow) => {
+    const entry = priorities.sections
+      .flatMap((s) => s.entries)
+      .find((candidate) => candidate.key === row.key);
+    if (!entry) {
+      return;
+    }
+    const failed = await run(() =>
+      fate.mutations.priorities.remove({
+        input: { entry: entry.id, hash: priorities.hash },
+        view: PrioritiesView,
+      }),
+    );
+    onMoveRefused?.(failed);
+  };
+
+  const entryOf = (key: string) =>
+    priorities.sections.flatMap((s) => s.entries).find((candidate) => candidate.key === key);
+
+  /**
+   * Enter or a click: a line that runs opens its feature, a line with a draft opens the draft's
+   * page. A line with neither opens nothing: `p` makes its draft.
+   */
+  const open = (href: string) => {
+    const entry = priorities.sections
+      .flatMap((s) => s.entries)
+      .find((candidate) => here(`/priorities/${candidate.key}`) === href);
+    if (entry?.running) {
+      navigate(here(`/f/${entry.running.folder}`));
+    } else if (entry?.draft) {
+      navigate(here(`/edit/${entry.draft.path}`));
+    }
+  };
+
+  /**
+   * `p`: the line becomes a draft, its text under "What", and the draft's page opens with the
+   * focus in its text. A line with a draft opens it; one that runs or links a file has none to make.
+   */
+  const onPromote = (row: WorkRow) => {
+    const entry = entryOf(row.key);
+    if (!entry || entry.running || entry.spans.some((span) => span.link?.path)) {
+      return entry?.draft ? void navigate(here(`/edit/${entry.draft.path}`), { focus: "text" }) : false;
+    }
+    void (async () => {
+      const made = await fate.mutations.draft.create({
+        input: { hash: priorities.hash, line: entry.id },
+        view: DraftView,
+      });
+      const path = made.result?.path;
+      if (made.error || typeof path !== "string") {
+        onMoveRefused?.(made.error ? refusal(made.error).message : "Nothing was made.");
+        return;
+      }
+      navigate(here(`/edit/${path}`), { focus: "text" });
+    })();
+  };
+
   const all = sectionsOf(priorities, here, add, onMoveRefused ?? NOTHING);
   const selected =
     select ??
@@ -208,8 +268,10 @@ export function PrioritiesList({
         const own = priorities.sections.find((s) => s.entries.some((e) => e.key === row.key));
         openForm("priority", { section: own && TITLES.has(own.section) ? own.section : undefined });
       }}
+      onDelete={(row) => void onDelete(row)}
       onMove={onMove}
-      onOpen={(href) => openDetail(href, PRIORITY)}
+      onOpen={open}
+      onPromote={onPromote}
       sections={all}
       selected={selected}
     />
