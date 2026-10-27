@@ -13,6 +13,7 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import { useMemo, useRef, useState } from "react";
 import { useKeys } from "../keys/registry.tsx";
+import { Allowance } from "../sidebar/Allowance.tsx";
 import { SearchField, useSessionQuery } from "../sidebar/Search.tsx";
 import { ColumnActions, ColumnFoot, ColumnHeading, Navigate } from "./ColumnPanes.tsx";
 import { useColumnWidth } from "./columnWidth.ts";
@@ -57,7 +58,7 @@ const styles = stylex.create({
     // The phone's column, between its tabs and its status line, which both stay in view. It opens
     // and closes as the desktop's does, a reveal from its start edge over 200 ms, its content laid
     // out at the open width throughout.
-    insetBlockEnd: "var(--size-status-line)",
+    insetBlockEnd: "var(--size-status-line, 0px)",
     insetBlockStart: spacingVars["--spacing-12"],
     position: "fixed",
     transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
@@ -66,6 +67,9 @@ const styles = stylex.create({
     // Up to 400 px, and no more than the window shows: its `100%`, not `100vw`, which counts the
     // page's own scrollbar and would put the column's end under it.
     maxWidth: "100%",
+    // A pixel more at the sides than the desktop column's, which the rail's icons are set by, as
+    // the phone's page has (`Page.tsx`).
+    paddingInline: "calc(var(--size-rail-inset) + 1px)",
     width: "400px",
     zIndex: 3,
   },
@@ -195,7 +199,6 @@ const FOLD_MS = 200;
  * and above the status line: the whole column, as the open rail draws it, never folded.
  */
 export function PhoneColumn({ isOpen }: { isOpen: boolean }) {
-  const pathname = useShellPath();
   const { query } = useSessionQuery();
   const fold = useMemo(() => ({ isFolded: false, toggle: () => {} }), []);
   return (
@@ -207,10 +210,11 @@ export function PhoneColumn({ isOpen }: { isOpen: boolean }) {
         <div {...stylex.props(styles.inner)}>
           <ColumnHeading isRevealed />
           <ColumnActions />
+          {/* No Navigate pane and no Settings: the tabs above have the places and Settings. The usage goes with the rest, at the list's end: pinned, it took too much of the phone's view while it scrolls, and its panes need no fit to the room above. */}
           <div {...stylex.props(styles.scroll)}>
-            <ShellPanes before={<Navigate pathname={pathname} />} isFitted query={query} />
+            <ShellPanes query={query} />
+            <Allowance />
           </div>
-          <ColumnFoot pathname={pathname} />
         </div>
       </nav>
     </ColumnFoldContext>
