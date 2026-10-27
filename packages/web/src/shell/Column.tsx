@@ -63,7 +63,10 @@ const styles = stylex.create({
     transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
     transitionProperty: "clip-path, visibility",
     transitionTimingFunction: easeVars["--ease-standard"],
-    width: "min(400px, 100vw)",
+    // Up to 400 px, and no more than the window shows: its `100%`, not `100vw`, which counts the
+    // page's own scrollbar and would put the column's end under it.
+    maxWidth: "100%",
+    width: "400px",
     zIndex: 3,
   },
   phoneOpen: {
