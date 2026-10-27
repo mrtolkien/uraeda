@@ -1,17 +1,28 @@
 // The New page's change part: a composer that starts a change from a typed text and its images,
-// then sends its first run, under a slug the core proposes for the text.
-import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
+// then sends its first run. Ctrl+Enter asks for the change's slug, which the core proposes for the
+// text: the page has no field for it.
 import { VStack } from "@astryxdesign/core/VStack";
-import { startTransition, useEffect, useRef, useState } from "react";
+import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
+import {
+  type RefObject,
+  Suspense,
+  startTransition,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useFateClient } from "react-fate";
+import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
 import { useSlugProposal } from "./data.ts";
 import { refusal } from "./errors.ts";
-import { useTextField } from "./fields/useTextField.ts";
+import type { useTextField } from "./fields/useTextField.ts";
+import type { Source } from "./NewEntries.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
-import { SlugField } from "./SlugField.tsx";
+import { StartDialog } from "./StartDialog.tsx";
+import { takeOut } from "./useStartFrom.ts";
 import { useDraft } from "./useDraft.ts";
 import { FeatureView } from "./views.ts";
 import { runWrite, useWrites } from "./writes/store.ts";
@@ -29,17 +40,20 @@ export function useSettled(text: string) {
   return settled;
 }
 
+/** A start's end: it went, or the refusal to show under the dialog's field. */
+type Started = { ok: true } | { message: string; ok: false };
+
 /**
- * Starts the change from the composer's text and images, under the slug typed: its session opens,
- * where its agent works, or, when no run was sent, with the workflow's message unsent (R12). A refusal is shown
- * under the slug field, and the text stays. A change started once the human left the page opens
- * nothing: its text and slug still go, since it started, but only while they are the ones sent: a
- * newer text or slug, typed while it started, stays (R19).
+ * Starts the change from the composer's text and images, under the slug asked: its session opens,
+ * where its agent works, or, when no run was sent, with the workflow's message unsent (R12). A
+ * refusal is shown in the dialog, and the text stays. The entries the composer was filled from leave
+ * their files once it started. A change started once the human left the page opens nothing: its
+ * text still goes, since it started, but only while it is the one sent: a newer text, typed while it
+ * started, stays (R19).
  */
-function useStart(text: ReturnType<typeof useTextField>, slug: ReturnType<typeof useTextField>) {
+function useStart(text: ReturnType<typeof useTextField>, sources: ReadonlyArray<Source>) {
   const fate = useFateClient();
   const here = useRepoPath();
-  const [error, setError] = useState<string>();
   const shown = useRef(true);
   useEffect(() => {
     shown.current = true;
@@ -47,77 +61,133 @@ function useStart(text: ReturnType<typeof useTextField>, slug: ReturnType<typeof
       shown.current = false;
     };
   }, []);
-  const start = async (sent: string, images: ReadonlyArray<DraftImage>) => {
-    setError(undefined);
-    const sentSlug = slug.text.trim();
+  return async (sent: string, images: ReadonlyArray<DraftImage>, slug: string): Promise<Started> => {
     const result = await fate.mutations.change.start({
       input: {
         images: images.flatMap((image) => (image.image ? [image.image] : [])),
-        // Before a slug is proposed, or once it is cleared, the core proposes its own.
-        ...(sentSlug ? { slug: sentSlug } : {}),
+        // Cleared in the dialog, the core proposes its own.
+        ...(slug ? { slug } : {}),
         text: sent,
       },
       view: FeatureView,
     });
     const folder = result.result?.folder;
     if (result.error || typeof folder !== "string") {
-      setError(result.error ? refusal(result.error).message : "The change did not start.");
-      return false;
+      return {
+        message: result.error ? refusal(result.error).message : "The change did not start.",
+        ok: false,
+      };
     }
     // The store's text now, not this page's: the human may have come back and typed another.
     if (text.unsavedNow()?.text.trim() === sent) {
       text.discard();
     }
-    const slugNow = slug.unsavedNow();
-    if (!slugNow || slugNow.text.trim() === sentSlug) {
-      slug.discard();
+    void takeOut(fate, sources);
+    if (shown.current) {
+      if (result.result?.session === null) {
+        handOver(folder, "start");
+      } else {
+        navigate(here(sessionPath(folder)));
+      }
     }
-    if (!shown.current) {
-      return true;
-    }
-    if (result.result?.session === null) {
-      handOver(folder, "start");
-    } else {
-      navigate(here(sessionPath(folder)));
-    }
-    return true;
+    return { ok: true };
   };
-  return { error, start };
+}
+
+/** What Ctrl+Enter holds while the slug is asked: the text sent, its images, and the answer. */
+type Asking = { images: ReadonlyArray<DraftImage>; resolve: (sent: boolean) => void; text: string };
+
+/** The slug's question, once the core has proposed one for the text. */
+function SlugQuestion({
+  asking,
+  onCancel,
+  onConfirm,
+}: {
+  asking: Asking;
+  onCancel: () => void;
+  onConfirm: (slug: string) => Promise<string | undefined>;
+}) {
+  const proposed = useSlugProposal(asking.text);
+  return (
+    <StartDialog
+      initial={proposed}
+      isOpen
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+      question={{
+        confirm: "Start the change",
+        description: "Two words at most: it names the folder and the branch.",
+        label: "Slug",
+        title: "Name the change",
+      }}
+    />
+  );
 }
 
 /**
  * The New page's change part: the composer, its text kept in the browser until the change starts
- * (R2), the slug proposed for its text until edited, and "Start the change".
+ * (R2), and a question for its slug once Ctrl+Enter sends it. `sources` are the entries the text
+ * was filled from.
  */
-export function NewChange() {
-  // Kept as a new chat's text is: leaving the page does not ask.
-  const text = useTextField("new-change", "", { drawn: false });
+export function ChangeComposer({
+  inputRef,
+  sources,
+  text,
+}: {
+  inputRef: RefObject<ChatComposerInputHandle | null>;
+  sources: ReadonlyArray<Source>;
+  text: ReturnType<typeof useTextField>;
+}) {
   const { images, setImages } = useDraft();
-  const proposed = useSlugProposal(useSettled(text.text));
-  const slug = useTextField("new-change#slug", proposed, { drawn: false });
-  const { error, start } = useStart(text, slug);
+  const start = useStart(text, sources);
   // Another page's write still running blocks this one, as every writing button is blocked.
   const { running } = useWrites();
   const [starting, setStarting] = useState(false);
+  const [asking, setAsking] = useState<Asking>();
+  const answer = (sent: boolean) => {
+    asking?.resolve(sent);
+    setAsking(undefined);
+  };
+  const confirm = async (slug: string) => {
+    if (!asking) {
+      return undefined;
+    }
+    setStarting(true);
+    // Its branch and worktree are written: the other writes wait, as for a commit.
+    const result = await runWrite({ label: "Starting the change…" }, () =>
+      start(asking.text, asking.images, slug),
+    ).finally(() => setStarting(false));
+    if (!result.ok) {
+      return result.message;
+    }
+    answer(true);
+    return undefined;
+  };
   return (
     <VStack gap={4}>
       <Composer
         images={images}
+        inputRef={inputRef}
         onChange={text.change}
         onImagesChange={setImages}
-        // Its branch and worktree are written: the other writes wait, as for a commit.
-        onSend={(sent, images) => {
-          setStarting(true);
-          return runWrite({ label: "Starting the change…" }, () => start(sent, images)).finally(
-            () => setStarting(false),
-          );
-        }}
+        // The composer waits on the dialog: it sent, or the human cancelled it.
+        onSend={(sent, sentImages) =>
+          new Promise<boolean>((resolve) => setAsking({ images: sentImages, resolve, text: sent }))
+        }
         sendLabel="Start the change"
         sendWaits={running && !starting ? "Another change is being saved to git" : undefined}
         value={text.text}
       />
-      <SlugField field={slug} restoreNotice={false} />
-      {error && <AnnouncedBanner collapsible={false} status="error" title={error} />}
+      {asking && (
+        <Suspense fallback={null}>
+          <SlugQuestion asking={asking} onCancel={() => answer(false)} onConfirm={confirm} />
+        </Suspense>
+      )}
     </VStack>
   );
+}
+
+/** The refusal of a start, as a banner: for the parts that show it under the composer. */
+export function StartError({ message }: { message: string | undefined }) {
+  return message ? <AnnouncedBanner collapsible={false} status="error" title={message} /> : null;
 }

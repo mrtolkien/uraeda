@@ -2,11 +2,13 @@
 // whose session opens, or a feature's draft, which opens in the editor.
 import { useState } from "react";
 import { useFateClient } from "react-fate";
+import { readDraft } from "./attach/useEditorImages.ts";
 import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { splitDraft } from "./pane/draftText.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
-import { DraftView, FeatureView, PrioritiesView } from "./views.ts";
+import { DraftView, FeatureView, InboxView, PrioritiesView } from "./views.ts";
 import { runWrite } from "./writes/store.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
@@ -116,6 +118,83 @@ async function titleDraft(fate: Fate, title: string): Promise<Made> {
   return drafted;
 }
 
+/** An entry the New page's composer was filled from: its kind, id, and draft, if it has one. */
+export type Taken = { draft?: string | undefined; id: string; kind: "line" | "note" };
+
+/**
+ * Takes the entries out of their file, as a start from them does: a note leaves `INBOX.md`, a line
+ * `PRIORITIES.md`. A refused removal leaves the entry where it is: the start already happened.
+ */
+export async function takeOut(fate: Fate, taken: ReadonlyArray<Taken>) {
+  for (const entry of taken) {
+    try {
+      if (entry.kind === "note") {
+        const { hash } = await readInbox(fate);
+        await fate.mutations.inbox.remove({ input: { hash, note: entry.id }, view: InboxView });
+      } else {
+        const { hash } = await readPriorities(fate);
+        await fate.mutations.priorities.remove({
+          input: { entry: entry.id, hash },
+          view: PrioritiesView,
+        });
+      }
+    } catch {
+      // Left in its file, for the human to take out.
+    }
+  }
+  rereadChanges(fate);
+}
+
+/**
+ * Writes `body` into the draft at `path`, under what it holds already: the heading its line gave it.
+ * Without `body`, nothing is written. A refusal is the message to show.
+ */
+async function writeBody(fate: Fate, path: string, body: string): Promise<string | undefined> {
+  if (body.trim() === "") {
+    return undefined;
+  }
+  const draft = await readDraft(fate, path);
+  if (!draft) {
+    return "The draft was not found.";
+  }
+  const { body: current, head } = splitDraft(draft);
+  const kept = current.trim() === "" ? "" : `${current.trimEnd()}\n\n`;
+  const result = await fate.mutations.text.save({
+    input: { hash: draft.hash, path, text: `${head}${kept}${body.trim()}\n` },
+    view: DraftView,
+  });
+  return result.error ? refusal(result.error).message : undefined;
+}
+
+/**
+ * A proposal written in the composer: the draft its first source makes, or one titled `title`
+ * written as the first of Now's lines to start, then the text under its heading, unless the
+ * composer holds what the source's own was. A refused text leaves the draft, with its reason.
+ */
+async function proposalDraft(
+  fate: Fate,
+  {
+    body,
+    sources,
+    title,
+  }: { body: string; sources: ReadonlyArray<Taken & { inserted: string }>; title: string },
+): Promise<Made> {
+  const [first, ...rest] = sources;
+  const drafted = first
+    ? first.kind === "note"
+      ? await noteDraft(fate, { id: first.id })
+      : await lineDraft(fate, { draft: first.draft ? { path: first.draft } : null, id: first.id })
+    : await titleDraft(fate, title);
+  if ("error" in drafted) {
+    return drafted;
+  }
+  // Its own text stays when the composer holds only what it was filled with.
+  const kept = first !== undefined && body.trim() === first.inserted.trim();
+  const refused = kept ? undefined : await writeBody(fate, drafted.value, body);
+  await takeOut(fate, rest);
+  return refused === undefined ? drafted : { error: refused };
+}
+
 /**
  * Starts the draft as a change: its branch and worktree are written, its line moves to Now, and its
  * first run is sent.
@@ -171,6 +250,8 @@ export function useStartFrom() {
     feature: {
       fromLine: (entry: StartLine) => run(() => lineDraft(fate, entry), edit),
       fromNote: (note: StartNote) => run(() => noteDraft(fate, note), edit),
+      fromText: (input: Parameters<typeof proposalDraft>[1]) =>
+        run(() => runWrite({ label: "Writing the proposal…" }, () => proposalDraft(fate, input)), edit),
       fromTitle: (title: string) => run(() => titleDraft(fate, title), edit),
     },
   };
