@@ -5,11 +5,13 @@ import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
   page: {
-    // One inset on the phone, from the screen's edges; the reading column in the middle of a wide
-    // screen. Text wraps anywhere rather than scroll the page sideways. `--page-inset` is the inset
-    // at the sides, and `--page-bleed` takes it back, for what reaches the screen's edges.
-    "--page-bleed": `calc(-1 * ${spacingVars["--spacing-4"]})`,
-    "--page-inset": spacingVars["--spacing-4"],
+    // One inset on the phone, from the screen's edges, the phone sidebar's own (the rail's, and a
+    // pixel), so the panes at the page's edge sit as the sidebar's do; the reading column in the
+    // middle of a wide screen. Text wraps anywhere rather than scroll the page sideways.
+    // `--page-inset` is the inset at the sides, and `--page-bleed` takes it back, for what reaches
+    // the screen's edges.
+    "--page-bleed": "calc(-1 * (var(--size-rail-inset) + 1px))",
+    "--page-inset": "calc(var(--size-rail-inset) + 1px)",
     boxSizing: "border-box",
     marginInline: "auto",
     maxWidth: "var(--size-page-max)",
