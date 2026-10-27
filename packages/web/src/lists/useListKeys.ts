@@ -207,11 +207,14 @@ function bindingsOf({
  * a row may draw no link, as one edited in place: a row is then found by its `data-row-key`, never
  * by its place among the links; without them the rows are the links, in the order they are drawn.
  * `isOff` says a layer the list owns, like its overlay, holds the keys: the status line then names
- * only Escape's. Returns the ref of the list's element, and what focuses the selected row.
+ * only Escape's. `isKeyless` declares none: a page's second list, which the registry would refuse
+ * the same keys, as one key never means two things. Returns the ref of the list's element, and what
+ * focuses the selected row.
  */
 export function useListKeys({
   columns,
   escapeLabel = "close",
+  isKeyless = false,
   isOff = false,
   keys,
   onClose,
@@ -223,6 +226,7 @@ export function useListKeys({
 }: {
   columns?: Columns;
   escapeLabel?: string | null;
+  isKeyless?: boolean;
   isOff?: boolean;
   keys?: ReadonlyArray<string>;
   onClose: () => boolean;
@@ -264,15 +268,17 @@ export function useListKeys({
     },
   };
   useKeys(
-    bindingsOf({
-      acts,
-      canMoveItems: onMoveItem !== undefined,
-      columns: columns !== undefined,
-      escapeLabel,
-      isOff,
-      onClose,
-      rowKeys,
-    }),
+    isKeyless
+      ? []
+      : bindingsOf({
+          acts,
+          canMoveItems: onMoveItem !== undefined,
+          columns: columns !== undefined,
+          escapeLabel,
+          isOff,
+          onClose,
+          rowKeys,
+        }),
   );
 
   const focusSelected = useCallback(() => {

@@ -29,6 +29,8 @@ export type { WorkRow };
 export interface WorkSection {
   /** Its context, a line under its title. */
   context?: string;
+  /** The count in its title, where it is not its rows': Home's inbox lists three of its nine. */
+  count?: number;
   /** What ends it, like its Add row. */
   footer?: ReactNode;
   /** An icon before its title. */
@@ -124,7 +126,7 @@ function SectionBody({
     <div ref={ref} {...stylex.props(isColumn && styles.column)}>
       <Pane
         actions={section.menu}
-        count={rows.length}
+        count={section.count ?? rows.length}
         {...(section.icon ? { icon: section.icon } : {})}
         {...(level ? { level } : {})}
         tint={TINTS[section.tone]}
@@ -247,6 +249,7 @@ function useShown(
  */
 export function WorkList({
   isFocused = false,
+  isKeyless = false,
   layout = "stack",
   level,
   onAddBeside,
@@ -256,6 +259,8 @@ export function WorkList({
   selected: named,
 }: {
   isFocused?: boolean;
+  /** Declares no keys: a page's second list, which the registry would refuse the same keys. */
+  isKeyless?: boolean;
   layout?: WorkLayout;
   /** The level of its panes' titles, where the page's headings put them. */
   level?: HeadingLevel;
@@ -278,6 +283,7 @@ export function WorkList({
     columns: asColumns ? columnsOf(shown) : undefined,
     // Enter opens the focused card's link; the overlay, once open, has its own Escape.
     escapeLabel: isOpen ? "close" : null,
+    isKeyless,
     isOff: isOpen,
     keys: rows.map((row) => row.key),
     onClose: () => false,

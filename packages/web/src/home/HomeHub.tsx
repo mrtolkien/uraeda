@@ -4,7 +4,6 @@
 // two: the inbox's latest notes and the priorities now, then what is done and the usage. From semi-wide,
 // two columns; on the phone, one, in the same order.
 import { Fragment } from "react";
-import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useInbox, usePriorities } from "../data.ts";
 import { Pane } from "../layout/Pane.tsx";
@@ -16,9 +15,9 @@ import { plain } from "../Spans.tsx";
 import { coreParts, splitColumns } from "./Core.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { homeFeatures } from "./features.ts";
-import { Columns, HomeRow, Overview, PaneLink } from "./parts.tsx";
+import { Columns, Overview, PaneLink } from "./parts.tsx";
 import { Recent } from "./Recent.tsx";
-import { inboxSummary } from "./summary.ts";
+import { inboxSummary, NOT_SORTED } from "./summary.ts";
 import { Usage } from "./Usage.tsx";
 import { plural } from "../labels.ts";
 import { Empty } from "../layout/Empty.tsx";
@@ -71,30 +70,55 @@ function PrioritiesNow() {
   );
 }
 
-/** The inbox's three latest notes, each with its category, and the way to the inbox with its count. */
+/**
+ * The inbox's three latest notes, as the inbox page draws them: the same cards, each with its
+ * category in its border, and the way to the inbox with its count. A card opens its note.
+ */
 function Inbox() {
   const here = useRepoPath();
   const { count, latest } = inboxSummary(useInbox());
-  return (
-    <Pane count={count} icon="uraeda:inbox" level={3} title="Inbox">
-      {count === 0 ? (
+  const link = (
+    <PaneLink
+      href={here("/inbox")}
+      label={count === 0 ? "Open the inbox" : `${plural(count, "note")} to organize`}
+    />
+  );
+  if (count === 0) {
+    return (
+      <Pane icon="uraeda:inbox" level={3} title="Inbox">
         <Empty isInset>The inbox is empty.</Empty>
-      ) : (
-        latest.map((note) => (
-          <HomeRow
-            href={here(`/inbox/${note.key}`)}
-            icon={<Icon color="secondary" icon="uraeda:pencil" size="md" />}
-            key={note.id}
-            sub={note.category}
-            title={note.text}
-          />
-        ))
-      )}
-      <PaneLink
-        href={here("/inbox")}
-        label={count === 0 ? "Open the inbox" : `${plural(count, "note")} to organize`}
-      />
-    </Pane>
+        {link}
+      </Pane>
+    );
+  }
+  return (
+    <WorkList
+      // Keyless: Priorities now holds home's list keys, and a key never means two things.
+      isKeyless
+      level={3}
+      onOpen={navigate}
+      sections={[
+        {
+          // Of all its notes, though three are listed.
+          count,
+          footer: link,
+          icon: "uraeda:inbox",
+          id: "inbox",
+          isFixed: true,
+          rows: latest.map((note) => ({
+            href: here(`/inbox/${note.key}`),
+            isFixed: true,
+            key: note.key,
+            lines: note.nestedSpans.map(plain),
+            // Its category in the border, but none for a note that has not one.
+            ...(note.category === NOT_SORTED ? {} : { marks: note.category }),
+            text: plain(note.spans),
+          })),
+          title: "Inbox",
+          tone: "neutral",
+        },
+      ]}
+    />
   );
 }
 

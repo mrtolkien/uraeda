@@ -22,7 +22,7 @@ export function runningStatus(
 }
 
 /** The name of the notes without a category. */
-const NOT_SORTED = "Not sorted";
+export const NOT_SORTED = "Not sorted";
 
 /**
  * The inbox as home sums it up: its count, each category with its number of notes, the notes
