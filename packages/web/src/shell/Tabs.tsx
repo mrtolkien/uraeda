@@ -1,6 +1,8 @@
-// The phone's bar of tabs, at the top of every page: Home, Inbox with its notes' count, Priorities,
-// Sessions with the running sessions' count, Decisions, Settings, and New, each an icon named by its
-// page, the current page's marked. The Sessions tab opens the shell's panes as a page of their own.
+// The phone's bar of tabs, at the top of every page: Home with the count of what needs the human,
+// Inbox with its notes' count, Priorities, Sessions with the running sessions' count, Decisions,
+// Settings, and New, each an icon named by its page, the current page's marked. The Sessions tab
+// opens the shell's panes as a page of their own. The phone has no status line: these counts are
+// its, and a page's own controls take its bar.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -11,7 +13,7 @@ import { useInbox } from "../data.ts";
 import { useRepoPath } from "../routes.tsx";
 import { DESTINATIONS } from "../destinations.ts";
 import { useNavigation } from "../sessionData.ts";
-import { runningSessions } from "../sidebar/entries.ts";
+import { needsYouEntries, runningSessions } from "../sidebar/entries.ts";
 import { selects } from "../sidebar/Row.tsx";
 import { useShellPath } from "./ShellPanes.tsx";
 import { plural } from "../labels.ts";
@@ -68,6 +70,7 @@ type IconName = ComponentProps<typeof Icon>["icon"];
  * name says after the page's, in `counted`'s words.
  */
 function Tab({
+  badge = "info",
   count,
   counted = String,
   icon,
@@ -76,6 +79,8 @@ function Tab({
   to,
   variant = "ghost",
 }: {
+  /** The count's colour: the usual info, or a warning for what waits on the human. */
+  badge?: "info" | "warning";
   count?: number | undefined;
   counted?: (n: number) => string;
   icon: IconName;
@@ -95,7 +100,7 @@ function Tab({
           <Icon icon={icon} />
           {shown && (
             <span {...stylex.props(styles.badge)}>
-              <Badge aria-hidden label={String(count)} variant="info" xstyle={styles.small} />
+              <Badge aria-hidden label={String(count)} variant={badge} xstyle={styles.small} />
             </span>
           )}
         </span>
@@ -152,6 +157,9 @@ export function Tabs({
         <span aria-hidden="true" {...stylex.props(styles.divider)} />
       </div>
       <Tab
+        badge="warning"
+        count={needsYouEntries(data).length}
+        counted={(n) => `${n} need you`}
         icon={DESTINATIONS.home.icon}
         isCurrent={at(DESTINATIONS.home.path)}
         label={DESTINATIONS.home.label}

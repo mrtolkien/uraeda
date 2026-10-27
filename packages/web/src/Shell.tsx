@@ -45,7 +45,8 @@ const styles = stylex.create({
     marginInline: "auto",
     maxWidth: "var(--size-page-max)",
     paddingBlockStart: spacingVars["--spacing-4"],
-    paddingInline: spacingVars["--spacing-4"],
+    // The phone page's inset (`Page.tsx`).
+    paddingInline: "calc(var(--size-rail-inset) + 1px)",
     width: "100%",
   },
   errorsWide: {
@@ -179,7 +180,8 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
             <KeysProvider singleKeys={singleKeys}>
               <SingleKeysSetting onRead={setSingleKeys} />
               <Frame
-                bottom={<StatusLine isNarrow={narrow} slot={slot} />}
+                // The phone has no bar but for a page's own controls: none takes no room there.
+                bottom={narrow && slot === null ? undefined : <StatusLine isNarrow={narrow} slot={slot} />}
                 isNarrow={narrow}
                 start={
                   narrow ? (
