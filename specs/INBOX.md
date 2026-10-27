@@ -2,6 +2,8 @@
 
 - After approving a spec the feature stayed in "needs you" until I ran a full refresh
 - Moving a draft to a feature takes upwards of 10s with many page changes and no clear feedback
+- Review ura check to be less annoying, it fails all the time for no good reason. Or at least remove
+  it from vp run ready
 
 ## Bugfix
 
@@ -9,6 +11,8 @@
   session is running
 - Many, many issues with the "state" of a run: if a PR is up, it's "done" even if I restarted the
   session
+  - If a session is running, it should always be visible in the sidebar/card/feature page
+  - Generally we need better handling of "corner cases" of feature state/session state
 
 ## To test
 
