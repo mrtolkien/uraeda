@@ -509,6 +509,8 @@ keep the skill's wording generic."
   out under load.
 - The toolchain test's comment stripping keeps strings whole, after a retry setting between two glob
   strings escaped it.
+- A pull request's body puts each paragraph and list item on one line, as the forge shows every line
+  break: asked on this pull request, whose first body broke at each wrapped line.
 - The evaluation stopped on its run cap with Sonnet, then went on with Haiku at the human's request,
   past SC-008's five revisions and twelve runs, to revision 14, without three passing runs in a row.
 
