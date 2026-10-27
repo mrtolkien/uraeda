@@ -235,9 +235,7 @@ function Session() {
 function Change() {
   return (
     <>
-      <Step icon="uraeda:comment" name="Message">
-        <Text3 widths={["100%", "60%"]} />
-      </Step>
+      <Step icon="uraeda:comment" name="Message/Bug report" />
       <Then />
       <Questions isOptional />
       <Then />
