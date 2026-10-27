@@ -4,7 +4,12 @@
 // width, as the UI layout decision's sheets do. `LeaderMenuHost` feeds it the registry's step.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
-import { easeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  easeVars,
+  fontWeightVars,
+  spacingVars,
+  typeScaleVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, useLayoutEffect, useRef, useState } from "react";
 import { Pane } from "../layout/Pane.tsx";
@@ -44,6 +49,7 @@ const styles = stylex.create({
   entries: {
     columnGap: spacingVars["--spacing-6"],
     display: "grid",
+    rowGap: spacingVars["--spacing-1"],
     gridAutoFlow: "column",
     gridTemplateRows: "repeat(12, auto)",
     listStyle: "none",
@@ -84,6 +90,12 @@ const styles = stylex.create({
     gridAutoFlow: "row",
     gridTemplateRows: "none",
   },
+  // The menu's words, a step over the supporting text, at the body's 16 px and its weight.
+  text: {
+    fontSize: "16px",
+    fontWeight: fontWeightVars["--font-weight-normal"],
+    lineHeight: typeScaleVars["--text-label-leading"],
+  },
   place: {
     animationDuration: {
       "@media (prefers-reduced-motion: reduce)": "0s",
@@ -94,7 +106,7 @@ const styles = stylex.create({
     animationTimingFunction: easeVars["--ease-standard"],
     insetBlockEnd: `calc(var(--size-status-line, 0px) + ${spacingVars["--spacing-2"]})`,
     insetInlineEnd: spacingVars["--spacing-3"],
-    minWidth: "var(--size-leader-menu, 16rem)",
+    minWidth: "var(--size-leader-menu, 20rem)",
     position: "fixed",
     zIndex: 3,
   },
@@ -110,7 +122,7 @@ const styles = stylex.create({
   twin: {
     insetBlockEnd: 0,
     insetInlineEnd: 0,
-    minWidth: "var(--size-leader-menu, 16rem)",
+    minWidth: "var(--size-leader-menu, 20rem)",
     pointerEvents: "none",
     position: "absolute",
     visibility: "hidden",
@@ -189,16 +201,16 @@ export function LeaderMenu({
               type="button"
               {...stylex.props(styles.press, styles.full, brighten)}
             >
-              <Text type="supporting" xstyle={styles.entry}>
+              <Text type="supporting" xstyle={[styles.entry, styles.text]}>
                 <Key name={entry.key} />
-                <Icon icon={entry.icon} size="sm" />
+                <Icon icon={entry.icon} size="md" />
                 {entry.isGroup === true ? `${entry.label} →` : entry.label}
               </Text>
             </button>
           </li>
         ))}
       </ul>
-      <Text color="secondary" type="supporting">
+      <Text color="secondary" type="supporting" xstyle={styles.text}>
         <button
           onClick={() => pressKeys("Backspace")}
           onMouseDown={keepFocus}
