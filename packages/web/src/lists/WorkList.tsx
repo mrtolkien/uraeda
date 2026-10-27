@@ -27,6 +27,8 @@ export type { WorkRow };
 
 /** A section of the list: a heading of the file, the ongoing entries, or a category of the inbox. */
 export interface WorkSection {
+  /** What goes under its pane, in its column: Home's Recent under the inbox. */
+  below?: ReactNode;
   /** Its context, a line under its title. */
   context?: string;
   /** The count in its title, where it is not its rows': Home's inbox lists three of its nine. */
@@ -155,6 +157,7 @@ function SectionBody({
         )}
         {section.footer && <div {...stylex.props(styles.footer)}>{section.footer}</div>}
       </Pane>
+      {section.below}
     </div>
   );
 }
