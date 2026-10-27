@@ -18,8 +18,10 @@ fn text(place: &Place) -> String {
 
 /// The priorities of `text`, with the count of the commit bar's change list.
 fn counted(place: &Place, text: &str) -> Priorities {
+    let list = changes::list(place);
     Priorities {
-        changes: changes::list(place).count,
+        changes: list.count,
+        change_lines: list.lines,
         ..priorities::read(text, None)
     }
 }

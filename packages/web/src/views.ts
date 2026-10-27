@@ -205,6 +205,7 @@ export const FileView = view<WorkflowFile>()({
 });
 
 export const PrioritiesView = view<Priorities>()({
+  changeLines: true,
   changes: true,
   hash: true,
   id: true,

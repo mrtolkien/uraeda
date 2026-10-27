@@ -171,6 +171,8 @@ pub struct Priorities {
     pub sections: Vec<SectionItems>,
     /// How many entries were added, moved, edited, or removed since the last commit.
     pub changes: u32,
+    /// The changes the commit would hold, each as a line: what a commit page shows.
+    pub change_lines: Vec<String>,
 }
 
 /// Each entry's key, in order: the slug of its linked draft's file name when it links a file of
@@ -255,6 +257,7 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
         hash: super::document::hash(text),
         sections,
         changes: committed.map_or(0, |committed| changes(committed, text)),
+        change_lines: Vec::new(),
     }
 }
 

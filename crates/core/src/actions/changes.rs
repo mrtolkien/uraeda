@@ -175,12 +175,62 @@ fn gather(place: &Place) -> Listed {
         inbox: versions(place, INBOX),
         priorities: versions(place, PRIORITIES),
     };
-    let (changes, drafts) = pair(place, &texts);
+    let (mut changes, drafts) = pair(place, &texts);
+    let mut paths = drafts.paths;
+    // The drafts the human edited in their editor, which have no Commit of their own: this list
+    // commits them. Discard leaves their text.
+    for (path, title) in edited_drafts(place, &paths) {
+        changes.push(Described {
+            subject: format!("edit the draft \"{}\"", short(&title)),
+            line: format!("- Edit the draft: {title}"),
+        });
+        paths.push(path);
+    }
     Listed {
         changes,
-        paths: files(&texts, drafts.paths),
+        paths: files(&texts, paths),
         undo: drafts.undo,
     }
+}
+
+/// The drafts and backlog files, among `specs/drafts` and `specs/backlog`, whose text differs from
+/// the committed one, with each title; `taken` are the files the list holds already. A draft no
+/// commit has is a note's or a line's, which [`never_committed`] counts.
+fn edited_drafts(place: &Place, taken: &[String]) -> Vec<(String, String)> {
+    let mut found = Vec::new();
+    for dir in ["specs/drafts", "specs/backlog"] {
+        let Ok(entries) = fs::read_dir(place.root.join(dir)) else {
+            continue;
+        };
+        let mut paths: Vec<String> = entries
+            .filter_map(Result::ok)
+            .filter_map(|entry| {
+                let name = entry.file_name().to_string_lossy().into_owned();
+                if entry.path().is_dir() {
+                    Some(format!("{dir}/{name}/proposal.md"))
+                } else {
+                    name.ends_with(".md").then(|| format!("{dir}/{name}"))
+                }
+            })
+            .collect();
+        paths.sort();
+        for path in paths {
+            if taken.contains(&path) {
+                continue;
+            }
+            let (Ok(now), Some(then)) = (
+                fs::read_to_string(place.root.join(&path)),
+                place::committed(place, &path),
+            ) else {
+                continue;
+            };
+            if now != then {
+                let title = crate::view::title(&now).unwrap_or_else(|| path.clone());
+                found.push((path, title));
+            }
+        }
+    }
+    found
 }
 
 /// Takes the added entry the removed note of the text `text` in `inbox` became out of the

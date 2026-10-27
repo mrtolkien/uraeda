@@ -17,28 +17,35 @@ pub(super) fn section(id: &str) -> Result<Section> {
     Section::from_id(id).ok_or_else(|| refused(format!("no section {id}")))
 }
 
-/// How many changes the commit bar counts, in the default branch's checkout: none without one,
-/// since the branch's tip has no uncommitted change.
-pub(super) fn change_count(git: &Git, workspace: &Workspace) -> u32 {
+/// The changes the commit holds, in the default branch's checkout: none without one, since the
+/// branch's tip has no uncommitted change.
+fn change_list(git: &Git, workspace: &Workspace) -> changes::Changes {
     let checkout = workspace
         .default_branch
         .as_deref()
         .and_then(|default| default_checkout(git, default));
-    checkout.map_or(0, |root| {
+    checkout.map_or_else(changes::Changes::default, |root| {
         changes::list(&place::Place {
             root,
             created: false,
             switched: None,
         })
-        .count
     })
 }
 
-/// The priorities, with the count of the commit bar's changes, without creating a worktree.
+/// How many changes the commit counts, in the default branch's checkout.
+pub(super) fn change_count(git: &Git, workspace: &Workspace) -> u32 {
+    change_list(git, workspace).count
+}
+
+/// The priorities, with the count of the commit's changes and each as a line, without creating a
+/// worktree.
 pub fn read_priorities(repo: &Path) -> Result<Priorities> {
     let (git, workspace) = open(repo)?;
+    let list = change_list(&git, &workspace);
     Ok(Priorities {
-        changes: change_count(&git, &workspace),
+        changes: list.count,
+        change_lines: list.lines,
         ..joined_priorities(&git, &workspace)
     })
 }

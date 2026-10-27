@@ -363,6 +363,7 @@ export const branchDecisionDataView = dataView<BranchDecisionRecord>("BranchDeci
 
 export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
   added: true,
+  changeLines: true,
   changes: true,
   hash: true,
   id: true,

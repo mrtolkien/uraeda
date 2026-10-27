@@ -1314,6 +1314,8 @@ export interface Priorities {
   sections: Array<SectionItems>
   /** How many entries were added, moved, edited, or removed since the last commit. */
   changes: number
+  /** The changes the commit would hold, each as a line: what a commit page shows. */
+  changeLines: Array<string>
 }
 
 /** The priorities after "Add and commit", and whether it committed. */
