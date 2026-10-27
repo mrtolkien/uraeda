@@ -5,10 +5,10 @@
 // two columns; on the phone, one, in the same order.
 import { Fragment } from "react";
 import { VStack } from "@astryxdesign/core/VStack";
+import * as stylex from "@stylexjs/stylex";
 import { useInbox, usePriorities } from "../data.ts";
-import { Pane } from "../layout/Pane.tsx";
 import { byRunning, marksOf } from "../lists/PrioritiesList.tsx";
-import { WorkList } from "../lists/WorkList.tsx";
+import { WorkList, type WorkSection } from "../lists/WorkList.tsx";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
 import { plain } from "../Spans.tsx";
@@ -20,106 +20,73 @@ import { Recent } from "./Recent.tsx";
 import { inboxSummary, NOT_SORTED } from "./summary.ts";
 import { Usage } from "./Usage.tsx";
 import { plural } from "../labels.ts";
-import { Empty } from "../layout/Empty.tsx";
+
+const styles = stylex.create({
+  // The inbox and the priorities, side by side across both columns of the widgets' grid.
+  lists: { gridColumn: "1 / -1", minWidth: 0 },
+});
 
 /** How many entries Priorities now shows: the rest are one tap away, on the priorities page. */
 const PRIORITIES_SHOWN = 5;
 
 /**
- * The first five entries of Now that are not running, which the core above already shows, as the
- * priorities page draws them: the same cards, a draft marked so. A card opens its entry's pane.
+ * The inbox's three latest notes and the first five entries of Now that are not running, which the
+ * core above already shows, as the inbox and the priorities pages draw them: the same cards, side
+ * by side as the columns of one list, so that `h l` moves between them as it does on the
+ * priorities page. A note shows its category in its border, none for one without; an entry, a draft
+ * marked so. A card opens its note or its entry's pane, and each pane ends with its way to its page.
  */
-function PrioritiesNow() {
+function Lists() {
   const here = useRepoPath();
+  const { count, latest } = inboxSummary(useInbox());
   const priorities = usePriorities();
   const entries = (
     priorities ? byRunning(priorities).sections.find((s) => s.section === "now")?.entries ?? [] : []
   ).slice(0, PRIORITIES_SHOWN);
-  const link = <PaneLink href={here("/priorities")} label="Open priorities" />;
-  if (entries.length === 0) {
-    return (
-      <Pane icon="uraeda:list" level={3} title="Priorities now">
-        <Empty isInset>Nothing in Now.</Empty>
-        {link}
-      </Pane>
-    );
-  }
-  return (
-    <WorkList
-      level={3}
-      onOpen={navigate}
-      sections={[
-        {
-          footer: link,
-          icon: "uraeda:list",
-          id: "now",
-          isFixed: true,
-          rows: entries.map((entry) => ({
-            href: here(`/priorities/${entry.key}`),
-            isFixed: true,
-            key: entry.key,
-            lines: entry.nestedSpans.map(plain),
-            marks: marksOf(entry),
-            text: plain(entry.spans),
-          })),
-          title: "Priorities now",
-          tone: "blue",
-        },
-      ]}
-    />
-  );
-}
-
-/**
- * The inbox's three latest notes, as the inbox page draws them: the same cards, each with its
- * category in its border, and the way to the inbox with its count. A card opens its note.
- */
-function Inbox() {
-  const here = useRepoPath();
-  const { count, latest } = inboxSummary(useInbox());
-  const link = (
-    <PaneLink
-      href={here("/inbox")}
-      label={count === 0 ? "Open the inbox" : `${plural(count, "note")} to organize`}
-    />
-  );
-  if (count === 0) {
-    return (
-      <Pane icon="uraeda:inbox" level={3} title="Inbox">
-        <Empty isInset>The inbox is empty.</Empty>
-        {link}
-      </Pane>
-    );
-  }
-  return (
-    <WorkList
-      // Keyless: Priorities now holds home's list keys, and a key never means two things.
-      isKeyless
-      level={3}
-      onOpen={navigate}
-      sections={[
-        {
-          // Of all its notes, though three are listed.
-          count,
-          footer: link,
-          icon: "uraeda:inbox",
-          id: "inbox",
-          isFixed: true,
-          rows: latest.map((note) => ({
-            href: here(`/inbox/${note.key}`),
-            isFixed: true,
-            key: note.key,
-            lines: note.nestedSpans.map(plain),
-            // Its category in the border, but none for a note that has not one.
-            ...(note.category === NOT_SORTED ? {} : { marks: note.category }),
-            text: plain(note.spans),
-          })),
-          title: "Inbox",
-          tone: "neutral",
-        },
-      ]}
-    />
-  );
+  const sections: Array<WorkSection> = [
+    {
+      ...(count === 0 ? { context: "The inbox is empty." } : {}),
+      // Of all its notes, though three are listed.
+      count,
+      footer: (
+        <PaneLink
+          href={here("/inbox")}
+          label={count === 0 ? "Open the inbox" : `${plural(count, "note")} to organize`}
+        />
+      ),
+      icon: "uraeda:inbox",
+      id: "inbox",
+      isFixed: true,
+      rows: latest.map((note) => ({
+        href: here(`/inbox/${note.key}`),
+        isFixed: true,
+        key: note.key,
+        lines: note.nestedSpans.map(plain),
+        ...(note.category === NOT_SORTED ? {} : { marks: note.category }),
+        text: plain(note.spans),
+      })),
+      title: "Inbox",
+      tone: "neutral",
+    },
+    {
+      ...(entries.length === 0 ? { context: "Nothing in Now." } : {}),
+      footer: <PaneLink href={here("/priorities")} label="Open priorities" />,
+      icon: "uraeda:list",
+      id: "now",
+      isFixed: true,
+      rows: entries.map((entry) => ({
+        href: here(`/priorities/${entry.key}`),
+        isFixed: true,
+        key: entry.key,
+        lines: entry.nestedSpans.map(plain),
+        marks: marksOf(entry),
+        text: plain(entry.spans),
+      })),
+      title: "Priorities now",
+      tone: "blue",
+    },
+  ];
+  return <WorkList layout="columns" level={3} onOpen={navigate} sections={sections} />;
 }
 
 export function HomeHub() {
@@ -158,8 +125,9 @@ export function HomeHub() {
       )}
       <Overview />
       <Columns>
-        <Inbox />
-        <PrioritiesNow />
+        <div {...stylex.props(styles.lists)}>
+          <Lists />
+        </div>
         <Recent features={workspace.features} rows={rows} />
         <Usage />
       </Columns>
