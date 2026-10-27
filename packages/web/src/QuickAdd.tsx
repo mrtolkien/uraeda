@@ -194,11 +194,12 @@ export function AddForm({
   const [message, setMessage] = useState<string>();
   const [notice, setNotice] = useState(shown);
 
-  const add = async (commit = false) => {
+  // Adds the line, uncommitted, and closes the form: the page's bar commits what was written.
+  const add = async () => {
     setMessage(undefined);
     setNotice(undefined);
     const result = await fate.mutations.priorities.add({
-      input: { commit, hash: priorities?.hash ?? "", section, text },
+      input: { hash: priorities?.hash ?? "", section, text },
       view: PrioritiesAddedView,
     });
     if (result.error) {
@@ -212,24 +213,8 @@ export function AddForm({
     if (field.unsavedNow()?.text === text) {
       field.discard();
     }
-    // Only added: the form stays open, saying why.
-    const why = commit ? uncommitted(answer?.added, titleOf(section)) : undefined;
-    if (why) {
-      setNotice(why);
-      return;
-    }
-    onAdded(
-      section,
-      added && {
-        ...(commit && answer ? { committed: { hash: answer.hash } } : {}),
-        key: added.key,
-        lines: added.lines,
-        text: added.text,
-      },
-    );
+    onAdded(section, added && { key: added.key, lines: added.lines, text: added.text });
   };
-
-  const commit = useAddAndCommit(() => add(true));
 
   const cancel = async () => {
     if (field.dirty && !(await confirm(DISCARD_CHANGES))) {
@@ -251,19 +236,14 @@ export function AddForm({
         kind="line"
         label="Priority"
         onChange={field.change}
-        // A line: Enter adds and commits, Ctrl+Enter or Cmd+Enter as well.
-        onKeyDown={enterAdds(() => text.trim() && commit.onAddAndCommit())}
+        // A line: Enter adds it, and closes the form.
+        onKeyDown={enterAdds(() => text.trim() && void add())}
         value={text}
       />
       <SectionPicker onChange={setSection} section={section} />
       {message && <AnnouncedBanner status="error" title={message} />}
       <CommitBanner notice={notice} />
-      <AddButtons
-        isReady={text.trim() !== ""}
-        onAdd={() => add()}
-        {...commit}
-        onCancel={() => void cancel()}
-      />
+      <AddButtons isReady={text.trim() !== ""} onAdd={add} onCancel={() => void cancel()} />
     </VStack>
   );
 }
