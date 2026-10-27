@@ -1,4 +1,5 @@
-import { basename } from "node:path";
+import { readFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import {
   act,
   cleanup,
@@ -101,7 +102,7 @@ export function today(date: string) {
 }
 
 /** Gives the window a width, as a phone's (402), a semi-wide 1205, or a desktop's (1440, the default). */
-function atWidth(width: number) {
+export function atWidth(width: number) {
   (
     window as unknown as { happyDOM: { setViewport(size: { width: number }): void } }
   ).happyDOM.setViewport({ width });
@@ -420,4 +421,9 @@ export async function type(element: HTMLElement, value: string) {
       fireEvent.change(element, { target: { value } });
     }
   });
+}
+
+/** A file of the repository, `PRIORITIES.md` by default. */
+export function read(repo: string, path = "specs/PRIORITIES.md") {
+  return readFileSync(join(repo, path), "utf8");
 }
