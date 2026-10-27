@@ -21,8 +21,14 @@ export const CANNED_REPLY =
 /** How long the canned reply streams. */
 const REPLY_MS = 3000;
 
-/** How long the turn at work streams tool calls. */
-const AT_WORK_MS = 10 * 60 * 1000;
+/**
+ * How long the turn at work streams tool calls: as long as a sandbox is open in a day, so that
+ * the sessions at work stay ongoing, and a restart starts them again.
+ */
+const AT_WORK_MS = 12 * 60 * 60 * 1000;
+
+/** How long each tool call of the turn at work runs. */
+const AT_WORK_CALL_MS = 15 * 1000;
 
 /**
  * A wait on a timer, cleared when `signal` aborts. The signal lives as long as the turn: its
@@ -213,8 +219,8 @@ const specifying = (folder: string): AtWork => ({
   subagents: [],
 });
 
-/** How many tool calls a turn at work streams, each a share of its 10 minutes. */
-const AT_WORK_CALLS = 40;
+/** How many tool calls a turn at work streams, each a share of its time. */
+const AT_WORK_CALLS = AT_WORK_MS / AT_WORK_CALL_MS;
 
 /**
  * The fake agent of the sandbox. A message during a turn queues behind it, as the workflow's do,
@@ -270,7 +276,7 @@ export class SandboxAgent extends FakeAdapter {
   }
 
   /**
-   * The turn at work: tool calls streamed for 10 minutes, each running for its share. Its
+   * The turn at work: tool calls streamed for 12 hours, each running for its share. Its
    * sub-agents start first and run to its end, each making a call as the turn does.
    */
   atWork({ calls, subagents }: AtWork = IMPLEMENTATION): Array<FakeStep> {

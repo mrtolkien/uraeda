@@ -171,7 +171,6 @@ export function ShellPanes({
         )}
       </div>
       <DoneArea
-        allHref={here("/#done")}
         {...(isFitted ? { content: rows } : {})}
         onOpen={(href) => navigate(href)}
         rows={doneRows(data.workspace?.features ?? [], data.sessionList?.rows ?? [], {

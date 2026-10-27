@@ -17,6 +17,11 @@ DONE:
 
 - [x] Leader and status bar
 
+- [ ] Settings
+  - [ ] Desktop
+  - [ ] Semiwide
+  - [ ] Phone
+
 - [ ] New
   - [ ] Desktop
   - [ ] Semiwide
@@ -43,11 +48,6 @@ DONE:
   - [ ] Phone
 
 - [ ] Feature
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
-
-- [ ] Settings
   - [ ] Desktop
   - [ ] Semiwide
   - [ ] Phone

@@ -176,7 +176,10 @@ nav[data-rail="closed"] [data-rail-only] { display: flex !important; }
 nav[data-rail="closed"] [data-rail-fit] { width: 38px !important; min-width: 0; overflow: hidden; }
 nav[data-rail="closed"] .astryx-side-nav-item > :not(:first-child), nav[data-rail="closed"] div.astryx-side-nav-item > a > :not(:first-child),
 nav[data-rail="closed"] [data-rail-foot] section { display: none !important; }
-nav[data-rail="closed"] [data-card] a > :not(:first-child) { visibility: hidden; }`;
+nav[data-rail="closed"] [data-card] a > :not(:first-child) { visibility: hidden; }
+nav[data-rail="closed"] [data-card] > .astryx-stack { padding-inline-start: 7.7px !important; }
+nav[data-rail="closed"] [data-card] > .astryx-stack > :not(:first-child) { display: none; }
+nav[data-rail="closed"] [data-done-area] a > :not(:first-child) { display: none !important; }`;
 
 /** The width a rail opens to over the page, in px: it shows on hover only, so it is roomy. */
 const OPEN_RAIL_PX = 400;
