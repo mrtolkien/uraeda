@@ -55,6 +55,18 @@ export function LeaderKeys() {
       label: "Top of the page",
       run: (event) => edge(event, "top"),
     },
+    {
+      // The browser's Back, as Alt+Left: on every page, with no hint in the status line.
+      keys: "b",
+      label: "Back",
+      run: () => {
+        // Nothing before this page: nothing to go back to.
+        if (window.history.length <= 1) {
+          return false;
+        }
+        window.history.back();
+      },
+    },
   ];
   useKeys(bindings, "shell");
   return (
