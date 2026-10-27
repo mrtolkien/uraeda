@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { discardChanges, useConfirm } from "./fields/Confirm.tsx";
 import { closeUndoToasts } from "./layout/useUndoToast.ts";
 import { PrioritiesView } from "./views.ts";
 import { WriteButton } from "./writes/WriteButton.tsx";
@@ -37,7 +38,7 @@ const styles = stylex.create({
  */
 export function CommitBar({ changes }: { changes: number }) {
   const fate = useFateClient();
-  const [confirm, setConfirm] = useState(false);
+  const confirm = useConfirm();
   const [message, setMessage] = useState<string>();
   if (changes === 0) {
     return null;
@@ -59,9 +60,11 @@ export function CommitBar({ changes }: { changes: number }) {
 
   const commit = () =>
     run(() => fate.mutations.changes.commit({ input: {}, view: PrioritiesView }));
-  const discard = () => {
-    setConfirm(false);
-    return run(() => fate.mutations.changes.discard({ input: {}, view: PrioritiesView }));
+  // The app's one confirmation window, with its `y` and `n`.
+  const discard = async () => {
+    if (await confirm(discardChanges(changes))) {
+      await run(() => fate.mutations.changes.discard({ input: {}, view: PrioritiesView }));
+    }
   };
 
   return (
@@ -71,17 +74,8 @@ export function CommitBar({ changes }: { changes: number }) {
         <HStack align="center" gap={2} wrap="wrap">
           <Text>{plural(changes, "change")} to commit</Text>
           <HStack gap={2} justify="end">
-            {confirm ? (
-              <>
-                <Button label="Keep them" onClick={() => setConfirm(false)} />
-                <Button clickAction={discard} label="Discard them" variant="destructive" />
-              </>
-            ) : (
-              <>
-                <Button label="Discard" onClick={() => setConfirm(true)} variant="ghost" />
-                <WriteButton label="Commit" onClick={commit} variant="primary" />
-              </>
-            )}
+            <Button clickAction={discard} label="Discard" variant="ghost" />
+            <WriteButton label="Commit" onClick={commit} variant="primary" />
           </HStack>
         </HStack>
       </VStack>

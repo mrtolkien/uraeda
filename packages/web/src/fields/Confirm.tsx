@@ -2,7 +2,8 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { createContext, type ReactNode, useContext, useRef, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { KeyCap } from "../keys/KeyCap.tsx";
 import { afterOverlayCloses, Overlay } from "../layout/Overlay.tsx";
 
 /**
@@ -13,9 +14,34 @@ export type ConfirmOptions = {
   body: string;
   cancel: string;
   confirm: string;
+  /** Another key that confirms, besides `y`: a delete's `d`, so that `d d` deletes. */
+  confirmKey?: string;
   destructive?: boolean;
   title: string;
 };
+
+/** What the commit bar's Discard asks: `count` changes waiting for a commit are written back. */
+export function discardChanges(count: number): ConfirmOptions {
+  return {
+    body: `${count === 1 ? "The change" : `The ${count} changes`} waiting for a commit will be discarded.`,
+    cancel: "Keep them",
+    confirm: "Discard them",
+    destructive: true,
+    title: "Discard these changes?",
+  };
+}
+
+/** What `d` asks on a line of a list, before it deletes it; `d` or `y` deletes, `n` keeps. */
+export function deleteLine(text: string): ConfirmOptions {
+  return {
+    body: text,
+    cancel: "Keep it",
+    confirm: "Delete",
+    confirmKey: "d",
+    destructive: true,
+    title: "Delete this line?",
+  };
+}
 
 /** What Escape or Cancel asks on a changed line, quick add, or slug: fields that are not comments. */
 export const DISCARD_CHANGES: ConfirmOptions = {
@@ -67,6 +93,34 @@ export function ConfirmHost({ children }: { children: ReactNode }) {
     }
   };
 
+  // The keys of every confirmation, the one window for them all: `y` confirms, `n` cancels, and a
+  // question's own `confirmKey` confirms too. Escape and Back cancel, as the overlay's.
+  const confirmKey = shown?.confirmKey;
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.repeat) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      if (key === "y" || key === confirmKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        answer(true);
+      } else if (key === "n") {
+        event.preventDefault();
+        event.stopPropagation();
+        answer(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+    // `answer` reads the question of this render: the effect follows it.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, shown]);
+
   return (
     <ConfirmContext value={ask}>
       {children}
@@ -76,8 +130,14 @@ export function ConfirmHost({ children }: { children: ReactNode }) {
             <Text>{shown.body}</Text>
             {/* Wrapping, so a long label stays whole rather than cut (the UI checks decision). */}
             <HStack gap={2} justify="end" wrap="wrap">
-              <Button label={shown.cancel} onClick={() => answer(false)} variant="secondary" />
               <Button
+                endContent={<KeyCap>n</KeyCap>}
+                label={shown.cancel}
+                onClick={() => answer(false)}
+                variant="secondary"
+              />
+              <Button
+                endContent={<KeyCap>y</KeyCap>}
                 label={shown.confirm}
                 onClick={() => answer(true)}
                 variant={shown.destructive ? "destructive" : "primary"}
