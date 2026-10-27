@@ -8,7 +8,7 @@ import { redirect, useRepoPath } from "../routes.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { categoryName, type Placed, type Renaming, useNoteActions } from "../useNoteActions.ts";
 import { EntryPane, EntryText, Steps } from "./EntryPane.tsx";
-import { CategoryMenu, draftFile, Organize } from "./NoteParts.tsx";
+import { CategoryMenu, Organize } from "./NoteParts.tsx";
 import { NoteImages } from "./NoteImages.tsx";
 
 /**
@@ -59,7 +59,6 @@ function NoteBody({
   const notes = inbox.categories.find((c) => c.name === found.category)?.notes ?? [];
   return (
     <EntryPane
-      draftHref={note.draft === undefined ? undefined : here(`/edit/${draftFile(note.draft)}`)}
       isEditing={line.open}
       location={`Note, in ${categoryName(found.category)}`}
       onDelete={actions.remove}

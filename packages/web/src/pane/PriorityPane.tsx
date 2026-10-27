@@ -4,9 +4,8 @@ import { Divider } from "@astryxdesign/core/Divider";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
-import { Spinner } from "@astryxdesign/core/Spinner";
 import { VStack } from "@astryxdesign/core/VStack";
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import type { Span } from "uraeda-binding";
 import { usePriority } from "../data.ts";
 import { stepTitle } from "../labels.ts";
@@ -16,7 +15,6 @@ import { TITLES } from "../QuickAdd.tsx";
 import { redirect, useRepoPath, useRepository } from "../routes.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { EntryPane, EntryText, RunningPart, Steps } from "./EntryPane.tsx";
-import { PaneDraft } from "./PaneDraft.tsx";
 import { type Found, usePriorityActions } from "./usePriorityActions.ts";
 import { Empty } from "../layout/Empty.tsx";
 
@@ -26,18 +24,16 @@ function linkOf(spans: ReadonlyArray<Span>) {
 }
 
 /**
- * What the entry is past its text, as the core says: running, drafted, a linked file, or nothing
- * yet. A draft shows its text to edit while the entry is edited (`isEditing`).
+ * What the entry is past its text, as the core says: running, a linked file, or nothing yet. A
+ * line with a draft opens that draft's page instead: its route never draws this pane.
  */
 function Kind({
   draft,
   found,
-  isEditing,
   startChange,
 }: {
   draft: () => Promise<void>;
   found: Found;
-  isEditing: boolean;
   startChange: () => Promise<void>;
 }) {
   const here = useRepoPath();
@@ -46,13 +42,6 @@ function Kind({
   if (entry.running) {
     return (
       <RunningPart href={here(`/f/${entry.running.folder}`)} step={stepTitle(entry.running.step)} />
-    );
-  }
-  if (entry.draft) {
-    return (
-      <Suspense fallback={<Spinner label="Loading the draft" />}>
-        <PaneDraft isEditing={isEditing} path={entry.draft.path} />
-      </Suspense>
     );
   }
   const link = linkOf(entry.spans);
@@ -106,7 +95,6 @@ function PriorityBody({
   const entries = section.entries;
   return (
     <EntryPane
-      draftHref={entry.draft ? here(`/edit/${entry.draft.path}`) : undefined}
       isEditing={line.open}
       location={`${section.title} · ${index + 1} of ${entries.length}`}
       onDelete={actions.remove}
@@ -122,12 +110,7 @@ function PriorityBody({
       text={<EntryText label="Line" line={line} nested={entry.nestedSpans} spans={entry.spans} />}
     >
       <Divider />
-      <Kind
-        draft={actions.draft}
-        found={found}
-        isEditing={line.open}
-        startChange={actions.startChange}
-      />
+      <Kind draft={actions.draft} found={found} startChange={actions.startChange} />
       {/* A running entry's line does not move its branch: it has no section to pick. */}
       {!entry.running && (
         <>

@@ -58,14 +58,12 @@ const styles = stylex.create({
   },
 });
 
-/** The pane's bar: where the entry is, then Edit and Open draft when it links one. */
+/** The pane's bar: where the entry is, then Edit. */
 function PaneBar({
-  draftHref,
   isEditing,
   location,
   onEdit,
 }: {
-  draftHref?: string;
   isEditing: boolean;
   location: string;
   onEdit: () => void;
@@ -79,7 +77,6 @@ function PaneBar({
           </Text>
           <HStack align="center" gap={2}>
             <Button isDisabled={isEditing} label="Edit" onClick={onEdit} variant="secondary" />
-            {draftHref && <Button href={draftHref} label="Open draft" variant="secondary" />}
           </HStack>
         </HStack>
       </div>
@@ -170,7 +167,6 @@ export function Steps({
  */
 export function EntryPane({
   children,
-  draftHref,
   isEditing,
   location,
   onDelete,
@@ -179,7 +175,6 @@ export function EntryPane({
   text,
 }: {
   children: ReactNode;
-  draftHref?: string;
   isEditing: boolean;
   location: string;
   onDelete: () => Promise<void> | void;
@@ -189,7 +184,7 @@ export function EntryPane({
 }) {
   return (
     <VStack gap={0}>
-      <PaneBar draftHref={draftHref} isEditing={isEditing} location={location} onEdit={onEdit} />
+      <PaneBar isEditing={isEditing} location={location} onEdit={onEdit} />
       <div {...stylex.props(styles.body)}>
         <VStack gap={4}>
           {text}
