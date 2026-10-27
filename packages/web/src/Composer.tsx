@@ -57,6 +57,9 @@ function ComposerInput(props: Omit<ChatComposerInputProps, "maxRows" | "xstyle">
   );
 }
 
+/** Why a composer of a file's text takes no image: the editor adds them. */
+const TEXT_ONLY = "A proposal is text: add its images in the editor.";
+
 /** Why the draft's images stay in the composer while it holds the workflow's message. */
 const WORKFLOW_KEEPS_IMAGES =
   "The workflow's message takes no images: they stay here for your next message.";
@@ -76,8 +79,15 @@ export type ComposerProps = {
   /** Why nothing can be sent here, like a feature with no branch yet: the composer is disabled. */
   blocked?: string;
   folder?: string;
+  /**
+   * Whether it takes images, by the paperclip, a paste, or a drop; false for text that is a file's,
+   * like a proposal. True by default.
+   */
+  hasAttach?: boolean;
   /** The message's images, kept by the page with its text. */
   images: ReadonlyArray<DraftImage>;
+  /** The field's handle, for a page that gives it the focus, as when it inserts text. */
+  inputRef?: RefObject<ChatComposerInputHandle | null>;
   /**
    * Why the page cannot do what it was opened for, shown under the composer, which still sends what
    * it holds, as a chat.
@@ -100,6 +110,8 @@ export type ComposerProps = {
   onSent?: (session: string) => void;
   /** The controls of the workflow's run, in the composer's footer while it holds its message. */
   options?: ReactNode;
+  /** What the empty field says, in place of "Message <the agent>": "Write Proposal". */
+  placeholder?: string;
   /** Whether it offers the recommended message of the feature in `folder`. */
   recommended?: boolean;
   /** The workflow's run the text holds, kept by the page with `onRun`. */
@@ -368,7 +380,8 @@ function workflowOf({ file, step, trigger }: DraftRun): Workflow {
  */
 export function Composer(given: ComposerProps) {
   const { blocked, images, onSend, value, working = false } = given;
-  const input = useRef<ChatComposerInputHandle>(null);
+  const own = useRef<ChatComposerInputHandle>(null);
+  const input = given.inputRef ?? own;
   const { edit, insert, props, reader } = useInserted(given, input);
   const { workflow } = props;
   const agent = useAgent();
@@ -378,7 +391,12 @@ export function Composer(given: ComposerProps) {
   const name = agent?.name ?? "the agent";
   const unavailable =
     onSend || agent?.available ? blocked : `${name} is not available on this machine.`;
-  const refusedWith = onSend ? unavailable : imageRefusal(agent, unavailable, workflow);
+  const hasAttach = given.hasAttach !== false;
+  const refusedWith = !hasAttach
+    ? TEXT_ONLY
+    : onSend
+      ? unavailable
+      : imageRefusal(agent, unavailable, workflow);
   const attaching = useChatImages({
     images,
     onImagesChange: props.onImagesChange,
@@ -403,7 +421,7 @@ export function Composer(given: ComposerProps) {
     isDisabled: Boolean(unavailable),
     send: canSend ? () => submit(value.trim()) : undefined,
   });
-  const placeholder = `Message ${name}`;
+  const placeholder = given.placeholder ?? `Message ${name}`;
   const buttons = sendButtons({
     actions: props.actions,
     allow: props.allow,
@@ -417,7 +435,7 @@ export function Composer(given: ComposerProps) {
     workflow: workflow !== undefined,
     working,
   });
-  const attach = (onSend || agent?.capabilities.images) && (
+  const attach = hasAttach && (onSend || agent?.capabilities.images) && (
     <AttachButton
       isDisabled={Boolean(unavailable)}
       isIconOnly
