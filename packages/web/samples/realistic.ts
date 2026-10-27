@@ -2,7 +2,8 @@
 // full day's load rather than on one feature at each step. A feature waits for the human, two have
 // an agent working (one writes the spec, one builds the plan, which the sandbox starts as it starts:
 // `sandbox/agent.ts`), three are done, and Now, Next, and Later hold five lines each, not counting
-// the three live features', which show apart as Ongoing (a feature waiting on the human is one).
+// the three live features', which show apart as Ongoing (a feature waiting on the human is one),
+// some of them long, and an inbox of nine notes, three of them long.
 import { join } from "node:path";
 import { commitsAt, ELEVEN, git, planText } from "uraeda-binding/test-utils";
 import { at, code, finish, firstStages, record } from "./features.ts";
@@ -29,10 +30,11 @@ const PRIORITIES = `# Priorities
 - [Due date reminders](/specs/${REALISTIC_FOLDERS.building}/proposal.md)
 - [Calendar view](/specs/${REALISTIC_FOLDERS.specifying}/proposal.md)
 - [Share lists](/specs/${REALISTIC_FOLDERS.waiting}/proposal.md)
-- Bulk edit for tasks
+- Bulk edit for tasks: select several with the keyboard or a drag, then change their due date, labels, or project at once, with a single undo for the whole batch
 - Drag to reorder subtasks
 - Quick add from the keyboard
-- Undo for deleted tasks
+- Undo for deleted tasks, kept for thirty days in a trash that can be searched, and restored with their subtasks and comments
+  - the trash empties itself, and says when it will, so that nothing is lost without a warning on a phone that was offline the whole month
 - Subtasks that repeat with their task
 
 ## Next
@@ -42,9 +44,9 @@ const PRIORITIES = `# Priorities
 > What comes once Now is done
 
 - Task templates
-- Natural-language due dates, "every other Friday"
+- Natural-language due dates, so that "every other Friday until the end of the quarter" becomes a repeating task with an end date, and the parsing is shown before the task is saved
 - Offline mode
-  - with a queue of the changes made meanwhile
+  - with a queue of the changes made meanwhile, which a conflict with another device's can neither lose nor silently overwrite
 - Attachments on tasks
 - A weekly review page
 
@@ -54,12 +56,32 @@ const PRIORITIES = `# Priorities
 >
 > Ideas for one day, and what waits on another line
 
-- Calendar sync with Google and Apple
+- Calendar sync with Google and Apple, both ways, so that a task dragged on the calendar moves its due date and an event moved in the calendar moves the task
 - Team workspaces
-  - after sharing lists
+  - after sharing lists, with roles for who may edit, who may only comment, and who is only told when a task is done
 - Time tracking
 - A public API
-- Import from other task apps
+- Import from other task apps, keeping the labels, the due dates, the repeats, and the comments each one has, and listing what could not be kept before anything is written
+`;
+
+/** The inbox: notes before the first category, and two categories, with a few long ones. */
+const INBOX = `# Inbox
+
+- The reminder email arrives an hour late when the due time is set in another time zone than the phone's
+- Searching for a task by its label should also find the tasks of the lists that are archived, with a way to tell which ones they are, and without making the results of the lists in use any harder to find
+- Dark mode flashes white for a moment when the app opens
+
+## UI
+
+- [run-ui] The count on the Today tab is not centered in its badge
+- A task with a very long title pushes its due date out of the row on a phone, where it should wrap to a second line and keep the date visible beside the first one, as the desktop does
+- The empty state of a new list has no way to add a first task from the keyboard
+
+## Sync
+
+- Two devices that complete the same repeating task at the same time create the next one twice
+- [agent] After a long time offline the app replays every change at once, which freezes it for several seconds, where it should replay them in small batches and show a progress line that the human can leave
+- The calendar sync should not touch tasks that have no due date
 `;
 
 /** The features finished and merged, each with the time it was finished at. */
@@ -103,7 +125,11 @@ export function addRealistic(repo: string) {
     addDone(repo, done);
   }
   commitsAt(repo, "main", [
-    { at: at("17 09:00"), files: { "specs/PRIORITIES.md": PRIORITIES }, message: "docs: priorities" },
+    {
+      at: at("17 09:00"),
+      files: { "specs/INBOX.md": INBOX, "specs/PRIORITIES.md": PRIORITIES },
+      message: "docs: priorities and inbox",
+    },
   ]);
 
   // Waiting for the human: the spec approved, its plan to review.
