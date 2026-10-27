@@ -15,6 +15,7 @@
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Setup with agent (checks project and creates relevant files)
+- Amend the latest commits if the commits only touch workflow files
 
 ## Next
 
