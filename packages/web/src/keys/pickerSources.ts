@@ -2,8 +2,8 @@
 // markdown preview. The picker reads only what its kind needs, in one request, once it is opened
 // (never while closed, so no page waits on it); a feature's and a change's proposal comes in one
 // more request after the list, as a batch of the files, and joins the previews when it arrives.
-import { useEffect, useState } from "react";
-import { useFateClient, useLiveView, useRequestState, view, type ViewRef } from "react-fate";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useFateClient, useLiveView, view, type ViewRef } from "react-fate";
 import type { WorkflowFile } from "uraeda-server/fate";
 import { INBOX_ID, LEDGER_ID, PRIORITIES_ID, useWorkspace, WORKSPACE_ID } from "../data.ts";
 import { jumpEntries, pickerItemOf } from "../decisions/jump.ts";
@@ -214,18 +214,27 @@ export type PickerRead = {
  */
 export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): PickerRead {
   const is = (...kinds: Array<PickerKind>) => kind === "all" || kinds.includes(kind);
-  const state = useRequestState(
-    {
-      ...(is("features", "changes", "sessions") && {
-        workspace: { id: WORKSPACE_ID, view: WorkspaceView },
-      }),
-      ...(is("sessions") && { sessionList: { id: SESSION_LIST_ID, view: SessionListView } }),
-      ...(is("decisions") && { ledger: { id: LEDGER_ID, view: LedgerView } }),
-      ...(is("notes") && { inbox: { id: INBOX_ID, view: InboxView } }),
-      ...(is("priorities") && { priorities: { id: PRIORITIES_ID, view: PrioritiesView } }),
-    } as never,
-    { enabled: isEnabled },
+  const fate = useFateClient();
+  // The request's state, observed outside Suspense: it starts as the first reader subscribes, and
+  // ends as the last leaves. The request depends on `kind` alone, so the observer is kept per kind.
+  const observer = useMemo(
+    () =>
+      fate.observeRequest(
+        {
+          ...(is("features", "changes", "sessions") && {
+            workspace: { id: WORKSPACE_ID, view: WorkspaceView },
+          }),
+          ...(is("sessions") && { sessionList: { id: SESSION_LIST_ID, view: SessionListView } }),
+          ...(is("decisions") && { ledger: { id: LEDGER_ID, view: LedgerView } }),
+          ...(is("notes") && { inbox: { id: INBOX_ID, view: InboxView } }),
+          ...(is("priorities") && { priorities: { id: PRIORITIES_ID, view: PrioritiesView } }),
+        } as never,
+        { enabled: isEnabled },
+      ),
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- `is` reads `kind` only
+    [fate, kind, isEnabled],
   );
+  const state = useSyncExternalStore(observer.subscribe, observer.getSnapshot);
   const records = (state.data ?? {}) as unknown as Records;
   const workspace = useLiveView(WorkspaceView, records.workspace);
   const sessionList = useLiveView(SessionListView, records.sessionList);
