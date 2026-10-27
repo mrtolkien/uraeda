@@ -15,6 +15,8 @@ DONE:
   - [x] Semiwide
   - [x] Phone
 
+- [x] Leader and status bar
+
 - [ ] New
   - [ ] Desktop
   - [ ] Semiwide
