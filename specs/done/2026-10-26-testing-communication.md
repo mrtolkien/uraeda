@@ -34,9 +34,12 @@ replace them. The wording was to be tried on runs of Claude Code with Sonnet bef
   cover stored formats, git, security, contracts between the core, the CLI, the binding, and the
   server, pure logic with many cases, and each bug fixed. The spec's key scenarios and high edge
   cases set the ceiling, one test at most each; a rarer case joins one of those tests or has none,
-  and the plan's test map says why. Existing tests come first, one test per rule through the layer
-  that runs all of it, and a new test that proves all an old one proves replaces it. A test asserts
-  what a caller or a user observes, never how the code does it.
+  and the plan's test map says why. Existing tests come first: before each new test, the agent asks
+  which existing, planned, or rewritten test would already fail, and adds nothing when one would.
+  One test per rule, through the layer that runs all of it; a new test asserts only what the task
+  adds, picked out of the results, and leaves an old result a scenario says still holds to the test
+  that owns it; data an existing test moves out of a new rule's way stays off the rule's edge. A
+  test asserts what a caller or a user observes, never how the code does it.
 - **The web UI is checked by using it.** A web UI test stays only for behaviour that is costly to
   lose and that using the app would not show. Twelve files are kept: the composer's refused send,
   the editor's commit and conflict, the round's and the review's saves, leaving with unsaved text, a
@@ -114,6 +117,35 @@ from it, and the supersession on both sides.
   proves all an old one proves replaces it. The failure left is the fourth: a stricter new row kept
   beside an existing row that only checks a message is present. The runs stopped at the 12 the spec
   approved, after four revisions, before three passing runs in a row (SC-008).
+
+  At the human's request, the evaluation went on past those caps with Claude Code and Haiku, a
+  weaker model, to force clearer wording, until three runs in a row passed or the gain stopped. A
+  pair of tests that each own a different key scenario of the spec no longer counted as a repeat, at
+  the human's choice, and runs that kept the same trap already flagged were scored without the
+  reviewers. On the old wording, Haiku added 10 tests. On the new, by revision:
+
+  | Wording     | Runs | Tests added | Passing SC-003    | The failures                                                               |
+  | ----------- | ---- | ----------- | ----------------- | -------------------------------------------------------------------------- |
+  | revision 4  | 3    | 2 to 8      | 1                 | a test per row of the test map; old errors asserted again                  |
+  | revision 5  | 3    | 3 to 4      | 0                 | whole lists compared; a fixture moved onto the rule's edge                 |
+  | revision 6  | 3    | 2 to 5      | 1                 | the same, and a check and its view tested apart                            |
+  | revision 7  | 6    | 2 to 5      | 2, 1 not reviewed | the same, and fixtures on the edge                                         |
+  | revision 8  | 3    | 2 to 5      | 0                 | old errors asserted again; the valid path tested again                     |
+  | revision 9  | 3    | 3 to 4      | 2                 | the valid path tested again                                                |
+  | revision 10 | 3    | 4           | 0                 | old errors asserted again; fixtures on the edge                            |
+  | revision 11 | 3    | 3 to 5      | 1                 | old errors asserted again                                                  |
+  | revision 12 | 3    | 3 to 4      | 1                 | old errors asserted again                                                  |
+  | revision 13 | 3    | 3           | 1                 | old errors asserted again; one OpenCode pair overruled, as different facts |
+  | revision 14 | 3    | 1 to 5      | 1                 | old errors asserted again; fixtures on the edge                            |
+
+  Every Haiku run rewrote the replaced test (SC-002), and the added tests took under 0.5 seconds
+  (SC-004). Revisions 5 to 14 counted the tests at the ceiling, asserted only what a task adds,
+  moved existing data clear of a new rule, counted rewritten tests as owners, and put each rule
+  where Haiku plans and writes tests, in the plan's test map, test step, and template. Three
+  examples that echoed the evaluation's own spec were replaced by neutral ones in revision 10. The
+  pass rate held at about one run in three over the last six revisions, so the human shipped
+  revision 14. The 36 Haiku runs used about 63 US dollars at API prices, and the Sonnet runs
+  about 37.
 
 ## Replaced behaviour
 
@@ -477,14 +509,14 @@ keep the skill's wording generic."
   out under load.
 - The toolchain test's comment stripping keeps strings whole, after a retry setting between two glob
   strings escaped it.
-- The evaluation stopped on its run cap, not on three passing runs in a row, with one run of ten
-  passing every criterion.
+- The evaluation stopped on its run cap with Sonnet, then went on with Haiku at the human's request,
+  past SC-008's five revisions and twelve runs, to revision 14, without three passing runs in a row.
 
 ## Follow-ups
 
 - The draft "Use Storybook for UI tests" is moot under the Testing decision, since stories no longer
   run as tests: dropping it is the human's call.
 - The fast check's `ui` family does not run the new web unit tests; only `ready` does.
-- The evaluation's remaining failure: a stricter new test kept beside an existing row it makes
-  redundant, despite the wording.
+- The evaluation's remaining failures with Haiku: an old result a scenario says still holds,
+  asserted again beside its test, and fixtures moved onto a new rule's edge, despite the wording.
 - The editor offers `supersedes` and `superseded-by` as text fields, though they are lists.
