@@ -151,7 +151,15 @@ function FeaturePart() {
   const title = useTextField("new-feature", "", { drawn: false });
   // `i` brings the focus to the title, as the composer's `i` does for the other kinds.
   const field = useRef<HTMLInputElement>(null);
-  useKeys([{ keys: "i", label: "Write the title", run: () => field.current?.focus() }]);
+  useKeys([
+    {
+      hint: "i",
+      hintLabel: "insert",
+      keys: "i",
+      label: "Write the title",
+      run: () => field.current?.focus(),
+    },
+  ]);
   const write = async () => {
     const text = title.text.trim();
     // A refused title stays, to change and write again.

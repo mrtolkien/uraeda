@@ -233,6 +233,8 @@ function useFieldKeys(
 ) {
   useKeys([
     {
+      hint: "i",
+      hintLabel: "insert",
       keys: "i",
       label: "Write a message",
       run: () => (isDisabled ? false : input.current?.focus()),
