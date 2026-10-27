@@ -139,6 +139,20 @@ export const panelLeft = outline(
   h("path", { d: "M9 3v18" }),
 );
 
+/** A box in three columns, for a list shown as columns: Lucide's `columns-3`. */
+export const columns3 = outline(
+  h("rect", { height: 18, rx: 2, width: 18, x: 3, y: 3 }),
+  h("path", { d: "M9 3v18" }),
+  h("path", { d: "M15 3v18" }),
+);
+
+/** A box in three rows, for a list shown as one table: Lucide's `rows-3`. */
+export const rows3 = outline(
+  h("rect", { height: 18, rx: 2, width: 18, x: 3, y: 3 }),
+  h("path", { d: "M21 9H3" }),
+  h("path", { d: "M21 15H3" }),
+);
+
 /** A window with its right side marked, for the right column's button: Lucide's `panel-right`. */
 export const panelRight = outline(
   h("rect", { height: 18, rx: 2, width: 18, x: 3, y: 3 }),

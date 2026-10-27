@@ -156,5 +156,19 @@ export function useRowKeys(
       },
     });
   }
-  return { held: editing ?? keyed, keys, onRefocused, renamed, state };
+  /**
+   * Opens the editor of the row `key`, as `i` does: not while another's holds unsaved text. Returns
+   * whether it opened.
+   */
+  const edit = (key: string) => {
+    const row = rows.find((one) => one.key === key);
+    if (row?.editor === undefined || (editing !== undefined && editing !== key && isDirty)) {
+      return false;
+    }
+    select(key);
+    setEditing(key);
+    return true;
+  };
+
+  return { edit, held: editing ?? keyed, keys, onRefocused, renamed, state };
 }

@@ -220,7 +220,13 @@ const styles = stylex.create({
  * that opens its cards itself draws a button, with no address: the browser shows an address at the
  * window's bottom for a link under the pointer or the focus, over the status line.
  */
-function RowLink({ onOpen, row }: { onOpen?: (row: WorkRow) => void; row: WorkRow }) {
+function RowLink({
+  onOpen,
+  row,
+}: {
+  onOpen?: (row: WorkRow, isClick: boolean) => void;
+  row: WorkRow;
+}) {
   const link = (
     <Link
       // The normal text colour, not the link's accent; three lines at most, then an ellipsis, with
@@ -234,7 +240,8 @@ function RowLink({ onOpen, row }: { onOpen?: (row: WorkRow) => void; row: WorkRo
         const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0);
         if (onOpen && plain && !event.defaultPrevented) {
           event.preventDefault();
-          onOpen(row);
+          // A click with the pointer counts one or more; Enter on the control, none.
+          onOpen(row, event.detail > 0);
         }
       }}
       xstyle={[styles.stretched, styles.text]}
@@ -268,7 +275,7 @@ export function Card({
   /** The mouse moved over the card: the selection and the focus follow it. */
   onHover?: (row: WorkRow) => void;
   /** Opens the card on a plain click or Enter, in place of following its link. */
-  onOpen?: (row: WorkRow) => void;
+  onOpen?: (row: WorkRow, isClick: boolean) => void;
   row: WorkRow;
   section: string;
 }) {

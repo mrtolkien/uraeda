@@ -242,7 +242,6 @@ export function InboxPage() {
         <PageTitle
           aside={agent && <OrganizeButton chat={chat} triage={inbox.triage} />}
           count={inbox.count > 0 ? inbox.count : undefined}
-          description="Things noticed, not decided: turn each into a priority, a draft, or nothing."
         >
           Inbox
         </PageTitle>

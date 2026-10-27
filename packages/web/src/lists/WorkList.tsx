@@ -92,9 +92,26 @@ const styles = stylex.create({
   },
   // A column of a list whose lines are long, as the priorities': at least 500 px.
   roomy: { "--column-least": "500px" },
+  // The table of a list whose lines are long, centred in the page: 80 characters a line at most, the
+  // measure of prose, with room for the bullet and the pane's sides. Its panes read its width (see
+  // `wide`).
+  roomyStack: {
+    containerName: "list",
+    containerType: "inline-size",
+    marginInline: "auto",
+    maxWidth: "calc(80ch + 4rem)",
+    width: "100%",
+  },
   // The pane's side room, which its text, its rows, and its footer share: a bullet sits near the
   // border, as a list's does.
   snug: { "--pane-inset": spacingVars["--spacing-1"] },
+  // A table's pane past 600 px has room to spare: the pane's own side room.
+  wide: {
+    "--pane-inset": {
+      "@container list (min-width: 600px)": spacingVars["--spacing-3"],
+      default: spacingVars["--spacing-1"],
+    },
+  },
   // The section's note, as the file writes it, `> [!NOTE]`: drawn as a callout, a blue bar at its
   // start on a surface of its own.
   context: {
@@ -157,7 +174,7 @@ function SectionBody({
   level?: HeadingLevel | undefined;
   onHover: (row: WorkRow) => void;
   onHoverEnd: (row: WorkRow) => void;
-  onOpen: (row: WorkRow) => void;
+  onOpen: (row: WorkRow, isClick: boolean) => void;
   ref?: Ref<HTMLDivElement>;
   rows: ReadonlyArray<WorkRow>;
   section: WorkSection;
@@ -178,7 +195,7 @@ function SectionBody({
         tint={TINTS[section.tone]}
         title={section.title}
         titleNode={section.titleNode}
-        xstyle={[styles.snug]}
+        xstyle={[isColumn || !isRoomy ? styles.snug : styles.wide]}
       >
         {section.context && (
           <Text color="secondary" display="block" xstyle={styles.context}>
@@ -216,7 +233,7 @@ function DropSection(props: {
   level?: HeadingLevel | undefined;
   onHover: (row: WorkRow) => void;
   onHoverEnd: (row: WorkRow) => void;
-  onOpen: (row: WorkRow) => void;
+  onOpen: (row: WorkRow, isClick: boolean) => void;
   rows: ReadonlyArray<WorkRow>;
   section: WorkSection;
   selected?: string;
@@ -269,6 +286,7 @@ function useShown(
   layout: WorkLayout,
   onMove: OnMove | undefined,
   ahead: ReadonlyArray<Ahead>,
+  isLayoutChosen: boolean,
 ) {
   // The rows that add are no lines: a drag knows none of them, and they stay at the section's end.
   const drag = useDragOrder(
@@ -284,7 +302,8 @@ function useShown(
   const addsOf = (section: WorkSection) =>
     sections.find((one) => one.id === section.id)?.rows.filter((row) => row.isAdd) ?? [];
   const isNarrowScreen = isNarrow(useWidthClass());
-  const asColumns = layout === "columns" && !isNarrowScreen;
+  // The phone stacks the columns, unless the human chose them.
+  const asColumns = layout === "columns" && (isLayoutChosen || !isNarrowScreen);
   const below = asColumns ? drag.sections.filter((section) => section.title === BELOW) : [];
   const inRow = drag.sections.filter((section) => !below.includes(section));
   const rowsIn = (order: Record<string, ReadonlyArray<string>>) => (section: WorkSection) => [
@@ -440,6 +459,7 @@ function glideAcross(scroller: HTMLElement, glide: { frame: number; rest: number
 export function WorkList({
   initial,
   isFocused = false,
+  isLayoutChosen = false,
   isRoomy = false,
   layout = "stack",
   level,
@@ -454,7 +474,12 @@ export function WorkList({
   /** The key of the row selected until another is, where the address names none. */
   initial?: string;
   isFocused?: boolean;
-  /** The columns start at 500 px, not 400: for lines that run long, as the priorities'. */
+  /** `layout` is the human's choice: kept at every width, the phone's too. */
+  isLayoutChosen?: boolean;
+  /**
+   * For lines that run long, as the priorities': the columns start at 500 px, not 400, and the
+   * table is centred, 80 characters a line at most, its panes roomier inside past 600 px.
+   */
   isRoomy?: boolean;
   layout?: WorkLayout;
   /** The level of its panes' titles, where the page's headings put them. */
@@ -488,6 +513,7 @@ export function WorkList({
     layout,
     onMove,
     ahead,
+    isLayoutChosen,
   );
   // A row deleted ahead stops being hidden once the file no longer has it.
   useLayoutEffect(() => {
@@ -599,8 +625,12 @@ export function WorkList({
     renamed: own.renamed,
     selected,
   });
-  const open = (row: WorkRow) => {
+  const open = (row: WorkRow, isClick = false) => {
     setSelected(row.key);
+    // A click on a line that opens no page edits it in place; Enter shows its pane.
+    if (isClick && row.peek && own.edit(row.key)) {
+      return;
+    }
     if (row.peek) {
       // Enter again, on the row whose pane shows, closes it.
       setPeeking(!(isPeeking && selected === row.key));
@@ -673,7 +703,10 @@ export function WorkList({
             }}
             role={asColumns ? "region" : undefined}
             tabIndex={asColumns ? 0 : undefined}
-            {...stylex.props(asColumns ? styles.row : styles.stack)}
+            {...stylex.props(
+              asColumns ? styles.row : styles.stack,
+              !asColumns && isRoomy && styles.roomyStack,
+            )}
           >
             {inRow.map((section) => drawn(section, asColumns))}
           </div>

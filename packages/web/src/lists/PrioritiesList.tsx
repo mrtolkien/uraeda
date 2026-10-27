@@ -17,7 +17,13 @@ import { DraftView, PrioritiesView } from "../views.ts";
 import { fileIndex } from "./cardMoves.ts";
 import { PriorityMenu } from "./CardMenu.tsx";
 import { PriorityEditor } from "./RowEditors.tsx";
-import { type Tone, WorkList, type WorkRow, type WorkSection } from "./WorkList.tsx";
+import {
+  type Tone,
+  type WorkLayout,
+  WorkList,
+  type WorkRow,
+  type WorkSection,
+} from "./WorkList.tsx";
 
 /** The priorities as the page reads them. */
 export type Priorities = NonNullable<ReturnType<typeof usePriorities>>;
@@ -44,14 +50,8 @@ export function lookOf(entry: PriorityEntry) {
   return entry.draft ? { icon: "uraeda:file-text" as const, isLinked: true } : {};
 }
 
-/** The width, in px, the list needs for its columns: under it, the sections stack. */
-const COLUMNS_FROM = 1000;
-
 /** The refusal of a menu nobody listens to. */
 const NOTHING = () => undefined;
-
-/** What Ongoing is, in the spec's own words: the section is derived, so the page says it. */
-const ONGOING_CONTEXT = "Running now: an agent works or waits on you.";
 
 /**
  * The priorities as the lists show them (R10): the running entries of every section, apart, then
@@ -108,7 +108,6 @@ function sectionsOf(
 
   const shown = byRunning(priorities);
   const ongoing: WorkSection = {
-    context: ONGOING_CONTEXT,
     id: "ongoing",
     isFixed: true,
     rows: shown.ongoing.map(row),
@@ -206,12 +205,15 @@ function useWritesInTurn(priorities: Priorities) {
  */
 export function PrioritiesList({
   isFocused = false,
+  layout = "columns",
   onMoveRefused,
   priorities,
   run,
   select,
 }: {
   isFocused?: boolean;
+  /** As the human picked it: columns or the table, at any width. */
+  layout?: WorkLayout;
   onMoveRefused?: (message: string | undefined) => void;
   priorities: Priorities;
   run: (call: () => Promise<{ error?: unknown }>) => Promise<string | undefined>;
@@ -316,21 +318,6 @@ export function PrioritiesList({
   };
 
   const all = sectionsOf(priorities, here, onMoveRefused ?? NOTHING);
-  // Whether the columns have the room they need, read from this list's own width before it paints,
-  // and again as it changes.
-  const room = useRef<HTMLDivElement>(null);
-  const [hasRoom, setHasRoom] = useState<boolean>();
-  useLayoutEffect(() => {
-    const element = room.current;
-    if (!element) {
-      return undefined;
-    }
-    const read = () => setHasRoom(element.clientWidth >= COLUMNS_FROM);
-    read();
-    const observer = new ResizeObserver(read);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
   // The page opens on the highest row of Now, with the keyboard's focus on it, once.
   const firstNow = all.find((section) => section.id === "now")?.rows[0]?.key;
   const [isArriving, setArriving] = useState(true);
@@ -340,14 +327,12 @@ export function PrioritiesList({
     all.flatMap((section) => section.rows).find((r) => pathname === `/priorities/${r.key}`)?.key;
 
   return (
-    // Its width is the room the columns have: with less than `COLUMNS_FROM`, the sections stack, as
-    // on the phone. Only this page: no size class of the layout.
-    <div ref={room}>
     <WorkList
       initial={firstNow}
       isFocused={isFocused || isArriving}
+      isLayoutChosen
       isRoomy
-      layout={hasRoom === false ? "stack" : "columns"}
+      layout={layout}
       // `o`: the form in the section of the line's own place in the file, not "Ongoing"; the form
       // has no Blocked (R80), so a line there opens it in the default place.
       onAddBeside={(sectionId, row) => {
@@ -363,6 +348,5 @@ export function PrioritiesList({
       sections={all}
       selected={selected}
     />
-    </div>
   );
 }
