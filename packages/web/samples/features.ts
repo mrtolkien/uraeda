@@ -211,7 +211,7 @@ export function recurring(name: string): string {
 export const slugOf = (folder: string) => folder.slice(11);
 
 /** `count` numbered lines of code. */
-function lines(count: number, prefix: string): string {
+export function lines(count: number, prefix: string): string {
   return Array.from({ length: count }, (_, index) => `${prefix} ${index}\n`).join("");
 }
 
@@ -241,7 +241,7 @@ export const at = (time: string) => `2026-10-${time.replace(" ", "T")}:00Z`;
  * The commits of a feature's first stages, from its proposal at 10:52 on Oct 17 to its plan at
  * 15:05: proposal, its round of questions, its spec, approved, and its decisions.
  */
-function firstStages(folder: string, title: string): Array<DatedCommit> {
+export function firstStages(folder: string, title: string): Array<DatedCommit> {
   const path = `specs/${folder}`;
   const slug = slugOf(folder);
   return [
@@ -279,7 +279,12 @@ function decision(title: string): string {
 }
 
 /** A record of a feature or a change, with `questions` questions in one round. */
-function record(kind: "change" | "feature", title: string, questions: number, finished: string) {
+export function record(
+  kind: "change" | "feature",
+  title: string,
+  questions: number,
+  finished: string,
+) {
   const asked = Array.from(
     { length: questions },
     (_, index) =>
@@ -291,7 +296,7 @@ function record(kind: "change" | "feature", title: string, questions: number, fi
 }
 
 /** The code a feature's build writes: 1,204 lines over 22 files, and `old` removed when given. */
-function code(prefix: string, old?: string): Record<string, string | null> {
+export function code(prefix: string, old?: string): Record<string, string | null> {
   return {
     ...Object.fromEntries(
       Array.from({ length: 22 }, (_, index) => [
@@ -304,7 +309,7 @@ function code(prefix: string, old?: string): Record<string, string | null> {
 }
 
 /** The finish: the feature's folder removed, its record added. */
-function finish(
+export function finish(
   folder: string,
   record: string,
   files: Array<string>,

@@ -8,7 +8,8 @@ import { type FakeStep } from "uraeda-server/runner/fake";
 import { runMessage } from "uraeda-server/runner/message";
 import { FakeAdapter, type Sessions } from "uraeda-server/testing";
 import type { Outgoing } from "uraeda-server/runner/adapter";
-import { SAMPLE_FOLDERS } from "../samples/index.ts";
+import { dirname, join } from "node:path";
+import { REALISTIC_FOLDERS, SAMPLE_FOLDERS } from "../samples/index.ts";
 
 /** Waits `ms`, or less once `signal` aborts: a stop or a close ends the wait. */
 export type Wait = (ms: number, signal?: AbortSignal) => Promise<void>;
@@ -167,6 +168,50 @@ const IMPLEMENTATION: AtWork = {
 
 /** The discovery's turn at work: no sub-agent, only the main agent reading and searching. */
 const DISCOVERY: AtWork = { calls: DISCOVERY_CALLS, subagents: [] };
+
+/** A read of `path`, as a turn at work makes one. */
+const reading = (path: string, output: string): ToolCall => ({
+  input: { file_path: path },
+  kind: "read",
+  name: "Read",
+  output,
+  target: path,
+});
+
+/**
+ * The realistic project's building: the implementation's turn, three sub-agents with it, on the
+ * plan of its own feature.
+ */
+const building = (folder: string): AtWork => ({
+  calls: [
+    reading(`specs/${folder}/plan.md`, "The plan's current task."),
+    ...TOOL_CALLS.slice(1),
+  ],
+  subagents: IMPLEMENTATION.subagents,
+});
+
+/** The realistic project's spec writing: the proposal and its answered round read, the spec edited. */
+const specifying = (folder: string): AtWork => ({
+  calls: [
+    reading(`specs/${folder}/proposal.md`, "The proposal: a calendar of the due dates."),
+    reading(`specs/${folder}/clarifications-01.md`, "The answered round."),
+    {
+      input: { pattern: "dueDate" },
+      kind: "search",
+      name: "Grep",
+      output: "src/tasks/Task.ts",
+      target: "dueDate",
+    },
+    {
+      input: { file_path: `specs/${folder}/spec.md` },
+      kind: "edit",
+      name: "Edit",
+      output: "The spec was updated.",
+      target: `specs/${folder}/spec.md`,
+    },
+  ],
+  subagents: [],
+});
 
 /** How many tool calls a turn at work streams, each a share of its 10 minutes. */
 const AT_WORK_CALLS = 40;
@@ -337,6 +382,22 @@ async function startAtWork(
  */
 export function atWork(sessions: Sessions, repo: string): Promise<{ turn: number }> {
   return startAtWork(sessions, repo, SAMPLE_FOLDERS.features.implementation, IMPLEMENTATION);
+}
+
+/** The realistic project's folder, beside the sample's in `.sandbox/projects/`. */
+export const realisticRepo = (sample: string) => join(dirname(sample), "realistic");
+
+/**
+ * Starts the two turns at work of the realistic project at each start like `atWork`: its spec's
+ * writing, and its plan's building with three sub-agents.
+ */
+export function atWorkOnRealistic(sessions: Sessions, sample: string): Promise<unknown> {
+  const repo = realisticRepo(sample);
+  const { building: folder, specifying: specFolder } = REALISTIC_FOLDERS;
+  return Promise.all([
+    startAtWork(sessions, repo, folder, building(folder)),
+    startAtWork(sessions, repo, specFolder, specifying(specFolder)),
+  ]);
 }
 
 /** Starts the turn at work on the discovery feature's session, at each start like `atWork`. */
