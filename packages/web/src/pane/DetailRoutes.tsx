@@ -13,20 +13,20 @@ import { NotePane, placed } from "./NotePane.tsx";
 import { PriorityPane } from "./PriorityPane.tsx";
 
 /**
- * A line with a draft opens that draft's page, never an overlay: the page takes the line's place in
- * the history, so Back goes to the list the line was opened from.
+ * A line opens its draft's page, never an overlay: the page takes the line's place in the history,
+ * so Back goes to the list the line was opened from. `to` is the page, within the repository.
  */
-function ToDraft({ path }: { path: string }) {
+function ToDraft({ to }: { to: string }) {
   const here = useRepoPath();
-  useLayoutEffect(() => redirect(here(`/edit/${path}`)), [here, path]);
+  useLayoutEffect(() => redirect(here(to)), [here, to]);
   return null;
 }
 
-/** A priority's overlay, once its line is read. */
+/** A priority's overlay, once its line is read; a line with a draft opens the draft's page. */
 function PriorityDetail({ entryKey, list }: { entryKey: string; list: string }) {
   const { found, priorities } = usePriority(entryKey);
   if (found?.entry.draft) {
-    return <ToDraft path={found.entry.draft.path} />;
+    return <ToDraft to={`/edit/${found.entry.draft.path}`} />;
   }
   return (
     <DetailHost
@@ -61,7 +61,7 @@ function NoteDetail({ noteKey }: { noteKey: string }) {
   const inbox = useInbox();
   const draft = inbox ? placed(inbox, noteKey)?.note.draft : undefined;
   if (draft !== undefined) {
-    return <ToDraft path={draftFile(draft)} />;
+    return <ToDraft to={`/edit/${draftFile(draft)}`} />;
   }
   return (
     <DetailHost

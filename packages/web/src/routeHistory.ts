@@ -15,6 +15,8 @@ type Entry = {
   activity?: number;
   /** A chat its first message just created, on the page it left: its first turn is news. */
   created?: boolean;
+  /** What takes the focus on arrival: a draft's text, as a draft just made opens. */
+  focus?: "text";
   from?: string;
   id?: string;
   open?: Array<string>;
@@ -94,7 +96,10 @@ function besideSameList(path: string) {
  * holds unsaved text asks first, and stays if the human does, unless only its pane shows another
  * item of its list.
  */
-export function navigate(path: string, state?: { created?: boolean; from?: string }) {
+export function navigate(
+  path: string,
+  state?: { created?: boolean; focus?: "text"; from?: string },
+) {
   const asking = besideSameList(path) ? undefined : guard?.();
   if (asking) {
     void asking.then((leave) => {
@@ -107,7 +112,7 @@ export function navigate(path: string, state?: { created?: boolean; from?: strin
   openPage(path, state);
 }
 
-function openPage(path: string, state?: { created?: boolean; from?: string }) {
+function openPage(path: string, state?: { created?: boolean; focus?: "text"; from?: string }) {
   const opener = window.scrollY;
   saveScroll();
   left = entry().id;

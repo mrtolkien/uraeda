@@ -22,7 +22,7 @@ import { PageTitle } from "./layout/PageTitle.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
 import { ConflictBanner } from "./pane/DraftEditor.tsx";
 import { useDraftEditor } from "./pane/useDraftEditor.ts";
-import { useRestoreScroll } from "./routes.tsx";
+import { currentEntry, useRestoreScroll } from "./routes.tsx";
 
 const styles = stylex.create({
   // The text beside its Start, on a wide screen; the text alone, or stacked, elsewhere.
@@ -117,6 +117,16 @@ export function EditorPage({ path }: { path: string }) {
     editor.setDrawn(false);
     focusSoon(() => box.current?.querySelector("textarea"));
   };
+  // A draft just made opens with the focus in its text, once: Back to it later does not take it.
+  const takesFocus = useRef(currentEntry().focus === "text");
+  useEffect(() => {
+    if (takesFocus.current && draft) {
+      takesFocus.current = false;
+      window.history.replaceState({ ...currentEntry(), focus: undefined }, "");
+      edit();
+    }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, as the draft is read
+  }, [draft]);
   // What is drawn is the saved text: unsaved words are saved first.
   const preview = () => {
     editor.saveText();
