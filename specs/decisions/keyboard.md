@@ -36,14 +36,13 @@ only way to do something.
 
 Keys were scattered through components, each paired by hand with a status line hint, and the rule
 "an open layer owns the keys" had three copies. One registry gives the leader menu, the hints, and
-the later key search a single source
-([the registry](../2026-10-26-leader-key/discovery-01.md#rules-and-their-owners)). The human asked
-for keyboard navigation of the whole application, with a Space leader as in LazyVim and Helix, and
-chose to turn single-key shortcuts off from the settings file, as accessibility guideline 2.1.4
+the later key search a single source ([the registry](../done/2026-10-26-leader-key.md)). The human
+asked for keyboard navigation of the whole application, with a Space leader as in LazyVim and Helix,
+and chose to turn single-key shortcuts off from the settings file, as accessibility guideline 2.1.4
 requires a way to do
-([the off switch](../2026-10-26-leader-key/clarifications-01.md#q4-how-should-the-shortcuts-be-turned-off-as-accessibility-asks),
-[the scope](../2026-10-26-leader-key/clarifications-01.md#q1-how-much-of-the-proposal-should-this-feature-build),
-[a decision](../2026-10-26-leader-key/clarifications-01.md#q9-should-keyboard-rules-become-a-decision)).
+([the off switch](../done/2026-10-26-leader-key.md#q4-how-should-the-shortcuts-be-turned-off-as-accessibility-asks),
+[the scope](../done/2026-10-26-leader-key.md#q1-how-much-of-the-proposal-should-this-feature-build),
+[a decision](../done/2026-10-26-leader-key.md#q9-should-keyboard-rules-become-a-decision)).
 
 ## Consequences
 
