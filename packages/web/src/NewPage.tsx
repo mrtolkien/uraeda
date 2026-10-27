@@ -1,24 +1,25 @@
 // The New page, behind the sidebar's "＋ New": three cards, in the URL, pick a session, a change, or
-// a feature, each saying what it ends with and what waits on the human. A session starts with
-// its first message; a change from a typed text, an inbox note, or a priority line; a feature from
-// a new title, a note, or a line, as a draft opened in the editor.
-import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
-import { Button } from "@astryxdesign/core/Button";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Link } from "@astryxdesign/core/Link";
-import { Text } from "@astryxdesign/core/Text";
+// a feature, each drawn as what it starts. Under them, the kind's composer, and under it the same
+// list for all three: the inbox's notes and the priorities' lines, which a card inserts into the
+// composer, with a link to its file, or, with a draft, opens. A session starts with its first
+// message; a change with Ctrl+Enter, which asks for its slug; a feature with Ctrl+Enter too, which
+// writes the proposal as a draft and opens it. The entries a start was filled from leave their
+// files. `/` searches the entries.
+import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
-import * as stylex from "@stylexjs/stylex";
-import { useRef } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { useFateClient } from "react-fate";
+import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
-import { useInbox, usePriorities } from "./data.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { useKeys } from "./keys/registry.tsx";
 import { KindCards } from "./KindCards.tsx";
 import { Page } from "./layout/Page.tsx";
-import { NewChange } from "./NewChangePage.tsx";
+import { PageTitle } from "./layout/PageTitle.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { ChangeComposer, StartError } from "./NewChangePage.tsx";
+import { type Entry, EntryLists, insertion, type Source, withAdded } from "./NewEntries.tsx";
 import {
   type NewKind,
   navigate,
@@ -26,176 +27,272 @@ import {
   sessionIdPath,
   useRepoPath,
   useRestoreScroll,
+  useSearch,
 } from "./routes.tsx";
-import { plain } from "./Spans.tsx";
+import { StartDialog } from "./StartDialog.tsx";
 import { composerDraft, useDraft } from "./useDraft.ts";
-import { type StartLine, type StartNote, useStartFrom } from "./useStartFrom.ts";
-import { PageTitle } from "./layout/PageTitle.tsx";
+import { takeOut, useStartFrom } from "./useStartFrom.ts";
 
-const styles = stylex.create({
-  // The button keeps its text whole; the line's text wraps beside it.
-  action: { flexShrink: 0 },
-  // As tall as its button: a finger's 44 px under a coarse pointer.
-  line: { paddingBlock: spacingVars["--spacing-1"] },
-  link: { alignItems: "center", display: "flex", minHeight: sizeVars["--size-element-sm"] },
-  list: {
-    listStyle: "none",
-    margin: 0,
-    paddingBlock: spacingVars["--spacing-1"],
-    paddingInline: 0,
-  },
-});
+/** The kinds, to go through them. */
+const KINDS: ReadonlyArray<NewKind> = ["session", "change", "feature"];
 
-/** A note or a priority line to start from: its row opens it, and its button starts from it. */
-type Line = { href: string; label: string; start: () => Promise<unknown>; text: string };
-
-/**
- * The notes and the priority lines a change or a feature can start from: the notes that are not
- * a draft already, and the lines that have not started and link no other file than a draft.
- */
-function useLines(starts: {
-  fromLine: (entry: StartLine) => Promise<unknown>;
-  fromNote: (note: StartNote) => Promise<unknown>;
-}): Array<Line> {
-  const here = useRepoPath();
-  const inbox = useInbox();
-  const priorities = usePriorities();
-  const notes = (inbox?.categories ?? [])
-    .flatMap((category) => category.notes)
-    .filter((note) => note.draft === undefined)
-    .map((note) => ({
-      href: here(`/inbox/${note.key}`),
-      label: `Inbox · ${plain(note.spans)}`,
-      start: () => starts.fromNote(note),
-      text: plain(note.spans),
-    }));
-  const lines = (priorities?.sections ?? [])
-    .flatMap((section) => section.entries)
-    .filter((entry) => !entry.running && (entry.draft || !entry.spans.some((span) => span.link)))
-    .map((entry) => ({
-      href: here(`/priorities/${entry.key}`),
-      label: `Priorities · ${plain(entry.spans)}`,
-      start: () => starts.fromLine(entry),
-      text: plain(entry.spans),
-    }));
-  return [...notes, ...lines];
+/** A text's first line as a title: without a heading mark or the link an entry's insertion adds. */
+function titleOfText(text: string): string {
+  const first =
+    text
+      .split("\n")
+      .map((line) => line.replace(/^#+\s*/, "").trim())
+      .find(Boolean) ?? "";
+  // Without the link an entry's insertion adds, and cut at its first sentence.
+  const clean = first
+    .replace(/\s*\(\[[^\]]*\]\([^)]*\)\)\s*$/, "")
+    .replace(/([.!?])(\s.*)?$/, "$1")
+    .replace(/[.!?]$/, "");
+  return clean.length <= 70 ? clean : clean.slice(0, 70).replace(/\s+\S*$/, "");
 }
 
-/** The notes and lines to start from, each with its button, `action`. */
-function Lines({ action, lines }: { action: string; lines: Array<Line> }) {
-  if (lines.length === 0) {
-    return null;
-  }
+/** What Ctrl+Enter holds in a feature's composer while its title is asked. */
+type Asking = { resolve: (started: boolean) => void; text: string };
+
+/**
+ * Feature: the same composer as the others, "Write Proposal", for a text that is freeform: no shape
+ * is put in it, and it takes no image. Ctrl+Enter writes it as a draft and opens the draft's page; a
+ * proposal not filled from an entry asks for its title first, as a change asks for its slug.
+ */
+function FeatureComposer({
+  inputRef,
+  sources,
+  text,
+}: {
+  inputRef: React.RefObject<ChatComposerInputHandle | null>;
+  sources: ReadonlyArray<Source>;
+  text: ReturnType<typeof useTextField>;
+}) {
+  const starts = useStartFrom();
+  const [asking, setAsking] = useState<Asking>();
+  const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
+  const write = async (body: string, title: string) => {
+    const opened = await starts.feature.fromText({ body, sources, title });
+    if (opened && text.unsavedNow()?.text.trim() === body) {
+      text.discard();
+    }
+    return opened;
+  };
+  const answer = (started: boolean) => {
+    asking?.resolve(started);
+    setAsking(undefined);
+  };
   return (
-    <VStack gap={1}>
-      <Text id="new-lines" type="label">
-        Or start from a note or a priority
-      </Text>
-      <ul aria-labelledby="new-lines" {...stylex.props(styles.list)}>
-        {lines.map((line) => (
-          <li key={line.href} {...stylex.props(styles.line)}>
-            {/* The whole text, wrapped on a phone rather than cut. */}
-            <HStack align="center" gap={2} justify="between">
-              <Link href={line.href} xstyle={styles.link}>
-                {line.label}
-              </Link>
-              {/* Its name says which line: the buttons share their visible text. */}
-              <span {...stylex.props(styles.action)}>
-                <Button
-                  clickAction={line.start}
-                  label={`${action}: ${line.text}`}
-                  size="sm"
-                  variant="secondary"
-                >
-                  {action}
-                </Button>
-              </span>
-            </HStack>
-          </li>
-        ))}
-      </ul>
+    <VStack gap={4}>
+      <Composer
+        hasAttach={false}
+        images={images}
+        inputRef={inputRef}
+        onChange={text.change}
+        onImagesChange={setImages}
+        // Filled from an entry, its own title is the proposal's; else the title is asked.
+        onSend={(sent) =>
+          sources.length > 0
+            ? write(sent, "")
+            : new Promise<boolean>((resolve) => setAsking({ resolve, text: sent }))
+        }
+        placeholder="Write Proposal"
+        sendLabel="Write the proposal"
+        value={text.text}
+      />
+      <StartError message={starts.error} />
+      <StartDialog
+        initial={asking ? titleOfText(asking.text) : ""}
+        isOpen={asking !== undefined}
+        onCancel={() => answer(false)}
+        onConfirm={async (title) => {
+          // A refusal shows under the composer, as the dialog closes: the text stays.
+          answer(await write(asking?.text ?? "", title));
+          return undefined;
+        }}
+        question={{
+          confirm: "Write the proposal",
+          description: "It names the proposal's file and its line in Now.",
+          label: "Title",
+          title: "Title the proposal",
+        }}
+      />
     </VStack>
   );
 }
 
-/** Session: the composer, whose first message starts the session and opens it. */
-function NewSession() {
-  const here = useRepoPath();
-  const draft = useDraft();
+/** The search of the entries, at the title's end: `/` brings the focus to it, Escape leaves it. */
+function Search({
+  field,
+  isNarrow: narrow,
+  onChange,
+  text,
+}: {
+  field: React.RefObject<HTMLInputElement | null>;
+  isNarrow: boolean;
+  onChange: (text: string) => void;
+  text: string;
+}) {
   return (
-    <Composer
-      {...composerDraft(draft)}
-      onSent={(id) => navigate(here(sessionIdPath(id)), { created: true })}
+    <TextInput
+      isLabelHidden
+      label="Search the notes and priorities"
+      onChange={onChange}
+      onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
+      }}
+      placeholder="Search"
+      ref={field}
+      startIcon="search"
+      value={text}
+      // On the title's line at every width, as a desktop's: narrower on the phone, beside "New".
+      width={narrow ? "11rem" : "var(--size-settings-search)"}
     />
   );
 }
 
-/** Change: the composer and its slug, then the notes and lines. */
-function ChangePart() {
-  const starts = useStartFrom();
-  const lines = useLines(starts.change);
-  return (
-    <>
-      <NewChange />
-      {starts.error && <AnnouncedBanner collapsible={false} status="error" title={starts.error} />}
-      <Lines action="Start the change" lines={lines} />
-    </>
-  );
-}
-
-/** Feature: a title for a new proposal, then the notes and lines to draft. */
-function FeaturePart() {
-  const starts = useStartFrom();
-  const lines = useLines(starts.feature);
-  // Kept as a new change's text is: leaving the page does not ask.
-  const title = useTextField("new-feature", "", { drawn: false });
-  // `i` brings the focus to the title, as the composer's `i` does for the other kinds.
-  const field = useRef<HTMLInputElement>(null);
-  useKeys([
-    {
-      hint: "i",
-      hintLabel: "insert",
-      keys: "i",
-      label: "Write the title",
-      run: () => field.current?.focus(),
-    },
-  ]);
-  const write = async () => {
-    const text = title.text.trim();
-    // A refused title stays, to change and write again.
-    if ((await starts.feature.fromTitle(text)) && title.unsavedNow()?.text.trim() === text) {
-      title.discard();
-    }
-  };
-  return (
-    <>
-      {/* On the phone, the button goes under the field rather than squeezing its text. */}
-      <HStack align="end" gap={2} wrap="wrap">
-        <TextInput label="Title" onChange={title.change} ref={field} value={title.text} />
-        <Button clickAction={write} isDisabled={!title.text.trim()} label="Write the proposal" />
-      </HStack>
-      {starts.error && <AnnouncedBanner collapsible={false} status="error" title={starts.error} />}
-      <Lines action="Open the draft" lines={lines} />
-    </>
-  );
-}
-
-/** The New page: the cards, then what the kind picked asks for. */
-export function NewPage({ kind }: { kind: NewKind }) {
+/**
+ * The New page: the cards, the kind's composer, then the entries to start from. On the phone no
+ * card is picked until one is, the address naming a kind: the flow there is New, pick, composer,
+ * and the pick moves the focus to the composer.
+ */
+export function NewPage({ kind: addressed }: { kind: NewKind }) {
   useRestoreScroll(true);
   const here = useRepoPath();
+  const fate = useFateClient();
+  const narrow = isNarrow(useWidthClass());
+  const named = new URLSearchParams(useSearch()).has("kind");
+  const kind = narrow && !named ? undefined : addressed;
+  const [search, setSearch] = useState("");
+  const searchField = useRef<HTMLInputElement>(null);
+  useKeys([
+    {
+      hint: "/",
+      icon: "search",
+      keys: "/",
+      label: "search",
+      run: () => searchField.current?.focus(),
+    },
+  ]);
+  const input = useRef<ChatComposerInputHandle>(null);
+  // A pick by a click moves the focus to the composer, which the pick may draw: once it is there.
+  const wantsFocus = useRef(false);
+  const box = useRef<HTMLDivElement>(null);
+  // The composer may not be drawn yet, and on the phone it is below the cards: wait for it, focus
+  // it, and scroll it into view, its send button with it.
+  const focusComposer = () => {
+    let tries = 0;
+    const attempt = () => {
+      if (input.current) {
+        input.current.focus();
+        box.current?.scrollIntoView({ block: "nearest" });
+      } else if (tries++ < 30) {
+        requestAnimationFrame(attempt);
+      }
+    };
+    requestAnimationFrame(attempt);
+  };
+  useEffect(() => {
+    if (wantsFocus.current && kind !== undefined) {
+      wantsFocus.current = false;
+      focusComposer();
+    }
+  }, [kind]);
+  const session = useDraft();
+  // Kept as a new chat's text is: leaving the page does not ask.
+  const change = useTextField("new-change", "", { drawn: false });
+  const feature = useTextField("new-feature-proposal", "", { drawn: false });
+  const [sources, setSources] = useState<Record<NewKind, ReadonlyArray<Source>>>({
+    change: [],
+    feature: [],
+    session: [],
+  });
+  const texts: Record<NewKind, string> = {
+    change: change.text,
+    feature: feature.text,
+    session: session.text,
+  };
+  // A composer emptied no longer holds what it was filled from.
+  useEffect(() => {
+    setSources((all) => {
+      const emptied = KINDS.filter((of) => texts[of].trim() === "" && all[of].length > 0);
+      return emptied.length === 0
+        ? all
+        : { ...all, ...Object.fromEntries(emptied.map((of) => [of, []])) };
+    });
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- `texts` is these three
+  }, [change.text, feature.text, session.text]);
+  const insert = (entry: Entry) => {
+    if (kind === undefined) {
+      return;
+    }
+    const added = insertion(entry);
+    if (kind === "session") {
+      session.setText((text) => withAdded(text, added));
+    } else if (kind === "change") {
+      change.change(withAdded(change.text, added));
+    } else {
+      feature.change(withAdded(feature.text, added));
+    }
+    const source: Source = {
+      ...(entry.draft === undefined ? {} : { draft: entry.draft }),
+      id: entry.id,
+      inserted: added,
+      kind: entry.kind,
+    };
+    setSources((all) => ({
+      ...all,
+      [kind]: [...all[kind].filter((s) => !(s.kind === source.kind && s.id === source.id)), source],
+    }));
+    // The field takes the focus once the text is in: `Escape` goes back to the list's keys.
+    requestAnimationFrame(() => input.current?.focus());
+  };
   return (
     <Page>
       <VStack gap={4}>
-        <PageTitle>New</PageTitle>
+        <PageTitle
+          // Beside the title at every width, as on a desktop.
+          actions={<Search field={searchField} isNarrow={narrow} onChange={setSearch} text={search} />}
+        >
+          New
+        </PageTitle>
         <KindCards
           kind={kind}
-          // The kind is the address's: Back leaves the page, not the kind.
-          onPick={(picked) => redirect(here(picked === "session" ? "/new" : `/new?kind=${picked}`))}
+          // The kind is the address's: Back leaves the page, not the kind. A session names it too,
+          // so that the phone knows a card was picked.
+          onPick={(picked, options) => {
+            if (options?.focus) {
+              if (picked === kind) {
+                focusComposer();
+              } else {
+                wantsFocus.current = true;
+              }
+            }
+            redirect(here(`/new?kind=${picked}`));
+          }}
         />
-        {kind === "session" && <NewSession />}
-        {kind === "change" && <ChangePart />}
-        {kind === "feature" && <FeaturePart />}
+        <div ref={box}>
+          {kind === "session" && (
+            <Composer
+              {...composerDraft(session)}
+              inputRef={input}
+              onSent={(id) => {
+                void takeOut(fate, sources.session);
+                navigate(here(sessionIdPath(id)), { created: true });
+              }}
+            />
+          )}
+          {kind === "change" && (
+            <ChangeComposer inputRef={input} sources={sources.change} text={change} />
+          )}
+          {kind === "feature" && (
+            <FeatureComposer inputRef={input} sources={sources.feature} text={feature} />
+          )}
+        </div>
+        {kind !== undefined && <EntryLists onInsert={insert} search={search} />}
       </VStack>
     </Page>
   );

@@ -4,7 +4,8 @@
 // (plan, Complexity tracking; R12): `SelectableCard` is a checkbox and `RadioList` draws round
 // radios, which approval comment C3 forbids, so the group is drawn by the page, each card a raw
 // element holding the shared `Pane`.
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { Icon } from "@astryxdesign/core/Icon";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
@@ -23,6 +24,21 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-1"],
     paddingInline: spacingVars["--spacing-2"],
   },
+  // A compact card: its icon and name on one line, as tall as a touch target, square like a pane.
+  chip: {
+    alignItems: "center",
+    borderColor: colorVars["--color-border"],
+    borderStyle: "solid",
+    borderWidth: 1,
+    color: colorVars["--color-text-secondary"],
+    display: "flex",
+    gap: spacingVars["--spacing-1"],
+    justifyContent: "center",
+    minHeight: "2.75rem",
+    minWidth: 0,
+    whiteSpace: "nowrap",
+  },
+  chipPicked: { borderColor: colorVars["--color-accent"], color: colorVars["--color-text-accent"] },
   // A grid of one, so its pane stretches to the card's height.
   card: { cursor: "pointer", display: "grid", minWidth: 0 },
   // The cards side by side at semi-wide and wide, as tall as the tallest.
@@ -33,6 +49,8 @@ const styles = stylex.create({
   },
   // On the phone, stacked.
   stacked: { gridTemplateColumns: "minmax(0, 1fr)" },
+  // On the phone once a card is picked: a row of three titles, so that the composer is in view.
+  compact: { gap: spacingVars["--spacing-2"], gridTemplateColumns: "repeat(3, minmax(0, 1fr))" },
 });
 
 /** A kind's card: its name and icon, and its sentence. */
@@ -92,11 +110,22 @@ function moved(key: string, index: number): number | undefined {
 /**
  * The New page's cards: a `radiogroup` named "What to start" of three `radio` cards, Session,
  * Change, and Feature, the picked one the active pane and the group's one stop in the tab order. A
- * click or Space picks a card; the arrow keys, Home, and End, without a modifier, move the focus
- * and the pick. `s c f` pick a card too, and the status line names them.
+ * click or Space picks a card, and the focus goes on to the composer; the arrow keys, Home, and End,
+ * without a modifier, move the focus and the pick. `s c f` pick a card too, and the status line
+ * names them.
  */
-export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewKind) => void }) {
+export function KindCards({
+  kind,
+  onPick,
+}: {
+  /** The picked kind, or none: the phone's New page starts with no card picked. */
+  kind: NewKind | undefined;
+  /** `focus` says the pick was an activation, a click or Space, which moves on to the composer. */
+  onPick: (kind: NewKind, options?: { focus?: boolean }) => void;
+}) {
   const narrow = isNarrow(useWidthClass());
+  // The phone, once a card is picked: the drawings give way to the composer.
+  const compact = narrow && kind !== undefined;
   const cards = useRef<Array<HTMLDivElement | null>>([]);
   const bodies = useId();
   // `s c f` pick a card as a click would; the radio's own keys, below, move between them.
@@ -116,7 +145,7 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
     }
     if (event.key === " ") {
       event.preventDefault();
-      onPick(KINDS[index].kind);
+      onPick(KINDS[index].kind, { focus: true });
       return;
     }
     const next = moved(event.key, index);
@@ -131,7 +160,11 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
     <div
       aria-label="What to start"
       role="radiogroup"
-      {...stylex.props(styles.cards, narrow && styles.stacked)}
+      {...stylex.props(
+        styles.cards,
+        narrow && styles.stacked,
+        compact && styles.compact,
+      )}
     >
       {KINDS.map((card, index) => {
         const isPicked = card.kind === kind;
@@ -143,22 +176,31 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
             aria-describedby={`${bodies}-${card.kind}`}
             aria-label={card.name}
             key={card.kind}
-            onClick={() => onPick(card.kind)}
+            onClick={() => onPick(card.kind, { focus: true })}
             onKeyDown={(event) => keyDown(event, index)}
             ref={(element) => {
               cards.current[index] = element;
             }}
             role="radio"
-            tabIndex={isPicked ? 0 : -1}
+            // The group's one stop: the picked card, or the first while none is.
+            tabIndex={isPicked || (kind === undefined && index === 0) ? 0 : -1}
             {...stylex.props(styles.card, focusOutlineStyles.focusVisible)}
           >
-            <Pane icon={card.icon} isActive={isPicked} isGroup title={card.name}>
-              <div {...stylex.props(styles.body)}>
-                {/* The drawing says what it is; the sentence is for screen readers. */}
-                <KindArt kind={card.kind} />
+            {compact ? (
+              <div {...stylex.props(styles.chip, isPicked && styles.chipPicked)}>
+                <Icon icon={card.icon} size="sm" />
+                {card.name}
                 <VisuallyHidden id={`${bodies}-${card.kind}`}>{card.sentence}</VisuallyHidden>
               </div>
-            </Pane>
+            ) : (
+              <Pane icon={card.icon} isActive={isPicked} isGroup title={card.name}>
+                <div {...stylex.props(styles.body)}>
+                  {/* The drawing says what it is; the sentence is for screen readers. */}
+                  <KindArt kind={card.kind} />
+                  <VisuallyHidden id={`${bodies}-${card.kind}`}>{card.sentence}</VisuallyHidden>
+                </div>
+              </Pane>
+            )}
           </div>
         );
       })}
