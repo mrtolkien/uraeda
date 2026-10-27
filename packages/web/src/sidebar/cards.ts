@@ -114,6 +114,7 @@ export function toCard(feature: Feature, row: Row | undefined): CardItem {
   return {
     folder: feature.folder,
     ...((row?.backgroundCommands ?? 0) > 0 ? { hasBackgroundCommand: true } : {}),
+    ...(row ? { harness: row.agent } : {}),
     kind: feature.kind === "change" ? "change" : "feature",
     label: label ?? feature.slug,
     ...(step.progress ? { progress: step.progress } : {}),

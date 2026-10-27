@@ -30,6 +30,11 @@ export type CardItem = {
   folder: string;
   /** Whether a background command of its run is still going. */
   hasBackgroundCommand?: boolean;
+  /**
+   * The agent kind of the session at work on a feature or a change, whose mark its working button
+   * wears. Not in the card's name, which the step and the status already tell.
+   */
+  harness?: string;
   kind: "session" | "change" | "feature";
   /** Its name in the sidebar: its label, or its slug; a session's title. */
   label: string;
@@ -119,7 +124,15 @@ export function cardName(item: CardItem) {
 }
 
 /** The end of the first line: the background command, then the status or the action in flight. */
-function Status({ hasNext, item }: { hasNext: boolean; item: CardItem }) {
+function Status({
+  hasNext,
+  hasWork,
+  item,
+}: {
+  hasNext: boolean;
+  hasWork: boolean;
+  item: CardItem;
+}) {
   return (
     <HStack align="center" gap={1}>
       {item.hasBackgroundCommand && <Icon color="secondary" icon="uraeda:terminal" size="sm" />}
@@ -132,7 +145,10 @@ function Status({ hasNext, item }: { hasNext: boolean; item: CardItem }) {
           {hasNext ? (
             // A step waits on the human: a chevron on the accent leads to it, where a "!" read as
             // an alert; the fill, as the status mark's, shows it is a button.
-            <NextMark />
+            <ActionMark kind="next" />
+          ) : hasWork ? (
+            // A session works on it: its page is one click away, from a button as big.
+            <ActionMark harness={item.harness ?? item.agent} kind="work" />
           ) : (
             <StatusMark label={item.status.label} status={item.status.status} />
           )}
@@ -171,7 +187,7 @@ function CardIcon({ hasNext, item }: { hasNext: boolean; item: CardItem }) {
     <span {...stylex.props(styles.railIcon)}>
       <KindIcon item={item} />
       {hasNext ? (
-        <NextMark isSmall />
+        <ActionMark isSmall kind="next" />
       ) : (
         <Icon
           color={item.status.status === "attention" ? "error" : "warning"}
@@ -183,11 +199,29 @@ function CardIcon({ hasNext, item }: { hasNext: boolean; item: CardItem }) {
   );
 }
 
-/** The chevron on the accent that leads to the next step: the card's button, or its small rail mark. */
-function NextMark({ isSmall = false }: { isSmall?: boolean }) {
+/**
+ * The square that leads from the card to what its status points at, as the card's button or its
+ * small rail mark, on the accent as every button is: a chevron for the next step, which waits on
+ * the human, and, for the session at work on it, its agent's mark, or the activity icon when it
+ * names none.
+ */
+function ActionMark({
+  harness,
+  isSmall = false,
+  kind,
+}: {
+  harness?: string | undefined;
+  isSmall?: boolean;
+  kind: "next" | "work";
+}) {
+  const work = harness === undefined ? "uraeda:activity" : harnessMark(harness).icon;
   return (
     <span {...stylex.props(styles.next, isSmall ? styles.nextSmall : brighten)}>
-      <Icon color="inherit" icon="chevronRight" size={isSmall ? "xsm" : "md"} />
+      <Icon
+        color="inherit"
+        icon={kind === "work" ? work : "chevronRight"}
+        size={isSmall ? "xsm" : "md"}
+      />
     </span>
   );
 }
@@ -195,11 +229,12 @@ function NextMark({ isSmall = false }: { isSmall?: boolean }) {
 /** The card's second line: its step, its task's position, its pull request, its lines changed. */
 function Meta({
   detail,
-  hasNext,
+  hasButton,
   item,
 }: {
   detail?: string | undefined;
-  hasNext: boolean;
+  /** Its end is a two-line button. */
+  hasButton: boolean;
   item: CardItem;
 }) {
   const { changes, progress, pullRequest, step } = item;
@@ -211,7 +246,7 @@ function Meta({
         xstyle={[
           styles.meta,
           // Beside a two-line button, the line ends where its room does.
-          !hasNext && (item.status.status === "idle" ? styles.reachGap : styles.reachStatus),
+          !hasButton && (item.status.status === "idle" ? styles.reachGap : styles.reachStatus),
         ]}
       >
         <Text color="secondary" type="supporting">
@@ -271,6 +306,9 @@ export function ItemCard({
   // A step waits on the human: its status is a button to it, two lines high.
   const hasNext =
     onStatus !== undefined && item.status.status === "needs-you" && item.step?.kind !== "problem";
+  // A session works on it: its status is a button to the session, as big.
+  const hasWork = onStatus !== undefined && item.status.status === "working";
+  const hasButton = hasNext || hasWork;
   if (isFolded) {
     // The rail: its icon alone, its name read in full, its status a warning while it needs you.
     return (
@@ -292,16 +330,19 @@ export function ItemCard({
     >
       <span aria-hidden="true" data-rail-only {...stylex.props(styles.railMark)}>
         {hasNext ? (
-          <NextMark isSmall />
+          <ActionMark isSmall kind="next" />
+        ) : item.status.status === "working" ? (
+          // The size of the next step's chevron: one mark for whatever the rail shows.
+          <ActionMark harness={item.harness ?? item.agent} isSmall kind="work" />
         ) : (
           <StatusMark label={item.status.label} small status={item.status.status} />
         )}
       </span>
       <CardRow
-        endContent={<Status hasNext={hasNext} item={item} />}
+        endContent={<Status hasNext={hasNext} hasWork={hasWork} item={item} />}
         href={href}
         icon={<CardIcon hasNext={hasNext} item={item} />}
-        isEndTall={hasNext}
+        isEndTall={hasButton}
         isSelected={isSelected}
         label={item.label}
         name={cardName(item)}
@@ -312,7 +353,7 @@ export function ItemCard({
               {detail}
             </Text>
           ) : item.step ? (
-            <Meta hasNext={hasNext} item={item} />
+            <Meta hasButton={hasButton} item={item} />
           ) : undefined
         }
         {...(onOpen || onStatus

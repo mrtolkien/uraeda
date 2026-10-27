@@ -1,3 +1,4 @@
+import { Icon } from "@astryxdesign/core/Icon";
 import { StatusDot } from "@astryxdesign/core/StatusDot";
 import {
   colorVars,
@@ -42,9 +43,10 @@ const DOTS = {
 } as const;
 
 /**
- * A session's status as a dot, named by its label for screen readers: a pulsing blue dot while it
- * works, a warning "!" when it needs the human, an error "!" when it needs their attention, a
- * success "✓" for a reply not seen yet, and nothing when idle.
+ * A session's status as a square, named by its label for screen readers: the activity icon on blue
+ * while it works (the small one, a plain blue square), a warning "!" when it needs the human, an
+ * error "!" when it needs their attention, a success "✓" for a reply not seen yet, and nothing
+ * when idle.
  */
 export function StatusMark({
   label,
@@ -59,10 +61,16 @@ export function StatusMark({
     return null;
   }
   const { mark, variant } = DOTS[status];
+  // A working session shows the activity icon, where the square is big enough to hold it.
+  const icon =
+    mark !== undefined ? (
+      <span {...stylex.props(styles.mark)}>{mark}</span>
+    ) : status === "working" && !small ? (
+      <Icon color="inherit" icon="uraeda:activity" size="xsm" />
+    ) : undefined;
   return (
     <StatusDot
-      icon={mark ? <span {...stylex.props(styles.mark)}>{mark}</span> : undefined}
-      isPulsing={status === "working"}
+      icon={icon}
       label={label}
       variant={variant}
       xstyle={[small ? styles.small : styles.dot, status === "working" && styles.working]}
