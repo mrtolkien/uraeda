@@ -10,6 +10,7 @@ import type { AddCommit } from "uraeda-binding";
 import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
+import { showPageError } from "./layout/useUndoToast.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
@@ -173,7 +174,7 @@ function SectionPicker({
  * asks "Discard your changes?" first when it holds text.
  */
 export function AddForm({
-  notice: shown,
+  notice,
   onAdded,
   onCancel,
   section: start = "next",
@@ -191,8 +192,6 @@ export function AddForm({
   const field = useTextField("quick-add", "");
   const text = field.text;
   const [section, setSection] = useState(start);
-  const [message, setMessage] = useState<string>();
-  const [notice, setNotice] = useState(shown);
   // The field takes the focus once the dialog has settled: the dialog's own focus goes to its first
   // control as it opens, which an autofocus alone sometimes loses to, as a key that opened it.
   const box = useRef<HTMLDivElement>(null);
@@ -201,16 +200,17 @@ export function AddForm({
     return () => clearTimeout(timer);
   }, []);
 
-  // Adds the line, uncommitted, and closes the form: the page's bar commits what was written.
+  // Adds the line, uncommitted, and closes the form at once, `onCancel`'s close: the line shows
+  // once written, with its toast. A refusal shows in the page, and the form, opened again, has the
+  // text back: it is forgotten only once added.
   const add = async () => {
-    setMessage(undefined);
-    setNotice(undefined);
+    onCancel();
     const result = await fate.mutations.priorities.add({
       input: { hash: priorities?.hash ?? "", section, text },
       view: PrioritiesAddedView,
     });
     if (result.error) {
-      setMessage(refusal(result.error).message);
+      showPageError(refusal(result.error).message);
       return;
     }
     const answer = result.result;
@@ -250,7 +250,6 @@ export function AddForm({
         />
       </div>
       <SectionPicker onChange={setSection} section={section} />
-      {message && <AnnouncedBanner status="error" title={message} />}
       <CommitBanner notice={notice} />
       <AddButtons isReady={text.trim() !== ""} onAdd={add} onCancel={() => void cancel()} />
     </VStack>

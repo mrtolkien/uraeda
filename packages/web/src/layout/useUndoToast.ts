@@ -39,6 +39,15 @@ export function forgetUndoToasts() {
   setErrors([]);
 }
 
+/**
+ * Shows `text` where a refused Undo's error shows, until dismissed: for a write refused after the
+ * form that made it closed.
+ */
+export function showPageError(text: string) {
+  nextId += 1;
+  setErrors([...errors, { id: nextId, text }]);
+}
+
 /** The errors of refused Undos, and how to dismiss one, by its id. */
 export function useUndoErrors(): [ReadonlyArray<UndoError>, (id: number) => void] {
   const shown = useSyncExternalStore(
@@ -69,8 +78,7 @@ export function useUndoToast(): (
       const revert = async () => {
         const error = await undo();
         if (error) {
-          nextId += 1;
-          setErrors([...errors, { id: nextId, text: error }]);
+          showPageError(error);
         }
       };
       const dismiss = showToast({

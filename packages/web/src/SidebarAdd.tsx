@@ -130,8 +130,8 @@ function PriorityOverlay({
   const fate = useFateClient();
   const toast = useUndoToast();
 
+  // The form closed as it added: one opened again meanwhile stays open.
   const added = (section: string, line: Added | undefined) => {
-    onClose();
     const title = titleOf(section);
     if (line?.committed) {
       const { hash } = line.committed;
