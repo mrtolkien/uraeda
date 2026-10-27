@@ -1,6 +1,7 @@
 // Home's core, above the "Overview" line: the problems that stop the workflow, when there are any,
-// what waits on the human, what agents work on, and the sessions without a workflow. Each is a pane
-// of the sidebar's own cards; `coreParts` gives each its node and its height, for the layout.
+// what waits on the human, what agents work on, and the sessions without a workflow, when one runs.
+// Each is a pane of the sidebar's own cards; `coreParts` gives each its node and its height, for
+// the layout.
 import type { Icon } from "@astryxdesign/core/Icon";
 import type { ComponentProps, ReactNode } from "react";
 import { waiting } from "../labels.ts";
@@ -43,7 +44,7 @@ function part(
 
 /**
  * The core's panes in their reading order: the problems, when there are any, what waits on the
- * human, what is in progress, and the sessions without a workflow.
+ * human, what is in progress, and the sessions without a workflow, when one runs.
  */
 export function coreParts({
   agents,
@@ -93,14 +94,19 @@ export function coreParts({
       agents.map((f) => feature(f, f.step.task ?? undefined)),
       "Nothing in progress.",
     ),
-    part(
-      "sessions",
-      { count: sessions.length, icon: "uraeda:bot", title: "Sessions" },
-      sessions.map(({ row }) => ({
-        node: <SessionCard key={row.id} pathname="" row={row} />,
-      })),
-      "No session running.",
-    ),
+    // Only while a session runs, as the sidebar's: an empty pane has nothing to tell.
+    ...(sessions.length === 0
+      ? []
+      : [
+          part(
+            "sessions",
+            { count: sessions.length, icon: "uraeda:bot", title: "Sessions" },
+            sessions.map(({ row }) => ({
+              node: <SessionCard key={row.id} pathname="" row={row} />,
+            })),
+            "",
+          ),
+        ]),
   ];
 }
 
