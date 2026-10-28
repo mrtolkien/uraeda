@@ -93,22 +93,6 @@ export function questionAtTop(ids: ReadonlyArray<string>): string | undefined {
   return at;
 }
 
-/**
- * Runs once a sheet's scroll lock is gone: while a modal sheet is open the page cannot scroll, and
- * closing it puts the page back where it was, then returns the focus to the sheet's trigger.
- */
-export function afterSheetCloses(run: () => void) {
-  const start = performance.now();
-  const tick = () => {
-    if (document.body.style.position === "fixed" && performance.now() - start < 2000) {
-      requestAnimationFrame(tick);
-      return;
-    }
-    run();
-  };
-  requestAnimationFrame(tick);
-}
-
 /** The question, or part, at the top, followed while the page scrolls. */
 export function useQuestionAtTop(ids: ReadonlyArray<string>, isActive: boolean) {
   const [at, setAt] = useState<string>();

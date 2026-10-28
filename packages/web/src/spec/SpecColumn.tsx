@@ -13,8 +13,8 @@ import { commentsLabel } from "./CommentCount.tsx";
 import type { File } from "./parts.ts";
 import { ReviewTab } from "./ReviewTab.tsx";
 import { toVerdict } from "../ReviewVerdict.tsx";
-import { afterSheetCloses } from "../roundJump.ts";
 import { useSheetTab } from "../layout/useSheetTab.ts";
+import { afterOverlayCloses } from "../layout/Overlay.tsx";
 
 /** The phone's sheets of the spec's and the plan's column, by their tab's key. */
 const SHEETS = { contents: "Contents", review: "Review", session: "Session" } as const;
@@ -44,9 +44,10 @@ function PhoneParts({
   );
   const [open, setSheet] = sheet;
   const close = () => setSheet();
-  const go = (run: () => void) => {
+  // A jump from the sheet `label`: once it closed, and the page can scroll again.
+  const goFrom = (label: string) => (run: () => void) => {
     close();
-    afterSheetCloses(run);
+    afterOverlayCloses(label, run, { scrolls: true });
   };
   const buttons = (
     <NavTiles label={`The ${review ? "review's" : "page's"} parts`}>
@@ -81,14 +82,14 @@ function PhoneParts({
       height: "capped",
       key: "contents",
       label: SHEETS.contents,
-      panel: <ColumnGo value={go}>{contents}</ColumnGo>,
+      panel: <ColumnGo value={goFrom(SHEETS.contents)}>{contents}</ColumnGo>,
     },
     ...(review
       ? [
           {
             key: "review",
             label: SHEETS.review,
-            panel: <ColumnGo value={go}>{review.panel}</ColumnGo>,
+            panel: <ColumnGo value={goFrom(SHEETS.review)}>{review.panel}</ColumnGo>,
           },
         ]
       : []),

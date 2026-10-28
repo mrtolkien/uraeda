@@ -7,12 +7,12 @@ import * as stylex from "@stylexjs/stylex";
 import { useEffect } from "react";
 import type { Document, RoundItems, SettledGroup, SettledKind } from "uraeda-binding";
 import { NavTile } from "./layout/NavBar.tsx";
+import { afterOverlayCloses } from "./layout/Overlay.tsx";
 import { OutlineRows, type OutlineRow, type StateNames } from "./layout/OutlineRows.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { openAnchor } from "./routeHistory.ts";
 import { PART_IDS } from "./roundPartIds.ts";
 import {
-  afterSheetCloses,
   endJump,
   jumpTo,
   type NavQuestion,
@@ -247,16 +247,18 @@ export function RoundOutline({
 }
 
 /**
- * On the phone, the outline's rows in its sheet, the part at the top marked: a tap on a row closes
- * the sheet, `onClose`, then brings its part to the top once the page can scroll again.
+ * On the phone, the outline's rows in its sheet, `label`, the part at the top marked: a tap on a
+ * row closes the sheet, `onClose`, then brings its part to the top once the page can scroll again.
  */
 export function OutlineSheetPanel({
   document,
+  label,
   onClose,
   questions,
   round,
 }: {
   document: Document;
+  label: string;
   onClose: () => void;
   questions: ReadonlyArray<NavQuestion>;
   round: RoundItems;
@@ -270,7 +272,7 @@ export function OutlineSheetPanel({
         current={questionAtTop(parts) ?? parts[0]}
         onPick={(id) => {
           onClose();
-          afterSheetCloses(() => goTo(id));
+          afterOverlayCloses(label, () => goTo(id), { scrolls: true });
         }}
         runs={runs}
         stateNames={ANSWERED}

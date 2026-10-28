@@ -235,6 +235,7 @@ function PhoneParts({
           panel: (
             <OutlineSheetPanel
               document={document}
+              label={SHEETS.outline}
               onClose={() => setSheet()}
               questions={nav}
               round={round}
