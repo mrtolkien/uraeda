@@ -1,45 +1,78 @@
 // The inbox's notes on the shared list, as an outliner (see `useOutline`): a section per category,
 // each note a row with its children, and the keys and pickers that act on the notes and on the
 // categories. `InboxPage` draws it under its heading.
-import { Thumbnail } from "@astryxdesign/core/Thumbnail";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
+import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { rereadChanges } from "./data.ts";
 import { draftFile } from "./draftFile.ts";
 import { refusal } from "./errors.ts";
+import { useInboxImages } from "./InboxImages.tsx";
 import { type Inbox, panesOf, sectionId } from "./inboxPanes.ts";
 import { type Actions, useCategoryKeys, useMovePicker, usePromote } from "./InboxPickers.tsx";
-import { CategoryMenu, CategoryTitle } from "./lists/CategoryPane.tsx";
+import { CategoryTitle, DeleteCategoryButton } from "./lists/CategoryPane.tsx";
 import { useOutline } from "./lists/useOutline.tsx";
 import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
-import { navigate, repoPath, useRepoPath, useRepository } from "./routes.tsx";
-import { imagePath, plain, Spans } from "./Spans.tsx";
+import { plural } from "./labels.ts";
+import { navigate, useRepoPath } from "./routes.tsx";
+import { plain, Spans } from "./Spans.tsx";
 import type { Placed } from "./useNoteActions.ts";
 import { InboxView } from "./views.ts";
 
 /** How the list writes a change: it resolves with its refusal, if any. */
 type Run = (call: () => Promise<{ error?: unknown }>) => Promise<string | undefined>;
 
-/** A note's tags as text in its card's border: `agent`, then its feature's, each apart. */
+/**
+ * A note's tags as text after it: `agent`, then its feature's, then its images' count, each apart.
+ * The images show under the row while it is selected.
+ */
 function marksOf(note: InboxNote) {
-  if (!note.agent && !note.about) {
+  const marks = [
+    ...(note.agent ? ["agent"] : []),
+    ...(note.about ? [note.about] : []),
+    ...(note.images.length > 0 ? [plural(note.images.length, "image")] : []),
+  ];
+  if (marks.length === 0) {
     return undefined;
   }
-  return (
-    <>
-      {note.agent && <span>agent</span>}
-      {note.agent && note.about && " "}
-      {note.about && <span>{note.about}</span>}
-    </>
-  );
+  return marks.map((mark, at) => (
+    <span key={mark}>
+      {at > 0 && " "}
+      {mark}
+    </span>
+  ));
 }
 
-/** A note's first image, under its text: decorative, as the text says what the note is. */
-function Image({ note }: { note: InboxNote }) {
-  const repo = useRepository();
-  const first = imagePath(note.images[0]);
-  return first ? <Thumbnail alt="" src={repoPath(repo, first)} /> : null;
+/** What a note's row gets from the inbox's images: its images under it, and its fields' paste. */
+type RowImages = Pick<ReturnType<typeof useInboxImages>, "imagesOf" | "withPaste">;
+
+/** A note's row whose field, and its nested rows' fields, give their pasted images to `note`. */
+function withNotePaste(row: WorkRow, note: InboxNote, images: RowImages): WorkRow {
+  const paste = images.withPaste(note);
+  const field = (one: WorkRow): WorkRow => {
+    const { editor } = one;
+    return editor ? { ...one, editor: (hooks) => paste(editor(hooks)) } : one;
+  };
+  return { ...field(row), ...(row.children ? { children: row.children.map(field) } : {}) };
+}
+
+/**
+ * A category's last row, which adds a note: the keyboard's cursor stops on it, and Enter opens a
+ * new row at the category's end, as a section of the priorities does. The notes without a category
+ * are the inbox's own: theirs only says "Add".
+ */
+function addRow(section: { id: string; items: ReadonlyArray<unknown> }, name?: string): WorkRow {
+  return {
+    href: "",
+    icon: "uraeda:plus" as const,
+    isAdd: true,
+    isFixed: true,
+    key: `add:${section.id}`,
+    lines: [],
+    spot: { index: section.items.length, section: section.id },
+    text: name === undefined ? "Add" : `Add to ${name}`,
+  };
 }
 
 /** Writes a change: a refusal is its message, and a conflict reads the inbox again. */
@@ -175,6 +208,7 @@ function sectionsOf({
   actions,
   categoryOf,
   here,
+  images,
   onRefused,
   outline,
   renaming,
@@ -182,6 +216,7 @@ function sectionsOf({
   actions: Actions;
   categoryOf: (section: string) => string | undefined;
   here: (path: string) => string;
+  images: RowImages;
   onRefused: (message: string | undefined) => void;
   outline: InboxOutline;
   renaming: { count: number; name: string } | undefined;
@@ -201,7 +236,7 @@ function sectionsOf({
         ? {}
         : {
             menu: (
-              <CategoryMenu
+              <DeleteCategoryButton
                 count={section.items.length}
                 name={name}
                 onRefused={onRefused}
@@ -221,38 +256,24 @@ function sectionsOf({
           const note = item.source;
           const href = here(`/inbox/${item.key}`);
           const { isWritten, ...drawn } = outline.rowOf(item, { index, section: section.id }, href);
-          if (note) {
-            placedOf.set(item.key, { category: name, index, note });
+          if (!note) {
+            return { ...drawn, editsInPlace: isWritten, href, text: plain(item.spans) };
           }
-          return {
+          placedOf.set(item.key, { category: name, index, note });
+          const row: WorkRow = {
             ...drawn,
             // A note that is a draft opens its draft's page, as a line with a draft does.
-            editsInPlace: isWritten && note?.draft === undefined,
+            editsInPlace: isWritten && note.draft === undefined,
             href,
+            image: images.imagesOf(note),
             // The row is one link: a link of its text, like a note's draft, would nest in it.
-            ...(note
-              ? {
-                  image: <Image note={note} />,
-                  label: <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />,
-                  marks: marksOf(note),
-                }
-              : {}),
+            label: <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />,
+            marks: marksOf(note),
             text: plain(item.spans),
           };
+          return withNotePaste(row, note, images);
         }),
-        // The category's last row adds a note: the keyboard's cursor stops on it, and Enter opens a
-        // new row at the category's end, as a section of the priorities does. The notes without a
-        // category are the inbox's own: theirs only says "Add".
-        {
-          href: addHref,
-          icon: "uraeda:plus" as const,
-          isAdd: true,
-          isFixed: true,
-          key: `add:${section.id}`,
-          lines: [],
-          spot: { index: section.items.length, section: section.id },
-          text: name === undefined ? "Add" : `Add to ${title}`,
-        },
+        { ...addRow(section, name), href: addHref },
       ],
       title,
       tone: "neutral",
@@ -312,6 +333,7 @@ export function InboxList({
   const categoryOf = (section: string) =>
     categories.find((category) => sectionId(category.name) === section)?.name;
   const { onMove, outline } = useInboxOutline(inbox, run, onRefused, categoryOf);
+  const images = useInboxImages({ categoryOf, inbox, onRefused, outline });
   const follow = useFollow(outline.follow, select);
   const moving = useMovePicker(categories);
   const choice = useCategoryKeys(categories, actions, onNewCategory, onRefused);
@@ -319,6 +341,7 @@ export function InboxList({
     actions,
     categoryOf,
     here,
+    images,
     onRefused,
     outline,
     renaming: choice.renaming,
@@ -342,41 +365,45 @@ export function InboxList({
 
   return (
     <>
-      <WorkList
-        follow={follow}
-        onAddBeside={(_section, row, isAbove) => outline.onAddBeside(row, isAbove)}
-        onDelete={outline.onDelete}
-        onMove={onMove}
-        onNest={outline.onNest}
-        onOpen={open}
-        onOutline={outline.onOutline}
-        rowActions={[
-          {
-            icon: "uraeda:flag",
-            isFor: (row) => row.parent === undefined,
-            keys: "p",
-            label: "promote",
-            run: (row) => {
-              const placed = placedOf.get(row.key);
-              if (placed) {
-                promote.start(placed);
-              }
+      <AttachStatus status={images.status} />
+      {images.dropZone(
+        <WorkList
+          follow={follow}
+          onAddBeside={(_section, row, isAbove) => outline.onAddBeside(row, isAbove)}
+          onDelete={outline.onDelete}
+          onMove={onMove}
+          onNest={outline.onNest}
+          onOpen={open}
+          onOutline={outline.onOutline}
+          onSelected={images.onSelected}
+          rowActions={[
+            {
+              icon: "uraeda:flag",
+              isFor: (row) => row.parent === undefined,
+              keys: "p",
+              label: "promote",
+              run: (row) => {
+                const placed = placedOf.get(row.key);
+                if (placed) {
+                  promote.start(placed);
+                }
+              },
             },
-          },
-        ]}
-        sectionPicker={{
-          icon: "uraeda:layers",
-          keys: "c",
-          label: "category",
-          open: (row, moveTo) => {
-            const from = sections.find((section) =>
-              section.rows.some((one) => one.key === row.key),
-            );
-            moving.open(from?.id ?? "", moveTo);
-          },
-        }}
-        sections={sections}
-      />
+          ]}
+          sectionPicker={{
+            icon: "uraeda:layers",
+            keys: "c",
+            label: "category",
+            open: (row, moveTo) => {
+              const from = sections.find((section) =>
+                section.rows.some((one) => one.key === row.key),
+              );
+              moving.open(from?.id ?? "", moveTo);
+            },
+          }}
+          sections={sections}
+        />,
+      )}
       {moving.picker}
       {promote.picker}
       {choice.picker}
