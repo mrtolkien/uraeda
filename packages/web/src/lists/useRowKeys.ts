@@ -1,7 +1,7 @@
 // The keys a list gives its rows beyond moving: `o` adds beside the row, in its section, `i` turns
 // it into its editor in place, `m` puts it in the move mode. Each is bound only where the list can
 // do it, and acts on the row the focus is on, or the selected one (see `useListKeys`'s `rowKeys`).
-// The state they set is what `Card` reads: which card is edited, and which card's menu is held open.
+// The state they set is what `Card` reads: which card is edited.
 import { useCallback, useState } from "react";
 import { deleteLine, useConfirm } from "../fields/Confirm.tsx";
 import type { RowState, WorkRow } from "./Card.tsx";
@@ -287,54 +287,39 @@ function barOf(
 
 /**
  * The state the row keys set, as `Card` reads it: which card is edited, and whether its editor
- * holds unsaved text; which card's menu is open, and which one a key opened; and the key of a line
- * just saved in its card, until the list took the focus to it (`onRefocused`).
+ * holds unsaved text; and the key of a line just saved in its card, until the list took the focus
+ * to it (`onRefocused`).
  */
 function useRowState(rows: ReadonlyArray<WorkRow>, select: (key: string) => void) {
   const [editing, setEditing] = useState<string>();
-  const [menu, setMenu] = useState<string>();
-  const [keyed, setKeyed] = useState<string>();
   const [renamed, setRenamed] = useState<string>();
   const onRefocused = useCallback(() => setRenamed(undefined), []);
   // Whether the editor open holds unsaved text.
   const [isDirty, setDirty] = useState(false);
-  // A card that left the list, renamed or deleted, takes its editor and its menu with it.
-  const isShown = (key: string | undefined) => rows.some((row) => row.key === key);
-  if (editing !== undefined && !isShown(editing)) {
+  // A card that left the list, renamed or deleted, takes its editor with it.
+  if (editing !== undefined && !rows.some((row) => row.key === editing)) {
     setEditing(undefined);
-  }
-  if (menu !== undefined && !isShown(menu)) {
-    setMenu(undefined);
-    setKeyed(undefined);
   }
 
   const state: RowState = {
     editing,
-    menu,
     onDirty: setDirty,
     onEdited: () => setEditing(undefined),
     // The saved line has a new key: it is the selected one, and gets the focus once it is drawn.
-    onMenu: (key, isOpen) => {
-      setMenu((now) => (isOpen ? key : now === key ? undefined : now));
-      if (!isOpen) {
-        setKeyed((now) => (now === key ? undefined : now));
-      }
-    },
     onRenamed: (key) => {
       select(key);
       setRenamed(key);
     },
   };
-  return { editing, isDirty, keyed, onRefocused, renamed, setEditing, setKeyed, setMenu, state };
+  return { editing, isDirty, onRefocused, renamed, setEditing, state };
 }
 
 /**
  * The row keys of a list whose `sections` are in the order they show, and the state they set.
  * `onAddBeside(section, row)` is given by a list that adds in a place: its `o`. `i` does nothing
- * while another card's editor holds unsaved text (R83). `i` and `m` select
- * their row, so the focus has a card to return to, though a Tab put it there. `held` is the key of
- * the card whose editor or key-opened menu holds the focus, until it closes: the list takes the focus
- * back to the selected card then. `renamed` is the key of a line just saved in its card, until the
+ * while another card's editor holds unsaved text (R83). `i` selects its row, so the focus has a
+ * card to return to, though a Tab put it there. `held` is the key of the card whose editor holds
+ * the focus, until it closes: the list takes the focus back to the selected card then. `renamed` is the key of a line just saved in its card, until the
  * list took the focus to it (`onRefocused`): its key changed with its text, so it is a new card.
  */
 export function useRowKeys(
@@ -354,8 +339,7 @@ export function useRowKeys(
 ) {
   const confirm = useConfirm();
   const rows = sections.flatMap((section) => section.rows);
-  const { editing, isDirty, keyed, onRefocused, renamed, setEditing, setKeyed, setMenu, state } =
-    useRowState(rows, select);
+  const { editing, isDirty, onRefocused, renamed, setEditing, state } = useRowState(rows, select);
 
   const keys: Array<BarKey> = [
     ...(onAddBeside === undefined ? [] : addKeys(sections, rows, onAddBeside)),
@@ -384,24 +368,9 @@ export function useRowKeys(
     ...actionKeys(rows, select, rowActions),
     ...(onPickSection === undefined ? [] : [pickerKey(rows, select, onPickSection)]),
   );
-  // With item moves, `m` puts the row in the move mode, whose keys move it (`useListKeys`); else it
-  // opens the card's menu.
+  // With item moves, `m` puts the row in the move mode, whose keys move it (`useListKeys`).
   if (onMoveMode !== undefined) {
     keys.push(moveModeKey(rows, onMoveMode));
-  } else if (rows.some((row) => row.menu !== undefined)) {
-    keys.push({
-      bar: { isFor: (row) => row.menu !== undefined, keys: "m" },
-      keys: "m",
-      label: "move",
-      run: (at) => {
-        if (rows[at]?.menu === undefined) {
-          return false;
-        }
-        select(rows[at].key);
-        setMenu(rows[at].key);
-        setKeyed(rows[at].key);
-      },
-    });
   }
   /**
    * Opens the editor of the row `key`, as `i` does: not while another's holds unsaved text. Returns
@@ -420,7 +389,7 @@ export function useRowKeys(
   return {
     barOf: (row: WorkRow) => barOf(row, rows, keys, onOpen),
     edit,
-    held: editing ?? keyed,
+    held: editing,
     keys,
     onRefocused,
     renamed,

@@ -1,8 +1,8 @@
 // A line of the priorities or the inbox as a row of a list: a bullet and its text, three lines at
 // most, its marks before the text, and its sub-lines under it, with no frame of its own. The whole
 // row is one control, stretched over it, and drags from anywhere past 5 px of a mouse press, or
-// after half a second of a touch press (see `SENSORS`). The `…` button shows over its end, and the
-// row the list picked shows what it can do under its text (see `RowBar`). A nested row of an outline
+// after half a second of a touch press (see `SENSORS`). The row the list picked shows what it can
+// do under its text (see `RowBar`). A nested row of an outline
 // is a card of its own, tabbed in by its depth, that the keys select and a drag moves, its own
 // nested rows with it (see `useDragOrder`).
 import { Icon } from "@astryxdesign/core/Icon";
@@ -79,8 +79,6 @@ export interface WorkRow {
   lines: ReadonlyArray<string>;
   /** Its marks, as small text after its own. */
   marks?: ReactNode;
-  /** The `…` button, at the card's corner. */
-  menu?: ReactNode;
   /** A nested row's line: the key of the row it is drawn in. */
   parent?: string;
   /** Where its list places it, as the list knows it: the priorities' place in the file. */
@@ -92,8 +90,8 @@ export interface WorkRow {
 }
 
 /**
- * What the list says of its cards: the one edited in place, the one whose menu is open, and the one
- * whose bar shows, with what its bar holds.
+ * What the list says of its cards: the one edited in place, and the one whose bar shows, with what
+ * its bar holds.
  */
 export type RowState = {
   barOf?: (row: WorkRow) => ReadonlyArray<BarAction>;
@@ -102,7 +100,6 @@ export type RowState = {
   editing?: string;
   /** A field is open, edited or new: nothing drags, as a new row is no row of the file yet. */
   isTyping?: boolean;
-  menu?: string;
   /** The key of the row in the move mode, whose keys move it: framed apart, its bar its moves. */
   moving?: string;
   /** The bar went, as a scroll sends the phone's away: the row stays selected, with no bar. */
@@ -110,25 +107,16 @@ export type RowState = {
   /** The editor of the card edited holds unsaved text, or no longer does. */
   onDirty: (isDirty: boolean) => void;
   onEdited: () => void;
-  /** A card's menu opened or closed: `key` is the card's. */
-  onMenu: (key: string, isOpen: boolean) => void;
   /** The line of the card edited was saved: `key` is the key it has now. */
   onRenamed: (key: string) => void;
 };
 
-/** The list's state of its cards: nothing is edited, and no menu is open, outside a list. */
+/** The list's state of its cards: nothing is edited outside a list. */
 export const RowStateContext = createContext<RowState>({
   onDirty: () => {},
   onEdited: () => {},
-  onMenu: () => {},
   onRenamed: () => {},
 });
-
-/** What a card tells its menu: whether the list holds it open, and the list hearing it open or close. */
-export type MenuState = { isOpen: boolean; onOpenChange: (isOpen: boolean) => void };
-
-/** The menu state of the card around a `…` menu, if it is in a card. */
-export const MenuStateContext = createContext<MenuState | undefined>(undefined);
 
 const styles = stylex.create({
   // The row: a line of the list as a bullet and its text, with no frame of its own. A raw element,
@@ -151,14 +139,6 @@ const styles = stylex.create({
       justifyContent: "center",
       position: "absolute",
       width: "var(--card-bullet-width)",
-    },
-    // The `…` button's opacity, which `CardMenu` reads: shown under the pointer, on keyboard focus
-    // within the card, and always when the pointer cannot hover, a touch screen.
-    "--menu-opacity": {
-      ":has(:focus-visible)": 1,
-      ":hover": 1,
-      "@media (hover: none)": 1,
-      default: 0,
     },
     // No margin: a card lifted by a drag is positioned from its border box, and a margin would
     // offset it. The whole row is tappable: on a touch screen as tall as a control, the theme's
@@ -213,26 +193,6 @@ const styles = stylex.create({
     position: "absolute",
     width: "var(--card-icon-width)",
   },
-  // The `…` button, over the end of the text where it shows (on hover, or selected): the text takes
-  // the card's whole width, and the button hides what is under it with the card's own background.
-  menu: {
-    alignItems: "center",
-    backgroundColor: colorVars["--color-background-body"],
-    display: "flex",
-    // The card's inner height, less the focus ring drawn just inside its border: the button never
-    // covers the border or the ring.
-    insetBlock: focusVars["--focus-outline-width"],
-    insetInlineEnd: focusVars["--focus-outline-width"],
-    opacity: "var(--menu-opacity, 1)",
-    paddingInline: spacingVars["--spacing-1"],
-    position: "absolute",
-    // Over the stretched link, so a press on it reaches it.
-    zIndex: 2,
-  },
-  menuOpen: { opacity: 1 },
-  menuSelected: { backgroundColor: colorVars["--color-accent-muted"] },
-  // A selected row shows its `…` button, over its tint and bar (`pickedStyles.picked`).
-  selected: { "--menu-opacity": 1 },
   // A row in the move mode: a dashed frame all around it, in the accent, over the focus ring, as
   // a row picked up.
   moving: {
@@ -365,29 +325,6 @@ function Sublines({ lines }: { lines: ReadonlyArray<string> }) {
   ));
 }
 
-/** The card's `…` menu, over the end of its text, told by the list whether it is open. */
-function MenuSlot({ isSelected, row }: { isSelected: boolean; row: WorkRow }) {
-  const state = useContext(RowStateContext);
-  return (
-    <span
-      {...stylex.props(
-        styles.menu,
-        isSelected && styles.menuSelected,
-        state.menu === row.key && styles.menuOpen,
-      )}
-    >
-      <MenuStateContext
-        value={{
-          isOpen: state.menu === row.key,
-          onOpenChange: (isOpen) => state.onMenu(row.key, isOpen),
-        }}
-      >
-        {row.menu}
-      </MenuStateContext>
-    </span>
-  );
-}
-
 /**
  * One row, a line's or a nested one, tabbed in by its depth. A row that moves is a sortable of its
  * section, dragged from anywhere, with reduced motion jumping to its place; a fixed one, such as a
@@ -452,7 +389,6 @@ export function Card({
           pickedStyles.ringWithin,
           row.icon !== undefined && styles.iconed,
           isSelected && pickedStyles.picked,
-          isSelected && styles.selected,
           state.moving === row.key && styles.moving,
           isDragging && styles.lifted,
         )}
@@ -477,8 +413,6 @@ export function Card({
         {/* Only on the selected row, never on hover alone: it floats, and pushes no row. */}
         {isSelected && row.image}
         <Bar isEditing={isEditing} row={row} />
-        {/* After the link, so Tab from the card reaches it; over the link by its z-index. */}
-        {row.menu !== undefined && <MenuSlot isSelected={isSelected} row={row} />}
       </div>
     </li>
   );
