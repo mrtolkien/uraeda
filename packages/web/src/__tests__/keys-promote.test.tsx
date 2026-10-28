@@ -77,4 +77,6 @@ test("p on a note that links a draft offers no line to go under, and a level kee
       "- Benchmarks: after the runner is ready\n- [Dark mode](drafts/dark-mode.md)\n",
     ),
   );
+  // The move ends on its toast, once its line is read back: the test ends after it.
+  await screen.findByText(/Moved to Later/);
 });

@@ -51,9 +51,21 @@ async function putBack(fate: Fate, placed: Placed) {
  * Undo tells it by that key from a line of the same text the human writes later.
  */
 async function movedKey(fate: Fate, section: string, text: string) {
-  const now = await readPriorities(fate);
-  const entries = now.sections.find((s) => s.section === section)?.entries ?? [];
+  const now = await movedInto(fate);
+  const entries = now?.sections.find((s) => s.section === section)?.entries ?? [];
   return entries.findLast((entry) => entry.text === text)?.key;
+}
+
+/**
+ * The priorities just after a note moved into them. The move is written by then: a read that fails
+ * only loses the row to select, so it gives nothing rather than a rejection nothing would catch.
+ */
+async function movedInto(fate: Fate) {
+  try {
+    return await readPriorities(fate);
+  } catch {
+    return undefined;
+  }
 }
 
 /** A note's change, run as `useNoteActions` runs it: its refusal shown, a conflict read again. */
@@ -116,9 +128,9 @@ function useMovesOut(
     }
     left();
     // The note is the line's last own item now: its row, by its key.
-    const now = await readPriorities(fate);
+    const now = await movedInto(fate);
     const children =
-      now.sections.flatMap((s) => s.entries).find((entry) => entry.key === line.key)?.children ??
+      now?.sections.flatMap((s) => s.entries).find((entry) => entry.key === line.key)?.children ??
       [];
     const moved = children.findLast((child) => child.depth === 1)?.key;
     // The line's first words: a toast is no place for a whole line.
