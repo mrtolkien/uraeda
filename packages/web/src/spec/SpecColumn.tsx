@@ -8,12 +8,11 @@ import { type ColumnSheet, ColumnStatusLine } from "../layout/ColumnStatusLine.t
 import { NavTile, NavTiles } from "../layout/NavBar.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { Review } from "../review/useReview.tsx";
-import { ColumnGo, ColumnVerdict } from "./columnGo.ts";
+import { ColumnGo } from "./columnGo.ts";
 import { commentsLabel } from "./CommentCount.tsx";
 import type { File } from "./parts.ts";
 import { ReviewTab } from "./ReviewTab.tsx";
 import { toVerdict } from "../ReviewVerdict.tsx";
-import { afterOverlayCloses } from "../layout/useBackCloses.ts";
 import { afterSheetCloses } from "../roundJump.ts";
 import { useSheetTab } from "../layout/useSheetTab.ts";
 
@@ -49,17 +48,6 @@ function PhoneParts({
     close();
     afterSheetCloses(run);
   };
-  const commit = (verdict: () => Promise<boolean>) =>
-    new Promise<boolean>((resolve) => {
-      close();
-      afterOverlayCloses(SHEETS.review, async () => {
-        const done = await verdict();
-        if (!done) {
-          setSheet("review");
-        }
-        resolve(done);
-      });
-    });
   const buttons = (
     <NavTiles label={`The ${review ? "review's" : "page's"} parts`}>
       <NavTile
@@ -100,11 +88,7 @@ function PhoneParts({
           {
             key: "review",
             label: SHEETS.review,
-            panel: (
-              <ColumnGo value={go}>
-                <ColumnVerdict value={commit}>{review.panel}</ColumnVerdict>
-              </ColumnGo>
-            ),
+            panel: <ColumnGo value={go}>{review.panel}</ColumnGo>,
           },
         ]
       : []),
@@ -133,7 +117,7 @@ export function SpecColumn({
   review: Review | undefined;
 }) {
   const wide = !isNarrow(useWidthClass());
-  const reviewPanel = review && <ReviewTab file={file} review={review} />;
+  const reviewPanel = review && <ReviewTab review={review} />;
   const count = review?.comments.length ?? 0;
   const session = extra.find((tab) => tab.key === "session");
   const panels: Array<ColumnPanel> = [

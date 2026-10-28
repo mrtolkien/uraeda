@@ -11,12 +11,3 @@ export const ColumnGo = createContext<(run: () => void) => void>((run) => run())
 export function useColumnGo() {
   return use(ColumnGo);
 }
-
-/**
- * `commit(verdict)` commits a verdict from the Review panel: at once in the column; from a phone's
- * sheet once the sheet is closed and its history entry gone, so the page that follows the verdict
- * leaves no entry of it, and the sheet opens again on a refusal, to show it.
- */
-export const ColumnVerdict = createContext<(verdict: () => Promise<boolean>) => Promise<boolean>>(
-  (verdict) => verdict(),
-);
