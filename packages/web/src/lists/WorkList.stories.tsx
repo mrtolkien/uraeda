@@ -64,9 +64,15 @@ export const Selected: Story = {
 
 /**
  * The inbox as a pane per category, every note the same card, with its children, the purpose line
- * under the heading, "New category", and each title renamed in place, with its menu in the border.
+ * under the heading, "New category", and each title renamed in place, with its delete in the border.
  */
-export const Inbox: Story = { render: () => <InboxPage /> };
+export const Inbox: Story = {
+  render: () => (
+    <ConfirmHost>
+      <InboxPage />
+    </ConfirmHost>
+  ),
+};
 
 /** Asks what becomes of the category UI's three notes, as its delete does, once drawn. */
 function DeleteQuestion() {

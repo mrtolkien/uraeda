@@ -1,4 +1,5 @@
-// The phone's frosted glass, under what floats over the page: a row's actions, and the bottom bar.
+// The frosted glass under what floats over the page: the phone's row actions and bottom bar, and
+// the leader menu.
 import * as stylex from "@stylexjs/stylex";
 
 export const glassStyles = stylex.create({
