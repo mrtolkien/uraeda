@@ -234,3 +234,21 @@ fn a_line_drops_under_an_earlier_lines_nested_item() {
     assert!(dropped.contains("- Web UI\n  - Pages\n  - Keys\n    - Listener\n      - Hooks\n"));
     assert!(dropped.ends_with("## Next\n\n- Runner\n"));
 }
+
+/// Each nested item is keyed under its item by the slug of its text, at any depth, two items of
+/// one text apart: what a row is found again by once a write moved it.
+#[test]
+fn nested_items_are_keyed_under_their_item_at_their_depth() {
+    let text = "# Inbox\n\n- One\n  - Same\n    - Deep\n  - Same\n";
+
+    let note = &inbox::read(text).categories[0].notes[0];
+    let line = &priorities::read(LINES, None).sections[1].entries[1];
+
+    let read: Vec<(&str, u32)> = note
+        .children
+        .iter()
+        .map(|child| (child.key.as_str(), child.depth))
+        .collect();
+    assert_eq!(read, [("one/same", 1), ("one/deep", 2), ("one/same-2", 1)]);
+    assert_eq!(line.children[0].key, "listener/hooks");
+}
