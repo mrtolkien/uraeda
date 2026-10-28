@@ -92,13 +92,17 @@ test("a comment being written is not replaced by an answer changed elsewhere", a
   expect(saveButton("Q2").hasAttribute("disabled")).toBe(false);
 });
 
-test("Submit saves a comment not saved yet", async () => {
+/** The round's single Commit, at its end, under its notes: not the app's way to the Commit page. */
+const commitButton = () =>
+  within(document.getElementById("notes") as HTMLElement).getByRole("button", { name: "Commit" });
+
+test("Commit saves a comment not saved yet", async () => {
   const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
   await renderPage(PAGE, repo);
   await screen.findByText("How does your iPhone reach the server?");
 
   await type(comment("Q2"), "unsaved");
-  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await tap(commitButton());
 
   await waitFor(() =>
     expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(
@@ -108,8 +112,8 @@ test("Submit saves a comment not saved yet", async () => {
   expect(git(repo, "show", `${FOLDER}:${ROUND}`)).toContain("**Answer:** A: unsaved");
 });
 
-/** Codex review: Submit stops when what was typed could not be saved. */
-test("Submit stops when an answer could not be saved", async () => {
+/** Codex review: Commit stops when what was typed could not be saved. */
+test("Commit stops when an answer could not be saved", async () => {
   const repo = answered({ Q1: "A", Q2: "A", Q3: "A" });
   await renderPage(PAGE, repo);
   await screen.findByText("How does your iPhone reach the server?");
@@ -117,7 +121,7 @@ test("Submit stops when an answer could not be saved", async () => {
   writeFileSync(path, readFileSync(path, "utf8").replace("**Answer:** A", "**Answer:** B"));
 
   await type(comment("Q1"), "mine");
-  await tap(screen.getByRole("button", { name: "Submit answers" }));
+  await tap(commitButton());
 
   expect(await screen.findByText(/Some answers were not saved/)).toBeTruthy();
   expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).not.toBe(
@@ -125,7 +129,8 @@ test("Submit stops when an answer could not be saved", async () => {
   );
 });
 
-const SUBMITTED = "discovery(web-ui): answer round 01";
+/** The subject of the round's answers' commit. */
+const ROUND_COMMIT = "discovery(web-ui): answer round 01";
 
 /** The first point the fixture's round settled without the human, and the second. */
 const COMMITS = "The actions' commits move into the core";
@@ -177,16 +182,18 @@ async function editThenLeave(subject: string, text: string, other: string) {
   await tap(await settledPoint(other));
 }
 
-/** The round's notes as committed by Submit. */
-async function submittedNotes(repo: string) {
-  await tap(screen.getByRole("button", { name: "Submit answers" }));
-  await waitFor(() => expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(SUBMITTED));
+/** The round's notes as committed by Commit. */
+async function committedNotes(repo: string) {
+  await tap(commitButton());
+  await waitFor(() =>
+    expect(git(repo, "log", "-1", "--format=%s", FOLDER).trim()).toBe(ROUND_COMMIT),
+  );
   const committed = git(repo, "show", `${FOLDER}:${ROUND}`);
   return committed.slice(committed.indexOf("**Notes:**")).trimEnd();
 }
 
 /** Final review: an edit pending on a later comment follows it as a removal renumbers it. */
-test("Submit writes the edit of a comment renumbered by a removal into that comment", async () => {
+test("Commit writes the edit of a comment renumbered by a removal into that comment", async () => {
   const { repo } = withTwoComments();
   await renderPage(PAGE, repo);
   await editThenLeave(WRITTEN, "Edited delete comment.", COMMITS);
@@ -196,5 +203,5 @@ test("Submit writes the edit of a comment renumbered by a removal into that comm
     expect(screen.queryByRole("group", { name: `Your comment on "${COMMITS}"` })).toBeNull(),
   );
 
-  expect(await submittedNotes(repo)).toBe(`**Notes:**\n\n- **${WRITTEN}**: Edited delete comment.`);
+  expect(await committedNotes(repo)).toBe(`**Notes:**\n\n- **${WRITTEN}**: Edited delete comment.`);
 });

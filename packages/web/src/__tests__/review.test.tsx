@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
+import { GENERAL_ID } from "../YourReview.tsx";
 import { fixture, fixtureRepo, git, renderPage, serverFetch, today } from "./helpers.tsx";
 
 const FOLDER = "2026-10-06-recurring-tasks";
@@ -73,12 +74,39 @@ async function click(element: HTMLElement) {
   });
 }
 
-async function comment(text: string) {
-  const field = await screen.findByLabelText("Comment text");
-  await act(async () => {
-    fireEvent.change(field, { target: { value: text } });
+/**
+ * The forms of the comments being written: not the general comment's field, always at the
+ * review's end, but those a tap on a block or an Edit opens.
+ */
+function writing() {
+  return screen
+    .queryAllByRole("form", { name: "Comment" })
+    .filter((form) => !form.closest(`#${GENERAL_ID}`));
+}
+
+/** The form of the comment being written, once it shows. */
+function form() {
+  return waitFor(() => {
+    expect(writing()).toHaveLength(1);
+    return writing()[0]!;
   });
-  await click(screen.getByRole("button", { name: /^(Add|Save) comment$/ }));
+}
+
+/** The field of the comment being written, once it shows. */
+async function field() {
+  return within(await form()).getByLabelText("Comment text") as HTMLTextAreaElement;
+}
+
+/** The general comment's field, at the review's end. */
+function generalField() {
+  const end = document.getElementById(GENERAL_ID) as HTMLElement;
+  return within(end).getByLabelText("Comment text") as HTMLTextAreaElement;
+}
+
+/** Writes the comment being written, and sends it. */
+async function comment(text: string) {
+  await typeComment(text);
+  await click(within(await form()).getByRole("button", { name: /^(Add|Save) comment$/ }));
 }
 
 /**
@@ -88,7 +116,7 @@ async function comment(text: string) {
  */
 async function saved(name: string | RegExp, text: string) {
   await waitFor(() => {
-    expect(screen.queryByLabelText("Comment text")).toBeNull();
+    expect(writing()).toHaveLength(0);
     expect(screen.getByRole("group", { name }).textContent).toContain(text);
   });
   return screen.getByRole("group", { name });
@@ -135,11 +163,11 @@ function lineOf(r: string, phrase: string) {
   return lines.findIndex((line) => line.includes(phrase)) + 1;
 }
 
-/** Types in the comment field, without sending it. */
-async function typeComment(text: string) {
-  const field = await screen.findByLabelText("Comment text");
+/** Types in a comment field, the one being written's by default, without sending it. */
+async function typeComment(text: string, into?: HTMLElement) {
+  const target = into ?? (await field());
   await act(async () => {
-    fireEvent.change(field, { target: { value: text } });
+    fireEvent.change(target, { target: { value: text } });
   });
 }
 
@@ -190,9 +218,16 @@ function shown(text: string) {
 /** The last commit's subject on the feature's branch. */
 const lastCommit = (r: string) => git(r, "log", "-1", "--format=%s", FOLDER).trim();
 
-/** Opens a general comment and picks an image for it, linked once its upload ends. */
-async function generalWithImage() {
-  await click(await screen.findByRole("button", { name: "Add a general comment" }));
+/** US2's second more scenario, under the first. */
+const SECOND = "completes it on Thursday the 8th, Then it is due Monday the 12th";
+
+/**
+ * Opens a comment on a block and picks an image for it, linked once its upload ends: the general
+ * comment's field at the review's end takes no image of its own.
+ */
+async function commentWithImage(phrase: string) {
+  await click(await scenario(phrase));
+  await form();
   await pick([png("login.png")]);
 }
 
@@ -207,7 +242,7 @@ test("Request changes during an upload is refused, and commits nothing", async (
   await comment("Say it stays.");
   await saved(/^C1/, "Say it stays.");
   const before = lastCommit(r);
-  await generalWithImage();
+  await commentWithImage(SECOND);
   await waitFor(() => expect(held.waiting).toHaveLength(1));
 
   await click(screen.getByRole("button", { name: "Request changes" }));
@@ -215,21 +250,19 @@ test("Request changes during an upload is refused, and commits nothing", async (
   await waitFor(() => expect(shown(UNSENT)).toHaveLength(1));
   expect(lastCommit(r)).toBe(before);
   await held.release();
-  await waitFor(() =>
-    expect((screen.getByLabelText("Comment text") as HTMLTextAreaElement).value).toContain(
-      "![login](images/login.webp)",
-    ),
-  );
+  await waitFor(async () => expect((await field()).value).toContain("![login](images/login.webp)"));
   expect(lastCommit(r)).toBe(before);
 });
 
-/** US5 10: a comment open with text holds the verdict back, images or not (R16). */
+/**
+ * US5 10: a comment open with text holds the verdict back, images or not (R16): the general
+ * comment's field, always at the review's end, too.
+ */
 test("a verdict with an open comment holding text is refused", async () => {
   const r = repo();
   await renderPage(PAGE, r);
   const before = lastCommit(r);
-  await click(await screen.findByRole("button", { name: "Add a general comment" }));
-  await typeComment("Half a tho");
+  await typeComment("Half a tho", await waitFor(generalField));
 
   await click(screen.getByRole("button", { name: "Approve" }));
 
@@ -258,8 +291,9 @@ function longSpec(blocks = 30) {
 const LINE_40 = "Paragraph 5 of the long spec.";
 const LINE_52 = "Paragraph 11 of the long spec.";
 
-/** The comment field's text. */
-const commentText = () => (screen.getByLabelText("Comment text") as HTMLTextAreaElement).value;
+/** The text of the comment being written. */
+const commentText = () =>
+  (within(writing()[0]!).getByLabelText("Comment text") as HTMLTextAreaElement).value;
 
 /** The page shown again, as after a reload: the store reads `localStorage` anew. */
 async function reload(r: string) {
@@ -278,13 +312,15 @@ test("a comment restored after the reviewed commit changed is a general one", as
 
   await reload(r);
 
-  const form = await screen.findByRole("form", { name: "Comment" });
-  expect(within(form).getByText("General")).toBeTruthy();
+  // The general draft restored takes the place of the end's own general field.
+  const restored = await form();
+  expect(within(restored).getByText("General")).toBeTruthy();
   await waitFor(() =>
     expect(commentText()).toBe("On lines 40–52 of the previous version: Too vague"),
   );
+  expect(document.getElementById(GENERAL_ID)).toBeNull();
   expect(document.querySelector("button[aria-pressed='true']")).toBeNull();
-  await click(screen.getByRole("button", { name: "Add comment" }));
+  await click(within(restored).getByRole("button", { name: "Add comment" }));
   await saved("C1 · general", "On lines 40–52 of the previous version: Too vague");
 });
 
@@ -324,13 +360,12 @@ test("an edit of a review comment follows it when a comment before it is removed
   );
 
   await waitFor(() => expect(screen.queryByRole("group", { name: "C1 · line 40" })).toBeNull());
-  const form = screen.getByRole("form", { name: "Comment" });
-  expect(within(form).getByText("Editing C1")).toBeTruthy();
+  expect(within(await form()).getByText("Editing C1")).toBeTruthy();
   expect(commentText()).toBe("Second, edited.");
 
   await reload(r);
 
-  const restored = await screen.findByRole("form", { name: "Comment" });
+  const restored = await form();
   expect(within(restored).getByText("Editing C1")).toBeTruthy();
   expect(commentText()).toBe("Second, edited.");
   await click(within(restored).getByRole("button", { name: "Save comment" }));
