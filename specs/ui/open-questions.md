@@ -112,6 +112,27 @@ these raw elements, each now marked with its reason, for the human to approve or
 - `lists/OutlineEditor.tsx`: the row's field, a `textarea` in the row's own font, with no frame,
   growing with its text.
 
+## From the branch's review
+
+- **A note's images.** Attaching images to an inbox note went with the note's view (`5fbcc8b7`),
+  while the merged record `specs/done/2026-10-20-inbox-images.md` still has "Add images" on a note's
+  page. Was dropping it meant, or should images come back on the note's row?
+- **Not fixed, left for later:**
+  - The outline's writes (indent, outdent, drop, the six new mutations, the server's outline and
+    drop resolvers) have no tests of their own.
+  - A row's depth and parent are walked in four places (`WorkList`'s helpers, `useOutline`,
+    `useDragOrder`, `itemMoves`), and the inbox is read by two paths (`api/inbox_edits.rs`,
+    `actions/inbox.rs`).
+  - A drop naming both a place and a section uses one silently, and an empty `under` is accepted.
+  - `lists/rowShifts.ts` measures every row on every render, part of the sluggishness
+    `specs/PRIORITIES.md` lists.
+  - Some test helpers prove less than they look: a non-focusable wrapper passes as the row's focus
+    in `keys-row-editing`, the leader tree's rows are matched by text prefix, and a wait in
+    `keys-leader` checks nothing. Untested: the repository picker's click, the category delete's
+    answers, and the arrows while a `g` waits.
+  - The checklist in `specs/drafts/full-interactive-ui-pass-manual-small-fixes.md` is behind the
+    work: it is the human's, so it was left as it is.
+
 ## Left behind
 
 - The sidebar's cards still receive their `…` menu's actions (`actions`, `onSettings`), which they
