@@ -27,7 +27,7 @@ type Story = StoryObj<typeof meta>;
 export const AutoApproved: Story = {};
 
 /**
- * The same plan waiting for review: the same panes, the column's Review tab, and the verdict at the
+ * The same plan waiting for review: the same panes, then its comments and the verdict at the
  * page's end, with the risk tier and plan review.
  */
 export const Waiting: Story = { args: { folder: SPEC_PAGES.planWaiting } };

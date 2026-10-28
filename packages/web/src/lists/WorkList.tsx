@@ -135,9 +135,9 @@ function Panes({
  * closes, with the focus. With `isFocused`, the keyboard's focus is put on it, with its ring.
  * `onOpen` opens a card, from a click or Enter, with its link's address. `onAddBeside(section, row)`
  * is what `o` calls for the selected row, where the list adds in a place; a row's `editor` is what
- * `i` shows in its place, and its `menu` is what `m` opens. A drop calls `onMove` with
- * the row's key, its section, and its index among that section's rows on screen; until it
- * resolves, the list stays as the drag left it.
+ * `i` shows in its place, and `m` puts it in the move mode, where the list moves its items. A drop
+ * calls `onMove` with the row's key, its section, and its index among that section's rows on
+ * screen; until it resolves, the list stays as the drag left it.
  */
 export function WorkList(props: WorkListProps) {
   const { isFocused = false, isRoomy = false, layout = "stack", onNest, sections } = props;

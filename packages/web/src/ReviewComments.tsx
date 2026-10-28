@@ -46,7 +46,7 @@ export function usePlacedComments(comments: ReadonlyArray<CommentItem>, tree: Do
   }, [comments, tree]);
 }
 
-/** The element id of a pending comment's note, by its number: where the Review tab jumps. */
+/** The element id of a pending comment's note, by its number: where the phone's Review sheet jumps. */
 export const commentId = (number: number) => `comment-${number}`;
 
 /** A pending comment, with Edit and Remove, its note's id `commentId`. */
