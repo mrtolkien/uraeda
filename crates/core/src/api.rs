@@ -31,6 +31,7 @@ mod files;
 mod history;
 mod inbox_edits;
 mod ledger;
+mod outlines;
 mod preview;
 mod priority_edits;
 mod pulls;
@@ -58,12 +59,12 @@ pub use history::read_history;
 pub use inbox_edits::*;
 pub(crate) use ledger::ledger_hash;
 pub use ledger::{Constitution, Decision, Ledger, Principle, read_ledger};
+pub use outlines::{drop_note, drop_priority, outline_note, outline_priority};
 pub use preview::{checkout_commit, preview};
 pub(crate) use priority_edits::joined_priorities;
 pub use priority_edits::{
-    add_priority, add_priority_and_commit, commit_priorities, discard_priorities, drop_priority,
-    edit_priority, insert_priority, move_priority, outline_priority, read_priorities,
-    remove_priority, undo_committed_priority,
+    add_priority, add_priority_and_commit, commit_priorities, discard_priorities, edit_priority,
+    insert_priority, move_priority, read_priorities, remove_priority, undo_committed_priority,
 };
 pub use pulls::refresh_pull_requests;
 pub use repository_list::{
