@@ -27,7 +27,7 @@ export const proseStyles = stylex.create({
   // The reading size alone, for a control that reads as text, such as a fold's toggle: its font
   // stays the UI's.
   size: { fontSize: "var(--text-reading-size)" },
-  // About 110 characters of text a line, the theme's reading measure.
+  // About 80 characters of prose a line, the theme's reading measure.
   measure: { maxWidth: "var(--size-reading-measure)" },
   // Prose given air, as a round's context or a spec's opening: taller lines.
   airy: { "--text-reading-line": "1.65" },
