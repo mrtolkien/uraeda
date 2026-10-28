@@ -1,7 +1,7 @@
 // A count of pending comments, as the phone's status line and Contents' rows show it: its number,
 // its word read out after it.
-import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
-import { plural } from "../labels.ts";
+import { noun, plural } from "../labels.ts";
+import { SpokenCount } from "../layout/SpokenCount.tsx";
 
 /** "1 comment", "2 comments". */
 export function commentsLabel(count: number) {
@@ -10,10 +10,5 @@ export function commentsLabel(count: number) {
 
 /** "N comments", its number shown, its word read out after it. */
 export function CommentCount({ count }: { count: number }) {
-  return (
-    <>
-      {count}
-      <VisuallyHidden> {count === 1 ? "comment" : "comments"}</VisuallyHidden>
-    </>
-  );
+  return <SpokenCount count={count} word={noun(count, "comment")} />;
 }

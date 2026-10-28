@@ -95,7 +95,12 @@ export function fileStatusBadge(status: string | undefined | null) {
   return FILE_STATUSES[status ?? ""];
 }
 
+/** A count's noun, "note" for 1, "notes" for 2: `many` for a plural other than the noun and "s". */
+export function noun(count: number, one: string, many = `${one}s`) {
+  return count === 1 ? one : many;
+}
+
 /** A count and its noun, "1 note", "2 notes": `many` for a plural other than the noun and "s". */
 export function plural(count: number, one: string, many = `${one}s`) {
-  return `${count} ${count === 1 ? one : many}`;
+  return `${count} ${noun(count, one, many)}`;
 }

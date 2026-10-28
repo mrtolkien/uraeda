@@ -14,14 +14,8 @@ import { useKeys } from "./keys/registry.tsx";
 import { useOpenAddForm } from "./SidebarAdd.tsx";
 import { useCategoryActions } from "./lists/useCategoryActions.ts";
 import { useRestoreScroll } from "./routes.tsx";
-import { plural } from "./labels.ts";
 import { Empty } from "./layout/Empty.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
-
-/** "1 note", "10 notes". */
-export function notes(count: number) {
-  return plural(count, "note");
-}
 
 /** A note's marks, as tags before its text: `agent` in a colour of its own, then its feature's. */
 export function Marks({ note }: { note: InboxNote }) {

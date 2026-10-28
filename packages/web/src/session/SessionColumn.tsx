@@ -9,7 +9,6 @@
 // agent runs sub-agents, or while the address opens it, a Sub-agents panel over the Changes joins
 // it (US3), a tab in the column and in the phone's sheet (ruling R23), which a reload or a width
 // change keeps.
-import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
 import { useFateClient, useView } from "react-fate";
@@ -40,6 +39,7 @@ import { Section } from "./Section.tsx";
 import { STRETCH_PARAMETER, stretchAddress } from "./stretches.ts";
 import { SubagentsPanel, topLevel } from "./SubagentsPanel.tsx";
 import { SessionView } from "../views.ts";
+import { SpokenCount } from "../layout/SpokenCount.tsx";
 
 /** The key of the Sub-agents panel, its tab's in the address. */
 const SUBAGENTS = "subagents";
@@ -51,16 +51,6 @@ const styles = stylex.create({
 
 /** What the session's column draws from: the feature's or the change's folder, and the session. */
 type Of = { folder?: string | undefined; session?: string | undefined };
-
-/** "2 running", its number shown, its word read out after it. */
-function RunningCount({ count }: { count: number }) {
-  return (
-    <>
-      {count}
-      <VisuallyHidden> running</VisuallyHidden>
-    </>
-  );
-}
 
 /**
  * The session column's panels: the Activity over the Changes, a split shown as the Activity's tab;
@@ -95,7 +85,7 @@ function sessionPanels({
     return [splitPanel(activity, changes)];
   }
   const subagents: ColumnPanel = {
-    ...(running === 0 ? {} : { badge: <RunningCount count={running} /> }),
+    ...(running === 0 ? {} : { badge: <SpokenCount count={running} word="running" /> }),
     content: <SubagentsPanel session={session} />,
     icon: "uraeda:users",
     key: SUBAGENTS,
