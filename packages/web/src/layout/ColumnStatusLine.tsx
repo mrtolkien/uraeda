@@ -2,10 +2,16 @@
 // and the sheets they open over the page, the open one kept in the address (`useSheetTab`). The
 // questions page's and the spec's and the plan's status lines are drawn here.
 import { HStack } from "@astryxdesign/core/HStack";
+import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactNode } from "react";
 import { Overlay } from "./Overlay.tsx";
 import { TopBarSlot } from "./TopBarSlot.tsx";
 import type { SheetState } from "./useSheetTab.ts";
+
+const styles = stylex.create({
+  // The bar's whole width and height, as a round's tiles share it.
+  fill: { alignSelf: "stretch", flexGrow: 1 },
+});
 
 /** A sheet of the status line: its tab's key, its overlay's label, its panel, and its height. */
 export type ColumnSheet = {
@@ -32,7 +38,7 @@ export function ColumnStatusLine({
   return (
     <>
       <TopBarSlot>
-        <HStack align="center" gap={1}>
+        <HStack align="center" gap={1} xstyle={styles.fill}>
           {buttons}
         </HStack>
       </TopBarSlot>

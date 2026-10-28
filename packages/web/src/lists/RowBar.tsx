@@ -19,6 +19,7 @@ import {
 import { createPortal } from "react-dom";
 import { KeyCap } from "../keys/KeyCap.tsx";
 import { keepFocus } from "../keys/press.ts";
+import { glassStyles } from "../layout/glass.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useCoverStatusLine } from "../statusHints.tsx";
 
@@ -69,26 +70,14 @@ const styles = stylex.create({
     font: "inherit",
     padding: 0,
   },
-  // The phone's bar: liquid glass, square, floating over the page above the screen's bottom, as
-  // wide as its actions. Tinted a warm amber of its own, not the theme's, over what is behind it,
-  // blurred: its shapes and colours show through, never its words; blurred more, the dim text of
-  // a dark page blends to one flat colour, as if opaque. A bright rim catches the light on its top
-  // edge, and a soft shadow lifts it. One blur every browser draws: Firefox draws no backdrop at
-  // all for one that names an SVG filter.
+  // The phone's bar: liquid glass (`glassStyles`), square, floating over the page above the
+  // screen's bottom, as wide as its actions.
   floating: {
     animationDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "240ms" },
     animationFillMode: "both",
     animationName: rise,
     animationTimingFunction: "cubic-bezier(0.25, 1, 0.5, 1)",
-    backdropFilter: "blur(7px) saturate(1.8)",
-    backgroundColor: "rgb(255 178 102 / 0.1)",
     borderRadius: 0,
-    boxShadow: [
-      "inset 0 0 0 1px rgb(255 226 190 / 0.4)",
-      "inset 0 1px 1px rgb(255 248 236 / 0.75)",
-      "inset 0 -1px 2px rgb(255 190 130 / 0.18)",
-      "0 10px 30px rgb(0 0 0 / 0.28)",
-    ].join(", "),
     display: "flex",
     insetBlockEnd: `calc(env(safe-area-inset-bottom, 0px) + ${spacingVars["--spacing-4"]})`,
     insetInline: 0,
@@ -96,8 +85,6 @@ const styles = stylex.create({
     maxWidth: `calc(100% - 2 * ${spacingVars["--spacing-4"]})`,
     padding: spacingVars["--spacing-1"],
     position: "fixed",
-    // oxlint-disable-next-line stylex/valid-styles -- WebKit's own spelling, which Safari still needs
-    WebkitBackdropFilter: "blur(7px) saturate(1.8)",
     width: "fit-content",
     zIndex: 3,
   },
@@ -283,6 +270,8 @@ function FloatingBar({
       ref={bar}
       role="toolbar"
       {...stylex.props(
+        glassStyles.surface,
+        glassStyles.floating,
         styles.floating,
         keyboard > 0 && styles.overKeyboard(keyboard),
         isAway && styles.sinking,

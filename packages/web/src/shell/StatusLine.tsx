@@ -20,6 +20,8 @@ import { KeyCap } from "../keys/KeyCap.tsx";
 import { keepFocus } from "../keys/press.ts";
 import { useHints, usePress } from "../keys/registry.tsx";
 import { useCountsFit } from "./useCountsFit.ts";
+import { useHidesOnScroll } from "./useHidesOnScroll.ts";
+import { glassStyles } from "../layout/glass.ts";
 import { ruleStyles } from "../layout/rules.ts";
 
 const styles = stylex.create({
@@ -89,6 +91,17 @@ const styles = stylex.create({
     font: "inherit",
     padding: 0,
   },
+  // The phone's bar: on glass, over the page scrolling under it, its controls its whole width.
+  // It slides out of the way as the page scrolls down, its shadow too, and back as it scrolls up.
+  phoneLine: {
+    paddingInline: spacingVars["--spacing-1"],
+    transform: "translateY(0)",
+    transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
+    transitionProperty: "transform",
+    transitionTimingFunction: "ease-out",
+  },
+  phoneHidden: { pointerEvents: "none", transform: "translateY(calc(100% + 2rem))" },
+  phoneSlot: { alignSelf: "stretch", flexGrow: 1 },
   slot: {
     alignItems: "center",
     display: "flex",
@@ -103,7 +116,9 @@ function needsYouPath(entries: Array<Entry>) {
   if (entries.length !== 1 || !only) {
     return "/";
   }
-  return only.kind === "feature" ? statusPath(only.feature, only.status) : sessionIdPath(only.row.id);
+  return only.kind === "feature"
+    ? statusPath(only.feature, only.status)
+    : sessionIdPath(only.row.id);
 }
 
 /** The hints, each its keys then what they do, as the registry holds them. */
@@ -175,15 +190,26 @@ export function StatusLine({ isNarrow, slot }: { isNarrow: boolean; slot: ReactN
 /**
  * The phone's bar: only the page's own controls, such as a round's Next, and only while it has
  * any. The hints are for keys and the counts are on the tabs, Sessions' running and Home's need-you.
+ * It goes as the page scrolls down, out of the reading's way, and comes back as it scrolls up.
  */
 function PhoneBar({ slot }: { slot: ReactNode }) {
   const isCovered = useStatusLineCovered();
+  const isHidden = useHidesOnScroll();
   if (isCovered || slot === null) {
     return null;
   }
   return (
-    <footer aria-label="Status line" {...stylex.props(ruleStyles.above, styles.line)}>
-      <div {...stylex.props(styles.slot)}>{slot}</div>
+    <footer
+      aria-label="Status line"
+      {...stylex.props(
+        styles.line,
+        glassStyles.surface,
+        glassStyles.docked,
+        styles.phoneLine,
+        isHidden && styles.phoneHidden,
+      )}
+    >
+      <div {...stylex.props(styles.slot, styles.phoneSlot)}>{slot}</div>
     </footer>
   );
 }
