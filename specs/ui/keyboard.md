@@ -47,7 +47,8 @@ priorities' `v` to switch between columns and a list. A page never gives a base 
 - **The mouse moves it too.** Hovering a row in a list moves the selection there; a click selects; a
   click on the selected row, or a double click, edits it.
 - **A widget with keys of its own**, like home's grid of cards or a radio group, takes its arrows
-  before the registry does, and leaves a key that a sequence or the leader's menu waits for to them.
+  before the registry does, and leaves a letter typed while a sequence or the leader's menu waits to
+  them.
 
 ## Focus
 

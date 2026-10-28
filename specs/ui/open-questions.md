@@ -56,7 +56,8 @@ Found in a pass over every surface. The ones marked done were fixed in that pass
 - Done: the session page's phone bar uses the bottom bar's tiles, as the round's and the spec's do.
 - Done: the repository picker opens as one dialog on wide screens, whether clicked or opened by
   `Space r`; it opened as a popover on a click.
-- Done: a category's delete is drawn as the shared confirmation, though it asks three ways.
+- Done: a category's delete, a dialog of its own since it asks three ways, is drawn as the shared
+  confirmation is.
 - Done: the phone's row actions show the focus ring; a story's scenarios and an answer under a
   review comment read in the reading font.
 - Done: the picked row's look and the ring around a whole card are one shared style each
@@ -86,6 +87,16 @@ Found in a pass over every surface. The ones marked done were fixed in that pass
   twice; the column's rail is drawn twice.
 - The sessions page writes the picked card's look as CSS, since it styles the sidebar's own cards
   from outside.
+
+## Raw values in custom properties
+
+The lint pass moved about forty raw values, such as a glass tint, a 16 px menu text, a 7.7 px mark's
+offset, or a 3 px bar, out of the style properties the token lint checks and into custom properties
+of the same style, read back with `var()`, as `Pane`'s `--pane-line: 1lh` already did. The look is
+unchanged, but those values are no longer checked against the theme's tokens, which the
+[UI components](../decisions/ui-components.md) decision and [Space and motion](space-and-motion.md)
+ask for. Should each become a theme token, be allowed by name in the lint's configuration with its
+reason, or stay as they are?
 
 ## Astryx gaps to approve
 
