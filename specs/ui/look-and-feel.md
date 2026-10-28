@@ -66,9 +66,10 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 The look is a terminal's, with frosted glass for what floats over the page, as modern Linux desktops
 draw their panels with transparency and blur. The phone's floating bars, a row's actions and a
 page's bottom bar, and the leader menu on wide screens, are frosted glass (`layout/glass.ts`):
-square, in a warm amber tint of their own, blurred enough that the page under them shows its shapes
-and colours but none of its words, with a bright rim on the edge that faces the page. A new floating
-surface uses those styles, never a second glass. Not the gradients of early 2010s mobile interfaces:
-"just a bit square… extremely blurred". Glass marks what floats over the page; it is not a
-background for panes. Nothing on glass is a filled block, not even the main action: an action stands
-out by its icon in the accent.
+square, in a warm amber tint of their own over two thirds of the page's own colour, blurred, so the
+page under them shows its shapes and colours but none of its words, and the glass's text reads over
+any page ("the leader menu over text is hard to read"), with a bright rim on the edge that faces the
+page. A new floating surface uses those styles, never a second glass. Not the gradients of early
+2010s mobile interfaces: "just a bit square… extremely blurred". Glass marks what floats over the
+page; it is not a background for panes. Nothing on glass is a filled block, not even the main
+action: an action stands out by its icon in the accent.

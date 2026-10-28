@@ -23,19 +23,20 @@ purpose: its marks are what the human edits.
 - **The target is about 80 characters of prose a line**: "Let's target 80 characters per line
   actually for prose." A line much longer reads badly: 96 characters in a round's Goal was "a bit
   too long".
-- A document page's pane is at most **95 of the UI's characters** wide (`--pane-max`, set by
-  `Page`'s `isReading`). "95ch is good." Its prose keeps to the reading measure inside it: the
-  round's, 75 of the UI's characters (`--size-round-measure`), holds about the target; the theme's
-  general one, 86 (`--size-reading-measure`), holds more, and bringing it to the target is an
-  [open question](open-questions.md).
-- Panes of pure prose, like a round's Goal, Scope, and Sources, are narrower, **82 of the UI's
-  characters** (`--pane-context`), and their text fills them (`isAiry` drops the inner measure), so
-  the text never stops short of the border: a pane's text and its border end together.
+- **Prose's measure is about 80 characters**: `--size-reading-measure`, 60 of the reading font's
+  "0", which hold about 80 of its letters and spaces. It is set in the reading size, not in `ch`,
+  since `ch` would be measured in the font of whatever element reads it.
+- **A pane of prose is as wide as its prose**: a reading page's pane (`Page`'s `isReading`: the
+  round, the spec, the plan, a document, the data model) is at most `--size-reading-pane`, the
+  measure and the pane's own padding and border, so its text fills it and never stops short of the
+  border: a pane's text and its border end together. Wide content inside it, a table or a mockup,
+  scrolls or scales inside it. The draft editor's panes hold monospace text and stay 95 of the UI's
+  characters (`isWriting`).
 - **A single pane is centred** on a wide screen, at its maximum width; two panes side by side share
   the page's width, each up to its maximum. "A _single_ pane should not be too big, but for two
   panes they should be able to use the available space." "The single-panes should be CENTERED."
-- A question's card, split into the question and its answers, is as wide as two context panes; a
-  card of one column is as wide as one pane.
+- A question's card, split into the question and its answers, is as wide as two panes and the gap
+  between them; a card of one column is as wide as one pane.
 - Columns of rows are **400 px at least**, 500 px for the priorities' cards. "400 IS THE MINIMUM."
 
 These widths are tokens of the theme, of `Page`, or of `Prose`'s styles, never numbers in a view: a

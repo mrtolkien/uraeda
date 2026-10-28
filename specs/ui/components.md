@@ -15,7 +15,9 @@ anything, and a change made to one is made once.
 | The same companions on the phone           | `layout/ColumnStatusLine.tsx` with `layout/NavBar.tsx`'s tiles, each opening a sheet         |
 | What floats over the page on the phone     | `layout/glass.ts`'s frosted glass, shared by the bottom bar and the row's bar                |
 | A separator between parts                  | `layout/rules.ts`: the rule above, the bar beside; `layout/Band.tsx`, the band between parts |
-| A picked row or card, and its focus ring   | `layout/picked.ts`                                                                           |
+| A picked row or card, and its focus ring   | `layout/picked.ts`, and a card's `isPicked`                                                  |
+| A button drawn as bare text                | `layout/bareButton.ts`                                                                       |
+| A count with its word read out             | `layout/SpokenCount.tsx`                                                                     |
 | Prose                                      | `Blocks.tsx` for a document's blocks; `Prose.tsx`'s styles and markdown; `Paragraph`         |
 | A key, written out                         | `keys/KeyCap.tsx`                                                                            |
 
@@ -25,12 +27,13 @@ anything, and a change made to one is made once.
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
 | A list of rows: the priorities, the inbox  | `lists/WorkList.tsx` and `lists/Card.tsx`, their keys from `useListKeys` and `useRowKeys`       |
 | Rows nested under a row                    | `lists/Card.tsx`, through `lists/outlineRows.tsx`; edited in place by `lists/OutlineEditor.tsx` |
-| A row's actions                            | `lists/RowBar.tsx`: under the row, or floating on the phone                                     |
+| A row's depth, parent, and children        | `lists/nesting.ts`, the one walk of an outline's rows                                           |
+| A row's actions                            | `lists/RowBar.tsx`: under the row, or floating on the phone in `NavBar`'s tiles                 |
 | A feature's or a session's card            | `sidebar/ItemCard.tsx` and `CardRow.tsx`: the sidebar, home, and the sessions page              |
 | A row's whole text                         | `pane/DetailOverlay.tsx`                                                                        |
 | Choosing one of many                       | `keys/KeyPicker.tsx`, its rows drawn with the card's icon and state                             |
 | A dialog, or the phone's sheet             | `layout/Overlay.tsx`                                                                            |
-| A confirmation                             | `fields/Confirm.tsx`'s `useConfirm`, answered by `y` and `n`                                    |
+| A confirmation                             | `fields/Confirm.tsx`'s `useConfirm`, answered by `y` and `n`, and more answers with their keys  |
 | An undo                                    | `layout/useUndoToast.ts`                                                                        |
 | A button that writes to git                | `writes/WriteButton.tsx`: it reads what it does while it runs, and blocks every other write     |
 | A one-line field edited in place           | `EditableLine.tsx`'s `LineField`                                                                |
@@ -47,9 +50,9 @@ Uraeda is not bound to Astryx: where no Astryx component fits the job, it draws 
 reason in a comment, as the [UI components](../decisions/ui-components.md) decision allows. These
 are its own:
 
-- `layout/NavBar.tsx`: the bottom bar's tile, an icon alone, flat, stretched to share the bar.
-- `lists/RowBar.tsx`: the phone's row-action tile, a big icon over its word on the glass; and the
-  wide row bar's action, drawn as the row's supporting text.
+- `layout/NavBar.tsx`: the glass tile, an icon alone in the bottom bar, flat, stretched to share it;
+  and with its word under a big icon in the phone's row actions.
+- `lists/RowBar.tsx`: the wide row bar's action, drawn as the row's supporting text.
 - `shell/StatusLine.tsx`: a hint, and the "need you" count, each pressed as text of the line.
 - `keys/LeaderMenu.tsx`: a menu row, and the footer's back and close keys, drawn as the menu's text.
 - `lists/OutlineEditor.tsx`: the row's field, a `textarea` in the row's own font, with no frame,
