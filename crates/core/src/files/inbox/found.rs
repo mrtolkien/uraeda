@@ -2,6 +2,13 @@
 
 use super::{note_lines, parse, unmarked_lines};
 
+/// The note file of the note whose lines are `lines`, as written, from the top level: see
+/// [`super::Note::file`].
+pub fn file_of_lines(lines: &[String]) -> Option<String> {
+    let text = format!("# Inbox\n\n{}\n", lines.join("\n"));
+    parse(&text).into_iter().next()?.file()
+}
+
 /// A note given by its lines as written: its text, and its lines as another file takes them, its
 /// marks dropped, as [`unmarked_lines`] gives them. What an Undo looks for in that file.
 pub fn of_lines(lines: &[String]) -> Option<(String, Vec<String>)> {

@@ -1,29 +1,33 @@
 //! Editing `INBOX.md` on the default branch: each edit written at once over the version it was
-//! read at, as the priorities are, and the moves of notes into the priorities and drafts.
+//! read at, as the priorities are, and the moves of notes into the priorities and proposal files.
 
 use std::fs;
 
 use crate::files::document::hash;
 use crate::files::frontmatter;
 use crate::files::inbox::{self, Inbox};
-use crate::files::priorities::{self, Section};
-use crate::files::proposal;
 
 use super::commit::Added;
 use super::default_round::DefaultRound;
 use super::place::Place;
-use super::{ActionError, Change, Committed, STALE, changes, commit, draft};
+use super::{ActionError, Change, Committed, STALE, changes, commit};
 
 mod categories;
 mod image;
+mod moves;
+mod note_file;
 mod undo;
 mod unlink;
 
 pub use categories::{add_category, remove_category, rename_category, restore_category};
 pub use image::{NoteImage, add_with_image, attach_to_note, with_images};
+pub use moves::{into_proposal, to_proposal, to_proposal_file, under_proposal};
+pub(crate) use note_file::{
+    back_to_notes, committed as committed_note_file, restore as restore_note_file,
+};
 pub use undo::{
-    undo_add, undo_as_draft, undo_category, undo_committed, undo_to_draft, undo_to_priorities,
-    undo_under_priority,
+    undo_add, undo_as_file, undo_category, undo_committed, undo_into_proposal, undo_to_proposal,
+    undo_under_proposal,
 };
 pub use unlink::{RemovedImage, remove_image, restore_image};
 
@@ -199,14 +203,16 @@ pub fn add_and_commit(
     text: &str,
     previous: &str,
 ) -> Result<(Inbox, Added), ActionError> {
-    let (_, added) = commit::add_alone(place, PATH, added_subject(text), || {
+    let (_, added) = commit::add_alone(place, PATH, &[], added_subject(text), || {
         add(place, category, marks, text, Some(previous))
     })?;
     Ok((read(place), added))
 }
 
-/// Removes a note over the inbox read at `previous`, then commits `INBOX.md` alone when it had no
-/// other change: a note started as a change leaves the inbox in its own commit.
+/// Removes a note over the inbox read at `previous`, then commits `INBOX.md` alone, when it had no
+/// other change: a note started as a change leaves the inbox in its own commit. Its note file goes
+/// too, in the same commit, when it holds what the note wrote or is committed, which the history
+/// keeps: an uncommitted file typed in stays.
 pub fn remove_and_commit(
     place: &Place,
     id: &str,
@@ -217,7 +223,13 @@ pub fn remove_and_commit(
         "chore: remove \"{}\" from the inbox",
         super::priorities::short(&note.text)
     );
-    let (_, added) = commit::add_alone(place, PATH, subject, || remove(place, id, Some(previous)))?;
+    let also = note
+        .file()
+        .map(|file| note_file::committed(place, &file))
+        .unwrap_or_default();
+    let (_, added) = commit::add_alone(place, PATH, &also, subject, || {
+        remove_with(place, id, Some(previous), note_file::Lost::NothingCommitted)
+    })?;
     Ok((read(place), added))
 }
 
@@ -273,14 +285,36 @@ pub fn drop_item(
     )
 }
 
-/// Removes a note, sub-items included.
+/// Removes a note, sub-items included, and its note file, held for the removal's Undo, when
+/// nothing is lost: the file holds only what the note wrote, or is as the default branch committed
+/// it. A file typed in since, or one another note links too, stays.
 pub fn remove(place: &Place, id: &str, previous: Option<&str>) -> Result<Inbox, ActionError> {
-    apply(
+    remove_with(place, id, previous, note_file::Lost::Nothing)
+}
+
+/// Removes a note as [`remove`] does, deleting its note file when `lost` allows it.
+fn remove_with(
+    place: &Place,
+    id: &str,
+    previous: Option<&str>,
+    lost: note_file::Lost,
+) -> Result<Inbox, ActionError> {
+    let before = text(place)?;
+    let mut after = String::new();
+    let inbox = apply(
         place,
         previous,
-        |current| inbox::remove(current, id),
+        |current| {
+            let edited = inbox::remove(current, id)?;
+            edited.clone_into(&mut after);
+            Some(edited)
+        },
         &format!("no note {id}"),
-    )
+    )?;
+    if note_file::remove_left(place, &before, &after, lost)? {
+        return Ok(read(place));
+    }
+    Ok(inbox)
 }
 
 /// Moves a note to the end of a category, or of the notes without one.
@@ -316,7 +350,7 @@ pub fn place(
 }
 
 /// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
-/// Undo of a removal.
+/// Undo of a removal, which writes back the note file the removal took away, as it was.
 pub fn insert(
     place: &Place,
     category: Option<&str>,
@@ -324,12 +358,16 @@ pub fn insert(
     lines: &[String],
     previous: Option<&str>,
 ) -> Result<Inbox, ActionError> {
-    apply(
+    let inbox = apply(
         place,
         previous,
         |current| inbox::insert(current, category, index, lines),
         "Nothing to put back.",
-    )
+    )?;
+    match inbox::file_of_lines(lines) {
+        Some(file) if note_file::restore(place, &file)? => Ok(read(place)),
+        _ => Ok(inbox),
+    }
 }
 
 /// A file's text, refused when it changed since it was read at `previous`.
@@ -360,114 +398,4 @@ fn write_both(place: &Place, target: &str, edited: &str, inbox: &str) -> Result<
         return Err(error.into());
     }
     Ok(())
-}
-
-/// The inbox and the priorities, each refused when it changed since it was read.
-fn both(
-    place: &Place,
-    previous: &str,
-    priorities_previous: &str,
-) -> Result<(String, String), ActionError> {
-    let inbox = current(place, PATH, previous)?;
-    let priorities = current(place, super::priorities::PATH, priorities_previous)?;
-    Ok((inbox, priorities))
-}
-
-/// Moves a note's lines, without its marks, to the end of a section of `PRIORITIES.md`. Both files
-/// are checked against the versions read before either is written.
-pub fn to_priorities(
-    place: &Place,
-    id: &str,
-    section: Section,
-    previous: &str,
-    priorities_previous: &str,
-) -> Result<(), ActionError> {
-    let (inbox, priorities) = both(place, previous, priorities_previous)?;
-    let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
-    let edited = priorities::insert_entry(&priorities, section, usize::MAX, &lines)
-        .ok_or_else(|| no_note(id))?;
-    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
-    write_both(place, super::priorities::PATH, &edited, &without)
-}
-
-/// Moves a note's lines, without its marks, its nested items with them, under the entry `entry` of
-/// `PRIORITIES.md`, as its last item. Both files are checked against the versions read before
-/// either is written.
-pub fn under_priority(
-    place: &Place,
-    id: &str,
-    entry: &str,
-    previous: &str,
-    priorities_previous: &str,
-) -> Result<(), ActionError> {
-    let (inbox, priorities) = both(place, previous, priorities_previous)?;
-    let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
-    let edited = priorities::append_under(&priorities, entry, &lines)
-        .ok_or_else(|| ActionError::Refused(format!("no line {entry} to put the note under")))?;
-    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
-    write_both(place, super::priorities::PATH, &edited, &without)
-}
-
-/// Makes a note a new draft, `specs/drafts/<slug>.md` or the next free name, linked from the end of
-/// a section of `PRIORITIES.md`, and returns the draft's path. A note that links a draft is one.
-pub fn to_new_draft(
-    place: &Place,
-    id: &str,
-    section: Section,
-    previous: &str,
-    priorities_previous: &str,
-) -> Result<String, ActionError> {
-    let (inbox, priorities) = both(place, previous, priorities_previous)?;
-    let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
-    if let Some(draft) = note.draft() {
-        return Err(ActionError::Refused(format!(
-            "{} already links {draft}",
-            note.text
-        )));
-    }
-    let (title, nested) = inbox::draft_parts(&inbox, id).ok_or_else(|| no_note(id))?;
-    let path = draft::free_path(place, &note.text);
-    let entry = format!(
-        "- {}",
-        inbox::link_to(&title, path.trim_start_matches("specs/"))
-    );
-    let edited = priorities::insert_entry(&priorities, section, usize::MAX, &[entry])
-        .ok_or_else(|| no_note(id))?;
-    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
-    draft::write_new(place, &path, &title, &nested)?;
-    if let Err(error) = write_both(place, super::priorities::PATH, &edited, &without) {
-        let _ = fs::remove_file(place.root.join(&path));
-        return Err(error);
-    }
-    Ok(path)
-}
-
-/// The text of the draft or backlog file at `draft`, from the top level, refused when it is none.
-fn draft_text(place: &Place, draft: &str) -> Result<String, ActionError> {
-    let plain = !draft.split('/').any(|part| part == ".." || part.is_empty());
-    (crate::target::is_draft(draft) && plain && draft.ends_with(".md"))
-        .then(|| fs::read_to_string(place.root.join(draft)).ok())
-        .flatten()
-        .ok_or_else(|| ActionError::Refused(format!("no draft {draft}")))
-}
-
-/// A note's lines as written in the draft at `draft`, their relative links rebased to its folder.
-fn into_draft(lines: &[String], draft: &str) -> Vec<String> {
-    let folder = draft.rsplit_once('/').map_or("", |(folder, _)| folder);
-    crate::files::retarget::rebase(&lines.join("\n"), draft::INBOX_FOLDER, folder)
-        .split('\n')
-        .map(String::from)
-        .collect()
-}
-
-/// Adds a note's lines, without its marks, at the end of the `## What` section of the draft at
-/// `draft`, from the top level.
-pub fn to_draft(place: &Place, id: &str, draft: &str, previous: &str) -> Result<(), ActionError> {
-    let inbox = current(place, PATH, previous)?;
-    let text = draft_text(place, draft)?;
-    let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
-    let edited = proposal::append_to_what(&text, &into_draft(&lines, draft))
-        .ok_or_else(|| ActionError::Refused(format!("{draft} has no ## What section")))?;
-    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
-    write_both(place, draft, &edited, &without)
 }

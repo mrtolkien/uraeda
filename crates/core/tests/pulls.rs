@@ -17,8 +17,8 @@ fn view(number: u32, state: PullRequestState) -> PullRequestView {
     }
 }
 
-/// US1.2 to US1.4, review focus 2: changes requested win over a draft, and each row is kept by its
-/// own branch name.
+/// US1.2 to US1.4, review focus 2: changes requested win over a proposal file, and each row is kept
+/// by its own branch name.
 #[test]
 fn parse_rows() {
     let rows = [

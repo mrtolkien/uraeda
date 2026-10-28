@@ -53,16 +53,17 @@ fn read_image(args: &AttachImageArgs) -> Result<Vec<u8>, ResponseError> {
 }
 
 /// `uraeda.attachImage { uri, path, name? }`: saves the image file at `path` next to the file, a
-/// single-file draft becoming a folder first, and returns its link, to insert where the editor's
-/// cursor was. Writes the file only when a draft moves; commits nothing.
+/// single proposal file becoming a folder first, and returns its link, to insert where the editor's
+/// cursor was. Writes the file only when a proposal file moves; commits nothing.
 pub(super) fn attach_image(
     documents: &Documents,
     args: AttachImageArgs,
 ) -> Result<Done, ResponseError> {
     let root = &documents.root;
     let path = relative(documents, &args.uri).ok_or_else(|| refused(NOT_WORKFLOW))?;
-    // The feature's or the change's folder, None for a draft; checked without writing anything.
-    let folder = if path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/") {
+    // The feature's or the change's folder, None for a proposal file or a note file; checked
+    // without writing anything.
+    let folder = if uraeda_core::target::is_linked_file(&path) {
         on_default_branch(documents, &path)?;
         None
     } else {
@@ -71,15 +72,15 @@ pub(super) fn attach_image(
             .map(|(_, folder, _)| folder)
             .ok_or_else(|| {
                 refused(format!(
-                    "{path} is not a markdown file of a feature, a change, or a draft"
+                    "{path} is not a markdown file of a feature, a change, a proposal file, or a note file"
                 ))
             })?;
         Some(folder)
     };
     let bytes = read_image(&args)?;
     let attached = core(api::attach_image(root, &path, &bytes, args.name.as_deref()))?;
-    // The checkout the core wrote in: the default branch's for a draft, else the feature's or the
-    // change's, reached by now.
+    // The checkout the core wrote in: the default branch's for a proposal file, else the feature's
+    // or the change's, reached by now.
     let checkout = match folder {
         None => core(api::default_root(root))?,
         Some(folder) => PathBuf::from(core(api::work_dir(root, folder))?),
@@ -89,8 +90,8 @@ pub(super) fn attach_image(
         written.push(absolute(checkout.join(moved)));
         written.push(absolute(checkout.join(priorities_path())));
     }
-    // A draft is the default branch's: from another branch's checkout, the link goes into the
-    // default branch's file, which opens in place of this copy (the git decision).
+    // A proposal file is the default branch's: from another branch's checkout, the link goes into
+    // the default branch's file, which opens in place of this copy (the git decision).
     let file = attached.moved.as_deref().unwrap_or(&path);
     let elsewhere = std::fs::canonicalize(&checkout).ok() != std::fs::canonicalize(root).ok();
     let opened = (attached.moved.is_some() || elsewhere).then(|| absolute(checkout.join(file)));

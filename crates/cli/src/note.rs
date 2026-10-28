@@ -81,8 +81,8 @@ fn workspace() -> Result<(Git, Workspace), String> {
 }
 
 /// The slug the note is about: the feature or change `--about` names, or the one of this checkout's
-/// branch, or none. Drafts are no target here: `Purpose::Inspect` resolves features and changes
-/// only.
+/// branch, or none. Proposal files are no target here: `Purpose::Inspect` resolves features and
+/// changes only.
 fn about(workspace: &Workspace, about: Option<&str>) -> Result<Option<String>, String> {
     let Some(about) = about else {
         return Ok(workspace
@@ -97,7 +97,7 @@ fn about(workspace: &Workspace, about: Option<&str>) -> Result<Option<String>, S
         Ok(Target::Feature(index) | Target::File(index, _)) => {
             Ok(Some(workspace.features[index].slug.clone()))
         }
-        Ok(Target::Draft(_)) | Err(TargetError::NotFound(_) | TargetError::NoPath(_)) => Err(
+        Ok(Target::Proposal(_)) | Err(TargetError::NotFound(_) | TargetError::NoPath(_)) => Err(
             format!("--about names a feature or a change: none is named {about}"),
         ),
         Err(error) => Err(error.to_string()),

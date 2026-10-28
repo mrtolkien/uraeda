@@ -18,7 +18,7 @@
   - Setup with agent (checks project and creates relevant files)
 
 - Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are
-  ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
+  ready, see [proposal](proposals/benchmarks/proposal.md), with a discovery round and partial answers.
 
 - CLI auto-expand in fish and ?zsh?
 - Ping user when input is needed
@@ -46,7 +46,7 @@
   language behaviour, design summarized or hidden, mockups) and the questions asked
 
 - ?Slack integration?
-- [Nice TUI](drafts/cli-tuis.md)
+- [Nice TUI](proposals/cli-tuis.md)
 
 ## Blocked
 

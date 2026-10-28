@@ -4,13 +4,13 @@ use common::repo::TestRepo;
 use common::texts::{proposal, record};
 use uraeda_core::actions::commit::Added;
 use uraeda_core::actions::priorities as actions;
-use uraeda_core::actions::{ActionError, changes, draft, place};
+use uraeda_core::actions::{ActionError, changes, expand, place};
 use uraeda_core::api;
 use uraeda_core::files::document::hash;
-use uraeda_core::files::priorities::{self, EntryChange, Section};
+use uraeda_core::files::priorities::{self, ProposalChange, Section};
 use uraeda_core::git::Git;
 
-const TEXT: &str = "# Priorities\n\n## Now\n\n- [Web UI](/specs/2026-10-11-web-ui/proposal.md)\n\n## Next\n\n- Git listener process\n- Ping user when input is needed\n\n## Later\n\n- [Nice TUI](drafts/cli-tuis.md)\n  - with colours\n- Slack\n\n## Blocked\n\n- Benchmarks: blocked\n";
+const TEXT: &str = "# Priorities\n\n## Now\n\n- [Web UI](/specs/2026-10-11-web-ui/proposal.md)\n\n## Next\n\n- Git listener process\n- Ping user when input is needed\n\n## Later\n\n- [Nice TUI](proposals/cli-tuis.md)\n  - with colours\n- Slack\n\n## Blocked\n\n- Benchmarks: blocked\n";
 
 fn section_texts(text: &str, section: &str) -> Vec<String> {
     priorities::read(text, None)
@@ -18,7 +18,7 @@ fn section_texts(text: &str, section: &str) -> Vec<String> {
         .into_iter()
         .find(|s| s.section == section)
         .unwrap()
-        .entries
+        .proposals
         .into_iter()
         .map(|e| e.text)
         .collect()
@@ -31,11 +31,11 @@ fn reads_sections_with_ids_and_nested_lines() {
     assert_eq!(read.hash, hash(TEXT));
     let later = &read.sections[2];
     assert_eq!(later.section, "later");
-    assert_eq!(later.entries[0].id, "later-1");
-    assert_eq!(later.entries[0].text, "[Nice TUI](drafts/cli-tuis.md)");
-    assert_eq!(later.entries[0].nested, ["  - with colours"]);
-    let link = later.entries[0].spans[0].link.clone().unwrap();
-    assert_eq!(link.path.as_deref(), Some("specs/drafts/cli-tuis.md"));
+    assert_eq!(later.proposals[0].id, "later-1");
+    assert_eq!(later.proposals[0].text, "[Nice TUI](proposals/cli-tuis.md)");
+    assert_eq!(later.proposals[0].nested, ["  - with colours"]);
+    let link = later.proposals[0].spans[0].link.clone().unwrap();
+    assert_eq!(link.path.as_deref(), Some("specs/proposals/cli-tuis.md"));
 }
 
 /// US7.1 and US7.2
@@ -68,20 +68,21 @@ fn a_line_is_added_to_an_empty_section() {
 /// R7: bullets inside fenced code are not items, in the priorities as in the inbox.
 #[test]
 fn priorities_skip_fenced_code() {
-    let text = "# Priorities\n\n## Now\n\n```md\n- not an entry\n## Later\n```\n\n- An entry\n";
+    let text =
+        "# Priorities\n\n## Now\n\n```md\n- not an proposal\n## Later\n```\n\n- An proposal\n";
 
     let texts: Vec<String> = priorities::parse(text)
         .into_iter()
         .map(|e| e.text)
         .collect();
-    assert_eq!(texts, ["An entry"]);
+    assert_eq!(texts, ["An proposal"]);
     let added = priorities::add(text, Section::Later, "Idea").unwrap();
     assert_eq!(added, format!("{text}\n## Later\n\n- Idea\n"));
 }
 
-/// A fence indented under an entry, with a blank line in it, does not hide what follows.
+/// A fence indented under an proposal, with a blank line in it, does not hide what follows.
 #[test]
-fn indented_fences_do_not_hide_later_entries() {
+fn indented_fences_do_not_hide_later_proposals() {
     let text =
         "# Priorities\n\n## Now\n\n- a\n  ```\n  x\n\n  y\n  ```\n- next\n\n## Next\n\n- b\n";
 
@@ -102,7 +103,7 @@ fn indented_fences_do_not_hide_later_entries() {
 /// US7.3: a swap is one change.
 #[test]
 fn a_line_moves_above_another() {
-    let moved = priorities::move_entry(TEXT, "next-2", Section::Next, 0).unwrap();
+    let moved = priorities::move_proposal(TEXT, "next-2", Section::Next, 0).unwrap();
 
     assert_eq!(
         section_texts(&moved, "next"),
@@ -111,13 +112,13 @@ fn a_line_moves_above_another() {
     assert_eq!(priorities::changes(TEXT, &moved), 1);
 }
 
-/// US7.4 and review focus 3: an entry moves with its link and nested lines, byte for byte.
+/// US7.4 and review focus 3: an proposal moves with its link and nested lines, byte for byte.
 #[test]
 fn a_line_moves_to_another_section_with_its_nested_lines() {
-    let moved = priorities::move_entry(TEXT, "later-1", Section::Next, usize::MAX).unwrap();
+    let moved = priorities::move_proposal(TEXT, "later-1", Section::Next, usize::MAX).unwrap();
 
     assert!(moved.contains(
-        "- Ping user when input is needed\n- [Nice TUI](drafts/cli-tuis.md)\n  - with colours\n\n## Later\n\n- Slack\n"
+        "- Ping user when input is needed\n- [Nice TUI](proposals/cli-tuis.md)\n  - with colours\n\n## Later\n\n- Slack\n"
     ), "{moved}");
     assert_eq!(priorities::changes(TEXT, &moved), 1);
 }
@@ -126,9 +127,9 @@ fn a_line_moves_to_another_section_with_its_nested_lines() {
 #[test]
 fn a_line_is_edited_as_typed() {
     let edited =
-        priorities::edit(TEXT, "later-1", "[Nicer TUI](drafts/cli-tuis.md), soon").unwrap();
+        priorities::edit(TEXT, "later-1", "[Nicer TUI](proposals/cli-tuis.md), soon").unwrap();
 
-    assert!(edited.contains("- [Nicer TUI](drafts/cli-tuis.md), soon\n  - with colours\n"));
+    assert!(edited.contains("- [Nicer TUI](proposals/cli-tuis.md), soon\n  - with colours\n"));
     let removed = priorities::remove(&edited, "later-1").unwrap();
     assert!(removed.contains("## Later\n\n- Slack\n"));
     assert_eq!(priorities::changes(TEXT, &removed), 1);
@@ -150,18 +151,18 @@ fn moves_keep_every_other_line() {
         rest.join("\n").replace("\n\n\n", "\n\n")
     };
     let read = priorities::read(&text, None);
-    let entries: Vec<_> = read.sections.iter().flat_map(|s| &s.entries).collect();
+    let entries: Vec<_> = read.sections.iter().flat_map(|s| &s.proposals).collect();
     assert!(entries.len() > 20);
 
-    for entry in entries {
+    for proposal in entries {
         for (section, index) in [(Section::Now, 0), (Section::Later, usize::MAX)] {
-            let moved = priorities::move_entry(&text, &entry.id, section, index).unwrap();
+            let moved = priorities::move_proposal(&text, &proposal.id, section, index).unwrap();
 
             assert_eq!(
-                without(&moved, &entry.lines),
-                without(&text, &entry.lines),
+                without(&moved, &proposal.lines),
+                without(&text, &proposal.lines),
                 "{} moved to {section:?}",
-                entry.id
+                proposal.id
             );
         }
     }
@@ -169,7 +170,7 @@ fn moves_keep_every_other_line() {
 
 #[test]
 fn changes_are_named_moves_edits_additions_and_removals() {
-    let moved = priorities::move_entry(TEXT, "later-1", Section::Next, 0).unwrap();
+    let moved = priorities::move_proposal(TEXT, "later-1", Section::Next, 0).unwrap();
     let edited = priorities::edit(
         &moved,
         "now-1",
@@ -178,31 +179,31 @@ fn changes_are_named_moves_edits_additions_and_removals() {
     .unwrap();
     let removed = priorities::remove(&edited, "blocked-1").unwrap();
     let added = priorities::add(&removed, Section::Later, "An idea").unwrap();
-    let swapped = priorities::move_entry(&added, "next-3", Section::Next, 1).unwrap();
+    let swapped = priorities::move_proposal(&added, "next-3", Section::Next, 1).unwrap();
 
     assert_eq!(
         priorities::diff(TEXT, &swapped),
         [
-            EntryChange::Edited {
+            ProposalChange::Edited {
                 section: Section::Now,
                 before: "Web UI".to_string(),
                 after: "Web UI, again".to_string(),
             },
-            EntryChange::Moved {
+            ProposalChange::Moved {
                 from: Section::Later,
                 to: Section::Next,
                 text: "Nice TUI".to_string(),
             },
-            EntryChange::Moved {
+            ProposalChange::Moved {
                 from: Section::Next,
                 to: Section::Next,
                 text: "Ping user when input is needed".to_string(),
             },
-            EntryChange::Added {
+            ProposalChange::Added {
                 section: Section::Later,
                 text: "An idea".to_string(),
             },
-            EntryChange::Removed {
+            ProposalChange::Removed {
                 section: Section::Blocked,
                 text: "Benchmarks: blocked".to_string(),
             },
@@ -250,7 +251,7 @@ fn one_change_is_the_subject() {
         message(&removed).0,
         "chore: remove \"Git listener process\""
     );
-    let moved = priorities::move_entry(TEXT, "next-1", Section::Later, 0).unwrap();
+    let moved = priorities::move_proposal(TEXT, "next-1", Section::Later, 0).unwrap();
     assert_eq!(
         message(&moved).0,
         "chore: move \"Git listener process\" to Later"
@@ -266,7 +267,7 @@ fn one_change_is_the_subject() {
 #[test]
 fn more_changes_are_counted_and_listed_in_the_body() {
     let edited = priorities::edit(TEXT, "next-1", "Git listener process, and triggering").unwrap();
-    let swapped = priorities::move_entry(&edited, "later-2", Section::Later, 0).unwrap();
+    let swapped = priorities::move_proposal(&edited, "later-2", Section::Later, 0).unwrap();
 
     assert_eq!(
         message(&swapped),
@@ -303,7 +304,7 @@ fn the_priorities_commit_holds_the_inbox() {
     let place = main_place(&repo);
     let inbox = uraeda_core::actions::inbox::read(&place);
     let read = actions::read(&place);
-    uraeda_core::actions::inbox::to_priorities(
+    uraeda_core::actions::inbox::to_proposal(
         &place,
         "note-1",
         Section::Next,
@@ -349,7 +350,7 @@ fn changes_are_committed_alone_or_discarded() {
     repo.write("README.md", "# Changed\n");
     let read = actions::read(&place);
     let next = actions::add(&place, Section::Next, "An idea", &read.hash).unwrap();
-    actions::move_entry(&place, "next-2", Section::Next, 0, &next.hash).unwrap();
+    actions::move_proposal(&place, "next-2", Section::Next, 0, &next.hash).unwrap();
 
     assert_eq!(actions::read(&place).changes, 2);
     let committed = actions::commit(&place).unwrap();
@@ -409,22 +410,22 @@ fn from_a_feature_branch_edits_go_to_the_default_branchs_worktree() {
     assert_eq!(repo.current_branch(), "2026-10-11-web-ui");
 }
 
-/// US4.1: a line drafted by its id.
+/// US4.1: a line expanded by its id.
 #[test]
-fn a_line_is_drafted_by_its_id() {
+fn a_line_is_expanded_by_its_id() {
     let repo = repo();
     let place = main_place(&repo);
 
-    let drafted = draft::create(&place, "next-1").unwrap();
+    let expanded = expand::create(&place, "next-1").unwrap();
 
-    assert_eq!(drafted.path, "specs/drafts/git-listener-process.md");
+    assert_eq!(expanded.path, "specs/proposals/git-listener-process.md");
     assert!(
-        repo.read(&drafted.path)
+        repo.read(&expanded.path)
             .contains("---\n\n# Git listener process\n")
     );
     assert!(
         repo.read("specs/PRIORITIES.md")
-            .contains("- [Git listener process](drafts/git-listener-process.md)\n")
+            .contains("- [Git listener process](proposals/git-listener-process.md)\n")
     );
     assert_eq!(repo.subjects("main").len(), 2);
 }
@@ -438,7 +439,7 @@ fn keys() {
             vec!["claude-code-runner-triggered-manually"],
         ),
         (
-            "- [Git listener process](drafts/git-listener.md)",
+            "- [Git listener process](proposals/git-listener.md)",
             vec!["git-listener"],
         ),
         (
@@ -455,7 +456,7 @@ fn keys() {
         let text = format!("# Priorities\n\n## Now\n\n## Next\n\n{items}\n");
         let read = priorities::read(&text, None);
         let keys: Vec<&str> = read.sections[1]
-            .entries
+            .proposals
             .iter()
             .map(|e| e.key.as_str())
             .collect();
@@ -468,8 +469,8 @@ fn keys() {
 fn keys_are_unique_across_sections() {
     let text = "# Priorities\n\n## Now\n\n- Slack\n\n## Later\n\n- Slack\n";
     let read = priorities::read(text, None);
-    assert_eq!(read.sections[0].entries[0].key, "slack");
-    assert_eq!(read.sections[2].entries[0].key, "slack-2");
+    assert_eq!(read.sections[0].proposals[0].key, "slack");
+    assert_eq!(read.sections[2].proposals[0].key, "slack-2");
 }
 
 /// A repository on `main` with the fixture's `PRIORITIES.md`.
@@ -484,15 +485,15 @@ fn fixture_repo() -> TestRepo {
     repo
 }
 
-/// Undo of a deletion: the entry comes back, nested lines included, byte for byte.
+/// Undo of a deletion: the proposal comes back, nested lines included, byte for byte.
 #[test]
 fn insert_puts_a_removed_line_back_with_its_nested_lines() {
     let repo = fixture_repo();
     let before = repo.read("specs/PRIORITIES.md");
     let read = api::read_priorities(repo.path()).unwrap();
-    let removed = api::remove_priority(repo.path(), "later-1", &read.hash).unwrap();
+    let removed = api::remove_proposal(repo.path(), "later-1", &read.hash).unwrap();
 
-    api::insert_priority(
+    api::insert_proposal(
         repo.path(),
         "later",
         0,
@@ -507,17 +508,17 @@ fn insert_puts_a_removed_line_back_with_its_nested_lines() {
     assert_eq!(repo.read("specs/PRIORITIES.md"), before);
 }
 
-/// The edge case of an Undo after the file changed: past the end, the entry lands last.
+/// The edge case of an Undo after the file changed: past the end, the proposal lands last.
 #[test]
 fn insert_past_the_end_appends_and_a_stale_hash_is_refused() {
     let repo = fixture_repo();
     let read = api::read_priorities(repo.path()).unwrap();
 
     let inserted =
-        api::insert_priority(repo.path(), "next", 99, &["- Slack".into()], &read.hash).unwrap();
+        api::insert_proposal(repo.path(), "next", 99, &["- Slack".into()], &read.hash).unwrap();
 
     let next: Vec<&str> = inserted.sections[1]
-        .entries
+        .proposals
         .iter()
         .map(|e| e.text.as_str())
         .collect();
@@ -525,77 +526,75 @@ fn insert_past_the_end_appends_and_a_stale_hash_is_refused() {
         next,
         [
             "Claude Code runner (triggered manually)",
-            "[Git listener process](drafts/git-listener.md)",
+            "[Git listener process](proposals/git-listener.md)",
             "Slack"
         ]
     );
-    let error = api::insert_priority(repo.path(), "next", 0, &["- Slack".into()], "x").unwrap_err();
+    let error = api::insert_proposal(repo.path(), "next", 0, &["- Slack".into()], "x").unwrap_err();
     assert_eq!(
         error.to_string(),
         "PRIORITIES.md changed on disk. Your change was not applied."
     );
 }
 
-/// The entry of `priorities` whose markdown is `text`.
-fn entry<'p>(priorities: &'p priorities::Priorities, text: &str) -> &'p priorities::EntryItem {
+/// The proposal of `priorities` whose markdown is `text`.
+fn item<'p>(priorities: &'p priorities::Priorities, text: &str) -> &'p priorities::ProposalItem {
     priorities
         .sections
         .iter()
-        .flat_map(|section| &section.entries)
-        .find(|entry| entry.text == text)
-        .unwrap_or_else(|| panic!("no entry {text}"))
+        .flat_map(|section| &section.proposals)
+        .find(|proposal| proposal.text == text)
+        .unwrap_or_else(|| panic!("no proposal {text}"))
 }
 
-const DRAFTED: &str = "# Priorities\n\n## Now\n\n## Next\n\n- [Git listener](drafts/git-listener.md)\n- [Benchmarks](backlog/benchmarks/proposal.md)\n- [Missing](drafts/missing.md)\n";
+const EXPANDED: &str = "# Priorities\n\n## Now\n\n## Next\n\n- [Git listener](proposals/git-listener.md)\n- [Benchmarks](proposals/benchmarks/proposal.md)\n- [Missing](proposals/missing.md)\n";
 
-/// US4.2 and US4.3: an entry marks its draft or backlog file only when the file exists.
+/// US4.2 and US4.3: a proposal marks its proposal file, single or a folder's, only when the file
+/// exists.
 #[test]
-fn an_entry_links_its_existing_draft_or_backlog_file() {
+fn a_proposal_links_its_existing_proposal_file() {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
-    repo.write("specs/PRIORITIES.md", DRAFTED);
-    repo.write("specs/drafts/git-listener.md", "# Git listener\n");
-    repo.write("specs/backlog/benchmarks/proposal.md", "# Benchmarks\n");
+    repo.write("specs/PRIORITIES.md", EXPANDED);
+    repo.write("specs/proposals/git-listener.md", "# Git listener\n");
+    repo.write("specs/proposals/benchmarks/proposal.md", "# Benchmarks\n");
     repo.commit("chore: specs");
 
     let read = api::read_priorities(repo.path()).unwrap();
 
-    let draft = |text: &str, read: &priorities::Priorities| {
-        entry(read, text)
-            .draft
-            .as_ref()
-            .map(|file| (file.path.clone(), file.backlog))
+    let file = |text: &str, read: &priorities::Priorities| {
+        item(read, text).file.as_ref().map(|file| file.path.clone())
     };
     assert_eq!(
-        draft("[Git listener](drafts/git-listener.md)", &read),
-        Some(("specs/drafts/git-listener.md".into(), false))
+        file("[Git listener](proposals/git-listener.md)", &read),
+        Some("specs/proposals/git-listener.md".into())
     );
     assert_eq!(
-        draft("[Benchmarks](backlog/benchmarks/proposal.md)", &read),
-        Some(("specs/backlog/benchmarks/proposal.md".into(), true))
+        file("[Benchmarks](proposals/benchmarks/proposal.md)", &read),
+        Some("specs/proposals/benchmarks/proposal.md".into())
     );
-    assert_eq!(draft("[Missing](drafts/missing.md)", &read), None);
+    assert_eq!(file("[Missing](proposals/missing.md)", &read), None);
     // The file-level reader leaves the join to the workspace.
     assert_eq!(
-        draft(
-            "[Git listener](drafts/git-listener.md)",
-            &priorities::read(DRAFTED, None)
+        file(
+            "[Git listener](proposals/git-listener.md)",
+            &priorities::read(EXPANDED, None)
         ),
         None
     );
     // A write's answer is joined too.
-    let added = api::add_priority(repo.path(), "later", "Slack", &read.hash).unwrap();
+    let added = api::add_proposal(repo.path(), "later", "Slack", &read.hash).unwrap();
     assert_eq!(
-        draft("[Git listener](drafts/git-listener.md)", &added),
-        Some(("specs/drafts/git-listener.md".into(), false))
+        file("[Git listener](proposals/git-listener.md)", &added),
+        Some("specs/proposals/git-listener.md".into())
     );
 }
 
 const WEB_UI: &str = "2026-10-11-web-ui";
 
-/// The edge case of a started entry whose feature is done: it is no longer running.
+/// The edge case of a started proposal whose feature is done: it is no longer running.
 #[test]
-fn an_entry_names_its_running_feature_until_done() {
+fn a_proposal_names_its_running_feature_until_done() {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
     repo.write(
@@ -611,7 +610,7 @@ fn an_entry_names_its_running_feature_until_done() {
 
     let read = api::read_priorities(repo.path()).unwrap();
 
-    let running = entry(&read, text).running.clone().expect("running");
+    let running = item(&read, text).running.clone().expect("running");
     assert_eq!(running.folder, WEB_UI);
     assert!(!running.change);
     let workspace =
@@ -635,7 +634,7 @@ fn an_entry_names_its_running_feature_until_done() {
     repo.git(&["merge", "--quiet", "--no-ff", "--no-edit", WEB_UI]);
 
     let read = api::read_priorities(repo.path()).unwrap();
-    assert_eq!(entry(&read, text).running, None);
+    assert_eq!(item(&read, text).running, None);
 }
 
 /// The edge case of a change, not a feature, started: it is running too.
@@ -660,37 +659,38 @@ fn a_change_is_running_too() {
 
     let read = api::read_priorities(repo.path()).unwrap();
 
-    let running = entry(&read, &text).running.clone().expect("running");
+    let running = item(&read, &text).running.clone().expect("running");
     assert_eq!(running.folder, change);
     assert!(running.change);
 }
 
 const NIX: &str = "Nix + Docker based execution environments";
-const NIX_DRAFT: &str = "specs/drafts/nix-docker-based-execution-environments.md";
+const NIX_FILE: &str = "specs/proposals/nix-docker-based-execution-environments.md";
 
-/// US6.1: the line's children go into the draft's What, after the line, and leave the entry.
+/// US6.1: the line's children go into the proposal file's What, after the line, and leave the
+/// proposal.
 #[test]
-fn a_drafted_line_takes_its_children() {
+fn a_expanded_line_takes_its_children() {
     let repo = fixture_repo();
     let place = main_place(&repo);
 
-    let drafted = draft::create(&place, "later-1").unwrap();
+    let expanded = expand::create(&place, "later-1").unwrap();
 
-    assert_eq!(drafted.path, NIX_DRAFT);
-    let text = repo.read(NIX_DRAFT);
+    assert_eq!(expanded.path, NIX_FILE);
+    let text = repo.read(NIX_FILE);
     assert!(text.contains(&format!("\n# {NIX}\n")), "{text}");
     assert!(
         text.contains(&format!("## What\n\n{NIX}\n\n- with a cache\n\n## ")),
         "{text}"
     );
     assert!(repo.read("specs/PRIORITIES.md").contains(&format!(
-        "\n\n- [{NIX}](drafts/nix-docker-based-execution-environments.md)\n- Benchmarks: after the runner is ready\n"
+        "\n\n- [{NIX}](proposals/nix-docker-based-execution-environments.md)\n- Benchmarks: after the runner is ready\n"
     )));
 }
 
-/// US6.2: a child's link points at the same file from the draft's folder.
+/// US6.2: a child's link points at the same file from the proposal file's folder.
 #[test]
-fn a_drafted_child_link_still_resolves() {
+fn a_expanded_child_link_still_resolves() {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
     repo.write(
@@ -702,9 +702,9 @@ fn a_drafted_child_link_still_resolves() {
     repo.commit("chore: specs");
     let place = main_place(&repo);
 
-    draft::create(&place, "later-1").unwrap();
+    expand::create(&place, "later-1").unwrap();
 
-    let text = repo.read(NIX_DRAFT);
+    let text = repo.read(NIX_FILE);
     let links: Vec<&str> = text
         .lines()
         .filter_map(|line| line.strip_prefix("- [git](")?.strip_suffix(')'))
@@ -712,32 +712,33 @@ fn a_drafted_child_link_still_resolves() {
     assert_eq!(links.len(), 2, "{text}");
     for link in links {
         assert_eq!(
-            uraeda_core::workspace::resolve("specs/drafts", link).as_deref(),
+            uraeda_core::workspace::resolve("specs/proposals", link).as_deref(),
             Some("specs/decisions/git.md"),
             "{link}"
         );
     }
 }
 
-/// US6.3: Discard deletes the draft no commit has, and the entry gets its children back.
+/// US6.3: Discard deletes the proposal file no commit has, and the proposal gets its children back.
 #[test]
-fn discard_deletes_the_draft_and_gives_the_children_back() {
+fn discard_deletes_the_proposal_file_and_gives_the_children_back() {
     let repo = fixture_repo();
     let place = main_place(&repo);
     let before = repo.read("specs/PRIORITIES.md");
-    draft::create(&place, "later-1").unwrap();
+    expand::create(&place, "later-1").unwrap();
 
     changes::discard(&place).unwrap();
 
-    assert!(!repo.exists(NIX_DRAFT));
+    assert!(!repo.exists(NIX_FILE));
     assert_eq!(repo.read("specs/PRIORITIES.md"), before);
     assert_eq!(repo.porcelain(), "");
 }
 
-/// Discard deletes the draft of a line whose children changed since the last commit: the draft
-/// holds the children it had when drafted, and Discard gives the committed ones back.
+/// Discard deletes the proposal file of a line whose children changed since the last commit: the
+/// proposal file holds the children it had when expanded, and Discard gives the committed ones
+/// back.
 #[test]
-fn discard_deletes_the_draft_of_a_line_whose_children_changed() {
+fn discard_deletes_the_proposal_file_of_a_line_whose_children_changed() {
     let repo = fixture_repo();
     let place = main_place(&repo);
     let before = repo.read("specs/PRIORITIES.md");
@@ -745,19 +746,19 @@ fn discard_deletes_the_draft_of_a_line_whose_children_changed() {
         "specs/PRIORITIES.md",
         &before.replace("- with a cache", "- with a cache\n  - and a registry"),
     );
-    draft::create(&place, "later-1").unwrap();
-    assert!(repo.read(NIX_DRAFT).contains("- and a registry"));
+    expand::create(&place, "later-1").unwrap();
+    assert!(repo.read(NIX_FILE).contains("- and a registry"));
 
     changes::discard(&place).unwrap();
 
-    assert!(!repo.exists(NIX_DRAFT));
+    assert!(!repo.exists(NIX_FILE));
     assert_eq!(repo.read("specs/PRIORITIES.md"), before);
     assert_eq!(repo.porcelain(), "");
 }
 
-/// Discard keeps a draft the human typed in, even when its line's children changed.
+/// Discard keeps a proposal file the human typed in, even when its line's children changed.
 #[test]
-fn discard_keeps_a_typed_draft_of_a_line_whose_children_changed() {
+fn discard_keeps_a_typed_proposal_file_of_a_line_whose_children_changed() {
     let repo = fixture_repo();
     let place = main_place(&repo);
     let before = repo.read("specs/PRIORITIES.md");
@@ -765,21 +766,21 @@ fn discard_keeps_a_typed_draft_of_a_line_whose_children_changed() {
         "specs/PRIORITIES.md",
         &before.replace("- with a cache", "- with a cache\n  - and a registry"),
     );
-    draft::create(&place, "later-1").unwrap();
+    expand::create(&place, "later-1").unwrap();
     let typed = repo
-        .read(NIX_DRAFT)
+        .read(NIX_FILE)
         .replace("## Why\n", "## Why\n\nBecause.\n");
-    repo.write(NIX_DRAFT, &typed);
+    repo.write(NIX_FILE, &typed);
 
     changes::discard(&place).unwrap();
 
-    assert_eq!(repo.read(NIX_DRAFT), typed);
+    assert_eq!(repo.read(NIX_FILE), typed);
 }
 
-/// The edge case of a Discard after a draft from a note and one from a line: both drafts go, and
-/// both lists are restored.
+/// The edge case of a Discard after a proposal file from a note and one from a line: both proposal
+/// files go, and both lists are restored.
 #[test]
-fn discard_after_a_note_draft_and_a_line_draft() {
+fn discard_after_a_note_proposal_file_and_a_line_proposal_file() {
     let repo = fixture_repo();
     repo.write(
         "specs/INBOX.md",
@@ -800,13 +801,13 @@ fn discard_after_a_note_draft_and_a_line_draft() {
         .clone();
     let read = api::read_priorities(repo.path()).unwrap();
     let note_draft =
-        api::note_to_new_draft(repo.path(), &note, "next", &inbox.hash, &read.hash).unwrap();
-    draft::create(&place, "later-1").unwrap();
+        api::note_to_proposal_file(repo.path(), &note, "next", &inbox.hash, &read.hash).unwrap();
+    expand::create(&place, "later-1").unwrap();
 
     changes::discard(&place).unwrap();
 
     assert!(!repo.exists(&note_draft));
-    assert!(!repo.exists(NIX_DRAFT));
+    assert!(!repo.exists(NIX_FILE));
     assert_eq!(repo.read("specs/PRIORITIES.md"), priorities_before);
     assert_eq!(repo.read("specs/INBOX.md"), inbox_before);
     assert_eq!(repo.porcelain(), "");
@@ -821,7 +822,7 @@ fn an_add_commits_alone_on_a_clean_file() {
     let read = api::read_priorities(repo.path()).unwrap();
 
     let (priorities, added) =
-        api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+        api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
 
     assert_eq!(
         added,
@@ -845,7 +846,7 @@ fn an_add_commits_alone_on_a_clean_file() {
     );
 }
 
-/// US3 3: a file with other changes gets the entry, and no commit.
+/// US3 3: a file with other changes gets the proposal, and no commit.
 #[test]
 fn an_add_on_a_changed_file_is_not_committed() {
     let repo = repo();
@@ -853,7 +854,7 @@ fn an_add_on_a_changed_file_is_not_committed() {
     let read = api::read_priorities(repo.path()).unwrap();
 
     let (priorities, added) =
-        api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+        api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
 
     assert!(!added.committed);
     assert_eq!(added.reason.as_deref(), Some("other-changes"));
@@ -873,7 +874,7 @@ fn an_add_commits_alone_beside_other_staged_files() {
     repo.git(&["add", "README.md"]);
     let read = api::read_priorities(repo.path()).unwrap();
 
-    let (_, added) = api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+    let (_, added) = api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
 
     assert!(added.committed);
     assert_eq!(repo.changed_in("HEAD"), ["specs/PRIORITIES.md"]);
@@ -884,16 +885,16 @@ fn an_add_commits_alone_beside_other_staged_files() {
     assert_eq!(repo.read("README.md"), "# Test, staged\n");
 }
 
-/// The edge case of a hook refusing the commit: the entry stays written, unstaged, and the answer
-/// carries the hook's first line.
+/// The edge case of a hook refusing the commit: the proposal stays written, unstaged, and the
+/// answer carries the hook's first line.
 #[test]
-fn a_hook_failure_leaves_the_entry_written() {
+fn a_hook_failure_leaves_the_proposal_written() {
     let repo = repo();
     repo.set_hook("echo 'Trailing space in PRIORITIES.md' >&2\necho 'line 9' >&2\nexit 1");
     let read = api::read_priorities(repo.path()).unwrap();
 
     let (priorities, added) =
-        api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+        api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
 
     assert_eq!(
         added,
@@ -912,17 +913,17 @@ fn a_hook_failure_leaves_the_entry_written() {
     assert_eq!(priorities.changes, 1);
 }
 
-/// US3 6: Undo of a committed add removes the entry, and commits the removal alone.
+/// US3 6: Undo of a committed add removes the proposal, and commits the removal alone.
 #[test]
 fn undo_of_a_committed_add_commits_the_removal() {
     let repo = repo();
     let read = api::read_priorities(repo.path()).unwrap();
-    let (added, _) = api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+    let (added, _) = api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
     repo.write("README.md", "# Test, staged\n");
     repo.git(&["add", "README.md"]);
 
     let undone =
-        api::undo_committed_priority(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap();
+        api::undo_committed_proposal(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap();
 
     assert_eq!(
         repo.subjects("main")[0],
@@ -944,12 +945,12 @@ fn undo_of_a_committed_add_commits_the_removal() {
 fn undo_after_the_file_changed_is_refused() {
     let repo = repo();
     let read = api::read_priorities(repo.path()).unwrap();
-    let (added, _) = api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+    let (added, _) = api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
     let changed = repo.read("specs/PRIORITIES.md").replace("- Slack\n", "");
     repo.write("specs/PRIORITIES.md", &changed);
 
     let error =
-        api::undo_committed_priority(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap_err();
+        api::undo_committed_proposal(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap_err();
 
     assert_eq!(error.code, "conflict");
     assert_eq!(
@@ -964,7 +965,7 @@ fn undo_after_the_file_changed_is_refused() {
 }
 
 /// A file staged by the human, its working copy then put back as committed, still has changes:
-/// "Add and commit" writes the entry without committing, and the staged version stays staged.
+/// "Add and commit" writes the proposal without committing, and the staged version stays staged.
 #[test]
 fn an_add_over_a_staged_change_is_not_committed() {
     let repo = repo();
@@ -974,7 +975,7 @@ fn an_add_over_a_staged_change_is_not_committed() {
     repo.write("specs/PRIORITIES.md", TEXT);
     let read = api::read_priorities(repo.path()).unwrap();
 
-    let (_, added) = api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+    let (_, added) = api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
 
     assert!(!added.committed);
     assert_eq!(added.reason.as_deref(), Some("other-changes"));
@@ -992,7 +993,7 @@ fn an_add_over_a_staged_change_is_not_committed() {
 fn undo_over_a_staged_change_is_refused() {
     let repo = repo();
     let read = api::read_priorities(repo.path()).unwrap();
-    let (added, _) = api::add_priority_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
+    let (added, _) = api::add_proposal_and_commit(repo.path(), "next", SORT, &read.hash).unwrap();
     let committed = repo.read("specs/PRIORITIES.md");
     let staged = committed.replace("- Slack\n", "");
     repo.write("specs/PRIORITIES.md", &staged);
@@ -1000,7 +1001,7 @@ fn undo_over_a_staged_change_is_refused() {
     repo.write("specs/PRIORITIES.md", &committed);
 
     let error =
-        api::undo_committed_priority(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap_err();
+        api::undo_committed_proposal(repo.path(), &[format!("- {SORT}")], &added.hash).unwrap_err();
 
     assert_eq!(error.code, "conflict");
     assert_eq!(repo.git(&["show", ":specs/PRIORITIES.md"]), staged);
@@ -1011,36 +1012,37 @@ fn undo_over_a_staged_change_is_refused() {
     );
 }
 
-const FOLDERS: &str = "# Priorities\n\n## Now\n\n## Next\n\n- [Icons](drafts/icons/proposal.md)\n- [Search](drafts/search/proposal.md)\n";
+const FOLDERS: &str = "# Priorities\n\n## Now\n\n## Next\n\n- [Icons](proposals/icons/proposal.md)\n- [Search](proposals/search/proposal.md)\n";
 
-/// A draft folder counts as a draft only when it holds its `proposal.md`: a folder of images alone
-/// has no draft to open, read from disk on the default branch or from its commit elsewhere.
+/// A proposal file folder counts as a proposal file only when it holds its `proposal.md`: a folder
+/// of images alone has no proposal file to open, read from disk on the default branch or from its
+/// commit elsewhere.
 #[test]
-fn a_folder_without_its_proposal_is_no_draft() {
+fn a_folder_without_its_proposal_is_no_proposal_file() {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
     repo.write("specs/PRIORITIES.md", FOLDERS);
-    repo.write("specs/drafts/icons/home.png", "not really a png\n");
-    repo.write("specs/drafts/search/proposal.md", "# Search\n");
-    repo.write("specs/drafts/search/results.png", "not really a png\n");
+    repo.write("specs/proposals/icons/home.png", "not really a png\n");
+    repo.write("specs/proposals/search/proposal.md", "# Search\n");
+    repo.write("specs/proposals/search/results.png", "not really a png\n");
     repo.commit("chore: specs");
-    let drafts = |repo: &TestRepo| {
+    let proposal_files = |repo: &TestRepo| {
         let read = api::read_priorities(repo.path()).unwrap();
         ["Icons", "Search"].map(|name| {
-            entry(
+            item(
                 &read,
-                &format!("[{name}](drafts/{}/proposal.md)", name.to_lowercase()),
+                &format!("[{name}](proposals/{}/proposal.md)", name.to_lowercase()),
             )
-            .draft
+            .file
             .as_ref()
             .map(|file| file.path.clone())
         })
     };
-    let expected = [None, Some("specs/drafts/search/proposal.md".to_string())];
+    let expected = [None, Some("specs/proposals/search/proposal.md".to_string())];
 
-    assert_eq!(drafts(&repo), expected);
+    assert_eq!(proposal_files(&repo), expected);
     repo.switch_new("2026-10-17-feature");
-    assert_eq!(drafts(&repo), expected);
+    assert_eq!(proposal_files(&repo), expected);
 }
 
 #[test]
@@ -1053,7 +1055,7 @@ fn a_tip_callout_with_a_blank_quote_line_is_the_context() {
         read.sections[0].context.as_deref(),
         Some("Features for v1.0.0")
     );
-    assert_eq!(read.sections[0].entries.len(), 1);
+    assert_eq!(read.sections[0].proposals.len(), 1);
     let contexts = priorities::contexts(text);
     assert_eq!(contexts.len(), 1);
     assert_eq!(contexts[0].section, Section::Now);
@@ -1072,7 +1074,7 @@ fn the_text_after_the_marker_on_its_line_is_the_context() {
 
 #[test]
 fn only_the_first_callout_and_its_first_paragraph_count() {
-    let text = "# Priorities\n\n## Next\n\n> A plain quote\n\n> [!NOTE]\n> First\n> line\n>\n> Second paragraph\n\n> [!TIP]\n> Another callout\n\n- A\n\n> [!TIP]\n> After an entry\n";
+    let text = "# Priorities\n\n## Next\n\n> A plain quote\n\n> [!NOTE]\n> First\n> line\n>\n> Second paragraph\n\n> [!TIP]\n> Another callout\n\n- A\n\n> [!TIP]\n> After an proposal\n";
 
     let read = priorities::read(text, None);
 
@@ -1095,7 +1097,7 @@ fn a_marker_alone_has_no_context() {
 #[test]
 fn a_section_without_a_callout_has_no_context() {
     let text =
-        "# Priorities\n\n## Now\n\n- A\n\n## Next\n\n- B\n> [!NOTE]\n> not before an entry\n";
+        "# Priorities\n\n## Now\n\n- A\n\n## Next\n\n- B\n> [!NOTE]\n> not before an proposal\n";
 
     assert!(priorities::contexts(text).is_empty());
     assert!(

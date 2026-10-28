@@ -17,6 +17,18 @@ pub fn images_folder(folder: &str) -> String {
     format!("{folder}/images")
 }
 
+/// The folder whose main file `path` is, from the top level: `specs/proposals/<slug>` for a
+/// proposal file's `specs/proposals/<slug>/proposal.md`, `specs/notes/<slug>` for a note file's
+/// `specs/notes/<slug>/note.md`. `None` for a single file, and for any other path.
+pub fn folder_of(path: &str) -> Option<&str> {
+    let folder = match path.strip_prefix(crate::target::NOTES) {
+        Some(_) => path.strip_suffix("/note.md")?,
+        None if crate::target::is_proposal_file(path) => path.strip_suffix("/proposal.md")?,
+        None => return None,
+    };
+    (folder.matches('/').count() == 2).then_some(folder)
+}
+
 /// Every markdown file of `dir` and of its subfolders, never through a symbolic link.
 fn markdown_files(root: &Path, dir: &str, files: &mut Vec<String>) {
     let Ok(entries) = fs::read_dir(root.join(dir)) else {
@@ -146,11 +158,11 @@ pub fn unlinked_images(root: &Path, folder: &str) -> Vec<String> {
     found
 }
 
-/// The unlinked images of every folder draft and folder of the backlog: `specs/drafts/<slug>/` and
-/// `specs/backlog/<slug>/`.
-pub fn unlinked_in_drafts(root: &Path) -> Vec<String> {
+/// The unlinked images of every folder of the proposal files and of the note files:
+/// `specs/notes/<slug>/` and `specs/proposals/<slug>/`.
+pub fn unlinked_in_proposals_and_notes(root: &Path) -> Vec<String> {
     let mut found = Vec::new();
-    for parent in ["specs/backlog", "specs/drafts"] {
+    for parent in ["specs/notes", "specs/proposals"] {
         let Ok(entries) = fs::read_dir(root.join(parent)) else {
             continue;
         };
@@ -167,10 +179,10 @@ pub fn unlinked_in_drafts(root: &Path) -> Vec<String> {
     found
 }
 
-/// Deletes the images [`unlinked_in_drafts`] finds, and the `images/` folders they leave empty.
-/// Returns them.
-pub fn delete_unlinked_in_drafts(root: &Path) -> Result<Vec<String>, ActionError> {
-    let found = unlinked_in_drafts(root);
+/// Deletes the images [`unlinked_in_proposals_and_notes`] finds, and the `images/` folders they
+/// leave empty. Returns them.
+pub fn delete_unlinked_in_proposals_and_notes(root: &Path) -> Result<Vec<String>, ActionError> {
+    let found = unlinked_in_proposals_and_notes(root);
     for path in &found {
         let folder = path.split("/images/").next().unwrap_or_default();
         remove(root, &images_folder(folder), std::slice::from_ref(path))?;

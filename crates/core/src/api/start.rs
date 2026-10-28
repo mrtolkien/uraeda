@@ -1,5 +1,5 @@
-//! Starting a drafted feature or change, a change typed as a text, the slug proposed for it, and
-//! the paths a draft may have.
+//! Starting a feature or change from its proposal file, a change typed as a text, the slug proposed
+//! for it, and the paths a proposal file or a note file may have.
 
 use std::path::Path;
 
@@ -11,20 +11,20 @@ use crate::today;
 use crate::view::{PromotedView, StartedView};
 use crate::workspace::Kind;
 
-/// Starts a drafted feature, or a change with `Kind::Change`, in its own worktree.
+/// Starts a feature from its proposal file, or a change with `Kind::Change`, in its own worktree.
 pub fn start_feature(
     repo: &Path,
-    draft: &str,
+    proposal: &str,
     slug: Option<&str>,
     kind: Kind,
 ) -> Result<StartedView> {
-    draft_path(draft)?;
+    proposal_path(proposal)?;
     let _lock = write_lock();
     let (git, workspace) = open(repo)?;
     view(start::run(
         &git,
         &workspace,
-        draft,
+        proposal,
         slug,
         kind,
         today::today(),
@@ -120,14 +120,23 @@ fn refusal(error: StartError) -> super::ApiError {
     }
 }
 
-/// Refuses any path but a draft's: a file or a postponed folder of `specs/drafts/` or
-/// `specs/backlog/`, or a file of that folder.
-pub(super) fn draft_path(path: &str) -> Result<()> {
+/// Refuses any path but a proposal file's: a file or a postponed folder of `specs/proposals/`, or
+/// a file of that folder.
+pub(super) fn proposal_path(path: &str) -> Result<()> {
+    match path.strip_prefix(crate::target::PROPOSALS) {
+        Some(rest) if plain(path) && rest.split('/').count() <= 2 => Ok(()),
+        _ => Err(refused(format!("{path} is not a proposal file"))),
+    }
+}
+
+/// Refuses any path but a proposal file's or a note file's: a file or a folder of
+/// `specs/proposals/` or `specs/notes/`, or a file of that folder.
+pub(super) fn linked_path(path: &str) -> Result<()> {
     let rest = path
-        .strip_prefix("specs/drafts/")
-        .or_else(|| path.strip_prefix("specs/backlog/"));
+        .strip_prefix(crate::target::PROPOSALS)
+        .or_else(|| path.strip_prefix(crate::target::NOTES));
     match rest {
         Some(rest) if plain(path) && rest.split('/').count() <= 2 => Ok(()),
-        _ => Err(refused(format!("{path} is not a draft"))),
+        _ => Err(refused(format!("{path} is not a proposal file"))),
     }
 }

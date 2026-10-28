@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use uraeda_core::files::priorities::Section;
 use uraeda_core::steps::{PullRequest, StepName, WaitsOn};
-use uraeda_core::workspace::{Feature, PriorityEntry, Workspace, first_file, folder_branch};
+use uraeda_core::workspace::{Feature, LinkedProposal, Workspace, first_file, folder_branch};
 
 use crate::output::{self, Style};
 
@@ -104,8 +104,8 @@ fn feature_row(feature: &Feature) -> Row {
     }
 }
 
-fn entry_row(entry: &PriorityEntry) -> Row {
-    let name = entry
+fn proposal_row(proposal: &LinkedProposal) -> Row {
+    let name = proposal
         .link
         .as_deref()
         .and_then(|link| {
@@ -119,8 +119,8 @@ fn entry_row(entry: &PriorityEntry) -> Row {
                 stem.to_string()
             })
         })
-        .unwrap_or_else(|| shorten(&entry.text));
-    let step = match &entry.link {
+        .unwrap_or_else(|| shorten(&proposal.text));
+    let step = match &proposal.link {
         Some(link) => format!("not started ({link})"),
         None => "not started".to_string(),
     };
@@ -131,7 +131,7 @@ fn entry_row(entry: &PriorityEntry) -> Row {
     }
 }
 
-/// An entry's text, cut to 40 characters on a word, for the name column.
+/// A proposal's text, cut to 40 characters on a word, for the name column.
 fn shorten(text: &str) -> String {
     const LIMIT: usize = 40;
     if text.chars().count() <= LIMIT {
@@ -153,13 +153,17 @@ fn render(workspace: &Workspace) -> String {
         let rows: Vec<Row> = workspace
             .priorities
             .iter()
-            .filter(|entry| entry.section == section)
-            .map(
-                |entry| match entry.feature.as_deref().and_then(|f| workspace.feature(f)) {
+            .filter(|proposal| proposal.section == section)
+            .map(|proposal| {
+                match proposal
+                    .feature
+                    .as_deref()
+                    .and_then(|f| workspace.feature(f))
+                {
                     Some(feature) => feature_row(feature),
-                    None => entry_row(entry),
-                },
-            )
+                    None => proposal_row(proposal),
+                }
+            })
             .collect();
         if !rows.is_empty() {
             groups.push((section.title().to_string(), rows));
@@ -168,7 +172,7 @@ fn render(workspace: &Workspace) -> String {
     let listed: Vec<&str> = workspace
         .priorities
         .iter()
-        .filter_map(|entry| entry.feature.as_deref())
+        .filter_map(|proposal| proposal.feature.as_deref())
         .collect();
     let done = |feature: &&Feature| feature.step.name == StepName::Done;
     let others: Vec<Row> = workspace

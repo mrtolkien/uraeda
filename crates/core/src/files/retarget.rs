@@ -1,5 +1,6 @@
-//! Link destinations rewritten in place: the links of `PRIORITIES.md` and `INBOX.md` to a draft
-//! that moved, as it becomes a folder, and a note's relative links, as it moves into a draft.
+//! Link destinations rewritten in place: the links of `PRIORITIES.md` and `INBOX.md` to a file
+//! that moved, as it becomes a folder or as a note file becomes a proposal file, and a note's
+//! relative links, as it moves into a file.
 
 use std::ops::Range;
 
@@ -26,6 +27,22 @@ pub fn retarget(text: &str, from: &str, to: &str) -> String {
         };
         let prefix = target.strip_suffix(file)?;
         Some(format!("{prefix}{moved}{anchor}"))
+    })
+}
+
+/// Points every link of `PRIORITIES.md` or `INBOX.md` to the file `from` at `to` instead, both
+/// paths from the top level, wherever `to` is: a note file moved to the proposals. A rooted
+/// destination stays rooted, and its anchor stays.
+pub fn moved(text: &str, from: &str, to: &str) -> String {
+    rewrite(text, |raw| {
+        if !links_to(raw, from) {
+            return None;
+        }
+        let anchor = raw.find('#').map_or("", |at| &raw[at..]);
+        if raw.starts_with('/') {
+            return Some(format!("/{to}{anchor}"));
+        }
+        Some(format!("{}{anchor}", rebased(to, "", "specs")?))
     })
 }
 
@@ -198,7 +215,7 @@ mod tests {
                 "[![i](../images/a.png)](../../x.md)",
             ),
             ("[a]\n\n[a]: ../x.md", "[a]\n\n[a]: ../../x.md"),
-            ("[a](drafts/b.md)", "[a](b.md)"),
+            ("[a](proposals/b.md)", "[a](b.md)"),
             (
                 "[a](/README.md) [b](https://x.y) [c](#c) [d](mailto:a@b.c)",
                 "[a](/README.md) [b](https://x.y) [c](#c) [d](mailto:a@b.c)",
@@ -207,7 +224,7 @@ mod tests {
             ("`[a](../x.md)`", "`[a](../x.md)`"),
         ];
         for (text, rebased) in cases {
-            assert_eq!(rebase(text, "specs", "specs/drafts"), rebased, "{text}");
+            assert_eq!(rebase(text, "specs", "specs/proposals"), rebased, "{text}");
         }
     }
 }

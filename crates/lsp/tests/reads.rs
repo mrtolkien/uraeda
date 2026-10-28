@@ -249,10 +249,10 @@ fn with_codex_runtime(files: &[(&str, &str)]) -> TestRepo {
     repo.write(
         "specs/PRIORITIES.md",
         "# Priorities\n\n## Now\n\n1. [Codex runtime](2026-10-14-codex-runtime/proposal.md)\n\n\
-         ## Next\n\n1. [Gemini runtime](drafts/gemini-runtime.md)\n   Wrapped.\n2. Plain line\n\
+         ## Next\n\n1. [Gemini runtime](proposals/gemini-runtime.md)\n   Wrapped.\n2. Plain line\n\
          \n## Later\n\n## Blocked\n",
     );
-    repo.write("specs/drafts/gemini-runtime.md", "# Gemini runtime\n");
+    repo.write("specs/proposals/gemini-runtime.md", "# Gemini runtime\n");
     repo.commit("chore: specs");
     repo.switch_new("2026-10-14-codex-runtime");
     repo.write("specs/2026-10-14-codex-runtime/proposal.md", &proposal());
@@ -334,7 +334,7 @@ fn hints(session: &mut Session, path: &Path) -> Vec<(u32, u32, String)> {
 
 /// C1 of the spec's review.
 #[test]
-fn priorities_entries_hint_their_step() {
+fn proposals_hint_their_step() {
     let repo = with_codex_runtime(&[]);
     let path = repo.path().join("specs/PRIORITIES.md");
     let text = repo.read("specs/PRIORITIES.md");
@@ -342,7 +342,7 @@ fn priorities_entries_hint_their_step() {
     session.open(&path, &text);
 
     let first = "1. [Codex runtime](2026-10-14-codex-runtime/proposal.md)";
-    let drafted = "1. [Gemini runtime](drafts/gemini-runtime.md)";
+    let expanded = "1. [Gemini runtime](proposals/gemini-runtime.md)";
     assert_eq!(
         hints(&mut session, &path),
         [
@@ -351,7 +351,7 @@ fn priorities_entries_hint_their_step() {
                 first.len() as u32,
                 "discovery · waits on agent".to_string()
             ),
-            (8, drafted.len() as u32, "draft".to_string()),
+            (8, expanded.len() as u32, "file".to_string()),
         ]
     );
 
@@ -369,17 +369,17 @@ fn priorities_entries_hint_their_step() {
     );
 }
 
-/// An entry's hint names a draft or a postponed feature the default branch has, as the web's
-/// priorities do: a link to a draft that does not exist has none.
+/// A proposal's hint names a proposal file or a postponed feature the default branch has, as the
+/// web's priorities do: a link to a proposal file that does not exist has none.
 #[test]
-fn priorities_entries_hint_only_existing_drafts() {
+fn proposals_hint_only_existing_proposal_files() {
     let repo = with_codex_runtime(&[]);
-    repo.write("specs/backlog/later/proposal.md", "# Later\n");
+    repo.write("specs/proposals/later/proposal.md", "# Later\n");
     repo.commit("chore: postpone later");
     let path = repo.path().join("specs/PRIORITIES.md");
     let text = repo.read("specs/PRIORITIES.md").replace(
         "## Later\n",
-        "## Later\n\n1. [Gone](drafts/gone.md)\n2. [Later](backlog/later/proposal.md)\n",
+        "## Later\n\n1. [Gone](proposals/gone.md)\n2. [Later](proposals/later/proposal.md)\n",
     );
     let mut session = Session::start(repo.path());
     session.open(&path, &text);
@@ -392,8 +392,8 @@ fn priorities_entries_hint_only_existing_drafts() {
         labels,
         [
             (4, "discovery · waits on agent".to_string()),
-            (8, "draft".to_string()),
-            (15, "backlog".to_string()),
+            (8, "file".to_string()),
+            (15, "file".to_string()),
         ]
     );
 }

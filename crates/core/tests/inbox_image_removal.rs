@@ -1,6 +1,6 @@
-//! An image taken out of a note: the line linking it leaves the note's draft, checked against the
-//! draft's version, the image's file left for `ura inbox clean` or a commit; and its Undo, which
-//! puts the line back where it was.
+//! An image taken out of a note: the line linking it leaves the note's note file, checked against
+//! the note file's version, the image's file left for `ura inbox clean` or a commit; and its Undo,
+//! which puts the line back where it was.
 
 mod common;
 
@@ -11,9 +11,9 @@ use uraeda_core::files::image_links::without_image;
 use uraeda_core::files::inbox::Inbox;
 
 const NOTE: &str = "Headings are flat";
-const DRAFT: &str = "specs/drafts/headings-are-flat/proposal.md";
-const FIRST: &str = "specs/drafts/headings-are-flat/images/first.webp";
-const SECOND: &str = "specs/drafts/headings-are-flat/images/second.webp";
+const NOTE_FILE: &str = "specs/notes/headings-are-flat/note.md";
+const FIRST: &str = "specs/notes/headings-are-flat/images/first.webp";
+const SECOND: &str = "specs/notes/headings-are-flat/images/second.webp";
 
 /// A repository on `main` with an inbox of one category.
 fn repo() -> TestRepo {
@@ -36,34 +36,34 @@ fn image(name: &str) -> (Vec<u8>, Option<String>) {
 fn with_two_images(repo: &TestRepo) {
     let inbox = api::read_inbox(repo.path()).unwrap();
     let images = [image("first.png"), image("second.png")];
-    let (_, draft) =
+    let (_, file) =
         api::add_note_with_images(repo.path(), None, None, NOTE, &images, &inbox.hash).unwrap();
-    assert_eq!(draft, DRAFT);
+    assert_eq!(file, NOTE_FILE);
 }
 
-/// The images of the note that links the draft, as the inbox reads them.
+/// The images of the note that links the note file, as the inbox reads them.
 fn images(inbox: &Inbox) -> Vec<String> {
     inbox
         .categories
         .iter()
         .flat_map(|category| &category.notes)
-        .find(|note| note.draft.as_deref() == Some(DRAFT))
+        .find(|note| note.file.as_deref() == Some(NOTE_FILE))
         .map(|note| note.images.clone())
         .unwrap_or_default()
 }
 
-/// The image's line leaves the draft with the blank line before it, the file stays, and Undo puts
-/// the draft back as it was, byte for byte.
+/// The image's line leaves the note file with the blank line before it, the file stays, and Undo
+/// puts the note file back as it was, byte for byte.
 #[test]
 fn an_image_leaves_its_note_and_comes_back_on_undo() {
     let repo = repo();
     with_two_images(&repo);
-    let before = repo.read(DRAFT);
+    let before = repo.read(NOTE_FILE);
 
     let (inbox, removed) =
-        api::remove_note_image(repo.path(), DRAFT, FIRST, &hash(&before)).unwrap();
+        api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&before)).unwrap();
 
-    let after = repo.read(DRAFT);
+    let after = repo.read(NOTE_FILE);
     assert_eq!(
         after,
         before.replace("\n\n![first](images/first.webp)", ""),
@@ -75,7 +75,7 @@ fn an_image_leaves_its_note_and_comes_back_on_undo() {
 
     let inbox = api::restore_note_image(repo.path(), &removed).unwrap();
 
-    assert_eq!(repo.read(DRAFT), before);
+    assert_eq!(repo.read(NOTE_FILE), before);
     assert_eq!(images(&inbox), [FIRST, SECOND]);
 }
 
@@ -84,66 +84,66 @@ fn an_image_leaves_its_note_and_comes_back_on_undo() {
 fn the_last_image_leaves_the_what_as_it_was_written() {
     let repo = repo();
     with_two_images(&repo);
-    let text = repo.read(DRAFT);
-    let (_, _) = api::remove_note_image(repo.path(), DRAFT, FIRST, &hash(&text)).unwrap();
-    let text = repo.read(DRAFT);
+    let text = repo.read(NOTE_FILE);
+    let (_, _) = api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&text)).unwrap();
+    let text = repo.read(NOTE_FILE);
 
-    let (inbox, _) = api::remove_note_image(repo.path(), DRAFT, SECOND, &hash(&text)).unwrap();
+    let (inbox, _) = api::remove_note_image(repo.path(), NOTE_FILE, SECOND, &hash(&text)).unwrap();
 
-    let text = repo.read(DRAFT);
+    let text = repo.read(NOTE_FILE);
     assert!(text.contains(&format!("{NOTE}\n\n## Why")), "{text}");
     assert!(images(&inbox).is_empty());
 }
 
-/// A draft changed since it was read is not written: a conflict, as other writes are.
+/// A note file changed since it was read is not written: a conflict, as other writes are.
 #[test]
-fn a_stale_draft_is_a_conflict() {
+fn a_stale_note_file_is_a_conflict() {
     let repo = repo();
     with_two_images(&repo);
-    let before = repo.read(DRAFT);
+    let before = repo.read(NOTE_FILE);
 
-    let error = api::remove_note_image(repo.path(), DRAFT, FIRST, "stale").unwrap_err();
+    let error = api::remove_note_image(repo.path(), NOTE_FILE, FIRST, "stale").unwrap_err();
 
     assert_eq!(error.code, "conflict");
-    assert_eq!(repo.read(DRAFT), before);
+    assert_eq!(repo.read(NOTE_FILE), before);
 }
 
-/// An image the draft does not link, or a file that is no draft, is refused.
+/// An image the note file does not link, or a file that is no note file, is refused.
 #[test]
-fn an_image_not_linked_or_a_file_not_a_draft_is_refused() {
+fn an_image_not_linked_or_a_file_not_a_note_file_is_refused() {
     let repo = repo();
     with_two_images(&repo);
-    let text = repo.read(DRAFT);
+    let text = repo.read(NOTE_FILE);
     let inbox = repo.read("specs/INBOX.md");
-    let missing = "specs/drafts/headings-are-flat/images/third.webp";
+    let missing = "specs/notes/headings-are-flat/images/third.webp";
 
-    let error = api::remove_note_image(repo.path(), DRAFT, missing, &hash(&text)).unwrap_err();
+    let error = api::remove_note_image(repo.path(), NOTE_FILE, missing, &hash(&text)).unwrap_err();
     assert_eq!(error.code, "refused");
     assert!(error.message.contains("third.webp"), "{}", error.message);
 
     let error =
         api::remove_note_image(repo.path(), "specs/INBOX.md", FIRST, &hash(&inbox)).unwrap_err();
     assert_eq!(error.code, "refused");
-    assert_eq!(repo.read(DRAFT), text);
+    assert_eq!(repo.read(NOTE_FILE), text);
 }
 
-/// Undo goes over the draft as it is now, an edit elsewhere kept; it refuses once the place it
+/// Undo goes over the note file as it is now, an edit elsewhere kept; it refuses once the place it
 /// goes back to changed, or the image is linked again.
 #[test]
 fn undo_keeps_other_edits_and_refuses_a_changed_place() {
     let repo = repo();
     with_two_images(&repo);
-    let text = repo.read(DRAFT);
-    let (_, removed) = api::remove_note_image(repo.path(), DRAFT, FIRST, &hash(&text)).unwrap();
+    let text = repo.read(NOTE_FILE);
+    let (_, removed) = api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&text)).unwrap();
     let edited = repo
-        .read(DRAFT)
+        .read(NOTE_FILE)
         .replace("## Why\n", "## Why\n\nTyped meanwhile.\n");
-    repo.write(DRAFT, &edited);
+    repo.write(NOTE_FILE, &edited);
 
     api::restore_note_image(repo.path(), &removed).unwrap();
 
     assert_eq!(
-        repo.read(DRAFT),
+        repo.read(NOTE_FILE),
         text.replace("## Why\n", "## Why\n\nTyped meanwhile.\n")
     );
 
@@ -151,15 +151,16 @@ fn undo_keeps_other_edits_and_refuses_a_changed_place() {
     assert_eq!(error.code, "refused");
 
     let (_, removed) =
-        api::remove_note_image(repo.path(), DRAFT, FIRST, &hash(&repo.read(DRAFT))).unwrap();
+        api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&repo.read(NOTE_FILE)))
+            .unwrap();
     let moved = repo
-        .read(DRAFT)
+        .read(NOTE_FILE)
         .replace("## What\n", "## What\n\nA paragraph above.\n");
-    repo.write(DRAFT, &moved);
+    repo.write(NOTE_FILE, &moved);
 
     let error = api::restore_note_image(repo.path(), &removed).unwrap_err();
     assert_eq!(error.code, "refused");
-    assert_eq!(repo.read(DRAFT), moved);
+    assert_eq!(repo.read(NOTE_FILE), moved);
 }
 
 /// Only the links to that image go: a line they leave empty with them, and the blank line before

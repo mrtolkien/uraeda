@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use super::drafts::text_place;
+use super::proposal_files::text_place;
 use super::{Result, default_checkout, feature_dir, feature_of, open, plain, refused, write_lock};
 use crate::actions::attach;
 use crate::git::Git;
@@ -54,8 +54,8 @@ fn raw_bytes(git: &Git, workspace: &Workspace, path: &str) -> Option<Vec<u8>> {
     }
 }
 
-/// Attaches an image to a draft, a proposal, or another markdown file of a feature's or a
-/// change's folder: re-encoded, saved in the `images/` folder next to it, a single-file draft
+/// Attaches an image to a proposal file, a proposal, or another markdown file of a feature's or a
+/// change's folder: re-encoded, saved in the `images/` folder next to it, a single proposal file
 /// becoming a folder first. `name` is the image's original file name, `None` for a pasted image.
 /// The image is checked and encoded before the write lock is taken: encoding a large photo takes
 /// seconds, which no other write waits for.
@@ -67,7 +67,7 @@ pub fn attach_image(
 ) -> Result<AttachedView> {
     if !plain(path) {
         return Err(refused(format!(
-            "{path} is not a markdown file of a feature, a change, or a draft"
+            "{path} is not a markdown file of a feature, a change, a proposal file, or a note file"
         )));
     }
     let encoded = encode_image(bytes, name.unwrap_or("pasted image"))?;
@@ -86,15 +86,16 @@ pub fn encode_image(bytes: &[u8], name: &str) -> Result<Encoded> {
     images::encode(bytes, name).map_err(|error| refused(error.to_string()))
 }
 
-/// The bytes and the MIME type of a PNG, JPEG, GIF, or WebP file under `specs/`: a draft's from the
-/// default branch's checkout, else read as [`read_raw`] reads it. Anything else is no such file.
+/// The bytes and the MIME type of a PNG, JPEG, GIF, or WebP file under `specs/`: a proposal file's
+/// or a note file's from the default branch's checkout, else read as [`read_raw`] reads it.
+/// Anything else is no such file.
 pub fn read_image(repo: &Path, path: &str) -> Result<(Vec<u8>, &'static str)> {
     let missing = || refused(format!("{path}: no such file"));
     if !plain(path) || !path.starts_with("specs/") {
         return Err(missing());
     }
     let (git, workspace) = open(repo)?;
-    let bytes = if target::is_draft(path) {
+    let bytes = if target::is_linked_file(path) {
         let default = workspace.default_branch.as_deref();
         match default.and_then(|default| default_checkout(&git, default)) {
             Some(root) => read_plain(&root, path),

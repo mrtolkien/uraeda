@@ -13,7 +13,7 @@ use crate::files::review::Verdict;
 use crate::gates::{AWAITING_HUMAN, Gate, gate_of};
 use crate::git::Git;
 use crate::view::{
-    CommitView, FeatureView, FileView, NextView, PriorityLink, StepView, VersionView, WaitingFile,
+    CommitView, FeatureView, FileView, NextView, ProposalLink, StepView, VersionView, WaitingFile,
     WorkspaceView,
 };
 use crate::workspace::{Feature, FileKind, Problem, Severity, Source, Workspace, WorkspaceError};
@@ -23,7 +23,6 @@ mod answers;
 mod category_edits;
 mod decision;
 mod default_branch;
-mod drafts;
 mod drop;
 mod drop_at;
 mod error;
@@ -34,7 +33,8 @@ mod inbox_edits;
 mod ledger;
 mod outlines;
 mod preview;
-mod priority_edits;
+mod proposal_edits;
+mod proposal_files;
 mod pulls;
 mod repository_list;
 mod reviews;
@@ -48,9 +48,6 @@ pub use decision::{BranchDecision, read_decision};
 pub(crate) use default_branch::default_checkout;
 pub use default_branch::{default_root, on_default_branch};
 use default_branch::{on_default, reach_default, reach_default_from};
-pub use drafts::{
-    commit_text, create_draft, proposal_hints, read_draft, read_text, save_text, set_discovery,
-};
 pub use drop::{DroppedView, drop_item};
 pub use drop_at::DropAt;
 pub use error::ApiError;
@@ -61,12 +58,16 @@ pub use image_edits::{remove_note_image, restore_note_image};
 pub use inbox_edits::*;
 pub(crate) use ledger::ledger_hash;
 pub use ledger::{Constitution, Decision, Ledger, Principle, read_ledger};
-pub use outlines::{drop_note, drop_priority, outline_note, outline_priority};
+pub use outlines::{drop_note, drop_proposal, outline_note, outline_proposal};
 pub use preview::{checkout_commit, preview};
-pub(crate) use priority_edits::joined_priorities;
-pub use priority_edits::{
-    add_priority, add_priority_and_commit, commit_priorities, discard_priorities, edit_priority,
-    insert_priority, move_priority, read_priorities, remove_priority, undo_committed_priority,
+pub(crate) use proposal_edits::joined_priorities;
+pub use proposal_edits::{
+    add_proposal, add_proposal_and_commit, commit_priorities, discard_priorities, edit_proposal,
+    insert_proposal, move_proposal, read_priorities, remove_proposal, undo_committed_proposal,
+};
+pub use proposal_files::{
+    commit_text, expand_proposal, proposal_hints, read_proposal_file, read_text, save_text,
+    set_discovery,
 };
 pub use pulls::refresh_pull_requests;
 pub use repository_list::{
@@ -127,7 +128,7 @@ fn checked(git: &Git, feature: &Feature) -> Vec<Problem> {
     problems
 }
 
-/// Every feature, change, and priority, with each feature's step and problems.
+/// Every feature, change, and proposal, with each feature's step and problems.
 pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
     let git = Git::discover(repo)?;
     let workspace = match Workspace::read(&git) {
@@ -141,7 +142,7 @@ pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
                 features: Vec::new(),
                 priorities: Vec::new(),
                 priorities_hash: String::new(),
-                drafts: Vec::new(),
+                proposals: Vec::new(),
                 no_specs: Some(root),
             });
         }
@@ -197,21 +198,21 @@ pub fn waiting(repo: &Path) -> Result<Vec<WaitingFile>> {
     Ok(waiting)
 }
 
-/// What each entry of a priorities text links to, by its first line: a feature or a change with its
-/// step, or a draft. Entries that link neither are left out. `text` is read as given, so an
-/// editor's unsaved lines are linked too.
-pub fn priority_links(repo: &Path, text: &str) -> Result<Vec<PriorityLink>> {
+/// What each proposal of a priorities text links to, by its first line: a feature or a change with
+/// its step, or a proposal file. Proposals that link neither are left out. `text` is read as given,
+/// so an editor's unsaved lines are linked too.
+pub fn proposal_links(repo: &Path, text: &str) -> Result<Vec<ProposalLink>> {
     let (_, workspace) = open(repo)?;
     Ok(priorities::parse(text)
         .into_iter()
-        .filter_map(|entry| {
-            let linked = workspace.link(entry.link.as_deref()?);
+        .filter_map(|proposal| {
+            let linked = workspace.link(proposal.link.as_deref()?);
             let feature = linked.feature;
-            (feature.is_some() || linked.file.is_some()).then(|| PriorityLink {
-                line: entry.line as u32,
+            (feature.is_some() || linked.file.is_some()).then(|| ProposalLink {
+                line: proposal.line as u32,
                 feature: feature.map(|feature| feature.folder.clone()),
                 step: feature.map(|feature| StepView::from(&feature.step)),
-                draft: linked.file.map(|file| file.path),
+                file: linked.file.map(|file| file.path),
             })
         })
         .collect())

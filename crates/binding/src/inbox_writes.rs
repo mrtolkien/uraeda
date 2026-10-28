@@ -1,7 +1,7 @@
 //! The inbox: its notes' edits, each written on the default branch over the inbox read at
-//! `previous`; the moves of notes into the priorities and drafts; the commit bar's Commit and
-//! Discard; and the answers of the default branch's rounds. A category or `about` left out is none,
-//! so they come last.
+//! `previous`; the moves of notes into the priorities and proposal files; the commit bar's Commit
+//! and Discard; and the answers of the default branch's rounds. A category or `about` left out is
+//! none, so they come last.
 
 use std::path::Path;
 
@@ -100,7 +100,7 @@ pub fn drop_note(
     job(move || api::drop_note(Path::new(&repo), &id, at, &to, &previous))
 }
 
-/// Removes a note, sub-items included.
+/// Removes a note, sub-items included, and its note file, which `insertNote` brings back.
 #[napi(ts_return_type = "Promise<Inbox>")]
 pub fn remove_note(repo: String, id: String, previous: String) -> AsyncTask<Job<Inbox>> {
     job(move || api::remove_note(Path::new(&repo), &id, &previous))
@@ -145,7 +145,7 @@ pub fn place_note(
 }
 
 /// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
-/// Undo of a removal.
+/// Undo of a removal, with the note file the removal took away, as it was.
 #[napi(ts_return_type = "Promise<Inbox>")]
 pub fn insert_note(
     repo: String,
@@ -159,7 +159,7 @@ pub fn insert_note(
 
 /// Moves a note to the end of a section of the priorities, over both files as read.
 #[napi(ts_return_type = "Promise<void>")]
-pub fn note_to_priorities(
+pub fn note_to_proposal(
     repo: String,
     id: String,
     section: String,
@@ -167,7 +167,7 @@ pub fn note_to_priorities(
     priorities_previous: String,
 ) -> AsyncTask<Job<()>> {
     job(move || {
-        api::note_to_priorities(
+        api::note_to_proposal(
             Path::new(&repo),
             &id,
             &section,
@@ -177,31 +177,31 @@ pub fn note_to_priorities(
     })
 }
 
-/// Moves a note under the entry `entry` of the priorities, `now-2`, as its last item, over both
-/// files as read.
+/// Moves a note under the proposal `proposal` of the priorities, `now-2`, as its last item, over
+/// both files as read.
 #[napi(ts_return_type = "Promise<void>")]
-pub fn note_under_priority(
+pub fn note_under_proposal(
     repo: String,
     id: String,
-    entry: String,
+    proposal: String,
     previous: String,
     priorities_previous: String,
 ) -> AsyncTask<Job<()>> {
     job(move || {
-        api::note_under_priority(
+        api::note_under_proposal(
             Path::new(&repo),
             &id,
-            &entry,
+            &proposal,
             &previous,
             &priorities_previous,
         )
     })
 }
 
-/// Makes a note a new draft, linked from the end of a section of the priorities. Returns the
-/// draft's path, from the top level.
+/// Makes a note a new proposal file, linked from the end of a section of the priorities, or moves
+/// its note file among the proposals. Returns the proposal file's path, from the top level.
 #[napi(ts_return_type = "Promise<string>")]
-pub fn note_to_new_draft(
+pub fn note_to_proposal_file(
     repo: String,
     id: String,
     section: String,
@@ -209,7 +209,7 @@ pub fn note_to_new_draft(
     priorities_previous: String,
 ) -> AsyncTask<Job<String>> {
     job(move || {
-        api::note_to_new_draft(
+        api::note_to_proposal_file(
             Path::new(&repo),
             &id,
             &section,
@@ -219,15 +219,15 @@ pub fn note_to_new_draft(
     })
 }
 
-/// Adds a note at the end of the `## What` of the draft at `draft`, from the top level.
+/// Adds a note at the end of the `## What` of the proposal file at `proposal`, from the top level.
 #[napi(ts_return_type = "Promise<void>")]
-pub fn note_to_draft(
+pub fn note_into_proposal(
     repo: String,
     id: String,
-    draft: String,
+    proposal: String,
     previous: String,
 ) -> AsyncTask<Job<()>> {
-    job(move || api::note_to_draft(Path::new(&repo), &id, &draft, &previous))
+    job(move || api::note_into_proposal(Path::new(&repo), &id, &proposal, &previous))
 }
 
 /// The images of a call, as the core takes them: each one's bytes, and its file name, `names` holding
@@ -245,9 +245,9 @@ fn note_images(images: Vec<Buffer>, names: Vec<String>) -> Vec<api::NoteImage> {
         .collect()
 }
 
-/// Adds a note as a new draft folder holding its text and the `images`, linked from the end of a
-/// category, all written or none. `names` holds each image's file name, empty for a pasted one.
-/// Returns the draft's path.
+/// Adds a note as a new note file's folder holding its text and the `images`, linked from the end
+/// of a category, all written or none. `names` holds each image's file name, empty for a pasted
+/// one. Returns the note file's path.
 #[napi(ts_return_type = "Promise<string>")]
 pub fn add_note_with_images(
     repo: String,
@@ -260,7 +260,7 @@ pub fn add_note_with_images(
 ) -> AsyncTask<Job<String>> {
     let images = note_images(images, names);
     job(move || {
-        let (_, draft) = api::add_note_with_images(
+        let (_, file) = api::add_note_with_images(
             Path::new(&repo),
             category,
             about,
@@ -268,12 +268,12 @@ pub fn add_note_with_images(
             &images,
             &previous,
         )?;
-        Ok(draft)
+        Ok(file)
     })
 }
 
-/// Adds `images` to the note `id`, into the draft it links or into the draft it becomes. `names`
-/// holds each image's file name, empty for a pasted one. Returns the draft's path.
+/// Adds `images` to the note `id`, into its note file or into the note file it gets. `names` holds
+/// each image's file name, empty for a pasted one. Returns the note file's path.
 #[napi(ts_return_type = "Promise<string>")]
 pub fn attach_note_images(
     repo: String,
@@ -284,19 +284,20 @@ pub fn attach_note_images(
 ) -> AsyncTask<Job<String>> {
     let images = note_images(images, names);
     job(move || {
-        let (_, draft) = api::attach_note_images(Path::new(&repo), &id, &images, &previous)?;
-        Ok(draft)
+        let (_, file) = api::attach_note_images(Path::new(&repo), &id, &images, &previous)?;
+        Ok(file)
     })
 }
 
-/// Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into.
+/// Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
+/// moved, or left.
 #[napi(ts_return_type = "Promise<void>")]
 pub fn commit_changes(repo: String) -> AsyncTask<Job<()>> {
     job(move || api::commit_changes(Path::new(&repo)))
 }
 
-/// Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of drafts,
-/// keeping any text the human typed.
+/// Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of proposal
+/// files, keeping any text the human typed.
 #[napi(ts_return_type = "Promise<void>")]
 pub fn discard_changes(repo: String) -> AsyncTask<Job<()>> {
     job(move || api::discard_changes(Path::new(&repo)))
@@ -368,57 +369,58 @@ pub fn submit_round(repo: String, id: String, previous: String) -> AsyncTask<Job
     job(move || api::submit_round(Path::new(&repo), api::default_round(&id)?, &previous))
 }
 
-/// Takes back a note's move to a section of the priorities, in one write of both files or none:
-/// the line the move wrote leaves the section, found by the note's lines and, among several, by
-/// `entryKey`, its key once moved; the note goes back before the note at `index` of its category.
+/// Takes back a note's move to a section of the priorities, in one write of both files or none: the
+/// line the move wrote leaves the section, found by the note's lines and, among several, by
+/// `proposalKey`, its key once moved; the note goes back before the note at `index` of its
+/// category, and its note file, moved among the proposals, back among the notes.
 #[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_to_priorities(
+pub fn undo_note_to_proposal(
     repo: String,
     lines: Vec<String>,
     index: u32,
     section: String,
     category: Option<String>,
-    entry_key: Option<String>,
+    proposal_key: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
     job(move || {
-        api::undo_note_to_priorities(
+        api::undo_note_to_proposal(
             Path::new(&repo),
             &lines,
             category,
             index,
             &section,
-            entry_key,
+            proposal_key,
         )
     })
 }
 
-/// Takes back a note's move under an entry of the priorities, in one write of both files or none:
-/// the item the move wrote leaves the entry whose key is `entryKey`, and the note goes back before
-/// the note at `index` of its category.
+/// Takes back a note's move under a proposal of the priorities, in one write of both files or none:
+/// the item the move wrote leaves the proposal whose key is `proposalKey`, and the note goes back
+/// before the note at `index` of its category.
 #[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_under_priority(
+pub fn undo_note_under_proposal(
     repo: String,
     lines: Vec<String>,
     index: u32,
-    entry_key: String,
+    proposal_key: String,
     category: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
     job(move || {
-        api::undo_note_under_priority(Path::new(&repo), &lines, category, index, &entry_key)
+        api::undo_note_under_proposal(Path::new(&repo), &lines, category, index, &proposal_key)
     })
 }
 
-/// Takes back a note's add to a draft, in one write of both files or none: the note's lines leave
-/// the draft, every other edit kept, and the note goes back to its place.
+/// Takes back a note's add to a proposal file, in one write of both files or none: the note's lines
+/// leave the proposal file, every other edit kept, and the note goes back to its place.
 #[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_to_draft(
+pub fn undo_note_into_proposal(
     repo: String,
-    draft: String,
+    proposal: String,
     lines: Vec<String>,
     index: u32,
     category: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
-    job(move || api::undo_note_to_draft(Path::new(&repo), &draft, &lines, category, index))
+    job(move || api::undo_note_into_proposal(Path::new(&repo), &proposal, &lines, category, index))
 }
 
 /// Takes back a note's move to another category, in one write: the note, found by its lines,
@@ -433,11 +435,12 @@ pub fn undo_note_category(
     job(move || api::undo_note_category(Path::new(&repo), &lines, category, index))
 }
 
-/// Takes back a note added as a draft: the note, found by its lines, leaves the inbox, and its
-/// draft goes with it, images included, unless a commit has it or the human typed in it.
+/// Takes back a note added as a proposal file: the note, found by its lines, leaves the inbox, and
+/// its proposal file goes with it, images included, unless a commit has it or the human typed in
+/// it.
 #[napi(ts_return_type = "Promise<Inbox>")]
-pub fn undo_note_as_draft(repo: String, lines: Vec<String>) -> AsyncTask<Job<Inbox>> {
-    job(move || api::undo_note_as_draft(Path::new(&repo), &lines))
+pub fn undo_note_as_file(repo: String, lines: Vec<String>) -> AsyncTask<Job<Inbox>> {
+    job(move || api::undo_note_as_file(Path::new(&repo), &lines))
 }
 
 /// Takes back a note's add: the note, found by its lines, leaves the inbox wherever it is now.

@@ -1,0 +1,196 @@
+//! The moves of notes out of the inbox: into a section of the priorities, under a proposal, into a
+//! new proposal file, or into an existing one. A note's file moves with it to the proposals.
+
+use std::fs;
+
+use crate::files::inbox;
+use crate::files::priorities::{self, Section};
+use crate::files::proposal;
+use crate::files::retarget;
+
+use super::super::ActionError;
+use super::super::expand;
+use super::super::place::Place;
+use super::super::priorities::PATH as PRIORITIES;
+use super::{PATH, current, no_note, note_file, write_both};
+
+/// The inbox and the priorities, each refused when it changed since it was read.
+fn both(
+    place: &Place,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<(String, String), ActionError> {
+    let inbox = current(place, PATH, previous)?;
+    let priorities = current(place, PRIORITIES, priorities_previous)?;
+    Ok((inbox, priorities))
+}
+
+/// Moves the note `id`'s lines, without its marks, to the end of a section of `PRIORITIES.md`,
+/// written by `edit` from the priorities and the lines: its note file, when it has one, moves
+/// among the proposals first, and its link follows it. Returns the note's file, as a proposal file
+/// now. Both files are written, or none, and the file moves back when they are not.
+fn move_out(
+    place: &Place,
+    inbox: &str,
+    id: &str,
+    edit: impl Fn(&[String]) -> Option<String>,
+) -> Result<Option<String>, ActionError> {
+    let note = inbox::note(inbox, id).ok_or_else(|| no_note(id))?;
+    let (lines, _) = inbox::unmarked_lines(inbox, id).ok_or_else(|| no_note(id))?;
+    let without = inbox::remove(inbox, id).ok_or_else(|| no_note(id))?;
+    // A note file the link names but the disk lacks moves nothing: the line moves as text.
+    let Some(file) = note.file().filter(|file| place.root.join(file).is_file()) else {
+        return finish(place, &without, edit(&lines), None, id);
+    };
+    // Checked before the file moves: nothing is written when the priorities refuse the lines.
+    edit(&lines).ok_or_else(|| no_note(id))?;
+    let to = note_file::to_proposals(place, &file)?;
+    let lines: Vec<String> = retarget::moved(&lines.join("\n"), &file, &to)
+        .split('\n')
+        .map(String::from)
+        .collect();
+    finish(place, &without, edit(&lines), Some((file, to)), id)
+}
+
+/// Writes the priorities `edited` and the inbox `without` the note `id`, or moves the note's file,
+/// moved from and to `moved`, back when they cannot be written.
+fn finish(
+    place: &Place,
+    without: &str,
+    edited: Option<String>,
+    moved: Option<(String, String)>,
+    id: &str,
+) -> Result<Option<String>, ActionError> {
+    let written = edited
+        .ok_or_else(|| no_note(id))
+        .and_then(|edited| write_both(place, PRIORITIES, &edited, without));
+    if let Err(error) = written {
+        if let Some((from, to)) = &moved {
+            let _ = note_file::back_to_notes(place, to, from);
+        }
+        return Err(error);
+    }
+    Ok(moved.map(|(_, to)| to))
+}
+
+/// Moves a note's lines, without its marks, to the end of a section of `PRIORITIES.md`: a note
+/// with a note file moves it among the proposals, its link rewritten. Both files are checked
+/// against the versions read before either is written.
+pub fn to_proposal(
+    place: &Place,
+    id: &str,
+    section: Section,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<(), ActionError> {
+    let (inbox, priorities) = both(place, previous, priorities_previous)?;
+    move_out(place, &inbox, id, |lines| {
+        priorities::insert_proposal(&priorities, section, usize::MAX, lines)
+    })?;
+    Ok(())
+}
+
+/// Moves a note's lines, without its marks, its nested items with them, under the proposal
+/// `proposal` of `PRIORITIES.md`, as its last item. Both files are checked against the versions
+/// read before either is written.
+pub fn under_proposal(
+    place: &Place,
+    id: &str,
+    proposal: &str,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<(), ActionError> {
+    let (inbox, priorities) = both(place, previous, priorities_previous)?;
+    let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
+    let edited = priorities::append_under(&priorities, proposal, &lines).ok_or_else(|| {
+        ActionError::Refused(format!("no proposal {proposal} to put the note under"))
+    })?;
+    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+    write_both(place, PRIORITIES, &edited, &without)
+}
+
+/// Makes a note a new proposal file, `specs/proposals/<slug>.md` or the next free name, linked
+/// from the end of a section of `PRIORITIES.md`, and returns its path. A note with a note file
+/// moves it among the proposals instead; one linking a proposal file, or a note file gone from the
+/// disk, is refused.
+pub fn to_proposal_file(
+    place: &Place,
+    id: &str,
+    section: Section,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<String, ActionError> {
+    let (inbox, priorities) = both(place, previous, priorities_previous)?;
+    let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
+    if note
+        .file()
+        .is_some_and(|file| place.root.join(file).is_file())
+    {
+        let insert =
+            |lines: &[String]| priorities::insert_proposal(&priorities, section, usize::MAX, lines);
+        let moved = move_out(place, &inbox, id, insert)?;
+        return moved.ok_or_else(|| no_note(id));
+    }
+    let linked = note
+        .link
+        .as_deref()
+        .and_then(|link| crate::workspace::resolve("specs", link))
+        .filter(|path| crate::target::is_linked_file(path));
+    if let Some(linked) = linked {
+        return Err(ActionError::Refused(format!(
+            "{} already links {linked}",
+            note.text
+        )));
+    }
+    let (title, nested) = inbox::note_file_parts(&inbox, id).ok_or_else(|| no_note(id))?;
+    let path = expand::free_path(place, &note.text);
+    let line = format!(
+        "- {}",
+        inbox::link_to(&title, path.trim_start_matches("specs/"))
+    );
+    let edited = priorities::insert_proposal(&priorities, section, usize::MAX, &[line])
+        .ok_or_else(|| no_note(id))?;
+    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+    expand::write_new(place, &path, &title, &nested)?;
+    if let Err(error) = write_both(place, PRIORITIES, &edited, &without) {
+        let _ = fs::remove_file(place.root.join(&path));
+        return Err(error);
+    }
+    Ok(path)
+}
+
+/// The text of the proposal file or the note file at `path`, from the top level, refused when it
+/// is neither.
+pub(super) fn file_text(place: &Place, path: &str) -> Result<String, ActionError> {
+    let plain = !path.split('/').any(|part| part == ".." || part.is_empty());
+    (crate::target::is_linked_file(path) && plain && path.ends_with(".md"))
+        .then(|| fs::read_to_string(place.root.join(path)).ok())
+        .flatten()
+        .ok_or_else(|| ActionError::Refused(format!("no proposal or note file {path}")))
+}
+
+/// A note's lines as written in the file at `path`, their relative links rebased to its folder.
+pub(super) fn into_file(lines: &[String], path: &str) -> Vec<String> {
+    let folder = path.rsplit_once('/').map_or("", |(folder, _)| folder);
+    retarget::rebase(&lines.join("\n"), expand::INBOX_FOLDER, folder)
+        .split('\n')
+        .map(String::from)
+        .collect()
+}
+
+/// Adds a note's lines, without its marks, at the end of the `## What` section of the proposal
+/// file at `proposal`, from the top level.
+pub fn into_proposal(
+    place: &Place,
+    id: &str,
+    proposal: &str,
+    previous: &str,
+) -> Result<(), ActionError> {
+    let inbox = current(place, PATH, previous)?;
+    let text = file_text(place, proposal)?;
+    let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
+    let edited = proposal::append_to_what(&text, &into_file(&lines, proposal))
+        .ok_or_else(|| ActionError::Refused(format!("{proposal} has no ## What section")))?;
+    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+    write_both(place, proposal, &edited, &without)
+}

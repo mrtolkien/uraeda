@@ -15,7 +15,7 @@ pub enum Purpose {
     Review,
     /// Any feature or change, to read it.
     Inspect,
-    /// A draft to start.
+    /// A proposal file to start.
     Start,
 }
 
@@ -25,17 +25,17 @@ pub enum Target {
     Feature(usize),
     /// A file of a feature or change, by name.
     File(usize, String),
-    /// A draft file or postponed folder, from the top level: `specs/drafts/x.md`.
-    Draft(String),
+    /// A proposal file or postponed folder, from the top level: `specs/proposals/x.md`.
+    Proposal(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum TargetError {
     #[error("{name} matches {} items: {}", .items.len(), .items.join(", "))]
     Several { name: String, items: Vec<String> },
-    #[error("no feature or draft named {0}")]
+    #[error("no feature or proposal named {0}")]
     NotFound(String),
-    #[error("no feature or draft at {0}")]
+    #[error("no feature or proposal at {0}")]
     NoPath(String),
     #[error("several items wait: name one of {}", .0.join(", "))]
     SeveralWaiting(Vec<String>),
@@ -97,14 +97,14 @@ fn by_path(
         .to_string();
     if purpose == Purpose::Start {
         return workspace
-            .drafts
+            .proposals
             .iter()
-            .find(|draft| {
-                **draft == relative
-                    || draft.strip_suffix("/proposal.md") == Some(relative.as_str())
-                    || relative.strip_suffix("/proposal.md") == Some(draft.as_str())
+            .find(|proposal| {
+                **proposal == relative
+                    || proposal.strip_suffix("/proposal.md") == Some(relative.as_str())
+                    || relative.strip_suffix("/proposal.md") == Some(proposal.as_str())
             })
-            .map(|draft| Target::Draft(draft.clone()))
+            .map(|proposal| Target::Proposal(proposal.clone()))
             .ok_or_else(|| TargetError::NoPath(target.to_string()));
     }
     for (index, feature) in workspace.features.iter().enumerate() {
@@ -118,41 +118,57 @@ fn by_path(
     Err(TargetError::NoPath(target.to_string()))
 }
 
-/// The folders drafts are written in, from the top level, on the default branch.
-const DRAFT_FOLDERS: [&str; 2] = ["specs/drafts/", "specs/backlog/"];
+/// The folder of proposal files, from the top level, on the default branch.
+pub const PROPOSALS: &str = "specs/proposals/";
+/// The folder of note files, from the top level, on the default branch.
+pub const NOTES: &str = "specs/notes/";
 
-/// Whether a path from the top level is under `specs/drafts/` or `specs/backlog/`: a draft, a
-/// postponed folder, or a file of one, all written on the default branch.
-pub fn is_draft(path: &str) -> bool {
-    DRAFT_FOLDERS.iter().any(|folder| path.starts_with(folder))
+/// Whether a path from the top level is under `specs/proposals/`: a proposal file, a postponed
+/// folder, or a file of one, all written on the default branch.
+pub fn is_proposal_file(path: &str) -> bool {
+    path.starts_with(PROPOSALS)
 }
 
-/// The draft a path under `specs/drafts/` or `specs/backlog/` starts, from the top level: the
-/// file itself, or the postponed folder that holds it. `None` for any other path.
-pub fn draft_to_start(path: &str) -> Option<String> {
-    let folder = DRAFT_FOLDERS
-        .iter()
-        .find(|folder| path.starts_with(*folder))?;
-    let rest = &path[folder.len()..];
+/// Whether a path from the top level is under `specs/notes/`: a note file, its folder, or a file of
+/// it, written on the default branch.
+pub fn is_note_file(path: &str) -> bool {
+    path.starts_with(NOTES)
+}
+
+/// Whether a path from the top level is a file the lists link and the default branch holds: a
+/// proposal file or a note file, or a file of their folders.
+pub fn is_linked_file(path: &str) -> bool {
+    is_proposal_file(path) || is_note_file(path)
+}
+
+/// The proposal a path under `specs/proposals/` starts, from the top level: the file itself, or
+/// the postponed folder that holds it. `None` for any other path.
+pub fn proposal_to_start(path: &str) -> Option<String> {
+    let rest = path.strip_prefix(PROPOSALS)?;
     match rest.split_once('/') {
-        Some((postponed, _)) => Some(format!("{folder}{postponed}")),
+        Some((postponed, _)) => Some(format!("{PROPOSALS}{postponed}")),
         None if rest.is_empty() => None,
         None => Some(path.to_string()),
     }
 }
 
-/// A draft's name: its file's stem, or its postponed folder's name.
-pub fn draft_name(draft: &str) -> &str {
-    let last = draft.rsplit('/').next().unwrap_or(draft);
+/// A proposal file's name: its file's stem, or its postponed folder's name.
+pub fn proposal_name(proposal: &str) -> &str {
+    let last = proposal.rsplit('/').next().unwrap_or(proposal);
     last.strip_suffix(".md").unwrap_or(last)
 }
 
 fn by_name(workspace: &Workspace, name: &str, purpose: Purpose) -> Result<Target, TargetError> {
     let items: Vec<(String, Target)> = if purpose == Purpose::Start {
         workspace
-            .drafts
+            .proposals
             .iter()
-            .map(|draft| (draft_name(draft).to_string(), Target::Draft(draft.clone())))
+            .map(|proposal| {
+                (
+                    proposal_name(proposal).to_string(),
+                    Target::Proposal(proposal.clone()),
+                )
+            })
             .collect()
     } else {
         workspace
@@ -216,7 +232,7 @@ fn waiting(workspace: &Workspace, purpose: Purpose) -> Result<Target, TargetErro
         [] => Err(TargetError::NothingWaits(match purpose {
             Purpose::Answers => "no round of questions waits for answers",
             Purpose::Review => "no spec or plan waits for a review",
-            Purpose::Start => "name a draft: ura start <draft>",
+            Purpose::Start => "name a proposal: ura start <proposal>",
             Purpose::Inspect => "name a feature or a change",
         })),
         several => Err(TargetError::SeveralWaiting(

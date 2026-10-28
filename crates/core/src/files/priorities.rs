@@ -1,4 +1,4 @@
-//! The entries of `PRIORITIES.md`, by section, and the edits drafting and starting make.
+//! The proposals of `PRIORITIES.md`, by section, and the edits expanding and starting make.
 
 use super::lines::{self, Item};
 
@@ -11,8 +11,8 @@ pub use context::{SectionContext, contexts};
 pub use outline::{Drop, append_under, drop_item, outline, remove_under};
 
 pub use edits::{
-    add, add_started, edit, insert_entry, link, move_entry, move_to_started, remove, remove_added,
-    remove_linked, remove_written,
+    add, add_started, edit, insert_proposal, link, move_proposal, move_to_started, remove,
+    remove_added, remove_linked, remove_written,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
@@ -41,7 +41,7 @@ impl Section {
         }
     }
 
-    /// A section's kebab-case name, as entry ids use it.
+    /// A section's kebab-case name, as proposal ids use it.
     pub fn id(&self) -> &'static str {
         match self {
             Section::Now => "now",
@@ -65,7 +65,7 @@ impl Section {
 
 /// A top-level item of a section.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Entry {
+pub struct Proposal {
     pub section: Section,
     /// From 1, in its section.
     pub position: usize,
@@ -79,25 +79,25 @@ pub struct Entry {
     item: Item,
 }
 
-/// Every entry of `PRIORITIES.md`, in order.
-pub fn parse(text: &str) -> Vec<Entry> {
+/// Every proposal of `PRIORITIES.md`, in order.
+pub fn parse(text: &str) -> Vec<Proposal> {
     let lines: Vec<&str> = text.lines().collect();
-    // Each heading counts, by its line, so an entry's position restarts under a repeated heading.
+    // Each heading counts, by its line, so a proposal's position restarts under a repeated heading.
     let found = lines::items(text, |number, line| {
         Section::from_heading(line).map(|section| (section, number))
     });
-    let mut entries: Vec<Entry> = Vec::new();
+    let mut proposals: Vec<Proposal> = Vec::new();
     let mut previous = None;
     for ((section, heading), item) in found {
         let position = if previous == Some(heading) {
-            entries.last().map_or(0, |e| e.position) + 1
+            proposals.last().map_or(0, |e| e.position) + 1
         } else {
             1
         };
         previous = Some(heading);
         let markdown = lines::item_text(&lines, &item).join("\n");
         let (text, link) = lines::plain(&markdown);
-        entries.push(Entry {
+        proposals.push(Proposal {
             section,
             position,
             text,
@@ -106,12 +106,12 @@ pub fn parse(text: &str) -> Vec<Entry> {
             item,
         });
     }
-    entries
+    proposals
 }
 
-impl Entry {
+impl Proposal {
     /// Its nested lines in `text`, the text it was parsed from, without the indent they share:
-    /// what a draft of it takes.
+    /// what its file takes when it is expanded.
     pub fn nested(&self, text: &str) -> Vec<String> {
         let lines: Vec<String> = text
             .lines()
@@ -123,14 +123,14 @@ impl Entry {
     }
 }
 
-/// An entry of `PRIORITIES.md`, for editing: its markdown, its spans, and its nested lines.
+/// A proposal of `PRIORITIES.md`, for editing: its markdown, its spans, and its nested lines.
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EntryItem {
+pub struct ProposalItem {
     /// `next-2`: its section and its position in it, from 1.
     pub id: String,
-    /// Its address, stable while its text or draft stays: see [`keys`].
+    /// Its address, stable while its text or file stays: see [`keys`].
     pub key: String,
     /// The markdown of its text, after its marker, on one line.
     pub text: String,
@@ -147,9 +147,9 @@ pub struct EntryItem {
     /// Its nested items at any depth, in the order of the file: what its outline shows, and what
     /// an edit of one names by its index.
     pub children: Vec<NestedItem>,
-    /// The draft or backlog file it links, when it exists: set by the workspace, see
+    /// The proposal file it links, when it exists: set by the workspace, see
     /// [`Workspace::join_priorities`](crate::workspace::Workspace::join_priorities).
-    pub draft: Option<crate::workspace::LinkedFile>,
+    pub file: Option<crate::workspace::LinkedFile>,
     /// The feature or change it links, while it runs: set by the workspace.
     pub running: Option<crate::workspace::RunningFeature>,
 }
@@ -162,9 +162,9 @@ pub struct SectionItems {
     pub section: String,
     pub title: String,
     /// The text of the first callout under the first of its headings that has one, before its
-    /// first entry: what the section holds.
+    /// first proposal: what the section holds.
     pub context: Option<String>,
-    pub entries: Vec<EntryItem>,
+    pub proposals: Vec<ProposalItem>,
 }
 
 /// `PRIORITIES.md` read for editing.
@@ -175,44 +175,44 @@ pub struct Priorities {
     /// The SHA-256 of the text, to refuse edits over a change made elsewhere.
     pub hash: String,
     pub sections: Vec<SectionItems>,
-    /// How many entries were added, moved, edited, or removed since the last commit.
+    /// How many proposals were added, moved, edited, or removed since the last commit.
     pub changes: u32,
     /// The changes the commit would hold, each as a line: what a commit page shows.
     pub change_lines: Vec<String>,
 }
 
-/// Each entry's key, in order: the slug of its linked draft's file name when it links a file of
-/// `specs/drafts/`, otherwise the slug of its text, links replaced by their text, or `line` when
-/// that slug is empty. A key already taken by an earlier entry gets `-2`, `-3`, ...
-pub fn keys(entries: &[Entry]) -> Vec<String> {
-    let slugs = entries.iter().map(|entry| {
-        let draft = entry
+/// Each proposal's key, in order: the slug of its linked file's name when it links a file of
+/// `specs/proposals/`, otherwise the slug of its text, links replaced by their text, or `line` when
+/// that slug is empty. A key already taken by an earlier proposal gets `-2`, `-3`, ...
+pub fn keys(proposals: &[Proposal]) -> Vec<String> {
+    let slugs = proposals.iter().map(|proposal| {
+        let file = proposal
             .link
             .as_deref()
             .and_then(|link| crate::workspace::resolve("specs", link))
             .and_then(|path| {
-                let name = path.strip_prefix("specs/drafts/")?;
+                let name = path.strip_prefix("specs/proposals/")?;
                 Some(crate::slug::from_text(
                     name.strip_suffix(".md").unwrap_or(name),
                 ))
             })
             .filter(|slug| !slug.is_empty());
-        draft.unwrap_or_else(|| crate::slug::from_text(&entry.text))
+        file.unwrap_or_else(|| crate::slug::from_text(&proposal.text))
     });
     lines::unique_keys(slugs.collect())
 }
 
-fn entry_id(entry: &Entry) -> String {
-    format!("{}-{}", entry.section.id(), entry.position)
+fn proposal_id(proposal: &Proposal) -> String {
+    format!("{}-{}", proposal.section.id(), proposal.position)
 }
 
-/// The sections of `PRIORITIES.md`, in order, with their entries. `committed` is the text at the
+/// The sections of `PRIORITIES.md`, in order, with their proposals. `committed` is the text at the
 /// last commit, to count the changes.
 pub fn read(text: &str, committed: Option<&str>) -> Priorities {
     let unix = text.replace("\r\n", "\n");
     let lines: Vec<&str> = unix.split('\n').collect();
-    let entries = parse(&unix);
-    let keys = keys(&entries);
+    let proposals = parse(&unix);
+    let keys = keys(&proposals);
     let contexts = contexts(&unix);
     let sections = Section::ALL
         .into_iter()
@@ -223,15 +223,15 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
                 .iter()
                 .filter(|context| context.section == section)
                 .find_map(|context| context.text.clone()),
-            entries: entries
+            proposals: proposals
                 .iter()
                 .zip(&keys)
-                .filter(|(entry, _)| entry.section == section)
-                .map(|(entry, key)| {
-                    let markdown = lines::item_text(&lines, &entry.item).join(" ");
+                .filter(|(proposal, _)| proposal.section == section)
+                .map(|(proposal, key)| {
+                    let markdown = lines::item_text(&lines, &proposal.item).join(" ");
                     let doc = super::document::parse(&markdown, "specs");
-                    EntryItem {
-                        id: entry_id(entry),
+                    ProposalItem {
+                        id: proposal_id(proposal),
                         key: key.clone(),
                         spans: doc
                             .blocks
@@ -239,24 +239,24 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
                             .map(|b| b.spans.clone())
                             .unwrap_or_default(),
                         text: markdown,
-                        start_line: entry.line as u32,
-                        end_line: entry.item.end as u32,
-                        lines: lines[entry.line - 1..entry.item.end]
+                        start_line: proposal.line as u32,
+                        end_line: proposal.item.end as u32,
+                        lines: lines[proposal.line - 1..proposal.item.end]
                             .iter()
                             .map(|l| l.to_string())
                             .collect(),
-                        nested: lines[entry.item.text_end..entry.item.end]
+                        nested: lines[proposal.item.text_end..proposal.item.end]
                             .iter()
                             .map(|l| l.to_string())
                             .collect(),
                         nested_spans: lines::nested_spans(
-                            &lines[entry.item.text_end..entry.item.end],
+                            &lines[proposal.item.text_end..proposal.item.end],
                         ),
                         children: super::nested::nested_items(
                             key,
-                            &lines[entry.item.text_end..entry.item.end],
+                            &lines[proposal.item.text_end..proposal.item.end],
                         ),
-                        draft: None,
+                        file: None,
                         running: None,
                     }
                 })
@@ -276,17 +276,17 @@ fn signature(text: &str) -> Vec<lines::Signed<Section>> {
     let lines: Vec<&str> = unix.split('\n').collect();
     parse(&unix)
         .into_iter()
-        .map(|entry| lines::Signed {
-            section: entry.section,
-            markdown: lines::signed_markdown(&lines, &entry.item),
-            text: entry.text,
+        .map(|proposal| lines::Signed {
+            section: proposal.section,
+            markdown: lines::signed_markdown(&lines, &proposal.item),
+            text: proposal.text,
         })
         .collect()
 }
 
-/// A change to one entry between two texts, each entry named by its text without markdown.
+/// A change to one proposal between two texts, each proposal named by its text without markdown.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum EntryChange {
+pub enum ProposalChange {
     Added {
         section: Section,
         text: String,
@@ -309,19 +309,19 @@ pub enum EntryChange {
 }
 
 /// The changes between two texts, in the order of `after`, as [`lines::diff`] finds them.
-pub fn diff(before: &str, after: &str) -> Vec<EntryChange> {
+pub fn diff(before: &str, after: &str) -> Vec<ProposalChange> {
     use lines::Change;
     lines::diff(&signature(before), &signature(after))
         .into_iter()
         .map(|change| match change {
-            Change::Added { section, text } => EntryChange::Added { section, text },
-            Change::Removed { section, text } => EntryChange::Removed { section, text },
-            Change::Moved { from, to, text } => EntryChange::Moved { from, to, text },
+            Change::Added { section, text } => ProposalChange::Added { section, text },
+            Change::Removed { section, text } => ProposalChange::Removed { section, text },
+            Change::Moved { from, to, text } => ProposalChange::Moved { from, to, text },
             Change::Edited {
                 section,
                 before,
                 after,
-            } => EntryChange::Edited {
+            } => ProposalChange::Edited {
                 section,
                 before,
                 after,
@@ -330,7 +330,7 @@ pub fn diff(before: &str, after: &str) -> Vec<EntryChange> {
         .collect()
 }
 
-/// How many entries were added, moved, edited, or removed between two texts, as [`diff`] finds
+/// How many proposals were added, moved, edited, or removed between two texts, as [`diff`] finds
 /// them.
 pub fn changes(before: &str, after: &str) -> u32 {
     diff(before, after).len() as u32

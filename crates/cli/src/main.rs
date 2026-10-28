@@ -5,8 +5,8 @@ mod answer;
 mod check;
 mod clean;
 mod complete;
-mod draft;
 mod editor;
+mod expand;
 mod inbox;
 mod init;
 mod install;
@@ -42,9 +42,9 @@ enum Command {
     },
     /// Install or update the skill, for your user or this repository
     Install(install::Flags),
-    /// Turn a line of PRIORITIES.md into a draft, and open it in your editor
-    Draft {
-        /// Text of the line, matched without case
+    /// Expand a proposal of PRIORITIES.md into a file, and open it in your editor
+    Expand {
+        /// Text of the proposal, matched without case
         text: Option<String>,
         /// Do not open the editor
         #[arg(long)]
@@ -71,17 +71,17 @@ enum Command {
     /// Work on the inbox
     #[command(subcommand)]
     Inbox(inbox::Command),
-    /// Start a drafted feature or change: its entry in Now, its branch, and its proposal. With
-    /// --feature, make a started change a feature, in place
+    /// Start a feature or change from its proposal: its line in Now, its branch, and its folder.
+    /// With --feature, make a started change a feature, in place
     Start {
-        /// The draft: a file or folder in specs/drafts/ or specs/backlog/, or its name; with
-        /// --feature, the change
-        #[arg(add = complete::drafts())]
+        /// The proposal: a file or folder in specs/proposals/, or its name; with --feature, the
+        /// change
+        #[arg(add = complete::proposals())]
         target: Option<String>,
-        /// The slug of the feature's or change's folder and branch, instead of the draft's name
+        /// The slug of the feature's or change's folder and branch, instead of the proposal's name
         #[arg(long)]
         slug: Option<String>,
-        /// Start the draft as a change, on a change/ branch, in specs/changes/
+        /// Start the proposal as a change, on a change/ branch, in specs/changes/
         #[arg(long)]
         change: bool,
         /// Switch this checkout to the new branch, instead of creating its worktree in
@@ -203,7 +203,7 @@ fn main() -> ExitCode {
     let result = match cli.command {
         Command::Init { no_input } => init::run(no_input),
         Command::Install(flags) => install::run(flags),
-        Command::Draft { text, no_edit } => draft::run(text, no_edit),
+        Command::Expand { text, no_edit } => expand::run(text, no_edit),
         Command::Note {
             text,
             category,

@@ -12,29 +12,29 @@ use uraeda_core::workspace::{Kind, Workspace};
 const CHANGE: &str = "2026-10-20-login-redirect";
 const CHANGE_BRANCH: &str = "change/2026-10-20-login-redirect";
 const WORKTREE: &str = ".worktrees/2026-10-20-login-redirect";
-/// Another item of the same name, an earlier feature of the same slug: its entry stays.
+/// Another item of the same name, an earlier feature of the same slug: its proposal stays.
 const SAME_NAME: &str = "- [Login redirects twice](/specs/2026-10-01-login-redirect/proposal.md)";
 
 fn day() -> Date {
     Date::parse("2026-10-20").unwrap()
 }
 
-/// A repository with a draft of the login redirect in **Next**, and an entry of the same name in
-/// **Later**.
+/// A repository with a proposal file of the login redirect in **Next**, and a proposal of the same
+/// name in **Later**.
 fn repo() -> TestRepo {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
     repo.write(
         "specs/PRIORITIES.md",
         &format!(
-            "# Priorities\n\n## Now\n\n## Next\n\n- [Login redirects twice](drafts/login-redirect.md)\n\n## Later\n\n{SAME_NAME}\n\n## Blocked\n"
+            "# Priorities\n\n## Now\n\n## Next\n\n- [Login redirects twice](proposals/login-redirect.md)\n\n## Later\n\n{SAME_NAME}\n\n## Blocked\n"
         ),
     );
     repo.write(
-        "specs/drafts/login-redirect.md",
+        "specs/proposals/login-redirect.md",
         "# Login redirects twice\n\n## What\n\nThe login page redirects twice.\n",
     );
-    repo.commit("chore: draft Login redirects twice");
+    repo.commit("chore: expand Login redirects twice");
     repo
 }
 
@@ -44,14 +44,14 @@ fn opened(repo: &TestRepo) -> (Git, Workspace) {
     (git, workspace)
 }
 
-/// The repository with its draft started as `kind`, in its own worktree.
+/// The repository with its proposal file started as `kind`, in its own worktree.
 fn started(kind: Kind) -> TestRepo {
     let repo = repo();
     let (git, workspace) = opened(&repo);
     start::run(
         &git,
         &workspace,
-        "specs/drafts/login-redirect.md",
+        "specs/proposals/login-redirect.md",
         Some("login-redirect"),
         kind,
         day(),
@@ -71,7 +71,7 @@ fn priorities(repo: &TestRepo) -> String {
 
 /// US2.4
 #[test]
-fn dropping_a_change_removes_its_entry_and_its_worktree_and_keeps_its_branch() {
+fn dropping_a_change_removes_its_proposal_and_its_worktree_and_keeps_its_branch() {
     let repo = started(Kind::Change);
     let commits = repo.subjects(CHANGE_BRANCH);
     let (git, workspace) = opened(&repo);
@@ -145,8 +145,8 @@ fn a_feature_is_dropped_the_same_way() {
     assert!(has_branch(&repo, CHANGE));
 }
 
-/// The start put the change's folder on main: the drop's commit removes it with the entry, so main
-/// keeps no folder of a dropped change, which would read as merged once its branch is gone.
+/// The start put the change's folder on main: the drop's commit removes it with the proposal, so
+/// main keeps no folder of a dropped change, which would read as merged once its branch is gone.
 #[test]
 fn dropping_a_change_removes_its_folder_on_main() {
     let repo = started(Kind::Change);
@@ -206,9 +206,9 @@ fn a_done_feature_is_not_dropped() {
     assert_eq!(repo.subjects("main"), before);
 }
 
-/// Review: a git error after the entry left the priorities says the entry was removed.
+/// Review: a git error after the proposal left the priorities says the proposal was removed.
 #[test]
-fn a_failed_worktree_removal_says_the_entry_was_removed() {
+fn a_failed_worktree_removal_says_the_proposal_was_removed() {
     use std::os::unix::fs::PermissionsExt;
     let repo = started(Kind::Change);
     let worktrees = repo.path().join(".worktrees");
@@ -221,7 +221,7 @@ fn a_failed_worktree_removal_says_the_entry_was_removed() {
     let message = failed.unwrap_err().to_string();
     assert!(
         message.starts_with(
-            "the entry was removed from specs/PRIORITIES.md, but its worktree was not: "
+            "the proposal was removed from specs/PRIORITIES.md, but its worktree was not: "
         ),
         "{message}"
     );

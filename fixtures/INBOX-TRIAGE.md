@@ -8,13 +8,13 @@ status: awaiting-human
 >
 > 3 questions on 5 notes, about 6 minutes.
 >
-> - Three UI notes may go together into the draft Look and feel pass
+> - Three UI notes may go together into the proposal Look and feel pass
 > - "Draft to proposal on mobile went 404" is a bug, to start as a change
 
 ## Context
 
 The inbox holds 10 notes: this triage covers the 5 under UI. I read the web UI's code, the
-priorities, and the drafts. The other notes wait for a later triage.
+priorities, and the proposals. The other notes wait for a later triage.
 
 ## Q1: What to do with the notes about how the UI looks
 
@@ -23,13 +23,13 @@ Three notes are small fixes to the look and feel of the web UI:
 - "In failures the `x` is not centered in the circle"
 - "Icons are blurry on retina screens"
 - "Text input feels laggy on the sessions page"
-The draft Look and feel pass lists fixes of the same kind.
+The proposal Look and feel pass lists fixes of the same kind.
 
-Why it matters: grouped in one draft, they are fixed in one feature instead of three.
+Why it matters: grouped in one proposal, they are fixed in one feature instead of three.
 
-- **A (recommended). Add the three notes to the draft Look and feel pass.**
+- **A (recommended). Add the three notes to the proposal Look and feel pass.**
   - [pro] one feature fixes them all.
-  - [con] the draft grows.
+  - [con] the proposal grows.
   - Why recommended: they touch the same components.
 - **B. Move the three notes to Later in the priorities.**
   - [pro] each stays a line of its own.
@@ -39,11 +39,11 @@ Why it matters: grouped in one draft, they are fixed in one feature instead of t
 
 ## Q2: What to do with "Draft to proposal on mobile went 404"
 
-Starting a draft from a phone opens a page that does not exist. It happens on every phone.
+Starting a proposal from a phone opens a page that does not exist. It happens on every phone.
 
 Why it matters: a bug blocks starting features from a phone until it is fixed.
 
-- **A (recommended). Make it the draft Draft to proposal 404 on mobile, started as a change,
+- **A (recommended). Make it the proposal Draft to proposal 404 on mobile, started as a change,
   `draft-404`.**
   - [pro] it gets a root cause and a test.
   - [con] a pull request to review.

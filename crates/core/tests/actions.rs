@@ -4,7 +4,7 @@ use common::repo::{TestRepo, run_git};
 use common::texts::{self, proposal, spec};
 use uraeda_core::actions::place::{self, Place};
 use uraeda_core::actions::review::{self, DecisionTarget, Tier};
-use uraeda_core::actions::{ActionError, answer, draft, start, text};
+use uraeda_core::actions::{ActionError, answer, expand, start, text};
 use uraeda_core::embedded;
 use uraeda_core::files::clarifications::AnswerError;
 use uraeda_core::files::document::hash;
@@ -878,69 +878,63 @@ fn text_is_saved_over_the_version_it_was_read_at() {
 
 /// US4.3 and US4.5
 #[test]
-fn drafts_and_proposals_are_committed_with_the_skills_messages() {
+fn proposal_files_note_files_and_proposals_are_committed_with_the_skills_messages() {
     let repo = repo_with(&round("", "", ""));
     let git = Git::discover(repo.path()).unwrap();
     let main = place::reach(&git, "main").unwrap();
-    let draft = "specs/drafts/git-listener-process.md";
+    let file = "specs/proposals/git-listener-process.md";
     text::save(
         &main,
-        draft,
+        file,
         "# Git listener process\n\n## What\n\nRun.\n",
         &hash(""),
     )
     .unwrap();
     let priorities = read(&main, "specs/PRIORITIES.md").replace(
         "- Git listener process",
-        "- [Git listener process](drafts/git-listener-process.md)",
+        "- [Git listener process](proposals/git-listener-process.md)",
     );
     std::fs::write(main.root.join("specs/PRIORITIES.md"), priorities).unwrap();
 
-    let committed = text::commit(&main, draft).unwrap();
+    let committed = text::commit(&main, file).unwrap();
 
     assert_eq!(
         committed.change.subject,
-        "chore: draft Git listener process"
+        "chore: expand Git listener process"
     );
     assert_eq!(
         repo.changed_in("main"),
         [
             "specs/PRIORITIES.md",
-            "specs/drafts/git-listener-process.md"
+            "specs/proposals/git-listener-process.md"
         ]
     );
 
     text::save(
         &main,
-        draft,
+        file,
         "# Git listener process\n\n## What\n\nRun it.\n",
-        &hash(&read(&main, draft)),
+        &hash(&read(&main, file)),
     )
     .unwrap();
-    let committed = text::commit(&main, draft).unwrap();
+    let committed = text::commit(&main, file).unwrap();
     assert_eq!(
         committed.change.subject,
-        "chore: edit the draft Git listener process"
+        "chore: edit the proposal Git listener process"
     );
-    let backlog = "specs/backlog/benchmarks.md";
-    text::save(&main, backlog, "# Benchmarks\n", &hash("")).unwrap();
-    let committed = text::commit(&main, backlog).unwrap();
-    assert_eq!(
-        committed.change.subject,
-        "chore: add Benchmarks to the backlog"
-    );
+    let note = "specs/notes/benchmarks.md";
+    text::save(&main, note, "# Benchmarks\n", &hash("")).unwrap();
+    let committed = text::commit(&main, note).unwrap();
+    assert_eq!(committed.change.subject, "chore: add the note Benchmarks");
     text::save(
         &main,
-        backlog,
+        note,
         "# Benchmarks\n\nLater.\n",
         &hash("# Benchmarks\n"),
     )
     .unwrap();
-    let committed = text::commit(&main, backlog).unwrap();
-    assert_eq!(
-        committed.change.subject,
-        "chore: edit Benchmarks in the backlog"
-    );
+    let committed = text::commit(&main, note).unwrap();
+    assert_eq!(committed.change.subject, "chore: edit the note Benchmarks");
 
     let (_, place) = reach(&repo);
     let proposal_path = "specs/2026-10-11-web-ui/proposal.md";
@@ -965,14 +959,14 @@ fn fixture_repo() -> TestRepo {
 
 /// US5.1: the line as the title and under What, the template's headings, and no placeholder.
 #[test]
-fn a_draft_holds_the_line_as_title_and_what_without_placeholders() {
+fn a_proposal_file_holds_the_line_as_title_and_what_without_placeholders() {
     let repo = fixture_repo();
     let git = Git::discover(repo.path()).unwrap();
     let main = place::reach(&git, "main").unwrap();
 
-    let drafted = draft::create(&main, "next-1").unwrap();
+    let expanded = expand::create(&main, "next-1").unwrap();
 
-    let text = read(&main, &drafted.path);
+    let text = read(&main, &expanded.path);
     assert!(text.starts_with("---\ndiscovery: high"), "{text}");
     assert!(
         text.contains(
@@ -1007,27 +1001,27 @@ fn the_proposal_hints_are_the_templates_placeholders() {
     );
 }
 
-/// Review C2: the proposal is freeform, so any draft starts.
+/// Review C2: the proposal is freeform, so any proposal file starts.
 #[test]
-fn start_accepts_a_draft_with_placeholders_or_empty_sections() {
-    // The template as is, placeholders and all, then a draft with an empty Why.
+fn start_accepts_a_proposal_file_with_placeholders_or_empty_sections() {
+    // The template as is, placeholders and all, then a proposal file with an empty Why.
     let template = embedded::template(embedded::PROPOSAL).unwrap().to_string();
     for text in [template, "# X\n\n## What\n\nX\n\n## Why\n\n".to_string()] {
         let repo = TestRepo::new();
         repo.write("specs/README.md", "# Specs\n");
         repo.write(
             "specs/PRIORITIES.md",
-            "# Priorities\n\n## Now\n\n## Next\n\n- [X](drafts/x.md)\n\n## Later\n\n## Blocked\n",
+            "# Priorities\n\n## Now\n\n## Next\n\n- [X](proposals/x.md)\n\n## Later\n\n## Blocked\n",
         );
-        repo.write("specs/drafts/x.md", &text);
-        repo.commit("chore: draft X");
+        repo.write("specs/proposals/x.md", &text);
+        repo.commit("chore: expand X");
         let git = Git::discover(repo.path()).unwrap();
         let workspace = Workspace::read(&git).unwrap();
 
         let started = start::run(
             &git,
             &workspace,
-            "specs/drafts/x.md",
+            "specs/proposals/x.md",
             Some("x"),
             Kind::Feature,
             today(),
@@ -1038,29 +1032,29 @@ fn start_accepts_a_draft_with_placeholders_or_empty_sections() {
     }
 }
 
-/// Starting a draft folder from its `proposal.md` path, as the web UI does, starts the whole
-/// folder: its images move with the proposal.
+/// Starting a proposal file folder from its `proposal.md` path, as the web UI does, starts the
+/// whole folder: its images move with the proposal.
 #[test]
-fn start_from_a_draft_folders_proposal_moves_the_whole_folder() {
+fn start_from_a_proposal_file_folders_proposal_moves_the_whole_folder() {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
     repo.write(
         "specs/PRIORITIES.md",
-        "# Priorities\n\n## Now\n\n## Next\n\n- [X](drafts/x/proposal.md)\n\n## Later\n\n## Blocked\n",
+        "# Priorities\n\n## Now\n\n## Next\n\n- [X](proposals/x/proposal.md)\n\n## Later\n\n## Blocked\n",
     );
     repo.write(
-        "specs/drafts/x/proposal.md",
+        "specs/proposals/x/proposal.md",
         "# X\n\n## What\n\n![a](images/a.png)\n",
     );
-    repo.write("specs/drafts/x/images/a.png", "png");
-    repo.commit("chore: draft X");
+    repo.write("specs/proposals/x/images/a.png", "png");
+    repo.commit("chore: expand X");
     let git = Git::discover(repo.path()).unwrap();
     let workspace = Workspace::read(&git).unwrap();
 
     let started = start::run(
         &git,
         &workspace,
-        "specs/drafts/x/proposal.md",
+        "specs/proposals/x/proposal.md",
         Some("x"),
         Kind::Feature,
         today(),
@@ -1072,28 +1066,28 @@ fn start_from_a_draft_folders_proposal_moves_the_whole_folder() {
     let folder = worktree.join(format!("specs/{}", started.folder));
     assert!(folder.join("proposal.md").exists());
     assert!(folder.join("images/a.png").exists());
-    assert!(!worktree.join("specs/drafts/x").exists());
+    assert!(!worktree.join("specs/proposals/x").exists());
 }
 
-/// US4 scenario 4: starting a Next draft writes its entry after the started entries on top of
-/// Now, before the blank line and the rest.
+/// US4 scenario 4: starting a Next proposal file writes its proposal after the started proposals on
+/// top of Now, before the blank line and the rest.
 #[test]
-fn a_started_draft_tops_now() {
+fn a_started_proposal_file_tops_now() {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
     repo.write(
         "specs/PRIORITIES.md",
-        "# Priorities\n\n## Now\n\n- [A](/specs/2026-10-10-a/proposal.md)\n\n- B\n\n## Next\n\n- [X](drafts/x.md)\n\n## Later\n\n## Blocked\n",
+        "# Priorities\n\n## Now\n\n- [A](/specs/2026-10-10-a/proposal.md)\n\n- B\n\n## Next\n\n- [X](proposals/x.md)\n\n## Later\n\n## Blocked\n",
     );
-    repo.write("specs/drafts/x.md", "# X\n\n## What\n\nX\n");
-    repo.commit("chore: draft X");
+    repo.write("specs/proposals/x.md", "# X\n\n## What\n\nX\n");
+    repo.commit("chore: expand X");
     let git = Git::discover(repo.path()).unwrap();
     let workspace = Workspace::read(&git).unwrap();
 
     start::run(
         &git,
         &workspace,
-        "specs/drafts/x.md",
+        "specs/proposals/x.md",
         Some("x"),
         Kind::Feature,
         today(),
@@ -1227,29 +1221,34 @@ fn images_alone_are_a_change_to_commit() {
     );
 }
 
-const DRAFT: &str = "specs/drafts/login-banner.md";
-const DRAFT_FOLDER: &str = "specs/drafts/login-banner";
+const PROPOSAL_FILE: &str = "specs/proposals/login-banner.md";
+const PROPOSAL_FOLDER: &str = "specs/proposals/login-banner";
 
-/// `main` with the committed single-file draft "Login banner", linked from the priorities.
-fn draft_repo() -> TestRepo {
+/// `main` with the committed single proposal file "Login banner", linked from the priorities.
+fn proposal_file_repo() -> TestRepo {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
     repo.write(
         "specs/PRIORITIES.md",
-        "# Priorities\n\n## Now\n\n## Next\n\n- [Login banner](drafts/login-banner.md)\n\n## Later\n\n## Blocked\n",
+        "# Priorities\n\n## Now\n\n## Next\n\n- [Login banner](proposals/login-banner.md)\n\n## Later\n\n## Blocked\n",
     );
-    repo.write(DRAFT, "# Login banner\n\n## What\n\nA banner.\n");
-    repo.commit("chore: draft Login banner");
+    repo.write(PROPOSAL_FILE, "# Login banner\n\n## What\n\nA banner.\n");
+    repo.commit("chore: expand Login banner");
     repo
 }
 
-/// The draft given an image, as `attach` makes it a folder, its link written in it.
-fn draft_with_image(repo: &TestRepo) -> (Place, String) {
+/// The proposal file given an image, as `attach` makes it a folder, its link written in it.
+fn proposal_file_with_image(repo: &TestRepo) -> (Place, String) {
     let git = Git::discover(repo.path()).unwrap();
     let main = place::reach(&git, "main").unwrap();
-    let attached =
-        uraeda_core::actions::attach::attach(&main, DRAFT, &image(), Some("login.png"), stamp)
-            .unwrap();
+    let attached = uraeda_core::actions::attach::attach(
+        &main,
+        PROPOSAL_FILE,
+        &image(),
+        Some("login.png"),
+        stamp,
+    )
+    .unwrap();
     let moved = attached.moved.unwrap();
     append(&main, &moved, &attached.link);
     (main, moved)
@@ -1257,32 +1256,32 @@ fn draft_with_image(repo: &TestRepo) -> (Place, String) {
 
 /// Review focus 2
 #[test]
-fn a_committed_draft_moved_into_a_folder_commits_the_move() {
-    let repo = draft_repo();
-    let (main, moved) = draft_with_image(&repo);
+fn a_committed_proposal_file_moved_into_a_folder_commits_the_move() {
+    let repo = proposal_file_repo();
+    let (main, moved) = proposal_file_with_image(&repo);
 
     let committed = text::commit(&main, &moved).unwrap();
 
     assert_eq!(
         committed.change.subject,
-        "chore: edit the draft Login banner"
+        "chore: edit the proposal Login banner"
     );
     assert_eq!(
         repo.changed_in("main"),
         [
             "specs/PRIORITIES.md".to_string(),
-            DRAFT.to_string(),
-            format!("{DRAFT_FOLDER}/images/login.webp"),
-            format!("{DRAFT_FOLDER}/proposal.md"),
+            PROPOSAL_FILE.to_string(),
+            format!("{PROPOSAL_FOLDER}/images/login.webp"),
+            format!("{PROPOSAL_FOLDER}/proposal.md"),
         ]
     );
     assert_eq!(repo.porcelain(), "");
 }
 
 #[test]
-fn us1_7_a_draft_folder_starts_with_its_images() {
-    let repo = draft_repo();
-    let (main, moved) = draft_with_image(&repo);
+fn us1_7_a_proposal_file_folder_starts_with_its_images() {
+    let repo = proposal_file_repo();
+    let (main, moved) = proposal_file_with_image(&repo);
     text::commit(&main, &moved).unwrap();
     let git = Git::discover(repo.path()).unwrap();
     let workspace = Workspace::read(&git).unwrap();
@@ -1290,7 +1289,7 @@ fn us1_7_a_draft_folder_starts_with_its_images() {
     let started = start::run(
         &git,
         &workspace,
-        DRAFT_FOLDER,
+        PROPOSAL_FOLDER,
         None,
         Kind::Feature,
         today(),
@@ -1434,48 +1433,48 @@ fn an_image_staged_by_a_refused_commit_then_unlinked_is_dropped() {
     );
 }
 
-/// Review focus 2: `<slug>/` was taken, so the draft moved to `<slug>-2/proposal.md`.
+/// Review focus 2: `<slug>/` was taken, so the proposal file moved to `<slug>-2/proposal.md`.
 #[test]
-fn a_committed_draft_moved_into_a_numbered_folder_commits_the_move() {
-    let repo = draft_repo();
-    std::fs::create_dir_all(repo.path().join(DRAFT_FOLDER)).unwrap();
-    let (main, moved) = draft_with_image(&repo);
-    assert_eq!(moved, "specs/drafts/login-banner-2/proposal.md");
+fn a_committed_proposal_file_moved_into_a_numbered_folder_commits_the_move() {
+    let repo = proposal_file_repo();
+    std::fs::create_dir_all(repo.path().join(PROPOSAL_FOLDER)).unwrap();
+    let (main, moved) = proposal_file_with_image(&repo);
+    assert_eq!(moved, "specs/proposals/login-banner-2/proposal.md");
 
     let committed = text::commit(&main, &moved).unwrap();
 
     assert_eq!(
         committed.change.subject,
-        "chore: edit the draft Login banner"
+        "chore: edit the proposal Login banner"
     );
     assert_eq!(
         repo.changed_in("main"),
         [
             "specs/PRIORITIES.md".to_string(),
-            "specs/drafts/login-banner-2/images/login.webp".to_string(),
+            "specs/proposals/login-banner-2/images/login.webp".to_string(),
             moved.clone(),
-            DRAFT.to_string(),
+            PROPOSAL_FILE.to_string(),
         ]
     );
     assert_eq!(repo.porcelain(), "");
 }
 
-/// A single-file draft deleted on purpose, next to a new, unrelated folder draft of the same name,
-/// is not a move: the new draft's commit leaves the deletion out.
+/// A single proposal file deleted on purpose, next to a new, unrelated proposal file's folder of
+/// the same name, is not a move: the new proposal file's commit leaves the deletion out.
 #[test]
-fn an_unrelated_folder_draft_does_not_take_a_deleted_draft() {
-    let repo = draft_repo();
-    repo.remove(DRAFT);
-    let other = format!("{DRAFT_FOLDER}/proposal.md");
+fn an_unrelated_folder_proposal_file_does_not_take_a_deleted_proposal_file() {
+    let repo = proposal_file_repo();
+    repo.remove(PROPOSAL_FILE);
+    let other = format!("{PROPOSAL_FOLDER}/proposal.md");
     repo.write(&other, "# Other idea\n\n## What\n\nSomething else.\n");
     let git = Git::discover(repo.path()).unwrap();
     let main = place::reach(&git, "main").unwrap();
 
     let committed = text::commit(&main, &other).unwrap();
 
-    assert_eq!(committed.change.subject, "chore: draft Other idea");
+    assert_eq!(committed.change.subject, "chore: expand Other idea");
     assert_eq!(repo.changed_in("main"), [other]);
-    assert_eq!(repo.porcelain(), format!(" D {DRAFT}\n"));
+    assert_eq!(repo.porcelain(), format!(" D {PROPOSAL_FILE}\n"));
 }
 
 /// Links a markdown link alone misses: wikilinks and Obsidian embeds, by path or by file name, a
@@ -1692,16 +1691,16 @@ fn start_text(
     start::run_text(&git, &workspace, text, images, slug, change_day(), false)
 }
 
-/// US1.3: a draft started as a change.
+/// US1.3: a proposal file started as a change.
 #[test]
-fn a_draft_starts_as_a_change() {
-    let repo = draft_repo();
+fn a_proposal_file_starts_as_a_change() {
+    let repo = proposal_file_repo();
     let (git, workspace) = opened(&repo);
 
     let started = start::run(
         &git,
         &workspace,
-        DRAFT,
+        PROPOSAL_FILE,
         Some("centred-x"),
         Kind::Change,
         change_day(),
@@ -1727,7 +1726,7 @@ fn a_draft_starts_as_a_change() {
         [
             "specs/PRIORITIES.md".to_string(),
             proposal,
-            DRAFT.to_string()
+            PROPOSAL_FILE.to_string()
         ]
     );
     assert_eq!(
@@ -1747,12 +1746,12 @@ fn a_draft_starts_as_a_change() {
 /// not merged.
 #[test]
 fn a_started_feature_on_main_is_its_branchs() {
-    let repo = draft_repo();
+    let repo = proposal_file_repo();
     let (git, workspace) = opened(&repo);
     start::run(
         &git,
         &workspace,
-        DRAFT,
+        PROPOSAL_FILE,
         Some("centred-x"),
         Kind::Feature,
         change_day(),
@@ -1772,20 +1771,20 @@ fn a_started_feature_on_main_is_its_branchs() {
 /// a change's folder has no place for, so it is refused as a change before anything is committed.
 #[test]
 fn a_postponed_feature_is_refused_as_a_change() {
-    let repo = draft_repo();
-    repo.remove(DRAFT);
+    let repo = proposal_file_repo();
+    repo.remove(PROPOSAL_FILE);
     for file in ["proposal.md", "discovery-01.md", "spec.md", "plan.md"] {
-        repo.write(&format!("{DRAFT_FOLDER}/{file}"), "# Login banner\n");
+        repo.write(&format!("{PROPOSAL_FOLDER}/{file}"), "# Login banner\n");
     }
-    repo.write(&format!("{DRAFT_FOLDER}/images/login.webp"), "image");
-    repo.write(&format!("{DRAFT_FOLDER}/.gitkeep"), "");
+    repo.write(&format!("{PROPOSAL_FOLDER}/images/login.webp"), "image");
+    repo.write(&format!("{PROPOSAL_FOLDER}/.gitkeep"), "");
     repo.commit("chore: postpone Login banner");
     let (git, workspace) = opened(&repo);
 
     let refused = start::run(
         &git,
         &workspace,
-        DRAFT_FOLDER,
+        PROPOSAL_FOLDER,
         Some("centred-x"),
         Kind::Change,
         change_day(),
@@ -1795,7 +1794,7 @@ fn a_postponed_feature_is_refused_as_a_change() {
     assert_eq!(
         refused.err().map(|error| error.to_string()).as_deref(),
         Some(
-            "specs/drafts/login-banner holds discovery-01.md, plan.md, and spec.md, which have no \
+            "specs/proposals/login-banner holds discovery-01.md, plan.md, and spec.md, which have no \
              place in a change: start it as a feature, without --change"
         )
     );
@@ -1808,7 +1807,7 @@ fn a_postponed_feature_is_refused_as_a_change() {
 /// US1.1: the first line is the title, and the rest is kept as typed.
 #[test]
 fn a_typed_text_starts_a_change() {
-    let repo = draft_repo();
+    let repo = proposal_file_repo();
 
     let started = start_text(&repo, TYPED, &[], Some("centred-x")).unwrap();
 
@@ -1845,7 +1844,7 @@ fn a_typed_text_starts_a_change() {
 /// starts over them, and they stay uncommitted.
 #[test]
 fn a_typed_text_starts_over_uncommitted_changes_elsewhere() {
-    let repo = draft_repo();
+    let repo = proposal_file_repo();
     repo.write("README.md", "# Changed\n");
     repo.write("src/auth/guard.ts", "export {};\n");
 
@@ -1861,7 +1860,7 @@ fn a_typed_text_starts_over_uncommitted_changes_elsewhere() {
 /// US1.2: the images are saved in the change's folder and committed with its proposal, on main.
 #[test]
 fn a_typed_text_brings_its_images() {
-    let repo = draft_repo();
+    let repo = proposal_file_repo();
 
     start_text(&repo, TYPED, &[image(), image()], Some("centred-x")).unwrap();
 
@@ -1884,10 +1883,10 @@ fn a_typed_text_brings_its_images() {
     );
 }
 
-/// A failed typed start leaves the whole folder written, to commit with the entry.
+/// A failed typed start leaves the whole folder written, to commit with the proposal.
 #[test]
 fn a_failed_typed_start_leaves_its_proposal_and_images() {
-    let repo = draft_repo();
+    let repo = proposal_file_repo();
     repo.set_hook("exit 1");
 
     let failed = start_text(&repo, TYPED, &[image()], Some("centred-x"));
@@ -1913,20 +1912,20 @@ fn a_failed_typed_start_leaves_its_proposal_and_images() {
 #[test]
 fn a_slug_taken_by_a_feature_is_refused_for_a_change() {
     for first in [Kind::Feature, Kind::Change] {
-        let repo = draft_repo();
+        let repo = proposal_file_repo();
         let (git, workspace) = opened(&repo);
         start::run(
             &git,
             &workspace,
-            DRAFT,
+            PROPOSAL_FILE,
             Some("centred-x"),
             first,
             change_day(),
             false,
         )
         .unwrap();
-        repo.write("specs/drafts/other.md", "# Other\n");
-        repo.commit("chore: draft Other");
+        repo.write("specs/proposals/other.md", "# Other\n");
+        repo.commit("chore: expand Other");
         let second = match first {
             Kind::Feature => Kind::Change,
             Kind::Change => Kind::Feature,
@@ -1936,7 +1935,7 @@ fn a_slug_taken_by_a_feature_is_refused_for_a_change() {
         let refused = start::run(
             &git,
             &workspace,
-            "specs/drafts/other.md",
+            "specs/proposals/other.md",
             Some("centred-x"),
             second,
             change_day(),
@@ -1976,7 +1975,7 @@ fn a_folder_or_a_branch_alone_takes_the_name() {
         ),
     ];
     for (file, branch, kind) in holders {
-        let repo = draft_repo();
+        let repo = proposal_file_repo();
         repo.write(file, "# Held\n");
         repo.commit("chore: hold the name");
         if let Some(branch) = branch {
@@ -1987,7 +1986,7 @@ fn a_folder_or_a_branch_alone_takes_the_name() {
         let refused = start::run(
             &git,
             &workspace,
-            DRAFT,
+            PROPOSAL_FILE,
             Some("centred-x"),
             kind,
             change_day(),
@@ -2005,7 +2004,7 @@ fn a_folder_or_a_branch_alone_takes_the_name() {
 /// Review focus 3: the title is the first written line, and the blank lines after it are kept.
 #[test]
 fn a_typed_text_with_a_blank_first_line_takes_its_first_written_line() {
-    let repo = draft_repo();
+    let repo = proposal_file_repo();
 
     start_text(
         &repo,
@@ -2024,7 +2023,7 @@ fn a_typed_text_with_a_blank_first_line_takes_its_first_written_line() {
 /// The spec's assumption: a first line over 80 characters is cut for the title, and kept whole.
 #[test]
 fn a_long_first_line_is_cut_for_the_title_and_kept_whole() {
-    let repo = draft_repo();
+    let repo = proposal_file_repo();
     let line = format!("{} tail", "word ".repeat(16).trim_end());
 
     start_text(&repo, &format!("{line}\n\nMore."), &[], Some("centred-x")).unwrap();
@@ -2039,7 +2038,7 @@ fn a_long_first_line_is_cut_for_the_title_and_kept_whole() {
 /// A title typed as a heading loses its marks: the proposal has one heading.
 #[test]
 fn a_title_typed_as_a_heading_drops_its_marks() {
-    let repo = draft_repo();
+    let repo = proposal_file_repo();
 
     start_text(&repo, "## Centre the x\n\nMore.", &[], Some("centred-x")).unwrap();
 
@@ -2056,7 +2055,7 @@ fn a_title_typed_as_a_heading_drops_its_marks() {
 /// A title's brackets are escaped in its **Now** link, so the link stays one.
 #[test]
 fn a_title_with_brackets_keeps_its_link_in_now() {
-    let repo = draft_repo();
+    let repo = proposal_file_repo();
 
     start_text(&repo, "Fix the ] key [", &[], Some("centred-x")).unwrap();
 
@@ -2071,7 +2070,7 @@ fn a_title_with_brackets_keeps_its_link_in_now() {
 
 #[test]
 fn a_text_with_no_written_line_is_refused() {
-    let repo = draft_repo();
+    let repo = proposal_file_repo();
 
     let refused = start_text(&repo, " \n\n", &[], Some("centred-x"));
 

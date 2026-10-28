@@ -17,7 +17,7 @@ fn repo() -> TestRepo {
     repo.write("specs/README.md", "# Specs\n");
     repo.write(
         "specs/PRIORITIES.md",
-        "# Priorities\n\n## Now\n\n- [Web UI](/specs/2026-10-11-web-ui/proposal.md)\n\n## Next\n\n- [Note](drafts/note.md)\n- Git listener process\n",
+        "# Priorities\n\n## Now\n\n- [Web UI](/specs/2026-10-11-web-ui/proposal.md)\n\n## Next\n\n- [Note](proposals/note.md)\n- Git listener process\n",
     );
     repo.commit("chore: specs");
     repo.switch_new(FOLDER);
@@ -77,37 +77,37 @@ fn the_current_branchs_feature_is_in_this_checkout() {
     );
 }
 
-/// An entry's draft is a draft or a postponed feature the default branch has, as the priorities'
-/// page shows it: a link to a draft that does not exist names none.
+/// A proposal's proposal file is a proposal file or a postponed feature the default branch has, as
+/// the priorities' page shows it: a link to a proposal file that does not exist names none.
 #[test]
-fn priority_entries_name_their_draft() {
+fn proposal_proposals_name_their_proposal_file() {
     let repo = repo();
     repo.write(
         "specs/PRIORITIES.md",
         &repo.read("specs/PRIORITIES.md").replace(
             "- Git listener process\n",
-            "- Git listener process\n- [Gone](drafts/gone.md)\n- [Later](backlog/later/proposal.md)\n",
+            "- Git listener process\n- [Gone](proposals/gone.md)\n- [Later](proposals/later/proposal.md)\n",
         ),
     );
-    repo.write("specs/drafts/note.md", "# Note\n");
-    repo.write("specs/backlog/later/proposal.md", "# Later\n");
+    repo.write("specs/proposals/note.md", "# Note\n");
+    repo.write("specs/proposals/later/proposal.md", "# Later\n");
     repo.commit("chore: drafts");
 
     let workspace = workspace(&repo);
 
-    let drafts: Vec<Option<&str>> = workspace
+    let proposal_files: Vec<Option<&str>> = workspace
         .priorities
         .iter()
-        .map(|entry| entry.draft.as_deref())
+        .map(|entry| entry.file.as_deref())
         .collect();
     assert_eq!(
-        drafts,
+        proposal_files,
         [
             None,
-            Some("specs/drafts/note.md"),
+            Some("specs/proposals/note.md"),
             None,
             None,
-            Some("specs/backlog/later/proposal.md")
+            Some("specs/proposals/later/proposal.md")
         ]
     );
 }
@@ -539,7 +539,7 @@ fn the_workspace_reads_the_latest_pull_requests() {
         feature(&repo, FOLDER).step.name,
         StepName::PullRequestUnknown
     );
-    let draft = PullRequestView {
+    let proposal_file = PullRequestView {
         number: 31,
         url: "https://github.com/o/r/pull/31".to_string(),
         state: PullRequestState::Draft,
@@ -548,13 +548,16 @@ fn the_workspace_reads_the_latest_pull_requests() {
 
     let changed = pulls::remember(
         &root,
-        PullRequests::Known([(FOLDER.to_string(), draft.clone())].into()),
+        PullRequests::Known([(FOLDER.to_string(), proposal_file.clone())].into()),
     );
 
     assert!(changed);
     let read = feature(&repo, FOLDER);
     assert_eq!(read.step.name, StepName::Finish);
-    assert_eq!(FeatureView::new(&read, &[]).pull_request, Some(draft));
+    assert_eq!(
+        FeatureView::new(&read, &[]).pull_request,
+        Some(proposal_file)
+    );
 }
 
 /// US1.6: a branch checked out in a worktree, without its folder in its latest commit, is no item.
