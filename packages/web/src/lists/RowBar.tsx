@@ -6,7 +6,7 @@
 // word, on frosted glass.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import {
   type ComponentProps,
@@ -19,6 +19,7 @@ import {
 import { createPortal } from "react-dom";
 import { KeyCap } from "../keys/KeyCap.tsx";
 import { keepFocus } from "../keys/press.ts";
+import { bareButtonStyles } from "../layout/bareButton.ts";
 import { glassStyles } from "../layout/glass.ts";
 import { NavTile } from "../layout/NavBar.tsx";
 import { SCROLLED_PX } from "../shell/useHidesOnScroll.ts";
@@ -62,15 +63,6 @@ const styles = stylex.create({
     paddingBlock: "var(--bar-block)",
     position: "relative",
     zIndex: 2,
-  },
-  // An action of the bar: its key and its word as the text around it, with no frame of a button.
-  press: {
-    background: "none",
-    borderStyle: "none",
-    color: { ":hover": colorVars["--color-text-primary"], default: "inherit" },
-    cursor: "pointer",
-    font: "inherit",
-    padding: 0,
   },
   // The phone's bar: liquid glass (`glassStyles`), square, floating over the page above the
   // screen's bottom, as wide as its actions.
@@ -312,7 +304,11 @@ export function RowBar({
       {actions.map((action) => (
         <Text color="secondary" key={action.label} type="supporting">
           {/* oxlint-disable-next-line react/forbid-elements -- an action pressed as its key is, drawn as the row's supporting text, with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
-          <button onClick={pressed(action)} type="button" {...stylex.props(styles.press)}>
+          <button
+            onClick={pressed(action)}
+            type="button"
+            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit)}
+          >
             <KeyCap>{action.keys}</KeyCap> {action.label}
           </button>
         </Text>

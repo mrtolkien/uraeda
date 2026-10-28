@@ -19,6 +19,7 @@ import { KeyCap } from "../keys/KeyCap.tsx";
 import { keepFocus } from "../keys/press.ts";
 import { useHints, usePress } from "../keys/registry.tsx";
 import { useHidesOnScroll } from "./useHidesOnScroll.ts";
+import { bareButtonStyles } from "../layout/bareButton.ts";
 import { glassStyles } from "../layout/glass.ts";
 import { ruleStyles } from "../layout/rules.ts";
 
@@ -73,16 +74,6 @@ const styles = stylex.create({
   needs: {
     color: colorVars["--color-text-orange"],
   },
-  // A hint or a count to press: the line's own text, without a button's surface.
-  press: {
-    background: "none",
-    borderStyle: "none",
-    borderWidth: 0,
-    color: { ":hover": colorVars["--color-text-primary"], default: "inherit" },
-    cursor: "pointer",
-    font: "inherit",
-    padding: 0,
-  },
   // The phone's bar slid out of the way as the page scrolls down, its shadow too.
   phoneHidden: { pointerEvents: "none", transform: "translateY(calc(100% + 2rem))" },
   // The phone's bar: on glass, over the page scrolling under it, its controls its whole width.
@@ -132,7 +123,7 @@ function Hints() {
             onClick={() => press(hint.press)}
             onMouseDown={keepFocus}
             type="button"
-            {...stylex.props(styles.press)}
+            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit)}
           >
             <KeyCap>{hint.keys}</KeyCap> {hint.label}
           </button>
@@ -156,7 +147,7 @@ function Counts() {
           <button
             onClick={() => navigate(here(needsYouPath(entries)))}
             type="button"
-            {...stylex.props(styles.press)}
+            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit)}
           >
             {waiting} need you
           </button>
