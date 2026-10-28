@@ -8,6 +8,7 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
+import { bareButtonStyles } from "./bareButton.ts";
 
 const styles = stylex.create({
   // The open part's tile: its icon in the accent.
@@ -15,14 +16,9 @@ const styles = stylex.create({
   // A tile: flat on the glass, in the theme's text colour, which reads over the clear glass.
   tile: {
     alignItems: "center",
-    background: "none",
     borderRadius: 0,
-    borderStyle: "none",
-    borderWidth: 0,
     color: colorVars["--color-text-primary"],
-    cursor: "pointer",
     display: "flex",
-    font: "inherit",
   },
   // The bottom bar's tile: its icon alone, centred, sharing the bar's width.
   shared: {
@@ -88,6 +84,7 @@ export function NavTile({
       type="button"
       {...stylex.props(
         focusOutlineStyles.focusVisible,
+        bareButtonStyles.bare,
         styles.tile,
         hasWord ? styles.worded : styles.shared,
         isOpen && styles.open,

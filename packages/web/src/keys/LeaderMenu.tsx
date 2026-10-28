@@ -14,6 +14,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, useLayoutEffect, useRef, useState } from "react";
+import { bareButtonStyles } from "../layout/bareButton.ts";
 import { glassStyles } from "../layout/glass.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { brighten } from "../sidebar/brighten.ts";
@@ -109,16 +110,7 @@ const styles = stylex.create({
   // Square, as every glass is.
   square: { borderRadius: 0 },
   // A row or a footer key that presses its key when clicked, as a link in the text.
-  press: {
-    background: "none",
-    borderColor: "currentColor",
-    borderStyle: "none",
-    borderWidth: 0,
-    color: "inherit",
-    font: "inherit",
-    padding: 0,
-    textAlign: "start",
-  },
+  press: { textAlign: "start" },
   sheet: {
     insetInline: spacingVars["--spacing-2"],
     minWidth: 0,
@@ -208,7 +200,7 @@ function MenuContent({
               onClick={() => pressKeys(entry.key)}
               onMouseDown={keepFocus}
               type="button"
-              {...stylex.props(styles.press, styles.full, brighten)}
+              {...stylex.props(bareButtonStyles.bare, styles.press, styles.full, brighten)}
             >
               <Text type="supporting" xstyle={[styles.entry, styles.text]}>
                 <Key name={entry.key} />
@@ -225,7 +217,7 @@ function MenuContent({
           onClick={() => pressKeys("Backspace")}
           onMouseDown={keepFocus}
           type="button"
-          {...stylex.props(styles.press, brighten)}
+          {...stylex.props(bareButtonStyles.bare, styles.press, brighten)}
         >
           <KeyCap>
             <BackGlyph />
@@ -237,7 +229,7 @@ function MenuContent({
           onClick={() => pressKeys("Escape")}
           onMouseDown={keepFocus}
           type="button"
-          {...stylex.props(styles.press, brighten)}
+          {...stylex.props(bareButtonStyles.bare, styles.press, brighten)}
         >
           <KeyCap>esc</KeyCap> close
         </button>
