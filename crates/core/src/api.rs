@@ -4,15 +4,14 @@
 use std::path::{Path, PathBuf};
 
 use crate::actions::review;
-use crate::actions::{ActionError, answer, place, priorities as edits};
+use crate::actions::{answer, place, priorities as edits};
 use crate::check;
 use crate::files::document::{self, hash};
 use crate::files::items::items;
 use crate::files::priorities;
 use crate::files::review::Verdict;
 use crate::gates::{AWAITING_HUMAN, Gate, gate_of};
-use crate::git::{Git, GitError};
-use crate::repositories::ListError;
+use crate::git::Git;
 use crate::view::{
     CommitView, FeatureView, FileView, NextView, PriorityLink, StepView, VersionView, WaitingFile,
     WorkspaceView,
@@ -27,6 +26,7 @@ mod default_branch;
 mod drafts;
 mod drop;
 mod drop_at;
+mod error;
 mod files;
 mod history;
 mod inbox_edits;
@@ -51,6 +51,8 @@ pub use drafts::{
 };
 pub use drop::{DroppedView, drop_item};
 pub use drop_at::DropAt;
+pub use error::ApiError;
+use error::refused;
 pub use files::{attach_image, encode_image, read_image, read_raw};
 pub use history::read_history;
 pub use inbox_edits::*;
@@ -72,65 +74,6 @@ pub use reviews::{
     add_comment, approve, edit_comment, remove_comment, request_changes, start_over,
 };
 pub use start::{promote_change, propose_slug, start_change, start_feature, start_kind};
-
-/// An operation refused or failed: `code` is `refused`, `conflict` for a change made elsewhere,
-/// or `hook` for a commit a hook refused, with its whole `output`.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ApiError {
-    pub code: &'static str,
-    pub message: String,
-    pub output: Option<String>,
-}
-
-impl std::fmt::Display for ApiError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
-
-fn refused(message: impl Into<String>) -> ApiError {
-    ApiError {
-        code: "refused",
-        message: message.into(),
-        output: None,
-    }
-}
-
-impl From<ActionError> for ApiError {
-    fn from(error: ActionError) -> ApiError {
-        match error {
-            error if error.is_stale() => ApiError {
-                code: "conflict",
-                message: error.to_string(),
-                output: None,
-            },
-            ActionError::Hook { message, output } => ApiError {
-                code: "hook",
-                message: format!("git commit failed: {message}"),
-                output: Some(output),
-            },
-            error => refused(error.to_string()),
-        }
-    }
-}
-
-impl From<ListError> for ApiError {
-    fn from(error: ListError) -> ApiError {
-        refused(error.to_string())
-    }
-}
-
-impl From<GitError> for ApiError {
-    fn from(error: GitError) -> ApiError {
-        refused(error.to_string())
-    }
-}
-
-impl From<place::PlaceError> for ApiError {
-    fn from(error: place::PlaceError) -> ApiError {
-        refused(error.to_string())
-    }
-}
 
 type Result<T> = std::result::Result<T, ApiError>;
 
