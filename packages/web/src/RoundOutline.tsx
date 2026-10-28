@@ -173,8 +173,8 @@ export function NextOrSubmit({
 }
 
 /**
- * The phone's bar's Next, a help, its icon in the accent, or Submit once no question is blank, the
- * page's action, filled with it.
+ * The phone's bar's Next, or Submit once no question is blank, which `onSubmit` does: each its icon
+ * in the accent, no filled block on the glass.
  */
 export function NextTile({
   onSubmit,
@@ -187,7 +187,7 @@ export function NextTile({
   return blank.length ? (
     <NavTile icon="uraeda:arrow-right" isTinted label="Next" onPress={() => next(true)} />
   ) : (
-    <NavTile icon="uraeda:badge-check" isAction label="Submit" onPress={onSubmit} />
+    <NavTile icon="uraeda:badge-check" isTinted label="Submit" onPress={onSubmit} />
   );
 }
 
