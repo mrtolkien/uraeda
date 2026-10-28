@@ -32,11 +32,12 @@ with images "becomes a draft", so a note's file is secretly a proposal. `backlog
 
 ## Notes
 
-- Suggested, not settled: proposal files in `specs/proposals/<slug>.md`, note files in
-  `specs/notes/<slug>.md`, each a folder once it has images. Moving a note to the proposals moves
-  its file between the two.
-- Suggested, not settled: "Expand" for turning a line into a file (`ura draft` becomes `ura expand`,
-  `ura start <draft>` becomes `ura start <proposal>`).
+- Proposal files live in `specs/proposals/<slug>.md`, note files in `specs/notes/<slug>.md`, each a
+  folder once it has images. Moving a note to the proposals moves its file between the two.
+- "Expand" turns a line into a file: `ura draft` becomes `ura expand`, and `ura start <draft>`
+  becomes `ura start <proposal>`.
+- The rename goes through the code too: identifiers, files, and API and mutation names. Priorities
+  stays only where it names the file.
 - Deleting a note deletes its file: today, a note linking a draft loses its line only.
 - A postponed feature goes back to the proposals' folder, with its discovery files.
 - The draft pull request keeps its name: it is GitHub's.
@@ -46,4 +47,5 @@ with images "becomes a draft", so a note's file is secretly a proposal. `backlog
   and priorities MUST be written on the default branch") and
   [attachments](/specs/decisions/attachments.md) ("draft folder"). [tui](/specs/decisions/tui.md)
   only links a draft and names a "draft TUI".
-- Built on the ui-fixes branch, whose UI no longer has the "draft" meaning "not committed".
+- Built on the ui-fixes branch, whose UI no longer has the "draft" meaning "not committed". Its pull
+  request is stacked on ui-fixes.
