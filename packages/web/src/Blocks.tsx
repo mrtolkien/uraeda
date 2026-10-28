@@ -70,8 +70,9 @@ const styles = stylex.create({
     paddingInlineStart: room,
   }),
   disc: { listStyleType: "disc" },
-  // On narrow screens, a dash, the narrowest marker, which hangs in the page's margin.
-  dashed: { listStyleType: '"- "' },
+  // On narrow screens, a dash, the narrowest marker, which hangs in the page's margin, close to its
+  // text: a quarter of an em after it.
+  dashed: { listStyleType: '"-\u2005"' },
   numbered: { listStyleType: "decimal" },
   // An item's other sentences, a list under its first, closer together than the items.
   split: { marginBlockEnd: 0, marginBlockStart: spacingVars["--spacing-1"] },

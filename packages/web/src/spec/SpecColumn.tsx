@@ -1,13 +1,11 @@
 // The spec's and the plan's column: on wide and semi-wide screens, the questions page's document
-// column, of Contents, then the page's other tabs, the review's being at the page's end; on the phone,
-// no column, but the status line's Contents, the comments' count, and Verdict, the first two
-// opening the same panels in sheets, Verdict bringing the page's end into view, or, with no review,
-// Session, opening the session's page.
-import { Button } from "@astryxdesign/core/Button";
-import { Icon } from "@astryxdesign/core/Icon";
+// column, of Contents, then the page's other tabs, the review's being at the page's end; on the
+// phone, no column, but the bottom bar's tiles, as a round's: Contents, the comments, and Session,
+// each opening its panel in a sheet, then Verdict, bringing the page's end into view.
 import type { ReactNode } from "react";
 import { type ColumnPanel, DocumentColumn } from "../layout/DocumentColumn.tsx";
 import { type ColumnSheet, ColumnStatusLine } from "../layout/ColumnStatusLine.tsx";
+import { NavTile, NavTiles } from "../layout/NavBar.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { Review } from "../review/useReview.tsx";
 import { ColumnGo, ColumnVerdict } from "./columnGo.ts";
@@ -17,19 +15,16 @@ import { ReviewTab } from "./ReviewTab.tsx";
 import { toVerdict } from "../ReviewVerdict.tsx";
 import { afterOverlayCloses } from "../layout/useBackCloses.ts";
 import { afterSheetCloses } from "../roundJump.ts";
-import { navigateHere } from "../routes.tsx";
-import { sessionPath } from "../sessions.ts";
 import { useSheetTab } from "../layout/useSheetTab.ts";
 
 /** The phone's sheets of the spec's and the plan's column, by their tab's key. */
-const SHEETS = { contents: "Contents", review: "Review" } as const;
+const SHEETS = { contents: "Contents", review: "Review", session: "Session" } as const;
 
 /**
- * On the phone, the column's panels outside the page: the status line's Contents, the comments'
- * count and Verdict while a review waits, Contents and the count each opening its panel in a sheet,
- * kept in the address (`useSheetTab`, R22);
- * with no review, Session, with the Session tab's icon, opening the session's page of `session`'s
- * folder, the feature's, where the page has a Session tab.
+ * On the phone, the column's panels outside the page, in the bottom bar by their icons, as a
+ * round's: Contents; the comments while a review waits; and `session`, the Session tab, where the
+ * page has one; each opening its panel in a sheet, kept in the address (`useSheetTab`, R22); then
+ * Verdict while a review waits, bringing the page's end into view.
  */
 function PhoneParts({
   contents,
@@ -38,10 +33,17 @@ function PhoneParts({
 }: {
   contents: ReactNode;
   review: { count: number; panel: ReactNode } | undefined;
-  session: { folder: string; icon: ColumnPanel["icon"] } | undefined;
+  session: ColumnPanel | undefined;
 }) {
-  const sheet = useSheetTab(review ? SHEETS : { contents: SHEETS.contents }, true);
-  const [, setSheet] = sheet;
+  const sheet = useSheetTab(
+    {
+      contents: SHEETS.contents,
+      ...(review ? { review: SHEETS.review } : {}),
+      ...(session ? { session: SHEETS.session } : {}),
+    },
+    true,
+  );
+  const [open, setSheet] = sheet;
   const close = () => setSheet();
   const go = (run: () => void) => {
     close();
@@ -59,35 +61,31 @@ function PhoneParts({
       });
     });
   const buttons = (
-    <>
-      <Button
-        icon={<Icon icon="uraeda:list" />}
+    <NavTiles label={`The ${review ? "review's" : "page's"} parts`}>
+      <NavTile
+        icon="uraeda:list"
+        isOpen={open === "contents"}
         label="Contents"
-        onClick={() => setSheet("contents")}
-        variant="ghost"
+        onPress={() => setSheet("contents")}
       />
       {review && (
-        <>
-          <Button
-            icon={<Icon icon="uraeda:comment" />}
-            label={commentsLabel(review.count)}
-            onClick={() => setSheet("review")}
-            variant="ghost"
-          >
-            {review.count}
-          </Button>
-          <Button label="Verdict" onClick={toVerdict} variant="primary" />
-        </>
-      )}
-      {!review && session !== undefined && (
-        <Button
-          icon={<Icon icon={session.icon} />}
-          label="Session"
-          onClick={() => navigateHere(sessionPath(session.folder))}
-          variant="ghost"
+        <NavTile
+          icon="uraeda:comment"
+          isOpen={open === "review"}
+          label={commentsLabel(review.count)}
+          onPress={() => setSheet("review")}
         />
       )}
-    </>
+      {session && (
+        <NavTile
+          icon={session.icon}
+          isOpen={open === "session"}
+          label="Session"
+          onPress={() => setSheet("session")}
+        />
+      )}
+      {review && <NavTile icon="uraeda:badge-check" isTinted label="Verdict" onPress={toVerdict} />}
+    </NavTiles>
   );
   // No field to type in Contents: its sheet needs no room for a keyboard, the page showing above.
   const sheets: Array<ColumnSheet> = [
@@ -110,6 +108,7 @@ function PhoneParts({
           },
         ]
       : []),
+    ...(session ? [{ key: "session", label: SHEETS.session, panel: session.content }] : []),
   ];
   return <ColumnStatusLine buttons={buttons} sheet={sheet} sheets={sheets} />;
 }
@@ -117,8 +116,8 @@ function PhoneParts({
 /**
  * The page of `file`, `content`, with its column: `contents`, the Contents panel, first and open;
  * then `extra`, the page's other tabs, Session among them. The review is at the page's end, its
- * comments and verdict there: the column has no tab for it. On the phone, the status line's parts instead (see
- * `PhoneParts`).
+ * comments and verdict there: the column has no tab for it. On the phone, the bottom bar's tiles
+ * instead (see `PhoneParts`).
  */
 export function SpecColumn({
   content,
@@ -148,7 +147,7 @@ export function SpecColumn({
         <PhoneParts
           contents={contents}
           review={review && { count, panel: reviewPanel }}
-          session={session && { folder: file.folder, icon: session.icon }}
+          session={session}
         />
       )}
     </>
