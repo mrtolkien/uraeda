@@ -37,11 +37,21 @@ function Ask({
     }, 80);
     return () => clearTimeout(timer);
   }, []);
+  // One start at a time: Enter again, a held Enter, or the button while it runs starts nothing more.
+  const starting = useRef(false);
   const confirm = async () => {
+    if (starting.current) {
+      return;
+    }
+    starting.current = true;
     setError(undefined);
-    const refused = await onConfirm(value.trim());
-    if (refused !== undefined) {
-      setError(refused);
+    try {
+      const refused = await onConfirm(value.trim());
+      if (refused !== undefined) {
+        setError(refused);
+      }
+    } finally {
+      starting.current = false;
     }
   };
   return (
