@@ -87,6 +87,20 @@ Found in a pass over every surface. The ones marked done were fixed in that pass
 - The sessions page writes the picked card's look as CSS, since it styles the sidebar's own cards
   from outside.
 
+## Astryx gaps to approve
+
+The [UI components](../decisions/ui-components.md) decision lets a raw element stand in for a
+missing Astryx component, with its reason, once it is listed as an Astryx gap. The lint pass found
+these raw elements, each now marked with its reason, for the human to approve or to replace:
+
+- `layout/NavBar.tsx`: the bottom bar's tile, an icon alone, flat, stretched to share the bar.
+- `lists/RowBar.tsx`: the phone's row-action tile, a big icon over its word on the glass; and the
+  wide row bar's action, drawn as the row's supporting text.
+- `shell/StatusLine.tsx`: a hint, and the "need you" count, each pressed as text of the line.
+- `keys/LeaderMenu.tsx`: a menu row, and the footer's back and close keys, drawn as the menu's text.
+- `lists/OutlineEditor.tsx`: the row's field, a `textarea` in the row's own font, with no frame,
+  growing with its text.
+
 ## Left behind
 
 - The sidebar's cards still receive their `…` menu's actions (`actions`, `onSettings`), which they
