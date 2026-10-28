@@ -26,7 +26,8 @@ const styles = stylex.create({
     minHeight: sizeVars["--size-element-md"],
   },
   measure: {
-    // A pane's text, at the reading size, holds 75 characters a line, as a round's does.
+    // A pane's text, at the reading size, holds to a round's measure: resolved here in the UI's
+    // monospace font, at the reading size, it holds about 76 characters of prose a line.
     fontSize: "var(--text-reading-size)",
     lineHeight: "var(--text-reading-line)",
     maxWidth: "var(--size-round-measure)",
