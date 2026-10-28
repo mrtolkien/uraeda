@@ -45,6 +45,23 @@ const composer = () => screen.findByRole("textbox", { name: "Message Claude Code
 /** The feature's composer, which writes its proposal. */
 const proposal = () => screen.findByRole("textbox", { name: "Write Proposal" });
 
+test("on a Home card, a key the leader's menu waits for is the menu's: Space then `l` moves no focus", async () => {
+  atWidth(1400);
+  await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
+  await homeShown();
+  // The first card of home's core, not the sidebar's copy of it.
+  const link = document.querySelector<HTMLElement>("[data-core-column] [data-core-key] a[href]");
+  act(() => link!.focus());
+
+  await press(" ", link!);
+  await press("l", link!);
+  expect(document.activeElement).toBe(link);
+
+  // Alone, `l` moves to the next column: the key above was the menu's, not a key with nowhere to go.
+  await press("l", link!);
+  expect(document.activeElement).not.toBe(link);
+});
+
 test("US3: `a` on Home opens the New page, as its button does", async () => {
   await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
   await homeShown();

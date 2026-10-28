@@ -5,7 +5,7 @@
 // row comes back (see `WorkList`'s `onEdge`). The core takes the keys on its own cards only,
 // before the page's keys, which then leave them. Each card is found by its `data-core-key`.
 import { type KeyboardEvent, type PointerEvent, type RefObject, useCallback } from "react";
-import { useSingleKeys } from "../keys/registry.tsx";
+import { useLeaderWaits, useSingleKeys } from "../keys/registry.tsx";
 
 /** A move of the keys among the core's cards. */
 export type CoreStep = "down" | "up" | "left" | "right";
@@ -35,8 +35,9 @@ function columnsOf(core: HTMLElement | null) {
 
 /** The key of the card `element` is in, if it is in one. */
 export function cardKeyOf(element: EventTarget | null) {
-  return element instanceof Element
-    ? (element.closest("[data-core-key]")?.getAttribute("data-core-key") ?? undefined)
+  // An element, which a window or a document, also event targets, is not.
+  return element !== null && "closest" in element
+    ? ((element as Element).closest("[data-core-key]")?.getAttribute("data-core-key") ?? undefined)
     : undefined;
 }
 
@@ -89,12 +90,16 @@ export function stepCore(
   return true;
 }
 
-/** The core's key handler, for its element: see `stepCore`. */
+/**
+ * The core's key handler, for its element: see `stepCore`. A key a sequence or the leader's menu
+ * waits for is theirs: `g h`'s `h`, or `Space` then `j`, never moves the focus.
+ */
 export function useCoreKeys(
   core: RefObject<HTMLElement | null>,
   onLeave: (column: number) => void,
 ) {
   const singleKeys = useSingleKeys();
+  const leaderWaits = useLeaderWaits();
   return useCallback(
     (event: KeyboardEvent) => {
       const step = STEPS[event.key];
@@ -103,6 +108,7 @@ export function useCoreKeys(
       if (
         step === undefined ||
         from === undefined ||
+        leaderWaits() ||
         event.ctrlKey ||
         event.metaKey ||
         event.altKey ||
@@ -115,7 +121,7 @@ export function useCoreKeys(
         event.preventDefault();
       }
     },
-    [core, onLeave, singleKeys],
+    [core, leaderWaits, onLeave, singleKeys],
   );
 }
 

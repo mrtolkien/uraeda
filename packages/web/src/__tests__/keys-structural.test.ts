@@ -88,6 +88,12 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     reason:
       "listens for the human's own scrolling input, a key among them, to end a scripted scroll",
   },
+  "home/HomeHub.tsx": {
+    hits: 1,
+    reason:
+      "a grid of cards' own keys, as a radio group's: the arrows and j k h l move between its " +
+      "cards, and leave a key a sequence or the leader's menu waits for to the registry",
+  },
   "keepPlace.ts": {
     hits: 1,
     reason: "notes that the human scrolled or typed, to keep the page's place: it acts on no key",

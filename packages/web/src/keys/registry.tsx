@@ -229,6 +229,15 @@ export function useSingleKeys(): boolean {
 }
 
 /**
+ * Whether a sequence or the leader's menu waits for a key, read as a key comes, for a widget that
+ * takes keys of its own before the registry does: those keys are then the leader's.
+ */
+export function useLeaderWaits(): () => boolean {
+  const registry = use(StoreContext);
+  return () => (registry?.leader.get() ?? null) !== null;
+}
+
+/**
  * The leader's pending sequence, for the menu that draws it: the keys pressed so far, whether it is
  * shown yet, every binding to read its next keys from, and how to end it.
  */
