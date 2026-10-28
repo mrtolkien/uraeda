@@ -1,10 +1,12 @@
-// The leader menu: the keys pressed so far in the title of a bordered pane, then what each next key
-// does, each with its icon, a group marked by an arrow, in alphabetical order of their keys. It sits
-// at the window's bottom right, above the status line, and on narrow screens spans the window's
-// width, as the UI layout decision's sheets do. `LeaderMenuHost` feeds it the registry's step.
+// The leader menu: the keys pressed so far as its title, then what each next key does, each with its
+// icon, a group marked by an arrow, in alphabetical order of their keys, on the phone's frosted glass
+// (`glassStyles`), square, as the phone's floating bars are. It sits at the window's bottom right,
+// above the status line, and on narrow screens spans the window's width, as the UI layout
+// decision's sheets do. `LeaderMenuHost` feeds it the registry's step.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import {
+  colorVars,
   easeVars,
   fontWeightVars,
   spacingVars,
@@ -12,7 +14,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, useLayoutEffect, useRef, useState } from "react";
-import { Pane } from "../layout/Pane.tsx";
+import { glassStyles } from "../layout/glass.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { brighten } from "../sidebar/brighten.ts";
 import { BackGlyph } from "./Glyphs.tsx";
@@ -41,6 +43,14 @@ const sink = stylex.keyframes({
 });
 
 const styles = stylex.create({
+  // The menu's content on the glass: its title, its entries, and its footer, in a pane's room.
+  box: {
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    gap: spacingVars["--spacing-2"],
+    padding: spacingVars["--spacing-3"],
+  },
   closing: {
     animationName: sink,
     // Gone from the keys' reach as it leaves: it stays drawn only until it has slid away.
@@ -61,11 +71,11 @@ const styles = stylex.create({
     display: "flex",
     gap: spacingVars["--spacing-2"],
   },
-  // The pane's frame, which eases to the size the menu's step needs. The content stays at the
-  // frame's top left and is clipped to it, but for the title over the top border.
+  // The content's frame, which eases to the size the menu's step needs. The content stays at the
+  // frame's top left and is clipped to it, inside the glass, whose shadow it leaves whole.
   frame: {
     boxSizing: "border-box",
-    clipPath: "inset(-1lh 0 0 0)",
+    overflow: "hidden",
     transitionDuration: {
       "@media (prefers-reduced-motion: reduce)": "0s",
       default: `${SLIDE_MS}ms`,
@@ -96,6 +106,8 @@ const styles = stylex.create({
     position: "fixed",
     zIndex: 3,
   },
+  // Square, as every glass is.
+  square: { borderRadius: 0 },
   // A row or a footer key that presses its key when clicked, as a link in the text.
   press: {
     background: "none",
@@ -118,6 +130,11 @@ const styles = stylex.create({
     height: "var(--leader-height)",
     width: "var(--leader-width)",
   }),
+  // The keys pressed so far, in the accent, as an active pane's title.
+  title: {
+    color: colorVars["--color-text-accent"],
+    fontWeight: fontWeightVars["--font-weight-semibold"],
+  },
   // The menu's words, a step over the supporting text, at the body's 16 px and its weight.
   text: {
     // No type token is 16 px under the theme's 120% sizes.
@@ -163,43 +180,26 @@ function Key({ name }: { name: string }) {
 const written = (key: string) => (key === "space" ? "Space" : key);
 
 /**
- * The menu at a step: `path` is the keys pressed, the first included, `entries` the next keys. It
- * slides up from the bottom as it appears, and down again once `isClosing`.
+ * The menu's content on its glass, named by `path`, the keys pressed: its title, then `entries`, in
+ * one column with `isNarrow`, then its back and close keys.
  */
-export function LeaderMenu({
+function MenuContent({
   entries,
-  isClosing = false,
+  isNarrow: narrow = false,
   path,
+  xstyle,
 }: {
   entries: ReadonlyArray<MenuEntry>;
-  isClosing?: boolean;
+  isNarrow?: boolean;
   path: ReadonlyArray<string>;
+  xstyle?: ReadonlyArray<stylex.StyleXStyles | false>;
 }) {
-  const narrow = isNarrow(useWidthClass());
-  // The frame's size follows the menu's natural size, which a hidden copy of the menu measures:
-  // the frame eases between the sizes, since a box cannot ease between two automatic ones.
-  const twin = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState<{ height: number; width: number } | null>(null);
-  useLayoutEffect(() => {
-    const natural = twin.current?.firstElementChild;
-    if (narrow || !natural) {
-      return undefined;
-    }
-    const measure = () => {
-      const { height, width } = natural.getBoundingClientRect();
-      setSize((was) =>
-        was?.width === Math.ceil(width) && was.height === Math.ceil(height)
-          ? was
-          : { height: Math.ceil(height), width: Math.ceil(width) },
-      );
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(natural);
-    return () => observer.disconnect();
-  }, [narrow]);
-  const pane = (xstyle?: ComponentProps<typeof Pane>["xstyle"]) => (
-    <Pane isActive isGroup title={path.map(written).join(" ")} xstyle={xstyle}>
+  const title = path.map(written).join(" ");
+  return (
+    <div aria-label={title} role="group" {...stylex.props(styles.box, xstyle)}>
+      <Text type="supporting" xstyle={[styles.text, styles.title]}>
+        {title}
+      </Text>
       <ul {...stylex.props(styles.entries, narrow && styles.oneColumn)}>
         {sortedEntries(entries).map((entry) => (
           <li key={entry.key}>
@@ -242,17 +242,68 @@ export function LeaderMenu({
           <KeyCap>esc</KeyCap> close
         </button>
       </Text>
-    </Pane>
+    </div>
   );
+}
+
+/**
+ * The menu at a step: `path` is the keys pressed, the first included, `entries` the next keys. It
+ * slides up from the bottom as it appears, and down again once `isClosing`.
+ */
+export function LeaderMenu({
+  entries,
+  isClosing = false,
+  path,
+}: {
+  entries: ReadonlyArray<MenuEntry>;
+  isClosing?: boolean;
+  path: ReadonlyArray<string>;
+}) {
+  const narrow = isNarrow(useWidthClass());
+  // The frame's size follows the menu's natural size, which a hidden copy of the menu measures:
+  // the frame eases between the sizes, since a box cannot ease between two automatic ones.
+  const twin = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ height: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    const natural = twin.current?.firstElementChild;
+    if (narrow || !natural) {
+      return undefined;
+    }
+    const measure = () => {
+      const { height, width } = natural.getBoundingClientRect();
+      setSize((was) =>
+        was?.width === Math.ceil(width) && was.height === Math.ceil(height)
+          ? was
+          : { height: Math.ceil(height), width: Math.ceil(width) },
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(natural);
+    return () => observer.disconnect();
+  }, [narrow]);
   return (
-    <div {...stylex.props(styles.place, narrow && styles.sheet, isClosing && styles.closing)}>
+    <div
+      {...stylex.props(
+        glassStyles.surface,
+        glassStyles.floating,
+        styles.square,
+        styles.place,
+        narrow && styles.sheet,
+        isClosing && styles.closing,
+      )}
+    >
       {narrow ? (
-        pane()
+        <MenuContent entries={entries} isNarrow path={path} />
       ) : (
         <>
-          {pane([styles.frame, size !== null && styles.sized(size.width, size.height)])}
+          <MenuContent
+            entries={entries}
+            path={path}
+            xstyle={[styles.frame, size !== null && styles.sized(size.width, size.height)]}
+          />
           <div aria-hidden inert ref={twin} {...stylex.props(styles.twin)}>
-            {pane()}
+            <MenuContent entries={entries} path={path} />
           </div>
         </>
       )}
