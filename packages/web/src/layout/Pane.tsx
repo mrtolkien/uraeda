@@ -131,12 +131,12 @@ const styles = stylex.create({
   // the order of the stylesheet's rules.
   openOnPhone: {
     "--pane-surface": colorVars["--color-background-surface"],
+    "--table-bleed": "0px",
     backgroundColor: "transparent",
     borderBlockEndWidth: 0,
     borderInlineEndWidth: 0,
     borderInlineStartWidth: 0,
     paddingInline: 0,
-    "--table-bleed": "0px",
   },
   openOnPhoneActions: { backgroundColor: colorVars["--color-background-surface"] },
   // Its title hides the border behind it with the page's surface, which a round on the phone is
@@ -174,8 +174,8 @@ const styles = stylex.create({
     boxSizing: "border-box",
     marginInline: "var(--pane-centre, 0)",
     maxWidth: "var(--pane-max, none)",
-    width: "var(--pane-width, auto)",
     minWidth: 0,
+    width: "var(--pane-width, auto)",
     // Under its last line or button, the room under its title: one token, every pane's.
     paddingBlockEnd: paneVars["--pane-end"],
     // The title, in the flow, takes the room above the content.

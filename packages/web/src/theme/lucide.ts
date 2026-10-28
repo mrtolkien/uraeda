@@ -2,6 +2,7 @@
 // dependency of the app. Written without JSX, which the theme's build does not compile; registered
 // with Astryx by `icons.ts`.
 import { createElement as h } from "react";
+import { outline } from "./outline.ts";
 
 /** A paperclip, for attaching images: the outline of Lucide's, at the neutral theme's size. */
 export const attach = h(
@@ -22,23 +23,8 @@ export const attach = h(
   }),
 );
 
-/** The outline of a Lucide icon, at the neutral theme's size, from its elements. */
-export const outline = (...children: Array<ReturnType<typeof h>>) =>
-  h(
-    "svg",
-    {
-      "aria-hidden": true,
-      fill: "none",
-      height: "1em",
-      stroke: "currentColor",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      strokeWidth: 2,
-      viewBox: "0 0 24 24",
-      width: "1em",
-    },
-    ...children,
-  );
+// The outline every glyph here is drawn with, which the icon files beside this one take from here.
+export { outline };
 
 /** A crosshair, for picking an element of a story: Lucide's. */
 export const pick = outline(

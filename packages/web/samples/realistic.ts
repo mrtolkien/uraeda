@@ -177,7 +177,7 @@ export function addRealistic(repo: string) {
       message: "docs: priorities and inbox",
     },
   ]);
-  const { asking, reviewing, specifying, building } = REALISTIC_FOLDERS;
+  const { asking, building, reviewing, specifying } = REALISTIC_FOLDERS;
 
   // An agent writes the spec: the proposal and its answered round are all there is.
   git(repo, "branch", specifying, "main");

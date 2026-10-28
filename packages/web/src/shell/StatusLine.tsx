@@ -83,16 +83,20 @@ const styles = stylex.create({
   needs: {
     color: colorVars["--color-text-orange"],
   },
+  // A hint or a count to press: the line's own text, without a button's surface.
   press: {
     background: "none",
-    border: "none",
+    borderStyle: "none",
+    borderWidth: 0,
     color: { ":hover": colorVars["--color-text-primary"], default: "inherit" },
     cursor: "pointer",
     font: "inherit",
     padding: 0,
   },
+  // The phone's bar slid out of the way as the page scrolls down, its shadow too.
+  phoneHidden: { pointerEvents: "none", transform: "translateY(calc(100% + 2rem))" },
   // The phone's bar: on glass, over the page scrolling under it, its controls its whole width.
-  // It slides out of the way as the page scrolls down, its shadow too, and back as it scrolls up.
+  // It slides out of the way as the page scrolls down, and back as it scrolls up.
   phoneLine: {
     paddingInline: spacingVars["--spacing-1"],
     transform: "translateY(0)",
@@ -100,7 +104,6 @@ const styles = stylex.create({
     transitionProperty: "transform",
     transitionTimingFunction: "ease-out",
   },
-  phoneHidden: { pointerEvents: "none", transform: "translateY(calc(100% + 2rem))" },
   phoneSlot: { alignSelf: "stretch", flexGrow: 1 },
   slot: {
     alignItems: "center",
@@ -134,6 +137,7 @@ function Hints() {
           type="supporting"
           xstyle={styles.hint}
         >
+          {/* oxlint-disable-next-line react/forbid-elements -- a hint pressed as its keys are, drawn as the status line's text, in its font and with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
           <button
             onClick={() => press(hint.press)}
             onMouseDown={keepFocus}
@@ -165,6 +169,7 @@ function Counts({ fits, measured }: { fits: boolean; measured: RefObject<HTMLDiv
     >
       {waiting > 0 && (
         <Text type="supporting" xstyle={[styles.count, styles.needs]}>
+          {/* oxlint-disable-next-line react/forbid-elements -- the "need you" count, pressed to open its page, drawn as the status line's text, in its font and with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
           <button
             onClick={() => navigate(here(needsYouPath(entries)))}
             type="button"

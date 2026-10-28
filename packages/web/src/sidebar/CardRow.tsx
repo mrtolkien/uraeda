@@ -27,8 +27,10 @@ const styles = stylex.create({
     height: "var(--size-label-line)",
   },
   endTall: {
-    // Two lines high, for an end that is a button of its own: it takes the room of both lines.
-    height: "calc(2 * var(--size-label-line))",
+    // Two lines high, for an end that is a button of its own: it takes the room of both lines. A
+    // custom property, which StyleX's height values do not list as a calc.
+    "--card-end-tall": "calc(2 * var(--size-label-line))",
+    height: "var(--card-end-tall)",
   },
   icon: {
     alignItems: "center",
@@ -36,9 +38,7 @@ const styles = stylex.create({
     flexShrink: 0,
     height: "var(--size-label-line)",
   },
-  // Under the pointer, the card's own parts brighten, where its end is a button of its own.
-  lit: { filter: "brightness(1.25)" },
-  pointer: { cursor: "pointer" },
+  // The row's link: the icon, the name and its step, beside each other.
   link: {
     alignItems: "flex-start",
     color: "inherit",
@@ -48,12 +48,16 @@ const styles = stylex.create({
     minWidth: 0,
     textDecoration: "none",
   },
+  // Under the pointer, the card's own parts brighten, where its end is a button of its own.
+  lit: { filter: "brightness(1.25)" },
   name: {
     // Whole, on as many lines as it takes: a slug breaks at its hyphens, or anywhere when it has
     // none. The panes' titles set `nowrap`, which this row never inherits.
     overflowWrap: "anywhere",
     whiteSpace: "normal",
   },
+  // A row whose end is a button: the pointer over all of it, its parts lit on their own (`lit`).
+  pointer: { cursor: "pointer" },
   row: {
     // As tall as its lines, from Astryx's compact row up.
     alignItems: "flex-start",

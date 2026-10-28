@@ -18,28 +18,35 @@ const styles = stylex.create({
   apart: {
     marginBlockEnd: spacingVars["--spacing-2"],
   },
-  // The rail's bar: hidden but in the closed rail (`Column.tsx` shows `data-rail-only`), centred in
-  // the 38 px box the rail's rows have.
-  rail: {
-    alignItems: "center",
-    display: "none",
-    justifyContent: "center",
-    // The foot is inset 6.8 px from the rail's edge, and the rows' boxes 7.3 px.
-    marginInlineStart: "0.5px",
-    paddingBlock: spacingVars["--spacing-2"],
-    width: "38px",
-  },
-  track: {
-    backgroundColor: colorVars["--color-border"],
-    height: "6px",
-    overflow: "hidden",
-    width: "28px",
-  },
+  // What is left of the window, `width` of the track, in `color`.
   fill: (width: string, color: string) => ({
     backgroundColor: color,
     height: "100%",
     width,
   }),
+  // The rail's bar: hidden but in the closed rail (`Column.tsx` shows `data-rail-only`), centred in
+  // the 38 px box the rail's rows have. Its lengths are custom properties, which StyleX's margin and
+  // width values do not list.
+  rail: {
+    "--allowance-box": "38px",
+    // The foot is inset 6.8 px from the rail's edge, and the rows' boxes 7.3 px.
+    "--allowance-nudge": "0.5px",
+    alignItems: "center",
+    display: "none",
+    justifyContent: "center",
+    marginInlineStart: "var(--allowance-nudge)",
+    paddingBlock: spacingVars["--spacing-2"],
+    width: "var(--allowance-box)",
+  },
+  // The bar's track, in the border's colour, its lengths custom properties as the rail's.
+  track: {
+    "--allowance-track-height": "6px",
+    "--allowance-track-width": "28px",
+    backgroundColor: colorVars["--color-border"],
+    height: "var(--allowance-track-height)",
+    overflow: "hidden",
+    width: "var(--allowance-track-width)",
+  },
   usage: {
     paddingBlockEnd: spacingVars["--spacing-2"],
     paddingBlockStart: spacingVars["--spacing-1"],

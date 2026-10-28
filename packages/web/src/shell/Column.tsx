@@ -15,7 +15,7 @@ import { useMemo, useRef, useState } from "react";
 import { useKeys } from "../keys/registry.tsx";
 import { paneVars } from "../layout/pane.stylex.ts";
 import { Allowance } from "../sidebar/Allowance.tsx";
-import { SearchField, useSessionQuery } from "../sidebar/Search.tsx";
+import { useSessionQuery } from "../sidebar/Search.tsx";
 import { ColumnActions, ColumnFoot, ColumnHeading, Navigate } from "./ColumnPanes.tsx";
 import { useColumnWidth } from "./columnWidth.ts";
 import { ColumnFoldContext } from "./fold.ts";
@@ -71,21 +71,25 @@ const styles = stylex.create({
     // page's own scrollbar and would put the column's end under it.
     maxWidth: "100%",
     // A pixel more at the sides than the desktop column's, which the rail's icons are set by, as
-    // the phone's page has (`Page.tsx`).
-    paddingInline: "calc(var(--size-rail-inset) + 1px)",
-    width: "400px",
+    // the phone's page has (`Page.tsx`). Its lengths are custom properties, which StyleX's padding
+    // and width values do not list.
+    "--column-phone-inset": "calc(var(--size-rail-inset) + 1px)",
+    "--column-phone-width": "400px",
+    paddingInline: "var(--column-phone-inset)",
+    width: "var(--column-phone-width)",
     zIndex: 3,
-  },
-  phoneOpen: {
-    clipPath: "inset(0)",
-    transitionDelay: "0s, 0s",
-    visibility: "visible",
   },
   phoneClosed: {
     // Out of the tab order and the screen readers' reach once it has closed.
     clipPath: "inset(0 100% 0 0)",
     transitionDelay: { "@media (prefers-reduced-motion: reduce)": "0s, 0s", default: "0s, 200ms" },
     visibility: "hidden",
+  },
+  // Open: the whole column in view, at once.
+  phoneOpen: {
+    clipPath: "inset(0)",
+    transitionDelay: "0s, 0s",
+    visibility: "visible",
   },
   place: {
     // The column's place beside the page, in view while the window scrolls.
@@ -96,6 +100,7 @@ const styles = stylex.create({
     top: 0,
     zIndex: 2,
   },
+  // The rail's room in the page's flow.
   rail: {
     width: "var(--size-rail)",
   },
@@ -109,18 +114,12 @@ const styles = stylex.create({
     minHeight: 0,
   },
 
-  // In the rail, the panes' own border and inset are left of the icons' column: the rows move back
-  // over it, so that their icons stand under the heading's.
-  scrollRail: {
-    // The cards' icons stand under the nav rows': 16 px from the rail's edge.
-    // Out to the nav's edge, so the separators run the rail's whole width.
-    marginInlineStart: "calc(-1 * var(--size-rail-inset))",
-    paddingInlineStart: "var(--size-rail-inset)",
-    transform: "translateX(-3px)",
-  },
+  // The panes between the column's heading and its foot, which scroll.
   scroll: {
     flexGrow: 1,
     minHeight: 0,
+    overflowX: "hidden",
+    overflowY: "auto",
     overscrollBehavior: "contain",
     // A thin bar that shows only while the pointer is over the column, its room kept, so that the
     // content never shifts.
@@ -129,8 +128,6 @@ const styles = stylex.create({
       default: "transparent transparent",
     },
     scrollbarWidth: "thin",
-    overflowX: "hidden",
-    overflowY: "auto",
   },
   scrollFolded: {
     // The rail's icons fade out at its foot, where the list scrolls on, instead of showing an
@@ -138,13 +135,26 @@ const styles = stylex.create({
     maskImage: `linear-gradient(to bottom, black calc(100% - ${spacingVars["--spacing-6"]}), transparent)`,
     paddingBlockEnd: spacingVars["--spacing-6"],
   },
+  // In the rail, the panes' own border and inset are left of the icons' column: the rows move back
+  // over it, so that their icons stand under the heading's.
+  scrollRail: {
+    // The cards' icons stand under the nav rows': 16 px from the rail's edge.
+    // Out to the nav's edge, so the separators run the rail's whole width: a custom property,
+    // which StyleX's margin values do not list as a calc.
+    "--column-rail-pull": "calc(-1 * var(--size-rail-inset))",
+    marginInlineStart: "var(--column-rail-pull)",
+    paddingInlineStart: "var(--size-rail-inset)",
+    transform: "translateX(-3px)",
+  },
 });
 
 const widths = stylex.create({
   of: (width: number) => ({ width }),
   // The open column's content width: its width less the nav's padding and edge.
   content: (width: number) => ({
-    width: `calc(${width}px - 2 * var(--size-rail-inset) - 1px)`,
+    // The width as a property of its own, which StyleX's width values do not list as a calc.
+    "--column-content": `calc(${width}px - 2 * var(--size-rail-inset) - 1px)`,
+    width: "var(--column-content)",
   }),
 });
 

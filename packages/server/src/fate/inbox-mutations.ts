@@ -170,21 +170,6 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
-  "inbox.place": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<NoteInput & { category?: string; index: number }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.placeNote(ctx.repo, input.note, input.index, input.hash, input.category),
-        ),
-        select,
-      ),
-    type: "Inbox",
-  },
   "inbox.outline": {
     resolve: async ({
       ctx,
@@ -202,6 +187,21 @@ export const inboxMutations = {
             input.text ?? null,
             input.hash,
           ),
+        ),
+        select,
+      ),
+    type: "Inbox",
+  },
+  "inbox.place": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<NoteInput & { category?: string; index: number }>) =>
+      inbox(
+        ctx,
+        await refusable(() =>
+          ctx.binding.placeNote(ctx.repo, input.note, input.index, input.hash, input.category),
         ),
         select,
       ),
@@ -384,23 +384,6 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
-  "inbox.undoUnderPriority": {
-    resolve: async ({ ctx, input, select }: Resolver<UndoInput & { entryKey: string }>) =>
-      inbox(
-        ctx,
-        await refusable(() =>
-          ctx.binding.undoNoteUnderPriority(
-            ctx.repo,
-            input.lines,
-            input.index,
-            input.entryKey,
-            input.category,
-          ),
-        ),
-        select,
-      ),
-    type: "Inbox",
-  },
   "inbox.undoToPriorities": {
     resolve: async ({
       ctx,
@@ -417,6 +400,23 @@ export const inboxMutations = {
             input.section,
             input.category,
             input.entryKey,
+          ),
+        ),
+        select,
+      ),
+    type: "Inbox",
+  },
+  "inbox.undoUnderPriority": {
+    resolve: async ({ ctx, input, select }: Resolver<UndoInput & { entryKey: string }>) =>
+      inbox(
+        ctx,
+        await refusable(() =>
+          ctx.binding.undoNoteUnderPriority(
+            ctx.repo,
+            input.lines,
+            input.index,
+            input.entryKey,
+            input.category,
           ),
         ),
         select,

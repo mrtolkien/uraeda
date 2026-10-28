@@ -8,18 +8,20 @@ import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactNode } from "react";
 
 const styles = stylex.create({
-  // The tiles share the bar's width, each as tall as the bar.
-  tiles: {
-    alignSelf: "stretch",
-    display: "flex",
-    flexGrow: 1,
-    gap: spacingVars["--spacing-1"],
+  // The page's action: filled with the accent.
+  action: {
+    backgroundColor: colorVars["--color-accent"],
+    color: colorVars["--color-on-accent"],
   },
+  // The open part's tile: its icon in the accent.
+  open: { color: colorVars["--color-text-accent"] },
+  // A tile: its icon alone, centred, flat on the bar.
   tile: {
     alignItems: "center",
     background: "none",
-    border: "none",
     borderRadius: 0,
+    borderStyle: "none",
+    borderWidth: 0,
     color: colorVars["--color-text-primary"],
     cursor: "pointer",
     display: "flex",
@@ -31,10 +33,12 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-1"],
     paddingInline: spacingVars["--spacing-1"],
   },
-  open: { color: colorVars["--color-text-accent"] },
-  action: {
-    backgroundColor: colorVars["--color-accent"],
-    color: colorVars["--color-on-accent"],
+  // The tiles share the bar's width, each as tall as the bar.
+  tiles: {
+    alignSelf: "stretch",
+    display: "flex",
+    flexGrow: 1,
+    gap: spacingVars["--spacing-1"],
   },
   // A help rather than the page's action: its icon in the accent, on the glass as the others.
   tinted: { color: colorVars["--color-text-accent"] },
@@ -60,6 +64,7 @@ export function NavTile({
   onPress: () => void;
 }) {
   return (
+    // oxlint-disable-next-line react/forbid-elements -- a tile of the phone's bottom bar, its icon alone, flat and stretched to share the bar's width, which Astryx's Button, with its own height, padding, and surface, does not draw (an Astryx gap)
     <button
       aria-label={label}
       aria-pressed={isOpen}

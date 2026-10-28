@@ -6,7 +6,7 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
 import { useInbox, usePriorities } from "../data.ts";
@@ -39,15 +39,20 @@ const styles = stylex.create({
     justifyContent: "space-between",
     paddingInline: spacingVars["--spacing-2"],
   },
-  icon: {
-    display: "inline-flex",
-    position: "relative",
-  },
   divider: {
     // The line between the sidebar's toggle and the pages' tabs.
     backgroundColor: colorVars["--color-border"],
     height: spacingVars["--spacing-5"],
-    width: "1px",
+    width: borderVars["--border-width"],
+  },
+  icon: {
+    display: "inline-flex",
+    position: "relative",
+  },
+  small: {
+    // A small badge, its count in the type it had: less padding, and a step less tall.
+    height: spacingVars["--spacing-4"],
+    paddingInline: spacingVars["--spacing-1"],
   },
   toggle: {
     // The sidebar's toggle apart, further left than the tabs: its own group, then a line.
@@ -55,11 +60,6 @@ const styles = stylex.create({
     display: "flex",
     gap: spacingVars["--spacing-1"],
     marginInlineStart: `calc(-1 * ${spacingVars["--spacing-1"]})`,
-  },
-  small: {
-    // A small badge, its count in the type it had: less padding, and a step less tall.
-    height: spacingVars["--spacing-4"],
-    paddingInline: spacingVars["--spacing-1"],
   },
 });
 

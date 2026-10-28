@@ -129,9 +129,9 @@ export function Item({
       icon={status ? <StatusMark label={status.label} status={status.status} /> : icon}
       isSelected={selects(pathname, to)}
       label={label}
-      xstyle={brighten}
       // The pane's compact rows: their labels keep the room a pane's border and inset take.
       size="sm"
+      xstyle={brighten}
       {...(named === label ? {} : { "aria-label": named })}
       onClick={(event: MouseEvent) => {
         event.preventDefault();
