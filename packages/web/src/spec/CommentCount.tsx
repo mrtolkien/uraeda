@@ -1,5 +1,5 @@
-// A count of pending comments, as the column's Review tab, the phone's status line, and Contents'
-// rows show it: its number, its word read out after it.
+// A count of pending comments, as the phone's status line and Contents' rows show it: its number,
+// its word read out after it.
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { plural } from "../labels.ts";
 

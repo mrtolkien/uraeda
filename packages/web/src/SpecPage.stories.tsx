@@ -32,7 +32,7 @@ const BLOCK = "Spec to review, revision 2, about 10 minutes.";
  */
 export const Waiting: Story = {};
 
-/** The same spec approved: its approval record first, the same panes, no Review tab, no verdict. */
+/** The same spec approved: its approval record first, the same panes, no review, no verdict. */
 export const Approved: Story = { args: { folder: SPEC_PAGES.approved } };
 
 /**

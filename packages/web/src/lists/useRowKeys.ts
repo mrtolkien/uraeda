@@ -1,7 +1,7 @@
 // The keys a list gives its rows beyond moving: `o` adds beside the row, in its section, `i` turns
-// it into its editor in place, `m` opens its `…` menu. Each is bound only where the list can do it,
-// and acts on the row the focus is on, or the selected one (see `useListKeys`'s `rowKeys`). The state
-// they set is what `Card` reads: which card is edited, and which card's menu is held open.
+// it into its editor in place, `m` puts it in the move mode. Each is bound only where the list can
+// do it, and acts on the row the focus is on, or the selected one (see `useListKeys`'s `rowKeys`).
+// The state they set is what `Card` reads: which card is edited, and which card's menu is held open.
 import { useCallback, useState } from "react";
 import { deleteLine, useConfirm } from "../fields/Confirm.tsx";
 import type { RowState, WorkRow } from "./Card.tsx";

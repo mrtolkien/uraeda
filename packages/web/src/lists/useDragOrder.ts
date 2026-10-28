@@ -177,7 +177,7 @@ function plugins(announcements: ReturnType<typeof announcer>): PluginsOf {
     ...defaults.filter((plugin) => plugin !== Accessibility),
     Accessibility.configure({
       announcements,
-      // The keyboard moves a line from its card's menu: a card has no keyboard drag to explain.
+      // The keyboard moves a line in its move mode, `m`: a card has no keyboard drag to explain.
       screenReaderInstructions: { draggable: "" },
     }),
   ];
