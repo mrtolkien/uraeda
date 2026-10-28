@@ -12,7 +12,7 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { LineField } from "../EditableLine.tsx";
 import { useSingleKeys } from "../keys/registry.tsx";
 import { Overlay, afterOverlayCloses } from "../layout/Overlay.tsx";
@@ -61,14 +61,16 @@ const styles = stylex.create({
 /**
  * A category's title, renamed in place: a button that opens a field, where Enter saves and Escape
  * cancels (see `useLineSave`). `onRename` resolves with the refusal's message, which shows under the
- * field, or with nothing once written.
+ * field, or with nothing once written. Each new `opens` above 0 opens the field, as a key does.
  */
 export function CategoryTitle({
   name,
   onRename,
+  opens = 0,
 }: {
   name: string;
   onRename: (from: string, to: string) => Promise<string | undefined>;
+  opens?: number;
 }) {
   const line = useLineSave({
     empty: "A category needs a name.",
@@ -77,6 +79,12 @@ export function CategoryTitle({
     stayOpen: false,
     value: name,
   });
+  const openLine = useEffectEvent(line.openLine);
+  useEffect(() => {
+    if (opens > 0) {
+      openLine();
+    }
+  }, [opens]);
   if (line.open) {
     return <LineField isBare label={`Rename ${name}`} line={line} />;
   }
@@ -170,10 +178,49 @@ export function DeleteCategoryDialog({
 }
 
 /**
- * A category's menu, in its pane's border: Delete. With notes it asks first; an empty category goes
- * at once, with its Undo, as there is nothing to ask about. `onRemove` writes the delete, keeping
- * the notes or not, and resolves with the refusal's message to show, if any.
+ * A category's delete, from its menu or a key: with notes it asks first; an empty category goes at
+ * once, with its Undo, as there is nothing to ask about. `onRemove` writes the delete, keeping the
+ * notes or not, and resolves with the refusal's message to show, if any. Returns what starts it,
+ * for a category and its count of notes, and the question, to draw.
  */
+export function useCategoryDelete(
+  onRemove: (name: string, keepNotes: boolean) => Promise<string | undefined>,
+  onRefused: (message: string | undefined) => void,
+) {
+  const [asking, setAsking] = useState<{ count: number; name: string }>();
+  const [isOpen, setOpen] = useState(false);
+  const remove = (name: string, keepNotes: boolean) => {
+    onRefused(undefined);
+    void onRemove(name, keepNotes).then(onRefused);
+  };
+  const answer = (choice: Answer) => {
+    setOpen(false);
+    const name = asking?.name;
+    if (choice !== "cancel" && name !== undefined) {
+      // Once the question's history entry is gone: the page's own Back must not undo what follows.
+      afterOverlayCloses(`Delete the category ${name}`, () => remove(name, choice === "no"));
+    }
+  };
+  const start = (name: string, count: number) => {
+    if (count === 0) {
+      remove(name, false);
+    } else {
+      setAsking({ count, name });
+      setOpen(true);
+    }
+  };
+  const dialog = asking && (
+    <DeleteCategoryDialog
+      count={asking.count}
+      isOpen={isOpen}
+      name={asking.name}
+      onAnswer={answer}
+    />
+  );
+  return { dialog, start };
+}
+
+/** A category's menu, in its pane's border: Delete (see `useCategoryDelete`). */
 export function CategoryMenu({
   count,
   name,
@@ -185,31 +232,14 @@ export function CategoryMenu({
   onRefused: (message: string | undefined) => void;
   onRemove: (name: string, keepNotes: boolean) => Promise<string | undefined>;
 }) {
-  const [isOpen, setOpen] = useState(false);
-  const remove = (keepNotes: boolean) => {
-    onRefused(undefined);
-    void onRemove(name, keepNotes).then(onRefused);
-  };
-  const answer = (choice: Answer) => {
-    setOpen(false);
-    if (choice !== "cancel") {
-      // Once the question's history entry is gone: the page's own Back must not undo what follows.
-      afterOverlayCloses(`Delete the category ${name}`, () => remove(choice === "no"));
-    }
-  };
+  const { dialog, start } = useCategoryDelete(onRemove, onRefused);
   return (
     <>
       <CardMenu
-        items={[
-          {
-            label: "Delete",
-            onClick: () => (count === 0 ? remove(false) : setOpen(true)),
-            variant: "destructive",
-          },
-        ]}
+        items={[{ label: "Delete", onClick: () => start(name, count), variant: "destructive" }]}
         label={`Actions of category ${name}`}
       />
-      <DeleteCategoryDialog count={count} isOpen={isOpen} name={name} onAnswer={answer} />
+      {dialog}
     </>
   );
 }

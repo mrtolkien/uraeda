@@ -30,7 +30,8 @@ import { withMoves } from "./itemMoves.ts";
 import { type Ahead, stillAhead, useItemMoves } from "./useItemMoves.ts";
 import { type Columns, type ItemMove, useListKeys } from "./useListKeys.ts";
 import { useRefocus } from "./useRefocus.ts";
-import { useRowKeys } from "./useRowKeys.ts";
+import type { BarAction } from "./RowBar.tsx";
+import { type RowAction, type SectionPicker, useRowKeys } from "./useRowKeys.ts";
 
 /** A section's colour: the ongoing entries green, Now blue, Later grey, the rest neutral. */
 export type Tone = "green" | "blue" | "neutral" | "gray";
@@ -581,6 +582,8 @@ export function WorkList({
   onOutline,
   onPromote,
   onStart,
+  rowActions,
+  sectionPicker,
   sections,
   selected: named,
 }: {
@@ -622,6 +625,15 @@ export function WorkList({
   onPromote?: (row: WorkRow) => boolean | void;
   /** What `s` calls for the selected row: it starts from it. */
   onStart?: (row: WorkRow) => void;
+  /** The list's own keys on the selected row, in its bar, as the inbox's `p` and `v`. */
+  rowActions?: ReadonlyArray<RowAction>;
+  /**
+   * A key that opens a picker of the sections for the selected line, as the inbox's `c`: `open` is
+   * given the row and what moves it to the end of the section chosen, by its id, as a key's move.
+   */
+  sectionPicker?: Omit<SectionPicker, "open"> & {
+    open: (row: WorkRow, moveTo: (section: string) => void) => void;
+  };
   sections: ReadonlyArray<WorkSection>;
   selected?: string;
 }) {
@@ -716,14 +728,37 @@ export function WorkList({
       });
     });
   const isOpen = named !== undefined;
+  // The row `m` put in the move mode, while it stays selected: the keys move it until it ends.
+  const [moving, setMoving] = useState<string>();
+  // What a picker's choice moves, as the list is when it is made.
+  const moves = useRef<{ onMoveItem?: (move: ItemMove, at: number) => void; rows: WorkRow[] }>({
+    rows: [],
+  });
   const own = useRowKeys(placed, onAddBeside, pick, {
-    canMoveItems: onMove !== undefined,
     onDelete: deleteAhead,
+    onMoveMode:
+      onMove &&
+      ((row) => {
+        pick(row.key);
+        setMoving(row.key);
+      }),
     // The bar's `⏎ open`, as Enter or a click opens the row.
     onOpen: onOpen && ((row) => open(row)),
     onOutline,
+    onPickSection: sectionPicker && {
+      ...sectionPicker,
+      open: (row) =>
+        sectionPicker.open(row, (section) => {
+          const { onMoveItem: move, rows: now } = moves.current;
+          const at = now.findIndex((one) => one.key === row.key);
+          if (at !== -1) {
+            move?.(`to:${section}`, at);
+          }
+        }),
+    },
     onPromote,
     onStart,
+    ...(rowActions ? { rowActions } : {}),
   });
   const onMoveLine = useItemMoves(onMove, placed, pick, { live, setAhead });
   // A nested row moves among its siblings, up or down, in its line's outline; a line, as a drop
@@ -738,12 +773,18 @@ export function WorkList({
         onOutline?.(row, move);
       }
     });
+  moves.current = { onMoveItem, rows };
   // A row a write placed elsewhere, as an indent did, is selected again where it went, with the
   // focus, once it is drawn there.
   // Not while a field is open, edited or new: the focus is the human's there.
   const isTyping = own.state.editing !== undefined || rows.some((row) => row.isFresh);
   const typing = useRef(isTyping);
   typing.current = isTyping;
+  // The move mode ends as another row is selected, or a field opens.
+  const isMoving = moving !== undefined && moving === selected && !isTyping && !!onMoveItem;
+  if (moving !== undefined && !isMoving) {
+    setMoving(undefined);
+  }
   useEffect(() => {
     if (follow === undefined || typing.current) {
       return;
@@ -784,6 +825,7 @@ export function WorkList({
     keys: rows.map((row) => row.key),
     onClose: () => false,
     onEdit: () => false,
+    ...(isMoving ? { onMoveEnd: () => setMoving(undefined) } : {}),
     onMoveItem,
     onSelect: (index) => pick(rows[index].key),
     rowKeys: own.keys,
@@ -839,6 +881,31 @@ export function WorkList({
       )
       ?.focus({ preventScroll: true });
   };
+  /**
+   * The bar of the row in the move mode: its keys, which move it, and the one that ends it. A press
+   * on one moves it too. In columns, the sideways keys go to the next column; one under the other,
+   * to the next section.
+   */
+  const moveBarOf = (row: WorkRow): ReadonlyArray<BarAction> => {
+    const step = (move: ItemMove) => () => {
+      const at = rows.findIndex((one) => one.key === row.key);
+      if (at !== -1) {
+        onMoveItem?.(move, at);
+      }
+    };
+    const across = asColumns ? "column" : "section";
+    return [
+      { keys: "k", label: "up", run: step("up") },
+      { keys: "j", label: "down", run: step("down") },
+      ...(row.parent === undefined
+        ? [
+            { keys: "h", label: `previous ${across}`, run: step("left") },
+            { keys: "l", label: `next ${across}`, run: step("right") },
+          ]
+        : []),
+      { keys: "⏎", label: "done", run: () => setMoving(undefined) },
+    ];
+  };
   const drawn = (section: WorkSection, isColumn: boolean) => {
     const Body = section.isFixed ? SectionBody : DropSection;
     return (
@@ -861,7 +928,8 @@ export function WorkList({
     <RowStateContext
       value={{
         ...own.state,
-        barOf: own.barOf,
+        barOf: (row) => (isMoving && row.key === moving ? moveBarOf(row) : own.barOf(row)),
+        moving: isMoving ? moving : undefined,
         // Only under the row selected: the address may have selected another since.
         barred: isTyping || barred !== selected ? undefined : barred,
         isTyping,

@@ -11,7 +11,7 @@ import { stepKindOf } from "../sidebar/cards.ts";
 import { STEP_ICONS } from "../sidebar/StepIcon.tsx";
 import { titleOf, TITLES } from "../QuickAdd.tsx";
 import { refusal } from "../errors.ts";
-import { navigate, useLocalPath, useRepoPath } from "../routes.tsx";
+import { currentEntry, navigate, useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { DraftView, PrioritiesView } from "../views.ts";
 import { fileIndex } from "./cardMoves.ts";
@@ -315,8 +315,22 @@ export function PrioritiesList({
     navigate(here("/new?kind=feature"), { insert: `line:${entry.id}` });
   };
 
-  // The page opens on the highest row of Now, with the keyboard's focus on it, once.
+  // The page opens on the row its arrival names, as a note just moved there, else on the highest
+  // row of Now, with the keyboard's focus on it, once.
+  const [arrival] = useState(() => currentEntry().select);
   const firstNow = all.find((section) => section.id === "now")?.rows[0]?.key;
+  // That row in the middle of the screen, once drawn: the page just opened, nothing moves.
+  useEffect(() => {
+    if (arrival === undefined) {
+      return undefined;
+    }
+    const frame = requestAnimationFrame(() =>
+      document
+        .querySelector(`[data-row-key="${CSS.escape(arrival)}"]`)
+        ?.scrollIntoView({ block: "center" }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [arrival]);
   const [isArriving, setArriving] = useState(true);
   useEffect(() => setArriving(false), []);
   const selected =
@@ -326,7 +340,7 @@ export function PrioritiesList({
   return (
     <WorkList
       follow={outline.follow}
-      initial={firstNow}
+      initial={arrival ?? firstNow}
       isFocused={isFocused || isArriving}
       isLayoutChosen
       isRoomy

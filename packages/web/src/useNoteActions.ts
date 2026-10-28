@@ -8,15 +8,14 @@ import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./
 import { refusal } from "./errors.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { TITLES } from "./QuickAdd.tsx";
-import { closeDetail } from "./pane/DetailOverlay.tsx";
 import type { ActionOptions } from "./pane/usePriorityActions.ts";
-import { localPath, navigate, redirect, useRepoPath } from "./routes.tsx";
-import { DraftView, InboxView } from "./views.ts";
+import { navigate, redirect, useRepoPath } from "./routes.tsx";
+import { InboxView } from "./views.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
 export type Placed = { category?: string; index: number; note: InboxNote };
 
-/** The note's id while its text is saved, and that text: see `NotePane`. */
+/** The note's id while its text is saved, and that text. */
 export type Renaming = { id: string; text: string };
 
 type Fate = ReturnType<typeof useFateClient>;
@@ -60,11 +59,14 @@ async function movedKey(fate: Fate, section: string, text: string) {
 /** A note's change, run as `useNoteActions` runs it: its refusal shown, a conflict read again. */
 type Run = <R extends { error?: unknown }>(call: () => Promise<R>) => Promise<R>;
 
+/** A line of the priorities a note goes under: its id as written now, `now-2`, its key, its text. */
+export type UnderLine = { id: string; key: string; text: string };
+
 /**
- * The moves out of the inbox, into the priorities, a new draft, or an existing draft, over the
- * note's `input`, its id and the inbox's hash as read. The view shows no priorities: their hash is
- * read just before the move. `left` follows a move that leaves the note's view; a new draft opens
- * in the editor instead.
+ * The moves out of the inbox, into the priorities, under one of their lines, or into an existing
+ * draft, over the note's `input`, its id and the inbox's hash as read. The inbox shows no
+ * priorities: their hash is read just before the move. Each, once written, goes where the note
+ * went: the priorities with its row selected, or its draft's page.
  */
 function useMovesOut(
   placed: Placed,
@@ -98,21 +100,39 @@ function useMovesOut(
         }),
       ),
     );
+    navigate(here("/priorities"), entryKey === undefined ? {} : { select: entryKey });
   };
 
-  const toNewDraft = async (section: string) => {
+  const underPriority = async (line: UnderLine) => {
     const prioritiesHash = await readPrioritiesHash(fate);
     const result = await run(() =>
-      fate.mutations.inbox.toNewDraft({
-        input: { ...input, prioritiesHash, section },
-        view: DraftView,
+      fate.mutations.inbox.underPriority({
+        input: { ...input, entry: line.id, prioritiesHash },
+        view: InboxView,
       }),
     );
-    const path = result.result?.path;
-    if (!result.error && path !== undefined) {
-      rereadChanges(fate);
-      navigate(here(`/edit/${path}`));
+    if (result.error) {
+      return;
     }
+    left();
+    // The note is the line's last own item now: its row, by its key.
+    const now = await readPriorities(fate);
+    const children =
+      now.sections.flatMap((s) => s.entries).find((entry) => entry.key === line.key)?.children ??
+      [];
+    const moved = children.findLast((child) => child.depth === 1)?.key;
+    // The line's first words: a toast is no place for a whole line.
+    const name = line.text.length > 40 ? `${line.text.slice(0, 39).trimEnd()}…` : line.text;
+    toast(`Moved under "${name}", not committed`, () =>
+      undone(
+        fate,
+        fate.mutations.inbox.undoUnderPriority({
+          input: { ...at(placed), entryKey: line.key },
+          view: InboxView,
+        }),
+      ),
+    );
+    navigate(here("/priorities"), { select: moved ?? line.key });
   };
 
   const toDraft = async (draft: string, title: string) => {
@@ -127,25 +147,17 @@ function useMovesOut(
         ),
       );
       left();
+      navigate(here(`/edit/${draft}`));
     }
   };
 
-  return { toDraft, toNewDraft, toPriorities };
+  return { toDraft, toPriorities, underPriority };
 }
 
-/**
- * Closes the note's overlay once the note left the inbox, only while it is shown: Back over its
- * entry, so the history holds the list once; otherwise the list in its place.
- */
-function useLeave(key: string) {
+/** Reads both files again once the note left the inbox, for the commit bar. */
+function useLeave() {
   const fate = useFateClient();
-  const here = useRepoPath();
-  return () => {
-    rereadChanges(fate);
-    if (localPath(window.location.pathname) === `/inbox/${key}`) {
-      closeDetail(here("/inbox"));
-    }
-  };
+  return () => rereadChanges(fate);
 }
 
 /**
@@ -168,7 +180,7 @@ export function useNoteActions(
   const [message, setMessage] = useState<string>();
   const { note } = placed;
   const input = { hash, note: note.id };
-  const left = useLeave(note.key);
+  const left = useLeave();
 
   /** Runs a change: its refusal shows, and a conflict reads both files again. */
   const run: Run = async (call) => {

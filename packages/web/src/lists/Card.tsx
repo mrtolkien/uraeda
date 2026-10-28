@@ -97,6 +97,8 @@ export type RowState = {
   barOf?: (row: WorkRow) => ReadonlyArray<BarAction>;
   /** The bar went, as a scroll sends the phone's away: the row stays selected, with no bar. */
   onBarAway?: () => void;
+  /** The key of the row in the move mode, whose keys move it: framed apart, its bar its moves. */
+  moving?: string;
   editing?: string;
   /** A field is open, edited or new: nothing drags, as a new row is no row of the file yet. */
   isTyping?: boolean;
@@ -225,6 +227,15 @@ const styles = stylex.create({
     "--menu-opacity": 1,
     backgroundColor: colorVars["--color-accent-muted"],
     boxShadow: `inset 2px 0 0 0 ${colorVars["--color-accent"]}`,
+  },
+  // A row in the move mode: a dashed frame all around it, in the accent, over the focus ring, as
+  // a row picked up.
+  moving: {
+    boxShadow: "none",
+    outlineColor: colorVars["--color-accent"],
+    outlineOffset: `calc(-1 * ${focusVars["--focus-outline-width"]})`,
+    outlineStyle: "dashed",
+    outlineWidth: focusVars["--focus-outline-width"],
   },
   // The link's text, and the link stretched over the whole card by its pseudo-element.
   stretched: {
@@ -393,6 +404,7 @@ export function Card({
           styles.frame,
           row.icon !== undefined && styles.iconed,
           isSelected && styles.selected,
+          state.moving === row.key && styles.moving,
           isDragging && styles.lifted,
         )}
       >

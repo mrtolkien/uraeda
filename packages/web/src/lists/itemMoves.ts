@@ -1,6 +1,7 @@
 // Where the keys that move the selected item send it, as the drop of a drag would: `K` and `J` one
-// place up or down inside the section, `H` and `L` to the end of the previous or next section that
-// takes drops. The result is what `onMove` is called with (see `useDragOrder`).
+// place up or down, past a section's edge to the end of the section before it or the start of the
+// one after it; `H` and `L` to the end of the previous or next section that takes drops; a pick of
+// a section, `to:<id>`, to its end. The result is what `onMove` is called with (see `useDragOrder`).
 import type { ItemMove } from "./useListKeys.ts";
 
 /**
@@ -21,7 +22,8 @@ const linesOf = (section: Placed) =>
 /**
  * The move of the row `key` among `sections`, in the order they show: its section and its index
  * among that section's rows once the row is taken out, or `undefined` where there is nowhere to go:
- * the first row up, the last row down, no section further left or right, or a row that stays put.
+ * the first row of the first section up, the last row of the last down, no section further left or
+ * right, the section it is in picked, or a row that stays put.
  */
 export function itemTarget(sections: ReadonlyArray<Placed>, key: string, move: ItemMove) {
   const from = sections.findIndex((section) => linesOf(section).some((row) => row.key === key));
@@ -29,14 +31,27 @@ export function itemTarget(sections: ReadonlyArray<Placed>, key: string, move: I
   if (section === undefined || section.isFixed) {
     return undefined;
   }
+  if (move.startsWith("to:")) {
+    const target = sections.find((other) => other.id === move.slice(3) && !other.isFixed);
+    return target === undefined || target === section
+      ? undefined
+      : { index: linesOf(target).length, section: target.id };
+  }
   const lines = linesOf(section);
   const index = lines.findIndex((row) => row.key === key);
-  if (move === "up" || move === "down") {
-    const to = index + (move === "up" ? -1 : 1);
-    return to < 0 || to >= lines.length ? undefined : { index: to, section: section.id };
-  }
-  const others = move === "left" ? sections.slice(0, from).reverse() : sections.slice(from + 1);
+  const isUp = move === "up" || move === "left";
+  const others = isUp ? sections.slice(0, from).reverse() : sections.slice(from + 1);
   const target = others.find((other) => !other.isFixed);
+  if (move === "up" || move === "down") {
+    const to = index + (isUp ? -1 : 1);
+    if (to >= 0 && to < lines.length) {
+      return { index: to, section: section.id };
+    }
+    // Past the section's edge: into the next one, at its end going up, at its start going down.
+    return target === undefined
+      ? undefined
+      : { index: isUp ? linesOf(target).length : 0, section: target.id };
+  }
   return target === undefined ? undefined : { index: linesOf(target).length, section: target.id };
 }
 

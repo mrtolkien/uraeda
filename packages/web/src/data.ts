@@ -8,7 +8,7 @@ import {
   AgentView,
   BranchChangesView,
   BranchDecisionView,
-  DraftTitleView,
+  DraftTextView,
   DraftView,
   FeatureView,
   FileView,
@@ -186,33 +186,31 @@ export function rereadChanges(fate: ReturnType<typeof useFateClient>) {
     .catch(() => {});
 }
 
+/** A draft as the lists that offer drafts read it: its file, its title, and its text. */
+export type DraftText = Pick<Draft, "path" | "text" | "title">;
+
 /**
- * The titles of the drafts and backlog files at `paths`, read in one request once they are asked
- * for, and again when the list changes; `undefined` while they load.
+ * The titles and texts of the drafts and backlog files at `paths`, read in one request once they
+ * are asked for, and again when the list changes; `undefined` while they load.
  */
-export function useDraftTitles(
-  paths: ReadonlyArray<string>,
-): ReadonlyArray<Pick<Draft, "path" | "title">> | undefined {
+export function useDraftTexts(paths: ReadonlyArray<string>): ReadonlyArray<DraftText> | undefined {
   const fate = useFateClient();
-  const [titles, setTitles] = useState<{
-    key: string;
-    rows: Array<Pick<Draft, "path" | "title">>;
-  }>();
+  const [titles, setTitles] = useState<{ key: string; rows: Array<DraftText> }>();
   // The list, as one value, so a new array of the same paths reads nothing again.
   const key = paths.join("\n");
   useEffect(() => {
     let current = true;
     const ids = key === "" ? [] : key.split("\n");
     void (async () => {
-      const { drafts } = await fate.request({ drafts: { ids, view: DraftTitleView } });
+      const { drafts } = await fate.request({ drafts: { ids, view: DraftTextView } });
       const rows = await Promise.all(
         (drafts as ReadonlyArray<Parameters<typeof fate.readView>[1]>).map(
-          async (draft) => (await fate.readView(DraftTitleView, draft)).data,
+          async (draft) => (await fate.readView(DraftTextView, draft)).data,
         ),
       );
       if (current) {
         // fate types a root's records as any entity: the view gives the drafts' fields.
-        setTitles({ key, rows: rows as unknown as Array<Pick<Draft, "path" | "title">> });
+        setTitles({ key, rows: rows as unknown as Array<DraftText> });
       }
     })().catch(() => {});
     return () => {

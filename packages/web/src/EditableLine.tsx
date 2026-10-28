@@ -12,7 +12,7 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { KeyboardEvent, ReactNode } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useEffectEvent } from "react";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -53,7 +53,7 @@ const styles = stylex.create({
  * shows, the value by default. With `stayOpen`, as an Add row, a saved field empties and stays open
  * for the next line. `look` draws the closed line as text, by default, or as a bordered field, for
  * a value to change like a setting's. `empty` is the refusal of an empty text, a priority's by
- * default.
+ * default. Each new `opens` above 0 opens the field, as a key of the page does.
  */
 export function EditableLine({
   display,
@@ -62,6 +62,7 @@ export function EditableLine({
   label,
   look = "text",
   onSave,
+  opens = 0,
   stayOpen = false,
   value,
 }: {
@@ -71,10 +72,17 @@ export function EditableLine({
   label: string;
   look?: "text" | "field";
   onSave: (text: string) => Promise<string | undefined>;
+  opens?: number;
   stayOpen?: boolean;
   value: string;
 }) {
   const line = useLineSave({ empty, field: key, onSave, stayOpen, value });
+  const openLine = useEffectEvent(line.openLine);
+  useEffect(() => {
+    if (opens > 0) {
+      openLine();
+    }
+  }, [opens]);
 
   if (!line.open) {
     return (

@@ -253,54 +253,5 @@ export function useAddWithImage() {
   return { add, statusOf: (images: ReadonlyArray<File>) => statusFor(shown, images) };
 }
 
-/**
- * Adds images to an existing note, one request: into the draft it links, or into the draft it
- * becomes. Its status shows under the note's images; gives the note's draft, or nothing once
- * refused, which the status says.
- */
-export function useAttachToNote() {
-  const fate = useFateClient();
-  const post = useNoteImagesPost();
-  const announce = useAnnounce();
-  const [status, setStatus] = useState<AttachStatus>();
-
-  const say = (text: string, error = false) => {
-    setStatus({ error, text });
-    announce(text, error ? "assertive" : "polite");
-  };
-
-  const attach = async (note: { hash: string; id: string }, files: ReadonlyArray<File>) => {
-    const big = tooBig(files);
-    if (big) {
-      say(big, true);
-      return undefined;
-    }
-    say(`Adding ${files.map((file) => file.name || "pasted image").join(", ")}…`);
-    let sent: string | Refusal;
-    try {
-      sent = await post({ hash: note.hash, id: note.id }, files);
-    } catch (error) {
-      const timedOut = (error as { name?: unknown } | null)?.name === "TimeoutError";
-      say(
-        timedOut ? "The server did not answer in time." : "Could not reach the Uraeda server.",
-        true,
-      );
-      return undefined;
-    }
-    if (typeof sent !== "string") {
-      say(sent.message, true);
-      if (sent.kind === "conflict") {
-        rereadChanges(fate);
-      }
-      return undefined;
-    }
-    setStatus(undefined);
-    rereadChanges(fate);
-    return sent;
-  };
-
-  return { attach, status };
-}
-
 /** The refusal of an add the server did not answer in time. */
 const TIMED_OUT = "The note could not be added: the server did not answer in time.";

@@ -1,16 +1,14 @@
-// The entry pane: a priority's and a note's detail, read-only on arrival, Edit in its bar. Over the
-// fixture repository's real priorities and inbox (see `.storybook/fixture.ts`), through fate, in
+// The entry pane: a priority's detail, read-only on arrival, Edit in its bar. Over the
+// fixture repository's real priorities (see `.storybook/fixture.ts`), through fate, in
 // the detail overlay over the real page: a dialog on wide screens, a bottom sheet on the phone.
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useEffect } from "react";
 import { userEvent, within } from "storybook/test";
-import { useInbox, usePriorities, useWorkspace } from "../data.ts";
-import { InboxPage } from "../InboxPage.tsx";
+import { usePriorities, useWorkspace } from "../data.ts";
 import { PrioritiesPage } from "../PrioritiesPage.tsx";
 import { dropUnsaved, unsavedKey } from "../fields/unsaved.ts";
 import { RepositoryPathContext, useRepositoryPath } from "../routes.tsx";
 import { DetailOverlay } from "./DetailOverlay.tsx";
-import { NotePane } from "./NotePane.tsx";
 import { PriorityPane } from "./PriorityPane.tsx";
 
 /** The page, with the detail in its overlay over it, as a click on a card opens it. */
@@ -41,17 +39,6 @@ function Priority({ text }: { text: string }) {
   return (
     <Over label="Priority" list={<PrioritiesPage />} pane={<PriorityPane entryKey={entry.key} />} />
   );
-}
-
-/** A note's pane, found by its text in the fixture's `INBOX.md`. */
-function InboxNote({ text }: { text: string }) {
-  const note = useInbox()
-    ?.categories.flatMap((category) => category.notes)
-    .find((one) => one.text === text);
-  if (!note) {
-    return null;
-  }
-  return <Over label="Note" list={<InboxPage />} pane={<NotePane noteKey={note.key} />} />;
 }
 
 /** The fixture's folder, as `App` sets it: what keeps the fields' unsaved text apart. */
@@ -123,12 +110,3 @@ export const Editing: Story = {
 
 /** A Now priority whose feature is started: Running in green, its step, and Open the feature. */
 export const Running: Story = { args: { text: "Recurring tasks" } };
-
-/**
- * An inbox note, read-only, with its children under it: its category, Organize, Delete, and its
- * neighbours.
- */
-export const Note: Story = {
-  args: { text: "Icons are blurry on retina screens" },
-  render: ({ text }) => <InboxNote text={text} />,
-};

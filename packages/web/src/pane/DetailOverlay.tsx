@@ -29,10 +29,9 @@ const styles = stylex.create({
 });
 
 /** What an overlay's history entry is named by, and what its dialog is titled. */
-export type DetailKind = { label: "Priority"; page: "task" } | { label: "Note"; page: "note" };
+export type DetailKind = { label: "Priority"; page: "task" };
 
 export const PRIORITY: DetailKind = { label: "Priority", page: "task" };
-export const NOTE: DetailKind = { label: "Note", page: "note" };
 
 /**
  * Opens the line at `href` in its overlay, from a click or Enter on its card: one history entry,

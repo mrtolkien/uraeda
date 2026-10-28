@@ -21,8 +21,11 @@ const ROW = "[data-row] a[href], [data-row-link] button";
 /** The key a row names itself with, `data-row-key`: what the list's own order is read by. */
 const ROW_KEY = "data-row-key";
 
-/** A move of the selected item itself, which `onMoveItem` is called with. */
-export type ItemMove = "up" | "down" | "left" | "right";
+/**
+ * A move of the selected item itself, which `onMoveItem` is called with: a step, or `to:<id>`, to
+ * the end of the section a picker chose.
+ */
+export type ItemMove = "up" | "down" | "left" | "right" | `to:${string}`;
 
 type Keys<Kind> = ReadonlyArray<readonly [keys: string, move: Kind, label: string]>;
 
@@ -56,12 +59,25 @@ const ITEM_MOVES: Keys<ItemMove> = [
   ["shift+ArrowLeft", "left", "move item to the previous column"],
   ["L", "right", "move item to the next column"],
   ["shift+ArrowRight", "right", "move item to the next column"],
-  // `m` and the key of the move, as the leader's menu shows them: the same moves, one at a time.
-  ["m j", "down", "move item down"],
-  ["m k", "up", "move item up"],
-  ["m h", "left", "move item to the previous column"],
-  ["m l", "right", "move item to the next column"],
 ];
+
+/**
+ * The keys of the move mode `m` puts a row in: the keys that move the selection move the row
+ * instead, as many times as wanted, which the row's bar names.
+ */
+const MOVE_MODE: Keys<ItemMove> = [
+  ["j", "down", "move item down"],
+  ["ArrowDown", "down", "move item down"],
+  ["k", "up", "move item up"],
+  ["ArrowUp", "up", "move item up"],
+  ["h", "left", "move item to the previous section"],
+  ["ArrowLeft", "left", "move item to the previous section"],
+  ["l", "right", "move item to the next section"],
+  ["ArrowRight", "right", "move item to the next section"],
+];
+
+/** The keys that end the move mode, where the row is. */
+const MOVE_ENDS = ["Escape", "Enter", "m"];
 
 const NO_KEYS: ReadonlyArray<RowKey> = [];
 
@@ -129,7 +145,8 @@ type Acts = {
 /**
  * The list's bindings, with the hints the status line names: `j k move`, `h l column` only with
  * columns, and Escape's; Enter and `m` are the row's, in its bar. With `isOff`, a layer the list
- * owns holds the keys, and only Escape's stays named, as the layer's owner keeps it.
+ * owns holds the keys, and only Escape's stays named, as the layer's owner keeps it. With
+ * `onMoveEnd`, the selected row is in the move mode: its keys alone, which its bar names.
  */
 function bindingsOf({
   acts,
@@ -138,6 +155,7 @@ function bindingsOf({
   escapeLabel,
   isOff,
   onClose,
+  onMoveEnd,
   rowKeys,
 }: {
   acts: Acts;
@@ -146,6 +164,7 @@ function bindingsOf({
   escapeLabel: string | null;
   isOff: boolean;
   onClose: () => boolean;
+  onMoveEnd: (() => void) | undefined;
   rowKeys: ReadonlyArray<RowKey>;
 }): ReadonlyArray<Binding> {
   const when = (target: EventTarget | null) => acts.rowAt(target) !== null;
@@ -154,6 +173,17 @@ function bindingsOf({
     const row = acts.rowAt(event.target);
     return row === null || act(row) === false ? (false as const) : undefined;
   };
+  if (onMoveEnd !== undefined && canMoveItems && !isOff) {
+    return [
+      ...[...MOVE_MODE, ...ITEM_MOVES].map(([keys, move, label]) => ({
+        keys,
+        label,
+        run: onRow((row) => acts.item(move, row)),
+        when,
+      })),
+      ...MOVE_ENDS.map((keys) => ({ keys, label: "done moving", run: onMoveEnd, when })),
+    ];
+  }
   const hint = (keys: string) => (isOff || HINTS[keys] === undefined ? {} : { hint: HINTS[keys] });
   const moves: ReadonlyArray<Binding> = [...MOVES, ...(columns ? COLUMN_MOVES : [])].map(
     ([keys, move, label]) => ({
@@ -226,6 +256,7 @@ export function useListKeys({
   keys,
   onClose,
   onEdit,
+  onMoveEnd,
   onMoveItem,
   onSelect,
   rowKeys = NO_KEYS,
@@ -237,6 +268,8 @@ export function useListKeys({
   keys?: ReadonlyArray<string>;
   onClose: () => boolean;
   onEdit: () => boolean;
+  /** Given while the selected row is in the move mode: what ends it. */
+  onMoveEnd?: () => void;
   onMoveItem?: (move: ItemMove, row: number) => void;
   onSelect: (index: number) => void;
   rowKeys?: ReadonlyArray<RowKey>;
@@ -285,6 +318,7 @@ export function useListKeys({
       escapeLabel,
       isOff,
       onClose,
+      onMoveEnd,
       rowKeys,
     }),
   );

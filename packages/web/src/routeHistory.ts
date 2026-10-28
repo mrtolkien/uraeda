@@ -26,6 +26,8 @@ type Entry = {
   overlay?: string;
   pane?: number;
   scroll?: number;
+  /** The row a list selects on arrival, with the focus: a line a note just went to, by its key. */
+  select?: string;
   /** The count of messages a session's transcript draws, kept so Back draws as many. */
   shown?: number;
 };
@@ -100,7 +102,7 @@ function besideSameList(path: string) {
  */
 export function navigate(
   path: string,
-  state?: { created?: boolean; focus?: "text"; from?: string; insert?: string },
+  state?: { created?: boolean; focus?: "text"; from?: string; insert?: string; select?: string },
 ) {
   const asking = besideSameList(path) ? undefined : guard?.();
   if (asking) {
@@ -116,7 +118,7 @@ export function navigate(
 
 function openPage(
   path: string,
-  state?: { created?: boolean; focus?: "text"; from?: string; insert?: string },
+  state?: { created?: boolean; focus?: "text"; from?: string; insert?: string; select?: string },
 ) {
   const opener = window.scrollY;
   saveScroll();

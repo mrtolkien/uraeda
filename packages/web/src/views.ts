@@ -286,10 +286,11 @@ export const DraftView = view<Draft>()({
   written: true,
 });
 
-/** A draft's title, for the lists that offer drafts by title, like "Add to a draft". */
-export const DraftTitleView = view<Draft>()({
+/** A draft's title and text, for the lists that offer drafts, like the inbox's `p` picker. */
+export const DraftTextView = view<Draft>()({
   id: true,
   path: true,
+  text: true,
   title: true,
 });
 

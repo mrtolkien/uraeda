@@ -5,7 +5,7 @@
 // that draft's page instead.
 import { useInbox, usePriorities } from "./data.ts";
 import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
-import { draftFile } from "./pane/NoteParts.tsx";
+import { draftFile } from "./draftFile.ts";
 import { titleOf } from "./QuickAdd.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { plain } from "./Spans.tsx";

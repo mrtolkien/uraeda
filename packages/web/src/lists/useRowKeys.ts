@@ -4,7 +4,6 @@
 // they set is what `Card` reads: which card is edited, and which card's menu is held open.
 import { useCallback, useState } from "react";
 import { deleteLine, useConfirm } from "../fields/Confirm.tsx";
-import { usePress } from "../keys/registry.tsx";
 import type { RowState, WorkRow } from "./Card.tsx";
 import type { BarAction } from "./RowBar.tsx";
 import type { RowKey } from "./useListKeys.ts";
@@ -21,7 +20,24 @@ type BarKey = RowKey & {
 };
 
 /** The order of the bar's actions, by their keys. */
-const BAR_ORDER = ["m", "Tab", "shift+Tab", "p", "s", "d"];
+const BAR_ORDER = ["m", "c", "Tab", "shift+Tab", "p", "s", "v", "d"];
+
+/**
+ * A key of a list's own that acts on a row, shown in its bar: its key, its label, its icon on the
+ * phone, the rows it is for, and what it does.
+ */
+export type RowAction = Pick<BarAction, "icon" | "keys" | "label"> & {
+  isFor?: (row: WorkRow) => boolean;
+  run: (row: WorkRow) => void;
+};
+
+/**
+ * A key that opens a picker of the sections to move a line to, as the inbox's `c` of its categories:
+ * its key, its label in the bar, and its icon on the phone.
+ */
+export type SectionPicker = Pick<BarAction, "icon" | "keys" | "label"> & {
+  open: (row: WorkRow) => void;
+};
 
 /** A line of its own, not nested: what `p` and `s` act on, so only its bar shows them. */
 const isLine = (row: WorkRow) => row.parent === undefined;
@@ -40,15 +56,21 @@ export function useRowKeys(
   onAddBeside: ((section: string, row: WorkRow, isAbove?: boolean) => void) | undefined,
   select: (key: string) => void,
   {
-    canMoveItems = false,
     onDelete,
+    onMoveMode,
     onOpen,
     onOutline,
+    onPickSection,
     onPromote,
     onStart,
+    rowActions = [],
   }: {
-    /** The list moves its rows with `m` and a key after it, so `m` opens no menu. */
-    canMoveItems?: boolean;
+    /** The list's own keys on a row, in its bar. */
+    rowActions?: ReadonlyArray<RowAction>;
+    /** What `m` calls where the list moves its rows: it puts the row in the move mode. */
+    onMoveMode?: ((row: WorkRow) => void) | undefined;
+    /** A key that moves a line to the section a picker chose. */
+    onPickSection?: SectionPicker | undefined;
     /** What `d` calls once the human confirmed: it deletes the line. */
     onDelete?: ((row: WorkRow) => void) | undefined;
     /** What Enter does on a row, which its bar's `⏎ open` does too. */
@@ -62,7 +84,6 @@ export function useRowKeys(
   } = {},
 ) {
   const confirm = useConfirm();
-  const press = usePress();
   const [editing, setEditing] = useState<string>();
   const [menu, setMenu] = useState<string>();
   const [keyed, setKeyed] = useState<string>();
@@ -207,8 +228,54 @@ export function useRowKeys(
       },
     });
   }
-  // With item moves, `m` leads to their keys (`useListKeys`); else it opens the card's menu.
-  if (!canMoveItems && rows.some((row) => row.menu !== undefined)) {
+  for (const { icon, isFor, keys: key, label, run } of rowActions) {
+    keys.push({
+      bar: { ...(icon === undefined ? {} : { icon }), ...(isFor ? { isFor } : {}), keys: key },
+      keys: key,
+      label,
+      run: (at) => {
+        const row = rows[at];
+        if (row === undefined || row.isFixed === true || !(isFor?.(row) ?? true)) {
+          return false;
+        }
+        select(row.key);
+        run(row);
+      },
+    });
+  }
+  if (onPickSection !== undefined) {
+    const { icon, keys: key, label, open } = onPickSection;
+    keys.push({
+      bar: { ...(icon === undefined ? {} : { icon }), isFor: isLine, keys: key },
+      keys: key,
+      label,
+      run: (at) => {
+        const row = rows[at];
+        if (row === undefined || row.isFixed === true || !isLine(row)) {
+          return false;
+        }
+        select(row.key);
+        open(row);
+      },
+    });
+  }
+  // With item moves, `m` puts the row in the move mode, whose keys move it (`useListKeys`); else it
+  // opens the card's menu.
+  if (onMoveMode !== undefined) {
+    keys.push({
+      // No icon: the phone moves a row by dragging it, and the moves' keys are for a keyboard.
+      bar: { keys: "m" },
+      keys: "m",
+      label: "move",
+      run: (at) => {
+        const row = rows[at];
+        if (row === undefined || row.isFixed === true || row.isAdd === true) {
+          return false;
+        }
+        onMoveMode(row);
+      },
+    });
+  } else if (rows.some((row) => row.menu !== undefined)) {
     keys.push({
       bar: { isFor: (row) => row.menu !== undefined, keys: "m" },
       keys: "m",
@@ -239,8 +306,8 @@ export function useRowKeys(
 
   /**
    * What the bar under `row` shows: the keys that act on it, in the bar's order. Enter first, which
-   * edits a row edited in place and opens any other; `m` leads to the moves, whose keys the leader's
-   * menu shows. A row that stays where it is only opens, and one that adds a line has no bar.
+   * edits a row edited in place and opens any other; `m` puts it in the move mode, whose bar the
+   * list draws. A row that stays where it is only opens, and one that adds a line has no bar.
    */
   const barOf = (row: WorkRow): ReadonlyArray<BarAction> => {
     const at = rows.findIndex((one) => one.key === row.key);
@@ -267,13 +334,9 @@ export function useRowKeys(
         order: key.keys,
         run: () => void key.run(at),
       }));
-    // No icon: the phone moves a row by dragging it, and the moves' keys are for a keyboard.
-    const moves = canMoveItems
-      ? [{ keys: "m", label: "move", order: "m", run: () => press("m") }]
-      : [];
     return [
       ...open,
-      ...[...own, ...moves]
+      ...own
         .sort((a, b) => BAR_ORDER.indexOf(a.order) - BAR_ORDER.indexOf(b.order))
         .map(({ order: _, ...action }) => action),
     ];
