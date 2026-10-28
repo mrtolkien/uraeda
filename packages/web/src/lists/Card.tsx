@@ -17,6 +17,7 @@ import {
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { useSortable } from "@dnd-kit/react/sortable";
 import * as stylex from "@stylexjs/stylex";
+import { listVars } from "./list.stylex.ts";
 import {
   type ComponentProps,
   createContext,
@@ -124,21 +125,17 @@ const styles = stylex.create({
   frame: {
     // The bullet, in the gutter before the text: in a box of the icons' size, centred as they are,
     // so that bullets and icons line up in one column, on the middle of the first line.
-    // Its box's lengths are custom properties: StyleX's values for them list no length.
     "::before": {
-      "--card-bullet-height": "1.5rem",
-      "--card-bullet-inset": "0.125rem",
-      "--card-bullet-width": "1rem",
       alignItems: "center",
       color: colorVars["--color-text-secondary"],
       content: '"•"',
       display: "flex",
-      height: "var(--card-bullet-height)",
-      insetBlockStart: "var(--card-bullet-inset)",
-      insetInlineStart: "var(--card-bullet-inset)",
+      height: listVars["--list-mark-height"],
+      insetBlockStart: listVars["--list-mark-inset"],
+      insetInlineStart: listVars["--list-mark-inset"],
       justifyContent: "center",
       position: "absolute",
-      width: "var(--card-bullet-width)",
+      width: listVars["--list-mark-width"],
     },
     // No margin: a card lifted by a drag is positioned from its border box, and a margin would
     // offset it. The whole row is tappable: on a touch screen as tall as a control, the theme's
@@ -146,12 +143,11 @@ const styles = stylex.create({
     cursor: "pointer",
     minHeight: { "@media (hover: none)": sizeVars["--size-element-sm"], default: null },
     minWidth: 0,
-    // Its room above and below, a custom property: StyleX's padding values list no length.
-    "--card-block": "0.125rem",
-    paddingBlock: "var(--card-block)",
+    paddingBlock: listVars["--list-row-room"],
     paddingInlineEnd: spacingVars["--spacing-2"],
-    // The gutter: a 1 rem bullet or icon at the row's edge, and a little room before the text.
-    "--card-gutter": "1.5rem",
+    // The gutter: a 1 rem bullet or icon at the row's edge, and a little room before the text. A
+    // custom property, which the note's images under the row line up on (`InboxImages.tsx`).
+    "--card-gutter": listVars["--list-gutter"],
     paddingInlineStart: "var(--card-gutter)",
     position: "relative",
     // The long press on a phone does not select text or open the link's menu.
@@ -166,32 +162,29 @@ const styles = stylex.create({
   item: { listStyle: "none", minWidth: 0, position: "relative" },
   // A nested row, tabbed in by its depth inside its card, which a drag lifts whole from the list's
   // edge: its text is in the secondary colour (see `RowLink`).
+  // A custom property: the token lint takes a calc of a number read at run time only there.
   depth: (depth: number) => ({
-    "--card-depth": `${depth * 1.5}rem`,
+    "--card-depth": `calc(${depth} * ${listVars["--list-gutter"]})`,
     paddingInlineStart: "var(--card-depth)",
   }),
   // The marks, after the text: small, and apart from it.
   marks: {
-    "--card-marks-size": "0.85em",
     color: "var(--color-text-lavender)",
-    fontSize: "var(--card-marks-size)",
+    fontSize: listVars["--list-marks-size"],
     marginInlineStart: spacingVars["--spacing-2"],
   },
   // An icon takes the bullet's place in the gutter.
   iconed: { "::before": { content: "none" } },
   // The icon's box, in the gutter where the bullet would be: the same box as the bullet's.
   gutterIcon: {
-    "--card-icon-height": "1.5rem",
-    "--card-icon-inset": "0.125rem",
-    "--card-icon-width": "1rem",
     alignItems: "center",
     display: "flex",
-    height: "var(--card-icon-height)",
-    insetBlockStart: "var(--card-icon-inset)",
-    insetInlineStart: "var(--card-icon-inset)",
+    height: listVars["--list-mark-height"],
+    insetBlockStart: listVars["--list-mark-inset"],
+    insetInlineStart: listVars["--list-mark-inset"],
     justifyContent: "center",
     position: "absolute",
-    width: "var(--card-icon-width)",
+    width: listVars["--list-mark-width"],
   },
   // A row in the move mode: a dashed frame all around it, in the accent, over the focus ring, as
   // a row picked up.

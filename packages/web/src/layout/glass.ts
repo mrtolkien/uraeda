@@ -1,6 +1,7 @@
 // The frosted glass under what floats over the page: the phone's row actions and bottom bar, and
 // the leader menu.
 import * as stylex from "@stylexjs/stylex";
+import { glassVars } from "./glass.stylex.ts";
 
 export const glassStyles = stylex.create({
   // Tinted a warm amber of its own, not the theme's, over what is behind it, blurred: its shapes
@@ -8,14 +9,10 @@ export const glassStyles = stylex.create({
   // one flat colour, as if opaque. One blur every browser draws: Firefox draws no backdrop at all
   // for one that names an SVG filter.
   surface: {
-    // The amber tint, which StyleX's colour values do not list.
-    "--glass-tint": "rgb(255 178 102 / 0.1)",
-    // The page's own colour under the tint, two thirds opaque: text under the glass fades to a
-    // shape, so the glass's own text reads over any page, light or dark.
-    "--glass-scrim": "color-mix(in srgb, var(--color-background-body) 66%, transparent)",
+    // Its amber tint over the page's own colour (`glass.stylex.ts`).
     backdropFilter: "blur(7px) saturate(1.8)",
-    backgroundColor: "var(--glass-scrim)",
-    backgroundImage: "linear-gradient(var(--glass-tint), var(--glass-tint))",
+    backgroundColor: glassVars["--glass-scrim"],
+    backgroundImage: `linear-gradient(${glassVars["--glass-tint"]}, ${glassVars["--glass-tint"]})`,
     // oxlint-disable-next-line stylex/valid-styles -- WebKit's own spelling, which Safari still needs
     WebkitBackdropFilter: "blur(7px) saturate(1.8)",
   },

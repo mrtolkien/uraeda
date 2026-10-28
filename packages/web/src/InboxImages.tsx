@@ -33,7 +33,8 @@ const styles = stylex.create({
     borderWidth: borderVars["--border-width"],
     insetBlockStart: "100%",
     insetInlineStart: "var(--card-gutter, 0px)",
-    // Its widest, the row's width past the gutter, a custom property: StyleX's values list no length.
+    // Its widest, the row's width past the gutter, a custom property: the token lint takes a
+    // `var()` only whole, not in a calc.
     "--note-images-width": "calc(100% - var(--card-gutter, 0px))",
     maxInlineSize: "var(--note-images-width)",
     padding: spacingVars["--spacing-2"],

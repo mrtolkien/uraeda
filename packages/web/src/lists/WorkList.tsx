@@ -7,6 +7,7 @@
 // place, or opens it in its overlay (see `useListKeys`).
 import { DragDropProvider } from "@dnd-kit/react";
 import * as stylex from "@stylexjs/stylex";
+import { listVars } from "./list.stylex.ts";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { type ReactNode, type UIEvent, useState } from "react";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
@@ -31,12 +32,10 @@ const styles = stylex.create({
   // measure of prose, with room for the bullet and the pane's sides. Its panes read its width (see
   // `wide` in `SectionBody`).
   roomyStack: {
-    // Its widest, a custom property: StyleX's values for it list no length.
-    "--list-measure": "calc(80ch + 4rem)",
     containerName: "list",
     containerType: "inline-size",
     marginInline: "auto",
-    maxWidth: "var(--list-measure)",
+    maxWidth: listVars["--list-line-max"],
     width: "100%",
   },
   // The panes of the row, side by side, whose row scrolls sideways. It runs to both edges of the
@@ -57,7 +56,7 @@ const styles = stylex.create({
   },
   // On the phone, room under an outline's last row for the bar floating at the screen's bottom,
   // which a row scrolls clear of.
-  underBar: { "--list-under-bar": "6rem", paddingBlockEnd: "var(--list-under-bar)" },
+  underBar: { paddingBlockEnd: listVars["--list-bar-room"] },
   // The panes one under the other.
   stack: {
     display: "flex",

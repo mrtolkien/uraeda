@@ -5,6 +5,8 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { useDroppable } from "@dnd-kit/react";
 import * as stylex from "@stylexjs/stylex";
+import { markVars } from "../marks.stylex.ts";
+import { listVars } from "./list.stylex.ts";
 import type { Ref } from "react";
 import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { Card, type WorkRow } from "./Card.tsx";
@@ -25,8 +27,8 @@ const styles = stylex.create({
   // than fit scrolls sideways, and brings the selection's column into view. Never wider than the
   // row shows: on the phone, a column is the screen's width.
   column: {
-    "--column-least": "400px",
-    // Its basis, a custom property: StyleX's values for it list no length.
+    "--column-least": listVars["--list-column-least"],
+    // Its basis, a custom property: the token lint takes a `var()` only whole, not in a `min()`.
     "--list-column-basis": "min(var(--column-least), 100%)",
     flexBasis: "var(--list-column-basis)",
     flexGrow: 1,
@@ -34,7 +36,7 @@ const styles = stylex.create({
     minWidth: 0,
   },
   // A column of a list whose lines are long, as the priorities': at least 500 px.
-  roomy: { "--column-least": "500px" },
+  roomy: { "--column-least": listVars["--list-column-roomy"] },
   // The pane's side room, which its text, its rows, and its footer share: a bullet sits near the
   // border, as a list's does.
   snug: { "--pane-inset": spacingVars["--spacing-1"] },
@@ -51,9 +53,7 @@ const styles = stylex.create({
     backgroundColor: colorVars["--color-background-surface"],
     borderInlineStartColor: colorVars["--color-text-blue"],
     borderInlineStartStyle: "solid",
-    // Its bar's width, a custom property: StyleX's values for it list no length.
-    "--list-context-bar": "3px",
-    borderInlineStartWidth: "var(--list-context-bar)",
+    borderInlineStartWidth: markVars["--mark-note-bar"],
     color: colorVars["--color-text-secondary"],
     marginBlockEnd: spacingVars["--spacing-1"],
     paddingBlock: spacingVars["--spacing-1"],

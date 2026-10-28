@@ -7,6 +7,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { barVars } from "./bar.stylex.ts";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 import { bareButtonStyles } from "./bareButton.ts";
 
@@ -32,17 +33,13 @@ const styles = stylex.create({
   // The row bar's tile: its icon over its word, as wide as a finger at least.
   worded: {
     flexDirection: "column",
-    // The room between its icon and its word, and its least width, which StyleX's values do not
-    // list.
-    "--bar-tile-gap": "0.25rem",
-    "--bar-tile-least": "4rem",
-    gap: "var(--bar-tile-gap)",
-    minWidth: "var(--bar-tile-least)",
+    gap: barVars["--bar-tile-gap"],
+    minWidth: barVars["--bar-tile-least"],
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-3"],
   },
   // A tile's word, small under its icon.
-  word: { "--bar-word": "0.75rem", fontSize: "var(--bar-word)" },
+  word: { fontSize: barVars["--bar-word"] },
   // The tiles share the bar's width, each as tall as the bar.
   tiles: {
     alignSelf: "stretch",

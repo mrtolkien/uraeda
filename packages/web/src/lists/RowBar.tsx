@@ -8,6 +8,8 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { barVars } from "../layout/bar.stylex.ts";
+import { listVars } from "./list.stylex.ts";
 import {
   type ComponentProps,
   type RefObject,
@@ -58,9 +60,8 @@ const styles = stylex.create({
     columnGap: spacingVars["--spacing-3"],
     display: "flex",
     flexWrap: "wrap",
-    // A line's room above and below it, which StyleX's padding values do not list.
-    "--bar-block": "0.125rem",
-    paddingBlock: "var(--bar-block)",
+    // A line's room above and below it.
+    paddingBlock: listVars["--list-row-room"],
     position: "relative",
     zIndex: 2,
   },
@@ -83,8 +84,9 @@ const styles = stylex.create({
     zIndex: 3,
   },
   // Over the phone's keyboard, which covers the screen's bottom.
+  // Its offset a custom property: the token lint takes a measured length in a calc only there.
   overKeyboard: (px: number) => ({
-    "--bar-over-keyboard": `calc(${px}px + 0.5rem)`,
+    "--bar-over-keyboard": `calc(${px}px + ${barVars["--bar-keyboard-room"]})`,
     insetBlockEnd: "var(--bar-over-keyboard)",
   }),
   // Going, as the page scrolls: it sinks out of the screen.
