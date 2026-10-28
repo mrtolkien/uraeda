@@ -1,15 +1,18 @@
 // A category's delete asks in the app's one confirmation (`fields/Confirm.tsx`), with a third
 // answer: Cancel first and focused, then "No, keep the notes", then the destructive "Yes, delete
 // the notes". Each button and each key, `c`, `n`, and `y`, resolves the question with its answer,
-// once the question's history entry is gone.
+// once the question's history entry is gone. The category's pane reaches it by its delete button.
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { Button } from "@astryxdesign/core/Button";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { ConfirmHost, useConfirm } from "../fields/Confirm.tsx";
 import { deleteCategory } from "../lists/CategoryPane.tsx";
-import { atWidth } from "./helpers.tsx";
+import { atWidth, fixtureRepo, read, renderPage } from "./helpers.tsx";
 
 const TITLE = "Delete the category UI";
+const INBOX = "specs/INBOX.md";
 
 beforeEach(() => {
   atWidth(1440);
@@ -93,4 +96,21 @@ test.each([
     fireEvent.keyDown(document.body, { key });
   });
   await waitFor(() => expect(answers).toEqual([answer]));
+});
+
+test("a category's delete button asks, and No keeps its notes under No category", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, INBOX), "# Inbox\n\n## UI\n\n- One\n- Two\n- Three\n");
+  await renderPage("/inbox", repo);
+  await screen.findByRole("heading", { name: "UI · 3" });
+  await act(async () => {
+    fireEvent.click(await screen.findByRole("button", { name: "Delete category UI" }));
+  });
+  const dialog = await screen.findByRole("dialog", { name: TITLE });
+  expect(within(dialog).getByText("Delete the 3 notes too?")).toBeTruthy();
+  await act(async () => {
+    fireEvent.keyDown(document.body, { key: "n" });
+  });
+  await waitFor(() => expect(read(repo, INBOX)).not.toContain("## UI"));
+  expect(read(repo, INBOX)).toContain("- One");
 });
