@@ -28,13 +28,13 @@ export type CardItem = {
   changes?: { added: number; removed: number };
   /** Its folder, or a session's ID. */
   folder: string;
-  /** Whether a background command of its run is still going. */
-  hasBackgroundCommand?: boolean;
   /**
    * The agent kind of the session at work on a feature or a change, whose mark its working button
    * wears. Not in the card's name, which the step and the status already tell.
    */
   harness?: string;
+  /** Whether a background command of its run is still going. */
+  hasBackgroundCommand?: boolean;
   kind: "session" | "change" | "feature";
   /** Its name in the sidebar: its label, or its slug; a session's title. */
   label: string;
@@ -62,10 +62,13 @@ const styles = stylex.create({
     alignItems: "center",
     backgroundColor: colorVars["--color-accent"],
     color: colorVars["--color-on-accent"],
+    // Its side as a property of its own, which StyleX's height and width values do not list as a
+    // calc.
+    "--card-next-side": "calc(1.35 * var(--size-label-line))",
     display: "flex",
-    height: "calc(1.35 * var(--size-label-line))",
+    height: "var(--card-next-side)",
     justifyContent: "center",
-    width: "calc(1.35 * var(--size-label-line))",
+    width: "var(--card-next-side)",
   },
   nextSmall: {
     // The rail's, the size of its small status mark.
@@ -73,26 +76,30 @@ const styles = stylex.create({
     width: spacingVars["--spacing-3"],
   },
   // Out under the status at the first line's end, so the diff ends at the card's right edge.
+  reachGap: { marginInlineEnd: `calc(-1 * ${spacingVars["--spacing-2"]})` },
   reachStatus: {
     marginInlineEnd: `calc(-1 * (${spacingVars["--spacing-2"]} + ${spacingVars["--spacing-4"]}))`,
   },
-  reachGap: { marginInlineEnd: `calc(-1 * ${spacingVars["--spacing-2"]})` },
-  // The closed rail's mark of the card's status, under its icon: shown by the column's rail rule.
-  railMark: {
-    display: "none",
-    insetInlineStart: "7.7px",
-    pointerEvents: "none",
-    position: "absolute",
-    top: "calc(var(--size-label-line) + 12px)",
-    zIndex: 1,
-  },
-  spacer: { flexGrow: 1 },
+  // The folded rail's icon: the kind's icon, the mark of what it needs under it.
   railIcon: {
     alignItems: "center",
     display: "inline-flex",
     flexDirection: "column",
     gap: spacingVars["--spacing-1"],
   },
+  // The closed rail's mark of the card's status, under its icon: shown by the column's rail rule.
+  // Its offsets are properties of their own, which StyleX's inset values do not list.
+  railMark: {
+    "--card-rail-mark-start": "7.7px",
+    "--card-rail-mark-top": "calc(var(--size-label-line) + 12px)",
+    display: "none",
+    insetInlineStart: "var(--card-rail-mark-start)",
+    pointerEvents: "none",
+    position: "absolute",
+    top: "var(--card-rail-mark-top)",
+    zIndex: 1,
+  },
+  spacer: { flexGrow: 1 },
   subagent: {
     paddingBlockEnd: spacingVars["--spacing-1"],
     paddingInlineStart: spacingVars["--spacing-6"],
@@ -290,6 +297,45 @@ function Meta({
 /** A session's actions in its "…". */
 export type CardAction = { label: string; onClick: () => void };
 
+/**
+ * The closed rail's mark of the card's status, under its icon: the next step's chevron, the agent
+ * at work on it, or its status mark.
+ */
+function RailMark({ hasNext, item }: { hasNext: boolean; item: CardItem }) {
+  return (
+    <span aria-hidden="true" data-rail-only {...stylex.props(styles.railMark)}>
+      {hasNext ? (
+        <ActionMark isSmall kind="next" />
+      ) : item.status.status === "working" ? (
+        // The size of the next step's chevron: one mark for whatever the rail shows.
+        <ActionMark harness={item.harness ?? item.agent} isSmall kind="work" />
+      ) : (
+        <StatusMark label={item.status.label} small status={item.status.status} />
+      )}
+    </span>
+  );
+}
+
+/**
+ * A click on the card: on its pull request, opens it in a new tab; on its status, what the status
+ * points to (`onStatus`); anywhere else, the item's page inside the app (`onOpen`).
+ */
+function cardClick(onOpen: (() => void) | undefined, onStatus: (() => void) | undefined) {
+  return (event: React.MouseEvent) => {
+    const pr = (event.target as Element).closest("[data-card-pr]");
+    if (pr) {
+      event.preventDefault();
+      window.open(pr.getAttribute("data-card-pr") ?? "", "_blank", "noopener");
+    } else if (onStatus && (event.target as Element).closest("[data-card-status]")) {
+      event.preventDefault();
+      onStatus();
+    } else if (onOpen) {
+      event.preventDefault();
+      onOpen();
+    }
+  };
+}
+
 export function ItemCard({
   detail,
   href,
@@ -298,10 +344,10 @@ export function ItemCard({
   onOpen,
   onStatus,
 }: {
-  /** More about it on a third line, as home's cards say: what it asks, how long it takes. */
-  detail?: string | undefined;
   /** A session's actions, which its "…" lists. */
   actions?: Array<CardAction>;
+  /** More about it on a third line, as home's cards say: what it asks, how long it takes. */
+  detail?: string | undefined;
   href: string;
   isSelected?: boolean;
   item: CardItem;
@@ -340,16 +386,7 @@ export function ItemCard({
         : {})}
       {...stylex.props(styles.card)}
     >
-      <span aria-hidden="true" data-rail-only {...stylex.props(styles.railMark)}>
-        {hasNext ? (
-          <ActionMark isSmall kind="next" />
-        ) : item.status.status === "working" ? (
-          // The size of the next step's chevron: one mark for whatever the rail shows.
-          <ActionMark harness={item.harness ?? item.agent} isSmall kind="work" />
-        ) : (
-          <StatusMark label={item.status.label} small status={item.status.status} />
-        )}
-      </span>
+      <RailMark hasNext={hasNext} item={item} />
       <CardRow
         endContent={<Status hasNext={hasNext} hasWork={hasWork} item={item} />}
         href={href}
@@ -368,23 +405,7 @@ export function ItemCard({
             <Meta hasButton={hasButton} item={item} />
           ) : undefined
         }
-        {...(onOpen || onStatus
-          ? {
-              onClick: (event: React.MouseEvent) => {
-                const pr = (event.target as Element).closest("[data-card-pr]");
-                if (pr) {
-                  event.preventDefault();
-                  window.open(pr.getAttribute("data-card-pr") ?? "", "_blank", "noopener");
-                } else if (onStatus && (event.target as Element).closest("[data-card-status]")) {
-                  event.preventDefault();
-                  onStatus();
-                } else if (onOpen) {
-                  event.preventDefault();
-                  onOpen();
-                }
-              },
-            }
-          : {})}
+        {...(onOpen || onStatus ? { onClick: cardClick(onOpen, onStatus) } : {})}
       />
       {item.subagents?.map((subagent) => (
         <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>

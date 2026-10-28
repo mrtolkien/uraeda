@@ -8,7 +8,7 @@ import { LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
 import { KeyPickerHost } from "./keys/KeyPickerHost.tsx";
 import { LeaderKeys } from "./keys/LeaderKeys.tsx";
@@ -45,8 +45,10 @@ const styles = stylex.create({
     marginInline: "auto",
     maxWidth: "var(--size-page-max)",
     paddingBlockStart: spacingVars["--spacing-4"],
-    // The phone page's inset (`Page.tsx`).
-    paddingInline: "calc(var(--size-rail-inset) + 1px)",
+    // The phone page's inset (`Page.tsx`), a property of its own, which StyleX's padding values do
+    // not list as a calc.
+    "--errors-inset": "calc(var(--size-rail-inset) + 1px)",
+    paddingInline: "var(--errors-inset)",
     width: "100%",
   },
   errorsWide: {
@@ -171,7 +173,11 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
   // The phone's column, which the tabs' toggle opens over the page: it folds as a page opens.
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const pathname = useShellPath();
-  useEffect(() => setSidebarOpen(false), [pathname]);
+  const [sidebarPath, setSidebarPath] = useState(pathname);
+  if (sidebarPath !== pathname) {
+    setSidebarPath(pathname);
+    setSidebarOpen(false);
+  }
   return (
     <SidebarAddForms>
       <FeatureSettingsHost>

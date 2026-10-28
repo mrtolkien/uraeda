@@ -85,7 +85,7 @@ export function SessionsPage() {
   return (
     <Page isTight>
       <style>{PICKED_CSS}</style>
-      {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- the pointer takes the focus to its cards' links, as the keys do */}
+      {/* The pointer takes the focus to its cards' links, as the keys do. */}
       <div data-sessions="" onPointerMove={onPointerMove} ref={page}>
         <VStack gap={3}>
           <RepositoryMenu current={current} hasLogo />

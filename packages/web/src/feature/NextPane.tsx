@@ -3,7 +3,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Pane } from "../layout/Pane.tsx";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { handOver } from "../sessions.ts";
@@ -29,7 +29,7 @@ export function NextPane({
   const here = useRepoPath();
   const { action } = next;
   // `n` does what its button does: opens the next step, or hands it to the session.
-  const run = () => {
+  const run = useCallback(() => {
     if (action?.kind === "link") {
       if (action.external) {
         window.open(action.href, "_blank", "noopener,noreferrer");
@@ -39,9 +39,9 @@ export function NextPane({
     } else if (action?.kind === "continue") {
       handOver(folder, action.trigger);
     }
-  };
-  // Told to the page at each render, which declares `n` (see `NextKey`).
-  useEffect(() => onRun?.(action ? run : undefined));
+  }, [action, folder, here]);
+  // Told to the page as it changes, which declares `n` (see `NextKey`).
+  useEffect(() => onRun?.(action ? run : undefined), [action, onRun, run]);
   useEffect(() => () => onRun?.(undefined), [onRun]);
   return (
     <Pane

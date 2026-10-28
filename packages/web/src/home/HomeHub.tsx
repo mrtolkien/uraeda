@@ -3,7 +3,7 @@
 // cards, in the two columns that end nearest each other (`Core.tsx`); under it, the widgets in two
 // columns as well: the inbox's latest notes with what is done under them, and the priorities now
 // with the usage. From semi-wide, two columns; on the phone, one, in the same order.
-import { type FocusEvent, Fragment, useEffect, useEffectEvent, useRef, useState } from "react";
+import { type FocusEvent, Fragment, useRef, useState } from "react";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { useInbox, usePriorities } from "../data.ts";
@@ -48,6 +48,28 @@ const STEP_OF: Record<Move, CoreStep> = {
 
 /** How many entries Priorities now shows: the rest are one tap away, on the priorities page. */
 const PRIORITIES_SHOWN = 5;
+
+/**
+ * The row the list selects as a move down from the core asks, `follow`: each move selects the first
+ * row of its column, or of the other one where it has none. It follows each new `follow` as the
+ * list renders, where an effect would render the list twice.
+ */
+function useFollowed(follow: { column: number } | undefined, sections: Array<WorkSection>) {
+  const [selecting, setSelecting] = useState<{ key: string }>();
+  const [followed, setFollowed] = useState<{ column: number }>();
+  if (follow !== followed) {
+    setFollowed(follow);
+    const firsts = sections.map((section) => section.rows[0]?.key);
+    const key =
+      follow === undefined
+        ? undefined
+        : (firsts[follow.column] ?? firsts.find((k) => k !== undefined));
+    if (key !== undefined) {
+      setSelecting({ key });
+    }
+  }
+  return selecting;
+}
 
 /**
  * The inbox's three latest notes and the first five entries of Now that are not running, which the
@@ -135,19 +157,7 @@ function Lists({
       tone: "blue",
     },
   ];
-  // Each move down from the core selects the first row of its column, or of the other one where it
-  // has none.
-  const [selecting, setSelecting] = useState<{ key: string }>();
-  const firstOf = useEffectEvent((column: number) => {
-    const firsts = sections.map((section) => section.rows[0]?.key);
-    return firsts[column] ?? firsts.find((key) => key !== undefined);
-  });
-  useEffect(() => {
-    const key = follow === undefined ? undefined : firstOf(follow.column);
-    if (key !== undefined) {
-      setSelecting({ key });
-    }
-  }, [follow]);
+  const selecting = useFollowed(follow, sections);
   return (
     <VStack gap={1}>
       <WorkList
@@ -222,7 +232,7 @@ export function HomeHub() {
   const [left, right] = splitColumns(parts);
   return (
     <VStack gap={1}>
-      {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions -- the keys and the pointer of its cards' links, which have the focus: the page's keys leave a key it took */}
+      {/* The keys and the pointer of its cards' links, which have the focus: the page's keys leave a key it took. */}
       <div onFocus={onCoreFocus} onKeyDown={onCoreKey} onPointerMove={onCorePointer} ref={core}>
         {narrow ? (
           <CoreColumn parts={parts} />

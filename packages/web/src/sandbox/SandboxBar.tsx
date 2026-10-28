@@ -16,7 +16,7 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type PointerEvent, useRef, useState } from "react";
+import { type MouseEvent, type PointerEvent, useRef, useState } from "react";
 
 /** How far the pointer moves before a press on the marker is a drag, in pixels. */
 const DRAG_THRESHOLD = 4;
@@ -45,6 +45,8 @@ const styles = stylex.create({
   },
   // The bar drags from anywhere on it: a touch drags it too, not the page.
   handle: { cursor: "grab", touchAction: "none", userSelect: "none" },
+  // Where the drag moved the bar from its place, in pixels.
+  offset: (x: number, y: number) => ({ transform: `translate(${x}px, ${y}px)` }),
   // Out of the bar's flow, its text hidden and still announced: no gap after the bar's last button.
   unseen: { position: "absolute" },
   // A framed box, so its clipped last line reads as more to scroll to.
@@ -83,33 +85,12 @@ function status(picking: boolean, last: PickStatus): string | undefined {
   return undefined;
 }
 
-export function SandboxBar({
-  last,
-  onPickingChange,
-  onShownChange,
-  picking,
-  shortcut,
-  shown: shownProp,
-}: {
-  last: PickStatus;
-  onPickingChange: (picking: boolean) => void;
-  /** Hides the bar but its marker, or shows it again. */
-  onShownChange?: (shown: boolean) => void;
-  picking: boolean;
-  /** The keyboard shortcut that toggles pick mode, as `aria-keyshortcuts` names it. */
-  shortcut?: string;
-  /** Whether the bar shows more than its marker: by default, it does. */
-  shown?: boolean;
-}) {
-  // Not a default in the parameters, which the React Compiler cannot lower yet.
-  const shown = shownProp !== false;
-  const line = status(picking, last);
-  // Hidden, the bar still shows a copy that failed, an error to deal with, and still announces the
-  // rest.
-  const failed = !picking && last.kind === "failed";
-  const seen = line !== undefined && (shown || failed);
-  // The marker drags the bar, to uncover what is under it, kept in the window: a press that moved
-  // is a drag, and does not toggle the bar.
+/**
+ * The bar's drag: the marker drags the bar, to uncover what is under it, kept in the window: a
+ * press that moved is a drag, and does not toggle the bar. Its element's ref, its offset from its
+ * place, and the handlers that drag it.
+ */
+function useBarDrag() {
   const bar = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const drag = useRef<{ moved: boolean; ox: number; oy: number; px: number; py: number }>(null);
@@ -138,41 +119,72 @@ export function SandboxBar({
       y: Math.min(Math.max(start.oy + dy, -top), window.innerHeight - rect.height - top),
     });
   };
+  const handlers = {
+    onClickCapture: (event: MouseEvent) => {
+      // The click that ends a drag, which the bar's buttons must not take.
+      if (dragged.current) {
+        dragged.current = false;
+        event.stopPropagation();
+      }
+    },
+    onPointerDown: (event: PointerEvent<HTMLElement>) => {
+      // Anywhere on the bar, its buttons too, but not the failed copy's text, which is selected.
+      if (event.button !== 0 || (event.target as Element).closest("pre")) {
+        return;
+      }
+      drag.current = {
+        moved: false,
+        ox: offset.x,
+        oy: offset.y,
+        px: event.clientX,
+        py: event.clientY,
+      };
+    },
+    onPointerMove: dragTo,
+    onPointerUp: () => {
+      // The click that ends a drag follows at once: a press that gets none does not hold back
+      // the next one.
+      dragged.current = drag.current?.moved ?? false;
+      drag.current = null;
+      setTimeout(() => (dragged.current = false), 100);
+    },
+  };
+  return { bar, handlers, offset };
+}
+
+export function SandboxBar({
+  last,
+  onPickingChange,
+  onShownChange,
+  picking,
+  shortcut,
+  shown: shownProp,
+}: {
+  last: PickStatus;
+  onPickingChange: (picking: boolean) => void;
+  /** Hides the bar but its marker, or shows it again. */
+  onShownChange?: (shown: boolean) => void;
+  picking: boolean;
+  /** The keyboard shortcut that toggles pick mode, as `aria-keyshortcuts` names it. */
+  shortcut?: string;
+  /** Whether the bar shows more than its marker: by default, it does. */
+  shown?: boolean;
+}) {
+  // Not a default in the parameters, which the React Compiler cannot lower yet.
+  const shown = shownProp !== false;
+  const line = status(picking, last);
+  // Hidden, the bar still shows a copy that failed, an error to deal with, and still announces the
+  // rest.
+  const failed = !picking && last.kind === "failed";
+  const seen = line !== undefined && (shown || failed);
+  const { bar, handlers, offset } = useBarDrag();
   return (
     <div
       data-sandbox-bar
       data-uraeda-pick-ignore
-      onClickCapture={(event) => {
-        // The click that ends a drag, which the bar's buttons must not take.
-        if (dragged.current) {
-          dragged.current = false;
-          event.stopPropagation();
-        }
-      }}
-      onPointerDown={(event) => {
-        // Anywhere on the bar, its buttons too, but not the failed copy's text, which is selected.
-        if (event.button !== 0 || (event.target as Element).closest("pre")) {
-          return;
-        }
-        drag.current = {
-          moved: false,
-          ox: offset.x,
-          oy: offset.y,
-          px: event.clientX,
-          py: event.clientY,
-        };
-      }}
-      onPointerMove={dragTo}
-      onPointerUp={() => {
-        // The click that ends a drag follows at once: a press that gets none does not hold back
-        // the next one.
-        dragged.current = drag.current?.moved ?? false;
-        drag.current = null;
-        setTimeout(() => (dragged.current = false), 100);
-      }}
+      {...handlers}
       ref={bar}
-      {...stylex.props(styles.bar, styles.handle)}
-      style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
+      {...stylex.props(styles.bar, styles.handle, styles.offset(offset.x, offset.y))}
     >
       <Button
         aria-expanded={shown}

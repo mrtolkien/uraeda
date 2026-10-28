@@ -229,6 +229,16 @@ function Framed({
   return isMissing ? page : <SessionColumn content={page} folder={crumbs} session={session} />;
 }
 
+/** A session before its first message creates it: its title over an empty transcript. */
+function Unstarted({ title }: { title: string }) {
+  return (
+    <VStack gap={3}>
+      <SessionHeader title={title} />
+      <Transcript session={{ id: "", turns: [] }} />
+    </VStack>
+  );
+}
+
 /**
  * A session's pane: its header, transcript, and composer, and the session's column, or, before its
  * first message creates it, the title and the composer alone. A feature's or a new chat's first
@@ -289,10 +299,7 @@ export function SessionPane({
   return (
     <Framed crumbs={crumbs} isBoxed={isBoxed} session={id}>
       {id === undefined ? (
-        <VStack gap={3}>
-          <SessionHeader title={title ?? ""} />
-          <Transcript session={{ id: "", turns: [] }} />
-        </VStack>
+        <Unstarted title={title ?? ""} />
       ) : (
         // Read once the first message created the session: its title stays, and the composer, as
         // it is read. The transcript waits for it: a page shows one log.
