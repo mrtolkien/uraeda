@@ -184,9 +184,33 @@ test("the selected note shows its images under its row, and Remove takes one out
   const shown = within(await waitFor(() => imagesOf("Idea one")!));
   expect(shown.getByRole("img", { name: image })).toBeTruthy();
 
-  await click(shown.getByRole("button", { name: `Remove ${image}` }));
+  // The keys reach Remove: Enter on it is the button's, not the list's, which would edit the row.
+  const remove = shown.getByRole("button", { name: `Remove ${image}` });
+  act(() => remove.focus());
+  await press("Enter", remove);
+  expect(screen.queryByRole("textbox", { name: "Edit the note" })).toBeNull();
+
+  await click(remove);
 
   await waitFor(() => expect(filesOf(repo, draft).text).not.toContain(`images/${image}`));
   expect(await screen.findByText(`Removed ${image} from the note's draft`)).toBeTruthy();
   expect(screen.queryByRole("textbox", { name: "Edit the note" })).toBeNull();
+  // Undo writes the draft's text back, its link with it.
+  await click(await screen.findByRole("button", { name: /^Undo/ }));
+  await waitFor(() => expect(filesOf(repo, draft).text).toContain(`](images/${image})`));
+});
+
+test("a drop goes to the inbox, not to the add form once it closed", async () => {
+  const { link, repo } = await onNote("Idea two");
+  await press("a", link);
+  const field = await screen.findByPlaceholderText("What did you notice?");
+  await press("Escape", field);
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add a note" })).toBeNull());
+  act(() => (document.activeElement as HTMLElement | null)?.blur());
+
+  await drop([png("dropped.png")]);
+
+  const form = within(await screen.findByRole("dialog", { name: "Add a note" }));
+  expect(await form.findByRole("button", { name: /^Remove dropped\.png/ })).toBeTruthy();
+  expect(read(repo, PATH)).toBe(INBOX);
 });

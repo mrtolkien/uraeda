@@ -10,6 +10,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useRef } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
+import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint, dropStyles } from "./attach/DropHint.tsx";
 import { useImageDrop } from "./attach/useImageDrop.ts";
 import { ImageView } from "./ImageView.tsx";
@@ -38,6 +39,14 @@ const styles = stylex.create({
     padding: spacingVars["--spacing-2"],
     position: "absolute",
     zIndex: 3,
+  },
+  // The list's box, which the upload's status is placed against.
+  zone: { position: "relative" },
+  // "Adding <name>…", over the list's top end, just above it: it moves no row as it comes and goes.
+  status: {
+    insetBlockEnd: "100%",
+    insetInlineEnd: 0,
+    position: "absolute",
   },
 });
 
@@ -187,7 +196,10 @@ export function useInboxImages({
     /** Wraps the list: the drop's zone, outlined while it is the drop's target. */
     dropZone: (children: ReactNode) => (
       <DropHint hint={drop.hint}>
-        <div ref={box} {...stylex.props(drop.isTarget && dropStyles.target)}>
+        <div ref={box} {...stylex.props(styles.zone, drop.isTarget && dropStyles.target)}>
+          <div {...stylex.props(styles.status)}>
+            <AttachStatus status={status} />
+          </div>
           {children}
         </div>
       </DropHint>
@@ -200,7 +212,6 @@ export function useInboxImages({
     onSelected: (key: string | undefined) => {
       selected.current = key;
     },
-    status,
     /** A row's field, whose pasted images go to `note` once its text is saved. */
     withPaste:
       (note: InboxNote) =>
