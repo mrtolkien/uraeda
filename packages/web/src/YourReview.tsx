@@ -9,6 +9,7 @@ import { CommentForm } from "./CommentForm.tsx";
 import type { useFile } from "./data.ts";
 import { Band } from "./layout/Band.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { generalField } from "./reviewField.ts";
 import { where } from "./ReviewComments.tsx";
 import { type ChoicesState, type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
 import { ReviewImagesContext } from "./useReviewImages.ts";
@@ -58,7 +59,7 @@ function GeneralComment({
     <div id={GENERAL_ID}>
       <CommentForm
         anchor="General comment"
-        field={`${file.path}#general`}
+        field={generalField(file.path)}
         key={written}
         onCancel={() => setWritten((count) => count + 1)}
         onSubmit={async (text) => {
