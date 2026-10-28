@@ -34,11 +34,12 @@ export function marksOf(entry: PriorityEntry) {
 
 /**
  * What an entry's row draws of it besides its text: the icon of the step running on it, as the
- * sidebar draws it, or an icon for the file of its draft, which also draws its text as a hyperlink.
+ * sidebar draws it, or an icon for the file of its draft. Either way its text is a hyperlink: a
+ * click leads to its feature's page, or its draft's.
  */
 export function lookOf(entry: PriorityEntry) {
   if (entry.running) {
-    return { icon: STEP_ICONS[stepKindOf(entry.running.step)] };
+    return { icon: STEP_ICONS[stepKindOf(entry.running.step)], isLinked: true };
   }
   return entry.draft ? { icon: "uraeda:file-text" as const, isLinked: true } : {};
 }

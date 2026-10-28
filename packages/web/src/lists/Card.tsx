@@ -238,6 +238,9 @@ const styles = stylex.create({
     textDecoration: "none",
   },
   text: { overflowWrap: "anywhere" },
+  // A row that leads to another page, as a running line's feature or a line's draft: underlined, as
+  // a link is, which `stretched` would take away.
+  underlined: { textDecoration: "underline", textUnderlineOffset: "0.2em" },
   // A child line of the card: a bullet and its text, tabbed in from the card's own text.
   subline: {
     alignItems: "baseline",
@@ -280,7 +283,7 @@ function RowLink({
           onOpen(row, event.detail > 0);
         }
       }}
-      xstyle={[styles.stretched, styles.text]}
+      xstyle={[styles.stretched, styles.text, row.isLinked === true && styles.underlined]}
     >
       {row.label ?? row.text}
       {row.marks !== undefined && <span {...stylex.props(styles.marks)}>{row.marks}</span>}
