@@ -163,11 +163,6 @@ export function sortedEntries(entries: ReadonlyArray<MenuEntry>): Array<MenuEntr
   });
 }
 
-/** A key as the menu draws it: Space is its glyph, any other the key as typed. */
-function Key({ name }: { name: string }) {
-  return <KeyCap>{name}</KeyCap>;
-}
-
 /** A key of the path as the title writes it: Space is `Space`, any other as typed. */
 const written = (key: string) => (key === "space" ? "Space" : key);
 
@@ -203,7 +198,7 @@ function MenuContent({
               {...stylex.props(bareButtonStyles.bare, styles.press, styles.full, brighten)}
             >
               <Text type="supporting" xstyle={[styles.entry, styles.text]}>
-                <Key name={entry.key} />
+                <KeyCap>{entry.key}</KeyCap>
                 <Icon icon={entry.icon} size="md" />
                 {entry.isGroup === true ? `${entry.label} →` : entry.label}
               </Text>
