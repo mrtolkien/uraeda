@@ -30,6 +30,8 @@ test.each([
   ["style-prop.tsx", "react(forbid-dom-props)"],
   ["class-name.tsx", "react(forbid-component-props)"],
   ["raw-color.tsx", "valid-styles"],
+  // A raw value moved into a custom property and read back with `var()`.
+  ["raw-custom-property.tsx", "custom-property-tokens"],
   // The UI coherence decision: markdown goes through `Prose.tsx`.
   ["raw-markdown.tsx", "no-restricted-imports"],
   // US3.6: a `test.only` left behind fails the lint.
@@ -48,6 +50,11 @@ test.each([
 test("a suppression with its reason passes", () => {
   // Its summary reads "0 errors" on some runs: the exit status says it passed.
   const result = lint("src/__lint__/suppressed.tsx");
+  expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
+});
+
+test("custom properties set to tokens pass", () => {
+  const result = lint("src/__lint__/token-custom-property.tsx");
   expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
 });
 

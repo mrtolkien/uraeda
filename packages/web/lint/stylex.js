@@ -1,7 +1,9 @@
 // StyleX's lint rules, for oxlint's JavaScript plugins. `valid-styles` takes its `propLimits` from
 // the root `vite.config.ts`, where a limit can also name two kinds of values that the plugin's own
 // options cannot: "var(--*)", a CSS variable, as the theme's tokens are, and "<percentage>".
+// `custom-property-tokens` holds the custom properties a style sets to the same limit.
 import { createRequire } from "node:module";
+import customPropertyTokens from "./customProperties.js";
 
 const require = createRequire(import.meta.url);
 const { rules } = require("@stylexjs/eslint-plugin");
@@ -31,4 +33,7 @@ const validStyles = {
   meta: { ...rules["valid-styles"].meta, schema: false },
 };
 
-export default { meta: { name: "stylex" }, rules: { ...rules, "valid-styles": validStyles } };
+export default {
+  meta: { name: "stylex" },
+  rules: { ...rules, "custom-property-tokens": customPropertyTokens, "valid-styles": validStyles },
+};
