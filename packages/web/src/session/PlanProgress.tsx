@@ -3,8 +3,6 @@
 // 3/7 full (US2, scenario 3). Before the plan, in review, past its last task, or for a change,
 // which has no plan, nothing (ruling R8). The phone's status line shows it as "3 / 7". The link
 // reaches the task's heading once the plan is read, or the plan's top when its read fails.
-import { Button } from "@astryxdesign/core/Button";
-import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Text } from "@astryxdesign/core/Text";
@@ -14,8 +12,9 @@ import type { ReactNode } from "react";
 import { useFeature, useFile } from "../data.ts";
 import { stepLabel } from "../labels.ts";
 import { sectionId } from "../planParts.ts";
-import { useRepoPath } from "../routes.tsx";
+import { navigate, useRepoPath } from "../routes.tsx";
 import { Section } from "./Section.tsx";
+import { NavTile } from "../layout/NavBar.tsx";
 import { ruleStyles } from "../layout/rules.ts";
 
 const styles = stylex.create({
@@ -158,24 +157,21 @@ function Bar({ anchor, task }: { anchor: string; task: PlanTask }) {
   );
 }
 
-/** On the phone's status line, "3 / 7", opening the plan at the task. */
+/** On the phone's bottom bar, the plan's tile, opening the plan at the task, "3 / 7" its name's start. */
 export function ProgressChip({ folder }: { folder: string }) {
   const task = usePlanTask(folder);
   return task ? <AtTask folder={folder} link={Chip} task={task} /> : null;
 }
 
-/** The status line's link to the plan at `task`, its heading's `anchor`. */
+/** The bottom bar's tile to the plan at `task`, its heading's `anchor`. */
 function Chip({ anchor, task }: { anchor: string; task: PlanTask }) {
   const here = useRepoPath();
   return (
-    <Button
-      href={here(`${task.href}${anchor}`)}
-      icon={<Icon icon="uraeda:list-checks" />}
+    <NavTile
+      icon="uraeda:list-checks"
       // Its name starts with what it shows, as a spoken command names it.
       label={`${task.position} / ${task.total} · ${task.label}`}
-      variant="ghost"
-    >
-      {`${task.position} / ${task.total}`}
-    </Button>
+      onPress={() => navigate(here(`${task.href}${anchor}`))}
+    />
   );
 }

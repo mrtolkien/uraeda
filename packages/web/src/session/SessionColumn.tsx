@@ -3,19 +3,19 @@
 // Changes (approval comment C1), and the plan's progress at its foot. Narrower than the documents'
 // at semi-wide, so the chat keeps the weight (approval comment C2, ruling R9), its fold and dragged
 // width the documents'. A recap line's address, `?tab=activity&stretch=<turn>:<seq>`, unfolds it at
-// the Activity. On the phone, the status line's Activity, Changes, and progress instead, the first
-// two opening the column in a sheet kept in the address (`useSheetTab`, ruling R3). While the main
+// the Activity. On the phone, the bottom bar's tiles instead, as the documents' pages have them:
+// Activity, Changes, Sub-agents while any run, and the plan's progress, the first three opening the
+// column in a sheet kept in the address (`useSheetTab`, ruling R3). While the main
 // agent runs sub-agents, or while the address opens it, a Sub-agents panel over the Changes joins
 // it (US3), a tab in the column and in the phone's sheet (ruling R23), which a reload or a width
 // change keeps.
-import { Button } from "@astryxdesign/core/Button";
-import { Icon } from "@astryxdesign/core/Icon";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
 import { useFateClient, useView } from "react-fate";
 import type { Session } from "uraeda-server/fate";
 import { ColumnStatusLine } from "../layout/ColumnStatusLine.tsx";
+import { NavTile, NavTiles } from "../layout/NavBar.tsx";
 import {
   type ColumnPanel,
   ColumnTabs,
@@ -147,25 +147,22 @@ function useFirstLatest(latest: string | undefined) {
 }
 
 /**
- * The status line's Changes: the `count` files the session edited, opening the sheet. Its name
+ * The bottom bar's Changes: the `count` files the session edited, opening the sheet. Its name
  * starts with what it shows, as a spoken command names it.
  */
-function ChangesButton({ count, onOpen }: { count: number; onOpen: () => void }) {
+function ChangesTile({ count, onOpen }: { count: number; onOpen: () => void }) {
   return (
-    <Button
-      icon={<Icon icon="uraeda:git-compare" />}
+    <NavTile
+      icon="uraeda:git-compare"
       label={`Changes ${count} · ${fileCount(count)} edited`}
-      onClick={onOpen}
-      variant="ghost"
-    >
-      {`Changes ${count}`}
-    </Button>
+      onPress={onOpen}
+    />
   );
 }
 
 /** The status line's Changes of the session `session`, as it is read. */
 function SessionChanges({ onOpen, session }: { onOpen: () => void; session: string }) {
-  return <ChangesButton count={useSession(session)?.edited.length ?? 0} onOpen={onOpen} />;
+  return <ChangesTile count={useSession(session)?.edited.length ?? 0} onOpen={onOpen} />;
 }
 
 /** The name of the phone's sheet of the column, the status line's Activity, which opens it. */
@@ -225,37 +222,47 @@ function openActivity() {
 }
 
 /**
- * On the phone, the column outside the page: the status line's Activity and Changes, each opening
- * the column's sheet at the Activity, and the plan's progress, opening the plan at its task. The
- * sheet may open at each of `panels`, as the address asks, as a reload or a width change does.
+ * On the phone, the column outside the page, in the bottom bar by their icons: Activity and Changes,
+ * each opening the column's sheet at the Activity, Sub-agents while the column has them, opening it
+ * there, and the plan's progress, opening the plan at its task. The sheet may open at each of
+ * `panels`, as the address asks, as a reload or a width change does.
  */
 function PhoneParts({ folder, panels, session }: Of & { panels: ReadonlyArray<ColumnPanel> }) {
   // Every panel opens the one sheet: its tabs switch within its history entry.
   const sheets = Object.fromEntries(panels.map((panel) => [panel.key, SHEET]));
   const sheet = useSheetTab(sheets, true);
   const [open, setSheet] = sheet;
+  const hasSubagents = panels.some((panel) => panel.key === SUBAGENTS);
   const buttons = (
-    <>
-      <Button
-        icon={<Icon icon="uraeda:activity" />}
+    <NavTiles label="The session's parts">
+      <NavTile
+        icon="uraeda:activity"
+        isOpen={open !== undefined && open !== SUBAGENTS}
         label="Activity"
-        onClick={openActivity}
-        variant="ghost"
+        onPress={openActivity}
       />
       {/* Before its first message, the session does not exist: it changed nothing. */}
       {session === undefined ? (
-        <ChangesButton count={0} onOpen={openActivity} />
+        <ChangesTile count={0} onOpen={openActivity} />
       ) : (
         <Section>
           <SessionChanges onOpen={openActivity} session={session} />
         </Section>
+      )}
+      {hasSubagents && (
+        <NavTile
+          icon="uraeda:users"
+          isOpen={open === SUBAGENTS}
+          label="Sub-agents"
+          onPress={() => setSheet(SUBAGENTS)}
+        />
       )}
       {folder !== undefined && (
         <Section>
           <ProgressChip folder={folder} />
         </Section>
       )}
-    </>
+    </NavTiles>
   );
   return (
     <>
