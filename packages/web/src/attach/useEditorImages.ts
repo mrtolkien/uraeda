@@ -37,6 +37,15 @@ export async function readDraft(fate: Fate, path: string) {
 }
 
 /**
+ * Reads the draft at `path` again, after a write the server does not send it for, such as a note's
+ * images added or removed: the editor, opened next, shows it as written. A failed read leaves it
+ * as it was.
+ */
+export async function rereadDraft(fate: Fate, path: string) {
+  await readDraft(fate, path).catch(() => {});
+}
+
+/**
  * The text, with an image's link, that a draft that just became a folder brings to its editor at
  * the new path, once.
  */

@@ -7,8 +7,10 @@ import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { IMAGE_LIMIT, overLimit } from "uraeda-server/limits";
 import { useServerFetch } from "./attach/ServerFetch.tsx";
+import { rereadDraft } from "./attach/useEditorImages.ts";
 import type { AttachStatus } from "./attach/useAttach.ts";
 import { readInbox, rereadChanges } from "./data.ts";
+import { draftFile } from "./draftFile.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { repoPath, useRepository } from "./routes.tsx";
 import { InboxView } from "./views.ts";
@@ -293,7 +295,11 @@ export function useAttachToNote() {
       setStatus(undefined);
     }
     rereadChanges(fate);
-    return typeof sent === "string" ? undefined : sent.message;
+    if (typeof sent !== "string") {
+      return sent.message;
+    }
+    await rereadDraft(fate, draftFile(sent));
+    return undefined;
   };
 
   return { attach, status };

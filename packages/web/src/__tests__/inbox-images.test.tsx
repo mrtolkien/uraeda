@@ -6,8 +6,19 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
+import { draftFile } from "../draftFile.ts";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atWidth, click, fixture, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
+import { navigate } from "../routes.tsx";
+import {
+  atRepo,
+  atWidth,
+  click,
+  fixture,
+  fixtureRepo,
+  read,
+  renderPage,
+  type,
+} from "./helpers.tsx";
 
 const PATH = "specs/INBOX.md";
 
@@ -117,8 +128,10 @@ test("the add form takes a pasted image, and adds the note as a draft holding it
   const form = within(screen.getByRole("dialog", { name: "Add a note" }));
   expect(await form.findByRole("button", { name: /^Remove/ })).toBeTruthy();
   await click(form.getByRole("button", { name: "Add as a draft" }));
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-  await waitFor(() => expect(read(repo, PATH)).toMatch(/\[Headings are flat\]\(/));
+  // The image is encoded before the note is written: a while, under a loaded machine.
+  await waitFor(() => expect(read(repo, PATH)).toMatch(/\[Headings are flat\]\(/), {
+    timeout: 10_000,
+  });
   const { images, text } = filesOf(repo, draftOf(repo, "Headings are flat"));
   expect(images).toHaveLength(1);
   expect(text).toContain(`](images/${images[0]})`);
@@ -204,6 +217,25 @@ test("the selected note shows its images under its row, and Remove takes one out
   // Undo puts the link back where it was, the draft as it was before.
   await click(await screen.findByRole("button", { name: /^Undo/ }));
   await waitFor(() => expect(filesOf(repo, draft).text).toBe(before));
+});
+
+test("a draft opened after one of its images is removed shows it without the image", async () => {
+  const { repo } = await onNote("Idea two");
+  await selectIdeaOne();
+  await drop([png("dropped.png")]);
+  await waitFor(() => expect(read(repo, PATH)).toMatch(/- \[Idea one\]\(/));
+  const draft = draftOf(repo, "Idea one");
+  const [image] = filesOf(repo, draft).images;
+  await waitFor(() => expect(rowOf("Idea one").textContent).toContain("1 image"));
+  const shown = within(await waitFor(() => imagesOf("Idea one")!));
+
+  await click(shown.getByRole("button", { name: `Remove ${image}` }));
+  await screen.findByText(`Removed ${image} from the note's draft`);
+
+  await act(async () => navigate(atRepo(`/edit/${draftFile(draft)}`)));
+  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  expect(field.value).toContain("Idea one");
+  expect(field.value).not.toContain(`images/${image}`);
 });
 
 test("a drop goes to the inbox, not to the add form once it closed", async () => {

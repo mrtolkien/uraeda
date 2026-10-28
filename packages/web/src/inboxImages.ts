@@ -3,7 +3,7 @@
 import { type useFateClient, view } from "react-fate";
 import type { InboxNote, RemovedImage } from "uraeda-binding";
 import type { Inbox } from "uraeda-server/fate";
-import { readDraft } from "./attach/useEditorImages.ts";
+import { readDraft, rereadDraft } from "./attach/useEditorImages.ts";
 import { rereadChanges } from "./data.ts";
 import { draftFile } from "./draftFile.ts";
 import { guarded, refusal } from "./errors.ts";
@@ -58,6 +58,7 @@ export async function removeNoteImage(
   if (result.error) {
     return refusal(result.error).message;
   }
+  await rereadDraft(fate, file);
   const removed = result.result?.imageRemoved;
   return removed ?? `Could not remove ${imageName(path)}.`;
 }
@@ -68,5 +69,9 @@ export async function restoreNoteImage(fate: Fate, removed: Removed) {
     fate.mutations.inbox.restoreImage({ input: { removed }, view: InboxView }),
   );
   rereadChanges(fate);
-  return result.error ? refusal(result.error).message : undefined;
+  if (result.error) {
+    return refusal(result.error).message;
+  }
+  await rereadDraft(fate, removed.draft);
+  return undefined;
 }
