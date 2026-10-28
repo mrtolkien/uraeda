@@ -9,7 +9,6 @@ import { Band, followUpsOf, QuestionCards } from "./QuestionCards.tsx";
 import { RoundOpening } from "./RoundOpening.tsx";
 import { RoundColumn, useRoundActions } from "./RoundColumn.tsx";
 import type { NavQuestion } from "./roundJump.ts";
-import { RoundIndex } from "./RoundOutline.tsx";
 import { useRoundNotes } from "./RoundNotes.tsx";
 import { RoundEnd, useRoundSubmit } from "./RoundSubmit.tsx";
 import { isDefaultRound, RoundHash, type RoundTarget, useHashes } from "./roundTarget.ts";
@@ -46,7 +45,6 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const hash = useHashes(document.hash);
   const notes = useRoundNotes(file, target, hash);
   const submitting = useRoundSubmit(file, notes, pending, target, hash);
-  const wide = !isNarrow(useWidthClass());
   const end = useRef<HTMLDivElement>(null);
   // Submit's buttons, which the bar's Submit focuses.
   const submitRow = useRef<HTMLDivElement>(null);
@@ -75,7 +73,6 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const content = (
     <RoundBody
       file={file}
-      index={!readOnly && !wide && <RoundIndex questions={nav} />}
       readOnly={readOnly}
       target={target}
       {...(actions.asks ? { onAsk: actions.asks } : {})}
@@ -100,12 +97,18 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
       <CandidatesContext value={file.candidates}>
         <PendingSaves value={pending}>
           {readOnly ? (
-            <Page isPaired isReading>{content}</Page>
+            <Page isPaired isReading>
+              {content}
+            </Page>
           ) : (
             // While the round waits on answers, its column beside it.
             <RoundColumn
               actions={actions}
-              content={<Page isPaired isReading>{content}</Page>}
+              content={
+                <Page isPaired isReading>
+                  {content}
+                </Page>
+              }
               draft={actions.asks && draft}
               file={file}
               nav={nav}
@@ -120,21 +123,18 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
 }
 
 /**
- * The round's page itself: its opening, `index` after its block and its points to check after its
- * context, its questions, its other settled points, then `children`, its end. `onAsk` asks the
+ * The round's page itself: its opening, its points to check after its context, its questions, its other settled points, then `children`, its end. `onAsk` asks the
  * agent about a question, or sends a point's comment to it.
  */
 function RoundBody({
   children,
   file,
-  index,
   onAsk,
   readOnly,
   target,
 }: {
   children: ReactNode;
   file: File;
-  index: ReactNode;
   onAsk?: {
     point: (subject: string, text: string) => Promise<string | undefined>;
     question: (question: { id: string; title: string }) => void;
@@ -158,9 +158,7 @@ function RoundBody({
         document={document}
         round={round}
         {...(isDefaultRound(target) ? {} : { crumbs: { folder: file.folder, name: file.name } })}
-      >
-        {index}
-      </RoundOpening>
+      />
       <QuestionCards
         document={document}
         path={file.path}

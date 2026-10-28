@@ -1,13 +1,12 @@
 import { Button } from "@astryxdesign/core/Button";
-import { Heading } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useId } from "react";
+import { useEffect } from "react";
 import type { Document, RoundItems, SettledGroup, SettledKind } from "uraeda-binding";
+import { NavTile } from "./layout/NavBar.tsx";
 import { OutlineRows, type OutlineRow, type StateNames } from "./layout/OutlineRows.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { openAnchor } from "./routeHistory.ts";
@@ -26,9 +25,6 @@ const styles = stylex.create({
   action: {
     // Next or Submit keeps its width beside the count: its label is never cut.
     flexShrink: 0,
-  },
-  inPage: {
-    marginBlockEnd: spacingVars["--spacing-6"],
   },
 });
 
@@ -176,6 +172,25 @@ export function NextOrSubmit({
   );
 }
 
+/**
+ * The phone's bar's Next, a help, its icon in the accent, or Submit once no question is blank, the
+ * page's action, filled with it.
+ */
+export function NextTile({
+  onSubmit,
+  questions,
+}: {
+  onSubmit: () => void;
+  questions: ReadonlyArray<NavQuestion>;
+}) {
+  const { blank, next } = useBlankJumps(questions);
+  return blank.length ? (
+    <NavTile icon="uraeda:arrow-right" isTinted label="Next" onPress={() => next(true)} />
+  ) : (
+    <NavTile icon="uraeda:badge-check" isAction label="Submit" onPress={onSubmit} />
+  );
+}
+
 /** "N of M answered". */
 const countOf = (questions: ReadonlyArray<NavQuestion>) =>
   `${questions.filter((q) => q.answered).length} of ${questions.length} answered`;
@@ -227,28 +242,6 @@ export function RoundOutline({
           n / p: next / previous unanswered
         </Text>
       </VStack>
-    </nav>
-  );
-}
-
-/**
- * On narrow screens, the round's questions at its start, under its block: the human sees every
- * question before answering the first, and a later one's answer does not go into an earlier
- * comment. A row brings its question to the top.
- */
-export function RoundIndex({ questions }: { questions: ReadonlyArray<NavQuestion> }) {
-  const title = useId();
-  return (
-    <nav aria-labelledby={title} {...stylex.props(styles.inPage)}>
-      <Heading id={title} level={2}>
-        Questions
-      </Heading>
-      <OutlineRows
-        current={undefined}
-        onPick={(id) => jumpTo(id)}
-        runs={[questionRows(questions)]}
-        stateNames={ANSWERED}
-      />
     </nav>
   );
 }

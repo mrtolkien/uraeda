@@ -1,0 +1,88 @@
+// The phone's bottom bar as a page's navigation, in the status line's row: a tile for each of the
+// page's parts, its icon alone, as the column's tabs on a wide screen, the open one in the accent;
+// and its action last, filled with the accent, or its icon in the accent for a mere help, as Next.
+import { Icon } from "@astryxdesign/core/Icon";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
+import * as stylex from "@stylexjs/stylex";
+import type { ComponentProps, ReactNode } from "react";
+
+const styles = stylex.create({
+  // The tiles share the bar's width, each as tall as the bar.
+  tiles: {
+    alignSelf: "stretch",
+    display: "flex",
+    flexGrow: 1,
+    gap: spacingVars["--spacing-1"],
+  },
+  tile: {
+    alignItems: "center",
+    background: "none",
+    border: "none",
+    borderRadius: 0,
+    color: colorVars["--color-text-primary"],
+    cursor: "pointer",
+    display: "flex",
+    flexBasis: 0,
+    flexGrow: 1,
+    font: "inherit",
+    justifyContent: "center",
+    minWidth: 0,
+    paddingBlock: spacingVars["--spacing-1"],
+    paddingInline: spacingVars["--spacing-1"],
+  },
+  open: { color: colorVars["--color-text-accent"] },
+  action: {
+    backgroundColor: colorVars["--color-accent"],
+    color: colorVars["--color-on-accent"],
+  },
+  // A help rather than the page's action: its icon in the accent, on the glass as the others.
+  tinted: { color: colorVars["--color-text-accent"] },
+});
+
+/**
+ * A tile of the bar: `icon` alone, named by `label`; `isOpen` while its part shows, or `isAction`
+ * for the page's action, filled, or `isTinted` for a help, its icon in the accent.
+ */
+export function NavTile({
+  icon,
+  isAction = false,
+  isOpen,
+  isTinted = false,
+  label,
+  onPress,
+}: {
+  icon: ComponentProps<typeof Icon>["icon"];
+  isAction?: boolean;
+  isOpen?: boolean;
+  isTinted?: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <button
+      aria-label={label}
+      aria-pressed={isOpen}
+      onClick={onPress}
+      type="button"
+      {...stylex.props(
+        focusOutlineStyles.focusVisible,
+        styles.tile,
+        isOpen && styles.open,
+        isAction && styles.action,
+        isTinted && styles.tinted,
+      )}
+    >
+      <Icon icon={icon} size="lg" />
+    </button>
+  );
+}
+
+/** The bar's tiles, sharing its width, named `label`. */
+export function NavTiles({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <nav aria-label={label} {...stylex.props(styles.tiles)}>
+      {children}
+    </nav>
+  );
+}
