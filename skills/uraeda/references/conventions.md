@@ -230,6 +230,7 @@ and `chore:` for the rest. `ura` and the web UI write the same messages.
 | Approve, or request changes        | `spec(recurring-tasks): approve`, `plan(recurring-tasks): request changes`                                                                          |
 | A proposal file, then its edits    | `chore: expand Recurring tasks`, `chore: edit the proposal Recurring tasks`                                                                         |
 | A started proposal, then its edits | `chore(recurring-tasks): proposal`, `chore(recurring-tasks): edit the proposal`                                                                     |
+| A note file, then its edits        | `chore: add the note Sort completed tasks`, `chore: edit the note Sort completed tasks`                                                             |
 | Start, postpone, drop              | `chore(recurring-tasks): start Recurring tasks`, `chore(recurring-tasks): postpone Recurring tasks`, `chore(recurring-tasks): drop Recurring tasks` |
 | `PRIORITIES.md` alone              | `chore: move "Recurring tasks" to Next`                                                                                                             |
 | A note                             | `chore: add "Sort completed tasks" to the inbox`                                                                                                    |

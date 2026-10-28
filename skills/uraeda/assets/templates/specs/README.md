@@ -15,11 +15,12 @@ Without it, the file names and their `status` fields still tell where each featu
   nothing; and `INBOX-TRIAGE.md`, an agent's suggested outcome for each, answered like questions
 - `DECISIONS-CHECK.md`: an agent's questions about how the decisions fit together, answered like
   questions; and `decisions-check/`, holding each option's edited decision until it is applied
-- `proposals/`: proposal files, upcoming features written by humans, free form, each linked from
+- `proposals/`: proposal files, upcoming features written by humans, free form, usually linked from
   `PRIORITIES.md`. A folder is a postponed feature: its proposal, with the discovery rounds and
   questions it had, kept for when it starts again; or a proposal with images, its `proposal.md` next
   to its `images/`
-- `notes/`: note files, the inbox's notes with images, each a `note.md` next to its `images/`
+- `notes/`: note files, the inbox's notes written as files: `<slug>.md`, or a `note.md` next to its
+  `images/`
 - `decisions/`: the decision ledger, one file per topic, named after the question it answers:
   high-impact choices made by humans, binding for all work once `active`
 - `ui/`: for a project with a UI, its guides, free form: how its views read and behave, which every

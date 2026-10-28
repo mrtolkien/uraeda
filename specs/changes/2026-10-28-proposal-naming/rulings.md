@@ -7,7 +7,8 @@ active decisions. None binds future work: those are decisions.
 
 - **Decision**: removing a note deletes its note file only when the file holds only what the note
   wrote, or matches its committed version byte for byte. Otherwise the line goes and the file stays,
-  unlinked. Removing and committing also deletes a file that was committed, since history keeps it.
+  unlinked, and `ura check` warns about a note file no note links. Removing and committing follows
+  the same rule, as history keeps only the committed version.
 - **Rationale**: the [git decision](/specs/decisions/git.md) says tools never lose the user's work,
   and a note file typed into and never committed exists nowhere else.
 - **Alternatives considered**: deleting it whatever it holds, with the removal's Undo as the only
@@ -27,7 +28,7 @@ active decisions. None binds future work: those are decisions.
 
 - **Decision**: a note linking a proposal file, or anything outside `specs/notes/`, has no note
   file: it moves as text, nests under a proposal, and takes images into a new note file. A note file
-  two notes link is not deleted with one of them.
+  two notes link is neither deleted nor moved with one of them: that note moves as text.
 - **Rationale**: the proposal's "a note is a line or a file" holds only if the file is the note's
   own.
 - **Where**: `crates/core/src/files/inbox.rs`
@@ -36,7 +37,8 @@ active decisions. None binds future work: those are decisions.
 
 - **Decision**: `specs/notes/x/note.md` becomes `specs/proposals/x/proposal.md`, or `x-2/` when the
   name is taken; a single `specs/notes/x.md` becomes `specs/proposals/x.md`. The undo finds the line
-  by its rewritten link, so it takes no new argument.
+  by its rewritten link, so it takes no new argument. A note with a note file going into an existing
+  proposal file moves its file the same way, and the proposal file's new line links it.
 - **Rationale**: the move is a pure move, the file's content already being proposal-shaped.
 - **Where**: `crates/core/src/actions/inbox/moves.rs`
 
@@ -90,3 +92,13 @@ active decisions. None binds future work: those are decisions.
 - **Decision**: three links of `specs/done/` to `../drafts/` point to `../proposals/`, as finishing
   rewrites links into a moved folder. Nothing else in a record changed.
 - **Where**: `specs/done/2026-10-10-cli-core.md`, `specs/done/2026-10-19-redesign-session.md`
+
+## R12: A change started from a note file takes its text, not its image alts
+
+- **Decision**: a change started from a note with a note file takes the file's title, then its body
+  as it is on disk, without its image paragraphs, then the note's nested lines. Its images keep the
+  names and "Image N" alts every typed change gives them.
+- **Rationale**: keeping the file's own image names would need the core's start to take names, a new
+  contract for a path no page calls today.
+- **If wrong**: `startChange` takes optional names, as `addNoteWithImages` does.
+- **Where**: `packages/server/src/fate/change-starts.ts`
