@@ -230,6 +230,40 @@ pub fn edit(
     )
 }
 
+/// Edits the outline of a note: the note, or with `at`, the item at `at` of its nested items in the
+/// order of the file (see [`inbox::outline`]).
+pub fn outline(
+    place: &Place,
+    id: &str,
+    at: Option<usize>,
+    change: &crate::files::nested::OutlineEdit,
+    previous: Option<&str>,
+) -> Result<Inbox, ActionError> {
+    apply(
+        place,
+        previous,
+        |current| inbox::outline(current, id, at, change),
+        &format!("no note {id}, no such item, nowhere to go, or code under it"),
+    )
+}
+
+/// Moves a note, or with `at` its nested item at `at`, its own items with it, to `to`: a drop (see
+/// [`inbox::drop_item`]).
+pub fn drop_item(
+    place: &Place,
+    id: &str,
+    at: Option<usize>,
+    to: &inbox::Drop,
+    previous: Option<&str>,
+) -> Result<Inbox, ActionError> {
+    apply(
+        place,
+        previous,
+        |current| inbox::drop_item(current, id, at, to),
+        &format!("no note {id}, no such item or place, or code under it"),
+    )
+}
+
 /// Removes a note, sub-items included.
 pub fn remove(place: &Place, id: &str, previous: Option<&str>) -> Result<Inbox, ActionError> {
     apply(

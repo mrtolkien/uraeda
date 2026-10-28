@@ -146,6 +146,21 @@ export declare function discardPriorities(repo: string): Promise<Priorities>
  */
 export declare function dropItem(repo: string, folder: string): Promise<DroppedView>
 
+/**
+ * Moves a note, or with `at` its nested item at `at`, its own items with it: what a drop writes.
+ * With `under`, it goes under that note, or with `underAt` under its nested item at `underAt`;
+ * else it is a note of `category`, or of the notes without one. `index` is its place there,
+ * counted once it left.
+ */
+export declare function dropNote(repo: string, id: string, at: number | undefined | null, category: string | undefined | null, under: string | undefined | null, underAt: number | undefined | null, index: number, previous: string): Promise<Inbox>
+
+/**
+ * Moves a priority line, or with `at` its nested item at `at`, its own items with it: what a drop
+ * writes. With `under`, it goes under that line, or with `underAt` under its nested item at
+ * `underAt`; else it is a line of `section`. `index` is its place there, counted once it left.
+ */
+export declare function dropPriority(repo: string, id: string, at: number | undefined | null, section: string | undefined | null, under: string | undefined | null, underAt: number | undefined | null, index: number, previous: string): Promise<Priorities>
+
 /** Replaces an allowed host name with another, in its place. */
 export declare function editAllowedHost(dir: string, from: string, to: string): Promise<Settings>
 
@@ -222,6 +237,20 @@ export declare function noteToPriorities(repo: string, id: string, section: stri
 
 /** Records that a repository was opened now, and returns it. */
 export declare function openRepository(dataDir: string, name: string): Promise<Repository>
+
+/**
+ * Edits a note's outline: the note, or with `at`, its nested item at `at` in the order of the
+ * file. `kind` is `edit`, `insert-below`, `insert-above`, `append-child`, `remove`, `indent`,
+ * `outdent`, `up`, or `down`; `text` is the line those that write one write.
+ */
+export declare function outlineNote(repo: string, id: string, at: number | undefined | null, kind: string, text: string | undefined | null, previous: string): Promise<Inbox>
+
+/**
+ * Edits a priority line's outline: the line, or with `at`, its nested item at `at` in the order
+ * of the file. `kind` is `edit`, `insert-below`, `insert-above`, `append-child`, `remove`,
+ * `indent`, `outdent`, `up`, or `down`; `text` is the line those that write one write.
+ */
+export declare function outlinePriority(repo: string, id: string, at: number | undefined | null, kind: string, text: string | undefined | null, previous: string): Promise<Priorities>
 
 /**
  * The folder of the feature or the change that a path from the top level is in: `<folder>` for
@@ -887,6 +916,11 @@ export interface EntryItem {
   /** The text of each nested item, without its marker. */
   nestedSpans: Array<Array<Span>>
   /**
+   * Its nested items at any depth, in the order of the file: what its outline shows, and what
+   * an edit of one names by its index.
+   */
+  children: Array<NestedItem>
+  /**
    * The draft or backlog file it links, when it exists: set by the workspace, see
    * [`Workspace::join_priorities`](crate::workspace::Workspace::join_priorities).
    */
@@ -1100,6 +1134,11 @@ export interface InboxNote {
   nested: Array<string>
   /** The text of each nested item, without its marker. */
   nestedSpans: Array<Array<Span>>
+  /**
+   * Its nested items at any depth, in the order of the file: what its outline shows, and what an
+   * edit of one names by its index.
+   */
+  children: Array<NestedItem>
 }
 
 /**
@@ -1208,6 +1247,20 @@ export interface MockupLink {
   block: number
   /** The story it names, when it is a story link. */
   story?: StoryTarget
+}
+
+/** An item nested under a list's item, for editing: its address, its depth, and its text. */
+export interface NestedItem {
+  /**
+   * Its address, `<item's key>/<slug of its text>`, unique under its item as the items' keys
+   * are: stable while its text stays.
+   */
+  key: string
+  /** 1 for the item's own items, 2 for theirs, ... */
+  depth: number
+  /** The markdown of its text, after its marker, on one line. */
+  text: string
+  spans: Array<Span>
 }
 
 /** A feature's next step, as `ura next` gives it, for an agent's run. */

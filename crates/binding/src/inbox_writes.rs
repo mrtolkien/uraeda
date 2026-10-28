@@ -72,6 +72,60 @@ pub fn edit_note(
     job(move || api::edit_note(Path::new(&repo), &id, &text, &previous))
 }
 
+/// Edits a note's outline: the note, or with `at`, its nested item at `at` in the order of the
+/// file. `kind` is `edit`, `insert-below`, `insert-above`, `append-child`, `remove`, `indent`,
+/// `outdent`, `up`, or `down`; `text` is the line those that write one write.
+#[napi(ts_return_type = "Promise<Inbox>")]
+pub fn outline_note(
+    repo: String,
+    id: String,
+    at: Option<u32>,
+    kind: String,
+    text: Option<String>,
+    previous: String,
+) -> AsyncTask<Job<Inbox>> {
+    job(move || {
+        api::outline_note(
+            Path::new(&repo),
+            &id,
+            at,
+            &kind,
+            text.as_deref(),
+            &previous,
+        )
+    })
+}
+
+/// Moves a note, or with `at` its nested item at `at`, its own items with it: what a drop writes.
+/// With `under`, it goes under that note, or with `underAt` under its nested item at `underAt`;
+/// else it is a note of `category`, or of the notes without one. `index` is its place there,
+/// counted once it left.
+#[napi(ts_return_type = "Promise<Inbox>")]
+#[allow(clippy::too_many_arguments)]
+pub fn drop_note(
+    repo: String,
+    id: String,
+    at: Option<u32>,
+    category: Option<String>,
+    under: Option<String>,
+    under_at: Option<u32>,
+    index: u32,
+    previous: String,
+) -> AsyncTask<Job<Inbox>> {
+    job(move || {
+        api::drop_note(
+            Path::new(&repo),
+            &id,
+            at,
+            category.as_deref(),
+            under.as_deref(),
+            under_at,
+            index,
+            &previous,
+        )
+    })
+}
+
 /// Removes a note, sub-items included.
 #[napi(ts_return_type = "Promise<Inbox>")]
 pub fn remove_note(repo: String, id: String, previous: String) -> AsyncTask<Job<Inbox>> {

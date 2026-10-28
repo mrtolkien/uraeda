@@ -8,6 +8,7 @@ pub mod inbox;
 pub mod items;
 pub(crate) mod lines;
 pub mod markdown;
+pub mod nested;
 pub mod outline;
 pub mod plan;
 pub mod preview;

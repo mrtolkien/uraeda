@@ -4,8 +4,11 @@ use super::lines::{self, Item};
 
 mod context;
 mod edits;
+mod outline;
 
 pub use context::{SectionContext, contexts};
+pub use super::nested::{NestedItem, OutlineEdit};
+pub use outline::{Drop, drop_item, outline};
 
 pub use edits::{
     add, add_started, edit, insert_entry, link, move_entry, move_to_started, remove, remove_added,
@@ -141,12 +144,16 @@ pub struct EntryItem {
     pub nested: Vec<String>,
     /// The text of each nested item, without its marker.
     pub nested_spans: Vec<Vec<super::document::Span>>,
+    /// Its nested items at any depth, in the order of the file: what its outline shows, and what
+    /// an edit of one names by its index.
+    pub children: Vec<NestedItem>,
     /// The draft or backlog file it links, when it exists: set by the workspace, see
     /// [`Workspace::join_priorities`](crate::workspace::Workspace::join_priorities).
     pub draft: Option<crate::workspace::LinkedFile>,
     /// The feature or change it links, while it runs: set by the workspace.
     pub running: Option<crate::workspace::RunningFeature>,
 }
+
 
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
@@ -244,6 +251,10 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
                             .map(|l| l.to_string())
                             .collect(),
                         nested_spans: lines::nested_spans(
+                            &lines[entry.item.text_end..entry.item.end],
+                        ),
+                        children: super::nested::nested_items(
+                            key,
                             &lines[entry.item.text_end..entry.item.end],
                         ),
                         draft: None,

@@ -162,6 +162,62 @@ const repositoryMutations = {
       ),
     type: "Priorities",
   },
+  "priorities.outline": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ at?: number; entry: string; hash: string; kind: string; text?: string }>) =>
+      priorities(
+        ctx,
+        await refusable(() =>
+          ctx.binding.outlinePriority(
+            ctx.repo,
+            input.entry,
+            input.at ?? null,
+            input.kind,
+            input.text ?? null,
+            input.hash,
+          ),
+        ),
+        select,
+      ),
+    type: "Priorities",
+  },
+  // A drop: the line, or its nested item `at`, under the line `under` (its nested item `underAt`),
+  // or a line of `section`, at `index` there.
+  "priorities.drop": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{
+      at?: number;
+      entry: string;
+      hash: string;
+      index: number;
+      section?: string;
+      under?: string;
+      underAt?: number;
+    }>) =>
+      priorities(
+        ctx,
+        await refusable(() =>
+          ctx.binding.dropPriority(
+            ctx.repo,
+            input.entry,
+            input.at ?? null,
+            input.section ?? null,
+            input.under ?? null,
+            input.underAt ?? null,
+            input.index,
+            input.hash,
+          ),
+        ),
+        select,
+      ),
+    type: "Priorities",
+  },
   "priorities.remove": {
     resolve: async ({ ctx, input, select }: Resolver<{ entry: string; hash: string }>) =>
       priorities(

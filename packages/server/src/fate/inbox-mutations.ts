@@ -182,6 +182,62 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
+  "inbox.outline": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ at?: number; hash: string; kind: string; note: string; text?: string }>) =>
+      inbox(
+        ctx,
+        await refusable(() =>
+          ctx.binding.outlineNote(
+            ctx.repo,
+            input.note,
+            input.at ?? null,
+            input.kind,
+            input.text ?? null,
+            input.hash,
+          ),
+        ),
+        select,
+      ),
+    type: "Inbox",
+  },
+  // A drop: the note, or its nested item `at`, under the note `under` (its nested item `underAt`),
+  // or a note of `category`, or of the notes without one, at `index` there.
+  "inbox.drop": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{
+      at?: number;
+      category?: string;
+      hash: string;
+      index: number;
+      note: string;
+      under?: string;
+      underAt?: number;
+    }>) =>
+      inbox(
+        ctx,
+        await refusable(() =>
+          ctx.binding.dropNote(
+            ctx.repo,
+            input.note,
+            input.at ?? null,
+            input.category ?? null,
+            input.under ?? null,
+            input.underAt ?? null,
+            input.index,
+            input.hash,
+          ),
+        ),
+        select,
+      ),
+    type: "Inbox",
+  },
   "inbox.remove": {
     resolve: async ({ ctx, input, select }: Resolver<NoteInput>) =>
       inbox(

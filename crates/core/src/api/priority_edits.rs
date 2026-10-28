@@ -148,6 +148,68 @@ pub fn edit_priority(repo: &Path, id: &str, line: &str, previous: &str) -> Resul
     Ok(workspace.join_priorities(edits::edit(&place, id, line, previous)?))
 }
 
+/// Edits a line's outline: the line, or with `at`, its nested item at `at`, in the order of the
+/// file. `kind` and `text` name the edit (see [`priorities::OutlineEdit::from_kind`]).
+pub fn outline_priority(
+    repo: &Path,
+    id: &str,
+    at: Option<u32>,
+    kind: &str,
+    text: Option<&str>,
+    previous: &str,
+) -> Result<Priorities> {
+    let edit = priorities::OutlineEdit::from_kind(kind, text)
+        .ok_or_else(|| refused(format!("no outline edit {kind}, or an empty text")))?;
+    let _lock = write_lock();
+    let (place, workspace) = reach_default_from(repo)?;
+    Ok(workspace.join_priorities(edits::outline(
+        &place,
+        id,
+        at.map(|at| at as usize),
+        &edit,
+        previous,
+    )?))
+}
+
+/// Moves a line, or with `at` its nested item at `at`, its own items with it: what a drop writes.
+/// With `under`, it goes under that line, or with `under_at` under its nested item at `under_at`;
+/// else it is a line of `section`. `index` is its place there, counted once it left.
+#[allow(clippy::too_many_arguments)]
+pub fn drop_priority(
+    repo: &Path,
+    id: &str,
+    at: Option<u32>,
+    section: Option<&str>,
+    under: Option<&str>,
+    under_at: Option<u32>,
+    index: u32,
+    previous: &str,
+) -> Result<Priorities> {
+    let index = index as usize;
+    let to = match under {
+        Some(entry) => priorities::Drop::Under {
+            entry: entry.to_string(),
+            at: under_at.map(|at| at as usize),
+            index,
+        },
+        None => priorities::Drop::Entry {
+            section: section
+                .and_then(priorities::Section::from_id)
+                .ok_or_else(|| refused("a drop needs a section or a line to go under"))?,
+            index,
+        },
+    };
+    let _lock = write_lock();
+    let (place, workspace) = reach_default_from(repo)?;
+    Ok(workspace.join_priorities(edits::drop_item(
+        &place,
+        id,
+        at.map(|at| at as usize),
+        &to,
+        previous,
+    )?))
+}
+
 /// Removes a line and its nested lines.
 pub fn remove_priority(repo: &Path, id: &str, previous: &str) -> Result<Priorities> {
     let _lock = write_lock();

@@ -160,6 +160,40 @@ pub fn edit(
     )
 }
 
+/// Edits the outline of an entry: the entry, or with `at`, the item at `at` of its nested items in
+/// the order of the file (see [`priorities::outline`]).
+pub fn outline(
+    place: &Place,
+    id: &str,
+    at: Option<usize>,
+    edit: &priorities::OutlineEdit,
+    previous: &str,
+) -> Result<Priorities, ActionError> {
+    apply(
+        place,
+        previous,
+        |text| priorities::outline(text, id, at, edit),
+        &format!("no priority {id}, no such item, nowhere to go, or code under it"),
+    )
+}
+
+/// Moves an entry, or with `at` its nested item at `at`, its own items with it, to `to`: a drop
+/// (see [`priorities::drop_item`]).
+pub fn drop_item(
+    place: &Place,
+    id: &str,
+    at: Option<usize>,
+    to: &priorities::Drop,
+    previous: &str,
+) -> Result<Priorities, ActionError> {
+    apply(
+        place,
+        previous,
+        |text| priorities::drop_item(text, id, at, to),
+        &format!("no priority {id}, no such item or place, or code under it"),
+    )
+}
+
 /// Removes an entry and its nested lines.
 pub fn remove(place: &Place, id: &str, previous: &str) -> Result<Priorities, ActionError> {
     apply(

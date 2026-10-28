@@ -110,6 +110,69 @@ pub fn edit_note(repo: &Path, id: &str, text: &str, previous: &str) -> Result<In
     Ok(edits::edit(&place, id, text, Some(previous))?)
 }
 
+/// Edits a note's outline: the note, or with `at`, its nested item at `at`, in the order of the
+/// file. `kind` and `text` name the edit (see [`OutlineEdit::from_kind`]).
+///
+/// [`OutlineEdit::from_kind`]: crate::files::nested::OutlineEdit::from_kind
+pub fn outline_note(
+    repo: &Path,
+    id: &str,
+    at: Option<u32>,
+    kind: &str,
+    text: Option<&str>,
+    previous: &str,
+) -> Result<Inbox> {
+    let change = crate::files::nested::OutlineEdit::from_kind(kind, text)
+        .ok_or_else(|| super::refused(format!("no outline edit {kind}, or an empty text")))?;
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    Ok(edits::outline(
+        &place,
+        id,
+        at.map(|at| at as usize),
+        &change,
+        Some(previous),
+    )?)
+}
+
+/// Moves a note, or with `at` its nested item at `at`, its own items with it: what a drop writes.
+/// With `under`, it goes under that note, or with `under_at` under its nested item at `under_at`;
+/// else it is a note of `category`, or of the notes without one. `index` is its place there,
+/// counted once it left.
+#[allow(clippy::too_many_arguments)]
+pub fn drop_note(
+    repo: &Path,
+    id: &str,
+    at: Option<u32>,
+    category: Option<&str>,
+    under: Option<&str>,
+    under_at: Option<u32>,
+    index: u32,
+    previous: &str,
+) -> Result<Inbox> {
+    let index = index as usize;
+    let to = match under {
+        Some(note) => crate::files::inbox::Drop::Under {
+            note: note.to_string(),
+            at: under_at.map(|at| at as usize),
+            index,
+        },
+        None => crate::files::inbox::Drop::Note {
+            category: category.map(String::from),
+            index,
+        },
+    };
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    Ok(edits::drop_item(
+        &place,
+        id,
+        at.map(|at| at as usize),
+        &to,
+        Some(previous),
+    )?)
+}
+
 /// Removes a note, sub-items included.
 pub fn remove_note(repo: &Path, id: &str, previous: &str) -> Result<Inbox> {
     let _lock = write_lock();

@@ -340,6 +340,59 @@ pub fn edit_priority(
     job(move || api::edit_priority(Path::new(&repo), &id, &text, &previous))
 }
 
+/// Edits a priority line's outline: the line, or with `at`, its nested item at `at` in the order
+/// of the file. `kind` is `edit`, `insert-below`, `insert-above`, `append-child`, `remove`,
+/// `indent`, `outdent`, `up`, or `down`; `text` is the line those that write one write.
+#[napi(ts_return_type = "Promise<Priorities>")]
+pub fn outline_priority(
+    repo: String,
+    id: String,
+    at: Option<u32>,
+    kind: String,
+    text: Option<String>,
+    previous: String,
+) -> AsyncTask<Job<Priorities>> {
+    job(move || {
+        api::outline_priority(
+            Path::new(&repo),
+            &id,
+            at,
+            &kind,
+            text.as_deref(),
+            &previous,
+        )
+    })
+}
+
+/// Moves a priority line, or with `at` its nested item at `at`, its own items with it: what a drop
+/// writes. With `under`, it goes under that line, or with `underAt` under its nested item at
+/// `underAt`; else it is a line of `section`. `index` is its place there, counted once it left.
+#[napi(ts_return_type = "Promise<Priorities>")]
+#[allow(clippy::too_many_arguments)]
+pub fn drop_priority(
+    repo: String,
+    id: String,
+    at: Option<u32>,
+    section: Option<String>,
+    under: Option<String>,
+    under_at: Option<u32>,
+    index: u32,
+    previous: String,
+) -> AsyncTask<Job<Priorities>> {
+    job(move || {
+        api::drop_priority(
+            Path::new(&repo),
+            &id,
+            at,
+            section.as_deref(),
+            under.as_deref(),
+            under_at,
+            index,
+            &previous,
+        )
+    })
+}
+
 /// Removes a priority line and its nested lines.
 #[napi(ts_return_type = "Promise<Priorities>")]
 pub fn remove_priority(repo: String, id: String, previous: String) -> AsyncTask<Job<Priorities>> {

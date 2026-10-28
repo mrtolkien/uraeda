@@ -34,6 +34,9 @@ pub struct InboxNote {
     pub nested: Vec<String>,
     /// The text of each nested item, without its marker.
     pub nested_spans: Vec<Vec<super::super::document::Span>>,
+    /// Its nested items at any depth, in the order of the file: what its outline shows, and what an
+    /// edit of one names by its index.
+    pub children: Vec<super::super::nested::NestedItem>,
 }
 
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
@@ -73,7 +76,7 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
     let draft_title = draft.as_ref().and_then(|_| link_text(&markdown));
     InboxNote {
         id: note.id,
-        key: note.key,
+        key: note.key.clone(),
         text: markdown,
         spans: doc
             .blocks
@@ -96,6 +99,7 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
             .map(|l| l.to_string())
             .collect(),
         nested_spans: super::super::lines::nested_spans(&lines[item.text_end..item.end]),
+        children: super::super::nested::nested_items(&note.key, &lines[item.text_end..item.end]),
     }
 }
 
