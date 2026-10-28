@@ -91,8 +91,9 @@ export function stepCore(
 }
 
 /**
- * The core's key handler, for its element: see `stepCore`. A key a sequence or the leader's menu
- * waits for is theirs: `g h`'s `h`, or `Space` then `j`, never moves the focus.
+ * The core's key handler, for its element: see `stepCore`. A letter typed while a sequence or the
+ * leader's menu waits is theirs: `g h`'s `h`, or `Space` then `j`, never moves the focus; the arrows,
+ * which no sequence takes, still do.
  */
 export function useCoreKeys(
   core: RefObject<HTMLElement | null>,
@@ -108,7 +109,7 @@ export function useCoreKeys(
       if (
         step === undefined ||
         from === undefined ||
-        leaderWaits() ||
+        (isLetter && leaderWaits()) ||
         event.ctrlKey ||
         event.metaKey ||
         event.altKey ||
