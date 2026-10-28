@@ -1,8 +1,8 @@
 // A card's row in the shell's panes, our own (an Astryx gap, plan's Complexity tracking):
 // `SideNavItem` takes its label as a string on one line, cut by an ellipsis, where the card's name
 // must read whole. Its link holds the kind's icon, the name, wrapping onto a second line when it
-// must, the step under it, and the status at its end; its "…" sits beside the link, as
-// `SideNavItem`'s actions do. It is drawn from the styles Astryx shares for nav rows.
+// must, the step under it, and the status at its end. It is drawn from the styles Astryx shares
+// for nav rows.
 import { navItemStyles } from "@astryxdesign/core/NavItem/navItemStyles.stylex";
 import { Text } from "@astryxdesign/core/Text";
 import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -14,11 +14,6 @@ import { RouterAnchor } from "../links.tsx";
 import { brighten } from "./brighten.ts";
 
 const styles = stylex.create({
-  actions: {
-    alignItems: "center",
-    display: "flex",
-    flexShrink: 0,
-  },
   end: {
     // On the name's first line.
     alignItems: "center",
@@ -74,7 +69,6 @@ const styles = stylex.create({
 });
 
 export function CardRow({
-  actions,
   endContent,
   href,
   icon,
@@ -85,8 +79,6 @@ export function CardRow({
   onClick,
   sub,
 }: {
-  /** Its controls beside the link, like its "…": none on home's rows. */
-  actions?: ReactNode;
   /** Passive content at the link's end, like its status. */
   endContent: ReactNode;
   href: string;
@@ -152,7 +144,6 @@ export function CardRow({
         {/* A space before its end too: its visible text, as the name reads it, never runs together. */}{" "}
         <span {...stylex.props(styles.end, isEndTall && styles.endTall)}>{endContent}</span>
       </RouterAnchor>
-      {actions && <span {...stylex.props(styles.actions)}>{actions}</span>}
     </div>
   );
 }

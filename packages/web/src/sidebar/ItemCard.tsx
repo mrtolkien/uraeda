@@ -1,8 +1,8 @@
 // A session's, a change's, or a feature's card in the shell: every line about it, a row of its pane.
 // Its first line is its kind's icon, its whole name, wrapping when it must, and at the end its
-// background command and status, then its "…": a session's actions, or a change's or a feature's
-// settings. Under the name, a change's or a feature's step; then, while it has any, its task's
-// progress and the lines its branch changed, with its pull request; then its running sub-agents.
+// background command and status. Under the name, a change's or a feature's step; then, while it
+// has any, its task's progress and the lines its branch changed, with its pull request; then its
+// running sub-agents.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Spinner } from "@astryxdesign/core/Spinner";
@@ -294,9 +294,6 @@ function Meta({
   );
 }
 
-/** A session's actions in its "…". */
-export type CardAction = { label: string; onClick: () => void };
-
 /**
  * The closed rail's mark of the card's status, under its icon: the next step's chevron, the agent
  * at work on it, or its status mark.
@@ -344,8 +341,6 @@ export function ItemCard({
   onOpen,
   onStatus,
 }: {
-  /** A session's actions, which its "…" lists. */
-  actions?: Array<CardAction>;
   /** More about it on a third line, as home's cards say: what it asks, how long it takes. */
   detail?: string | undefined;
   href: string;
@@ -353,8 +348,6 @@ export function ItemCard({
   item: CardItem;
   /** Opens the item's page inside the app, instead of loading `href`. */
   onOpen?: () => void;
-  /** Opens a change's or a feature's settings. */
-  onSettings?: () => void;
   /** Opens what its status points to, on a click on the status: its session, or what it asks. */
   onStatus?: () => void;
 }) {

@@ -1,5 +1,5 @@
-// Mockups of a feature's settings, opened from the "…" of its card: a dialog on wide screens, a
-// bottom sheet on the phone.
+// Mockups of a feature's settings, opened from Rename in the "…" beside its title: a dialog on wide
+// screens, a bottom sheet on the phone.
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Overlay } from "../layout/Overlay.tsx";
 import { FeatureSettingsForm } from "./FeatureSettings.tsx";

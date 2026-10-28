@@ -1,5 +1,5 @@
-// A feature's or a change's settings, from the "…" of its card: its name in the sidebar, kept by
-// the server for this repository. An empty name shows the slug again.
+// A feature's or a change's settings, from Rename in the "…" beside its title: its name in the
+// sidebar, kept by the server for this repository. An empty name shows the slug again.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
