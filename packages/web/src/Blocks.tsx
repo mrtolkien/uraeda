@@ -125,8 +125,9 @@ const styles = stylex.create({
   },
   // A section that reads as prose, a round's context: more room between its paragraphs.
   airyParagraph: { marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-4"] } },
-  // Such a section's text: a shorter line, about 70 characters, and more room between its lines.
-  airy: { "--size-reading-measure": "63ch", "--text-reading-line": "1.65" },
+  // Such a section's text: as wide as its pane, which its page keeps narrow, about 70 characters a
+  // line, and more room between its lines.
+  airy: { "--size-reading-measure": "none", "--text-reading-line": "1.65" },
   // A leading paragraph's first sentence, on a line of its own, and the rest under it, dimmer.
   leadSentence: {
     color: colorVars["--color-text-primary"],

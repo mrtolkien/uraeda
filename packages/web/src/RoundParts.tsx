@@ -27,6 +27,9 @@ const styles = stylex.create({
   badgeNarrow: { alignSelf: "flex-start" },
   lead: { marginBlock: spacingVars["--spacing-1"] },
   verdict: { paddingBlock: spacingVars["--spacing-2"] },
+  // The context's panes, narrower than the page's others: their prose, which fills them, about 70
+  // characters a line in the reading font (82 of the UI's characters, the pane's own).
+  context: { "--pane-max": "82ch" },
 });
 
 /** The verdict's badge, by the kind the core reads: its words and its colour. */
@@ -215,19 +218,21 @@ export function RoundContext({
   );
   return (
     <div ref={ref}>
-      {parts.map((part, index) => {
-        if (!isPaired || (index !== scope && index !== scope + 1)) {
-          return pane(part);
-        }
-        return (
-          index === scope && (
-            <Grid columns={isRoomy ? 2 : 1} gap={4} key="scope-sources">
-              {pane(part)}
-              {sources && pane(sources)}
-            </Grid>
-          )
-        );
-      })}
+      <div {...stylex.props(styles.context)}>
+        {parts.map((part, index) => {
+          if (!isPaired || (index !== scope && index !== scope + 1)) {
+            return pane(part);
+          }
+          return (
+            index === scope && (
+              <Grid columns={isRoomy ? 2 : 1} gap={4} key="scope-sources">
+                {pane(part)}
+                {sources && pane(sources)}
+              </Grid>
+            )
+          );
+        })}
+      </div>
       {check}
     </div>
   );
