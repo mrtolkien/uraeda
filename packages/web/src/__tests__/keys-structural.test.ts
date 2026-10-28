@@ -77,7 +77,9 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
   "embedLayout.ts": { hits: 1, reason: "Escape leaves the full-screen overlay it draws (R132)" },
   "fields/Confirm.tsx": {
     hits: 4,
-    reason: "a dialog's own keys while it is open: y, n, and the question's own confirm key",
+    reason:
+      "a dialog's own keys while it is open, whatever the single-key setting: y, the cancel key " +
+      "(n), and the question's own confirm key and answers' keys, as a category delete's n and c",
   },
   "fields/TextField.tsx": {
     hits: 2,
@@ -102,10 +104,6 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
   "KindCards.tsx": {
     hits: 1,
     reason: "a radio group's own keys: the arrows move between its cards",
-  },
-  "lists/CategoryPane.tsx": {
-    hits: 4,
-    reason: "a dialog's own keys while it is open: y, n, c, which follow the switch (R90)",
   },
   "lists/OutlineEditor.tsx": {
     hits: 3,

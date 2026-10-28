@@ -2,10 +2,11 @@
 // fixture repository's real priorities, workspace, and inbox (see `.storybook/fixture.ts`): their
 // data comes from Uraeda's server in Storybook, through fate.
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { useWorkspace } from "../data.ts";
+import { ConfirmHost, useConfirm } from "../fields/Confirm.tsx";
 import { InboxPage } from "../InboxPage.tsx";
-import { DeleteCategoryDialog } from "./CategoryPane.tsx";
+import { deleteCategory } from "./CategoryPane.tsx";
 import { PrioritiesPage } from "../PrioritiesPage.tsx";
 import { RepositoryPathContext } from "../routes.tsx";
 
@@ -67,12 +68,21 @@ export const Selected: Story = {
  */
 export const Inbox: Story = { render: () => <InboxPage /> };
 
+/** Asks what becomes of the category UI's three notes, as its delete does, once drawn. */
+function DeleteQuestion() {
+  const confirm = useConfirm();
+  useEffect(() => {
+    void confirm(deleteCategory("UI", 3));
+  }, [confirm]);
+  return null;
+}
+
 /** A category's delete asking what becomes of its three notes, over the inbox. */
 export const CategoryDelete: Story = {
   render: () => (
-    <>
+    <ConfirmHost>
       <InboxPage />
-      <DeleteCategoryDialog count={3} isOpen name="UI" onAnswer={() => undefined} />
-    </>
+      <DeleteQuestion />
+    </ConfirmHost>
   ),
 };

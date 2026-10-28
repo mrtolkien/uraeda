@@ -79,15 +79,15 @@ export function useMovePicker(categories: ReadonlyArray<Category>) {
 
 /**
  * The category keys: `C` calls `onNewCategory`, and `D` and `R` open a picker of the categories,
- * whose pick deletes or renames it. `renaming` is the category whose title a pick opened, and
- * `dialog` the question a delete asks.
+ * whose pick deletes or renames it, a delete asking in the app's confirmation. `renaming` is the
+ * category whose title a pick opened.
  */
 export function useCategoryKeys(
   categories: ReadonlyArray<Category>,
   actions: Actions,
   onNewCategory: () => void,
   onRefused: (message: string | undefined) => void,
-): { dialog: ReactNode; picker: ReactNode; renaming: { count: number; name: string } | undefined } {
+): { picker: ReactNode; renaming: { count: number; name: string } | undefined } {
   // `R`'s rename, opened in a category's title: each pick counts up, which opens it again.
   const [renaming, setRenaming] = useState<{ count: number; name: string }>();
   // `D` and `R`'s picker of the categories, and what a pick does.
@@ -128,7 +128,7 @@ export function useCategoryKeys(
       return;
     }
     if (choosing === "delete") {
-      deleting.start(name, category?.notes.length ?? 0);
+      void deleting.start(name, category?.notes.length ?? 0);
     } else {
       setRenaming((before) => ({ count: (before?.count ?? 0) + 1, name }));
     }
@@ -146,5 +146,5 @@ export function useCategoryKeys(
       title={choosing === "rename" ? "Rename a category" : "Delete a category"}
     />
   );
-  return { dialog: deleting.dialog, picker, renaming };
+  return { picker, renaming };
 }
