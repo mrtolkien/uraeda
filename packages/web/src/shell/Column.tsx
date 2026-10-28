@@ -13,6 +13,7 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import { useMemo, useRef, useState } from "react";
 import { useKeys } from "../keys/registry.tsx";
+import { paneVars } from "../layout/pane.stylex.ts";
 import { Allowance } from "../sidebar/Allowance.tsx";
 import { SearchField, useSessionQuery } from "../sidebar/Search.tsx";
 import { ColumnActions, ColumnFoot, ColumnHeading, Navigate } from "./ColumnPanes.tsx";
@@ -32,6 +33,8 @@ const styles = stylex.create({
     // Its panes' narrow inset: their rows carry their own, and a row's label, such as Priorities
     // beside its count and its ＋, keeps its room in the 256 px column.
     "--pane-inset": "var(--size-rail-inset)",
+    // Its panes end on their cards, tight, as the rail's icons stand close.
+    [paneVars["--pane-end"]]: spacingVars["--spacing-1"],
     // As tall as the window: its heading and foot stay, and the panes between them scroll.
     backgroundColor: colorVars["--color-background-body"],
     borderInlineEndColor: colorVars["--color-border"],
@@ -170,6 +173,10 @@ nav[data-rail="closed"] [data-card]::after {
   width: 38px;
 }
 nav[data-rail="closed"] section[data-tone="attention"] [data-card]::after { border-color: var(--color-border-orange); }
+/* The selected card's grey fills its frame, behind its icons: its row's, as wide as the open card, ran past the frame. */
+nav[data-rail="closed"] [data-card] { isolation: isolate; }
+nav[data-rail="closed"] [data-card]:has(a[aria-current="page"])::after { background-color: var(--color-neutral); z-index: -1; }
+nav[data-rail="closed"] [data-card] div:has(> a[aria-current="page"]) { background-color: transparent !important; }
 nav[data-rail="closed"] [data-card][data-rail-mark-only] [data-rail-only] { bottom: 0; height: fit-content; margin-block: auto; top: 0 !important; }
 nav[data-rail="closed"] [data-card][data-rail-mark-only] a > span:first-child { visibility: hidden; }
 nav[data-rail="closed"] h2, nav[data-rail="closed"] h3 { visibility: hidden; }
@@ -285,12 +292,7 @@ export function Column({ isWide }: { isWide: boolean }) {
           )}
         >
           <style>{RAIL_CSS}</style>
-          <div
-            {...stylex.props(
-              styles.inner,
-              isRail && widths.content(openWidth),
-            )}
-          >
+          <div {...stylex.props(styles.inner, isRail && widths.content(openWidth))}>
             <ColumnHeading
               isRevealed={rail.isHovered}
               {...(isWide

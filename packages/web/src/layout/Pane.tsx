@@ -15,6 +15,7 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, createContext, use, useId, useRef } from "react";
 import { SinceSign, useSinceTitle } from "../sinceMarks.tsx";
+import { paneVars } from "./pane.stylex.ts";
 import { useScrollMargin } from "./scrollMargin.ts";
 import { useActionsRoom } from "./useActionsRoom.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
@@ -167,7 +168,8 @@ const styles = stylex.create({
     // Room above for the half of the title over the border.
     marginBlockStart: spacingVars["--spacing-3"],
     minWidth: 0,
-    paddingBlockEnd: spacingVars["--spacing-1"],
+    // Under its last line or button, the room under its title: one token, every pane's.
+    paddingBlockEnd: paneVars["--pane-end"],
     // The title, in the flow, takes the room above the content.
     paddingBlockStart: 0,
     // The theme's room, or a narrower one an ancestor sets, as the shell's column does.
