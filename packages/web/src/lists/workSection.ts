@@ -26,7 +26,7 @@ export interface WorkSection {
   id: string;
   /** Whether its rows stay where they are, and nothing is dropped in it, as the ongoing entries. */
   isFixed?: boolean;
-  /** Its menu, in the top border at its end. */
+  /** Its actions, in the top border at its end, as a category's delete button. */
   menu?: ReactNode;
   rows: ReadonlyArray<WorkRow>;
   title: string;

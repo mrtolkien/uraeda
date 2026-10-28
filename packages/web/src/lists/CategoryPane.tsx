@@ -1,6 +1,8 @@
-// The parts of a category's pane: its title, renamed in place; its menu, whose Delete asks what
-// becomes of the notes when there are any, in the app's one confirmation (`fields/Confirm.tsx`),
-// with a third answer.
+// The parts of a category's pane: its title, renamed in place; and its delete, a button in the
+// pane's border, which asks what becomes of the notes when there are any, in the app's one
+// confirmation (`fields/Confirm.tsx`), with a third answer.
+import { Button } from "@astryxdesign/core/Button";
+import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -8,7 +10,6 @@ import { useEffect, useEffectEvent } from "react";
 import { LineField } from "../EditableLine.tsx";
 import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
 import { useLineSave } from "../useLineSave.ts";
-import { CardMenu } from "./CardMenu.tsx";
 import { plural } from "../labels.ts";
 
 const styles = stylex.create({
@@ -80,7 +81,7 @@ export function deleteCategory(name: string, count: number): ConfirmOptions<"kee
 }
 
 /**
- * A category's delete, from its menu or a key: with notes it asks first (`deleteCategory`); an
+ * A category's delete, from its button or a key: with notes it asks first (`deleteCategory`); an
  * empty category goes at once, with its Undo, as there is nothing to ask about. `onRemove` writes
  * the delete, keeping the notes or not, and resolves with the refusal's message to show, if any.
  * Returns what starts it, for a category and its count of notes.
@@ -105,8 +106,11 @@ export function useCategoryDelete(
   return { start };
 }
 
-/** A category's menu, in its pane's border: Delete (see `useCategoryDelete`). */
-export function CategoryMenu({
+/**
+ * A category's delete, in its pane's border: its icon, named for screen readers and in its tooltip,
+ * a target for the mouse and touch beside the `D` key (see `useCategoryDelete`).
+ */
+export function DeleteCategoryButton({
   count,
   name,
   onRefused,
@@ -119,9 +123,14 @@ export function CategoryMenu({
 }) {
   const { start } = useCategoryDelete(onRemove, onRefused);
   return (
-    <CardMenu
-      items={[{ label: "Delete", onClick: () => void start(name, count), variant: "destructive" }]}
-      label={`Actions of category ${name}`}
+    <Button
+      icon={<Icon icon="uraeda:trash" />}
+      isIconOnly
+      label={`Delete category ${name}`}
+      onClick={() => void start(name, count)}
+      size="sm"
+      tooltip="Delete category"
+      variant="ghost"
     />
   );
 }

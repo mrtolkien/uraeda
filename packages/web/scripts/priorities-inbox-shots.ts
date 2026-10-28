@@ -45,12 +45,7 @@ export async function takePrioritiesInbox(each: Each) {
   });
   await each("lists-category-delete", async ({ page }) => {
     await open(page, "/inbox", FIRST);
-    await page.getByRole("button", { name: "Actions of category UI" }).click();
-    // A menu item in a popover, a button in the sheet of a narrow screen.
-    await page
-      .getByRole("menuitem", { name: "Delete" })
-      .or(page.getByRole("dialog").getByRole("button", { exact: true, name: "Delete" }))
-      .click();
+    await page.getByRole("button", { name: "Delete category UI" }).click();
     await page.getByRole("dialog", { name: "Delete the category UI" }).waitFor();
     await settle(page);
     await checkPage(page, "lists-category-delete");
