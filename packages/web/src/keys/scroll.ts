@@ -113,6 +113,19 @@ function step(event: KeyboardEvent, direction: 1 | -1) {
   glideBy(area, direction * LINES * lineOf(area));
 }
 
+/**
+ * Scrolls the area half its height, `direction` 1 for down and -1 for up, gliding, as Vim's do.
+ * Only with Control: Command+D and Command+U, which `mod+` names too, stay the browser's on a Mac.
+ */
+function half(event: KeyboardEvent, direction: 1 | -1) {
+  if (!event.ctrlKey || event.metaKey) {
+    return false;
+  }
+  const area = areaOf(event.target);
+  const height = area === null ? window.innerHeight : area.clientHeight;
+  glideBy(area, (direction * height) / 2);
+}
+
 /** Scrolls the area to its top or its bottom, with no animation: `g g` is the top too. */
 export function edge(event: KeyboardEvent, to: "bottom" | "top") {
   const area = areaOf(event.target);
@@ -132,10 +145,15 @@ const fallback = (keys: string, label: string, run: (event: KeyboardEvent) => vo
   run,
 });
 
-/** The bindings of the fallback: `j k`, the arrows, `+ -`, `Home End`, and `G`. */
+/**
+ * The bindings of the fallback: `j k`, the arrows, `+ -`, Ctrl+D and Ctrl+U half a screen, `Home
+ * End`, and `G`.
+ */
 const SCROLL: ReadonlyArray<Binding> = [
   ...["j", "ArrowDown", "+"].map((keys) => fallback(keys, "Scroll down", (e) => step(e, 1))),
   ...["k", "ArrowUp", "-"].map((keys) => fallback(keys, "Scroll up", (e) => step(e, -1))),
+  fallback("mod+d", "Scroll half a screen down", (event) => half(event, 1)),
+  fallback("mod+u", "Scroll half a screen up", (event) => half(event, -1)),
   fallback("Home", "Scroll to the top", (event) => edge(event, "top")),
   ...["End", "G"].map((keys) => fallback(keys, "Scroll to the bottom", (e) => edge(e, "bottom"))),
 ];
