@@ -717,7 +717,8 @@ fn a_typed_draft_a_new_entry_links_is_kept_and_committed() {
 }
 
 /// A note added since the last commit, then added to a committed draft, leaves the same files as
-/// a bullet typed in the draft: the commit bar counts neither, and Discard keeps the note's text.
+/// a bullet typed in the draft: the commit bar counts either as the draft's edit, and Discard keeps
+/// the note's text.
 #[test]
 fn a_new_note_added_to_a_draft_stays_in_the_draft() {
     let repo = fixture_repo();
@@ -727,7 +728,7 @@ fn a_new_note_added_to_a_draft_stays_in_the_draft() {
     actions::to_draft(&place, &id(&inbox, "Dark mode"), LOOK, &inbox.hash).unwrap();
     let grown = repo.read(LOOK);
 
-    assert_eq!(changes::list(&place).count, 0);
+    assert_eq!(changes::list(&place).count, 1);
     changes::discard(&place).unwrap();
 
     assert_eq!(repo.read(LOOK), grown);
