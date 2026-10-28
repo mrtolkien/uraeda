@@ -176,7 +176,13 @@ function ContextPane({
       isOpenOnPhone
       title={part.title || "Context"}
     >
-      <Blocks document={document} ids={part.blocks} />
+      {/* Prose given air, and the goal's and the scope's first sentence leading: what each says first. */}
+      <Blocks
+        document={document}
+        hasLead={anchor === "goal" || anchor === "scope"}
+        ids={part.blocks}
+        isAiry
+      />
     </Pane>
   );
 }

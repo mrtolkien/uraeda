@@ -6,7 +6,7 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
-import type { Block, Document } from "uraeda-binding";
+import type { Block, Document, Span } from "uraeda-binding";
 import { proseStyles } from "./Prose.tsx";
 import { Diagram, type Place } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
@@ -45,13 +45,15 @@ const styles = stylex.create({
   // A table as wide as its columns: past the reading measure into the page's margin, scrolling only
   // past that.
   // Its maximum width is set by `TableBlock`, which measures what remains of the screen.
+  // Each block's room under it, but the last's of what holds it, a pane or a callout, which ends with
+  // it: its own room would add to the pane's under it.
   block: {
-    marginBlockEnd: spacingVars["--spacing-3"],
+    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-3"] },
   },
   callout: {
     // A callout: a bar down its side, coloured by its kind, its title above its text.
     borderInlineStartColor: colorVars["--color-accent"],
-    marginBlockEnd: spacingVars["--spacing-4"],
+    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-4"] },
   },
   calloutImportant: { borderInlineStartColor: colorVars["--color-border-purple"] },
   calloutTip: { borderInlineStartColor: colorVars["--color-success"] },
@@ -105,9 +107,20 @@ const styles = stylex.create({
   // The room of a hanging list's markers, its gap before the text included.
   markerRoom: (width: string) => ({ "--list-marker": width }),
   paragraph: {
-    marginBlockEnd: spacingVars["--spacing-3"],
+    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-3"] },
     marginBlockStart: 0,
   },
+  // A section that reads as prose, a round's context: more room between its paragraphs.
+  airyParagraph: { marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-4"] } },
+  // Such a section's text: a shorter line, about 70 characters, and more room between its lines.
+  airy: { "--size-reading-measure": "63ch", "--text-reading-line": "1.65" },
+  // A leading paragraph's first sentence, on a line of its own, and the rest under it, dimmer.
+  leadSentence: {
+    color: colorVars["--color-text-primary"],
+    display: "block",
+    fontWeight: fontWeightVars["--font-weight-medium"],
+  },
+  leadRest: { color: colorVars["--color-text-secondary"], display: "block" },
   pro: { color: colorVars["--color-success"] },
   row: {
     // A list's row, as tall as its text: a touch screen's 44 px rows (`theme.ts`) are for controls,
@@ -152,6 +165,10 @@ function useChildren(document: Document) {
 export type BlockContext = {
   children: Map<number | undefined, Array<Block>>;
   document: Document;
+  /** Its paragraphs given more room between them, as a round's context's (see `Blocks`). */
+  isAiry?: boolean;
+  /** The paragraph whose first sentence leads, set apart: a round's goal's first. */
+  lead?: number;
   /** Draws a block its own way, when it returns something. */
   override?: (block: Block) => ReactNode | undefined;
   /** The room a jump to a heading leaves above it, as below the phone's tabs. */
@@ -300,6 +317,49 @@ function ListNode({ block, context }: { block: Block; context: BlockContext }) {
   );
 }
 
+/**
+ * A paragraph's spans split after its first sentence: the sentence's, and the rest's. The end is
+ * the first ".", "!" or "?" before a space or the end in plain text, not in code nor a link. None
+ * when the paragraph is one sentence.
+ */
+function firstSentence(spans: ReadonlyArray<Span>): [Array<Span>, Array<Span>] | undefined {
+  for (const [index, span] of spans.entries()) {
+    if (span.code || span.link || span.image) {
+      continue;
+    }
+    const end = /[.!?](?=\s)/.exec(span.text);
+    if (end) {
+      const at = end.index + 1;
+      const rest = [{ ...span, text: span.text.slice(at).trimStart() }, ...spans.slice(index + 1)];
+      return rest.some((one) => one.text !== "" || one.image)
+        ? [[...spans.slice(0, index), { ...span, text: span.text.slice(0, at) }], rest]
+        : undefined;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * A paragraph that leads: its first sentence on a line of its own, in the text's colour and
+ * heavier, the rest under it in the secondary colour, so that what a section is about reads first.
+ */
+function Led({ spans }: { spans: ReadonlyArray<Span> }) {
+  const split = firstSentence(spans);
+  if (!split) {
+    return <Spans isAlone spans={spans} />;
+  }
+  return (
+    <>
+      <span {...stylex.props(styles.leadSentence)}>
+        <Spans spans={split[0]} />
+      </span>
+      <span {...stylex.props(styles.leadRest)}>
+        <Spans spans={split[1]} />
+      </span>
+    </>
+  );
+}
+
 /** The kinds drawn whole by a node of their own, or by their parent's: never selected alone. */
 const UNWRAPPED = new Set<Block["kind"]>(["list", "item", "table", "row", "cell"]);
 
@@ -323,10 +383,14 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       return (
         <Paragraph
           as={!context.staticImages && block.spans.some(opensImage) ? "div" : "p"}
-          xstyle={styles.paragraph}
+          xstyle={[styles.paragraph, context.isAiry && styles.airyParagraph]}
         >
           <SinceWords block={block}>
-            <Spans isAlone spans={block.spans} />
+            {block.id === context.lead ? (
+              <Led spans={block.spans} />
+            ) : (
+              <Spans isAlone spans={block.spans} />
+            )}
           </SinceWords>
         </Paragraph>
       );
@@ -424,36 +488,45 @@ function BlockNode({ block, context }: { block: Block; context: BlockContext }):
 export function Blocks({
   document,
   folds,
+  hasLead = false,
   ids,
+  isAiry = false,
   override,
   selection,
 }: {
   document: Document;
   folds?: Folds;
+  /** Its first paragraph's first sentence leads, apart from the rest: a round's goal. */
+  hasLead?: boolean;
   ids?: ReadonlyArray<number>;
+  /** Prose given air: a shorter line, taller lines, more room between paragraphs. */
+  isAiry?: boolean;
   override?: (block: Block) => ReactNode | undefined;
   selection?: Selection;
 }) {
   const children = useChildren(document);
   useHashFold(document, folds);
-  const context = {
-    children,
-    document,
-    override,
-    scrollMargin: useScrollMargin(),
-    selection,
-    staticImages: useStaticImages(),
-  };
   const blocks = ids
     ? ids.map((id) => document.blocks[id]).filter(Boolean)
     : (children.get(undefined) ?? []);
+  const lead = hasLead ? blocks.find((block) => block.kind === "paragraph")?.id : undefined;
+  const context: BlockContext = {
+    children,
+    document,
+    isAiry,
+    ...(lead === undefined ? {} : { lead }),
+    ...(override ? { override } : {}),
+    scrollMargin: useScrollMargin(),
+    ...(selection ? { selection } : {}),
+    staticImages: useStaticImages(),
+  };
   const folded = new Map<number, Fold | undefined>();
   for (const fold of folds?.list ?? []) {
     fold.ids.forEach((id, index) => folded.set(id, index === 0 ? fold : undefined));
   }
   return (
     <SinceScoped document={document}>
-      <div {...stylex.props(proseStyles.doc, styles.doc)}>
+      <div {...stylex.props(proseStyles.doc, styles.doc, isAiry && styles.airy)}>
         {blocks.map((block) => {
           if (!folded.has(block.id)) {
             return <BlockNode block={block} context={context} key={block.id} />;
