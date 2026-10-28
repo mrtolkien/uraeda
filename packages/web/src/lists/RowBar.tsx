@@ -8,7 +8,14 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ComponentProps, useEffect, useState } from "react";
+import {
+  type ComponentProps,
+  type RefObject,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { KeyCap } from "../keys/KeyCap.tsx";
 import { keepFocus } from "../keys/press.ts";
@@ -125,11 +132,21 @@ const pressed = (action: BarAction) => (event: { stopPropagation: () => void }) 
 };
 
 /**
+ * How long the bar's own scroll, bringing its row clear of it, may glide where the browser does not
+ * say when a scroll ends, in ms.
+ */
+const REVEAL_MS = 1000;
+
+/** The room left between a row and the bar over the screen's bottom, in pixels. */
+const CLEAR_PX = 8;
+
+/**
  * Whether the page scrolled up or down since the bar showed, by more than `SCROLLED_PX`, in
  * whatever scrolls: the window or a part of the page. Sideways is no scroll, as the columns glide
- * to the selection's.
+ * to the selection's, and neither is the bar's own until `quiet.current`, a time as
+ * `performance.now()` reads it: the page rests where that scroll leaves it.
  */
-function useScrolledAway() {
+function useScrolledAway(quiet: RefObject<number>) {
   const [isAway, setAway] = useState(false);
   useEffect(() => {
     const starts = new WeakMap<object, number>();
@@ -143,7 +160,7 @@ function useScrolledAway() {
         return;
       }
       const start = starts.get(target);
-      if (start === undefined) {
+      if (start === undefined || performance.now() < quiet.current) {
         // The first scroll of a part counts from where it was before it: the bar showed there.
         starts.set(target, target.scrollTop);
         return;
@@ -154,8 +171,52 @@ function useScrolledAway() {
     };
     document.addEventListener("scroll", onScroll, { capture: true, passive: true });
     return () => document.removeEventListener("scroll", onScroll, { capture: true });
-  }, []);
+  }, [quiet]);
   return isAway;
+}
+
+/** The nearest part of the page holding `element` that scrolls up and down, else the page's. */
+function scrollerOf(element: Element) {
+  for (let at = element.parentElement; at && at !== document.body; at = at.parentElement) {
+    const { overflowY } = getComputedStyle(at);
+    if ((overflowY === "auto" || overflowY === "scroll") && at.scrollHeight > at.clientHeight) {
+      return at;
+    }
+  }
+  return document.scrollingElement ?? document.documentElement;
+}
+
+/**
+ * Scrolls the row holding `anchor`, or its field, up clear of `bar` when the bar covers it, gliding
+ * unless the human asked for less motion; the bar ignores that scroll until it ends (see
+ * `useScrolledAway`). Where the bar rests is read past its rising, which moves it. Called again
+ * before the glide ends, it heads to the same place.
+ */
+function reveal(anchor: Element, bar: HTMLElement, quiet: { current: number }) {
+  const row = anchor.closest("[data-row-frame]") ?? anchor.parentElement;
+  if (!row) {
+    return;
+  }
+  const covered = row.getBoundingClientRect().bottom - (bar.offsetTop - CLEAR_PX);
+  if (covered <= 0) {
+    return;
+  }
+  const scroller = scrollerOf(row);
+  // As far as the page goes: a scroll that cannot happen never ends.
+  const top = Math.min(scroller.scrollTop + covered, scroller.scrollHeight - scroller.clientHeight);
+  if (top - scroller.scrollTop < 1) {
+    return;
+  }
+  const isInstant = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Quiet until the scroll ends, or for `REVEAL_MS` where no browser event says so.
+  if ("onscrollend" in window) {
+    quiet.current = Number.POSITIVE_INFINITY;
+    const ends = scroller === document.scrollingElement ? document : scroller;
+    ends.addEventListener("scrollend", () => (quiet.current = 0), { once: true });
+  } else {
+    quiet.current = performance.now() + REVEAL_MS;
+  }
+  scroller.scrollTo({ behavior: isInstant ? "instant" : "smooth", top });
 }
 
 /**
@@ -186,20 +247,30 @@ function useKeyboardInset() {
  * The phone's bar, at the screen's bottom, over the keyboard when it shows, and over the status
  * line it covers while it shows. A row's (`onAway`) goes as the page scrolls, so the rows under it
  * can be read, and calls `onAway` once it sank: a tap on a row brings it back. A field's stays, as
- * the keyboard's opening scrolls the page.
+ * the keyboard's opening scrolls the page. Its row, where `anchor` is, scrolls clear of it as it
+ * shows and as the keyboard opens.
  */
 function FloatingBar({
   actions,
+  anchor,
   isField,
   onAway,
 }: {
   actions: ReadonlyArray<BarAction>;
+  anchor: RefObject<HTMLSpanElement | null>;
   isField: boolean;
   onAway?: () => void;
 }) {
-  const isAway = useScrolledAway() && !isField;
+  const quiet = useRef(0);
+  const bar = useRef<HTMLDivElement>(null);
+  const isAway = useScrolledAway(quiet) && !isField;
   const keyboard = useKeyboardInset();
   useCoverStatusLine(!isAway);
+  useLayoutEffect(() => {
+    if (anchor.current && bar.current) {
+      reveal(anchor.current, bar.current, quiet);
+    }
+  }, [anchor, keyboard]);
   return createPortal(
     <div
       aria-label={isField ? "Field actions" : "Row actions"}
@@ -209,6 +280,7 @@ function FloatingBar({
         }
       }}
       onMouseDown={keepFocus}
+      ref={bar}
       role="toolbar"
       {...stylex.props(
         styles.floating,
@@ -246,10 +318,15 @@ export function RowBar({
   isField?: boolean;
   onAway?: () => void;
 }) {
+  const anchor = useRef<HTMLSpanElement>(null);
   if (isNarrow(useWidthClass())) {
     const tiles = actions.filter((action) => action.icon !== undefined);
     return tiles.length > 0 ? (
-      <FloatingBar actions={tiles} isField={isField} onAway={onAway} />
+      <>
+        {/* Where the bar's row is, which it scrolls clear of. */}
+        <span hidden ref={anchor} />
+        <FloatingBar actions={tiles} anchor={anchor} isField={isField} onAway={onAway} />
+      </>
     ) : null;
   }
   return (

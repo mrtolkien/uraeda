@@ -320,11 +320,14 @@ function pointerOf(row: WorkRow, { onHover, onHoverEnd }: RowEvents) {
   };
 }
 
-/** The bar under a row the list picked, while it is not edited: what it can do, with their keys. */
+/**
+ * The bar under a row the list picked, while it is not edited: what it can do, with their keys.
+ * None for a row that only opens, as a click opens it.
+ */
 function Bar({ isEditing, row }: { isEditing: boolean; row: WorkRow }) {
   const state = useContext(RowStateContext);
   const actions = state.barred === row.key && !isEditing ? (state.barOf?.(row) ?? []) : [];
-  return actions.length > 0 ? <RowBar actions={actions} onAway={state.onBarAway} /> : null;
+  return actions.length > 1 ? <RowBar actions={actions} onAway={state.onBarAway} /> : null;
 }
 
 /**

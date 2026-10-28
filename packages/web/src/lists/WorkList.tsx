@@ -82,10 +82,11 @@ const styles = stylex.create({
     paddingInline: 0,
   },
   // A column of the row: at least 400 px, growing to share the row's width; a row of more columns
-  // than fit scrolls sideways, and brings the selection's column into view.
+  // than fit scrolls sideways, and brings the selection's column into view. Never wider than the
+  // row shows: on the phone, a column is the screen's width.
   column: {
     "--column-least": "400px",
-    flexBasis: "var(--column-least)",
+    flexBasis: "min(var(--column-least), 100%)",
     flexGrow: 1,
     flexShrink: 0,
     minWidth: 0,
@@ -130,16 +131,23 @@ const styles = stylex.create({
   },
   // The panes of the row, side by side, whose row scrolls sideways. It runs to both edges of the
   // page, past its inset, so a scrolled column is not cut off short of the sidebar or the window;
-  // the inset is kept before the first one and after the last one.
+  // the inset is kept before the first one and after the last one, and beside the column it
+  // brings into view. A column scrolled past an edge fades out in the inset, not cut short there.
   row: {
     alignItems: "flex-start",
     display: "flex",
     gap: spacingVars["--spacing-3"],
     marginInline: "var(--page-bleed, 0px)",
+    maskImage:
+      "linear-gradient(to right, transparent, black var(--page-inset, 0px), black calc(100% - var(--page-inset, 0px)), transparent)",
     overflowX: "auto",
     paddingBlockEnd: spacingVars["--spacing-2"],
     paddingInline: "var(--page-inset, 0px)",
+    scrollPaddingInline: "var(--page-inset, 0px)",
   },
+  // On the phone, room under an outline's last row for the bar floating at the screen's bottom,
+  // which a row scrolls clear of.
+  underBar: { paddingBlockEnd: "6rem" },
   // The panes one under the other.
   stack: {
     display: "flex",
@@ -518,6 +526,36 @@ function glideAcross(scroller: HTMLElement, glide: { frame: number; rest: number
 }
 
 /**
+ * Moves the row of columns, scrolled to bring `column` into view from `rest`, to whole columns: the
+ * first one it shows starts at the row's inset. Brought in from the end, `column` is the last whole
+ * one, the most that fit with it shown; from the start, the first. Columns wider than the row show
+ * one at a time.
+ */
+function alignColumns(scroller: HTMLElement, column: HTMLElement, rest: number) {
+  if (scroller.scrollLeft === rest) {
+    return;
+  }
+  const inset = Number.parseFloat(getComputedStyle(scroller).scrollPaddingInlineStart) || 0;
+  const view = scroller.clientWidth - 2 * inset;
+  const origin = scroller.getBoundingClientRect().left - scroller.scrollLeft;
+  const columns = [...scroller.querySelectorAll<HTMLElement>("[data-column]")];
+  const spans = columns.map((one) => {
+    const box = one.getBoundingClientRect();
+    return { left: box.left - origin, right: box.right - origin };
+  });
+  const at = columns.indexOf(column);
+  const target = spans[at];
+  if (!target) {
+    return;
+  }
+  const first =
+    scroller.scrollLeft > rest
+      ? (spans.slice(0, at).find((span) => target.right - span.left <= view) ?? target)
+      : target;
+  scroller.scrollLeft = first.left - inset;
+}
+
+/**
  * The sections as panes, in the `layout`'s arrangement. `selected` is the key of the row the
  * address names, an open overlay's: the selection starts there and stays on it once the overlay
  * closes, with the focus. With `isFocused`, the keyboard's focus is put on it, with its ring.
@@ -588,6 +626,7 @@ export function WorkList({
   selected?: string;
 }) {
   const [selected, setSelected] = useSelection(named, initial);
+  const isPhone = isNarrow(useWidthClass());
   // The row whose bar shows: the one the keys, a click, or a write picked, while it is selected. The
   // mouse passing over a row selects it with no bar, which would push the rows under it as it goes.
   const [barred, setBarred] = useState<string>();
@@ -730,8 +769,10 @@ export function WorkList({
     }
     const row = document.querySelector(`[data-row-key="${CSS.escape(selected)}"]`);
     const scroller = row?.closest<HTMLElement>("[data-list-page]");
-    row?.closest("[data-column]")?.scrollIntoView({ block: "nearest", inline: "nearest" });
-    if (scroller) {
+    const column = row?.closest<HTMLElement>("[data-column]");
+    column?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (scroller && column) {
+      alignColumns(scroller, column, glide.rest);
       glideAcross(scroller, glide);
     }
   }, [asColumns, selected]);
@@ -827,7 +868,7 @@ export function WorkList({
         onBarAway: () => setBarred(undefined),
       }}
     >
-      <div ref={ref}>
+      <div ref={ref} {...stylex.props(isPhone && onOutline !== undefined && styles.underBar)}>
         <DragDropProvider {...drag.provider}>
           {/* The row scrolls sideways: a region the keyboard can scroll, which its panes' links reach. */}
           <div
