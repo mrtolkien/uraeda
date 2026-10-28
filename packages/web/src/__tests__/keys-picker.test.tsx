@@ -56,10 +56,14 @@ async function type(field: HTMLElement, query: string) {
 /** The picker's preview of the item under the cursor. */
 const preview = () => screen.getByRole("region", { name: "Preview" });
 
-/** Whether a row of the title is labelled by the kind: a title may be a line of another kind too. */
+/**
+ * Whether a row of the title is drawn with an icon, its kind's or its card's, and not with its
+ * kind's name, which the icon stands for: a title may be a line of another kind too.
+ */
 async function row(title: RegExp, kind: string) {
   const options = await screen.findAllByRole("option", { name: title });
-  expect(options.some((option) => within(option).queryByText(kind) !== null)).toBe(true);
+  expect(options.some((option) => option.querySelector("svg") !== null)).toBe(true);
+  expect(options.every((option) => within(option).queryByText(kind) === null)).toBe(true);
 }
 
 const read = (repo: string, path: string) => readFileSync(join(repo, path), "utf8");
@@ -109,7 +113,7 @@ test("Escape closes the picker, and the focus returns to where it was (US4 more 
   expect(window.location.pathname).toBe(atRepo("/inbox"));
 });
 
-test("the picker over every kind holds a row of each, labelled by its kind (US4 3)", async () => {
+test("the picker over every kind holds a row of each, drawn with its icon, not its kind's name (US4 3)", async () => {
   const repo = fixtureRepo();
   addChange(repo, "2026-10-16-centred-x", { "proposal.md": "# Centre the x\n\nIt sits low.\n" });
   const fake = await fakeAgent();
@@ -380,8 +384,12 @@ test("an archived session is listed after the live ones, its state saying archiv
   await screen.findByRole("combobox", { name: "Find sessions" });
 
   await waitFor(() => expect(screen.getAllByRole("option")).toHaveLength(2));
+  // Each row is its title, then its card's status mark, as the sidebar draws it.
   const titles = screen.getAllByRole("option").map((option) => option.textContent);
-  expect(titles).toEqual(["Live question", "Old question"]);
+  expect(titles).toEqual([
+    expect.stringMatching(/^Live question/),
+    expect.stringMatching(/^Old question/),
+  ]);
   await type(screen.getByRole("combobox", { name: "Find sessions" }), "Old");
   await waitFor(() => expect(preview().textContent).toMatch(/^Old questionArchived · /));
 });

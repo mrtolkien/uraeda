@@ -66,11 +66,19 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 3,
     reason: "a text field's own keys: Ctrl or Cmd+Enter sends, Escape leaves the field",
   },
+  "DraftText.tsx": {
+    hits: 1,
+    reason: "a text field's own keys: Escape leaves the draft's text for the page's keys",
+  },
   "EditableLine.tsx": {
     hits: 1,
     reason: "a text field's own keys: Enter saves the line, Escape leaves it",
   },
   "embedLayout.ts": { hits: 1, reason: "Escape leaves the full-screen overlay it draws (R132)" },
+  "fields/Confirm.tsx": {
+    hits: 4,
+    reason: "a dialog's own keys while it is open: y, n, and the question's own confirm key",
+  },
   "fields/TextField.tsx": {
     hits: 2,
     reason: "a text field's own keys: Ctrl or Cmd+Enter submits",
@@ -93,6 +101,11 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 4,
     reason: "a dialog's own keys while it is open: Y, N, C, which follow the switch (R90)",
   },
+  "lists/OutlineEditor.tsx": {
+    hits: 3,
+    reason: "a text field's own keys: Enter saves the row, Escape cancels it, Tab indents it",
+  },
+  "NewPage.tsx": { hits: 1, reason: "a text field's own keys: Escape leaves the search" },
   "QuickAdd.tsx": { hits: 1, reason: "a text field's own keys: Enter adds the note" },
   "RepositoryMenu.tsx": { hits: 1, reason: "the menu's filter field's own keys" },
   "routes.tsx": { hits: 1, reason: "the navigation event's own name, `CHANGE`: no key" },

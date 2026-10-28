@@ -258,21 +258,50 @@ test("the phone's tabs name theirs as the menu does (SC-007)", async () => {
   ]);
 });
 
-/** Each kind: how a picker row names it, its entry in the Find group, and in the New group if any. */
+/**
+ * Each kind: the title of a picker row of it in the repository below, its entry in the Find group,
+ * and in the New group if any.
+ */
 const KINDS: Array<{ add?: string; find: string; kind: PickerKind; row: string }> = [
-  { add: "Feature", find: "Features", kind: "features", row: "Feature" },
-  { add: "Change", find: "Changes", kind: "changes", row: "Change" },
-  { add: "Session", find: "Sessions", kind: "sessions", row: "Session" },
-  { add: "Note (inbox entry)", find: "Notes", kind: "notes", row: "Note" },
-  { add: "Priority", find: "Priorities", kind: "priorities", row: "Priority" },
-  { find: "Decisions", kind: "decisions", row: "Decision" },
+  { add: "Feature", find: "Features", kind: "features", row: "Web UI for the workflow files" },
+  { add: "Change", find: "Changes", kind: "changes", row: "Centre the x" },
+  { add: "Session", find: "Sessions", kind: "sessions", row: "List the drafts" },
+  { add: "Note (inbox entry)", find: "Notes", kind: "notes", row: "Text input feels laggy" },
+  {
+    add: "Priority",
+    find: "Priorities",
+    kind: "priorities",
+    row: "Nix + Docker based execution environments",
+  },
+  { find: "Decisions", kind: "decisions", row: "UI behaviour" },
 ];
 
-/** The picker's row labelled with a kind's name. */
-const named = (all: Array<HTMLElement>, kind: string) =>
-  all.find((one) => within(one).queryByText(kind) !== null);
+/**
+ * The kinds whose picker rows draw the item's card icon in place of the kind's, each with the name
+ * of its row's card in the sidebar: a feature's is its slug.
+ */
+const CARDS: Partial<Record<PickerKind, string>> = {
+  features: "web-ui",
+  sessions: "List the drafts",
+};
 
-// Break: the New group's note, or any picker row, drawn with an icon of its own.
+/** The picker's row of a title: a title may be a line of another kind too, so the first. */
+const named = (all: Array<HTMLElement>, title: string) =>
+  all.find((one) => one.textContent?.startsWith(title));
+
+/** The icon of the sidebar's card of a name: its kind's, its step's, or its agent's. */
+function cardIconOf(name: string) {
+  const nav = screen.getByRole("navigation", { name: "Navigation" });
+  const card = Array.from(nav.querySelectorAll<HTMLElement>("[data-card]")).find((one) =>
+    one.textContent?.includes(name),
+  );
+  return Array.from(card?.querySelectorAll("svg") ?? []).find(
+    (svg) => !svg.closest("kbd, [data-rail-only]"),
+  )?.innerHTML;
+}
+
+// Break: the New group's note, or any picker row, drawn with an icon of its own. A feature's and a
+// session's rows draw their card's icon, a feature's step or a session's agent, as the sidebar does.
 test("a kind has one icon in the New group, the Find group, and the picker's rows (UI coherence)", async () => {
   // A repository with a row of every kind: a change, and a session besides the fixture's.
   const repo = fixtureRepo();
@@ -297,7 +326,7 @@ test("a kind has one icon in the New group, the Find group, and the picker's row
   const inFind = new Map(KINDS.map(({ find, kind }) => [kind, iconOf(rowNamed(found, find))]));
   press("Escape");
 
-  // Every kind's rows in the one picker, each labelled with its kind.
+  // Every kind's rows in the one picker.
   keys(" ", " ");
   await screen.findByRole("combobox", { name: "Find anything" });
   const rows = await waitFor(() => {
@@ -309,9 +338,14 @@ test("a kind has one icon in the New group, the Find group, and the picker's row
   });
 
   for (const { kind, row } of KINDS) {
-    // A decision's row draws its own decision's icon; the other kinds draw their kind's.
-    if (kind !== "decisions") {
-      const drawn = iconOf(named(rows, row)!);
+    // A decision's row draws its own decision's icon; a feature's and a session's their card's,
+    // and the other kinds draw their kind's.
+    const drawn = iconOf(named(rows, row)!);
+    const card = CARDS[kind];
+    if (card !== undefined) {
+      expect(drawn, `${kind} in the picker`).toBeDefined();
+      expect(drawn, `${kind} in the picker`).toBe(cardIconOf(card));
+    } else if (kind !== "decisions") {
       expect(drawn, `${kind} in the picker`).toBe(inFind.get(kind));
     }
     if (inNew.has(kind)) {

@@ -1,10 +1,13 @@
 // The status line's hints, from the registry (US6 1, 2, 3): a binding with a hint is named, one
-// without is not, a dialog removes them but for what its owner keeps, and the phone shows none. The
-// real status line is rendered over the registry, without a server: its counts are not under test.
+// without is not, a dialog removes them but for what its owner keeps, and the phone shows none: its
+// bar is only a page's own controls. The real status line is rendered over the registry, in a
+// repository, whose page its counts lead to, without a server: its counts are not under test.
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { KeysProvider, useHints, useKeys } from "../keys/registry.tsx";
 import { useListKeys } from "../lists/useListKeys.ts";
+import { RepositoryContext } from "../routes.tsx";
 import { StatusLine } from "../shell/StatusLine.tsx";
 
 vi.mock("../sessionData.ts", async (importOriginal) => ({
@@ -27,14 +30,24 @@ function Declarer() {
   return null;
 }
 
-function show(isNarrow = false) {
+/** A tree in a repository, as the shell's: the status line's counts lead to its pages. */
+const inRepo = (children: ReactNode) => (
+  <RepositoryContext.Provider value="uraeda">{children}</RepositoryContext.Provider>
+);
+
+function show(isNarrow = false, slot: ReactNode = null) {
   render(
-    <KeysProvider>
-      <Declarer />
-      <StatusLine isNarrow={isNarrow} slot={null} />
-    </KeysProvider>,
+    inRepo(
+      <KeysProvider>
+        <Declarer />
+        <StatusLine isNarrow={isNarrow} slot={slot} />
+      </KeysProvider>,
+    ),
   );
 }
+
+/** The status line, if it is drawn. */
+const status = () => screen.queryByRole("contentinfo", { name: "Status line" });
 
 /** The status line's text. */
 const line = () => screen.getByRole("contentinfo", { name: "Status line" }).textContent ?? "";
@@ -62,10 +75,13 @@ test("a dialog opening removes the hints, but for a key its owner keeps", async 
   await waitFor(() => expect(line()).toContain("j k move"));
 });
 
-test("on a phone, no hint shows", () => {
+test("on a phone, no hint shows: no status line at all, and with a page's controls only them", () => {
   show(true);
-  expect(line()).not.toContain("move");
-  expect(line()).not.toContain("close");
+  expect(status()).toBeNull();
+  cleanup();
+
+  show(true, <span>Next</span>);
+  expect(line()).toBe("Next");
 });
 
 /** A list, as the pages draw one: its keys are the registry's, and its hints the status line's. */
@@ -97,37 +113,44 @@ const hints = () => screen.getByRole("note", { name: "Hints" }).textContent;
 
 function showList(props: { columns?: boolean; escape?: string | null }) {
   return render(
-    <KeysProvider>
-      <List {...props} />
-      <StatusLine isNarrow={false} slot={null} />
-      <Line />
-    </KeysProvider>,
+    inRepo(
+      <KeysProvider>
+        <List {...props} />
+        <StatusLine isNarrow={false} slot={null} />
+        <Line />
+      </KeysProvider>,
+    ),
   );
 }
 
 // R9, kept from `status-hints.test.tsx` and re-pointed to the registry, with its exact lines: a
-// list's Escape hint names what Escape does, and is left out where it does nothing.
+// list's Escape hint names what Escape does, and is left out where it does nothing. Enter has no
+// hint of the list's: opening a row is named in the row's own bar.
 test("a list's Escape hint names what Escape does, and is left out where it does nothing", () => {
   const { rerender } = showList({});
-  expect(hints()).toBe("j k move · ⏎ open · esc close");
+  expect(hints()).toBe("j k move · esc close");
 
   rerender(
-    <KeysProvider>
-      <List escape="constitution" />
-      <StatusLine isNarrow={false} slot={null} />
-      <Line />
-    </KeysProvider>,
+    inRepo(
+      <KeysProvider>
+        <List escape="constitution" />
+        <StatusLine isNarrow={false} slot={null} />
+        <Line />
+      </KeysProvider>,
+    ),
   );
-  expect(hints()).toBe("j k move · ⏎ open · esc constitution");
+  expect(hints()).toBe("j k move · esc constitution");
 
   rerender(
-    <KeysProvider>
-      <List escape={null} />
-      <StatusLine isNarrow={false} slot={null} />
-      <Line />
-    </KeysProvider>,
+    inRepo(
+      <KeysProvider>
+        <List escape={null} />
+        <StatusLine isNarrow={false} slot={null} />
+        <Line />
+      </KeysProvider>,
+    ),
   );
-  expect(hints()).toBe("j k move · ⏎ open");
+  expect(hints()).toBe("j k move");
 });
 
 test("a list in columns names h l, and its other keys have no hint of their own", () => {

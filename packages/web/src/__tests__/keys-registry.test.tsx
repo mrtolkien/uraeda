@@ -267,11 +267,11 @@ test("two bindings of one key throw, with the labels of both", () => {
   expect(text).toContain("scroll");
 });
 
-// Break: no check of the token, so `mod+ArrowDown` and `Space` are declared and never run.
+// Break: no check of the token, so `mod+enter` and `Space` are declared and never run.
 test("a binding that names a key no keydown gives throws, and says which", () => {
   const ran: Array<string> = [];
   for (const keys of [
-    "mod+ArrowDown",
+    "mod+enter",
     "mod+K",
     "Space",
     "shift+J",
@@ -302,6 +302,7 @@ test("the keys a keydown gives are all declared without a throw", () => {
     "g h",
     "mod+k",
     "mod+/",
+    "mod+Enter",
     "ArrowDown",
     "shift+ArrowDown",
     "Home",

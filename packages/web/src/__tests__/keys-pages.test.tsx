@@ -1,7 +1,7 @@
 // The other pages' own keys, on the registry (US3 2, 5; US2 more 3; US6 1): `a` on Home and on
 // Sessions opens the New page, `i` in a session focuses the composer and Escape leaves it keeping
-// the draft, the New page's `s c f` pick a card as a click would and `i` focuses its text box, and
-// the questions' `n p` hint is drawn from the registry. Keys are pressed as a user's reach the
+// the draft, the New page's `s c f` pick a card as a click would and `i` focuses the picked kind's
+// composer, and the questions' `n p` hint is drawn from the registry. Keys are pressed as a user's reach the
 // window: on the focused element, or on the page.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -14,6 +14,7 @@ import {
   fixture,
   fixtureRepo,
   git,
+  homeShown,
   renderPage,
   today,
   type,
@@ -41,9 +42,12 @@ function card(kind: string) {
 /** The composer's text field, once the page is drawn. */
 const composer = () => screen.findByRole("textbox", { name: "Message Claude Code" });
 
+/** The feature's composer, which writes its proposal. */
+const proposal = () => screen.findByRole("textbox", { name: "Write Proposal" });
+
 test("US3: `a` on Home opens the New page, as its button does", async () => {
   await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
-  await screen.findAllByText(/Web UI for the workflow files/);
+  await homeShown();
 
   await press("a");
 
@@ -101,10 +105,12 @@ test("US3 5: on the New page, `f`, `c`, and `s` pick a card as a click would", a
   await press("s");
 
   await waitFor(() => expect(card("Session").getAttribute("aria-checked")).toBe("true"));
-  expect(address()).toBe(atRepo("/new"));
+  // The address names a session too, so that the phone knows a card was picked.
+  expect(address()).toBe(atRepo("/new?kind=session"));
 });
 
-test("US3 5: on the New page, `i` focuses the text box of the kind picked", async () => {
+// Each kind's text box is a composer, a feature's its proposal's: its own `i` focuses it.
+test("US3 5: on the New page, `i` focuses the composer of the kind picked", async () => {
   await renderPage("/new", fixtureRepo(), { agent: await fakeAgent() });
   await screen.findByRole("radiogroup", { name: "What to start" });
 
@@ -113,14 +119,14 @@ test("US3 5: on the New page, `i` focuses the text box of the kind picked", asyn
 
   document.body.focus();
   await press("f");
-  const title = await screen.findByRole("textbox", { name: "Title" });
+  const written = await proposal();
   document.body.focus();
   await press("i");
-  expect(document.activeElement).toBe(title);
+  expect(document.activeElement).toBe(written);
 
   document.body.focus();
   await press("c");
-  await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("textbox", { name: "Write Proposal" })).toBeNull());
   document.body.focus();
   await press("i");
   expect(document.activeElement).toBe(await composer());
