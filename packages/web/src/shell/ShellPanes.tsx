@@ -4,7 +4,7 @@
 // During a search, only the cards it found.
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useRef } from "react";
+import { type ReactNode, type RefObject, useRef } from "react";
 import { Pane, type PaneTone } from "../layout/Pane.tsx";
 import { currentEntry, navigate, useLocalPath, useRepoPath } from "../routes.tsx";
 import { useNavigation, useSessionSearch } from "../sessionData.ts";
@@ -142,21 +142,43 @@ function Found({ data, pathname, query }: { data: Data; pathname: string; query:
 }
 
 /**
- * The panes: `before` first, like the column's Navigate, then the work, then Done. In the column,
- * `isFitted`, Done shows as many items as the room the rows above leave. `query`, during a search,
- * shows the cards it found alone, without `before`.
+ * The shell's Done: what is done, newest first. `content`, in the column, is its rows above it:
+ * Done then shows as many items as the room they leave.
+ */
+export function ShellDone({ content }: { content?: RefObject<HTMLElement | null> }) {
+  const { data, kept, pathname } = useShellData();
+  const here = useRepoPath();
+  return (
+    <DoneArea
+      {...(content ? { content } : {})}
+      onOpen={(href) => navigate(href)}
+      rows={doneRows(data.workspace?.features ?? [], data.sessionList?.rows ?? [], {
+        here,
+        ...(kept ? { kept } : {}),
+        pathname,
+      })}
+    />
+  );
+}
+
+/**
+ * The panes: `before` first, like the column's Navigate, then the work, then Done, unless
+ * `hasDone` is false, for a page that draws it apart (`ShellDone`). In the column, `isFitted`,
+ * Done shows as many items as the room the rows above leave. `query`, during a search, shows the
+ * cards it found alone, without `before`.
  */
 export function ShellPanes({
   before,
+  hasDone = true,
   isFitted = false,
   query,
 }: {
   before?: ReactNode;
+  hasDone?: boolean;
   isFitted?: boolean;
   query: string;
 }) {
   const { data, kept, pathname } = useShellData();
-  const here = useRepoPath();
   const { isFolded } = useColumnFold();
   const rows = useRef<HTMLDivElement>(null);
   const searching = query !== "" && !isFolded;
@@ -170,15 +192,7 @@ export function ShellPanes({
           <Work data={data} kept={kept} pathname={pathname} query="" />
         )}
       </div>
-      <DoneArea
-        {...(isFitted ? { content: rows } : {})}
-        onOpen={(href) => navigate(href)}
-        rows={doneRows(data.workspace?.features ?? [], data.sessionList?.rows ?? [], {
-          here,
-          ...(kept ? { kept } : {}),
-          pathname,
-        })}
-      />
+      {hasDone && <ShellDone {...(isFitted ? { content: rows } : {})} />}
     </>
   );
 }
