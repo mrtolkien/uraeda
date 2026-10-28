@@ -64,7 +64,19 @@ type OnNextRun = (run: (() => void) | undefined) => void;
  */
 function NextKey({ hasNext, run }: { hasNext: boolean; run: RefObject<(() => void) | undefined> }) {
   useKeys(
-    hasNext ? [{ hint: "n", keys: "n", label: "next step", run: () => run.current?.() }] : [],
+    hasNext
+      ? [
+          { hint: "n", keys: "n", label: "next step", run: () => run.current?.() },
+          // Enter too, with no hint, on the page itself: a link or a button with the focus keeps
+          // its own Enter.
+          {
+            keys: "Enter",
+            label: "next step",
+            run: () => run.current?.(),
+            when: (target) => target === document.body || target === document.documentElement,
+          },
+        ]
+      : [],
   );
   return null;
 }
