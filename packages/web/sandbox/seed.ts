@@ -81,6 +81,8 @@ export const SOURCES = [
   "fixtures/repo",
   "fixtures/broken",
   "fixtures/round-mockup",
+  "fixtures/round-leader-key",
+  "fixtures/spec-leader-key",
   "fixtures/preview",
   "fixtures/spec-page",
   "skills/uraeda/assets/templates/specs",

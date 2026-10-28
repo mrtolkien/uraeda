@@ -1,0 +1,121 @@
+<!doctype html><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /><title>
+  Picker with a raw markdown preview
+</title>
+<link rel="stylesheet" href="leader.css" />
+<style>
+  body {
+    display: block;
+  }
+  #picker {
+    position: fixed;
+    left: 50%;
+    top: 10%;
+    transform: translateX(-50%);
+    width: min(920px, 94vw);
+    height: 70vh;
+    background: var(--mantle);
+    border: 1px solid var(--blue);
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    grid-template-rows: auto 1fr auto;
+  }
+  #picker .title {
+    position: absolute;
+    top: -1px;
+    left: 10px;
+    transform: translateY(-50%);
+    background: var(--mantle);
+    padding: 0 6px;
+    font-size: 12px;
+    color: var(--blue);
+  }
+  #picker input {
+    grid-column: 1/-1;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--surface);
+    color: var(--text);
+    font: inherit;
+    padding: 12px 14px;
+    outline: none;
+  }
+  #picker ul {
+    list-style: none;
+    margin: 0;
+    padding: 6px 0;
+    overflow: auto;
+  }
+  #picker li {
+    padding: 2px 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #picker li.on {
+    background: var(--surface);
+  }
+  #picker pre {
+    margin: 0;
+    padding: 10px 14px;
+    border-left: 1px solid var(--surface);
+    overflow: auto;
+    color: var(--sub);
+    font: 13px/1.5 inherit;
+    white-space: pre-wrap;
+  }
+  #picker footer {
+    grid-column: 1/-1;
+    border-top: 1px solid var(--surface);
+    padding: 4px 14px;
+    color: var(--sub);
+    font-size: 13px;
+    display: flex;
+    gap: 18px;
+  }
+  @media (max-width: 700px) {
+    #picker {
+      grid-template-columns: 1fr;
+    }
+    #picker pre {
+      display: none;
+    }
+  }
+</style>
+<body style="padding: 20px">
+  <p class="dim">
+    Sketch: Space then <kbd>f</kbd> <kbd>d</kbd> opens the picker on decisions. The preview is the
+    file as raw markdown.
+  </p>
+  <div id="picker" role="dialog" aria-label="Find decisions">
+    <span class="title">Find · decisions</span>
+    <input value="ui" aria-label="Search" />
+    <ul>
+      <li class="on"><kbd>●</kbd> UI behaviour</li>
+      <li>UI layout</li>
+      <li>UI look</li>
+      <li>UI components</li>
+      <li>UI coherence</li>
+      <li>UI checks</li>
+    </ul>
+    <pre>
+---
+status: active
+approved-by: mrtolkien
+icon: mouse-pointer-click
+---
+
+# UI behaviour
+
+The web UI acts on things where they are, and never loses what the human typed or where they were.
+Text saves only when the human says so...
+
+## Rules
+
+- Small edits MUST happen in place, and a dialog MUST only confirm an irreversible action or hold a
+  short form. Checked by the UI tests.</pre>
+    <footer>
+      <span><kbd>ctrl j k</kbd> move</span><span><kbd>⏎</kbd> open</span
+      ><span><kbd>esc</kbd> close</span><span style="margin-left: auto">6 of 25</span>
+    </footer>
+  </div>
+</body>

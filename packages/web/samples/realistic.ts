@@ -1,21 +1,25 @@
 // The sandbox's "realistic" project: a project as it is lived in, to judge the sidebar and home on a
-// full day's load rather than on one feature at each step. A feature waits for the human, two have
-// an agent working (one writes the spec, one builds the plan, which the sandbox starts as it starts:
-// `sandbox/agent.ts`), three are done, and Now, Next, and Later hold five lines each, not counting
-// the three live features', which show apart as Ongoing (a feature waiting on the human is one),
-// some of them long, and an inbox of nine notes, three of them long.
+// full day's load rather than on one feature at each step. Two features wait for the human, both
+// Uraeda's own leader key, real files from `fixtures/`: on its round of questions, and on its spec;
+// two have an agent working (one writes the spec, one builds the plan, which the sandbox starts as it
+// starts: `sandbox/agent.ts`), three are done, and Now, Next, and Later hold five lines each, not
+// counting the four live features', which show apart as Ongoing (a feature waiting on the human is
+// one), some of them long, and an inbox of nine notes, three of them long.
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { commitsAt, ELEVEN, git, planText } from "uraeda-binding/test-utils";
+import { commitsAt, fixture, git } from "uraeda-binding/test-utils";
 import { at, code, finish, firstStages, record } from "./features.ts";
 
 /** The folders of the live features, by what they wait for. */
 export const REALISTIC_FOLDERS = {
+  /** Its round of questions waits for the human: a real one, `fixtures/round-leader-key/`. */
+  asking: "2026-10-21-leader-key",
+  /** Its spec waits for the human's review: a real one, `fixtures/spec-leader-key/`. */
+  reviewing: "2026-10-19-leader-key",
   /** An agent builds it: task 7 of 11. */
   building: "2026-10-18-due-reminders",
   /** An agent writes its spec, from the answered round. */
   specifying: "2026-10-21-calendar-view",
-  /** Its plan waits for the human's review. */
-  waiting: "2026-10-20-share-lists",
 } as const;
 
 /** The priorities file: five lines in each section, and the live features besides in Now. */
@@ -29,7 +33,8 @@ const PRIORITIES = `# Priorities
 
 - [Due date reminders](/specs/${REALISTIC_FOLDERS.building}/proposal.md)
 - [Calendar view](/specs/${REALISTIC_FOLDERS.specifying}/proposal.md)
-- [Share lists](/specs/${REALISTIC_FOLDERS.waiting}/proposal.md)
+- [Leader key/shortcut map](/specs/${REALISTIC_FOLDERS.asking}/proposal.md)
+- [Leader key/shortcut map](/specs/${REALISTIC_FOLDERS.reviewing}/proposal.md)
 - Bulk edit for tasks: select several with the keyboard or a drag, then change their due date, labels, or project at once, with a single undo for the whole batch
 - Drag to reorder subtasks
 - Quick add from the keyboard
@@ -88,7 +93,12 @@ const INBOX = `# Inbox
 const DONE = [
   { finished: "17 18:30", folder: "2026-10-12-task-search", questions: 6, title: "Task search" },
   { finished: "18 11:15", folder: "2026-10-13-csv-import", questions: 4, title: "Import from CSV" },
-  { finished: "18 16:05", folder: "2026-10-14-keyboard-nav", questions: 8, title: "Keyboard navigation" },
+  {
+    finished: "18 16:05",
+    folder: "2026-10-14-keyboard-nav",
+    questions: 8,
+    title: "Keyboard navigation",
+  },
 ];
 
 /** A done feature, merged by rebase onto `main`: its stages, its code, and its record. */
@@ -109,16 +119,52 @@ function addDone(repo: string, { finished, folder, questions, title }: (typeof D
   ]);
 }
 
-/** A plan with no task started, so a feature waiting for its review has nothing built yet. */
-const unstarted = (status: string) =>
-  planText(
-    ELEVEN.map(([title, , total]) => [title, 0, total]),
-    status,
-  );
+/** The files of the leader key's round, besides its proposal: its discovery and its mockups. */
+const LEADER_KEY_ROUND = [
+  "discovery-01.md",
+  "clarifications-01.md",
+  "mockups/bottom-panel.html",
+  "mockups/bottom-right-box.html",
+  "mockups/centered-modal.html",
+  "mockups/leader.css",
+  "mockups/leader.js",
+  "mockups/status-line-strip.html",
+];
+
+/**
+ * A file of `fixtures/round-leader-key/`: Uraeda's own leader key feature as its first round of
+ * questions left it, a round as an agent writes them, to work on the questions page with.
+ */
+const leaderKey = (name: string) => readFileSync(fixture(`round-leader-key/${name}`), "utf8");
+
+/**
+ * A file of `fixtures/spec-leader-key/`: the leader key feature as its spec's first revision left
+ * it, waiting for the human's review, a spec as an agent writes them, to review a real one with.
+ */
+const leaderKeySpec = (name: string) => readFileSync(fixture(`spec-leader-key/${name}`), "utf8");
+
+/** The leader key's files at its spec, by the stage that wrote them, as its branch commits them. */
+const LEADER_KEY_SPEC_STAGES = [
+  {
+    at: "19 09:00",
+    files: ["proposal.md"],
+    message: "proposal(leader-key): Leader key/shortcut map",
+  },
+  {
+    at: "19 09:40",
+    files: LEADER_KEY_ROUND,
+    message: "discovery(leader-key): Leader key/shortcut map",
+  },
+  {
+    at: "19 11:30",
+    files: ["spec.md", "data-model.md", "mockups/keyboard-setting.html", "mockups/picker.html"],
+    message: "spec(leader-key): Leader key/shortcut map",
+  },
+];
 
 /**
  * Adds the realistic project's content to `repo`, a project set up: the done features and the
- * priorities on `main`, then the three live features on their branches.
+ * priorities on `main`, then the four live features on their branches.
  */
 export function addRealistic(repo: string) {
   for (const done of DONE) {
@@ -131,18 +177,7 @@ export function addRealistic(repo: string) {
       message: "docs: priorities and inbox",
     },
   ]);
-
-  // Waiting for the human: the spec approved, its plan to review.
-  const { waiting, specifying, building } = REALISTIC_FOLDERS;
-  git(repo, "branch", waiting, "main");
-  commitsAt(repo, waiting, [
-    ...firstStages(waiting, "Share lists").slice(0, 4),
-    {
-      at: at("17 15:05"),
-      files: { [`specs/${waiting}/plan.md`]: unstarted("awaiting-human") },
-      message: "plan(share-lists): the plan",
-    },
-  ]);
+  const { asking, reviewing, specifying, building } = REALISTIC_FOLDERS;
 
   // An agent writes the spec: the proposal and its answered round are all there is.
   git(repo, "branch", specifying, "main");
@@ -159,4 +194,35 @@ export function addRealistic(repo: string) {
     },
   ]);
   git(repo, "worktree", "add", "--quiet", join(".worktrees", building), building);
+
+  // Its questions wait for the human: a round as an agent wrote it, its discovery and mockups.
+  git(repo, "branch", asking, "main");
+  commitsAt(repo, asking, [
+    {
+      at: at("21 09:40"),
+      files: { [`specs/${asking}/proposal.md`]: leaderKey("proposal.md") },
+      message: "proposal(leader-key): Leader key/shortcut map",
+    },
+    {
+      at: at("21 10:25"),
+      files: Object.fromEntries(
+        LEADER_KEY_ROUND.map((name) => [`specs/${asking}/${name}`, leaderKey(name)]),
+      ),
+      message: "discovery(leader-key): Leader key/shortcut map",
+    },
+  ]);
+
+  // Its spec waits for the human's review: the same feature further along, its stages as written.
+  git(repo, "branch", reviewing, "main");
+  commitsAt(
+    repo,
+    reviewing,
+    LEADER_KEY_SPEC_STAGES.map((stage) => ({
+      at: at(stage.at),
+      files: Object.fromEntries(
+        stage.files.map((name) => [`specs/${reviewing}/${name}`, leaderKeySpec(name)]),
+      ),
+      message: stage.message,
+    })),
+  );
 }
