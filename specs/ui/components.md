@@ -41,6 +41,20 @@ anything, and a change made to one is made once.
 | A menu of actions, as a last resort        | `layout/ActionsMenu.tsx`                                                                        |
 | A key and what it does                     | the registry's `useKeys`, which the status line and the leader menu read                        |
 
+## Where Astryx has none
+
+Uraeda is not bound to Astryx: where no Astryx component fits the job, it draws its own, with the
+reason in a comment, as the [UI components](../decisions/ui-components.md) decision allows. These
+are its own:
+
+- `layout/NavBar.tsx`: the bottom bar's tile, an icon alone, flat, stretched to share the bar.
+- `lists/RowBar.tsx`: the phone's row-action tile, a big icon over its word on the glass; and the
+  wide row bar's action, drawn as the row's supporting text.
+- `shell/StatusLine.tsx`: a hint, and the "need you" count, each pressed as text of the line.
+- `keys/LeaderMenu.tsx`: a menu row, and the footer's back and close keys, drawn as the menu's text.
+- `lists/OutlineEditor.tsx`: the row's field, a `textarea` in the row's own font, with no frame,
+  growing with its text.
+
 ## Rules of thumb
 
 - **Find it before drawing it.** A view that needs a row, a pane, a picker, or a confirmation uses

@@ -102,4 +102,5 @@ not emptiness: a pane ends right after its last line, with only the pane's own r
   that it gets harder to read.
 - **No guidance prose.** A page's subtitle explaining what the page is, a line restating the title,
   or a hint telling the human to click: "Remove the slop. This is also a global UI decision." A
-  placeholder may name what a field holds.
+  placeholder or a field's help is judged case by case: a new one says what the field's label does
+  not, or it is not written.

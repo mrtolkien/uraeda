@@ -29,7 +29,7 @@ What goes in it, in this order:
    Activity, Changes, Sub-agents (while any run), and the plan's progress on a session. Each opens
    its sheet; the open one's icon is in the accent.
 2. **At its end, the one step that moves the human forward**: Next to the next blank question, or
-   Verdict to the review's end. A help, in the accent's colour, not a filled block, unless it is the
+   Verdict to the review's end. An icon in the accent, never a filled block, even when it is the
    step that finishes the page, like Submit once every question has an answer.
 
 What does not go in it: words, keys, counts written out (a tile's label says them to screen
