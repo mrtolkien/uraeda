@@ -8,6 +8,7 @@
 
 - [Full interactive UI pass: manual small fixes](drafts/full-interactive-ui-pass-manual-small-fixes.md)
   - Write down our UI decisions and strategy based on the "UI fixes" worktree
+- [Phone bottom bars on more pages](drafts/phone-bottom-bars.md)
 
 - Decisions needs to be understandable with _no context_. Often agents just read the decisions, they
   can't be expected to search for extra info in records.
