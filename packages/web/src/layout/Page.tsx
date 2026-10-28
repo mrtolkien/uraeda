@@ -28,7 +28,10 @@ const styles = stylex.create({
   // characters wide at most, so that one pane's prose stays a line one reads, while two side by
   // side share the page's width, each up to that (see `Pane`).
   reading: {
+    // Each pane as wide as its room up to that, centred in it: the page's middle.
+    "--pane-centre": "auto",
     "--pane-max": "95ch",
+    "--pane-width": "100%",
   },
   // The whole width of the window, for a page of columns.
   full: { maxWidth: "none" },
