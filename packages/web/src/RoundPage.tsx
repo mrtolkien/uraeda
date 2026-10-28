@@ -100,12 +100,12 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
       <CandidatesContext value={file.candidates}>
         <PendingSaves value={pending}>
           {readOnly ? (
-            <Page>{content}</Page>
+            <Page isReading>{content}</Page>
           ) : (
             // While the round waits on answers, its column beside it.
             <RoundColumn
               actions={actions}
-              content={<Page>{content}</Page>}
+              content={<Page isReading>{content}</Page>}
               draft={actions.asks && draft}
               file={file}
               nav={nav}

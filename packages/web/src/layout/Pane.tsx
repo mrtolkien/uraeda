@@ -167,6 +167,9 @@ const styles = stylex.create({
     borderInlineStartWidth: "var(--pane-border)",
     // Room above for the half of the title over the border.
     marginBlockStart: spacingVars["--spacing-3"],
+    // As wide as a page that reads lets one pane be (`--pane-max`, see `Page`'s `isReading`), its
+    // prose kept to a line one reads; two side by side share the room, each up to it.
+    maxWidth: "var(--pane-max, none)",
     minWidth: 0,
     // Under its last line or button, the room under its title: one token, every pane's.
     paddingBlockEnd: paneVars["--pane-end"],

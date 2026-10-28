@@ -24,6 +24,12 @@ const styles = stylex.create({
     // A session's column on wide screens: about 115 characters a line, not the page's full width.
     maxWidth: "var(--size-session-max)",
   },
+  // A document's page on wide screens, a round's or a spec's: each of its panes 95 of the UI's
+  // characters wide at most, so that one pane's prose stays a line one reads, while two side by
+  // side share the page's width, each up to that (see `Pane`).
+  reading: {
+    "--pane-max": "95ch",
+  },
   // The whole width of the window, for a page of columns.
   full: { maxWidth: "none" },
   snug: {
@@ -58,6 +64,7 @@ export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>
 export function Page({
   children,
   isFull = false,
+  isReading = false,
   isSession = false,
   isSnug = false,
   isTight = false,
@@ -65,6 +72,8 @@ export function Page({
   children: ReactNode;
   /** The window's whole width, not the page's column: a page of columns, the priorities'. */
   isFull?: boolean;
+  /** A document's page on wide screens, a round's or a spec's: each pane 95 characters wide at most. */
+  isReading?: boolean;
   /** A session's column on wide screens: a line of text, not the page's full width. */
   isSession?: boolean;
   isSnug?: boolean;
@@ -83,6 +92,7 @@ export function Page({
           wide && styles.wide,
           isFull && styles.full,
           wide && isSession && styles.session,
+          wide && isReading && styles.reading,
         )}
       >
         {children}
