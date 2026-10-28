@@ -219,7 +219,19 @@ test("the selected note shows its images under its row, and Remove takes one out
   await waitFor(() => expect(filesOf(repo, draft).text).toBe(before));
 });
 
-test("a draft opened after one of its images is removed shows it without the image", async () => {
+/** Opens the editor of `draft` and gives its field. */
+async function editorField(draft: string) {
+  await act(async () => navigate(atRepo(`/edit/${draftFile(draft)}`)));
+  return (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+}
+
+/** Opens the editor of `draft` and gives its text. */
+async function editorText(draft: string) {
+  return (await editorField(draft)).value;
+}
+
+/** Idea one with a dropped image, its row selected and its image shown under it. */
+async function ideaOneWithImage() {
   const { repo } = await onNote("Idea two");
   await selectIdeaOne();
   await drop([png("dropped.png")]);
@@ -228,14 +240,49 @@ test("a draft opened after one of its images is removed shows it without the ima
   const [image] = filesOf(repo, draft).images;
   await waitFor(() => expect(rowOf("Idea one").textContent).toContain("1 image"));
   const shown = within(await waitFor(() => imagesOf("Idea one")!));
+  return { draft, image: image!, repo, shown };
+}
+
+test("a draft opened after one of its images is removed shows it without the image", async () => {
+  const { draft, image, shown } = await ideaOneWithImage();
 
   await click(shown.getByRole("button", { name: `Remove ${image}` }));
   await screen.findByText(`Removed ${image} from the note's draft`);
 
-  await act(async () => navigate(atRepo(`/edit/${draftFile(draft)}`)));
-  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
-  expect(field.value).toContain("Idea one");
-  expect(field.value).not.toContain(`images/${image}`);
+  const text = await editorText(draft);
+  expect(text).toContain("Idea one");
+  expect(text).not.toContain(`images/${image}`);
+});
+
+test("a draft opened after an image's removal is undone shows the image again", async () => {
+  const { draft, image, repo, shown } = await ideaOneWithImage();
+  const before = filesOf(repo, draft).text;
+  await click(shown.getByRole("button", { name: `Remove ${image}` }));
+  await screen.findByText(`Removed ${image} from the note's draft`);
+
+  await click(await screen.findByRole("button", { name: /^Undo/ }));
+  await waitFor(() => expect(filesOf(repo, draft).text).toBe(before));
+
+  const field = await editorField(draft);
+  // The draft is read again once the write ends, after the file is written: the editor follows it.
+  await waitFor(() => expect(field.value).toContain(`images/${image}`));
+});
+
+test("a draft opened after a second image is dropped on its note shows both", async () => {
+  const { draft, image, repo } = await ideaOneWithImage();
+  // The editor reads the draft as it is with one image.
+  expect(await editorText(draft)).toContain(`images/${image}`);
+  await act(async () => navigate(atRepo("/inbox")));
+  await screen.findByRole("heading", { name: "Ideas · 2" });
+  await selectIdeaOne();
+
+  await drop([png("second.png")]);
+  await waitFor(() => expect(filesOf(repo, draft).images).toHaveLength(2));
+
+  const field = await editorField(draft);
+  for (const one of filesOf(repo, draft).images) {
+    await waitFor(() => expect(field.value).toContain(`images/${one}`));
+  }
 });
 
 test("a drop goes to the inbox, not to the add form once it closed", async () => {
