@@ -10,11 +10,11 @@ use super::{FileArgs, Outcome, core, on_default_branch, priorities_path, relativ
 use crate::documents::Documents;
 use crate::requests::{refused, workflow_file};
 
-/// `uraeda.commit { uri }`: commits a proposal file, a note file, or a proposal, with the
-/// priorities when they changed, or `PRIORITIES.md` or `INBOX.md` with the change list of both, as
-/// the commit bar does.
+/// `uraeda.commit { uri }`: commits a proposal file, a note file, or a feature's or a change's
+/// proposal, with the priorities when they changed, or `PRIORITIES.md` or `INBOX.md` with the
+/// change list of both, as the commit bar does.
 pub(super) fn commit(documents: &Documents, args: FileArgs) -> Result<Outcome, ResponseError> {
-    const ONLY: &str = "Only proposal files, note files, proposals, PRIORITIES.md, and INBOX.md are committed from the editor.";
+    const ONLY: &str = "Only proposal files, note files, a feature's or a change's proposal, PRIORITIES.md, and INBOX.md are committed from the editor.";
     let root = &documents.root;
     let path = relative(documents, &args.uri).ok_or_else(|| refused(ONLY))?;
     if path == priorities_path() || path == INBOX {

@@ -137,6 +137,8 @@ pub(super) fn linked_path(path: &str) -> Result<()> {
         .or_else(|| path.strip_prefix(crate::target::NOTES));
     match rest {
         Some(rest) if plain(path) && rest.split('/').count() <= 2 => Ok(()),
-        _ => Err(refused(format!("{path} is not a proposal file"))),
+        _ => Err(refused(format!(
+            "{path} is not a proposal file or a note file"
+        ))),
     }
 }

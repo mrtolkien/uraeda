@@ -25,37 +25,49 @@ fn both(
     Ok((inbox, priorities))
 }
 
-/// Moves the note `id`'s lines, without its marks, to the end of a section of `PRIORITIES.md`,
-/// written by `edit` from the priorities and the lines: its note file, when it has one, moves
-/// among the proposals first, and its link follows it. Returns the note's file, as a proposal file
-/// now. Both files are written, or none, and the file moves back when they are not.
+/// The note file of the note `note` of the inbox text `inbox` that a move takes along: one on disk
+/// that no other note links. A file another note links too stays for it, and the note moves as
+/// text, as one whose file the disk lacks.
+fn movable(place: &Place, inbox: &str, note: &inbox::Note) -> Option<String> {
+    let file = note.file().filter(|file| place.root.join(file).is_file())?;
+    let shared = inbox::parse(inbox)
+        .iter()
+        .any(|other| other.id != note.id && other.file().as_deref() == Some(file.as_str()));
+    (!shared).then_some(file)
+}
+
+/// Moves the note `id`'s lines, without its marks, into the file `target`, `PRIORITIES.md` or a
+/// proposal file, written by `edit` from the lines: its note file, when a move takes it along,
+/// moves among the proposals first, and its link follows it. Returns the note's file, as a
+/// proposal file now. Both files are written, or none, and the file moves back when they are not.
 fn move_out(
     place: &Place,
     inbox: &str,
     id: &str,
+    target: &str,
     edit: impl Fn(&[String]) -> Option<String>,
 ) -> Result<Option<String>, ActionError> {
     let note = inbox::note(inbox, id).ok_or_else(|| no_note(id))?;
     let (lines, _) = inbox::unmarked_lines(inbox, id).ok_or_else(|| no_note(id))?;
     let without = inbox::remove(inbox, id).ok_or_else(|| no_note(id))?;
-    // A note file the link names but the disk lacks moves nothing: the line moves as text.
-    let Some(file) = note.file().filter(|file| place.root.join(file).is_file()) else {
-        return finish(place, &without, edit(&lines), None, id);
+    let Some(file) = movable(place, inbox, &note) else {
+        return finish(place, target, &without, edit(&lines), None, id);
     };
-    // Checked before the file moves: nothing is written when the priorities refuse the lines.
+    // Checked before the file moves: nothing is written when the target refuses the lines.
     edit(&lines).ok_or_else(|| no_note(id))?;
     let to = note_file::to_proposals(place, &file)?;
     let lines: Vec<String> = retarget::moved(&lines.join("\n"), &file, &to)
         .split('\n')
         .map(String::from)
         .collect();
-    finish(place, &without, edit(&lines), Some((file, to)), id)
+    finish(place, target, &without, edit(&lines), Some((file, to)), id)
 }
 
-/// Writes the priorities `edited` and the inbox `without` the note `id`, or moves the note's file,
+/// Writes `edited` over `target` and the inbox `without` the note `id`, or moves the note's file,
 /// moved from and to `moved`, back when they cannot be written.
 fn finish(
     place: &Place,
+    target: &str,
     without: &str,
     edited: Option<String>,
     moved: Option<(String, String)>,
@@ -63,7 +75,7 @@ fn finish(
 ) -> Result<Option<String>, ActionError> {
     let written = edited
         .ok_or_else(|| no_note(id))
-        .and_then(|edited| write_both(place, PRIORITIES, &edited, without));
+        .and_then(|edited| write_both(place, target, &edited, without));
     if let Err(error) = written {
         if let Some((from, to)) = &moved {
             let _ = note_file::back_to_notes(place, to, from);
@@ -84,7 +96,7 @@ pub fn to_proposal(
     priorities_previous: &str,
 ) -> Result<(), ActionError> {
     let (inbox, priorities) = both(place, previous, priorities_previous)?;
-    move_out(place, &inbox, id, |lines| {
+    move_out(place, &inbox, id, PRIORITIES, |lines| {
         priorities::insert_proposal(&priorities, section, usize::MAX, lines)
     })?;
     Ok(())
@@ -112,7 +124,7 @@ pub fn under_proposal(
 /// Makes a note a new proposal file, `specs/proposals/<slug>.md` or the next free name, linked
 /// from the end of a section of `PRIORITIES.md`, and returns its path. A note with a note file
 /// moves it among the proposals instead; one linking a proposal file, or a note file gone from the
-/// disk, is refused.
+/// disk or that another note links too, is refused.
 pub fn to_proposal_file(
     place: &Place,
     id: &str,
@@ -122,13 +134,10 @@ pub fn to_proposal_file(
 ) -> Result<String, ActionError> {
     let (inbox, priorities) = both(place, previous, priorities_previous)?;
     let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
-    if note
-        .file()
-        .is_some_and(|file| place.root.join(file).is_file())
-    {
+    if movable(place, &inbox, &note).is_some() {
         let insert =
             |lines: &[String]| priorities::insert_proposal(&priorities, section, usize::MAX, lines);
-        let moved = move_out(place, &inbox, id, insert)?;
+        let moved = move_out(place, &inbox, id, PRIORITIES, insert)?;
         return moved.ok_or_else(|| no_note(id));
     }
     let linked = note
@@ -179,7 +188,8 @@ pub(super) fn into_file(lines: &[String], path: &str) -> Vec<String> {
 }
 
 /// Adds a note's lines, without its marks, at the end of the `## What` section of the proposal
-/// file at `proposal`, from the top level.
+/// file at `proposal`, from the top level: a note with a note file moves it among the proposals,
+/// and the line it adds links it there.
 pub fn into_proposal(
     place: &Place,
     id: &str,
@@ -189,8 +199,9 @@ pub fn into_proposal(
     let inbox = current(place, PATH, previous)?;
     let text = file_text(place, proposal)?;
     let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
-    let edited = proposal::append_to_what(&text, &into_file(&lines, proposal))
+    let append = |lines: &[String]| proposal::append_to_what(&text, &into_file(lines, proposal));
+    append(&lines)
         .ok_or_else(|| ActionError::Refused(format!("{proposal} has no ## What section")))?;
-    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
-    write_both(place, proposal, &edited, &without)
+    move_out(place, &inbox, id, proposal, append)?;
+    Ok(())
 }

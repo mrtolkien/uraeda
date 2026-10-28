@@ -16,7 +16,7 @@ use super::{ActionError, Change, Committed, commit, images};
 mod files;
 
 use files::{
-    FOLDERS, Found, Grown, Undo, files_in, grown_files, never_committed, take_item,
+    FOLDERS, Found, Grown, Undo, files_in, grown_files, linked_by, never_committed, take_item,
     written_for_link, written_from,
 };
 
@@ -107,6 +107,14 @@ fn note_file(inbox: &str, text: &str) -> Option<String> {
         .file()
 }
 
+/// The file the list item `markdown` of the proposal file at `path` links, from the top level: where
+/// a note's file went with the note.
+fn item_link(path: &str, markdown: &str) -> Option<String> {
+    let folder = path.rsplit_once('/').map_or("", |(folder, _)| folder);
+    let (_, link) = crate::files::lines::plain(markdown);
+    crate::workspace::resolve(folder, &link?)
+}
+
 /// Each change, a removed note paired with a proposal or a proposal file's item of the same text as
 /// a move, and the files those moves and the added notes went into, or the removed notes left.
 fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Found) {
@@ -133,7 +141,8 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Found) {
                     .and_then(|p| p.link.as_deref());
                 found.linked(place, link, |path| written_from(inbox_then, text, path));
                 if let Some(note) = note_file(inbox_then, text) {
-                    found.moved(place, &note, link);
+                    let moved = link.and_then(|link| crate::workspace::resolve("specs", link));
+                    found.moved(place, &note, moved);
                 }
                 changes.push(moved_out(text, section.title()));
                 continue;
@@ -141,6 +150,9 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Found) {
             let grown = grown.get_or_insert_with(|| grown_files(place));
             if let Some((path, title, markdown)) = take_item(grown, text) {
                 changes.push(moved_out(text, &format!("the proposal {title}")));
+                if let Some(note) = note_file(inbox_then, text) {
+                    found.moved(place, &note, item_link(&path, &markdown));
+                }
                 found.undo.push(Undo::Grown {
                     path: path.clone(),
                     markdown,
@@ -208,6 +220,8 @@ fn gather(place: &Place) -> Listed {
         });
         paths.push(path);
     }
+    let linked = linked_by(place, &paths);
+    paths.extend(linked);
     Listed {
         changes,
         paths: files(&texts, paths),

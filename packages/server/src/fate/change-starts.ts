@@ -77,9 +77,34 @@ async function startTypedChange(
 }
 
 /**
- * A note as a typed change's text and images: its text, then its nested lines, and the bytes of the
- * images its note file links, over the inbox as read. Read before the note leaves the inbox, which
- * takes its note file with it.
+ * The body of a note file as a typed change's text holds it: the file as it is on disk, without its
+ * title, which the change takes from the note, nor its paragraphs of images alone, which the core
+ * links again as it writes the change's images. Cut by the core's document tree, not by a pattern.
+ * The cut of the images goes once the core keeps a note file's image names and links.
+ */
+async function noteFileBody(ctx: RepoContext, path: string): Promise<string> {
+  const read = await refusable(() => ctx.binding.readText(ctx.repo, path));
+  const cut = read.document.blocks.filter(
+    (block) =>
+      block.parent === undefined &&
+      ((block.kind === "heading" && block.level === 1) ||
+        (block.kind === "paragraph" &&
+          block.spans.every((span) => span.image !== undefined || span.text.trim() === ""))),
+  );
+  // The document's lines count from 1, both ends included.
+  const kept = read.text
+    .split("\n")
+    .filter((_, index) => !cut.some((b) => b.startLine <= index + 1 && index + 1 <= b.endLine));
+  return kept
+    .join("\n")
+    .replaceAll(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * A note as a typed change's text and images, over the inbox as read: its text, or for a note with
+ * a note file its title and the file's body, then its nested lines, and the bytes of the images its
+ * note file links. Read before the note leaves the inbox, which takes its note file with it.
  */
 async function noteChange(ctx: RepoContext, input: { hash: string; note: string }) {
   const inbox = await refusable(() => ctx.binding.readInbox(ctx.repo));
@@ -92,7 +117,11 @@ async function noteChange(ctx: RepoContext, input: { hash: string; note: string 
   if (!note) {
     throw callSiteError(`refused: no note ${input.note}`);
   }
-  const text = note.nested.length > 0 ? `${note.text}\n\n${note.nested.join("\n")}` : note.text;
+  const parts =
+    note.file === undefined
+      ? [note.text]
+      : [note.fileTitle ?? note.text, await noteFileBody(ctx, note.file)];
+  const text = [...parts, note.nested.join("\n")].filter((part) => part !== "").join("\n\n");
   // An image whose file is gone is left out: the change starts with the others.
   const read = await Promise.allSettled(note.images.map((path) => readFile(join(ctx.repo, path))));
   const images = read.flatMap((one) => (one.status === "fulfilled" ? [one.value] : []));

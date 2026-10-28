@@ -259,26 +259,11 @@ fn as_written(place: &Place, path: &str, title: &str) -> bool {
         .all(|entry| entry.file_name() == "note.md" || entry.file_name() == "images")
 }
 
-/// When a removal may delete a note file: nothing is lost.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub(super) enum Lost {
-    /// The file holds only what its note wrote, or is as the default branch committed it.
-    Nothing,
-    /// As [`Lost::Nothing`], or the file is committed at all: the removal's own commit keeps it in
-    /// the history.
-    NothingCommitted,
-}
-
 /// Deletes, holding them for [`restore`], the note files the notes of the inbox text `before` had
-/// that no note of the text `after` links, when `lost` allows it: the files of the notes an edit
-/// took out. A file typed in since its note wrote it, and not committed so, stays, unlinked.
-/// Returns whether it deleted any.
-pub(super) fn remove_left(
-    place: &Place,
-    before: &str,
-    after: &str,
-    lost: Lost,
-) -> Result<bool, ActionError> {
+/// that no note of the text `after` links, when nothing is lost: the file holds only what its note
+/// wrote, or is as the default branch committed it. A file typed in since, and not committed so,
+/// stays, unlinked. Returns whether it deleted any.
+pub(super) fn remove_left(place: &Place, before: &str, after: &str) -> Result<bool, ActionError> {
     let kept: Vec<String> = inbox::parse(after)
         .iter()
         .filter_map(inbox::Note::file)
@@ -291,8 +276,7 @@ pub(super) fn remove_left(
         }
         let title = inbox::link_title(before, &note.id);
         let safe = title.is_some_and(|title| as_written(place, &file, &title))
-            || as_committed(place, &file)
-            || (lost == Lost::NothingCommitted && !committed(place, &file).is_empty());
+            || as_committed(place, &file);
         if safe {
             remove(place, &file)?;
             removed = true;

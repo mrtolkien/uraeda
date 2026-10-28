@@ -1,6 +1,6 @@
 // The starts of a change from the New page's lists: an inbox note (US3 2), its note leaving the
 // inbox in its own commit, and a proposal's file, each sending the change's first run.
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import { binding, type Data, fixture, git, mutate, testServer } from "./helpers.ts";
@@ -58,17 +58,25 @@ test("change.fromNote starts a change from a committed note, which leaves the in
   expect(sent.text).toMatch(new RegExp(`^/uraeda Continue the change specs/changes/${folder}/`));
 });
 
-/** A note with an image: its note file, and the image, read before the note leaves the inbox. */
-test("change.fromNote starts a change with its note file's image, and the note file leaves", async () => {
+/**
+ * A note with a note file: the change takes the note's title, the file's text as typed, and its
+ * image, read before the note leaves the inbox.
+ */
+test("change.fromNote starts a change from a note file's title, text, and image", async () => {
   const server = await testServer();
   const { hash } = await binding.readInbox(server.repo);
-  await binding.addNoteWithImages(
+  const file = await binding.addNoteWithImages(
     server.repo,
     "Headings are flat",
     hash,
     [readFileSync(fixture("images/phone.png"))],
     ["phone.png"],
   );
+  const typed = readFileSync(join(server.repo, file), "utf8").replace(
+    "## Why\n",
+    "## Why\n\nReaders lose their place.\n",
+  );
+  writeFileSync(join(server.repo, file), typed);
   server.adapter.script([]);
 
   const started = await mutate(
@@ -80,9 +88,17 @@ test("change.fromNote starts a change with its note file's image, and the note f
 
   expect(started.error).toBeUndefined();
   const { folder } = started.data as Record<string, string>;
-  const files = git(server.repo, "ls-tree", "-r", "--name-only", `change/${folder}`);
+  const branch = `change/${folder}`;
+  const proposal = git(server.repo, "show", `${branch}:specs/changes/${folder}/proposal.md`);
+  expect(proposal.startsWith("# Headings are flat\n")).toBe(true);
+  expect(proposal).toContain("Readers lose their place.");
+  expect(proposal).toMatch(/\]\(images\/[^)]+\.webp\)/);
+  const files = git(server.repo, "ls-tree", "-r", "--name-only", branch);
   expect(files).toMatch(new RegExp(`^specs/changes/${folder}/images/.+\\.webp$`, "m"));
-  expect(existsSync(join(server.repo, "specs/notes/headings-are-flat"))).toBe(false);
+  const subject = git(server.repo, "log", "-1", "--format=%s", branch);
+  expect(subject).toContain("Headings are flat");
+  expect(subject).not.toContain("](");
+  expect(readFileSync(join(server.repo, INBOX), "utf8")).not.toContain("Headings are flat");
 });
 
 test("change.fromNote refused keeps the note in the inbox", async () => {

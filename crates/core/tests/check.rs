@@ -1014,6 +1014,28 @@ fn an_old_drafts_folder_points_to_the_migration() {
     );
 }
 
+/// A note file no note of the inbox links, as a removal leaves one typed in, is a warning, so it is
+/// found again; a linked one is not.
+#[test]
+fn an_unlinked_note_file_is_a_warning() {
+    let example = Example::new();
+    example.write("specs/notes/kept/note.md", "# Kept\n");
+    example.write("specs/notes/linked.md", "# Linked\n");
+    let inbox = example.read(INBOX) + "\n- [Linked](notes/linked.md)\n";
+    example.write(INBOX, &inbox);
+
+    let problems = example.problems();
+
+    let unlinked: Vec<&Problem> = problems
+        .iter()
+        .filter(|p| p.rule == "layout.unlinked-note")
+        .collect();
+    assert_eq!(
+        summary(&unlinked.into_iter().cloned().collect::<Vec<_>>()),
+        ["warning: specs/notes/kept/note.md: no note links this note file"]
+    );
+}
+
 /// A file of a change's folder that the folder does not hold is reported when the file alone is
 /// checked, on disk or as a text, as the editor checks it, and not for the files it holds.
 #[test]

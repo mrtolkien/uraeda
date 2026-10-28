@@ -77,7 +77,7 @@ pub fn add_and_commit(
         text: crate::files::lines::one_line(line),
     };
     let subject = format!("chore: {}", describe(&added));
-    let (_, added) = add_alone(place, PATH, &[], subject, || {
+    let (_, added) = add_alone(place, PATH, Vec::new, subject, || {
         add(place, section, line, previous)
     })?;
     Ok((read(place), added))
