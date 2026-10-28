@@ -12,7 +12,6 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
-  colorVars,
   fontWeightVars,
   sizeVars,
   spacingVars,
@@ -40,14 +39,10 @@ import { Logo } from "./Logo.tsx";
 import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
 import { ActionsMenu } from "./layout/ActionsMenu.tsx";
+import { pickedStyles } from "./layout/picked.ts";
 import { StatusText } from "./fields/StatusText.tsx";
 
 const styles = stylex.create({
-  // The row the arrows are on: the mauve tint of a list's selected row, with its bar at the start.
-  cursor: {
-    backgroundColor: colorVars["--color-accent-muted"],
-    boxShadow: `inset 2px 0 0 0 ${colorVars["--color-accent"]}`,
-  },
   brand: {
     display: "block",
     fontSize: typeScaleVars["--text-large-size"],
@@ -133,7 +128,8 @@ function RepositoryRow({
 }) {
   return (
     <ListItem
-      xstyle={isCursor ? styles.cursor : undefined}
+      // The row the arrows are on: a list's selected row's tint, with its bar at the start.
+      xstyle={isCursor ? pickedStyles.picked : undefined}
       description={
         row.missing ? (
           <div {...stylex.props(styles.path)}>

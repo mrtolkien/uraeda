@@ -3,35 +3,20 @@
 // Each is a pane of the sidebar's own cards; `coreParts` gives each its node and its height, for
 // the layout.
 import type { Icon } from "@astryxdesign/core/Icon";
-import { colorVars, focusVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { focusVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactNode } from "react";
 import { waiting } from "../labels.ts";
 import { Empty } from "../layout/Empty.tsx";
 import { Pane } from "../layout/Pane.tsx";
+import { pickedStyles } from "../layout/picked.ts";
 import { byStatus, type Feature, type Row } from "../sidebar/cards.ts";
 import { FeatureCard, SessionCard } from "../sidebar/Cards.tsx";
 
 const styles = stylex.create({
-  // A card, framed as a list's row: the keyboard's focus ring around the whole card, its task list
-  // too, drawn just inside it, not the ring of its row alone, whose edge would cut across it.
-  card: {
-    outlineColor: { ":has(:focus-visible)": colorVars["--color-accent"], default: null },
-    outlineOffset: {
-      ":has(:focus-visible)": `calc(-1 * ${focusVars["--focus-outline-width"]})`,
-      default: null,
-    },
-    outlineStyle: { ":has(:focus-visible)": "solid", default: null },
-    outlineWidth: { ":has(:focus-visible)": focusVars["--focus-outline-width"], default: null },
-  },
-  // The card's own row draws no ring: the card does.
+  // The card's own row draws no ring: the card does, around the whole card, its task list too, not
+  // the ring of its row alone, whose edge would cut across it (`pickedStyles.ringWithin`).
   ringless: { [focusVars["--focus-outline-style"]]: "none" },
-  // The card the keys or the pointer picked: the mauve tint of a list's selected row, with its bar
-  // at the start, so that home has one selection, whether it is in a pane or in a list.
-  picked: {
-    backgroundColor: colorVars["--color-accent-muted"],
-    boxShadow: `inset 2px 0 0 0 ${colorVars["--color-accent"]}`,
-  },
 });
 
 /** A pane of the core, drawn by `key`, as tall as `height` card lines. */
@@ -75,7 +60,9 @@ function part(
             <div
               data-core-key={card.key}
               key={card.key}
-              {...stylex.props(styles.card, card.key === picked && styles.picked)}
+              // A card, framed as a list's row: the keyboard's ring around the whole card, its task list too;
+              // picked, a list's selected row's tint, so home has one selection, in a pane or a list.
+              {...stylex.props(pickedStyles.ringWithin, card.key === picked && pickedStyles.picked)}
             >
               <div {...stylex.props(styles.ringless)}>{card.node}</div>
             </div>
