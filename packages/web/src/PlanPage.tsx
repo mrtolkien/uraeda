@@ -175,7 +175,7 @@ function ReviewedPlan({ file, session }: { file: File; session: PageSession | un
   const review = useReview(file, wide, session?.ask);
   const { comments, folds, selection, storyComments, tree, version } = review;
   const page = (
-    <Page isReading>
+    <Page isReading isTight>
       <Crumbs current={file.name} folder={file.folder} />
       <VStack gap={3}>
         <StoriesProvider
@@ -232,7 +232,7 @@ function ReadPlan({ file, session }: { file: File; session: PageSession | undefi
     >
       <SpecColumn
         content={
-          <Page isReading>
+          <Page isReading isTight>
             <Crumbs current={file.name} folder={file.folder} />
             <PlanParts
               drawing={{ document: file.current.document }}

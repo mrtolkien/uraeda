@@ -42,13 +42,16 @@ const styles = stylex.create({
   // The whole width of the window, for a page of columns.
   full: { maxWidth: "none" },
   snug: {
-    // On the phone, an 8 px inset, for a page that is read as text from edge to edge: a session.
+    // On the phone, `--spacing-2` (9.6 px), for a page that is read as text from edge to edge: a
+    // session.
     "--page-bleed": `calc(-1 * ${spacingVars["--spacing-2"]})`,
     "--page-inset": spacingVars["--spacing-2"],
     paddingBlock: spacingVars["--spacing-3"],
   },
   tight: {
-    // On the phone, the smallest inset, for a page whose parts take the screen's width.
+    // On the phone, `--spacing-3` (14.4 px) at the sides, past the sidebar's own: the inset of the
+    // spec's page, and of the plan's, the document's, and the data model's, which share its column
+    // and its bar, and follow its look.
     "--page-bleed": `calc(-1 * ${spacingVars["--spacing-3"]})`,
     "--page-inset": spacingVars["--spacing-3"],
     paddingBlock: spacingVars["--spacing-3"],
@@ -68,7 +71,8 @@ export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>
 
 /**
  * A page's content: its inset, and its column on wide screens, or with `isFull` the window's whole
- * width. `isTight` gives it the smallest inset on the phone, 12 px, and `isSnug` 8 px.
+ * width. On the phone, `isTight` gives it the spec family's inset, `--spacing-3`, and `isSnug`
+ * `--spacing-2`, a session's.
  */
 export function Page({
   children,
