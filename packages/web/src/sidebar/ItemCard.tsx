@@ -19,6 +19,7 @@ import { RailLink } from "./Row.tsx";
 import { brighten } from "./brighten.ts";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 import { DiffCount } from "../layout/DiffCount.tsx";
+import { pickedStyles } from "../layout/picked.ts";
 
 /** What the sidebar shows of a session, a change, or a feature. */
 export type CardItem = {
@@ -336,6 +337,7 @@ function cardClick(onOpen: (() => void) | undefined, onStatus: (() => void) | un
 export function ItemCard({
   detail,
   href,
+  isPicked = false,
   isSelected = false,
   item,
   onOpen,
@@ -344,6 +346,11 @@ export function ItemCard({
   /** More about it on a third line, as home's cards say: what it asks, how long it takes. */
   detail?: string | undefined;
   href: string;
+  /**
+   * The keys or the pointer picked it: tinted as a list's selected row, the keyboard's ring around
+   * the whole card, its sub-agents too, not around its row alone.
+   */
+  isPicked?: boolean;
   isSelected?: boolean;
   item: CardItem;
   /** Opens the item's page inside the app, instead of loading `href`. */
@@ -377,11 +384,16 @@ export function ItemCard({
       {...(!detail && !item.step && item.status.status !== "idle"
         ? { "data-rail-mark-only": "" }
         : {})}
-      {...stylex.props(styles.card)}
+      {...stylex.props(
+        styles.card,
+        isPicked && pickedStyles.picked,
+        isPicked && pickedStyles.ringWithin,
+      )}
     >
       <RailMark hasNext={hasNext} item={item} />
       <CardRow
         endContent={<Status hasNext={hasNext} hasWork={hasWork} item={item} />}
+        hasRing={!isPicked}
         href={href}
         icon={<CardIcon hasNext={hasNext} item={item} />}
         isEndTall={hasButton}

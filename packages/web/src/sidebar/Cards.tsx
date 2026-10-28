@@ -1,6 +1,7 @@
 // The shell's cards: a feature's or a change's, which opens its page, its status what it asks; and
 // a session's, which opens the session.
-import { Suspense } from "react";
+import { Suspense, use } from "react";
+import { PickedCard } from "../layout/picked.ts";
 import { useBranchChanges } from "../data.ts";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { usePendingAction } from "../writes/store.ts";
@@ -27,10 +28,12 @@ export function FeatureCard({
 }) {
   const here = useRepoPath();
   const to = `/f/${feature.folder}`;
+  const isPicked = use(PickedCard) === here(to);
   const card = (item: CardItem) => (
     <ItemCard
       detail={detail}
       href={here(to)}
+      isPicked={isPicked}
       isSelected={selects(pathname, to)}
       item={item}
       onOpen={() => navigate(here(to))}
@@ -73,6 +76,7 @@ export function SessionCard({ pathname, row }: { pathname: string; row: Row }) {
   return (
     <ItemCard
       href={here(to)}
+      isPicked={use(PickedCard) === here(to)}
       isSelected={selects(pathname, to)}
       item={sessionCard(row)}
       onOpen={() => navigate(here(to))}

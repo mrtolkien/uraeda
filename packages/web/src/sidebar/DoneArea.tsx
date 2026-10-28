@@ -3,8 +3,9 @@
 // gone, title included, when none fits. Home's Recent lists every done feature and change.
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type MouseEvent, type RefObject, useLayoutEffect, useRef, useState } from "react";
+import { type MouseEvent, type RefObject, use, useLayoutEffect, useRef, useState } from "react";
 import { Pane } from "../layout/Pane.tsx";
+import { PickedCard } from "../layout/picked.ts";
 import { useColumnFold } from "../shell/fold.ts";
 import { CardRow } from "./CardRow.tsx";
 import { DoneIcon } from "./StepIcon.tsx";
@@ -89,6 +90,7 @@ export function DoneArea({
   rows: Array<DoneRow>;
 }) {
   const { isFolded } = useColumnFold();
+  const picked = use(PickedCard);
   const area = useRef<HTMLDivElement>(null);
   const measured = useRowsThatFit(content, area);
   const shown = rows.slice(0, Math.min(measured, DONE_ROWS));
@@ -114,6 +116,7 @@ export function DoneArea({
             endContent={null}
             href={row.href}
             icon={<DoneIcon isSession={row.kind !== undefined} />}
+            isPicked={picked === row.href}
             isSelected={row.isSelected ?? false}
             key={row.folder}
             label={row.label}

@@ -10,6 +10,7 @@ import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex
 import { interactionOverlayStyles } from "@astryxdesign/core/utils/interactionOverlay.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type MouseEvent, type PointerEvent, type ReactNode, useState } from "react";
+import { pickedStyles } from "../layout/picked.ts";
 import { RouterAnchor } from "../links.tsx";
 import { brighten } from "./brighten.ts";
 
@@ -70,9 +71,11 @@ const styles = stylex.create({
 
 export function CardRow({
   endContent,
+  hasRing = true,
   href,
   icon,
   isEndTall = false,
+  isPicked = false,
   isSelected,
   label,
   name,
@@ -81,10 +84,14 @@ export function CardRow({
 }: {
   /** Passive content at the link's end, like its status. */
   endContent: ReactNode;
+  /** Its own focus ring, which a card picked whole drops for its own (`ItemCard`). */
+  hasRing?: boolean;
   href: string;
   icon: ReactNode;
   /** Whether its end is two lines high, the name's and the second's. */
   isEndTall?: boolean;
+  /** Its link tinted as a list's selected row, as the keys or the pointer picked it. */
+  isPicked?: boolean;
   isSelected: boolean;
   /** Its name, shown whole. */
   label: string;
@@ -114,7 +121,7 @@ export function CardRow({
         isSelected && navItemStyles.selected,
         styles.row,
         isEndTall ? styles.pointer : brighten,
-        focusOutlineStyles.focusWithinFirstChild,
+        hasRing && focusOutlineStyles.focusWithinFirstChild,
       )}
     >
       {/* A page of the UI opens without reloading, as every Astryx link's does. */}
@@ -123,7 +130,11 @@ export function CardRow({
         aria-label={name}
         href={href}
         {...(onClick ? { onClick } : {})}
-        {...stylex.props(focusOutlineStyles.suppressed, styles.link)}
+        {...stylex.props(
+          focusOutlineStyles.suppressed,
+          styles.link,
+          isPicked && pickedStyles.picked,
+        )}
       >
         <span {...stylex.props(styles.icon, isCardLit && styles.lit)}>{icon}</span>
         <span {...stylex.props(styles.text, isCardLit && styles.lit)}>

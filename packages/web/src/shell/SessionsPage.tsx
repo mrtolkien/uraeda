@@ -5,11 +5,12 @@
 // selected row, and Enter opens it; the mouse moving over a card takes them to it too.
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { type PointerEvent, type RefObject, useRef } from "react";
+import { type PointerEvent, type RefObject, useRef, useState } from "react";
 import { Columns } from "../home/parts.tsx";
 import { useKeys } from "../keys/registry.tsx";
 import { Page } from "../layout/Page.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
+import { PickedCard } from "../layout/picked.ts";
 import { RepositoryMenu } from "../RepositoryMenu.tsx";
 import { useRepository } from "../routes.tsx";
 import { Allowance } from "../sidebar/Allowance.tsx";
@@ -25,19 +26,15 @@ const styles = stylex.create({
 const TARGETS = "[data-card] a[href], [data-done-area] a[href]";
 
 /**
- * The card or row a link the keys or the pointer reached is in, tinted as a list's selected row,
- * with its bar at the start, and the keyboard's ring around the whole card, its task list too, not
- * around its row alone: the cards are the shell's, drawn by the sidebar's own components.
+ * The address of the card's or the done row's link that has the focus, which the keys or the
+ * pointer moved to it: that card is the one picked (`PickedCard`), none once the focus left them.
  */
-const PICKED_CSS = `[data-sessions] [data-card]:has(a:focus), [data-sessions] [data-done-area] a:focus {
-  background-color: var(--color-accent-muted);
-  box-shadow: inset 2px 0 0 0 var(--color-accent);
+function pickedOf(target: EventTarget | null) {
+  const link = (target as Element | null)?.closest?.("a[href]");
+  return link?.closest("[data-card], [data-done-area]")
+    ? (link.getAttribute("href") ?? undefined)
+    : undefined;
 }
-[data-sessions] [data-card] { --focus-outline-style: none; }
-[data-sessions] [data-card]:has(a:focus-visible) {
-  outline: var(--focus-outline-width) solid var(--color-accent);
-  outline-offset: calc(-1 * var(--focus-outline-width));
-}`;
 
 /** `j k` and the arrows, along `page`'s cards: from the one with the focus, or the last one. */
 function useCardKeys(page: RefObject<HTMLDivElement | null>) {
@@ -81,25 +78,32 @@ export function SessionsPage() {
   const current = useRepository();
   const page = useRef<HTMLDivElement>(null);
   const onPointerMove = useCardKeys(page);
+  const [picked, setPicked] = useState<string>();
   useNewKey();
   return (
     <Page isTight>
-      <style>{PICKED_CSS}</style>
       {/* The pointer takes the focus to its cards' links, as the keys do. */}
-      <div data-sessions="" onPointerMove={onPointerMove} ref={page}>
-        <VStack gap={3}>
-          <RepositoryMenu current={current} hasLogo />
-          <PageTitle>Sessions</PageTitle>
-          <VStack gap={1}>
-            <ShellPanes hasDone={false} query="" />
-            <Columns>
-              <div {...stylex.props(styles.done)}>
-                <ShellDone />
-              </div>
-              <Allowance />
-            </Columns>
+      <div
+        onBlur={() => setPicked(undefined)}
+        onFocus={(event) => setPicked(pickedOf(event.target))}
+        onPointerMove={onPointerMove}
+        ref={page}
+      >
+        <PickedCard value={picked}>
+          <VStack gap={3}>
+            <RepositoryMenu current={current} hasLogo />
+            <PageTitle>Sessions</PageTitle>
+            <VStack gap={1}>
+              <ShellPanes hasDone={false} query="" />
+              <Columns>
+                <div {...stylex.props(styles.done)}>
+                  <ShellDone />
+                </div>
+                <Allowance />
+              </Columns>
+            </VStack>
           </VStack>
-        </VStack>
+        </PickedCard>
       </div>
     </Page>
   );

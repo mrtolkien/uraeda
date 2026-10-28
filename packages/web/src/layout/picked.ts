@@ -2,6 +2,7 @@
 // picked card, the repository picker's cursor; and the keyboard's ring around a whole card.
 import { colorVars, focusVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { createContext } from "react";
 
 export const pickedStyles = stylex.create({
   // The mauve tint of a selected row, apart from the pane's own background, with a bar at its start.
@@ -22,3 +23,10 @@ export const pickedStyles = stylex.create({
     outlineWidth: { ":has(:focus-visible)": focusVars["--focus-outline-width"], default: null },
   },
 });
+
+/**
+ * The address of the shell's card or done row the keys or the pointer picked, on a page that moves
+ * along them, the sessions page: its card is tinted and ringed whole as a picked row is. None in the
+ * column, where a card is selected by its page.
+ */
+export const PickedCard = createContext<string | undefined>(undefined);
