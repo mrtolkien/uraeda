@@ -8,9 +8,9 @@
 
 - [Proposal naming](/specs/changes/2026-10-28-proposal-naming/proposal.md)
 
-- [Full interactive UI pass: manual small fixes](drafts/full-interactive-ui-pass-manual-small-fixes.md)
+- [Full interactive UI pass: manual small fixes](proposals/full-interactive-ui-pass-manual-small-fixes.md)
 - Write down our UI decisions and strategy based on the "UI fixes" worktree
-- [Phone bottom bars on more pages](drafts/phone-bottom-bars.md)
+- [Phone bottom bars on more pages](proposals/phone-bottom-bars.md)
 - Amend the latest commits if the commits only touch workflow files
 - Add `?` in status, after leader, for shortcuts
 - Cooler home view: logo, progress, gauges, ...
@@ -32,7 +32,7 @@
     decision?
   - This is early because it will help us develop the rest
 
-- [Worker lifecycle](drafts/worker-lifecycle.md): runs survive server restarts, usage limits, and
+- [Worker lifecycle](proposals/worker-lifecycle.md): runs survive server restarts, usage limits, and
   their own background work, and go on to the next human gate without a "Continue"
 - Heartbeat/cron jobs
 

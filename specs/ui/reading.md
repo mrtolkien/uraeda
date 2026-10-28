@@ -15,8 +15,8 @@ everything at once.
 A block of prose set in the UI font is a bug: it happened to a spec's "What you approve", its
 tradeoffs, and its scenarios, drawn with `Text type="inherit"`, and they read badly until they went
 through `Prose`. If a sentence is meant to be read, it is in the reading font. The one exception is
-text edited as its markdown source, like a draft's in its editor, which is in the code font on
-purpose: its marks are what the human edits.
+text edited as its markdown source, like a proposal file's in its editor, which is in the code font
+on purpose: its marks are what the human edits.
 
 ## Line length
 
@@ -77,7 +77,7 @@ not emptiness: a pane ends right after its last line, with only the pane's own r
 - A typed item's sign, `+`, `−`, `★`, `?`, is its marker, in its colour.
 - A selectable item keeps the list's edge: its selection bar sits in the marker's gap, not in front
   of its text.
-- A row of a list of things, like a priority or a note, holds **two or three lines at most**, then
+- A row of a list of things, like a proposal or a note, holds **two or three lines at most**, then
   an ellipsis; its sub-line is smaller and indented, "like with bullet points".
 
 ## Tables

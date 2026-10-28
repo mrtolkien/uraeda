@@ -46,9 +46,9 @@ page's header holds one, a session's and a feature's.
 
 ## A list's detail
 
-A row shows two or three lines. Its whole text, a priority's or a note's, opens in the detail dialog
+A row shows two or three lines. Its whole text, a proposal's or a note's, opens in the detail dialog
 (`pane/DetailOverlay.tsx`), 108 characters wide, on the row's own address, over the list, which
-keeps its selection and its scroll; a row with a draft opens the draft's page instead. Where reading
+keeps its selection and its scroll; a row with a file opens the file's page instead. Where reading
 an item is the page's job, the decisions page draws the list beside the item it reads, as the
 [UI layout](../decisions/ui-layout.md) decision asks. The priorities' side pane, and a hover card
 that followed the selection, were tried and removed.
@@ -83,7 +83,7 @@ Two jobs only:
 
 A dialog closes by Escape, Close, or Back; the quick note also by a click outside it. A dialog never
 holds a view of its own to read: "Remove the 'view' option and the view modal. Why does it even
-exist?" A draft opens its page, not an overlay. On the phone a dialog is a sheet.
+exist?" A proposal file opens its page, not an overlay. On the phone a dialog is a sheet.
 
 ## Undo
 
@@ -95,9 +95,9 @@ concerns.
 
 ## Pages
 
-Anything the human reads or works in for a while is a page, with its own address: a draft, a round,
-a spec, a session, the commit. "Committing is its own dedicated view/flow." Back returns to where
-they were.
+Anything the human reads or works in for a while is a page, with its own address: a proposal file, a
+round, a spec, a session, the commit. "Committing is its own dedicated view/flow." Back returns to
+where they were.
 
 ## The side column
 

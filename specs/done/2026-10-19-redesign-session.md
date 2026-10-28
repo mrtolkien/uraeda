@@ -123,7 +123,7 @@ footer.
 
 ## Follow-ups
 
-- The chat's right column is [its own draft](../drafts/chat-right-column.md).
+- The chat's right column is [its own draft](../proposals/chat-right-column.md).
 - Three web tests (`home.test.tsx` twice, `shell.test.tsx` "US3.2") and the desktop sidebar test
   "the sidebar with sessions, searched for “”" fail on the default branch too.
 - `SessionPane` is 99 lines: the next feature to touch it extracts first.
