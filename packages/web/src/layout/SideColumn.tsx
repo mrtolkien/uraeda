@@ -81,7 +81,7 @@ const styles = stylex.create({
     overflowY: "auto",
   },
   rail: {
-    // Folded: the rail's icons, under the button that unfolds it.
+    // Folded: the rail's icons, in a column under the button that unfolds it.
     alignItems: "center",
     cursor: "pointer",
     display: "flex",

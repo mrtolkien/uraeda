@@ -10,7 +10,6 @@
 import { Icon } from "@astryxdesign/core/Icon";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, useId } from "react";
 import { redirect, useSearch } from "../routes.tsx";
@@ -136,17 +135,6 @@ export function ColumnTabs({
   );
 }
 
-/** The folded column's rail: each panel's icon, named by its tab. */
-function Rail({ panels }: { panels: ReadonlyArray<ColumnPanel> }) {
-  return (
-    <VStack align="center" gap={3}>
-      {panels.map((panel) => (
-        <Icon icon={panel.icon} key={panel.key} label={panel.label} />
-      ))}
-    </VStack>
-  );
-}
-
 /** The column's width and fold, kept for every document: `useDocumentColumnWidth`'s. */
 type DocumentColumnState = ReturnType<typeof useDocumentColumnWidth>;
 
@@ -209,7 +197,10 @@ function Drawn({
       isShown={isShown}
       label={label}
       onShownChange={setShown}
-      rail={<Rail panels={panels} />}
+      // The folded column's rail: each panel's icon, named by its tab, in the rail's column.
+      rail={panels.map((panel) => (
+        <Icon icon={panel.icon} key={panel.key} label={panel.label} />
+      ))}
       width={resizable}
     >
       {shown && (
