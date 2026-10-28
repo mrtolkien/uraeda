@@ -77,6 +77,9 @@ const styles = stylex.create({
   // On narrow screens, a dash, the narrowest marker, which hangs in the page's margin.
   dashed: { listStyleType: '"- "' },
   numbered: { listStyleType: "decimal" },
+  // An item's other sentences, a list under its first, closer together than the items.
+  split: { marginBlockEnd: 0, marginBlockStart: spacingVars["--spacing-1"] },
+  splitItem: { marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-1"] } },
   // On narrow screens, the markers hang in the page's margin, as far as its inset allows: the
   // text of a list on the paragraphs' edge when the inset holds the markers' whole room.
   hanging: (room: string) => ({
@@ -203,6 +206,8 @@ export type BlockContext = {
   lead?: number;
   /** Draws a block its own way, when it returns something. */
   override?: (block: Block) => ReactNode | undefined;
+  /** Its list items' sentences after their first, each a bullet under it: a round's settled points. */
+  splitsItems?: boolean;
   /** The room a jump to a heading leaves above it, as below the phone's tabs. */
   scrollMargin: stylex.StyleXStyles;
   selection?: Selection;
@@ -310,7 +315,11 @@ function ListNode({ block, context }: { block: Block; context: BlockContext }) {
                   </span>
                 )}
                 <SinceWords block={item}>
-                  <Spans spans={item.spans} />
+                  <ItemText
+                    isHanging={isHanging}
+                    spans={item.spans}
+                    splits={context.splitsItems === true}
+                  />
                 </SinceWords>
                 <Children block={item} context={context} />
               </div>
@@ -324,15 +333,18 @@ function ListNode({ block, context }: { block: Block; context: BlockContext }) {
 
 /**
  * A paragraph's spans split after its first sentence: the sentence's, and the rest's. The end is
- * the first ".", "!" or "?" before a space or the end in plain text, not in code nor a link. None
- * when the paragraph is one sentence.
+ * the first ".", "!" or "?" before a space in plain text, not in code nor a link, the space perhaps
+ * the next span's, as after a bold lead. None when the paragraph is one sentence.
  */
 function firstSentence(spans: ReadonlyArray<Span>): [Array<Span>, Array<Span>] | undefined {
   for (const [index, span] of spans.entries()) {
     if (span.code || span.link || span.image) {
       continue;
     }
-    const end = /[.!?](?=\s)/.exec(span.text);
+    const next = spans[index + 1];
+    const end =
+      /[.!?](?=\s)/.exec(span.text) ??
+      (/\s/.test(next?.text[0] ?? "") ? /[.!?]$/.exec(span.text) : null);
     if (end) {
       const at = end.index + 1;
       const rest = [{ ...span, text: span.text.slice(at).trimStart() }, ...spans.slice(index + 1)];
@@ -342,6 +354,54 @@ function firstSentence(spans: ReadonlyArray<Span>): [Array<Span>, Array<Span>] |
     }
   }
   return undefined;
+}
+
+/** Spans split into their sentences, as `firstSentence` ends the first. */
+function sentences(spans: ReadonlyArray<Span>): Array<Array<Span>> {
+  const all: Array<Array<Span>> = [];
+  let rest: ReadonlyArray<Span> = spans;
+  for (let split = firstSentence(rest); split; split = firstSentence(rest)) {
+    all.push(split[0]);
+    rest = split[1];
+  }
+  return [...all, [...rest]];
+}
+
+/**
+ * A list item's text: its first sentence, then, with `splits`, each of its other sentences a
+ * bullet under it, so a point of several reads as its claim and its reasons.
+ */
+function ItemText({
+  isHanging,
+  spans,
+  splits,
+}: {
+  isHanging: boolean;
+  spans: ReadonlyArray<Span>;
+  splits: boolean;
+}) {
+  const [first, ...others] = splits ? sentences(spans) : [spans];
+  return (
+    <>
+      <Spans spans={first ?? []} />
+      {others.length > 0 && (
+        <ul
+          {...stylex.props(
+            styles.native("1.25em"),
+            isHanging ? styles.dashed : styles.disc,
+            styles.split,
+          )}
+        >
+          {others.map((sentence, index) => (
+            // oxlint-disable-next-line react/no-array-index-key -- a sentence's place is its identity
+            <li key={index} {...stylex.props(proseStyles.reading, styles.item, styles.splitItem)}>
+              <Spans spans={sentence} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
 }
 
 /**
@@ -498,6 +558,7 @@ export function Blocks({
   isAiry = false,
   override,
   selection,
+  splitsItems = false,
 }: {
   document: Document;
   folds?: Folds;
@@ -508,6 +569,8 @@ export function Blocks({
   isAiry?: boolean;
   override?: (block: Block) => ReactNode | undefined;
   selection?: Selection;
+  /** Its list items' sentences after their first, each a bullet under it. */
+  splitsItems?: boolean;
 }) {
   const children = useChildren(document);
   useHashFold(document, folds);
@@ -523,6 +586,7 @@ export function Blocks({
     ...(override ? { override } : {}),
     scrollMargin: useScrollMargin(),
     ...(selection ? { selection } : {}),
+    splitsItems,
     staticImages: useStaticImages(),
   };
   const folded = new Map<number, Fold | undefined>();

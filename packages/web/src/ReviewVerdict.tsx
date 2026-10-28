@@ -81,8 +81,9 @@ function SummaryField({ summary }: { summary: ReturnType<typeof useTextField> })
 }
 
 /**
- * The verdict's buttons, Request changes and Approve, each committing, then starting the agent or
- * not; `onVerdict` resolves to whether the verdict was committed.
+ * The verdict's buttons, Request changes and Approve, each committing, then opening the session
+ * with the workflow's message, unsent, when the agent works on this machine; `onVerdict` resolves to
+ * whether the verdict was committed.
  */
 export function Verdicts({
   comments,
@@ -96,22 +97,18 @@ export function Verdicts({
   return (
     <>
       <CommitActions
-        continueLabel="Request changes, start the agent"
         folder={file.folder}
         isDisabled={comments === 0 || file.committed != null}
         label="Request changes"
         onCommit={(next) => onVerdict(false, next)}
-        onlyLabel="Request changes only"
         tooltip={comments === 0 ? "Add a comment first" : undefined}
         variant="destructive"
       />
       <CommitActions
-        continueLabel="Approve and start the agent"
         folder={file.folder}
         isDisabled={file.committed != null}
         label="Approve"
         onCommit={(next) => onVerdict(true, next)}
-        onlyLabel="Approve only"
       />
     </>
   );

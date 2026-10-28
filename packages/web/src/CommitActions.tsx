@@ -6,23 +6,22 @@ import { WriteButton } from "./writes/WriteButton.tsx";
 type Variant = "primary" | "secondary" | "destructive";
 
 /**
- * The buttons of an action that commits and leads to an agent step: "Commit and start the agent"
- * and "Commit only" when the agent works on this machine, else the page's single button, as
- * before. `onCommit` commits, then hands the feature over to the agent when `continues`: its
- * session opens with the workflow's message; it resolves to `false` when nothing was committed.
- * While one commits, it reads "Committing…", the others are blocked, and the card of `folder`, the
- * feature it commits to, says the same. `children` lead the row. `resume` adds the primary button
- * of an answer that continues the work in progress: "Commit and start the agent" then turns
- * secondary, as the way back, and the button reads as `resume.label`.
+ * The button of an action that commits and leads to an agent step, the page's single button,
+ * `label`: when the agent works on this machine, `onCommit` commits, then hands the feature over to
+ * the agent, its session opened with the workflow's message in its composer, unsent, for the human
+ * to send or not; it resolves to `false` when nothing was committed. While one commits, it reads
+ * "Committing…", the others are blocked, and the card of `folder`, the feature it commits to, says
+ * the same. `children` lead the row. `resume` adds the primary button of an answer that continues
+ * the work in progress, reading as `resume.label`: the page's button then turns secondary, as the
+ * way back, and reads as `continueLabel`.
  */
 export function CommitActions({
   children,
-  continueLabel = "Commit and start the agent",
+  continueLabel,
   folder,
   isDisabled,
   label,
   onCommit,
-  onlyLabel = "Commit only",
   resume,
   runningLabel = "Committing…",
   tooltip,
@@ -34,7 +33,6 @@ export function CommitActions({
   isDisabled?: boolean;
   label: string;
   onCommit: (continues: boolean) => Promise<unknown>;
-  onlyLabel?: string;
   resume?: { label: string; onCommit: () => Promise<unknown> };
   /** What the clicked button reads while it runs. */
   runningLabel?: string;
@@ -42,27 +40,13 @@ export function CommitActions({
   variant?: Variant;
 }) {
   const agent = useAgent();
-  if (!agent?.available) {
-    return (
-      <HStack gap={2} wrap="wrap">
-        {children}
-        <WriteButton
-          folder={folder}
-          isDisabled={isDisabled}
-          label={label}
-          onClick={() => onCommit(false)}
-          runningLabel={runningLabel}
-          tooltip={tooltip}
-          variant={variant}
-        />
-      </HStack>
-    );
-  }
+  const continues = agent?.available === true;
+  const resumes = continues && resume !== undefined;
   return (
     // A long label takes its own line rather than being cut.
     <HStack gap={2} wrap="wrap">
       {children}
-      {resume && (
+      {resumes && (
         <WriteButton
           folder={folder}
           isDisabled={isDisabled}
@@ -76,20 +60,11 @@ export function CommitActions({
       <WriteButton
         folder={folder}
         isDisabled={isDisabled}
-        label={continueLabel}
-        onClick={() => onCommit(true)}
+        label={resumes ? (continueLabel ?? label) : label}
+        onClick={() => onCommit(continues)}
         runningLabel={runningLabel}
         tooltip={tooltip}
-        variant={resume ? "secondary" : variant === "destructive" ? "destructive" : "primary"}
-      />
-      <WriteButton
-        folder={folder}
-        isDisabled={isDisabled}
-        label={onlyLabel}
-        onClick={() => onCommit(false)}
-        runningLabel={runningLabel}
-        tooltip={tooltip}
-        variant="secondary"
+        variant={resumes ? "secondary" : variant}
       />
     </HStack>
   );

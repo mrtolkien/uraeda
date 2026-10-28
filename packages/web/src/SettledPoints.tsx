@@ -158,7 +158,9 @@ export function SettledPoints({
         groups={groups}
         hoodForced={shown !== undefined && groupOf(document, groups, shown.point)?.kind === "hood"}
         part={part}
-        points={(group) => <Blocks document={document} ids={group.blocks} selection={selection} />}
+        points={(group) => (
+          <Blocks document={document} ids={group.blocks} selection={selection} splitsItems />
+        )}
       />
       {inPage(gone)}
       {!wide && !readOnly && (
