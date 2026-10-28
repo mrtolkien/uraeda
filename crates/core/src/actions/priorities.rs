@@ -4,7 +4,7 @@
 use std::fs;
 
 use crate::files::document::hash;
-use crate::files::priorities::{self, EntryChange, Priorities, Section};
+use crate::files::priorities::{self, Priorities, ProposalChange, Section};
 
 use super::commit::{Added, add_alone, commit_only, is_clean};
 use super::place::Place;
@@ -60,7 +60,7 @@ pub fn add(
         place,
         previous,
         |text| priorities::add(text, section, line),
-        "a priority needs some text",
+        "a proposal needs some text",
     )
 }
 
@@ -72,16 +72,18 @@ pub fn add_and_commit(
     line: &str,
     previous: &str,
 ) -> Result<(Priorities, Added), ActionError> {
-    let added = EntryChange::Added {
+    let added = ProposalChange::Added {
         section,
         text: crate::files::lines::one_line(line),
     };
     let subject = format!("chore: {}", describe(&added));
-    let (_, added) = add_alone(place, PATH, subject, || add(place, section, line, previous))?;
+    let (_, added) = add_alone(place, PATH, Vec::new, subject, || {
+        add(place, section, line, previous)
+    })?;
     Ok((read(place), added))
 }
 
-/// Removes the entry a committed add wrote, `lines` as written, and commits the removal alone:
+/// Removes the proposal a committed add wrote, `lines` as written, and commits the removal alone:
 /// Undo of "Add and commit". Refused as stale when the file changed since it was read at
 /// `previous`, or since its commit.
 pub fn undo_committed(
@@ -93,13 +95,15 @@ pub fn undo_committed(
     if hash(&current) != previous || !is_clean(place, PATH) {
         return Err(ActionError::Refused(format!("PRIORITIES.md {STALE}")));
     }
-    let (without, entry) = priorities::remove_added(&current, lines).ok_or_else(|| {
-        ActionError::Refused("Could not undo: the entry is no longer in PRIORITIES.md.".to_string())
+    let (without, proposal) = priorities::remove_added(&current, lines).ok_or_else(|| {
+        ActionError::Refused(
+            "Could not undo: the proposal is no longer in PRIORITIES.md.".to_string(),
+        )
     })?;
     fs::write(place.root.join(PATH), &without)?;
-    let removed = EntryChange::Removed {
-        section: entry.section,
-        text: entry.text,
+    let removed = ProposalChange::Removed {
+        section: proposal.section,
+        text: proposal.text,
     };
     commit_only(
         place,
@@ -112,8 +116,8 @@ pub fn undo_committed(
     Ok(read(place))
 }
 
-/// Inserts an entry's lines, nested lines included, before the entry at `index` of `section`, or
-/// at its end when `index` is past it: Undo of a removal.
+/// Inserts a proposal's lines, nested lines included, before the proposal at `index` of `section`,
+/// or at its end when `index` is past it: Undo of a removal.
 pub fn insert(
     place: &Place,
     section: Section,
@@ -124,13 +128,13 @@ pub fn insert(
     apply(
         place,
         previous,
-        |text| priorities::insert_entry(text, section, index, lines),
-        "a priority needs some text",
+        |text| priorities::insert_proposal(text, section, index, lines),
+        "a proposal needs some text",
     )
 }
 
-/// Moves an entry before the entry at `index` of `section`, or to its end.
-pub fn move_entry(
+/// Moves a proposal before the proposal at `index` of `section`, or to its end.
+pub fn move_proposal(
     place: &Place,
     id: &str,
     section: Section,
@@ -140,12 +144,12 @@ pub fn move_entry(
     apply(
         place,
         previous,
-        |text| priorities::move_entry(text, id, section, index),
-        &format!("no priority {id}"),
+        |text| priorities::move_proposal(text, id, section, index),
+        &format!("no proposal {id}"),
     )
 }
 
-/// Replaces an entry's text.
+/// Replaces a proposal's text.
 pub fn edit(
     place: &Place,
     id: &str,
@@ -156,12 +160,12 @@ pub fn edit(
         place,
         previous,
         |text| priorities::edit(text, id, line),
-        &format!("no priority {id}, or an empty text"),
+        &format!("no proposal {id}, or an empty text"),
     )
 }
 
-/// Edits the outline of an entry: the entry, or with `at`, the item at `at` of its nested items in
-/// the order of the file (see [`priorities::outline`]).
+/// Edits the outline of a proposal: the proposal, or with `at`, the item at `at` of its nested
+/// items in the order of the file (see [`priorities::outline`]).
 pub fn outline(
     place: &Place,
     id: &str,
@@ -173,11 +177,11 @@ pub fn outline(
         place,
         previous,
         |text| priorities::outline(text, id, at, edit),
-        &format!("no priority {id}, no such item, nowhere to go, or code under it"),
+        &format!("no proposal {id}, no such item, nowhere to go, or code under it"),
     )
 }
 
-/// Moves an entry, or with `at` its nested item at `at`, its own items with it, to `to`: a drop
+/// Moves a proposal, or with `at` its nested item at `at`, its own items with it, to `to`: a drop
 /// (see [`priorities::drop_item`]).
 pub fn drop_item(
     place: &Place,
@@ -190,21 +194,21 @@ pub fn drop_item(
         place,
         previous,
         |text| priorities::drop_item(text, id, at, to),
-        &format!("no priority {id}, no such item or place, or code under it"),
+        &format!("no proposal {id}, no such item or place, or code under it"),
     )
 }
 
-/// Removes an entry and its nested lines.
+/// Removes a proposal and its nested lines.
 pub fn remove(place: &Place, id: &str, previous: &str) -> Result<Priorities, ActionError> {
     apply(
         place,
         previous,
         |text| priorities::remove(text, id),
-        &format!("no priority {id}"),
+        &format!("no proposal {id}"),
     )
 }
 
-/// An entry's text cut at a word, to keep a subject short.
+/// A proposal's text cut at a word, to keep a subject short.
 pub(crate) fn short(text: &str) -> String {
     const MAX: usize = 40;
     if text.chars().count() <= MAX {
@@ -220,37 +224,37 @@ pub(crate) fn short(text: &str) -> String {
     )
 }
 
-/// A change as a subject's description, its entry's text shortened.
-pub(crate) fn describe(change: &EntryChange) -> String {
+/// A change as a subject's description, its proposal's text shortened.
+pub(crate) fn describe(change: &ProposalChange) -> String {
     match change {
-        EntryChange::Added { section, text } => {
+        ProposalChange::Added { section, text } => {
             format!("add \"{}\" to {}", short(text), section.title())
         }
-        EntryChange::Removed { text, .. } => format!("remove \"{}\"", short(text)),
-        EntryChange::Moved { from, to, text } if from == to => {
+        ProposalChange::Removed { text, .. } => format!("remove \"{}\"", short(text)),
+        ProposalChange::Moved { from, to, text } if from == to => {
             format!("move \"{}\" within {}", short(text), to.title())
         }
-        EntryChange::Moved { to, text, .. } => {
+        ProposalChange::Moved { to, text, .. } => {
             format!("move \"{}\" to {}", short(text), to.title())
         }
-        EntryChange::Edited { after, .. } => format!("edit \"{}\"", short(after)),
+        ProposalChange::Edited { after, .. } => format!("edit \"{}\"", short(after)),
     }
 }
 
-/// A change as a line of the body, with its entry's whole text.
-pub(crate) fn line(change: &EntryChange) -> String {
+/// A change as a line of the body, with its proposal's whole text.
+pub(crate) fn line(change: &ProposalChange) -> String {
     match change {
-        EntryChange::Added { section, text } => format!("- Add to {}: {text}", section.title()),
-        EntryChange::Removed { section, text } => {
+        ProposalChange::Added { section, text } => format!("- Add to {}: {text}", section.title()),
+        ProposalChange::Removed { section, text } => {
             format!("- Remove from {}: {text}", section.title())
         }
-        EntryChange::Moved { from, to, text } if from == to => {
+        ProposalChange::Moved { from, to, text } if from == to => {
             format!("- Move within {}: {text}", to.title())
         }
-        EntryChange::Moved { from, to, text } => {
+        ProposalChange::Moved { from, to, text } => {
             format!("- Move from {} to {}: {text}", from.title(), to.title())
         }
-        EntryChange::Edited {
+        ProposalChange::Edited {
             section,
             before,
             after,
@@ -258,12 +262,12 @@ pub(crate) fn line(change: &EntryChange) -> String {
     }
 }
 
-/// Commits the commit bar's changes: the priorities, the inbox, and the drafts notes went into.
+/// Commits the commit bar's changes: the priorities, the inbox, and the files notes went into.
 pub fn commit(place: &Place) -> Result<Committed, ActionError> {
     changes::commit(place)
 }
 
-/// Restores the committed priorities, inbox, and drafts notes went into.
+/// Restores the committed priorities, inbox, and files notes went into.
 pub fn discard(place: &Place) -> Result<(), ActionError> {
     changes::discard(place)
 }

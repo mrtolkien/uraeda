@@ -18,7 +18,7 @@ import { Allowance } from "../sidebar/Allowance.tsx";
 import { nowCount } from "../sidebar/entries.ts";
 import { Item } from "../sidebar/Row.tsx";
 import { DESTINATIONS } from "../destinations.ts";
-import { AddNoteButton, AddPriorityButton, useOpenAddForm } from "../SidebarAdd.tsx";
+import { AddNoteButton, AddProposalButton, useOpenAddForm } from "../SidebarAdd.tsx";
 import { columnVars } from "./column.stylex.ts";
 import { useColumnFold } from "./fold.ts";
 import { ShellPane } from "./ShellPanes.tsx";
@@ -110,9 +110,9 @@ export function ColumnHeading({
 }
 
 /**
- * Commit, while something waits for one: the one place the inbox's, the priorities', and the drafts'
- * edits are committed, with what a commit would hold. First, as the thing to do before the rest; an
- * icon alone in the rail.
+ * Commit, while something waits for one: the one place the inbox's, the priorities', and the
+ * proposal and note files' edits are committed, with what a commit would hold. First, as the thing
+ * to do before the rest; an icon alone in the rail.
  */
 function CommitAction({ isFolded }: { isFolded: boolean }) {
   const here = useRepoPath();
@@ -230,7 +230,7 @@ export function Navigate({ pathname }: { pathname: string }) {
         </Suspense>
       )}
       <Item
-        actions={<AddPriorityButton />}
+        actions={<AddProposalButton />}
         count={now}
         endContent={count(now)}
         icon={<Icon icon={DESTINATIONS.priorities.icon} />}

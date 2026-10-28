@@ -44,13 +44,16 @@ test("each kind a preview shows has its raw text through the server", async () =
   );
   expect(notes).toContain("Text input feels laggy on the sessions page");
 
-  // A priority's line, with its nested lines.
+  // A proposal's line, with its nested lines.
   const [priorities] = await byId(app, "Priorities", ["priorities"], ["sections"]);
-  const entries = priorities.sections.flatMap(
-    (section: { entries: Array<{ lines: Array<string>; nested: Array<string>; text: string }> }) =>
-      section.entries,
+  const proposals = priorities.sections.flatMap(
+    (section: {
+      proposals: Array<{ lines: Array<string>; nested: Array<string>; text: string }>;
+    }) => section.proposals,
   );
-  const nix = entries.find((entry: { text: string }) => entry.text.startsWith("Nix + Docker"));
+  const nix = proposals.find((proposal: { text: string }) =>
+    proposal.text.startsWith("Nix + Docker"),
+  );
   expect(nix.lines).toEqual(["- Nix + Docker based execution environments", "  - with a cache"]);
   expect(nix.nested).toEqual(["  - with a cache"]);
 });

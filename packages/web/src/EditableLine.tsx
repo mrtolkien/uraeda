@@ -52,7 +52,7 @@ const styles = stylex.create({
  * the field, which keeps the typed text, or with nothing once saved. `display` is what the button
  * shows, the value by default. With `stayOpen`, as an Add row, a saved field empties and stays open
  * for the next line. `look` draws the closed line as text, by default, or as a bordered field, for
- * a value to change like a setting's. `empty` is the refusal of an empty text, a priority's by
+ * a value to change like a setting's. `empty` is the refusal of an empty text, a proposal's by
  * default. Each new `opens` above 0 opens the field, as a key of the page does.
  */
 export function EditableLine({

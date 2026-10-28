@@ -1,11 +1,10 @@
-// A note's image taken out of its draft by the core: the lines linking it go, and the image's file
-// stays for `ura inbox clean`, or a commit of the folder, to delete once nothing links it.
+// A note's image taken out of its note file by the core: the lines linking it go, and the image's
+// file stays for `ura inbox clean`, or a commit of the folder, to delete once nothing links it.
 import { type useFateClient, view } from "react-fate";
 import type { InboxNote, RemovedImage } from "uraeda-binding";
 import type { Inbox } from "uraeda-server/fate";
-import { readDraft, rereadDraft } from "./attach/useEditorImages.ts";
+import { readProposalFile, rereadProposalFile } from "./attach/useEditorImages.ts";
 import { rereadChanges } from "./data.ts";
-import { draftFile } from "./draftFile.ts";
 import { guarded, refusal } from "./errors.ts";
 import { InboxView } from "./views.ts";
 
@@ -23,7 +22,7 @@ const InboxImageRemovedView = view<Inbox>()({
   count: true,
   hash: true,
   id: true,
-  imageRemoved: { after: true, at: true, before: true, draft: true, image: true },
+  imageRemoved: { after: true, at: true, before: true, file: true, image: true },
   names: true,
   triage: true,
 });
@@ -32,25 +31,25 @@ const InboxImageRemovedView = view<Inbox>()({
 export type Removed = RemovedImage;
 
 /**
- * Takes the image at `path`, from the repository's top level, out of the draft of `note`, over the
- * version of the draft read. Gives what Undo needs, or the refusal to show.
+ * Takes the image at `path`, from the repository's top level, out of the note file of `note`, over
+ * the version of the file read. Gives what Undo needs, or the refusal to show.
  */
 export async function removeNoteImage(
   fate: Fate,
   note: InboxNote,
   path: string,
 ): Promise<Removed | string> {
-  if (note.draft === undefined) {
-    return "The note links no draft.";
+  if (note.file === undefined) {
+    return "The note has no file.";
   }
-  const file = draftFile(note.draft);
-  const draft = await readDraft(fate, file);
-  if (!draft) {
-    return `The draft ${file} was not found.`;
+  const file = note.file;
+  const read = await readProposalFile(fate, file);
+  if (!read) {
+    return `The note file ${file} was not found.`;
   }
   const result = await guarded(() =>
     fate.mutations.inbox.removeImage({
-      input: { draft: file, hash: draft.hash, image: path },
+      input: { file, hash: read.hash, image: path },
       view: InboxImageRemovedView,
     }),
   );
@@ -58,12 +57,12 @@ export async function removeNoteImage(
   if (result.error) {
     return refusal(result.error).message;
   }
-  await rereadDraft(fate, file);
+  await rereadProposalFile(fate, file);
   const removed = result.result?.imageRemoved;
   return removed ?? `Could not remove ${imageName(path)}.`;
 }
 
-/** Undo of a removal: the lines linking the image go back where they were, over the draft now. */
+/** Undo of a removal: the lines linking the image go back where they were, over the file now. */
 export async function restoreNoteImage(fate: Fate, removed: Removed) {
   const result = await guarded(() =>
     fate.mutations.inbox.restoreImage({ input: { removed }, view: InboxView }),
@@ -72,6 +71,6 @@ export async function restoreNoteImage(fate: Fate, removed: Removed) {
   if (result.error) {
     return refusal(result.error).message;
   }
-  await rereadDraft(fate, removed.draft);
+  await rereadProposalFile(fate, removed.file);
   return undefined;
 }

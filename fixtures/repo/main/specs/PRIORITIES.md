@@ -18,7 +18,7 @@
 > What comes once Now is done
 
 - Claude Code runner (triggered manually)
-- [Git listener process](drafts/git-listener.md)
+- [Git listener process](proposals/git-listener.md)
 
 ## Later
 

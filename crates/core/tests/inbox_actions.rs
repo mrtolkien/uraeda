@@ -323,7 +323,7 @@ fn only_a_stale_edit_is_a_conflict() {
     );
     assert_eq!(code("the branch changed on disk meanwhile"), "refused");
     assert_eq!(
-        api::ApiError::from(ActionError::changed("specs/drafts/x.md")).code,
+        api::ApiError::from(ActionError::changed("specs/proposals/x.md")).code,
         "conflict"
     );
 }

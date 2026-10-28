@@ -110,10 +110,10 @@ fn a_proposal_is_written_once_more_than_its_title_and_what_hold_text() {
 /// back out of it. The section ends at the next `#` or `##` heading outside fenced code.
 #[test]
 fn the_what_section_holds_its_subsections() {
-    let draft = "# Dark mode\n\n## What\n\nA theme.\n\n### Details\n\nColors.\n\n```\n## not a heading\n```\n\n## Why\n\nEyes.\n";
+    let proposal_file = "# Dark mode\n\n## What\n\nA theme.\n\n### Details\n\nColors.\n\n```\n## not a heading\n```\n\n## Why\n\nEyes.\n";
     let note = ["- Night too".to_string()];
 
-    let added = proposal::append_to_what(draft, &note).unwrap();
+    let added = proposal::append_to_what(proposal_file, &note).unwrap();
 
     assert_eq!(
         added,
@@ -121,8 +121,8 @@ fn the_what_section_holds_its_subsections() {
     );
     assert_eq!(
         proposal::without_item(&added, "Night too\n").as_deref(),
-        Some(draft)
+        Some(proposal_file)
     );
-    let after_why = draft.replace("Eyes.\n", "Eyes.\n\n- Night too\n");
+    let after_why = proposal_file.replace("Eyes.\n", "Eyes.\n\n- Night too\n");
     assert_eq!(proposal::without_item(&after_why, "Night too\n"), None);
 }

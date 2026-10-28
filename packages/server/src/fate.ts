@@ -8,7 +8,7 @@ import type { Device } from "./sign-in/check.ts";
 import {
   agentDataView,
   branchDecisionDataView,
-  draftDataView,
+  proposalFileDataView,
   featureDataView,
   fileDataView,
   inboxDataView,
@@ -38,7 +38,7 @@ export {
   agentDataView,
   branchChangesDataView,
   branchDecisionDataView,
-  draftDataView,
+  proposalFileDataView,
   droppedDataView,
   featureDataView,
   fileDataView,
@@ -84,10 +84,10 @@ export type History = Entity<typeof historyDataView, "History">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type BranchDecision = Entity<typeof branchDecisionDataView, "BranchDecision">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;
-/** An entry of the priorities, as the record sends it. */
-export type PriorityEntry = Priorities["sections"][number]["entries"][number];
+/** A proposal of the priorities, as the record sends it. */
+export type Proposal = Priorities["sections"][number]["proposals"][number];
 export type Inbox = Entity<typeof inboxDataView, "Inbox">;
-export type Draft = Entity<typeof draftDataView, "Draft">;
+export type ProposalFile = Entity<typeof proposalFileDataView, "ProposalFile">;
 export type Dropped = Entity<typeof droppedDataView, "Dropped">;
 export type Ledger = Entity<typeof ledgerDataView, "Ledger">;
 export type ProposalHints = Entity<typeof proposalHintsDataView, "ProposalHints">;

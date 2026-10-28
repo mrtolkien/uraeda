@@ -27,7 +27,7 @@ export type TitleMeta = { marks?: ReactNode; text: ReactNode };
  * another element, as a block a comment can select. `count` follows it, a badge without words, as
  * the inbox's review asked (C3). `actions` stay beside it at every width, as a "…" menu; `aside`
  * sits at the row's end on wider screens, and under the title on the phone, as a search or a page's
- * main tool. `above` is the line over it, a draft's path; `status` a workflow file's status, as a
+ * main tool. `above` is the line over it, a file's path; `status` a workflow file's status, as a
  * badge over it; `meta` the supporting line under it, the subject's state; `description` the
  * secondary text under them, what the page is for.
  */

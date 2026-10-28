@@ -100,8 +100,8 @@ function outlineEdits<Data extends { hash: string }, Source>({
   const onOutline = (spot: Spot, key: string, move: OutlineMove) => {
     if (spot.at === undefined) {
       // An item indents under the item above it in the file, never under one that stays as it is,
-      // as a running line; and an item never outdents, nor indents when it stays an item, as a line
-      // with a draft.
+      // as a running proposal; and an item never outdents, nor indents when it stays an item, as a
+      // proposal with a file.
       const items = drawn.sections.find((section) => section.id === spot.section)?.items;
       const above = items?.[spot.index - 1];
       const isStaying = items?.[spot.index]?.staysItem === true;

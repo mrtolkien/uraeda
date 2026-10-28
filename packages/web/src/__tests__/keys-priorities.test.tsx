@@ -77,8 +77,8 @@ async function save(field: HTMLElement, text: string) {
 
 /** Checks that the open add form is set to `section`. */
 async function expectSection(section: string) {
-  const form = within(await screen.findByRole("dialog", { name: "New priority" }));
-  await form.findByRole("textbox", { name: "Priority" });
+  const form = within(await screen.findByRole("dialog", { name: "New proposal" }));
+  await form.findByRole("textbox", { name: "Proposal" });
   expect(form.getByRole("radio", { checked: true, name: section })).toBeTruthy();
 }
 
@@ -88,14 +88,14 @@ test("o opens a new row under the selected line, in its section, and Enter write
   await press("o", link);
 
   const later = screen.getByRole("list", { name: "Later lines" });
-  const field = await within(later).findByRole("textbox", { name: "New line" });
+  const field = await within(later).findByRole("textbox", { name: "New proposal" });
   await save(field, "Later line 2");
   await waitFor(() => expect(read(repo)).toContain("## Later\n\n- Later line 1\n- Later line 2\n"));
   // Enter opened the next new row under it; Escape drops it, and nothing more is written.
-  const next = await within(later).findByRole("textbox", { name: "New line" });
+  const next = await within(later).findByRole("textbox", { name: "New proposal" });
   expect((next as HTMLTextAreaElement).value).toBe("");
   await press("Escape", next);
-  await waitFor(() => expect(screen.queryByRole("textbox", { name: "New line" })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole("textbox", { name: "New proposal" })).toBeNull());
   expect(read(repo)).toContain("## Later\n\n- Later line 1\n- Later line 2\n");
 });
 
@@ -105,7 +105,7 @@ test("o on a line of Now opens the new row in Now", async () => {
   await press("o", link);
 
   const now = screen.getByRole("list", { name: "Now lines" });
-  await save(await within(now).findByRole("textbox", { name: "New line" }), "Now line 2");
+  await save(await within(now).findByRole("textbox", { name: "New proposal" }), "Now line 2");
   await waitFor(() => expect(read(repo)).toContain("## Now\n\n- Now line 1\n- Now line 2\n"));
 });
 
@@ -131,7 +131,7 @@ test("i turns the selected line into its field, with the line's text, and Enter 
   await press("i", link);
 
   const next = screen.getByRole("list", { name: "Next lines" });
-  const field = await within(next).findByRole("textbox", { name: "Edit the line" });
+  const field = await within(next).findByRole("textbox", { name: "Edit the proposal" });
   expect((field as HTMLTextAreaElement).value).toBe("Next line 2");
   await save(field, "Next line two");
   await waitFor(() => expect(read(repo)).toContain("- Next line two\n"));
@@ -143,11 +143,13 @@ test("i turns the selected line into its field, with the line's text, and Enter 
 test("Escape closes the field and leaves the line as it was", async () => {
   const { link, repo } = await onLine("Next line 2");
   await press("i", link);
-  const field = await screen.findByRole("textbox", { name: "Edit the line" });
+  const field = await screen.findByRole("textbox", { name: "Edit the proposal" });
 
   await press("Escape", field);
 
-  await waitFor(() => expect(screen.queryByRole("textbox", { name: "Edit the line" })).toBeNull());
+  await waitFor(() =>
+    expect(screen.queryByRole("textbox", { name: "Edit the proposal" })).toBeNull(),
+  );
   expect(read(repo)).toBe(PRIORITIES);
 });
 
@@ -176,7 +178,7 @@ test("the line the keys pick shows its own keys in a bar under it", async () => 
   await press("j", link);
 
   const row = within(rowOf("Next line 2"));
-  for (const action of ["⏎ edit", "m move", "⇥ indent", "p draft", "s start", "d delete"]) {
+  for (const action of ["⏎ edit", "m move", "⇥ indent", "p expand", "s start", "d delete"]) {
     expect(row.getByRole("button", { name: action }), action).toBeTruthy();
   }
   expect(within(rowOf("Next line 1")).queryByRole("button", { name: "m move" })).toBeNull();
@@ -189,20 +191,20 @@ test("with the focus on the page, i edits the line the page opened on, the first
 
   await press("i");
 
-  const field = await screen.findByRole("textbox", { name: "Edit the line" });
+  const field = await screen.findByRole("textbox", { name: "Edit the proposal" });
   expect((field as HTMLTextAreaElement).value).toBe("Now line 1");
 });
 
 test("none of them act in the add form's text field", async () => {
   const { link, repo } = await onLine("Later line 1");
   await press("a", link);
-  const field = await screen.findByRole("textbox", { name: "Priority" });
+  const field = await screen.findByRole("textbox", { name: "Proposal" });
 
   for (const key of ["i", "m", "o", "d"]) {
     await press(key, field);
   }
 
-  expect(screen.queryByRole("textbox", { name: /^(Edit the line|New line)$/ })).toBeNull();
+  expect(screen.queryByRole("textbox", { name: /^(Edit the proposal|New proposal)$/ })).toBeNull();
   expect(screen.queryByRole("button", { name: "⏎ done" })).toBeNull();
   expect(screen.getAllByRole("dialog")).toHaveLength(1);
   expect(read(repo)).toBe(PRIORITIES);
@@ -211,13 +213,13 @@ test("none of them act in the add form's text field", async () => {
 test("none of them act while a dialog is open", async () => {
   const { link, repo } = await onLine("Next line 2");
   await press("a", link);
-  await screen.findByRole("dialog", { name: "New priority" });
+  await screen.findByRole("dialog", { name: "New proposal" });
 
   for (const key of ["i", "m", "o", "d"]) {
     await press(key, link);
   }
 
-  expect(screen.queryByRole("textbox", { name: /^(Edit the line|New line)$/ })).toBeNull();
+  expect(screen.queryByRole("textbox", { name: /^(Edit the proposal|New proposal)$/ })).toBeNull();
   expect(screen.queryByRole("button", { name: "⏎ done" })).toBeNull();
   expect(screen.getAllByRole("dialog")).toHaveLength(1);
   expect(read(repo)).toBe(PRIORITIES);

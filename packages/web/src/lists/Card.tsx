@@ -58,7 +58,7 @@ export interface WorkRow {
   editsInPlace?: boolean;
   /** Where a click or Enter on the card leads. */
   href: string;
-  /** An icon in the place of its bullet, as a draft's file or a running entry's work. */
+  /** An icon in the place of its bullet, as a proposal's file or a running proposal's work. */
   icon?: ComponentProps<typeof Icon>["icon"];
   /**
    * What shows under the row while it is selected, by the keys, a tap, or the mouse passing over
@@ -71,7 +71,7 @@ export interface WorkRow {
   isFixed?: boolean;
   /** A new row being typed: its editor shows from the start, and nothing else of it. */
   isFresh?: boolean;
-  /** Its text is a link to a file, as a line's draft is: drawn as a hyperlink. */
+  /** Its text is a link to a file, as a proposal's file is: drawn as a hyperlink. */
   isLinked?: boolean;
   key: string;
   /** Its text as drawn, with its formatting. */
@@ -84,7 +84,7 @@ export interface WorkRow {
   parent?: string;
   /** Where its list places it, as the list knows it: the priorities' place in the file. */
   spot?: object;
-  /** A line that never nests under another, by Tab or a drag: a line with a draft. */
+  /** A line that never nests under another, by Tab or a drag: a proposal with a file. */
   staysLine?: boolean;
   /** Its text, plain: the row's label when `label` is absent. */
   text: string;
@@ -207,8 +207,8 @@ const styles = stylex.create({
     textDecoration: "none",
   },
   text: { overflowWrap: "anywhere" },
-  // A row that leads to another page, as a running line's feature or a line's draft: underlined, as
-  // a link is, which `stretched` would take away.
+  // A row that leads to another page, as a running proposal's feature or a proposal's file:
+  // underlined, as a link is, which `stretched` would take away.
   underlined: { textDecoration: "underline", textUnderlineOffset: "0.2em" },
   // A child line of the card: a bullet and its text, tabbed in from the card's own text.
   subline: {

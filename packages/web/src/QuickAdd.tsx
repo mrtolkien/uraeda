@@ -102,7 +102,7 @@ export function AddButtons({
   onCancel,
   start,
 }: {
-  /** Add's label, like "Add as a draft". */
+  /** Add's label, like "Add as a file". */
   addLabel?: string;
   commitState?: WriteState;
   isReady: boolean;
@@ -205,7 +205,7 @@ export function AddForm({
   // text back: it is forgotten only once added.
   const add = async () => {
     onCancel();
-    const result = await fate.mutations.priorities.add({
+    const result = await fate.mutations.proposals.add({
       input: { hash: priorities?.hash ?? "", section, text },
       view: PrioritiesAddedView,
     });
@@ -214,8 +214,8 @@ export function AddForm({
       return;
     }
     const answer = result.result;
-    // The line just added ends its section.
-    const added = answer?.sections.find((s) => s.section === section)?.entries.at(-1);
+    // The proposal just added ends its section.
+    const added = answer?.sections.find((s) => s.section === section)?.proposals.at(-1);
     // Forgotten once added, unless more was typed meanwhile.
     if (field.unsavedNow()?.text === text) {
       field.discard();
@@ -242,9 +242,9 @@ export function AddForm({
           hasAutoFocus
           isLabelHidden
           kind="line"
-          label="Priority"
+          label="Proposal"
           onChange={field.change}
-          // A line: Enter adds it, and closes the form.
+          // A proposal is a line: Enter adds it, and closes the form.
           onKeyDown={enterAdds(() => text.trim() && void add())}
           value={text}
         />

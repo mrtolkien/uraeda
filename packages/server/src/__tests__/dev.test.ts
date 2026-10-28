@@ -119,7 +119,7 @@ test("the dev server serves a repository's image routes, its uploads in the data
   const { port } = server.address() as { port: number };
   const url = `http://127.0.0.1:${port}`;
   // Listed under its folder's name as the server starts in it.
-  const started = await fetch(`${url}/raw/specs/drafts/git-listener.md`);
+  const started = await fetch(`${url}/raw/specs/proposals/git-listener.md`);
   const name = basename(repo);
 
   const response = await fetch(`${url}/r/${name}/attach?name=desktop.png&chat=1`, {

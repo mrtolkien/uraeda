@@ -1,8 +1,9 @@
-// A draft or a proposal's page, laid out as a terminal tool would: the title, one line of what it
-// is, its research effort, then the text in a pane, and, for a draft, a Start pane beside it. Every
-// action has a key, which the status line names: `i` edits, Escape leaves the field, `r` sets the
-// research effort, `f` and `c` pick a feature or a change, and `s` goes to the slug, where Enter
-// starts it, as Ctrl+Enter does in the text. A proposal's `s` saves.
+// A proposal file's page, or a started proposal's, laid out as a terminal tool would: the title,
+// one line of what it is, its research effort, then the text in a pane, and, for a proposal file, a
+// Start pane beside it. Every action has a key, which the status line names: `i` edits, Escape
+// leaves the field, `r` sets the research effort, `f` and `c` pick a feature or a change, and `s`
+// goes to the slug, where Enter starts it, as Ctrl+Enter does in the text. A started proposal's `s`
+// saves.
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
@@ -10,9 +11,9 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useRef, useState } from "react";
-import { useDraft } from "./data.ts";
-import { DraftStart, type StartKind } from "./DraftStart.tsx";
-import { DraftText } from "./DraftText.tsx";
+import { useProposalFile } from "./data.ts";
+import { ProposalStart, type StartKind } from "./ProposalStart.tsx";
+import { ProposalText } from "./ProposalText.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { useKeys } from "./keys/registry.tsx";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
@@ -20,8 +21,8 @@ import { Missing } from "./layout/Missing.tsx";
 import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { useWidthClass } from "./layout/useWidthClass.ts";
-import { ConflictBanner } from "./pane/DraftEditor.tsx";
-import { useDraftEditor } from "./pane/useDraftEditor.ts";
+import { ConflictBanner } from "./pane/ProposalEditor.tsx";
+import { useProposalEditor } from "./pane/useProposalEditor.ts";
 import { currentEntry, useRestoreScroll } from "./routes.tsx";
 
 const styles = stylex.create({
@@ -47,25 +48,25 @@ function levelLabel(level: string) {
   return level.charAt(0).toUpperCase() + level.slice(1);
 }
 
-type Draft = NonNullable<ReturnType<typeof useDraft>>;
+type File = NonNullable<ReturnType<typeof useProposalFile>>;
 
 /** The title, and under it one line: the file, the priorities' section it is in, and its state. */
-function EditorHeading({ draft, path }: { draft: Draft; path: string }) {
+function EditorHeading({ file, path }: { file: File; path: string }) {
   const parts = [
     path.replace(/^specs\//, ""),
-    ...(draft.entry ? [SECTIONS[draft.entry.section] ?? draft.entry.section] : []),
-    draft.committed ? "committed" : "not committed",
+    ...(file.proposal ? [SECTIONS[file.proposal.section] ?? file.proposal.section] : []),
+    file.committed ? "committed" : "not committed",
   ];
-  return <PageTitle meta={{ text: parts.join(" · ") }}>{draft.title}</PageTitle>;
+  return <PageTitle meta={{ text: parts.join(" · ") }}>{file.title}</PageTitle>;
 }
 
 /** "Research effort", and its picker, for a proposal that has one in its frontmatter. */
 function ResearchEffort({
-  draft,
+  file,
   onChange,
   value,
 }: {
-  draft: Draft;
+  file: File;
   onChange: (level: string) => void;
   /** The level shown: the one just picked, while its write is on its way. */
   value: string;
@@ -74,7 +75,7 @@ function ResearchEffort({
     <HStack align="center" gap={3} wrap="wrap">
       <Text color="secondary">Research effort</Text>
       <SegmentedControl label="Research effort" onChange={onChange} value={value}>
-        {draft.discoveryLevels.map((level) => (
+        {file.discoveryLevels.map((level) => (
           <SegmentedControlItem key={level} label={levelLabel(level)} value={level} />
         ))}
       </SegmentedControl>
@@ -98,11 +99,11 @@ function focusSoon(find: () => HTMLElement | null | undefined) {
 
 /**
  * The page's keys, which the status line names: `i` edits, `p` previews, `r` picks the next
- * research effort, `f` and `c` pick a feature or a change, and a draft's `s` goes to the slug, where
- * Ctrl+Enter starts it; a proposal's `s` saves.
+ * research effort, `f` and `c` pick a feature or a change, and a proposal file's `s` goes to the
+ * slug, where Ctrl+Enter starts it; a started proposal's `s` saves.
  */
 function useEditorKeys(
-  draft: Draft | undefined,
+  file: File | undefined,
   {
     edit,
     editor,
@@ -114,7 +115,7 @@ function useEditorKeys(
     startNow,
   }: {
     edit: () => void;
-    editor: ReturnType<typeof useDraftEditor>;
+    editor: ReturnType<typeof useProposalEditor>;
     focusSlug: () => void;
     level: string | undefined;
     preview: () => void;
@@ -123,8 +124,8 @@ function useEditorKeys(
     startNow: () => void;
   },
 ) {
-  const isDraft = draft?.kind === "draft";
-  const levels = draft?.discoveryLevels ?? [];
+  const isFile = file?.kind === "proposal-file";
+  const levels = file?.discoveryLevels ?? [];
   const cycle = () => {
     const next = levels[(levels.indexOf(level ?? "") + 1) % levels.length];
     if (next !== undefined) {
@@ -132,23 +133,23 @@ function useEditorKeys(
     }
   };
   useKeys(
-    draft
+    file
       ? [
           { hint: "i", keys: "i", label: "edit", run: edit },
           ...(editor.drawn ? [] : [{ hint: "p", keys: "p", label: "preview", run: preview }]),
-          ...(draft.discovery == null
+          ...(file.discovery == null || file.kind === "note-file"
             ? []
             : [{ hint: "r", keys: "r", label: "research", run: cycle }]),
-          ...(isDraft
+          ...(isFile
             ? [
                 { hint: "f", keys: "f", label: "feature", run: () => setKind("feature") },
                 { hint: "c", keys: "c", label: "change", run: () => setKind("change") },
               ]
             : []),
-          // Last, in the order of use: a draft's `s` brings the focus to the slug, and Ctrl+Enter
-          // starts it, in the text field too, which has its own; a proposal has no slug, and its
-          // `s` saves.
-          ...(isDraft
+          // Last, in the order of use: a proposal file's `s` brings the focus to the slug, and
+          // Ctrl+Enter starts it, in the text field too, which has its own; a started proposal has
+          // no slug, and its `s` saves.
+          ...(isFile
             ? [
                 { hint: "s", keys: "s", label: "slug", run: focusSlug },
                 { hint: "⌃⏎", keys: "mod+Enter", label: "start", run: startNow },
@@ -162,35 +163,37 @@ function useEditorKeys(
 }
 
 /**
- * A draft or a proposal: drawn once written, edited as text, with the template's guidance for each
- * empty section; saved with Save or Ctrl+Enter over the version it was read at, its unsaved text
- * kept until then, committed, and, for a draft, started as a feature or a change.
+ * A proposal file, a started proposal, or a note file: drawn once written, edited as text, with
+ * the template's guidance for each empty section; saved with Save or Ctrl+Enter over the version it
+ * was read at, its unsaved text kept until then, committed, and, for a proposal file, started as a
+ * feature or a change. A note file has no research effort.
  */
 export function EditorPage({ path }: { path: string }) {
-  const draft = useDraft(path);
+  const file = useProposalFile(path);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
-  const slug = useTextField(`${path}#slug`, draft?.slug ?? "");
-  const editor = useDraftEditor({ draft, isDrawnFirst: false, path, slug });
+  const slug = useTextField(`${path}#slug`, file?.slug ?? "");
+  const editor = useProposalEditor({ file, isDrawnFirst: false, path, slug });
   const isWide = useWidthClass() === "wide";
   const box = useRef<HTMLDivElement>(null);
   const slugBox = useRef<HTMLDivElement>(null);
   const [kind, setKind] = useState<StartKind>("feature");
-  const isDraft = draft?.kind === "draft";
+  const isFile = file?.kind === "proposal-file";
   const edit = () => {
     editor.setDrawn(false);
     focusSoon(() => box.current?.querySelector("textarea"));
   };
-  // A draft just made opens with the focus in its text, once: Back to it later does not take it.
+  // A proposal file just made opens with the focus in its text, once: Back to it later does not
+  // take it.
   const takesFocus = useRef(currentEntry().focus === "text");
   useEffect(() => {
-    if (takesFocus.current && draft) {
+    if (takesFocus.current && file) {
       takesFocus.current = false;
       window.history.replaceState({ ...currentEntry(), focus: undefined }, "");
       edit();
     }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, as the draft is read
-  }, [draft]);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, as the file is read
+  }, [file]);
   // What is drawn is the saved text: unsaved words are saved first.
   const preview = () => {
     editor.saveText();
@@ -202,22 +205,23 @@ export function EditorPage({ path }: { path: string }) {
   const [chosen, setChosen] = useState<string>();
   const failed = editor.conflict !== undefined || editor.actions.message?.ok === false;
   useEffect(() => {
-    if (chosen !== undefined && (draft?.discovery === chosen || failed)) {
+    if (chosen !== undefined && (file?.discovery === chosen || failed)) {
       setChosen(undefined);
     }
-  }, [chosen, draft?.discovery, failed]);
-  const level = chosen ?? draft?.discovery ?? undefined;
+  }, [chosen, file?.discovery, failed]);
+  // A note file has no research effort: it is not started, it moves to the proposals first.
+  const level = file?.kind === "note-file" ? undefined : (chosen ?? file?.discovery ?? undefined);
   const setLevel = (to: string) => {
     setChosen(to);
     void editor.actions.setDiscovery(to);
   };
   // Starts it as the kind picked: the branch and worktree, then its session, saved text first.
   const startNow = () => void editor.actions.start(true, kind);
-  useEditorKeys(draft, { edit, editor, focusSlug, level, preview, setKind, setLevel, startNow });
-  if (!draft) {
+  useEditorKeys(file, { edit, editor, focusSlug, level, preview, setKind, setLevel, startNow });
+  if (!file) {
     return (
       <Page>
-        <Missing title={`No draft ${path}.`} />
+        <Missing title={`No file ${path}.`} />
       </Page>
     );
   }
@@ -225,20 +229,20 @@ export function EditorPage({ path }: { path: string }) {
   return (
     <Page isWriting>
       <VStack gap={4}>
-        <EditorHeading draft={draft} path={path} />
+        <EditorHeading file={file} path={path} />
         <ConflictBanner editor={editor} />
-        {level !== undefined && <ResearchEffort draft={draft} onChange={setLevel} value={level} />}
-        <div {...stylex.props(isDraft && isWide ? styles.columns : styles.stacked)}>
-          <DraftText
+        {level !== undefined && <ResearchEffort file={file} onChange={setLevel} value={level} />}
+        <div {...stylex.props(isFile && isWide ? styles.columns : styles.stacked)}>
+          <ProposalText
             boxRef={box}
-            draft={draft}
             editor={editor}
+            file={file}
             onEdit={edit}
-            onSubmit={isDraft ? startNow : editor.saveText}
+            onSubmit={isFile ? startNow : editor.saveText}
             path={path}
           />
-          {isDraft && (
-            <DraftStart
+          {isFile && (
+            <ProposalStart
               actions={editor.actions}
               kind={kind}
               onKind={setKind}

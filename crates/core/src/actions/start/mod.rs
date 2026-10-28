@@ -1,7 +1,7 @@
-//! Starting a drafted feature or change, as the skill's start section says: on the default
-//! branch, its `PRIORITIES.md` entry moves to the top of **Now** as a link, and the draft moves
-//! into the dated folder, unchanged, in one commit; then its branch is created from there. A change
-//! typed as a text starts the same way, its proposal written from the text.
+//! Starting a feature or change from its proposal file, as the skill's start section says: on the
+//! default branch, its proposal moves to the top of **Now** in `PRIORITIES.md` as a link, and the
+//! proposal file moves into the dated folder, unchanged, in one commit; then its branch is created
+//! from there. A change typed as a text starts the same way, its proposal written from the text.
 
 use std::path::Path;
 
@@ -54,20 +54,20 @@ pub enum StartError {
     },
 }
 
-/// Starts the feature or the change written in a draft: its branch in a worktree at
+/// Starts the feature or the change written in a proposal file: its branch in a worktree at
 /// `.worktrees/<folder>/`, or, with `switch`, in this working tree, switched to it.
 pub fn run(
     git: &Git,
     workspace: &Workspace,
-    draft_arg: &str,
+    proposal_arg: &str,
     slug: Option<&str>,
     kind: Kind,
     today: Date,
     switch: bool,
 ) -> Result<Started, StartError> {
     // A postponed folder's `proposal.md` starts the whole folder, images included.
-    let draft = target::draft_to_start(draft_arg);
-    let source = Source::Draft(draft.as_deref().unwrap_or(draft_arg));
+    let proposal = target::proposal_to_start(proposal_arg);
+    let source = Source::Proposal(proposal.as_deref().unwrap_or(proposal_arg));
     begin(git, workspace, source, kind, slug, today, switch)
 }
 
@@ -131,8 +131,8 @@ fn begin(
 /// What a start starts from.
 #[derive(Clone, Copy)]
 enum Source<'a> {
-    /// A draft's file or postponed folder, from the top level.
-    Draft(&'a str),
+    /// A proposal file or postponed folder, from the top level.
+    Proposal(&'a str),
     /// A change typed as a text, read, with its encoded images.
     Text {
         typed: &'a Typed,
@@ -188,9 +188,9 @@ impl<'a> Start<'a> {
     fn run(&self, slug: Option<&str>, today: Date) -> Result<Started, StartError> {
         let plan = self.plan(slug, today)?;
         let (moves, done) = match self.source {
-            Source::Draft(draft) => {
-                let moves = self.move_draft(draft, &plan)?;
-                (moves, "the move of the draft".to_string())
+            Source::Proposal(proposal) => {
+                let moves = self.move_proposal(proposal, &plan)?;
+                (moves, "the move of the proposal file".to_string())
             }
             Source::Text { typed, images } => {
                 self.write_text(typed, &plan, images)?;

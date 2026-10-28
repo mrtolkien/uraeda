@@ -1,6 +1,6 @@
 //! Tab completion: `ura` answers the shell's `COMPLETE=<shell>` requests, with the repository's
-//! drafts, features, inbox categories, and open questions as values. It reads local branches and
-//! files only, never `gh`, so that a Tab stays fast.
+//! proposal files, features, inbox categories, and open questions as values. It reads local
+//! branches and files only, never `gh`, so that a Tab stays fast.
 
 use std::ffi::{OsStr, OsString};
 use std::io::{self, Write};
@@ -91,17 +91,18 @@ pub fn started() -> ArgValueCandidates {
     ArgValueCandidates::new(|| workspace().map(|w| started_in(&w)).unwrap_or_default())
 }
 
-/// The drafts and postponed folders: `start`.
-pub fn drafts() -> ArgValueCandidates {
+/// The proposal files and postponed folders: `start`.
+pub fn proposals() -> ArgValueCandidates {
     ArgValueCandidates::new(|| {
         let Some(workspace) = workspace() else {
             return Vec::new();
         };
         workspace
-            .drafts
+            .proposals
             .iter()
-            .map(|draft| {
-                CompletionCandidate::new(target::draft_name(draft)).help(Some(draft.clone().into()))
+            .map(|proposal| {
+                CompletionCandidate::new(target::proposal_name(proposal))
+                    .help(Some(proposal.clone().into()))
             })
             .collect()
     })

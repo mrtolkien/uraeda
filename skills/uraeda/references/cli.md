@@ -4,27 +4,27 @@ The `ura` command-line tool performs the mechanical parts of the steps. It is op
 says what to do by hand, and names the command that does it.
 
 Every command works without a terminal, with flags, and the read commands print JSON with `--json`.
-A command that acts on a feature, a change, or a draft takes it as a path under `specs/`. It can
-take a name matching one item instead: its folder name or slug. Without it, the command takes the
-current branch's feature, or the only one waiting for that action.
+A command that acts on a feature, a change, or a proposal file takes it as a path under `specs/`. It
+can take a name matching one item instead: its folder name or slug. Without it, the command takes
+the current branch's feature, or the only one waiting for that action.
 
-| Command                                                                                | What it does                                                                            |
-| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `ura init`                                                                             | [Sets a project up](projects.md#setting-up-a-project)                                   |
-| `ura install`, `--user`, `--repo`, `--agents`, `--claude`, `--update`, `--completions` | [Installs the skill](projects.md#setting-up-a-project), and Tab completion              |
-| `ura status`                                                                           | Every feature and change, its step, and who it waits on                                 |
-| `ura next [feature]`                                                                   | The target and its step, from [the table](../SKILL.md#finding-the-next-step)            |
-| `ura check [path]`                                                                     | The rules of [Markdown](conventions.md#markdown), file by file                          |
-| `ura draft <text>`                                                                     | [Drafts](projects.md#starting-postponing-and-dropping-a-feature) a line                 |
-| `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`                   | [Adds a note](inbox.md#capture) to the inbox, and commits it                            |
-| `ura inbox clean`, `--dry-run`                                                         | Deletes [the orphan images](inbox.md#images-on-a-note) of drafts and the backlog        |
-| `ura start <draft>`, `--switch`, `--change`, `--feature`                               | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change |
-| `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`                           | Answers a round of questions, then submits it                                           |
-| `ura review [feature] --comment`, `--approve`, `--request-changes`                     | [Reviews](conventions.md#review-files) a spec or a plan                                 |
-| `ura clean [feature]`, `--all`, `--dry-run`                                            | [Cleans](finish.md#after-the-merge) a merged feature                                    |
-| `ura upgrade`                                                                          | Installs `ura`'s latest release, then updates the user's skill                          |
-| `ura lsp`                                                                              | Serves workflow files to editors: diagnostics, completion, outline, actions             |
-| `ura add [folder]`                                                                     | Adds the repository holding a folder to the web UI's list                               |
+| Command                                                                                | What it does                                                                                  |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `ura init`                                                                             | [Sets a project up](projects.md#setting-up-a-project)                                         |
+| `ura install`, `--user`, `--repo`, `--agents`, `--claude`, `--update`, `--completions` | [Installs the skill](projects.md#setting-up-a-project), and Tab completion                    |
+| `ura status`                                                                           | Every feature and change, its step, and who it waits on                                       |
+| `ura next [feature]`                                                                   | The target and its step, from [the table](../SKILL.md#finding-the-next-step)                  |
+| `ura check [path]`                                                                     | The rules of [Markdown](conventions.md#markdown), file by file                                |
+| `ura expand <text>`                                                                    | [Expands](projects.md#starting-postponing-and-dropping-a-feature) a proposal line into a file |
+| `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`                   | [Adds a note](inbox.md#capture) to the inbox, and commits it                                  |
+| `ura inbox clean`, `--dry-run`                                                         | Deletes [the orphan images](inbox.md#images-on-a-note) of proposal files and note files       |
+| `ura start <proposal>`, `--switch`, `--change`, `--feature`                            | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change       |
+| `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`                           | Answers a round of questions, then submits it                                                 |
+| `ura review [feature] --comment`, `--approve`, `--request-changes`                     | [Reviews](conventions.md#review-files) a spec or a plan                                       |
+| `ura clean [feature]`, `--all`, `--dry-run`                                            | [Cleans](finish.md#after-the-merge) a merged feature                                          |
+| `ura upgrade`                                                                          | Installs `ura`'s latest release, then updates the user's skill                                |
+| `ura lsp`                                                                              | Serves workflow files to editors: diagnostics, completion, outline, actions                   |
+| `ura add [folder]`                                                                     | Adds the repository holding a folder to the web UI's list                                     |
 
 `ura check` prints each problem as `<file>:<line>: <message>`, then each warning as
 `warning: <file>:<line>: <message>`. Warnings measure the limits of
@@ -50,10 +50,10 @@ change and makes it a feature in place, as [Upgrading](change.md#upgrading) says
 - With `--switch`, a branch switch over uncommitted changes.
 - A start whose folder or branch name is taken: choose another slug with `--slug`. With `--feature`,
   rename or remove that branch or folder first.
-- With `--feature`, a draft, a feature, or a done change: it takes a started change. A change with a
-  pull request, as `gh` lists it then, since its branch would be renamed: close it first. Without
-  `gh`, it is not checked. A change whose worktree has uncommitted changes, or an untracked file in
-  the change's folder or `specs/decisions/`, or uncommitted changes in its folder on the default
-  branch.
+- With `--feature`, a proposal file, a feature, or a done change: it takes a started change. A
+  change with a pull request, as `gh` lists it then, since its branch would be renamed: close it
+  first. Without `gh`, it is not checked. A change whose worktree has uncommitted changes, or an
+  untracked file in the change's folder or `specs/decisions/`, or uncommitted changes in its folder
+  on the default branch.
 - A worktree whose folder is taken by something else.
 - A review file that does not parse: it may hold the human's comments, and is never overwritten.

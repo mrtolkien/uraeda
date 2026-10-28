@@ -459,7 +459,7 @@ fn flags_priorities(receiver: &mpsc::Receiver<Changes>) -> bool {
     false
 }
 
-/// Review focus 4: the priorities record shows each entry's nested lines and its feature's step.
+/// Review focus 4: the priorities record shows each proposal's nested lines and its feature's step.
 #[test]
 fn a_child_line_or_a_step_change_flags_the_priorities() {
     let repo = repo();

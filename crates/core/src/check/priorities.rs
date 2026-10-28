@@ -21,12 +21,12 @@ pub(super) fn check_priorities(file: &File<'_>, document: &Document, problems: &
             ));
         }
     }
-    if let Some(entry) = priorities::parse(file.text)
+    if let Some(proposal) = priorities::parse(file.text)
         .iter()
-        .find(|entry| entry.section == priorities::Section::Blocked)
+        .find(|proposal| proposal.section == priorities::Section::Blocked)
     {
         problems.push(file.warning(
-            Some(entry.line),
+            Some(proposal.line),
             "priorities.blocked",
             "Blocked is retired: move its lines",
         ));

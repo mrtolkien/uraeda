@@ -1,52 +1,52 @@
-// A draft's or a proposal's text as its editor holds it, shared by the editor page and an entry's
-// pane: its field, keyed `<path>#editor` in the unsaved store so both show the same unsaved text,
-// its saves over the version read, its images, and its Commit and Start. The field holds the text
-// after the frontmatter, which the controls above it set, and each save joins it back.
+// A proposal's text, or a note file's, as its editor holds it, shared by the editor page and an
+// entry's pane: its field, keyed `<path>#editor` in the unsaved store so both show the same unsaved
+// text, its saves over the version read, its images, and its Commit and Start. The field holds the
+// text after the frontmatter, which the controls above it set, and each save joins it back.
 import { useLayoutEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
-import { readDraft, useEditorImages, useMovedText } from "../attach/useEditorImages.ts";
-import type { useDraft } from "../data.ts";
+import { readProposalFile, useEditorImages, useMovedText } from "../attach/useEditorImages.ts";
+import type { useProposalFile } from "../data.ts";
 import { refusal } from "../errors.ts";
 import { readUnsaved, unsavedKey, writeUnsaved } from "../fields/unsaved.ts";
 import { useTextField } from "../fields/useTextField.ts";
 import { useRepositoryPath } from "../routes.tsx";
 import { useEditorActions } from "../useEditorActions.ts";
 import { type SaveState, useSave } from "../useSave.ts";
-import { DraftView } from "../views.ts";
-import { splitDraft, storedBody } from "./draftText.ts";
+import { ProposalFileView } from "../views.ts";
+import { splitProposal, storedBody } from "./proposalText.ts";
 
-type Draft = ReturnType<typeof useDraft>;
+type File = ReturnType<typeof useProposalFile>;
 
 /**
- * The editor of the draft at `path`, read as `draft`, its slug typed in `slug`. `drawn` says
+ * The editor of the file at `path`, read as `file`, its slug typed in `slug`. `drawn` says
  * whether its text shows drawn: on the editor page, a written proposal opens drawn, unless it holds
  * unsaved text; with `isDrawnFirst` false, as in a pane, it opens as text. Its `state` is the
  * save's, a conflict's own message aside, as the conflict says why already.
  */
-export function useDraftEditor({
-  draft,
+export function useProposalEditor({
+  file,
   isDrawnFirst,
   path,
   slug,
 }: {
-  draft: Draft;
+  file: File;
   isDrawnFirst: boolean;
   path: string;
   slug: ReturnType<typeof useTextField>;
 }) {
   const fate = useFateClient();
   const moved = useMovedText(path);
-  const { body, head } = splitDraft(draft);
+  const { body, head } = splitProposal(file);
   const frontmatter = useFrontmatter(path, head);
   const field = useTextField(`${path}#editor`, body);
   const [drawn, setDrawn] = useState(
-    () => isDrawnFirst && !moved && !field.entry && (draft?.written ?? false),
+    () => isDrawnFirst && !moved && !field.entry && (file?.written ?? false),
   );
   const [conflict, setConflict] = useState<string>();
   const save = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.text.save({
       input: { hash: previous, path, text: `${frontmatter.head()}${value}` },
-      view: DraftView,
+      view: ProposalFileView,
     });
     if (result.error) {
       const failed = refusal(result.error);
@@ -57,11 +57,11 @@ export function useDraftEditor({
     }
     field.saved(value);
     return { ok: true, saved: result.result?.hash ?? previous };
-  }, draft?.hash ?? "");
-  const images = useEditorImages({ draft, field, moved, path, save, setDrawn });
+  }, file?.hash ?? "");
+  const images = useEditorImages({ field, file, moved, path, save, setDrawn });
   const actions = useEditorActions({
-    draft,
     field,
+    file,
     path,
     save,
     setConflict,
@@ -72,7 +72,7 @@ export function useDraftEditor({
   /** Reads the file again, and shows its text in place of the one that was not saved. */
   const reload = async () => {
     setConflict(undefined);
-    const fresh = await readDraft(fate, path);
+    const fresh = await readProposalFile(fate, path);
     if (fresh) {
       field.discard();
       save.settle(fresh.hash, true);
@@ -117,13 +117,13 @@ function useFrontmatter(path: string, head: string) {
     head: () => frontmatter.current,
     // A write answered without its file leaves the frontmatter as it was: an empty one would
     // write the next save without it.
-    take: (fresh: Parameters<typeof splitDraft>[0]) => {
+    take: (fresh: Parameters<typeof splitProposal>[0]) => {
       if (fresh) {
-        frontmatter.current = splitDraft(fresh).head;
+        frontmatter.current = splitProposal(fresh).head;
       }
     },
   };
 }
 
-/** A draft's editor, as `useDraftEditor` gives it. */
-export type DraftEditorState = ReturnType<typeof useDraftEditor>;
+/** A file's editor, as `useProposalEditor` gives it. */
+export type ProposalEditorState = ReturnType<typeof useProposalEditor>;

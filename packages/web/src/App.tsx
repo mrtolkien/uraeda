@@ -110,7 +110,7 @@ function pageKey(route: Route, pathname: string, entryId: string | undefined) {
   switch (route.page) {
     case "home":
     case "priorities":
-    case "task":
+    case "proposal":
       return "priorities";
     case "inbox":
     case "note":
@@ -140,9 +140,9 @@ function RoutePage({ route }: { route: Route }) {
       return <FilePage folder={route.folder} name={route.name} />;
     case "priorities":
       return <PrioritiesRoute isHome={false} />;
-    case "task":
+    case "proposal":
       // A line opened from home draws its overlay over home.
-      return <PrioritiesRoute entryKey={route.key} isHome={currentEntry().from === "/"} />;
+      return <PrioritiesRoute isHome={currentEntry().from === "/"} proposalKey={route.key} />;
     case "note":
       return <InboxRoute noteKey={route.key} />;
     case "inbox":

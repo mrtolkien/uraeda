@@ -27,11 +27,11 @@ const inRepositoryFolder: Decorator = (Story) => (
 );
 
 /** The priorities' ＋ form, open, as the navigation's ＋ opens it. */
-function PriorityForm({ notice }: { notice?: CommitNotice }) {
+function ProposalForm({ notice }: { notice?: CommitNotice }) {
   return (
     <Overlay
       isOpen
-      label="New priority"
+      label="New proposal"
       onClose={() => {}}
       size={{ width: "var(--size-quick-add)" }}
     >
@@ -77,29 +77,29 @@ function forgetTyped() {
 }
 
 const meta = {
-  // Before each story and as it leaves: Priority and Note type a line, which the others must not
+  // Before each story and as it leaves: Proposal and Note type a line, which the others must not
   // restore.
   beforeEach: () => {
     forgetTyped();
     return forgetTyped;
   },
-  component: PriorityForm,
+  component: ProposalForm,
   decorators: [inRepositoryFolder],
   title: "Quick add",
-} satisfies Meta<typeof PriorityForm>;
+} satisfies Meta<typeof ProposalForm>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
 /**
- * "New priority": a line typed, the section, Next by default, then Add and "Add and commit". The
- * line is typed as the human would, so the buttons show enabled.
+ * "New proposal": a proposal typed, the section, Next by default, then Add and "Add and commit".
+ * The line is typed as the human would, so the buttons show enabled.
  */
-export const Priority: Story = {
+export const Proposal: Story = {
   play: async () => {
     // The dialog draws outside the story's root, at the end of the page.
-    const field = await within(document.body).findByRole("textbox", { name: "Priority" });
+    const field = await within(document.body).findByRole("textbox", { name: "Proposal" });
     await userEvent.type(field, "Weekly digest of the agents' runs");
   },
 };

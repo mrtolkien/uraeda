@@ -163,11 +163,11 @@ async function fieldShots(each: Each) {
   await each("text-line", async ({ page }) => {
     await fresh(page, "/priorities/git-listener", "Open draft");
     await page.getByRole("button", { name: "Edit" }).click();
-    await page.getByRole("textbox", { name: "Line" }).fill("Git listener process, and a log");
+    await page.getByRole("textbox", { name: "Proposal" }).fill("Git listener process, and a log");
     await settle(page);
   });
   await each("text-editor", async ({ page }) => {
-    await fresh(page, "/edit/specs/drafts/git-listener.md", "Git listener");
+    await fresh(page, "/edit/specs/proposals/git-listener.md", "Git listener");
     await page.getByRole("button", { name: "Edit" }).click();
     const text = page.getByLabel("Text");
     await text.fill(`${await text.inputValue()}\nRun it on every branch, not only main.\n`);

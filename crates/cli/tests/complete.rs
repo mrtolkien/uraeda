@@ -83,16 +83,16 @@ fn completes_commands_and_flags() {
 }
 
 #[test]
-fn start_completes_drafts_by_name() {
+fn start_completes_proposals_by_name() {
     let repo = TestRepo::new();
     specs(&repo, PRIORITIES);
-    repo.write("specs/drafts/listener.md", &proposal());
-    repo.write("specs/backlog/old-idea/proposal.md", &proposal());
-    repo.commit("chore: drafts");
+    repo.write("specs/proposals/listener.md", &proposal());
+    repo.write("specs/proposals/old-idea/proposal.md", &proposal());
+    repo.commit("chore: proposals");
 
     assert_eq!(
         values(complete(&repo, &["start", ""])),
-        ["old-idea", "listener"]
+        ["listener", "old-idea"]
     );
     assert_eq!(values(complete(&repo, &["start", "li"])), ["listener"]);
 }

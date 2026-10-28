@@ -1,5 +1,5 @@
-//! The writes of a start: the draft's move, its commit with the entry, and the feature's or the
-//! change's branch.
+//! The writes of a start: the proposal file's move, its commit with the proposal, and the feature's
+//! or the change's branch.
 
 use std::fs;
 
@@ -7,7 +7,7 @@ use super::plan::Plan;
 use super::{Source, Start, StartError, partial};
 
 impl Start<'_> {
-    /// What is left to do by hand once the draft is in the dated folder.
+    /// What is left to do by hand once the proposal file is in the dated folder.
     fn left_after_write(&self, plan: &Plan) -> Vec<String> {
         vec![
             plan.commit_left(self.default),
@@ -15,11 +15,11 @@ impl Start<'_> {
         ]
     }
 
-    /// Moves the draft's files into the dated folder, on the default branch: each move, from and
-    /// to.
-    pub(super) fn move_draft(
+    /// Moves the proposal file's files into the dated folder, on the default branch: each move,
+    /// from and to.
+    pub(super) fn move_proposal(
         &self,
-        draft: &str,
+        proposal: &str,
         plan: &Plan,
     ) -> Result<Vec<(String, String)>, StartError> {
         let left = || {
@@ -30,16 +30,16 @@ impl Start<'_> {
         let root = self.root;
         let mut moves = Vec::new();
         for file in &plan.files {
-            let to = if plan.folder_draft {
+            let to = if plan.postponed {
                 format!(
                     "{}/{}",
                     plan.destination,
-                    file.strip_prefix(&format!("{draft}/")).unwrap_or(file)
+                    file.strip_prefix(&format!("{proposal}/")).unwrap_or(file)
                 )
             } else {
                 format!("{}/proposal.md", plan.destination)
             };
-            // The draft as it is here, uncommitted edits included.
+            // The proposal file as it is here, uncommitted edits included.
             let moved = match root.join(&to).parent() {
                 Some(parent) => fs::create_dir_all(parent),
                 None => Ok(()),
@@ -58,27 +58,28 @@ impl Start<'_> {
             }
             moves.push((file.clone(), to));
         }
-        if plan.folder_draft {
-            let _ = fs::remove_dir_all(root.join(draft));
+        if plan.postponed {
+            let _ = fs::remove_dir_all(root.join(proposal));
         }
         Ok(moves)
     }
 
-    /// The start commit, on the default branch: the entry, and the dated folder with the draft's
-    /// removal.
+    /// The start commit, on the default branch: the proposal, and the dated folder with the
+    /// proposal file's removal.
     pub(super) fn commit_start(&self, plan: &Plan, done: &str) -> Result<(), StartError> {
         let done = [done.to_string()];
         if let Err(error) = fs::write(self.root.join("specs/PRIORITIES.md"), &plan.priorities) {
-            let mut left = vec!["move the entry to the top of Now in specs/PRIORITIES.md".into()];
+            let mut left =
+                vec!["move the proposal to the top of Now in specs/PRIORITIES.md".into()];
             left.extend(self.left_after_write(plan));
             return Err(partial(&done, left, error));
         }
         // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
         let mut paths = vec!["specs/PRIORITIES.md".to_string(), plan.destination.clone()];
-        if let Source::Draft(draft) = self.source
+        if let Source::Proposal(proposal) = self.source
             && !plan.tracked.is_empty()
         {
-            paths.push(draft.to_string());
+            paths.push(proposal.to_string());
         }
         paths.sort();
         // Written, so a failed commit stays here: switching back could carry the staged files away.

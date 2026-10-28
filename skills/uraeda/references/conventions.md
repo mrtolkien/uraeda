@@ -30,9 +30,10 @@ GitHub Flavored Markdown, plus these extensions, which stay readable where they 
 - **Images**: `![alt](images/name.webp)`, saved in the `images/` folder next to the file, and
   committed with it. Each is re-encoded once as WebP, with no metadata. Its long edge is at most
   2576 pixels. JPEG and lossy WebP use quality 80, the rest near-lossless. An animated GIF stays a
-  `.gif`, without metadata. A draft or backlog file that gets an image becomes a folder,
-  `<slug>/proposal.md`, and links to it follow. When you commit a human's file, delete the images of
-  its folder that no file there links to; starting a feature moves them all, unchanged.
+  `.gif`, without metadata. A proposal file that gets an image becomes a folder,
+  `<slug>/proposal.md`, and a note file `<slug>/note.md`, and links to them follow. When you commit
+  a human's file, delete the images of its folder that no file there links to; starting a feature
+  moves them all, unchanged.
 
 Templates are strict where tools and agents need to find things, and free elsewhere:
 
@@ -80,8 +81,10 @@ checks:
   other list;
 - `PRIORITIES.md`'s `## Now`, `## Next`, and `## Later`; a section's context is the first callout of
   any type under its heading, its text in the same callout as its marker (a warning otherwise).
-  `## Blocked` no longer exists: a blocked line goes after what it needs, and a line left under it
+  `## Blocked` no longer exists: a blocked proposal goes after what it needs, and one left under it
   warns;
+- no `specs/drafts/` or `specs/backlog/` folder holding files: tools no longer read them, see
+  [moving them](projects.md#moving-drafts-and-the-backlog-to-the-proposals);
 - `specs/INBOX.md`'s title, `# Inbox`, and each non-empty category named once, when the file exists;
 - `specs/INBOX-TRIAGE.md` and `specs/DECISIONS-CHECK.md` as rounds of questions, with their
   templates' titles and sections, their `status`, their answers, and their blocks;
@@ -190,8 +193,8 @@ step on the target's branch: the human answers and approves on it too.
 
 Never switch the human's checkout to reach a branch. Write where the branch is checked out, the
 checkout itself or a worktree. Else write in a worktree at `.worktrees/<branch>/`, at the root of
-the main checkout, created with `git worktree add`. `ura start` creates a started item's at
-`.worktrees/<folder>/`. Keep `.worktrees/` out of `git status` through the repository's
+the main checkout, created with `git worktree add`. `ura start` creates a started feature's or
+change's at `.worktrees/<folder>/`. Keep `.worktrees/` out of `git status` through the repository's
 `.git/info/exclude`, never a tracked file. When `core.hooksPath` is a relative path, commit in a
 worktree with it made absolute from the main checkout, so the same hooks run. Worktrees stay until
 removed with `git worktree remove`. `ura` does all of this.
@@ -221,30 +224,31 @@ Its rounds use `discovery(<slug>):`, and an approved change to a decision uses
 The human's commits, and the agent's when the human asks, use the step's type for what they answer
 and `chore:` for the rest. `ura` and the web UI write the same messages.
 
-| Commit                         | Example                                                                                                                                             |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Answer a round of questions    | `discovery(recurring-tasks): answer round 01`                                                                                                       |
-| Approve, or request changes    | `spec(recurring-tasks): approve`, `plan(recurring-tasks): request changes`                                                                          |
-| A draft, then its edits        | `chore: draft Recurring tasks`, `chore: edit the draft Recurring tasks`                                                                             |
-| A backlog file, then its edits | `chore: add Benchmarks to the backlog`, `chore: edit Benchmarks in the backlog`                                                                     |
-| A proposal, then its edits     | `chore(recurring-tasks): proposal`, `chore(recurring-tasks): edit the proposal`                                                                     |
-| Start, postpone, drop          | `chore(recurring-tasks): start Recurring tasks`, `chore(recurring-tasks): postpone Recurring tasks`, `chore(recurring-tasks): drop Recurring tasks` |
-| `PRIORITIES.md` alone          | `chore: move "Recurring tasks" to Next`                                                                                                             |
-| A note                         | `chore: add "Sort completed tasks" to the inbox`                                                                                                    |
-| `INBOX.md`, and where notes go | `chore: move "Sort completed tasks" from the inbox to Next`                                                                                         |
-| The inbox triage               | `chore: propose an inbox triage`, `chore: answer the inbox triage`, `chore: apply the inbox triage`                                                 |
-| Notes moved into the inbox     | `chore: move the scratchpad to the inbox`                                                                                                           |
+| Commit                             | Example                                                                                                                                             |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Answer a round of questions        | `discovery(recurring-tasks): answer round 01`                                                                                                       |
+| Approve, or request changes        | `spec(recurring-tasks): approve`, `plan(recurring-tasks): request changes`                                                                          |
+| A proposal file, then its edits    | `chore: expand Recurring tasks`, `chore: edit the proposal Recurring tasks`                                                                         |
+| A started proposal, then its edits | `chore(recurring-tasks): proposal`, `chore(recurring-tasks): edit the proposal`                                                                     |
+| A note file, then its edits        | `chore: add the note Sort completed tasks`, `chore: edit the note Sort completed tasks`                                                             |
+| Start, postpone, drop              | `chore(recurring-tasks): start Recurring tasks`, `chore(recurring-tasks): postpone Recurring tasks`, `chore(recurring-tasks): drop Recurring tasks` |
+| `PRIORITIES.md` alone              | `chore: move "Recurring tasks" to Next`                                                                                                             |
+| A note                             | `chore: add "Sort completed tasks" to the inbox`                                                                                                    |
+| `INBOX.md`, and where notes go     | `chore: move "Sort completed tasks" from the inbox to Next`                                                                                         |
+| The inbox triage                   | `chore: propose an inbox triage`, `chore: answer the inbox triage`, `chore: apply the inbox triage`                                                 |
+| Notes moved into the inbox         | `chore: move the scratchpad to the inbox`                                                                                                           |
+| Drafts moved to the proposals      | `chore: move the drafts and the backlog to the proposals`                                                                                           |
 
-A commit of `PRIORITIES.md` alone names its one change: `add "<entry>" to <section>`,
-`remove "<entry>"`, `edit "<entry>"`, `move "<entry>" to <section>`, or
-`move "<entry>" within <section>`, with the start of the entry's text. With more changes, the
+A commit of `PRIORITIES.md` alone names its one change: `add "<proposal>" to <section>`,
+`remove "<proposal>"`, `edit "<proposal>"`, `move "<proposal>" to <section>`, or
+`move "<proposal>" within <section>`, with the start of the proposal's text. With more changes, the
 subject names the first one and ends with `, and <count> more`, and the body lists every change, one
-per line: `- Add to Now: <entry>`.
+per line: `- Add to Now: <proposal>`.
 
-A commit of `INBOX.md`, with the `PRIORITIES.md` and drafts its notes went into, names its changes
-the same way: `add "<note>" to the inbox`, `edit "<note>" in the inbox`,
+A commit of `INBOX.md`, with the `PRIORITIES.md` and proposal files its notes went into, names its
+changes the same way: `add "<note>" to the inbox`, `edit "<note>" in the inbox`,
 `remove "<note>" from the inbox`, `move "<note>" to <Category> in the inbox`,
-`move "<note>" from the inbox to <Section>`, or `move "<note>" from the inbox to the draft <title>`.
-See [Inbox](inbox.md).
+`move "<note>" from the inbox to <Section>`, or
+`move "<note>" from the inbox to the proposal <title>`. See [Inbox](inbox.md).
 
 The commit type is only a label: the `status` fields and the checkboxes are the source of truth.

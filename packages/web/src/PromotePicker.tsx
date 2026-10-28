@@ -1,13 +1,13 @@
 // `p` on a note of the inbox: one quick picker of where the note goes up to. First the priorities'
-// levels, Now, Next, and Later, where it becomes a line at the end; then every line, where it
-// becomes the line's last item, or for a line with a draft, the end of the draft's "What"; then the
-// drafts no line links. A note that links a draft is offered no line to go under. Each item's
-// preview is the place it lands in, the note in it. A pick runs as the note's actions run it
-// (`useNoteActions`), with a toast and Undo, then opens the priorities with the note's row
-// selected, or the draft's page.
+// levels, Now, Next, and Later, where it becomes a proposal at the end; then every proposal, where
+// it becomes the proposal's last item, or for a proposal with a file, the end of the file's "What";
+// then the proposal files no proposal links. A note with a note file is offered no proposal to go
+// under. Each item's preview is the place it lands in, the note in it. A pick runs as the note's
+// actions run it (`useNoteActions`), with a toast and Undo, then opens the priorities with the
+// note's row selected, or the proposal file's page.
 import { useEffect } from "react";
-import type { PriorityEntry } from "uraeda-server/fate";
-import { type DraftText, usePriorities } from "./data.ts";
+import type { Proposal } from "uraeda-server/fate";
+import { type ProposalFileText, usePriorities } from "./data.ts";
 import { KeyPicker } from "./keys/KeyPicker.tsx";
 import type { PickerItem } from "./keys/pickerSources.ts";
 import { TITLES } from "./QuickAdd.tsx";
@@ -23,26 +23,29 @@ function noteLines(placed: Placed, indent: number) {
 }
 
 /** A section of the priorities with the note at its end. */
-function levelPreview(title: string, entries: ReadonlyArray<PriorityEntry>, placed: Placed) {
+function levelPreview(title: string, proposals: ReadonlyArray<Proposal>, placed: Placed) {
   return [
     `## ${title}`,
     "",
-    ...entries.map((entry) => `- ${entry.text}`),
+    ...proposals.map((proposal) => `- ${proposal.text}`),
     ...noteLines(placed, 0),
   ].join("\n");
 }
 
-/** A line with its own items, and the note as the last of them. */
-function linePreview(entry: PriorityEntry, placed: Placed) {
+/** A proposal with its own items, and the note as the last of them. */
+function linePreview(proposal: Proposal, placed: Placed) {
   return [
-    `- ${entry.text}`,
-    ...entry.children.map((child) => `${"  ".repeat(child.depth)}- ${child.text}`),
+    `- ${proposal.text}`,
+    ...proposal.children.map((child) => `${"  ".repeat(child.depth)}- ${child.text}`),
     ...noteLines(placed, 2),
   ].join("\n");
 }
 
-/** A draft's text with the note at the end of its "What", where a move adds it, else at its end. */
-function draftPreview(text: string, placed: Placed) {
+/**
+ * A proposal file's text with the note at the end of its "What", where a move adds it, else at its
+ * end.
+ */
+function filePreview(text: string, placed: Placed) {
   const lines = text.split("\n");
   const what = lines.findIndex((line) => /^##\s+What\s*$/.test(line));
   const next = what === -1 ? -1 : lines.findIndex((line, at) => at > what && /^##\s/.test(line));
@@ -54,27 +57,27 @@ function draftPreview(text: string, placed: Placed) {
 }
 
 /**
- * Whether the picker offers the line `entry`: a note that is a draft never goes into its own draft,
- * nor under a line, where nested, its draft would no longer be found by its link.
+ * Whether the picker offers the proposal `proposal`: a note with a note file never goes under a
+ * proposal, where nested, its file would no longer be found by its link; it goes into a proposal's
+ * file.
  */
-function isOffered(entry: PriorityEntry, placed: Placed) {
-  const draft = placed.note.draft;
-  return draft === undefined || (entry.draft !== undefined && entry.draft.path !== draft);
+function isOffered(proposal: Proposal, placed: Placed) {
+  return placed.note.file === undefined || proposal.file !== undefined;
 }
 
 /**
- * The picker of `placed`'s note, while `isOpen`, over the inbox of `hash`. `drafts` are the drafts
- * and their texts, once read. A refusal goes to `onRefused`.
+ * The picker of `placed`'s note, while `isOpen`, over the inbox of `hash`. `files` are the
+ * proposal files and their texts, once read. A refusal goes to `onRefused`.
  */
 export function PromotePicker({
-  drafts,
+  files,
   hash,
   isOpen,
   onClose,
   onRefused,
   placed,
 }: {
-  drafts: ReadonlyArray<DraftText> | undefined;
+  files: ReadonlyArray<ProposalFileText> | undefined;
   hash: string;
   isOpen: boolean;
   onClose: () => void;
@@ -89,9 +92,11 @@ export function PromotePicker({
     }
   }, [actions.message, onRefused]);
   const sections = priorities?.sections ?? [];
-  const entries = sections.flatMap((section) => section.entries);
-  const textOf = (path: string) => drafts?.find((draft) => draft.path === path)?.text;
-  const linked = new Set(entries.flatMap((entry) => (entry.draft ? [entry.draft.path] : [])));
+  const proposals = sections.flatMap((section) => section.proposals);
+  const textOf = (path: string) => files?.find((file) => file.path === path)?.text;
+  const linked = new Set(
+    proposals.flatMap((proposal) => (proposal.file ? [proposal.file.path] : [])),
+  );
   const items: ReadonlyArray<PickerItem> = [
     ...[...TITLES].map(([id, title]) => ({
       icon: "uraeda:layers" as const,
@@ -100,40 +105,40 @@ export function PromotePicker({
       path: "",
       preview: levelPreview(
         title,
-        sections.find((section) => section.section === id)?.entries ?? [],
+        sections.find((section) => section.section === id)?.proposals ?? [],
         placed,
       ),
       title,
     })),
-    ...entries
-      .filter((entry) => isOffered(entry, placed))
-      .map((entry) => {
-        const draft = entry.draft?.path;
-        const text = draft === undefined ? undefined : textOf(draft);
+    ...proposals
+      .filter((proposal) => isOffered(proposal, placed))
+      .map((proposal) => {
+        const file = proposal.file?.path;
+        const text = file === undefined ? undefined : textOf(file);
         return {
-          icon: draft === undefined ? ("uraeda:list" as const) : ("uraeda:file-text" as const),
-          id: draft === undefined ? `line:${entry.key}` : `draft:${draft}`,
+          icon: file === undefined ? ("uraeda:list" as const) : ("uraeda:file-text" as const),
+          id: file === undefined ? `line:${proposal.key}` : `file:${file}`,
           kind: "priorities" as const,
           path: "",
           preview:
-            draft === undefined
-              ? linePreview(entry, placed)
+            file === undefined
+              ? linePreview(proposal, placed)
               : text === undefined
-                ? "Loading the draft…"
-                : draftPreview(text, placed),
+                ? "Loading the proposal…"
+                : filePreview(text, placed),
           // Its words, its links' text without their targets.
-          title: plain(entry.spans),
+          title: plain(proposal.spans),
         };
       }),
-    ...(drafts ?? [])
-      .filter((draft) => !linked.has(draft.path) && draft.path !== placed.note.draft)
-      .map((draft) => ({
+    ...(files ?? [])
+      .filter((file) => !linked.has(file.path))
+      .map((file) => ({
         icon: "uraeda:file-text" as const,
-        id: `draft:${draft.path}`,
+        id: `file:${file.path}`,
         kind: "notes" as const,
         path: "",
-        preview: draftPreview(draft.text, placed),
-        title: draft.title,
+        preview: filePreview(file.text, placed),
+        title: file.title,
       })),
   ];
   return (
@@ -146,14 +151,14 @@ export function PromotePicker({
         const [kind = "", ...rest] = item.id.split(":");
         const target = rest.join(":");
         if (kind === "level") {
-          void actions.toPriorities(target);
+          void actions.toProposal(target);
         } else if (kind === "line") {
-          const entry = entries.find((one) => one.key === target);
-          if (entry) {
-            void actions.underPriority({ id: entry.id, key: entry.key, text: item.title });
+          const proposal = proposals.find((one) => one.key === target);
+          if (proposal) {
+            void actions.underProposal({ id: proposal.id, key: proposal.key, text: item.title });
           }
         } else {
-          void actions.toDraft(target, item.title);
+          void actions.intoProposal(target, item.title);
         }
       }}
       placeholder="Promote to…"

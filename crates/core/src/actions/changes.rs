@@ -1,11 +1,11 @@
 //! The commit bar's one change list: the changes of `INBOX.md` and `PRIORITIES.md` since the last
-//! commit, a note that left the inbox for the priorities or a draft counted as one move. Its count,
-//! its commit message, Commit, and Discard all come from it.
+//! commit, a note that left the inbox for the priorities or a proposal file counted as one move.
+//! Its count, its commit message, Commit, and Discard all come from it.
 
 use std::fs;
 
 use crate::files::inbox::{self, NoteChange};
-use crate::files::priorities::{self, EntryChange, Section};
+use crate::files::priorities::{self, ProposalChange, Section};
 use crate::files::proposal;
 use crate::git::Git;
 
@@ -13,10 +13,11 @@ use super::place::{self, Place};
 use super::priorities::{describe, line, short};
 use super::{ActionError, Change, Committed, commit, images};
 
-mod drafts;
+mod files;
 
-use drafts::{
-    Drafts, Grown, Undo, grown_drafts, never_committed, take_item, written_for_link, written_from,
+use files::{
+    FOLDERS, Found, Grown, Undo, files_in, grown_files, linked_by, never_committed, take_item,
+    written_for_link, written_from,
 };
 
 const INBOX: &str = super::inbox::PATH;
@@ -35,7 +36,8 @@ struct Described {
     line: String,
 }
 
-/// The change list, the files its commit holds, and what Discard does to drafts.
+/// The change list, the files its commit holds, and what Discard does to proposal files and note
+/// files.
 struct Listed {
     changes: Vec<Described>,
     paths: Vec<String>,
@@ -83,7 +85,7 @@ fn note_change(change: &NoteChange) -> Described {
     Described { subject, line }
 }
 
-/// A note moved out of the inbox, to `place`, a section's title or `the draft <title>`.
+/// A note moved out of the inbox, to `place`, a section's title or `the proposal <title>`.
 fn moved_out(text: &str, to: &str) -> Described {
     Described {
         subject: format!("move \"{}\" from the inbox to {to}", short(text)),
@@ -97,42 +99,69 @@ struct Texts {
     priorities: (Option<String>, Option<String>),
 }
 
-/// Each change, a removed note paired with an entry or a draft's item of the same text as a move,
-/// and the drafts those moves and the added notes went into.
-fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Drafts) {
+/// The note file of the note of the text `text` in `inbox`, from the top level.
+fn note_file(inbox: &str, text: &str) -> Option<String> {
+    inbox::parse(inbox)
+        .into_iter()
+        .find(|note| note.text == text)?
+        .file()
+}
+
+/// The file the list item `markdown` of the proposal file at `path` links, from the top level: where
+/// a note's file went with the note.
+fn item_link(path: &str, markdown: &str) -> Option<String> {
+    let folder = path.rsplit_once('/').map_or("", |(folder, _)| folder);
+    let (_, link) = crate::files::lines::plain(markdown);
+    crate::workspace::resolve(folder, &link?)
+}
+
+/// Each change, a removed note paired with a proposal or a proposal file's item of the same text as
+/// a move, and the files those moves and the added notes went into, or the removed notes left.
+fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Found) {
     let inbox_now = texts.inbox.0.as_deref().unwrap_or_default();
     let inbox_then = texts.inbox.1.as_deref().unwrap_or_default();
     let priorities_now = texts.priorities.0.as_deref().unwrap_or_default();
     let priorities_then = texts.priorities.1.as_deref().unwrap_or_default();
-    let mut entries: Vec<Option<EntryChange>> = priorities::diff(priorities_then, priorities_now)
-        .into_iter()
-        .map(Some)
-        .collect();
-    let linked_entries = priorities::parse(priorities_now);
+    let mut proposals: Vec<Option<ProposalChange>> =
+        priorities::diff(priorities_then, priorities_now)
+            .into_iter()
+            .map(Some)
+            .collect();
+    let linked_proposals = priorities::parse(priorities_now);
     let linked_notes = inbox::parse(inbox_now);
-    let mut found = Drafts::default();
+    let mut found = Found::default();
     let mut grown: Option<Vec<Grown>> = None;
     let mut changes = Vec::new();
     for change in inbox::diff(inbox_then, inbox_now) {
         if let NoteChange::Removed { text, .. } = &change {
-            if let Some((section, entry)) = take_moved(&mut entries, inbox_then, text) {
-                let link = linked_entries
+            if let Some((section, moved)) = take_moved(&mut proposals, inbox_then, text) {
+                let link = linked_proposals
                     .iter()
-                    .find(|e| e.section == section && e.text == entry)
-                    .and_then(|e| e.link.as_deref());
+                    .find(|p| p.section == section && p.text == moved)
+                    .and_then(|p| p.link.as_deref());
                 found.linked(place, link, |path| written_from(inbox_then, text, path));
+                if let Some(note) = note_file(inbox_then, text) {
+                    let moved = link.and_then(|link| crate::workspace::resolve("specs", link));
+                    found.moved(place, &note, moved);
+                }
                 changes.push(moved_out(text, section.title()));
                 continue;
             }
-            let grown = grown.get_or_insert_with(|| grown_drafts(place));
+            let grown = grown.get_or_insert_with(|| grown_files(place));
             if let Some((path, title, markdown)) = take_item(grown, text) {
-                changes.push(moved_out(text, &format!("the draft {title}")));
+                changes.push(moved_out(text, &format!("the proposal {title}")));
+                if let Some(note) = note_file(inbox_then, text) {
+                    found.moved(place, &note, item_link(&path, &markdown));
+                }
                 found.undo.push(Undo::Grown {
                     path: path.clone(),
                     markdown,
                 });
                 found.paths.push(path);
                 continue;
+            }
+            if let Some(note) = note_file(inbox_then, text) {
+                found.removed(place, &note);
             }
         }
         if let NoteChange::Added { text, .. } = &change
@@ -145,16 +174,16 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Drafts) {
         }
         changes.push(note_change(&change));
     }
-    changes.extend(entries.into_iter().flatten().map(|entry| Described {
-        subject: describe(&entry),
-        line: line(&entry),
+    changes.extend(proposals.into_iter().flatten().map(|proposal| Described {
+        subject: describe(&proposal),
+        line: line(&proposal),
     }));
     never_committed(place, texts, &mut found);
     (changes, found)
 }
 
-/// The files the commit holds: each list that changed, then the drafts.
-fn files(texts: &Texts, drafts: Vec<String>) -> Vec<String> {
+/// The files the commit holds: each list that changed, then the proposal files and note files.
+fn files(texts: &Texts, linked: Vec<String>) -> Vec<String> {
     let mut files = Vec::new();
     if texts.inbox.0 != texts.inbox.1 {
         files.push(INBOX.to_string());
@@ -162,7 +191,7 @@ fn files(texts: &Texts, drafts: Vec<String>) -> Vec<String> {
     if texts.priorities.0 != texts.priorities.1 {
         files.push(PRIORITIES.to_string());
     }
-    for path in drafts {
+    for path in linked {
         if !files.contains(&path) {
             files.push(path);
         }
@@ -175,89 +204,80 @@ fn gather(place: &Place) -> Listed {
         inbox: versions(place, INBOX),
         priorities: versions(place, PRIORITIES),
     };
-    let (mut changes, drafts) = pair(place, &texts);
-    let mut paths = drafts.paths;
-    // The drafts the human edited in their editor, which have no Commit of their own: this list
-    // commits them. Discard leaves their text.
-    for (path, title) in edited_drafts(place, &paths) {
+    let (mut changes, found) = pair(place, &texts);
+    let mut paths = found.paths;
+    // The proposal files and note files the human edited in their editor, which have no Commit of
+    // their own: this list commits them. Discard leaves their text.
+    for (path, title) in edited_files(place, &paths) {
+        let what = if crate::target::is_note_file(&path) {
+            "note file"
+        } else {
+            "proposal"
+        };
         changes.push(Described {
-            subject: format!("edit the draft \"{}\"", short(&title)),
-            line: format!("- Edit the draft: {title}"),
+            subject: format!("edit the {what} \"{}\"", short(&title)),
+            line: format!("- Edit the {what}: {title}"),
         });
         paths.push(path);
     }
+    let linked = linked_by(place, &paths);
+    paths.extend(linked);
     Listed {
         changes,
         paths: files(&texts, paths),
-        undo: drafts.undo,
+        undo: found.undo,
     }
 }
 
-/// The drafts and backlog files, among `specs/drafts` and `specs/backlog`, whose text differs from
-/// the committed one, with each title; `taken` are the files the list holds already. A draft no
-/// commit has is a note's or a line's, which [`never_committed`] counts.
-fn edited_drafts(place: &Place, taken: &[String]) -> Vec<(String, String)> {
+/// The proposal files and note files whose text differs from the committed one, with each title;
+/// `taken` are the files the list holds already. A file no commit has is a note's or a
+/// proposal's, which [`never_committed`] counts.
+fn edited_files(place: &Place, taken: &[String]) -> Vec<(String, String)> {
     let mut found = Vec::new();
-    for dir in ["specs/drafts", "specs/backlog"] {
-        let Ok(entries) = fs::read_dir(place.root.join(dir)) else {
+    for path in files_in(place, &FOLDERS) {
+        if taken.contains(&path) {
+            continue;
+        }
+        let (Ok(now), Some(then)) = (
+            fs::read_to_string(place.root.join(&path)),
+            place::committed(place, &path),
+        ) else {
             continue;
         };
-        let mut paths: Vec<String> = entries
-            .filter_map(Result::ok)
-            .filter_map(|entry| {
-                let name = entry.file_name().to_string_lossy().into_owned();
-                if entry.path().is_dir() {
-                    Some(format!("{dir}/{name}/proposal.md"))
-                } else {
-                    name.ends_with(".md").then(|| format!("{dir}/{name}"))
-                }
-            })
-            .collect();
-        paths.sort();
-        for path in paths {
-            if taken.contains(&path) {
-                continue;
-            }
-            let (Ok(now), Some(then)) = (
-                fs::read_to_string(place.root.join(&path)),
-                place::committed(place, &path),
-            ) else {
-                continue;
-            };
-            if now != then {
-                let title = crate::view::title(&now).unwrap_or_else(|| path.clone());
-                found.push((path, title));
-            }
+        if now != then {
+            let title = crate::view::title(&now).unwrap_or_else(|| path.clone());
+            found.push((path, title));
         }
     }
     found
 }
 
-/// Takes the added entry the removed note of the text `text` in `inbox` became out of the
+/// Takes the added proposal the removed note of the text `text` in `inbox` became out of the
 /// priorities' changes, and gives its section and text: the note's lines, moved, or a link to the
-/// draft made from it, whose text escapes the note's markdown.
+/// proposal file made from it, whose text escapes the note's markdown.
 fn take_moved(
-    entries: &mut [Option<EntryChange>],
+    proposals: &mut [Option<ProposalChange>],
     inbox: &str,
     text: &str,
 ) -> Option<(Section, String)> {
-    if let Some(section) = take_entry(entries, text) {
+    if let Some(section) = take_proposal(proposals, text) {
         return Some((section, text.to_string()));
     }
     let note = inbox::parse(inbox)
         .into_iter()
-        .find(|note| note.text == text && note.draft().is_none())?;
-    let drafted = inbox::drafted_text(inbox, &note.id)?;
-    Some((take_entry(entries, &drafted)?, drafted))
+        .find(|note| note.text == text && note.file().is_none())?;
+    let expanded = inbox::expanded_text(inbox, &note.id)?;
+    Some((take_proposal(proposals, &expanded)?, expanded))
 }
 
-/// Takes the added entry of the text `text` out of the priorities' changes, and gives its section.
-fn take_entry(entries: &mut [Option<EntryChange>], text: &str) -> Option<Section> {
-    let at = entries.iter().position(
-        |entry| matches!(entry, Some(EntryChange::Added { text: added, .. }) if added == text),
-    )?;
-    match entries[at].take() {
-        Some(EntryChange::Added { section, .. }) => Some(section),
+/// Takes the added proposal of the text `text` out of the priorities' changes, and gives its
+/// section.
+fn take_proposal(proposals: &mut [Option<ProposalChange>], text: &str) -> Option<Section> {
+    let at = proposals.iter().position(|proposal| {
+        matches!(proposal, Some(ProposalChange::Added { text: added, .. }) if added == text)
+    })?;
+    match proposals[at].take() {
+        Some(ProposalChange::Added { section, .. }) => Some(section),
         _ => None,
     }
 }
@@ -296,38 +316,36 @@ pub fn message(place: &Place) -> (String, Option<String>) {
     message_of(&gather(place))
 }
 
-/// The drafts a commit of the two lists holds: those the moves went into, and those the lists link
-/// that no commit has. A draft's commit from its editor holding the lists holds them too.
-pub(super) fn drafts(place: &Place) -> Vec<String> {
+/// The proposal files and note files a commit of the two lists holds: those the moves went into,
+/// those the lists link that no commit has, and the note files that moved or left. A proposal
+/// file's commit from its editor holding the lists holds them too.
+pub(super) fn linked_files(place: &Place) -> Vec<String> {
     let mut paths = gather(place).paths;
     paths.retain(|path| path != INBOX && path != PRIORITIES);
     paths
 }
 
-/// The `images/` folders of the folder drafts among `paths`, which their commit may stage.
+/// The `images/` folders of the folders' main files among `paths`, which their commit may stage.
 pub(super) fn images_folders(paths: &[String]) -> Vec<String> {
     paths
         .iter()
-        .filter_map(|path| path.strip_suffix("/proposal.md"))
+        .filter_map(|path| images::folder_of(path))
         .map(images::images_folder)
         .collect()
 }
 
-/// The images the folder drafts among `paths` link, which go with them as the attachments decision
-/// says, the others deleted: called once the staged files are checked.
+/// The images the folders' main files among `paths` link, which go with them as the attachments
+/// decision says, the others deleted: called once the staged files are checked.
 pub(super) fn linked_images(place: &Place, paths: &[String]) -> Result<Vec<String>, ActionError> {
     let mut linked = Vec::new();
-    for folder in paths
-        .iter()
-        .filter_map(|path| path.strip_suffix("/proposal.md"))
-    {
+    for folder in paths.iter().filter_map(|path| images::folder_of(path)) {
         linked.extend(images::linked_images(place, folder)?);
     }
     Ok(linked)
 }
 
-/// Commits `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into, a draft folder with its
-/// images, with a message naming their changes.
+/// Commits `INBOX.md`, `PRIORITIES.md`, and the files notes went into, moved, or left, a folder
+/// with its images, with a message naming their changes.
 pub fn commit(place: &Place) -> Result<Committed, ActionError> {
     let listed = gather(place);
     if listed.paths.is_empty() {
@@ -352,9 +370,10 @@ pub fn commit(place: &Place) -> Result<Committed, ActionError> {
 }
 
 /// Restores the committed `INBOX.md` and `PRIORITIES.md`, staged edits included, deleting one that
-/// no commit has. A draft is never lost: one a move wrote and nobody committed is deleted only while
-/// it holds what the move wrote, with at most a note's images, which go with it, and one a note was
-/// added to loses that note's lines only.
+/// no commit has. A file is never lost: one a move wrote and nobody committed is deleted only while
+/// it holds what the move wrote, with at most a note's images, which go with it, one a note was
+/// added to loses that note's lines only, a note file a move put among the proposals moves back,
+/// and a committed one a removal deleted comes back.
 pub fn discard(place: &Place) -> Result<(), ActionError> {
     let listed = gather(place);
     let git = Git::open(&place.root)?;
@@ -374,13 +393,13 @@ pub fn discard(place: &Place) -> Result<(), ActionError> {
     for undo in listed.undo {
         match undo {
             Undo::Created { path, written } => {
-                super::draft::remove_written(place, &path, &written)?;
+                super::expand::remove_written(place, &path, &written)?;
             }
             Undo::Converted { old, path } => {
                 let Some(written) = place::committed(place, &old) else {
                     continue;
                 };
-                if super::draft::remove_written(place, &path, &written)? {
+                if super::expand::remove_written(place, &path, &written)? {
                     git.restore(&old)?;
                 } else {
                     super::attach::retarget(place, &old, &path)?;
@@ -391,6 +410,14 @@ pub fn discard(place: &Place) -> Result<(), ActionError> {
                 let text = fs::read_to_string(&file)?;
                 if let Some(without) = proposal::without_item(&text, &markdown) {
                     fs::write(file, without)?;
+                }
+            }
+            Undo::Moved { path, note } => super::inbox::back_to_notes(place, &path, &note)?,
+            Undo::Removed { note, paths } => {
+                if !super::inbox::restore_note_file(place, &note)? {
+                    for path in paths {
+                        git.restore(&path)?;
+                    }
                 }
             }
         }

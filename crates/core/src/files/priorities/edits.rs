@@ -1,49 +1,51 @@
-//! The edits of `PRIORITIES.md`: adding, moving, linking, editing, and removing entries, each
+//! The edits of `PRIORITIES.md`: adding, moving, linking, editing, and removing proposals, each
 //! splicing lines so every other line keeps its bytes.
 
 use super::super::lines::{self, Item, Marker};
 use super::super::markdown::link_text as escaped;
-use super::{Entry, Section, entry_id, keys, parse};
+use super::{Proposal, Section, keys, parse, proposal_id};
 
-fn entry_at(text: &str, line: usize) -> Option<Entry> {
-    parse(text).into_iter().find(|entry| entry.line == line)
+fn proposal_at(text: &str, line: usize) -> Option<Proposal> {
+    parse(text)
+        .into_iter()
+        .find(|proposal| proposal.line == line)
 }
 
-/// Turns the entry starting at `line` into a link to `target`, alone: its sub-items go, as the
-/// draft it links takes them.
+/// Turns the proposal starting at `line` into a link to `target`, alone: its sub-items go, as the
+/// file it links takes them.
 pub fn link(text: &str, line: usize, target: &str) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
-        let entry = entry_at(text, line).ok_or(())?;
+        let proposal = proposal_at(text, line).ok_or(())?;
         let item = format!(
             "{} [{}]({target})",
-            entry.item.marker.render(),
-            escaped(&entry.text)
+            proposal.item.marker.render(),
+            escaped(&proposal.text)
         );
         let whole = Item {
-            text_end: entry.item.end,
-            ..entry.item.clone()
+            text_end: proposal.item.end,
+            ..proposal.item.clone()
         };
         Ok::<_, ()>(lines::replace(text, &whole, &[item]))
     })
     .ok()
 }
 
-/// Removes the entry starting at `line`, sub-items included, and adds a link to `target` on top
+/// Removes the proposal starting at `line`, sub-items included, and adds a link to `target` on top
 /// of **Now**, as [`add_started`] does.
 pub fn move_to_started(text: &str, line: usize, link_text: &str, target: &str) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
-        let entry = entry_at(text, line).ok_or(())?;
-        let without = lines::remove(text, &entry.item);
+        let proposal = proposal_at(text, line).ok_or(())?;
+        let without = lines::remove(text, &proposal.item);
         Ok::<_, ()>(add_started(&without, link_text, target))
     })
     .ok()
 }
 
-/// Whether an entry links a started feature's or change's proposal:
+/// Whether a proposal links a started feature's or change's proposal:
 /// `/specs/<YYYY-MM-DD-slug>/proposal.md` or `/specs/changes/<YYYY-MM-DD-slug>/proposal.md`.
-fn is_started(entry: &Entry) -> bool {
+fn is_started(proposal: &Proposal) -> bool {
     let Some(path) =
-        (entry.link.as_deref()).and_then(|link| crate::workspace::resolve("specs", link))
+        (proposal.link.as_deref()).and_then(|link| crate::workspace::resolve("specs", link))
     else {
         return false;
     };
@@ -56,12 +58,12 @@ fn is_started(entry: &Entry) -> bool {
 }
 
 /// Adds a link to `target`, a started feature's or change's proposal, on top of **Now**: after the
-/// last started entry of Now's first block, the entries before its first blank line, numbered after
-/// it, or else first, in the style of the first entry. A blank line then parts it from the entries
-/// that are not started, and none is added when none follows.
+/// last started proposal of Now's first block, the proposals before its first blank line, numbered
+/// after it, or else first, in the style of the first proposal. A blank line then parts it from the
+/// proposals that are not started, and none is added when none follows.
 pub fn add_started(text: &str, link_text: &str, target: &str) -> String {
     let result: Result<String, ()> = super::super::with_unix_newlines(text, |text| {
-        let now: Vec<Entry> = parse(text)
+        let now: Vec<Proposal> = parse(text)
             .into_iter()
             .filter(|e| e.section == Section::Now)
             .collect();
@@ -79,7 +81,7 @@ pub fn add_started(text: &str, link_text: &str, target: &str) -> String {
             .windows(2)
             .take_while(|pair| pair[1].line == pair[0].item.end + 1)
             .count();
-        let (at, item) = match now[..block].iter().rfind(|entry| is_started(entry)) {
+        let (at, item) = match now[..block].iter().rfind(|proposal| is_started(proposal)) {
             Some(last) => {
                 let marker = match &last.item.marker {
                     Marker::Number(number) => Marker::Number(number + 1),
@@ -90,7 +92,8 @@ pub fn add_started(text: &str, link_text: &str, target: &str) -> String {
             None => (first.line - 1, link(&first.item.marker)),
         };
         let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
-        // The next line starts an entry that is not started, in the same block: a blank line parts it.
+        // The next line starts a proposal that is not started, in the same block: a blank line
+        // parts it.
         let parted = lines
             .get(at)
             .is_some_and(|next| lines::item_marker(next).is_some());
@@ -101,11 +104,11 @@ pub fn add_started(text: &str, link_text: &str, target: &str) -> String {
         };
         let shift = added.len();
         lines.splice(at..at, added);
-        // The numbered entries after it count it in.
-        for entry in now.iter().filter(|entry| entry.line > at) {
-            let line = &lines[entry.line - 1 + shift];
+        // The numbered proposals after it count it in.
+        for proposal in now.iter().filter(|proposal| proposal.line > at) {
+            let line = &lines[proposal.line - 1 + shift];
             if let Some((Marker::Number(number), rest)) = lines::item_marker(line) {
-                lines[entry.line - 1 + shift] =
+                lines[proposal.line - 1 + shift] =
                     format!("{} {rest}", Marker::Number(number + 1).render());
             }
         }
@@ -114,21 +117,23 @@ pub fn add_started(text: &str, link_text: &str, target: &str) -> String {
     result.unwrap_or_else(|()| text.to_string())
 }
 
-fn find(text: &str, id: &str) -> Option<Entry> {
-    parse(text).into_iter().find(|entry| entry_id(entry) == id)
+fn find(text: &str, id: &str) -> Option<Proposal> {
+    parse(text)
+        .into_iter()
+        .find(|proposal| proposal_id(proposal) == id)
 }
 
-/// Inserts `item`, lines of an entry, in `section` before its entry at `index`, or at its end.
+/// Inserts `item`, lines of a proposal, in `section` before its proposal at `index`, or at its end.
 fn insert(text: &str, section: Section, index: usize, item: &[String]) -> String {
-    let entries: Vec<Entry> = parse(text)
+    let proposals: Vec<Proposal> = parse(text)
         .into_iter()
         .filter(|e| e.section == section)
         .collect();
-    let Some(before) = entries.get(index) else {
+    let Some(before) = proposals.get(index) else {
         let heading = lines::headings(text)
             .find(|(_, line)| Section::from_heading(line) == Some(section))
             .map(|(number, _)| number);
-        let last = entries.last().map(|entry| &entry.item);
+        let last = proposals.last().map(|proposal| &proposal.item);
         let title = format!("## {}", section.title());
         return lines::append_to_section(text, last, heading, &title, item).0;
     };
@@ -138,9 +143,9 @@ fn insert(text: &str, section: Section, index: usize, item: &[String]) -> String
     lines.join("\n")
 }
 
-/// Inserts the lines of an entry, nested lines included, as written, before the entry at `index`
-/// of `section`, or at its end when `index` is past it. `None` when there is no line.
-pub fn insert_entry(
+/// Inserts the lines of a proposal, nested lines included, as written, before the proposal at
+/// `index` of `section`, or at its end when `index` is past it. `None` when there is no line.
+pub fn insert_proposal(
     text: &str,
     section: Section,
     index: usize,
@@ -167,40 +172,41 @@ pub fn add(text: &str, section: Section, line: &str) -> Option<String> {
     .ok()
 }
 
-/// Moves an entry, its nested lines included, before the entry at `index` of `section`, or to
+/// Moves a proposal, its nested lines included, before the proposal at `index` of `section`, or to
 /// its end.
-pub fn move_entry(text: &str, id: &str, section: Section, index: usize) -> Option<String> {
+pub fn move_proposal(text: &str, id: &str, section: Section, index: usize) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
-        let entry = find(text, id).ok_or(())?;
+        let proposal = find(text, id).ok_or(())?;
         let item: Vec<String> = text.split('\n').collect::<Vec<_>>()
-            [entry.item.line - 1..entry.item.end]
+            [proposal.item.line - 1..proposal.item.end]
             .iter()
             .map(|l| l.to_string())
             .collect();
-        let without = lines::remove(text, &entry.item);
-        // An entry moved within its section counts its old place out.
+        let without = lines::remove(text, &proposal.item);
+        // A proposal moved within its section counts its old place out.
         Ok::<_, ()>(insert(&without, section, index, &item))
     })
     .ok()
 }
 
-/// Replaces an entry's text with `line`, its marker and nested lines kept.
+/// Replaces a proposal's text with `line`, its marker and nested lines kept.
 pub fn edit(text: &str, id: &str, line: &str) -> Option<String> {
     let line = lines::one_line(line);
     if line.is_empty() {
         return None;
     }
     super::super::with_unix_newlines(text, |text| {
-        let entry = find(text, id).ok_or(())?;
-        let item = format!("{} {line}", entry.item.marker.render());
-        Ok::<_, ()>(lines::replace(text, &entry.item, &[item]))
+        let proposal = find(text, id).ok_or(())?;
+        let item = format!("{} {line}", proposal.item.marker.render());
+        Ok::<_, ()>(lines::replace(text, &proposal.item, &[item]))
     })
     .ok()
 }
 
-/// Removes the entry of `section` whose lines, nested ones included, are exactly `lines`: the one
-/// there is, or among several, the one whose key is `key`. `None` when there is none, or several
-/// and none has that key: an entry of the same text the human wrote is never taken for it.
+/// Removes the proposal of `section` whose lines, nested ones included, are exactly `lines`: the
+/// one there is, or among several, the one whose key is `key`. `None` when there is none, or
+/// several and none has that key: a proposal of the same text the human wrote is never taken for
+/// it.
 pub fn remove_written(
     text: &str,
     section: Section,
@@ -209,14 +215,14 @@ pub fn remove_written(
 ) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
         let all: Vec<&str> = text.split('\n').collect();
-        let entries = parse(text);
-        let keys = keys(&entries);
-        let same: Vec<(&Entry, &String)> = entries
+        let proposals = parse(text);
+        let keys = keys(&proposals);
+        let same: Vec<(&Proposal, &String)> = proposals
             .iter()
             .zip(&keys)
-            .filter(|(entry, _)| {
-                entry.section == section
-                    && all[entry.item.line - 1..entry.item.end]
+            .filter(|(proposal, _)| {
+                proposal.section == section
+                    && all[proposal.item.line - 1..proposal.item.end]
                         .iter()
                         .copied()
                         .eq(lines.iter().map(String::as_str))
@@ -227,7 +233,7 @@ pub fn remove_written(
             _ => same
                 .iter()
                 .find(|(_, found)| key == Some(found.as_str()))
-                .map(|(entry, _)| *entry)
+                .map(|(proposal, _)| *proposal)
                 .ok_or(())?,
         };
         Ok::<_, ()>(lines::remove(text, &found.item))
@@ -235,27 +241,27 @@ pub fn remove_written(
     .ok()
 }
 
-/// Removes the entry an add wrote: the last of its section whose lines, nested ones included, are
-/// exactly `lines`, returned with the text without it. `None` unless exactly one section ends with
-/// it.
-pub fn remove_added(text: &str, lines: &[String]) -> Option<(String, Entry)> {
+/// Removes the proposal an add wrote: the last of its section whose lines, nested ones included,
+/// are exactly `lines`, returned with the text without it. `None` unless exactly one section ends
+/// with it.
+pub fn remove_added(text: &str, lines: &[String]) -> Option<(String, Proposal)> {
     let mut removed = None;
     let without = super::super::with_unix_newlines(text, |text| {
         let all: Vec<&str> = text.split('\n').collect();
-        let entries = parse(text);
-        let last: Vec<&Entry> = entries
+        let proposals = parse(text);
+        let last: Vec<&Proposal> = proposals
             .iter()
             .enumerate()
-            .filter(|(at, entry)| {
-                entries
+            .filter(|(at, proposal)| {
+                proposals
                     .get(at + 1)
-                    .is_none_or(|next| next.section != entry.section)
-                    && all[entry.item.line - 1..entry.item.end]
+                    .is_none_or(|next| next.section != proposal.section)
+                    && all[proposal.item.line - 1..proposal.item.end]
                         .iter()
                         .copied()
                         .eq(lines.iter().map(String::as_str))
             })
-            .map(|(_, entry)| entry)
+            .map(|(_, proposal)| proposal)
             .collect();
         let [one] = last.as_slice() else {
             return Err(());
@@ -267,29 +273,29 @@ pub fn remove_added(text: &str, lines: &[String]) -> Option<(String, Entry)> {
     Some((without, removed?))
 }
 
-/// Removes an entry, with its nested lines.
+/// Removes a proposal, with its nested lines.
 pub fn remove(text: &str, id: &str) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
-        let entry = find(text, id).ok_or(())?;
-        Ok::<_, ()>(lines::remove(text, &entry.item))
+        let proposal = find(text, id).ok_or(())?;
+        Ok::<_, ()>(lines::remove(text, &proposal.item))
     })
     .ok()
 }
 
-/// Removes the first entry whose link leads to `path`, from the top level, with its nested lines:
-/// the text without it, and the entry's text. `None` when no entry links it.
+/// Removes the first proposal whose link leads to `path`, from the top level, with its nested
+/// lines: the text without it, and the proposal's text. `None` when no proposal links it.
 pub fn remove_linked(text: &str, path: &str) -> Option<(String, String)> {
     let mut name = None;
     let without = super::super::with_unix_newlines(text, |text| {
-        let entry = parse(text)
+        let proposal = parse(text)
             .into_iter()
-            .find(|entry| {
-                (entry.link.as_deref()).and_then(|link| crate::workspace::resolve("specs", link))
+            .find(|proposal| {
+                (proposal.link.as_deref()).and_then(|link| crate::workspace::resolve("specs", link))
                     == Some(path.to_string())
             })
             .ok_or(())?;
-        name = Some(entry.text.clone());
-        Ok::<_, ()>(lines::remove(text, &entry.item))
+        name = Some(proposal.text.clone());
+        Ok::<_, ()>(lines::remove(text, &proposal.item))
     })
     .ok()?;
     Some((without, name?))

@@ -143,10 +143,10 @@ pub fn append_to_what(text: &str, item: &[String]) -> Option<String> {
     .ok()
 }
 
-/// A draft's text without the last list item of its `## What` whose markdown is `markdown`, nested
-/// lines included, and the blank line its addition put before it: a note's lines taken back out of
-/// the section [`append_to_what`] put them in, every other edit kept, a same item elsewhere too.
-/// `None` when no item of the What has that markdown.
+/// A proposal file's text without the last list item of its `## What` whose markdown is `markdown`,
+/// nested lines included, and the blank line its addition put before it: a note's lines taken back
+/// out of the section [`append_to_what`] put them in, every other edit kept, a same item elsewhere
+/// too. `None` when no item of the What has that markdown.
 pub fn without_item(text: &str, markdown: &str) -> Option<String> {
     super::with_unix_newlines(text, |text| {
         let all: Vec<&str> = text.split('\n').collect();
@@ -183,8 +183,8 @@ pub fn image_file(line: &str) -> Option<&str> {
     plain.then_some(name)
 }
 
-/// Whether a draft a move wrote as `written` holds it still, with at most lines of images added at
-/// the end of its `## What`, as a note's image adds them: the human typed nothing in it.
+/// Whether a proposal file a move wrote as `written` holds it still, with at most lines of images
+/// added at the end of its `## What`, as a note's image adds them: the human typed nothing in it.
 pub fn holds_written(text: &str, written: &str) -> bool {
     let images: Vec<String> = text
         .lines()

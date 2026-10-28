@@ -70,7 +70,7 @@ const KINDS: Record<string, StepKind> = {
 };
 
 /**
- * The icon kind of a step on its own, as a priority's running entry carries it: a human gate by the
+ * The icon kind of a step on its own, as a running proposal carries it: a human gate by the
  * kind of file it waits on, else by the step's name.
  */
 export function stepKindOf(step: { fileKind?: string | null; name: string }): StepKind {

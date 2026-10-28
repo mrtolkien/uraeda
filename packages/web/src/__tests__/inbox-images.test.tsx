@@ -6,7 +6,6 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
-import { draftFile } from "../draftFile.ts";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { navigate } from "../routes.tsx";
 import {
@@ -95,29 +94,26 @@ async function drop(files: Array<File>) {
   });
 }
 
-/** The draft the line of `note` links in `INBOX.md`, from the repository's top level. */
-function draftOf(repo: string, note: string) {
+/** The note file the line of `note` links in `INBOX.md`, from the repository's top level. */
+function fileOf(repo: string, note: string) {
   const line = read(repo, PATH)
     .split("\n")
     .find((one) => one.includes(note));
   const target = line?.match(/\]\(([^)]+)\)/)?.[1];
-  expect(target, `${note} links a draft: ${line}`).toBeDefined();
+  expect(target, `${note} links a note file: ${line}`).toBeDefined();
   return join("specs", target!).replace(/\/$/, "");
 }
 
-/** The draft folder's file names, its images' folder included. */
-function filesOf(repo: string, draft: string) {
-  const folder = join(repo, draft.endsWith(".md") ? join(draft, "..") : draft);
+/** The note file folder's file names, its images' folder included. */
+function filesOf(repo: string, file: string) {
+  const folder = join(repo, file.endsWith(".md") ? join(file, "..") : file);
   return {
     images: readdirSync(join(folder, "images")),
-    text: readFileSync(
-      draft.endsWith(".md") ? join(repo, draft) : join(folder, "proposal.md"),
-      "utf8",
-    ),
+    text: readFileSync(file.endsWith(".md") ? join(repo, file) : join(folder, "note.md"), "utf8"),
   };
 }
 
-test("the add form takes a pasted image, and adds the note as a draft holding it", async () => {
+test("the add form takes a pasted image, and adds the note as a file holding it", async () => {
   const { link, repo } = await onNote("Idea two");
   await press("a", link);
   const field = await screen.findByPlaceholderText("What did you notice?");
@@ -127,17 +123,17 @@ test("the add form takes a pasted image, and adds the note as a draft holding it
 
   const form = within(screen.getByRole("dialog", { name: "Add a note" }));
   expect(await form.findByRole("button", { name: /^Remove/ })).toBeTruthy();
-  await click(form.getByRole("button", { name: "Add as a draft" }));
+  await click(form.getByRole("button", { name: "Add as a file" }));
   // The image is encoded before the note is written: a while, under a loaded machine.
   await waitFor(() => expect(read(repo, PATH)).toMatch(/\[Headings are flat\]\(/), {
     timeout: 10_000,
   });
-  const { images, text } = filesOf(repo, draftOf(repo, "Headings are flat"));
+  const { images, text } = filesOf(repo, fileOf(repo, "Headings are flat"));
   expect(images).toHaveLength(1);
   expect(text).toContain(`](images/${images[0]})`);
 });
 
-test("an image pasted in a note's field saves its text first, then makes it a draft holding it", async () => {
+test("an image pasted in a note's field saves its text first, then gives it a file holding it", async () => {
   const { link, repo } = await onNote("Idea two");
   await press("i", link);
   const field = await screen.findByRole("textbox", { name: "Edit the note" });
@@ -146,7 +142,7 @@ test("an image pasted in a note's field saves its text first, then makes it a dr
   await paste(field, [png("")]);
 
   await waitFor(() => expect(read(repo, PATH)).toMatch(/- \[Idea deux\]\(/));
-  const { images, text } = filesOf(repo, draftOf(repo, "Idea deux"));
+  const { images, text } = filesOf(repo, fileOf(repo, "Idea deux"));
   expect(images).toHaveLength(1);
   expect(text).toContain("Idea deux");
   expect(text).toContain(`](images/${images[0]})`);
@@ -160,7 +156,7 @@ test("an image dropped on the page goes to the selected note", async () => {
   await drop([png("dropped.png")]);
 
   await waitFor(() => expect(read(repo, PATH)).toMatch(/- \[Idea one\]\(/));
-  expect(filesOf(repo, draftOf(repo, "Idea one")).images).toHaveLength(1);
+  expect(filesOf(repo, fileOf(repo, "Idea one")).images).toHaveLength(1);
   expect(read(repo, PATH)).toContain("- Idea two\n");
 });
 
@@ -174,17 +170,17 @@ test("an image dropped with no note selected opens the add form holding it", asy
 
   const form = within(await screen.findByRole("dialog", { name: "Add a note" }));
   expect(await form.findByRole("button", { name: /^Remove dropped\.png/ })).toBeTruthy();
-  expect(form.getByRole("button", { name: "Add as a draft" })).toBeTruthy();
+  expect(form.getByRole("button", { name: "Add as a file" })).toBeTruthy();
   expect(read(repo, PATH)).toBe(INBOX);
 });
 
-test("the selected note shows its images under its row, and Remove takes one out of its draft", async () => {
+test("the selected note shows its images under its row, and Remove takes one out of its file", async () => {
   const { repo } = await onNote("Idea two");
   await selectIdeaOne();
   await drop([png("dropped.png")]);
   await waitFor(() => expect(read(repo, PATH)).toMatch(/- \[Idea one\]\(/));
-  const draft = draftOf(repo, "Idea one");
-  const [image] = filesOf(repo, draft).images;
+  const file = fileOf(repo, "Idea one");
+  const [image] = filesOf(repo, file).images;
 
   // Another row selected: the note's images are not drawn, and its row says it has one.
   act(() => controlOf("Idea one").focus());
@@ -206,28 +202,29 @@ test("the selected note shows its images under its row, and Remove takes one out
   await press("Enter", remove);
   expect(screen.queryByRole("textbox", { name: "Edit the note" })).toBeNull();
 
-  const before = filesOf(repo, draft).text;
+  const before = filesOf(repo, file).text;
   await click(remove);
 
-  await waitFor(() => expect(filesOf(repo, draft).text).not.toContain(`images/${image}`));
-  expect(await screen.findByText(`Removed ${image} from the note's draft`)).toBeTruthy();
+  await waitFor(() => expect(filesOf(repo, file).text).not.toContain(`images/${image}`));
+  expect(await screen.findByText(`Removed ${image} from the note's file`)).toBeTruthy();
   expect(screen.queryByRole("textbox", { name: "Edit the note" })).toBeNull();
   // The image's file stays, for `ura inbox clean` or a commit to delete.
-  expect(filesOf(repo, draft).images).toEqual([image]);
-  // Undo puts the link back where it was, the draft as it was before.
+  expect(filesOf(repo, file).images).toEqual([image]);
+  // Undo puts the link back where it was, the file as it was before.
   await click(await screen.findByRole("button", { name: /^Undo/ }));
-  await waitFor(() => expect(filesOf(repo, draft).text).toBe(before));
+  await waitFor(() => expect(filesOf(repo, file).text).toBe(before));
 });
 
-/** Opens the editor of `draft` and gives its field. */
-async function editorField(draft: string) {
-  await act(async () => navigate(atRepo(`/edit/${draftFile(draft)}`)));
+/** Opens the editor of the note file `file`, a file or a folder's `note.md`, and gives its field. */
+async function editorField(file: string) {
+  const path = file.endsWith(".md") ? file : `${file}/note.md`;
+  await act(async () => navigate(atRepo(`/edit/${path}`)));
   return (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
 }
 
-/** Opens the editor of `draft` and gives its text. */
-async function editorText(draft: string) {
-  return (await editorField(draft)).value;
+/** Opens the editor of the note file `file` and gives its text. */
+async function editorText(file: string) {
+  return (await editorField(file)).value;
 }
 
 /** Idea one with a dropped image, its row selected and its image shown under it. */
@@ -236,51 +233,51 @@ async function ideaOneWithImage() {
   await selectIdeaOne();
   await drop([png("dropped.png")]);
   await waitFor(() => expect(read(repo, PATH)).toMatch(/- \[Idea one\]\(/));
-  const draft = draftOf(repo, "Idea one");
-  const [image] = filesOf(repo, draft).images;
+  const file = fileOf(repo, "Idea one");
+  const [image] = filesOf(repo, file).images;
   await waitFor(() => expect(rowOf("Idea one").textContent).toContain("1 image"));
   const shown = within(await waitFor(() => imagesOf("Idea one")!));
-  return { draft, image: image!, repo, shown };
+  return { file, image: image!, repo, shown };
 }
 
-test("a draft opened after one of its images is removed shows it without the image", async () => {
-  const { draft, image, shown } = await ideaOneWithImage();
+test("a note file opened after one of its images is removed shows it without the image", async () => {
+  const { file, image, shown } = await ideaOneWithImage();
 
   await click(shown.getByRole("button", { name: `Remove ${image}` }));
-  await screen.findByText(`Removed ${image} from the note's draft`);
+  await screen.findByText(`Removed ${image} from the note's file`);
 
-  const text = await editorText(draft);
+  const text = await editorText(file);
   expect(text).toContain("Idea one");
   expect(text).not.toContain(`images/${image}`);
 });
 
-test("a draft opened after an image's removal is undone shows the image again", async () => {
-  const { draft, image, repo, shown } = await ideaOneWithImage();
-  const before = filesOf(repo, draft).text;
+test("a note file opened after an image's removal is undone shows the image again", async () => {
+  const { file, image, repo, shown } = await ideaOneWithImage();
+  const before = filesOf(repo, file).text;
   await click(shown.getByRole("button", { name: `Remove ${image}` }));
-  await screen.findByText(`Removed ${image} from the note's draft`);
+  await screen.findByText(`Removed ${image} from the note's file`);
 
   await click(await screen.findByRole("button", { name: /^Undo/ }));
-  await waitFor(() => expect(filesOf(repo, draft).text).toBe(before));
+  await waitFor(() => expect(filesOf(repo, file).text).toBe(before));
 
-  const field = await editorField(draft);
-  // The draft is read again once the write ends, after the file is written: the editor follows it.
+  const field = await editorField(file);
+  // The note file is read again once the write ends, after it is written: the editor follows it.
   await waitFor(() => expect(field.value).toContain(`images/${image}`));
 });
 
-test("a draft opened after a second image is dropped on its note shows both", async () => {
-  const { draft, image, repo } = await ideaOneWithImage();
-  // The editor reads the draft as it is with one image.
-  expect(await editorText(draft)).toContain(`images/${image}`);
+test("a note file opened after a second image is dropped on its note shows both", async () => {
+  const { file, image, repo } = await ideaOneWithImage();
+  // The editor reads the note file as it is with one image.
+  expect(await editorText(file)).toContain(`images/${image}`);
   await act(async () => navigate(atRepo("/inbox")));
   await screen.findByRole("heading", { name: "Ideas · 2" });
   await selectIdeaOne();
 
   await drop([png("second.png")]);
-  await waitFor(() => expect(filesOf(repo, draft).images).toHaveLength(2));
+  await waitFor(() => expect(filesOf(repo, file).images).toHaveLength(2));
 
-  const field = await editorField(draft);
-  for (const one of filesOf(repo, draft).images) {
+  const field = await editorField(file);
+  for (const one of filesOf(repo, file).images) {
     await waitFor(() => expect(field.value).toContain(`images/${one}`));
   }
 });

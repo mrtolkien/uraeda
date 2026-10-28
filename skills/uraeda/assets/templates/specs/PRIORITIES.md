@@ -16,4 +16,4 @@
 
 > [!NOTE]
 >
-> What may be worked on one day, and what waits on another line: put it after what it needs.
+> What may be worked on one day, and what waits on another proposal: put it after what it needs.

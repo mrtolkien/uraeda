@@ -20,7 +20,7 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 - **No guidance prose and no summary of the obvious.** A page's subtitle, an intro line, a field
   nobody needs: "Remove the slop." A review's verdict says whether the human approves; a separate
   summary field said nothing more.
-- **Icons where the icon is clear.** A row's draft, a link, or a running feature shows as its icon,
+- **Icons where the icon is clear.** A row's file, a link, or a running feature shows as its icon,
   not as a word after the text: "the icons are enough". Every icon-only control keeps a label for
   screen readers.
 - **Empty sections disappear.** A pane with nothing to show, like Sessions when none runs, is not

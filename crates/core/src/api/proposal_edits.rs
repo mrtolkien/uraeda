@@ -50,8 +50,8 @@ pub fn read_priorities(repo: &Path) -> Result<Priorities> {
     })
 }
 
-/// The default branch's priorities, each entry with its draft and running feature from the
-/// workspace, without the count of the commit bar's changes.
+/// The default branch's priorities, each proposal with its proposal file and running feature from
+/// the workspace, without the count of the commit bar's changes.
 pub(crate) fn joined_priorities(git: &Git, workspace: &Workspace) -> Priorities {
     let (text, _) = on_default(git, workspace, edits::PATH);
     workspace.join_priorities(priorities::read(&text.unwrap_or_default(), None))
@@ -62,9 +62,9 @@ fn joined(repo: &Path, priorities: Priorities) -> Result<Priorities> {
     Ok(open(repo)?.1.join_priorities(priorities))
 }
 
-/// Adds a line at the end of a section. Edits keep the drafts and features: the workspace read
-/// before them joins their answer.
-pub fn add_priority(
+/// Adds a line at the end of a section. Edits keep the proposal files and features: the workspace
+/// read before them joins their answer.
+pub fn add_proposal(
     repo: &Path,
     section_id: &str,
     line: &str,
@@ -75,9 +75,9 @@ pub fn add_priority(
     Ok(workspace.join_priorities(edits::add(&place, section(section_id)?, line, previous)?))
 }
 
-/// Adds a line at the end of a section, as [`add_priority`] does, then commits `PRIORITIES.md`
+/// Adds a line at the end of a section, as [`add_proposal`] does, then commits `PRIORITIES.md`
 /// alone, when it had no other change, with `chore: add "<short>" to <Section>`.
-pub fn add_priority_and_commit(
+pub fn add_proposal_and_commit(
     repo: &Path,
     section_id: &str,
     line: &str,
@@ -89,10 +89,10 @@ pub fn add_priority_and_commit(
     Ok((workspace.join_priorities(priorities), added))
 }
 
-/// Takes back a committed add: the entry, `lines` as written, leaves the end of its section, and
+/// Takes back a committed add: the proposal, `lines` as written, leaves the end of its section, and
 /// the removal is committed alone with `chore: remove "<short>"`. Refused as a conflict when the
 /// file changed since it was read at `previous`.
-pub fn undo_committed_priority(
+pub fn undo_committed_proposal(
     repo: &Path,
     lines: &[String],
     previous: &str,
@@ -104,7 +104,7 @@ pub fn undo_committed_priority(
 
 /// Inserts a line with its nested lines, as written, before the line at `index` of a section, or
 /// at its end: Undo of a removal.
-pub fn insert_priority(
+pub fn insert_proposal(
     repo: &Path,
     section_id: &str,
     index: u32,
@@ -123,7 +123,7 @@ pub fn insert_priority(
 }
 
 /// Moves a line before the line at `index` of a section, or to its end.
-pub fn move_priority(
+pub fn move_proposal(
     repo: &Path,
     id: &str,
     section_id: &str,
@@ -132,7 +132,7 @@ pub fn move_priority(
 ) -> Result<Priorities> {
     let _lock = write_lock();
     let (place, workspace) = reach_default_from(repo)?;
-    Ok(workspace.join_priorities(edits::move_entry(
+    Ok(workspace.join_priorities(edits::move_proposal(
         &place,
         id,
         section(section_id)?,
@@ -142,14 +142,14 @@ pub fn move_priority(
 }
 
 /// Replaces a line's text.
-pub fn edit_priority(repo: &Path, id: &str, line: &str, previous: &str) -> Result<Priorities> {
+pub fn edit_proposal(repo: &Path, id: &str, line: &str, previous: &str) -> Result<Priorities> {
     let _lock = write_lock();
     let (place, workspace) = reach_default_from(repo)?;
     Ok(workspace.join_priorities(edits::edit(&place, id, line, previous)?))
 }
 
 /// Removes a line and its nested lines.
-pub fn remove_priority(repo: &Path, id: &str, previous: &str) -> Result<Priorities> {
+pub fn remove_proposal(repo: &Path, id: &str, previous: &str) -> Result<Priorities> {
     let _lock = write_lock();
     let (place, workspace) = reach_default_from(repo)?;
     Ok(workspace.join_priorities(edits::remove(&place, id, previous)?))
@@ -164,12 +164,12 @@ pub fn commit_priorities(repo: &Path) -> Result<Priorities> {
     joined(repo, edits::read(&place))
 }
 
-/// Restores the committed priorities and inbox, and takes the notes back out of drafts, as
+/// Restores the committed priorities and inbox, and takes the notes back out of proposal files, as
 /// [`discard_changes`](super::discard_changes) does.
 pub fn discard_priorities(repo: &Path) -> Result<Priorities> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
     changes::discard(&place)?;
-    // A discard deletes the drafts never committed: the workspace is read after it.
+    // A discard deletes the proposal files never committed: the workspace is read after it.
     joined(repo, edits::read(&place))
 }

@@ -42,7 +42,7 @@ const NEW: ReadonlyArray<MenuEntry> = [
   { icon: KIND_ICONS.changes, key: "c", label: "Change" },
   { icon: KIND_ICONS.features, key: "f", label: "Feature" },
   { icon: KIND_ICONS.notes, key: "n", label: "Note (inbox entry)" },
-  { icon: KIND_ICONS.priorities, key: "p", label: "Priority" },
+  { icon: KIND_ICONS.priorities, key: "p", label: "Proposal" },
 ];
 
 const meta = {

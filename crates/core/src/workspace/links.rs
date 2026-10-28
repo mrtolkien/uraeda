@@ -1,26 +1,24 @@
 //! Where a link of a workflow file points, from the repository's top level, and the feature or
-//! the draft a priorities entry links.
+//! the proposal file a proposal of the priorities links.
 
 use std::path::{Path, PathBuf};
 
-use super::{Feature, Kind, PriorityEntry, Workspace};
+use super::{Feature, Kind, LinkedProposal, Workspace};
 use crate::files::lines;
 use crate::files::priorities::{self, Priorities};
 use crate::steps::StepName;
 use crate::view::StepView;
 
-/// The draft or backlog file a priorities entry links, as it is on the default branch.
+/// The proposal file a proposal of the priorities links, as it is on the default branch.
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkedFile {
-    /// From the top level: `specs/drafts/x.md`, `specs/backlog/y/proposal.md`.
+    /// From the top level: `specs/proposals/x.md`, `specs/proposals/y/proposal.md`.
     pub path: String,
-    /// Whether it is under `specs/backlog/`.
-    pub backlog: bool,
 }
 
-/// The feature or change a priorities entry links, while its step is not `done`.
+/// The feature or change a proposal of the priorities links, while its step is not `done`.
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -97,17 +95,17 @@ fn percent_decode(path: &str) -> String {
     String::from_utf8(decoded).unwrap_or_else(|_| path.to_string())
 }
 
-/// What a priorities entry's link points to in a workspace: its feature or change, and its draft
-/// or backlog file. The one join of the priorities to the workspace: the web's priorities, the
-/// workspace's entries, and the language server's hints read it.
-pub struct EntryLink<'a> {
+/// What a proposal's link points to in a workspace: its feature or change, and its proposal file.
+/// The one join of the priorities to the workspace: the web's priorities, the workspace's
+/// proposals, and the language server's hints read it.
+pub struct Linked<'a> {
     /// The feature or change it links, whatever its step.
     pub feature: Option<&'a Feature>,
-    /// The draft or backlog file it links, when the default branch has it.
+    /// The proposal file it links, when the default branch has it.
     pub file: Option<LinkedFile>,
 }
 
-impl EntryLink<'_> {
+impl Linked<'_> {
     /// Its feature or change, while its step is not `done`.
     pub fn running(&self) -> Option<RunningFeature> {
         let feature = self.feature?;
@@ -119,44 +117,47 @@ impl EntryLink<'_> {
     }
 }
 
-/// The draft or backlog file a link points to, when `drafts`, as [`Workspace::drafts`] lists them,
+/// The proposal file a link points to, when `proposals`, as [`Workspace::proposals`] lists them,
 /// holds it: a folder's `proposal.md` counts as its folder, which they list only when it holds
 /// that file.
-fn linked_file(link: &str, drafts: &[String]) -> Option<LinkedFile> {
+fn linked_file(link: &str, proposals: &[String]) -> Option<LinkedFile> {
     let path = resolve("specs", link)?;
     let folder = path.strip_suffix("/proposal.md").unwrap_or(&path);
-    if !drafts.iter().any(|draft| draft == &path || draft == folder) {
+    if !proposals
+        .iter()
+        .any(|proposal| proposal == &path || proposal == folder)
+    {
         return None;
     }
-    Some(LinkedFile {
-        backlog: path.starts_with("specs/backlog/"),
-        path,
-    })
+    Some(LinkedFile { path })
 }
 
 impl Workspace {
-    /// What a priorities entry's link points to.
-    pub fn link(&self, link: &str) -> EntryLink<'_> {
-        EntryLink {
+    /// What a proposal's link points to.
+    pub fn link(&self, link: &str) -> Linked<'_> {
+        Linked {
             feature: match_feature(link, &self.features).and_then(|folder| self.feature(&folder)),
-            file: linked_file(link, &self.drafts),
+            file: linked_file(link, &self.proposals),
         }
     }
 
-    /// The priorities with each entry's draft or backlog file and running feature, from this
-    /// workspace.
+    /// The priorities with each proposal's file and running feature, from this workspace.
     pub fn join_priorities(&self, mut priorities: Priorities) -> Priorities {
-        for entry in priorities.sections.iter_mut().flat_map(|s| &mut s.entries) {
-            let (_, link) = lines::plain(&entry.text);
+        for proposal in priorities
+            .sections
+            .iter_mut()
+            .flat_map(|s| &mut s.proposals)
+        {
+            let (_, link) = lines::plain(&proposal.text);
             let linked = link.as_deref().map(|link| self.link(link));
-            entry.draft = linked.as_ref().and_then(|linked| linked.file.clone());
-            entry.running = linked.as_ref().and_then(EntryLink::running);
+            proposal.file = linked.as_ref().and_then(|linked| linked.file.clone());
+            proposal.running = linked.as_ref().and_then(Linked::running);
         }
         priorities
     }
 }
 
-/// The feature an entry's link points to: a path component or file name equal to its folder or
+/// The feature a proposal's link points to: a path component or file name equal to its folder or
 /// its slug.
 fn match_feature(link: &str, features: &[Feature]) -> Option<String> {
     let path = link.split('#').next().unwrap_or(link);
@@ -175,28 +176,29 @@ fn match_feature(link: &str, features: &[Feature]) -> Option<String> {
         .map(|feature| feature.folder.clone())
 }
 
-/// The priorities' entries, each with the feature or the draft it links to in `workspace`.
-pub(super) fn priority_entries(text: &str, workspace: &Workspace) -> Vec<PriorityEntry> {
-    let entries = priorities::parse(text);
-    let keys = priorities::keys(&entries);
-    entries
+/// The priorities' proposals, each with the feature or the proposal file it links to in
+/// `workspace`.
+pub(super) fn linked_proposals(text: &str, workspace: &Workspace) -> Vec<LinkedProposal> {
+    let proposals = priorities::parse(text);
+    let keys = priorities::keys(&proposals);
+    proposals
         .into_iter()
         .zip(keys)
-        .map(|(entry, key)| {
-            let linked = entry.link.as_deref().map(|link| workspace.link(link));
+        .map(|(proposal, key)| {
+            let linked = proposal.link.as_deref().map(|link| workspace.link(link));
             let linked = linked.as_ref();
-            PriorityEntry {
-                section: entry.section,
-                position: entry.position,
+            LinkedProposal {
+                section: proposal.section,
+                position: proposal.position,
                 key,
-                text: entry.text,
+                text: proposal.text,
                 feature: linked
                     .and_then(|linked| linked.feature)
                     .map(|feature| feature.folder.clone()),
-                draft: linked
+                file: linked
                     .and_then(|linked| linked.file.as_ref())
                     .map(|file| file.path.clone()),
-                link: entry.link,
+                link: proposal.link,
             }
         })
         .collect()

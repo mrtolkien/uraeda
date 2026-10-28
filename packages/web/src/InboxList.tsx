@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { rereadChanges } from "./data.ts";
-import { draftFile } from "./draftFile.ts";
 import { refusal } from "./errors.ts";
 import { useInboxImages } from "./InboxImages.tsx";
 import { type Inbox, panesOf, sectionId } from "./inboxPanes.ts";
@@ -159,8 +158,8 @@ function useInboxOutline(
             key: note.key,
             source: note,
             spans: note.spans,
-            // A note that is a draft stays a note: nested, it would be no note to open.
-            staysItem: note.draft !== undefined,
+            // A note with a note file stays a note: nested, it would be no note to open.
+            staysItem: note.file !== undefined,
             text: note.text,
           })),
         })),
@@ -261,11 +260,11 @@ function sectionsOf({
           placedOf.set(item.key, { category: name, index, note });
           const row: WorkRow = {
             ...drawn,
-            // A note that is a draft opens its draft's page, as a line with a draft does.
-            editsInPlace: isWritten && note.draft === undefined,
+            // A note with a note file opens its file's page, as a proposal with a file does.
+            editsInPlace: isWritten && note.file === undefined,
             href,
             image: images.imagesOf(note),
-            // The row is one link: a link of its text, like a note's draft, would nest in it.
+            // The row is one link: a link of its text, like a note's file, would nest in it.
             label: <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />,
             marks: marksOf(note),
             text: plain(item.spans),
@@ -347,7 +346,7 @@ export function InboxList({
   });
   /**
    * Enter or a click on a row not edited in place: an Add row opens a new row at its category's
-   * end, and a note that is a draft its draft's page.
+   * end, and a note with a note file its file's page.
    */
   const open = (href: string) => {
     const adding = addsTo.get(href);
@@ -355,10 +354,10 @@ export function InboxList({
       outline.openAt(adding);
       return;
     }
-    const draft = [...placedOf.values()].find(({ note }) => here(`/inbox/${note.key}`) === href)
-      ?.note.draft;
-    if (draft !== undefined) {
-      navigate(here(`/edit/${draftFile(draft)}`));
+    const file = [...placedOf.values()].find(({ note }) => here(`/inbox/${note.key}`) === href)
+      ?.note.file;
+    if (file !== undefined) {
+      navigate(here(`/edit/${file}`));
     }
   };
 

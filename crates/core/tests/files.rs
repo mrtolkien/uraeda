@@ -504,7 +504,7 @@ fn a_bad_anchor_says_a_decision_range_is_a_line_or_lines_and_may_be_removed() {
 }
 
 #[test]
-fn priorities_entries_of_a_real_file() {
+fn priorities_proposals_of_a_real_file() {
     let text = repository_file("fixtures/PRIORITIES.md");
 
     let entries = priorities::parse(&text);
@@ -519,10 +519,10 @@ fn priorities_entries_of_a_real_file() {
     );
 }
 
-const PRIORITIES: &str = "# Priorities\n\n## Now\n\n- [CLI](/specs/2026-10-10-cli/proposal.md)\n- Web UI, see\n  [draft](drafts/web-ui.md)\n\n## Next\n\n- Git listener process\n  - with a sub-item\n- Runner\n\n## Later\n\n## Blocked\n";
+const PRIORITIES: &str = "# Priorities\n\n## Now\n\n- [CLI](/specs/2026-10-10-cli/proposal.md)\n- Web UI, see\n  [draft](proposals/web-ui.md)\n\n## Next\n\n- Git listener process\n  - with a sub-item\n- Runner\n\n## Later\n\n## Blocked\n";
 
 #[test]
-fn priorities_entries_with_continuations_and_sub_items() {
+fn priorities_proposals_with_continuations_and_sub_items() {
     let entries = priorities::parse(PRIORITIES);
 
     let summary: Vec<_> = entries
@@ -542,19 +542,21 @@ fn priorities_entries_with_continuations_and_sub_items() {
         summary,
         [
             (Now, 1, "CLI", Some("/specs/2026-10-10-cli/proposal.md"), 5),
-            (Now, 2, "Web UI, see draft", Some("drafts/web-ui.md"), 6),
+            (Now, 2, "Web UI, see draft", Some("proposals/web-ui.md"), 6),
             (Next, 1, "Git listener process", None, 11),
             (Next, 2, "Runner", None, 13),
         ]
     );
 }
 
-/// US6.1: the link stands alone, its sub-items gone into the draft.
+/// US6.1: the link stands alone, its sub-items gone into the proposal file.
 #[test]
-fn priorities_link_an_entry() {
-    let linked = priorities::link(PRIORITIES, 11, "drafts/git-listener-process.md").unwrap();
+fn priorities_link_a_proposal() {
+    let linked = priorities::link(PRIORITIES, 11, "proposals/git-listener-process.md").unwrap();
 
-    assert!(linked.contains("- [Git listener process](drafts/git-listener-process.md)\n- Runner"));
+    assert!(
+        linked.contains("- [Git listener process](proposals/git-listener-process.md)\n- Runner")
+    );
 }
 
 /// The lines of a `PRIORITIES.md` whose Now holds `now`, its lines, followed by a Next.
@@ -571,12 +573,12 @@ fn with_now(now: &[&str]) -> String {
 const A: &str = "- [A](/specs/2026-10-16-a/proposal.md)";
 const B: &str = "- B";
 const C: &str = "- [C](/specs/2026-10-17-c/proposal.md)";
-const D: &str = "- [D](drafts/d.md)";
+const D: &str = "- [D](proposals/d.md)";
 
-/// US4 scenarios 4 and 5, review focus 2: a started entry goes after the other started entries of
-/// Now's first block, or first with a blank line before the rest, and no blank line ends Now.
+/// US4 scenarios 4 and 5, review focus 2: a started proposal goes after the other started proposals
+/// of Now's first block, or first with a blank line before the rest, and no blank line ends Now.
 #[test]
-fn started_entries_go_on_top() {
+fn started_proposals_go_on_top() {
     let changed_a = "- [A](/specs/changes/2026-10-16-a/proposal.md)";
     let rows: [(&[&str], &[&str]); 8] = [
         (&[A, "", B], &[A, C, "", B]),
@@ -584,7 +586,7 @@ fn started_entries_go_on_top() {
         (&[], &[C]),
         (&[A], &[A, C]),
         (&[B, "", D], &[C, "", B, "", D]),
-        // An entry started before this feature, at the end of Now, stays there.
+        // A proposal started before this feature, at the end of Now, stays there.
         (&[B, "", A], &[C, "", B, "", A]),
         (&[changed_a, B], &[changed_a, C, "", B]),
         (
@@ -605,7 +607,7 @@ fn started_entries_go_on_top() {
 }
 
 #[test]
-fn started_entries_move_from_next_without_their_children() {
+fn started_proposals_move_from_next_without_their_children() {
     let moved = priorities::move_to_started(
         PRIORITIES,
         11,
@@ -614,19 +616,19 @@ fn started_entries_move_from_next_without_their_children() {
     )
     .unwrap();
 
-    assert!(moved.contains("## Now\n\n- [CLI](/specs/2026-10-10-cli/proposal.md)\n- [Git listener process](/specs/2026-10-11-git-listener-process/proposal.md)\n\n- Web UI, see\n  [draft](drafts/web-ui.md)\n\n## Next\n\n- Runner\n"), "{moved}");
+    assert!(moved.contains("## Now\n\n- [CLI](/specs/2026-10-10-cli/proposal.md)\n- [Git listener process](/specs/2026-10-11-git-listener-process/proposal.md)\n\n- Web UI, see\n  [draft](proposals/web-ui.md)\n\n## Next\n\n- Runner\n"), "{moved}");
 }
 
-/// Brackets in an entry's text are escaped in its link, whichever writes it, so it stays a link.
+/// Brackets in a proposal's text are escaped in its link, whichever writes it, so it stays a link.
 #[test]
 fn priorities_links_escape_brackets() {
     let text = "# Priorities\n\n## Now\n\n## Next\n\n- Fix the \\] key\n";
 
-    let linked = priorities::link(text, 7, "drafts/key.md").unwrap();
+    let linked = priorities::link(text, 7, "proposals/key.md").unwrap();
     let added = priorities::add_started(text, "Fix the [ key", "/specs/x/proposal.md");
 
     assert!(
-        linked.contains("- [Fix the \\] key](drafts/key.md)\n"),
+        linked.contains("- [Fix the \\] key](proposals/key.md)\n"),
         "{linked}"
     );
     let entries = priorities::parse(&added);

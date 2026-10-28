@@ -3,7 +3,7 @@ import { dataView } from "@nkzw/fate/server";
 
 /**
  * A change or a feature dropped, by its folder: its branch, which stays, the worktree left with
- * why, and whether its entry's removal from **Now** was committed.
+ * why, and whether its proposal's removal from **Now** was committed.
  */
 export type DroppedRecord = {
   branch: string;

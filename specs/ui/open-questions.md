@@ -24,10 +24,10 @@ into the guide it belongs to, and the item goes.
   characters (about 750 px), and a question's card of one column as wide as one pane, so a mockup's
   live window inside it is drawn at about half its size (it was about 60%). Should a card holding a
   mockup be wider than one pane?
-- **A note with a draft, added to another draft.** A note whose text is a draft can no longer go
-  under another note or a priority line, since its draft is found by its link. It can still be added
-  to another draft's "What", where one draft then links another from inside its text. Allow it, or
-  keep such a note out of the drafts too?
+- **A note with a file, added to a proposal.** A note with a note file can no longer go under
+  another note or a proposal, since its file is found by its link. It can still be added to a
+  proposal file's "What", where the proposal then links the note's file from inside its text. Allow
+  it, or keep such a note out of the proposals too?
 - **A note's images.** A note with images shows "1 image" on its row, and its images under the row,
   over the page, while the row is selected, by the keys, a tap, or the mouse's hover. The inbox's
   record had a thumbnail on the row itself. Is the mark enough?
@@ -39,7 +39,7 @@ into the guide it belongs to, and the item goes.
 
 ## Directions, not urgent
 
-- **One way to move an item.** A priority's section is changed with a segmented control, a new
+- **One way to move an item.** A proposal's section is changed with a segmented control, a new
   note's category with a selector (your next change), and a note's category with a picker (`c`); the
   priorities have no `c`. One picker for all of them, the note's, is the direction you liked: should
   the priorities get `c` with it?

@@ -5,7 +5,7 @@ import type {
   Agent,
   BranchChanges,
   BranchDecision,
-  Draft,
+  ProposalFile,
   Dropped,
   Feature,
   FolderSuggestions,
@@ -84,13 +84,13 @@ const VersionSelection = {
 export const WorkspaceView = view<Workspace>()({
   currentBranch: true,
   defaultBranch: true,
-  drafts: true,
   features: true,
   id: true,
   noSpecs: true,
   preview: true,
   priorities: true,
   prioritiesHash: true,
+  proposals: true,
   root: true,
   running: true,
 });
@@ -254,22 +254,12 @@ export const InboxAddedView = view<Inbox>()({
   triage: true,
 });
 
-export const DraftView = view<Draft>()({
+export const ProposalFileView = view<ProposalFile>()({
   committed: true,
   discovery: true,
   discoveryLevels: true,
   document: DocumentSelection,
   emptySections: true,
-  entry: {
-    draft: true,
-    feature: true,
-    id: true,
-    key: true,
-    link: true,
-    position: true,
-    section: true,
-    text: true,
-  },
   folder: true,
   hash: true,
   id: true,
@@ -277,6 +267,16 @@ export const DraftView = view<Draft>()({
   mockups: true,
   path: true,
   priorityChanges: true,
+  proposal: {
+    feature: true,
+    file: true,
+    id: true,
+    key: true,
+    link: true,
+    position: true,
+    section: true,
+    text: true,
+  },
   slug: true,
   stories: true,
   text: true,
@@ -284,8 +284,11 @@ export const DraftView = view<Draft>()({
   written: true,
 });
 
-/** A draft's title and text, for the lists that offer drafts, like the inbox's `p` picker. */
-export const DraftTextView = view<Draft>()({
+/**
+ * A proposal file's title and text, for the lists that offer proposal files, like the inbox's `p`
+ * picker.
+ */
+export const ProposalFileTextView = view<ProposalFile>()({
   id: true,
   path: true,
   text: true,

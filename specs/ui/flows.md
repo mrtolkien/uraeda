@@ -17,7 +17,7 @@ whose answers either continue the implementation or revise the spec.
 
 - **The agent never starts unseen.** A commit that hands the feature over opens its session with the
   workflow's message in the composer, unsent; the human sends it, edits it, or leaves it.
-- **A priority's Start fills the New page's composer** with the priority's link, rather than
+- **A proposal's Start fills the New page's composer** with the proposal's link, rather than
   starting a feature without a word: "this way it's coherent!"
 - **A new feature, change, or session is written first, then named**: its slug or title is asked for
   after `Ctrl+Enter`, in one short dialog.
@@ -27,8 +27,8 @@ whose answers either continue the implementation or revise the spec.
 ## Committing
 
 - **Commit is a place of its own**: while changes wait, a Commit in the sidebar and in the phone's
-  tabs opens the commit page, with what the commit holds, edited drafts included. "Committing is its
-  own dedicated view/flow."
+  tabs opens the commit page, with what the commit holds, edited proposal files included.
+  "Committing is its own dedicated view/flow."
 - **Discard asks first**, through the shared confirmation, since it destroys what was typed.
 - **Starting work may commit by itself**: a flow whose only sense is to start, like starting a
   feature, commits what it must without asking. "That much is ok."
@@ -56,7 +56,7 @@ whose answers either continue the implementation or revise the spec.
 
 ## Moving things
 
-- **A move shows where it lands**: promoting a note offers the priority levels first, then drafts,
-  and every one of them.
+- **A move shows where it lands**: promoting a note offers the priority levels first, then proposal
+  files, and every one of them.
 - **The human lands with what moved**: after promoting, the priorities open at the new line.
-- **A draft always opens as a page**: "just open the page every time".
+- **A proposal file always opens as a page**: "just open the page every time".

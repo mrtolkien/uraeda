@@ -53,11 +53,11 @@ export function RouterAnchor({
           return;
         }
         event.preventDefault();
-        // The page a link to a priority or a note was followed from, within its repository, which
+        // The page a link to a proposal or a note was followed from, within its repository, which
         // the line's overlay is drawn over: home or the list. Another link's page is no overlay's.
         // A link followed from an overlay carries on the page it was opened from.
         const here = window.location.pathname;
-        const opensLine = ["task", "note"].includes(
+        const opensLine = ["proposal", "note"].includes(
           parseLocation(new URL(href, "http://x").pathname).route.page,
         );
         navigate(
@@ -65,7 +65,9 @@ export function RouterAnchor({
           opensLine
             ? {
                 from:
-                  parseLocation(here).route.page === "task" ? currentEntry().from : localPath(here),
+                  parseLocation(here).route.page === "proposal"
+                    ? currentEntry().from
+                    : localPath(here),
               }
             : undefined,
         );
@@ -106,7 +108,7 @@ export function pathLink(
   if (decision) {
     return { href: at(`/decisions/${decision[1]}`), inApp: true };
   }
-  if (/^specs\/(drafts|backlog)\/.+\.md$/.test(file)) {
+  if (/^specs\/(proposals|notes)\/.+\.md$/.test(file)) {
     return { href: at(`/edit/${file}`), inApp: true };
   }
   // The mockup route serves only the files of a `mockups` folder, as the server's rule.

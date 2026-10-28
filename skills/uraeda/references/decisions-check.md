@@ -80,11 +80,11 @@ Once `DECISIONS-CHECK.md` is `answered`:
    default branch since that commit, skip the option, and say which decision moved: the edit would
    rest on old text. A skipped option is not retried by this run: the human asks for another check.
 2. **Start a change for the rest.** The answers that edit, merge, or remove decisions become one
-   [change](change.md), slug `decisions-check` with the date. Write its draft,
+   [change](change.md), slug `decisions-check` with the date. Write its proposal file,
    `Apply the decisions check`, whose text lists each answered option in words, with the file of its
-   candidate and the commit that holds it, then start it from the draft as
-   [starting a change](change.md#starting-a-change) says, `ura start <draft> --change`: the answer
-   is the human asking for it. The change's session then proposes the decisions, as
+   candidate and the commit that holds it, then start it from that file as
+   [starting a change](change.md#starting-a-change) says, `ura start <proposal> --change`: the
+   answer is the human asking for it. The change's session then proposes the decisions, as
    [Change](change.md#decisions) says, on its branch and in its round:
    - each candidate replaces the decision of the same name, with `status: proposed` and
      `approved-by:` empty;

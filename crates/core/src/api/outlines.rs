@@ -1,6 +1,7 @@
 //! The outline writes of the inbox's notes and the priorities' lines: an edit of an item or of one
-//! of its nested items, and a drop, each written on the default branch over the file as read.
-//! An item that links a draft never nests: its draft is found by its link, a list's item's.
+//! of its nested items, and a drop, each written on the default branch over the file as read. An
+//! item that links a proposal file never nests: its proposal file is found by its link, a list's
+//! item's.
 
 use std::path::Path;
 
@@ -8,7 +9,7 @@ use super::drop_at::Target;
 use super::{DropAt, Result, reach_default, reach_default_from, refused, write_lock};
 use crate::actions::inbox as inbox_edits;
 use crate::actions::place::Place;
-use crate::actions::priorities as priority_edits;
+use crate::actions::priorities as proposal_edits;
 use crate::files::document::hash;
 use crate::files::inbox::{self, Inbox};
 use crate::files::nested::OutlineEdit;
@@ -34,39 +35,39 @@ fn as_read(place: &Place, path: &str, previous: &str) -> Option<String> {
         .filter(|text| hash(text) == previous)
 }
 
-/// Refuses to nest the note `id` when it links a draft: under a note, or under a line of the
+/// Refuses to nest the note `id` when it has a note file: under a note, or under a proposal of the
 /// priorities.
 pub(super) fn note_stays(place: &Place, id: &str, previous: &str) -> Result<()> {
     let Some(text) = as_read(place, inbox_edits::PATH, previous) else {
         return Ok(());
     };
-    let has_draft = inbox::read(&text)
+    let has_file = inbox::read(&text)
         .categories
         .iter()
         .flat_map(|category| &category.notes)
-        .any(|note| note.id == id && note.draft.is_some());
-    if has_draft {
+        .any(|note| note.id == id && note.file.is_some());
+    if has_file {
         return Err(refused(
-            "A note with a draft stays a note: nested, its draft would no longer be found by its link.",
+            "A note with a file stays a note: nested, its file would no longer be found by its link.",
         ));
     }
     Ok(())
 }
 
-/// Refuses to nest the line `id` when it links a draft of `workspace`.
+/// Refuses to nest the proposal `id` when it links a proposal file of `workspace`.
 fn line_stays(place: &Place, workspace: &Workspace, id: &str, previous: &str) -> Result<()> {
-    let Some(text) = as_read(place, priority_edits::PATH, previous) else {
+    let Some(text) = as_read(place, proposal_edits::PATH, previous) else {
         return Ok(());
     };
-    let has_draft = workspace
+    let has_file = workspace
         .join_priorities(priorities::read(&text, None))
         .sections
         .iter()
-        .flat_map(|section| &section.entries)
-        .any(|entry| entry.id == id && entry.draft.is_some());
-    if has_draft {
+        .flat_map(|section| &section.proposals)
+        .any(|proposal| proposal.id == id && proposal.file.is_some());
+    if has_file {
         return Err(refused(
-            "A line with a draft stays a line: nested, its draft would no longer be found by its link.",
+            "A proposal with a file stays a proposal: nested, its file would no longer be found by its link.",
         ));
     }
     Ok(())
@@ -134,7 +135,7 @@ pub fn drop_note(
 
 /// Edits a line's outline: the line, or with `at`, its nested item at `at`, in the order of the
 /// file. `kind` and `text` name the edit (see [`OutlineEdit::from_kind`]).
-pub fn outline_priority(
+pub fn outline_proposal(
     repo: &Path,
     id: &str,
     at: Option<u32>,
@@ -148,7 +149,7 @@ pub fn outline_priority(
     if nests(at, edit == OutlineEdit::Indent) {
         line_stays(&place, &workspace, id, previous)?;
     }
-    Ok(workspace.join_priorities(priority_edits::outline(
+    Ok(workspace.join_priorities(proposal_edits::outline(
         &place,
         id,
         at.map(|at| at as usize),
@@ -159,7 +160,7 @@ pub fn outline_priority(
 
 /// Moves a line, or with `at` its nested item at `at`, its own items with it, to `to`: what a drop
 /// writes. Under a line, or else a line of `to`'s list, a section.
-pub fn drop_priority(
+pub fn drop_proposal(
     repo: &Path,
     id: &str,
     at: Option<u32>,
@@ -169,11 +170,11 @@ pub fn drop_priority(
     let target = to.target()?;
     let to = match target {
         Target::Under { item, at, index } => priorities::Drop::Under {
-            entry: item.to_string(),
+            proposal: item.to_string(),
             at,
             index,
         },
-        Target::List { list, index } => priorities::Drop::Entry {
+        Target::List { list, index } => priorities::Drop::Proposal {
             section: list
                 .and_then(Section::from_id)
                 .ok_or_else(|| refused("a drop needs a section or a line to go under"))?,
@@ -185,7 +186,7 @@ pub fn drop_priority(
     if nests(at, matches!(target, Target::Under { .. })) {
         line_stays(&place, &workspace, id, previous)?;
     }
-    Ok(workspace.join_priorities(priority_edits::drop_item(
+    Ok(workspace.join_priorities(proposal_edits::drop_item(
         &place,
         id,
         at.map(|at| at as usize),

@@ -38,8 +38,8 @@ A change's folder is `specs/changes/YYYY-MM-DD-<slug>/`. It holds `proposal.md`,
 ## Starting a change
 
 Only when a human asks. A change starts like a feature, with its own names. Start it from Change on
-the web UI's New page, with `ura start <draft> --slug <slug> --change`, or by hand. See **Start as a
-change** in [Projects](projects.md#starting-postponing-and-dropping-a-feature).
+the web UI's New page, with `ura start <proposal> --slug <slug> --change`, or by hand. See **Start
+as a change** in [Projects](projects.md#starting-postponing-and-dropping-a-feature).
 
 **From a session on the main checkout**, a request for a code change is offered as a change, not
 committed to the default branch. A session is a conversation with you: without a workflow, it runs
@@ -67,8 +67,8 @@ uncommitted file where it is.
 When the human says yes in words instead, in Uraeda, offer the block again, and ask the human to
 start the change from its card. Only the card moves this session into the change's worktree. Started
 any other way, the change later gets a second session in the same worktree. The human may also start
-it from the New page, and talk in the change's session. In a harness without Uraeda, commit the
-draft on the default branch, `chore: draft <title>`. Start it as
+it from the New page, and talk in the change's session. In a harness without Uraeda, commit its
+proposal file on the default branch, `chore: expand <title>`. Start it as
 [Projects](projects.md#starting-postponing-and-dropping-a-feature) says, and run the change in its
 worktree.
 
@@ -218,11 +218,11 @@ When one item of a batch needs it, offer to split that item out instead.
      Its worktree has no uncommitted changes, and no untracked file in the change's folder or
      `specs/decisions/`, nor in its folder on the default branch. No branch or folder named
      `YYYY-MM-DD-<slug>` exists: if one does, rename or remove it first.
-  2. On the default branch, relink the change's **Now** entry, in place, to
-     `/specs/YYYY-MM-DD-<slug>/proposal.md`. When no entry links the change, add one at the top of
-     **Now** instead, named `<slug>`. Move `specs/changes/YYYY-MM-DD-<slug>/`, which the start put
-     there, to `specs/YYYY-MM-DD-<slug>/`, so the entry never links a missing folder. Commit both
-     together, `chore(<slug>): start <name> as a feature`.
+  2. On the default branch, relink the change's proposal in **Now**, in place, to
+     `/specs/YYYY-MM-DD-<slug>/proposal.md`. When no proposal links the change, add one at the top
+     of **Now** instead, named `<slug>`. Move `specs/changes/YYYY-MM-DD-<slug>/`, which the start
+     put there, to `specs/YYYY-MM-DD-<slug>/`, so the proposal never links a missing folder. Commit
+     both together, `chore(<slug>): start <name> as a feature`.
   3. Rename the branch: `git branch -m change/YYYY-MM-DD-<slug> YYYY-MM-DD-<slug>`. The worktree
      stays where it is. A pushed branch is renamed locally only: the old remote branch stays until
      the human deletes it. Unset its upstream, `git branch --unset-upstream YYYY-MM-DD-<slug>`, so
@@ -240,11 +240,11 @@ When one item of a batch needs it, offer to split that item out instead.
   [discovery effort](discovery.md#discovery-effort). Run it in the same session.
 
 - **On "A", for one item of a batch**: on the default branch, write that item's text as
-  `specs/drafts/<item-slug>.md`. Add its entry to **Now**, first after its started entries and their
-  blank line, not nested under the change's entry. Commit `chore: draft <Name>`. Then make the other
-  items. Finish removes the change's entry with its nested lines, and the
-  [catch-up](implementation.md#catch-up-with-the-default-branch) brings the draft's line into the
-  branch before it, so the draft's entry stays.
+  `specs/proposals/<item-slug>.md`. Add its proposal to **Now**, first after the started proposals
+  and their blank line, not nested under the change's proposal. Commit `chore: expand <Name>`. Then
+  make the other items. Finish removes the change's proposal with its nested lines, and the
+  [catch-up](implementation.md#catch-up-with-the-default-branch) brings the new proposal's line into
+  the branch before it, so it stays.
 - **On another answer**: keep the change within that answer, or stop if it leaves nothing to do, and
   say so in the session.
 
@@ -306,10 +306,10 @@ Push only after the project's complete validation, run after the last commit, as
 [every push](implementation.md#each-task) requires.
 
 Run the [finish](finish.md) step: the folder becomes its record, `kind: change`, and the finishing
-commit removes the change's entry from `PRIORITIES.md`. The pull request's body is written when it
-is marked ready, as [the finish step](finish.md#mark-the-pull-request-ready) says: "Pull request to
-review, about 5 minutes.", the points needing attention, among them the points you settled without
-asking, then the record's text, with a screenshot of each new view.
+commit removes the change's proposal from `PRIORITIES.md`. The pull request's body is written when
+it is marked ready, as [the finish step](finish.md#mark-the-pull-request-ready) says: "Pull request
+to review, about 5 minutes.", the points needing attention, among them the points you settled
+without asking, then the record's text, with a screenshot of each new view.
 
 Comments on the pull request are handled as for a feature, as
 [implementation](implementation.md#comments-on-the-pull-request) and
@@ -351,5 +351,5 @@ Comments on the pull request are handled as for a feature, as
   and `refactor(<slug>):` for a structural commit, each with its tests and its body.
 - **The upgrade**: `chore(<slug>): start <name> as a feature` on the default branch, then
   `chore(<slug>): upgrade to a feature` on the branch.
-- **A split-out item**: `chore: draft <Name>`, on the default branch.
+- **A split-out item**: `chore: expand <Name>`, on the default branch.
 - **The record**: `finish(<slug>): <title>`, as the [finish](finish.md) step says.

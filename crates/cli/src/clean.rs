@@ -28,7 +28,7 @@ pub fn run(target: Option<String>, all: bool, dry_run: bool) -> Result<ExitCode,
     let chosen: Vec<&Feature> = match (&target, all) {
         (Some(target), _) => match output::target(&workspace, Some(target), Purpose::Inspect)? {
             Target::Feature(index) | Target::File(index, _) => vec![&workspace.features[index]],
-            Target::Draft(draft) => return Err(format!("{draft} is not started")),
+            Target::Proposal(proposal) => return Err(format!("{proposal} is not started")),
         },
         (None, true) => candidates.clone(),
         (None, false) => {

@@ -54,28 +54,28 @@ const LATER: &str =
 
 /// US2.1
 #[test]
-fn a_line_becomes_a_draft() {
+fn a_line_becomes_a_proposal_file() {
     let repo = with_priorities(LATER);
     let path = repo.path().join(PRIORITIES);
     let mut session = start(repo.path());
     session.open(&path, LATER);
 
     let result = session
-        .command("uraeda.draft", json!({ "uri": uri(&path), "line": 9 }))
+        .command("uraeda.expand", json!({ "uri": uri(&path), "line": 9 }))
         .unwrap();
 
-    let draft = repo.path().join("specs/drafts/codex-runtime.md");
+    let proposal_file = repo.path().join("specs/proposals/codex-runtime.md");
     assert_eq!(
         result,
-        json!({ "opened": abs(&draft), "written": [abs(&draft), abs(&path)] })
+        json!({ "opened": abs(&proposal_file), "written": [abs(&proposal_file), abs(&path)] })
     );
     assert!(
-        repo.read("specs/drafts/codex-runtime.md")
+        repo.read("specs/proposals/codex-runtime.md")
             .contains("# Codex runtime")
     );
     assert!(
         repo.read(PRIORITIES)
-            .contains("\n- [Codex runtime](drafts/codex-runtime.md)\n")
+            .contains("\n- [Codex runtime](proposals/codex-runtime.md)\n")
     );
     assert_eq!(repo.subjects("main"), ["chore: specs", "chore: start"]);
     assert_eq!(repo.hook_runs(), 0);
@@ -83,29 +83,32 @@ fn a_line_becomes_a_draft() {
 
 /// US2.2
 #[test]
-fn a_linked_line_opens_its_draft() {
+fn a_linked_line_opens_its_proposal_file() {
     let priorities = LATER.replace(
         "- Codex runtime",
-        "- [Codex runtime](drafts/codex-runtime.md)",
+        "- [Codex runtime](proposals/codex-runtime.md)",
     );
     let repo = with_priorities(&priorities);
-    repo.write("specs/drafts/codex-runtime.md", "# Codex runtime\n");
+    repo.write("specs/proposals/codex-runtime.md", "# Codex runtime\n");
     let path = repo.path().join(PRIORITIES);
     let mut session = start(repo.path());
     session.open(&path, &priorities);
 
     let result = session
-        .command("uraeda.draft", json!({ "uri": uri(&path), "line": 9 }))
+        .command("uraeda.expand", json!({ "uri": uri(&path), "line": 9 }))
         .unwrap();
 
-    let draft = repo.path().join("specs/drafts/codex-runtime.md");
-    assert_eq!(result, json!({ "opened": abs(&draft), "written": [] }));
+    let proposal_file = repo.path().join("specs/proposals/codex-runtime.md");
+    assert_eq!(
+        result,
+        json!({ "opened": abs(&proposal_file), "written": [] })
+    );
     assert_eq!(repo.read(PRIORITIES), priorities);
 }
 
-/// Review focus 2: a wrapped entry is drafted from its second line.
+/// Review focus 2: a wrapped proposal is expanded from its second line.
 #[test]
-fn the_second_line_of_a_wrapped_entry_drafts_it() {
+fn the_second_line_of_a_wrapped_proposal_proposal_files_it() {
     let priorities = LATER.replace("- Codex runtime", "- Codex runtime\n  for agents");
     let repo = with_priorities(&priorities);
     let path = repo.path().join(PRIORITIES);
@@ -113,17 +116,19 @@ fn the_second_line_of_a_wrapped_entry_drafts_it() {
     session.open(&path, &priorities);
 
     let result = session
-        .command("uraeda.draft", json!({ "uri": uri(&path), "line": 10 }))
+        .command("uraeda.expand", json!({ "uri": uri(&path), "line": 10 }))
         .unwrap();
 
-    let draft = repo.path().join("specs/drafts/codex-runtime-for-agents.md");
-    assert_eq!(result["opened"], abs(&draft));
-    assert!(draft.exists());
+    let proposal_file = repo
+        .path()
+        .join("specs/proposals/codex-runtime-for-agents.md");
+    assert_eq!(result["opened"], abs(&proposal_file));
+    assert!(proposal_file.exists());
 }
 
-/// Review focus 2: a nested sub-item, or a line in no entry, is not drafted.
+/// Review focus 2: a nested sub-item, or a line in no proposal, is not expanded.
 #[test]
-fn a_nested_line_is_not_an_entry() {
+fn a_nested_line_is_not_a_proposal() {
     let priorities = LATER.replace("- Codex runtime", "- Codex runtime\n  - A detail");
     let repo = with_priorities(&priorities);
     let path = repo.path().join(PRIORITIES);
@@ -132,20 +137,17 @@ fn a_nested_line_is_not_an_entry() {
 
     for line in [10, 7] {
         let error = session
-            .command("uraeda.draft", json!({ "uri": uri(&path), "line": line }))
+            .command("uraeda.expand", json!({ "uri": uri(&path), "line": line }))
             .unwrap_err();
-        assert_eq!(
-            error.message, "This line is not a priorities entry.",
-            "line {line}"
-        );
+        assert_eq!(error.message, "This line is not a proposal.", "line {line}");
         assert_eq!(error.data, Some(json!({ "code": "refused" })));
     }
-    assert!(!repo.exists("specs/drafts"));
+    assert!(!repo.exists("specs/proposals"));
 }
 
 /// Edge case: the priorities changed on disk since they were opened.
 #[test]
-fn priorities_changed_on_disk_refuse_the_draft() {
+fn priorities_changed_on_disk_refuse_the_proposal_file() {
     let repo = with_priorities(LATER);
     let path = repo.path().join(PRIORITIES);
     let mut session = start(repo.path());
@@ -156,34 +158,35 @@ fn priorities_changed_on_disk_refuse_the_draft() {
     );
 
     let error = session
-        .command("uraeda.draft", json!({ "uri": uri(&path), "line": 9 }))
+        .command("uraeda.expand", json!({ "uri": uri(&path), "line": 9 }))
         .unwrap_err();
 
     assert_eq!(
         error.message,
-        "PRIORITIES.md changed on disk. Nothing was drafted."
+        "PRIORITIES.md changed on disk. Nothing was expanded."
     );
     assert_eq!(error.data, Some(json!({ "code": "conflict" })));
-    assert!(!repo.exists("specs/drafts"));
+    assert!(!repo.exists("specs/proposals"));
 }
 
-/// A repository on `main` with the draft `specs/drafts/codex-runtime.md` linked from Later.
-fn with_draft(committed: bool) -> TestRepo {
+/// A repository on `main` with the proposal file `specs/proposals/codex-runtime.md` linked from
+/// Later.
+fn with_proposal_file(committed: bool) -> TestRepo {
     let priorities = LATER.replace(
         "- Codex runtime",
-        "- [Codex runtime](drafts/codex-runtime.md)",
+        "- [Codex runtime](proposals/codex-runtime.md)",
     );
     let repo = with_priorities(if committed { &priorities } else { LATER });
     if committed {
         repo.write(
-            "specs/drafts/codex-runtime.md",
+            "specs/proposals/codex-runtime.md",
             "# Codex runtime\n\n## What\n\nA runtime.\n",
         );
-        repo.commit("chore: draft Codex runtime");
+        repo.commit("chore: expand Codex runtime");
     } else {
         repo.write(PRIORITIES, &priorities);
         repo.write(
-            "specs/drafts/codex-runtime.md",
+            "specs/proposals/codex-runtime.md",
             "# Codex runtime\n\n## What\n\nA runtime.\n",
         );
     }
@@ -192,9 +195,9 @@ fn with_draft(committed: bool) -> TestRepo {
 
 /// US3.1, and the progress every command reports.
 #[test]
-fn a_draft_starts_a_feature() {
-    let repo = with_draft(true);
-    let path = repo.path().join("specs/drafts/codex-runtime.md");
+fn a_proposal_file_starts_a_feature() {
+    let repo = with_proposal_file(true);
+    let path = repo.path().join("specs/proposals/codex-runtime.md");
     let mut session = start(repo.path());
 
     let result = session
@@ -252,10 +255,7 @@ fn a_spec_cannot_be_started() {
         .command("uraeda.start", json!({ "uri": uri(&path) }))
         .unwrap_err();
 
-    assert_eq!(
-        error.message,
-        "Only a draft or a backlog file can be started."
-    );
+    assert_eq!(error.message, "Only a proposal file can be started.");
     assert_eq!(error.data, Some(json!({ "code": "refused" })));
     assert_eq!(repo.porcelain(), "");
 }
@@ -632,20 +632,20 @@ fn only_the_waiting_latest_round_is_submitted() {
 
 /// US7.1, US7.2
 #[test]
-fn drafts_proposals_and_priorities_are_committed() {
-    let repo = with_draft(false);
-    let draft = repo.path().join("specs/drafts/codex-runtime.md");
+fn proposal_files_proposals_and_priorities_are_committed() {
+    let repo = with_proposal_file(false);
+    let proposal_file = repo.path().join("specs/proposals/codex-runtime.md");
     let mut session = start(repo.path());
 
     let result = session
-        .command("uraeda.commit", json!({ "uri": uri(&draft) }))
+        .command("uraeda.commit", json!({ "uri": uri(&proposal_file) }))
         .unwrap();
 
     assert_eq!(result, json!({ "written": [] }));
-    assert_eq!(repo.subjects("main")[0], "chore: draft Codex runtime");
+    assert_eq!(repo.subjects("main")[0], "chore: expand Codex runtime");
     assert_eq!(
         repo.changed_in("HEAD"),
-        [PRIORITIES, "specs/drafts/codex-runtime.md"]
+        [PRIORITIES, "specs/proposals/codex-runtime.md"]
     );
 
     repo.write(
@@ -678,13 +678,13 @@ fn drafts_proposals_and_priorities_are_committed() {
     );
 }
 
-/// Drafts and the priorities are written on `main`, from its checkout: in a feature's worktree,
-/// their copies stand for `main`'s only while they hold the same text. Edited copies are refused,
-/// pointing at `main`'s checkout, and an unchanged one starts its feature.
+/// Proposal files and the priorities are written on `main`, from its checkout: in a feature's
+/// worktree, their copies stand for `main`'s only while they hold the same text. Edited copies are
+/// refused, pointing at `main`'s checkout, and an unchanged one starts its feature.
 #[test]
-fn a_worktree_acts_on_mains_drafts_and_priorities() {
-    let repo = with_draft(true);
-    repo.write("specs/backlog/benchmarks.md", "# Benchmarks\n");
+fn a_worktree_acts_on_mains_proposal_files_and_priorities() {
+    let repo = with_proposal_file(true);
+    repo.write("specs/proposals/benchmarks.md", "# Benchmarks\n");
     repo.commit("chore: backlog");
     let worktree = repo.path().join(".worktrees/feat");
     repo.git(&[
@@ -700,21 +700,25 @@ fn a_worktree_acts_on_mains_drafts_and_priorities() {
         .unwrap()
         .replace("## Now\n", "## Now\n\n- A new line\n");
     std::fs::write(&priorities, &edited).unwrap();
-    let draft = worktree.join("specs/drafts/codex-runtime.md");
-    std::fs::write(&draft, "# Codex runtime\n\n## What\n\nEdited here.\n").unwrap();
-    let backlog = worktree.join("specs/backlog/benchmarks.md");
+    let proposal_file = worktree.join("specs/proposals/codex-runtime.md");
+    std::fs::write(
+        &proposal_file,
+        "# Codex runtime\n\n## What\n\nEdited here.\n",
+    )
+    .unwrap();
+    let backlog = worktree.join("specs/proposals/benchmarks.md");
     let mut session = start(&worktree);
     session.open(&priorities, &edited);
     let main = abs(repo.path());
 
     let refusals = [
         (
-            "uraeda.draft",
+            "uraeda.expand",
             json!({ "uri": uri(&priorities), "line": 5 }),
         ),
         ("uraeda.commit", json!({ "uri": uri(&priorities) })),
-        ("uraeda.commit", json!({ "uri": uri(&draft) })),
-        ("uraeda.start", json!({ "uri": uri(&draft) })),
+        ("uraeda.commit", json!({ "uri": uri(&proposal_file) })),
+        ("uraeda.start", json!({ "uri": uri(&proposal_file) })),
     ];
     for (command, args) in refusals {
         let error = session.command(command, args.clone()).unwrap_err();
@@ -732,7 +736,7 @@ fn a_worktree_acts_on_mains_drafts_and_priorities() {
     }
     assert_eq!(repo.subjects("main")[0], "chore: backlog");
     assert_eq!(repo.git(&["status", "--porcelain", "--", "specs"]), "");
-    assert!(!repo.exists("specs/drafts/a-new-line.md"));
+    assert!(!repo.exists("specs/proposals/a-new-line.md"));
 
     let result = session
         .command("uraeda.start", json!({ "uri": uri(&backlog) }))
@@ -749,7 +753,7 @@ fn a_worktree_acts_on_mains_drafts_and_priorities() {
         result["written"],
         json!([
             abs(&repo.path().join(PRIORITIES)),
-            abs(&repo.path().join("specs/backlog/benchmarks.md")),
+            abs(&repo.path().join("specs/proposals/benchmarks.md")),
         ])
     );
     assert!(
@@ -772,7 +776,7 @@ fn a_spec_is_not_committed() {
 
     assert_eq!(
         error.message,
-        "Only drafts, backlog files, proposals, PRIORITIES.md, and INBOX.md are committed from the editor."
+        "Only proposal files, note files, a feature's or a change's proposal, PRIORITIES.md, and INBOX.md are committed from the editor."
     );
     assert_eq!(error.data, Some(json!({ "code": "refused" })));
 }
@@ -780,13 +784,13 @@ fn a_spec_is_not_committed() {
 /// Edge case: a hook refuses the commit; its output comes with the error, and the files stay.
 #[test]
 fn a_failing_hook_reports_its_output() {
-    let repo = with_draft(false);
+    let repo = with_proposal_file(false);
     repo.set_hook("echo 'lint: draft too short' >&2\nexit 1");
-    let draft = repo.path().join("specs/drafts/codex-runtime.md");
+    let proposal_file = repo.path().join("specs/proposals/codex-runtime.md");
     let mut session = start(repo.path());
 
     let error = session
-        .command("uraeda.commit", json!({ "uri": uri(&draft) }))
+        .command("uraeda.commit", json!({ "uri": uri(&proposal_file) }))
         .unwrap_err();
 
     assert!(
@@ -803,7 +807,7 @@ fn a_failing_hook_reports_its_output() {
             .contains("lint: draft too short"),
         "{data}"
     );
-    assert!(draft.exists());
+    assert!(proposal_file.exists());
     assert_eq!(repo.subjects("main")[0], "chore: specs");
 }
 
@@ -841,14 +845,15 @@ fn a_failing_hook_lists_the_files_written() {
         .unwrap_err();
     assert_eq!(error.data.unwrap()["written"], json!([abs(&path)]));
 
-    let repo = with_draft(true);
+    let repo = with_proposal_file(true);
     repo.set_hook(FAIL);
-    let path = repo.path().join("specs/drafts/codex-runtime.md");
+    let path = repo.path().join("specs/proposals/codex-runtime.md");
     let mut session = start(repo.path());
     let error = session
         .command("uraeda.start", json!({ "uri": uri(&path) }))
         .unwrap_err();
-    // The start commit failed: the priorities are written, the draft is in its dated folder.
+    // The start commit failed: the priorities are written, the proposal file is in its dated
+    // folder.
     assert_eq!(
         error.data.unwrap()["written"],
         json!([abs(&repo.path().join(PRIORITIES)), abs(&path)])
@@ -882,23 +887,23 @@ impl Drop for Go {
 /// Edge case: the loop answers requests while a command runs.
 #[test]
 fn requests_are_answered_while_a_command_runs() {
-    let repo = with_draft(false);
+    let repo = with_proposal_file(false);
     repo.set_hook(
         "until [ -e \"$(git rev-parse --git-common-dir)/go\" ] || [ ! -e .git ]; do sleep 0.01; done\n\
          echo run >> \"$(git rev-parse --git-common-dir)/hook-runs\"",
     );
-    let draft = repo.path().join("specs/drafts/codex-runtime.md");
+    let proposal_file = repo.path().join("specs/proposals/codex-runtime.md");
     let mut session = start(repo.path());
     let go = Go(repo.path().join(".git/go"));
 
-    let command = session.start_command("uraeda.commit", json!({ "uri": uri(&draft) }));
-    let fields = session.raw("uraeda/fields", json!({ "uri": uri(&draft) }));
+    let command = session.start_command("uraeda.commit", json!({ "uri": uri(&proposal_file) }));
+    let fields = session.raw("uraeda/fields", json!({ "uri": uri(&proposal_file) }));
 
     assert!(fields.is_ok());
     assert!(!session.answered(&command), "the command still runs");
     drop(go);
     session.response(&command).unwrap();
-    assert_eq!(repo.subjects("main")[0], "chore: draft Codex runtime");
+    assert_eq!(repo.subjects("main")[0], "chore: expand Codex runtime");
     assert_eq!(repo.hook_runs(), 1);
 }
 
@@ -942,25 +947,30 @@ fn an_image_is_attached_to_the_open_proposal() {
     assert_eq!(repo.hook_runs(), 0);
 }
 
-/// US5.3: a single-file draft becomes a folder, which the editor opens.
+/// US5.3: a single proposal file becomes a folder, which the editor opens.
 #[test]
-fn a_draft_moved_into_a_folder_is_opened() {
-    let repo = with_draft(false);
-    let draft = repo.path().join("specs/drafts/codex-runtime.md");
+fn a_proposal_file_moved_into_a_folder_is_opened() {
+    let repo = with_proposal_file(false);
+    let proposal_file = repo.path().join("specs/proposals/codex-runtime.md");
     let mut session = start(repo.path());
-    session.open(&draft, &std::fs::read_to_string(&draft).unwrap());
+    session.open(
+        &proposal_file,
+        &std::fs::read_to_string(&proposal_file).unwrap(),
+    );
 
     let result = session
         .command(
             "uraeda.attachImage",
-            json!({ "uri": uri(&draft), "path": fixture_image("still.gif"), "name": "login.png" }),
+            json!({ "uri": uri(&proposal_file), "path": fixture_image("still.gif"), "name": "login.png" }),
         )
         .unwrap();
 
-    let proposal = repo.path().join("specs/drafts/codex-runtime/proposal.md");
+    let proposal = repo
+        .path()
+        .join("specs/proposals/codex-runtime/proposal.md");
     let image = repo
         .path()
-        .join("specs/drafts/codex-runtime/images/login.webp");
+        .join("specs/proposals/codex-runtime/images/login.webp");
     assert_eq!(
         result,
         json!({
@@ -969,11 +979,11 @@ fn a_draft_moved_into_a_folder_is_opened() {
             "link": "![login](images/login.webp)",
         })
     );
-    assert!(!draft.exists());
+    assert!(!proposal_file.exists());
     assert!(image.exists());
     assert!(
         repo.read(PRIORITIES)
-            .contains("(drafts/codex-runtime/proposal.md)")
+            .contains("(proposals/codex-runtime/proposal.md)")
     );
 }
 
@@ -1079,15 +1089,15 @@ fn a_missing_image_file_makes_no_worktree() {
     assert!(!repo.exists(".worktrees"));
 }
 
-/// A worktree of the feature `feat`, beside `main`'s checkout, holding a folder draft committed on
-/// `main`.
-fn worktree_with_folder_draft() -> (TestRepo, std::path::PathBuf) {
+/// A worktree of the feature `feat`, beside `main`'s checkout, holding a proposal file's folder
+/// committed on `main`.
+fn worktree_with_folder_proposal_file() -> (TestRepo, std::path::PathBuf) {
     let repo = with_priorities(LATER);
     repo.write(
-        "specs/drafts/codex-runtime/proposal.md",
+        "specs/proposals/codex-runtime/proposal.md",
         "# Codex runtime\n\n## What\n\nA runtime.\n",
     );
-    repo.commit("chore: draft Codex runtime");
+    repo.commit("chore: expand Codex runtime");
     let worktree = repo.path().join(".worktrees/feat");
     repo.git(&[
         "worktree",
@@ -1100,12 +1110,13 @@ fn worktree_with_folder_draft() -> (TestRepo, std::path::PathBuf) {
     (repo, worktree)
 }
 
-/// Drafts are written on `main` from any checkout (the git decision): from a feature's worktree,
-/// an unchanged copy's image goes into `main`'s checkout, whose file opens to take the link.
+/// Proposal files are written on `main` from any checkout (the git decision): from a feature's
+/// worktree, an unchanged copy's image goes into `main`'s checkout, whose file opens to take the
+/// link.
 #[test]
-fn an_image_of_a_draft_from_a_worktree_goes_to_mains_checkout() {
-    let (repo, worktree) = worktree_with_folder_draft();
-    let copy = worktree.join("specs/drafts/codex-runtime/proposal.md");
+fn an_image_of_a_proposal_file_from_a_worktree_goes_to_mains_checkout() {
+    let (repo, worktree) = worktree_with_folder_proposal_file();
+    let copy = worktree.join("specs/proposals/codex-runtime/proposal.md");
     let mut session = start(&worktree);
     session.open(&copy, &std::fs::read_to_string(&copy).unwrap());
 
@@ -1116,7 +1127,7 @@ fn an_image_of_a_draft_from_a_worktree_goes_to_mains_checkout() {
         )
         .unwrap();
 
-    let folder = repo.path().join("specs/drafts/codex-runtime");
+    let folder = repo.path().join("specs/proposals/codex-runtime");
     assert_eq!(
         result,
         json!({
@@ -1126,15 +1137,19 @@ fn an_image_of_a_draft_from_a_worktree_goes_to_mains_checkout() {
         })
     );
     assert!(folder.join("images/login.webp").exists());
-    assert!(!worktree.join("specs/drafts/codex-runtime/images").exists());
+    assert!(
+        !worktree
+            .join("specs/proposals/codex-runtime/images")
+            .exists()
+    );
 }
 
-/// An edited copy of a draft in a feature's worktree is refused, naming `main`'s checkout, and no
-/// image is written.
+/// An edited copy of a proposal file in a feature's worktree is refused, naming `main`'s checkout,
+/// and no image is written.
 #[test]
-fn an_image_of_an_edited_draft_copy_is_refused() {
-    let (repo, worktree) = worktree_with_folder_draft();
-    let copy = worktree.join("specs/drafts/codex-runtime/proposal.md");
+fn an_image_of_an_edited_proposal_file_copy_is_refused() {
+    let (repo, worktree) = worktree_with_folder_proposal_file();
+    let copy = worktree.join("specs/proposals/codex-runtime/proposal.md");
     std::fs::write(&copy, "# Codex runtime\n\n## What\n\nEdited here.\n").unwrap();
     let mut session = start(&worktree);
 
@@ -1152,7 +1167,7 @@ fn an_image_of_an_edited_draft_copy_is_refused() {
             abs(repo.path())
         )
     );
-    assert!(!repo.exists("specs/drafts/codex-runtime/images"));
+    assert!(!repo.exists("specs/proposals/codex-runtime/images"));
 }
 
 const INBOX: &str = "specs/INBOX.md";

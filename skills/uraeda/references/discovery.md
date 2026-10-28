@@ -160,7 +160,7 @@ three sides below.
 **The proposal itself**
 
 Check the proposal against what you found: constraints that cannot be met as written, ambiguous
-wording, gaps. A proposal is a human's first draft, not a specification. Do not interpret it
+wording, gaps. A proposal is a human's first take, not a specification. Do not interpret it
 silently. Each point becomes a finding, then a question for the human, or a settled point when the
 constitution and active decisions already answer it. A gap about scope, what the feature includes or
 leaves out, is always a question.
@@ -510,7 +510,7 @@ Before committing, read both files again with fresh eyes, and fix what you find 
 | "Two products and one standard is enough research"        | Keep going until new sources stop adding. Breadth first: list every part before going deep.       |
 | "This would take a long time, the human is waiting"       | Nobody is waiting: the workflow is asynchronous. Depth now saves rounds of questions later.       |
 | "I'll ask, the human knows the codebase better"           | The code is there to read. Ask only what the code, the docs, and the decisions cannot answer.     |
-| "The proposal says X, so X it is"                         | A proposal is a first draft. Check it against what you found, and turn each gap into a question.  |
+| "The proposal says X, so X it is"                         | A proposal is a first take. Check it against what you found, and turn each gap into a question.   |
 | "The proposal asks for it, so I'll recommend it"          | Weigh its cost against its gain. Recommending a drop is a valid answer when the evidence says so. |
 | "The library surely supports this"                        | Check it with a small experiment, or name it as unverified so the plan checks it first.           |
 | "I'll ask this one now and the follow-up in a next round" | Every round costs the human a context switch. Anticipate, and ask the follow-up now.              |

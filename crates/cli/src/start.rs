@@ -1,4 +1,4 @@
-//! `ura start`: a drafted feature or change, started as the skill says, and, with `--feature`, a
+//! `ura start`: a proposed feature or change, started as the skill says, and, with `--feature`, a
 //! started change made a feature, in place.
 
 use std::process::ExitCode;
@@ -19,12 +19,11 @@ pub fn run(
 ) -> Result<ExitCode, String> {
     let (git, workspace) = output::workspace()?;
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
-    let draft = match target::resolve(&workspace, &cwd, target_name.as_deref(), Purpose::Start) {
-        Ok(Target::Draft(draft)) => draft,
+    let proposal = match target::resolve(&workspace, &cwd, target_name.as_deref(), Purpose::Start) {
+        Ok(Target::Proposal(proposal)) => proposal,
         Ok(_) | Err(TargetError::NoPath(_)) => {
             return Err(
-                "not a draft: ura start takes a file or folder in specs/drafts/ or specs/backlog/"
-                    .into(),
+                "not a proposal: ura start takes a file or folder in specs/proposals/".into(),
             );
         }
         Err(error) => return Err(error.to_string()),
@@ -33,7 +32,7 @@ pub fn run(
     match start::run(
         &git,
         &workspace,
-        &draft,
+        &proposal,
         slug.as_deref(),
         kind,
         today::today(),
@@ -86,9 +85,10 @@ pub fn promote(target_name: Option<String>) -> Result<ExitCode, String> {
     let folder = match target::resolve(&workspace, &cwd, name, Purpose::Inspect) {
         Ok(Target::Feature(index)) => workspace.features[index].folder.clone(),
         resolved => {
-            if let Ok(Target::Draft(_)) = target::resolve(&workspace, &cwd, name, Purpose::Start) {
+            if let Ok(Target::Proposal(_)) = target::resolve(&workspace, &cwd, name, Purpose::Start)
+            {
                 return Err(
-                    "--feature takes a change: start a draft as a feature without it".into(),
+                    "--feature takes a change: start a proposal as a feature without it".into(),
                 );
             }
             return Err(match resolved {

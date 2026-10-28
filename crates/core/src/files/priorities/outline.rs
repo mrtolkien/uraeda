@@ -1,69 +1,78 @@
-//! The outline of an entry of `PRIORITIES.md`: the entry, and the items nested under it at any
-//! depth (see [`nested`](super::super::nested)). An entry indents under the entry above it in its
-//! section, and an entry's own item outdented becomes the entry after it.
+//! The outline of a proposal of `PRIORITIES.md`: the proposal, and the items nested under it at any
+//! depth (see [`nested`](super::super::nested)). A proposal indents under the proposal above it in
+//! its section, and a proposal's own item outdented becomes the proposal after it.
 
 use super::super::nested::{self, OutlineEdit};
-use super::{Entry, Section, entry_id, parse};
+use super::{Proposal, Section, parse, proposal_id};
 
-/// Applies `edit` to the entry `id`, or with `at`, to the item at `at` of its outline, from 0 in
-/// the order of the file. `None` when there is no such entry or item, or nowhere to go: the first
-/// sibling indented, an entry outdented, the first sibling moved up, the last moved down.
+/// Applies `edit` to the proposal `id`, or with `at`, to the item at `at` of its outline, from 0 in
+/// the order of the file. `None` when there is no such proposal or item, or nowhere to go: the
+/// first sibling indented, a proposal outdented, the first sibling moved up, the last moved down.
 pub fn outline(text: &str, id: &str, at: Option<usize>, edit: &OutlineEdit) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
-        let entries = parse(text);
-        let index = entries
+        let proposals = parse(text);
+        let index = proposals
             .iter()
-            .position(|entry| entry_id(entry) == id)
+            .position(|proposal| proposal_id(proposal) == id)
             .ok_or(())?;
         match at {
-            None => on_entry(text, &entries, index, edit),
-            Some(at) => nested::on_nested(text, &entries[index].item, at, edit),
+            None => on_proposal(text, &proposals, index, edit),
+            Some(at) => nested::on_nested(text, &proposals[index].item, at, edit),
         }
         .ok_or(())
     })
     .ok()
 }
 
-/// Where a dropped item goes: an entry at `index` of a section, or an item nested under the entry
-/// `entry`, or with `at` under its nested item at `at`, at `index` among the items there. `index`
-/// counts them once the dropped item left them.
+/// Where a dropped item goes: a proposal at `index` of a section, or an item nested under the
+/// proposal `proposal`, or with `at` under its nested item at `at`, at `index` among the items
+/// there. `index` counts them once the dropped item left them.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Drop {
-    Entry {
+    Proposal {
         section: Section,
         index: usize,
     },
     Under {
-        entry: String,
+        proposal: String,
         at: Option<usize>,
         index: usize,
     },
 }
 
-/// Moves the entry `id`, or with `at` its nested item at `at`, its own items with it, to `to`: what
-/// a drag writes. `None` when an entry or item is missing, it would go under itself, or nested
-/// lines cannot be written again.
+/// Moves the proposal `id`, or with `at` its nested item at `at`, its own items with it, to `to`:
+/// what a drag writes. `None` when a proposal or item is missing, it would go under itself, or
+/// nested lines cannot be written again.
 pub fn drop_item(text: &str, id: &str, at: Option<usize>, to: &Drop) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
-        let entries = parse(text);
-        let position = |id: &str| entries.iter().position(|entry| entry_id(entry) == id);
+        let proposals = parse(text);
+        let position = |id: &str| {
+            proposals
+                .iter()
+                .position(|proposal| proposal_id(proposal) == id)
+        };
         let from = position(id).ok_or(())?;
         match (to, at) {
-            (Drop::Entry { section, index }, None) => super::move_entry(text, id, *section, *index),
-            (Drop::Entry { section, index }, Some(at)) => {
-                let (without, lines) = nested::take(text, &entries[from].item, at).ok_or(())?;
-                super::insert_entry(&without, *section, *index, &lines)
+            (Drop::Proposal { section, index }, None) => {
+                super::move_proposal(text, id, *section, *index)
+            }
+            (Drop::Proposal { section, index }, Some(at)) => {
+                let (without, lines) = nested::take(text, &proposals[from].item, at).ok_or(())?;
+                super::insert_proposal(&without, *section, *index, &lines)
             }
             (
                 Drop::Under {
-                    entry,
+                    proposal,
                     at: to_at,
                     index,
                 },
                 at,
             ) => {
-                let to = position(entry).ok_or(())?;
-                let items: Vec<_> = entries.iter().map(|entry| entry.item.clone()).collect();
+                let to = position(proposal).ok_or(())?;
+                let items: Vec<_> = proposals
+                    .iter()
+                    .map(|proposal| proposal.item.clone())
+                    .collect();
                 nested::move_under(text, &items, (from, at), (to, *to_at), *index)
             }
         }
@@ -73,61 +82,66 @@ pub fn drop_item(text: &str, id: &str, at: Option<usize>, to: &Drop) -> Option<S
 }
 
 /// Adds `written`, an item of another list as its lines, its nested items with it, as the last item
-/// nested under the entry `id`. `None` when there is no such entry, or nested lines cannot be
+/// nested under the proposal `id`. `None` when there is no such proposal, or nested lines cannot be
 /// written again.
 pub fn append_under(text: &str, id: &str, written: &[String]) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
-        let entry = parse(text)
+        let proposal = parse(text)
             .into_iter()
-            .find(|entry| entry_id(entry) == id)
+            .find(|proposal| proposal_id(proposal) == id)
             .ok_or(())?;
-        nested::append_item(text, &entry.item, written).ok_or(())
+        nested::append_item(text, &proposal.item, written).ok_or(())
     })
     .ok()
 }
 
-/// Takes back [`append_under`]: the entry whose key is `key`, found by it as other edits may have
-/// moved it, without the last of its own items that says what `written` says. `None` when there is
-/// none.
+/// Takes back [`append_under`]: the proposal whose key is `key`, found by it as other edits may
+/// have moved it, without the last of its own items that says what `written` says. `None` when
+/// there is none.
 pub fn remove_under(text: &str, key: &str, written: &[String]) -> Option<String> {
     super::super::with_unix_newlines(text, |text| {
-        let entries = parse(text);
-        let at = super::keys(&entries)
+        let proposals = parse(text);
+        let at = super::keys(&proposals)
             .iter()
             .position(|one| one == key)
             .ok_or(())?;
-        nested::remove_item(text, &entries[at].item, written).ok_or(())
+        nested::remove_item(text, &proposals[at].item, written).ok_or(())
     })
     .ok()
 }
 
-/// An edit of an entry itself.
-fn on_entry(text: &str, entries: &[Entry], index: usize, edit: &OutlineEdit) -> Option<String> {
-    let entry = &entries[index];
-    let id = entry_id(entry);
+/// An edit of a proposal itself.
+fn on_proposal(
+    text: &str,
+    proposals: &[Proposal],
+    index: usize,
+    edit: &OutlineEdit,
+) -> Option<String> {
+    let proposal = &proposals[index];
+    let id = proposal_id(proposal);
     match edit {
         OutlineEdit::Edit(line) => super::edit(text, &id, line),
         OutlineEdit::Remove => super::remove(text, &id),
         OutlineEdit::Insert { line, below } => {
-            let place = entries
+            let place = proposals
                 .iter()
-                .filter(|other| other.section == entry.section)
-                .position(|other| other.line == entry.line)?;
-            let marker = nested::marker_beside(&entry.item.marker).render();
-            super::insert_entry(
+                .filter(|other| other.section == proposal.section)
+                .position(|other| other.line == proposal.line)?;
+            let marker = nested::marker_beside(&proposal.item.marker).render();
+            super::insert_proposal(
                 text,
-                entry.section,
+                proposal.section,
                 place + usize::from(*below),
                 &[format!("{marker} {line}")],
             )
         }
-        OutlineEdit::Append(line) => nested::append_child(text, &entry.item, line),
-        // It becomes the last item of the entry above it, in its section.
+        OutlineEdit::Append(line) => nested::append_child(text, &proposal.item, line),
+        // It becomes the last item of the proposal above it, in its section.
         OutlineEdit::Indent => {
-            let above = entries[..index]
+            let above = proposals[..index]
                 .iter()
-                .rfind(|other| other.section == entry.section)?;
-            nested::indent_under(text, &above.item, &entry.item)
+                .rfind(|other| other.section == proposal.section)?;
+            nested::indent_under(text, &above.item, &proposal.item)
         }
         OutlineEdit::Outdent | OutlineEdit::Up | OutlineEdit::Down => None,
     }

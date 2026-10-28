@@ -22,12 +22,12 @@ use crate::requests::{WorkflowFile, api_error, refused, workflow_file};
 
 mod attach;
 mod commit;
-mod draft;
+mod expand;
 mod note;
 
 /// Every command the server runs.
 pub(crate) const COMMANDS: [&str; 10] = [
-    "uraeda.draft",
+    "uraeda.expand",
     "uraeda.start",
     "uraeda.comment",
     "uraeda.editComment",
@@ -41,7 +41,7 @@ pub(crate) const COMMANDS: [&str; 10] = [
 
 const NOT_WORKFLOW: &str = "This file is not a Uraeda workflow file.";
 const REVIEW_AGAIN: &str = "review it again";
-const NOT_AN_ENTRY: &str = "This line is not a priorities entry.";
+const NOT_A_PROPOSAL: &str = "This line is not a proposal.";
 
 /// What a command did: the file to open, and the files it wrote, to reload.
 #[derive(Serialize, Default)]
@@ -118,14 +118,14 @@ pub(crate) fn title(documents: &Documents, command: &str, args: &Value) -> Strin
             .unwrap_or_default()
     };
     match command {
-        "uraeda.draft" => "Drafting…".to_string(),
+        "uraeda.expand" => "Expanding…".to_string(),
         "uraeda.start" => {
             let name = args
                 .get("uri")
                 .and_then(|uri| serde_json::from_value::<Uri>(uri.clone()).ok())
                 .and_then(|uri| relative(documents, &uri))
                 .and_then(|path| api::read_text(&documents.root, &path).ok())
-                .map(|draft| draft.title)
+                .map(|proposal| proposal.title)
                 .unwrap_or_else(file);
             format!("Starting {name}…")
         }
@@ -147,7 +147,7 @@ pub(crate) fn run(
     args: Value,
 ) -> Result<Done, ResponseError> {
     match command {
-        "uraeda.draft" => draft::draft(documents, parse(args)?).map(Done::from),
+        "uraeda.expand" => expand::expand(documents, parse(args)?).map(Done::from),
         "uraeda.start" => start(documents, parse(args)?),
         "uraeda.comment" => comment(documents, parse(args)?).map(Done::from),
         "uraeda.editComment" => edit_comment(documents, parse(args)?).map(Done::from),
@@ -211,7 +211,7 @@ fn absolute(path: PathBuf) -> String {
     path.to_string_lossy().into_owned()
 }
 
-/// A file's path from the root, `specs/drafts/x.md`, for a file under `specs/`.
+/// A file's path from the root, `specs/proposals/x.md`, for a file under `specs/`.
 fn relative(documents: &Documents, uri: &Uri) -> Option<String> {
     let path = documents
         .path(uri)
@@ -224,7 +224,7 @@ fn priorities_path() -> &'static str {
     "specs/PRIORITIES.md"
 }
 
-/// Refuses acting on the file at `path` from the root, a draft, a backlog file, or the
+/// Refuses acting on the file at `path` from the root, a proposal file, a note file, or the
 /// priorities, when its text here is not the default branch's, where it is written.
 fn on_default_branch(documents: &Documents, path: &str) -> Result<(), ResponseError> {
     let text = documents
@@ -233,13 +233,13 @@ fn on_default_branch(documents: &Documents, path: &str) -> Result<(), ResponseEr
     core(api::on_default_branch(&documents.root, path, &text))
 }
 
-/// `uraeda.start { uri }`: starts a draft or a backlog file as a feature, in its own worktree.
+/// `uraeda.start { uri }`: starts a proposal file as a feature, in its own worktree.
 fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
-    const ONLY_DRAFTS: &str = "Only a draft or a backlog file can be started.";
+    const ONLY_PROPOSALS: &str = "Only a proposal file can be started.";
     let root = &documents.root;
-    let path = relative(documents, &args.uri).ok_or_else(|| refused(ONLY_DRAFTS))?;
+    let path = relative(documents, &args.uri).ok_or_else(|| refused(ONLY_PROPOSALS))?;
     // A file of a postponed feature's folder starts the folder.
-    let draft = target::draft_to_start(&path).ok_or_else(|| refused(ONLY_DRAFTS))?;
+    let proposal = target::proposal_to_start(&path).ok_or_else(|| refused(ONLY_PROPOSALS))?;
     on_default_branch(documents, &path)?;
     let default = core(api::default_root(root))?;
     let written = vec![
@@ -247,7 +247,7 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
         absolute(default.join(&path)),
     ];
     let before = Before::read(written.clone());
-    let started = api::start_feature(root, &draft, None, Kind::Feature)
+    let started = api::start_feature(root, &proposal, None, Kind::Feature)
         .map_err(|error| before.failed(error))?;
     let worktree = PathBuf::from(core(api::work_dir(root, &started.folder))?);
     let proposal = worktree.join(format!("specs/{}/proposal.md", started.folder));

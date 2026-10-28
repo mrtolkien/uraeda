@@ -1,19 +1,19 @@
-//! Drafts and proposals as their editor reads and writes them: a draft on the default branch, a
-//! proposal on its feature's or change's branch.
+//! Proposal files, note files, and proposals as their editor reads and writes them: a proposal file
+//! or a note file on the default branch, a proposal on its feature's or change's branch.
 
 use std::path::Path;
 
-use super::start::draft_path;
+use super::start::linked_path;
 use super::{
     ApiError, Result, feature_of, on_default, open, plain, reach_default, read_priorities, refused,
     write_lock,
 };
-use crate::actions::{draft, place, priorities as edits, text};
+use crate::actions::{expand, place, priorities as edits, text};
 use crate::files::document::{self, hash};
 use crate::files::proposal;
 use crate::files::stories::{mockup_embeds, story_links};
 use crate::target;
-use crate::view::{CommitView, DraftView, PriorityView, ProposalHint, WorkspaceView, title};
+use crate::view::{CommitView, ProposalFileView, ProposalHint, ProposalView, WorkspaceView, title};
 use crate::workspace::{Feature, Workspace};
 
 /// The feature or change of a workflow file, `specs/<folder>/<name>` or
@@ -25,42 +25,45 @@ fn feature_file<'a, 'p>(workspace: &'a Workspace, path: &'p str) -> Result<(&'a 
         .ok_or_else(|| refused(format!("{path} is not a file of a feature")))
 }
 
-/// A draft, for its editor.
-pub fn read_draft(repo: &Path, path: &str) -> Result<DraftView> {
-    draft_path(path)?;
+/// A proposal file or a note file, for its editor.
+pub fn read_proposal_file(repo: &Path, path: &str) -> Result<ProposalFileView> {
+    linked_path(path)?;
     let (git, workspace) = open(repo)?;
     let (text, committed) = on_default(&git, &workspace, path);
-    let text = text.ok_or_else(|| refused(format!("no draft {path}")))?;
+    let text = text.ok_or_else(|| refused(format!("no proposal file {path}")))?;
     let view = WorkspaceView::new(&workspace, |_| Vec::new());
-    let entry: Option<PriorityView> = view
+    let proposal: Option<ProposalView> = view
         .priorities
         .into_iter()
-        .find(|entry| entry.draft.as_deref() == Some(path));
+        .find(|proposal| proposal.file.as_deref() == Some(path));
     let priorities = read_priorities(repo)?;
     let committed = committed.as_deref() == Some(text.as_str());
     let dir = path.rsplit_once('/').map_or("specs", |(dir, _)| dir);
-    Ok(DraftView {
-        entry,
+    Ok(ProposalFileView {
+        proposal,
         priority_changes: priorities.changes,
         ..text_view(path, text, dir, committed, None)
     })
 }
 
-/// The view of a draft or a proposal's text, read from `dir`, outside the priorities.
+/// The view of a proposal file's, a note file's, or a proposal's text, read from `dir`, outside the
+/// priorities.
 fn text_view(
     path: &str,
     text: String,
     dir: &str,
     committed: bool,
     folder: Option<String>,
-) -> DraftView {
-    let kind = if target::is_draft(path) {
-        "draft"
+) -> ProposalFileView {
+    let kind = if target::is_proposal_file(path) {
+        "proposal-file"
+    } else if target::is_note_file(path) {
+        "note-file"
     } else {
         "proposal"
     };
     let document = document::parse(&text, dir);
-    DraftView {
+    ProposalFileView {
         path: path.to_string(),
         title: title(&text).unwrap_or_else(|| path.to_string()),
         hash: hash(&text),
@@ -68,12 +71,12 @@ fn text_view(
         mockups: mockup_embeds(&document),
         document,
         committed,
-        entry: None,
+        proposal: None,
         priority_changes: 0,
         kind: kind.to_string(),
         folder,
-        slug: target::draft_to_start(path)
-            .map(|draft| crate::slug::short(target::draft_name(&draft))),
+        slug: target::proposal_to_start(path)
+            .map(|proposal| crate::slug::short(target::proposal_name(&proposal))),
         discovery: Some(proposal::discovery(&text).to_string()),
         discovery_levels: proposal::discovery_levels()
             .iter()
@@ -85,26 +88,27 @@ fn text_view(
     }
 }
 
-/// Drafts a priority line by its id, like `next-2`, over the priorities read at `previous`: an id
-/// names another line once lines are added or moved.
-pub fn create_draft(repo: &Path, id: &str, previous: &str) -> Result<DraftView> {
+/// Expands a proposal into a file by its id, like `next-2`, over the priorities read at
+/// `previous`: an id names another proposal once proposals are added or moved.
+pub fn expand_proposal(repo: &Path, id: &str, previous: &str) -> Result<ProposalFileView> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
     if edits::read(&place).hash != previous {
         return Err(ApiError {
             code: "conflict",
-            message: "PRIORITIES.md changed on disk. Nothing was drafted.".to_string(),
+            message: "PRIORITIES.md changed on disk. Nothing was expanded.".to_string(),
             output: None,
         });
     }
-    let drafted = draft::create(&place, id)?;
-    read_draft(repo, &drafted.path)
+    let expanded = expand::create(&place, id)?;
+    read_proposal_file(repo, &expanded.path)
 }
 
-/// The place a text file is written in: the default branch for drafts, else the feature's branch.
+/// The place a text file is written in: the default branch for proposal files and note files, else
+/// the feature's branch.
 pub(super) fn text_place(repo: &Path, path: &str) -> Result<place::Place> {
-    if target::is_draft(path) {
-        draft_path(path)?;
+    if target::is_linked_file(path) {
+        linked_path(path)?;
         return reach_default(repo);
     }
     let (git, workspace) = open(repo)?;
@@ -118,16 +122,21 @@ pub(super) fn text_place(repo: &Path, path: &str) -> Result<place::Place> {
     Ok(place::reach(&git, branch)?)
 }
 
-/// Saves a draft or a proposal as typed, over the version read at `previous`. Returns the new
-/// hash.
+/// Saves a proposal file, a note file, or a proposal as typed, over the version read at `previous`.
+/// Returns the new hash.
 pub fn save_text(repo: &Path, path: &str, content: &str, previous: &str) -> Result<String> {
     let _lock = write_lock();
     let place = text_place(repo, path)?;
     Ok(text::save(&place, path, content, previous)?)
 }
 
-/// Sets the discovery effort of a draft or a proposal, over the version read at `previous`.
-pub fn set_discovery(repo: &Path, path: &str, level: &str, previous: &str) -> Result<DraftView> {
+/// Sets the discovery effort of a proposal file or a proposal, over the version read at `previous`.
+pub fn set_discovery(
+    repo: &Path,
+    path: &str,
+    level: &str,
+    previous: &str,
+) -> Result<ProposalFileView> {
     {
         let _lock = write_lock();
         let place = text_place(repo, path)?;
@@ -139,7 +148,8 @@ pub fn set_discovery(repo: &Path, path: &str, level: &str, previous: &str) -> Re
     read_text(repo, path)
 }
 
-/// Commits a draft, with the priorities when they changed, or a proposal.
+/// Commits a proposal file or a note file, with the priorities and the inbox when they changed, or
+/// a proposal.
 pub fn commit_text(repo: &Path, path: &str) -> Result<CommitView> {
     let _lock = write_lock();
     let place = text_place(repo, path)?;
@@ -158,11 +168,11 @@ pub fn proposal_hints() -> Result<Vec<ProposalHint>> {
         .collect())
 }
 
-/// A draft or a proposal, for its editor: a draft from the default branch, a proposal from its
-/// feature.
-pub fn read_text(repo: &Path, path: &str) -> Result<DraftView> {
-    if target::is_draft(path) {
-        return read_draft(repo, path);
+/// A proposal file, a note file, or a proposal, for its editor: a proposal file or a note file from
+/// the default branch, a proposal from its feature.
+pub fn read_text(repo: &Path, path: &str) -> Result<ProposalFileView> {
+    if target::is_linked_file(path) {
+        return read_proposal_file(repo, path);
     }
     let (git, workspace) = open(repo)?;
     let (feature, name) = feature_file(&workspace, path)?;

@@ -42,7 +42,7 @@ export function landingOf(
   const keys = now[spot.section];
   const above = keys[spot.index - 1];
   const below = keys[spot.index + 1];
-  // A line that stays one, as a line with a draft, lands as a line wherever it goes.
+  // A line that stays one, as a proposal with a file, lands as a line wherever it goes.
   if (rows.get(key)?.staysLine) {
     return 0;
   }

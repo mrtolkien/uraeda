@@ -9,12 +9,12 @@ use uraeda_core::api::{self, DropAt};
 const INBOX: &str = "specs/INBOX.md";
 const PRIORITIES: &str = "specs/PRIORITIES.md";
 
-/// A repository on `main` with the fixture's `INBOX.md`, `PRIORITIES.md`, and the draft its Next
-/// links, `drafts/git-listener.md`.
+/// A repository on `main` with the fixture's `INBOX.md`, `PRIORITIES.md`, and the proposal file its
+/// Next links, `proposal files/git-listener.md`.
 fn fixture_repo() -> TestRepo {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
-    for path in ["INBOX.md", "PRIORITIES.md", "drafts/git-listener.md"] {
+    for path in ["INBOX.md", "PRIORITIES.md", "proposals/git-listener.md"] {
         let text = std::fs::read_to_string(common::fixture(&format!("repo/main/specs/{path}")));
         repo.write(&format!("specs/{path}"), &text.unwrap());
     }
@@ -244,12 +244,12 @@ fn an_ambiguous_note_drop_is_refused() {
     }
 }
 
-/// A note that links a draft stays a note: nested, its draft would no longer be found by its link.
+/// A note with a note file stays a note: nested, its file would no longer be found by its link.
 /// It still moves among the notes, and its own items still indent.
 #[test]
-fn a_note_with_a_draft_does_not_nest() {
+fn a_note_with_a_file_does_not_nest() {
     let repo = fixture_repo();
-    let text = "# Inbox\n\n- First\n- [Dark mode](drafts/dark-mode.md)\n  - Contrast\n  - Icons\n";
+    let text = "# Inbox\n\n- First\n- [Dark mode](notes/dark-mode.md)\n  - Contrast\n  - Icons\n";
     repo.write(INBOX, text);
     let hash = inbox_hash(&repo);
 
@@ -269,7 +269,7 @@ fn a_note_with_a_draft_does_not_nest() {
     api::drop_note(repo.path(), "note-2", None, &into(None, 0), &nested.hash).unwrap();
     assert_eq!(
         repo.read(INBOX),
-        "# Inbox\n\n- [Dark mode](drafts/dark-mode.md)\n  - Contrast\n    - Icons\n- First\n"
+        "# Inbox\n\n- [Dark mode](notes/dark-mode.md)\n  - Contrast\n    - Icons\n- First\n"
     );
 }
 
@@ -278,7 +278,7 @@ fn a_line_indents_under_the_line_above_and_outdents_back() {
     let repo = fixture_repo();
     let before = repo.read(PRIORITIES);
 
-    let indented = api::outline_priority(
+    let indented = api::outline_proposal(
         repo.path(),
         "later-2",
         None,
@@ -291,7 +291,7 @@ fn a_line_indents_under_the_line_above_and_outdents_back() {
     assert!(repo.read(PRIORITIES).ends_with(
         "- Nix + Docker based execution environments\n  - with a cache\n  - Benchmarks: after the runner is ready\n"
     ));
-    api::outline_priority(
+    api::outline_proposal(
         repo.path(),
         "later-1",
         Some(1),
@@ -307,7 +307,7 @@ fn a_line_indents_under_the_line_above_and_outdents_back() {
 fn a_line_moves_with_its_children_to_a_section_and_under_a_nested_item() {
     let repo = fixture_repo();
 
-    let moved = api::drop_priority(
+    let moved = api::drop_proposal(
         repo.path(),
         "later-1",
         None,
@@ -318,7 +318,7 @@ fn a_line_moves_with_its_children_to_a_section_and_under_a_nested_item() {
     assert!(repo.read(PRIORITIES).contains(
         "- Nix + Docker based execution environments\n  - with a cache\n- Claude Code runner (triggered manually)\n"
     ));
-    api::drop_priority(
+    api::drop_proposal(
         repo.path(),
         "later-1",
         None,
@@ -342,9 +342,9 @@ fn an_outline_write_over_changed_priorities_is_a_conflict() {
     );
 
     let indent =
-        api::outline_priority(repo.path(), "later-2", None, "indent", None, &hash).unwrap_err();
+        api::outline_proposal(repo.path(), "later-2", None, "indent", None, &hash).unwrap_err();
     let drop =
-        api::drop_priority(repo.path(), "later-2", None, &into(Some("now"), 0), &hash).unwrap_err();
+        api::drop_proposal(repo.path(), "later-2", None, &into(Some("now"), 0), &hash).unwrap_err();
 
     assert_eq!((indent.code, drop.code), ("conflict", "conflict"));
 }
@@ -369,7 +369,7 @@ fn an_ambiguous_line_drop_is_refused() {
     ] {
         let repo = fixture_repo();
         let before = repo.read(PRIORITIES);
-        let result = api::drop_priority(repo.path(), "later-2", None, &to, &priorities_hash(&repo));
+        let result = api::drop_proposal(repo.path(), "later-2", None, &to, &priorities_hash(&repo));
         assert_eq!(
             result.map(|_| ()).map_err(|e| e.code),
             Err("refused"),
@@ -379,16 +379,16 @@ fn an_ambiguous_line_drop_is_refused() {
     }
 }
 
-/// A line with a draft stays a line: its draft is found by its link, a line's.
+/// A line with a proposal file stays a line: its proposal file is found by its link, a line's.
 #[test]
-fn a_line_with_a_draft_does_not_nest() {
+fn a_line_with_a_proposal_file_does_not_nest() {
     let repo = fixture_repo();
     let before = repo.read(PRIORITIES);
     let hash = priorities_hash(&repo);
 
     let indent =
-        api::outline_priority(repo.path(), "next-2", None, "indent", None, &hash).unwrap_err();
-    let drop = api::drop_priority(
+        api::outline_proposal(repo.path(), "next-2", None, "indent", None, &hash).unwrap_err();
+    let drop = api::drop_proposal(
         repo.path(),
         "next-2",
         None,
@@ -400,9 +400,9 @@ fn a_line_with_a_draft_does_not_nest() {
     assert_eq!((indent.code, drop.code), ("refused", "refused"));
     assert_eq!(repo.read(PRIORITIES), before);
 
-    api::drop_priority(repo.path(), "next-2", None, &into(Some("now"), 0), &hash).unwrap();
+    api::drop_proposal(repo.path(), "next-2", None, &into(Some("now"), 0), &hash).unwrap();
     assert!(repo.read(PRIORITIES).contains(
-        "- [Git listener process](drafts/git-listener.md)\n- [Web UI for the workflow files]"
+        "- [Git listener process](proposals/git-listener.md)\n- [Web UI for the workflow files]"
     ));
 }
 
@@ -424,7 +424,7 @@ fn a_note_goes_under_a_line_with_its_items_and_comes_back() {
     let priorities = repo.read(PRIORITIES);
     let note = indented.categories[0].notes[0].clone();
 
-    api::note_under_priority(
+    api::note_under_proposal(
         repo.path(),
         &note.id,
         "later-1",
@@ -438,12 +438,12 @@ fn a_note_goes_under_a_line_with_its_items_and_comes_back() {
     assert!(!repo.read(INBOX).contains("Specs are still"));
 
     let key = "nix-docker-based-execution-environments";
-    api::undo_note_under_priority(repo.path(), &note.lines, None, 0, key).unwrap();
+    api::undo_note_under_proposal(repo.path(), &note.lines, None, 0, key).unwrap();
     assert_eq!(
         (repo.read(INBOX), repo.read(PRIORITIES)),
         (inbox, priorities)
     );
-    let again = api::undo_note_under_priority(repo.path(), &note.lines, None, 0, key).unwrap_err();
+    let again = api::undo_note_under_proposal(repo.path(), &note.lines, None, 0, key).unwrap_err();
     assert_eq!(again.code, "refused");
 }
 
@@ -456,24 +456,25 @@ fn a_note_under_a_line_over_a_changed_file_is_a_conflict() {
         &format!("{}- Elsewhere\n", repo.read(PRIORITIES)),
     );
 
-    let error = api::note_under_priority(repo.path(), "note-1", "later-1", &inbox, &priorities)
+    let error = api::note_under_proposal(repo.path(), "note-1", "later-1", &inbox, &priorities)
         .unwrap_err();
 
     assert_eq!(error.code, "conflict");
 }
 
-/// A note that links a draft does not go under a line either: its draft is found by its link. It
-/// still goes to a section's end as a line, its link kept, and over a changed file it is a conflict.
+/// A note with a note file does not go under a proposal either: its file is found by its link. It
+/// still goes to a section's end as a proposal, its file moved among the proposal files, and over
+/// a changed file it is a conflict.
 #[test]
-fn a_note_with_a_draft_does_not_go_under_a_line() {
+fn a_note_with_a_file_does_not_go_under_a_proposal() {
     let repo = fixture_repo();
-    let text = "# Inbox\n\n- First\n- [Dark mode](drafts/dark-mode.md)\n  - Contrast\n";
+    let text = "# Inbox\n\n- First\n- [Dark mode](notes/dark-mode.md)\n  - Contrast\n";
     repo.write(INBOX, text);
-    repo.write("specs/drafts/dark-mode.md", "# Dark mode\n");
+    repo.write("specs/notes/dark-mode.md", "# Dark mode\n");
     let (inbox, priorities) = (inbox_hash(&repo), priorities_hash(&repo));
     let before = repo.read(PRIORITIES);
 
-    let error = api::note_under_priority(repo.path(), "note-2", "later-1", &inbox, &priorities)
+    let error = api::note_under_proposal(repo.path(), "note-2", "later-1", &inbox, &priorities)
         .unwrap_err();
     assert_eq!(error.code, "refused");
     assert_eq!(
@@ -481,16 +482,16 @@ fn a_note_with_a_draft_does_not_go_under_a_line() {
         (text.to_string(), before)
     );
 
-    let stale = api::note_under_priority(repo.path(), "note-2", "later-1", "stale", &priorities)
+    let stale = api::note_under_proposal(repo.path(), "note-2", "later-1", "stale", &priorities)
         .unwrap_err();
     assert_eq!(stale.code, "conflict");
 
-    api::note_to_priorities(repo.path(), "note-2", "later", &inbox, &priorities).unwrap();
+    api::note_to_proposal(repo.path(), "note-2", "later", &inbox, &priorities).unwrap();
     let later = api::read_priorities(repo.path()).unwrap().sections;
-    let line = later.iter().flat_map(|section| &section.entries).last();
+    let line = later.iter().flat_map(|section| &section.proposals).last();
     assert_eq!(
-        line.and_then(|line| line.draft.as_ref())
-            .map(|draft| draft.path.as_str()),
-        Some("specs/drafts/dark-mode.md")
+        line.and_then(|line| line.file.as_ref())
+            .map(|file| file.path.as_str()),
+        Some("specs/proposals/dark-mode.md")
     );
 }

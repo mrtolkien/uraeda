@@ -716,7 +716,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addAllowedHost, addCategory, addComment, addNote, addNoteAndCommit, addNoteWithImages, addPriority, addPriorityAndCommit, addRepository, addSettledComment, approve, attachImage, attachNoteImages, branchChanges, checkedPort, checkoutCommit, commitChanges, commitPriorities, commitText, configDir, createDraft, dataDir, discardChanges, discardPriorities, dropItem, dropNote, dropPriority, editAllowedHost, editComment, editNote, editPriority, editSettledComment, encodeImage, insertNote, insertPriority, mainRoot, moveNoteToCategory, movePriority, nextStep, noteToDraft, noteToNewDraft, noteToPriorities, noteUnderPriority, openRepository, outlineNote, outlinePriority, pathFolder, placeNote, preview, promoteChange, proposalHints, proposeSlug, readDecision, readDraft, readFeature, readFile, readHistory, readImage, readInbox, readLedger, readPriorities, readRaw, readRepositories, readRound, readSettings, readText, readWorkspace, refreshPullRequests, removeAllowedHost, removeCategory, removeComment, removeNote, removeNoteAndCommit, removeNoteImage, removePriority, removeRepository, removeSettledComment, renameCategory, requestChanges, restoreCategory, restoreNoteImage, retryCommit, retryRound, saveAnswer, saveNotes, saveRoundAnswer, saveRoundNotes, saveText, setBuildInFreshSession, setDiscovery, setItemSettings, setOpenBrowser, setPort, setSingleKeyShortcuts, settingsFile, startChange, startFeature, startOver, storyLink, submitAnswers, submitRound, undoCommittedNote, undoCommittedPriority, undoNoteAdd, undoNoteAsDraft, undoNoteCategory, undoNoteToDraft, undoNoteToPriorities, undoNoteUnderPriority, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState, RowChangeKind, SettledKind, VerdictKind } = nativeBinding
+const { WatchHandle, addAllowedHost, addCategory, addComment, addNote, addNoteAndCommit, addNoteWithImages, addProposal, addProposalAndCommit, addRepository, addSettledComment, approve, attachImage, attachNoteImages, branchChanges, checkedPort, checkoutCommit, commitChanges, commitPriorities, commitText, configDir, dataDir, discardChanges, discardPriorities, dropItem, dropNote, dropProposal, editAllowedHost, editComment, editNote, editProposal, editSettledComment, encodeImage, expandProposal, insertNote, insertProposal, mainRoot, moveNoteToCategory, moveProposal, nextStep, noteIntoProposal, noteToProposal, noteToProposalFile, noteUnderProposal, openRepository, outlineNote, outlineProposal, pathFolder, placeNote, preview, promoteChange, proposalHints, proposeSlug, readDecision, readFeature, readFile, readHistory, readImage, readInbox, readLedger, readPriorities, readProposalFile, readRaw, readRepositories, readRound, readSettings, readText, readWorkspace, refreshPullRequests, removeAllowedHost, removeCategory, removeComment, removeNote, removeNoteAndCommit, removeNoteImage, removeProposal, removeRepository, removeSettledComment, renameCategory, requestChanges, restoreCategory, restoreNoteImage, retryCommit, retryRound, saveAnswer, saveNotes, saveRoundAnswer, saveRoundNotes, saveText, setBuildInFreshSession, setDiscovery, setItemSettings, setOpenBrowser, setPort, setSingleKeyShortcuts, settingsFile, startChange, startFeature, startOver, storyLink, submitAnswers, submitRound, undoCommittedNote, undoCommittedProposal, undoNoteAdd, undoNoteAsFile, undoNoteCategory, undoNoteIntoProposal, undoNoteToProposal, undoNoteUnderProposal, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState, RowChangeKind, SettledKind, VerdictKind } = nativeBinding
 export { WatchHandle }
 export { addAllowedHost }
 export { addCategory }
@@ -724,8 +724,8 @@ export { addComment }
 export { addNote }
 export { addNoteAndCommit }
 export { addNoteWithImages }
-export { addPriority }
-export { addPriorityAndCommit }
+export { addProposal }
+export { addProposalAndCommit }
 export { addRepository }
 export { addSettledComment }
 export { approve }
@@ -738,32 +738,32 @@ export { commitChanges }
 export { commitPriorities }
 export { commitText }
 export { configDir }
-export { createDraft }
 export { dataDir }
 export { discardChanges }
 export { discardPriorities }
 export { dropItem }
 export { dropNote }
-export { dropPriority }
+export { dropProposal }
 export { editAllowedHost }
 export { editComment }
 export { editNote }
-export { editPriority }
+export { editProposal }
 export { editSettledComment }
 export { encodeImage }
+export { expandProposal }
 export { insertNote }
-export { insertPriority }
+export { insertProposal }
 export { mainRoot }
 export { moveNoteToCategory }
-export { movePriority }
+export { moveProposal }
 export { nextStep }
-export { noteToDraft }
-export { noteToNewDraft }
-export { noteToPriorities }
-export { noteUnderPriority }
+export { noteIntoProposal }
+export { noteToProposal }
+export { noteToProposalFile }
+export { noteUnderProposal }
 export { openRepository }
 export { outlineNote }
-export { outlinePriority }
+export { outlineProposal }
 export { pathFolder }
 export { placeNote }
 export { preview }
@@ -771,7 +771,6 @@ export { promoteChange }
 export { proposalHints }
 export { proposeSlug }
 export { readDecision }
-export { readDraft }
 export { readFeature }
 export { readFile }
 export { readHistory }
@@ -779,6 +778,7 @@ export { readImage }
 export { readInbox }
 export { readLedger }
 export { readPriorities }
+export { readProposalFile }
 export { readRaw }
 export { readRepositories }
 export { readRound }
@@ -792,7 +792,7 @@ export { removeComment }
 export { removeNote }
 export { removeNoteAndCommit }
 export { removeNoteImage }
-export { removePriority }
+export { removeProposal }
 export { removeRepository }
 export { removeSettledComment }
 export { renameCategory }
@@ -820,13 +820,13 @@ export { storyLink }
 export { submitAnswers }
 export { submitRound }
 export { undoCommittedNote }
-export { undoCommittedPriority }
+export { undoCommittedProposal }
 export { undoNoteAdd }
-export { undoNoteAsDraft }
+export { undoNoteAsFile }
 export { undoNoteCategory }
-export { undoNoteToDraft }
-export { undoNoteToPriorities }
-export { undoNoteUnderPriority }
+export { undoNoteIntoProposal }
+export { undoNoteToProposal }
+export { undoNoteUnderProposal }
 export { version }
 export { watch }
 export { workDir }

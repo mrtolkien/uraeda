@@ -1,20 +1,20 @@
 // @vitest-environment node
-// A draft's text as its edit box holds it: cut after the frontmatter, which a save joins back.
+// A proposal's text as its edit box holds it: cut after the frontmatter, which a save joins back.
 import { expect, test } from "vite-plus/test";
-import { asTyped, splitDraft, storedBody } from "../pane/draftText.ts";
+import { asTyped, splitProposal, storedBody } from "../pane/proposalText.ts";
 
-/** A draft read as the core gives it: its text, and where its frontmatter ends. */
-const draft = (text: string, end?: number) => ({
+/** A proposal file read as the core gives it: its text, and where its frontmatter ends. */
+const file = (text: string, end?: number) => ({
   document: { frontmatterLines: end === undefined ? null : { end } },
   text,
 });
 
 test("the text after the frontmatter and its blank lines is the body, the rest the head", () => {
-  expect(splitDraft(draft("---\ndiscovery: low\n---\n\n# Title\n\nText.\n", 3))).toEqual({
+  expect(splitProposal(file("---\ndiscovery: low\n---\n\n# Title\n\nText.\n", 3))).toEqual({
     body: "# Title\n\nText.\n",
     head: "---\ndiscovery: low\n---\n\n",
   });
-  expect(splitDraft(draft("# No frontmatter\n"))).toEqual({
+  expect(splitProposal(file("# No frontmatter\n"))).toEqual({
     body: "# No frontmatter\n",
     head: "",
   });
@@ -22,14 +22,14 @@ test("the text after the frontmatter and its blank lines is the body, the rest t
 
 /** A file that is only a frontmatter, ended by no newline: the head keeps one, so typing starts a line. */
 test("a file of only a frontmatter without a final newline has a head ending its line", () => {
-  const { body, head } = splitDraft(draft("---\ndiscovery: low\n---", 3));
+  const { body, head } = splitProposal(file("---\ndiscovery: low\n---", 3));
 
   expect(body).toBe("");
   expect(`${head}${"Typed text"}`).toBe("---\ndiscovery: low\n---\nTyped text");
 });
 
 test("a file of only a frontmatter and its newline keeps its head as it is", () => {
-  expect(splitDraft(draft("---\ndiscovery: low\n---\n", 3))).toEqual({
+  expect(splitProposal(file("---\ndiscovery: low\n---\n", 3))).toEqual({
     body: "",
     head: "---\ndiscovery: low\n---\n",
   });
@@ -57,8 +57,8 @@ test.each([
   expect(asTyped(text)).toBe(expected);
 });
 
-test("a draft's text with CRLF line breaks is split as LF", () => {
-  expect(splitDraft(draft("---\r\ndiscovery: low\r\n---\r\n\r\n# Title\r\n", 3))).toEqual({
+test("a proposal's text with CRLF line breaks is split as LF", () => {
+  expect(splitProposal(file("---\r\ndiscovery: low\r\n---\r\n\r\n# Title\r\n", 3))).toEqual({
     body: "# Title\n",
     head: "---\ndiscovery: low\n---\n\n",
   });

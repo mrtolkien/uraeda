@@ -2,6 +2,7 @@
 kind: change
 finished: 2026-10-18
 pull-request: https://github.com/mrtolkien/uraeda/pull/34
+superseded-by: [2026-10-28-proposal-naming]
 ---
 
 # Record: Start a draft folder from its proposal
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/34
 > The record of a merged change, not instructions to follow. Started on 2026-10-18, finished on
 > 2026-10-18, in [its pull request](https://github.com/mrtolkien/uraeda/pull/34). Its full files are
 > in git: `git log -- specs/changes/2026-10-18-start-draft-folder/`.
+>
+> Superseded in part by [2026-10-28-proposal-naming](2026-10-28-proposal-naming.md).
 
 ## What and why
 

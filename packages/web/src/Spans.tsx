@@ -37,9 +37,9 @@ function Marked({ span }: { span: Span }) {
 }
 
 /**
- * A link of the document: a workflow file or a draft in the UI, a story in its checkout's Storybook
- * page when the checkout has a preview decision, other files and the web in a new tab. It shows its
- * text, or `children`, like an image it holds; `isAlone` when alone on its line.
+ * A link of the document: a workflow file or a proposal file in the UI, a story in its checkout's
+ * Storybook page when the checkout has a preview decision, other files and the web in a new tab. It
+ * shows its text, or `children`, like an image it holds; `isAlone` when alone on its line.
  */
 function SpanLink({
   children,
@@ -68,7 +68,7 @@ function SpanLink({
     );
   }
   if (link.path) {
-    // From an item's file, a decision opens as the item's branch has it; not from a draft.
+    // From an item's file, a decision opens as the item's branch has it; not from a proposal file.
     const from =
       stories && stories.folder !== MAIN_CHECKOUT ? { folder: stories.folder } : undefined;
     const { href, inApp } = pathLink(link.path, repo, link.anchor, from);
