@@ -4,6 +4,7 @@
 
 use std::path::Path;
 
+use super::outlines::note_stays;
 use super::priority_edits::{change_count, section};
 use super::{Result, on_default, open, reach_default, write_lock};
 use crate::actions::changes;
@@ -196,7 +197,8 @@ pub fn note_to_priorities(
 }
 
 /// Moves a note under the entry `entry` of the priorities, `now-2`, as its last item, over both
-/// files as read at `previous` and `priorities_previous`.
+/// files as read at `previous` and `priorities_previous`. A note that links a draft is refused:
+/// nested, its draft would no longer be found by its link.
 pub fn note_under_priority(
     repo: &Path,
     id: &str,
@@ -206,6 +208,7 @@ pub fn note_under_priority(
 ) -> Result<()> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
+    note_stays(&place, id, previous)?;
     Ok(edits::under_priority(
         &place,
         id,
