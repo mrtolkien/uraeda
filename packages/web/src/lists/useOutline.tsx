@@ -17,6 +17,8 @@ export type OutlineItem<Source> = {
   id: string;
   /** Whether it stays as it is, as a running line: nothing indents under it. */
   isFixed?: boolean;
+  /** Whether it stays an item of its section, never nested under another: a line with a draft. */
+  staysItem?: boolean;
   key: string;
   /** Absent for a row added and not written yet. */
   source?: Source;
@@ -413,10 +415,12 @@ export function useOutline<Data extends { hash: string }, Source>(
   const onOutline = (spot: Spot, key: string, move: OutlineMove) => {
     if (spot.at === undefined) {
       // An item indents under the item above it in the file, never under one that stays as it is,
-      // as a running line; and an item never outdents.
+      // as a running line; and an item never outdents, nor indents when it stays an item, as a line
+      // with a draft.
       const items = drawn.sections.find((section) => section.id === spot.section)?.items;
       const above = items?.[spot.index - 1];
-      if (move !== "indent" || !above || above.isFixed || isPending(above.key)) {
+      const isStaying = items?.[spot.index]?.staysItem === true;
+      if (move !== "indent" || isStaying || !above || above.isFixed || isPending(above.key)) {
         return;
       }
       void write(
@@ -595,6 +599,7 @@ export function useOutline<Data extends { hash: string }, Source>(
       key: item.key,
       lines: [],
       spot,
+      ...(item.staysItem ? { staysLine: true } : {}),
     };
   };
 

@@ -70,6 +70,8 @@ function outlineOf(priorities: Priorities): Outline<PriorityEntry> {
         id: entry.id,
         isFixed: entry.running !== undefined,
         key: entry.key,
+        // Its draft is found by its link, a line's: nested, it would have none.
+        staysItem: entry.draft !== undefined,
         source: entry,
         spans: entry.spans,
         text: entry.text,

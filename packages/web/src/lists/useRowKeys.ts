@@ -13,10 +13,12 @@ import type { RowKey } from "./useListKeys.ts";
 type Rows = { id: string; rows: ReadonlyArray<WorkRow> };
 
 /**
- * A row key that the row's bar shows (see `RowBar`), with its key as written there, for the rows
- * `isFor` accepts: the status line names none of them.
+ * A row key that the row's bar shows (see `RowBar`), with its key as written there and its icon on
+ * the phone, for the rows `isFor` accepts: the status line names none of them.
  */
-type BarKey = RowKey & { bar?: { isFor?: (row: WorkRow) => boolean; keys: string } };
+type BarKey = RowKey & {
+  bar?: Pick<BarAction, "icon" | "keys"> & { isFor?: (row: WorkRow) => boolean };
+};
 
 /** The order of the bar's actions, by their keys. */
 const BAR_ORDER = ["m", "Tab", "shift+Tab", "p", "s", "d"];
@@ -124,9 +126,14 @@ export function useRowKeys(
       return undefined;
     };
     keys.push(
-      { bar: { keys: "⇥" }, keys: "Tab", label: "indent", run: outlining("indent") },
       {
-        bar: { isFor: (row) => !isLine(row), keys: "⇧⇥" },
+        bar: { icon: "uraeda:indent", isFor: (row) => row.staysLine !== true, keys: "⇥" },
+        keys: "Tab",
+        label: "indent",
+        run: outlining("indent"),
+      },
+      {
+        bar: { icon: "uraeda:outdent", isFor: (row) => !isLine(row), keys: "⇧⇥" },
         keys: "shift+Tab",
         label: "outdent",
         run: outlining("outdent"),
@@ -135,7 +142,7 @@ export function useRowKeys(
   }
   if (onStart !== undefined) {
     keys.push({
-      bar: { isFor: isLine, keys: "s" },
+      bar: { icon: "uraeda:arrow-right", isFor: isLine, keys: "s" },
       keys: "s",
       label: "start",
       run: (at) => {
@@ -167,7 +174,7 @@ export function useRowKeys(
   }
   if (onPromote !== undefined) {
     keys.push({
-      bar: { isFor: isLine, keys: "p" },
+      bar: { icon: "uraeda:file-pen-line", isFor: isLine, keys: "p" },
       keys: "p",
       label: "draft",
       run: (at) => {
@@ -182,7 +189,7 @@ export function useRowKeys(
   }
   if (onDelete !== undefined) {
     keys.push({
-      bar: { keys: "d" },
+      bar: { icon: "uraeda:trash", keys: "d" },
       keys: "d",
       label: "delete",
       run: (at) => {
@@ -243,18 +250,24 @@ export function useRowKeys(
     const open: ReadonlyArray<BarAction> =
       onOpen === undefined
         ? []
-        : [{ keys: "⏎", label: row.editsInPlace ? "edit" : "open", run: () => onOpen(row) }];
+        : [
+            row.editsInPlace
+              ? { icon: "uraeda:pencil", keys: "⏎", label: "edit", run: () => onOpen(row) }
+              : { icon: "uraeda:enter", keys: "⏎", label: "open", run: () => onOpen(row) },
+          ];
     if (row.isFixed === true) {
       return open;
     }
     const own = keys
       .filter((key) => key.bar !== undefined && (key.bar.isFor?.(row) ?? true))
       .map((key) => ({
+        ...(key.bar?.icon === undefined ? {} : { icon: key.bar.icon }),
         keys: key.bar?.keys ?? key.keys,
         label: key.label,
         order: key.keys,
         run: () => void key.run(at),
       }));
+    // No icon: the phone moves a row by dragging it, and the moves' keys are for a keyboard.
     const moves = canMoveItems
       ? [{ keys: "m", label: "move", order: "m", run: () => press("m") }]
       : [];

@@ -135,11 +135,12 @@ export function OutlineEditor({
       {/* The keys of the field, for the mouse and the finger: a press leaves the focus in it. */}
       <RowBar
         actions={[
-          { keys: "⏎", label: "save", run: save },
-          { keys: "esc", label: "cancel", run: cancel },
-          { keys: "⇥", label: "indent", run: () => indent(false) },
-          { keys: "⇧⇥", label: "outdent", run: () => indent(true) },
+          { icon: "check", keys: "⏎", label: "save", run: save },
+          { icon: "close", keys: "esc", label: "cancel", run: cancel },
+          { icon: "uraeda:indent", keys: "⇥", label: "indent", run: () => indent(false) },
+          { icon: "uraeda:outdent", keys: "⇧⇥", label: "outdent", run: () => indent(true) },
         ]}
+        isField
       />
     </>
   );

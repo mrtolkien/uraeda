@@ -73,6 +73,8 @@ export interface WorkRow {
   children?: ReadonlyArray<WorkRow>;
   /** A nested row's depth, 1 under its line. */
   depth?: number;
+  /** A line that never nests under another, by Tab or a drag: a line with a draft. */
+  staysLine?: boolean;
   /** A nested row's line: the key of the row it is drawn in. */
   parent?: string;
   /** A new row being typed: its editor shows from the start, and nothing else of it. */
@@ -93,6 +95,8 @@ export type RowState = {
   /** The key of the row whose bar shows under it: the one the keys or a click picked. */
   barred?: string;
   barOf?: (row: WorkRow) => ReadonlyArray<BarAction>;
+  /** The bar went, as a scroll sends the phone's away: the row stays selected, with no bar. */
+  onBarAway?: () => void;
   editing?: string;
   /** A field is open, edited or new: nothing drags, as a new row is no row of the file yet. */
   isTyping?: boolean;
@@ -317,7 +321,7 @@ function pointerOf(row: WorkRow, { onHover, onHoverEnd }: RowEvents) {
 function Bar({ isEditing, row }: { isEditing: boolean; row: WorkRow }) {
   const state = useContext(RowStateContext);
   const actions = state.barred === row.key && !isEditing ? (state.barOf?.(row) ?? []) : [];
-  return actions.length > 0 ? <RowBar actions={actions} /> : null;
+  return actions.length > 0 ? <RowBar actions={actions} onAway={state.onBarAway} /> : null;
 }
 
 /**

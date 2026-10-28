@@ -24,6 +24,22 @@ export const trash = outline(
   h("path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }),
 );
 
+/** Lines with an arrow in, for a row of a list that indents: Lucide's `list-indent-increase`. */
+export const indent = outline(
+  h("path", { d: "M21 12H11" }),
+  h("path", { d: "M21 18H11" }),
+  h("path", { d: "M21 6H11" }),
+  h("path", { d: "m3 8 4 4-4 4" }),
+);
+
+/** Lines with an arrow out, for a row of a list that outdents: Lucide's `list-indent-decrease`. */
+export const outdent = outline(
+  h("path", { d: "M21 12H11" }),
+  h("path", { d: "M21 18H11" }),
+  h("path", { d: "M21 6H11" }),
+  h("path", { d: "m7 8-4 4 4 4" }),
+);
+
 /** Two arrows, for a file the agent moved: Lucide's `arrow-right-left`. */
 export const arrowRightLeft = outline(
   h("path", { d: "m16 3 4 4-4 4" }),

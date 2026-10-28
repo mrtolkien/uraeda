@@ -21,7 +21,15 @@ import { type Order, spotOf } from "../drop.ts";
  * A row as a drag sees it: its depth and its line, none for a line, and whether nothing nests
  * under it.
  */
-type DragRow = { depth?: number; isFixed?: boolean; key: string; parent?: string; text: string };
+type DragRow = {
+  depth?: number;
+  isFixed?: boolean;
+  key: string;
+  parent?: string;
+  /** A line that lands as a line wherever it is dropped. */
+  staysLine?: boolean;
+  text: string;
+};
 
 /**
  * What a drag needs of a section: its id, its title, its rows, nested ones after their line, and
@@ -240,6 +248,10 @@ export function useDragOrder<Section extends DragSection>(
     const keys = now[spot.section];
     const above = keys[spot.index - 1];
     const below = keys[spot.index + 1];
+    // A line that stays one, as a line with a draft, lands as a line wherever it goes.
+    if (rows.get(key)?.staysLine) {
+      return 0;
+    }
     const deepest = above === undefined ? 0 : depthOf(above) + (rows.get(above)?.isFixed ? 0 : 1);
     const least = below === undefined ? 0 : Math.min(depthOf(below), deepest);
     return Math.max(least, Math.min(deepest, depth));

@@ -181,6 +181,8 @@ function InboxList({
             key: note.key,
             source: note,
             spans: note.spans,
+            // A note that is a draft stays a note: nested, it would be no note to open.
+            staysItem: note.draft !== undefined,
             text: note.text,
           })),
         })),

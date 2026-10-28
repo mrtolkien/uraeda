@@ -824,6 +824,7 @@ export function WorkList({
         // Only under the row selected: the address may have selected another since.
         barred: isTyping || barred !== selected ? undefined : barred,
         isTyping,
+        onBarAway: () => setBarred(undefined),
       }}
     >
       <div ref={ref}>
