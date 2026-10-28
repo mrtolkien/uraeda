@@ -84,7 +84,7 @@ export function useReview(file: File, wide: boolean, onAsk?: (quote: string) => 
   const field = fieldOf(file, comments, commentDraft);
   const storyComments = useStoryComments(file);
   // A spec's risk tier and plan review, kept for the page's life: the end's form sets them, and
-  // either verdict, the end's or the Review tab's, commits them.
+  // either verdict, the end's or the phone's Review sheet's, commits them.
   const choices: ChoicesState = useState(() => initialChoices(version.items.spec));
   const blocks = useReviewSelection({
     actions,
@@ -164,18 +164,9 @@ export function ReviewIntro({ file, review }: { file: File; review: Review }) {
 
 /**
  * The end of a review's page: its comments, a general comment's field, always there, and the
- * verdict unless
- * `hasVerdict` is false; on the phone, the comment's sheet.
+ * verdict; on the phone, the comment's sheet.
  */
-export function ReviewEnd({
-  file,
-  hasVerdict = true,
-  review,
-}: {
-  file: File;
-  hasVerdict?: boolean;
-  review: Review;
-}) {
+export function ReviewEnd({ file, review }: { file: File; review: Review }) {
   const {
     actions,
     choices,
@@ -201,7 +192,6 @@ export function ReviewEnd({
             {inPage(draft?.kind === "general")}
           </>
         }
-        hasVerdict={hasVerdict}
         isGeneralOpen={draft?.kind === "general"}
         onGeneral={actions.general}
         pendingNote={pendingNote}

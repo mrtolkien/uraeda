@@ -102,15 +102,13 @@ export function YourVerdict({
  * The review's own part, after the file: its comments, each where it points, the general ones
  * with Edit and Remove, `general`, what an edit of one shows, a general comment's field, always
  * there but while `isGeneralOpen`, the review's own general draft taking its place, as an image
- * dropped with no comment open starts it, and the verdict, unless `hasVerdict` is false, when the
- * page shows it elsewhere.
+ * dropped with no comment open starts it, and the verdict.
  */
 export function YourReview({
   choices,
   comments,
   file,
   general,
-  hasVerdict = true,
   isGeneralOpen,
   onGeneral,
   pendingNote,
@@ -121,7 +119,6 @@ export function YourReview({
   comments: ReadonlyArray<CommentItem>;
   file: File;
   general: ReactNode;
-  hasVerdict?: boolean;
   /** Whether the review's general draft is open: one general comment's form at a time. */
   isGeneralOpen: boolean;
   /** Adds a general comment: the error to show, or nothing once written. */
@@ -150,9 +147,7 @@ export function YourReview({
       )}
       {general}
       {!isGeneralOpen && <GeneralComment file={file} onAdd={onGeneral} />}
-      {hasVerdict && (
-        <YourVerdict choices={choices} comments={comments.length} file={file} refusals={refusals} />
-      )}
+      <YourVerdict choices={choices} comments={comments.length} file={file} refusals={refusals} />
     </>
   );
 }
