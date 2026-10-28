@@ -7,6 +7,7 @@
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
 import {
   type ComponentProps,
@@ -282,7 +283,7 @@ function FloatingBar({
           key={action.label}
           onClick={pressed(action)}
           type="button"
-          {...stylex.props(styles.tile)}
+          {...stylex.props(focusOutlineStyles.focusVisible, styles.tile)}
         >
           <Icon icon={action.icon} size="lg" />
           <span {...stylex.props(styles.word)}>{action.label}</span>
