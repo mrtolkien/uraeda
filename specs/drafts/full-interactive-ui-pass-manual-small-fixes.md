@@ -10,44 +10,39 @@ Full interactive UI pass: manual small fixes
 
 DONE:
 
-- [x] Home
-  - [x] Desktop
-  - [x] Semiwide
-  - [x] Phone
+- [x] Home + shell
 
 - [x] Leader and status bar
 
-- [ ] Settings
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] Settings
 
-- [ ] New
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] New
 
-- [ ] Inbox
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] Draft
 
-- [ ] Priorities
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] Priorities
 
-- [ ] Decisions
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] Inbox
 
-- [ ] Session
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] Feature home
 
-- [ ] Feature
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] Session list (gs)
+
+- [x] Questions
+
+- [x] Specs
+
+- [x] Glass leader
+
+- [x] New Note dialog
+
+- [x] Proposal, Plan, Report, ...
+
+- [x] Session
+
+- [x] Constitution/Decisions + detail
+
+- [x] Inbox triage
+  - In clarifications of inbox triage, most notes were cut -> very hard to read
+
+- [x] Login
