@@ -136,6 +136,7 @@ const styles = stylex.create({
     borderInlineEndWidth: 0,
     borderInlineStartWidth: 0,
     paddingInline: 0,
+    "--table-bleed": "0px",
   },
   openOnPhoneActions: { backgroundColor: colorVars["--color-background-surface"] },
   // Its title hides the border behind it with the page's surface, which a round on the phone is
@@ -181,6 +182,10 @@ const styles = stylex.create({
     paddingBlockStart: 0,
     // The theme's room, or a narrower one an ancestor sets, as the shell's column does.
     paddingInline: `var(--pane-inset, ${spacingVars["--spacing-3"]})`,
+    // A table keeps to the pane: it scrolls rather than reach past its border, and its rows' lines
+    // run to the border, through the pane's room (`TableBlock`).
+    "--table-bleed": `var(--pane-inset, ${spacingVars["--spacing-3"]})`,
+    "--table-reach": "0px",
     position: "relative",
   },
   problem: { borderColor: colorVars["--color-border-red"] },

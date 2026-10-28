@@ -62,10 +62,6 @@ const styles = stylex.create({
   },
   calloutWarning: { borderInlineStartColor: colorVars["--color-warning"] },
   con: { color: colorVars["--color-error"] },
-  doc: {
-    // The page's inset, which a list's rows take back, so their text lines up with the paragraphs'.
-    "--container-padding-inline-start": spacingVars["--spacing-4"],
-  },
   // A list, the browser's: its markers in `room` before its items' text, outside it, so that a
   // wrapped line hangs under the text, not under the marker.
   native: (room: string) => ({
@@ -149,6 +145,11 @@ const styles = stylex.create({
     // start and end of what holds it.
     "--container-padding-block-end": "0px",
     "--container-padding-block-start": "0px",
+    // Its rows' lines run as far as `--table-bleed` past its sides, its holder's room, as a pane's
+    // to its border: Astryx's table takes it back, its first and last columns' text then at the
+    // text's edges. None outside a holder.
+    "--container-padding-inline-end": "var(--table-bleed, 0px)",
+    "--container-padding-inline-start": "var(--table-bleed, 0px)",
     marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-5"] },
     marginBlockStart: { ":first-child": 0, default: spacingVars["--spacing-5"] },
     maxWidth: "100%",
@@ -595,7 +596,7 @@ export function Blocks({
   }
   return (
     <SinceScoped document={document}>
-      <div {...stylex.props(proseStyles.doc, styles.doc, isAiry && styles.airy)}>
+      <div {...stylex.props(proseStyles.doc, isAiry && styles.airy)}>
         {blocks.map((block) => {
           if (!folded.has(block.id)) {
             return <BlockNode block={block} context={context} key={block.id} />;

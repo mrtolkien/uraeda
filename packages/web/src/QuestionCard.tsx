@@ -34,6 +34,9 @@ const styles = stylex.create({
     // A table keeps to the card: it scrolls rather than reach past it.
     "--table-reach": "0px",
   },
+  // On a wide screen, a table's rows' lines run into the card's room, as far as its cells' own
+  // room at their edges, Astryx's 12 px: its columns' text then at the card's text's edges.
+  tableBleed: { "--table-bleed": spacingVars["--spacing-3"] },
   split: {
     // The title and context on the left, the options and comment on the right, 5 to 6.
     alignItems: "start",
@@ -103,7 +106,10 @@ export function QuestionCard({
   // same story.
   const stories = useContext(StoryContext);
   const split =
-    wide && roomy && !holdsVariants(stories, document, question) && !holdsWide(stories, document, question);
+    wide &&
+    roomy &&
+    !holdsVariants(stories, document, question) &&
+    !holdsWide(stories, document, question);
   const comments =
     stories && !readOnly
       ? {
@@ -142,7 +148,13 @@ export function QuestionCard({
           variant={wide ? "default" : "transparent"}
           xstyle={!wide && styles.flat}
         >
-          <div {...stylex.props(styles.rows, split ? styles.split : styles.contents)}>
+          <div
+            {...stylex.props(
+              styles.rows,
+              wide && styles.tableBleed,
+              split ? styles.split : styles.contents,
+            )}
+          >
             <div {...stylex.props(split ? styles.stretch : styles.contents)}>
               <div {...stylex.props(styles.stickyHead, !wide && styles.stickyHeadPhone)}>
                 {head}
