@@ -19,6 +19,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import {
+  type ComponentProps,
   createContext,
   type ReactNode,
   Suspense,
@@ -308,11 +309,14 @@ function Drawn({
   isOpen,
   label,
   onClose,
+  size,
 }: {
   children: ReactNode;
   isOpen: boolean;
   label: string;
   onClose: () => void;
+  /** On wide screens, the dialog's size, as `Overlay` takes it. */
+  size?: ComponentProps<typeof Overlay>["size"];
 }) {
   const [drawn, setDrawn] = useState(isOpen);
   if (isOpen && !drawn) {
@@ -324,7 +328,7 @@ function Drawn({
     }
   }, [isOpen, drawn, label]);
   return drawn ? (
-    <Overlay isOpen={isOpen} label={label} onClose={onClose}>
+    <Overlay isOpen={isOpen} label={label} onClose={onClose} size={size}>
       {children}
     </Overlay>
   ) : null;
@@ -332,6 +336,8 @@ function Drawn({
 
 const MENU = "Repositories";
 const FORM = "Add a repository";
+/** The menu's dialog on wide screens: as wide as a picker, the theme's, so its paths keep a line. */
+const PICKER = { width: "var(--size-picker)" };
 
 /**
  * The menu's content and the add form it leads to, over the caller's `isOpen` state: `isDeferred`
@@ -463,7 +469,7 @@ function KeyedMenu({ current }: { current: string | null }) {
   useEffect(() => () => setKeyOpen(false), []);
   return (
     <>
-      <Drawn isOpen={isOpen} label={MENU} onClose={() => setKeyOpen(false)}>
+      <Drawn isOpen={isOpen} label={MENU} onClose={() => setKeyOpen(false)} size={PICKER}>
         {menu}
       </Drawn>
       {form}
