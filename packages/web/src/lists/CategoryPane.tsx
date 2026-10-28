@@ -1,24 +1,15 @@
 // The parts of a category's pane: its title, renamed in place; its menu, whose Delete asks what
-// becomes of the notes when there are any; and that question, three bordered lines that each show
-// their key, which work while it is open and the single-key shortcuts are on.
-import { Button } from "@astryxdesign/core/Button";
-import { HStack } from "@astryxdesign/core/HStack";
+// becomes of the notes when there are any, in the app's one confirmation (`fields/Confirm.tsx`),
+// with a third answer.
 import { Link } from "@astryxdesign/core/Link";
-import { Text } from "@astryxdesign/core/Text";
-import { VStack } from "@astryxdesign/core/VStack";
 import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { LineField } from "../EditableLine.tsx";
-import { KeyCap } from "../keys/KeyCap.tsx";
-import { useSingleKeys } from "../keys/registry.tsx";
-import { Overlay, afterOverlayCloses } from "../layout/Overlay.tsx";
+import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { CardMenu } from "./CardMenu.tsx";
 import { plural } from "../labels.ts";
-
-/** What the question's three lines answer. */
-export type Answer = "yes" | "no" | "cancel";
 
 const styles = stylex.create({
   // The title, a button drawn as the title it stands for: a target as tall as a control, the
@@ -71,142 +62,47 @@ export function CategoryTitle({
   );
 }
 
-/** The question's words: "Delete the 3 notes too?", `count` of them. */
-function ask(count: number) {
-  return `Delete the ${plural(count, "note")} too?`;
+/**
+ * What a category's delete asks, `name` holding `count` notes: Yes, `y`, deletes them; No, `n`,
+ * keeps them under no category; Cancel, `c`, Close, Escape, and Back change nothing.
+ */
+export function deleteCategory(name: string, count: number): ConfirmOptions<"keep"> {
+  return {
+    answers: [{ key: "n", label: "No, keep the notes", value: "keep" }],
+    body: `Delete the ${plural(count, "note")} too?`,
+    cancel: "Cancel",
+    cancelKey: "c",
+    confirm: "Yes, delete the notes",
+    destructive: true,
+    detail: "No keeps the notes, in their order, under No category.",
+    title: `Delete the category ${name}`,
+  };
 }
 
 /**
- * The three answers of the question, by their key, words, and answer, in the order the shared
- * confirmation draws its own: what changes nothing first, what deletes last.
- */
-const CHOICES: ReadonlyArray<{ answer: Answer; key: string; words: string }> = [
-  { answer: "cancel", key: "c", words: "Cancel" },
-  { answer: "no", key: "n", words: "No, keep the notes" },
-  { answer: "yes", key: "y", words: "Yes, delete the notes" },
-];
-
-/** Each answer's button, as the shared confirmation's: deleting is destructive. */
-const VARIANTS: Record<Answer, "destructive" | "secondary"> = {
-  cancel: "secondary",
-  no: "secondary",
-  yes: "destructive",
-};
-
-/**
- * `y`, `n`, and `c` answer while the question is open, whatever has the focus, and while the single-key
- * shortcuts are on: they are letter keys, which the setting stops everywhere (the buttons stay).
- */
-function useAnswerKeys(isOpen: boolean, onAnswer: (answer: Answer) => void, singleKeys: boolean) {
-  useEffect(() => {
-    if (!isOpen || !singleKeys) {
-      return undefined;
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      const found = CHOICES.find(({ key }) => key.toLowerCase() === event.key.toLowerCase());
-      if (!found || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      onAnswer(found.answer);
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [isOpen, onAnswer, singleKeys]);
-}
-
-/**
- * The question of a category's delete: what becomes of its `count` notes. Yes deletes them, No keeps
- * them under no category, and Cancel, Close, Escape, and Back change nothing; `y`, `n`, and `c`
- * choose. A dialog of its own, drawn as the shared confirmation is (`fields/Confirm.tsx`), its third
- * answer between its two.
- */
-export function DeleteCategoryDialog({
-  count,
-  isOpen,
-  name,
-  onAnswer,
-}: {
-  count: number;
-  isOpen: boolean;
-  name: string;
-  onAnswer: (answer: Answer) => void;
-}) {
-  const singleKeys = useSingleKeys();
-  useAnswerKeys(isOpen, onAnswer, singleKeys);
-  return (
-    <Overlay
-      isOpen={isOpen}
-      label={`Delete the category ${name}`}
-      onClose={() => onAnswer("cancel")}
-      sheetHeight="hug"
-    >
-      <VStack gap={3}>
-        <Text display="block">{ask(count)}</Text>
-        <Text color="secondary" display="block">
-          No keeps the notes, in their order, under No category.
-        </Text>
-        {/* Wrapping, so a long label stays whole rather than cut, as the confirmation's. */}
-        <HStack gap={2} justify="end" wrap="wrap">
-          {CHOICES.map(({ answer, key, words }) => (
-            <Button
-              // The focus opens on Cancel, as the confirmation's: Enter changes nothing.
-              {...(answer === "cancel" ? { "data-autofocus": "" } : {})}
-              endContent={singleKeys ? <KeyCap>{key}</KeyCap> : undefined}
-              key={answer}
-              label={words}
-              onClick={() => onAnswer(answer)}
-              variant={VARIANTS[answer]}
-            />
-          ))}
-        </HStack>
-      </VStack>
-    </Overlay>
-  );
-}
-
-/**
- * A category's delete, from its menu or a key: with notes it asks first; an empty category goes at
- * once, with its Undo, as there is nothing to ask about. `onRemove` writes the delete, keeping the
- * notes or not, and resolves with the refusal's message to show, if any. Returns what starts it,
- * for a category and its count of notes, and the question, to draw.
+ * A category's delete, from its menu or a key: with notes it asks first (`deleteCategory`); an
+ * empty category goes at once, with its Undo, as there is nothing to ask about. `onRemove` writes
+ * the delete, keeping the notes or not, and resolves with the refusal's message to show, if any.
+ * Returns what starts it, for a category and its count of notes.
  */
 export function useCategoryDelete(
   onRemove: (name: string, keepNotes: boolean) => Promise<string | undefined>,
   onRefused: (message: string | undefined) => void,
 ) {
-  const [asking, setAsking] = useState<{ count: number; name: string }>();
-  const [isOpen, setOpen] = useState(false);
+  const confirm = useConfirm();
   const remove = (name: string, keepNotes: boolean) => {
     onRefused(undefined);
     void onRemove(name, keepNotes).then(onRefused);
   };
-  const answer = (choice: Answer) => {
-    setOpen(false);
-    const name = asking?.name;
-    if (choice !== "cancel" && name !== undefined) {
-      // Once the question's history entry is gone: the page's own Back must not undo what follows.
-      afterOverlayCloses(`Delete the category ${name}`, () => remove(name, choice === "no"));
+  // The answer comes once the question's history entry is gone: the page's own Back must not undo
+  // what follows.
+  const start = async (name: string, count: number) => {
+    const answer = count === 0 ? true : await confirm(deleteCategory(name, count));
+    if (answer !== false) {
+      remove(name, answer === "keep");
     }
   };
-  const start = (name: string, count: number) => {
-    if (count === 0) {
-      remove(name, false);
-    } else {
-      setAsking({ count, name });
-      setOpen(true);
-    }
-  };
-  const dialog = asking && (
-    <DeleteCategoryDialog
-      count={asking.count}
-      isOpen={isOpen}
-      name={asking.name}
-      onAnswer={answer}
-    />
-  );
-  return { dialog, start };
+  return { start };
 }
 
 /** A category's menu, in its pane's border: Delete (see `useCategoryDelete`). */
@@ -221,14 +117,11 @@ export function CategoryMenu({
   onRefused: (message: string | undefined) => void;
   onRemove: (name: string, keepNotes: boolean) => Promise<string | undefined>;
 }) {
-  const { dialog, start } = useCategoryDelete(onRemove, onRefused);
+  const { start } = useCategoryDelete(onRemove, onRefused);
   return (
-    <>
-      <CardMenu
-        items={[{ label: "Delete", onClick: () => start(name, count), variant: "destructive" }]}
-        label={`Actions of category ${name}`}
-      />
-      {dialog}
-    </>
+    <CardMenu
+      items={[{ label: "Delete", onClick: () => void start(name, count), variant: "destructive" }]}
+      label={`Actions of category ${name}`}
+    />
   );
 }

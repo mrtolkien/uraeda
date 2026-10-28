@@ -380,7 +380,6 @@ export function InboxList({
       {moving.picker}
       {promote.picker}
       {choice.picker}
-      {choice.dialog}
     </>
   );
 }
