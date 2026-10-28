@@ -5,9 +5,9 @@ description:
   specs; agents research, ask, and write specs, plans, code, and pull requests, committing every
   step. Use in a repository with a `specs/` folder when the user wants a feature or a change moved
   forward ("continue recurring tasks", "I answered the questions", "the spec is approved", "what is
-  next?", "start the keyboard shortcuts draft", "continue the change in specs/changes/", "fix this
-  bug"), or to set Uraeda up ("set up specs/"). Finds the next step from the repository alone, and
-  stops at human gates.
+  next?", "start the keyboard shortcuts proposal", "continue the change in specs/changes/", "fix
+  this bug"), or to set Uraeda up ("set up specs/"). Finds the next step from the repository alone,
+  and stops at human gates.
 metadata:
   version: "0.1.0"
 ---
@@ -77,10 +77,10 @@ specs/
   INBOX.md                  # notes to organize later, by category
   INBOX-TRIAGE.md           # an agent's proposed outcome for each note, as questions
   DECISIONS-CHECK.md        # questions on the decisions, options in decisions-check/
-  drafts/                   # upcoming features, human-written, free form
-  backlog/                  # nice-to-have features, not scheduled
-                            # in both, a folder is a postponed feature, or a draft with images:
+  proposals/                # proposal files: upcoming features, human-written, free form:
+                            # <slug>.md; a folder is a postponed feature, or a proposal with images:
                             # <slug>/proposal.md, images/, ...
+  notes/                    # note files: inbox notes with images, <slug>/note.md, images/
   decisions/                # decision ledger, one file per topic: due-dates.md
   done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change, in place of its folder
   changes/                  # one folder per change, YYYY-MM-DD-<slug>/: proposal.md (human),
@@ -130,8 +130,8 @@ step. By hand:
 1. **Pick the target.** Use the feature or change the human named. Otherwise, read
    `specs/PRIORITIES.md` on the default branch, list the feature and change branches
    (`git branch -a`), and take the first branch with work for an agent, in the order of the **Now**
-   section. An entry matches the branch whose slug matches its file's name. Starting a feature or a
-   change is a human action: see
+   section. A proposal matches the branch whose slug matches its file's name. Starting a feature or
+   a change is a human action: see
    [Projects](references/projects.md#starting-postponing-and-dropping-a-feature).
 2. **Find the step.** Read the target's branch where it is checked out, or in its worktree (see
    [Branches](references/conventions.md#branches)). In its spec folder, `NN` is the highest

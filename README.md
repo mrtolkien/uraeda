@@ -142,10 +142,9 @@ specs/
   CONSTITUTION.md              # the project's principles, by priority, written with you at setup
   PRIORITIES.md                # Now, Next, Later
   INBOX.md                     # notes jotted down, waiting to be organized
-  drafts/                      # upcoming features, free form: one becomes a dated folder when you
-                               # say "start it"
-  backlog/                     # nice-to-have features, not scheduled
-                               # a postponed feature keeps its folder here, without its date
+  proposals/                   # upcoming features, free form: one becomes a dated folder when you
+                               # say "start it"; a postponed feature keeps its folder here, undated
+  notes/                       # inbox notes with images: their files
   decisions/                   # decision ledger, one file per topic
   done/                        # one record per merged feature or change, in place of its folder
   changes/YYYY-MM-DD-<slug>/   # a change: your proposal, and the questions it needed
@@ -173,11 +172,11 @@ to you as a feature, and becomes one in place, its code kept.
 
 Small things you notice while working, a misaligned icon or a confusing command, go in the inbox,
 `specs/INBOX.md`, in a few seconds. Use the web UI's ＋, or `ura note`, which agents use too. You
-organize the notes later into priorities, drafts, or changes, by hand or by answering an agent's
-proposed triage.
+organize the notes later into proposals or changes, by hand or by answering an agent's proposed
+triage.
 
 To start in a project, run `ura init`, or ask the agent to "set up specs/". Either creates the
-folder, and the agent drafts the constitution with you. `ura init` also offers to install the skill
+folder, and the agent writes the constitution with you. `ura init` also offers to install the skill
 for your user, when your agents have none.
 
 The workflow itself is in the [Uraeda skill](skills/uraeda/SKILL.md), with one
@@ -201,7 +200,7 @@ skill for your user. Without `ura`, install the skill for any agent with
 `npx skills add mrtolkien/uraeda`. `ura upgrade` installs the latest release, through the installer
 script or Homebrew, then updates your skill; with Nix, update the flake input.
 
-Tab completes `ura`'s commands, flags, and values in fish and zsh: drafts after `ura start`, the
+Tab completes `ura`'s commands, flags, and values in fish and zsh: proposals after `ura start`, the
 features and changes under way after `ura next`, and the open questions after `ura answer`. Homebrew
 and the Nix package install its scripts, which a fish or zsh from the same package manager finds
 without setup; another zsh needs their folder on its `fpath`, as Homebrew's
@@ -278,8 +277,8 @@ ura status                                 # every feature and change, and who i
 ura next                                   # the next step for an agent, from the skill's table
 ura check                                  # every workflow file against the skill's rules
 ura add                                    # this repository, to the web UI's list
-ura draft "listener"                       # a line of PRIORITIES.md becomes a draft
-ura start git-listener-process             # a draft becomes a started feature; --change, a change
+ura expand "listener"                      # a line of PRIORITIES.md becomes a proposal file
+ura start git-listener-process             # a proposal file becomes a feature; --change, a change
 ura note "Blurry icons" --category UI      # a note in the inbox, committed on the default branch
 ura answer cli-core Q3 "B, simpler"        # one answer; --submit sends the round
 ura review cli-core --comment 50-52 "Why?" # a comment; --approve or --request-changes
@@ -306,9 +305,9 @@ frontmatter values, and the human's actions, from commenting on a spec to approv
 
 The tools are a Rust core, the `ura` CLI, and a web UI served with its server. The web UI shows
 every feature and file with its structure. It performs every human step, answering, reviewing,
-drafting, and jotting down priorities. It also holds your sessions with the agent, from a phone too.
-With Rust, Node 24, and pnpm, or in `nix develop`, where `pnpm install` stands for `vp install` and
-the screenshot scripts find their WebKit browser:
+writing proposals, and jotting down notes. It also holds your sessions with the agent, from a phone
+too. With Rust, Node 24, and pnpm, or in `nix develop`, where `pnpm install` stands for `vp install`
+and the screenshot scripts find their WebKit browser:
 
 ```sh
 vp install         # dependencies

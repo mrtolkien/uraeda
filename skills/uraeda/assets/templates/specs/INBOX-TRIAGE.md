@@ -14,18 +14,19 @@ status: awaiting-human
 ## Context
 
 [How many notes the inbox holds, and how many this triage covers. What you read to propose each
-outcome: the code, `PRIORITIES.md`, the drafts and the backlog, and the open branches.]
+outcome: the code, `PRIORITIES.md`, the proposal files, and the open branches.]
 
 ## Q1: [What to do with "note text", or with the notes about subject]
 
 [The notes it covers, each quoted by its text. Then as much context as deciding needs: what you
-found about them in the code, the priorities, and the drafts, with links.]
+found about them in the code, `PRIORITIES.md`, and the proposal files, with links.]
 
 Why it matters: [what this outcome costs or saves later].
 
-- **A (recommended). [An outcome, as a self-contained sentence. It may be a priorities section, a
-  new draft with its title and the priorities section that links it, or an existing draft by title.
-  It may also be a change with its draft's title and slug, deletion, or keeping it in the inbox.]**
+- **A (recommended). [An outcome, as a self-contained sentence. It may be a proposal in a section.
+  It may be a new proposal file, with its title and the section that links it. It may be an existing
+  proposal file, by title. It may also be a change with its proposal file's title and slug,
+  deletion, or keeping it in the inbox.]**
   - [pro] [...]
   - [con] [...]
   - Why recommended: [...]

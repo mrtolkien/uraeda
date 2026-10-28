@@ -48,5 +48,5 @@ One encoder in the core serves the server, the CLI, and `ura lsp` alike.
 
 - The core's image and attachment code, [`crates/core`](/crates/core/), and its callers: the
   [server](/packages/server/), the [binding](/packages/binding/), and [`ura lsp`](/crates/lsp/)
-- Every feature, change, and draft folder under `specs/`, and the [skill](/skills/uraeda/SKILL.md)'s
-  layout
+- Every feature, change, proposal, and note folder under `specs/`, and the
+  [skill](/skills/uraeda/SKILL.md)'s layout
