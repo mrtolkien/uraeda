@@ -100,36 +100,17 @@ pub fn outline_priority(
     job(move || api::outline_priority(Path::new(&repo), &id, at, &kind, text.as_deref(), &previous))
 }
 
-/// Moves a priority line, or with `at` its nested item at `at`, its own items with it: what a drop
-/// writes. With `under`, it goes under that line, or with `underAt` under its nested item at
-/// `underAt`; else it is a line of `section`. `index` is its place there, counted once it left.
+/// Moves a priority line, or with `at` its nested item at `at`, its own items with it, to `to`:
+/// what a drop writes. Under a line, or else a line of `to`'s list, a section.
 #[napi(ts_return_type = "Promise<Priorities>")]
-#[allow(
-    clippy::too_many_arguments,
-    reason = "a drop names what it moves and where it goes, as the outline edit says"
-)]
 pub fn drop_priority(
     repo: String,
     id: String,
     at: Option<u32>,
-    section: Option<String>,
-    under: Option<String>,
-    under_at: Option<u32>,
-    index: u32,
+    to: api::DropAt,
     previous: String,
 ) -> AsyncTask<Job<Priorities>> {
-    job(move || {
-        api::drop_priority(
-            Path::new(&repo),
-            &id,
-            at,
-            section.as_deref(),
-            under.as_deref(),
-            under_at,
-            index,
-            &previous,
-        )
-    })
+    job(move || api::drop_priority(Path::new(&repo), &id, at, &to, &previous))
 }
 
 /// Removes a priority line and its nested lines.

@@ -171,32 +171,26 @@ pub fn outline_priority(
     )?))
 }
 
-/// Moves a line, or with `at` its nested item at `at`, its own items with it: what a drop writes.
-/// With `under`, it goes under that line, or with `under_at` under its nested item at `under_at`;
-/// else it is a line of `section`. `index` is its place there, counted once it left.
-#[allow(
-    clippy::too_many_arguments,
-    reason = "a drop names what it moves and where it goes, as the outline edit says"
-)]
+/// Moves a line, or with `at` its nested item at `at`, its own items with it, to `to`: what a drop
+/// writes. Under a line, or else a line of `to`'s list, a section.
 pub fn drop_priority(
     repo: &Path,
     id: &str,
     at: Option<u32>,
-    section: Option<&str>,
-    under: Option<&str>,
-    under_at: Option<u32>,
-    index: u32,
+    to: &super::DropAt,
     previous: &str,
 ) -> Result<Priorities> {
-    let index = index as usize;
-    let to = match under {
+    let index = to.index as usize;
+    let to = match &to.under {
         Some(entry) => priorities::Drop::Under {
-            entry: entry.to_string(),
-            at: under_at.map(|at| at as usize),
+            entry: entry.clone(),
+            at: to.under_at.map(|at| at as usize),
             index,
         },
         None => priorities::Drop::Entry {
-            section: section
+            section: to
+                .list
+                .as_deref()
                 .and_then(priorities::Section::from_id)
                 .ok_or_else(|| refused("a drop needs a section or a line to go under"))?,
             index,

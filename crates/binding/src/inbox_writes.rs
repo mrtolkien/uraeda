@@ -87,37 +87,17 @@ pub fn outline_note(
     job(move || api::outline_note(Path::new(&repo), &id, at, &kind, text.as_deref(), &previous))
 }
 
-/// Moves a note, or with `at` its nested item at `at`, its own items with it: what a drop writes.
-/// With `under`, it goes under that note, or with `underAt` under its nested item at `underAt`;
-/// else it is a note of `category`, or of the notes without one. `index` is its place there,
-/// counted once it left.
+/// Moves a note, or with `at` its nested item at `at`, its own items with it, to `to`: what a drop
+/// writes. Under a note, or else a note of `to`'s list, a category, or of the notes without one.
 #[napi(ts_return_type = "Promise<Inbox>")]
-#[allow(
-    clippy::too_many_arguments,
-    reason = "a drop names what it moves and where it goes, as the outline edit says"
-)]
 pub fn drop_note(
     repo: String,
     id: String,
     at: Option<u32>,
-    category: Option<String>,
-    under: Option<String>,
-    under_at: Option<u32>,
-    index: u32,
+    to: api::DropAt,
     previous: String,
 ) -> AsyncTask<Job<Inbox>> {
-    job(move || {
-        api::drop_note(
-            Path::new(&repo),
-            &id,
-            at,
-            category.as_deref(),
-            under.as_deref(),
-            under_at,
-            index,
-            &previous,
-        )
-    })
+    job(move || api::drop_note(Path::new(&repo), &id, at, &to, &previous))
 }
 
 /// Removes a note, sub-items included.

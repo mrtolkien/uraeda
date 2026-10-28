@@ -135,33 +135,24 @@ pub fn outline_note(
     )?)
 }
 
-/// Moves a note, or with `at` its nested item at `at`, its own items with it: what a drop writes.
-/// With `under`, it goes under that note, or with `under_at` under its nested item at `under_at`;
-/// else it is a note of `category`, or of the notes without one. `index` is its place there,
-/// counted once it left.
-#[allow(
-    clippy::too_many_arguments,
-    reason = "a drop names what it moves and where it goes, as the outline edit says"
-)]
+/// Moves a note, or with `at` its nested item at `at`, its own items with it, to `to`: what a drop
+/// writes. Under a note, or else a note of `to`'s list, a category, or of the notes without one.
 pub fn drop_note(
     repo: &Path,
     id: &str,
     at: Option<u32>,
-    category: Option<&str>,
-    under: Option<&str>,
-    under_at: Option<u32>,
-    index: u32,
+    to: &super::DropAt,
     previous: &str,
 ) -> Result<Inbox> {
-    let index = index as usize;
-    let to = match under {
+    let index = to.index as usize;
+    let to = match &to.under {
         Some(note) => crate::files::inbox::Drop::Under {
-            note: note.to_string(),
-            at: under_at.map(|at| at as usize),
+            note: note.clone(),
+            at: to.under_at.map(|at| at as usize),
             index,
         },
         None => crate::files::inbox::Drop::Note {
-            category: category.map(String::from),
+            category: to.list.clone(),
             index,
         },
     };

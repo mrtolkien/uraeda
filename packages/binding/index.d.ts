@@ -147,19 +147,16 @@ export declare function discardPriorities(repo: string): Promise<Priorities>
 export declare function dropItem(repo: string, folder: string): Promise<DroppedView>
 
 /**
- * Moves a note, or with `at` its nested item at `at`, its own items with it: what a drop writes.
- * With `under`, it goes under that note, or with `underAt` under its nested item at `underAt`;
- * else it is a note of `category`, or of the notes without one. `index` is its place there,
- * counted once it left.
+ * Moves a note, or with `at` its nested item at `at`, its own items with it, to `to`: what a drop
+ * writes. Under a note, or else a note of `to`'s list, a category, or of the notes without one.
  */
-export declare function dropNote(repo: string, id: string, at: number | undefined | null, category: string | undefined | null, under: string | undefined | null, underAt: number | undefined | null, index: number, previous: string): Promise<Inbox>
+export declare function dropNote(repo: string, id: string, at: number | undefined | null, to: DropAt, previous: string): Promise<Inbox>
 
 /**
- * Moves a priority line, or with `at` its nested item at `at`, its own items with it: what a drop
- * writes. With `under`, it goes under that line, or with `underAt` under its nested item at
- * `underAt`; else it is a line of `section`. `index` is its place there, counted once it left.
+ * Moves a priority line, or with `at` its nested item at `at`, its own items with it, to `to`:
+ * what a drop writes. Under a line, or else a line of `to`'s list, a section.
  */
-export declare function dropPriority(repo: string, id: string, at: number | undefined | null, section: string | undefined | null, under: string | undefined | null, underAt: number | undefined | null, index: number, previous: string): Promise<Priorities>
+export declare function dropPriority(repo: string, id: string, at: number | undefined | null, to: DropAt, previous: string): Promise<Priorities>
 
 /** Replaces an allowed host name with another, in its place. */
 export declare function editAllowedHost(dir: string, from: string, to: string): Promise<Settings>
@@ -887,6 +884,19 @@ export interface DraftView {
   written: boolean
   /** The headings of its `##` sections that hold no text yet. */
   emptySections: Array<string>
+}
+
+/**
+ * Where a drag drops what it moves: under the item `under`, or with `under_at` under its nested
+ * item at `under_at`; else into the list `list`, a section of the priorities or a category of the
+ * inbox, none for the inbox's notes without a category. `index` is its place there, counted once
+ * it left.
+ */
+export interface DropAt {
+  list?: string
+  under?: string
+  underAt?: number
+  index: number
 }
 
 /**
