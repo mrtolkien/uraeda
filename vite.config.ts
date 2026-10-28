@@ -196,11 +196,11 @@ export default {
               ],
             },
           ],
+          "stylex/custom-property-tokens": ["error", tokenLimit],
           "stylex/valid-styles": [
             "error",
             { propLimits: Object.fromEntries(tokenProps.map((prop) => [prop, tokenLimit])) },
           ],
-          "stylex/custom-property-tokens": ["error", tokenLimit],
         },
       },
       {
