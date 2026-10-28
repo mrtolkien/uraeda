@@ -14,11 +14,13 @@ const styles = stylex.create({
   // With a mouse, a button well inside the card, never touching its borders: a one-line card is as
   // tall as an `sm` button. A touch screen keeps the control's own size, as its target.
   trigger: {
-    height: { "@media (hover: hover)": "1.5rem", default: null },
+    // The button's side with a mouse, which StyleX's size values do not list.
+    "--card-menu-side": "1.5rem",
+    height: { "@media (hover: hover)": "var(--card-menu-side)", default: null },
     minHeight: { "@media (hover: hover)": 0, default: null },
     minWidth: { "@media (hover: hover)": 0, default: null },
     opacity: "var(--menu-opacity, 1)",
-    width: { "@media (hover: hover)": "1.5rem", default: null },
+    width: { "@media (hover: hover)": "var(--card-menu-side)", default: null },
   },
 });
 

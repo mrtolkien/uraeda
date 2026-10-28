@@ -77,42 +77,30 @@ function outlineOf(priorities: Priorities): Outline<PriorityEntry> {
         id: entry.id,
         isFixed: entry.running !== undefined,
         key: entry.key,
-        // Its draft is found by its link, a line's: nested, it would have none.
-        staysItem: entry.draft !== undefined,
         source: entry,
         spans: entry.spans,
+        // Its draft is found by its link, a line's: nested, it would have none.
+        staysItem: entry.draft !== undefined,
         text: entry.text,
       })),
     })),
   };
 }
 
+/** How a list writes a change: it resolves with its refusal, if any. */
+type Run = (call: () => Promise<{ error?: unknown }>) => Promise<string | undefined>;
+
 /**
- * The priorities' sections, with "Ongoing" first, and each section's Add row. `select` is the key
- * of a row to select, for a mockup; otherwise the row whose overlay is open is. `isFocused` puts the
- * keyboard's focus on it. `run` writes a change and resolves with its refusal, if any; a refused
- * write goes to `onMoveRefused`.
+ * The priorities as an outliner (see `useOutline`): each write goes through `run`, and a refused
+ * one to `onMoveRefused`.
  */
-export function PrioritiesList({
-  isFocused = false,
-  layout = "columns",
-  onMoveRefused,
-  priorities,
-  run,
-  select,
-}: {
-  isFocused?: boolean;
-  /** As the human picked it: columns or the table, at any width. */
-  layout?: WorkLayout;
-  onMoveRefused?: (message: string | undefined) => void;
-  priorities: Priorities;
-  run: (call: () => Promise<{ error?: unknown }>) => Promise<string | undefined>;
-  select?: string;
-}) {
+function usePrioritiesOutline(
+  priorities: Priorities,
+  run: Run,
+  onMoveRefused: ((message: string | undefined) => void) | undefined,
+) {
   const fate = useFateClient();
-  const here = useRepoPath();
-  const pathname = useLocalPath();
-  const outline = useOutline(
+  return useOutline(
     priorities,
     {
       add: (now, section, text) =>
@@ -164,7 +152,20 @@ export function PrioritiesList({
     onMoveRefused,
     { edit: "Edit the line", fresh: "New line" },
   );
+}
 
+/** The priorities' outline, as `useOutline` gives it. */
+type PrioritiesOutline = ReturnType<typeof usePrioritiesOutline>;
+
+/**
+ * The sections the list draws, from the `outline`: "Ongoing" first, when something runs, then each
+ * section, with its context and its Add row. `here` is the repository's path of a page.
+ */
+function sectionsOf(
+  outline: PrioritiesOutline,
+  priorities: Priorities,
+  here: (path: string) => string,
+): Array<WorkSection> {
   /** An entry's row, with its nested rows, at `index` of its section in the file. */
   const row = (item: OutlineItem<PriorityEntry>, section: string, index: number): WorkRow => {
     const entry = item.source;
@@ -228,28 +229,20 @@ export function PrioritiesList({
     };
   });
   // "Ongoing" shows only when something runs.
-  const all = ongoing.rows.length > 0 ? [ongoing, ...sections] : sections;
+  return ongoing.rows.length > 0 ? [ongoing, ...sections] : sections;
+}
 
-  /** A line moved by a drop or its keys, in turn with the outline's writes. */
-  const onMove = (key: string, section: string, index: number) =>
-    outline.write((now) => {
-      const entry = now.sections.flatMap((s) => s.entries).find((one) => one.key === key);
-      const target = now.sections.find((s) => s.section === section);
-      if (!entry || !target) {
-        return Promise.resolve("The line or its section is no longer in PRIORITIES.md.");
-      }
-      return run(() =>
-        fate.mutations.priorities.move({
-          input: {
-            entry: entry.id,
-            hash: now.hash,
-            index: fileIndex(target.entries, key, index),
-            section,
-          },
-          view: PrioritiesView,
-        }),
-      );
-    });
+/**
+ * What a line's keys open or make: Enter or a click on a row not edited in place, `p`, and `s`. A
+ * failed draft goes to `onMoveRefused`.
+ */
+function useLineActions(
+  priorities: Priorities,
+  outline: PrioritiesOutline,
+  onMoveRefused: ((message: string | undefined) => void) | undefined,
+) {
+  const fate = useFateClient();
+  const here = useRepoPath();
 
   /** The line of a row: itself, or the line a nested row is in. */
   const lineOf = (row: WorkRow) =>
@@ -321,10 +314,16 @@ export function PrioritiesList({
     navigate(here("/new?kind=feature"), { insert: `line:${entry.id}` });
   };
 
-  // The page opens on the row its arrival names, as a note just moved there, else on the highest
-  // row of Now, with the keyboard's focus on it, once.
+  return { onPromote, onStart, open };
+}
+
+/**
+ * The page opens on the row its arrival names, as a note just moved there, with the keyboard's
+ * focus on it, once: `arrival` is that row, if any, and `isArriving` holds for the page's first
+ * render.
+ */
+function useArrival() {
   const [arrival] = useState(() => currentEntry().select);
-  const firstNow = all.find((section) => section.id === "now")?.rows[0]?.key;
   // That row in the middle of the screen, once drawn: the page just opened, nothing moves.
   useEffect(() => {
     if (arrival === undefined) {
@@ -337,8 +336,69 @@ export function PrioritiesList({
     );
     return () => cancelAnimationFrame(frame);
   }, [arrival]);
+  // The first committed render's, and the frame after it: the list's focus is put on the row then,
+  // and a later render of the page moves it no more.
   const [isArriving, setArriving] = useState(true);
-  useEffect(() => setArriving(false), []);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setArriving(false));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  return { arrival, isArriving };
+}
+
+/**
+ * The priorities' sections, with "Ongoing" first, and each section's Add row. `select` is the key
+ * of a row to select, for a mockup; otherwise the row whose overlay is open is. `isFocused` puts the
+ * keyboard's focus on it. `run` writes a change and resolves with its refusal, if any; a refused
+ * write goes to `onMoveRefused`.
+ */
+export function PrioritiesList({
+  isFocused = false,
+  layout = "columns",
+  onMoveRefused,
+  priorities,
+  run,
+  select,
+}: {
+  isFocused?: boolean;
+  /** As the human picked it: columns or the table, at any width. */
+  layout?: WorkLayout;
+  onMoveRefused?: (message: string | undefined) => void;
+  priorities: Priorities;
+  run: Run;
+  select?: string;
+}) {
+  const fate = useFateClient();
+  const here = useRepoPath();
+  const pathname = useLocalPath();
+  const outline = usePrioritiesOutline(priorities, run, onMoveRefused);
+  const all = sectionsOf(outline, priorities, here);
+  const { onPromote, onStart, open } = useLineActions(priorities, outline, onMoveRefused);
+
+  /** A line moved by a drop or its keys, in turn with the outline's writes. */
+  const onMove = (key: string, section: string, index: number) =>
+    outline.write((now) => {
+      const entry = now.sections.flatMap((s) => s.entries).find((one) => one.key === key);
+      const target = now.sections.find((s) => s.section === section);
+      if (!entry || !target) {
+        return Promise.resolve("The line or its section is no longer in PRIORITIES.md.");
+      }
+      return run(() =>
+        fate.mutations.priorities.move({
+          input: {
+            entry: entry.id,
+            hash: now.hash,
+            index: fileIndex(target.entries, key, index),
+            section,
+          },
+          view: PrioritiesView,
+        }),
+      );
+    });
+
+  const { arrival, isArriving } = useArrival();
+  // Else on the highest row of Now.
+  const firstNow = all.find((section) => section.id === "now")?.rows[0]?.key;
   const selected =
     select ??
     all.flatMap((section) => section.rows).find((r) => pathname === `/priorities/${r.key}`)?.key;

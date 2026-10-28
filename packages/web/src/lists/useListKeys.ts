@@ -318,7 +318,8 @@ export function useListKeys({
       const onPage =
         target === document.body ||
         target === document.documentElement ||
-        (target instanceof HTMLElement && target.hasAttribute("data-list-page"));
+        ((target as Node | null)?.nodeType === Node.ELEMENT_NODE &&
+          (target as Element).hasAttribute("data-list-page"));
       return row !== -1 || onPage ? (row === -1 ? selected : row) : null;
     },
   };

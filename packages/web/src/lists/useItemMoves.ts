@@ -1,6 +1,6 @@
 // What the keys that move an item do in a list of cards (R30): the move a drop would ask for, one
 // at a time.
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useRef } from "react";
 import { itemTarget, type Placed } from "./itemMoves.ts";
 import type { ItemMove } from "./useListKeys.ts";
 import type { OnMove } from "./useDragOrder.ts";
@@ -55,6 +55,48 @@ export const stillAhead = (ahead: ReadonlyArray<Ahead>, live: ReadonlyArray<Plac
 };
 
 /**
+ * The writes of a list's moves, one at a time: `waiting` holds them, and `drain` runs them in turn,
+ * unless it already does. `shown` are the waits for the list to show a move, which `timers` end.
+ */
+function useWriteQueue(shown: RefObject<Set<() => void>>) {
+  const waiting = useRef<Array<() => Promise<void>>>([]);
+  const isWriting = useRef(false);
+  // The list going takes its queue and its waits with it: no move is written for a list nobody
+  // sees, and no settle timer outlives it.
+  const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const isMounted = useRef(false);
+  useEffect(() => {
+    const pending = timers.current;
+    const queue = waiting.current;
+    const settled = shown.current;
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      queue.splice(0);
+      pending.forEach(clearTimeout);
+      pending.clear();
+      settle(settled);
+    };
+  }, [shown]);
+  /** Writes the moves waiting, in turn, unless it already does. */
+  const drain = async () => {
+    if (isWriting.current) {
+      return;
+    }
+    isWriting.current = true;
+    try {
+      for (let next = waiting.current.shift(); next; next = waiting.current.shift()) {
+        // A refused write is the caller's to show (see `onMoveRefused`): here it only ends the move.
+        await next().catch(() => undefined);
+      }
+    } finally {
+      isWriting.current = false;
+    }
+  };
+  return { drain, isMounted, timers, waiting };
+}
+
+/**
  * What the keys that move an item do: the move a drop would ask `onMove` for. With `setAhead`, the
  * list shows each move at once, and its writes follow in the background, one at a time: a write
  * waits for the one before it, and for the list to show it, and its target is read from the list as
@@ -87,25 +129,7 @@ export function useItemMoves(
       settle(shown.current);
     }
   });
-  const waiting = useRef<Array<() => Promise<void>>>([]);
-  const isWriting = useRef(false);
-  // The list going takes its queue and its waits with it: no move is written for a list nobody
-  // sees, and no settle timer outlives it.
-  const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
-  const isMounted = useRef(false);
-  useEffect(() => {
-    const pending = timers.current;
-    const queue = waiting.current;
-    const settled = shown.current;
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-      queue.splice(0);
-      pending.forEach(clearTimeout);
-      pending.clear();
-      settle(settled);
-    };
-  }, []);
+  const { drain, isMounted, timers, waiting } = useWriteQueue(shown);
   if (onMove === undefined) {
     return undefined;
   }
@@ -135,20 +159,6 @@ export function useItemMoves(
       await waitForList(shown.current, timers.current, SETTLE_MS);
     } finally {
       drop(id);
-    }
-  };
-  const drain = async () => {
-    if (isWriting.current) {
-      return;
-    }
-    isWriting.current = true;
-    try {
-      for (let next = waiting.current.shift(); next; next = waiting.current.shift()) {
-        // A refused write is the caller's to show (see `onMoveRefused`): here it only ends the move.
-        await next().catch(() => undefined);
-      }
-    } finally {
-      isWriting.current = false;
     }
   };
   return (move: ItemMove, row: number) => {

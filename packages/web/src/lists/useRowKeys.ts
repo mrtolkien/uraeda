@@ -42,48 +42,255 @@ export type SectionPicker = Pick<BarAction, "icon" | "keys" | "label"> & {
 /** A line of its own, not nested: what `p` and `s` act on, so only its bar shows them. */
 const isLine = (row: WorkRow) => row.parent === undefined;
 
-/**
- * The row keys of a list whose `sections` are in the order they show, and the state they set.
- * `onAddBeside(section, row)` is given by a list that adds in a place: its `o`. `i` does nothing
- * while another card's editor holds unsaved text (R83). `i` and `m` select
- * their row, so the focus has a card to return to, though a Tab put it there. `held` is the key of
- * the card whose editor or key-opened menu holds the focus, until it closes: the list takes the focus
- * back to the selected card then. `renamed` is the key of a line just saved in its card, until the
- * list took the focus to it (`onRefocused`): its key changed with its text, so it is a new card.
- */
-export function useRowKeys(
+/** What the row keys call, each given only where the list can do it (see `useRowKeys`). */
+type RowHandlers = {
+  /** What `d` calls once the human confirmed: it deletes the line. */
+  onDelete?: ((row: WorkRow) => void) | undefined;
+  /** What `m` calls where the list moves its rows: it puts the row in the move mode. */
+  onMoveMode?: ((row: WorkRow) => void) | undefined;
+  /** What Enter does on a row, which its bar's `⏎ open` does too. */
+  onOpen?: ((row: WorkRow) => void) | undefined;
+  /** What Tab and Shift+Tab call: they indent and outdent the row in its outline. */
+  onOutline?: ((row: WorkRow, edit: "indent" | "outdent") => void) | undefined;
+  /** A key that moves a line to the section a picker chose. */
+  onPickSection?: SectionPicker | undefined;
+  /** What `p` calls: it makes the line a draft; `false` says the row has nothing to promote. */
+  onPromote?: ((row: WorkRow) => boolean | void) | undefined;
+  /** What `s` calls: it starts from the line. */
+  onStart?: ((row: WorkRow) => void) | undefined;
+  /** The list's own keys on a row, in its bar. */
+  rowActions?: ReadonlyArray<RowAction>;
+};
+
+/** `o` and `O`: a new row below or above the row, in its section, by `onAddBeside`. */
+function addKeys(
   sections: ReadonlyArray<Rows>,
-  onAddBeside: ((section: string, row: WorkRow, isAbove?: boolean) => void) | undefined,
+  rows: ReadonlyArray<WorkRow>,
+  onAddBeside: (section: string, row: WorkRow, isAbove?: boolean) => void,
+): Array<BarKey> {
+  const adding = (isAbove: boolean) => (at: number) => {
+    const row = rows[at];
+    const section = sections.find((one) => one.rows.includes(row));
+    if (row === undefined || section === undefined) {
+      return false;
+    }
+    onAddBeside(section.id, row, isAbove);
+    return undefined;
+  };
+  return [
+    // Not the row's own: it adds another, so the status line names it, not the row's bar.
+    { hint: "o", keys: "o", label: "add below", run: adding(false) },
+    { keys: "O", label: "add above", run: adding(true) },
+  ];
+}
+
+/** Tab and Shift+Tab: the row indented or outdented in its outline, by `onOutline`. */
+function outlineKeys(
+  rows: ReadonlyArray<WorkRow>,
+  onOutline: (row: WorkRow, edit: "indent" | "outdent") => void,
+): Array<BarKey> {
+  const outlining = (edit: "indent" | "outdent") => (at: number) => {
+    const row = rows[at];
+    if (row === undefined || row.isFixed === true || row.isAdd === true) {
+      return false;
+    }
+    onOutline(row, edit);
+    return undefined;
+  };
+  return [
+    {
+      bar: { icon: "uraeda:indent", isFor: (row) => row.staysLine !== true, keys: "⇥" },
+      keys: "Tab",
+      label: "indent",
+      run: outlining("indent"),
+    },
+    {
+      bar: { icon: "uraeda:outdent", isFor: (row) => !isLine(row), keys: "⇧⇥" },
+      keys: "shift+Tab",
+      label: "outdent",
+      run: outlining("outdent"),
+    },
+  ];
+}
+
+/** `s`: the line selected, and started from, by `onStart`. */
+function startKey(
+  rows: ReadonlyArray<WorkRow>,
   select: (key: string) => void,
-  {
-    onDelete,
-    onMoveMode,
-    onOpen,
-    onOutline,
-    onPickSection,
-    onPromote,
-    onStart,
-    rowActions = [],
-  }: {
-    /** The list's own keys on a row, in its bar. */
-    rowActions?: ReadonlyArray<RowAction>;
-    /** What `m` calls where the list moves its rows: it puts the row in the move mode. */
-    onMoveMode?: ((row: WorkRow) => void) | undefined;
-    /** A key that moves a line to the section a picker chose. */
-    onPickSection?: SectionPicker | undefined;
-    /** What `d` calls once the human confirmed: it deletes the line. */
-    onDelete?: ((row: WorkRow) => void) | undefined;
-    /** What Enter does on a row, which its bar's `⏎ open` does too. */
-    onOpen?: ((row: WorkRow) => void) | undefined;
-    /** What Tab and Shift+Tab call: they indent and outdent the row in its outline. */
-    onOutline?: ((row: WorkRow, edit: "indent" | "outdent") => void) | undefined;
-    /** What `p` calls: it makes the line a draft; `false` says the row has nothing to promote. */
-    onPromote?: ((row: WorkRow) => boolean | void) | undefined;
-    /** What `s` calls: it starts from the line. */
-    onStart?: ((row: WorkRow) => void) | undefined;
-  } = {},
-) {
-  const confirm = useConfirm();
+  onStart: (row: WorkRow) => void,
+): BarKey {
+  return {
+    bar: { icon: "uraeda:arrow-right", isFor: isLine, keys: "s" },
+    keys: "s",
+    label: "start",
+    run: (at) => {
+      const row = rows[at];
+      if (row === undefined || row.isAdd === true) {
+        return false;
+      }
+      select(row.key);
+      onStart(row);
+      return undefined;
+    },
+  };
+}
+
+/** `p`: the line selected, and made a draft, by `onPromote`. */
+function promoteKey(
+  rows: ReadonlyArray<WorkRow>,
+  select: (key: string) => void,
+  onPromote: (row: WorkRow) => boolean | void,
+): BarKey {
+  return {
+    bar: { icon: "uraeda:file-pen-line", isFor: isLine, keys: "p" },
+    keys: "p",
+    label: "draft",
+    run: (at) => {
+      const row = rows[at];
+      if (row === undefined || row.isFixed === true) {
+        return false;
+      }
+      select(row.key);
+      return onPromote(row);
+    },
+  };
+}
+
+/** `d`: the line selected, and deleted by `onDelete` once the human confirmed it. */
+function deleteKey(
+  rows: ReadonlyArray<WorkRow>,
+  select: (key: string) => void,
+  onDelete: (row: WorkRow) => void,
+  confirm: ReturnType<typeof useConfirm>,
+): BarKey {
+  return {
+    bar: { icon: "uraeda:trash", keys: "d" },
+    keys: "d",
+    label: "delete",
+    run: (at) => {
+      const row = rows[at];
+      if (row === undefined || row.isFixed === true) {
+        return false;
+      }
+      select(row.key);
+      // The question takes `d` again for yes: `d d` deletes, as `y` does.
+      void confirm(deleteLine(row.text)).then((isConfirmed) => {
+        if (isConfirmed) {
+          onDelete(row);
+        }
+      });
+    },
+  };
+}
+
+/** The list's own keys on a row, `rowActions`, each on the rows it is for, which it selects. */
+function actionKeys(
+  rows: ReadonlyArray<WorkRow>,
+  select: (key: string) => void,
+  rowActions: ReadonlyArray<RowAction>,
+): Array<BarKey> {
+  return rowActions.map(({ icon, isFor, keys: key, label, run }) => ({
+    bar: { ...(icon === undefined ? {} : { icon }), ...(isFor ? { isFor } : {}), keys: key },
+    keys: key,
+    label,
+    run: (at) => {
+      const row = rows[at];
+      if (row === undefined || row.isFixed === true || !(isFor?.(row) ?? true)) {
+        return false;
+      }
+      select(row.key);
+      run(row);
+    },
+  }));
+}
+
+/** The picker's key: the line selected, and the sections to move it to picked from. */
+function pickerKey(
+  rows: ReadonlyArray<WorkRow>,
+  select: (key: string) => void,
+  { icon, keys: key, label, open }: SectionPicker,
+): BarKey {
+  return {
+    bar: { ...(icon === undefined ? {} : { icon }), isFor: isLine, keys: key },
+    keys: key,
+    label,
+    run: (at) => {
+      const row = rows[at];
+      if (row === undefined || row.isFixed === true || !isLine(row)) {
+        return false;
+      }
+      select(row.key);
+      open(row);
+    },
+  };
+}
+
+/** `m` where the list moves its rows: the row in the move mode, by `onMoveMode`. */
+function moveModeKey(rows: ReadonlyArray<WorkRow>, onMoveMode: (row: WorkRow) => void): BarKey {
+  return {
+    // No icon: the phone moves a row by dragging it, and the moves' keys are for a keyboard.
+    bar: { keys: "m" },
+    keys: "m",
+    label: "move",
+    run: (at) => {
+      const row = rows[at];
+      if (row === undefined || row.isFixed === true || row.isAdd === true) {
+        return false;
+      }
+      onMoveMode(row);
+    },
+  };
+}
+
+/**
+ * What the bar under `row` shows: the keys that act on it, in the bar's order. Enter first, which
+ * edits a row edited in place and opens any other; `m` puts it in the move mode, whose bar the
+ * list draws. A row that stays where it is only opens, and one that adds a line has no bar.
+ */
+function barOf(
+  row: WorkRow,
+  rows: ReadonlyArray<WorkRow>,
+  keys: ReadonlyArray<BarKey>,
+  onOpen: ((row: WorkRow) => void) | undefined,
+): ReadonlyArray<BarAction> {
+  const at = rows.findIndex((one) => one.key === row.key);
+  if (at === -1 || row.isAdd === true) {
+    return [];
+  }
+  const open: ReadonlyArray<BarAction> =
+    onOpen === undefined
+      ? []
+      : [
+          row.editsInPlace
+            ? { icon: "uraeda:pencil", keys: "⏎", label: "edit", run: () => onOpen(row) }
+            : { icon: "uraeda:enter", keys: "⏎", label: "open", run: () => onOpen(row) },
+        ];
+  if (row.isFixed === true) {
+    return open;
+  }
+  const own = keys
+    .filter((key) => key.bar !== undefined && (key.bar.isFor?.(row) ?? true))
+    .map((key) => ({
+      ...(key.bar?.icon === undefined ? {} : { icon: key.bar.icon }),
+      keys: key.bar?.keys ?? key.keys,
+      label: key.label,
+      order: key.keys,
+      run: () => void key.run(at),
+    }));
+  return [
+    ...open,
+    ...own
+      .sort((a, b) => BAR_ORDER.indexOf(a.order) - BAR_ORDER.indexOf(b.order))
+      .map(({ order: _, ...action }) => action),
+  ];
+}
+
+/**
+ * The state the row keys set, as `Card` reads it: which card is edited, and whether its editor
+ * holds unsaved text; which card's menu is open, and which one a key opened; and the key of a line
+ * just saved in its card, until the list took the focus to it (`onRefocused`).
+ */
+function useRowState(rows: ReadonlyArray<WorkRow>, select: (key: string) => void) {
   const [editing, setEditing] = useState<string>();
   const [menu, setMenu] = useState<string>();
   const [keyed, setKeyed] = useState<string>();
@@ -91,7 +298,6 @@ export function useRowKeys(
   const onRefocused = useCallback(() => setRenamed(undefined), []);
   // Whether the editor open holds unsaved text.
   const [isDirty, setDirty] = useState(false);
-  const rows = sections.flatMap((section) => section.rows);
   // A card that left the list, renamed or deleted, takes its editor and its menu with it.
   const isShown = (key: string | undefined) => rows.some((row) => row.key === key);
   if (editing !== undefined && !isShown(editing)) {
@@ -119,64 +325,43 @@ export function useRowKeys(
       setRenamed(key);
     },
   };
+  return { editing, isDirty, keyed, onRefocused, renamed, setEditing, setKeyed, setMenu, state };
+}
 
-  const keys: Array<BarKey> = [];
-  if (onAddBeside !== undefined) {
-    const adding = (isAbove: boolean) => (at: number) => {
-      const row = rows[at];
-      const section = sections.find((one) => one.rows.includes(row));
-      if (row === undefined || section === undefined) {
-        return false;
-      }
-      onAddBeside(section.id, row, isAbove);
-      return undefined;
-    };
-    keys.push(
-      // Not the row's own: it adds another, so the status line names it, not the row's bar.
-      { hint: "o", keys: "o", label: "add below", run: adding(false) },
-      { keys: "O", label: "add above", run: adding(true) },
-    );
-  }
-  if (onOutline !== undefined) {
-    const outlining = (edit: "indent" | "outdent") => (at: number) => {
-      const row = rows[at];
-      if (row === undefined || row.isFixed === true || row.isAdd === true) {
-        return false;
-      }
-      onOutline(row, edit);
-      return undefined;
-    };
-    keys.push(
-      {
-        bar: { icon: "uraeda:indent", isFor: (row) => row.staysLine !== true, keys: "⇥" },
-        keys: "Tab",
-        label: "indent",
-        run: outlining("indent"),
-      },
-      {
-        bar: { icon: "uraeda:outdent", isFor: (row) => !isLine(row), keys: "⇧⇥" },
-        keys: "shift+Tab",
-        label: "outdent",
-        run: outlining("outdent"),
-      },
-    );
-  }
-  if (onStart !== undefined) {
-    keys.push({
-      bar: { icon: "uraeda:arrow-right", isFor: isLine, keys: "s" },
-      keys: "s",
-      label: "start",
-      run: (at) => {
-        const row = rows[at];
-        if (row === undefined || row.isAdd === true) {
-          return false;
-        }
-        select(row.key);
-        onStart(row);
-        return undefined;
-      },
-    });
-  }
+/**
+ * The row keys of a list whose `sections` are in the order they show, and the state they set.
+ * `onAddBeside(section, row)` is given by a list that adds in a place: its `o`. `i` does nothing
+ * while another card's editor holds unsaved text (R83). `i` and `m` select
+ * their row, so the focus has a card to return to, though a Tab put it there. `held` is the key of
+ * the card whose editor or key-opened menu holds the focus, until it closes: the list takes the focus
+ * back to the selected card then. `renamed` is the key of a line just saved in its card, until the
+ * list took the focus to it (`onRefocused`): its key changed with its text, so it is a new card.
+ */
+export function useRowKeys(
+  sections: ReadonlyArray<Rows>,
+  onAddBeside: ((section: string, row: WorkRow, isAbove?: boolean) => void) | undefined,
+  select: (key: string) => void,
+  {
+    onDelete,
+    onMoveMode,
+    onOpen,
+    onOutline,
+    onPickSection,
+    onPromote,
+    onStart,
+    rowActions = [],
+  }: RowHandlers = {},
+) {
+  const confirm = useConfirm();
+  const rows = sections.flatMap((section) => section.rows);
+  const { editing, isDirty, keyed, onRefocused, renamed, setEditing, setKeyed, setMenu, state } =
+    useRowState(rows, select);
+
+  const keys: Array<BarKey> = [
+    ...(onAddBeside === undefined ? [] : addKeys(sections, rows, onAddBeside)),
+    ...(onOutline === undefined ? [] : outlineKeys(rows, onOutline)),
+    ...(onStart === undefined ? [] : [startKey(rows, select, onStart)]),
+  ];
   if (rows.some((row) => row.editor !== undefined)) {
     keys.push({
       // Not in the bar: Enter edits a row edited in place, and the bar names Enter.
@@ -193,88 +378,16 @@ export function useRowKeys(
       },
     });
   }
-  if (onPromote !== undefined) {
-    keys.push({
-      bar: { icon: "uraeda:file-pen-line", isFor: isLine, keys: "p" },
-      keys: "p",
-      label: "draft",
-      run: (at) => {
-        const row = rows[at];
-        if (row === undefined || row.isFixed === true) {
-          return false;
-        }
-        select(row.key);
-        return onPromote(row);
-      },
-    });
-  }
-  if (onDelete !== undefined) {
-    keys.push({
-      bar: { icon: "uraeda:trash", keys: "d" },
-      keys: "d",
-      label: "delete",
-      run: (at) => {
-        const row = rows[at];
-        if (row === undefined || row.isFixed === true) {
-          return false;
-        }
-        select(row.key);
-        // The question takes `d` again for yes: `d d` deletes, as `y` does.
-        void confirm(deleteLine(row.text)).then((isConfirmed) => {
-          if (isConfirmed) {
-            onDelete(row);
-          }
-        });
-      },
-    });
-  }
-  for (const { icon, isFor, keys: key, label, run } of rowActions) {
-    keys.push({
-      bar: { ...(icon === undefined ? {} : { icon }), ...(isFor ? { isFor } : {}), keys: key },
-      keys: key,
-      label,
-      run: (at) => {
-        const row = rows[at];
-        if (row === undefined || row.isFixed === true || !(isFor?.(row) ?? true)) {
-          return false;
-        }
-        select(row.key);
-        run(row);
-      },
-    });
-  }
-  if (onPickSection !== undefined) {
-    const { icon, keys: key, label, open } = onPickSection;
-    keys.push({
-      bar: { ...(icon === undefined ? {} : { icon }), isFor: isLine, keys: key },
-      keys: key,
-      label,
-      run: (at) => {
-        const row = rows[at];
-        if (row === undefined || row.isFixed === true || !isLine(row)) {
-          return false;
-        }
-        select(row.key);
-        open(row);
-      },
-    });
-  }
+  keys.push(
+    ...(onPromote === undefined ? [] : [promoteKey(rows, select, onPromote)]),
+    ...(onDelete === undefined ? [] : [deleteKey(rows, select, onDelete, confirm)]),
+    ...actionKeys(rows, select, rowActions),
+    ...(onPickSection === undefined ? [] : [pickerKey(rows, select, onPickSection)]),
+  );
   // With item moves, `m` puts the row in the move mode, whose keys move it (`useListKeys`); else it
   // opens the card's menu.
   if (onMoveMode !== undefined) {
-    keys.push({
-      // No icon: the phone moves a row by dragging it, and the moves' keys are for a keyboard.
-      bar: { keys: "m" },
-      keys: "m",
-      label: "move",
-      run: (at) => {
-        const row = rows[at];
-        if (row === undefined || row.isFixed === true || row.isAdd === true) {
-          return false;
-        }
-        onMoveMode(row);
-      },
-    });
+    keys.push(moveModeKey(rows, onMoveMode));
   } else if (rows.some((row) => row.menu !== undefined)) {
     keys.push({
       bar: { isFor: (row) => row.menu !== undefined, keys: "m" },
@@ -304,43 +417,13 @@ export function useRowKeys(
     return true;
   };
 
-  /**
-   * What the bar under `row` shows: the keys that act on it, in the bar's order. Enter first, which
-   * edits a row edited in place and opens any other; `m` puts it in the move mode, whose bar the
-   * list draws. A row that stays where it is only opens, and one that adds a line has no bar.
-   */
-  const barOf = (row: WorkRow): ReadonlyArray<BarAction> => {
-    const at = rows.findIndex((one) => one.key === row.key);
-    if (at === -1 || row.isAdd === true) {
-      return [];
-    }
-    const open: ReadonlyArray<BarAction> =
-      onOpen === undefined
-        ? []
-        : [
-            row.editsInPlace
-              ? { icon: "uraeda:pencil", keys: "⏎", label: "edit", run: () => onOpen(row) }
-              : { icon: "uraeda:enter", keys: "⏎", label: "open", run: () => onOpen(row) },
-          ];
-    if (row.isFixed === true) {
-      return open;
-    }
-    const own = keys
-      .filter((key) => key.bar !== undefined && (key.bar.isFor?.(row) ?? true))
-      .map((key) => ({
-        ...(key.bar?.icon === undefined ? {} : { icon: key.bar.icon }),
-        keys: key.bar?.keys ?? key.keys,
-        label: key.label,
-        order: key.keys,
-        run: () => void key.run(at),
-      }));
-    return [
-      ...open,
-      ...own
-        .sort((a, b) => BAR_ORDER.indexOf(a.order) - BAR_ORDER.indexOf(b.order))
-        .map(({ order: _, ...action }) => action),
-    ];
+  return {
+    barOf: (row: WorkRow) => barOf(row, rows, keys, onOpen),
+    edit,
+    held: editing ?? keyed,
+    keys,
+    onRefocused,
+    renamed,
+    state,
   };
-
-  return { barOf, edit, held: editing ?? keyed, keys, onRefocused, renamed, state };
 }

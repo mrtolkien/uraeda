@@ -14,8 +14,9 @@ import {
   PointerSensor,
 } from "@dnd-kit/react";
 import { Accessibility, PointerActivationConstraints } from "@dnd-kit/dom";
-import { type ComponentProps, useRef, useState } from "react";
+import { type ComponentProps, type RefObject, useRef, useState } from "react";
 import { type Order, spotOf } from "../drop.ts";
+import { frameOf, landingOf, sidewaysOf, snapTo } from "./dragDepth.ts";
 
 /**
  * A row as a drag sees it: its depth and its line, none for a line, and whether nothing nests
@@ -61,12 +62,6 @@ export type Dropped = { depth: number; index: number; parent?: string; section: 
 
 /** A drop: resolves once written, `false` when it was refused. */
 export type OnDrop = (row: string, to: Dropped) => Promise<boolean | void> | boolean | void;
-
-/** How far a depth is tabbed in: a nested row's padding (see `Card`), in rem. */
-const INDENT_REM = 1.5;
-
-/** How far a depth is tabbed in, in pixels, at the page's font size. */
-const tabOf = () => parseFloat(getComputedStyle(document.documentElement).fontSize) * INDENT_REM;
 
 /**
  * Where a drop placed a row until the file has it: its depth, and its line, for a nested row.
@@ -195,10 +190,6 @@ function plugins(announcements: ReturnType<typeof announcer>): PluginsOf {
   ];
 }
 
-/** The row of a dragged element, the frame it draws in: what is tabbed to the depth it would land at. */
-const frameOf = (element: Element | undefined) =>
-  element?.querySelector<HTMLElement>(":scope > [data-row-frame]") ?? undefined;
-
 /**
  * A drag as it started: the drop it calls, the order it found, and the dragged row's depth, the
  * left of its text's frame on screen, and its nested rows.
@@ -211,114 +202,86 @@ type Start = {
   order: Order;
 };
 
+/** The rows of the sections, by key. */
+type Rows = ReadonlyMap<string, DragRow>;
+
 /**
- * A drag of a row: the sections as the drag found them, held until its move is written, each
- * section's keys in the order dragged, the depths a drop changed until then, and the provider's
- * props. A drop calls the `onDrop` of the sections it started from, so the move is written over the
- * version the drag saw. With `canNest`, the row lands at the depth it is dragged to sideways.
+ * A drag of `key` as it starts in `live`, with the drop it calls and its `element`: the rows nested
+ * under it go with it, out of the list until it is dropped.
  */
-export function useDragOrder<Section extends DragSection>(
-  live: ReadonlyArray<Section>,
+function startOf(
+  live: ReadonlyArray<DragSection>,
+  key: string,
+  depthOf: (key: string) => number,
   onDrop: OnDrop | undefined,
-  canNest: boolean,
+  element: Element | undefined,
+): Start {
+  const found = orderOf(live);
+  const spot = spotOf(found, key);
+  const nested = spot ? nestedAfter(found[spot.section], key, depthOf) : [];
+  const order = spot
+    ? {
+        ...found,
+        [spot.section]: found[spot.section].filter((other) => !nested.includes(other)),
+      }
+    : found;
+  const left = frameOf(element)?.getBoundingClientRect().left ?? 0;
+  return { depth: depthOf(key), left, nested, onDrop, order };
+}
+
+/**
+ * Where a drop at `to` put `key` until it is written, from the drag's `start` and the order `now`
+ * it was dropped in: its nested rows back under it, each as deep as it is under it, under the line
+ * it went to.
+ */
+function placedBy(start: Start, now: Order | undefined, key: string, to: Dropped, rows: Rows) {
+  const depthOf = (one: string) => rows.get(one)?.depth ?? 0;
+  const shift = to.depth - start.depth;
+  const keys = now?.[to.section] ?? [];
+  const at = keys.indexOf(key) + 1;
+  const line = to.parent === undefined ? key : (rows.get(to.parent)?.parent ?? to.parent);
+  return {
+    order: { ...now, [to.section]: [...keys.slice(0, at), ...start.nested, ...keys.slice(at)] },
+    placed: new Map<string, Placed>([
+      [key, { depth: to.depth, ...(to.parent === undefined ? {} : { parent: line }) }],
+      ...start.nested.map((one) => [one, { depth: depthOf(one) + shift, parent: line }] as const),
+    ]),
+  };
+}
+
+/**
+ * The provider's handlers of the pointer during a drag of `rows`, by key, and the depth a row lands
+ * at: over a new place, the order dragged, `after`, which it sets; sideways, the depth it asks for,
+ * `wanted`, from how far it went, `sideways`, against where it started, `before`.
+ */
+function useDragPointer(
+  {
+    canNest,
+    rows,
+    setDragged,
+  }: {
+    canNest: boolean;
+    rows: Rows;
+    setDragged: (order: Order | undefined) => void;
+  },
+  {
+    after,
+    before,
+    sideways,
+    wanted,
+  }: {
+    after: RefObject<Order | undefined>;
+    before: RefObject<Start | undefined>;
+    sideways: RefObject<number>;
+    wanted: RefObject<number>;
+  },
 ) {
-  const [held, setHeld] = useState<ReadonlyArray<Section>>();
-  const [dragged, setDragged] = useState<Order>();
-  const [placed, setPlaced] = useState<ReadonlyMap<string, Placed>>(new Map());
-  const before = useRef<Start>(undefined);
-  const after = useRef<Order>(undefined);
-  // The depth the pointer asks for, sideways: the row lands at the nearest its neighbours allow.
-  const wanted = useRef(0);
-  // Which drag is the last one: a drag's end lets the list go only if no other started since.
-  const drags = useRef(0);
-  const sections = held ?? live;
-  const order = dragged ?? orderOf(sections);
-  const rows = new Map(sections.flatMap((section) => section.rows.map((row) => [row.key, row])));
-  const depthOf = (key: string) => rows.get(key)?.depth ?? 0;
-
-  /**
-   * The depth `key` lands at in `now` when dragged to `depth`: at most one deeper than the row
-   * above it, never under a row that stays as it is, and at least as deep as the row below it.
-   */
-  const landing = (now: Order, key: string, depth: number) => {
-    const spot = spotOf(now, key);
-    if (!spot || !canNest) {
-      return before.current?.depth ?? 0;
-    }
-    const keys = now[spot.section];
-    const above = keys[spot.index - 1];
-    const below = keys[spot.index + 1];
-    // A line that stays one, as a line with a draft, lands as a line wherever it goes.
-    if (rows.get(key)?.staysLine) {
-      return 0;
-    }
-    const deepest = above === undefined ? 0 : depthOf(above) + (rows.get(above)?.isFixed ? 0 : 1);
-    const least = below === undefined ? 0 : Math.min(depthOf(below), deepest);
-    return Math.max(least, Math.min(deepest, depth));
-  };
-
+  /** The depth `key` lands at in `now` when dragged to `depth` (see `landingOf`). */
+  const landing = (now: Order, key: string, depth: number) =>
+    landingOf({ canNest, from: before.current?.depth, rows }, now, key, depth);
   /** Draws the dragged row tabbed to where it lands, under the pointer `by` sideways. */
-  const snap = (element: Element | undefined, depth: number, by: number) => {
-    const frame = frameOf(element);
-    const list = document.querySelector("[data-dnd-placeholder]")?.closest("ul");
-    if (!frame || !list || !canNest) {
-      return;
-    }
-    const left = list.getBoundingClientRect().left;
-    const at = (before.current?.left ?? left) + by;
-    frame.style.translate = `${left + depth * tabOf() - at}px 0`;
-  };
-  // How far sideways the pointer went, as last seen.
-  const sideways = useRef(0);
-
-  const release = (drag: number) => {
-    if (drag !== drags.current) {
-      return;
-    }
-    before.current = undefined;
-    after.current = undefined;
-    setDragged(undefined);
-    setHeld(undefined);
-    setPlaced(new Map());
-  };
-
-  const onDragEnd = async (event: DragEndEvent) => {
-    const drag = drags.current;
-    const start = before.current;
-    const key = String(event.operation.source?.id ?? "");
-    const frame = frameOf(event.operation.source?.element);
-    if (frame) {
-      frame.style.translate = "";
-    }
-    const now = after.current;
-    const to =
-      start && !event.canceled && now
-        ? droppedAt(now, key, landing(now, key, wanted.current), depthOf)
-        : undefined;
-    if (start?.onDrop && to && !isSame(droppedAt(start.order, key, start.depth, depthOf), to)) {
-      // Where it was dropped until written: its nested rows back under it, each as deep as it is
-      // under it, under the line it went to.
-      const shift = to.depth - start.depth;
-      const keys = now?.[to.section] ?? [];
-      const at = keys.indexOf(key) + 1;
-      setDragged({
-        ...now,
-        [to.section]: [...keys.slice(0, at), ...start.nested, ...keys.slice(at)],
-      });
-      const line = to.parent === undefined ? key : (rows.get(to.parent)?.parent ?? to.parent);
-      setPlaced(
-        new Map([
-          [key, { depth: to.depth, ...(to.parent === undefined ? {} : { parent: line }) }],
-          ...start.nested.map(
-            (one) => [one, { depth: depthOf(one) + shift, parent: line }] as const,
-          ),
-        ]),
-      );
-      // A write that throws lets the list go too: what it showed ahead of the file goes.
-      await Promise.resolve(start.onDrop(key, to)).catch(() => undefined);
-    }
-    release(drag);
-  };
+  const snap = (element: Element | undefined, depth: number, by: number) =>
+    snapTo(element, depth, by, before.current?.left, canNest);
 
   const onDragOver = (event: DragOverEvent, manager: DragDropManager) => {
     if (!after.current) {
@@ -345,46 +308,135 @@ export function useDragOrder<Section extends DragSection>(
     if (!canNest || !after.current || !list) {
       return;
     }
-    // Where its row is: where it started, as far sideways as the pointer goes, which the operation
-    // has not taken in yet.
-    const { position } = manager.dragOperation;
-    sideways.current = (event.to?.x ?? position.current.x) - position.initial.x;
-    const left = list.getBoundingClientRect().left;
-    const at = (before.current?.left ?? left) + sideways.current;
-    wanted.current = Math.round((at - left) / tabOf());
+    const pointer = sidewaysOf(event, manager, list, before.current?.left);
+    sideways.current = pointer.sideways;
+    wanted.current = pointer.wanted;
     const key = String(source?.id ?? "");
     snap(source?.element, landing(after.current, key, wanted.current), sideways.current);
+  };
+
+  return { landing, onDragMove, onDragOver };
+}
+
+/**
+ * The provider's handlers of a drag of the `live` sections' rows, `rows` by key, with the state
+ * they set: the sections held, the order dragged, and the depths a drop changed until written.
+ * `after` is the order as the drag left it.
+ */
+function useDragEvents<Section extends DragSection>(
+  {
+    canNest,
+    live,
+    onDrop,
+    rows,
+  }: {
+    canNest: boolean;
+    live: ReadonlyArray<Section>;
+    onDrop: OnDrop | undefined;
+    rows: Rows;
+  },
+  {
+    setDragged,
+    setHeld,
+    setPlaced,
+  }: {
+    setDragged: (order: Order | undefined) => void;
+    setHeld: (sections: ReadonlyArray<Section> | undefined) => void;
+    setPlaced: (placed: ReadonlyMap<string, Placed>) => void;
+  },
+) {
+  const before = useRef<Start>(undefined);
+  const after = useRef<Order>(undefined);
+  // The depth the pointer asks for, sideways: the row lands at the nearest its neighbours allow.
+  const wanted = useRef(0);
+  // Which drag is the last one: a drag's end lets the list go only if no other started since.
+  const drags = useRef(0);
+  // How far sideways the pointer went, as last seen.
+  const sideways = useRef(0);
+  const depthOf = (key: string) => rows.get(key)?.depth ?? 0;
+  const { landing, onDragMove, onDragOver } = useDragPointer(
+    { canNest, rows, setDragged },
+    { after, before, sideways, wanted },
+  );
+
+  const release = (drag: number) => {
+    if (drag !== drags.current) {
+      return;
+    }
+    before.current = undefined;
+    after.current = undefined;
+    setDragged(undefined);
+    setHeld(undefined);
+    setPlaced(new Map());
+  };
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    const drag = drags.current;
+    const start = before.current;
+    const key = String(event.operation.source?.id ?? "");
+    const frame = frameOf(event.operation.source?.element);
+    if (frame) {
+      frame.style.translate = "";
+    }
+    const now = after.current;
+    const to =
+      start && !event.canceled && now
+        ? droppedAt(now, key, landing(now, key, wanted.current), depthOf)
+        : undefined;
+    if (start?.onDrop && to && !isSame(droppedAt(start.order, key, start.depth, depthOf), to)) {
+      const shown = placedBy(start, now, key, to, rows);
+      setDragged(shown.order);
+      setPlaced(shown.placed);
+      // A write that throws lets the list go too: what it showed ahead of the file goes.
+      await Promise.resolve(start.onDrop(key, to)).catch(() => undefined);
+    }
+    release(drag);
   };
 
   const onDragStart = (event: DragStartEvent) => {
     drags.current += 1;
     const key = String(event.operation.source?.id ?? "");
-    const found = orderOf(live);
-    const spot = spotOf(found, key);
-    // The rows nested under it go with it: out of the list until it is dropped.
-    const nested = spot ? nestedAfter(found[spot.section], key, depthOf) : [];
-    const order = spot
-      ? {
-          ...found,
-          [spot.section]: found[spot.section].filter((other) => !nested.includes(other)),
-        }
-      : found;
+    const start = startOf(live, key, depthOf, onDrop, event.operation.source?.element);
     wanted.current = depthOf(key);
     sideways.current = 0;
-    const left = frameOf(event.operation.source?.element)?.getBoundingClientRect().left ?? 0;
-    before.current = { depth: depthOf(key), left, nested, onDrop, order };
-    after.current = order;
+    before.current = start;
+    after.current = start.order;
     setHeld(live);
-    setDragged(order);
+    setDragged(start.order);
   };
 
+  return { after, onDragEnd, onDragMove, onDragOver, onDragStart };
+}
+
+/**
+ * A drag of a row: the sections as the drag found them, held until its move is written, each
+ * section's keys in the order dragged, the depths a drop changed until then, and the provider's
+ * props. A drop calls the `onDrop` of the sections it started from, so the move is written over the
+ * version the drag saw. With `canNest`, the row lands at the depth it is dragged to sideways.
+ */
+export function useDragOrder<Section extends DragSection>(
+  live: ReadonlyArray<Section>,
+  onDrop: OnDrop | undefined,
+  canNest: boolean,
+) {
+  const [held, setHeld] = useState<ReadonlyArray<Section>>();
+  const [dragged, setDragged] = useState<Order>();
+  const [placed, setPlaced] = useState<ReadonlyMap<string, Placed>>(new Map());
+  const sections = held ?? live;
+  const order = dragged ?? orderOf(sections);
+  const rows = new Map(sections.flatMap((section) => section.rows.map((row) => [row.key, row])));
+  const { after, onDragEnd, onDragMove, onDragOver, onDragStart } = useDragEvents(
+    { canNest, live, onDrop, rows },
+    { setDragged, setHeld, setPlaced },
+  );
+
   const titles = new Map(sections.map((section) => [section.id, section.title] as const));
-  // oxlint-disable-next-line react/refs -- before the code quality decision: read by the announcer's callbacks during a drag, not while rendering
+  // Read by the announcer's callbacks during a drag, not while rendering.
   const announcements = announcer(() => ({ order: after.current ?? order, titles }));
   return {
     isDragging: dragged !== undefined,
-    placed,
     order,
+    placed,
     provider: {
       onDragEnd: (event: DragEndEvent) => void onDragEnd(event),
       onDragMove,
