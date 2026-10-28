@@ -16,8 +16,8 @@ lint tells it.
   with no global stylesheet or inline styles. Checked by lint.
 - Drag and drop MUST use `@dnd-kit/react`. Checked by review.
 - Astryx, StyleX, and `@dnd-kit/react` MUST be pinned to exact versions. Checked by review.
-- A raw element MAY stand in for a missing Astryx component, with a reason, and the plan MUST list
-  it as an Astryx gap. Checked by lint and review.
+- A raw element MAY stand in where no Astryx component fits the job, with its reason in a comment,
+  and the plan MUST list it as an Astryx gap. Checked by lint and review.
 
 ## Why
 
@@ -33,6 +33,8 @@ choice for dragging on touch screens in React 19
 - A global stylesheet in tokens beside Astryx: two ways to style, and nothing checks the global
   file.
 - A hand-written pointer drag: no dependency, but nothing moves under the finger.
+- Astryx alone, with no component of Uraeda's own: the phone's glass bars, the status line's hints,
+  and the outliner's field have no Astryx component, so Uraeda draws them.
 
 ## Consequences
 
