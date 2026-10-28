@@ -1,6 +1,6 @@
-// The Review tab of the spec's and the plan's column, and the phone's Review sheet: the pending
-// comments by their places, a tap bringing each one's block to the top, a general comment, and the
-// verdict's buttons, which commit what the page's end set: a spec's risk tier and plan review.
+// The phone's Review sheet of the spec's and the plan's page: the pending comments by their places,
+// a tap bringing each one's block to the top, a general comment, and the way to the verdict, which
+// is at the page's end only.
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -9,17 +9,13 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { use } from "react";
 import type { CommentItem, Document } from "uraeda-binding";
-import { StatusText } from "../fields/StatusText.tsx";
 import type { Review } from "../review/useReview.tsx";
 import { commentId, where } from "../ReviewComments.tsx";
 import { holderOf } from "../reviewField.ts";
 import { linesMark, sideMark } from "../Selection.tsx";
-import { toVerdict, useVerdict, VERDICT_ID, VerdictNotices, Verdicts } from "../ReviewVerdict.tsx";
-import { ReviewImagesContext } from "../useReviewImages.ts";
-import type { File } from "./parts.ts";
-import { ColumnVerdict, useColumnGo } from "./columnGo.ts";
+import { toVerdict, VERDICT_ID } from "../ReviewVerdict.tsx";
+import { useColumnGo } from "./columnGo.ts";
 import { commentsLabel } from "./CommentCount.tsx";
 import { GENERAL_ID } from "../YourReview.tsx";
 
@@ -111,17 +107,12 @@ function Comments({ comments, tree }: { comments: ReadonlyArray<CommentItem>; tr
 }
 
 /**
- * The Review tab: the comments, "General comment", what holds the verdict back, its buttons, the
- * review's message, and where the rest of the verdict is.
+ * The Review sheet: the comments, "General comment", and where the verdict is, the page's end: the
+ * sheet repeats none of it.
  */
-export function ReviewTab({ file, review }: { file: File; review: Review }) {
+export function ReviewTab({ review }: { review: Review }) {
   const go = useColumnGo();
-  const commit = use(ColumnVerdict);
-  const images = use(ReviewImagesContext);
-  const { choices, comments, container, refusals } = review;
-  const { retry, verdict } = useVerdict(file, choices, refusals);
-  const hold = images?.hold;
-  const { error, message } = refusals;
+  const { comments, container } = review;
   return (
     <VStack gap={3}>
       <Summary count={comments.length} />
@@ -140,34 +131,20 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
           }
         />
       </HStack>
-      <VerdictNotices error={error} file={file} retry={retry} />
-      <Verdicts
-        comments={comments.length}
-        file={file}
-        onVerdict={async (approve, next) =>
-          hold?.() ? false : commit(() => verdict(approve, next))
-        }
-      />
-      {message && !images?.hides?.(message) && (
-        <StatusText tone={message.ok ? "saved" : "error"}>{message.text}</StatusText>
-      )}
-      {/* A plan's end holds nothing more than its verdict: no risk tier and no plan review. */}
-      {file.kind === "spec" && (
-        <Text color="secondary" type="supporting">
-          Risk tier and plan review are with the verdict at{" "}
-          <Link
-            hasUnderline
-            href={`#${VERDICT_ID}`}
-            onClick={(event: React.MouseEvent) => {
-              event.preventDefault();
-              go(toVerdict);
-            }}
-          >
-            the page&apos;s end
-          </Link>
-          .
-        </Text>
-      )}
+      <Text color="secondary" type="supporting">
+        Your verdict is at{" "}
+        <Link
+          hasUnderline
+          href={`#${VERDICT_ID}`}
+          onClick={(event: React.MouseEvent) => {
+            event.preventDefault();
+            go(toVerdict);
+          }}
+        >
+          the page&apos;s end
+        </Link>
+        .
+      </Text>
     </VStack>
   );
 }
