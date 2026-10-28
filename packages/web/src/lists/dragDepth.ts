@@ -2,6 +2,7 @@
 // a level, the depth its neighbours allow, and its frame drawn tabbed to it under the pointer.
 import type { DragDropManager, DragMoveEvent } from "@dnd-kit/react";
 import { type Order, spotOf } from "../drop.ts";
+import { depthByKey } from "./nesting.ts";
 
 /** A row as its landing sees it: its depth, and whether nothing nests under it. */
 type Landed = { depth?: number; isFixed?: boolean; staysLine?: boolean };
@@ -37,7 +38,7 @@ export function landingOf(
   if (!spot || !canNest) {
     return from ?? 0;
   }
-  const depthOf = (one: string) => rows.get(one)?.depth ?? 0;
+  const depthOf = depthByKey(rows);
   const keys = now[spot.section];
   const above = keys[spot.index - 1];
   const below = keys[spot.index + 1];

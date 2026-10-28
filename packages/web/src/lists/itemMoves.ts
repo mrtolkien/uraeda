@@ -2,6 +2,7 @@
 // place up or down, past a section's edge to the end of the section before it or the start of the
 // one after it; `H` and `L` to the end of the previous or next section that takes drops; a pick of
 // a section, `to:<id>`, to its end. The result is what `onMove` is called with (see `useDragOrder`).
+import { runEnd } from "./nesting.ts";
 import type { ItemMove } from "./useListKeys.ts";
 
 /**
@@ -80,8 +81,9 @@ export function withMoves(
       continue;
     }
     const at = from.indexOf(key);
-    const end = from.findIndex((one, index) => index > at && rowOf(one).parent !== key);
-    const moved = from.splice(at, (end === -1 ? from.length : end) - at);
+    // The line with its nested rows, which name it their line.
+    const end = runEnd(from, at, (one) => rowOf(one).parent === key);
+    const moved = from.splice(at, end - at);
     // Before the line now at its place, or at the section's end.
     const before = into.filter((one) => rowOf(one).parent === undefined)[target.index];
     into.splice(before === undefined ? into.length : into.indexOf(before), 0, ...moved);

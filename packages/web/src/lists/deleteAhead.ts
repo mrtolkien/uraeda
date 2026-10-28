@@ -2,7 +2,7 @@
 // `WorkList`).
 import { type Dispatch, type SetStateAction, useState } from "react";
 import type { WorkRow } from "./Card.tsx";
-import { ancestorsOf, nestedUnder, withNested } from "./useShown.ts";
+import { ancestorsAt, nestedRowsEnd, withNested } from "./nesting.ts";
 import type { WorkSection } from "./workSection.ts";
 
 /**
@@ -23,7 +23,7 @@ export function useGone(sections: ReadonlyArray<WorkSection>) {
   const without = (rows: ReadonlyArray<WorkRow>) =>
     rows.filter(
       (row, at) =>
-        !gone.has(row.key) && !ancestorsOf(rows, at).some((above) => gone.has(above.key)),
+        !gone.has(row.key) && !ancestorsAt(rows, at, 1).some((above) => gone.has(above.key)),
     );
   const kept =
     gone.size === 0
@@ -54,7 +54,7 @@ export function deleteAheadOf(
     const lines = section?.rows.filter((other) => !other.isAdd) ?? [];
     const at = lines.findIndex((other) => other.key === row.key);
     // The row after it and its nested rows, which go with it, or else the one before it.
-    const after = at + 1 + nestedUnder(lines, lines[at]).length;
+    const after = nestedRowsEnd(lines, at);
     const next = lines[after] ?? lines[at - 1] ?? section?.rows.find((other) => other.isAdd);
     setGone((before) => new Set([...before, row.key]));
     if (next) {
