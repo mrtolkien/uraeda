@@ -9,7 +9,7 @@ use crate::output;
 
 #[derive(Subcommand)]
 pub enum Command {
-    /// Delete the images of drafts and of the backlog that no file of their folder links
+    /// Delete the images of proposal files and of note files that no file of their folder links
     Clean {
         /// Print what would be deleted, and delete nothing
         #[arg(long)]

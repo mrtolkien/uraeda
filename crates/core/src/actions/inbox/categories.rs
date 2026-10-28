@@ -2,7 +2,7 @@
 
 use crate::files::inbox::{self, Inbox, categories};
 
-use super::{ActionError, Place, apply};
+use super::{ActionError, Place, apply, note_file, read};
 
 const NO_NAME: &str = "A category needs a name.";
 
@@ -103,11 +103,20 @@ pub fn remove_category(
         current.clone_into(&mut before);
         Ok(categories::remove_category(current, name, keep_notes))
     })?;
+    // The notes removed with the category take their note files, which a restore brings back.
+    let after = std::fs::read_to_string(place.root.join(super::PATH)).unwrap_or_default();
+    if note_file::remove_left(place, &before, &after, note_file::Lost::Nothing)? {
+        return Ok((read(place), before));
+    }
     Ok((inbox, before))
 }
 
 /// Writes `before`, the file as a delete found it, back, only when the file still is what the
 /// delete wrote: `previous` is its hash.
 pub fn restore_category(place: &Place, before: &str, previous: &str) -> Result<Inbox, ActionError> {
-    apply(place, Some(previous), |_| Some(before.to_string()), NO_NAME)
+    let inbox = apply(place, Some(previous), |_| Some(before.to_string()), NO_NAME)?;
+    if note_file::restore_all(place, before)? {
+        return Ok(read(place));
+    }
+    Ok(inbox)
 }

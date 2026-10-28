@@ -314,12 +314,12 @@ fn a_blank_note_creates_no_worktree() {
     assert!(!repo.exists(".worktrees/main"));
 }
 
-/// `--about` names a feature or a change, never a draft.
+/// `--about` names a feature or a change, never a proposal file.
 #[test]
-fn an_about_naming_a_draft_is_refused() {
+fn an_about_naming_a_proposal_file_is_refused() {
     let repo = repo();
-    repo.write("specs/drafts/idea.md", "# Idea\n");
-    repo.commit("chore: draft an idea");
+    repo.write("specs/proposals/idea.md", "# Idea\n");
+    repo.commit("chore: expand an idea");
 
     let output = note(&repo, &["A note", "--about", "idea"]);
 

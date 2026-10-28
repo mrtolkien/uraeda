@@ -12,7 +12,7 @@ mod outline;
 mod read;
 
 pub use diff::{NoteChange, diff};
-pub use found::{ids_of_lines, of_lines};
+pub use found::{file_of_lines, ids_of_lines, of_lines};
 pub use outline::{Drop, drop_item, outline};
 pub use read::{Inbox, InboxCategory, InboxNote, read};
 
@@ -43,13 +43,13 @@ pub struct Note {
 }
 
 impl Note {
-    /// The draft or backlog file its whole text links, from the top level: a note that is a draft
-    /// already. `None` for a link to any other file.
-    pub fn draft(&self) -> Option<String> {
+    /// Its note file: the file of `specs/notes/` its whole text links, from the top level. `None`
+    /// for a link to any other file, a proposal file among them: that link is only its text.
+    pub fn file(&self) -> Option<String> {
         self.link
             .as_deref()
             .and_then(|link| crate::workspace::resolve("specs", link))
-            .filter(|path| crate::target::is_draft(path))
+            .filter(|path| crate::target::is_note_file(path))
     }
 }
 
@@ -329,9 +329,10 @@ pub fn unmarked_lines(text: &str, id: &str) -> Option<(Vec<String>, usize)> {
     Some((unmarked, item.text_end + 1 - item.line))
 }
 
-/// What a draft made from a note holds: the markdown of its text without its marks, on one line,
-/// and its nested lines, code included, without the indent they share.
-pub fn draft_parts(text: &str, id: &str) -> Option<(String, Vec<String>)> {
+/// What a file made from a note holds, a note file or a proposal file: the markdown of its text
+/// without its marks, on one line, and its nested lines, code included, without the indent they
+/// share.
+pub fn note_file_parts(text: &str, id: &str) -> Option<(String, Vec<String>)> {
     let (lines, text_lines) = unmarked_lines(text, id)?;
     let (_, first) = item_marker(&lines[0])?;
     let title = std::iter::once(first)
@@ -355,11 +356,11 @@ pub(crate) fn link_text(markdown: &str) -> Option<String> {
     Some(lines::unescape_link_text(inner))
 }
 
-/// The text, without markdown, of the entry Make a draft writes for the note `id`: its markdown as
-/// the text of a link, escaped as [`link_to`] escapes it.
-pub fn drafted_text(text: &str, id: &str) -> Option<String> {
-    let (title, _) = draft_parts(text, id)?;
-    Some(lines::plain(&link_to(&title, "draft.md")).0)
+/// The text, without markdown, of the proposal a move into a new proposal file writes for the note
+/// `id`: its markdown as the text of a link, escaped as [`link_to`] escapes it.
+pub fn expanded_text(text: &str, id: &str) -> Option<String> {
+    let (title, _) = note_file_parts(text, id)?;
+    Some(lines::plain(&link_to(&title, "proposal.md")).0)
 }
 
 /// A note's text as a link to `target`, its markdown kept.
@@ -386,7 +387,7 @@ pub fn edit(text: &str, id: &str, new_text: &str) -> Option<String> {
 }
 
 /// Replaces a note, sub-items included, with one line whose text is `link`, its marker and marks
-/// kept: a note that became a draft, which holds the sub-items now. `None` when the note is gone.
+/// kept: a note that has a file now, which holds the sub-items. `None` when the note is gone.
 pub fn relink(text: &str, id: &str, link: &str) -> Option<String> {
     let (lines, text_lines) = unmarked_lines(text, id)?;
     let nested = lines.len() - text_lines;

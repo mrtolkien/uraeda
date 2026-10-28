@@ -82,10 +82,10 @@ fn only_the_latest_round_is_submitted() {
     assert_eq!(submitted.status.as_deref(), Some("answered"));
 }
 
-/// Drafts and the priorities are the default branch's: another branch's copy stands for them only
-/// while it holds the default branch's text, read from its checkout when one has it.
+/// Proposal files and the priorities are the default branch's: another branch's copy stands for
+/// them only while it holds the default branch's text, read from its checkout when one has it.
 #[test]
-fn drafts_are_acted_on_from_another_branch_only_with_the_default_branchs_text() {
+fn proposal_files_are_acted_on_from_another_branch_only_with_the_default_branchs_text() {
     let repo = repo();
     let path = "specs/PRIORITIES.md";
     let text = "# Priorities\n\n## Now\n";
@@ -101,8 +101,8 @@ fn drafts_are_acted_on_from_another_branch_only_with_the_default_branchs_text() 
 
     repo.git(&["worktree", "add", "--quiet", ".worktrees/main", "main"]);
     let checkout = std::fs::canonicalize(repo.path().join(".worktrees/main")).unwrap();
-    std::fs::write(checkout.join("specs/drafts.md"), "Unsaved draft.\n").unwrap();
-    api::on_default_branch(repo.path(), "specs/drafts.md", "Unsaved draft.\n").unwrap();
+    std::fs::write(checkout.join("specs/proposals.md"), "Unsaved draft.\n").unwrap();
+    api::on_default_branch(repo.path(), "specs/proposals.md", "Unsaved draft.\n").unwrap();
     let error = api::on_default_branch(repo.path(), path, "Edited.\n").unwrap_err();
     assert_eq!(
         error.message,
@@ -243,29 +243,29 @@ fn raw_files_never_follow_a_symlink() {
 
 /// C3: nested lines come as spans, without their markers.
 #[test]
-fn nested_priority_lines_come_as_spans() {
+fn nested_proposal_lines_come_as_spans() {
     let read = priorities::read(
-        "# Priorities\n\n## Later\n\n- [Nice TUI](drafts/cli-tuis.md)\n  - see [notes](x.md)\n",
+        "# Priorities\n\n## Later\n\n- [Nice TUI](proposals/cli-tuis.md)\n  - see [notes](x.md)\n",
         None,
     );
 
-    let nested = &read.sections[2].entries[0].nested_spans;
+    let nested = &read.sections[2].proposals[0].nested_spans;
     assert_eq!(nested.len(), 1);
     let text: String = nested[0].iter().map(|s| s.text.as_str()).collect();
     assert_eq!(text, "see notes");
     assert!(nested[0].iter().any(|s| s.link.is_some()));
 }
 
-/// Final review: an entry's lines come as written, for an Undo to write them back unchanged.
+/// Final review: a proposal's lines come as written, for an Undo to write them back unchanged.
 #[test]
-fn priority_lines_come_as_written() {
+fn proposal_lines_come_as_written() {
     let read = priorities::read(
         "# Priorities\n\n## Later\n\n* Nix + Docker based\n  execution environments\n  - with a cache\n",
         None,
     );
 
     assert_eq!(
-        read.sections[2].entries[0].lines,
+        read.sections[2].proposals[0].lines,
         [
             "* Nix + Docker based",
             "  execution environments",
@@ -285,22 +285,25 @@ fn with_change(repo: &TestRepo) {
     repo.switch("main");
 }
 
-/// Codex review: a draft path never leaves the drafts.
+/// Codex review: a proposal file path never leaves the proposal files.
 #[test]
-fn draft_paths_stay_in_the_drafts() {
+fn proposal_file_paths_stay_in_the_proposal_files() {
     let repo = repo();
     // With both folders there, `..` resolves through them.
-    repo.write("specs/drafts/idea.md", "# Idea\n");
-    repo.write("specs/backlog/later.md", "# Later\n");
+    repo.write("specs/proposals/idea.md", "# Idea\n");
+    repo.write("specs/proposals/later.md", "# Later\n");
     let readme = uraeda_core::files::document::hash("# Specs\n");
 
     for path in [
-        "specs/drafts/../README.md",
-        "specs/drafts/../../.env",
-        "specs/backlog/../PRIORITIES.md",
+        "specs/proposals/../README.md",
+        "specs/proposals/../../.env",
+        "specs/proposals/../PRIORITIES.md",
     ] {
         assert!(api::read_text(repo.path(), path).is_err(), "{path}");
-        assert!(api::read_draft(repo.path(), path).is_err(), "{path}");
+        assert!(
+            api::read_proposal_file(repo.path(), path).is_err(),
+            "{path}"
+        );
         assert!(
             api::save_text(repo.path(), path, "x", &readme).is_err(),
             "{path}"
@@ -319,14 +322,14 @@ fn a_text_comes_with_what_its_editor_shows() {
     let repo = repo();
     with_change(&repo);
     repo.write(
-        "specs/backlog/later/proposal.md",
+        "specs/proposals/later/proposal.md",
         "# Later\n\n## What\n\nSoon.\n\n## Why\n",
     );
 
-    let postponed = api::read_text(repo.path(), "specs/backlog/later/proposal.md").unwrap();
+    let postponed = api::read_text(repo.path(), "specs/proposals/later/proposal.md").unwrap();
     assert_eq!(
         (postponed.kind.as_str(), postponed.slug.as_deref()),
-        ("draft", Some("later"))
+        ("proposal-file", Some("later"))
     );
     assert_eq!(postponed.discovery.as_deref(), Some("high"));
     assert_eq!(postponed.discovery_levels, ["low", "medium", "high"]);
@@ -350,7 +353,7 @@ fn a_text_comes_with_what_its_editor_shows() {
 #[test]
 fn the_discovery_effort_is_set_over_the_version_read() {
     let repo = repo();
-    let path = "specs/drafts/idea.md";
+    let path = "specs/proposals/idea.md";
     repo.write(path, "# Idea\n\n## What\n\nA thing.\n");
     let read = api::read_text(repo.path(), path).unwrap();
 
@@ -370,21 +373,21 @@ fn the_discovery_effort_is_set_over_the_version_read() {
     );
 }
 
-/// Codex review: starting a feature takes a draft, never another file.
+/// Codex review: starting a feature takes a proposal file, never another file.
 #[test]
-fn a_feature_starts_from_a_draft_only() {
+fn a_feature_starts_from_a_proposal_file_only() {
     let repo = repo();
     let outside = repo.parent().join("victim.md");
     std::fs::write(&outside, "# Victim\n\n## What\n\nKeep me.\n").unwrap();
 
-    for draft in [
+    for proposal_file in [
         outside.to_str().unwrap(),
-        "specs/drafts/../../../victim.md",
+        "specs/proposals/../../../victim.md",
         "specs/README.md",
     ] {
         assert!(
-            api::start_feature(repo.path(), draft, Some("victim"), Kind::Feature).is_err(),
-            "{draft}"
+            api::start_feature(repo.path(), proposal_file, Some("victim"), Kind::Feature).is_err(),
+            "{proposal_file}"
         );
     }
     assert!(outside.exists());
@@ -490,7 +493,7 @@ fn a_change_proposal_is_edited_on_its_branch() {
 fn discarding_the_priorities_drops_staged_edits() {
     let repo = repo();
     let read = api::read_priorities(repo.path()).unwrap();
-    api::add_priority(repo.path(), "now", "An idea", &read.hash).unwrap();
+    api::add_proposal(repo.path(), "now", "An idea", &read.hash).unwrap();
     repo.git(&["add", "specs/PRIORITIES.md"]);
 
     let read = api::discard_priorities(repo.path()).unwrap();
@@ -499,16 +502,16 @@ fn discarding_the_priorities_drops_staged_edits() {
     assert_eq!(repo.git(&["status", "--porcelain", "--", "specs"]), "");
 }
 
-/// Codex review: a draft is made for the line the human saw, or not at all.
+/// Codex review: a proposal file is made for the line the human saw, or not at all.
 #[test]
-fn drafting_is_refused_once_the_priorities_changed() {
+fn expanding_is_refused_once_the_priorities_changed() {
     let repo = repo();
     let read = api::read_priorities(repo.path()).unwrap();
-    let edited = api::add_priority(repo.path(), "now", "An idea", &read.hash).unwrap();
+    let edited = api::add_proposal(repo.path(), "now", "An idea", &read.hash).unwrap();
 
-    let error = api::create_draft(repo.path(), "now-1", &read.hash).unwrap_err();
+    let error = api::expand_proposal(repo.path(), "now-1", &read.hash).unwrap_err();
     assert_eq!(error.code, "conflict");
-    api::create_draft(repo.path(), "now-1", &edited.hash).unwrap();
+    api::expand_proposal(repo.path(), "now-1", &edited.hash).unwrap();
 }
 
 /// A feature's files come in workflow order: each round's discovery before its questions.
@@ -545,9 +548,9 @@ fn a_feature_lists_its_files_in_workflow_order() {
     );
 }
 
-/// A file's version and a draft both carry the stories their paragraphs embed.
+/// A file's version and a proposal file both carry the stories their paragraphs embed.
 #[test]
-fn a_file_and_a_draft_carry_their_stories() {
+fn a_file_and_a_proposal_file_carry_their_stories() {
     let repo = repo();
     let embed = "[Dragging the handle](/packages/web/src/SidebarHandle.stories.tsx#Dragging)\n";
     let expected = (
@@ -561,16 +564,16 @@ fn a_file_and_a_draft_carry_their_stories() {
         &format!("{}\n{embed}", spec("awaiting-human", 1, 1)),
     );
     repo.write(
-        "specs/drafts/idea.md",
+        "specs/proposals/idea.md",
         &format!("# Idea\n\nText.\n\n{embed}"),
     );
 
     let file = api::read_file(repo.path(), FOLDER, "spec.md").unwrap();
-    let draft = api::read_draft(repo.path(), "specs/drafts/idea.md").unwrap();
+    let proposal_file = api::read_proposal_file(repo.path(), "specs/proposals/idea.md").unwrap();
 
     for (case, stories, document) in [
         ("file", &file.current.stories, &file.current.document),
-        ("draft", &draft.stories, &draft.document),
+        ("draft", &proposal_file.stories, &proposal_file.document),
     ] {
         let found: Vec<_> = stories
             .iter()

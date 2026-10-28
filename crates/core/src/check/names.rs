@@ -1,6 +1,7 @@
 //! `names.*`: feature and change folders are `YYYY-MM-DD-<slug>` with a real date, beside the fixed
-//! folders, `ui/` among them, rounds have two digits, a change's folder holds only a change's files,
-//! and `specs/bugs/` is no longer used.
+//! folders, `ui/` among them, rounds have two digits, a change's folder holds only a change's
+//! files, and `specs/bugs/` is no longer used; and `layout.old-folder`: `specs/drafts/` and
+//! `specs/backlog/` are no longer read.
 
 use std::fs;
 use std::path::Path;
@@ -15,11 +16,45 @@ fn name(path: &Path) -> String {
         .unwrap_or_default()
 }
 
-/// Whether a folder holds a feature's or a change's files: a dated folder, or a postponed feature in
-/// `drafts/` or `backlog/`.
+/// Whether a folder holds a feature's or a change's files: a dated folder, or a postponed feature
+/// in `proposals/`.
 pub(super) fn is_workflow_folder(dir: &Path) -> bool {
     let parent = dir.parent().map(name).unwrap_or_default();
-    folder_slug(&name(dir)).is_some() || parent == "drafts" || parent == "backlog"
+    folder_slug(&name(dir)).is_some() || parent == "proposals"
+}
+
+/// The folders of `specs/` no tool reads any longer, which the projects reference's migration
+/// moves to `specs/proposals/`.
+const OLD_FOLDERS: [&str; 2] = ["drafts", "backlog"];
+
+/// Whether a folder holds a file other than `.gitkeep`, at any depth.
+fn holds_files(dir: &Path) -> bool {
+    fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .any(|entry| {
+            let path = entry.path();
+            match entry.file_type() {
+                Ok(kind) if kind.is_dir() => holds_files(&path),
+                Ok(_) => entry.file_name() != ".gitkeep",
+                Err(_) => false,
+            }
+        })
+}
+
+/// The problem of `specs/drafts/` or `specs/backlog/` holding files: no tool reads them.
+fn old_folder_problem(root: &Path, dir: &Path, folder: &str) -> Problem {
+    Problem {
+        file: super::relative(root, &dir.join(folder)),
+        line: None,
+        rule: "layout.old-folder".into(),
+        message: format!(
+            "specs/{folder}/ is no longer read: move it to specs/proposals/, see \"Moving drafts \
+             and the backlog to the proposals\" in the skill's projects reference."
+        ),
+        severity: Severity::Error,
+    }
 }
 
 /// Checks the names of the folders directly inside `specs/` and `specs/changes/`.
@@ -28,8 +63,8 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
     let parent = dir.parent().map(name).unwrap_or_default();
     let fixed: &[&str] = if here == "specs" {
         &[
-            "drafts",
-            "backlog",
+            "proposals",
+            "notes",
             "decisions",
             check_folder(),
             "changes",
@@ -52,6 +87,12 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
     folders.sort();
     for folder in folders {
         if fixed.contains(&folder.as_str()) || folder_slug(&folder).is_some() {
+            continue;
+        }
+        if here == "specs" && OLD_FOLDERS.contains(&folder.as_str()) {
+            if holds_files(&dir.join(&folder)) {
+                problems.push(old_folder_problem(root, dir, &folder));
+            }
             continue;
         }
         if here == "specs" && folder == "bugs" {

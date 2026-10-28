@@ -10,9 +10,9 @@ use uraeda_core::api;
 
 const FEATURE: &str = "2026-10-14-login-banner";
 const PROPOSAL: &str = "specs/2026-10-14-login-banner/proposal.md";
-const DRAFT: &str = "specs/drafts/login-banner.md";
+const PROPOSAL_FILE: &str = "specs/proposals/login-banner.md";
 const PRIORITIES: &str =
-    "# Priorities\n\n## Now\n\n- [Login banner](drafts/login-banner.md), *before* the release\n";
+    "# Priorities\n\n## Now\n\n- [Login banner](proposals/login-banner.md), *before* the release\n";
 
 /// The time of every test of this file, set once before any attach: the core reads it from the
 /// process's environment, which every test shares.
@@ -22,14 +22,14 @@ fn at_10_35_12() {
     NOW.call_once(|| unsafe { std::env::set_var("URA_NOW", "20261014-103512") });
 }
 
-/// `main` with a single-file draft linked from the priorities, and a feature with its proposal on
-/// its own branch.
+/// `main` with a single proposal file linked from the priorities, and a feature with its proposal
+/// on its own branch.
 fn repo() -> TestRepo {
     at_10_35_12();
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
     repo.write("specs/PRIORITIES.md", PRIORITIES);
-    repo.write(DRAFT, "# Login banner\n\nA banner.\n");
+    repo.write(PROPOSAL_FILE, "# Login banner\n\nA banner.\n");
     repo.commit("chore: specs");
     repo.switch_new(FEATURE);
     repo.write(PROPOSAL, &proposal());
@@ -131,71 +131,87 @@ fn names_are_lowercase_dashed_and_never_overwrite() {
 }
 
 #[test]
-fn us1_6_a_single_file_draft_becomes_a_folder() {
+fn us1_6_a_single_file_proposal_file_becomes_a_folder() {
     let repo = repo();
 
-    let attached =
-        api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap();
+    let attached = api::attach_image(
+        repo.path(),
+        PROPOSAL_FILE,
+        &image("still.gif"),
+        Some("login.png"),
+    )
+    .unwrap();
 
     assert_eq!(
         attached.moved.as_deref(),
-        Some("specs/drafts/login-banner/proposal.md")
+        Some("specs/proposals/login-banner/proposal.md")
     );
-    assert_eq!(attached.path, "specs/drafts/login-banner/images/login.webp");
-    assert_eq!(attached.link, "![login](images/login.webp)");
-    assert!(!repo.exists(DRAFT));
     assert_eq!(
-        repo.read("specs/drafts/login-banner/proposal.md"),
+        attached.path,
+        "specs/proposals/login-banner/images/login.webp"
+    );
+    assert_eq!(attached.link, "![login](images/login.webp)");
+    assert!(!repo.exists(PROPOSAL_FILE));
+    assert_eq!(
+        repo.read("specs/proposals/login-banner/proposal.md"),
         "# Login banner\n\nA banner.\n"
     );
-    assert!(repo.exists("specs/drafts/login-banner/images/login.webp"));
+    assert!(repo.exists("specs/proposals/login-banner/images/login.webp"));
     assert_eq!(
         repo.read("specs/PRIORITIES.md"),
-        PRIORITIES.replace("drafts/login-banner.md", "drafts/login-banner/proposal.md")
+        PRIORITIES.replace(
+            "proposals/login-banner.md",
+            "proposals/login-banner/proposal.md"
+        )
     );
 }
 
 #[test]
-fn a_taken_draft_folder_name_gets_a_number() {
+fn a_taken_proposal_file_folder_name_gets_a_number() {
     let repo = repo();
-    repo.write("specs/drafts/login-banner/proposal.md", "# Another\n");
+    repo.write("specs/proposals/login-banner/proposal.md", "# Another\n");
 
-    let attached =
-        api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap();
+    let attached = api::attach_image(
+        repo.path(),
+        PROPOSAL_FILE,
+        &image("still.gif"),
+        Some("login.png"),
+    )
+    .unwrap();
 
     assert_eq!(
         attached.moved.as_deref(),
-        Some("specs/drafts/login-banner-2/proposal.md")
+        Some("specs/proposals/login-banner-2/proposal.md")
     );
     assert_eq!(
         attached.path,
-        "specs/drafts/login-banner-2/images/login.webp"
+        "specs/proposals/login-banner-2/images/login.webp"
     );
     assert_eq!(
-        repo.read("specs/drafts/login-banner/proposal.md"),
+        repo.read("specs/proposals/login-banner/proposal.md"),
         "# Another\n"
     );
     assert!(
         repo.read("specs/PRIORITIES.md")
-            .contains("(drafts/login-banner-2/proposal.md)")
+            .contains("(proposals/login-banner-2/proposal.md)")
     );
 }
 
 #[test]
-fn a_draft_folder_keeps_its_place() {
+fn a_proposal_file_folder_keeps_its_place() {
     let repo = repo();
-    repo.write("specs/drafts/banner/proposal.md", "# Banner\n");
+    repo.write("specs/proposals/banner/proposal.md", "# Banner\n");
 
     let attached = api::attach_image(
         repo.path(),
-        "specs/drafts/banner/proposal.md",
+        "specs/proposals/banner/proposal.md",
         &image("still.gif"),
         Some("login.png"),
     )
     .unwrap();
 
     assert_eq!(attached.moved, None);
-    assert_eq!(attached.path, "specs/drafts/banner/images/login.webp");
+    assert_eq!(attached.path, "specs/proposals/banner/images/login.webp");
 }
 
 #[test]
@@ -204,7 +220,7 @@ fn a_refused_image_writes_nothing() {
 
     let error = api::attach_image(
         repo.path(),
-        DRAFT,
+        PROPOSAL_FILE,
         &image("drawing.svg"),
         Some("drawing.svg"),
     )
@@ -215,8 +231,8 @@ fn a_refused_image_writes_nothing() {
         error.message,
         "Only PNG, JPEG, GIF, and WebP images can be added: drawing.svg is not one."
     );
-    assert!(repo.exists(DRAFT));
-    assert!(!repo.exists("specs/drafts/login-banner"));
+    assert!(repo.exists(PROPOSAL_FILE));
+    assert!(!repo.exists("specs/proposals/login-banner"));
     assert_eq!(repo.read("specs/PRIORITIES.md"), PRIORITIES);
 }
 
@@ -228,10 +244,10 @@ fn paths_outside_a_workflow_folder_are_refused() {
         "specs/.hidden/x.md",
         "README.md",
         "specs/PRIORITIES.md",
-        "specs/drafts/../PRIORITIES.md",
+        "specs/proposals/../PRIORITIES.md",
         "specs/2026-10-14-login-banner/images/x.md",
         "specs/2026-10-14-login-banner/proposal.txt",
-        "specs/drafts/nothing/proposal.md",
+        "specs/proposals/nothing/proposal.md",
         "specs/2026-10-14-login-banner/nothere.md",
     ] {
         let error = api::attach_image(repo.path(), path, &image("still.gif"), Some("x.png"))
@@ -240,7 +256,7 @@ fn paths_outside_a_workflow_folder_are_refused() {
     }
     assert!(!repo.exists("images"));
     assert!(!repo.exists("specs/images"));
-    assert!(!repo.exists("specs/drafts/nothing"));
+    assert!(!repo.exists("specs/proposals/nothing"));
     assert!(!on_feature(&repo, "specs/2026-10-14-login-banner/images").exists());
 }
 
@@ -254,15 +270,20 @@ fn images_are_read_by_their_bytes_only() {
         Some("login.png"),
     )
     .unwrap();
-    let drafted =
-        api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap();
+    let expanded = api::attach_image(
+        repo.path(),
+        PROPOSAL_FILE,
+        &image("still.gif"),
+        Some("login.png"),
+    )
+    .unwrap();
 
-    for path in [&attached.path, &drafted.path] {
+    for path in [&attached.path, &expanded.path] {
         let (bytes, kind) = api::read_image(repo.path(), path).unwrap();
         assert_eq!(kind, "image/webp", "{path}");
         assert_eq!(&bytes[8..12], b"WEBP", "{path}");
     }
-    for path in [PROPOSAL, "specs/../Cargo.toml", "specs/drafts/gone.webp"] {
+    for path in [PROPOSAL, "specs/../Cargo.toml", "specs/proposals/gone.webp"] {
         let error = api::read_image(repo.path(), path).expect_err(path);
         assert_eq!(error.code, "refused", "{path}");
         assert_eq!(error.message, format!("{path}: no such file"));
@@ -275,51 +296,57 @@ fn priorities(items: &str) -> String {
 }
 
 #[test]
-fn every_link_to_a_moved_draft_is_retargeted() {
+fn every_link_to_a_moved_proposal_file_is_retargeted() {
     let rows = [
         (
-            "- [Login](<drafts/login-banner.md>)",
-            "- [Login](<drafts/login-banner/proposal.md>)",
+            "- [Login](<proposals/login-banner.md>)",
+            "- [Login](<proposals/login-banner/proposal.md>)",
         ),
         (
-            "- [Login](drafts/login-banner.md \"The banner\")",
-            "- [Login](drafts/login-banner/proposal.md \"The banner\")",
+            "- [Login](proposals/login-banner.md \"The banner\")",
+            "- [Login](proposals/login-banner/proposal.md \"The banner\")",
         ),
         (
-            "- See [the issue](https://example.com/1), then [Login](drafts/login-banner.md)",
-            "- See [the issue](https://example.com/1), then [Login](drafts/login-banner/proposal.md)",
+            "- See [the issue](https://example.com/1), then [Login](proposals/login-banner.md)",
+            "- See [the issue](https://example.com/1), then [Login](proposals/login-banner/proposal.md)",
         ),
         (
-            "- Banner work\n  - [Login](drafts/login-banner.md)",
-            "- Banner work\n  - [Login](drafts/login-banner/proposal.md)",
+            "- Banner work\n  - [Login](proposals/login-banner.md)",
+            "- Banner work\n  - [Login](proposals/login-banner/proposal.md)",
         ),
         (
-            "- [Login][r], *before* the release\n\n[r]: drafts/login-banner.md \"t\"",
-            "- [Login][r], *before* the release\n\n[r]: drafts/login-banner/proposal.md \"t\"",
+            "- [Login][r], *before* the release\n\n[r]: proposals/login-banner.md \"t\"",
+            "- [Login][r], *before* the release\n\n[r]: proposals/login-banner/proposal.md \"t\"",
         ),
         (
-            "- [Login](./drafts/login-banner.md)",
-            "- [Login](./drafts/login-banner/proposal.md)",
+            "- [Login](./proposals/login-banner.md)",
+            "- [Login](./proposals/login-banner/proposal.md)",
         ),
         (
-            "- [Login](/specs/drafts/login-banner.md#goal)",
-            "- [Login](/specs/drafts/login-banner/proposal.md#goal)",
+            "- [Login](/specs/proposals/login-banner.md#goal)",
+            "- [Login](/specs/proposals/login-banner/proposal.md#goal)",
         ),
         (
-            "- [`a]b` *Login*](drafts/login-banner.md)",
-            "- [`a]b` *Login*](drafts/login-banner/proposal.md)",
+            "- [`a]b` *Login*](proposals/login-banner.md)",
+            "- [`a]b` *Login*](proposals/login-banner/proposal.md)",
         ),
-        // Text that is not a link to the draft is left as written.
+        // Text that is not a link to the proposal is left as written.
         (
-            "- [Login](drafts/login.md), not drafts/login-banner.md\n- [x](drafts/login-banner.md.bak)",
-            "- [Login](drafts/login.md), not drafts/login-banner.md\n- [x](drafts/login-banner.md.bak)",
+            "- [Login](proposals/login.md), not proposals/login-banner.md\n- [x](proposals/login-banner.md.bak)",
+            "- [Login](proposals/login.md), not proposals/login-banner.md\n- [x](proposals/login-banner.md.bak)",
         ),
     ];
     for (before, after) in rows {
         let repo = repo();
         repo.write("specs/PRIORITIES.md", &priorities(before));
 
-        api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap();
+        api::attach_image(
+            repo.path(),
+            PROPOSAL_FILE,
+            &image("still.gif"),
+            Some("login.png"),
+        )
+        .unwrap();
 
         assert_eq!(
             repo.read("specs/PRIORITIES.md"),
@@ -329,38 +356,55 @@ fn every_link_to_a_moved_draft_is_retargeted() {
     }
 }
 
-/// Review focus 7: a note linking a draft that becomes a folder links its `proposal.md`, as the
-/// priorities' entries do, and the rest of the inbox stays as written.
+/// Review focus 7: a note linking a proposal file that becomes a folder links its `proposal.md`, as
+/// the priorities' proposals do, and the rest of the inbox stays as written.
 #[test]
-fn a_note_linking_a_moved_draft_is_retargeted() {
+fn a_note_linking_a_moved_proposal_file_is_retargeted() {
     let repo = repo();
-    let inbox = "# Inbox\n\n## UI\n\n- [Login banner](drafts/login-banner.md)\n- [Other](drafts/other.md)\n";
+    let inbox = "# Inbox\n\n## UI\n\n- [Login banner](proposals/login-banner.md)\n- [Other](proposals/other.md)\n";
     repo.write("specs/INBOX.md", inbox);
 
-    api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap();
+    api::attach_image(
+        repo.path(),
+        PROPOSAL_FILE,
+        &image("still.gif"),
+        Some("login.png"),
+    )
+    .unwrap();
 
     assert_eq!(
         repo.read("specs/INBOX.md"),
-        inbox.replace("drafts/login-banner.md", "drafts/login-banner/proposal.md")
+        inbox.replace(
+            "proposals/login-banner.md",
+            "proposals/login-banner/proposal.md"
+        )
     );
     assert_eq!(
         repo.read("specs/PRIORITIES.md"),
-        PRIORITIES.replace("drafts/login-banner.md", "drafts/login-banner/proposal.md")
+        PRIORITIES.replace(
+            "proposals/login-banner.md",
+            "proposals/login-banner/proposal.md"
+        )
     );
 }
 
 #[test]
-fn a_draft_not_linked_from_the_priorities_moves_alone() {
+fn a_proposal_file_not_linked_from_the_priorities_moves_alone() {
     let repo = repo();
-    let text = priorities("- [Other](drafts/other.md)");
+    let text = priorities("- [Other](proposals/other.md)");
     repo.write("specs/PRIORITIES.md", &text);
 
-    let attached =
-        api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap();
+    let attached = api::attach_image(
+        repo.path(),
+        PROPOSAL_FILE,
+        &image("still.gif"),
+        Some("login.png"),
+    )
+    .unwrap();
 
     assert_eq!(
         attached.moved.as_deref(),
-        Some("specs/drafts/login-banner/proposal.md")
+        Some("specs/proposals/login-banner/proposal.md")
     );
     assert_eq!(repo.read("specs/PRIORITIES.md"), text);
 }
@@ -370,14 +414,19 @@ fn a_missing_priorities_file_stays_missing() {
     let repo = repo();
     repo.remove("specs/PRIORITIES.md");
 
-    let attached =
-        api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap();
+    let attached = api::attach_image(
+        repo.path(),
+        PROPOSAL_FILE,
+        &image("still.gif"),
+        Some("login.png"),
+    )
+    .unwrap();
 
     assert_eq!(
         attached.moved.as_deref(),
-        Some("specs/drafts/login-banner/proposal.md")
+        Some("specs/proposals/login-banner/proposal.md")
     );
-    assert!(repo.exists("specs/drafts/login-banner/images/login.webp"));
+    assert!(repo.exists("specs/proposals/login-banner/images/login.webp"));
     assert!(!repo.exists("specs/PRIORITIES.md"));
 }
 
@@ -405,15 +454,20 @@ fn writable(path: &std::path::Path) {
 
 #[cfg(unix)]
 #[test]
-fn a_failed_move_leaves_the_draft_as_it_was() {
+fn a_failed_move_leaves_the_proposal_file_as_it_was() {
     let repo = repo();
     let file = repo.path().join("specs/PRIORITIES.md");
     if !read_only(&file) {
         return;
     }
 
-    let error =
-        api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap_err();
+    let error = api::attach_image(
+        repo.path(),
+        PROPOSAL_FILE,
+        &image("still.gif"),
+        Some("login.png"),
+    )
+    .unwrap_err();
     writable(&file);
 
     assert_eq!(error.code, "refused");
@@ -422,8 +476,8 @@ fn a_failed_move_leaves_the_draft_as_it_was() {
         "{}",
         error.message
     );
-    assert_eq!(repo.read(DRAFT), "# Login banner\n\nA banner.\n");
-    assert!(!repo.exists("specs/drafts/login-banner"));
+    assert_eq!(repo.read(PROPOSAL_FILE), "# Login banner\n\nA banner.\n");
+    assert!(!repo.exists("specs/proposals/login-banner"));
     assert_eq!(repo.read("specs/PRIORITIES.md"), PRIORITIES);
 }
 
@@ -433,36 +487,46 @@ fn a_failed_move_leaves_the_draft_as_it_was() {
 #[test]
 fn a_failed_inbox_write_leaves_both_lists_as_they_were() {
     let repo = repo();
-    let inbox = "# Inbox\n\n- [Login banner](drafts/login-banner.md)\n";
+    let inbox = "# Inbox\n\n- [Login banner](proposals/login-banner.md)\n";
     repo.write("specs/INBOX.md", inbox);
     let file = repo.path().join("specs/INBOX.md");
     if !read_only(&file) {
         return;
     }
 
-    let error =
-        api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap_err();
+    let error = api::attach_image(
+        repo.path(),
+        PROPOSAL_FILE,
+        &image("still.gif"),
+        Some("login.png"),
+    )
+    .unwrap_err();
     writable(&file);
 
     assert_eq!(error.code, "refused");
-    assert_eq!(repo.read(DRAFT), "# Login banner\n\nA banner.\n");
-    assert!(!repo.exists("specs/drafts/login-banner"));
+    assert_eq!(repo.read(PROPOSAL_FILE), "# Login banner\n\nA banner.\n");
+    assert!(!repo.exists("specs/proposals/login-banner"));
     assert_eq!(repo.read("specs/PRIORITIES.md"), PRIORITIES);
     assert_eq!(repo.read("specs/INBOX.md"), inbox);
 }
 
 #[cfg(unix)]
 #[test]
-fn a_draft_that_cannot_get_a_folder_stays_a_file() {
+fn a_proposal_file_that_cannot_get_a_folder_stays_a_file() {
     let repo = repo();
-    let drafts = repo.path().join("specs/drafts");
-    if !read_only(&drafts) {
+    let proposal_files = repo.path().join("specs/proposals");
+    if !read_only(&proposal_files) {
         return;
     }
 
-    let error =
-        api::attach_image(repo.path(), DRAFT, &image("still.gif"), Some("login.png")).unwrap_err();
-    writable(&drafts);
+    let error = api::attach_image(
+        repo.path(),
+        PROPOSAL_FILE,
+        &image("still.gif"),
+        Some("login.png"),
+    )
+    .unwrap_err();
+    writable(&proposal_files);
 
     assert_eq!(error.code, "refused");
     assert!(
@@ -470,8 +534,8 @@ fn a_draft_that_cannot_get_a_folder_stays_a_file() {
         "{}",
         error.message
     );
-    assert!(repo.exists(DRAFT));
-    assert!(!repo.exists("specs/drafts/login-banner"));
+    assert!(repo.exists(PROPOSAL_FILE));
+    assert!(!repo.exists("specs/proposals/login-banner"));
     assert_eq!(repo.read("specs/PRIORITIES.md"), PRIORITIES);
 }
 
@@ -483,24 +547,24 @@ fn images_are_never_written_or_read_through_a_symbolic_link() {
     let outside = repo.path().join("outside");
     std::fs::create_dir(&outside).unwrap();
     std::fs::copy(fixture("images/lossless.webp"), outside.join("x.webp")).unwrap();
-    repo.write("specs/drafts/linked/proposal.md", "# Linked\n");
-    symlink(&outside, repo.path().join("specs/drafts/linked/images")).unwrap();
-    repo.write("specs/drafts/banner/proposal.md", "# Banner\n");
-    std::fs::create_dir(repo.path().join("specs/drafts/banner/images")).unwrap();
+    repo.write("specs/proposals/linked/proposal.md", "# Linked\n");
+    symlink(&outside, repo.path().join("specs/proposals/linked/images")).unwrap();
+    repo.write("specs/proposals/banner/proposal.md", "# Banner\n");
+    std::fs::create_dir(repo.path().join("specs/proposals/banner/images")).unwrap();
     symlink(
         outside.join("target.webp"),
-        repo.path().join("specs/drafts/banner/images/login.webp"),
+        repo.path().join("specs/proposals/banner/images/login.webp"),
     )
     .unwrap();
     symlink(
         outside.join("x.webp"),
-        repo.path().join("specs/drafts/banner/images/x.webp"),
+        repo.path().join("specs/proposals/banner/images/x.webp"),
     )
     .unwrap();
 
     let error = api::attach_image(
         repo.path(),
-        "specs/drafts/linked/proposal.md",
+        "specs/proposals/linked/proposal.md",
         &image("still.gif"),
         Some("login.png"),
     )
@@ -508,23 +572,23 @@ fn images_are_never_written_or_read_through_a_symbolic_link() {
     assert_eq!(error.code, "refused");
     assert_eq!(
         error.message,
-        "The image could not be saved: specs/drafts/linked/images goes through a symbolic link."
+        "The image could not be saved: specs/proposals/linked/images goes through a symbolic link."
     );
     assert!(!outside.join("login.webp").exists());
 
     let attached = api::attach_image(
         repo.path(),
-        "specs/drafts/banner/proposal.md",
+        "specs/proposals/banner/proposal.md",
         &image("still.gif"),
         Some("login.png"),
     )
     .unwrap();
-    assert_eq!(attached.path, "specs/drafts/banner/images/login-2.webp");
+    assert_eq!(attached.path, "specs/proposals/banner/images/login-2.webp");
     assert!(!outside.join("target.webp").exists());
 
     for path in [
-        "specs/drafts/linked/images/x.webp",
-        "specs/drafts/banner/images/x.webp",
+        "specs/proposals/linked/images/x.webp",
+        "specs/proposals/banner/images/x.webp",
     ] {
         let error = api::read_image(repo.path(), path)
             .map(|_| ())
@@ -537,21 +601,21 @@ fn images_are_never_written_or_read_through_a_symbolic_link() {
 #[test]
 fn windows_separators_are_refused() {
     let repo = repo();
-    for path in ["specs/drafts/a:b.webp", "specs/drafts/a\\b.webp"] {
+    for path in ["specs/proposals/a:b.webp", "specs/proposals/a\\b.webp"] {
         std::fs::copy(fixture("images/lossless.webp"), repo.path().join(path)).unwrap();
         let error = api::read_image(repo.path(), path)
             .map(|_| ())
             .expect_err(path);
         assert_eq!(error.message, format!("{path}: no such file"));
     }
-    std::fs::write(repo.path().join("specs/drafts/a:b.md"), "# A\n").unwrap();
+    std::fs::write(repo.path().join("specs/proposals/a:b.md"), "# A\n").unwrap();
     let error = api::attach_image(
         repo.path(),
-        "specs/drafts/a:b.md",
+        "specs/proposals/a:b.md",
         &image("still.gif"),
         Some("x.png"),
     )
     .unwrap_err();
     assert_eq!(error.code, "refused");
-    assert!(!repo.exists("specs/drafts/a:b"));
+    assert!(!repo.exists("specs/proposals/a:b"));
 }

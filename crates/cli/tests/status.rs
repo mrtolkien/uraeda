@@ -2,7 +2,7 @@ mod common;
 
 use common::*;
 
-const PRIORITIES: &str = "# Priorities\n\n## Now\n\n- [CLI](/specs/2026-10-10-cli-core/proposal.md)\n\n## Next\n\n- [Git listener](drafts/git-listener.md)\n- Claude Code runner\n\n## Later\n\n## Blocked\n";
+const PRIORITIES: &str = "# Priorities\n\n## Now\n\n- [CLI](/specs/2026-10-10-cli-core/proposal.md)\n\n## Next\n\n- [Git listener](proposals/git-listener.md)\n- Claude Code runner\n\n## Later\n\n## Blocked\n";
 
 fn repo_with_priorities() -> TestRepo {
     let repo = TestRepo::new();
@@ -65,14 +65,18 @@ fn waiting_on_an_agent() {
 }
 
 #[test]
-fn not_started_entry() {
+fn not_started_proposal() {
     let repo = repo_with_priorities();
 
     let output = ura(&repo, &["status"]);
 
     assert_eq!(
         output.row("git-listener"),
-        ["git-listener", "-", "not started (drafts/git-listener.md)"]
+        [
+            "git-listener",
+            "-",
+            "not started (proposals/git-listener.md)"
+        ]
     );
     assert_eq!(
         output.row("Claude Code runner"),
@@ -290,7 +294,7 @@ fn an_uncommitted_proposal_is_no_item() {
 }
 
 #[test]
-fn long_entries_are_cut() {
+fn long_proposals_are_cut() {
     let repo = TestRepo::new();
     specs(
         &repo,

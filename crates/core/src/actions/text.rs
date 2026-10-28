@@ -1,5 +1,5 @@
-//! Drafts and proposals edited as text: saved as typed, over the version they were read at only,
-//! and committed with the skill's message.
+//! Proposal files, note files, and proposals edited as text: saved as typed, over the version they
+//! were read at only, and committed with the skill's message.
 
 use std::fs;
 
@@ -7,6 +7,7 @@ use crate::files::document::hash;
 use crate::files::markdown::Document;
 use crate::files::retarget::retarget as retarget_links;
 use crate::git::Git;
+use crate::target::{is_linked_file, is_note_file};
 use crate::workspace::{first_file, folder_slug, path_folder};
 
 use super::place::{self, Place};
@@ -45,25 +46,17 @@ pub fn save(place: &Place, path: &str, text: &str, previous: &str) -> Result<Str
     Ok(hash(text))
 }
 
-/// The folder whose `images/` a file's commit holds: none for a single-file draft.
+/// The folder whose `images/` a file's commit holds: none for a single proposal file or note file.
 fn folder(path: &str) -> Option<&str> {
     let (folder, _) = path.rsplit_once('/')?;
-    (!matches!(folder, "specs/drafts" | "specs/backlog")).then_some(folder)
+    (!matches!(folder, "specs/proposals" | "specs/notes")).then_some(folder)
 }
 
-/// The single-file drafts a folder draft may have been: `specs/drafts/<slug>.md` for
-/// `specs/drafts/<slug>/proposal.md`, and `specs/drafts/<base>.md` too for `<base>-<N>/`, the
-/// folder `attach` numbers when `<slug>/` is taken. The same for `specs/backlog/`.
+/// The single files a folder's main file may have been: `specs/proposals/<slug>.md` for
+/// `specs/proposals/<slug>/proposal.md`, and `specs/proposals/<base>.md` too for `<base>-<N>/`, the
+/// folder `attach` numbers when `<slug>/` is taken. The same for `specs/notes/<slug>/note.md`.
 fn single_files(path: &str) -> Vec<String> {
-    let found = ["specs/drafts", "specs/backlog"]
-        .into_iter()
-        .find_map(|parent| {
-            let slug = path
-                .strip_prefix(parent)?
-                .strip_prefix('/')?
-                .strip_suffix("/proposal.md")?;
-            (!slug.contains('/')).then_some((parent, slug))
-        });
+    let found = images::folder_of(path).and_then(|folder| folder.rsplit_once('/'));
     let Some((parent, slug)) = found else {
         return Vec::new();
     };
@@ -87,10 +80,10 @@ fn title_of(text: &str) -> Option<String> {
         .map(|h| h.text)
 }
 
-/// The single-file draft `attach` moved into the folder draft `path`: one of [`single_files`],
+/// The single file `attach` moved into the folder's main file `path`: one of [`single_files`],
 /// committed at `HEAD` and gone from disk, whose move shows in `PRIORITIES.md`, where the line
 /// linking it at `HEAD` now links `path`, as `attach` retargets it, or in the title, the same at
-/// `HEAD` as now. A draft deleted on purpose next to an unrelated folder draft shows neither.
+/// `HEAD` as now. A file deleted on purpose next to an unrelated folder shows neither.
 fn moved_from(place: &Place, git: &Git, path: &str, text: &str) -> Option<String> {
     let head = git.head()?;
     let committed = |path: &str| {
@@ -125,29 +118,25 @@ fn moved_from(place: &Place, git: &Git, path: &str, text: &str) -> Option<String
 }
 
 /// Every path a file's commit may hold, for the check of the staged files before any write: a
-/// draft's, the drafts its lists need and their images too.
+/// proposal file's or a note file's, the files its lists need and their images too.
 fn candidates(place: &Place, path: &str) -> Vec<String> {
     let mut paths = vec![path.to_string(), PRIORITIES.to_string(), INBOX.to_string()];
     paths.extend(folder(path).map(images::images_folder));
     paths.extend(single_files(path));
-    if is_draft(path) {
-        let drafts = changes::drafts(place);
-        paths.extend(changes::images_folders(&drafts));
-        paths.extend(drafts);
+    if is_linked_file(path) {
+        let linked = changes::linked_files(place);
+        paths.extend(changes::images_folders(&linked));
+        paths.extend(linked);
     }
     paths
 }
 
-fn is_draft(path: &str) -> bool {
-    path.starts_with("specs/drafts/") || path.starts_with("specs/backlog/")
-}
-
-/// The commit of a draft, `chore: draft <title>`, or `chore: edit the draft <title>` once
-/// committed, and of a backlog file, `chore: add <title> to the backlog`, or
-/// `chore: edit <title> in the backlog`, both with `PRIORITIES.md` and `INBOX.md` when they
-/// changed; of a proposal, `chore(<slug>): proposal`, or `chore(<slug>): edit the proposal` once
-/// committed, a feature's or a change's. The commit holds the images the file's folder links, the
-/// others deleted from disk, and a folder draft's single file, committed before it became a folder, as deleted.
+/// The commit of a proposal file, `chore: expand <title>`, or `chore: edit the proposal <title>`
+/// once committed, and of a note file, `chore: add the note <title>`, or `chore: edit the note
+/// <title>` once committed, both with `PRIORITIES.md` and `INBOX.md` when they changed; of a
+/// proposal, `chore(<slug>): proposal`, or `chore(<slug>): edit the proposal` once committed, a
+/// feature's or a change's. The commit holds the images the file's folder links, the others
+/// deleted from disk, and a folder's single file, committed before it became a folder, as deleted.
 pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
     checked(path)?;
     let git = Git::open(&place.root)?;
@@ -158,8 +147,8 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
     let text = read(place, path);
     let title = title_of(&text).unwrap_or_else(|| path.to_string());
     let mut paths = vec![path.to_string()];
-    let subject = if is_draft(path) {
-        // The lists a draft is made from or linked in, when they changed, with the other drafts
+    let subject = if is_linked_file(path) {
+        // The lists a file is made from or linked in, when they changed, with the other files
         // they need, so no committed link points at a file the commit lacks.
         for list in [PRIORITIES, INBOX] {
             let text = read(place, list);
@@ -172,22 +161,22 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
             }
         }
         if paths.len() > 1 {
-            let others: Vec<String> = changes::drafts(place)
+            let others: Vec<String> = changes::linked_files(place)
                 .into_iter()
                 .filter(|other| other != path)
                 .collect();
             paths.extend(changes::linked_images(place, &others)?);
             paths.extend(others);
         }
-        // A draft committed as one file, then made a folder by an image.
+        // A file committed as one file, then made a folder by an image.
         let moved = moved_from(place, &git, path, &text);
         let edit = committed(path).is_some() || moved.is_some();
         paths.extend(moved);
-        match (edit, path.starts_with("specs/backlog/")) {
-            (false, false) => format!("chore: draft {title}"),
-            (false, true) => format!("chore: add {title} to the backlog"),
-            (true, false) => format!("chore: edit the draft {title}"),
-            (true, true) => format!("chore: edit {title} in the backlog"),
+        match (edit, is_note_file(path)) {
+            (false, false) => format!("chore: expand {title}"),
+            (false, true) => format!("chore: add the note {title}"),
+            (true, false) => format!("chore: edit the proposal {title}"),
+            (true, true) => format!("chore: edit the note {title}"),
         }
     } else if let Some(slug) = path_folder(path)
         .filter(|(kind, _, file)| *file == first_file(*kind))
@@ -200,7 +189,7 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
         }
     } else {
         return Err(ActionError::Refused(format!(
-            "{path} is not a draft or a proposal"
+            "{path} is not a proposal file, a note file, or a proposal"
         )));
     };
     // Unlinked images are deleted first: a deletion of a committed one is a change.
@@ -227,7 +216,7 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
     })
 }
 
-/// Commits a draft or a proposal, as [`change`] names it.
+/// Commits a proposal file, a note file, or a proposal, as [`change`] names it.
 pub fn commit(place: &Place, path: &str) -> Result<Committed, ActionError> {
     checked(path)?;
     place::ensure_only_staged(place, &candidates(place, path))?;

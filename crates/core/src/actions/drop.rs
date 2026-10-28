@@ -1,4 +1,4 @@
-//! Dropping a started feature or change the human gives up: its **Now** entry leaves the
+//! Dropping a started feature or change the human gives up: its **Now** proposal leaves the
 //! priorities, and its folder the start put there leaves the default branch, in one commit, and its
 //! worktree is removed unless that would lose work. Its branch always stays, so nothing is lost
 //! (see `specs/decisions/git.md`).
@@ -22,16 +22,16 @@ pub struct Dropped {
     pub branch: String,
     /// Its worktree, when it stays, and why.
     pub worktree: Option<Left>,
-    /// Whether the entry's and the folder's removal was committed: not when neither was on the
+    /// Whether the proposal's and the folder's removal was committed: not when neither was on the
     /// default branch, or when it stays written, uncommitted, beside the priorities' other changes
     /// or after a hook refused it.
     pub committed: bool,
 }
 
-/// Drops the started feature or change of `folder`: removes the entry linking its proposal, and its
-/// folder on the default branch, and commits them alone when the priorities had no other change,
-/// then removes its worktree, never forced. Refused for a folder not started, or done, or whose
-/// folder on the default branch has uncommitted changes.
+/// Drops the started feature or change of `folder`: removes the line of the priorities linking its
+/// proposal, and its folder on the default branch, and commits them alone when the priorities had
+/// no other change, then removes its worktree, never forced. Refused for a folder not started, or
+/// done, or whose folder on the default branch has uncommitted changes.
 pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Dropped, ActionError> {
     let feature = workspace
         .feature(folder)
@@ -59,7 +59,7 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Dropped, Ac
         Ok(Some(Ok(_)) | None) => None,
         Err(error) if removed.is_some() => {
             return Err(ActionError::Io(format!(
-                "the entry was removed from {PATH}, but its worktree was not: {error}"
+                "the proposal was removed from {PATH}, but its worktree was not: {error}"
             )));
         }
         Err(error) => return Err(error),
@@ -71,9 +71,9 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Dropped, Ac
     })
 }
 
-/// Removes the entry linking the feature's proposal, and its folder on the default branch, in
-/// `chore(<slug>): drop <entry>`: whether the removal was committed, or `None` when the default
-/// branch has neither.
+/// Removes the line of the priorities linking the feature's proposal, and its folder on the default
+/// branch, in `chore(<slug>): drop <proposal>`: whether the removal was committed, or `None` when
+/// the default branch has neither.
 fn remove_from_default(
     place: &Place,
     feature: &Feature,

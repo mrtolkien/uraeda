@@ -5,10 +5,10 @@ use std::process::Command;
 
 use common::repo::without_user_git;
 use common::*;
-use uraeda_core::actions::{draft, place};
+use uraeda_core::actions::{expand, place};
 use uraeda_core::git::Git;
 
-const PRIORITIES: &str = "# Priorities\n\n## Now\n\n- Basic web UI for viewing\n\n## Next\n\n- Git listener process\n- Web UI for editing\n- [Runner](drafts/runner.md)\n\n## Later\n\n## Blocked\n";
+const PRIORITIES: &str = "# Priorities\n\n## Now\n\n- Basic web UI for viewing\n\n## Next\n\n- Git listener process\n- Web UI for editing\n- [Runner](proposals/runner.md)\n\n## Later\n\n## Blocked\n";
 
 fn repo() -> TestRepo {
     let repo = TestRepo::new();
@@ -42,7 +42,7 @@ fn ura_with_a_terminal(dir: &Path, command: &str) -> String {
 
 #[test]
 #[cfg_attr(not(target_os = "linux"), ignore = "needs util-linux's script")]
-fn drafts_a_line_and_opens_the_editor() {
+fn expands_a_proposal_and_opens_the_editor() {
     let repo = repo();
     let editor = repo.parent().join("editor.sh");
     std::fs::write(
@@ -58,50 +58,50 @@ fn drafts_a_line_and_opens_the_editor() {
 
     let output = ura_with_a_terminal(
         repo.path(),
-        &format!("VISUAL= EDITOR={} {ura} draft listener", editor.display()),
+        &format!("VISUAL= EDITOR={} {ura} expand listener", editor.display()),
     );
 
     assert!(
-        repo.read("specs/drafts/git-listener-process.md")
+        repo.read("specs/proposals/git-listener-process.md")
             .contains("---\n\n# Git listener process\n")
     );
     assert!(
         repo.read("specs/PRIORITIES.md")
-            .contains("- [Git listener process](drafts/git-listener-process.md)\n- Web UI")
+            .contains("- [Git listener process](proposals/git-listener-process.md)\n- Web UI")
     );
     let edited = std::fs::read_to_string(repo.parent().join("edited")).unwrap();
     assert!(
         edited
             .trim()
-            .ends_with("specs/drafts/git-listener-process.md"),
+            .ends_with("specs/proposals/git-listener-process.md"),
         "{edited}\n{output}"
     );
     assert_eq!(repo.subjects("HEAD").len(), 2);
 }
 
 #[test]
-fn several_lines_match() {
+fn several_proposals_match() {
     let repo = repo();
 
-    let output = ura(&repo, &["draft", "web ui"]);
+    let output = ura(&repo, &["expand", "web ui"]);
 
     assert_eq!(
         output.stderr,
-        "ura: 2 lines match \"web ui\":\n  Now   Basic web UI for viewing\n  Next  Web UI for editing\n"
+        "ura: 2 proposals match \"web ui\":\n  Now   Basic web UI for viewing\n  Next  Web UI for editing\n"
     );
     assert_eq!(output.code, 1);
-    assert!(!repo.exists("specs/drafts"));
+    assert!(!repo.exists("specs/proposals"));
 }
 
 #[test]
-fn a_line_with_a_link() {
+fn a_proposal_with_a_link() {
     let repo = repo();
 
-    let output = ura(&repo, &["draft", "runner"]);
+    let output = ura(&repo, &["expand", "runner"]);
 
     assert_eq!(
         output.stderr,
-        "ura: Runner already links drafts/runner.md\n"
+        "ura: Runner already links proposals/runner.md\n"
     );
     assert_eq!(output.code, 1);
 }
@@ -110,13 +110,13 @@ fn a_line_with_a_link() {
 fn without_a_terminal_it_prints_the_path() {
     let repo = repo();
 
-    let output = ura(&repo, &["draft", "listener"]);
+    let output = ura(&repo, &["expand", "listener"]);
 
     assert_eq!(
         output.stdout,
-        "created specs/drafts/git-listener-process.md\nlinked  \"Git listener process\" in specs/PRIORITIES.md\n"
+        "created specs/proposals/git-listener-process.md\nlinked  \"Git listener process\" in specs/PRIORITIES.md\n"
     );
-    assert!(repo.exists("specs/drafts/git-listener-process.md"));
+    assert!(repo.exists("specs/proposals/git-listener-process.md"));
     assert_eq!(output.code, 0);
 }
 
@@ -128,25 +128,25 @@ fn no_editor_found() {
 
     let output = ura_with_a_terminal(
         repo.path(),
-        &format!("env -u VISUAL -u EDITOR PATH=/nonexistent {ura} draft listener"),
+        &format!("env -u VISUAL -u EDITOR PATH=/nonexistent {ura} expand listener"),
     );
 
     assert!(
-        output.contains("open it in your editor: specs/drafts/git-listener-process.md"),
+        output.contains("open it in your editor: specs/proposals/git-listener-process.md"),
         "{output}"
     );
-    assert!(repo.exists("specs/drafts/git-listener-process.md"));
+    assert!(repo.exists("specs/proposals/git-listener-process.md"));
 }
 
 #[test]
-fn without_text_it_lists_the_lines() {
+fn without_text_it_lists_the_proposals() {
     let repo = repo();
 
-    let output = ura(&repo, &["draft"]);
+    let output = ura(&repo, &["expand"]);
 
     assert_eq!(
         output.stderr,
-        "ura: name the line: ura draft <text>\n  Now   Basic web UI for viewing\n  Next  Git listener process\n  Next  Web UI for editing\n"
+        "ura: name the proposal: ura expand <text>\n  Now   Basic web UI for viewing\n  Next  Git listener process\n  Next  Web UI for editing\n"
     );
     assert_eq!(output.code, 1);
 }
@@ -161,15 +161,15 @@ fn fixture_repo() -> TestRepo {
     repo
 }
 
-/// US5.2: `ura draft` writes the same file as the UI's Draft, byte for byte.
+/// US5.2: `ura expand` writes the same file as the UI's Expand, byte for byte.
 #[test]
-fn ura_draft_writes_what_the_ui_writes() {
+fn ura_expand_writes_what_the_ui_writes() {
     let (cli, ui) = (fixture_repo(), fixture_repo());
 
-    let output = ura(&cli, &["draft", "claude code runner"]);
+    let output = ura(&cli, &["expand", "claude code runner"]);
     assert_eq!(output.code, 0, "{}", output.stderr);
     let main = place::reach(&Git::discover(ui.path()).unwrap(), "main").unwrap();
-    let path = draft::create(&main, "next-1").unwrap().path;
+    let path = expand::create(&main, "next-1").unwrap().path;
 
     assert_eq!(cli.read(&path), ui.read(&path));
 }
@@ -182,15 +182,15 @@ fn candidates_of_the_blocked_section_are_spaced() {
         "# Priorities\n\n## Now\n\n- Basic web UI for viewing\n\n## Blocked\n\n- Benchmarks\n",
     );
 
-    let output = ura(&repo, &["draft"]);
+    let output = ura(&repo, &["expand"]);
 
     assert_eq!(
         output.stderr,
-        "ura: name the line: ura draft <text>\n  Now      Basic web UI for viewing\n  Blocked  Benchmarks\n"
+        "ura: name the proposal: ura expand <text>\n  Now      Basic web UI for viewing\n  Blocked  Benchmarks\n"
     );
 }
 
-/// From another worktree, a draft written in the main checkout names its full path.
+/// From another worktree, a proposal file written in the main checkout names its full path.
 #[test]
 fn from_a_worktree_it_names_the_main_checkout() {
     let repo = repo();
@@ -204,7 +204,7 @@ fn from_a_worktree_it_names_the_main_checkout() {
         "2026-10-15-other",
     ]);
 
-    let output = ura_in(&worktree, &["draft", "listener"], &[]);
+    let output = ura_in(&worktree, &["expand", "listener"], &[]);
 
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert!(
@@ -214,5 +214,5 @@ fn from_a_worktree_it_names_the_main_checkout() {
         "{}",
         output.stdout
     );
-    assert!(repo.exists("specs/drafts/git-listener-process.md"));
+    assert!(repo.exists("specs/proposals/git-listener-process.md"));
 }

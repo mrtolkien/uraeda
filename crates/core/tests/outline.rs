@@ -207,7 +207,7 @@ fn a_lines_own_item_outdents_to_a_line() {
 
 #[test]
 fn a_line_drops_into_a_section_and_its_nested_item_becomes_a_line() {
-    let to_now = LineDrop::Entry {
+    let to_now = LineDrop::Proposal {
         section: Section::Now,
         index: 0,
     };
@@ -224,7 +224,7 @@ fn a_line_drops_into_a_section_and_its_nested_item_becomes_a_line() {
 #[test]
 fn a_line_drops_under_an_earlier_lines_nested_item() {
     let under = LineDrop::Under {
-        entry: "now-1".to_string(),
+        proposal: "now-1".to_string(),
         at: Some(1),
         index: 0,
     };
@@ -242,7 +242,7 @@ fn nested_items_are_keyed_under_their_item_at_their_depth() {
     let text = "# Inbox\n\n- One\n  - Same\n    - Deep\n  - Same\n";
 
     let note = &inbox::read(text).categories[0].notes[0];
-    let line = &priorities::read(LINES, None).sections[1].entries[1];
+    let line = &priorities::read(LINES, None).sections[1].proposals[1];
 
     let read: Vec<(&str, u32)> = note
         .children

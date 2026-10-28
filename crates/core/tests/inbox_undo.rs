@@ -9,7 +9,7 @@ use uraeda_core::files::inbox::{Inbox, InboxNote};
 
 const INBOX: &str = "specs/INBOX.md";
 const PRIORITIES: &str = "specs/PRIORITIES.md";
-const LOOK: &str = "specs/drafts/look-and-feel.md";
+const LOOK: &str = "specs/proposals/look-and-feel.md";
 const LOOK_TEXT: &str = "# Look and feel pass\n\n## What\n\nA pass over the app's spacing and icons.\n\n## Why\n\nIt looks unfinished.\n";
 const NOTE: &str = "Draft to proposal on mobile went 404";
 
@@ -17,12 +17,12 @@ fn fixture_text(path: &str) -> String {
     std::fs::read_to_string(common::fixture(path)).unwrap()
 }
 
-/// A repository on `main` with the fixture's `INBOX.md` and `PRIORITIES.md`, and the draft "Look
-/// and feel pass".
+/// A repository on `main` with the fixture's `INBOX.md` and `PRIORITIES.md`, and the proposal file
+/// "Look and feel pass".
 fn fixture_repo() -> TestRepo {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
-    for name in ["INBOX.md", "PRIORITIES.md", "drafts/git-listener.md"] {
+    for name in ["INBOX.md", "PRIORITIES.md", "proposals/git-listener.md"] {
         repo.write(
             &format!("specs/{name}"),
             &fixture_text(&format!("repo/main/specs/{name}")),
@@ -53,10 +53,10 @@ fn moved_to_next(repo: &TestRepo, text: &str) -> (InboxNote, Option<String>, u32
     let inbox = api::read_inbox(repo.path()).unwrap();
     let priorities = api::read_priorities(repo.path()).unwrap();
     let (note, category, index) = placed(&inbox, text);
-    api::note_to_priorities(repo.path(), &note.id, "next", &inbox.hash, &priorities.hash).unwrap();
+    api::note_to_proposal(repo.path(), &note.id, "next", &inbox.hash, &priorities.hash).unwrap();
     let after = api::read_priorities(repo.path()).unwrap();
     let next = after.sections.iter().find(|s| s.section == "next").unwrap();
-    let key = next.entries.last().unwrap().key.clone();
+    let key = next.proposals.last().unwrap().key.clone();
     (note, category, index, key)
 }
 
@@ -71,7 +71,7 @@ fn undo_of_a_move_to_the_priorities_keeps_a_change_made_meanwhile() {
         .replace("We need a home icon", "A home icon");
     repo.write(INBOX, &elsewhere);
 
-    api::undo_note_to_priorities(repo.path(), &note.lines, category, index, "next", Some(key))
+    api::undo_note_to_proposal(repo.path(), &note.lines, category, index, "next", Some(key))
         .unwrap();
 
     assert_eq!(
@@ -93,7 +93,7 @@ fn undo_of_a_move_to_the_priorities_leaves_the_humans_same_line() {
         .replace(&format!("- {NOTE}\n"), &format!("- {NOTE}\n- {NOTE}\n"));
     repo.write(PRIORITIES, &typed);
 
-    let refused = api::undo_note_to_priorities(
+    let refused = api::undo_note_to_proposal(
         repo.path(),
         &note.lines,
         category.clone(),
@@ -105,7 +105,7 @@ fn undo_of_a_move_to_the_priorities_leaves_the_humans_same_line() {
     assert_eq!(repo.read(PRIORITIES), typed);
     assert!(!repo.read(INBOX).contains(NOTE));
 
-    api::undo_note_to_priorities(repo.path(), &note.lines, category, index, "next", Some(key))
+    api::undo_note_to_proposal(repo.path(), &note.lines, category, index, "next", Some(key))
         .unwrap();
     assert_eq!(repo.read(INBOX), inbox);
     assert_eq!(
@@ -128,7 +128,7 @@ fn undo_of_a_move_to_the_priorities_is_refused_once_its_line_is_gone() {
     let inbox = repo.read(INBOX);
 
     let error =
-        api::undo_note_to_priorities(repo.path(), &note.lines, category, index, "next", Some(key))
+        api::undo_note_to_proposal(repo.path(), &note.lines, category, index, "next", Some(key))
             .unwrap_err();
 
     assert_eq!(
@@ -139,20 +139,21 @@ fn undo_of_a_move_to_the_priorities_is_refused_once_its_line_is_gone() {
     assert_eq!(repo.read(INBOX), inbox);
 }
 
-/// The Undo of an add to a draft takes the note's lines out of it, and keeps what the human typed.
+/// The Undo of an add to a proposal file takes the note's lines out of it, and keeps what the human
+/// typed.
 #[test]
-fn undo_of_an_add_to_a_draft_keeps_the_humans_typing() {
+fn undo_of_an_add_to_a_proposal_file_keeps_the_humans_typing() {
     let repo = fixture_repo();
     let before = repo.read(INBOX);
     let inbox = api::read_inbox(repo.path()).unwrap();
     let (note, category, index) = placed(&inbox, "Icons are blurry on retina screens");
-    api::note_to_draft(repo.path(), &note.id, LOOK, &inbox.hash).unwrap();
+    api::note_into_proposal(repo.path(), &note.id, LOOK, &inbox.hash).unwrap();
     let typed = repo
         .read(LOOK)
         .replace("It looks unfinished.", "It looks unfinished, and dated.");
     repo.write(LOOK, &typed);
 
-    api::undo_note_to_draft(repo.path(), LOOK, &note.lines, category.clone(), index).unwrap();
+    api::undo_note_into_proposal(repo.path(), LOOK, &note.lines, category.clone(), index).unwrap();
 
     assert_eq!(
         repo.read(LOOK),
@@ -161,11 +162,11 @@ fn undo_of_an_add_to_a_draft_keeps_the_humans_typing() {
     assert_eq!(repo.read(INBOX), before);
 
     let error =
-        api::undo_note_to_draft(repo.path(), LOOK, &note.lines, category, index).unwrap_err();
+        api::undo_note_into_proposal(repo.path(), LOOK, &note.lines, category, index).unwrap_err();
     assert_eq!(
         error.to_string(),
         "Could not undo: \"Icons are blurry on retina screens\" is no longer in \
-         drafts/look-and-feel.md."
+         proposals/look-and-feel.md."
     );
 }
 
@@ -246,10 +247,11 @@ fn undo_of_an_add_refuses_between_two_same_notes() {
     assert_eq!(repo.read(INBOX), both);
 }
 
-/// The Undo of an add to a draft, and Discard, take the note's lines out of the draft's What,
-/// which the move wrote into: a same bullet the human wrote under another heading stays.
+/// The Undo of an add to a proposal file, and Discard, take the note's lines out of the proposal
+/// file's What, which the move wrote into: a same bullet the human wrote under another heading
+/// stays.
 #[test]
-fn an_add_to_a_draft_is_taken_back_from_its_what_only() {
+fn an_add_to_a_proposal_file_is_taken_back_from_its_what_only() {
     let typed = LOOK_TEXT.replace(
         "It looks unfinished.\n",
         "It looks unfinished.\n\n- Icons are blurry on retina screens\n",
@@ -260,12 +262,12 @@ fn an_add_to_a_draft_is_taken_back_from_its_what_only() {
         repo.commit("chore: a bullet under Why");
         let inbox = api::read_inbox(repo.path()).unwrap();
         let (note, category, index) = placed(&inbox, "Icons are blurry on retina screens");
-        api::note_to_draft(repo.path(), &note.id, LOOK, &inbox.hash).unwrap();
+        api::note_into_proposal(repo.path(), &note.id, LOOK, &inbox.hash).unwrap();
 
         if discard {
             api::discard_changes(repo.path()).unwrap();
         } else {
-            api::undo_note_to_draft(repo.path(), LOOK, &note.lines, category, index).unwrap();
+            api::undo_note_into_proposal(repo.path(), LOOK, &note.lines, category, index).unwrap();
         }
 
         assert_eq!(repo.read(LOOK), typed, "discard: {discard}");

@@ -1,12 +1,12 @@
-//! `ura inbox clean`: the images of drafts and of the backlog that no markdown file of their folder
-//! links, listed or deleted, with every linked image kept.
+//! `ura inbox clean`: the images of note files and of proposal files that no markdown file of their
+//! folder links, listed or deleted, with every linked image kept.
 
 mod common;
 
 use common::*;
 
-/// A repository with a draft folder holding a linked image and a stray one, a single-file draft,
-/// and a postponed folder with a stray image.
+/// A repository with a note file's folder holding a linked image and a stray one, a single
+/// proposal file, and a postponed folder with a stray image.
 fn repo() -> TestRepo {
     let repo = TestRepo::new();
     specs(
@@ -14,18 +14,18 @@ fn repo() -> TestRepo {
         "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
     );
     repo.write(
-        "specs/drafts/slow-lists/proposal.md",
+        "specs/notes/slow-lists/note.md",
         "# Slow lists\n\n## What\n\nSlow lists\n\n![shot](images/linked.webp)\n",
     );
-    repo.write("specs/drafts/slow-lists/images/linked.webp", "kept");
-    repo.write("specs/drafts/slow-lists/images/stray.webp", "stray");
-    repo.write("specs/drafts/single.md", "# Single\n");
+    repo.write("specs/notes/slow-lists/images/linked.webp", "kept");
+    repo.write("specs/notes/slow-lists/images/stray.webp", "stray");
+    repo.write("specs/proposals/single.md", "# Single\n");
     repo.write(
-        "specs/backlog/later/proposal.md",
+        "specs/proposals/later/proposal.md",
         "# Later\n\n## What\n\nLater\n",
     );
-    repo.write("specs/backlog/later/images/old.webp", "old");
-    repo.commit("chore: drafts");
+    repo.write("specs/proposals/later/images/old.webp", "old");
+    repo.commit("chore: notes and proposals");
     repo
 }
 
@@ -39,10 +39,10 @@ fn a_dry_run_lists_the_unlinked_images_and_deletes_nothing() {
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert_eq!(
         output.stdout,
-        "specs/backlog/later/images/old.webp\nspecs/drafts/slow-lists/images/stray.webp\n"
+        "specs/notes/slow-lists/images/stray.webp\nspecs/proposals/later/images/old.webp\n"
     );
-    assert!(repo.exists("specs/drafts/slow-lists/images/stray.webp"));
-    assert!(repo.exists("specs/backlog/later/images/old.webp"));
+    assert!(repo.exists("specs/notes/slow-lists/images/stray.webp"));
+    assert!(repo.exists("specs/proposals/later/images/old.webp"));
 }
 
 /// Without `--dry-run`, the unlinked images are deleted, the folder left empty with them, and the
@@ -57,12 +57,12 @@ fn it_deletes_the_unlinked_images_and_keeps_the_linked_ones() {
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert_eq!(
         output.stdout,
-        "specs/backlog/later/images/old.webp\nspecs/drafts/slow-lists/images/stray.webp\n"
+        "specs/notes/slow-lists/images/stray.webp\nspecs/proposals/later/images/old.webp\n"
     );
     assert_eq!(output.stderr, "removed 2 unlinked images\n");
-    assert!(!repo.exists("specs/drafts/slow-lists/images/stray.webp"));
-    assert!(!repo.exists("specs/backlog/later/images"));
-    assert!(repo.exists("specs/drafts/slow-lists/images/linked.webp"));
+    assert!(!repo.exists("specs/notes/slow-lists/images/stray.webp"));
+    assert!(!repo.exists("specs/proposals/later/images"));
+    assert!(repo.exists("specs/notes/slow-lists/images/linked.webp"));
     assert_eq!(repo.subjects("main"), head);
 }
 

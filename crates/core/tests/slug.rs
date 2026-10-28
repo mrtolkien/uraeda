@@ -36,7 +36,8 @@ fn short_slugs_keep_two_words_that_name_something() {
     }
 }
 
-/// R1: a typed change's slug, proposed from its title as `ura start` does from a draft's name.
+/// R1: a typed change's slug, proposed from its title as `ura start` does from a proposal file's
+/// name.
 #[test]
 fn a_title_proposes_the_short_slug_of_its_words() {
     let cases = [

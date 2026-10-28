@@ -1,5 +1,6 @@
 //! What the web UI reads, as napi-rs objects: the workspace, a feature, a file with its document
-//! and items, a draft. Numbers are `u32` and enums are strings, as JavaScript receives them.
+//! and items, a proposal file. Numbers are `u32` and enums are strings, as JavaScript receives
+//! them.
 
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -47,10 +48,10 @@ impl From<&Problem> for ProblemView {
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PriorityView {
+pub struct ProposalView {
     /// `next-2`.
     pub id: String,
-    /// Its address, `/priorities/<key>`: the linked draft's name, or the slug of its text.
+    /// Its address, `/priorities/<key>`: the linked proposal file's name, or the slug of its text.
     pub key: String,
     /// `now`, `next`, `later`, or `blocked`.
     pub section: String,
@@ -59,8 +60,8 @@ pub struct PriorityView {
     pub link: Option<String>,
     /// The folder of the feature it links.
     pub feature: Option<String>,
-    /// The draft it links.
-    pub draft: Option<String>,
+    /// The proposal file it links.
+    pub file: Option<String>,
 }
 
 #[cfg_attr(feature = "napi", napi(object))]
@@ -71,10 +72,11 @@ pub struct WorkspaceView {
     pub default_branch: Option<String>,
     pub current_branch: Option<String>,
     pub features: Vec<FeatureView>,
-    pub priorities: Vec<PriorityView>,
-    /// The hash of `PRIORITIES.md` as read, for drafting a line by its id.
+    pub priorities: Vec<ProposalView>,
+    /// The hash of `PRIORITIES.md` as read, for expanding a proposal by its id.
     pub priorities_hash: String,
-    pub drafts: Vec<String>,
+    /// The proposal files and postponed folders, from the top level.
+    pub proposals: Vec<String>,
     /// The repository's path when it has no `specs/` folder: nothing else is read.
     pub no_specs: Option<String>,
 }
@@ -131,11 +133,12 @@ pub(crate) fn kind_name(kind: Option<FileKind>) -> String {
         .unwrap_or_default()
 }
 
-/// A draft or a postponed proposal, for its editor.
+/// A proposal file, a postponed folder's proposal, a note file, or a feature's or a change's
+/// proposal, for its editor.
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DraftView {
+pub struct ProposalFileView {
     /// From the repository's top level.
     pub path: String,
     pub title: String,
@@ -148,15 +151,16 @@ pub struct DraftView {
     pub mockups: Vec<MockupEmbed>,
     /// Whether its current text is committed.
     pub committed: bool,
-    /// The priority line linking it.
-    pub entry: Option<PriorityView>,
-    /// How many priority changes are not committed, which its commit takes along.
+    /// The proposal of `PRIORITIES.md` linking it.
+    pub proposal: Option<ProposalView>,
+    /// How many changes of `PRIORITIES.md` are not committed, which its commit takes along.
     pub priority_changes: u32,
-    /// `draft` for a file of `specs/drafts/` or `specs/backlog/`, or `proposal`.
+    /// `proposal-file` for a file of `specs/proposals/`, `note-file` for a file of `specs/notes/`,
+    /// or `proposal` for a feature's or a change's.
     pub kind: String,
     /// The feature's or the change's folder, for a proposal.
     pub folder: Option<String>,
-    /// The slug Start gives a draft's feature unless another is typed.
+    /// The slug Start gives a proposal file's feature unless another is typed.
     pub slug: Option<String>,
     /// The effort its `discovery` field asks for, `high` by default.
     pub discovery: Option<String>,
@@ -186,7 +190,7 @@ pub struct AttachedView {
     pub path: String,
     /// The markdown to insert, linking the image from the file.
     pub link: String,
-    /// The file's new path, when a single-file draft became a folder.
+    /// The file's new path, when a single proposal file or note file became a folder.
     pub moved: Option<String>,
 }
 
@@ -267,22 +271,22 @@ pub struct WaitingFile {
     pub text: String,
 }
 
-/// What a priorities entry links to: a feature or a change and its step, or a draft. Not exposed to
-/// the binding: the language server reads it.
+/// What a proposal of the priorities links to: a feature or a change and its step, or a proposal
+/// file. Not exposed to the binding: the language server reads it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PriorityLink {
-    /// The entry's first line, 1-based.
+pub struct ProposalLink {
+    /// The proposal's first line, 1-based.
     pub line: u32,
     /// The folder of the feature it links.
     pub feature: Option<String>,
     /// That feature's step.
     pub step: Option<StepView>,
-    /// The draft it links, from the top level.
-    pub draft: Option<String>,
+    /// The proposal file it links, from the top level.
+    pub file: Option<String>,
 }
 
-/// A span list for a priority line's markdown.
+/// A span list for a proposal line's markdown.
 pub fn spans(markdown: &str) -> Vec<Span> {
     crate::files::document::parse(markdown, "specs")
         .blocks
@@ -324,19 +328,19 @@ impl WorkspaceView {
             priorities: workspace
                 .priorities
                 .iter()
-                .map(|entry| PriorityView {
-                    id: format!("{}-{}", entry.section.id(), entry.position),
-                    key: entry.key.clone(),
-                    section: entry.section.id().to_string(),
-                    position: entry.position as u32,
-                    text: entry.text.clone(),
-                    link: entry.link.clone(),
-                    feature: entry.feature.clone(),
-                    draft: entry.draft.clone(),
+                .map(|proposal| ProposalView {
+                    id: format!("{}-{}", proposal.section.id(), proposal.position),
+                    key: proposal.key.clone(),
+                    section: proposal.section.id().to_string(),
+                    position: proposal.position as u32,
+                    text: proposal.text.clone(),
+                    link: proposal.link.clone(),
+                    feature: proposal.feature.clone(),
+                    file: proposal.file.clone(),
                 })
                 .collect(),
             priorities_hash: String::new(),
-            drafts: workspace.drafts.clone(),
+            proposals: workspace.proposals.clone(),
             no_specs: None,
         }
     }

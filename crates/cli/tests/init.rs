@@ -42,15 +42,16 @@ fn sets_up_specs_only_from_a_subfolder() {
         "specs/CONSTITUTION.md",
         "specs/PRIORITIES.md",
         "specs/INBOX.md",
-        "specs/drafts/.gitkeep",
-        "specs/backlog/.gitkeep",
+        "specs/proposals/.gitkeep",
         "specs/decisions/.gitkeep",
         "specs/changes/.gitkeep",
         "specs/done/.gitkeep",
     ] {
         assert!(repo.exists(file), "{file}\n{}", output.stdout);
     }
-    assert!(!repo.exists("specs/bugs"));
+    for old in ["specs/bugs", "specs/drafts", "specs/backlog"] {
+        assert!(!repo.exists(old), "{old}");
+    }
     assert!(!repo.exists(".agents"));
     assert!(!repo.exists(".claude"));
     assert_eq!(repo.subjects("HEAD").len(), 1);

@@ -23,7 +23,7 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
     let index = match target {
         Some(target) => match output::target(&workspace, Some(&target), Purpose::Inspect)? {
             Target::Feature(index) | Target::File(index, _) => Some(index),
-            Target::Draft(draft) => return Err(format!("{draft} is not started")),
+            Target::Proposal(proposal) => return Err(format!("{proposal} is not started")),
         },
         None => steps::next_target(&workspace),
     };

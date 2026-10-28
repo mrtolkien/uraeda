@@ -104,7 +104,7 @@ fn picker() -> Picker {
     let items = vec![
         Item {
             label: "Yes".to_string(),
-            detail: ": complete ura's commands, drafts, and features with Tab".to_string(),
+            detail: ": complete ura's commands, proposals, and features with Tab".to_string(),
         },
         Item {
             label: "No".to_string(),

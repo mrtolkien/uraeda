@@ -525,7 +525,8 @@ fn replaced_behaviour_and_gotchas_are_optional_sections_in_their_place() {
 }
 
 /// SC-003: a story link is a plain markdown link, and a spec holding one checks without problem.
-/// `specs/ui/`, the project's UI guides, is a folder of its own, free form, as `drafts/` is.
+/// `specs/ui/`, the project's UI guides, is a folder of its own, free form, as `proposal files/`
+/// is.
 #[test]
 fn a_ui_folder_has_no_problem() {
     let example = Example::new();
@@ -994,6 +995,25 @@ fn an_old_bugs_folder_says_how_to_move_it() {
     );
 }
 
+/// Edge case: a project not moved to the proposals, its `specs/proposal files/` holding files: the
+/// check points to the migration. An old folder left empty but for its `.gitkeep` is not reported.
+#[test]
+fn an_old_drafts_folder_points_to_the_migration() {
+    let example = Example::new();
+    example.write("specs/drafts/idea.md", "# Idea\n");
+    example.write("specs/backlog/.gitkeep", "");
+
+    let problems = example.problems();
+
+    assert_eq!(problems[0].rule, "layout.old-folder");
+    assert_eq!(
+        summary(&problems),
+        vec![
+            "specs/drafts: specs/drafts/ is no longer read: move it to specs/proposals/, see \"Moving drafts and the backlog to the proposals\" in the skill's projects reference."
+        ]
+    );
+}
+
 /// A file of a change's folder that the folder does not hold is reported when the file alone is
 /// checked, on disk or as a text, as the editor checks it, and not for the files it holds.
 #[test]
@@ -1079,12 +1099,12 @@ fn the_inbox_may_link_a_started_feature() {
     let example = Example::new();
     example.write(
         INBOX,
-        "# Inbox\n\n- [Run UI](2026-10-20-run-ui/spec.md)\n- [Gone](drafts/gone.md)\n",
+        "# Inbox\n\n- [Run UI](2026-10-20-run-ui/spec.md)\n- [Gone](proposals/gone.md)\n",
     );
 
     assert_eq!(
         summary(&example.problems()),
-        vec![format!("{INBOX}:4: no file drafts/gone.md")]
+        vec![format!("{INBOX}:4: no file proposals/gone.md")]
     );
 }
 
@@ -1205,7 +1225,7 @@ fn an_inbox_outside_the_top_of_specs_is_not_checked() {
     let example = Example::new();
     for path in [
         format!("{FEATURE}/INBOX.md"),
-        "specs/drafts/INBOX.md".to_string(),
+        "specs/proposals/INBOX.md".to_string(),
         format!("{FEATURE}/INBOX-TRIAGE.md"),
         "docs/INBOX.md".to_string(),
     ] {

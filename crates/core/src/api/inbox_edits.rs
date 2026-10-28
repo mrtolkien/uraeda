@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use super::outlines::note_stays;
-use super::priority_edits::{change_count, section};
+use super::proposal_edits::{change_count, section};
 use super::{Result, on_default, open, reach_default, write_lock};
 use crate::actions::changes;
 use crate::actions::commit::Added;
@@ -103,7 +103,7 @@ pub fn edit_note(repo: &Path, id: &str, text: &str, previous: &str) -> Result<In
     Ok(edits::edit(&place, id, text, Some(previous))?)
 }
 
-/// Removes a note, sub-items included.
+/// Removes a note, sub-items included, and its note file, which [`insert_note`] brings back.
 pub fn remove_note(repo: &Path, id: &str, previous: &str) -> Result<Inbox> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
@@ -156,7 +156,7 @@ pub fn place_note(
 }
 
 /// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
-/// Undo of a removal.
+/// Undo of a removal, with the note file the removal took away, as it was.
 pub fn insert_note(
     repo: &Path,
     category: Option<String>,
@@ -177,7 +177,7 @@ pub fn insert_note(
 
 /// Moves a note to the end of a section of the priorities, over both files as read at `previous`
 /// and `priorities_previous`.
-pub fn note_to_priorities(
+pub fn note_to_proposal(
     repo: &Path,
     id: &str,
     section_id: &str,
@@ -187,7 +187,7 @@ pub fn note_to_priorities(
     let section = section(section_id)?;
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    Ok(edits::to_priorities(
+    Ok(edits::to_proposal(
         &place,
         id,
         section,
@@ -196,31 +196,31 @@ pub fn note_to_priorities(
     )?)
 }
 
-/// Moves a note under the entry `entry` of the priorities, `now-2`, as its last item, over both
-/// files as read at `previous` and `priorities_previous`. A note that links a draft is refused:
-/// nested, its draft would no longer be found by its link.
-pub fn note_under_priority(
+/// Moves a note under the proposal `proposal` of the priorities, `now-2`, as its last item, over
+/// both files as read at `previous` and `priorities_previous`. A note with a note file is refused:
+/// nested, its file would no longer be found by its link.
+pub fn note_under_proposal(
     repo: &Path,
     id: &str,
-    entry: &str,
+    proposal: &str,
     previous: &str,
     priorities_previous: &str,
 ) -> Result<()> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
     note_stays(&place, id, previous)?;
-    Ok(edits::under_priority(
+    Ok(edits::under_proposal(
         &place,
         id,
-        entry,
+        proposal,
         previous,
         priorities_previous,
     )?)
 }
 
-/// Makes a note a new draft, linked from the end of a section of the priorities. Returns the
-/// draft's path, from the top level.
-pub fn note_to_new_draft(
+/// Makes a note a new proposal file, linked from the end of a section of the priorities, or moves
+/// its note file among the proposals. Returns the proposal file's path, from the top level.
+pub fn note_to_proposal_file(
     repo: &Path,
     id: &str,
     section_id: &str,
@@ -230,7 +230,7 @@ pub fn note_to_new_draft(
     let section = section(section_id)?;
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    Ok(edits::to_new_draft(
+    Ok(edits::to_proposal_file(
         &place,
         id,
         section,
@@ -239,11 +239,11 @@ pub fn note_to_new_draft(
     )?)
 }
 
-/// Adds a note at the end of the `## What` of the draft at `draft`, from the top level.
-pub fn note_to_draft(repo: &Path, id: &str, draft: &str, previous: &str) -> Result<()> {
+/// Adds a note at the end of the `## What` of the proposal file at `proposal`, from the top level.
+pub fn note_into_proposal(repo: &Path, id: &str, proposal: &str, previous: &str) -> Result<()> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    Ok(edits::to_draft(&place, id, draft, previous)?)
+    Ok(edits::into_proposal(&place, id, proposal, previous)?)
 }
 
 /// An image sent with a note: its bytes, and its original file name, `None` for a pasted image.
@@ -260,9 +260,9 @@ fn encoded(images: &[NoteImage]) -> Result<Vec<edits::NoteImage>> {
         .collect()
 }
 
-/// Adds a note as a new draft folder, `specs/drafts/<slug>/proposal.md`, holding its text and the
+/// Adds a note as a new note file's folder, `specs/notes/<slug>/note.md`, holding its text and the
 /// `images`, linked from the end of a category: all written or none. The images are checked and
-/// encoded first, so a refused one writes nothing. Returns the inbox and the draft's path, from
+/// encoded first, so a refused one writes nothing. Returns the inbox and the note file's path, from
 /// the top level.
 pub fn add_note_with_images(
     repo: &Path,
@@ -277,14 +277,13 @@ pub fn add_note_with_images(
     let images = encoded(images)?;
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    let draft =
-        edits::add_with_image(&place, category.as_deref(), &marks, text, &images, previous)?;
-    Ok((edits::read(&place), draft))
+    let file = edits::add_with_image(&place, category.as_deref(), &marks, text, &images, previous)?;
+    Ok((edits::read(&place), file))
 }
 
-/// Adds `images` to the note `id`: into the draft it links, or into the draft it becomes, linked
-/// from the note's own place. The images are checked and encoded first. Returns the inbox and the
-/// draft's path, from the top level.
+/// Adds `images` to the note `id`: into its note file, or into the note file it gets, linked from
+/// the note's own place. The images are checked and encoded first. Returns the inbox and the note
+/// file's path, from the top level.
 pub fn attach_note_images(
     repo: &Path,
     id: &str,
@@ -294,11 +293,12 @@ pub fn attach_note_images(
     let images = encoded(images)?;
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    let draft = edits::attach_to_note(&place, id, &images, previous)?;
-    Ok((edits::read(&place), draft))
+    let file = edits::attach_to_note(&place, id, &images, previous)?;
+    Ok((edits::read(&place), file))
 }
 
-/// Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into.
+/// Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
+/// moved, or left.
 pub fn commit_changes(repo: &Path) -> Result<()> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
@@ -306,8 +306,8 @@ pub fn commit_changes(repo: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of drafts,
-/// keeping any text the human typed: see [`changes::discard`].
+/// Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of proposal
+/// files, keeping any text the human typed: see [`changes::discard`].
 pub fn discard_changes(repo: &Path) -> Result<()> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
@@ -317,64 +317,65 @@ pub fn discard_changes(repo: &Path) -> Result<()> {
 
 /// Takes back a note's move to a section of the priorities, in one write of both files or none:
 /// the line the move wrote leaves the section, found by the note's lines and, among several of
-/// them, by `entry_key`, the key it had once moved; the note, `lines` as written, goes back
-/// before the note at `index` of its category, over the inbox as it is now.
-pub fn undo_note_to_priorities(
+/// them, by `proposal_key`, the key it had once moved; the note, `lines` as written, goes back
+/// before the note at `index` of its category, over the inbox as it is now, and its note file,
+/// moved among the proposals, back among the notes.
+pub fn undo_note_to_proposal(
     repo: &Path,
     lines: &[String],
     category: Option<String>,
     index: u32,
     section_id: &str,
-    entry_key: Option<String>,
+    proposal_key: Option<String>,
 ) -> Result<Inbox> {
     let section = section(section_id)?;
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    edits::undo_to_priorities(
+    edits::undo_to_proposal(
         &place,
         lines,
         category.as_deref(),
         index as usize,
         section,
-        entry_key.as_deref(),
+        proposal_key.as_deref(),
     )?;
     Ok(edits::read(&place))
 }
 
-/// Takes back a note's move under an entry of the priorities, in one write of both files or none:
-/// the item the move wrote leaves the entry whose key is `entry_key`, and the note, `lines` as
-/// written, goes back before the note at `index` of its category, over the inbox as it is now.
-pub fn undo_note_under_priority(
+/// Takes back a note's move under a proposal of the priorities, in one write of both files or none:
+/// the item the move wrote leaves the proposal whose key is `proposal_key`, and the note, `lines`
+/// as written, goes back before the note at `index` of its category, over the inbox as it is now.
+pub fn undo_note_under_proposal(
     repo: &Path,
     lines: &[String],
     category: Option<String>,
     index: u32,
-    entry_key: &str,
+    proposal_key: &str,
 ) -> Result<Inbox> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    edits::undo_under_priority(
+    edits::undo_under_proposal(
         &place,
         lines,
         category.as_deref(),
         index as usize,
-        entry_key,
+        proposal_key,
     )?;
     Ok(edits::read(&place))
 }
 
-/// Takes back a note's add to the draft at `draft`, in one write of both files or none: the note's
-/// lines leave the draft, every other edit kept, and the note goes back to its place.
-pub fn undo_note_to_draft(
+/// Takes back a note's add to the proposal file at `proposal`, in one write of both files or none:
+/// the note's lines leave the file, every other edit kept, and the note goes back to its place.
+pub fn undo_note_into_proposal(
     repo: &Path,
-    draft: &str,
+    proposal: &str,
     lines: &[String],
     category: Option<String>,
     index: u32,
 ) -> Result<Inbox> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    edits::undo_to_draft(&place, draft, lines, category.as_deref(), index as usize)?;
+    edits::undo_into_proposal(&place, proposal, lines, category.as_deref(), index as usize)?;
     Ok(edits::read(&place))
 }
 
@@ -392,12 +393,12 @@ pub fn undo_note_category(
     Ok(edits::read(&place))
 }
 
-/// Takes back a note added as a draft: the note, found by its lines as written, leaves the inbox,
-/// and its draft goes with it, image included, unless a commit has it or the human typed in it.
-pub fn undo_note_as_draft(repo: &Path, lines: &[String]) -> Result<Inbox> {
+/// Takes back a note added as a file: the note, found by its lines as written, leaves the inbox,
+/// and its note file goes with it, image included, unless a commit has it or the human typed in it.
+pub fn undo_note_as_file(repo: &Path, lines: &[String]) -> Result<Inbox> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
-    edits::undo_as_draft(&place, lines)?;
+    edits::undo_as_file(&place, lines)?;
     Ok(edits::read(&place))
 }
 
@@ -410,16 +411,16 @@ pub fn undo_note_add(repo: &Path, lines: &[String]) -> Result<Inbox> {
     Ok(edits::read(&place))
 }
 
-/// The images of drafts and of the backlog that no markdown file of their folder links, from the
-/// top level, in order: deleted unless `dry_run`, with the `images/` folders they leave empty, on
-/// the default branch, uncommitted.
+/// The images of proposal files and of note files that no markdown file of their folder links, from
+/// the top level, in order: deleted unless `dry_run`, with the `images/` folders they leave empty,
+/// on the default branch, uncommitted.
 pub fn clean_images(repo: &Path, dry_run: bool) -> Result<Vec<String>> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
     if dry_run {
-        return Ok(crate::actions::images::unlinked_in_drafts(&place.root));
+        return Ok(crate::actions::images::unlinked_in_proposals_and_notes(
+            &place.root,
+        ));
     }
-    Ok(crate::actions::images::delete_unlinked_in_drafts(
-        &place.root,
-    )?)
+    Ok(crate::actions::images::delete_unlinked_in_proposals_and_notes(&place.root)?)
 }

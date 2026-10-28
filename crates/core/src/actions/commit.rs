@@ -70,7 +70,7 @@ impl Added {
 /// The priorities after "Add and commit", and whether it committed.
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
-pub struct PrioritiesAdded {
+pub struct ProposalAdded {
     pub priorities: Priorities,
     pub added: Added,
 }
@@ -91,12 +91,13 @@ pub fn is_clean(place: &Place, path: &str) -> bool {
         .unwrap_or(false)
 }
 
-/// Runs `write`, an add to the file at `path`, then commits that file alone with `subject`, when
-/// it was as committed before: other changes are someone's work in progress. A hook's refusal
-/// leaves the add written, uncommitted.
+/// Runs `write`, an add to the file at `path`, then commits that file alone with `subject`, with
+/// the paths `also` the write deleted, when it was as committed before: other changes are
+/// someone's work in progress. A hook's refusal leaves the add written, uncommitted.
 pub fn add_alone<T>(
     place: &Place,
     path: &str,
+    also: &[String],
     subject: String,
     write: impl FnOnce() -> Result<T, ActionError>,
 ) -> Result<(T, Added), ActionError> {
@@ -105,8 +106,10 @@ pub fn add_alone<T>(
     if !clean {
         return Ok((written, Added::not("other-changes", None)));
     }
+    let mut paths = vec![path.to_string()];
+    paths.extend_from_slice(also);
     let change = Change {
-        paths: vec![path.to_string()],
+        paths,
         subject,
         body: None,
     };

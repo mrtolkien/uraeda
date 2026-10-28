@@ -1,4 +1,4 @@
-//! A markdown file without its links to one image: what taking an image out of a note's draft
+//! A markdown file without its links to one image: what taking an image out of a note's file
 //! writes. Each link is found by the parser, so a title, angle brackets, or brackets in its text
 //! are cut with it.
 

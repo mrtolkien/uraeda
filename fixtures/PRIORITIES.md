@@ -7,7 +7,7 @@
   approval or not
 - Nvim plugin
 - Basic web UI for _viewing_ the workflow files -> React + Astryx + Fate stack, see
-  [draft](drafts/web-ui.md)
+  [proposal](proposals/web-ui.md)
 
 ## Next
 
@@ -40,4 +40,4 @@
 ## Blocked
 
 - Benchmarks (harness, model, ...): blocked until the harness and the Claude Code integration are
-  ready, see [backlog](backlog/benchmarks/proposal.md), with a discovery round and partial answers.
+  ready, see [proposal](proposals/benchmarks/proposal.md), with a discovery round and partial answers.
