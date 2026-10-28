@@ -77,8 +77,7 @@ export function OutlineEditor({
     }
   };
   /** Whether the text is one to save: some text, new, or changed. */
-  const isToSave = (trimmed: string) =>
-    trimmed !== "" && (isNew || trimmed !== value.trim());
+  const isToSave = (trimmed: string) => trimmed !== "" && (isNew || trimmed !== value.trim());
   /** Saves the text when there is one to save; else closes with nothing saved. */
   const finish = () => {
     const trimmed = text.trim();

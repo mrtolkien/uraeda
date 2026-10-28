@@ -189,10 +189,7 @@ const reading = (path: string, output: string): ToolCall => ({
  * plan of its own feature.
  */
 const building = (folder: string): AtWork => ({
-  calls: [
-    reading(`specs/${folder}/plan.md`, "The plan's current task."),
-    ...TOOL_CALLS.slice(1),
-  ],
+  calls: [reading(`specs/${folder}/plan.md`, "The plan's current task."), ...TOOL_CALLS.slice(1)],
   subagents: IMPLEMENTATION.subagents,
 });
 
@@ -287,16 +284,14 @@ export class SandboxAgent extends FakeAdapter {
       week: { percentUsed: 18, resetsAt: inHours(72) },
     };
     const ids = subagents.map((_, index) => `at-work-agent-${index}`);
-    const starts = subagents.map(
-      (description, index): FakeStep => ({
-        id: ids[index] ?? "",
-        input: { description, prompt: description },
-        kind: "other",
-        name: "Agent",
-        subagent: { description },
-        type: "toolStart",
-      }),
-    );
+    const starts = subagents.map((description, index): FakeStep => ({
+      id: ids[index] ?? "",
+      input: { description, prompt: description },
+      kind: "other",
+      name: "Agent",
+      subagent: { description },
+      type: "toolStart",
+    }));
     return [
       usage,
       ...starts,
@@ -382,7 +377,8 @@ async function startAtWork(
   if (agent.playAtWorkOn === undefined) {
     throw new Error("The turn at work runs on the sandbox's agent.");
   }
-  const adapter = sessions.adapter;
+  // The sandbox's agent, whose kind, unlike an adapter's, can be set for a while.
+  const adapter = agent as SandboxAgent;
   const usual = adapter.kind;
   if (kind !== undefined) {
     adapter.kind = kind;

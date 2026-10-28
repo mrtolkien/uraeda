@@ -280,7 +280,9 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
       <VStack gap={4}>
         <PageTitle
           // Beside the title at every width, as on a desktop.
-          actions={<Search field={searchField} isNarrow={narrow} onChange={setSearch} text={search} />}
+          actions={
+            <Search field={searchField} isNarrow={narrow} onChange={setSearch} text={search} />
+          }
         >
           New
         </PageTitle>

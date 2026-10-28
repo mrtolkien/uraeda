@@ -60,6 +60,7 @@ function quickBuilders(fail?: "projects" | "sessions"): Builders {
       const paths = {
         broken: join(dir, "broken"),
         empty: join(dir, "empty"),
+        realistic: join(dir, "realistic"),
         sample: join(dir, "sample"),
       };
       for (const path of Object.values(paths)) {

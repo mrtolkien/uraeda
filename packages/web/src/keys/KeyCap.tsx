@@ -16,5 +16,7 @@ const styles = stylex.create({
 
 /** The keys, as typed: "j k", "⏎". Space, written "space", is its narrow glyph. */
 export function KeyCap({ children }: { children: ReactNode }) {
-  return <kbd {...stylex.props(styles.key)}>{children === "space" ? <SpaceGlyph /> : children}</kbd>;
+  return (
+    <kbd {...stylex.props(styles.key)}>{children === "space" ? <SpaceGlyph /> : children}</kbd>
+  );
 }

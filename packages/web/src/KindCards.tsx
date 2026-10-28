@@ -160,11 +160,7 @@ export function KindCards({
     <div
       aria-label="What to start"
       role="radiogroup"
-      {...stylex.props(
-        styles.cards,
-        narrow && styles.stacked,
-        compact && styles.compact,
-      )}
+      {...stylex.props(styles.cards, narrow && styles.stacked, compact && styles.compact)}
     >
       {KINDS.map((card, index) => {
         const isPicked = card.kind === kind;

@@ -181,7 +181,9 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
               <SingleKeysSetting onRead={setSingleKeys} />
               <Frame
                 // The phone has no bar but for a page's own controls: none takes no room there.
-                bottom={narrow && slot === null ? undefined : <StatusLine isNarrow={narrow} slot={slot} />}
+                bottom={
+                  narrow && slot === null ? undefined : <StatusLine isNarrow={narrow} slot={slot} />
+                }
                 isNarrow={narrow}
                 start={
                   narrow ? (

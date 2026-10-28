@@ -18,9 +18,7 @@ const HERE = "   ← here";
 
 /** The note's lines, `indent` spaces in, its first one marked. */
 function noteLines(placed: Placed, indent: number) {
-  return placed.note.lines.map(
-    (line, at) => `${" ".repeat(indent)}${line}${at === 0 ? HERE : ""}`,
-  );
+  return placed.note.lines.map((line, at) => `${" ".repeat(indent)}${line}${at === 0 ? HERE : ""}`);
 }
 
 /** A section of the priorities with the note at its end. */

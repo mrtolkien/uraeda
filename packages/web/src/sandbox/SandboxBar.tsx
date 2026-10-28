@@ -154,7 +154,13 @@ export function SandboxBar({
         if (event.button !== 0 || (event.target as Element).closest("pre")) {
           return;
         }
-        drag.current = { moved: false, ox: offset.x, oy: offset.y, px: event.clientX, py: event.clientY };
+        drag.current = {
+          moved: false,
+          ox: offset.x,
+          oy: offset.y,
+          px: event.clientX,
+          py: event.clientY,
+        };
       }}
       onPointerMove={dragTo}
       onPointerUp={() => {

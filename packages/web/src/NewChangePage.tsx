@@ -3,14 +3,7 @@
 // text: the page has no field for it.
 import { VStack } from "@astryxdesign/core/VStack";
 import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
-import {
-  type RefObject,
-  Suspense,
-  startTransition,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type RefObject, Suspense, startTransition, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import type { DraftImage } from "./attach/chatImages.ts";
@@ -61,7 +54,11 @@ function useStart(text: ReturnType<typeof useTextField>, sources: ReadonlyArray<
       shown.current = false;
     };
   }, []);
-  return async (sent: string, images: ReadonlyArray<DraftImage>, slug: string): Promise<Started> => {
+  return async (
+    sent: string,
+    images: ReadonlyArray<DraftImage>,
+    slug: string,
+  ): Promise<Started> => {
     const result = await fate.mutations.change.start({
       input: {
         images: images.flatMap((image) => (image.image ? [image.image] : [])),

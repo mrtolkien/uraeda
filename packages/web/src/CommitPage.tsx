@@ -144,7 +144,9 @@ export function CommitPage() {
             <Button label="Discard" onClick={() => void discard()} variant="ghost" />
           </HStack>
         ) : (
-          <Text color="secondary">The inbox, the priorities, and the drafts are all committed.</Text>
+          <Text color="secondary">
+            The inbox, the priorities, and the drafts are all committed.
+          </Text>
         )}
       </VStack>
     </Page>

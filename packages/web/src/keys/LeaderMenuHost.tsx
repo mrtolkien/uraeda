@@ -33,7 +33,10 @@ export function LeaderMenuHost() {
   const last = useRef<Shown | null>(null);
   const [, forget] = useReducer((count: number) => count + 1, 0);
   if (isOpen) {
-    last.current = { entries: entriesAt(bindings, step.path, document.activeElement), path: step.path };
+    last.current = {
+      entries: entriesAt(bindings, step.path, document.activeElement),
+      path: step.path,
+    };
   }
   useEffect(() => {
     if (isOpen) {

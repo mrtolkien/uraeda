@@ -239,4 +239,3 @@ export function CheckPane({ children, count }: { children: ReactNode; count: num
     </Pane>
   );
 }
-

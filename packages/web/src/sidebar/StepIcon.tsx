@@ -32,7 +32,9 @@ export const STEP_ICONS = {
 } as const;
 
 export function StepIcon({ step }: { step: StepKind }) {
-  return <Icon color={step === "problem" ? "warning" : "secondary"} icon={STEP_ICONS[step]} size="md" />;
+  return (
+    <Icon color={step === "problem" ? "warning" : "secondary"} icon={STEP_ICONS[step]} size="md" />
+  );
 }
 
 /** A done item's icon, in the column's Done and home's Recent: a session's comment, else done's. */

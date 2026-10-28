@@ -365,8 +365,7 @@ export function Card({
 }) {
   const isReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const state = useContext(RowStateContext);
-  const isEditing =
-    (state.editing === row.key || row.isFresh === true) && row.editor !== undefined;
+  const isEditing = (state.editing === row.key || row.isFresh === true) && row.editor !== undefined;
   const events = { onHover, onHoverEnd, onOpen };
   const isStill = row.isFixed === true || (row.depth !== undefined && !canNest);
   const { handleRef, isDragging, ref } = useSortable({

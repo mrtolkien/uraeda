@@ -147,13 +147,7 @@ export function QuestionContext({
   return (
     <>
       {question.example !== undefined && (
-        <Pane
-          isOpenOnPhone
-          level={3}
-          title="Example"
-          tone="example"
-          xstyle={[styles.example]}
-        >
+        <Pane isOpenOnPhone level={3} title="Example" tone="example" xstyle={[styles.example]}>
           <Blocks document={panes} ids={[question.example]} />
         </Pane>
       )}

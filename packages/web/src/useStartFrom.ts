@@ -251,7 +251,10 @@ export function useStartFrom() {
       fromLine: (entry: StartLine) => run(() => lineDraft(fate, entry), edit),
       fromNote: (note: StartNote) => run(() => noteDraft(fate, note), edit),
       fromText: (input: Parameters<typeof proposalDraft>[1]) =>
-        run(() => runWrite({ label: "Writing the proposal…" }, () => proposalDraft(fate, input)), edit),
+        run(
+          () => runWrite({ label: "Writing the proposal…" }, () => proposalDraft(fate, input)),
+          edit,
+        ),
       fromTitle: (title: string) => run(() => titleDraft(fate, title), edit),
     },
   };

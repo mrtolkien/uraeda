@@ -301,12 +301,17 @@ export function useDragOrder<Section extends DragSection>(
       const shift = to.depth - start.depth;
       const keys = now?.[to.section] ?? [];
       const at = keys.indexOf(key) + 1;
-      setDragged({ ...now, [to.section]: [...keys.slice(0, at), ...start.nested, ...keys.slice(at)] });
+      setDragged({
+        ...now,
+        [to.section]: [...keys.slice(0, at), ...start.nested, ...keys.slice(at)],
+      });
       const line = to.parent === undefined ? key : (rows.get(to.parent)?.parent ?? to.parent);
       setPlaced(
         new Map([
           [key, { depth: to.depth, ...(to.parent === undefined ? {} : { parent: line }) }],
-          ...start.nested.map((one) => [one, { depth: depthOf(one) + shift, parent: line }] as const),
+          ...start.nested.map(
+            (one) => [one, { depth: depthOf(one) + shift, parent: line }] as const,
+          ),
         ]),
       );
       // A write that throws lets the list go too: what it showed ahead of the file goes.

@@ -114,9 +114,7 @@ function useEntries(search: string) {
     category.notes.flatMap((note) => {
       const entry: Entry = {
         ...(note.draft === undefined ? {} : { draft: note.draft }),
-        ...(note.draft === undefined
-          ? {}
-          : { draftHref: here(`/edit/${draftFile(note.draft)}`) }),
+        ...(note.draft === undefined ? {} : { draftHref: here(`/edit/${draftFile(note.draft)}`) }),
         file: FILES.note,
         id: note.id,
         kind: "note",
@@ -126,14 +124,7 @@ function useEntries(search: string) {
       if (!holds(needle, [entry.text, ...entry.lines])) {
         return [];
       }
-      return [
-        rowOf(
-          entry,
-          here(`/inbox/${note.key}`),
-          `note:${note.key}`,
-          marksOf(category.name),
-        ),
-      ];
+      return [rowOf(entry, here(`/inbox/${note.key}`), `note:${note.key}`, marksOf(category.name))];
     }),
   );
   const lines = (priorities?.sections ?? []).flatMap((section) =>
@@ -155,7 +146,8 @@ function useEntries(search: string) {
         ];
       }),
   );
-  const empty = (nothing: string) => (needle === "" ? { context: nothing } : { context: "No match." });
+  const empty = (nothing: string) =>
+    needle === "" ? { context: nothing } : { context: "No match." };
   const sections: Array<WorkSection> = [
     {
       ...(notes.length === 0 ? empty("The inbox is empty.") : {}),

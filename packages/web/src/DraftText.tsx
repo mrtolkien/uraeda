@@ -104,10 +104,7 @@ export function DraftText({
             size="sm"
             variant="ghost"
           />
-          <AttachButton
-            isIconOnly
-            onFiles={(files) => void images.addFiles(files)}
-          />
+          <AttachButton isIconOnly onFiles={(files) => void images.addFiles(files)} />
         </HStack>
       }
       icon="uraeda:file-text"

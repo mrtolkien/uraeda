@@ -134,7 +134,13 @@ function drawnOf<Source>(
       return;
     }
     if (spot.at === undefined) {
-      section.items.splice(spot.index, 0, { children: [], id: "", key, spans: spansOf(text), text });
+      section.items.splice(spot.index, 0, {
+        children: [],
+        id: "",
+        key,
+        spans: spansOf(text),
+        text,
+      });
       return;
     }
     const item = section.items[spot.index];
@@ -291,9 +297,7 @@ export function useOutline<Data extends { hash: string }, Source>(
   // A write the file shows is no longer pending: dropped once its version is past.
   useEffect(() => {
     if (pending.some((one) => one.base !== undefined && one.base !== outline.hash)) {
-      setPending((all) =>
-        all.filter((one) => one.base === undefined || one.base === outline.hash),
-      );
+      setPending((all) => all.filter((one) => one.base === undefined || one.base === outline.hash));
     }
   }, [pending, outline.hash]);
 

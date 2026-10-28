@@ -16,7 +16,13 @@ import { plain } from "../Spans.tsx";
 import { DraftView, PrioritiesView } from "../views.ts";
 import { fileIndex } from "./cardMoves.ts";
 import { type Outline, type OutlineItem, useOutline } from "./useOutline.tsx";
-import { type Tone, type WorkLayout, WorkList, type WorkRow, type WorkSection } from "./WorkList.tsx";
+import {
+  type Tone,
+  type WorkLayout,
+  WorkList,
+  type WorkRow,
+  type WorkSection,
+} from "./WorkList.tsx";
 
 /** The priorities as the page reads them. */
 export type Priorities = NonNullable<ReturnType<typeof usePriorities>>;
