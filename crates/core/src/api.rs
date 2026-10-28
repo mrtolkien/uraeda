@@ -59,8 +59,7 @@ pub(crate) use priority_edits::joined_priorities;
 pub use priority_edits::{
     add_priority, add_priority_and_commit, commit_priorities, discard_priorities, drop_priority,
     edit_priority, insert_priority, move_priority, outline_priority, read_priorities,
-    remove_priority,
-    undo_committed_priority,
+    remove_priority, undo_committed_priority,
 };
 pub use pulls::refresh_pull_requests;
 pub use repository_list::{

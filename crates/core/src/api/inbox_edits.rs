@@ -139,7 +139,10 @@ pub fn outline_note(
 /// With `under`, it goes under that note, or with `under_at` under its nested item at `under_at`;
 /// else it is a note of `category`, or of the notes without one. `index` is its place there,
 /// counted once it left.
-#[allow(clippy::too_many_arguments)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "a drop names what it moves and where it goes, as the outline edit says"
+)]
 pub fn drop_note(
     repo: &Path,
     id: &str,

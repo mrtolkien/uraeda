@@ -6,8 +6,8 @@ mod context;
 mod edits;
 mod outline;
 
-pub use context::{SectionContext, contexts};
 pub use super::nested::{NestedItem, OutlineEdit};
+pub use context::{SectionContext, contexts};
 pub use outline::{Drop, append_under, drop_item, outline, remove_under};
 
 pub use edits::{
@@ -153,7 +153,6 @@ pub struct EntryItem {
     /// The feature or change it links, while it runs: set by the workspace.
     pub running: Option<crate::workspace::RunningFeature>,
 }
-
 
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]

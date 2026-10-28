@@ -84,16 +84,7 @@ pub fn outline_note(
     text: Option<String>,
     previous: String,
 ) -> AsyncTask<Job<Inbox>> {
-    job(move || {
-        api::outline_note(
-            Path::new(&repo),
-            &id,
-            at,
-            &kind,
-            text.as_deref(),
-            &previous,
-        )
-    })
+    job(move || api::outline_note(Path::new(&repo), &id, at, &kind, text.as_deref(), &previous))
 }
 
 /// Moves a note, or with `at` its nested item at `at`, its own items with it: what a drop writes.
@@ -101,7 +92,10 @@ pub fn outline_note(
 /// else it is a note of `category`, or of the notes without one. `index` is its place there,
 /// counted once it left.
 #[napi(ts_return_type = "Promise<Inbox>")]
-#[allow(clippy::too_many_arguments)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "a drop names what it moves and where it goes, as the outline edit says"
+)]
 pub fn drop_note(
     repo: String,
     id: String,
@@ -181,52 +175,6 @@ pub fn insert_note(
     category: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
     job(move || api::insert_note(Path::new(&repo), category, index, &lines, &previous))
-}
-
-/// A deleted category's answer: the inbox, and the file as it was, which `restoreCategory` writes
-/// back.
-#[napi(object)]
-pub struct CategoryRemoved {
-    pub inbox: Inbox,
-    pub before: String,
-}
-
-/// Adds a category at the end of the inbox.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn add_category(repo: String, name: String, previous: String) -> AsyncTask<Job<Inbox>> {
-    job(move || api::add_category(Path::new(&repo), &name, &previous))
-}
-
-/// Renames a category, every heading of its name.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn rename_category(
-    repo: String,
-    from: String,
-    to: String,
-    previous: String,
-) -> AsyncTask<Job<Inbox>> {
-    job(move || api::rename_category(Path::new(&repo), &from, &to, &previous))
-}
-
-/// Deletes a category: its notes stay without a category with `keepNotes`, and go with it
-/// otherwise.
-#[napi(ts_return_type = "Promise<CategoryRemoved>")]
-pub fn remove_category(
-    repo: String,
-    name: String,
-    keep_notes: bool,
-    previous: String,
-) -> AsyncTask<Job<CategoryRemoved>> {
-    job(move || {
-        let (inbox, before) = api::remove_category(Path::new(&repo), &name, keep_notes, &previous)?;
-        Ok(CategoryRemoved { inbox, before })
-    })
-}
-
-/// Takes back a delete: writes `before` back over the inbox read at `previous`.
-#[napi(ts_return_type = "Promise<Inbox>")]
-pub fn restore_category(repo: String, before: String, previous: String) -> AsyncTask<Job<Inbox>> {
-    job(move || api::restore_category(Path::new(&repo), &before, &previous))
 }
 
 /// Moves a note to the end of a section of the priorities, over both files as read.

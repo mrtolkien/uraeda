@@ -49,14 +49,19 @@ pub fn drop_item(text: &str, id: &str, at: Option<usize>, to: &Drop) -> Option<S
         let position = |id: &str| entries.iter().position(|entry| entry_id(entry) == id);
         let from = position(id).ok_or(())?;
         match (to, at) {
-            (Drop::Entry { section, index }, None) => {
-                super::move_entry(text, id, *section, *index)
-            }
+            (Drop::Entry { section, index }, None) => super::move_entry(text, id, *section, *index),
             (Drop::Entry { section, index }, Some(at)) => {
                 let (without, lines) = nested::take(text, &entries[from].item, at).ok_or(())?;
                 super::insert_entry(&without, *section, *index, &lines)
             }
-            (Drop::Under { entry, at: to_at, index }, at) => {
+            (
+                Drop::Under {
+                    entry,
+                    at: to_at,
+                    index,
+                },
+                at,
+            ) => {
                 let to = position(entry).ok_or(())?;
                 let items: Vec<_> = entries.iter().map(|entry| entry.item.clone()).collect();
                 nested::move_under(text, &items, (from, at), (to, *to_at), *index)

@@ -35,7 +35,10 @@ pub enum OutlineEdit {
     /// Its text becomes this line.
     Edit(String),
     /// A new item, this line, beside it: below it, after its own items, or above it.
-    Insert { line: String, below: bool },
+    Insert {
+        line: String,
+        below: bool,
+    },
     /// A new item, this line, as its last item.
     Append(String),
     /// It goes, with its items.
@@ -98,10 +101,10 @@ pub(crate) fn children(lines: &[&str]) -> Vec<Node> {
                 indents.push(indent);
             }
             None => {
-                if let Some(open) = indents.len().checked_sub(1) {
-                    if let Some(node) = level(&mut roots, open).last_mut() {
-                        node.text.push(trimmed.to_string());
-                    }
+                if let Some(open) = indents.len().checked_sub(1)
+                    && let Some(node) = level(&mut roots, open).last_mut()
+                {
+                    node.text.push(trimmed.to_string());
                 }
             }
         }
@@ -274,7 +277,10 @@ fn tree_of(written: &[String]) -> Option<Node> {
 fn is_same(a: &Node, b: &Node) -> bool {
     a.text == b.text
         && a.children.len() == b.children.len()
-        && a.children.iter().zip(&b.children).all(|(a, b)| is_same(a, b))
+        && a.children
+            .iter()
+            .zip(&b.children)
+            .all(|(a, b)| is_same(a, b))
 }
 
 /// An item of another list, `written` as its lines, with its nested items, as the last item nested
@@ -300,7 +306,10 @@ pub(crate) fn remove_item(text: &str, item: &Item, written: &[String]) -> Option
     let lines: Vec<&str> = text.split('\n').collect();
     let mut root = tree(&lines, item)?;
     let node = tree_of(written)?;
-    let at = root.children.iter().rposition(|child| is_same(child, &node))?;
+    let at = root
+        .children
+        .iter()
+        .rposition(|child| is_same(child, &node))?;
     root.children.remove(at);
     let mut rendered = Vec::new();
     render(&root, 0, &mut rendered);

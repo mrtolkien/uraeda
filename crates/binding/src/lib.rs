@@ -11,7 +11,6 @@ use napi::bindgen_prelude::{AsyncTask, Buffer, ToNapiValue, TypeName};
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, Status, Task};
 use napi_derive::napi;
-use uraeda_core::actions::commit::PrioritiesAdded;
 use uraeda_core::api::{self, ApiError, BranchDecision, Ledger};
 use uraeda_core::changes::{self, BranchChanges};
 use uraeda_core::files::preview::Preview;
@@ -25,8 +24,10 @@ use uraeda_core::watch::{self, Changes};
 
 pub mod file_writes;
 pub mod history;
+pub mod inbox_categories;
 pub mod inbox_writes;
 pub mod moves;
+pub mod priority_writes;
 pub mod settings;
 
 /// A core operation, run off the main thread.
@@ -264,151 +265,6 @@ pub fn propose_slug(text: String) -> String {
 #[napi]
 pub fn path_folder(path: String) -> Option<String> {
     uraeda_core::workspace::path_folder(&path).map(|(_, folder, _)| folder.to_string())
-}
-
-/// Adds a line at the end of a section of the priorities.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn add_priority(
-    repo: String,
-    section: String,
-    text: String,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::add_priority(Path::new(&repo), &section, &text, &previous))
-}
-
-/// Adds a line at the end of a section of the priorities, then commits `PRIORITIES.md` alone when
-/// it had no other change: "Add and commit".
-#[napi(ts_return_type = "Promise<PrioritiesAdded>")]
-pub fn add_priority_and_commit(
-    repo: String,
-    section: String,
-    text: String,
-    previous: String,
-) -> AsyncTask<Job<PrioritiesAdded>> {
-    job(move || {
-        let (priorities, added) =
-            api::add_priority_and_commit(Path::new(&repo), &section, &text, &previous)?;
-        Ok(PrioritiesAdded { priorities, added })
-    })
-}
-
-/// Takes back a committed add: the entry, `lines` as written, leaves the priorities, and the
-/// removal is committed alone.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn undo_committed_priority(
-    repo: String,
-    lines: Vec<String>,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::undo_committed_priority(Path::new(&repo), &lines, &previous))
-}
-
-/// Inserts a priority line with its nested lines, as written, before the line at `index` of a
-/// section, or at its end: Undo of a removal.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn insert_priority(
-    repo: String,
-    section: String,
-    index: u32,
-    lines: Vec<String>,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::insert_priority(Path::new(&repo), &section, index, &lines, &previous))
-}
-
-/// Moves a priority line before the line at `index` of a section, or to its end.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn move_priority(
-    repo: String,
-    id: String,
-    section: String,
-    index: u32,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::move_priority(Path::new(&repo), &id, &section, index, &previous))
-}
-
-/// Replaces a priority line's text.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn edit_priority(
-    repo: String,
-    id: String,
-    text: String,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::edit_priority(Path::new(&repo), &id, &text, &previous))
-}
-
-/// Edits a priority line's outline: the line, or with `at`, its nested item at `at` in the order
-/// of the file. `kind` is `edit`, `insert-below`, `insert-above`, `append-child`, `remove`,
-/// `indent`, `outdent`, `up`, or `down`; `text` is the line those that write one write.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn outline_priority(
-    repo: String,
-    id: String,
-    at: Option<u32>,
-    kind: String,
-    text: Option<String>,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || {
-        api::outline_priority(
-            Path::new(&repo),
-            &id,
-            at,
-            &kind,
-            text.as_deref(),
-            &previous,
-        )
-    })
-}
-
-/// Moves a priority line, or with `at` its nested item at `at`, its own items with it: what a drop
-/// writes. With `under`, it goes under that line, or with `underAt` under its nested item at
-/// `underAt`; else it is a line of `section`. `index` is its place there, counted once it left.
-#[napi(ts_return_type = "Promise<Priorities>")]
-#[allow(clippy::too_many_arguments)]
-pub fn drop_priority(
-    repo: String,
-    id: String,
-    at: Option<u32>,
-    section: Option<String>,
-    under: Option<String>,
-    under_at: Option<u32>,
-    index: u32,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || {
-        api::drop_priority(
-            Path::new(&repo),
-            &id,
-            at,
-            section.as_deref(),
-            under.as_deref(),
-            under_at,
-            index,
-            &previous,
-        )
-    })
-}
-
-/// Removes a priority line and its nested lines.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn remove_priority(repo: String, id: String, previous: String) -> AsyncTask<Job<Priorities>> {
-    job(move || api::remove_priority(Path::new(&repo), &id, &previous))
-}
-
-/// Commits the priorities alone.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn commit_priorities(repo: String) -> AsyncTask<Job<Priorities>> {
-    job(move || api::commit_priorities(Path::new(&repo)))
-}
-
-/// Restores the committed priorities.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn discard_priorities(repo: String) -> AsyncTask<Job<Priorities>> {
-    job(move || api::discard_priorities(Path::new(&repo)))
 }
 
 /// Uraeda's data folder: `custom` when set and not empty, else `URAEDA_DATA_DIR` from this

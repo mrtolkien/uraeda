@@ -174,7 +174,10 @@ pub fn outline_priority(
 /// Moves a line, or with `at` its nested item at `at`, its own items with it: what a drop writes.
 /// With `under`, it goes under that line, or with `under_at` under its nested item at `under_at`;
 /// else it is a line of `section`. `index` is its place there, counted once it left.
-#[allow(clippy::too_many_arguments)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "a drop names what it moves and where it goes, as the outline edit says"
+)]
 pub fn drop_priority(
     repo: &Path,
     id: &str,
