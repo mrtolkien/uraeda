@@ -136,6 +136,11 @@ const mutations = {
     FateAPI['mutations']['inbox.removeCategory']['input'],
     FateAPI['mutations']['inbox.removeCategory']['output']
   >('Inbox'),
+  'inbox.removeImage': mutation<
+    Inbox,
+    FateAPI['mutations']['inbox.removeImage']['input'],
+    FateAPI['mutations']['inbox.removeImage']['output']
+  >('Inbox'),
   'inbox.renameCategory': mutation<
     Inbox,
     FateAPI['mutations']['inbox.renameCategory']['input'],
@@ -145,6 +150,11 @@ const mutations = {
     Inbox,
     FateAPI['mutations']['inbox.restoreCategory']['input'],
     FateAPI['mutations']['inbox.restoreCategory']['output']
+  >('Inbox'),
+  'inbox.restoreImage': mutation<
+    Inbox,
+    FateAPI['mutations']['inbox.restoreImage']['input'],
+    FateAPI['mutations']['inbox.restoreImage']['output']
   >('Inbox'),
   'inbox.toDraft': mutation<
     Inbox,
