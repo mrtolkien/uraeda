@@ -49,7 +49,7 @@ brings it back. It covers the bottom bar while it shows.
 
 - **Sheets, not dialogs or popovers**: menus, pickers, short forms, confirmations, and the side
   column's tabs rise from the bottom as sheets, each in the address, so Back closes it.
-- **Pages for anything read**: a draft, a session, a spec.
+- **Pages for anything read**: a proposal file, a session, a spec.
 
 ## Flows
 

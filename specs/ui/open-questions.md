@@ -28,7 +28,7 @@ human's to answer; once answered, its rule moves into the guide it belongs to, a
   holds no page's controls on wide screens, so glass would only restyle it.
 - **The bottom bar on more phone pages.** The round, the spec family, and the session page have one.
   The feature page has a column (Produced, Links) drawn inline on the phone, and could get tiles for
-  them, its Session, and its next step. Pages with one main action, the draft editor's Start, the
+  them, its Session, and its next step. Pages with one main action, the proposal editor's Start, the
   inbox's and the priorities' Add, the commit page's Commit, could end a bar with it. Which pages
   get a bar?
 - **Submit's tile.** Next is an accent icon on the glass; Submit, once every question has an answer,
@@ -64,7 +64,7 @@ Found in a pass over every surface. The ones marked done were fixed in that pass
   (`layout/picked.ts`), and the band between parts one component (`layout/Band.tsx`).
 - **The category's delete asks in its own dialog**, with its own keys. Merge it into `Confirm`, with
   a third answer?
-- **Moving an item uses three controls**: a segmented control for a priority's section, a selector
+- **Moving an item uses three controls**: a segmented control for a proposal's section, a selector
   for a new note's category, and a picker (`c`) to move a note. The priorities have no `c`. One
   picker for all of them?
 - **Sheets come in three forms**: the overlay's, with a title and Close; the picker's, bare; and
@@ -130,7 +130,7 @@ these raw elements, each now marked with its reason, for the human to approve or
     in `keys-row-editing`, the leader tree's rows are matched by text prefix, and a wait in
     `keys-leader` checks nothing. Untested: the repository picker's click, the category delete's
     answers, and the arrows while a `g` waits.
-  - The checklist in `specs/drafts/full-interactive-ui-pass-manual-small-fixes.md` is behind the
+  - The checklist in `specs/proposals/full-interactive-ui-pass-manual-small-fixes.md` is behind the
     work: it is the human's, so it was left as it is.
 
 ## Left behind
