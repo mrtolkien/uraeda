@@ -202,6 +202,7 @@ export function ReviewEnd({
           </>
         }
         hasVerdict={hasVerdict}
+        isGeneralOpen={draft?.kind === "general"}
         onGeneral={actions.general}
         pendingNote={pendingNote}
         refusals={refusals}
