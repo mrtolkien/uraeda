@@ -2,21 +2,13 @@ import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tok
 import * as stylex from "@stylexjs/stylex";
 import { useRef } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
+import { Band } from "./layout/Band.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useAtLeast } from "./layout/useWidthOf.ts";
 import { QuestionCard } from "./QuestionCard.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
 
 const styles = stylex.create({
-  band: {
-    // A band between sibling questions; on the phone, to the screen's edges.
-    backgroundColor: colorVars["--color-background-muted"],
-    height: spacingVars["--spacing-2"],
-    marginBlock: spacingVars["--spacing-5"],
-  },
-  bandBleed: {
-    marginInline: "var(--page-bleed)",
-  },
   card: {
     // On a wide screen, cards apart from each other and from the round's opening.
     marginBlockStart: spacingVars["--spacing-8"],
@@ -44,12 +36,6 @@ const styles = stylex.create({
     marginInlineStart: spacingVars["--spacing-8"],
   },
 });
-
-/** The muted band between sibling questions; on the phone, to the screen's edges. */
-export function Band() {
-  const wide = !isNarrow(useWidthClass());
-  return <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />;
-}
 
 /** The follow-ups of a question the round asks now, in the order of their letters. */
 export function followUpsOf(

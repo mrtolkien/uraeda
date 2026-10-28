@@ -3,12 +3,11 @@ import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, use, useState } from "react";
 import type { CommentItem } from "uraeda-binding";
 import { CommentForm } from "./CommentForm.tsx";
 import type { useFile } from "./data.ts";
+import { Band } from "./layout/Band.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { where } from "./ReviewComments.tsx";
 import { type ChoicesState, type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
@@ -17,24 +16,6 @@ import { Empty } from "./layout/Empty.tsx";
 import { plural } from "./labels.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
-
-const styles = stylex.create({
-  band: {
-    // A band before the review's end, to the screen's edges on the phone.
-    backgroundColor: colorVars["--color-background-muted"],
-    height: spacingVars["--spacing-2"],
-    marginBlock: spacingVars["--spacing-5"],
-  },
-  bandBleed: {
-    // The page's inset, taken back (see `Page`).
-    marginInline: "var(--page-bleed)",
-  },
-});
-
-/** The band before a review's end, to the screen's edges on the phone. */
-function Band({ wide }: { wide: boolean }) {
-  return <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />;
-}
 
 /** Says that the file changed under the pending comments, with Start over. */
 export function StaleBanner({
@@ -150,7 +131,7 @@ export function YourReview({
 }) {
   return (
     <>
-      <Band wide={wide} />
+      <Band />
       <Heading level={2}>Your review</Heading>
       {comments.length === 0 && <Empty>No comment yet.</Empty>}
       {comments.map((comment) =>
