@@ -49,12 +49,12 @@ const styles = stylex.create({
   entries: {
     columnGap: spacingVars["--spacing-6"],
     display: "grid",
-    rowGap: spacingVars["--spacing-1"],
     gridAutoFlow: "column",
     gridTemplateRows: "repeat(12, auto)",
     listStyle: "none",
     margin: 0,
     padding: 0,
+    rowGap: spacingVars["--spacing-1"],
   },
   entry: {
     alignItems: "center",
@@ -63,19 +63,6 @@ const styles = stylex.create({
   },
   // The pane's frame, which eases to the size the menu's step needs. The content stays at the
   // frame's top left and is clipped to it, but for the title over the top border.
-  // A row or a footer key that presses its key when clicked, as a link in the text.
-  press: {
-    background: "none",
-    border: "none",
-    color: "inherit",
-    font: "inherit",
-    padding: 0,
-    textAlign: "start",
-  },
-  full: {
-    display: "block",
-    width: "100%",
-  },
   frame: {
     boxSizing: "border-box",
     clipPath: "inset(-1lh 0 0 0)",
@@ -86,15 +73,14 @@ const styles = stylex.create({
     transitionProperty: "height, width",
     transitionTimingFunction: easeVars["--ease-standard"],
   },
+  // A row's button, as wide as its row.
+  full: {
+    display: "block",
+    width: "100%",
+  },
   oneColumn: {
     gridAutoFlow: "row",
     gridTemplateRows: "none",
-  },
-  // The menu's words, a step over the supporting text, at the body's 16 px and its weight.
-  text: {
-    fontSize: "16px",
-    fontWeight: fontWeightVars["--font-weight-normal"],
-    lineHeight: typeScaleVars["--text-label-leading"],
   },
   place: {
     animationDuration: {
@@ -110,14 +96,36 @@ const styles = stylex.create({
     position: "fixed",
     zIndex: 3,
   },
+  // A row or a footer key that presses its key when clicked, as a link in the text.
+  press: {
+    background: "none",
+    borderColor: "currentColor",
+    borderStyle: "none",
+    borderWidth: 0,
+    color: "inherit",
+    font: "inherit",
+    padding: 0,
+    textAlign: "start",
+  },
   sheet: {
     insetInline: spacingVars["--spacing-2"],
     minWidth: 0,
   },
+  // The frame at the menu's natural size, in pixels, which StyleX's size values do not list.
   sized: (width: number, height: number) => ({
-    height: `${height}px`,
-    width: `${width}px`,
+    "--leader-height": `${height}px`,
+    "--leader-width": `${width}px`,
+    height: "var(--leader-height)",
+    width: "var(--leader-width)",
   }),
+  // The menu's words, a step over the supporting text, at the body's 16 px and its weight.
+  text: {
+    // No type token is 16 px under the theme's 120% sizes.
+    "--leader-text": "16px",
+    fontSize: "var(--leader-text)",
+    fontWeight: fontWeightVars["--font-weight-normal"],
+    lineHeight: typeScaleVars["--text-label-leading"],
+  },
   // A copy of the menu at its natural size, unseen, which `size` is measured on.
   twin: {
     insetBlockEnd: 0,
@@ -195,6 +203,7 @@ export function LeaderMenu({
       <ul {...stylex.props(styles.entries, narrow && styles.oneColumn)}>
         {sortedEntries(entries).map((entry) => (
           <li key={entry.key}>
+            {/* oxlint-disable-next-line react/forbid-elements -- a menu's row pressed as its key is, drawn as the menu's text, its key, icon, and label in a row, with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
             <button
               onClick={() => pressKeys(entry.key)}
               onMouseDown={keepFocus}
@@ -211,6 +220,7 @@ export function LeaderMenu({
         ))}
       </ul>
       <Text color="secondary" type="supporting" xstyle={styles.text}>
+        {/* oxlint-disable-next-line react/forbid-elements -- the menu's back key, pressed as its key is, drawn as the menu's text, with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
         <button
           onClick={() => pressKeys("Backspace")}
           onMouseDown={keepFocus}
@@ -222,6 +232,7 @@ export function LeaderMenu({
           </KeyCap>{" "}
           back
         </button>{" "}
+        {/* oxlint-disable-next-line react/forbid-elements -- the menu's close key, pressed as its key is, drawn as the menu's text, with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
         <button
           onClick={() => pressKeys("Escape")}
           onMouseDown={keepFocus}

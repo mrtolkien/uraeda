@@ -1,7 +1,14 @@
 // The keys drawn as glyphs about as wide as a letter: Astryx's `space` and `delete` icons span the
 // whole em, which sets them apart from the other keys.
+import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 
+const styles = stylex.create({
+  // On the text's line, sitting on its baseline as an icon does.
+  glyph: { display: "inline-block", verticalAlign: "-0.125em" },
+});
+
+/** A key's glyph, `width` units wide on a 24-unit-high box, one em high. */
 function Glyph({ children, label, width }: { children: ReactNode; label: string; width: number }) {
   return (
     <svg
@@ -13,7 +20,7 @@ function Glyph({ children, label, width }: { children: ReactNode; label: string;
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={2}
-      style={{ display: "inline-block", verticalAlign: "-0.125em" }}
+      {...stylex.props(styles.glyph)}
       viewBox={`0 0 ${width} 24`}
       width={`${width / 24}em`}
     >
