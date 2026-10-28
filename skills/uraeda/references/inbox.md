@@ -6,9 +6,10 @@ are organized later.
 ## What the inbox is for
 
 A misaligned icon, a confusing command, an idea: things worth keeping, noticed while doing something
-else, and not priorities yet. The human writes them down in a few seconds and goes back to what they
+else, and not proposals yet. The human writes them down in a few seconds and goes back to what they
 were doing. Notes wait in `specs/INBOX.md`, grouped under categories the human names, until someone
-decides what each becomes: a priority, a draft, part of an existing draft, a change, or nothing.
+decides what each becomes: a proposal, a line or a file, part of an existing proposal file, a
+change, or nothing.
 
 ## Setting it up
 
@@ -39,7 +40,7 @@ them into the inbox in one commit on the default branch, from the files as they 
 
 - [run-ui] In failures the `x` is not centered in the circle
 - [agent] [session-view] Opening a session with 2,000 messages takes 4 s
-- [The spec page's headings are body-sized](drafts/the-spec-pages-headings-are-body-sized/proposal.md)
+- [The spec page's headings are body-sized](notes/the-spec-pages-headings-are-body-sized/note.md)
 
 ## CLI
 
@@ -48,7 +49,9 @@ them into the inbox in one commit on the default branch, from the files as they 
 
 - **Note**: an item at column 0, a line starting with `- `, `* `, or a number and `. ` like `1. `,
   with the lines indented under it; tools write `- `. Its text is the line after the marker and the
-  marks. A note linking a draft is a markdown link covering its whole text.
+  marks. A note is a line or a file, like a proposal: a note with a note file is a markdown link to
+  it, in `specs/notes/`, covering its whole text. A note whose link points anywhere else, like a
+  proposal file or a web page, has no note file: its link is text.
 - **Marks**: leading groups `[agent]`, then `[<slug>]`, each followed by one space. A slug is
   lowercase letters, digits, and `-`. Any other bracket, like `[!]`, is text.
 - **Category**: a `## ` heading; its name is the heading's text, without closing `#`s: `## UI ##` is
@@ -88,69 +91,75 @@ and add that title to a file without one.
 - **In the web UI**: the ＋ next to Inbox in the sidebar, from any page. From a feature's or a
   change's page, the note gets its slug. "Add and commit" commits the note alone, with
   `chore: add "<note>" to the inbox`, unless `INBOX.md` had other changes; its Undo commits the
-  removal, `chore: remove "<note>" from the inbox`. "Add" leaves it for the commit bar's Commit. A
-  note with images becomes a draft that holds them: pick, paste, or drop as many as it needs. The
-  note links to the draft.
+  removal, `chore: remove "<note>" from the inbox`. "Add" leaves it for the commit bar's Commit.
+  "Add as a file" saves a note with images as a file that holds them, linked from the inbox: pick,
+  paste, or drop as many as it needs.
 - **In the editor**: the plugin's "Add a note" action, which writes without committing.
 
 ### Images on a note
 
 An image belongs beside the file that links it, and `INBOX.md` has no folder of its own: a note's
-images live in its draft, as [the attachments decision](/specs/decisions/attachments.md) says. By
-hand, to add images to a note:
+images live in its note file's folder, in `specs/notes/`, as
+[the attachments decision](/specs/decisions/attachments.md) says. By hand, to add images to a note:
 
-1. When the note links no draft, make one as [a new draft](#organizing-by-hand) says, with the note
-   in place of a priority: the note's text is its title and the first paragraph of What, its
-   sub-items follow, and the note's line becomes a link to the draft, with its marks kept and no
-   sub-items left.
-2. Put each image in the draft folder's `images/`, and link it at the end of What, each on a line of
-   its own after a blank line: `![alt](images/name.webp)`. A single-file draft becomes a folder
-   first, and the links to it follow.
+1. When the note has no note file, write one, `specs/notes/<slug>/note.md`, as
+   [a new proposal file](#organizing-by-hand) is written: the note's text is its title and the first
+   paragraph of What, its sub-items follow, and the note's line becomes a link to the file, with its
+   marks kept and no sub-items left. When the slug is taken, it gets `-2`, `-3`, ...
+2. Put each image in the note file folder's `images/`, and link it at the end of What, each on a
+   line of its own after a blank line: `![alt](images/name.webp)`. A single-file note file,
+   `<slug>.md`, becomes a folder first, `<slug>/note.md`, and the links to it follow.
 
 The web UI does it from a note's page, with "Add images", or by dropping them on the page, and draws
 the images under the note's text, and the first one on its row.
 
 An image no file of its folder links is an orphan: a commit of the folder deletes it, and one left
 in a folder nobody has committed stays on disk. `ura inbox clean` lists them with `--dry-run`, and
-deletes them without it, in every draft and backlog folder, leaving the deletion uncommitted. By
-hand, delete the files of `images/` that no markdown file of the folder links.
+deletes them without it, in every folder of `specs/proposals/` and `specs/notes/`, leaving the
+deletion uncommitted. By hand, delete the files of `images/` that no markdown file of the folder
+links.
 
 ## Organizing by hand
 
 The human decides what each note becomes. Each outcome moves the note out of `INBOX.md`, in the same
 commit as what it became:
 
-- **A priority**: the note's lines become the last entry of a `PRIORITIES.md` section, links kept
-  and marks dropped.
-- **A new draft**: `specs/drafts/<slug>.md` from the proposal template, with the note as its title
-  and the first paragraph of What, and no placeholder text, linked from the end of a priorities
-  section. When the slug is taken, it gets `-2`, `-3`, ...
-- **A line of an existing draft**: the note's lines, marks dropped, at the end of the draft's
-  `## What` section.
-- **A change**, for a bug or a small change: the note becomes a new draft, as above, which the human
-  then starts as a change, as [starting a change](change.md#starting-a-change) says. The note leaves
-  the inbox in the draft's commit. Starting makes a branch, which only the human asks for: the inbox
-  page has no action for it.
-- **Nothing**: the note is deleted. A note linking a draft loses its line only: the draft stays.
+- **A proposal**: the note's lines become the last proposal of a `PRIORITIES.md` section, links kept
+  and marks dropped. A note with a note file takes it along: the file, or its folder with its
+  images, moves to `specs/proposals/` under a free name, its `note.md` becoming `proposal.md`, and
+  the line links its new path.
+- **A new proposal file**: `specs/proposals/<slug>.md` from the proposal template, with the note as
+  its title and the first paragraph of What, and no placeholder text, linked from the end of a
+  section of `PRIORITIES.md`. When the slug is taken, it gets `-2`, `-3`, ... A note with a note
+  file moves it there instead, as above.
+- **A line of an existing proposal file**: the note's lines, marks dropped, at the end of the
+  proposal file's `## What` section.
+- **A change**, for a bug or a small change: the note becomes a new proposal file, as above, which
+  the human then starts as a change, as [starting a change](change.md#starting-a-change) says. The
+  note leaves the inbox in the proposal file's commit. Starting makes a branch, which only the human
+  asks for: the inbox page has no action for it.
+- **Nothing**: the note is deleted, with its note file and the images in it. A note linking a
+  proposal file loses its line only: the file stays.
 
 A note can also have its text edited, its marks kept, or move, with the lines indented under it, to
 another place in its category or to another category.
 
-Commit `INBOX.md` with the files the notes went into, and nothing else. The message names the one
-change, with the note's text shortened like a priorities entry: `edit "<note>" in the inbox`,
-`remove "<note>" from the inbox`, `move "<note>" within <Category> in the inbox`,
-`move "<note>" to <Category> in the inbox`, with `No category` for none,
-`move "<note>" from the inbox to <Section>`, or `move "<note>" from the inbox to the draft <title>`,
-each with `chore:`. A note counts as moved only when the entry or the draft's line has its exact
-text: one edited on the way is a removal and an addition. With more changes, `PRIORITIES.md`'s
-included, the subject names the first one and ends with `, and <count> more`, and the body lists
-every change, one per line, the inbox's first: `- Move from the inbox to Next: <note>`,
-`- Remove from the inbox: <note>`. See [Commits](conventions.md#commits).
+Commit `INBOX.md` with the files the notes went into, their note files' moves and removals included,
+and nothing else. The message names the one change, with the note's text shortened like a
+proposal's: `edit "<note>" in the inbox`, `remove "<note>" from the inbox`,
+`move "<note>" within <Category> in the inbox`, `move "<note>" to <Category> in the inbox`, with
+`No category` for none, `move "<note>" from the inbox to <Section>`, or
+`move "<note>" from the inbox to the proposal <title>`, each with `chore:`. A note counts as moved
+only when the proposal, or the proposal file's line, has its exact text: one edited on the way is a
+removal and an addition. With more changes, `PRIORITIES.md`'s included, the subject names the first
+one and ends with `, and <count> more`, and the body lists every change, one per line, the inbox's
+first: `- Move from the inbox to Next: <note>`, `- Remove from the inbox: <note>`. See
+[Commits](conventions.md#commits).
 
 ## The triage
 
 When the inbox is large or messy, the human asks an agent to propose what each note becomes. The
-agent writes the proposal as questions in `specs/INBOX-TRIAGE.md`, the human answers them like a
+agent writes its outcomes as questions in `specs/INBOX-TRIAGE.md`, the human answers them like a
 round of questions, and an agent carries out the answers. Both runs happen in the default branch's
 checkout, and need no feature. [The decisions check](decisions-check.md) works the same way on the
 decisions.
@@ -159,9 +168,9 @@ decisions.
 
 1. **Refuse a second triage.** When `specs/INBOX-TRIAGE.md` exists, stop and say: "An inbox triage
    already waits: answer or delete specs/INBOX-TRIAGE.md first."
-2. **Read every note against the project**: the code it is about, `PRIORITIES.md`, the drafts and
-   the backlog, and the open feature and change branches. A note may be done already, a duplicate,
-   or part of a draft.
+2. **Read every note against the project**: the code it is about, `PRIORITIES.md`, the proposal
+   files, and the open feature and change branches. A note may be done already, a duplicate, or part
+   of a proposal.
 3. **Write `specs/INBOX-TRIAGE.md`** from [the template](../assets/templates/specs/INBOX-TRIAGE.md),
    with `status: awaiting-human`, following [Writing for the human](writing.md) as a round of
    questions does, but for its free Context and its lack of settled points:
@@ -175,13 +184,13 @@ decisions.
      wait for a later triage.
    - **One question per note, or per group of notes** that go to the same place. A question names
      its notes by their text, quoted, so the human, and the agent that applies it, find them without
-     line numbers. Its options, the recommended one first, are among these: a priorities section, a
-     new draft, an existing draft named by its title, a change, deletion, or keeping it in the
-     inbox. A new draft option names the draft's title and the priorities section that links it. A
-     change option, for a bug or a small change, names its draft's title and the slug it would start
-     with.
-   - **Links** only to files on the default branch, such as drafts. A started feature's or change's
-     files live on its branch: name it by its title, or `ura check` reports the link.
+     line numbers. Its options, the recommended one first, are among these: a proposal in a section
+     of `PRIORITIES.md`, a new proposal file, an existing proposal file named by its title, a
+     change, deletion, or keeping it in the inbox. A new proposal file option names its title and
+     the section that links it. A change option, for a bug or a small change, names its proposal
+     file's title and the slug it would start with.
+   - **Links** only to files on the default branch, such as proposal files. A started feature's or
+     change's files live on its branch: name it by its title, or `ura check` reports the link.
    - **Notes:**, last, for the human. A triage has no points settled without the human: every
      outcome is theirs.
 4. **Commit** `specs/INBOX-TRIAGE.md` alone, with `chore: propose an inbox triage`, and the block's
@@ -196,22 +205,23 @@ opens it in the questions view, and Submit commits it. `ura answer` answers feat
 Once `INBOX-TRIAGE.md` is `answered`:
 
 1. **Carry out each answer** on the notes it names, found by their text in `INBOX.md` as it is now,
-   as [organizing by hand](#organizing-by-hand) does. A new draft for a group of notes takes the
-   option's title, and the notes' lines, marks dropped, as its What. A note answered with a change
-   becomes a new draft in the same way, linked from **Now**, first after its started entries and
-   their blank line, next to where starting puts it. A note kept in the inbox does not change. A
-   note added after the triage was written stays in the inbox, untouched. A note the triage names
-   that is no longer there is skipped.
-2. **Commit once**: `INBOX.md`, `PRIORITIES.md`, the drafts the notes went into, and the deletion of
-   `INBOX-TRIAGE.md`, with `chore: apply the inbox triage`. The body lists every note the triage
-   names, one per line, in the questions' order: `- Move from the inbox to <Section>: <note>`,
-   `- Move from the inbox to the draft <title>: <note>`, `- Remove from the inbox: <note>`,
+   as [organizing by hand](#organizing-by-hand) does. A new proposal file for a group of notes takes
+   the option's title, and the notes' lines, marks dropped, as its What. A note answered with a
+   change becomes a new proposal file in the same way, linked from **Now**, first after its started
+   proposals and their blank line, next to where starting puts it. A note kept in the inbox does not
+   change. A note added after the triage was written stays in the inbox, untouched. A note the
+   triage names that is no longer there is skipped.
+2. **Commit once**: `INBOX.md`, `PRIORITIES.md`, the proposal files the notes went into, and the
+   deletion of `INBOX-TRIAGE.md`, with `chore: apply the inbox triage`. The body lists every note
+   the triage names, one per line, in the questions' order:
+   `- Move from the inbox to <Section>: <note>`,
+   `- Move from the inbox to the proposal <title>: <note>`, `- Remove from the inbox: <note>`,
    `- Start the change <slug>: <note>`, `- Keep in the inbox: <note>`, and
    `- Skip, no longer in the inbox: <note>`.
-3. **Start each change** an answer asked for, from its draft, with the slug of its option, as
-   **Start as a change** in [Projects](projects.md#starting-postponing-and-dropping-a-feature) says:
-   `ura start <draft> --slug <slug> --change`. The answer is the human asking for it, as
-   [starting a change](change.md#starting-a-change) requires. Its proposal is the draft, unchanged:
+3. **Start each change** an answer asked for, from its proposal file, with the slug of its option,
+   as **Start as a change** in [Projects](projects.md#starting-postponing-and-dropping-a-feature)
+   says: `ura start <proposal> --slug <slug> --change`. The answer is the human asking for it, as
+   [starting a change](change.md#starting-a-change) requires. Its proposal is the file, unchanged:
    the human's note, not what the question's context found. Then say to open `/f/<folder>` in the
    web UI, where the change's own session runs: this run does not make the change.
 

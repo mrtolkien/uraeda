@@ -24,8 +24,9 @@ the user's terminal theme.
 
 ## Why
 
-The planned answer, review, and draft TUIs need ratatui ([draft](../drafts/cli-tuis.md)). A lighter
-library for the first pickers would become a second library with a different look
+The planned TUIs to answer, review, and expand proposals need ratatui
+([proposal](../proposals/cli-tuis.md)). A lighter library for the first pickers would become a
+second library with a different look
 ([which library draws the pickers](../done/2026-10-12-review-uraeda-init.md#q2-which-library-draws-the-pickers)).
 The terminal's own colours are the look the human chose
 ([what the TUIs look like](../done/2026-10-10-cli-core.md#q14-what-should-the-tuis-look-like)).

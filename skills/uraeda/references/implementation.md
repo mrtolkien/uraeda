@@ -235,7 +235,7 @@ branch, there is nothing to do.
    overwritten. Resolve conflicts:
    - **In code**: keep what both sides need, within the spec and the default branch's decisions. A
      resolution that needs a choice the spec does not settle is a reason to stop.
-   - **In `PRIORITIES.md`**: take the default branch's version, with this feature's entry kept in
+   - **In `PRIORITIES.md`**: take the default branch's version, with this feature's proposal kept in
      it.
    - **In a decision or the constitution**: stop, and start a new round of questions.
 4. **Run the project's complete validation.** A failure the default branch brings in is fixed like a
@@ -305,10 +305,10 @@ replaces the folder with its record, and marks the pull request ready.
 ## Pull request
 
 The pull request is opened as a draft after the final review, and marked ready by the
-[finish](finish.md) step, whose last commit also removes the feature's entry from `PRIORITIES.md`.
-It is the feature's last human gate: it merges the record, the decisions, and the code at once. Its
-body is written when it is marked ready: an opening block, then the record's text, then one
-screenshot per new view, as [the finish step](finish.md#mark-the-pull-request-ready) says.
+[finish](finish.md) step, whose last commit also removes the feature's proposal from
+`PRIORITIES.md`. It is the feature's last human gate: it merges the record, the decisions, and the
+code at once. Its body is written when it is marked ready: an opening block, then the record's text,
+then one screenshot per new view, as [the finish step](finish.md#mark-the-pull-request-ready) says.
 
 If you cannot open a pull request, push the branch, and put the body in the last commit's message.
 When the human talks with you in the session, say the same in one or two sentences, with the pull
