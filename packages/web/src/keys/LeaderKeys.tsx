@@ -50,6 +50,13 @@ export function LeaderKeys() {
       label: "Switch repository…",
       run: openRepositoryMenu,
     },
+    // The same from the go keys, as `g h` goes home.
+    {
+      icon: "uraeda:layers",
+      keys: "g r",
+      label: "Switch repository…",
+      run: openRepositoryMenu,
+    },
     {
       icon: "uraeda:palette",
       keys: "space u t",

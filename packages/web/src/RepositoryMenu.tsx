@@ -13,6 +13,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
+  colorVars,
   fontWeightVars,
   sizeVars,
   spacingVars,
@@ -25,6 +26,7 @@ import {
   Suspense,
   use,
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -42,6 +44,11 @@ import { ActionsMenu } from "./layout/ActionsMenu.tsx";
 import { StatusText } from "./fields/StatusText.tsx";
 
 const styles = stylex.create({
+  // The row the arrows are on: the mauve tint of a list's selected row, with its bar at the start.
+  cursor: {
+    backgroundColor: colorVars["--color-accent-muted"],
+    boxShadow: `inset 2px 0 0 0 ${colorVars["--color-accent"]}`,
+  },
   brand: {
     display: "block",
     fontSize: typeScaleVars["--text-large-size"],
@@ -113,17 +120,21 @@ type Row = NonNullable<ReturnType<typeof useRepositories>>["rows"][number];
  */
 function RepositoryRow({
   current,
+  isCursor,
   onPick,
   onRemove,
   row,
 }: {
   current: string | null;
+  /** The row the arrows are on, which Enter opens: tinted as a list's selected row. */
+  isCursor: boolean;
   onPick: (name: string) => void;
   onRemove: (name: string) => void;
   row: Row;
 }) {
   return (
     <ListItem
+      xstyle={isCursor ? styles.cursor : undefined}
       description={
         row.missing ? (
           <div {...stylex.props(styles.path)}>
@@ -183,6 +194,24 @@ function Menu({
   const rows = (list?.rows ?? []).filter(
     (row) => row.name.toLowerCase().includes(needle) || row.home.toLowerCase().includes(needle),
   );
+  // The row the arrows are on, which Enter opens: at first the latest other than the current one,
+  // where a switch goes; once a letter is typed, the first that matches.
+  const [moved, setMoved] = useState<number>();
+  // The focus in the filter once the menu is drawn, its list read: typing filters at once, and the
+  // arrows move along the rows. The dialog's own focus goes to its title as it opens, before.
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => field.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const first =
+    needle === ""
+      ? Math.max(
+          rows.findIndex((row) => row.name !== current),
+          0,
+        )
+      : 0;
+  const cursor = Math.min(moved ?? first, rows.length - 1);
 
   const remove = async (name: string) => {
     setRefused(undefined);
@@ -203,13 +232,21 @@ function Menu({
     <VStack gap={2}>
       <TextInput
         isLabelHidden
+        ref={field}
         label="Filter repositories"
-        onChange={(value: string) => setFilter(value)}
+        onChange={(value: string) => {
+          setFilter(value);
+          setMoved(undefined);
+        }}
         onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-          // The filter leaving one repository: Enter opens it.
-          if (event.key === "Enter" && rows.length === 1) {
+          // The arrows move along the rows from the field, and Enter opens the one they are on.
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
-            onPick(rows[0]!.name);
+            const by = event.key === "ArrowDown" ? 1 : -1;
+            setMoved(Math.min(Math.max(cursor + by, 0), rows.length - 1));
+          } else if (event.key === "Enter" && rows[cursor] !== undefined) {
+            event.preventDefault();
+            onPick(rows[cursor].name);
           }
         }}
         placeholder="Filter repositories"
@@ -218,9 +255,10 @@ function Menu({
       />
       {list?.problem && <AnnouncedBanner collapsible={false} status="error" title={list.problem} />}
       <List aria-label="Repositories" density="compact">
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <RepositoryRow
             current={current}
+            isCursor={index === cursor}
             key={row.name}
             onPick={onPick}
             onRemove={(name) => void remove(name)}
