@@ -2,7 +2,6 @@
 // where Tab and Shift+Tab move it, and where Enter and Escape leave the selection.
 import type { WorkRow } from "./Card.tsx";
 import {
-  descendants,
   type Fresh,
   isPending,
   itemAt,
@@ -10,10 +9,10 @@ import {
   type Outline,
   type OutlineItem,
   type OutlineWrites,
-  siblingAbove,
   type Spot,
   spotOfRow,
 } from "./outline.ts";
+import { depthOf, nestedEnd, siblingAbove } from "./nesting.ts";
 
 /** The new row at `spot` moved in, or out, a level, among `items`, its text kept. */
 function freshIndented<Source>(
@@ -104,7 +103,7 @@ export function freshActions<Data, Source>({
       return { index: spot.index + 1, section: spot.section };
     }
     const item = itemAt(drawn, spot);
-    return { ...spot, at: spot.at + 1 + descendants(item?.children ?? [], spot.at) };
+    return { ...spot, at: nestedEnd(item?.children ?? [], spot.at, depthOf) };
   };
 
   /** The new row is done: saved at its place with `text`, the next one opened, or dropped. */

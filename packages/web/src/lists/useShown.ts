@@ -3,6 +3,7 @@
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { WorkRow } from "./Card.tsx";
 import { withMoves } from "./itemMoves.ts";
+import { withNested } from "./nesting.ts";
 import { type OnDrop, useDragOrder } from "./useDragOrder.ts";
 import { type Ahead, stillAhead } from "./useItemMoves.ts";
 import type { Columns } from "./useListKeys.ts";
@@ -105,36 +106,6 @@ export function useShown(
     rowsOf,
     shown,
   };
-}
-
-/** Rows, each followed by its nested rows: the order the keys go through them. */
-export function withNested(rows: ReadonlyArray<WorkRow>) {
-  return rows.flatMap((row) => [row, ...(row.children ?? [])]);
-}
-
-/** The rows a nested row at `at` of `rows`, a line's nested rows, is under, nearest first. */
-export function ancestorsOf(rows: ReadonlyArray<WorkRow>, at: number) {
-  const found: Array<WorkRow> = [];
-  let depth = rows[at]?.depth ?? 0;
-  for (let index = at - 1; index >= 0 && depth > 1; index -= 1) {
-    const row = rows[index];
-    if ((row.depth ?? 0) < depth) {
-      found.push(row);
-      depth = row.depth ?? 0;
-    }
-  }
-  return found;
-}
-
-/** The rows nested under `row` among `rows`, in order: none for a row that has none. */
-export function nestedUnder(rows: ReadonlyArray<WorkRow>, row: WorkRow) {
-  const at = rows.indexOf(row);
-  const depth = row.depth ?? 0;
-  const after = rows.slice(at + 1);
-  const end = after.findIndex(
-    (other) => other.parent !== (row.parent ?? row.key) || (other.depth ?? 0) <= depth,
-  );
-  return end === -1 ? after : after.slice(0, end);
 }
 
 /** What a list shows, in order (see `useShown`). */

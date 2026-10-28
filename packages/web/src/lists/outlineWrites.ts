@@ -8,9 +8,9 @@ import {
   keyAt,
   type Outline,
   type OutlineWrites,
-  siblingAbove,
   type Spot,
 } from "./outline.ts";
+import { siblingAbove } from "./nesting.ts";
 
 /** The refusal of a write whose row the file no longer has. */
 export const GONE = "It is no longer in the file.";

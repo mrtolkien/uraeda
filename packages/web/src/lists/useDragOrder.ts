@@ -17,6 +17,7 @@ import { Accessibility, PointerActivationConstraints } from "@dnd-kit/dom";
 import { type ComponentProps, type RefObject, useRef, useState } from "react";
 import { type Order, spotOf } from "../drop.ts";
 import { frameOf, landingOf, sidewaysOf, snapTo } from "./dragDepth.ts";
+import { depthByKey, nestedEnd } from "./nesting.ts";
 
 /**
  * A row as a drag sees it: its depth and its line, none for a line, and whether nothing nests
@@ -76,14 +77,6 @@ function orderOf(sections: ReadonlyArray<DragSection>): Order {
       .filter((section) => !section.isFixed)
       .map((section) => [section.id, section.rows.map((row) => row.key)]),
   );
-}
-
-/** The keys after `key` in `keys` that are nested under it: deeper, up to the next that is not. */
-function nestedAfter(keys: ReadonlyArray<string>, key: string, depthOf: (key: string) => number) {
-  const at = keys.indexOf(key);
-  const depth = depthOf(key);
-  const end = keys.findIndex((other, index) => index > at && depthOf(other) <= depth);
-  return keys.slice(at + 1, end === -1 ? undefined : end);
 }
 
 /**
@@ -218,7 +211,10 @@ function startOf(
 ): Start {
   const found = orderOf(live);
   const spot = spotOf(found, key);
-  const nested = spot ? nestedAfter(found[spot.section], key, depthOf) : [];
+  // The keys after it nested under it: deeper, up to the next that is not.
+  const keys = spot ? found[spot.section] : [];
+  const at = keys.indexOf(key);
+  const nested = keys.slice(at + 1, nestedEnd(keys, at, depthOf));
   const order = spot
     ? {
         ...found,
@@ -235,7 +231,7 @@ function startOf(
  * it went to.
  */
 function placedBy(start: Start, now: Order | undefined, key: string, to: Dropped, rows: Rows) {
-  const depthOf = (one: string) => rows.get(one)?.depth ?? 0;
+  const depthOf = depthByKey(rows);
   const shift = to.depth - start.depth;
   const keys = now?.[to.section] ?? [];
   const at = keys.indexOf(key) + 1;
@@ -353,7 +349,7 @@ function useDragEvents<Section extends DragSection>(
   const drags = useRef(0);
   // How far sideways the pointer went, as last seen.
   const sideways = useRef(0);
-  const depthOf = (key: string) => rows.get(key)?.depth ?? 0;
+  const depthOf = depthByKey(rows);
   const { landing, onDragMove, onDragOver } = useDragPointer(
     { canNest, rows, setDragged },
     { after, before, sideways, wanted },

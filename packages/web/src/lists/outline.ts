@@ -3,6 +3,7 @@
 // written.
 import type { NestedItem, Span } from "uraeda-binding";
 import type { WorkRow } from "./Card.tsx";
+import { depthOf, nestedEnd } from "./nesting.ts";
 
 /** An item of a section, as the outliner reads it: its own fields stay in `source`. */
 export type OutlineItem<Source> = {
@@ -95,26 +96,6 @@ const spansOf = (text: string): Array<Span> => [
   { code: false, emphasis: false, strike: false, strong: false, text },
 ];
 
-/** The count of rows nested under the item at `at` of `children`: the items after it, deeper. */
-export function descendants(children: ReadonlyArray<NestedItem>, at: number) {
-  const depth = children[at]?.depth ?? 0;
-  const end = children.findIndex((child, index) => index > at && child.depth <= depth);
-  return (end === -1 ? children.length : end) - at - 1;
-}
-
-/** The index of the sibling just above the item at `at`, at `depth`, or -1 for none. */
-export function siblingAbove(children: ReadonlyArray<NestedItem>, at: number, depth: number) {
-  for (let index = at - 1; index >= 0; index -= 1) {
-    if (children[index].depth === depth) {
-      return index;
-    }
-    if (children[index].depth < depth) {
-      return -1;
-    }
-  }
-  return -1;
-}
-
 /** The item of `spot` in `now`, by its key first, else by its place. */
 export function itemAt<Source>(now: Outline<Source>, spot: Spot, key?: string) {
   const all = now.sections.flatMap((section) => section.items);
@@ -185,7 +166,7 @@ export function drawnOf<Source>(
       for (const [index, item] of section.items.entries()) {
         const child = item.children.findIndex((one) => one.key === key);
         if (child !== -1) {
-          const count = 1 + descendants(item.children, child);
+          const count = nestedEnd(item.children, child, depthOf) - child;
           section.items[index] = { ...item, children: item.children.toSpliced(child, count) };
           return;
         }
