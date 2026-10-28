@@ -31,10 +31,10 @@ const styles = stylex.create({
     // Blue while working, as the mockup draws it: the theme's accent is its ink, near the idle grey.
     backgroundColor: colorVars["--color-icon-blue"],
   },
-  // A sub-agent at work: Catppuccin's maroon (a local token of the theme), set apart from the
+  // A sub-agent at work: Catppuccin's teal (a local token of the theme), set apart from the
   // session's blue and the buttons' mauve.
   subagent: {
-    backgroundColor: "var(--color-fill-maroon)",
+    backgroundColor: "var(--color-fill-teal)",
   },
 });
 
@@ -59,7 +59,7 @@ export function StatusMark({
   small = false,
   status,
 }: {
-  /** A sub-agent's mark, in maroon where a session's own is blue. */
+  /** A sub-agent's mark, in teal where a session's own is blue. */
   isSubagent?: boolean;
   label: string;
   small?: boolean;

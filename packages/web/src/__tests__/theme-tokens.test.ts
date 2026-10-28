@@ -189,6 +189,8 @@ const CONTROLS = [
   ...HUES.map((hue) => `--color-border-${hue}`),
   // A live window's double border, in the theme's own sapphire.
   "--color-border-sapphire",
+  // A sub-agent's mark and its row's icon, in the theme's own teal.
+  "--color-fill-teal",
   "--color-selection-edge",
 ];
 

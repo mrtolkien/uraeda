@@ -293,7 +293,7 @@
     --text-reading-size: 19px;
     --font-family-reading: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --color-text-lavender: light-dark(#4254c8, #b4befe);
-    --color-fill-maroon: light-dark(#e64553, #eba0ac);
+    --color-fill-teal: light-dark(#179299, #94e2d5);
     --color-border-sapphire: light-dark(#04699a, #74c7ec);
     --color-text-sapphire: light-dark(#04699a, #74c7ec);
     --size-reading-measure: 86ch;
