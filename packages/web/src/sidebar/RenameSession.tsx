@@ -1,4 +1,4 @@
-// Rename, from a session's "…" in the shell or on its page: a dialog on wide screens, a bottom sheet on the phone,
+// Rename, from a session's "…" on its page: a dialog on wide screens, a bottom sheet on the phone,
 // drawn beside the shell, as a feature's settings are. The server refuses a blank title.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";

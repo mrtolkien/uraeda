@@ -1,5 +1,5 @@
-// "Feature settings", opened from a card's "…": a dialog on wide screens, a bottom sheet on the
-// phone, drawn beside the shell, as the ＋ forms are. Saving keeps the name in the server's list,
+// "Feature settings", opened by Rename in the "…" beside a feature's title: a dialog on wide
+// screens, a bottom sheet on the phone, drawn beside the shell, as the ＋ forms are. Saving keeps the name in the server's list,
 // for the repository (R2).
 import { VStack } from "@astryxdesign/core/VStack";
 import { createContext, type ReactNode, useContext, useState } from "react";
