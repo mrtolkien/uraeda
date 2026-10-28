@@ -105,7 +105,7 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
   },
   "lists/CategoryPane.tsx": {
     hits: 4,
-    reason: "a dialog's own keys while it is open: Y, N, C, which follow the switch (R90)",
+    reason: "a dialog's own keys while it is open: y, n, c, which follow the switch (R90)",
   },
   "lists/OutlineEditor.tsx": {
     hits: 3,

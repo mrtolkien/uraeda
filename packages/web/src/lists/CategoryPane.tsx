@@ -94,7 +94,7 @@ const VARIANTS: Record<Answer, "destructive" | "secondary"> = {
 };
 
 /**
- * Y, N, and C answer while the question is open, whatever has the focus, and while the single-key
+ * `y`, `n`, and `c` answer while the question is open, whatever has the focus, and while the single-key
  * shortcuts are on: they are letter keys, which the setting stops everywhere (the buttons stay).
  */
 function useAnswerKeys(isOpen: boolean, onAnswer: (answer: Answer) => void, singleKeys: boolean) {
@@ -118,8 +118,9 @@ function useAnswerKeys(isOpen: boolean, onAnswer: (answer: Answer) => void, sing
 
 /**
  * The question of a category's delete: what becomes of its `count` notes. Yes deletes them, No keeps
- * them under no category, and Cancel, Close, Escape, and Back change nothing; Y, N, and C choose.
- * Drawn as the shared confirmation is (`fields/Confirm.tsx`), its third answer between its two.
+ * them under no category, and Cancel, Close, Escape, and Back change nothing; `y`, `n`, and `c`
+ * choose. A dialog of its own, drawn as the shared confirmation is (`fields/Confirm.tsx`), its third
+ * answer between its two.
  */
 export function DeleteCategoryDialog({
   count,
