@@ -449,3 +449,36 @@ fn a_note_under_a_line_over_a_changed_file_is_a_conflict() {
 
     assert_eq!(error.code, "conflict");
 }
+
+/// A note that links a draft does not go under a line either: its draft is found by its link. It
+/// still goes to a section's end as a line, its link kept, and over a changed file it is a conflict.
+#[test]
+fn a_note_with_a_draft_does_not_go_under_a_line() {
+    let repo = fixture_repo();
+    let text = "# Inbox\n\n- First\n- [Dark mode](drafts/dark-mode.md)\n  - Contrast\n";
+    repo.write(INBOX, text);
+    repo.write("specs/drafts/dark-mode.md", "# Dark mode\n");
+    let (inbox, priorities) = (inbox_hash(&repo), priorities_hash(&repo));
+    let before = repo.read(PRIORITIES);
+
+    let error = api::note_under_priority(repo.path(), "note-2", "later-1", &inbox, &priorities)
+        .unwrap_err();
+    assert_eq!(error.code, "refused");
+    assert_eq!(
+        (repo.read(INBOX), repo.read(PRIORITIES)),
+        (text.to_string(), before)
+    );
+
+    let stale = api::note_under_priority(repo.path(), "note-2", "later-1", "stale", &priorities)
+        .unwrap_err();
+    assert_eq!(stale.code, "conflict");
+
+    api::note_to_priorities(repo.path(), "note-2", "later", &inbox, &priorities).unwrap();
+    let later = api::read_priorities(repo.path()).unwrap().sections;
+    let line = later.iter().flat_map(|section| &section.entries).last();
+    assert_eq!(
+        line.and_then(|line| line.draft.as_ref())
+            .map(|draft| draft.path.as_str()),
+        Some("specs/drafts/dark-mode.md")
+    );
+}

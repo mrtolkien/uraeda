@@ -34,8 +34,9 @@ fn as_read(place: &Place, path: &str, previous: &str) -> Option<String> {
         .filter(|text| hash(text) == previous)
 }
 
-/// Refuses to nest the note `id` when it links a draft.
-fn note_stays(place: &Place, id: &str, previous: &str) -> Result<()> {
+/// Refuses to nest the note `id` when it links a draft: under a note, or under a line of the
+/// priorities.
+pub(super) fn note_stays(place: &Place, id: &str, previous: &str) -> Result<()> {
     let Some(text) = as_read(place, inbox_edits::PATH, previous) else {
         return Ok(());
     };
