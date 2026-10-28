@@ -1,21 +1,14 @@
 // "How it is built, and its limits": the parts after the stories, each a titled pane drawn for
-// what it holds, its prose read as a round's context, given air. The architecture and the
+// what it holds, its prose read as a round's context, given air, filling a pane of prose. The architecture and the
 // assumptions as their blocks; the edge cases by importance, each its situation then what happens,
 // the niche ones folded; each criterion's id and measure as pills before its sentence. The core finds each part's items: the page draws
 // them, and every item, row, and other block takes a comment as the spec's other blocks do.
-import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import { Criteria } from "./builtParts/Criteria.tsx";
 import { EdgeCases } from "./builtParts/EdgeCases.tsx";
 import { type DrawingProps, inOrder } from "./builtParts/shared.tsx";
 import { Pane } from "../layout/Pane.tsx";
-import { paneVars } from "../layout/pane.stylex.ts";
 import { BUILT_PARTS, type PartProps, partOf, type SpecItems } from "./parts.ts";
-
-const styles = stylex.create({
-  // A round's context panes' width, their prose filling them, about 70 characters a line.
-  part: { "--pane-max": paneVars["--pane-context"] },
-});
 
 /** What the parts after the stories draw: the page's context, and the spec's items. */
 export type BuiltPartsProps = PartProps & { items: SpecItems };
@@ -63,17 +56,16 @@ export function BuiltParts({ items, ...props }: BuiltPartsProps) {
     }
     const Drawing = drawing.draw;
     return (
-      <div key={part.anchor} {...stylex.props(styles.part)}>
-        <Pane
-          count={drawing.count?.(items)}
-          icon={drawing.icon}
-          id={part.anchor}
-          level={3}
-          title={part.title}
-        >
-          <Drawing items={items} part={part} props={props} />
-        </Pane>
-      </div>
+      <Pane
+        count={drawing.count?.(items)}
+        icon={drawing.icon}
+        id={part.anchor}
+        key={part.anchor}
+        level={3}
+        title={part.title}
+      >
+        <Drawing items={items} part={part} props={props} />
+      </Pane>
     );
   });
 }

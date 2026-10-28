@@ -223,7 +223,7 @@ export function EditorPage({ path }: { path: string }) {
   }
   const message = editor.actions.message;
   return (
-    <Page isReading>
+    <Page isWriting>
       <VStack gap={4}>
         <EditorHeading draft={draft} path={path} />
         <ConflictBanner editor={editor} />

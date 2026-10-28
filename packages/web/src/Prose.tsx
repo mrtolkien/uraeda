@@ -33,8 +33,8 @@ export const proseStyles = stylex.create({
   airy: { "--text-reading-line": "1.65" },
   // Astryx's markdown sets its text in the body font: its text takes the reading font instead.
   markdown: { fontFamily: "var(--font-family-reading)" },
-  // Prose as wide as its pane, past the measure: for a pane its page keeps narrow, about 70
-  // characters a line.
+  // Prose as wide as its pane, past the measure: for a pane whose width sets its line, as a reading
+  // page's pane of prose does, its text ending at its border.
   paneWide: { "--size-reading-measure": "none" },
   // A document's text: reading text at the measure, left-aligned.
   doc: {

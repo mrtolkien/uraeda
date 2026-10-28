@@ -1,4 +1,3 @@
-import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
 import { CandidatesContext } from "./decisions/Candidates.tsx";
@@ -21,13 +20,6 @@ import { useRoundPosition } from "./useRoundPosition.ts";
 import { type useFile, useAgent } from "./data.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
-
-const styles = stylex.create({
-  measure: {
-    // The round's reading text, a default-branch round's too, holds to the round's measure.
-    "--size-reading-measure": "var(--size-round-measure)",
-  },
-});
 
 /**
  * A round of questions on one page: its context, every question in full with its follow-ups, the
@@ -153,7 +145,7 @@ function RoundBody({
   // On the phone, a band before the settled points of the end, which a wide screen draws in panes.
   const ends = round.settledGroups.some((group) => group.kind !== "check" && group.points > 0);
   return (
-    <div {...stylex.props(styles.measure)}>
+    <>
       <RoundOpening
         check={<SettledPoints file={file} part="check" readOnly={readOnly} {...asks} />}
         document={document}
@@ -172,7 +164,7 @@ function RoundBody({
       {!wide && ends && <Band />}
       <SettledPoints file={file} part="end" readOnly={readOnly} {...asks} />
       {children}
-    </div>
+    </>
   );
 }
 

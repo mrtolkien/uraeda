@@ -6,7 +6,7 @@ export const paneVars = stylex.defineVars({
   // The room under a pane's last line, a button's too: the room under its title, `--spacing-3`,
   // so that a pane ending with a button does not end tight on it.
   "--pane-end": "0.75rem",
-  // A round's context pane's widest, its prose about 70 characters a line in the reading font (82
-  // of the UI's characters, the pane's own): narrower than the page's other panes.
-  "--pane-context": "82ch",
+  // A pane of prose's widest, a reading page's: its prose about 80 characters a line, filling it
+  // to its border (the theme's `--size-reading-pane`).
+  "--pane-prose": "var(--size-reading-pane)",
 });

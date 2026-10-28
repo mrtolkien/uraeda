@@ -10,15 +10,12 @@ import type { Block, ContextPart, Document, RoundItems, VerdictKind } from "urae
 import { Blocks } from "./Blocks.tsx";
 import { type Folds, useHashFold } from "./Folds.tsx";
 import { Pane } from "./layout/Pane.tsx";
-import { paneVars } from "./layout/pane.stylex.ts";
 import { useAtLeast } from "./layout/useWidthOf.ts";
 import { proseStyles } from "./Prose.tsx";
 import { PART_IDS } from "./roundPartIds.ts";
 import { plain, Spans } from "./Spans.tsx";
 
 const styles = stylex.create({
-  // The context's panes, narrower than the page's others, their prose filling them.
-  context: { "--pane-max": paneVars["--pane-context"] },
   error: { color: colorVars["--color-error"] },
   lead: { marginBlock: spacingVars["--spacing-1"] },
   success: { color: colorVars["--color-success"] },
@@ -201,21 +198,19 @@ export function RoundContext({
   );
   return (
     <div ref={ref}>
-      <div {...stylex.props(styles.context)}>
-        {parts.map((part, index) => {
-          if (!isPaired || (index !== scope && index !== scope + 1)) {
-            return pane(part);
-          }
-          return (
-            index === scope && (
-              <Grid columns={isRoomy ? 2 : 1} gap={4} key="scope-sources">
-                {pane(part)}
-                {sources && pane(sources)}
-              </Grid>
-            )
-          );
-        })}
-      </div>
+      {parts.map((part, index) => {
+        if (!isPaired || (index !== scope && index !== scope + 1)) {
+          return pane(part);
+        }
+        return (
+          index === scope && (
+            <Grid columns={isRoomy ? 2 : 1} gap={4} key="scope-sources">
+              {pane(part)}
+              {sources && pane(sources)}
+            </Grid>
+          )
+        );
+      })}
       {check}
     </div>
   );

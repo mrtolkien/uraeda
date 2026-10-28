@@ -35,11 +35,10 @@ const styles = stylex.create({
   },
   scenario: {
     // A scenario, set apart from the one before by a hairline, its step words in a column, its
-    // sentences reading text (`proseStyles.reading`).
+    // sentences reading text (`proseStyles.reading`), as wide as the pane of prose it is in.
     columnGap: spacingVars["--spacing-3"],
     display: "grid",
     gridTemplateColumns: "auto minmax(0, 1fr)",
-    maxWidth: "var(--size-reading-measure)",
     paddingBlockStart: spacingVars["--spacing-3"],
     rowGap: spacingVars["--spacing-2"],
   },

@@ -296,11 +296,19 @@ export const uraedaTheme = defineTheme({
     "--astryx-theme-neutral-color-status-fill-success": pair("green"),
     "--astryx-theme-neutral-color-status-fill-warning": pair("yellow"),
     "--astryx-theme-neutral-color-status-muted-accent": tint("blue"),
-    // About 80 characters of prose a line. `ch` is the width of a "0" in the font of the element
-    // that uses it: Inter's is 0.631 em, and its average character in English prose, spaces
-    // included, 0.471 em, three quarters of it, so 60ch of Inter holds about 80 characters (59.7ch
-    // for 80, measured on the repository's prose). The layout checks hold reading text to it.
-    "--size-reading-measure": "60ch",
+    // About 80 characters of prose a line: 60 of Inter's "0", at the reading size. Inter's "0" is
+    // 0.631 em, and its average character in English prose, spaces included, 0.471 em, three
+    // quarters of it, so 60 of them hold about 80 characters (59.7 for 80, measured on the
+    // repository's prose). A length of the reading size, not `60ch`: `ch` and `em` resolve in the
+    // font of the element that uses them, and a pane, in the UI's monospace font, sizes itself on
+    // this measure too (`--size-reading-pane`). The layout checks hold reading text to it.
+    "--size-reading-measure": "calc(37.85 * var(--text-reading-size))",
+    // A pane of prose's widest on wide screens: the reading measure, its inset at each side, and
+    // its border, so that its text fills it and ends at its border. The inset is the theme's,
+    // `--spacing-3`, as a reading page sets no narrower one: a custom property's `var()` resolves
+    // where it is declared, not in the pane.
+    "--size-reading-pane":
+      "calc(var(--size-reading-measure) + 2 * var(--spacing-3) + 2 * var(--border-width))",
     // A page's column on wide screens, which holds the reading measure and the rows beside it.
     "--size-page-max": "720px",
     // A session's column on wide screens: about 115 characters a line.
@@ -337,9 +345,6 @@ export const uraedaTheme = defineTheme({
     "--size-round-split": "840px",
     // The round's context at least this wide sets Scope and Sources side by side.
     "--size-round-pair": "820px",
-    // The round page's and the triage's measure, which hold their reading text to it in place of
-    // the reading measure: the same, about 80 characters of prose a line.
-    "--size-round-measure": "var(--size-reading-measure)",
     // The settings page's search field, at the end of its heading row on wide screens.
     "--size-settings-search": "240px",
     // The shell's rail: its icons' column, folded, and on semi-wide screens.

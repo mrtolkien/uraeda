@@ -122,6 +122,8 @@ const styles = stylex.create({
     flexWrap: "wrap",
     minWidth: 0,
   },
+  // A pane in a pane: its room's width, which that pane keeps, or more, as a live window grows.
+  nested: { maxWidth: "none" },
   new: { borderColor: colorVars["--color-border-green"] },
   newTitle: { color: colorVars["--color-text-green"] },
   // On the phone, a round's pane keeps only its titled top border, so its text takes the screen's
@@ -169,7 +171,7 @@ const styles = stylex.create({
     // Room above for the half of the title over the border.
     marginBlockStart: spacingVars["--spacing-3"],
     // As wide as a page that reads lets one pane be (`--pane-max`, see `Page`'s `isReading`), its
-    // prose kept to a line one reads, and centred in its room (`--pane-width`, `--pane-centre`):
+    // prose about 80 characters a line, ending at its border, and centred in its room (`--pane-width`, `--pane-centre`):
     // alone, in the page; two side by side share the room, each up to it, in the page's middle.
     boxSizing: "border-box",
     marginInline: "var(--pane-centre, 0)",
@@ -421,6 +423,7 @@ export function Pane({
       role={isGroup ? "group" : undefined}
       {...stylex.props(
         styles.pane,
+        use(InPane) && styles.nested,
         isOpen && styles.openOnPhone,
         margin,
         border,

@@ -25,19 +25,23 @@ const styles = stylex.create({
     // A session's column on wide screens: about 115 characters a line, not the page's full width.
     maxWidth: "var(--size-session-max)",
   },
-  // A document's page on wide screens, a round's or a spec's: each of its panes 95 of the UI's
-  // characters wide at most, so that one pane's prose stays a line one reads, while two side by
-  // side share the page's width, each up to that (see `Pane`).
+  // A document's page on wide screens, a round's or a spec's: each of its panes a pane of prose
+  // wide at most, its prose about 80 characters a line and ending at its border, while two side by
+  // side share the page's width, each up to that (see `Pane`). A wide table scrolls in its pane,
+  // and a mockup's window grows past it (`PageColumn`).
   reading: {
     // Each pane as wide as its room up to that, centred in it: the page's middle.
     "--pane-centre": "auto",
-    "--pane-max": "95ch",
+    "--pane-max": paneVars["--pane-prose"],
     "--pane-width": "100%",
   },
-  // A round's page on wide screens: as wide as two of its context panes side by side, as its Scope
-  // and Sources are, so that a question's card, its question beside its answers, takes both.
+  // A draft's editor on wide screens: its panes hold the file's text in the UI's monospace font,
+  // not prose, up to 95 of its characters.
+  writing: { "--pane-max": "95ch" },
+  // A round's page on wide screens: as wide as two of its panes side by side, as its Scope and
+  // Sources are, so that a question's card, its question beside its answers, takes both.
   paired: {
-    maxWidth: `calc(2 * ${paneVars["--pane-context"]} + ${spacingVars["--spacing-4"]} + 2 * var(--page-inset))`,
+    maxWidth: `calc(2 * ${paneVars["--pane-prose"]} + ${spacingVars["--spacing-4"]} + 2 * var(--page-inset))`,
   },
   // The whole width of the window, for a page of columns.
   full: { maxWidth: "none" },
@@ -82,18 +86,21 @@ export function Page({
   isSession = false,
   isSnug = false,
   isTight = false,
+  isWriting = false,
 }: {
   children: ReactNode;
   /** The window's whole width, not the page's column: a page of columns, the priorities'. */
   isFull?: boolean;
   /** A round's page on wide screens: as wide as two context panes side by side. */
   isPaired?: boolean;
-  /** A document's page on wide screens, a round's or a spec's: each pane 95 characters wide at most. */
+  /** A document's page on wide screens, a round's or a spec's: each pane a pane of prose at most. */
   isReading?: boolean;
   /** A session's column on wide screens: a line of text, not the page's full width. */
   isSession?: boolean;
   isSnug?: boolean;
   isTight?: boolean;
+  /** A draft's editor on wide screens: a reading page whose panes are 95 characters wide at most. */
+  isWriting?: boolean;
 }) {
   const wide = !isNarrow(useWidthClass());
   const column = useRef<HTMLDivElement>(null);
@@ -108,7 +115,8 @@ export function Page({
           wide && styles.wide,
           isFull && styles.full,
           wide && isSession && styles.session,
-          wide && isReading && styles.reading,
+          wide && (isReading || isWriting) && styles.reading,
+          wide && isWriting && styles.writing,
           wide && isPaired && styles.paired,
         )}
       >
