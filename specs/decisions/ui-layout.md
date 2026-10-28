@@ -21,12 +21,12 @@ spec says why.
   dialogs. Checked by review.
 - Text MUST stay readable at each width without zoom, and controls MUST be easy to hit by touch.
   Checked by review.
+- Prose SHOULD hold about 80 characters a line, even where its page is wider. Checked by review.
 - An open detail, tab, or sheet MUST be in the URL, so reload, Back, or a width change keeps it.
   Checked by review.
 - A column that takes room from the main content SHOULD be foldable and resizable. Checked by
   review.
-- A detail glanced at from a list SHOULD open in a pane beside it, and a view the human follows
-  SHOULD be a page of its own. Checked by review.
+- A view the human follows SHOULD be a page of its own. Checked by review.
 - A feature's session MAY open beside any of the feature's documents, in the right column, wide
   enough to follow; everywhere else it stays a page of its own. Checked by review.
 
@@ -38,23 +38,25 @@ shapes that read differently: the phone's one column, a half screen, where the s
 rail to leave the content its room, and a full desktop. A theme that sets them once keeps every view
 on the same classes, where per-view media queries would drift apart.
 
-Text sized for the desktop and touch-sized controls let the human read and act without zooming. On a
-phone, a popover or a dialog covers most of the screen and is hard to dismiss, so a page or a sheet
-reads better; on a wide screen, the same detail fits beside what it came from. What is open lives in
-the address, so the human finds it again after a reload, Back, or turning the screen.
+Text sized for the desktop and touch-sized controls let the human read and act without zooming.
+Lines of prose much longer than 80 characters are hard to follow from one line to the next, while a
+page may be wider, to hold panes and columns beside its text. On a phone, a popover or a dialog
+covers most of the screen and is hard to dismiss, so a page or a sheet reads better. What is open
+lives in the address, so the human finds it again after a reload, Back, or turning the screen.
 
-A detail glanced at keeps its list in view beside it. A view followed for a while, like an agent's
-session, needs a page's width to read. The one exception is a feature's session beside its own
-documents: asking the agent about a question or a point should not take the human away from the
-document they answer or review. In a column wide enough, the session is still easy to follow. A
-column that takes room from the main content can be folded and resized, so the human decides how
-much room it takes.
+A view followed for a while, like an agent's session, needs a page's width to read. The one
+exception is a feature's session beside its own documents: asking the agent about a question or a
+point should not take the human away from the document they answer or review. In a column wide
+enough, the session is still easy to follow. A column that takes room from the main content can be
+folded and resized, so the human decides how much room it takes.
 
 Each spec shows its layout at each width class, because a layout is judged by seeing it.
 
 ## Alternatives considered
 
-- A column near 70 characters: it left most of a desktop empty and read too slim.
+- A whole page near 70 characters wide: it left most of a desktop empty and read too slim.
+- A detail opened from a list always in a pane beside it: too rigid, since a list edited in place,
+  or a detail read in a dialog, can read better.
 - CSS `zoom` on desktop: it breaks dragging's position math.
 - Justified paragraphs: rivers on the phone's narrow lines.
 - Every detail in a pane on wide screens: an agent's session became too narrow to follow.
