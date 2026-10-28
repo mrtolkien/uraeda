@@ -5,6 +5,7 @@
  * refused while an agent works: `writable` guards features only.
  */
 import type { Resolver } from "./context.ts";
+import type { RemovedImage } from "uraeda-binding";
 import { refusable } from "./errors.ts";
 import { draft, inbox, priorities } from "./masked.ts";
 import { sources } from "./sources.ts";
@@ -122,7 +123,7 @@ export const inboxMutations = {
       const result = await refusable(() =>
         ctx.binding.addNoteAndCommit(ctx.repo, text, hash, category, about),
       );
-      return inbox(ctx, result.inbox, select, result.added);
+      return inbox(ctx, result.inbox, select, { added: result.added });
     },
     type: "Inbox",
   },
@@ -252,6 +253,21 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
+  // An image taken out of a note: the draft's lines linking it go, over the draft read at `hash`;
+  // its file stays. The answer's `imageRemoved` is what `inbox.restoreImage` takes back.
+  "inbox.removeImage": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ draft: string; hash: string; image: string }>) => {
+      const result = await refusable(() =>
+        ctx.binding.removeNoteImage(ctx.repo, input.draft, input.image, input.hash),
+      );
+      return inbox(ctx, result.inbox, select, { imageRemoved: result.removed });
+    },
+    type: "Inbox",
+  },
   "inbox.removeCategory": {
     resolve: async ({
       ctx,
@@ -261,7 +277,7 @@ export const inboxMutations = {
       const result = await refusable(() =>
         ctx.binding.removeCategory(ctx.repo, input.name, input.keepNotes, input.hash),
       );
-      return inbox(ctx, result.inbox, select, null, result.before);
+      return inbox(ctx, result.inbox, select, { removed: result.before });
     },
     type: "Inbox",
   },
@@ -281,6 +297,15 @@ export const inboxMutations = {
       inbox(
         ctx,
         await refusable(() => ctx.binding.restoreCategory(ctx.repo, input.before, input.hash)),
+        select,
+      ),
+    type: "Inbox",
+  },
+  "inbox.restoreImage": {
+    resolve: async ({ ctx, input, select }: Resolver<{ removed: RemovedImage }>) =>
+      inbox(
+        ctx,
+        await refusable(() => ctx.binding.restoreNoteImage(ctx.repo, input.removed)),
         select,
       ),
     type: "Inbox",

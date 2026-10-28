@@ -1,5 +1,5 @@
 /** The records the repository's mutations answer with, masked to the fields the client selected. */
-import type { AddCommit, Inbox, Priorities } from "uraeda-binding";
+import type { AddCommit, Inbox, Priorities, RemovedImage } from "uraeda-binding";
 import type { Context } from "./context.ts";
 import { sentInbox, sentPriorities, sources } from "./sources.ts";
 import {
@@ -28,13 +28,24 @@ export const draft = (ctx: Context, record: Omit<DraftRecord, "id">, select: Arr
   sources.masked(draftDataView, ctx, { id: record.path, ...record }, select);
 
 /**
- * The inbox, with `added` when the answer is an add's, as for the priorities, and `removed`, the
- * file as it was, when the answer is a category's delete.
+ * The inbox, with what the answer's mutation adds to it: `added` for an add, as for the
+ * priorities; `removed`, the file as it was, for a category's delete; and `imageRemoved`, what
+ * Undo takes back, for an image taken out of a note.
  */
 export const inbox = (
   ctx: Context,
   record: Inbox,
   select: Array<string>,
-  added: AddCommit | null = null,
-  removed: string | null = null,
-) => sources.masked(inboxDataView, ctx, { ...sentInbox(record), added, removed }, select);
+  extra: { added?: AddCommit; imageRemoved?: RemovedImage; removed?: string } = {},
+) =>
+  sources.masked(
+    inboxDataView,
+    ctx,
+    {
+      ...sentInbox(record),
+      added: extra.added ?? null,
+      imageRemoved: extra.imageRemoved ?? null,
+      removed: extra.removed ?? null,
+    },
+    select,
+  );
