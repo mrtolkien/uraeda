@@ -5,6 +5,10 @@
 
 use super::lines::{self, Item, Marker};
 
+mod read;
+
+pub(crate) use read::nested_items;
+
 /// An item of an outline, the list's own item at its root.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Node {
@@ -120,37 +124,6 @@ fn level(roots: &mut Vec<Node>, depth: usize) -> &mut Vec<Node> {
     }
     let last = roots.len() - 1;
     level(&mut roots[last].children, depth - 1)
-}
-
-/// The items nested under the item `key`, from its nested lines as written, at any depth, in the
-/// order of the file.
-pub(crate) fn nested_items(key: &str, nested: &[&str]) -> Vec<NestedItem> {
-    fn walk(nodes: &[Node], depth: u32, out: &mut Vec<(u32, String)>) {
-        for node in nodes {
-            out.push((depth, node.text.join(" ")));
-            walk(&node.children, depth + 1, out);
-        }
-    }
-    let mut items = Vec::new();
-    walk(&children(nested), 1, &mut items);
-    let slugs = items
-        .iter()
-        .map(|(_, markdown)| crate::slug::from_text(&lines::plain(markdown).0))
-        .collect();
-    items
-        .into_iter()
-        .zip(lines::unique_keys(slugs))
-        .map(|((depth, markdown), slug)| NestedItem {
-            key: format!("{key}/{slug}"),
-            depth,
-            spans: super::document::parse(&markdown, "specs")
-                .blocks
-                .first()
-                .map(|b| b.spans.clone())
-                .unwrap_or_default(),
-            text: markdown,
-        })
-        .collect()
 }
 
 /// The path to the item at `at` in the order of the file, from 0: its index among its siblings at

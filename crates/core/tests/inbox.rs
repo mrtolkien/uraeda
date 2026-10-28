@@ -514,3 +514,19 @@ fn a_note_shows_its_children() {
     assert!(read.categories[0].notes[1].nested.is_empty());
     assert!(read.categories[0].notes[1].nested_spans.is_empty());
 }
+
+/// A note's code block is no outline: the list it may show, a snippet, gives no children, which no
+/// edit could write back.
+#[test]
+fn a_notes_code_block_gives_no_children() {
+    let text = "# Inbox\n\n- Keep this list\n  ```md\n  - not an item\n  ```\n  - an item\n";
+
+    let read = inbox::read(text);
+
+    let children: Vec<&str> = read.categories[0].notes[0]
+        .children
+        .iter()
+        .map(|child| child.text.as_str())
+        .collect();
+    assert_eq!(children, ["an item"]);
+}
