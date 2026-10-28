@@ -34,7 +34,7 @@ import {
   agentDataView,
   branchDecisionDataView,
   type BranchDecisionRecord,
-  draftDataView,
+  proposalFileDataView,
   featureDataView,
   fileDataView,
   INBOX_ID,
@@ -93,8 +93,8 @@ export const sentPriorities = (read: Priorities): Omit<PrioritiesRecord, "id"> =
   ...read,
   sections: read.sections.map((section) => ({
     ...section,
-    entries: section.entries.map(({ running, ...entry }) => ({
-      ...entry,
+    proposals: section.proposals.map(({ running, ...proposal }) => ({
+      ...proposal,
       ...(running && { running: { ...running, step: sentStep(running.step) } }),
     })),
   })),
@@ -367,7 +367,7 @@ export const sources = createSources<Context>([
     }),
   ),
   fileSource(
-    draftDataView,
+    proposalFileDataView,
     repository({
       byIds: ({ binding, repo }, ids) =>
         each(ids, async (id) => ({ id, ...(await binding.readText(repo, id)) })),

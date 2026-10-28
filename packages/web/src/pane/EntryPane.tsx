@@ -1,8 +1,8 @@
-// The detail pane of an entry, a priority or a note, shared by both pages and drawn in their
+// The detail pane of an entry, a proposal or a note, shared by both pages and drawn in their
 // overlay: a bar with its place and its actions, then its body, read-only on arrival, the entry
 // read as markdown. Edit, in the bar, turns its text into
-// the one-line field, in place (Q4, Q5 of the redesign's first round), and a drafted entry's
-// draft into its text, under it (C2).
+// the one-line field, in place (Q4, Q5 of the redesign's first round), and an entry's own file
+// into its text, under it (C2).
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
@@ -129,7 +129,7 @@ export function EntryText({
   );
 }
 
-/** A priority whose feature is started: a green Running badge, its step, and the way to it. */
+/** A proposal whose feature is started: a green Running badge, its step, and the way to it. */
 export function RunningPart({ href, step }: { href: string; step: string }) {
   return (
     <HStack align="center" gap={2} wrap="wrap">

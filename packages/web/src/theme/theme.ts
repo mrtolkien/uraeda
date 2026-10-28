@@ -308,7 +308,7 @@ export const uraedaTheme = defineTheme({
     // The detail pane beside a list on wide screens: at least this wide, and at most the window's
     // height, scrolling on its own.
     "--size-pane-min": "400px",
-    // The detail overlay of a priority or a note on wide screens: 108 characters of the page's font
+    // The detail overlay of a proposal or a note on wide screens: 108 characters of the page's font
     // wide (the page's font is monospace, so `ch` is one character), and 60% of the window tall.
     "--size-detail": "108ch",
     "--size-detail-height": "60dvh",

@@ -15,11 +15,11 @@ type Entry = {
   activity?: number;
   /** A chat its first message just created, on the page it left: its first turn is news. */
   created?: boolean;
-  /** What takes the focus on arrival: a draft's text, as a draft just made opens. */
+  /** What takes the focus on arrival: a file's text, as a proposal file just made opens. */
   focus?: "text";
   from?: string;
   id?: string;
-  /** What the New page's composer is filled from on arrival: a priority's id, `line:next-2`. */
+  /** What the New page's composer is filled from on arrival: a proposal's id, `line:next-2`. */
   insert?: string;
   open?: Array<string>;
   opener?: number;
@@ -86,13 +86,13 @@ const savers = new Set<() => void>();
 let left: string | undefined;
 
 /**
- * Whether `path` shows another priority or note beside the same list as now: the list stays, and
+ * Whether `path` shows another proposal or note beside the same list as now: the list stays, and
  * the text left unsaved in the pane comes back, with its notice, as that item opens again.
  */
 function besideSameList(path: string) {
   const from = parseLocation(window.location.pathname).route.page;
   const to = parseLocation(new URL(path, window.location.href).pathname).route.page;
-  return (from === "task" || from === "note") && to === from;
+  return (from === "proposal" || from === "note") && to === from;
 }
 
 /**

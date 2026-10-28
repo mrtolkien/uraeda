@@ -1,6 +1,7 @@
-// The editor page's text pane: the draft drawn, or its text to edit, in one pane named by its file.
-// A click on the drawn text edits it, `i` too, and Escape leaves the field for the page's keys.
-// Under it, one row: Save while there is something to save, what it did, and a proposal's Commit.
+// The editor page's text pane: the proposal drawn, or its text to edit, in one pane named by its
+// file. A click on the drawn text edits it, `i` too, and Escape leaves the field for the page's
+// keys. Under it, one row: Save while there is something to save, what it did, and a proposal's
+// Commit.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -12,13 +13,13 @@ import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
 import { Blocks } from "./Blocks.tsx";
 import { CommitActions } from "./CommitActions.tsx";
-import { MAIN_CHECKOUT, type useDraft } from "./data.ts";
+import { MAIN_CHECKOUT, type useProposalFile } from "./data.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveKeys } from "./fields/SaveKeys.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { Pane } from "./layout/Pane.tsx";
-import type { DraftEditorState } from "./pane/useDraftEditor.ts";
+import type { ProposalEditorState } from "./pane/useProposalEditor.ts";
 import { StoriesProvider } from "./stories.tsx";
 
 const styles = stylex.create({
@@ -32,23 +33,23 @@ const styles = stylex.create({
   },
 });
 
-type Draft = NonNullable<ReturnType<typeof useDraft>>;
+type File = NonNullable<ReturnType<typeof useProposalFile>>;
 
 /** What the notice says when the file changed since its unsaved text was typed. */
 const EDITOR_CHANGED = "The file changed since: saving replaces it.";
 
 /** The text drawn, which a click edits unless it selects words or hits a link or a control. */
 function Drawn({
-  draft,
   editor,
+  file,
   onEdit,
 }: {
-  draft: Draft;
-  editor: DraftEditorState;
+  editor: ProposalEditorState;
+  file: File;
   onEdit: () => void;
 }) {
   // The title is the page's heading already.
-  const ids = draft.document.blocks
+  const ids = file.document.blocks
     .filter(
       (block) => block.parent === undefined && !(block.kind === "heading" && block.level === 1),
     )
@@ -63,8 +64,8 @@ function Drawn({
   return (
     <div onClick={click} {...stylex.props(styles.drawn)}>
       <DropHint hint={editor.images.hint}>
-        <StoriesProvider folder={MAIN_CHECKOUT} mockups={draft.mockups} stories={draft.stories}>
-          <Blocks document={draft.document} ids={ids} />
+        <StoriesProvider folder={MAIN_CHECKOUT} mockups={file.mockups} stories={file.stories}>
+          <Blocks document={file.document} ids={ids} />
         </StoriesProvider>
       </DropHint>
     </div>
@@ -73,26 +74,27 @@ function Drawn({
 
 /**
  * The pane: `boxRef` holds its text field, which `i` brings the focus to. `onSubmit` is its
- * Ctrl+Enter: a draft's starts it, a proposal's saves it. A draft has no Commit, as its start
- * commits it; a proposal commits with "Commit and start the agent", as in its feature.
+ * Ctrl+Enter: a proposal file's starts it, a started proposal's saves it. A proposal file has no
+ * Commit, as its start commits it; a started proposal commits with "Commit and start the agent", as
+ * in its feature.
  */
-export function DraftText({
+export function ProposalText({
   boxRef,
-  draft,
   editor,
+  file,
   onEdit,
   onSubmit,
   path,
 }: {
   boxRef: RefObject<HTMLDivElement | null>;
-  draft: Draft;
-  editor: DraftEditorState;
+  editor: ProposalEditorState;
+  file: File;
   onEdit: () => void;
   onSubmit: () => void;
   path: string;
 }) {
   const { field, images } = editor;
-  const isDraft = draft.kind === "draft";
+  const isFile = file.kind === "proposal-file";
   return (
     <Pane
       actions={
@@ -119,7 +121,7 @@ export function DraftText({
         )}
         <div ref={boxRef}>
           {editor.drawn ? (
-            <Drawn draft={draft} editor={editor} onEdit={onEdit} />
+            <Drawn editor={editor} file={file} onEdit={onEdit} />
           ) : (
             <VStack gap={2}>
               <DropHint hint={images.hint}>
@@ -148,11 +150,11 @@ export function DraftText({
           <HStack align="center" gap={2} wrap="wrap">
             {field.dirty && <Button label="Save" onClick={editor.saveText} />}
             <SaveStatus dirty={field.dirty} state={editor.state} />
-            {/* A draft's Ctrl+Enter starts it, so it does not save. */}
-            {field.dirty && !isDraft && <SaveKeys />}
+            {/* A proposal file's Ctrl+Enter starts it, so it does not save. */}
+            {field.dirty && !isFile && <SaveKeys />}
           </HStack>
-          {!isDraft && (
-            <CommitActions folder={draft.folder} label="Commit" onCommit={editor.actions.commit} />
+          {!isFile && (
+            <CommitActions folder={file.folder} label="Commit" onCommit={editor.actions.commit} />
           )}
         </HStack>
       </VStack>

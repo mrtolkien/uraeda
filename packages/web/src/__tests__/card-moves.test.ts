@@ -1,13 +1,13 @@
 // Review focus 4: a move to a place on screen lands where a drag over the same screen position
 // would, never between the running entries that show in Ongoing.
 import { describe, expect, test } from "vite-plus/test";
-import type { PriorityEntry } from "uraeda-server/fate";
+import type { Proposal } from "uraeda-server/fate";
 import { fileIndex } from "../lists/cardMoves.ts";
 
 /** Entries of a section in file order: a letter each, running or not. */
-function entries(...keys: ReadonlyArray<string>): ReadonlyArray<PriorityEntry> {
+function entries(...keys: ReadonlyArray<string>): ReadonlyArray<Proposal> {
   return keys.map(
-    (key) => ({ key, running: key.endsWith("*") ? { step: "plan" } : undefined }) as PriorityEntry,
+    (key) => ({ key, running: key.endsWith("*") ? { step: "plan" } : undefined }) as Proposal,
   );
 }
 

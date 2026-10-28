@@ -3,11 +3,11 @@ import type { AddCommit, Inbox, Priorities, RemovedImage } from "uraeda-binding"
 import type { Context } from "./context.ts";
 import { sentInbox, sentPriorities, sources } from "./sources.ts";
 import {
-  draftDataView,
-  type DraftRecord,
   inboxDataView,
   PRIORITIES_ID,
   prioritiesDataView,
+  proposalFileDataView,
+  type ProposalFileRecord,
 } from "./views.ts";
 
 /** The priorities, with `added` when the answer is an add's: "Add and commit" sets it. */
@@ -24,8 +24,12 @@ export const priorities = (
     select,
   );
 
-export const draft = (ctx: Context, record: Omit<DraftRecord, "id">, select: Array<string>) =>
-  sources.masked(draftDataView, ctx, { id: record.path, ...record }, select);
+/** A proposal file, or a started proposal, by its path. */
+export const proposalFile = (
+  ctx: Context,
+  record: Omit<ProposalFileRecord, "id">,
+  select: Array<string>,
+) => sources.masked(proposalFileDataView, ctx, { id: record.path, ...record }, select);
 
 /**
  * The inbox, with what the answer's mutation adds to it: `added` for an add, as for the

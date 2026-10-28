@@ -270,13 +270,13 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
       })),
     ),
     ...(priorities?.sections ?? []).flatMap((section) =>
-      section.entries.map((entry): PickerItem => ({
+      section.proposals.map((proposal): PickerItem => ({
         icon: KIND_ICONS.priorities,
-        id: `/priorities/${encodeURIComponent(entry.key)}`,
+        id: `/priorities/${encodeURIComponent(proposal.key)}`,
         kind: "priorities",
-        path: `/priorities/${encodeURIComponent(entry.key)}`,
-        preview: entry.lines.join("\n"),
-        title: entry.text,
+        path: `/priorities/${encodeURIComponent(proposal.key)}`,
+        preview: proposal.lines.join("\n"),
+        title: proposal.text,
       })),
     ),
   ];

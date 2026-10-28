@@ -1,6 +1,7 @@
 // A note's images in the inbox: pasted in its field as it is edited in place, dropped on the page
 // for the selected note, shown under its row while it is selected, and removed there with Undo.
-// The core writes them, into the draft the note links or becomes (see `useAttachToNote`).
+// The core writes them, into the note's file, written for it when it has none (see
+// `useAttachToNote`).
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -52,7 +53,7 @@ const styles = stylex.create({
 
 /**
  * A note's images, each a preview that opens full size, with its Remove under it, floating under
- * the note's row. `onRemove` takes one out of the note's draft.
+ * the note's row. `onRemove` takes one out of the note's file.
  */
 export function NoteImages({
   note,
@@ -143,12 +144,12 @@ export function useInboxImages({
 
   /**
    * Adds `files` to `note`: after the writes asked before, as the text its field just saved, when
-   * `isAfterWrites`, or when its line will link the draft it becomes; at once into the draft it
-   * links, which leaves `INBOX.md` as it is.
+   * `isAfterWrites`, or when its line will link the note file written for it; at once into the
+   * note file it links, which leaves `INBOX.md` as it is.
    */
   const toNote = (note: InboxNote, files: Array<File>, isAfterWrites: boolean) => {
     const call = (now: Pick<Inbox, "hash">) => attach({ hash: now.hash, id: note.id }, files);
-    if (isAfterWrites || note.draft === undefined) {
+    if (isAfterWrites || note.file === undefined) {
       void outline.write(call);
     } else {
       void call(inbox).then((failed) => failed !== undefined && onRefused(failed));
@@ -187,9 +188,7 @@ export function useInboxImages({
       onRefused(removed);
       return;
     }
-    toast(`Removed ${imageName(path)} from the note's draft`, () =>
-      restoreNoteImage(fate, removed),
-    );
+    toast(`Removed ${imageName(path)} from the note's file`, () => restoreNoteImage(fate, removed));
   };
 
   return {

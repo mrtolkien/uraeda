@@ -8,7 +8,7 @@ export type Route =
   | { folder: string; page: "feature" }
   | { folder: string; name: string; page: "file" }
   | { page: "priorities" }
-  | { key: string; page: "task" }
+  | { key: string; page: "proposal" }
   | { page: "inbox" }
   | { key: string; page: "note" }
   | { page: "triage" }
@@ -118,7 +118,7 @@ export function parseRoute(pathname: string, search = ""): Route {
     return { page: "priorities" };
   }
   if (parts[0] === "priorities" && parts.length === 2) {
-    return { key: parts[1], page: "task" };
+    return { key: parts[1], page: "proposal" };
   }
   if (parts[0] === "inbox" && parts.length === 1) {
     return { page: "inbox" };

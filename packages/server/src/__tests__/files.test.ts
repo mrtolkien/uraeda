@@ -64,15 +64,15 @@ test("the mockup route serves only files in a mockups folder", async () => {
 test("serves a file's raw text, and nothing outside the repository", async () => {
   const { app, name } = await testApp();
 
-  const draft = await app.request(
-    `http://127.0.0.1:${port}/r/${name}/raw/specs/drafts/git-listener.md`,
+  const proposal = await app.request(
+    `http://127.0.0.1:${port}/r/${name}/raw/specs/proposals/git-listener.md`,
   );
   const outside = await app.request(
     `http://127.0.0.1:${port}/r/${name}/raw/..%2F..%2Fetc%2Fpasswd`,
   );
 
-  expect(await draft.text()).toContain("# Git listener process");
-  expect(draft.headers.get("content-type")).toBe("text/plain; charset=utf-8");
+  expect(await proposal.text()).toContain("# Git listener process");
+  expect(proposal.headers.get("content-type")).toBe("text/plain; charset=utf-8");
   expect(outside.status).toBe(404);
 });
 
@@ -145,7 +145,7 @@ test("does not serve a markdown file or a path outside specs as an image", async
   const { app, name } = await testApp(repo);
 
   for (const path of [
-    "specs/drafts/git-listener.md",
+    "specs/proposals/git-listener.md",
     "specs/2026-10-11-web-ui/images/page.png",
     "..%2F..%2Fetc%2Fpasswd",
     "specs/..%2F..%2Fetc%2Fpasswd",

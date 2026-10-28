@@ -1,7 +1,8 @@
-// `p` on a note of the inbox opens its promote picker: the priorities' levels, every line, and the
-// drafts. A note that links a draft never nests, its draft found by its link: its picker offers no
-// line to go under, only the levels, where it becomes a line, and the drafts.
-import { writeFileSync } from "node:fs";
+// `p` on a note of the inbox opens its promote picker: the priorities' levels, every proposal, and
+// the proposal files. A note with a note file never nests, its file found by its link: its picker
+// offers no proposal to go under, only the levels, where it becomes a proposal, its file moved to
+// the proposals, and the proposal files.
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
@@ -11,7 +12,7 @@ import { atWidth, fixtureRepo, read, renderPage } from "./helpers.tsx";
 const INBOX = `# Inbox
 
 - Loose note
-- [Dark mode](drafts/dark-mode.md)
+- [Dark mode](notes/dark-mode.md)
 `;
 
 beforeEach(() => {
@@ -23,7 +24,8 @@ beforeEach(() => {
 async function promoting(note: string) {
   const repo = fixtureRepo();
   writeFileSync(join(repo, "specs/INBOX.md"), INBOX);
-  writeFileSync(join(repo, "specs/drafts/dark-mode.md"), "# Dark mode\n\n## What\n\nThe dark.\n");
+  mkdirSync(join(repo, "specs/notes"), { recursive: true });
+  writeFileSync(join(repo, "specs/notes/dark-mode.md"), "# Dark mode\n\n## What\n\nThe dark.\n");
   await renderPage("/inbox", repo);
   const link = (await screen.findAllByRole("button", { name: new RegExp(note) })).find(
     (one) => one.closest("[data-row-link]") !== null,
@@ -39,7 +41,7 @@ async function promoting(note: string) {
 /** The titles of the picker's items. */
 const offered = () => screen.getAllByRole("option").map((option) => option.textContent ?? "");
 
-test("p on a note offers the levels, a line to go under, and a line's draft", async () => {
+test("p on a note offers the levels, a proposal to go under, and a proposal's file", async () => {
   await promoting("Loose note");
 
   const titles = offered();
@@ -51,7 +53,7 @@ test("p on a note offers the levels, a line to go under, and a line's draft", as
   }
 });
 
-test("p on a note that links a draft offers no line to go under, and a level keeps its link", async () => {
+test("p on a note with a note file offers no proposal to go under, and a level moves its file", async () => {
   const repo = await promoting("Dark mode");
 
   const titles = offered();
@@ -74,7 +76,9 @@ test("p on a note that links a draft offers no line to go under, and a level kee
   });
   await waitFor(() =>
     expect(read(repo)).toContain(
-      "- Benchmarks: after the runner is ready\n- [Dark mode](drafts/dark-mode.md)\n",
+      "- Benchmarks: after the runner is ready\n- [Dark mode](proposals/dark-mode.md)\n",
     ),
   );
+  expect(existsSync(join(repo, "specs/proposals/dark-mode.md"))).toBe(true);
+  expect(existsSync(join(repo, "specs/notes/dark-mode.md"))).toBe(false);
 });

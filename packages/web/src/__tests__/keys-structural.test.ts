@@ -66,10 +66,6 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 3,
     reason: "a text field's own keys: Ctrl or Cmd+Enter sends, Escape leaves the field",
   },
-  "DraftText.tsx": {
-    hits: 1,
-    reason: "a text field's own keys: Escape leaves the draft's text for the page's keys",
-  },
   "EditableLine.tsx": {
     hits: 1,
     reason: "a text field's own keys: Enter saves the line, Escape leaves it",
@@ -110,6 +106,10 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     reason: "a text field's own keys: Enter saves the row, Escape cancels it, Tab indents it",
   },
   "NewPage.tsx": { hits: 1, reason: "a text field's own keys: Escape leaves the search" },
+  "ProposalText.tsx": {
+    hits: 1,
+    reason: "a text field's own keys: Escape leaves the file's text for the page's keys",
+  },
   "QuickAdd.tsx": { hits: 1, reason: "a text field's own keys: Enter adds the note" },
   "RepositoryMenu.tsx": { hits: 1, reason: "the menu's filter field's own keys" },
   "routes.tsx": { hits: 1, reason: "the navigation event's own name, `CHANGE`: no key" },

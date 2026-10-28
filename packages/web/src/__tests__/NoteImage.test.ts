@@ -4,10 +4,10 @@ import type { InboxNote } from "uraeda-binding";
 import { expect, test } from "vite-plus/test";
 import { addedNote, lostAnswerNote, type Notes } from "../NoteImage.tsx";
 
-/** A note of the inbox, by its lines and, for a note added as a draft, the draft and its title. */
-function note(lines: Array<string>, draft?: { path: string; title: string }): InboxNote {
+/** A note of the inbox, by its lines and, for a note added as a file, its note file and title. */
+function note(lines: Array<string>, file?: { path: string; title: string }): InboxNote {
   return {
-    ...(draft ? { draft: draft.path, draftTitle: draft.title } : {}),
+    ...(file ? { file: file.path, fileTitle: file.title } : {}),
     lines,
   } as unknown as InboxNote;
 }
@@ -16,8 +16,8 @@ function note(lines: Array<string>, draft?: { path: string; title: string }): In
 const inbox = (...categories: Array<Array<InboxNote>>): Notes =>
   categories.map((notes) => ({ notes }));
 
-const FLAT = note(["- [Headings are flat](specs/drafts/headings-are-flat/draft.md)"], {
-  path: "specs/drafts/headings-are-flat/draft.md",
+const FLAT = note(["- [Headings are flat](specs/notes/headings-are-flat/note.md)"], {
+  path: "specs/notes/headings-are-flat/note.md",
   title: "Headings are flat",
 });
 const OLD = note(["- An older note"]);
@@ -65,16 +65,16 @@ test.each([
   { found: false, text: "Headings are flat", title: "Headings are", what: "fewer words" },
   { found: false, text: "Headings are flat", title: "headings are flat", what: "other case" },
 ])("a lost answer's note is found with $what: $found", ({ found, text, title }) => {
-  const added = note(["- added"], { path: "specs/drafts/headings-are-flat-2/draft.md", title });
+  const added = note(["- added"], { path: "specs/notes/headings-are-flat-2/note.md", title });
 
   const result = lostAnswerNote(inbox([OLD]), inbox([OLD, added]), text);
 
   expect(result).toEqual(
-    found ? { draft: "specs/drafts/headings-are-flat-2/draft.md", note: added } : undefined,
+    found ? { file: "specs/notes/headings-are-flat-2/note.md", note: added } : undefined,
   );
 });
 
-test("a note added in the inbox without a draft is not the lost answer's", () => {
+test("a note added in the inbox without a file is not the lost answer's", () => {
   expect(
     lostAnswerNote(inbox([OLD]), inbox([OLD, note(["- Headings are flat"])]), "Headings are flat"),
   ).toBeUndefined();

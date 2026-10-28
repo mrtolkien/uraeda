@@ -1,31 +1,31 @@
-// What the New page starts from an inbox note, a priority line, or a feature's title: a change,
-// whose session opens, or a feature's draft, which opens in the editor.
+// What the New page starts from an inbox note, a proposal line, or a feature's title: a change,
+// whose session opens, or a feature's proposal file, which opens in the editor.
 import { useState } from "react";
 import { useFateClient } from "react-fate";
-import { readDraft } from "./attach/useEditorImages.ts";
+import { readProposalFile } from "./attach/useEditorImages.ts";
 import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
-import { splitDraft } from "./pane/draftText.ts";
+import { splitProposal } from "./pane/proposalText.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
-import { DraftView, FeatureView, InboxView, PrioritiesView } from "./views.ts";
+import { ProposalFileView, FeatureView, InboxView, PrioritiesView } from "./views.ts";
 import { runWrite } from "./writes/store.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
 
-/** A line of the priorities, as the view reads it: its id, and the draft it links. */
-export type StartLine = { draft?: { path: string } | null; id: string };
+/** A proposal line of the priorities, as the view reads it: its id, and the file it links. */
+export type StartLine = { file?: { path: string } | null; id: string };
 
 /** A note of the inbox, by its id. */
 export type StartNote = { id: string };
 
-/** A call's result: a draft's path or a feature's folder, or the refusal to show. */
+/** A call's result: a proposal file's path or a feature's folder, or the refusal to show. */
 type Made<T = string> = { error: string } | { value: T };
 
 /** A started change: its folder, and whether its first run was sent, its agent at work. */
 type Started = { folder: string; sent: boolean };
 
-/** The section a note or a title is drafted into: the work starts now. */
+/** The section a note or a title is written into: the work starts now. */
 const NOW = "now";
 
 /** A mutation's result as `Made`, from the field of its result that names what it made. */
@@ -61,69 +61,77 @@ async function noteChange(fate: Fate, note: StartNote): Promise<Made<Started>> {
   return started(result);
 }
 
-/** Turns the note into a new draft in Now: the note leaves `INBOX.md`. */
-async function noteDraft(fate: Fate, note: StartNote): Promise<Made> {
+/**
+ * Turns the note into a new proposal file in Now, or moves its note file there: the note leaves
+ * `INBOX.md`.
+ */
+async function noteFile(fate: Fate, note: StartNote): Promise<Made> {
   const [inbox, prioritiesHash] = await Promise.all([readInbox(fate), readPrioritiesHash(fate)]);
-  const result = await fate.mutations.inbox.toNewDraft({
+  const result = await fate.mutations.inbox.toProposalFile({
     input: { hash: inbox.hash, note: note.id, prioritiesHash, section: NOW },
-    view: DraftView,
+    view: ProposalFileView,
   });
   rereadChanges(fate);
   return made(result, "path");
 }
 
-/** The line's draft: the one it links, or a new one written for it. */
-async function lineDraft(fate: Fate, entry: StartLine): Promise<Made> {
-  if (entry.draft) {
-    return { value: entry.draft.path };
+/** The proposal's file: the one it links, or a new one it is expanded into. */
+async function lineFile(fate: Fate, entry: StartLine): Promise<Made> {
+  if (entry.file) {
+    return { value: entry.file.path };
   }
   const { hash } = await readPriorities(fate);
   return made(
-    await fate.mutations.draft.create({ input: { hash, line: entry.id }, view: DraftView }),
+    await fate.mutations.proposals.expand({
+      input: { hash, proposal: entry.id },
+      view: ProposalFileView,
+    }),
     "path",
   );
 }
 
 /**
- * Writes the title as the first of Now's entries that has not started, then drafts it: the
- * started ones stay above it. A draft refused takes the line back out, so Now is as it was.
+ * Writes the title as the first of Now's proposals that has not started, then expands it into a
+ * file: the started ones stay above it. An expand refused takes the proposal back out, so Now is as
+ * it was.
  */
-async function titleDraft(fate: Fate, title: string): Promise<Made> {
+async function titleFile(fate: Fate, title: string): Promise<Made> {
   const { hash, sections } = await readPriorities(fate);
-  const now = sections.find((section) => section.section === NOW)?.entries ?? [];
-  const first = now.findIndex((entry) => !entry.running);
+  const now = sections.find((section) => section.section === NOW)?.proposals ?? [];
+  const first = now.findIndex((proposal) => !proposal.running);
   const index = first === -1 ? now.length : first;
-  const inserted = await fate.mutations.priorities.insert({
+  const inserted = await fate.mutations.proposals.insert({
     input: { hash, index, lines: [`- ${title}`], section: NOW },
     view: PrioritiesView,
   });
   if (inserted.error || !inserted.result) {
     return made(inserted, "path");
   }
-  const line = `${NOW}-${index + 1}`;
-  const drafted = made(
-    await fate.mutations.draft.create({
-      input: { hash: inserted.result.hash, line },
-      view: DraftView,
+  const proposal = `${NOW}-${index + 1}`;
+  const expanded = made(
+    await fate.mutations.proposals.expand({
+      input: { hash: inserted.result.hash, proposal },
+      view: ProposalFileView,
     }),
     "path",
   );
-  if ("error" in drafted) {
-    // The refusal shown is the draft's: a line left behind is in the commit bar's changes.
-    await fate.mutations.priorities.remove({
-      input: { entry: line, hash: inserted.result.hash },
+  if ("error" in expanded) {
+    // The refusal shown is the expand's: a proposal left behind is in the commit bar's changes.
+    await fate.mutations.proposals.remove({
+      input: { hash: inserted.result.hash, proposal },
       view: PrioritiesView,
     });
   }
-  return drafted;
+  return expanded;
 }
 
-/** An entry the New page's composer was filled from: its kind, id, and draft, if it has one. */
-export type Taken = { draft?: string | undefined; id: string; kind: "line" | "note" };
+/** An entry the New page's composer was filled from: its kind, id, and own file, if it has one. */
+export type Taken = { id: string; kind: "line" | "note"; linked?: string | undefined };
 
 /**
- * Takes the entries out of their file, as a start from them does: a note leaves `INBOX.md`, a line
- * `PRIORITIES.md`. A refused removal leaves the entry where it is: the start already happened.
+ * Takes the entries out of their file, as a start from them does: a note leaves `INBOX.md`, a
+ * proposal `PRIORITIES.md`. A refused removal leaves the entry where it is: the start already
+ * happened.
  */
 export async function takeOut(fate: Fate, taken: ReadonlyArray<Taken>) {
   for (const entry of taken) {
@@ -133,8 +141,8 @@ export async function takeOut(fate: Fate, taken: ReadonlyArray<Taken>) {
         await fate.mutations.inbox.remove({ input: { hash, note: entry.id }, view: InboxView });
       } else {
         const { hash } = await readPriorities(fate);
-        await fate.mutations.priorities.remove({
-          input: { entry: entry.id, hash },
+        await fate.mutations.proposals.remove({
+          input: { hash, proposal: entry.id },
           view: PrioritiesView,
         });
       }
@@ -146,32 +154,32 @@ export async function takeOut(fate: Fate, taken: ReadonlyArray<Taken>) {
 }
 
 /**
- * Writes `body` into the draft at `path`, under what it holds already: the heading its line gave it.
- * Without `body`, nothing is written. A refusal is the message to show.
+ * Writes `body` into the proposal file at `path`, under what it holds already: the heading its line
+ * gave it. Without `body`, nothing is written. A refusal is the message to show.
  */
 async function writeBody(fate: Fate, path: string, body: string): Promise<string | undefined> {
   if (body.trim() === "") {
     return undefined;
   }
-  const draft = await readDraft(fate, path);
-  if (!draft) {
-    return "The draft was not found.";
+  const file = await readProposalFile(fate, path);
+  if (!file) {
+    return "The proposal file was not found.";
   }
-  const { body: current, head } = splitDraft(draft);
+  const { body: current, head } = splitProposal(file);
   const kept = current.trim() === "" ? "" : `${current.trimEnd()}\n\n`;
   const result = await fate.mutations.text.save({
-    input: { hash: draft.hash, path, text: `${head}${kept}${body.trim()}\n` },
-    view: DraftView,
+    input: { hash: file.hash, path, text: `${head}${kept}${body.trim()}\n` },
+    view: ProposalFileView,
   });
   return result.error ? refusal(result.error).message : undefined;
 }
 
 /**
- * A proposal written in the composer: the draft its first source makes, or one titled `title`
- * written as the first of Now's lines to start, then the text under its heading, unless the
- * composer holds what the source's own was. A refused text leaves the draft, with its reason.
+ * A proposal written in the composer: the proposal file its first source makes, or one titled
+ * `title` written as the first of Now's proposals to start, then the text under its heading, unless
+ * the composer holds what the source's own was. A refused text leaves the file, with its reason.
  */
-async function proposalDraft(
+async function proposalWritten(
   fate: Fate,
   {
     body,
@@ -180,38 +188,41 @@ async function proposalDraft(
   }: { body: string; sources: ReadonlyArray<Taken & { inserted: string }>; title: string },
 ): Promise<Made> {
   const [first, ...rest] = sources;
-  const drafted = first
+  const written = first
     ? first.kind === "note"
-      ? await noteDraft(fate, { id: first.id })
-      : await lineDraft(fate, { draft: first.draft ? { path: first.draft } : null, id: first.id })
-    : await titleDraft(fate, title);
-  if ("error" in drafted) {
-    return drafted;
+      ? await noteFile(fate, { id: first.id })
+      : await lineFile(fate, { file: first.linked ? { path: first.linked } : null, id: first.id })
+    : await titleFile(fate, title);
+  if ("error" in written) {
+    return written;
   }
   // Its own text stays when the composer holds only what it was filled with.
   const kept = first !== undefined && body.trim() === first.inserted.trim();
-  const refused = kept ? undefined : await writeBody(fate, drafted.value, body);
+  const refused = kept ? undefined : await writeBody(fate, written.value, body);
   await takeOut(fate, rest);
-  return refused === undefined ? drafted : { error: refused };
+  return refused === undefined ? written : { error: refused };
 }
 
 /**
- * Starts the draft as a change: its branch and worktree are written, its line moves to Now, and its
- * first run is sent.
+ * Starts the proposal file as a change: its branch and worktree are written, its proposal moves to
+ * Now, and its first run is sent.
  */
-async function startChange(fate: Fate, draft: Made): Promise<Made<Started>> {
-  if ("error" in draft) {
-    return draft;
+async function startChange(fate: Fate, file: Made): Promise<Made<Started>> {
+  if ("error" in file) {
+    return file;
   }
   return started(
-    await fate.mutations.change.startDraft({ input: { draft: draft.value }, view: FeatureView }),
+    await fate.mutations.change.startProposal({
+      input: { proposal: file.value },
+      view: FeatureView,
+    }),
   );
 }
 
 /**
- * The New page's starts from a note, a line, or a title. A change opens its session, where its
- * agent works, or with the workflow's message to send when no run was sent; a feature's draft
- * opens in the editor. A refusal is `error`.
+ * The New page's starts from a note, a proposal line, or a title. A change opens its session, where
+ * its agent works, or with the workflow's message to send when no run was sent; a feature's
+ * proposal file opens in the editor. A refusal is `error`.
  */
 export function useStartFrom() {
   const fate = useFateClient();
@@ -243,19 +254,19 @@ export function useStartFrom() {
   return {
     change: {
       fromLine: (entry: StartLine) =>
-        change(async () => startChange(fate, await lineDraft(fate, entry))),
+        change(async () => startChange(fate, await lineFile(fate, entry))),
       fromNote: (note: StartNote) => change(() => noteChange(fate, note)),
     },
     error,
     feature: {
-      fromLine: (entry: StartLine) => run(() => lineDraft(fate, entry), edit),
-      fromNote: (note: StartNote) => run(() => noteDraft(fate, note), edit),
-      fromText: (input: Parameters<typeof proposalDraft>[1]) =>
+      fromLine: (entry: StartLine) => run(() => lineFile(fate, entry), edit),
+      fromNote: (note: StartNote) => run(() => noteFile(fate, note), edit),
+      fromText: (input: Parameters<typeof proposalWritten>[1]) =>
         run(
-          () => runWrite({ label: "Writing the proposal…" }, () => proposalDraft(fate, input)),
+          () => runWrite({ label: "Writing the proposal…" }, () => proposalWritten(fate, input)),
           edit,
         ),
-      fromTitle: (title: string) => run(() => titleDraft(fate, title), edit),
+      fromTitle: (title: string) => run(() => titleFile(fate, title), edit),
     },
   };
 }

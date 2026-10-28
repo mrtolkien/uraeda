@@ -28,13 +28,15 @@ import { snapshotSkill } from "./skill.ts";
 import { stepOf } from "./session.ts";
 import type { Suite } from "./suite.ts";
 
-/** Starts the feature from the case's proposal, word for word: a draft, then `ura start`. */
+/**
+ * Starts the feature from the case's proposal, word for word: a proposal file, then `ura start`.
+ */
 export async function startFeature(repo: string, id: string, proposal: string): Promise<string> {
-  const draft = join(repo, "specs/drafts", `${id}.md`);
-  mkdirSync(join(repo, "specs/drafts"), { recursive: true });
-  writeFileSync(draft, proposal);
+  const file = join(repo, "specs/proposals", `${id}.md`);
+  mkdirSync(join(repo, "specs/proposals"), { recursive: true });
+  writeFileSync(file, proposal);
   await git(repo, ["add", "-A"]);
-  await git(repo, ["commit", "-q", "-m", "draft"]);
+  await git(repo, ["commit", "-q", "-m", "proposal"]);
   await run("ura", ["start", id, "--slug", id, "--switch"], repo);
   return (await git(repo, ["branch", "--show-current"])).trim();
 }

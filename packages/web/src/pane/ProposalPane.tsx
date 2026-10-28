@@ -7,7 +7,7 @@ import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/Segme
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import type { Span } from "uraeda-binding";
-import { usePriority } from "../data.ts";
+import { useProposal } from "../data.ts";
 import { stepTitle } from "../labels.ts";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { pathLink } from "../links.tsx";
@@ -15,29 +15,32 @@ import { TITLES } from "../QuickAdd.tsx";
 import { navigate, redirect, useRepoPath, useRepository } from "../routes.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { EntryPane, EntryText, RunningPart, Steps } from "./EntryPane.tsx";
-import { type Found, usePriorityActions } from "./usePriorityActions.ts";
+import { type Found, useProposalActions } from "./useProposalActions.ts";
 import { Empty } from "../layout/Empty.tsx";
 
-/** The file a line links, from the repository's top level, if any. */
+/** The file a proposal links, from the repository's top level, if any. */
 function linkOf(spans: ReadonlyArray<Span>) {
   return spans.find((span) => span.link?.path)?.link?.path;
 }
 
 /**
- * What the entry is past its text, as the core says: running, a linked file, or nothing yet. A
- * line with a draft opens that draft's page instead: its route never draws this pane. Start opens
- * the New page, its composer holding the line: nothing starts before the human sends it.
+ * What the proposal is past its text, as the core says: running, a linked file, or nothing yet. A
+ * proposal with a file opens that file's page instead: its route never draws this pane. Start opens
+ * the New page, its composer holding the proposal: nothing starts before the human sends it.
  */
-function Kind({ draft, found }: { draft: () => Promise<void>; found: Found }) {
+function Kind({ expand, found }: { expand: () => Promise<void>; found: Found }) {
   const here = useRepoPath();
   const repo = useRepository();
-  const { entry } = found;
-  if (entry.running) {
+  const { proposal } = found;
+  if (proposal.running) {
     return (
-      <RunningPart href={here(`/f/${entry.running.folder}`)} step={stepTitle(entry.running.step)} />
+      <RunningPart
+        href={here(`/f/${proposal.running.folder}`)}
+        step={stepTitle(proposal.running.step)}
+      />
     );
   }
-  const link = linkOf(entry.spans);
+  const link = linkOf(proposal.spans);
   if (link) {
     return (
       <Paragraph>
@@ -49,13 +52,13 @@ function Kind({ draft, found }: { draft: () => Promise<void>; found: Found }) {
   }
   return (
     <VStack gap={2}>
-      <Empty>No draft yet.</Empty>
+      <Empty>No file yet.</Empty>
       {/* A long label takes its own line rather than being cut. */}
       <HStack gap={2} wrap="wrap">
-        <Button clickAction={draft} label="Draft" variant="primary" />
+        <Button clickAction={expand} label="Expand" variant="primary" />
         <Button
           label="Start"
-          onClick={() => navigate(here("/new?kind=feature"), { insert: `line:${entry.id}` })}
+          onClick={() => navigate(here("/new?kind=feature"), { insert: `line:${proposal.id}` })}
           variant="secondary"
         />
       </HStack>
@@ -64,10 +67,10 @@ function Kind({ draft, found }: { draft: () => Promise<void>; found: Found }) {
 }
 
 /**
- * A found line's pane: its text, what it is, its section unless it runs, Delete, and its
+ * A found proposal's pane: its text, what it is, its section unless it runs, Delete, and its
  * neighbours.
  */
-function PriorityBody({
+function ProposalBody({
   found,
   hash,
   onRenaming,
@@ -77,35 +80,42 @@ function PriorityBody({
   onRenaming: (id: string | undefined) => void;
 }) {
   const here = useRepoPath();
-  const { entry, index, section } = found;
-  const actions = usePriorityActions(found, hash, onRenaming);
+  const { index, proposal, section } = found;
+  const actions = useProposalActions(found, hash, onRenaming);
   const line = useLineSave({
-    field: `priorities#${entry.key}`,
+    field: `priorities#${proposal.key}`,
     onSave: actions.rename,
     stayOpen: false,
-    value: entry.text,
+    value: proposal.text,
   });
-  const entries = section.entries;
+  const proposals = section.proposals;
   return (
     <EntryPane
       isEditing={line.open}
-      location={`${section.title} · ${index + 1} of ${entries.length}`}
+      location={`${section.title} · ${index + 1} of ${proposals.length}`}
       onDelete={actions.remove}
       onEdit={line.openLine}
       steps={
         <Steps
-          count={entries.length}
+          count={proposals.length}
           index={index}
-          // The overlay shows another line in its own history entry.
-          onStep={(to) => redirect(here(`/priorities/${entries[to].key}`))}
+          // The overlay shows another proposal in its own history entry.
+          onStep={(to) => redirect(here(`/priorities/${proposals[to].key}`))}
         />
       }
-      text={<EntryText label="Line" line={line} nested={entry.nestedSpans} spans={entry.spans} />}
+      text={
+        <EntryText
+          label="Proposal"
+          line={line}
+          nested={proposal.nestedSpans}
+          spans={proposal.spans}
+        />
+      }
     >
       <Divider />
-      <Kind draft={actions.draft} found={found} />
-      {/* A running entry's line does not move its branch: it has no section to pick. */}
-      {!entry.running && (
+      <Kind expand={actions.expand} found={found} />
+      {/* A running proposal does not move its branch: it has no section to pick. */}
+      {!proposal.running && (
         <>
           <Divider />
           <SegmentedControl
@@ -127,15 +137,15 @@ function PriorityBody({
 }
 
 /**
- * A line of `PRIORITIES.md` in its overlay, by its key: read-only on arrival, Edit in its bar. A
- * line that is not there draws nothing: the route says it is gone.
+ * A proposal of `PRIORITIES.md` in its overlay, by its key: read-only on arrival, Edit in its bar.
+ * A proposal that is not there draws nothing: the route says it is gone.
  */
-export function PriorityPane({ entryKey }: { entryKey: string }) {
-  // The line's id while it is renamed: its key changes before its address does.
+export function ProposalPane({ proposalKey }: { proposalKey: string }) {
+  // The proposal's id while it is renamed: its key changes before its address does.
   const [renaming, setRenaming] = useState<string>();
-  const { found, priorities } = usePriority(entryKey, renaming);
+  const { found, priorities } = useProposal(proposalKey, renaming);
   if (!priorities || !found) {
     return null;
   }
-  return <PriorityBody found={found} hash={priorities.hash} onRenaming={setRenaming} />;
+  return <ProposalBody found={found} hash={priorities.hash} onRenaming={setRenaming} />;
 }

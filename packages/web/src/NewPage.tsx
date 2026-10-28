@@ -1,10 +1,10 @@
 // The New page, behind the sidebar's "＋ New": three cards, in the URL, pick a session, a change, or
 // a feature, each drawn as what it starts. Under them, the kind's composer, and under it the same
-// list for all three: the inbox's notes and the priorities' lines, which a card inserts into the
-// composer, with a link to its file, or, with a draft, opens. A session starts with its first
-// message; a change with Ctrl+Enter, which asks for its slug; a feature with Ctrl+Enter too, which
-// writes the proposal as a draft and opens it. The entries a start was filled from leave their
-// files. `/` searches the entries.
+// list for all three: the inbox's notes and the priorities' proposals, which a card inserts into
+// the composer, with a link to its file, or, with a file of its own, opens. A session starts with
+// its first message; a change with Ctrl+Enter, which asks for its slug; a feature with Ctrl+Enter
+// too, which writes the proposal as a proposal file and opens it. The entries a start was filled
+// from leave their files. `/` searches the entries.
 import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -65,8 +65,9 @@ type Asking = { resolve: (started: boolean) => void; text: string };
 
 /**
  * Feature: the same composer as the others, "Write Proposal", for a text that is freeform: no shape
- * is put in it, and it takes no image. Ctrl+Enter writes it as a draft and opens the draft's page; a
- * proposal not filled from an entry asks for its title first, as a change asks for its slug.
+ * is put in it, and it takes no image. Ctrl+Enter writes it as a proposal file and opens the file's
+ * page; a proposal not filled from an entry asks for its title first, as a change asks for its
+ * slug.
  */
 function FeatureComposer({
   inputRef,
@@ -245,7 +246,7 @@ function useSources({
       feature.change(withAdded(feature.text, added));
     }
     const source: Source = {
-      ...(entry.draft === undefined ? {} : { draft: entry.draft }),
+      ...(entry.linked === undefined ? {} : { linked: entry.linked }),
       id: entry.id,
       inserted: added,
       kind: entry.kind,
@@ -289,14 +290,14 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
   const change = useTextField("new-change", "", { drawn: false });
   const feature = useTextField("new-feature-proposal", "", { drawn: false });
   const { insert, sources } = useSources({ change, feature, input, kind, session });
-  // A priority's Start opens the page with its line to insert: once, as soon as the priorities and
+  // A proposal's Start opens the page with its line to insert: once, as soon as the priorities and
   // the composer are there, and not again on a reload.
   const priorities = usePriorities();
   useEffect(() => {
     const wanted = currentEntry().insert?.replace(/^line:/, "");
     const line = priorities?.sections
-      .flatMap((section) => section.entries)
-      .find((entry) => entry.id === wanted);
+      .flatMap((section) => section.proposals)
+      .find((proposal) => proposal.id === wanted);
     if (line === undefined || kind === undefined) {
       return;
     }

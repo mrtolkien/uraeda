@@ -156,7 +156,7 @@ test("US2 1: moves a note to a section of the priorities", async () => {
 
   const result = await mutate(
     app,
-    "inbox.toPriorities",
+    "inbox.toProposal",
     {
       hash: inbox.hash,
       note: noteOf(inbox, "Draft to proposal on mobile went 404").id,
@@ -169,11 +169,11 @@ test("US2 1: moves a note to a section of the priorities", async () => {
   expect(result.data.count).toBe(9);
   expect(result.data.changes).toBe(1);
   expect(read(repo, "specs/PRIORITIES.md")).toContain(
-    "- [Git listener process](drafts/git-listener.md)\n- Draft to proposal on mobile went 404\n",
+    "- [Git listener process](proposals/git-listener.md)\n- Draft to proposal on mobile went 404\n",
   );
 });
 
-test("US2 2: makes a note a new draft, linked from a section", async () => {
+test("US2 2: makes a note a new proposal file, linked from a section", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
   const inbox = await readInbox(app);
@@ -181,7 +181,7 @@ test("US2 2: makes a note a new draft, linked from a section", async () => {
 
   const result = await mutate(
     app,
-    "inbox.toNewDraft",
+    "inbox.toProposalFile",
     {
       hash: inbox.hash,
       note: noteOf(inbox, "We need a home icon").id,
@@ -192,25 +192,25 @@ test("US2 2: makes a note a new draft, linked from a section", async () => {
   );
 
   expect(result.data).toEqual({
-    id: "specs/drafts/we-need-a-home-icon.md",
-    path: "specs/drafts/we-need-a-home-icon.md",
+    id: "specs/proposals/we-need-a-home-icon.md",
+    path: "specs/proposals/we-need-a-home-icon.md",
     title: "We need a home icon",
   });
   expect(read(repo, "specs/PRIORITIES.md")).toContain(
-    "- [We need a home icon](drafts/we-need-a-home-icon.md)\n",
+    "- [We need a home icon](proposals/we-need-a-home-icon.md)\n",
   );
 });
 
-test("US2 3: adds a note to a draft's What", async () => {
+test("US2 3: adds a note to a proposal file's What", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
   const inbox = await readInbox(app);
 
   const result = await mutate(
     app,
-    "inbox.toDraft",
+    "inbox.intoProposal",
     {
-      draft: "specs/drafts/git-listener.md",
+      file: "specs/proposals/git-listener.md",
       hash: inbox.hash,
       note: noteOf(inbox, "Make sure agents are resumable").id,
     },
@@ -218,7 +218,7 @@ test("US2 3: adds a note to a draft's What", async () => {
   );
 
   expect(result.data.count).toBe(9);
-  expect(read(repo, "specs/drafts/git-listener.md")).toContain(
+  expect(read(repo, "specs/proposals/git-listener.md")).toContain(
     "Run the next step when a branch changes.\n\n- Make sure agents are resumable\n",
   );
 });
@@ -248,7 +248,7 @@ async function noteImage(
   });
 }
 
-test("US6 2: adds a note with an image as a draft folder, linked from the inbox", async () => {
+test("US6 2: adds a note with an image as a note file's folder, linked from the inbox", async () => {
   const repo = fixtureRepo();
   const served = await testApp(repo);
   const { hash } = await readInbox(served.app);
@@ -258,12 +258,12 @@ test("US6 2: adds a note with an image as a draft folder, linked from the inbox"
   ]);
 
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ draft: "specs/drafts/headings-are-flat/proposal.md" });
-  expect(read(repo, "specs/drafts/headings-are-flat/proposal.md")).toContain(
+  expect(await response.json()).toEqual({ file: "specs/notes/headings-are-flat/note.md" });
+  expect(read(repo, "specs/notes/headings-are-flat/note.md")).toContain(
     "Headings are flat\n\n![spec-headings](images/spec-headings.webp)\n",
   );
   expect(read(repo, "specs/INBOX.md")).toContain(
-    "- [Headings are flat](drafts/headings-are-flat/proposal.md)\n",
+    "- [Headings are flat](notes/headings-are-flat/note.md)\n",
   );
 });
 
@@ -280,14 +280,14 @@ test("a note takes several images, in the order they were sent", async () => {
   );
 
   expect(response.status).toBe(200);
-  const draft = read(repo, "specs/drafts/headings-are-flat/proposal.md");
-  expect(draft.indexOf("![first](images/first.webp)")).toBeGreaterThan(0);
-  expect(draft.indexOf("![second](images/second.webp)")).toBeGreaterThan(
-    draft.indexOf("![first](images/first.webp)"),
+  const file = read(repo, "specs/notes/headings-are-flat/note.md");
+  expect(file.indexOf("![first](images/first.webp)")).toBeGreaterThan(0);
+  expect(file.indexOf("![second](images/second.webp)")).toBeGreaterThan(
+    file.indexOf("![first](images/first.webp)"),
   );
 });
 
-test("images sent with a note's id go to that note, which becomes a draft", async () => {
+test("images sent with a note's id go to that note, which gets a note file", async () => {
   const repo = fixtureRepo();
   const served = await testApp(repo);
   const inbox = await readInbox(served.app);
@@ -300,10 +300,10 @@ test("images sent with a note's id go to that note, which becomes a draft", asyn
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({
-    draft: "specs/drafts/make-sure-agents-are-resumable/proposal.md",
+    file: "specs/notes/make-sure-agents-are-resumable/note.md",
   });
   expect(read(repo, "specs/INBOX.md")).toContain(
-    "- [Make sure agents are resumable](drafts/make-sure-agents-are-resumable/proposal.md)\n",
+    "- [Make sure agents are resumable](notes/make-sure-agents-are-resumable/note.md)\n",
   );
 });
 
@@ -321,7 +321,7 @@ test("US6: an image the core refuses adds nothing", async () => {
       "refused: Only PNG, JPEG, GIF, and WebP images can be added: spec-headings.png is not one.",
   });
   expect(read(repo, "specs/INBOX.md")).toBe(before);
-  expect(existsSync(join(repo, "specs/drafts/headings-are-flat"))).toBe(false);
+  expect(existsSync(join(repo, "specs/notes/headings-are-flat"))).toBe(false);
 });
 
 test("US2 7: the commit bar commits the inbox's changes", async () => {
@@ -450,7 +450,7 @@ test("a triage changed since the page read it is not submitted", async () => {
 test("an Undo of each move puts both files back in one call", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
-  const before = ["specs/INBOX.md", "specs/PRIORITIES.md", "specs/drafts/git-listener.md"].map(
+  const before = ["specs/INBOX.md", "specs/PRIORITIES.md", "specs/proposals/git-listener.md"].map(
     (path) => read(repo, path),
   );
   const inbox = await readInbox(app);
@@ -461,15 +461,15 @@ test("an Undo of each move puts both files back in one call", async () => {
 
   const toNext = await mutate(
     app,
-    "inbox.toPriorities",
+    "inbox.toProposal",
     { hash: inbox.hash, note: moved.id, prioritiesHash: priorities.hash, section: "next" },
     INBOX,
   );
-  const toDraft = await mutate(
+  const intoFile = await mutate(
     app,
-    "inbox.toDraft",
+    "inbox.intoProposal",
     {
-      draft: "specs/drafts/git-listener.md",
+      file: "specs/proposals/git-listener.md",
       hash: toNext.data.hash,
       note: noteOf(toNext.data, "Make sure agents are resumable").id,
     },
@@ -480,28 +480,28 @@ test("an Undo of each move puts both files back in one call", async () => {
     "inbox.category",
     {
       category: "CLI",
-      hash: toDraft.data.hash,
-      note: noteOf(toDraft.data, "We need a home icon").id,
+      hash: intoFile.data.hash,
+      note: noteOf(intoFile.data, "We need a home icon").id,
     },
     INBOX,
   );
   await mutate(app, "inbox.undoCategory", { index: 2, lines: lines(homed) }, INBOX);
   await mutate(
     app,
-    "inbox.undoToDraft",
-    { category: "CLI", draft: "specs/drafts/git-listener.md", index: 1, lines: lines(added) },
+    "inbox.undoIntoProposal",
+    { category: "CLI", file: "specs/proposals/git-listener.md", index: 1, lines: lines(added) },
     INBOX,
   );
   const undone = await mutate(
     app,
-    "inbox.undoToPriorities",
+    "inbox.undoToProposal",
     { category: "UI", index: 1, lines: lines(moved), section: "next" },
     INBOX,
   );
 
   expect(undone.data.changes).toBe(0);
   expect(
-    ["specs/INBOX.md", "specs/PRIORITIES.md", "specs/drafts/git-listener.md"].map((path) =>
+    ["specs/INBOX.md", "specs/PRIORITIES.md", "specs/proposals/git-listener.md"].map((path) =>
       read(repo, path),
     ),
   ).toEqual(before);

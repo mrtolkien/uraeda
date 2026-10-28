@@ -88,7 +88,7 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
   const openForm = useOpenAddForm();
   // The ＋ next to Priorities, from the keyboard: the form in its default place. Not named in the
   // status line.
-  useKeys([{ icon: "plus", keys: "a", label: "add", run: () => openForm("priority") }]);
+  useKeys([{ icon: "plus", keys: "a", label: "add", run: () => openForm("proposal") }]);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const [message, setMessage] = useState<string>();

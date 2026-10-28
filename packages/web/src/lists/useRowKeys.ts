@@ -54,7 +54,10 @@ type RowHandlers = {
   onOutline?: ((row: WorkRow, edit: "indent" | "outdent") => void) | undefined;
   /** A key that moves a line to the section a picker chose. */
   onPickSection?: SectionPicker | undefined;
-  /** What `p` calls: it makes the line a draft; `false` says the row has nothing to promote. */
+  /**
+   * What `p` calls: it expands the proposal into a file; `false` says the row has nothing to
+   * promote.
+   */
   onPromote?: ((row: WorkRow) => boolean | void) | undefined;
   /** What `s` calls: it starts from the line. */
   onStart?: ((row: WorkRow) => void) | undefined;
@@ -135,7 +138,7 @@ function startKey(
   };
 }
 
-/** `p`: the line selected, and made a draft, by `onPromote`. */
+/** `p`: the proposal selected, and expanded into a file, by `onPromote`. */
 function promoteKey(
   rows: ReadonlyArray<WorkRow>,
   select: (key: string) => void,
@@ -144,7 +147,7 @@ function promoteKey(
   return {
     bar: { icon: "uraeda:file-pen-line", isFor: isLine, keys: "p" },
     keys: "p",
-    label: "draft",
+    label: "expand",
     run: (at) => {
       const row = rows[at];
       if (row === undefined || row.isFixed === true) {

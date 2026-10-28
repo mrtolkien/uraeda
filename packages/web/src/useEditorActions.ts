@@ -1,34 +1,34 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
-import type { useDraft } from "./data.ts";
+import type { useProposalFile } from "./data.ts";
 import type { useTextField } from "./fields/useTextField.ts";
 import { refusal } from "./errors.ts";
-import type { splitDraft } from "./pane/draftText.ts";
+import type { splitProposal } from "./pane/proposalText.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import type { useSave } from "./useSave.ts";
-import { DraftView, FeatureView } from "./views.ts";
+import { ProposalFileView, FeatureView } from "./views.ts";
 
-type Draft = NonNullable<ReturnType<typeof useDraft>>;
+type File = NonNullable<ReturnType<typeof useProposalFile>>;
 
 /** What the editor's actions act on, and what they tell it. */
 type Editor = {
-  draft: Draft | undefined;
   field: ReturnType<typeof useTextField>;
+  file: File | undefined;
   path: string;
   save: ReturnType<typeof useSave<string>>;
   setConflict: (conflict: string) => void;
   slug: ReturnType<typeof useTextField>;
-  written: (fresh: Parameters<typeof splitDraft>[0]) => void;
+  written: (fresh: Parameters<typeof splitProposal>[0]) => void;
 };
 
 /**
- * The editor's actions on its draft or proposal, each after the text typed in `field` is saved:
- * commit it, start it as a feature under the slug typed in `slug`, and set its discovery effort,
- * in the save queue. `written` takes the file the discovery effort was written into. `message`
- * says what the last one did, or why it did not.
+ * The editor's actions on its proposal file, or a started proposal, each after the text typed in
+ * `field` is saved: commit it, start it as a feature under the slug typed in `slug`, and set its
+ * discovery effort, in the save queue. `written` takes the file the discovery effort was written
+ * into. `message` says what the last one did, or why it did not.
  */
-export function useEditorActions({ draft, field, path, save, setConflict, slug, written }: Editor) {
+export function useEditorActions({ field, file, path, save, setConflict, slug, written }: Editor) {
   const fate = useFateClient();
   const here = useRepoPath();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
@@ -44,13 +44,13 @@ export function useEditorActions({ draft, field, path, save, setConflict, slug, 
       setMessage({ ok: false, text: "Your text is not saved: nothing was committed." });
       return false;
     }
-    const result = await fate.mutations.text.commit({ input: { path }, view: DraftView });
+    const result = await fate.mutations.text.commit({ input: { path }, view: ProposalFileView });
     if (result.error) {
       setMessage({ ok: false, text: refusal(result.error).message });
       return false;
     }
-    if (continues && draft?.folder) {
-      handOver(draft.folder, "proposal", path.split("/").at(-1));
+    if (continues && file?.folder) {
+      handOver(file.folder, "proposal", path.split("/").at(-1));
     } else {
       setMessage({ ok: true, text: "Committed." });
     }
@@ -63,7 +63,7 @@ export function useEditorActions({ draft, field, path, save, setConflict, slug, 
       return false;
     }
     const result = await fate.mutations.feature.start({
-      input: { draft: path, kind, slug: slug.text },
+      input: { kind, proposal: path, slug: slug.text },
       view: FeatureView,
     });
     if (result.error) {
@@ -92,7 +92,7 @@ export function useEditorActions({ draft, field, path, save, setConflict, slug, 
     const wrote = await save.write(async (previous) => {
       const result = await fate.mutations.text.discovery({
         input: { hash: previous, level, path },
-        view: DraftView,
+        view: ProposalFileView,
       });
       if (result.error) {
         const failed = refusal(result.error);

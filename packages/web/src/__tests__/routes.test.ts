@@ -5,7 +5,7 @@ import { parseLocation, parseRoute, repoPath } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
 
 test.each([
-  ["/priorities/git-listener", { key: "git-listener", page: "task" }],
+  ["/priorities/git-listener", { key: "git-listener", page: "proposal" }],
   [
     "/f/2026-10-06-recurring-tasks/mockups/repeat.html",
     { folder: "2026-10-06-recurring-tasks", name: "repeat.html", page: "mockup" },

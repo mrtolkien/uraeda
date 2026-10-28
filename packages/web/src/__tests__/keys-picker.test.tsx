@@ -131,7 +131,7 @@ test("the picker over every kind holds a row of each, drawn with its icon, not i
   await row(/List the drafts/, "Session");
   await row(/UI behaviour/, "Decision");
   await row(/Text input feels laggy/, "Note");
-  await row(/Nix \+ Docker based execution environments/, "Priority");
+  await row(/Nix \+ Docker based execution environments/, "Proposal");
 
   // A session previews as three plain lines: its title, its state, its branch.
   await type(field, "List the drafts");
@@ -146,7 +146,7 @@ test("the picker over every kind holds a row of each, drawn with its icon, not i
   await waitFor(() => expect(preview().textContent).toContain("It sits low."));
 });
 
-test("a note and a priority preview as their text and their lines", async () => {
+test("a note and a proposal preview as their text and their lines", async () => {
   await renderPage("/inbox", fixtureRepo());
   await screen.findByRole("heading", { name: "Inbox" });
   await openPicker("priorities");
