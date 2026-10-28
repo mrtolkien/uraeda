@@ -17,19 +17,11 @@ use crate::workspace::folder_slug;
 pub fn read_inbox(repo: &Path) -> Result<Inbox> {
     let (git, workspace) = open(repo)?;
     let (text, _) = on_default(&git, &workspace, edits::PATH);
-    let (triage, _) = on_default(
-        &git,
-        &workspace,
-        crate::actions::default_round::DefaultRound::Triage.path(),
-    );
-    let inbox = edits::of(
+    Ok(edits::assembled(
         &text.unwrap_or_default(),
-        triage.as_deref(),
         change_count(&git, &workspace),
-    );
-    Ok(edits::with_images(inbox, |draft| {
-        on_default(&git, &workspace, draft).0
-    }))
+        |path| on_default(&git, &workspace, path).0,
+    ))
 }
 
 /// The marks of a note added from the web UI: `about` is the folder of the page it was added from,
