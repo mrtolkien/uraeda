@@ -1,8 +1,8 @@
 // The phone's bar of tabs, at the top of every page: Home with the count of what needs the human,
 // Inbox with its notes' count, Priorities, Sessions with the running sessions' count, Decisions,
 // Settings, and New, each an icon named by its page, the current page's marked. The Sessions tab
-// opens the shell's panes as a page of their own. The phone has no status line: these counts are
-// its, and a page's own controls take its bar.
+// opens the shell's panes as a page of their own. The phone's status line holds a page's own
+// controls only: these counts are its counts.
 import { Badge } from "@astryxdesign/core/Badge";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
