@@ -346,9 +346,11 @@ export const uraedaTheme = defineTheme({
     "--size-rail-inset": "calc((var(--size-rail) - var(--size-element-md)) / 2)",
     // One line of a nav row's label: a card's icon and status sit on its name's first line.
     "--size-label-line": "calc(var(--text-label-size) * var(--text-label-leading))",
-    // The repository menu's popover on wide screens, and the add form's field in the first run.
+    // A form's field, as the add form's in the first run, and the sign-in's.
     "--size-form": "560px",
-    "--size-menu": "360px",
+    // A picker with no preview beside its list, the repositories' on wide and semi-wide screens: as
+    // wide as the ＋ forms' dialog, and, as the palette, leaving the page's edges in view.
+    "--size-picker": "min(640px, 92vw)",
     // The ＋ forms' dialog: its buttons, "Attach an image" to "Add and commit ↵", on one line.
     "--size-quick-add": "640px",
     // A story's frames: the phone's width, the desktop's, scaled to the space left, the height of a
