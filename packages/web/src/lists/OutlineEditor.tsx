@@ -2,11 +2,11 @@
 // the row's own place, its keys in a bar under it. Enter saves, never a new line; Escape cancels,
 // asking first when the text changed; Tab and Shift+Tab indent and outdent, the text saved first;
 // Backspace in an empty new row drops it. Leaving the field saves what changed.
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
-import { DISCARD_CHANGES, useConfirm } from "../fields/Confirm.tsx";
+import type { KeyboardEvent } from "react";
 import { RowBar } from "./RowBar.tsx";
+import { useOutlineField } from "./useOutlineField.ts";
 
 const styles = stylex.create({
   // The row's text, as it reads, on a surface of its own with the accent's ring: the field grows
@@ -21,7 +21,7 @@ const styles = stylex.create({
     lineHeight: "inherit",
     outlineColor: colorVars["--color-accent"],
     outlineStyle: "solid",
-    outlineWidth: "1px",
+    outlineWidth: borderVars["--border-width"],
     overflow: "hidden",
     padding: 0,
     paddingInline: spacingVars["--spacing-1"],
@@ -54,75 +54,13 @@ export function OutlineEditor({
   onSave,
   value,
 }: OutlineEditorProps) {
-  const [text, setText] = useState(value);
-  const field = useRef<HTMLTextAreaElement>(null);
-  // Closed once: a key that closed it is not followed by the blur it causes.
-  const closed = useRef(false);
-  // While Escape asks whether to discard the change: the blur the question causes saves nothing.
-  const asking = useRef(false);
-  const confirm = useConfirm();
-  useLayoutEffect(() => {
-    const element = field.current;
-    if (element) {
-      element.style.height = "auto";
-      element.style.height = `${element.scrollHeight}px`;
-    }
-  }, [text]);
-  useLayoutEffect(() => {
-    const element = field.current;
-    element?.focus({ preventScroll: true });
-    element?.setSelectionRange(element.value.length, element.value.length);
-  }, []);
-
-  const close = (then: () => void) => {
-    if (!closed.current) {
-      closed.current = true;
-      then();
-    }
-  };
-  /** Whether the text is one to save: some text, new, or changed. */
-  const isToSave = (trimmed: string) => trimmed !== "" && (isNew || trimmed !== value.trim());
-  /** Saves the text when there is one to save; else closes with nothing saved. */
-  const finish = () => {
-    if (asking.current) {
-      return;
-    }
-    const trimmed = text.trim();
-    close(() => (isToSave(trimmed) ? onSave(trimmed, "left") : onCancel()));
-  };
-
-  /** Enter: saves the text when there is one to save, else closes. */
-  const save = () => {
-    const trimmed = text.trim();
-    close(() => (isToSave(trimmed) ? onSave(trimmed, "enter") : onCancel()));
-  };
-  /**
-   * Escape: closes with nothing saved, after the shared confirmation when the text changed, as
-   * every field that holds typed text asks; Keep editing gives the field its focus back.
-   */
-  const cancel = async () => {
-    if (!isToSave(text.trim())) {
-      close(onCancel);
-      return;
-    }
-    asking.current = true;
-    const discards = await confirm(DISCARD_CHANGES);
-    asking.current = false;
-    if (discards) {
-      close(onCancel);
-    } else {
-      field.current?.focus({ preventScroll: true });
-    }
-  };
-  /** Tab, or Shift+Tab with `isOut`. */
-  const indent = (isOut: boolean) => {
-    close(() => onIndent(isOut, text.trim()));
-    // An indent with nowhere to go leaves the field open: it goes on taking keys. One that moved
-    // the field closed this one, and its blur came before.
-    queueMicrotask(() => {
-      closed.current = false;
-    });
-  };
+  const { cancel, close, field, finish, indent, save, setText, text } = useOutlineField({
+    isNew,
+    onCancel,
+    onIndent,
+    onSave,
+    value,
+  });
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.nativeEvent.isComposing) {
@@ -145,10 +83,11 @@ export function OutlineEditor({
 
   return (
     <>
+      {/* oxlint-disable-next-line react/forbid-elements -- the row's text edited in its own place, in the row's font, with no frame or padding of a field, growing with the text: Astryx's TextArea draws a field of its own, with its label, border, and height (an Astryx gap) */}
       <textarea
         aria-label={label}
         onBlur={finish}
-        onChange={(event) => setText(event.target.value.replace(/\n/g, " "))}
+        onChange={(event) => setText(event.target.value.replaceAll("\n", " "))}
         onKeyDown={onKeyDown}
         ref={field}
         rows={1}

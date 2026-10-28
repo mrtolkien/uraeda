@@ -59,13 +59,16 @@ const styles = stylex.create({
     columnGap: spacingVars["--spacing-3"],
     display: "flex",
     flexWrap: "wrap",
-    paddingBlock: "0.125rem",
+    // A line's room above and below it, which StyleX's padding values do not list.
+    "--bar-block": "0.125rem",
+    paddingBlock: "var(--bar-block)",
     position: "relative",
     zIndex: 2,
   },
+  // An action of the bar: its key and its word as the text around it, with no frame of a button.
   press: {
     background: "none",
-    border: "none",
+    borderStyle: "none",
     color: { ":hover": colorVars["--color-text-primary"], default: "inherit" },
     cursor: "pointer",
     font: "inherit",
@@ -90,7 +93,10 @@ const styles = stylex.create({
     zIndex: 3,
   },
   // Over the phone's keyboard, which covers the screen's bottom.
-  overKeyboard: (px: number) => ({ insetBlockEnd: `calc(${px}px + 0.5rem)` }),
+  overKeyboard: (px: number) => ({
+    "--bar-over-keyboard": `calc(${px}px + 0.5rem)`,
+    insetBlockEnd: "var(--bar-over-keyboard)",
+  }),
   // Going, as the page scrolls: it sinks out of the screen.
   sinking: { animationName: sink, pointerEvents: "none" },
   // An action of the phone's bar: its icon over its word, as wide as a finger at least, in the
@@ -98,19 +104,24 @@ const styles = stylex.create({
   tile: {
     alignItems: "center",
     background: "none",
-    border: "none",
     borderRadius: 0,
+    borderStyle: "none",
     color: colorVars["--color-text-primary"],
     cursor: "pointer",
     display: "flex",
     flexDirection: "column",
     font: "inherit",
-    gap: "0.25rem",
-    minWidth: "4rem",
+    // The room between its icon and its word, and its least width, which StyleX's values do not
+    // list.
+    "--bar-tile-gap": "0.25rem",
+    "--bar-tile-least": "4rem",
+    gap: "var(--bar-tile-gap)",
+    minWidth: "var(--bar-tile-least)",
     paddingBlock: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-3"],
   },
-  word: { fontSize: "0.75rem" },
+  // A tile's word, small under its icon.
+  word: { "--bar-word": "0.75rem", fontSize: "var(--bar-word)" },
 });
 
 /** Runs an action from a press, which is not the row's own click: that edits it or opens it. */
@@ -143,7 +154,10 @@ function useScrolledAway(quiet: RefObject<number>) {
       starts.set(page, page.scrollTop);
     }
     const onScroll = (event: Event) => {
-      const target = event.target instanceof Element ? event.target : document.scrollingElement;
+      const target =
+        (event.target as Node | null)?.nodeType === Node.ELEMENT_NODE
+          ? (event.target as Element)
+          : document.scrollingElement;
       if (!target) {
         return;
       }
@@ -279,6 +293,7 @@ function FloatingBar({
       )}
     >
       {actions.map((action) => (
+        // oxlint-disable-next-line react/forbid-elements -- a tile of the phone's floating bar, its big icon over its word, flat on the bar's glass, which Astryx's Button, with its own height, padding, and surface, does not draw (an Astryx gap)
         <button
           key={action.label}
           onClick={pressed(action)}
@@ -324,6 +339,7 @@ export function RowBar({
     <div onMouseDown={keepFocus} {...stylex.props(styles.bar)}>
       {actions.map((action) => (
         <Text color="secondary" key={action.label} type="supporting">
+          {/* oxlint-disable-next-line react/forbid-elements -- an action pressed as its key is, drawn as the row's supporting text, with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
           <button onClick={pressed(action)} type="button" {...stylex.props(styles.press)}>
             <KeyCap>{action.keys}</KeyCap> {action.label}
           </button>
