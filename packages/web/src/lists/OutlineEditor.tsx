@@ -1,10 +1,11 @@
 // A row of an outline edited in place, as an outliner edits it: its text in a field that wraps, in
-// the row's own place, its keys in a bar under it. Enter saves, never a new line; Escape cancels; Tab
-// and Shift+Tab indent and outdent, the text saved first; Backspace in an empty new row drops it.
-// Leaving the field saves what changed.
+// the row's own place, its keys in a bar under it. Enter saves, never a new line; Escape cancels,
+// asking first when the text changed; Tab and Shift+Tab indent and outdent, the text saved first;
+// Backspace in an empty new row drops it. Leaving the field saves what changed.
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
+import { DISCARD_CHANGES, useConfirm } from "../fields/Confirm.tsx";
 import { RowBar } from "./RowBar.tsx";
 
 const styles = stylex.create({
@@ -34,7 +35,7 @@ export type OutlineEditorProps = {
   /** A new row: its text, even the one it opened with, is saved; a row's unchanged text is not. */
   isNew?: boolean;
   label: string;
-  /** Closed with nothing saved: Escape, or an empty new row left. */
+  /** Closed with nothing saved: Escape, its discard confirmed when the text changed, or an empty new row left. */
   onCancel: () => void;
   /** Tab, or Shift+Tab with `isOut`: the text, saved first when it changed, then the indent. */
   onIndent: (isOut: boolean, text: string) => void;
@@ -57,6 +58,9 @@ export function OutlineEditor({
   const field = useRef<HTMLTextAreaElement>(null);
   // Closed once: a key that closed it is not followed by the blur it causes.
   const closed = useRef(false);
+  // While Escape asks whether to discard the change: the blur the question causes saves nothing.
+  const asking = useRef(false);
+  const confirm = useConfirm();
   useLayoutEffect(() => {
     const element = field.current;
     if (element) {
@@ -80,6 +84,9 @@ export function OutlineEditor({
   const isToSave = (trimmed: string) => trimmed !== "" && (isNew || trimmed !== value.trim());
   /** Saves the text when there is one to save; else closes with nothing saved. */
   const finish = () => {
+    if (asking.current) {
+      return;
+    }
     const trimmed = text.trim();
     close(() => (isToSave(trimmed) ? onSave(trimmed, "left") : onCancel()));
   };
@@ -89,7 +96,24 @@ export function OutlineEditor({
     const trimmed = text.trim();
     close(() => (isToSave(trimmed) ? onSave(trimmed, "enter") : onCancel()));
   };
-  const cancel = () => close(onCancel);
+  /**
+   * Escape: closes with nothing saved, after the shared confirmation when the text changed, as
+   * every field that holds typed text asks; Keep editing gives the field its focus back.
+   */
+  const cancel = async () => {
+    if (!isToSave(text.trim())) {
+      close(onCancel);
+      return;
+    }
+    asking.current = true;
+    const discards = await confirm(DISCARD_CHANGES);
+    asking.current = false;
+    if (discards) {
+      close(onCancel);
+    } else {
+      field.current?.focus({ preventScroll: true });
+    }
+  };
   /** Tab, or Shift+Tab with `isOut`. */
   const indent = (isOut: boolean) => {
     close(() => onIndent(isOut, text.trim()));
@@ -109,13 +133,13 @@ export function OutlineEditor({
       save();
     } else if (event.key === "Escape") {
       event.preventDefault();
-      cancel();
+      void cancel();
     } else if (event.key === "Tab") {
       event.preventDefault();
       indent(event.shiftKey);
     } else if (event.key === "Backspace" && text === "" && value === "") {
       event.preventDefault();
-      cancel();
+      close(onCancel);
     }
   };
 
@@ -135,7 +159,7 @@ export function OutlineEditor({
       <RowBar
         actions={[
           { icon: "check", keys: "⏎", label: "save", run: save },
-          { icon: "close", keys: "esc", label: "cancel", run: cancel },
+          { icon: "close", keys: "esc", label: "cancel", run: () => void cancel() },
           { icon: "uraeda:indent", keys: "⇥", label: "indent", run: () => indent(false) },
           { icon: "uraeda:outdent", keys: "⇧⇥", label: "outdent", run: () => indent(true) },
         ]}
