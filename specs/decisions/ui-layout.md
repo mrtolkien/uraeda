@@ -21,9 +21,9 @@ spec says why.
   dialogs. Checked by review.
 - Text MUST stay readable at each width without zoom, and controls MUST be easy to hit by touch.
   Checked by review.
-- Prose SHOULD hold about 80 characters a line, even where its page is wider. Checked by review.
 - An open detail, tab, or sheet MUST be in the URL, so reload, Back, or a width change keeps it.
   Checked by review.
+- Prose SHOULD hold about 80 characters a line, even where its page is wider. Checked by review.
 - A column that takes room from the main content SHOULD be foldable and resizable. Checked by
   review.
 - A view the human follows SHOULD be a page of its own. Checked by review.
