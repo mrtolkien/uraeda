@@ -102,63 +102,6 @@ pub fn edit_note(repo: &Path, id: &str, text: &str, previous: &str) -> Result<In
     Ok(edits::edit(&place, id, text, Some(previous))?)
 }
 
-/// Edits a note's outline: the note, or with `at`, its nested item at `at`, in the order of the
-/// file. `kind` and `text` name the edit (see [`OutlineEdit::from_kind`]).
-///
-/// [`OutlineEdit::from_kind`]: crate::files::nested::OutlineEdit::from_kind
-pub fn outline_note(
-    repo: &Path,
-    id: &str,
-    at: Option<u32>,
-    kind: &str,
-    text: Option<&str>,
-    previous: &str,
-) -> Result<Inbox> {
-    let change = crate::files::nested::OutlineEdit::from_kind(kind, text)
-        .ok_or_else(|| super::refused(format!("no outline edit {kind}, or an empty text")))?;
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    Ok(edits::outline(
-        &place,
-        id,
-        at.map(|at| at as usize),
-        &change,
-        Some(previous),
-    )?)
-}
-
-/// Moves a note, or with `at` its nested item at `at`, its own items with it, to `to`: what a drop
-/// writes. Under a note, or else a note of `to`'s list, a category, or of the notes without one.
-pub fn drop_note(
-    repo: &Path,
-    id: &str,
-    at: Option<u32>,
-    to: &super::DropAt,
-    previous: &str,
-) -> Result<Inbox> {
-    let index = to.index as usize;
-    let to = match &to.under {
-        Some(note) => crate::files::inbox::Drop::Under {
-            note: note.clone(),
-            at: to.under_at.map(|at| at as usize),
-            index,
-        },
-        None => crate::files::inbox::Drop::Note {
-            category: to.list.clone(),
-            index,
-        },
-    };
-    let _lock = write_lock();
-    let place = reach_default(repo)?;
-    Ok(edits::drop_item(
-        &place,
-        id,
-        at.map(|at| at as usize),
-        &to,
-        Some(previous),
-    )?)
-}
-
 /// Removes a note, sub-items included.
 pub fn remove_note(repo: &Path, id: &str, previous: &str) -> Result<Inbox> {
     let _lock = write_lock();
