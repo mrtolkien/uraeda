@@ -68,10 +68,10 @@ test("Space n n and Space n p open the forms of the column's buttons (US1 key 1)
   expect(await screen.findByRole("dialog", { name: "Add a note" })).toBeTruthy();
 });
 
-test("Space n p opens the priority form", async () => {
+test("Space n p opens the proposal form", async () => {
   await atHome();
   keys(" ", "n", "p");
-  expect(await screen.findByRole("dialog", { name: "New priority" })).toBeTruthy();
+  expect(await screen.findByRole("dialog", { name: "New proposal" })).toBeTruthy();
 });
 
 test("Space f d opens the decisions picker, and Space Space the one over everything (US4)", async () => {
@@ -293,7 +293,7 @@ const KINDS: Array<{ add?: string; find: string; kind: PickerKind; row: string }
     row: "Text input feels laggy on the sessions page",
   },
   {
-    add: "Priority",
+    add: "Proposal",
     find: "Priorities",
     kind: "priorities",
     row: "Nix + Docker based execution environments",

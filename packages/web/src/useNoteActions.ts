@@ -1,5 +1,6 @@
 // What a note's view does to its note: edit its text, move it to a category, into the priorities
-// or a draft, or delete it, each written at once over the inbox as read, with a toast and Undo.
+// or a proposal file, or delete it, each written at once over the inbox as read, with a toast and
+// Undo.
 // Each Undo of a move is one call to the core, which changes both files or neither.
 import { useState } from "react";
 import { useFateClient } from "react-fate";
@@ -8,7 +9,7 @@ import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./
 import { refusal } from "./errors.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { TITLES } from "./QuickAdd.tsx";
-import type { ActionOptions } from "./pane/usePriorityActions.ts";
+import type { ActionOptions } from "./pane/useProposalActions.ts";
 import { navigate, redirect, useRepoPath } from "./routes.tsx";
 import { InboxView } from "./views.ts";
 
@@ -47,26 +48,27 @@ async function putBack(fate: Fate, placed: Placed) {
 }
 
 /**
- * The key of the line a move just wrote at the end of a section: the last of the note's text. An
- * Undo tells it by that key from a line of the same text the human writes later.
+ * The key of the proposal a move just wrote at the end of a section: the last of the note's text.
+ * An Undo tells it by that key from a proposal of the same text the human writes later.
  */
 async function movedKey(fate: Fate, section: string, text: string) {
   const now = await readPriorities(fate);
-  const entries = now.sections.find((s) => s.section === section)?.entries ?? [];
-  return entries.findLast((entry) => entry.text === text)?.key;
+  const proposals = now.sections.find((s) => s.section === section)?.proposals ?? [];
+  return proposals.findLast((proposal) => proposal.text === text)?.key;
 }
 
 /** A note's change, run as `useNoteActions` runs it: its refusal shown, a conflict read again. */
 type Run = <R extends { error?: unknown }>(call: () => Promise<R>) => Promise<R>;
 
-/** A line of the priorities a note goes under: its id as written now, `now-2`, its key, its text. */
+/** A proposal a note goes under: its id as written now, `now-2`, its key, and its text. */
 export type UnderLine = { id: string; key: string; text: string };
 
 /**
- * The moves out of the inbox, into the priorities, under one of their lines, or into an existing
- * draft, over the note's `input`, its id and the inbox's hash as read. The inbox shows no
- * priorities: their hash is read just before the move. Each, once written, goes where the note
- * went: the priorities with its row selected, or its draft's page.
+ * The moves out of the inbox, into the priorities, under one of their proposals, or into an
+ * existing proposal file, over the note's `input`, its id and the inbox's hash as read. The inbox
+ * shows no priorities: their hash is read just before the move. Each, once written, goes where the
+ * note went: the priorities with its row selected, or the proposal file's page. A note with a note
+ * file takes it along: the core moves it to the proposals, and its Undo moves it back.
  */
 function useMovesOut(
   placed: Placed,
@@ -78,10 +80,10 @@ function useMovesOut(
   const toast = useUndoToast();
   const here = useRepoPath();
 
-  const toPriorities = async (section: string) => {
+  const toProposal = async (section: string) => {
     const prioritiesHash = await readPrioritiesHash(fate);
     const result = await run(() =>
-      fate.mutations.inbox.toPriorities({
+      fate.mutations.inbox.toProposal({
         input: { ...input, prioritiesHash, section },
         view: InboxView,
       }),
@@ -90,24 +92,24 @@ function useMovesOut(
       return;
     }
     left();
-    const entryKey = await movedKey(fate, section, placed.note.text);
+    const proposalKey = await movedKey(fate, section, placed.note.text);
     toast(`Moved to ${TITLES.get(section)}, not committed`, () =>
       undone(
         fate,
-        fate.mutations.inbox.undoToPriorities({
-          input: { ...at(placed), section, ...(entryKey === undefined ? {} : { entryKey }) },
+        fate.mutations.inbox.undoToProposal({
+          input: { ...at(placed), section, ...(proposalKey === undefined ? {} : { proposalKey }) },
           view: InboxView,
         }),
       ),
     );
-    navigate(here("/priorities"), entryKey === undefined ? {} : { select: entryKey });
+    navigate(here("/priorities"), proposalKey === undefined ? {} : { select: proposalKey });
   };
 
-  const underPriority = async (line: UnderLine) => {
+  const underProposal = async (line: UnderLine) => {
     const prioritiesHash = await readPrioritiesHash(fate);
     const result = await run(() =>
-      fate.mutations.inbox.underPriority({
-        input: { ...input, entry: line.id, prioritiesHash },
+      fate.mutations.inbox.underProposal({
+        input: { ...input, prioritiesHash, proposal: line.id },
         view: InboxView,
       }),
     );
@@ -115,19 +117,19 @@ function useMovesOut(
       return;
     }
     left();
-    // The note is the line's last own item now: its row, by its key.
+    // The note is the proposal's last own item now: its row, by its key.
     const now = await readPriorities(fate);
     const children =
-      now.sections.flatMap((s) => s.entries).find((entry) => entry.key === line.key)?.children ??
-      [];
+      now.sections.flatMap((s) => s.proposals).find((proposal) => proposal.key === line.key)
+        ?.children ?? [];
     const moved = children.findLast((child) => child.depth === 1)?.key;
-    // The line's first words: a toast is no place for a whole line.
+    // The proposal's first words: a toast is no place for a whole line.
     const name = line.text.length > 40 ? `${line.text.slice(0, 39).trimEnd()}…` : line.text;
     toast(`Moved under "${name}", not committed`, () =>
       undone(
         fate,
-        fate.mutations.inbox.undoUnderPriority({
-          input: { ...at(placed), entryKey: line.key },
+        fate.mutations.inbox.undoUnderProposal({
+          input: { ...at(placed), proposalKey: line.key },
           view: InboxView,
         }),
       ),
@@ -135,23 +137,26 @@ function useMovesOut(
     navigate(here("/priorities"), { select: moved ?? line.key });
   };
 
-  const toDraft = async (draft: string, title: string) => {
+  const intoProposal = async (file: string, title: string) => {
     const result = await run(() =>
-      fate.mutations.inbox.toDraft({ input: { ...input, draft }, view: InboxView }),
+      fate.mutations.inbox.intoProposal({ input: { ...input, file }, view: InboxView }),
     );
     if (!result.error) {
       toast(`Added to ${title}, not committed`, () =>
         undone(
           fate,
-          fate.mutations.inbox.undoToDraft({ input: { ...at(placed), draft }, view: InboxView }),
+          fate.mutations.inbox.undoIntoProposal({
+            input: { ...at(placed), file },
+            view: InboxView,
+          }),
         ),
       );
       left();
-      navigate(here(`/edit/${draft}`));
+      navigate(here(`/edit/${file}`));
     }
   };
 
-  return { toDraft, toPriorities, underPriority };
+  return { intoProposal, toProposal, underProposal };
 }
 
 /** Reads both files again once the note left the inbox, for the commit bar. */

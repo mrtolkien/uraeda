@@ -45,7 +45,7 @@ const INBOX = `# Inbox
 `;
 
 /** The field of a line edited in place, and of a note: their labels name no row. */
-const LINE = "Edit the line";
+const LINE = "Edit the proposal";
 const NOTE = "Edit the note";
 
 beforeEach(() => {
@@ -146,7 +146,7 @@ test("o adds in the section of the line the focus is on, while another section's
   await press("o", controlOf("Nalpha"));
 
   const next = screen.getByRole("list", { name: "Next lines" });
-  await save(await within(next).findByRole("textbox", { name: "New line" }), "Ndelta");
+  await save(await within(next).findByRole("textbox", { name: "New proposal" }), "Ndelta");
   await waitFor(() => expect(read(repo)).toContain("## Next\n\n- Nalpha\n- Ndelta\n- Nbeta\n"));
 });
 
@@ -191,7 +191,10 @@ test("o on a Blocked line opens the new row in Blocked, beside it (R80)", async 
   await press("o", link);
 
   const blocked = screen.getByRole("list", { name: "Blocked lines" });
-  await save(await within(blocked).findByRole("textbox", { name: "New line" }), "Blocked line 2");
+  await save(
+    await within(blocked).findByRole("textbox", { name: "New proposal" }),
+    "Blocked line 2",
+  );
   await waitFor(() =>
     expect(read(repo)).toContain("## Blocked\n\n- Blocked line 1\n- Blocked line 2\n"),
   );
@@ -204,7 +207,7 @@ test("o on a running entry opens no new row: it stays as it is", async () => {
 
   await press("o", link);
 
-  expect(screen.queryByRole("textbox", { name: "New line" })).toBeNull();
+  expect(screen.queryByRole("textbox", { name: "New proposal" })).toBeNull();
 });
 
 test("a saved in-place line is selected and has the focus, though its key changed (R81)", async () => {
@@ -230,13 +233,13 @@ test("a saved in-place note is selected and has the focus, though its key change
   expect(cardOf("Nbeta renamed").getAttribute("aria-current")).toBe("true");
 });
 
-test("the task view follows a renamed line whose key has non-ASCII characters (R82)", async () => {
+test("the proposal view follows a renamed proposal whose key has non-ASCII characters (R82)", async () => {
   const repo = fixtureRepo();
   writeFileSync(join(repo, "specs/PRIORITIES.md"), "# Priorities\n\n## Next\n\n- 日本語の行\n");
   await renderPage("/priorities/日本語の行", repo);
 
   await click(await screen.findByRole("button", { name: "Edit" }));
-  await save(screen.getByRole("textbox", { name: "Line" }), "日本語の行二");
+  await save(screen.getByRole("textbox", { name: "Proposal" }), "日本語の行二");
 
   await waitFor(() => expect(read(repo)).toContain("- 日本語の行二\n"));
   await waitFor(() =>

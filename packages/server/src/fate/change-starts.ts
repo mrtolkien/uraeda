@@ -1,5 +1,7 @@
 // The starts of a change that send its first run: from a typed text and its images, an inbox
-// note, or a draft.
+// note, or a proposal file.
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { ChatImage } from "../runner/images.ts";
 import { changeImages } from "./chat-images.ts";
 import type { RepoContext, Resolver } from "./context.ts";
@@ -74,8 +76,12 @@ async function startTypedChange(
   return { folder, sent: await firstRunSent(ctx, folder) };
 }
 
-/** A note's text as a typed change's: its text, then its nested lines, over the inbox as read. */
-async function noteText(ctx: RepoContext, input: { hash: string; note: string }) {
+/**
+ * A note as a typed change's text and images: its text, then its nested lines, and the bytes of the
+ * images its note file links, over the inbox as read. Read before the note leaves the inbox, which
+ * takes its note file with it.
+ */
+async function noteChange(ctx: RepoContext, input: { hash: string; note: string }) {
   const inbox = await refusable(() => ctx.binding.readInbox(ctx.repo));
   const note = inbox.categories
     .flatMap((category) => category.notes)
@@ -86,21 +92,28 @@ async function noteText(ctx: RepoContext, input: { hash: string; note: string })
   if (!note) {
     throw callSiteError(`refused: no note ${input.note}`);
   }
-  return note.nested.length > 0 ? `${note.text}\n\n${note.nested.join("\n")}` : note.text;
+  const text = note.nested.length > 0 ? `${note.text}\n\n${note.nested.join("\n")}` : note.text;
+  // An image whose file is gone is left out: the change starts with the others.
+  const read = await Promise.allSettled(note.images.map((path) => readFile(join(ctx.repo, path))));
+  const images = read.flatMap((one) => (one.status === "fulfilled" ? [one.value] : []));
+  return { images, text };
 }
 
 /**
- * Starts a change from an inbox note, as from a typed text, which refuses only staged files (R10),
- * then takes the note out of the inbox, committing `INBOX.md` alone when it had no other change,
- * and sends the change's first run. A refused start leaves the note in the inbox; a note that
- * cannot leave it once the change started is logged, and stays.
+ * Starts a change from an inbox note, as from a typed text with the note file's images, which
+ * refuses only staged files (R10), then takes the note out of the inbox, its note file with it,
+ * committing `INBOX.md` alone when it had no other change, and sends the change's first run. A
+ * refused start leaves the note in the inbox; a note that cannot leave it once the change started
+ * is logged, and stays.
  */
 async function startFromNote(
   ctx: RepoContext,
   input: { hash: string; note: string; slug?: string },
 ): Promise<{ folder: string; sent: boolean }> {
-  const text = await noteText(ctx, input);
-  const { folder } = await refusable(() => ctx.binding.startChange(ctx.repo, text, [], input.slug));
+  const { images, text } = await noteChange(ctx, input);
+  const { folder } = await refusable(() =>
+    ctx.binding.startChange(ctx.repo, text, images, input.slug),
+  );
   try {
     await ctx.binding.removeNoteAndCommit(ctx.repo, input.note, input.hash);
   } catch (error) {
@@ -112,15 +125,15 @@ async function startFromNote(
 }
 
 /**
- * Starts a draft as a change, as `feature.start` with kind change does, then sends its first run:
- * a priority line's change starts with its agent at work, as a typed one does.
+ * Starts a proposal file as a change, as `feature.start` with kind change does, then sends its
+ * first run: a proposal's change starts with its agent at work, as a typed one does.
  */
-async function startDraft(
+async function startProposal(
   ctx: RepoContext,
-  input: { draft: string; slug?: string },
+  input: { proposal: string; slug?: string },
 ): Promise<{ folder: string; sent: boolean }> {
   const { folder } = await refusable(() =>
-    ctx.binding.startFeature(ctx.repo, input.draft, input.slug, "change"),
+    ctx.binding.startFeature(ctx.repo, input.proposal, input.slug, "change"),
   );
   return { folder, sent: await firstRunSent(ctx, folder) };
 }
@@ -155,9 +168,9 @@ export const changeStarts = {
       started(ctx, await startTypedChange(ctx, input), select),
     type: "Feature",
   },
-  "change.startDraft": {
-    resolve: async ({ ctx, input, select }: Resolver<{ draft: string; slug?: string }>) =>
-      started(ctx, await startDraft(ctx, input), select),
+  "change.startProposal": {
+    resolve: async ({ ctx, input, select }: Resolver<{ proposal: string; slug?: string }>) =>
+      started(ctx, await startProposal(ctx, input), select),
     type: "Feature",
   },
 };

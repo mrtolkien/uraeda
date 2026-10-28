@@ -1,6 +1,7 @@
-// A draft's Start, the editor page's second pane: what to start it as, a feature or a change, the
-// slug that names its folder and branch, and the button. `f` and `c` pick the kind, `s` brings the
-// focus to the slug, where Enter starts: no key starts anything without the slug in view.
+// A proposal file's Start, the editor page's second pane: what to start it as, a feature or a
+// change, the slug that names its folder and branch, and the button. `f` and `c` pick the kind, `s`
+// brings the focus to the slug, where Enter starts: no key starts anything without the slug in
+// view.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
@@ -20,7 +21,7 @@ const styles = stylex.create({
   body: { paddingBlockEnd: spacingVars["--spacing-3"] },
 });
 
-/** What a draft starts as. */
+/** What a proposal file starts as. */
 export type StartKind = "change" | "feature";
 
 /**
@@ -28,7 +29,7 @@ export type StartKind = "change" | "feature";
  * button, or Enter in the slug, makes the branch and worktree and opens the session, the agent's
  * message in its composer for the human to read and send.
  */
-export function DraftStart({
+export function ProposalStart({
   actions,
   kind,
   onKind,

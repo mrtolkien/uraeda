@@ -104,15 +104,15 @@ test("inbox.drop naming both a note and a category is refused, the inbox untouch
   expect(read(repo, "specs/INBOX.md")).toBe(before);
 });
 
-test("priorities.outline indents a line under the one above, and outdents it back", async () => {
+test("proposals.outline indents a proposal under the one above, and outdents it back", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
   const before = read(repo, "specs/PRIORITIES.md");
 
   const indented = await mutate(
     app,
-    "priorities.outline",
-    { entry: "later-2", hash: await prioritiesHash(app), kind: "indent" },
+    "proposals.outline",
+    { hash: await prioritiesHash(app), kind: "indent", proposal: "later-2" },
     PRIORITIES,
   );
   expect(read(repo, "specs/PRIORITIES.md")).toContain(
@@ -120,22 +120,22 @@ test("priorities.outline indents a line under the one above, and outdents it bac
   );
   await mutate(
     app,
-    "priorities.outline",
-    { at: 1, entry: "later-1", hash: indented.data.hash, kind: "outdent" },
+    "proposals.outline",
+    { at: 1, hash: indented.data.hash, kind: "outdent", proposal: "later-1" },
     PRIORITIES,
   );
 
   expect(read(repo, "specs/PRIORITIES.md")).toBe(before);
 });
 
-test("priorities.drop moves a line with its items to a section, then under a nested item", async () => {
+test("proposals.drop moves a proposal with its items to a section, then under a nested item", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
 
   const moved = await mutate(
     app,
-    "priorities.drop",
-    { entry: "later-1", hash: await prioritiesHash(app), index: 0, section: "next" },
+    "proposals.drop",
+    { hash: await prioritiesHash(app), index: 0, proposal: "later-1", section: "next" },
     PRIORITIES,
   );
   expect(read(repo, "specs/PRIORITIES.md")).toContain(
@@ -143,8 +143,8 @@ test("priorities.drop moves a line with its items to a section, then under a nes
   );
   await mutate(
     app,
-    "priorities.drop",
-    { entry: "later-1", hash: moved.data.hash, index: 0, under: "next-1", underAt: 0 },
+    "proposals.drop",
+    { hash: moved.data.hash, index: 0, proposal: "later-1", under: "next-1", underAt: 0 },
     PRIORITIES,
   );
 
@@ -153,7 +153,7 @@ test("priorities.drop moves a line with its items to a section, then under a nes
   );
 });
 
-test("priorities.drop refuses a drop naming both, and nesting a line with a draft", async () => {
+test("proposals.drop refuses a drop naming both, and nesting a proposal with a file", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
   const before = read(repo, "specs/PRIORITIES.md");
@@ -161,23 +161,23 @@ test("priorities.drop refuses a drop naming both, and nesting a line with a draf
 
   const both = await mutate(
     app,
-    "priorities.drop",
-    { entry: "later-2", hash, index: 0, section: "now", under: "later-1" },
+    "proposals.drop",
+    { hash, index: 0, proposal: "later-2", section: "now", under: "later-1" },
     PRIORITIES,
   );
-  const draft = await mutate(
+  const withFile = await mutate(
     app,
-    "priorities.drop",
-    { entry: "next-2", hash, index: 0, under: "next-1" },
+    "proposals.drop",
+    { hash, index: 0, proposal: "next-2", under: "next-1" },
     PRIORITIES,
   );
 
   expect(both.error?.message).toBe("refused: a drop goes under an item or into a list, not both");
-  expect(draft.error?.message).toMatch(/^refused: A line with a draft stays a line/);
+  expect(withFile.error?.message).toMatch(/^refused: A proposal with a file stays a proposal/);
   expect(read(repo, "specs/PRIORITIES.md")).toBe(before);
 });
 
-test("inbox.underPriority puts a note under a line, and inbox.undoUnderPriority takes it back", async () => {
+test("inbox.underProposal puts a note under a proposal, and inbox.undoUnderProposal takes it back", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
   const inbox = read(repo, "specs/INBOX.md");
@@ -187,12 +187,12 @@ test("inbox.underPriority puts a note under a line, and inbox.undoUnderPriority 
 
   const moved = await mutate(
     app,
-    "inbox.underPriority",
+    "inbox.underProposal",
     {
-      entry: "later-1",
       hash: before.hash,
       note: note.id,
       prioritiesHash: await prioritiesHash(app),
+      proposal: "later-1",
     },
     INBOX,
   );
@@ -202,8 +202,8 @@ test("inbox.underPriority puts a note under a line, and inbox.undoUnderPriority 
   );
   const undone = await mutate(
     app,
-    "inbox.undoUnderPriority",
-    { entryKey: "nix-docker-based-execution-environments", index: 0, lines: note.lines },
+    "inbox.undoUnderProposal",
+    { index: 0, lines: note.lines, proposalKey: "nix-docker-based-execution-environments" },
     INBOX,
   );
 

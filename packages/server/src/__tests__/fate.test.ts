@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
-import type { PriorityEntry } from "../fate.ts";
+import type { Proposal } from "../fate.ts";
 import { refusable } from "../fate/errors.ts";
 import { featureTokens } from "../fate/tokens.ts";
 import type { SessionCache, TurnRow } from "../runner/cache.ts";
@@ -126,23 +126,20 @@ test("a binding call's refusal is a bad request, and any other error an internal
   log.mockRestore();
 });
 
-test("US4.1 and US4.2: the priorities' entries carry their draft and running feature", async () => {
+test("US4.1 and US4.2: the priorities' proposals carry their file and running feature", async () => {
   const [priorities] = await byId(
     (await testApp()).app,
     "Priorities",
     ["priorities"],
     ["sections"],
   );
-  const entries = priorities.sections.flatMap(
-    (section: { entries: Array<PriorityEntry> }) => section.entries,
+  const proposals = priorities.sections.flatMap(
+    (section: { proposals: Array<Proposal> }) => section.proposals,
   );
-  const entry = (text: string) => entries.find((e: PriorityEntry) => e.text.includes(text));
+  const proposal = (text: string) => proposals.find((p: Proposal) => p.text.includes(text));
 
-  expect(entry("Git listener")?.draft).toEqual({
-    backlog: false,
-    path: "specs/drafts/git-listener.md",
-  });
-  const running = entry("Web UI for the workflow files")?.running;
+  expect(proposal("Git listener")?.file).toEqual({ path: "specs/proposals/git-listener.md" });
+  const running = proposal("Web UI for the workflow files")?.running;
   expect(running?.folder).toBe("2026-10-11-web-ui");
   // Sent as every step is: a step without progress has it null.
   expect(running?.step).toHaveProperty("progress", null);
@@ -182,20 +179,20 @@ test("US8: the ledger sends the constitution and each decision, a field it lacks
   expect(decision.changed).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 });
 
-test("adds a priority line", async () => {
+test("adds a proposal", async () => {
   const { app } = await testApp();
   const [priorities] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
 
   const result = await mutate(
     app,
-    "priorities.add",
+    "proposals.add",
     { hash: priorities.hash, section: "next", text: "Show the agent's last commit" },
     ["id", "sections", "changes"],
   );
 
   expect(result.data.changes).toBe(1);
   const next = result.data.sections.find((s: { section: string }) => s.section === "next");
-  expect(next.entries.at(-1).text).toBe("Show the agent's last commit");
+  expect(next.proposals.at(-1).text).toBe("Show the agent's last commit");
 });
 
 /** The subject and files of the repository's last commit. */
@@ -204,13 +201,13 @@ const lastCommit = (repo: string) => ({
   subject: git(repo, "log", "-1", "--format=%s").trim(),
 });
 
-test("US3 1 and 6: adds and commits a priority line alone, and its Undo commits the removal", async () => {
+test("US3 1 and 6: adds and commits a proposal alone, and its Undo commits the removal", async () => {
   const { app, repo } = await testApp();
   const [read] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
 
   const added = await mutate(
     app,
-    "priorities.add",
+    "proposals.add",
     { commit: true, hash: read.hash, section: "next", text: "Sort done features" },
     ["id", "hash", "changes", "added"],
   );
@@ -223,7 +220,7 @@ test("US3 1 and 6: adds and commits a priority line alone, and its Undo commits 
   });
   const undone = await mutate(
     app,
-    "priorities.undoCommitted",
+    "proposals.undoCommitted",
     { hash: added.data.hash, lines: ["- Sort done features"] },
     ["id", "hash", "added"],
   );
@@ -239,7 +236,7 @@ test("US3 3: an add and commit over other changes answers why it did not commit"
 
   const added = await mutate(
     app,
-    "priorities.add",
+    "proposals.add",
     { commit: true, hash: read.hash, section: "next", text: "Sort done features" },
     ["id", "added"],
   );
@@ -274,17 +271,17 @@ test("US3 4: adds and commits a note alone", async () => {
   expect(lastCommit(repo).subject).toBe('chore: remove "Icons are blurry" from the inbox');
 });
 
-test("puts a removed priority line back", async () => {
+test("puts a removed proposal back", async () => {
   const { app } = await testApp();
   const [read] = await byId(app, "Priorities", ["priorities"], ["id", "hash"]);
-  const removed = await mutate(app, "priorities.remove", { entry: "later-1", hash: read.hash }, [
+  const removed = await mutate(app, "proposals.remove", { hash: read.hash, proposal: "later-1" }, [
     "id",
     "hash",
   ]);
 
   const result = await mutate(
     app,
-    "priorities.insert",
+    "proposals.insert",
     {
       hash: removed.data.hash,
       index: 0,
@@ -296,8 +293,8 @@ test("puts a removed priority line back", async () => {
 
   expect(result.data.changes).toBe(0);
   const later = result.data.sections.find((s: { section: string }) => s.section === "later");
-  expect(later.entries[0].key).toBe("nix-docker-based-execution-environments");
-  expect(later.entries[0].nested).toEqual(["  - with a cache"]);
+  expect(later.proposals[0].key).toBe("nix-docker-based-execution-environments");
+  expect(later.proposals[0].nested).toEqual(["  - with a cache"]);
 });
 
 test("a file without a review is sent with none, so a removed review leaves the page", async () => {

@@ -59,7 +59,7 @@ async function takeForm(each: Each) {
         join(root, "fixtures/images", "phone.png"),
         join(root, "fixtures/images", "desktop.png"),
       ]);
-    await form.getByText("With images, the note is saved as a draft").waitFor();
+    await form.getByText("With images, the note is saved as a file").waitFor();
     await settle(page);
   });
 }
@@ -85,12 +85,12 @@ export async function withFile(repo: string, path: string, text: string, act: ()
   }
 }
 
-/** The draft of the note with images the shots show. */
-const IMAGED = "specs/drafts/slow-lists";
+/** The note file of the note with images the shots show. */
+const IMAGED = "specs/notes/slow-lists";
 
 /**
- * A note whose draft holds two images: its row, with the first one's thumbnail, and its page, with
- * both under its text. The draft and the note are taken back once the views are taken.
+ * A note whose note file holds two images: its row, with the first one's thumbnail, and its page,
+ * with both under its text. The file and the note are taken back once the views are taken.
  */
 async function takeImagedNote(each: Each, repo: string) {
   const inbox = readFileSync(join(repo, INBOX), "utf8");
@@ -102,14 +102,14 @@ async function takeImagedNote(each: Each, repo: string) {
     copyFileSync(join(root, "fixtures/images", source), join(repo, IMAGED, `images/${name}.webp`));
   }
   writeFileSync(
-    join(repo, IMAGED, "proposal.md"),
+    join(repo, IMAGED, "note.md"),
     "# Slow lists\n\n## What\n\nSlow lists\n\n![first](images/first.webp)\n\n![second](images/second.webp)\n\n## Why\n",
   );
   writeFileSync(
     join(repo, INBOX),
     inbox.replace(
       "- We need a home icon\n",
-      "- We need a home icon\n- [Slow lists](drafts/slow-lists/proposal.md)\n",
+      "- We need a home icon\n- [Slow lists](notes/slow-lists/note.md)\n",
     ),
   );
   try {

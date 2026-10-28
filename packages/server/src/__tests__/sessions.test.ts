@@ -503,14 +503,14 @@ test("US1.6: a write on a feature is refused while its turn runs", async () => {
   expect(after.running).toEqual([]);
 });
 
-test("drafts, priorities, and other features stay writable during a turn", async () => {
+test("proposal files, priorities, and other features stay writable during a turn", async () => {
   const server = await testServer();
   const session = await send(server, { folder: AGENT, text: "Plan it" });
   const [priorities] = await byId(server.app, "Priorities", ["priorities"], ["id", "hash"]);
 
   const added = await mutate(
     server.app,
-    "priorities.add",
+    "proposals.add",
     { hash: priorities.hash, section: "next", text: "Show the agent's last commit" },
     ["id"],
   );
@@ -1333,7 +1333,7 @@ test("a change's files are writable until its agent runs", async () => {
   const folder = "2026-10-16-centred-x";
   const path = `specs/changes/${folder}/proposal.md`;
   addChange(server.repo, folder, { "proposal.md": "# Centre the x\n" });
-  const [before] = await byId(server.app, "Draft", [path], ["id", "hash"]);
+  const [before] = await byId(server.app, "ProposalFile", [path], ["id", "hash"]);
   const saved = await mutate(
     server.app,
     "text.save",

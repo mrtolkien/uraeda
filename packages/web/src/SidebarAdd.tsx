@@ -7,7 +7,7 @@ import { createContext, type ReactNode, Suspense, useContext, useState } from "r
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AddNote, type NoteAdded } from "./AddNote.tsx";
-import { undoAsDraft, usePickedImages } from "./NoteImage.tsx";
+import { undoAsFile, usePickedImages } from "./NoteImage.tsx";
 import { readPriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -17,7 +17,7 @@ import { useRoute } from "./routes.tsx";
 import { InboxView, PrioritiesView } from "./views.ts";
 
 /** The form a ＋ opened, if any. */
-type Form = "note" | "priority" | undefined;
+type Form = "note" | "proposal" | undefined;
 
 /**
  * Where a form opens when a key asks for a place: a priorities section's id, or an inbox category's
@@ -36,7 +36,7 @@ type OpenForm = (form: Form, place?: AddPlace) => void;
 const OpenContext = createContext<OpenForm>(() => {});
 
 /**
- * Opens the inbox's form, `"note"`, or the priorities', `"priority"`, in its default place, or in
+ * Opens the inbox's form, `"note"`, or the priorities', `"proposal"`, in its default place, or in
  * the `place` given as the second argument: a section, or a category (R40).
  */
 export function useOpenAddForm(): OpenForm {
@@ -60,9 +60,9 @@ function Plus({ form, label, text }: { form: Form; label: string; text?: string 
   );
 }
 
-/** ＋ next to Priorities; "＋ Priority", with `text`. */
-export function AddPriorityButton({ text }: { text?: string }) {
-  return <Plus form="priority" label="Add to the priorities" {...(text ? { text } : {})} />;
+/** ＋ next to Priorities; "＋ Proposal", with `text`. */
+export function AddProposalButton({ text }: { text?: string }) {
+  return <Plus form="proposal" label="Add a proposal" {...(text ? { text } : {})} />;
 }
 
 /** ＋ next to Inbox; "＋ Note", with `text`. */
@@ -71,15 +71,15 @@ export function AddNoteButton({ text }: { text?: string }) {
 }
 
 /**
- * Undo of a committed add: the core removes the line by its lines and commits the removal alone,
- * refusing once the file changed since the add's commit, `hash`.
+ * Undo of a committed add: the core removes the proposal by its lines and commits the removal
+ * alone, refusing once the file changed since the add's commit, `hash`.
  */
 async function undoCommitted(
   fate: ReturnType<typeof useFateClient>,
   line: Added,
   hash: string,
 ): Promise<string | undefined> {
-  const result = await fate.mutations.priorities.undoCommitted({
+  const result = await fate.mutations.proposals.undoCommitted({
     input: { hash, lines: [...line.lines] },
     view: PrioritiesView,
   });
@@ -118,12 +118,12 @@ function AddOverlay({
 }
 
 /**
- * The priorities' form: it jots a line down at the end of a section of `PRIORITIES.md`, Next by
+ * The priorities' form: it jots a proposal down at the end of a section of `PRIORITIES.md`, Next by
  * default, at once, committed alone with "Add and commit". A toast says where it went, with Undo,
- * which commits the removal of a committed line. Closing it with Close, Back, or Escape keeps its
- * text.
+ * which commits the removal of a committed proposal. Closing it with Close, Back, or Escape keeps
+ * its text.
  */
-function PriorityOverlay({
+function ProposalOverlay({
   isOpen,
   onClose,
   section,
@@ -144,15 +144,15 @@ function PriorityOverlay({
       return;
     }
     toast(`Added to ${title}, not committed`, async () => {
-      // Found again in the file as it is now, by its text: the line it added, wherever it is.
+      // Found again in the file as it is now, by its text: the proposal it added, wherever it is.
       const now = await readPriorities(fate);
-      const same = now.sections.flatMap((s) => s.entries).filter((e) => e.text === line?.text);
-      const entry = same.find((e) => e.key === line?.key) ?? (same.length === 1 ? same[0] : null);
-      if (!line || !entry) {
+      const same = now.sections.flatMap((s) => s.proposals).filter((p) => p.text === line?.text);
+      const found = same.find((p) => p.key === line?.key) ?? (same.length === 1 ? same[0] : null);
+      if (!line || !found) {
         return `Could not undo: "${line?.text ?? ""}" is no longer in PRIORITIES.md.`;
       }
-      const result = await fate.mutations.priorities.remove({
-        input: { entry: entry.id, hash: now.hash },
+      const result = await fate.mutations.proposals.remove({
+        input: { hash: now.hash, proposal: found.id },
         view: PrioritiesView,
       });
       return result.error ? refusal(result.error).message : undefined;
@@ -162,7 +162,7 @@ function PriorityOverlay({
   return (
     <AddOverlay
       isOpen={isOpen}
-      label="New priority"
+      label="New proposal"
       loading="Loading the priorities"
       onClose={onClose}
     >
@@ -196,8 +196,8 @@ async function undoAdd(
 
 /**
  * The inbox's form, "Add a note": a toast says the note was added, with Undo, which removes the
- * note it added, found by its lines wherever it is now; a note added as a draft goes with its
- * draft, unless the human typed in it. On a feature's or a change's pages, the note is about it. The
+ * note it added, found by its lines wherever it is now; a note added as a file goes with its note
+ * file, unless the human typed in it. On a feature's or a change's pages, the note is about it. The
  * images picked for a note, `images`, are held by the forms' host, so that the form gets them back
  * as it opens again, until they are added, removed, or cancelled (ruling R21).
  */
@@ -220,9 +220,9 @@ function NoteOverlay({
   // The page's folder: the core marks the note with its slug when it is a feature's or a change's.
   const about = "folder" in route ? route.folder : undefined;
 
-  const added = ({ committed, draft, note }: NoteAdded) => {
+  const added = ({ committed, file, note }: NoteAdded) => {
     onClose();
-    if (draft === undefined) {
+    if (file === undefined) {
       toast(
         committed ? "Added to the inbox and committed" : "Added to the inbox, not committed",
         () => undoAdd(fate, note, committed),
@@ -232,10 +232,10 @@ function NoteOverlay({
     }
     picked.clear();
     // By the lines the add wrote, as `undoAdd` finds its note: the core refuses once it changed.
-    toast("Added to the inbox as a draft, not committed", async () =>
+    toast("Added to the inbox as a file, not committed", async () =>
       note
-        ? undoAsDraft(fate, note)
-        : `Could not undo: the note linking ${draft} is no longer in INBOX.md.`,
+        ? undoAsFile(fate, note)
+        : `Could not undo: the note linking ${file} is no longer in INBOX.md.`,
     );
   };
 
@@ -276,8 +276,8 @@ export function SidebarAddForms({ children }: { children: ReactNode }) {
   return (
     <OpenContext value={openForm}>
       {children}
-      {drawn.includes("priority") && (
-        <PriorityOverlay isOpen={open === "priority"} onClose={close} section={place.section} />
+      {drawn.includes("proposal") && (
+        <ProposalOverlay isOpen={open === "proposal"} onClose={close} section={place.section} />
       )}
       {drawn.includes("note") && (
         <NoteOverlay

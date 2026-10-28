@@ -76,9 +76,9 @@ export function useSelectAfterDraw(ref: RefObject<HTMLTextAreaElement | null>, i
 
 /** The options of `useImageText`. */
 type ImageTextOptions = {
-  /** A selection to make once the field is drawn, as a moved draft's new editor does. */
+  /** A selection to make once the field is drawn, as a moved file's new editor does. */
   initialSelection?: [number, number];
-  /** A status to show first, as a moved draft's new editor shows the one its old page left. */
+  /** A status to show first, as a moved file's new editor shows the one its old page left. */
   initialStatus?: AttachStatus;
   /** The drop hint's name for the field, "Drop to add to <label>". */
   label: string;
@@ -263,7 +263,7 @@ export function pastedImages(event: ClipboardEvent<HTMLTextAreaElement>) {
  * meanwhile is kept, before or after them as typed.
  *
  * Files given while others upload wait their turn, in one run: a run starts with `onStart`, and
- * ends once the last of its files is done, with `onText`, or `onMoved` when the file moved, a draft
+ * ends once the last of its files is done, with `onText`, or `onMoved` when the file moved, a file
  * become a folder, whose later files went to its new path.
  */
 export function useImageText(options: ImageTextOptions) {

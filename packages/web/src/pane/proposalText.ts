@@ -1,7 +1,8 @@
-// A draft's or a proposal's text as its edit box holds it: the text after its frontmatter, which
-// the controls above the box set, like the discovery effort. A save joins the frontmatter back.
+// A proposal's text, or a note file's, as its edit box holds it: the text after its frontmatter,
+// which the controls above the box set, like the discovery effort. A save joins the frontmatter
+// back.
 
-/** A draft's fields the split reads: its text, and its frontmatter's lines from the core. */
+/** A file's fields the split reads: its text, and its frontmatter's lines from the core. */
 type Read = {
   document: { frontmatterLines?: { end: number } | null };
   text: string;
@@ -37,9 +38,9 @@ function cut(text: string, end: number | undefined) {
   return { body: lines.slice(at).join("\n"), head: `${lines.slice(0, at).join("\n")}\n` };
 }
 
-/** A draft's text, its line breaks as typed, cut after the frontmatter the core found. */
-export function splitDraft(draft: Read | undefined) {
-  return cut(asTyped(draft?.text ?? ""), draft?.document.frontmatterLines?.end ?? undefined);
+/** A file's text, its line breaks as typed, cut after the frontmatter the core found. */
+export function splitProposal(file: Read | undefined) {
+  return cut(asTyped(file?.text ?? ""), file?.document.frontmatterLines?.end ?? undefined);
 }
 
 /** A line a frontmatter may hold: a field, a list item or a continued value, a comment, or a blank. */

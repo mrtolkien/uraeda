@@ -17,9 +17,12 @@ test("a change's workflow file opens in the UI", () => {
   });
 });
 
-test("a draft opens in its editor, other files as text", () => {
-  expect(pathLink("specs/drafts/idea.md", "uraeda").href).toBe(
-    "/r/uraeda/edit/specs/drafts/idea.md",
+test("a proposal file or a note file opens in its editor, other files as text", () => {
+  expect(pathLink("specs/proposals/idea.md", "uraeda").href).toBe(
+    "/r/uraeda/edit/specs/proposals/idea.md",
+  );
+  expect(pathLink("specs/notes/flat/note.md", "uraeda").href).toBe(
+    "/r/uraeda/edit/specs/notes/flat/note.md",
   );
   expect(pathLink("crates/core/src/api.rs", "uraeda")).toEqual({
     href: "/r/uraeda/raw/crates/core/src/api.rs",

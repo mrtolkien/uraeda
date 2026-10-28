@@ -93,7 +93,7 @@ async function uploadImage(
  * chat, and returns their results in order. Each is announced, "Adding <name>…", then "Added
  * <name>" or the core's refusal, and the last status shows under the field. A file over the core's
  * limit is refused before it is uploaded: a slow upload over it may end in a network error first.
- * `initial` is the status to show first, as a moved draft's page shows the one its old page left.
+ * `initial` is the status to show first, as a moved file's page shows the one its old page left.
  */
 export function useAttach(target: { path: string } | { chat: true }, initial?: AttachStatus) {
   const fetch = useServerFetch();
@@ -121,7 +121,7 @@ export function useAttach(target: { path: string } | { chat: true }, initial?: A
   );
 
   /**
-   * Uploads files in order, to the file at `at`, the target's path by default. A draft that became
+   * Uploads files in order, to the file at `at`, the target's path by default. A file that became
    * a folder with the first image takes the next ones at its new path. `onResult` hears each
    * result as it comes, as the chat's thumbnails show each image once saved.
    */

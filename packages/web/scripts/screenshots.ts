@@ -232,10 +232,10 @@ async function take(shots: Array<Shot>, adapter: FakeAdapter, repo: string, at: 
   await takePriorities(each, shots, repo);
   await takeDecisions(each);
   // A refused Undo: the file changes before the Undo's insert reaches the server. Taken before
-  // the reviews' views, which make a draft of a priority that would show here.
+  // the reviews' views, which expand a proposal into a file that would show here.
   await each("undo-refused", async ({ page }) => {
     await page.route("**/fate**", async (route) => {
-      if (route.request().postData()?.includes("priorities.insert")) {
+      if (route.request().postData()?.includes("proposals.insert")) {
         writeFileSync(
           join(repo, "specs/PRIORITIES.md"),
           `${priorities(repo)}\n- Added elsewhere\n`,
@@ -291,11 +291,11 @@ async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
 
   await each("pane-reading", ({ page }) => show(page, "/priorities/git-listener", "Open draft"));
 
-  // The line in place, its text changed, unsaved, and the draft's text editable under it (C2).
+  // The proposal in place, its text changed, unsaved, and its file's text editable under it (C2).
   await each("pane-editing", async ({ page }) => {
     await show(page, "/priorities/git-listener", "Open draft");
     await page.getByRole("button", { name: "Edit" }).click();
-    await page.getByRole("textbox", { name: "Line" }).fill("Git listener");
+    await page.getByRole("textbox", { name: "Proposal" }).fill("Git listener");
     await settle(page);
   });
   // The pane's unsaved text is kept in the browser: forgotten, so the next view opens as new.
@@ -366,10 +366,10 @@ async function takePriorities(each: Each, shots: Array<Shot>, repo: string) {
     if (size === "phone") {
       await openSessionsTab(page);
     }
-    await page.getByRole("button", { name: "Add to the priorities" }).click();
+    await page.getByRole("button", { name: "Add a proposal" }).click();
     await page
-      .getByRole("dialog", { name: "New priority" })
-      .getByRole("textbox", { name: "Priority" })
+      .getByRole("dialog", { name: "New proposal" })
+      .getByRole("textbox", { name: "Proposal" })
       .fill("Show the agent's last commit");
     await settle(page);
   });
@@ -410,9 +410,10 @@ async function takeReviews(each: Each, first: Page) {
     show(page, "/f/2026-10-11-web-ui/spec.md", "No file spec.md in 2026-10-11-web-ui."),
   );
 
-  // A new draft, made once from its task view, then opened in the editor at every size.
+  // A new proposal file, expanded once from its proposal's view, then opened in the editor at every
+  // size.
   await show(first, "/priorities/claude-code-runner-triggered-manually", "Claude Code runner");
-  await first.getByRole("button", { name: "Draft" }).click();
+  await first.getByRole("button", { name: "Expand" }).click();
   await first.waitForURL(/\/edit\//);
   const editor = here(first);
   await each("editor-hints", ({ page }) => show(page, editor, "To write in the empty sections:"));

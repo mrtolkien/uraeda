@@ -7,7 +7,7 @@ import { type FocusEvent, Fragment, useRef, useState } from "react";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { useInbox, usePriorities } from "../data.ts";
-import { byRunning, lookOf, marksOf } from "../lists/PrioritiesList.tsx";
+import { byRunning, lookOf } from "../lists/PrioritiesList.tsx";
 import { WorkList, type WorkSection } from "../lists/WorkList.tsx";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
@@ -74,9 +74,9 @@ function useFollowed(follow: { column: number } | undefined, sections: Array<Wor
 /**
  * The inbox's three latest notes and the first five entries of Now that are not running, which the
  * core above already shows, as the inbox and the priorities pages draw them: the same cards, side
- * by side as the columns of one list, so that `h l` moves between them as it does on the
- * priorities page. A note shows its category in its border, none for one without; an entry, a draft
- * marked so. A card opens its note or its entry's pane, and each pane ends with its way to its page.
+ * by side as the columns of one list, so that `h l` moves between them as it does on the priorities
+ * page. A note shows its category in its border, none for one without; a proposal, its file marked
+ * so. A card opens its note or its proposal's pane, and each pane ends with its way to its page.
  * From semi-wide, the done items go under the inbox and the usage under the priorities, so that the
  * columns end near each other; on the phone, one under the other, in that order, `below` the list.
  */
@@ -104,9 +104,9 @@ function Lists({
   const here = useRepoPath();
   const { count, latest } = inboxSummary(useInbox());
   const priorities = usePriorities();
-  const entries = (
+  const proposals = (
     priorities
-      ? (byRunning(priorities).sections.find((s) => s.section === "now")?.entries ?? [])
+      ? (byRunning(priorities).sections.find((s) => s.section === "now")?.proposals ?? [])
       : []
   ).slice(0, PRIORITIES_SHOWN);
   const recent = <Recent features={features} rows={rows} />;
@@ -139,19 +139,18 @@ function Lists({
     },
     {
       ...(narrow ? {} : { below: usage }),
-      ...(entries.length === 0 ? { context: "Nothing in Now." } : {}),
+      ...(proposals.length === 0 ? { context: "Nothing in Now." } : {}),
       footer: <PaneLink href={here("/priorities")} label="Open priorities" />,
       icon: "uraeda:list",
       id: "now",
       isFixed: true,
-      rows: entries.map((entry) => ({
-        href: here(`/priorities/${entry.key}`),
-        ...lookOf(entry),
+      rows: proposals.map((proposal) => ({
+        href: here(`/priorities/${proposal.key}`),
+        ...lookOf(proposal),
         isFixed: true,
-        key: entry.key,
-        lines: entry.nestedSpans.map(plain),
-        marks: marksOf(entry),
-        text: plain(entry.spans),
+        key: proposal.key,
+        lines: proposal.nestedSpans.map(plain),
+        text: plain(proposal.spans),
       })),
       title: "Priorities now",
       tone: "blue",

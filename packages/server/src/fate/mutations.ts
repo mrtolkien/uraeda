@@ -14,7 +14,7 @@ import { featureRecord, TRIGGERS, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
 import { settingsMutations } from "./settings-mutations.ts";
 import { sources } from "./sources.ts";
-import { draft, priorities } from "./masked.ts";
+import { priorities, proposalFile } from "./masked.ts";
 import { featureDataView } from "./views.ts";
 
 /** A session, masked to the fields the client selected. */
@@ -25,23 +25,14 @@ const repositoryMutations = {
   ...sessionMoves,
   ...changeStarts,
   ...inboxMutations,
-  "draft.create": {
-    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; line: string }>) =>
-      draft(
-        ctx,
-        await refusable(() => ctx.binding.createDraft(ctx.repo, input.line, input.hash)),
-        select,
-      ),
-    type: "Draft",
-  },
   "feature.start": {
     resolve: async ({
       ctx,
       input,
       select,
-    }: Resolver<{ draft: string; kind?: "change" | "feature"; slug?: string }>) => {
+    }: Resolver<{ kind?: "change" | "feature"; proposal: string; slug?: string }>) => {
       const started = await refusable(() =>
-        ctx.binding.startFeature(ctx.repo, input.draft, input.slug, input.kind),
+        ctx.binding.startFeature(ctx.repo, input.proposal, input.slug, input.kind),
       );
       const feature = await ctx.binding.readFeature(ctx.repo, started.folder);
       return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);
@@ -85,28 +76,6 @@ const repositoryMutations = {
       sources.masked(previewDataView, ctx, await restartPreview(ctx, input.folder), select),
     type: "Preview",
   },
-  "priorities.add": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ commit?: boolean; hash: string; section: string; text: string }>) => {
-      if (!input.commit) {
-        return priorities(
-          ctx,
-          await refusable(() =>
-            ctx.binding.addPriority(ctx.repo, input.section, input.text, input.hash),
-          ),
-          select,
-        );
-      }
-      const result = await refusable(() =>
-        ctx.binding.addPriorityAndCommit(ctx.repo, input.section, input.text, input.hash),
-      );
-      return priorities(ctx, result.priorities, select, result.added);
-    },
-    type: "Priorities",
-  },
   "priorities.commit": {
     resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
       priorities(ctx, await refusable(() => ctx.binding.commitPriorities(ctx.repo)), select),
@@ -117,22 +86,53 @@ const repositoryMutations = {
       priorities(ctx, await refusable(() => ctx.binding.discardPriorities(ctx.repo)), select),
     type: "Priorities",
   },
-  "priorities.edit": {
+  "proposals.add": {
     resolve: async ({
       ctx,
       input,
       select,
-    }: Resolver<{ entry: string; hash: string; text: string }>) =>
+    }: Resolver<{ commit?: boolean; hash: string; section: string; text: string }>) => {
+      if (!input.commit) {
+        return priorities(
+          ctx,
+          await refusable(() =>
+            ctx.binding.addProposal(ctx.repo, input.section, input.text, input.hash),
+          ),
+          select,
+        );
+      }
+      const result = await refusable(() =>
+        ctx.binding.addProposalAndCommit(ctx.repo, input.section, input.text, input.hash),
+      );
+      return priorities(ctx, result.priorities, select, result.added);
+    },
+    type: "Priorities",
+  },
+  "proposals.edit": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ hash: string; proposal: string; text: string }>) =>
       priorities(
         ctx,
         await refusable(() =>
-          ctx.binding.editPriority(ctx.repo, input.entry, input.text, input.hash),
+          ctx.binding.editProposal(ctx.repo, input.proposal, input.text, input.hash),
         ),
         select,
       ),
     type: "Priorities",
   },
-  "priorities.insert": {
+  "proposals.expand": {
+    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; proposal: string }>) =>
+      proposalFile(
+        ctx,
+        await refusable(() => ctx.binding.expandProposal(ctx.repo, input.proposal, input.hash)),
+        select,
+      ),
+    type: "ProposalFile",
+  },
+  "proposals.insert": {
     resolve: async ({
       ctx,
       input,
@@ -141,39 +141,45 @@ const repositoryMutations = {
       priorities(
         ctx,
         await refusable(() =>
-          ctx.binding.insertPriority(ctx.repo, input.section, input.index, input.lines, input.hash),
+          ctx.binding.insertProposal(ctx.repo, input.section, input.index, input.lines, input.hash),
         ),
         select,
       ),
     type: "Priorities",
   },
-  "priorities.move": {
+  "proposals.move": {
     resolve: async ({
       ctx,
       input,
       select,
-    }: Resolver<{ entry: string; hash: string; index: number; section: string }>) =>
+    }: Resolver<{ hash: string; index: number; proposal: string; section: string }>) =>
       priorities(
         ctx,
         await refusable(() =>
-          ctx.binding.movePriority(ctx.repo, input.entry, input.section, input.index, input.hash),
-        ),
-        select,
-      ),
-    type: "Priorities",
-  },
-  "priorities.outline": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ at?: number; entry: string; hash: string; kind: string; text?: string }>) =>
-      priorities(
-        ctx,
-        await refusable(() =>
-          ctx.binding.outlinePriority(
+          ctx.binding.moveProposal(
             ctx.repo,
-            input.entry,
+            input.proposal,
+            input.section,
+            input.index,
+            input.hash,
+          ),
+        ),
+        select,
+      ),
+    type: "Priorities",
+  },
+  "proposals.outline": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ at?: number; hash: string; kind: string; proposal: string; text?: string }>) =>
+      priorities(
+        ctx,
+        await refusable(() =>
+          ctx.binding.outlineProposal(
+            ctx.repo,
+            input.proposal,
             input.at ?? null,
             input.kind,
             input.text ?? null,
@@ -184,18 +190,18 @@ const repositoryMutations = {
       ),
     type: "Priorities",
   },
-  // A drop: the line, or its nested item `at`, under the line `under` (its nested item `underAt`),
-  // or a line of `section`, at `index` there.
-  "priorities.drop": {
+  // A drop: the proposal, or its nested item `at`, under the proposal `under` (its nested item
+  // `underAt`), or a proposal of `section`, at `index` there.
+  "proposals.drop": {
     resolve: async ({
       ctx,
       input,
       select,
     }: Resolver<{
       at?: number;
-      entry: string;
       hash: string;
       index: number;
+      proposal: string;
       section?: string;
       under?: string;
       underAt?: number;
@@ -203,9 +209,9 @@ const repositoryMutations = {
       priorities(
         ctx,
         await refusable(() =>
-          ctx.binding.dropPriority(
+          ctx.binding.dropProposal(
             ctx.repo,
-            input.entry,
+            input.proposal,
             input.at ?? null,
             {
               index: input.index,
@@ -220,20 +226,20 @@ const repositoryMutations = {
       ),
     type: "Priorities",
   },
-  "priorities.remove": {
-    resolve: async ({ ctx, input, select }: Resolver<{ entry: string; hash: string }>) =>
+  "proposals.remove": {
+    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; proposal: string }>) =>
       priorities(
         ctx,
-        await refusable(() => ctx.binding.removePriority(ctx.repo, input.entry, input.hash)),
+        await refusable(() => ctx.binding.removeProposal(ctx.repo, input.proposal, input.hash)),
         select,
       ),
     type: "Priorities",
   },
-  "priorities.undoCommitted": {
+  "proposals.undoCommitted": {
     resolve: async ({ ctx, input, select }: Resolver<{ hash: string; lines: Array<string> }>) =>
       priorities(
         ctx,
-        await refusable(() => ctx.binding.undoCommittedPriority(ctx.repo, input.lines, input.hash)),
+        await refusable(() => ctx.binding.undoCommittedProposal(ctx.repo, input.lines, input.hash)),
         select,
       ),
     type: "Priorities",
@@ -370,9 +376,9 @@ const repositoryMutations = {
     resolve: async ({ ctx, input, select }: Resolver<{ path: string }>) => {
       await writable(ctx, input);
       await refusable(() => ctx.binding.commitText(ctx.repo, input.path));
-      return draft(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
+      return proposalFile(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
     },
-    type: "Draft",
+    type: "ProposalFile",
   },
   "text.discovery": {
     resolve: async ({
@@ -381,7 +387,7 @@ const repositoryMutations = {
       select,
     }: Resolver<{ hash: string; level: string; path: string }>) => {
       await writable(ctx, input);
-      return draft(
+      return proposalFile(
         ctx,
         await refusable(() =>
           ctx.binding.setDiscovery(ctx.repo, input.path, input.level, input.hash),
@@ -389,7 +395,7 @@ const repositoryMutations = {
         select,
       );
     },
-    type: "Draft",
+    type: "ProposalFile",
   },
   "text.save": {
     resolve: async ({
@@ -399,9 +405,9 @@ const repositoryMutations = {
     }: Resolver<{ hash: string; path: string; text: string }>) => {
       await writable(ctx, input);
       await refusable(() => ctx.binding.saveText(ctx.repo, input.path, input.text, input.hash));
-      return draft(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
+      return proposalFile(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
     },
-    type: "Draft",
+    type: "ProposalFile",
   },
 };
 

@@ -28,7 +28,7 @@ export const SAMPLE_FOLDERS = { changes: CHANGE_FOLDERS, features: FEATURE_FOLDE
 const SETUP_TEMPLATES = ["README.md", "CONSTITUTION.md", "PRIORITIES.md", "INBOX.md"];
 
 /** The folders setup creates, each with an empty `.gitkeep`. */
-const SETUP_FOLDERS = ["drafts", "backlog", "decisions", "changes"];
+const SETUP_FOLDERS = ["proposals", "decisions", "changes"];
 
 /** Commits what `git status` shows in `repo`. */
 function commitAll(repo: string, message: string) {

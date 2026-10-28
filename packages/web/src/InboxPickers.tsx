@@ -1,9 +1,9 @@
-// The inbox's pickers and category keys: `p`'s picker of the drafts to promote a note to, `c`'s
-// picker of the categories to move it to, and `C`, `D`, and `R`, which add, delete, and rename a
-// category. Each is drawn from its first opening on.
+// The inbox's pickers and category keys: `p`'s picker of where a note goes up to, in the priorities
+// or a proposal file, `c`'s picker of the categories to move it to, and `C`, `D`, and `R`, which
+// add, delete, and rename a category. Each is drawn from its first opening on.
 import { type ReactNode, useState } from "react";
-import { useDraftTexts, useWorkspace } from "./data.ts";
-import { draftFile } from "./draftFile.ts";
+import { useProposalFileTexts, useWorkspace } from "./data.ts";
+import { proposalFile } from "./proposalFile.ts";
 import { type Category, itemOf, sectionId } from "./inboxPanes.ts";
 import { KeyPicker } from "./keys/KeyPicker.tsx";
 import type { PickerItem } from "./keys/pickerSources.ts";
@@ -18,23 +18,23 @@ export type Actions = ReturnType<typeof useCategoryActions>;
 
 /**
  * `p`'s picker, for the note it was opened on, which `start` opens: drawn from its first opening.
- * The drafts' titles are read once `p` is pressed, for "Add to <draft>".
+ * The proposal files' titles are read once `p` is pressed, for "Add to <proposal>".
  */
 export function usePromote(hash: string, onRefused: (message: string | undefined) => void) {
-  const [wantsDrafts, setWantsDrafts] = useState(false);
+  const [wantsFiles, setWantsFiles] = useState(false);
   const [promoting, setPromoting] = useState<Placed>();
   const [isPromoting, setIsPromoting] = useState(false);
-  const paths = (useWorkspace()?.drafts ?? []).map(draftFile);
-  const drafts = useDraftTexts(wantsDrafts ? paths : []);
+  const paths = (useWorkspace()?.proposals ?? []).map(proposalFile);
+  const files = useProposalFileTexts(wantsFiles ? paths : []);
   /** Opens the picker for the note at `placed`. */
   const start = (placed: Placed) => {
-    setWantsDrafts(true);
+    setWantsFiles(true);
     setPromoting(placed);
     setIsPromoting(true);
   };
   const picker = promoting && (
     <PromotePicker
-      drafts={drafts}
+      files={files}
       hash={hash}
       isOpen={isPromoting}
       key={promoting.note.id}

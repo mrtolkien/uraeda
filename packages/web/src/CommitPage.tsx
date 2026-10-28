@@ -1,7 +1,7 @@
-// The commit page, the one place the inbox's, the priorities', and the drafts' edits are committed:
-// every form and list only edits and saves a file, and this page shows what a commit would hold, as
-// the core lists it, with Commit, and Discard, which asks first. The sidebar's Commit button, the
-// phone's tab, and `g c` lead here while something waits.
+// The commit page, the one place the inbox's, the priorities', and the proposal and note files'
+// edits are committed: every form and list only edits and saves a file, and this page shows what a
+// commit would hold, as the core lists it, with Commit, and Discard, which asks first. The
+// sidebar's Commit button, the phone's tab, and `g c` lead here while something waits.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -152,7 +152,7 @@ export function CommitPage() {
           </HStack>
         ) : (
           <Text color="secondary">
-            The inbox, the priorities, and the drafts are all committed.
+            The inbox, the priorities, and the proposal and note files are all committed.
           </Text>
         )}
       </VStack>

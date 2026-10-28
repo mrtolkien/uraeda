@@ -1,34 +1,33 @@
 // What the New page starts from, the same under all three cards: the inbox's notes and the
-// priorities' lines not yet started, as the lists draw them everywhere else (`WorkList`): cards in
-// two columns, `j k` between them and `h l` across, the search filtering them. Selecting a card
-// inserts its text in the composer, with a link to the file it is in; a card with a draft opens
-// that draft's page instead.
+// priorities' proposals not yet started, as the lists draw them everywhere else (`WorkList`): cards
+// in two columns, `j k` between them and `h l` across, the search filtering them. Selecting a card
+// inserts its text in the composer, with a link to the file it is in; a card with a file of its
+// own, a proposal file or a note file, opens that file's page instead.
 import { useInbox, usePriorities } from "./data.ts";
 import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
-import { draftFile } from "./draftFile.ts";
 import { titleOf } from "./QuickAdd.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { plain } from "./Spans.tsx";
 
-/** What an entry is: a note of the inbox, or a line of the priorities. */
+/** What an entry is: a note of the inbox, or a proposal line of the priorities. */
 export type SourceKind = "line" | "note";
 
-/** A note or a line, as the page reads it: its text, its nested lines, and its draft's page. */
+/** A note or a proposal, as the page reads it: its text, its nested lines, and its file's page. */
 export type Entry = {
-  /** The path the editor takes for its draft, when it has one. */
-  draft?: string;
-  /** The page of its draft, which a card with one opens. */
-  draftHref?: string;
   /** The file it is in. */
   file: string;
   id: string;
   kind: SourceKind;
   lines: ReadonlyArray<string>;
+  /** The path the editor takes for its own file, a proposal or a note file, when it has one. */
+  linked?: string;
+  /** The page of its own file, which a card with one opens. */
+  linkedHref?: string;
   text: string;
 };
 
 /** An entry the composer was filled from: what a start takes out of its file. */
-export type Source = Pick<Entry, "draft" | "id" | "kind"> & {
+export type Source = Pick<Entry, "id" | "kind" | "linked"> & {
   /** The text inserted, to tell whether the composer still holds what it was filled with. */
   inserted: string;
 };
@@ -53,16 +52,16 @@ export function insertion(entry: Entry): string {
 }
 
 /**
- * A line of the priorities as an entry to start from: its nested items as lines, each indented two
- * spaces a level below the first.
+ * A proposal line of the priorities as an entry to start from: its nested items as lines, each
+ * indented two spaces a level below the first.
  */
 export function lineEntry(
-  line: NonNullable<ReturnType<typeof usePriorities>>["sections"][number]["entries"][number],
+  line: NonNullable<ReturnType<typeof usePriorities>>["sections"][number]["proposals"][number],
   here: ReturnType<typeof useRepoPath>,
 ): Entry {
   return {
-    ...(line.draft ? { draft: line.draft.path } : {}),
-    ...(line.draft ? { draftHref: here(`/edit/${line.draft.path}`) } : {}),
+    ...(line.file ? { linked: line.file.path } : {}),
+    ...(line.file ? { linkedHref: here(`/edit/${line.file.path}`) } : {}),
     file: FILES.line,
     id: line.id,
     kind: "line",
@@ -87,8 +86,8 @@ const marksOf = (...marks: ReadonlyArray<string | false | undefined>) => {
 };
 
 /**
- * The entries as the list's sections, "Inbox" and "Priorities", the notes that are not in a draft
- * apart from the lines that have not started, and each card's entry by its address. The search
+ * The entries as the list's sections, "Inbox" and "Priorities", the notes apart from the proposals
+ * that have not started, and each card's entry by its address. The search
  * keeps the cards whose text, or a nested line, holds it.
  */
 function useEntries(search: string) {
@@ -101,8 +100,8 @@ function useEntries(search: string) {
     byHref.set(href, entry);
     return {
       href,
-      // A line with a draft reads as a link to its file.
-      ...(entry.draftHref ? { icon: "uraeda:file-text" as const, isLinked: true } : {}),
+      // An entry with a file of its own reads as a link to it.
+      ...(entry.linkedHref ? { icon: "uraeda:file-text" as const, isLinked: true } : {}),
       isFixed: true,
       key,
       lines: entry.lines,
@@ -113,8 +112,8 @@ function useEntries(search: string) {
   const notes = (inbox?.categories ?? []).flatMap((category) =>
     category.notes.flatMap((note) => {
       const entry: Entry = {
-        ...(note.draft === undefined ? {} : { draft: note.draft }),
-        ...(note.draft === undefined ? {} : { draftHref: here(`/edit/${draftFile(note.draft)}`) }),
+        ...(note.file === undefined ? {} : { linked: note.file }),
+        ...(note.file === undefined ? {} : { linkedHref: here(`/edit/${note.file}`) }),
         file: FILES.note,
         id: note.id,
         kind: "note",
@@ -128,9 +127,9 @@ function useEntries(search: string) {
     }),
   );
   const lines = (priorities?.sections ?? []).flatMap((section) =>
-    section.entries
-      // Not running, and linking no file but a draft: those have started.
-      .filter((line) => !line.running && (line.draft || !line.spans.some((span) => span.link)))
+    section.proposals
+      // Not running, and linking no file but its proposal file: those have started.
+      .filter((line) => !line.running && (line.file || !line.spans.some((span) => span.link)))
       .flatMap((line) => {
         const entry = lineEntry(line, here);
         if (!holds(needle, [entry.text, ...entry.lines])) {
@@ -173,7 +172,7 @@ function useEntries(search: string) {
 
 /**
  * The list under the composer, whatever the kind: `onInsert` takes the entry a card selects, unless
- * the entry has a draft, whose page opens.
+ * the entry has a file of its own, whose page opens.
  */
 export function EntryLists({
   onInsert,
@@ -188,8 +187,8 @@ export function EntryLists({
       layout="columns"
       onOpen={(href) => {
         const entry = byHref.get(href);
-        if (entry?.draftHref) {
-          navigate(entry.draftHref);
+        if (entry?.linkedHref) {
+          navigate(entry.linkedHref);
         } else if (entry) {
           onInsert(entry);
         }

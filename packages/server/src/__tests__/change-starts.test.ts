@@ -1,9 +1,9 @@
 // The starts of a change from the New page's lists: an inbox note (US3 2), its note leaving the
-// inbox in its own commit, and a priority line's draft, each sending the change's first run.
-import { readFileSync, writeFileSync } from "node:fs";
+// inbox in its own commit, and a proposal's file, each sending the change's first run.
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { binding, type Data, git, mutate, testServer } from "./helpers.ts";
+import { binding, type Data, fixture, git, mutate, testServer } from "./helpers.ts";
 
 const INBOX = "specs/INBOX.md";
 /** A note of the fixture's inbox, committed. */
@@ -12,12 +12,12 @@ const STARTED_FIELDS = ["id", "folder", "kind", "session"];
 
 type Server = Awaited<ReturnType<typeof testServer>>;
 
-/** The id of the note reading `text`, and the inbox's hash. */
+/** The id of the note reading `text`, or whose note file it titles, and the inbox's hash. */
 async function noteOf(server: Server, text: string) {
   const inbox = await binding.readInbox(server.repo);
   const note = inbox.categories
     .flatMap((category) => category.notes)
-    .find((found) => found.text === text);
+    .find((found) => found.text === text || found.fileTitle === text);
   return { hash: inbox.hash, note: note!.id };
 }
 
@@ -58,6 +58,33 @@ test("change.fromNote starts a change from a committed note, which leaves the in
   expect(sent.text).toMatch(new RegExp(`^/uraeda Continue the change specs/changes/${folder}/`));
 });
 
+/** A note with an image: its note file, and the image, read before the note leaves the inbox. */
+test("change.fromNote starts a change with its note file's image, and the note file leaves", async () => {
+  const server = await testServer();
+  const { hash } = await binding.readInbox(server.repo);
+  await binding.addNoteWithImages(
+    server.repo,
+    "Headings are flat",
+    hash,
+    [readFileSync(fixture("images/phone.png"))],
+    ["phone.png"],
+  );
+  server.adapter.script([]);
+
+  const started = await mutate(
+    server.app,
+    "change.fromNote",
+    await noteOf(server, "Headings are flat"),
+    STARTED_FIELDS,
+  );
+
+  expect(started.error).toBeUndefined();
+  const { folder } = started.data as Record<string, string>;
+  const files = git(server.repo, "ls-tree", "-r", "--name-only", `change/${folder}`);
+  expect(files).toMatch(new RegExp(`^specs/changes/${folder}/images/.+\\.webp$`, "m"));
+  expect(existsSync(join(server.repo, "specs/notes/headings-are-flat"))).toBe(false);
+});
+
 test("change.fromNote refused keeps the note in the inbox", async () => {
   const server = await testServer();
   const taken = await mutate(
@@ -84,15 +111,15 @@ test("change.fromNote refused keeps the note in the inbox", async () => {
   );
 });
 
-/** US3 2, from a priority line: its draft starts as a change, and the change's agent works. */
-test("change.startDraft starts the draft as a change and sends its first run", async () => {
+/** US3 2, from a proposal: its file starts as a change, and the change's agent works. */
+test("change.startProposal starts the proposal file as a change and sends its first run", async () => {
   const server = await testServer();
   server.adapter.script([]);
 
   const started = await mutate(
     server.app,
-    "change.startDraft",
-    { draft: "specs/drafts/git-listener.md", slug: "git-listener" },
+    "change.startProposal",
+    { proposal: "specs/proposals/git-listener.md", slug: "git-listener" },
     STARTED_FIELDS,
   );
 

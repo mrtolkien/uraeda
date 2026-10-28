@@ -16,7 +16,9 @@ export type OutlineItem<Source> = {
   /** Absent for a row added and not written yet. */
   source?: Source;
   spans: ReadonlyArray<Span>;
-  /** Whether it stays an item of its section, never nested under another: a line with a draft. */
+  /**
+   * Whether it stays an item of its section, never nested under another: a proposal with a file.
+   */
   staysItem?: boolean;
   /** The markdown of its text, as its field edits it. */
   text: string;

@@ -84,29 +84,26 @@ async function drop(files: Array<File>) {
   });
 }
 
-/** The draft the line of `note` links in `INBOX.md`, from the repository's top level. */
-function draftOf(repo: string, note: string) {
+/** The note file the line of `note` links in `INBOX.md`, from the repository's top level. */
+function fileOf(repo: string, note: string) {
   const line = read(repo, PATH)
     .split("\n")
     .find((one) => one.includes(note));
   const target = line?.match(/\]\(([^)]+)\)/)?.[1];
-  expect(target, `${note} links a draft: ${line}`).toBeDefined();
+  expect(target, `${note} links a note file: ${line}`).toBeDefined();
   return join("specs", target!).replace(/\/$/, "");
 }
 
-/** The draft folder's file names, its images' folder included. */
-function filesOf(repo: string, draft: string) {
-  const folder = join(repo, draft.endsWith(".md") ? join(draft, "..") : draft);
+/** The note file folder's file names, its images' folder included. */
+function filesOf(repo: string, file: string) {
+  const folder = join(repo, file.endsWith(".md") ? join(file, "..") : file);
   return {
     images: readdirSync(join(folder, "images")),
-    text: readFileSync(
-      draft.endsWith(".md") ? join(repo, draft) : join(folder, "proposal.md"),
-      "utf8",
-    ),
+    text: readFileSync(file.endsWith(".md") ? join(repo, file) : join(folder, "note.md"), "utf8"),
   };
 }
 
-test("the add form takes a pasted image, and adds the note as a draft holding it", async () => {
+test("the add form takes a pasted image, and adds the note as a file holding it", async () => {
   const { link, repo } = await onNote("Idea two");
   await press("a", link);
   const field = await screen.findByPlaceholderText("What did you notice?");
@@ -116,15 +113,15 @@ test("the add form takes a pasted image, and adds the note as a draft holding it
 
   const form = within(screen.getByRole("dialog", { name: "Add a note" }));
   expect(await form.findByRole("button", { name: /^Remove/ })).toBeTruthy();
-  await click(form.getByRole("button", { name: "Add as a draft" }));
+  await click(form.getByRole("button", { name: "Add as a file" }));
   await new Promise((resolve) => setTimeout(resolve, 3000));
   await waitFor(() => expect(read(repo, PATH)).toMatch(/\[Headings are flat\]\(/));
-  const { images, text } = filesOf(repo, draftOf(repo, "Headings are flat"));
+  const { images, text } = filesOf(repo, fileOf(repo, "Headings are flat"));
   expect(images).toHaveLength(1);
   expect(text).toContain(`](images/${images[0]})`);
 });
 
-test("an image pasted in a note's field saves its text first, then makes it a draft holding it", async () => {
+test("an image pasted in a note's field saves its text first, then gives it a file holding it", async () => {
   const { link, repo } = await onNote("Idea two");
   await press("i", link);
   const field = await screen.findByRole("textbox", { name: "Edit the note" });
@@ -133,7 +130,7 @@ test("an image pasted in a note's field saves its text first, then makes it a dr
   await paste(field, [png("")]);
 
   await waitFor(() => expect(read(repo, PATH)).toMatch(/- \[Idea deux\]\(/));
-  const { images, text } = filesOf(repo, draftOf(repo, "Idea deux"));
+  const { images, text } = filesOf(repo, fileOf(repo, "Idea deux"));
   expect(images).toHaveLength(1);
   expect(text).toContain("Idea deux");
   expect(text).toContain(`](images/${images[0]})`);
@@ -147,7 +144,7 @@ test("an image dropped on the page goes to the selected note", async () => {
   await drop([png("dropped.png")]);
 
   await waitFor(() => expect(read(repo, PATH)).toMatch(/- \[Idea one\]\(/));
-  expect(filesOf(repo, draftOf(repo, "Idea one")).images).toHaveLength(1);
+  expect(filesOf(repo, fileOf(repo, "Idea one")).images).toHaveLength(1);
   expect(read(repo, PATH)).toContain("- Idea two\n");
 });
 
@@ -161,17 +158,17 @@ test("an image dropped with no note selected opens the add form holding it", asy
 
   const form = within(await screen.findByRole("dialog", { name: "Add a note" }));
   expect(await form.findByRole("button", { name: /^Remove dropped\.png/ })).toBeTruthy();
-  expect(form.getByRole("button", { name: "Add as a draft" })).toBeTruthy();
+  expect(form.getByRole("button", { name: "Add as a file" })).toBeTruthy();
   expect(read(repo, PATH)).toBe(INBOX);
 });
 
-test("the selected note shows its images under its row, and Remove takes one out of its draft", async () => {
+test("the selected note shows its images under its row, and Remove takes one out of its file", async () => {
   const { repo } = await onNote("Idea two");
   await selectIdeaOne();
   await drop([png("dropped.png")]);
   await waitFor(() => expect(read(repo, PATH)).toMatch(/- \[Idea one\]\(/));
-  const draft = draftOf(repo, "Idea one");
-  const [image] = filesOf(repo, draft).images;
+  const file = fileOf(repo, "Idea one");
+  const [image] = filesOf(repo, file).images;
 
   // Another row selected: the note's images are not drawn, and its row says it has one.
   act(() => controlOf("Idea one").focus());
@@ -193,17 +190,17 @@ test("the selected note shows its images under its row, and Remove takes one out
   await press("Enter", remove);
   expect(screen.queryByRole("textbox", { name: "Edit the note" })).toBeNull();
 
-  const before = filesOf(repo, draft).text;
+  const before = filesOf(repo, file).text;
   await click(remove);
 
-  await waitFor(() => expect(filesOf(repo, draft).text).not.toContain(`images/${image}`));
-  expect(await screen.findByText(`Removed ${image} from the note's draft`)).toBeTruthy();
+  await waitFor(() => expect(filesOf(repo, file).text).not.toContain(`images/${image}`));
+  expect(await screen.findByText(`Removed ${image} from the note's file`)).toBeTruthy();
   expect(screen.queryByRole("textbox", { name: "Edit the note" })).toBeNull();
   // The image's file stays, for `ura inbox clean` or a commit to delete.
-  expect(filesOf(repo, draft).images).toEqual([image]);
-  // Undo puts the link back where it was, the draft as it was before.
+  expect(filesOf(repo, file).images).toEqual([image]);
+  // Undo puts the link back where it was, the file as it was before.
   await click(await screen.findByRole("button", { name: /^Undo/ }));
-  await waitFor(() => expect(filesOf(repo, draft).text).toBe(before));
+  await waitFor(() => expect(filesOf(repo, file).text).toBe(before));
 });
 
 test("a drop goes to the inbox, not to the add form once it closed", async () => {

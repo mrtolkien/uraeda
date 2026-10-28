@@ -76,12 +76,12 @@ export function findBindings(open: (kind: PickerKind | "all") => void): Array<Bi
   ];
 }
 
-/** The forms a New key opens: the inbox's note and the priorities' line. */
-export type AddForm = "note" | "priority";
+/** The forms a New key opens: the inbox's note and the priorities' proposal. */
+export type AddForm = "note" | "proposal";
 
 /**
  * `Space n`: a session, a change, a feature (the pages the New page's cards lead to), a note, and
- * a priority (the forms of the column's buttons).
+ * a proposal (the forms of the column's buttons).
  */
 export function newBindings(
   go: (path: string) => void,
@@ -115,8 +115,8 @@ export function newBindings(
     {
       icon: KIND_ICONS.priorities,
       keys: "space n p",
-      label: "Priority",
-      run: () => openForm("priority"),
+      label: "Proposal",
+      run: () => openForm("proposal"),
     },
   ];
 }

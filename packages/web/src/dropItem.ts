@@ -32,7 +32,7 @@ export function dropQuestion({ kind, slug }: SessionItem, branch: string) {
  * commit, or Now did not list the item, so nothing was removed.
  */
 export const UNCOMMITTED =
-  "The priorities were not committed: if Now listed it, its entry’s removal waits in specs/PRIORITIES.md.";
+  "The priorities were not committed: if Now listed it, its proposal’s removal waits in specs/PRIORITIES.md.";
 
 /**
  * How a drop ended: the human kept the item, the server refused it, or it happened, with the lines

@@ -1,11 +1,11 @@
-// The priorities on the shared list, as an outliner (see `useOutline`): "Ongoing", the entries whose
-// feature or change runs, in green, then Now, Next, Later, and Blocked, in the file's order, as
-// columns, each with its context, its colour, and its Add row. Blocked shows only when it has
-// lines. Each line draws its nested items as rows of their own, at any depth, edited in place.
-// The file keeps the started entries at the top of Now; on screen they show apart.
+// The priorities on the shared list, as an outliner (see `useOutline`): "Ongoing", the proposals
+// whose feature or change runs, in green, then Now, Next, Later, and Blocked, in the file's order,
+// as columns, each with its context, its colour, and its Add row. Blocked shows only when it has
+// proposals. Each proposal draws its nested items as rows of their own, at any depth, edited in
+// place. The file keeps the started proposals at the top of Now; on screen they show apart.
 import { useEffect, useState } from "react";
 import { useFateClient } from "react-fate";
-import type { PriorityEntry } from "uraeda-server/fate";
+import type { Proposal } from "uraeda-server/fate";
 import type { usePriorities } from "../data.ts";
 import { stepKindOf } from "../sidebar/cards.ts";
 import { STEP_ICONS } from "../sidebar/StepIcon.tsx";
@@ -13,7 +13,7 @@ import { titleOf, TITLES } from "../QuickAdd.tsx";
 import { refusal } from "../errors.ts";
 import { currentEntry, navigate, useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
-import { DraftView, PrioritiesView } from "../views.ts";
+import { ProposalFileView, PrioritiesView } from "../views.ts";
 import { fileIndex } from "./cardMoves.ts";
 import { type Outline, type OutlineItem, useOutline } from "./useOutline.tsx";
 import {
@@ -33,55 +33,50 @@ const TONES: Record<string, Tone> = {
   now: "blue",
 };
 
-/** An entry's marks, as text after its own: "backlog". A running entry's step is its icon. */
-export function marksOf(entry: PriorityEntry) {
-  return !entry.running && entry.draft?.backlog ? "backlog" : undefined;
-}
-
 /**
- * What an entry's row draws of it besides its text: the icon of the step running on it, as the
- * sidebar draws it, or an icon for the file of its draft. Either way its text is a hyperlink: a
- * click leads to its feature's page, or its draft's.
+ * What a proposal's row draws of it besides its text: the icon of the step running on it, as the
+ * sidebar draws it, or an icon for its file. Either way its text is a hyperlink: a click leads to
+ * its feature's page, or its file's.
  */
-export function lookOf(entry: PriorityEntry) {
-  if (entry.running) {
-    return { icon: STEP_ICONS[stepKindOf(entry.running.step)], isLinked: true };
+export function lookOf(proposal: Proposal) {
+  if (proposal.running) {
+    return { icon: STEP_ICONS[stepKindOf(proposal.running.step)], isLinked: true };
   }
-  return entry.draft ? { icon: "uraeda:file-text" as const, isLinked: true } : {};
+  return proposal.file ? { icon: "uraeda:file-text" as const, isLinked: true } : {};
 }
 
 /**
- * The priorities as the lists show them (R10): the running entries of every section, apart, then
- * each section with its entries not running. Each keeps the file's order.
+ * The priorities as the lists show them (R10): the running proposals of every section, apart, then
+ * each section with its proposals not running. Each keeps the file's order.
  */
 export function byRunning(priorities: Pick<Priorities, "sections">) {
   return {
     ongoing: priorities.sections.flatMap((section) =>
-      section.entries.filter((entry) => entry.running),
+      section.proposals.filter((proposal) => proposal.running),
     ),
     sections: priorities.sections.map((section) => ({
       ...section,
-      entries: section.entries.filter((entry) => !entry.running),
+      proposals: section.proposals.filter((proposal) => !proposal.running),
     })),
   };
 }
 
-/** The priorities as the outliner reads them: a running entry stays as it is. */
-function outlineOf(priorities: Priorities): Outline<PriorityEntry> {
+/** The priorities as the outliner reads them: a running proposal stays as it is. */
+function outlineOf(priorities: Priorities): Outline<Proposal> {
   return {
     hash: priorities.hash,
     sections: priorities.sections.map((section) => ({
       id: section.section,
-      items: section.entries.map((entry) => ({
-        children: entry.children,
-        id: entry.id,
-        isFixed: entry.running !== undefined,
-        key: entry.key,
-        source: entry,
-        spans: entry.spans,
-        // Its draft is found by its link, a line's: nested, it would have none.
-        staysItem: entry.draft !== undefined,
-        text: entry.text,
+      items: section.proposals.map((proposal) => ({
+        children: proposal.children,
+        id: proposal.id,
+        isFixed: proposal.running !== undefined,
+        key: proposal.key,
+        source: proposal,
+        spans: proposal.spans,
+        // Its file is found by its link, a proposal line's: nested, it would have none.
+        staysItem: proposal.file !== undefined,
+        text: proposal.text,
       })),
     })),
   };
@@ -105,20 +100,20 @@ function usePrioritiesOutline(
     {
       add: (now, section, text) =>
         run(() =>
-          fate.mutations.priorities.add({
+          fate.mutations.proposals.add({
             input: { hash: now.hash, section, text },
             view: PrioritiesView,
           }),
         ),
       drop: (now, from, to) => {
-        // A line among a section's lines counts them as they show, the running ones apart.
-        const entries = now.sections.find((s) => "section" in to && s.section === to.section);
+        // A proposal among a section's proposals counts them as they show, the running ones apart.
+        const target = now.sections.find((s) => "section" in to && s.section === to.section);
         return run(() =>
-          fate.mutations.priorities.drop({
+          fate.mutations.proposals.drop({
             input: {
               ...(from.at === undefined ? {} : { at: from.at }),
-              entry: from.id,
               hash: now.hash,
+              proposal: from.id,
               ...("under" in to
                 ? {
                     index: to.index,
@@ -126,7 +121,7 @@ function usePrioritiesOutline(
                     ...(to.under.at === undefined ? {} : { underAt: to.under.at }),
                   }
                 : {
-                    index: fileIndex(entries?.entries ?? [], "", to.index),
+                    index: fileIndex(target?.proposals ?? [], "", to.index),
                     section: to.section,
                   }),
             },
@@ -136,12 +131,12 @@ function usePrioritiesOutline(
       },
       edit: (now, id, at, kind, text) =>
         run(() =>
-          fate.mutations.priorities.outline({
+          fate.mutations.proposals.outline({
             input: {
               ...(at === undefined ? {} : { at }),
-              entry: id,
               hash: now.hash,
               kind,
+              proposal: id,
               ...(text === undefined ? {} : { text }),
             },
             view: PrioritiesView,
@@ -150,7 +145,7 @@ function usePrioritiesOutline(
       read: outlineOf,
     },
     onMoveRefused,
-    { edit: "Edit the line", fresh: "New line" },
+    { edit: "Edit the proposal", fresh: "New proposal" },
   );
 }
 
@@ -166,18 +161,17 @@ function sectionsOf(
   priorities: Priorities,
   here: (path: string) => string,
 ): Array<WorkSection> {
-  /** An entry's row, with its nested rows, at `index` of its section in the file. */
-  const row = (item: OutlineItem<PriorityEntry>, section: string, index: number): WorkRow => {
-    const entry = item.source;
+  /** A proposal's row, with its nested rows, at `index` of its section in the file. */
+  const row = (item: OutlineItem<Proposal>, section: string, index: number): WorkRow => {
+    const proposal = item.source;
     const href = here(`/priorities/${item.key}`);
     const { isWritten, ...drawn } = outline.rowOf(item, { index, section }, href);
     return {
       ...drawn,
-      // A line with a draft, or running, opens its page; any other is edited in place.
-      editsInPlace: isWritten && !entry?.running && !entry?.draft,
+      // A proposal with a file, or running, opens its page; any other is edited in place.
+      editsInPlace: isWritten && !proposal?.running && !proposal?.file,
       href,
-      ...(entry ? lookOf(entry) : {}),
-      marks: entry ? marksOf(entry) : undefined,
+      ...(proposal ? lookOf(proposal) : {}),
       text: plain(item.spans),
     };
   };
@@ -193,7 +187,7 @@ function sectionsOf(
     title: "Ongoing",
     tone: "green",
   };
-  // A Blocked without lines is not drawn (R1): the file keeps it, the page does not show it.
+  // A Blocked without proposals is not drawn (R1): the file keeps it, the page does not show it.
   const visible = outline.drawn.sections.filter(
     (section) => section.id !== "blocked" || section.items.some((item) => !item.source?.running),
   );
@@ -207,8 +201,8 @@ function sectionsOf(
         ...section.items.flatMap((item, index) =>
           item.source?.running ? [] : [row(item, section.id, index)],
         ),
-        // The section's last row adds a line: the keyboard's cursor stops on it, and Enter opens a
-        // new row at the section's end (the form has no Blocked, R80).
+        // The section's last row adds a proposal: the keyboard's cursor stops on it, and Enter
+        // opens a new row at the section's end (the form has no Blocked, R80).
         ...(TITLES.has(section.id)
           ? [
               {
@@ -233,10 +227,10 @@ function sectionsOf(
 }
 
 /**
- * What a line's keys open or make: Enter or a click on a row not edited in place, `p`, and `s`. A
- * failed draft goes to `onMoveRefused`.
+ * What a proposal's keys open or make: Enter or a click on a row not edited in place, `p`, and `s`.
+ * A failed expand goes to `onMoveRefused`.
  */
-function useLineActions(
+function useProposalKeys(
   priorities: Priorities,
   outline: PrioritiesOutline,
   onMoveRefused: ((message: string | undefined) => void) | undefined,
@@ -244,15 +238,15 @@ function useLineActions(
   const fate = useFateClient();
   const here = useRepoPath();
 
-  /** The line of a row: itself, or the line a nested row is in. */
-  const lineOf = (row: WorkRow) =>
+  /** The proposal of a row: itself, or the proposal a nested row is in. */
+  const proposalOf = (row: WorkRow) =>
     priorities.sections
-      .flatMap((section) => section.entries)
-      .find((entry) => entry.key === (row.parent ?? row.key));
+      .flatMap((section) => section.proposals)
+      .find((proposal) => proposal.key === (row.parent ?? row.key));
 
   /**
-   * Enter or a click on a row not edited in place: a line that runs opens its feature, a line with
-   * a draft opens the draft's page, and an Add row opens a new row at its section's end.
+   * Enter or a click on a row not edited in place: a proposal that runs opens its feature, one with
+   * a file opens the file's page, and an Add row opens a new row at its section's end.
    */
   const open = (href: string) => {
     const adding = /#add-([a-z]+)$/.exec(href)?.[1];
@@ -260,32 +254,32 @@ function useLineActions(
       outline.openAt(adding);
       return;
     }
-    const entry = priorities.sections
-      .flatMap((s) => s.entries)
+    const proposal = priorities.sections
+      .flatMap((s) => s.proposals)
       .find((candidate) => here(`/priorities/${candidate.key}`) === href);
-    if (entry?.running) {
-      navigate(here(`/f/${entry.running.folder}`));
-    } else if (entry?.draft) {
-      navigate(here(`/edit/${entry.draft.path}`));
+    if (proposal?.running) {
+      navigate(here(`/f/${proposal.running.folder}`));
+    } else if (proposal?.file) {
+      navigate(here(`/edit/${proposal.file.path}`));
     }
   };
 
   /**
-   * `p`: the line becomes a draft, its text under "What", and the draft's page opens with the
-   * focus in its text. A line with a draft opens it; one that runs or links a file has none to make.
-   * A nested row's is its line's.
+   * `p`: the proposal is expanded into a file, its text under "What", and the file's page opens
+   * with the focus in its text. A proposal with a file opens it; one that runs or links another
+   * file has none to make. A nested row's is its proposal's.
    */
   const onPromote = (row: WorkRow) => {
-    const entry = lineOf(row);
-    if (!entry || entry.running || entry.spans.some((span) => span.link?.path)) {
-      return entry?.draft
-        ? void navigate(here(`/edit/${entry.draft.path}`), { focus: "text" })
+    const proposal = proposalOf(row);
+    if (!proposal || proposal.running || proposal.spans.some((span) => span.link?.path)) {
+      return proposal?.file
+        ? void navigate(here(`/edit/${proposal.file.path}`), { focus: "text" })
         : false;
     }
     void (async () => {
-      const made = await fate.mutations.draft.create({
-        input: { hash: priorities.hash, line: entry.id },
-        view: DraftView,
+      const made = await fate.mutations.proposals.expand({
+        input: { hash: priorities.hash, proposal: proposal.id },
+        view: ProposalFileView,
       });
       const path = made.result?.path;
       if (made.error || typeof path !== "string") {
@@ -298,20 +292,20 @@ function useLineActions(
   };
 
   /**
-   * `s`: the New page, its composer holding the line, its nested rows, and a link to the file;
-   * nothing starts before the human sends it. A line with a draft starts from its draft's page; a
-   * running one has started.
+   * `s`: the New page, its composer holding the proposal, its nested rows, and a link to the file;
+   * nothing starts before the human sends it. A proposal with a file starts from its file's page;
+   * a running one has started.
    */
   const onStart = (row: WorkRow) => {
-    const entry = lineOf(row);
-    if (!entry || entry.running) {
+    const proposal = proposalOf(row);
+    if (!proposal || proposal.running) {
       return;
     }
-    if (entry.draft) {
-      navigate(here(`/edit/${entry.draft.path}`));
+    if (proposal.file) {
+      navigate(here(`/edit/${proposal.file.path}`));
       return;
     }
-    navigate(here("/new?kind=feature"), { insert: `line:${entry.id}` });
+    navigate(here("/new?kind=feature"), { insert: `line:${proposal.id}` });
   };
 
   return { onPromote, onStart, open };
@@ -373,22 +367,22 @@ export function PrioritiesList({
   const pathname = useLocalPath();
   const outline = usePrioritiesOutline(priorities, run, onMoveRefused);
   const all = sectionsOf(outline, priorities, here);
-  const { onPromote, onStart, open } = useLineActions(priorities, outline, onMoveRefused);
+  const { onPromote, onStart, open } = useProposalKeys(priorities, outline, onMoveRefused);
 
-  /** A line moved by a drop or its keys, in turn with the outline's writes. */
+  /** A proposal moved by a drop or its keys, in turn with the outline's writes. */
   const onMove = (key: string, section: string, index: number) =>
     outline.write((now) => {
-      const entry = now.sections.flatMap((s) => s.entries).find((one) => one.key === key);
+      const proposal = now.sections.flatMap((s) => s.proposals).find((one) => one.key === key);
       const target = now.sections.find((s) => s.section === section);
-      if (!entry || !target) {
-        return Promise.resolve("The line or its section is no longer in PRIORITIES.md.");
+      if (!proposal || !target) {
+        return Promise.resolve("The proposal or its section is no longer in PRIORITIES.md.");
       }
       return run(() =>
-        fate.mutations.priorities.move({
+        fate.mutations.proposals.move({
           input: {
-            entry: entry.id,
             hash: now.hash,
-            index: fileIndex(target.entries, key, index),
+            index: fileIndex(target.proposals, key, index),
+            proposal: proposal.id,
             section,
           },
           view: PrioritiesView,

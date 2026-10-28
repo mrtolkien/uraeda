@@ -22,7 +22,7 @@ import { useMenuPresentation } from "./layout/useWidthClass.ts";
 import {
   type AddInput,
   addedNote,
-  AS_DRAFT,
+  AS_FILE,
   type Picked,
   PickedImage,
   type PickedChanges,
@@ -120,16 +120,16 @@ function useTypedNote(start?: string | null) {
   };
 }
 
-/** What a note's add reports: the note, its draft when added as one, and its commit, if any. */
+/** What a note's add reports: the note, its note file when added as one, and its commit, if any. */
 export type NoteAdded = {
   /** With "Add and commit", the inbox's version after the commit, for Undo to remove it from. */
   committed?: { hash: string };
-  draft?: string;
+  file?: string;
   note: InboxNote | undefined;
 };
 
 /**
- * Add, Add as a draft with images, or "Add and commit": the note through the core, its refusal as
+ * Add, Add as a file with images, or "Add and commit": the note through the core, its refusal as
  * the message to show, and a conflict reading the inbox again, for the next try to add to it as it
  * is now. When "Add and commit" only added, `notice` says why, and the form stays open.
  */
@@ -169,7 +169,7 @@ function useAdd({
       return;
     }
     typed.added(text, typed.name.text);
-    onAdded({ draft: result.draft, note: result.note });
+    onAdded({ file: result.file, note: result.note });
   };
 
   const add = async (commit = false) => {
@@ -231,7 +231,8 @@ function useAdd({
  * text is kept as the overlay closes and restored as it opens again (`useTypedNote`); Cancel asks
  * "Discard your changes?" first when it holds text or images. Enter adds and commits, as "Add and
  * commit" does, beside Add. With `images`, picked with "Attach an image", dropped, or pasted, and
- * held by the overlay (`picked`), Add becomes "Add as a draft", the one way to add, which Enter takes.
+ * held by the overlay (`picked`), Add becomes "Add as a file", the one way to add, which Enter
+ * takes.
  */
 export function AddNote({
   about,
@@ -252,7 +253,7 @@ export function AddNote({
   const confirm = useConfirm();
   const typed = useTypedNote(category);
   const { add, message, names, notice, ready, status } = useAdd({ about, images, onAdded, typed });
-  // A draft with its images is never committed by its add.
+  // A note file with its images is never committed by its add.
   const commits = images.length === 0;
   const field = useRef<HTMLTextAreaElement>(null);
   const drop = useImageDrop({ label: "the note", onFiles: picked.add, priority: 1, ref: field });
@@ -282,7 +283,7 @@ export function AddNote({
           kind="line"
           label="Note"
           onChange={typed.note.change}
-          // A note is one line: Enter adds and commits it, or adds it as a draft with its images.
+          // A note is one line: Enter adds and commits it, or adds it as a file with its images.
           onKeyDown={enterAdds(() => (commits ? ready && commit.onAddAndCommit() : void add()))}
           onPaste={(event: ClipboardEvent<HTMLTextAreaElement>) => {
             const files = pastedImages(event);
@@ -316,14 +317,14 @@ export function AddNote({
           </HStack>
           <AttachStatus status={status} />
           <Text color="secondary" type="supporting">
-            {AS_DRAFT}
+            {AS_FILE}
           </Text>
         </VStack>
       )}
       {message && <AnnouncedBanner status="error" title={message} />}
       <CommitBanner notice={notice} />
       <AddButtons
-        addLabel={commits ? "Add" : "Add as a draft"}
+        addLabel={commits ? "Add" : "Add as a file"}
         isReady={ready}
         onAdd={() => add()}
         {...(commits ? commit : {})}
