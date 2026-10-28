@@ -1,6 +1,7 @@
 ---
 kind: change
 finished: 2026-10-20
+superseded-by: [2026-10-28-proposal-naming]
 ---
 
 # Record: Inbox screenshots
@@ -10,6 +11,8 @@ finished: 2026-10-20
 > The record of a merged change, not instructions to follow. Started on 2026-10-20, finished on
 > 2026-10-20, merged locally without a pull request. Its full files are in git:
 > `git log -- specs/changes/2026-10-20-inbox-images/`.
+>
+> Superseded in part by [2026-10-28-proposal-naming](2026-10-28-proposal-naming.md).
 
 ## What and why
 
