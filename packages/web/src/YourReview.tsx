@@ -1,13 +1,13 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, use } from "react";
+import { type ReactNode, use, useState } from "react";
 import type { CommentItem } from "uraeda-binding";
+import { CommentForm } from "./CommentForm.tsx";
 import type { useFile } from "./data.ts";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { where } from "./ReviewComments.tsx";
@@ -57,6 +57,41 @@ export function StaleBanner({
   );
 }
 
+/** The id of the end's general comment, whose field the Review sheet's button focuses. */
+export const GENERAL_ID = "review-general";
+
+/**
+ * A general comment's field, always at the review's end, its text kept in the unsaved store:
+ * "Add comment" writes it, and the field is empty again for the next one; Cancel empties it.
+ */
+function GeneralComment({
+  file,
+  onAdd,
+}: {
+  file: File;
+  onAdd: (text: string) => Promise<string | undefined>;
+}) {
+  // A new field for each comment written: the one written leaves it.
+  const [written, setWritten] = useState(0);
+  return (
+    <div id={GENERAL_ID}>
+      <CommentForm
+        anchor="General comment"
+        field={`${file.path}#general`}
+        key={written}
+        onCancel={() => setWritten((count) => count + 1)}
+        onSubmit={async (text) => {
+          const error = await onAdd(text);
+          if (error === undefined) {
+            setWritten((count) => count + 1);
+          }
+          return error;
+        }}
+      />
+    </div>
+  );
+}
+
 /** The verdict of a review, which the comment being written, and its images, may hold back. */
 export function YourVerdict({
   choices,
@@ -83,8 +118,8 @@ export function YourVerdict({
 
 /**
  * The review's own part, after the file: its comments, each where it points, the general ones
- * with Edit and Remove, a general comment's field, and the verdict, unless `hasVerdict` is false,
- * when the page shows it elsewhere.
+ * with Edit and Remove, `general`, what an edit of one shows, a general comment's field, always
+ * there, and the verdict, unless `hasVerdict` is false, when the page shows it elsewhere.
  */
 export function YourReview({
   choices,
@@ -102,7 +137,8 @@ export function YourReview({
   file: File;
   general: ReactNode;
   hasVerdict?: boolean;
-  onGeneral: () => void;
+  /** Adds a general comment: the error to show, or nothing once written. */
+  onGeneral: (text: string) => Promise<string | undefined>;
   pendingNote: (comment: CommentItem) => ReactNode;
   refusals: Refusals;
   wide: boolean;
@@ -125,10 +161,8 @@ export function YourReview({
           </VStack>
         ),
       )}
-      <HStack gap={2}>
-        <Button label="Add a general comment" onClick={onGeneral} />
-      </HStack>
       {general}
+      <GeneralComment file={file} onAdd={onGeneral} />
       {hasVerdict && (
         <YourVerdict choices={choices} comments={comments.length} file={file} refusals={refusals} />
       )}

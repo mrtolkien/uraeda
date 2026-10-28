@@ -213,6 +213,7 @@ function CommentFields({
             <TextField
               hasAutoFocus={hasAutoFocus}
               kind="comment"
+              isLabelHidden
               label="Comment text"
               onChange={onChange}
               onSubmit={submitKey}
@@ -224,6 +225,7 @@ function CommentFields({
           <TextField
             hasAutoFocus={hasAutoFocus}
             kind="comment"
+            isLabelHidden
             label="Comment text"
             onChange={onChange}
             onSubmit={submitKey}

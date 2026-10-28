@@ -21,6 +21,7 @@ import { ReviewImagesContext } from "../useReviewImages.ts";
 import type { File } from "./parts.ts";
 import { ColumnVerdict, useColumnGo } from "./columnGo.ts";
 import { commentsLabel } from "./CommentCount.tsx";
+import { GENERAL_ID } from "../YourReview.tsx";
 
 const styles = stylex.create({
   text: {
@@ -69,11 +70,11 @@ export function jumpToComment(tree: Document, comment: CommentItem) {
 }
 
 /**
- * Brings the comment's form, `container`, once drawn, into view, its field focused: a general
- * comment's form is at the page's end, far from the column.
+ * Brings the general comment's field, in `container`, into view, focused: it is at the page's end,
+ * far from the column.
  */
-function toField(container: HTMLElement) {
-  const field = container.querySelector<HTMLElement>("textarea");
+function toField(container: HTMLElement | null) {
+  const field = container?.querySelector<HTMLElement>("textarea");
   field?.scrollIntoView?.({ block: "center" });
   field?.focus({ preventScroll: true });
 }
@@ -117,7 +118,7 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
   const go = useColumnGo();
   const commit = use(ColumnVerdict);
   const images = use(ReviewImagesContext);
-  const { choices, commentDraft, comments, container, refusals } = review;
+  const { choices, comments, refusals } = review;
   const { retry, verdict } = useVerdict(file, choices, refusals);
   const hold = images?.hold;
   const { error, message } = refusals;
@@ -131,8 +132,7 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
           label="General comment"
           onClick={() =>
             go(() => {
-              commentDraft.start({ kind: "general" });
-              requestAnimationFrame(() => toField(container));
+              requestAnimationFrame(() => toField(document.getElementById(GENERAL_ID)));
             })
           }
         />

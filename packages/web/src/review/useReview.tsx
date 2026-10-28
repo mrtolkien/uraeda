@@ -163,7 +163,8 @@ export function ReviewIntro({ file, review }: { file: File; review: Review }) {
 }
 
 /**
- * The end of a review's page: its comments, a general comment's field, and the verdict unless
+ * The end of a review's page: its comments, a general comment's field, always there, and the
+ * verdict unless
  * `hasVerdict` is false; on the phone, the comment's sheet.
  */
 export function ReviewEnd({
@@ -187,7 +188,7 @@ export function ReviewEnd({
     wide,
   } = review;
   const { adding } = actions;
-  const { draft, start } = commentDraft;
+  const { draft } = commentDraft;
   return (
     <>
       <YourReview
@@ -201,7 +202,7 @@ export function ReviewEnd({
           </>
         }
         hasVerdict={hasVerdict}
-        onGeneral={() => start({ kind: "general" })}
+        onGeneral={actions.general}
         pendingNote={pendingNote}
         refusals={refusals}
         wide={wide}
