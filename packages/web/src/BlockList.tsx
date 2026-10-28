@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { Block, Span } from "uraeda-binding";
 import type { BlockContext } from "./Blocks.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { markVars } from "./marks.stylex.ts";
 import { proseStyles } from "./Prose.tsx";
 import { Selectable } from "./Selection.tsx";
 import { sentences } from "./sentences.ts";
@@ -141,7 +142,9 @@ export function ListNode({
   const Tag = block.ordered ? "ol" : "ul";
   const digits = String((block.start ?? 1) + Math.max(items.length - 1, 0)).length;
   // The markers' room: a bullet's, or the longest number's with its dot.
-  const room = block.ordered ? `calc(${digits}ch + 1.25em)` : "1.25em";
+  const room = block.ordered
+    ? `calc(${digits}ch + ${markVars["--mark-list-room"]})`
+    : markVars["--mark-list-room"];
   return (
     <Tag
       {...(block.ordered && (block.start ?? 1) !== 1 ? { start: block.start } : {})}

@@ -20,6 +20,7 @@ import { keepFocus } from "../keys/press.ts";
 import { useHints, usePress } from "../keys/registry.tsx";
 import { useHidesOnScroll } from "./useHidesOnScroll.ts";
 import { bareButtonStyles } from "../layout/bareButton.ts";
+import { barVars } from "../layout/bar.stylex.ts";
 import { glassStyles } from "../layout/glass.ts";
 import { ruleStyles } from "../layout/rules.ts";
 
@@ -75,7 +76,10 @@ const styles = stylex.create({
     color: colorVars["--color-text-orange"],
   },
   // The phone's bar slid out of the way as the page scrolls down, its shadow too.
-  phoneHidden: { pointerEvents: "none", transform: "translateY(calc(100% + 2rem))" },
+  phoneHidden: {
+    pointerEvents: "none",
+    transform: `translateY(calc(100% + ${barVars["--bar-hide-past-docked"]}))`,
+  },
   // The phone's bar: on glass, over the page scrolling under it, its controls its whole width.
   // It slides out of the way as the page scrolls down, and back as it scrolls up.
   phoneLine: {

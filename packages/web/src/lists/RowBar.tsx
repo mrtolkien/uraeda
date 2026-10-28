@@ -42,13 +42,13 @@ export type BarAction = {
 const appear = stylex.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } });
 
 const rise = stylex.keyframes({
-  from: { opacity: 0, transform: "translateY(calc(100% + 1rem))" },
+  from: { opacity: 0, transform: `translateY(calc(100% + ${barVars["--bar-hide-past"]}))` },
   to: { opacity: 1, transform: "translateY(0)" },
 });
 
 const sink = stylex.keyframes({
   from: { opacity: 1, transform: "translateY(0)" },
-  to: { opacity: 0, transform: "translateY(calc(100% + 1rem))" },
+  to: { opacity: 0, transform: `translateY(calc(100% + ${barVars["--bar-hide-past"]}))` },
 });
 
 const styles = stylex.create({

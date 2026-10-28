@@ -83,8 +83,8 @@ const styles = stylex.create({
     justifyContent: "start",
     lineHeight: "inherit",
     // A pixel over the control's height, so a line's fractional height cannot round it under.
-    marginBlock: `calc((1lh - 1px - ${sizeVars["--size-element-sm"]}) / 2)`,
-    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + 1px - 1lh) / 2)`,
+    marginBlock: `calc((1lh - ${borderVars["--border-width"]} - ${sizeVars["--size-element-sm"]}) / 2)`,
+    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + ${borderVars["--border-width"]} - 1lh) / 2)`,
     paddingInline: 0,
     textAlign: "start",
     whiteSpace: "normal",

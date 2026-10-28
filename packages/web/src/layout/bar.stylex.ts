@@ -1,5 +1,5 @@
-// The bars' own lengths: the tiles of the phone's bottom bar (`NavBar.tsx`), and the row bar that
-// floats over the phone's keyboard (`lists/RowBar.tsx`).
+// The bars' own lengths: the tiles of the phone's bottom bar (`NavBar.tsx`), the row bar that
+// floats over the phone's keyboard (`lists/RowBar.tsx`), and how far each slides to hide.
 import * as stylex from "@stylexjs/stylex";
 
 export const barVars = stylex.defineVars({
@@ -11,4 +11,8 @@ export const barVars = stylex.defineVars({
   "--bar-word": "0.75rem",
   // The room between the phone's keyboard and the row bar floating over it.
   "--bar-keyboard-room": "0.5rem",
+  // How far past its own height a bar slides to hide: the row bar, and the bottom bar, its shadow
+  // cast up the page out of sight too.
+  "--bar-hide-past": "1rem",
+  "--bar-hide-past-docked": "2rem",
 });

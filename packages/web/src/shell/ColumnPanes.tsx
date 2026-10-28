@@ -19,6 +19,7 @@ import { nowCount } from "../sidebar/entries.ts";
 import { Item } from "../sidebar/Row.tsx";
 import { DESTINATIONS } from "../destinations.ts";
 import { AddNoteButton, AddPriorityButton, useOpenAddForm } from "../SidebarAdd.tsx";
+import { columnVars } from "./column.stylex.ts";
 import { useColumnFold } from "./fold.ts";
 import { ShellPane } from "./ShellPanes.tsx";
 
@@ -31,8 +32,8 @@ const styles = stylex.create({
   // Left-aligned, its icon under the heading's: the closed rail shows the icon alone.
   action: {
     justifyContent: "start",
-    // Their icons, 20 px, stand under the rows' below.
-    paddingInlineStart: `calc(${spacingVars["--spacing-2"]} + 4.6px)`,
+    // Their icons, 20 px, stand under the rows' below (`--column-action-nudge`).
+    paddingInlineStart: `calc(${spacingVars["--spacing-2"]} + ${columnVars["--column-action-nudge"]})`,
     width: "100%",
   },
   heading: {

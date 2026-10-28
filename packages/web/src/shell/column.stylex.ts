@@ -16,4 +16,6 @@ export const columnVars = stylex.defineVars({
   // A card's status mark under its icon: from the rail's edge, and below the card's first line.
   "--rail-mark-below": "12px",
   "--rail-mark-start": "7.7px",
+  // A column's pane action's icon, nudged past the room before it to stand under the rows'.
+  "--column-action-nudge": "4.6px",
 });

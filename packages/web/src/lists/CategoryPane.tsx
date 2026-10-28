@@ -4,7 +4,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
-import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useEffectEvent } from "react";
 import { LineField } from "../EditableLine.tsx";
@@ -21,8 +21,8 @@ const styles = stylex.create({
     alignItems: "center",
     display: "inline-flex",
     fontWeight: "inherit",
-    marginBlock: `calc((1lh - 1px - ${sizeVars["--size-element-sm"]}) / 2)`,
-    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + 1px - 1lh) / 2)`,
+    marginBlock: `calc((1lh - ${borderVars["--border-width"]} - ${sizeVars["--size-element-sm"]}) / 2)`,
+    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + ${borderVars["--border-width"]} - 1lh) / 2)`,
   },
 });
 
