@@ -59,7 +59,10 @@ export interface WorkRow {
   href: string;
   /** An icon in the place of its bullet, as a draft's file or a running entry's work. */
   icon?: ComponentProps<typeof Icon>["icon"];
-  /** A picture under its text, such as a note's first image. */
+  /**
+   * What shows under the row while it is selected, by the keys, a tap, or the mouse passing over
+   * it, such as a note's images: positioned by itself, over the rows after it (see `NoteImages`).
+   */
   image?: ReactNode;
   /** A row that adds a line, "Add to Next": Enter on it opens the form. It is no line: never counted, dragged, or moved. */
   isAdd?: boolean;
@@ -471,8 +474,8 @@ export function Card({
           <RowLink onOpen={onOpen} row={row} />
         )}
         <Sublines lines={row.lines} />
-        {/* A block of its own: under the text, as a note's row draws it, not beside it. */}
-        {row.image !== undefined && <div>{row.image}</div>}
+        {/* Only on the selected row, never on hover alone: it floats, and pushes no row. */}
+        {isSelected && row.image}
         <Bar isEditing={isEditing} row={row} />
         {/* After the link, so Tab from the card reaches it; over the link by its z-index. */}
         {row.menu !== undefined && <MenuSlot isSelected={isSelected} row={row} />}

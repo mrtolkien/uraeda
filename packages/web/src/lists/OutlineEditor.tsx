@@ -1,10 +1,13 @@
 // A row of an outline edited in place, as an outliner edits it: its text in a field that wraps, in
 // the row's own place, its keys in a bar under it. Enter saves, never a new line; Escape cancels,
 // asking first when the text changed; Tab and Shift+Tab indent and outdent, the text saved first;
-// Backspace in an empty new row drops it. Leaving the field saves what changed.
+// Backspace in an empty new row drops it. Leaving the field saves what changed. Where the list
+// takes images for a row, as the inbox does for a note, an image pasted saves the text, closes the
+// field, and goes to the row's images.
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { KeyboardEvent } from "react";
+import { type ClipboardEvent, createContext, type KeyboardEvent, useContext } from "react";
+import { pastedImages } from "../attach/useImageText.ts";
 import { RowBar } from "./RowBar.tsx";
 import { useOutlineField } from "./useOutlineField.ts";
 
@@ -29,6 +32,12 @@ const styles = stylex.create({
     width: "100%",
   },
 });
+
+/**
+ * What takes the images pasted in a row's field, once its text is saved and the field closed: the
+ * inbox's note's images. None outside such a row: a paste of an image does nothing then.
+ */
+export const OutlineImages = createContext<((files: Array<File>) => void) | undefined>(undefined);
 
 /** What the editor does as it closes, or before it closes. */
 export type OutlineEditorProps = {
@@ -61,6 +70,17 @@ export function OutlineEditor({
     onSave,
     value,
   });
+  const onImages = useContext(OutlineImages);
+
+  /** An image pasted: the text is saved first, as leaving the field saves it, then the images go. */
+  const onPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = onImages ? pastedImages(event) : undefined;
+    if (onImages && files) {
+      event.preventDefault();
+      finish();
+      onImages(files);
+    }
+  };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.nativeEvent.isComposing) {
@@ -89,6 +109,7 @@ export function OutlineEditor({
         onBlur={finish}
         onChange={(event) => setText(event.target.value.replaceAll("\n", " "))}
         onKeyDown={onKeyDown}
+        onPaste={onPaste}
         ref={field}
         rows={1}
         value={text}
