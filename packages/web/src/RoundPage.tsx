@@ -122,7 +122,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
 /**
  * The round's page itself: its opening, `index` after its block and its points to check after its
  * context, its questions, its other settled points, then `children`, its end. `onAsk` asks the
- * agent about a question or a point.
+ * agent about a question, or sends a point's comment to it.
  */
 function RoundBody({
   children,
@@ -136,7 +136,7 @@ function RoundBody({
   file: File;
   index: ReactNode;
   onAsk?: {
-    point: (subject: string) => void;
+    point: (subject: string, text: string) => Promise<string | undefined>;
     question: (question: { id: string; title: string }) => void;
   };
   readOnly: boolean;

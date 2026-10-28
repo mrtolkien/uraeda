@@ -4,6 +4,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import type { ReactNode } from "react";
+import { useFateClient } from "react-fate";
 import type { Document, RoundItems } from "uraeda-binding";
 import { focusOnceDrawn, sessionTab, useColumnAsk } from "./ColumnSession.tsx";
 import { type useFile, useAgent } from "./data.ts";
@@ -15,7 +16,7 @@ import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { NOTES_FIELD, NotesField, useNotesDrop, type useRoundNotes } from "./RoundNotes.tsx";
 import { NextOrSubmit, OutlineSheetPanel, RoundOutline, useBlankKeys } from "./RoundOutline.tsx";
 import type { NavQuestion } from "./roundJump.ts";
-import { quoted } from "./sessions.ts";
+import { quoted, sendMessage } from "./sessions.ts";
 import type { Draft } from "./useDraft.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -30,10 +31,11 @@ function columnKeys(asks: boolean) {
 
 /**
  * What the round's page does from its parts: the phone's open sheet, `sheet`; asking the agent
- * about a question or a point, with `draft`, the feature's session draft, when the
- * agent can be asked; and opening the notes' field. Asking writes the quote into the composer,
- * in place of the one it held, and opens the Session tab, its composer focused; on the phone, it
- * opens the session's page. "Edit notes" opens the Notes tab, or the phone's sheet, its field
+ * about a question, with `draft`, the feature's session draft, when the agent can be asked, or about
+ * a point, with a comment's text; and opening the notes' field. Asking about a question writes the
+ * quote into the composer, in place of the one it held, and opens the Session tab, its composer
+ * focused; on the phone, it opens the session's page. Asking about a point sends its quote and the
+ * text to the feature's session at once, then opens the Session tab on wide screens. "Edit notes" opens the Notes tab, or the phone's sheet, its field
  * focused. Both unfold the column the human folded (R23): `column` is its width and fold, which
  * the page holds. `notesShown` says whether the notes' field is drawn, and `sessionShown` the
  * session's composer.
@@ -48,6 +50,7 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
     setTab(key);
   };
   const ask = useColumnAsk(file.folder, draft);
+  const fate = useFateClient();
   const editNotes = () => {
     if (wide) {
       openTab("notes");
@@ -57,7 +60,17 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
     focusOnceDrawn(() => document.getElementById(NOTES_FIELD));
   };
   const asks = draft && {
-    point: (subject: string) => ask(quoted(`About the settled point of ${file.path}:`, [subject])),
+    point: async (subject: string, text: string) => {
+      const header = quoted(`About the settled point of ${file.path}:`, [subject]);
+      const sent = await sendMessage(fate, { folder: file.folder, text: `${header}\n\n${text}` });
+      if (!sent.ok) {
+        return sent.message;
+      }
+      if (wide) {
+        openTab("session");
+      }
+      return undefined;
+    },
     question: (question: { id: string; title: string }) =>
       ask(quoted(`About ${question.id} of ${file.path}:`, [question.title])),
   };

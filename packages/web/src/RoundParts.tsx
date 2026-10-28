@@ -243,32 +243,10 @@ export function CheckPane({ children, count }: { children: ReactNode; count: num
   );
 }
 
-/**
- * A settled point's actions: "Ask", named `Ask about "<subject>"`, with `onAsk`, and its comment
- * button.
- */
-export function PointActions({
-  onAsk,
-  onComment,
-  subject,
-}: {
-  onAsk?: (subject: string) => void;
-  onComment: () => void;
-  subject: string;
-}) {
+/** A settled point's actions: its comment button. */
+export function PointActions({ onComment, subject }: { onComment: () => void; subject: string }) {
   return (
     <HStack gap={1} justify="end">
-      {onAsk && (
-        <Button
-          icon={<Icon icon="uraeda:comment" />}
-          label={`Ask about "${subject}"`}
-          onClick={() => onAsk(subject)}
-          size="sm"
-          variant="ghost"
-        >
-          Ask
-        </Button>
-      )}
       <Button
         icon={<Icon icon="uraeda:pencil" />}
         isIconOnly
