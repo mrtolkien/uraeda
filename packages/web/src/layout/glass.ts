@@ -10,8 +10,12 @@ export const glassStyles = stylex.create({
   surface: {
     // The amber tint, which StyleX's colour values do not list.
     "--glass-tint": "rgb(255 178 102 / 0.1)",
+    // The page's own colour under the tint, two thirds opaque: text under the glass fades to a
+    // shape, so the glass's own text reads over any page, light or dark.
+    "--glass-scrim": "color-mix(in srgb, var(--color-background-body) 66%, transparent)",
     backdropFilter: "blur(7px) saturate(1.8)",
-    backgroundColor: "var(--glass-tint)",
+    backgroundColor: "var(--glass-scrim)",
+    backgroundImage: "linear-gradient(var(--glass-tint), var(--glass-tint))",
     // oxlint-disable-next-line stylex/valid-styles -- WebKit's own spelling, which Safari still needs
     WebkitBackdropFilter: "blur(7px) saturate(1.8)",
   },
