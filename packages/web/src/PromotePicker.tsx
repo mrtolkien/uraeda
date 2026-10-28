@@ -1,9 +1,10 @@
 // `p` on a note of the inbox: one quick picker of where the note goes up to. First the priorities'
 // levels, Now, Next, and Later, where it becomes a line at the end; then every line, where it
 // becomes the line's last item, or for a line with a draft, the end of the draft's "What"; then the
-// drafts no line links. Each item's preview is the place it lands in, the note in it. A pick runs
-// as the note's actions run it (`useNoteActions`), with a toast and Undo, then opens the priorities
-// with the note's row selected, or the draft's page.
+// drafts no line links. A note that links a draft is offered no line to go under. Each item's
+// preview is the place it lands in, the note in it. A pick runs as the note's actions run it
+// (`useNoteActions`), with a toast and Undo, then opens the priorities with the note's row
+// selected, or the draft's page.
 import { useEffect } from "react";
 import type { PriorityEntry } from "uraeda-server/fate";
 import { type DraftText, usePriorities } from "./data.ts";
@@ -53,6 +54,15 @@ function draftPreview(text: string, placed: Placed) {
 }
 
 /**
+ * Whether the picker offers the line `entry`: a note that is a draft never goes into its own draft,
+ * nor under a line, where nested, its draft would no longer be found by its link.
+ */
+function isOffered(entry: PriorityEntry, placed: Placed) {
+  const draft = placed.note.draft;
+  return draft === undefined || (entry.draft !== undefined && entry.draft.path !== draft);
+}
+
+/**
  * The picker of `placed`'s note, while `isOpen`, over the inbox of `hash`. `drafts` are the drafts
  * and their texts, once read. A refusal goes to `onRefused`.
  */
@@ -95,9 +105,8 @@ export function PromotePicker({
       ),
       title,
     })),
-    // A note that is a draft never goes into its own draft.
     ...entries
-      .filter((entry) => placed.note.draft === undefined || entry.draft?.path !== placed.note.draft)
+      .filter((entry) => isOffered(entry, placed))
       .map((entry) => {
         const draft = entry.draft?.path;
         const text = draft === undefined ? undefined : textOf(draft);
