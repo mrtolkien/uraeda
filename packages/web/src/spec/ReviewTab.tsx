@@ -118,7 +118,7 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
   const go = useColumnGo();
   const commit = use(ColumnVerdict);
   const images = use(ReviewImagesContext);
-  const { choices, comments, refusals } = review;
+  const { choices, comments, container, refusals } = review;
   const { retry, verdict } = useVerdict(file, choices, refusals);
   const hold = images?.hold;
   const { error, message } = refusals;
@@ -132,7 +132,10 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
           label="General comment"
           onClick={() =>
             go(() => {
-              requestAnimationFrame(() => toField(document.getElementById(GENERAL_ID)));
+              // The end's field, or the general draft's form that takes its place.
+              requestAnimationFrame(() =>
+                toField(document.getElementById(GENERAL_ID) ?? container),
+              );
             })
           }
         />

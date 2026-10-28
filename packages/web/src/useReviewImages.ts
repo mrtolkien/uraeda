@@ -107,7 +107,9 @@ export function useReviewImages(
      * page's other errors, like a hook's, as they are (R70).
      */
     hold: () => {
-      const isGeneralTyped = (readUnsaved(generalKey)?.text.trim() ?? "") !== "";
+      // The end's field, while it shows: a general draft takes its place, and holds the verdict itself.
+      const isGeneralTyped =
+        draft?.kind !== "general" && (readUnsaved(generalKey)?.text.trim() ?? "") !== "";
       const reason =
         (draft && (dirty || linked || (images.busy && runFor.current === writing))) ||
         isGeneralTyped
