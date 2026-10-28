@@ -771,3 +771,142 @@ fn the_inbox_lists_the_images_of_each_notes_note_file() {
         );
     }
 }
+
+/// A committed note file edited since: its note's removal with a commit keeps it, with the edits,
+/// out of the commit, as removing it would lose them.
+#[test]
+fn a_committed_note_file_edited_since_survives_its_notes_removal_and_commit() {
+    let repo = fixture_repo();
+    add_with_image(&repo);
+    api::commit_changes(repo.path()).unwrap();
+    let edited = repo
+        .read(&note_file())
+        .replace("## Why\n", "## Why\n\nMy eyes.\n");
+    repo.write(&note_file(), &edited);
+    let (note, _) = noted(&repo);
+    let hash = api::read_inbox(repo.path()).unwrap().hash;
+
+    api::remove_note_and_commit(repo.path(), &note.id, &hash).unwrap();
+
+    assert_eq!(repo.read(&note_file()), edited);
+    assert_eq!(repo.changed_in("main"), [INBOX]);
+}
+
+/// The proposal file the notes go into, committed.
+const LISTENER: &str = "specs/proposals/git-listener.md";
+
+/// A note with a note file added to a proposal file takes its file among the proposals, and the
+/// line it adds links it there; Undo moves the file back. Committed or not before, the commit
+/// holds the moved file with the proposal file.
+#[test]
+fn a_note_file_goes_among_the_proposals_with_its_note_into_a_proposal_file() {
+    for committed in [false, true] {
+        let repo = fixture_repo();
+        repo.write(
+            LISTENER,
+            &fixture_text("repo/main/specs/proposals/git-listener.md"),
+        );
+        repo.commit("chore: listener");
+        add_with_image(&repo);
+        if committed {
+            api::commit_changes(repo.path()).unwrap();
+        }
+        let written = repo.read(&note_file());
+        let (note, index) = noted(&repo);
+        let hash = api::read_inbox(repo.path()).unwrap().hash;
+
+        api::note_into_proposal(repo.path(), &note.id, LISTENER, &hash).unwrap();
+
+        let moved = format!("specs/proposals/{SLUG}/proposal.md");
+        assert_eq!(repo.read(&moved), written, "{committed}");
+        assert!(!repo.exists(&format!("specs/notes/{SLUG}")));
+        assert!(
+            repo.read(LISTENER)
+                .contains(&format!("- [{NOTE}]({SLUG}/proposal.md)\n")),
+            "{}",
+            repo.read(LISTENER)
+        );
+
+        let inbox = api::undo_note_into_proposal(
+            repo.path(),
+            LISTENER,
+            &note.lines,
+            Some("UI".into()),
+            index,
+        )
+        .unwrap();
+
+        assert_eq!(repo.read(&note_file()), written);
+        assert!(!repo.exists(&format!("specs/proposals/{SLUG}")));
+
+        api::note_into_proposal(repo.path(), &note.id, LISTENER, &inbox.hash).unwrap();
+        api::commit_changes(repo.path()).unwrap();
+
+        let changed = repo.changed_in("main");
+        let image = format!("specs/proposals/{SLUG}/images/spec-headings.webp");
+        for path in [LISTENER, image.as_str(), moved.as_str()] {
+            assert!(changed.iter().any(|c| c == path), "{committed} {changed:?}");
+        }
+        assert_eq!(
+            changed.contains(&note_file()),
+            committed,
+            "{committed} {changed:?}"
+        );
+        assert_eq!(repo.porcelain(), "", "{committed}");
+    }
+}
+
+/// Adds a second note linking the note file of the first, committed.
+fn share_note_file(repo: &TestRepo) {
+    add_with_image(repo);
+    let text = repo.read(INBOX).replace(
+        "\n## CLI",
+        &format!("- [Also {NOTE}](notes/{SLUG}/note.md)\n\n## CLI"),
+    );
+    repo.write(INBOX, &text);
+    api::commit_changes(repo.path()).unwrap();
+}
+
+/// A note sharing its note file with another moves to the priorities as text, and its removal
+/// leaves the file: the other note still links it.
+#[test]
+fn a_shared_note_file_stays_for_the_other_note() {
+    let moved = fixture_repo();
+    share_note_file(&moved);
+
+    move_to_next(&moved);
+
+    assert!(moved.exists(&note_file()));
+    assert!(
+        moved
+            .read("specs/PRIORITIES.md")
+            .contains(&format!("- [{NOTE}](notes/{SLUG}/note.md)\n"))
+    );
+
+    let removed = fixture_repo();
+    share_note_file(&removed);
+    let (note, _) = noted(&removed);
+    let hash = api::read_inbox(removed.path()).unwrap().hash;
+
+    api::remove_note(removed.path(), &note.id, &hash).unwrap();
+
+    assert!(removed.exists(&note_file()));
+}
+
+/// A note with a note file removed and committed alone is named in the subject by its file's
+/// title, not by its link's markdown.
+#[test]
+fn a_note_with_a_file_removed_and_committed_is_named_by_its_title() {
+    let repo = fixture_repo();
+    add_with_image(&repo);
+    api::commit_changes(repo.path()).unwrap();
+    let (note, _) = noted(&repo);
+    let hash = api::read_inbox(repo.path()).unwrap().hash;
+
+    api::remove_note_and_commit(repo.path(), &note.id, &hash).unwrap();
+
+    assert_eq!(
+        repo.subjects("main")[0],
+        format!("chore: remove \"{NOTE}\" from the inbox")
+    );
+}

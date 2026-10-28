@@ -105,7 +105,7 @@ pub fn remove_category(
     })?;
     // The notes removed with the category take their note files, which a restore brings back.
     let after = std::fs::read_to_string(place.root.join(super::PATH)).unwrap_or_default();
-    if note_file::remove_left(place, &before, &after, note_file::Lost::Nothing)? {
+    if note_file::remove_left(place, &before, &after)? {
         return Ok((read(place), before));
     }
     Ok((inbox, before))

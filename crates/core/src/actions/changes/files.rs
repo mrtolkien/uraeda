@@ -150,11 +150,11 @@ impl Found {
         self.paths.push(path);
     }
 
-    /// Holds in the commit the removal of the note file `note`, from the top level, which its
-    /// note's move put among the proposals at `link`, from `specs/`: its committed files, gone from
-    /// their place. Discard moves it back.
-    pub(super) fn moved(&mut self, place: &Place, note: &str, link: Option<&str>) {
-        let Some(path) = link.and_then(|link| crate::workspace::resolve("specs", link)) else {
+    /// Holds in the commit the move of the note file `note`, from the top level, which its note's
+    /// move put among the proposals at `path`: its committed files, gone from their place, and the
+    /// proposal file. Discard moves it back.
+    pub(super) fn moved(&mut self, place: &Place, note: &str, path: Option<String>) {
+        let Some(path) = path else {
             return;
         };
         if path == note || place.root.join(note).exists() || !place.root.join(&path).is_file() {
@@ -162,6 +162,9 @@ impl Found {
         }
         self.paths
             .extend(super::super::inbox::committed_note_file(place, note));
+        if !self.paths.contains(&path) {
+            self.paths.push(path.clone());
+        }
         self.undo.push(Undo::Moved {
             path,
             note: note.to_string(),
@@ -184,6 +187,37 @@ impl Found {
             paths,
         });
     }
+}
+
+/// The proposal files and note files the files among `paths` link that no commit has, and that
+/// `paths` lacks: a note added and moved into a proposal file since the last commit took its file
+/// there, which the commit must hold too.
+pub(super) fn linked_by(place: &Place, paths: &[String]) -> Vec<String> {
+    let mut found: Vec<String> = Vec::new();
+    for path in paths
+        .iter()
+        .filter(|path| crate::target::is_linked_file(path))
+    {
+        let Ok(text) = fs::read_to_string(place.root.join(path)) else {
+            continue;
+        };
+        let folder = path.rsplit_once('/').map_or("", |(folder, _)| folder);
+        for link in crate::files::markdown::Document::parse(&text).links {
+            let Some(linked) = crate::workspace::resolve(folder, &link.target) else {
+                continue;
+            };
+            if crate::target::is_linked_file(&linked)
+                && linked.ends_with(".md")
+                && !paths.contains(&linked)
+                && !found.contains(&linked)
+                && place.root.join(&linked).is_file()
+                && place::committed(place, &linked).is_none()
+            {
+                found.push(linked);
+            }
+        }
+    }
+    found
 }
 
 /// What a file at `path` made from the note of the text `text` in `inbox`, not a link, held when a

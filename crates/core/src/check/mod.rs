@@ -5,6 +5,7 @@ mod answers;
 mod decision;
 mod links;
 mod names;
+mod notes;
 mod priorities;
 mod sections;
 mod spec;
@@ -193,6 +194,7 @@ fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
     names::check_folder_names(root, dir, problems);
     names::check_change_files(root, dir, problems);
     names::check_candidates(root, dir, problems);
+    notes::check_note_files(root, dir, problems);
     let found = check_folder_files(root, dir, false, problems);
     problems.extend(found.into_values().flatten());
     let mut subfolders: Vec<PathBuf> = fs::read_dir(dir)

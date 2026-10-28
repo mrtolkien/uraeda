@@ -203,7 +203,7 @@ pub fn add_and_commit(
     text: &str,
     previous: &str,
 ) -> Result<(Inbox, Added), ActionError> {
-    let (_, added) = commit::add_alone(place, PATH, &[], added_subject(text), || {
+    let (_, added) = commit::add_alone(place, PATH, Vec::new, added_subject(text), || {
         add(place, category, marks, text, Some(previous))
     })?;
     Ok((read(place), added))
@@ -211,8 +211,7 @@ pub fn add_and_commit(
 
 /// Removes a note over the inbox read at `previous`, then commits `INBOX.md` alone, when it had no
 /// other change: a note started as a change leaves the inbox in its own commit. Its note file goes
-/// too, in the same commit, when it holds what the note wrote or is committed, which the history
-/// keeps: an uncommitted file typed in stays.
+/// too, in the same commit, as [`remove`] deletes it.
 pub fn remove_and_commit(
     place: &Place,
     id: &str,
@@ -223,12 +222,19 @@ pub fn remove_and_commit(
         "chore: remove \"{}\" from the inbox",
         super::priorities::short(&note.text)
     );
-    let also = note
+    let committed = note
         .file()
         .map(|file| note_file::committed(place, &file))
         .unwrap_or_default();
-    let (_, added) = commit::add_alone(place, PATH, &also, subject, || {
-        remove_with(place, id, Some(previous), note_file::Lost::NothingCommitted)
+    // The note file's committed paths the removal deleted: a file it kept stays out of the commit.
+    let also = || {
+        committed
+            .into_iter()
+            .filter(|path| !place.root.join(path).exists())
+            .collect()
+    };
+    let (_, added) = commit::add_alone(place, PATH, also, subject, || {
+        remove(place, id, Some(previous))
     })?;
     Ok((read(place), added))
 }
@@ -289,16 +295,6 @@ pub fn drop_item(
 /// nothing is lost: the file holds only what the note wrote, or is as the default branch committed
 /// it. A file typed in since, or one another note links too, stays.
 pub fn remove(place: &Place, id: &str, previous: Option<&str>) -> Result<Inbox, ActionError> {
-    remove_with(place, id, previous, note_file::Lost::Nothing)
-}
-
-/// Removes a note as [`remove`] does, deleting its note file when `lost` allows it.
-fn remove_with(
-    place: &Place,
-    id: &str,
-    previous: Option<&str>,
-    lost: note_file::Lost,
-) -> Result<Inbox, ActionError> {
     let before = text(place)?;
     let mut after = String::new();
     let inbox = apply(
@@ -311,7 +307,7 @@ fn remove_with(
         },
         &format!("no note {id}"),
     )?;
-    if note_file::remove_left(place, &before, &after, lost)? {
+    if note_file::remove_left(place, &before, &after)? {
         return Ok(read(place));
     }
     Ok(inbox)

@@ -776,7 +776,7 @@ fn a_spec_is_not_committed() {
 
     assert_eq!(
         error.message,
-        "Only proposal files, note files, proposals, PRIORITIES.md, and INBOX.md are committed from the editor."
+        "Only proposal files, note files, a feature's or a change's proposal, PRIORITIES.md, and INBOX.md are committed from the editor."
     );
     assert_eq!(error.data, Some(json!({ "code": "refused" })));
 }

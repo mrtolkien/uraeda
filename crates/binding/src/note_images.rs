@@ -18,9 +18,9 @@ pub struct NoteImageRemoved {
     pub removed: RemovedImage,
 }
 
-/// Takes the image at `image` out of the proposal file at `proposal file`, both from the top level:
-/// the lines linking it go, and its file stays. Refused as a conflict when the proposal file
-/// changed since it was read at `previous`.
+/// Takes the image at `image` out of the note file or proposal file at `file`, both from the top
+/// level: the lines linking it go, and its file stays. Refused as a conflict when the file changed
+/// since it was read at `previous`.
 #[napi(ts_return_type = "Promise<NoteImageRemoved>")]
 pub fn remove_note_image(
     repo: String,

@@ -387,9 +387,9 @@ export declare function removeNote(repo: string, id: string, previous: string): 
 export declare function removeNoteAndCommit(repo: string, id: string, previous: string): Promise<InboxAdded>
 
 /**
- * Takes the image at `image` out of the proposal file at `proposal file`, both from the top level:
- * the lines linking it go, and its file stays. Refused as a conflict when the proposal file
- * changed since it was read at `previous`.
+ * Takes the image at `image` out of the note file or proposal file at `file`, both from the top
+ * level: the lines linking it go, and its file stays. Refused as a conflict when the file changed
+ * since it was read at `previous`.
  */
 export declare function removeNoteImage(repo: string, file: string, image: string, previous: string): Promise<NoteImageRemoved>
 
