@@ -1,5 +1,5 @@
 // @vitest-environment node
-// The sandbox's server, as `vp run sandbox` serves it: the real app over the three sample projects,
+// The sandbox's server, as `vp run sandbox` serves it: the real app over the four sample projects,
 // in a locked list, without sign-in, its page with the picker, and its state kept across restarts.
 import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -38,7 +38,7 @@ beforeAll(async () => {
 }, 120_000);
 afterAll(() => restore());
 
-test("the sandbox serves Home with sample, empty, and broken, locked, without sign-in", async () => {
+test("the sandbox serves Home with sample, realistic, empty, and broken, locked, without sign-in", async () => {
   const served = await serveSandbox(checkout);
   try {
     expect(served.lines).toContain(`Sandbox: http://127.0.0.1:${served.port}/`);
@@ -67,7 +67,7 @@ test("the sandbox serves Home with sample, empty, and broken, locked, without si
       first<RepositoryRows>(rows)
         .rows.map((row) => row.name)
         .sort(),
-    ).toEqual(["broken", "empty", "sample"]);
+    ).toEqual(["broken", "empty", "realistic", "sample"]);
     expect([added?.error, removed?.error]).toEqual([LOCKED, LOCKED]);
 
     const home = await fateAt(served.url, "sample", [
