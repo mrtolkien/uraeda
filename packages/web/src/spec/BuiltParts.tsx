@@ -32,7 +32,7 @@ const DRAWINGS: Record<
     icon: `uraeda:${string}`;
   }
 > = {
-  // Its units, then its tradeoffs, as written.
+  // Its blocks as written: its units and its tradeoffs are not drawn apart.
   Architecture: {
     draw: ({ part, props }) => inOrder(part, props, () => undefined),
     icon: "uraeda:layers",

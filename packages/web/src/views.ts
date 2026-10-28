@@ -70,8 +70,6 @@ const ItemsSelection = {
     riskTier: true,
     stories: true,
     tiers: true,
-    tradeoffs: true,
-    units: true,
   },
 } as const;
 
