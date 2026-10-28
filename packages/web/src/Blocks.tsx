@@ -2,7 +2,6 @@ import { Blockquote } from "@astryxdesign/core/Blockquote";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
-import { List, ListItem } from "@astryxdesign/core/List";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
@@ -63,49 +62,63 @@ const styles = stylex.create({
   },
   calloutWarning: { borderInlineStartColor: colorVars["--color-warning"] },
   con: { color: colorVars["--color-error"] },
-  dash: { color: colorVars["--color-text-secondary"] },
   doc: {
     // The page's inset, which a list's rows take back, so their text lines up with the paragraphs'.
     "--container-padding-inline-start": spacingVars["--spacing-4"],
   },
-  // On narrow screens, a list hangs its markers in the page's margin, as far as their room
-  // (`--list-marker`) and the page's inset allow: the text of a list of dashes on the paragraphs'
-  // edge, wider markers' text in by what the inset lacks; a nested list's text one character in from
-  // its parent's.
-  hanging: {
-    marginInlineStart: `calc(-1 * min(var(--list-marker), var(--page-inset, ${spacingVars["--spacing-3"]})))`,
-  },
-  hangingNested: {
-    marginInlineStart: `calc(1ch - min(var(--list-marker), var(--page-inset, ${spacingVars["--spacing-3"]}) + 1ch))`,
-  },
-  hangingRow: { gap: 0 },
-  hangingSign: {
-    // The marker's room, as wide as the list's widest marker, its sign at its end, before the text,
-    // on one line.
-    boxSizing: "border-box",
-    display: "flex",
-    flexShrink: 0,
-    justifyContent: "flex-end",
-    minWidth: 0,
-    paddingInlineEnd: spacingVars["--spacing-1"],
-    whiteSpace: "nowrap",
-    width: "var(--list-marker)",
-  },
+  // A list, the browser's: its markers in `room` before its items' text, outside it, so that a
+  // wrapped line hangs under the text, not under the marker.
+  native: (room: string) => ({
+    listStylePosition: "outside",
+    marginBlockStart: 0,
+    paddingInlineStart: room,
+  }),
+  disc: { listStyleType: "disc" },
+  // On narrow screens, a dash, the narrowest marker, which hangs in the page's margin.
+  dashed: { listStyleType: '"- "' },
+  numbered: { listStyleType: "decimal" },
+  // On narrow screens, the markers hang in the page's margin, as far as its inset allows: the
+  // text of a list on the paragraphs' edge when the inset holds the markers' whole room.
+  hanging: (room: string) => ({
+    paddingInlineStart: `max(0px, calc(${room} - var(--page-inset, ${spacingVars["--spacing-3"]})))`,
+  }),
+  // A typed item's marker: its sign, in place of the list's bullet.
+  signMarker: (sign: string) => ({ listStyleType: sign }),
   heading: {
     marginBlockEnd: spacingVars["--spacing-2"],
     marginBlockStart: { ":first-child": 0, default: spacingVars["--spacing-6"] },
   },
   important: { color: colorVars["--color-warning"] },
   item: {
-    // A list item's text, at the reading size, which Astryx's rows set smaller.
+    // A list item's room under it, but the last's, and its marker in the secondary colour.
+    "::marker": { color: colorVars["--color-text-secondary"] },
+    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-2"] },
     whiteSpace: "normal",
+  },
+  // A typed item's sign as its marker, in its colour and bold.
+  conMarker: {
+    "::marker": {
+      color: colorVars["--color-error"],
+      fontWeight: fontWeightVars["--font-weight-bold"],
+    },
+  },
+  importantMarker: {
+    "::marker": {
+      color: colorVars["--color-warning"],
+      fontWeight: fontWeightVars["--font-weight-bold"],
+    },
+  },
+  plainSignMarker: { "::marker": { fontWeight: fontWeightVars["--font-weight-bold"] } },
+  proMarker: {
+    "::marker": {
+      color: colorVars["--color-success"],
+      fontWeight: fontWeightVars["--font-weight-bold"],
+    },
   },
   list: {
     // A list's margin, but last in its item or callout, which end with it.
     marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-3"] },
   },
-  // The room of a hanging list's markers, its gap before the text included.
-  markerRoom: (width: string) => ({ "--list-marker": width }),
   paragraph: {
     marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-3"] },
     marginBlockStart: 0,
@@ -122,11 +135,6 @@ const styles = stylex.create({
   },
   leadRest: { color: colorVars["--color-text-secondary"], display: "block" },
   pro: { color: colorVars["--color-success"] },
-  row: {
-    // A list's row, as tall as its text: a touch screen's 44 px rows (`theme.ts`) are for controls,
-    // and would push a one-line item's text below its marker.
-    minHeight: 0,
-  },
   sign: {
     fontWeight: fontWeightVars["--font-weight-bold"],
     minWidth: spacingVars["--spacing-4"],
@@ -147,6 +155,18 @@ const SIGN_STYLES: Record<string, stylex.StyleXStyles> = {
   important: styles.important,
   pro: styles.pro,
   warning: styles.warning,
+};
+
+/** Each typed item's marker style, its sign's colour, by its kind; bold for every kind. */
+const SIGN_MARKERS: Record<string, stylex.StyleXStyles> = {
+  ask: styles.plainSignMarker,
+  con: styles.conMarker,
+  important: styles.importantMarker,
+  note: styles.plainSignMarker,
+  pro: styles.proMarker,
+  question: styles.plainSignMarker,
+  task: styles.plainSignMarker,
+  warning: styles.importantMarker,
 };
 
 /** The children of each block, by id. */
@@ -228,92 +248,62 @@ function signOf(block: Block) {
 }
 
 /**
- * The room a hanging list gives its markers, gap included: a dash's, a sign's, or its longest
- * number's and its dot, in the font the list is drawn in.
+ * A list as the page's text draws it: the browser's own `<ul>` or `<ol>`, whose markers sit on the
+ * baseline of their item's first line at any size and line height, the item's wrapped lines hanging
+ * under its text. A bullet is a disc, a dash on narrow screens, where the markers hang in the
+ * page's margin; a typed item's marker is its sign, in its colour, after its number in a numbered
+ * list.
  */
-function markerRoom(list: Block, items: Array<Block>) {
-  if (list.ordered) {
-    const digits = String((list.start ?? 1) + Math.max(items.length - 1, 0)).length;
-    return `calc(${digits}ch + 0.5ch + ${spacingVars["--spacing-1"]})`;
-  }
-  return items.some((item) => signOf(item) !== undefined)
-    ? `calc(1em + ${spacingVars["--spacing-1"]})`
-    : spacingVars["--spacing-3"];
-}
-
-/**
- * The marker a row shows before its text, if not the list's own: its typed sign, or, where the list
- * hangs its markers, its number or a dash, an ordered row's sign after its number.
- */
-function rowMarker(list: Block, item: Block, index: number, isHanging: boolean) {
-  const marker = item.marker ?? "plain";
-  const sign = signOf(item);
-  const signed = (isHanging: boolean) =>
-    sign && (
-      <span
-        aria-hidden="true"
-        {...stylex.props(styles.sign, isHanging && styles.hangingSign, SIGN_STYLES[marker])}
-      >
-        {sign}
-      </span>
-    );
-  if (isHanging && list.ordered) {
-    return (
-      <>
-        <span {...stylex.props(styles.hangingSign)}>{(list.start ?? 1) + index}.</span>
-        {signed(false)}
-      </>
-    );
-  }
-  if (isHanging && !sign) {
-    return (
-      <span aria-hidden="true" {...stylex.props(styles.hangingSign, styles.dash)}>
-        -
-      </span>
-    );
-  }
-  return signed(isHanging);
-}
-
 function ListNode({ block, context }: { block: Block; context: BlockContext }) {
   const items = context.children.get(block.id) ?? [];
-  // On narrow screens, every row draws its own marker, hanging in the page's margin.
   const isHanging = isNarrow(useWidthClass());
   const parent = block.parent === undefined ? undefined : context.document.blocks[block.parent];
-  // A list of typed bullets shows their signs only.
-  const signed = items.length > 0 && items.every((item) => signOf(item) !== undefined);
+  const isNested = parent?.kind === "item";
+  const Tag = block.ordered ? "ol" : "ul";
+  const digits = String((block.start ?? 1) + Math.max(items.length - 1, 0)).length;
+  // The markers' room: a bullet's, or the longest number's with its dot.
+  const room = block.ordered ? `calc(${digits}ch + 1.25em)` : "1.25em";
   return (
-    <List
-      density="compact"
-      edge="flush"
-      listStyle={isHanging ? "none" : block.ordered ? "decimal" : signed ? "none" : "disc"}
-      start={block.ordered ? (block.start ?? 1) : undefined}
-      xstyle={[
+    <Tag
+      {...(block.ordered && (block.start ?? 1) !== 1 ? { start: block.start } : {})}
+      {...stylex.props(
         styles.list,
-        isHanging && styles.markerRoom(markerRoom(block, items)),
-        isHanging && (parent?.kind === "item" ? styles.hangingNested : styles.hanging),
-      ]}
+        styles.native(room),
+        block.ordered ? styles.numbered : isHanging ? styles.dashed : styles.disc,
+        isHanging && !isNested && styles.hanging(room),
+      )}
     >
-      {items.map((item, index) => (
-        <ListItem
-          // A marker beside a wrapping item stays on its first line.
-          align="first-line"
-          key={item.id}
-          label={
-            <Selectable block={item} selection={context.selection}>
-              <div {...stylex.props(proseStyles.reading, styles.item)}>
+      {items.map((item) => {
+        const marker = item.marker ?? "plain";
+        const sign = signOf(item);
+        const isSignMarker = sign !== undefined && !block.ordered;
+        return (
+          <li
+            key={item.id}
+            {...stylex.props(
+              proseStyles.reading,
+              styles.item,
+              isSignMarker && styles.signMarker(`"${sign} "`),
+              isSignMarker && SIGN_MARKERS[marker],
+            )}
+          >
+            <Selectable block={item} isInList selection={context.selection}>
+              <div>
+                {sign !== undefined && block.ordered && (
+                  <span aria-hidden="true" {...stylex.props(styles.sign, SIGN_STYLES[marker])}>
+                    {sign}{" "}
+                  </span>
+                )}
                 <SinceWords block={item}>
                   <Spans spans={item.spans} />
                 </SinceWords>
                 <Children block={item} context={context} />
               </div>
             </Selectable>
-          }
-          startContent={rowMarker(block, item, index, isHanging)}
-          xstyle={[styles.row, isHanging && styles.hangingRow]}
-        />
-      ))}
-    </List>
+          </li>
+        );
+      })}
+    </Tag>
   );
 }
 
