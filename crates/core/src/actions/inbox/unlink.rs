@@ -5,12 +5,13 @@
 
 use std::fs;
 
+use crate::files::document::hash;
 use crate::files::image_links::without_image;
 use crate::workspace::resolve;
 
-use super::super::ActionError;
 use super::super::place::Place;
-use super::{current, draft_text};
+use super::super::{ActionError, STALE};
+use super::draft_text;
 
 /// What taking an image out of a draft wrote, which its Undo takes back: the draft's `before`
 /// lines from its line `at`, and the `after` lines written in their place. Both hold a line of
@@ -32,17 +33,18 @@ fn name(image: &str) -> &str {
     image.rsplit('/').next().unwrap_or(image)
 }
 
-/// The folder of the file at `path`, from the top level.
-fn folder(path: &str) -> &str {
-    path.rsplit_once('/').map_or("", |(folder, _)| folder)
+/// A draft's path from `specs/`, as the refusals name it.
+fn file(draft: &str) -> &str {
+    draft.strip_prefix("specs/").unwrap_or(draft)
 }
 
-/// Whether `text`, the draft at `draft`, links `image`, from the top level.
-fn links(text: &str, draft: &str, image: &str) -> bool {
+/// `text`, the draft at `draft`, without its links to `image`, both from the top level, or `None`
+/// when it links none.
+fn unlinked(text: &str, draft: &str, image: &str) -> Option<String> {
+    let folder = draft.rsplit_once('/').map_or("", |(folder, _)| folder);
     without_image(text, |target| {
-        resolve(folder(draft), target).as_deref() == Some(image)
+        resolve(folder, target).as_deref() == Some(image)
     })
-    .is_some()
 }
 
 /// The lines `before` and `after` differ in, from the first that differs, with a line on each
@@ -79,14 +81,12 @@ pub fn remove_image(
     image: &str,
     previous: &str,
 ) -> Result<RemovedImage, ActionError> {
-    draft_text(place, draft)?;
-    let text = current(place, draft, previous)?;
-    let edited = without_image(&text, |target| {
-        resolve(folder(draft), target).as_deref() == Some(image)
-    })
-    .ok_or_else(|| {
-        let file = draft.strip_prefix("specs/").unwrap_or(draft);
-        ActionError::Refused(format!("{file} does not link {}", name(image)))
+    let text = draft_text(place, draft)?;
+    if hash(&text) != previous {
+        return Err(ActionError::Refused(format!("{} {STALE}", file(draft))));
+    }
+    let edited = unlinked(&text, draft, image).ok_or_else(|| {
+        ActionError::Refused(format!("{} does not link {}", file(draft), name(image)))
     })?;
     fs::write(place.root.join(draft), &edited)?;
     let (at, before, after) = changed(&text, &edited);
@@ -113,13 +113,10 @@ pub fn restore_image(place: &Place, removed: &RemovedImage) -> Result<(), Action
             .copied()
             .eq(removed.after.iter().map(String::as_str))
     });
-    if !unchanged || links(&text, &removed.draft, &removed.image) {
-        let file = removed
-            .draft
-            .strip_prefix("specs/")
-            .unwrap_or(&removed.draft);
+    if !unchanged || unlinked(&text, &removed.draft, &removed.image).is_some() {
         return Err(ActionError::Refused(format!(
-            "Could not undo: {file} changed where {} was.",
+            "Could not undo: {} changed where {} was.",
+            file(&removed.draft),
             name(&removed.image)
         )));
     }
