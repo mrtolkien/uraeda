@@ -22,6 +22,8 @@ Without it, the file names and their `status` fields still tell where each featu
   `proposal.md` next to its `images/`
 - `decisions/`: the decision ledger, one file per topic, named after the question it answers:
   high-impact choices made by humans, binding for all work once `active`
+- `ui/`: for a project with a UI, its guides, free form: how its views read and behave, which
+  every view follows
 - `done/YYYY-MM-DD-<slug>.md`: the record of a merged feature or change, written in place of its
   folder in the last commit of its branch: what it does and why, each question with its answer, and
   the changes made after approval. The folder's files stay in git: `git log -- specs/<folder>/`

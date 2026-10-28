@@ -525,6 +525,18 @@ fn replaced_behaviour_and_gotchas_are_optional_sections_in_their_place() {
 }
 
 /// SC-003: a story link is a plain markdown link, and a spec holding one checks without problem.
+/// `specs/ui/`, the project's UI guides, is a folder of its own, free form, as `drafts/` is.
+#[test]
+fn a_ui_folder_has_no_problem() {
+    let example = Example::new();
+    example.write(
+        "specs/ui/README.md",
+        "# UI\n\nHow the views read and behave.\n",
+    );
+
+    assert_eq!(summary(&example.problems()), Vec::<String>::new());
+}
+
 #[test]
 fn a_spec_with_a_story_link_has_no_problem() {
     let example = Example::new();

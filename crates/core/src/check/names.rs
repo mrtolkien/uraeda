@@ -1,5 +1,6 @@
-//! `names.*`: feature and change folders are `YYYY-MM-DD-<slug>` with a real date, rounds have two
-//! digits, a change's folder holds only a change's files, and `specs/bugs/` is no longer used.
+//! `names.*`: feature and change folders are `YYYY-MM-DD-<slug>` with a real date, beside the fixed
+//! folders, `ui/` among them, rounds have two digits, a change's folder holds only a change's files,
+//! and `specs/bugs/` is no longer used.
 
 use std::fs;
 use std::path::Path;
@@ -33,6 +34,7 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
             check_folder(),
             "changes",
             "done",
+            "ui",
         ]
     } else if here == "changes" && parent == "specs" {
         &[]
