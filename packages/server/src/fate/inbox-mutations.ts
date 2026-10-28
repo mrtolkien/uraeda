@@ -28,6 +28,9 @@ type UndoInput = { category?: string; index: number; lines: Array<string> };
 /** A move into the priorities: both files' hashes as read, and the section's id, `next`. */
 type ToPrioritiesInput = NoteInput & { prioritiesHash: string; section: string };
 
+/** A move under an entry of the priorities: both files' hashes as read, and the entry's id, `now-2`. */
+type UnderPriorityInput = NoteInput & { entry: string; prioritiesHash: string };
+
 export const inboxMutations = {
   "changes.commit": {
     resolve: async ({ ctx, select }: Resolver<Record<string, never>>) => {
@@ -317,6 +320,21 @@ export const inboxMutations = {
     },
     type: "Inbox",
   },
+  "inbox.underPriority": {
+    resolve: async ({ ctx, input, select }: Resolver<UnderPriorityInput>) => {
+      await refusable(() =>
+        ctx.binding.noteUnderPriority(
+          ctx.repo,
+          input.note,
+          input.entry,
+          input.hash,
+          input.prioritiesHash,
+        ),
+      );
+      return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select);
+    },
+    type: "Inbox",
+  },
   "inbox.undoAdd": {
     resolve: async ({ ctx, input, select }: Resolver<{ lines: Array<string> }>) =>
       inbox(ctx, await refusable(() => ctx.binding.undoNoteAdd(ctx.repo, input.lines)), select),
@@ -357,6 +375,23 @@ export const inboxMutations = {
             input.draft,
             input.lines,
             input.index,
+            input.category,
+          ),
+        ),
+        select,
+      ),
+    type: "Inbox",
+  },
+  "inbox.undoUnderPriority": {
+    resolve: async ({ ctx, input, select }: Resolver<UndoInput & { entryKey: string }>) =>
+      inbox(
+        ctx,
+        await refusable(() =>
+          ctx.binding.undoNoteUnderPriority(
+            ctx.repo,
+            input.lines,
+            input.index,
+            input.entryKey,
             input.category,
           ),
         ),

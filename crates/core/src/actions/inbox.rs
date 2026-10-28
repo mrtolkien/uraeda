@@ -22,6 +22,7 @@ pub use categories::{add_category, remove_category, rename_category, restore_cat
 pub use image::{NoteImage, add_with_image, attach_to_note, with_images};
 pub use undo::{
     undo_add, undo_as_draft, undo_category, undo_committed, undo_to_draft, undo_to_priorities,
+    undo_under_priority,
 };
 
 pub const PATH: &str = "specs/INBOX.md";
@@ -377,6 +378,24 @@ pub fn to_priorities(
     let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
     let edited = priorities::insert_entry(&priorities, section, usize::MAX, &lines)
         .ok_or_else(|| no_note(id))?;
+    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+    write_both(place, super::priorities::PATH, &edited, &without)
+}
+
+/// Moves a note's lines, without its marks, its nested items with them, under the entry `entry` of
+/// `PRIORITIES.md`, as its last item. Both files are checked against the versions read before
+/// either is written.
+pub fn under_priority(
+    place: &Place,
+    id: &str,
+    entry: &str,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<(), ActionError> {
+    let (inbox, priorities) = both(place, previous, priorities_previous)?;
+    let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
+    let edited = priorities::append_under(&priorities, entry, &lines)
+        .ok_or_else(|| ActionError::Refused(format!("no line {entry} to put the note under")))?;
     let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
     write_both(place, super::priorities::PATH, &edited, &without)
 }

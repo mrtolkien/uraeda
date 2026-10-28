@@ -8,7 +8,7 @@ mod outline;
 
 pub use context::{SectionContext, contexts};
 pub use super::nested::{NestedItem, OutlineEdit};
-pub use outline::{Drop, drop_item, outline};
+pub use outline::{Drop, append_under, drop_item, outline, remove_under};
 
 pub use edits::{
     add, add_started, edit, insert_entry, link, move_entry, move_to_started, remove, remove_added,

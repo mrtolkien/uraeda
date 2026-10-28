@@ -266,6 +266,26 @@ pub fn note_to_priorities(
     )?)
 }
 
+/// Moves a note under the entry `entry` of the priorities, `now-2`, as its last item, over both
+/// files as read at `previous` and `priorities_previous`.
+pub fn note_under_priority(
+    repo: &Path,
+    id: &str,
+    entry: &str,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<()> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    Ok(edits::under_priority(
+        &place,
+        id,
+        entry,
+        previous,
+        priorities_previous,
+    )?)
+}
+
 /// Makes a note a new draft, linked from the end of a section of the priorities. Returns the
 /// draft's path, from the top level.
 pub fn note_to_new_draft(
@@ -385,6 +405,28 @@ pub fn undo_note_to_priorities(
         index as usize,
         section,
         entry_key.as_deref(),
+    )?;
+    Ok(edits::read(&place))
+}
+
+/// Takes back a note's move under an entry of the priorities, in one write of both files or none:
+/// the item the move wrote leaves the entry whose key is `entry_key`, and the note, `lines` as
+/// written, goes back before the note at `index` of its category, over the inbox as it is now.
+pub fn undo_note_under_priority(
+    repo: &Path,
+    lines: &[String],
+    category: Option<String>,
+    index: u32,
+    entry_key: &str,
+) -> Result<Inbox> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    edits::undo_under_priority(
+        &place,
+        lines,
+        category.as_deref(),
+        index as usize,
+        entry_key,
     )?;
     Ok(edits::read(&place))
 }

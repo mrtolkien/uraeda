@@ -249,6 +249,27 @@ pub fn note_to_priorities(
     })
 }
 
+/// Moves a note under the entry `entry` of the priorities, `now-2`, as its last item, over both
+/// files as read.
+#[napi(ts_return_type = "Promise<void>")]
+pub fn note_under_priority(
+    repo: String,
+    id: String,
+    entry: String,
+    previous: String,
+    priorities_previous: String,
+) -> AsyncTask<Job<()>> {
+    job(move || {
+        api::note_under_priority(
+            Path::new(&repo),
+            &id,
+            &entry,
+            &previous,
+            &priorities_previous,
+        )
+    })
+}
+
 /// Makes a note a new draft, linked from the end of a section of the priorities. Returns the
 /// draft's path, from the top level.
 #[napi(ts_return_type = "Promise<string>")]
@@ -440,6 +461,22 @@ pub fn undo_note_to_priorities(
             &section,
             entry_key,
         )
+    })
+}
+
+/// Takes back a note's move under an entry of the priorities, in one write of both files or none:
+/// the item the move wrote leaves the entry whose key is `entryKey`, and the note goes back before
+/// the note at `index` of its category.
+#[napi(ts_return_type = "Promise<Inbox>")]
+pub fn undo_note_under_priority(
+    repo: String,
+    lines: Vec<String>,
+    index: u32,
+    entry_key: String,
+    category: Option<String>,
+) -> AsyncTask<Job<Inbox>> {
+    job(move || {
+        api::undo_note_under_priority(Path::new(&repo), &lines, category, index, &entry_key)
     })
 }
 

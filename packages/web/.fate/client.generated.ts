@@ -161,6 +161,11 @@ const mutations = {
     FateAPI['mutations']['inbox.toPriorities']['input'],
     FateAPI['mutations']['inbox.toPriorities']['output']
   >('Inbox'),
+  'inbox.underPriority': mutation<
+    Inbox,
+    FateAPI['mutations']['inbox.underPriority']['input'],
+    FateAPI['mutations']['inbox.underPriority']['output']
+  >('Inbox'),
   'inbox.undoAdd': mutation<
     Inbox,
     FateAPI['mutations']['inbox.undoAdd']['input'],
@@ -190,6 +195,11 @@ const mutations = {
     Inbox,
     FateAPI['mutations']['inbox.undoToPriorities']['input'],
     FateAPI['mutations']['inbox.undoToPriorities']['output']
+  >('Inbox'),
+  'inbox.undoUnderPriority': mutation<
+    Inbox,
+    FateAPI['mutations']['inbox.undoUnderPriority']['input'],
+    FateAPI['mutations']['inbox.undoUnderPriority']['output']
   >('Inbox'),
   'item.settings': mutation<
     Feature,

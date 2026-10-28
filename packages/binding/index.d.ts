@@ -235,6 +235,12 @@ export declare function noteToNewDraft(repo: string, id: string, section: string
 /** Moves a note to the end of a section of the priorities, over both files as read. */
 export declare function noteToPriorities(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<void>
 
+/**
+ * Moves a note under the entry `entry` of the priorities, `now-2`, as its last item, over both
+ * files as read.
+ */
+export declare function noteUnderPriority(repo: string, id: string, entry: string, previous: string, prioritiesPrevious: string): Promise<void>
+
 /** Records that a repository was opened now, and returns it. */
 export declare function openRepository(dataDir: string, name: string): Promise<Repository>
 
@@ -515,6 +521,13 @@ export declare function undoNoteToDraft(repo: string, draft: string, lines: Arra
  * `entryKey`, its key once moved; the note goes back before the note at `index` of its category.
  */
 export declare function undoNoteToPriorities(repo: string, lines: Array<string>, index: number, section: string, category?: string | undefined | null, entryKey?: string | undefined | null): Promise<Inbox>
+
+/**
+ * Takes back a note's move under an entry of the priorities, in one write of both files or none:
+ * the item the move wrote leaves the entry whose key is `entryKey`, and the note goes back before
+ * the note at `index` of its category.
+ */
+export declare function undoNoteUnderPriority(repo: string, lines: Array<string>, index: number, entryKey: string, category?: string | undefined | null): Promise<Inbox>
 
 /** The binding's version, the Cargo workspace's. It reads nothing, so it returns at once. */
 export declare function version(): string

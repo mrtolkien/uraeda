@@ -67,6 +67,35 @@ pub fn drop_item(text: &str, id: &str, at: Option<usize>, to: &Drop) -> Option<S
     .ok()
 }
 
+/// Adds `written`, an item of another list as its lines, its nested items with it, as the last item
+/// nested under the entry `id`. `None` when there is no such entry, or nested lines cannot be
+/// written again.
+pub fn append_under(text: &str, id: &str, written: &[String]) -> Option<String> {
+    super::super::with_unix_newlines(text, |text| {
+        let entry = parse(text)
+            .into_iter()
+            .find(|entry| entry_id(entry) == id)
+            .ok_or(())?;
+        nested::append_item(text, &entry.item, written).ok_or(())
+    })
+    .ok()
+}
+
+/// Takes back [`append_under`]: the entry whose key is `key`, found by it as other edits may have
+/// moved it, without the last of its own items that says what `written` says. `None` when there is
+/// none.
+pub fn remove_under(text: &str, key: &str, written: &[String]) -> Option<String> {
+    super::super::with_unix_newlines(text, |text| {
+        let entries = parse(text);
+        let at = super::keys(&entries)
+            .iter()
+            .position(|one| one == key)
+            .ok_or(())?;
+        nested::remove_item(text, &entries[at].item, written).ok_or(())
+    })
+    .ok()
+}
+
 /// An edit of an entry itself.
 fn on_entry(text: &str, entries: &[Entry], index: usize, edit: &OutlineEdit) -> Option<String> {
     let entry = &entries[index];

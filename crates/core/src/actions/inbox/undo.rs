@@ -57,6 +57,24 @@ pub fn undo_to_priorities(
     write_both(place, priority_edits::PATH, &without, &back)
 }
 
+/// Takes back a move under an entry of the priorities: the item the move wrote leaves the entry
+/// whose key is `entry`, and the note, `lines` as written, goes back to its place.
+pub fn undo_under_priority(
+    place: &Place,
+    lines: &[String],
+    category: Option<&str>,
+    index: usize,
+    entry: &str,
+) -> Result<(), ActionError> {
+    let (note, unmarked) = parts(lines)?;
+    let current = text(place)?;
+    let written = file(place, priority_edits::PATH)?;
+    let without = priorities::remove_under(&written, entry, &unmarked)
+        .ok_or_else(|| gone(&note, "PRIORITIES.md"))?;
+    let back = put_back(&current, category, index, lines)?;
+    write_both(place, priority_edits::PATH, &without, &back)
+}
+
 /// Takes back an add to the draft at `draft`: the note's lines leave its `## What`, every other
 /// edit kept, as Discard takes them back, and the note goes back to its place.
 pub fn undo_to_draft(
