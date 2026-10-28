@@ -15,4 +15,7 @@ export const paneVars = stylex.defineVars({
   // The least room a title's suffix takes in the title's line before it wraps under it: a few
   // words of its own text.
   "--pane-suffix-least": "12ch",
+  // A pixel a title's button stands over a control's height, so a line's fractional height cannot
+  // round it under (`Pane.tsx`, `lists/CategoryPane.tsx`).
+  "--pane-title-slack": "1px",
 });

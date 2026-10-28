@@ -82,9 +82,9 @@ const styles = stylex.create({
     height: "auto",
     justifyContent: "start",
     lineHeight: "inherit",
-    // A pixel over the control's height, so a line's fractional height cannot round it under.
-    marginBlock: `calc((1lh - ${borderVars["--border-width"]} - ${sizeVars["--size-element-sm"]}) / 2)`,
-    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + ${borderVars["--border-width"]} - 1lh) / 2)`,
+    // A pixel over the control's height (`--pane-title-slack`).
+    marginBlock: `calc((1lh - ${paneVars["--pane-title-slack"]} - ${sizeVars["--size-element-sm"]}) / 2)`,
+    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + ${paneVars["--pane-title-slack"]} - 1lh) / 2)`,
     paddingInline: 0,
     textAlign: "start",
     whiteSpace: "normal",

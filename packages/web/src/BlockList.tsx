@@ -213,7 +213,7 @@ function ItemText({
       {others.length > 0 && (
         <ul
           {...stylex.props(
-            listStyles.native("1.25em"),
+            listStyles.native(markVars["--mark-list-room"]),
             isHanging ? listStyles.dashed : listStyles.disc,
             listStyles.split,
           )}
