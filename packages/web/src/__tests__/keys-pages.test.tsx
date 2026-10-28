@@ -45,21 +45,45 @@ const composer = () => screen.findByRole("textbox", { name: "Message Claude Code
 /** The feature's composer, which writes its proposal. */
 const proposal = () => screen.findByRole("textbox", { name: "Write Proposal" });
 
-test("on a Home card, a key the leader's menu waits for is the menu's: Space then `l` moves no focus", async () => {
+/** Home, wide, with the focus on the first card of its core, not on the sidebar's copy of it. */
+async function onCoreCard() {
   atWidth(1400);
   await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
   await homeShown();
-  // The first card of home's core, not the sidebar's copy of it.
-  const link = document.querySelector<HTMLElement>("[data-core-column] [data-core-key] a[href]");
-  act(() => link!.focus());
+  const link = await waitFor(() => {
+    const first = document.querySelector<HTMLElement>("[data-core-column] [data-core-key] a[href]");
+    expect(first).not.toBeNull();
+    return first!;
+  });
+  act(() => link.focus());
+  return link;
+}
 
-  await press(" ", link!);
-  await press("l", link!);
+test("on a Home card, a key the leader's menu waits for is the menu's: Space then `l` moves no focus", async () => {
+  const link = await onCoreCard();
+
+  await press(" ", link);
+  await press("l", link);
   expect(document.activeElement).toBe(link);
 
   // Alone, `l` moves to the next column: the key above was the menu's, not a key with nowhere to go.
-  await press("l", link!);
+  await press("l", link);
   expect(document.activeElement).not.toBe(link);
+});
+
+// Break: every key a sequence waits for left to it, the arrows too, which no sequence takes.
+test("on a Home card, the arrows move the focus while a `g` sequence waits", async () => {
+  const link = await onCoreCard();
+
+  await press("g", link);
+  await press("ArrowRight", link);
+  const moved = document.activeElement;
+  expect(moved).not.toBe(link);
+  expect(moved?.closest("[data-core-key]")).not.toBeNull();
+
+  await press("g", moved!);
+  await press("ArrowLeft", moved!);
+  expect(document.activeElement).toBe(link);
 });
 
 test("US3: `a` on Home opens the New page, as its button does", async () => {

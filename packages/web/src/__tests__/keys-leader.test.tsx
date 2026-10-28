@@ -1,8 +1,9 @@
 // The leader menu on the registry (US1, US5; review focus 3, 5, 7, 8, 10), with fake timers: Space
 // and `g` start a sequence, the menu shows 300 ms after the last key and stays, and what ends it. A
 // menu that ends slides away first, drawn until its slide is over: a check that it is gone waits
-// that out, and so does a check that it stays, which a closing menu would pass while it slides. The
-// state machine itself is `keys-sequence.test.ts`'s.
+// that out, and so does a check that it stays, which a closing menu would pass while it slides, and
+// which then presses the menu's next key, which only a sequence still waiting takes. The state
+// machine itself is `keys-sequence.test.ts`'s.
 import { Button } from "@astryxdesign/core/Button";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -88,6 +89,18 @@ const menu = (title: string) => screen.queryByRole("group", { name: title });
 
 /** Waits out a closed menu's slide, after which only a menu still open is drawn. */
 const slid = () => wait(SLIDE_MS);
+
+/**
+ * Checks that the Space menu is still open, its sequence waiting: past a closing menu's slide, it
+ * is drawn, and its next key, `n`, opens its New group at once, where an ended sequence would
+ * take `n` as a key of its own.
+ */
+function expectSpaceOpen() {
+  slid();
+  expect(menu("Space")).not.toBeNull();
+  press("n");
+  expect(menu("Space n")).not.toBeNull();
+}
 
 test("Space, n, n typed with no time between runs the binding, and the menu never shows", () => {
   show();
@@ -231,8 +244,7 @@ test("a lone modifier does not end a shown menu", () => {
   press(" ");
   wait(500);
   press("Shift");
-  slid();
-  expect(menu("Space")).not.toBeNull();
+  expectSpaceOpen();
 });
 
 test("a key bound to nothing keeps a shown menu open and runs nothing", () => {
@@ -241,8 +253,7 @@ test("a key bound to nothing keeps a shown menu open and runs nothing", () => {
   wait(500);
   press("z");
   press("a");
-  slid();
-  expect(menu("Space")).not.toBeNull();
+  expectSpaceOpen();
   expect(ran).toEqual([]);
 });
 
@@ -271,8 +282,7 @@ test("a printable key the menu has no use for is consumed: x does nothing", () =
   press(" ");
   wait(500);
   expect(press("z")).toBe(false);
-  slid();
-  expect(menu("Space")).not.toBeNull();
+  expectSpaceOpen();
   expect(ran).toEqual([]);
 });
 
