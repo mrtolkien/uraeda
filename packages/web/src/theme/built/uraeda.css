@@ -290,6 +290,7 @@
     --astryx-theme-neutral-color-destructive-overlay-hover: light-dark(#ff7f770D, #ee736c0D);
     --astryx-theme-neutral-color-destructive-overlay-pressed: light-dark(#ff7f771A, #ee736c1A);
     --text-reading-line: 1.5;
+    --text-reading-line-airy: 1.65;
     --text-reading-size: 19px;
     --font-family-reading: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --color-text-lavender: light-dark(#4254c8, #b4befe);

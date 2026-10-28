@@ -9,6 +9,7 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { columnVars } from "../shell/column.stylex.ts";
 import type { SessionStatus } from "uraeda-server/fate";
 import { HarnessMark, harnessMark } from "../HarnessMark.tsx";
 import { useColumnFold } from "../shell/fold.ts";
@@ -63,7 +64,7 @@ const styles = stylex.create({
     alignItems: "center",
     backgroundColor: colorVars["--color-accent"],
     color: colorVars["--color-on-accent"],
-    // Its side as a property of its own, which StyleX's height and width values do not list as a
+    // Its side as a property of its own, as the token lint takes a `var()` only whole, not in a
     // calc.
     "--card-next-side": "calc(1.35 * var(--size-label-line))",
     display: "flex",
@@ -89,12 +90,11 @@ const styles = stylex.create({
     gap: spacingVars["--spacing-1"],
   },
   // The closed rail's mark of the card's status, under its icon: shown by the column's rail rule.
-  // Its offsets are properties of their own, which StyleX's inset values do not list.
+  // Its top is a property of its own, as the token lint takes a `var()` only whole, not in a calc.
   railMark: {
-    "--card-rail-mark-start": "7.7px",
-    "--card-rail-mark-top": "calc(var(--size-label-line) + 12px)",
+    "--card-rail-mark-top": `calc(var(--size-label-line) + ${columnVars["--rail-mark-below"]})`,
     display: "none",
-    insetInlineStart: "var(--card-rail-mark-start)",
+    insetInlineStart: columnVars["--rail-mark-start"],
     pointerEvents: "none",
     position: "absolute",
     top: "var(--card-rail-mark-top)",

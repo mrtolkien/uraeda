@@ -276,6 +276,8 @@ export const uraedaTheme = defineTheme({
   localTokens: {
     // Reading text: paragraphs of documents, questions, and stories.
     "--text-reading-line": "1.5",
+    // Reading text given air, as a round's context or a spec's opening: taller lines.
+    "--text-reading-line-airy": "1.65",
     "--text-reading-size": "19px",
     // Prose's font, a proportional one where long text reads better than in the monospace font.
     "--font-family-reading":

@@ -91,7 +91,8 @@ const styles = stylex.create({
   },
   // An icon in the title, centred on its first line.
   glyph: {
-    // One line's height, which StyleX's height values do not list.
+    // One line's height, a unit of the layout, not a token: the token lint takes it in a custom
+    // property.
     "--pane-line": "1lh",
     alignItems: "center",
     display: "inline-flex",
@@ -203,13 +204,11 @@ const styles = stylex.create({
   // taking the room the title leaves, its words wrapping in it, or under the title when that room
   // is narrower than a few words.
   suffix: {
-    // A few words of the suffix's own text.
-    "--pane-suffix-room": "12ch",
     color: colorVars["--color-text-secondary"],
     flexBasis: 0,
     flexGrow: 1,
     fontWeight: fontWeightVars["--font-weight-normal"],
-    minWidth: "var(--pane-suffix-room)",
+    minWidth: paneVars["--pane-suffix-least"],
   },
   // A tinted pane, as a picked card: its background the accent's muted tint. Its title's band is
   // the page's above the border's middle and the tint's below it, so the title sits on both.

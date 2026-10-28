@@ -14,6 +14,7 @@ import * as stylex from "@stylexjs/stylex";
 import { useMemo, useRef, useState } from "react";
 import { useKeys } from "../keys/registry.tsx";
 import { paneVars } from "../layout/pane.stylex.ts";
+import { columnVars } from "./column.stylex.ts";
 import { Allowance } from "../sidebar/Allowance.tsx";
 import { useSessionQuery } from "../sidebar/Search.tsx";
 import { ColumnActions, ColumnFoot, ColumnHeading, Navigate } from "./ColumnPanes.tsx";
@@ -70,13 +71,12 @@ const styles = stylex.create({
     // Up to 400 px, and no more than the window shows: its `100%`, not `100vw`, which counts the
     // page's own scrollbar and would put the column's end under it.
     maxWidth: "100%",
-    // A pixel more at the sides than the desktop column's, which the rail's icons are set by, as
-    // the phone's page has (`Page.tsx`). Its lengths are custom properties, which StyleX's padding
-    // and width values do not list.
-    "--column-phone-inset": "calc(var(--size-rail-inset) + 1px)",
-    "--column-phone-width": "400px",
+    // The desktop column's inset, which the rail's icons are set by, and its edge's width more at
+    // the sides, as the phone's page has (`Page.tsx`). A custom property: the token lint takes a
+    // `var()` only whole, not in a calc.
+    "--column-phone-inset": `calc(var(--size-rail-inset) + ${borderVars["--border-width"]})`,
     paddingInline: "var(--column-phone-inset)",
-    width: "var(--column-phone-width)",
+    width: columnVars["--column-phone-max"],
     zIndex: 3,
   },
   phoneClosed: {
@@ -139,8 +139,8 @@ const styles = stylex.create({
   // over it, so that their icons stand under the heading's.
   scrollRail: {
     // The cards' icons stand under the nav rows': 16 px from the rail's edge.
-    // Out to the nav's edge, so the separators run the rail's whole width: a custom property,
-    // which StyleX's margin values do not list as a calc.
+    // Out to the nav's edge, so the separators run the rail's whole width: a custom property, as
+    // the token lint takes a `var()` only whole, not in a calc.
     "--column-rail-pull": "calc(-1 * var(--size-rail-inset))",
     marginInlineStart: "var(--column-rail-pull)",
     paddingInlineStart: "var(--size-rail-inset)",
@@ -152,8 +152,9 @@ const widths = stylex.create({
   of: (width: number) => ({ width }),
   // The open column's content width: its width less the nav's padding and edge.
   content: (width: number) => ({
-    // The width as a property of its own, which StyleX's width values do not list as a calc.
-    "--column-content": `calc(${width}px - 2 * var(--size-rail-inset) - 1px)`,
+    // The width as a property of its own, as the token lint takes a `var()` only whole, not in a
+    // calc.
+    "--column-content": `calc(${width}px - 2 * var(--size-rail-inset) - ${borderVars["--border-width"]})`,
     width: "var(--column-content)",
   }),
 });

@@ -24,7 +24,7 @@ const styles = stylex.create({
   },
   endTall: {
     // Two lines high, for an end that is a button of its own: it takes the room of both lines. A
-    // custom property, which StyleX's height values do not list as a calc.
+    // custom property, as the token lint takes a `var()` only whole, not in a calc.
     "--card-end-tall": "calc(2 * var(--size-label-line))",
     height: "var(--card-end-tall)",
   },

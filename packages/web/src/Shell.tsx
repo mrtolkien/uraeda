@@ -6,7 +6,7 @@
 // navigation for the phone.
 import { LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
@@ -45,9 +45,9 @@ const styles = stylex.create({
     marginInline: "auto",
     maxWidth: "var(--size-page-max)",
     paddingBlockStart: spacingVars["--spacing-4"],
-    // The phone page's inset (`Page.tsx`), a property of its own, which StyleX's padding values do
-    // not list as a calc.
-    "--errors-inset": "calc(var(--size-rail-inset) + 1px)",
+    // The phone page's inset (`Page.tsx`), a property of its own, as the token lint takes a `var()`
+    // only whole, not in a calc.
+    "--errors-inset": `calc(var(--size-rail-inset) + ${borderVars["--border-width"]})`,
     paddingInline: "var(--errors-inset)",
     width: "100%",
   },

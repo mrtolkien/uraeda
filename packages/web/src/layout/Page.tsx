@@ -1,18 +1,18 @@
 import * as stylex from "@stylexjs/stylex";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { createContext, type ReactNode, type RefObject, useRef } from "react";
 import { paneVars } from "./pane.stylex.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
   page: {
-    // One inset on the phone, from the screen's edges, the phone sidebar's own (the rail's, and a
-    // pixel), so the panes at the page's edge sit as the sidebar's do; the reading column in the
+    // One inset on the phone, from the screen's edges, the phone sidebar's own (the rail's, and its
+    // edge's width), so the panes at the page's edge sit as the sidebar's do; the reading column in the
     // middle of a wide screen. Text wraps anywhere rather than scroll the page sideways.
     // `--page-inset` is the inset at the sides, and `--page-bleed` takes it back, for what reaches
     // the screen's edges.
-    "--page-bleed": "calc(-1 * (var(--size-rail-inset) + 1px))",
-    "--page-inset": "calc(var(--size-rail-inset) + 1px)",
+    "--page-bleed": `calc(-1 * (var(--size-rail-inset) + ${borderVars["--border-width"]}))`,
+    "--page-inset": `calc(var(--size-rail-inset) + ${borderVars["--border-width"]})`,
     boxSizing: "border-box",
     marginInline: "auto",
     maxWidth: "var(--size-page-max)",
@@ -37,7 +37,7 @@ const styles = stylex.create({
   },
   // A draft's editor on wide screens: its panes hold the file's text in the UI's monospace font,
   // not prose, up to 95 of its characters.
-  writing: { "--pane-max": "95ch" },
+  writing: { "--pane-max": paneVars["--pane-code"] },
   // A round's page on wide screens: as wide as two of its panes side by side, as its Scope and
   // Sources are, so that a question's card, its question beside its answers, takes both.
   paired: {

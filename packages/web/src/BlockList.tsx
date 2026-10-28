@@ -38,7 +38,8 @@ export const listStyles = stylex.create({
   // On narrow screens, the markers hang in the page's margin, as far as its inset allows: the
   // text of a list on the paragraphs' edge when the inset holds the markers' whole room.
   hanging: (room: string) => ({
-    // The room as a property of its own, which StyleX's padding values do not list.
+    // The room as a property of its own, as the token lint takes a `var()` only whole, not in a
+    // calc.
     "--list-hanging": `max(0px, calc(${room} - var(--page-inset, ${spacingVars["--spacing-3"]})))`,
     paddingInlineStart: "var(--list-hanging)",
   }),

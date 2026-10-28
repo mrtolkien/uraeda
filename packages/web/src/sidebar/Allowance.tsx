@@ -4,6 +4,7 @@
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { columnVars } from "../shell/column.stylex.ts";
 import { Suspense } from "react";
 import { useAgent } from "../data.ts";
 import { UsageWindow } from "../UsageWindow.tsx";
@@ -25,27 +26,21 @@ const styles = stylex.create({
     width,
   }),
   // The rail's bar: hidden but in the closed rail (`Column.tsx` shows `data-rail-only`), centred in
-  // the 38 px box the rail's rows have. Its lengths are custom properties, which StyleX's margin and
-  // width values do not list.
+  // the 38 px box the rail's rows have (`shell/column.stylex.ts`).
   rail: {
-    "--allowance-box": "38px",
-    // The foot is inset 6.8 px from the rail's edge, and the rows' boxes 7.3 px.
-    "--allowance-nudge": "0.5px",
     alignItems: "center",
     display: "none",
     justifyContent: "center",
-    marginInlineStart: "var(--allowance-nudge)",
+    marginInlineStart: columnVars["--rail-allowance-nudge"],
     paddingBlock: spacingVars["--spacing-2"],
-    width: "var(--allowance-box)",
+    width: columnVars["--rail-row-box"],
   },
-  // The bar's track, in the border's colour, its lengths custom properties as the rail's.
+  // The bar's track, in the border's colour.
   track: {
-    "--allowance-track-height": "6px",
-    "--allowance-track-width": "28px",
     backgroundColor: colorVars["--color-border"],
-    height: "var(--allowance-track-height)",
+    height: columnVars["--rail-allowance-height"],
     overflow: "hidden",
-    width: "var(--allowance-track-width)",
+    width: columnVars["--rail-allowance-width"],
   },
   usage: {
     paddingBlockEnd: spacingVars["--spacing-2"],
