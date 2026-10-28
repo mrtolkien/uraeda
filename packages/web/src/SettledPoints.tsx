@@ -14,7 +14,6 @@ import {
   SettledForm,
   SettledNote,
 } from "./SettledForm.tsx";
-import { PointActions } from "./RoundParts.tsx";
 import { type SettledPart, SettledGroups } from "./SettledGroups.tsx";
 import { useSettledWrites } from "./settledWrites.ts";
 import { CommentBox } from "./layout/CommentBox.tsx";
@@ -119,12 +118,6 @@ export function SettledPoints({
     }
     return (
       <>
-        {!readOnly && (
-          <PointActions
-            onComment={() => setOpen({ kind: "new", point })}
-            subject={point.subject}
-          />
-        )}
         {comments
           .filter((comment) => comment.point === block.id)
           .map((comment) =>

@@ -1,10 +1,7 @@
 // The round's own parts, in titled panes: its block, titled by its first line, with the verdict as
-// its lead over its sentence; its context, a pane per part, Today folded; the "Check these" pane;
-// and a settled point's actions. Round-only parts, as the plan's Complexity tracking names them.
-import { Button } from "@astryxdesign/core/Button";
+// its lead over its sentence; its context, a pane per part, Today folded; and the "Check these"
+// pane. Round-only parts, as the plan's Complexity tracking names them.
 import { Grid } from "@astryxdesign/core/Grid";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -13,6 +10,7 @@ import type { Block, ContextPart, Document, RoundItems, VerdictKind } from "urae
 import { Blocks } from "./Blocks.tsx";
 import { type Folds, useHashFold } from "./Folds.tsx";
 import { Pane } from "./layout/Pane.tsx";
+import { paneVars } from "./layout/pane.stylex.ts";
 import { useAtLeast } from "./layout/useWidthOf.ts";
 import { proseStyles } from "./Prose.tsx";
 import { PART_IDS } from "./roundPartIds.ts";
@@ -26,9 +24,8 @@ const styles = stylex.create({
   success: { color: colorVars["--color-success"] },
   error: { color: colorVars["--color-error"] },
   warning: { color: colorVars["--color-warning"] },
-  // The context's panes, narrower than the page's others: their prose, which fills them, about 70
-  // characters a line in the reading font (82 of the UI's characters, the pane's own).
-  context: { "--pane-max": "82ch" },
+  // The context's panes, narrower than the page's others, their prose filling them.
+  context: { "--pane-max": paneVars["--pane-context"] },
 });
 
 /** The verdict's lead, by the kind the core reads: its words and its colour. */
@@ -243,18 +240,3 @@ export function CheckPane({ children, count }: { children: ReactNode; count: num
   );
 }
 
-/** A settled point's actions: its comment button. */
-export function PointActions({ onComment, subject }: { onComment: () => void; subject: string }) {
-  return (
-    <HStack gap={1} justify="end">
-      <Button
-        icon={<Icon icon="uraeda:pencil" />}
-        isIconOnly
-        label={`Comment on "${subject}"`}
-        onClick={onComment}
-        size="sm"
-        variant="ghost"
-      />
-    </HStack>
-  );
-}
