@@ -74,7 +74,7 @@ on the default branch, from the files as they are then:
 3. **Link the backlog under Later**: each former backlog file that no proposal links gets a proposal
    at the end of **Later**, a link to it with its title as the text.
 4. **Rewrite the links** to the old paths, in `PRIORITIES.md`, `INBOX.md`, and every other workflow
-   file, the moved ones included. The records of `specs/done/` stay as they are.
+   file, the moved ones included. In the records of `specs/done/`, only those links change.
 5. **Remove the old folders**, empty now but for their `.gitkeep`. When `specs/proposals/` holds no
    file, give it an empty `.gitkeep`.
 6. **Commit** the moves and the files whose links changed, alone, with

@@ -133,12 +133,14 @@ commit as what it became:
   section of `PRIORITIES.md`. When the slug is taken, it gets `-2`, `-3`, ... A note with a note
   file moves it there instead, as above.
 - **A line of an existing proposal file**: the note's lines, marks dropped, at the end of the
-  proposal file's `## What` section.
+  proposal file's `## What` section. A note with a note file moves it to `specs/proposals/` first,
+  as above, and the line links its new path.
 - **A change**, for a bug or a small change: the note becomes a new proposal file, as above, which
   the human then starts as a change, as [starting a change](change.md#starting-a-change) says. The
   note leaves the inbox in the proposal file's commit. Starting makes a branch, which only the human
   asks for: the inbox page has no action for it.
-- **Nothing**: the note is deleted, with its note file and the images in it. A note linking a
+- **Nothing**: the note is deleted, with its note file and the images in it. A note file with
+  uncommitted changes the note did not write stays, unlinked: tell the human. A note linking a
   proposal file loses its line only: the file stays.
 
 A note can also have its text edited, its marks kept, or move, with the lines indented under it, to
