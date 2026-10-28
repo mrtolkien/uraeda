@@ -1,6 +1,6 @@
 // "What you approve", the spec page's first part: a pane titled by the block's first line, its
-// record or request, the "You approve" item as the page's lead, the block's other items, the text
-// before the first section, then, at the pane's foot under a separator (C1), the time and the risk
+// record or request, the "You approve" item as the page's lead, the block's other items as a list,
+// each its label first, as a round's first pane reads, the text before the first section, then, at the pane's foot under a separator (C1), the time and the risk
 // tier as pills, the constitution's principles as a strip of pills, and the risk tier's reason.
 // Each item and paragraph takes a comment as the spec's other blocks do, and the strip as its
 // table's row of checks, marked Δ as it when it changed since your review.
@@ -10,40 +10,39 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { fontWeightVars, spacingVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { Block, Document } from "uraeda-binding";
+import type { Block, Document, Span } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Pane } from "../layout/Pane.tsx";
+import { proseStyles } from "../Prose.tsx";
 import { After, Selectable, type Selection } from "../Selection.tsx";
 import { cellRuns, type SinceMark, SinceMarked, SinceSign, useSinceMark } from "../sinceMarks.tsx";
 import { plain, Spans } from "../Spans.tsx";
 import { GROUPS, type PartProps, partOf, type SpecItems } from "./parts.ts";
 
 const styles = stylex.create({
-  bullet: {
-    // An item of the block: its chevron on its first line, next to its text, the text wrapping
-    // under itself.
-    alignItems: "baseline",
-    columnGap: spacingVars["--spacing-1"],
-    display: "grid",
-    gridTemplateColumns: "auto minmax(0, 1fr)",
+  // The pane's prose given air, as a round's context: taller lines.
+  airy: { "--text-reading-line": "1.65" },
+  item: {
+    // An item of the block's list: its marker in the secondary colour, room under it but the last.
+    "::marker": { color: colorVars["--color-text-secondary"] },
+    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-2"] },
+  },
+  // An item's label, up to its colon, as "New decision:": heavier, read first.
+  label: { fontWeight: fontWeightVars["--font-weight-medium"] },
+  lead: {
+    // What you approve, in one sentence: the pane's lead, heavier and a little larger than the
+    // items, in the reading font as they are.
+    fontSize: "calc(1.1 * var(--text-reading-size))",
+    fontWeight: fontWeightVars["--font-weight-semibold"],
     margin: 0,
   },
-  chevron: {
-    // The chevron, centred on the first line's letters (C2).
-    verticalAlign: "middle",
-  },
-  lead: {
-    // What you approve, in one sentence: the largest text of the page after its titles.
-    fontSize: typeScaleVars["--text-heading-3-size"],
-    fontWeight: fontWeightVars["--font-weight-semibold"],
-    lineHeight: typeScaleVars["--text-heading-3-leading"],
-  },
-  reading: {
-    // The block's other items at the reading size, as the spec's other blocks.
-    fontSize: "var(--text-reading-size)",
-    lineHeight: "var(--text-reading-line)",
+  list: {
+    listStylePosition: "outside",
+    listStyleType: "disc",
+    margin: 0,
+    paddingInlineStart: "1.25em",
   },
   section: {
     // A section of the spec drawn in this part, its anchor's element, its pieces spaced as the
@@ -67,37 +66,55 @@ function childrenOf(document: Document, id: number | null | undefined): Array<Bl
   return id === undefined ? [] : document.blocks.filter((b) => (b.parent ?? null) === id);
 }
 
-/** An item of the block, behind its chevron: the lead in large text, the others as the page's. */
-function Bullet({
-  isLead,
-  item,
-  selection,
-}: {
-  isLead: boolean;
-  item: Block;
-  selection: Selection | undefined;
-}) {
+/** How far into an item its label's colon may be, in characters: further, it is a sentence's. */
+const LABEL_CHARS = 40;
+
+/**
+ * An item's spans split after its label, the words up to its first colon, as "New decision:" or
+ * "Risk tier `medium`:": none when it has no colon near its start, or one in a link or code.
+ */
+function labelled(spans: ReadonlyArray<Span>): [Array<Span>, Array<Span>] | undefined {
+  let length = 0;
+  for (const [index, span] of spans.entries()) {
+    const colon = span.link || span.code || span.image ? -1 : span.text.indexOf(":");
+    if (colon >= 0) {
+      if (length + colon > LABEL_CHARS) {
+        return undefined;
+      }
+      const at = colon + 1;
+      const rest = [{ ...span, text: span.text.slice(at) }, ...spans.slice(index + 1)];
+      return rest.some((one) => one.text.trim() !== "" || one.image)
+        ? [[...spans.slice(0, index), { ...span, text: span.text.slice(0, at) }], rest]
+        : undefined;
+    }
+    length += span.text.length;
+    if (length > LABEL_CHARS) {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+/** An item of the block's list, its label first, heavier. */
+function Item({ item, selection }: { item: Block; selection: Selection | undefined }) {
+  const split = labelled(item.spans);
   return (
-    <Selectable block={item} selection={selection}>
-      <Text
-        as="div"
-        display="block"
-        type="inherit"
-        xstyle={[styles.bullet, isLead ? styles.lead : styles.reading]}
-      >
-        <span aria-hidden="true">
-          <Icon
-            color="secondary"
-            icon="chevronRight"
-            size={isLead ? "md" : "sm"}
-            xstyle={styles.chevron}
-          />
-        </span>
-        <span>
-          <Spans spans={item.spans} />
-        </span>
-      </Text>
-    </Selectable>
+    <li {...stylex.props(styles.item)}>
+      <Selectable block={item} isInList selection={selection}>
+        <div>
+          {split ? (
+            <>
+              <span {...stylex.props(styles.label)}>
+                <Spans spans={split[0]} />
+              </span>
+              <Spans spans={split[1]} />
+            </>
+          ) : (
+            <Spans spans={item.spans} />
+          )}
+        </div>
+      </Selectable>
+    </li>
   );
 }
 
@@ -245,8 +262,9 @@ function Foot({
 
 /**
  * What you approve, a pane in the accent titled by the block's first paragraph, its record or its
- * request ("Spec to review, revision 2, about 10 minutes."): the "You approve" item large, then the
- * block's other items; the text between the block and the first section; then its foot.
+ * request ("Spec to review, revision 2, about 10 minutes."): the "You approve" item as its lead,
+ * then the block's other items, a list; the text between the block and the first section; then its
+ * foot. Its prose reads as a round's first pane: the reading font, at its measure, given air.
  */
 export function SpecOpening({
   document,
@@ -260,6 +278,7 @@ export function SpecOpening({
     .filter((b) => b.kind === "list")
     .flatMap((list) => childrenOf(document, list.id));
   const lead = bullets.find((b) => b.id === items.approve);
+  const others = bullets.filter((b) => b !== lead);
   const first = items.parts[0]?.heading ?? document.blocks.length;
   const intro = childrenOf(document, null)
     .filter((b) => b.id < first && b.id !== items.block && !(b.kind === "heading" && b.level === 1))
@@ -273,17 +292,27 @@ export function SpecOpening({
       isOpenOnPhone
       title={title || GROUPS.approve.title}
     >
-      <VStack gap={3}>
+      <VStack gap={3} xstyle={styles.airy}>
         {/* The record is the title, which takes no comment: one saved on it, or elsewhere on the
             block's lines outside its items, draws here (R13). */}
         {block && selection?.after && <After>{selection.after(block)}</After>}
-        {lead && <Bullet isLead item={lead} selection={selection} />}
-        {bullets
-          .filter((b) => b !== lead)
-          .map((item) => (
-            <Bullet isLead={false} item={item} key={item.id} selection={selection} />
-          ))}
-        {intro.length > 0 && <Blocks document={document} ids={intro} selection={selection} />}
+        {lead && (
+          <Selectable block={lead} selection={selection}>
+            <p {...stylex.props(proseStyles.reading, proseStyles.measure, styles.lead)}>
+              <Spans spans={lead.spans} />
+            </p>
+          </Selectable>
+        )}
+        {others.length > 0 && (
+          <ul {...stylex.props(proseStyles.reading, proseStyles.measure, styles.list)}>
+            {others.map((item) => (
+              <Item item={item} key={item.id} selection={selection} />
+            ))}
+          </ul>
+        )}
+        {intro.length > 0 && (
+          <Blocks document={document} ids={intro} isAiry selection={selection} />
+        )}
         <Foot document={document} items={items} selection={selection} />
       </VStack>
     </Pane>
