@@ -176,3 +176,38 @@ test("priorities.drop refuses a drop naming both, and nesting a line with a draf
   expect(draft.error?.message).toMatch(/^refused: A line with a draft stays a line/);
   expect(read(repo, "specs/PRIORITIES.md")).toBe(before);
 });
+
+test("inbox.underPriority puts a note under a line, and inbox.undoUnderPriority takes it back", async () => {
+  const repo = fixtureRepo();
+  const { app } = await testApp(repo);
+  const inbox = read(repo, "specs/INBOX.md");
+  const priorities = read(repo, "specs/PRIORITIES.md");
+  const [before] = await byId(app, "Inbox", ["inbox"], ["id", "hash", "categories"]);
+  const note = before.categories[0].notes[0] as { id: string; lines: Array<string> };
+
+  const moved = await mutate(
+    app,
+    "inbox.underPriority",
+    {
+      entry: "later-1",
+      hash: before.hash,
+      note: note.id,
+      prioritiesHash: await prioritiesHash(app),
+    },
+    INBOX,
+  );
+  expect(moved.ok).toBe(true);
+  expect(read(repo, "specs/PRIORITIES.md")).toContain(
+    "  - with a cache\n  - Specs are still way too long and hard to read\n- Benchmarks",
+  );
+  const undone = await mutate(
+    app,
+    "inbox.undoUnderPriority",
+    { entryKey: "nix-docker-based-execution-environments", index: 0, lines: note.lines },
+    INBOX,
+  );
+
+  expect(undone.ok).toBe(true);
+  expect(read(repo, "specs/INBOX.md")).toBe(inbox);
+  expect(read(repo, "specs/PRIORITIES.md")).toBe(priorities);
+});
