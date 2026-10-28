@@ -212,8 +212,8 @@ fn an_outline_write_over_a_changed_inbox_is_a_conflict() {
     assert_eq!((indent.code, drop.code), ("conflict", "conflict"));
 }
 
-/// A drop names one place: under an item, or into a list. Both, an empty item, or a nested item
-/// without its item are refused, the file untouched.
+/// A drop names one place: under an item, or into a list. Both, an empty item or list, or a nested
+/// item without its item are refused, the file untouched.
 #[test]
 fn an_ambiguous_note_drop_is_refused() {
     let both = DropAt {
@@ -225,7 +225,13 @@ fn an_ambiguous_note_drop_is_refused() {
         ..into(Some("CLI"), 0)
     };
 
-    for to in [both, under("", None, 0), nested_alone] {
+    for to in [
+        both,
+        under("", None, 0),
+        nested_alone,
+        into(Some(""), 0),
+        into(Some(" "), 0),
+    ] {
         let repo = fixture_repo();
         let before = repo.read(INBOX);
         let result = api::drop_note(repo.path(), "note-3", None, &to, &inbox_hash(&repo));
@@ -354,7 +360,13 @@ fn an_ambiguous_line_drop_is_refused() {
         ..into(Some("now"), 0)
     };
 
-    for to in [both, under("", None, 0), nested_alone, into(None, 0)] {
+    for to in [
+        both,
+        under("", None, 0),
+        nested_alone,
+        into(None, 0),
+        into(Some(""), 0),
+    ] {
         let repo = fixture_repo();
         let before = repo.read(PRIORITIES);
         let result = api::drop_priority(repo.path(), "later-2", None, &to, &priorities_hash(&repo));

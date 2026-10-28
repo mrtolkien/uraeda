@@ -30,7 +30,8 @@ pub(super) enum Target<'a> {
 
 impl DropAt {
     /// The one place this drop names: refused when it names both an item and a list, an empty
-    /// item, or a nested item without its item, so that no part of it is silently left out.
+    /// item or list, or a nested item without its item, so that no part of it is silently left
+    /// out, and no empty heading written.
     pub(super) fn target(&self) -> Result<Target<'_>> {
         let index = self.index as usize;
         match (self.under.as_deref(), self.list.as_deref()) {
@@ -47,6 +48,9 @@ impl DropAt {
             }),
             (None, _) if self.under_at.is_some() => {
                 Err(refused("a drop under a nested item needs its item"))
+            }
+            (None, Some(list)) if list.trim().is_empty() => {
+                Err(refused("a drop into a list needs the list"))
             }
             (None, list) => Ok(Target::List { list, index }),
         }
