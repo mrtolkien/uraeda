@@ -370,7 +370,7 @@ export function Blocks({
   return (
     <SinceScoped document={document}>
       <div
-        // Such a section's text: as wide as its pane, which its page keeps narrow, about 70
+        // Such a section's text: as wide as its pane, which its page keeps narrow, about 80
         // characters a line, and more room between its lines.
         {...stylex.props(
           proseStyles.doc,
