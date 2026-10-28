@@ -66,7 +66,9 @@ export function useWorkListKeys({
     rowKeys: own.keys,
     selected: rows.findIndex((row) => row.key === selected),
   });
-  useRowShifts(ref, isDragging, asColumns ? "columns" : "stack");
+  // Each section's rows in order, with their depths: a change of it is a move, read and glided.
+  const order = JSON.stringify(shown.map((rows) => rows.map((row) => [row.key, row.depth ?? 0])));
+  useRowShifts(ref, isDragging, asColumns ? "columns" : "stack", order);
   useRefocus({
     focusSelected,
     held: own.held,
