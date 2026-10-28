@@ -32,7 +32,8 @@ const styles = stylex.create({
     display: "grid",
     gridTemplateColumns: "1.25em minmax(0, 1fr)",
   },
-  sign: { alignItems: "center", display: "flex", height: "1lh" },
+  // The sign, one line tall, centred on it: one line's height, which StyleX's heights do not list.
+  sign: { "--edge-line": "1lh", alignItems: "center", display: "flex", height: "var(--edge-line)" },
   situation: { fontWeight: fontWeightVars["--font-weight-semibold"] },
 });
 

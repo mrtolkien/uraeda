@@ -22,8 +22,6 @@ import { plain, Spans } from "../Spans.tsx";
 import { GROUPS, type PartProps, partOf, type SpecItems } from "./parts.ts";
 
 const styles = stylex.create({
-  // The pane's prose given air, as a round's context: taller lines.
-  airy: { "--text-reading-line": "1.65" },
   item: {
     // An item of the block's list: its marker in the secondary colour, room under it but the last.
     "::marker": { color: colorVars["--color-text-secondary"] },
@@ -34,7 +32,9 @@ const styles = stylex.create({
   lead: {
     // What you approve, in one sentence: the pane's lead, heavier and a little larger than the
     // items, in the reading font as they are.
-    fontSize: "calc(1.1 * var(--text-reading-size))",
+    // Its size, which StyleX's font sizes do not list.
+    "--opening-lead-size": "calc(1.1 * var(--text-reading-size))",
+    fontSize: "var(--opening-lead-size)",
     fontWeight: fontWeightVars["--font-weight-semibold"],
     margin: 0,
   },
@@ -42,7 +42,9 @@ const styles = stylex.create({
     listStylePosition: "outside",
     listStyleType: "disc",
     margin: 0,
-    paddingInlineStart: "1.25em",
+    // The markers' room, which StyleX's paddings do not list.
+    "--opening-list-room": "1.25em",
+    paddingInlineStart: "var(--opening-list-room)",
   },
   section: {
     // A section of the spec drawn in this part, its anchor's element, its pieces spaced as the
@@ -292,7 +294,7 @@ export function SpecOpening({
       isOpenOnPhone
       title={title || GROUPS.approve.title}
     >
-      <VStack gap={3} xstyle={styles.airy}>
+      <VStack gap={3} xstyle={proseStyles.airy}>
         {/* The record is the title, which takes no comment: one saved on it, or elsewhere on the
             block's lines outside its items, draws here (R13). */}
         {block && selection?.after && <After>{selection.after(block)}</After>}
