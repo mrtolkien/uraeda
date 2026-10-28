@@ -4,7 +4,6 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
-import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { rereadChanges } from "./data.ts";
 import { draftFile } from "./draftFile.ts";
 import { refusal } from "./errors.ts";
@@ -365,7 +364,6 @@ export function InboxList({
 
   return (
     <>
-      <AttachStatus status={images.status} />
       {images.dropZone(
         <WorkList
           follow={follow}
