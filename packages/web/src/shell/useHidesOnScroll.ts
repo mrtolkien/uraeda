@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 
-/** How far the page scrolls one way, in pixels, before the bar follows: a finger's tremor is none. */
-const SCROLLED_PX = 8;
+/**
+ * How far the page scrolls, in pixels, before a bar over it moves: a finger's tremor is no scroll.
+ * The phone's bottom bar's, and the floating row bar's (`RowBar`).
+ */
+export const SCROLLED_PX = 8;
 
 /**
  * Whether the phone's bar is out of the way: the page scrolled down since it last went up, past

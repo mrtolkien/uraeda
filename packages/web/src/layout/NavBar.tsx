@@ -1,17 +1,18 @@
 // The phone's bottom bar as a page's navigation, in the status line's row: a tile for each of the
 // page's parts, its icon alone, as the column's tabs on a wide screen, the open one in the accent;
 // and the step that moves the human forward last, its icon in the accent, as Next, Verdict, or Submit:
-// no filled block on the glass.
+// no filled block on the glass. The same tile, its word under its icon, is an action of the phone's
+// floating row bar (see `RowBar`).
 import { Icon } from "@astryxdesign/core/Icon";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, MouseEvent, ReactNode } from "react";
 
 const styles = stylex.create({
   // The open part's tile: its icon in the accent.
   open: { color: colorVars["--color-text-accent"] },
-  // A tile: its icon alone, centred, flat on the bar.
+  // A tile: flat on the glass, in the theme's text colour, which reads over the clear glass.
   tile: {
     alignItems: "center",
     background: "none",
@@ -21,14 +22,31 @@ const styles = stylex.create({
     color: colorVars["--color-text-primary"],
     cursor: "pointer",
     display: "flex",
+    font: "inherit",
+  },
+  // The bottom bar's tile: its icon alone, centred, sharing the bar's width.
+  shared: {
     flexBasis: 0,
     flexGrow: 1,
-    font: "inherit",
     justifyContent: "center",
     minWidth: 0,
     paddingBlock: spacingVars["--spacing-1"],
     paddingInline: spacingVars["--spacing-1"],
   },
+  // The row bar's tile: its icon over its word, as wide as a finger at least.
+  worded: {
+    flexDirection: "column",
+    // The room between its icon and its word, and its least width, which StyleX's values do not
+    // list.
+    "--bar-tile-gap": "0.25rem",
+    "--bar-tile-least": "4rem",
+    gap: "var(--bar-tile-gap)",
+    minWidth: "var(--bar-tile-least)",
+    paddingBlock: spacingVars["--spacing-2"],
+    paddingInline: spacingVars["--spacing-3"],
+  },
+  // A tile's word, small under its icon.
+  word: { "--bar-word": "0.75rem", fontSize: "var(--bar-word)" },
   // The tiles share the bar's width, each as tall as the bar.
   tiles: {
     alignSelf: "stretch",
@@ -42,37 +60,42 @@ const styles = stylex.create({
 });
 
 /**
- * A tile of the bar: `icon` alone, named by `label`; `isOpen` while its part shows, or `isTinted`
- * for the step forward, its icon in the accent.
+ * A tile of the glass: `icon` alone, named by `label`, sharing the bar's width; or, `hasWord`, its
+ * icon over `label`, as wide as its word. `isOpen` while its part shows, or `isTinted` for the step
+ * forward, its icon in the accent.
  */
 export function NavTile({
+  hasWord = false,
   icon,
   isOpen,
   isTinted = false,
   label,
   onPress,
 }: {
+  hasWord?: boolean;
   icon: ComponentProps<typeof Icon>["icon"];
   isOpen?: boolean;
   isTinted?: boolean;
   label: string;
-  onPress: () => void;
+  onPress: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   return (
-    // oxlint-disable-next-line react/forbid-elements -- a tile of the phone's bottom bar, its icon alone, flat and stretched to share the bar's width, which Astryx's Button, with its own height, padding, and surface, does not draw (an Astryx gap)
+    // oxlint-disable-next-line react/forbid-elements -- a tile of the phone's glass, its icon alone and stretched to share the bottom bar's width, or its big icon over its word on the floating row bar, flat, which Astryx's Button, with its own height, padding, and surface, does not draw (an Astryx gap)
     <button
-      aria-label={label}
+      aria-label={hasWord ? undefined : label}
       aria-pressed={isOpen}
       onClick={onPress}
       type="button"
       {...stylex.props(
         focusOutlineStyles.focusVisible,
         styles.tile,
+        hasWord ? styles.worded : styles.shared,
         isOpen && styles.open,
         isTinted && styles.tinted,
       )}
     >
       <Icon icon={icon} size="lg" />
+      {hasWord && <span {...stylex.props(styles.word)}>{label}</span>}
     </button>
   );
 }
