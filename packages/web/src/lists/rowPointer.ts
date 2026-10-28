@@ -95,11 +95,17 @@ export function rowPointer({
     }
     setSelected(row.key);
     setBarred(undefined);
-    document
-      .querySelector<HTMLElement>(
-        `[data-row-key="${CSS.escape(row.key)}"] :is([data-row-link] button, a[href])`,
-      )
-      ?.focus({ preventScroll: true });
+    controlOf(row.key)?.focus({ preventScroll: true });
   };
   return { clickOpen, hover };
+}
+
+/**
+ * The control of the row `key`, which takes its focus: the button of a row the list opens itself,
+ * in its `data-row-link`, or its link. A plain list of selectors, each from the row: `:is()` would
+ * match the button's wrapper in happy-dom, where a browser matches the button.
+ */
+export function controlOf(key: string) {
+  const row = `[data-row-key="${CSS.escape(key)}"]`;
+  return document.querySelector<HTMLElement>(`${row} [data-row-link] button, ${row} a[href]`);
 }

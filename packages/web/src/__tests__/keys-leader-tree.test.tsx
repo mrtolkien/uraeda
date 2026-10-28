@@ -146,6 +146,26 @@ test("Space r opens the repository menu, and Space shows the whole top level (US
   expect(await screen.findByRole("dialog", { name: "Repositories" })).toBeTruthy();
 });
 
+// Break: the heading's click opening a popover of its own on wide screens, or the dialog closing
+// with the focus left on the page's body.
+test("a click on the repository's name opens the dialog Space r opens, which gives the focus back as it closes", async () => {
+  await atHome();
+  const nav = screen.getByRole("navigation", { name: "Navigation" });
+  const trigger = within(nav).getByRole("button", { name: /^Uraeda/ });
+  act(() => trigger.focus());
+
+  fireEvent.click(trigger);
+
+  const dialog = await screen.findByRole("dialog", { name: "Repositories" });
+  expect(screen.getAllByRole("dialog", { name: "Repositories" })).toHaveLength(1);
+  // Its filter takes the focus, so that closing it has a focus to give back.
+  const filter = within(dialog).getByRole("textbox", { name: "Filter repositories" });
+  await waitFor(() => expect(document.activeElement).toBe(filter));
+  fireEvent.keyDown(filter, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Repositories" })).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(trigger));
+});
+
 test("the menu at Space lists the places, the groups, Continue, and Find anything", async () => {
   await atHome();
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -266,7 +286,12 @@ const KINDS: Array<{ add?: string; find: string; kind: PickerKind; row: string }
   { add: "Feature", find: "Features", kind: "features", row: "Web UI for the workflow files" },
   { add: "Change", find: "Changes", kind: "changes", row: "Centre the x" },
   { add: "Session", find: "Sessions", kind: "sessions", row: "List the drafts" },
-  { add: "Note (inbox entry)", find: "Notes", kind: "notes", row: "Text input feels laggy" },
+  {
+    add: "Note (inbox entry)",
+    find: "Notes",
+    kind: "notes",
+    row: "Text input feels laggy on the sessions page",
+  },
   {
     add: "Priority",
     find: "Priorities",
@@ -285,15 +310,18 @@ const CARDS: Partial<Record<PickerKind, string>> = {
   sessions: "List the drafts",
 };
 
+/** Whether `element` draws `text` as a whole text of its own, not a part of a longer one. */
+const draws = (element: HTMLElement, text: string) =>
+  within(element).queryAllByText(text).length > 0;
+
 /** The picker's row of a title: a title may be a line of another kind too, so the first. */
-const named = (all: Array<HTMLElement>, title: string) =>
-  all.find((one) => one.textContent?.startsWith(title));
+const named = (all: Array<HTMLElement>, title: string) => all.find((one) => draws(one, title));
 
 /** The icon of the sidebar's card of a name: its kind's, its step's, or its agent's. */
 function cardIconOf(name: string) {
   const nav = screen.getByRole("navigation", { name: "Navigation" });
   const card = Array.from(nav.querySelectorAll<HTMLElement>("[data-card]")).find((one) =>
-    one.textContent?.includes(name),
+    draws(one, name),
   );
   return Array.from(card?.querySelectorAll("svg") ?? []).find(
     (svg) => !svg.closest("kbd, [data-rail-only]"),

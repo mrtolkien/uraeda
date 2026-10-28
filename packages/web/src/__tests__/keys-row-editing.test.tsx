@@ -77,15 +77,9 @@ function cardOf(text: string) {
   return controlOf(text).closest("[data-row]") as HTMLElement;
 }
 
-/**
- * Whether the focus is on a row's control. A write's row is focused by the selector
- * `:is([data-row-link] button, a[href])`, which happy-dom matches on the button's wrapper, not on
- * the button a browser matches: either one is the row's control here.
- */
+/** Whether the focus is on a row's control: its button, not the wrapper around it. */
 function hasFocus(text: string) {
-  const control = controlOf(text);
-  const active = document.activeElement;
-  return active === control || active === control.closest("[data-row-link]");
+  return document.activeElement === controlOf(text);
 }
 
 /** Puts the focus on a row's control. */

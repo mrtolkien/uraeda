@@ -3,6 +3,7 @@
 import { type Dispatch, type SetStateAction, useState } from "react";
 import type { WorkRow } from "./Card.tsx";
 import { ancestorsAt, nestedRowsEnd, withNested } from "./nesting.ts";
+import { controlOf } from "./rowPointer.ts";
 import type { WorkSection } from "./workSection.ts";
 
 /**
@@ -60,13 +61,7 @@ export function deleteAheadOf(
     if (next) {
       pick(next.key);
       // With the focus, once drawn: the question gave it back to the row that went.
-      requestAnimationFrame(() =>
-        document
-          .querySelector<HTMLElement>(
-            `[data-row-key="${CSS.escape(next.key)}"] :is([data-row-link] button, a[href])`,
-          )
-          ?.focus({ preventScroll: true }),
-      );
+      requestAnimationFrame(() => controlOf(next.key)?.focus({ preventScroll: true }));
     }
     // Written, the file no longer has it; refused, it comes back. Either way it is hidden no more:
     // a row that took its key since is another row.

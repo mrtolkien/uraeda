@@ -1,6 +1,7 @@
 // The selection of a list of work (see `WorkList`): the row the address names, the keys, or the
 // pointer picked, the row whose bar shows, and the row a write placed, selected again.
 import { useCallback, useEffect, useEffectEvent, useState } from "react";
+import { controlOf } from "./rowPointer.ts";
 
 /**
  * The selection of the list: the key the address names, once it names one, and that card after the
@@ -72,11 +73,10 @@ export function useFollow(
     pick(key);
     // With the focus, once drawn, and in view: it may have come from elsewhere on the page.
     requestAnimationFrame(() => {
-      const row = document.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(key)}"]`);
-      row?.querySelector<HTMLElement>(":is([data-row-link] button, a[href])")?.focus({
-        preventScroll: true,
-      });
-      row?.scrollIntoView({ block: "nearest" });
+      controlOf(key)?.focus({ preventScroll: true });
+      document
+        .querySelector(`[data-row-key="${CSS.escape(key)}"]`)
+        ?.scrollIntoView({ block: "nearest" });
     });
   });
   useEffect(() => {
