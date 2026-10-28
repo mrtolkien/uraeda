@@ -188,7 +188,7 @@ export function WorkList(props: WorkListProps) {
   const { clickOpen, hover } = rowPointer({
     barOf: own.barOf,
     barred,
-    isHeld: own.state.editing !== undefined || own.state.menu !== undefined,
+    isHeld: own.state.editing !== undefined,
     isTyping,
     open: commands.open,
     pick,

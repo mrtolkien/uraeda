@@ -46,7 +46,7 @@ export function moveBarOf(
 type Pointing = {
   barOf: (row: WorkRow) => ReadonlyArray<BarAction>;
   barred: string | undefined;
-  /** A card is edited or its menu is open. */
+  /** A card is edited. */
   isHeld: boolean;
   isTyping: boolean;
   open: (row: WorkRow) => void;
@@ -84,7 +84,7 @@ export function rowPointer({
     open(row);
   };
   // The mouse moving over a card selects it and takes the focus to it, so the keys act on what the
-  // pointer is on. Not while a card is edited or its menu is open, nor during a drag.
+  // pointer is on. Not while a card is edited, nor during a drag.
   const hover = (row: WorkRow) => {
     const isBusy =
       isHeld ||

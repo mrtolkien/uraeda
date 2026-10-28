@@ -5,10 +5,9 @@ import { isLayerOpen } from "../keys/layers.ts";
 /**
  * Puts the keyboard's focus on the selected card: at the start with `isFocused`, and once the overlay
  * of a card closed (`named` turns undefined), which leaves the page a moment after, so the focus
- * waits for the layer rule to say it left. The same once the editor or the menu a key opened on a
- * card closed (`held` turns undefined). And once a line saved in its card, `renamed`, is the
- * selected one and drawn under its new key: `onRefocused` says it has the focus, and `focusSelected`
- * returns whether it did.
+ * waits for the layer rule to say it left. The same once the editor of a card closed (`held` turns
+ * undefined). And once a line saved in its card, `renamed`, is the selected one and drawn under its
+ * new key: `onRefocused` says it has the focus, and `focusSelected` returns whether it did.
  */
 export function useRefocus({
   focusSelected,
