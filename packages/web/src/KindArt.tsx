@@ -20,16 +20,16 @@ const styles = stylex.create({
     "::after": {
       borderBlockStartColor: colorVars["--color-border"],
       borderBlockStartStyle: "solid",
-      borderBlockStartWidth: TAIL,
+      borderBlockStartWidth: "var(--kind-tail)",
       borderInlineEndColor: "transparent",
       borderInlineEndStyle: "solid",
-      borderInlineEndWidth: TAIL,
+      borderInlineEndWidth: "var(--kind-tail)",
       borderInlineStartColor: "transparent",
       borderInlineStartStyle: "solid",
-      borderInlineStartWidth: TAIL,
+      borderInlineStartWidth: "var(--kind-tail)",
       content: '""',
       height: 0,
-      insetBlockEnd: `calc(-1 * ${TAIL} - 1px)`,
+      insetBlockEnd: "var(--kind-tail-below)",
       insetInlineStart: spacingVars["--spacing-2"],
       position: "absolute",
       width: 0,
@@ -39,6 +39,10 @@ const styles = stylex.create({
   },
   // A bubble: a bordered rectangle that holds lines of text.
   bubble: {
+    // Its tail's size, and how far it reaches below the bubble, past its border, which StyleX's
+    // border widths and insets do not list: its tail, drawn after it, takes them.
+    "--kind-tail": TAIL,
+    "--kind-tail-below": `calc(-1 * ${TAIL} - 1px)`,
     backgroundColor: colorVars["--color-background-muted"],
     borderColor: colorVars["--color-border"],
     borderStyle: "solid",
@@ -55,7 +59,9 @@ const styles = stylex.create({
     borderStyle: "solid",
     borderWidth: borderVars["--border-width"],
     display: "flex",
-    fontSize: "0.75em",
+    // A smaller letter, which StyleX's font sizes do not list.
+    "--kind-chip-size": "0.75em",
+    fontSize: "var(--kind-chip-size)",
     height: spacingVars["--spacing-4"],
     justifyContent: "center",
     width: spacingVars["--spacing-4"],
@@ -69,9 +75,14 @@ const styles = stylex.create({
   // What a skeleton line stands for: a line of text.
   line: {
     backgroundColor: colorVars["--color-text-secondary"],
-    height: "5px",
+    // Its thickness, which StyleX's heights do not list.
+    "--kind-line": "5px",
+    height: "var(--kind-line)",
     opacity: 0.4,
   },
+  // A line's width, a share of its block's.
+  lineWidth: (width: string) => ({ width }),
+  // Skeleton lines, one under the other.
   lines: {
     display: "flex",
     flexDirection: "column",
@@ -86,7 +97,9 @@ const styles = stylex.create({
     display: "flex",
     flexDirection: "column",
     gap: spacingVars["--spacing-2"],
-    height: "11.5rem",
+    // Its height, which StyleX's heights do not list.
+    "--kind-stage": "11.5rem",
+    height: "var(--kind-stage)",
     justifyContent: "center",
     minWidth: 0,
   },
@@ -111,22 +124,35 @@ const styles = stylex.create({
   },
   stepName: { whiteSpace: "nowrap" },
   // Between two steps: an arrow down, the agent's work.
-  then: { display: "flex", flexShrink: 0, justifyContent: "center", marginBlock: "-4px" },
+  then: {
+    // Closer to the steps, which StyleX's margins do not list.
+    "--kind-then": "-4px",
+    display: "flex",
+    flexShrink: 0,
+    justifyContent: "center",
+    marginBlock: "var(--kind-then)",
+  },
+  // A step's few lines at its end: a width of their own.
+  text3: {
+    // Their width, which StyleX's widths do not list.
+    "--kind-text3": "3.5rem",
+    width: "var(--kind-text3)",
+  },
   // The human's bubble, at the end, tinted as a picked row is, its tail at its bottom end corner.
   you: {
     "::after": {
       borderBlockStartColor: colorVars["--color-accent"],
       borderBlockStartStyle: "solid",
-      borderBlockStartWidth: TAIL,
+      borderBlockStartWidth: "var(--kind-tail)",
       borderInlineEndColor: "transparent",
       borderInlineEndStyle: "solid",
-      borderInlineEndWidth: TAIL,
+      borderInlineEndWidth: "var(--kind-tail)",
       borderInlineStartColor: "transparent",
       borderInlineStartStyle: "solid",
-      borderInlineStartWidth: TAIL,
+      borderInlineStartWidth: "var(--kind-tail)",
       content: '""',
       height: 0,
-      insetBlockEnd: `calc(-1 * ${TAIL} - 1px)`,
+      insetBlockEnd: "var(--kind-tail-below)",
       insetInlineEnd: spacingVars["--spacing-2"],
       position: "absolute",
       width: 0,
@@ -143,7 +169,7 @@ function Lines({ widths }: { widths: ReadonlyArray<string> }) {
   return (
     <div {...stylex.props(styles.lines)}>
       {widths.map((width, at) => (
-        <div key={at} style={{ width }} {...stylex.props(styles.line)} />
+        <div key={at} {...stylex.props(styles.line, styles.lineWidth(width))} />
       ))}
     </div>
   );
@@ -184,7 +210,7 @@ function Step({
 /** A few skeleton lines at a step's end, of a width of its own. */
 function Text3({ widths }: { widths: ReadonlyArray<string> }) {
   return (
-    <div style={{ width: "3.5rem" }}>
+    <div {...stylex.props(styles.text3)}>
       <Lines widths={widths} />
     </div>
   );

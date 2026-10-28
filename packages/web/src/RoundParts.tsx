@@ -17,15 +17,15 @@ import { PART_IDS } from "./roundPartIds.ts";
 import { plain, Spans } from "./Spans.tsx";
 
 const styles = stylex.create({
+  // The context's panes, narrower than the page's others, their prose filling them.
+  context: { "--pane-max": paneVars["--pane-context"] },
+  error: { color: colorVars["--color-error"] },
   lead: { marginBlock: spacingVars["--spacing-1"] },
+  success: { color: colorVars["--color-success"] },
   verdict: { paddingBlock: spacingVars["--spacing-2"] },
   // The verdict's words, on a line of their own over its sentence, heavier, in its colour.
   verdictLead: { display: "block", fontWeight: fontWeightVars["--font-weight-medium"] },
-  success: { color: colorVars["--color-success"] },
-  error: { color: colorVars["--color-error"] },
   warning: { color: colorVars["--color-warning"] },
-  // The context's panes, narrower than the page's others, their prose filling them.
-  context: { "--pane-max": paneVars["--pane-context"] },
 });
 
 /** The verdict's lead, by the kind the core reads: its words and its colour. */

@@ -23,20 +23,17 @@ const styles = stylex.create({
     borderRadius: 0,
     overflow: "visible",
   },
+  rows: {
+    "--container-padding-inline-end": "0px",
+    // A table keeps to the card: it scrolls rather than reach past it.
+    "--table-reach": "0px",
+  },
   // A card of one column, on a wide screen: a pane's width, centred, as the page's single panes; a
   // split one takes the page's, two context panes' wide.
   single: {
     marginInline: "var(--pane-centre, 0)",
     maxWidth: "var(--pane-max, none)",
   },
-  rows: {
-    "--container-padding-inline-end": "0px",
-    // A table keeps to the card: it scrolls rather than reach past it.
-    "--table-reach": "0px",
-  },
-  // On a wide screen, a table's rows' lines run into the card's room, as far as its cells' own
-  // room at their edges, Astryx's 12 px: its columns' text then at the card's text's edges.
-  tableBleed: { "--table-bleed": spacingVars["--spacing-3"] },
   split: {
     // The title and context on the left, the options and comment on the right, 5 to 6.
     alignItems: "start",
@@ -65,6 +62,9 @@ const styles = stylex.create({
   stretch: {
     alignSelf: "stretch",
   },
+  // On a wide screen, a table's rows' lines run into the card's room, as far as its cells' own
+  // room at their edges, Astryx's 12 px: its columns' text then at the card's text's edges.
+  tableBleed: { "--table-bleed": spacingVars["--spacing-3"] },
 });
 
 /**

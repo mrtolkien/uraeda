@@ -5,7 +5,7 @@
 // radios, which approval comment C3 forbids, so the group is drawn by the page, each card a raw
 // element holding the shared `Pane`.
 import { Icon } from "@astryxdesign/core/Icon";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
@@ -29,12 +29,14 @@ const styles = stylex.create({
     alignItems: "center",
     borderColor: colorVars["--color-border"],
     borderStyle: "solid",
-    borderWidth: 1,
+    borderWidth: borderVars["--border-width"],
     color: colorVars["--color-text-secondary"],
     display: "flex",
     gap: spacingVars["--spacing-1"],
     justifyContent: "center",
-    minHeight: "2.75rem",
+    // A touch target's height, which StyleX's heights do not list.
+    "--kind-chip-height": "2.75rem",
+    minHeight: "var(--kind-chip-height)",
     minWidth: 0,
     whiteSpace: "nowrap",
   },
