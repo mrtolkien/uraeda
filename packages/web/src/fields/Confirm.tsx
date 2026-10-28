@@ -133,6 +133,9 @@ export function ConfirmHost({ children }: { children: ReactNode }) {
             {/* Wrapping, so a long label stays whole rather than cut (the UI checks decision). */}
             <HStack gap={2} justify="end" wrap="wrap">
               <Button
+                // The focus opens on the cancel button, in every browser: Firefox would put it on
+                // the dialog's Close, and Enter keeps rather than confirms.
+                data-autofocus=""
                 endContent={<KeyCap>n</KeyCap>}
                 label={shown.cancel}
                 onClick={() => answer(false)}
