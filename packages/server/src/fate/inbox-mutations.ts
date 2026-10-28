@@ -253,6 +253,19 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
+  "inbox.removeCategory": {
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<{ hash: string; keepNotes: boolean; name: string }>) => {
+      const result = await refusable(() =>
+        ctx.binding.removeCategory(ctx.repo, input.name, input.keepNotes, input.hash),
+      );
+      return inbox(ctx, result.inbox, select, { removed: result.before });
+    },
+    type: "Inbox",
+  },
   // An image taken out of a note: the draft's lines linking it go, over the draft read at `hash`;
   // its file stays. The answer's `imageRemoved` is what `inbox.restoreImage` takes back.
   "inbox.removeImage": {
@@ -265,19 +278,6 @@ export const inboxMutations = {
         ctx.binding.removeNoteImage(ctx.repo, input.draft, input.image, input.hash),
       );
       return inbox(ctx, result.inbox, select, { imageRemoved: result.removed });
-    },
-    type: "Inbox",
-  },
-  "inbox.removeCategory": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ hash: string; keepNotes: boolean; name: string }>) => {
-      const result = await refusable(() =>
-        ctx.binding.removeCategory(ctx.repo, input.name, input.keepNotes, input.hash),
-      );
-      return inbox(ctx, result.inbox, select, { removed: result.before });
     },
     type: "Inbox",
   },
