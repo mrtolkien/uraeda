@@ -221,10 +221,11 @@ fn find(text: &str, id: &str) -> Option<Item> {
 
 /// Inserts `item`, a note's lines, before the note at `index` of a category, or at its end. A
 /// category is the first `##` heading of its name, and a new one is added at the end of the text.
-/// Notes without one go before the first `##` heading.
-/// Gives the text, and the index of the item's first line in it, from 0.
+/// Notes without one go before the first `##` heading, as do those of a blank category, which
+/// would be a heading of no name. Gives the text, and the index of the item's first line in it,
+/// from 0.
 fn insert_at(text: &str, category: Option<&str>, index: usize, item: &[String]) -> (String, usize) {
-    let category = category.map(str::trim);
+    let category = category.map(str::trim).filter(|name| !name.is_empty());
     let titled = match category {
         Some(_) => text.to_string(),
         None => titled(text),
