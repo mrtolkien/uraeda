@@ -39,8 +39,9 @@ whose answers either continue the implementation or revise the spec.
   selecting it with the keys; no button per block. "It's pointless. We start a comment by clicking
   the line."
 - **The general comment's field is always there**, at the review's end: the one place for what is
-  not about one block. There is no separate summary: "the only one that matters is the general
-  comment."
+  not about one block. A general comment started otherwise, by an image dropped with no comment
+  open, takes its place while it is written: one general field at a time. There is no separate
+  summary: "the only one that matters is the general comment."
 - **The verdict is the human's**: Approve, or Request changes, which needs a comment. "Approving or
   not depends on me." Both commit and open the session prefilled.
 - **Answers come back where the comments were**: a revised file says, under each of the human's
