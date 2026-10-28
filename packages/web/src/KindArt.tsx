@@ -8,11 +8,9 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { kindVars } from "./kind.stylex.ts";
 import type { ReactNode } from "react";
 import type { NewKind } from "./routes.tsx";
-
-/** The size of a speech bubble's tail. */
-const TAIL = "6px";
 
 const styles = stylex.create({
   // The agent's bubble, at the start, its tail at its bottom start corner.
@@ -20,13 +18,13 @@ const styles = stylex.create({
     "::after": {
       borderBlockStartColor: colorVars["--color-border"],
       borderBlockStartStyle: "solid",
-      borderBlockStartWidth: "var(--kind-tail)",
+      borderBlockStartWidth: kindVars["--kind-art-tail"],
       borderInlineEndColor: "transparent",
       borderInlineEndStyle: "solid",
-      borderInlineEndWidth: "var(--kind-tail)",
+      borderInlineEndWidth: kindVars["--kind-art-tail"],
       borderInlineStartColor: "transparent",
       borderInlineStartStyle: "solid",
-      borderInlineStartWidth: "var(--kind-tail)",
+      borderInlineStartWidth: kindVars["--kind-art-tail"],
       content: '""',
       height: 0,
       insetBlockEnd: "var(--kind-tail-below)",
@@ -39,10 +37,9 @@ const styles = stylex.create({
   },
   // A bubble: a bordered rectangle that holds lines of text.
   bubble: {
-    // Its tail's size, and how far it reaches below the bubble, past its border, which StyleX's
-    // border widths and insets do not list: its tail, drawn after it, takes them.
-    "--kind-tail": TAIL,
-    "--kind-tail-below": `calc(-1 * ${TAIL} - 1px)`,
+    // How far its tail reaches below the bubble, past its border: its tail, drawn after it, takes
+    // it.
+    "--kind-tail-below": `calc(-1 * ${kindVars["--kind-art-tail"]} - ${borderVars["--border-width"]})`,
     backgroundColor: colorVars["--color-background-muted"],
     borderColor: colorVars["--color-border"],
     borderStyle: "solid",
@@ -59,9 +56,8 @@ const styles = stylex.create({
     borderStyle: "solid",
     borderWidth: borderVars["--border-width"],
     display: "flex",
-    // A smaller letter, which StyleX's font sizes do not list.
-    "--kind-chip-size": "0.75em",
-    fontSize: "var(--kind-chip-size)",
+    // A smaller letter.
+    fontSize: kindVars["--kind-art-chip-text"],
     height: spacingVars["--spacing-4"],
     justifyContent: "center",
     width: spacingVars["--spacing-4"],
@@ -75,9 +71,7 @@ const styles = stylex.create({
   // What a skeleton line stands for: a line of text.
   line: {
     backgroundColor: colorVars["--color-text-secondary"],
-    // Its thickness, which StyleX's heights do not list.
-    "--kind-line": "5px",
-    height: "var(--kind-line)",
+    height: kindVars["--kind-art-line"],
     opacity: 0.4,
   },
   // A line's width, a share of its block's.
@@ -97,9 +91,7 @@ const styles = stylex.create({
     display: "flex",
     flexDirection: "column",
     gap: spacingVars["--spacing-2"],
-    // Its height, which StyleX's heights do not list.
-    "--kind-stage": "11.5rem",
-    height: "var(--kind-stage)",
+    height: kindVars["--kind-art-stage"],
     justifyContent: "center",
     minWidth: 0,
   },
@@ -125,31 +117,28 @@ const styles = stylex.create({
   stepName: { whiteSpace: "nowrap" },
   // Between two steps: an arrow down, the agent's work.
   then: {
-    // Closer to the steps, which StyleX's margins do not list.
-    "--kind-then": "-4px",
+    // Closer to the steps.
     display: "flex",
     flexShrink: 0,
     justifyContent: "center",
-    marginBlock: "var(--kind-then)",
+    marginBlock: kindVars["--kind-art-then"],
   },
   // A step's few lines at its end: a width of their own.
   text3: {
-    // Their width, which StyleX's widths do not list.
-    "--kind-text3": "3.5rem",
-    width: "var(--kind-text3)",
+    width: kindVars["--kind-art-text"],
   },
   // The human's bubble, at the end, tinted as a picked row is, its tail at its bottom end corner.
   you: {
     "::after": {
       borderBlockStartColor: colorVars["--color-accent"],
       borderBlockStartStyle: "solid",
-      borderBlockStartWidth: "var(--kind-tail)",
+      borderBlockStartWidth: kindVars["--kind-art-tail"],
       borderInlineEndColor: "transparent",
       borderInlineEndStyle: "solid",
-      borderInlineEndWidth: "var(--kind-tail)",
+      borderInlineEndWidth: kindVars["--kind-art-tail"],
       borderInlineStartColor: "transparent",
       borderInlineStartStyle: "solid",
-      borderInlineStartWidth: "var(--kind-tail)",
+      borderInlineStartWidth: kindVars["--kind-art-tail"],
       content: '""',
       height: 0,
       insetBlockEnd: "var(--kind-tail-below)",

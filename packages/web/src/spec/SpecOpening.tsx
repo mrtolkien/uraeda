@@ -12,6 +12,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { markVars } from "../marks.stylex.ts";
 import type { Block, Document, Span } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Pane } from "../layout/Pane.tsx";
@@ -32,7 +33,7 @@ const styles = stylex.create({
   lead: {
     // What you approve, in one sentence: the pane's lead, heavier and a little larger than the
     // items, in the reading font as they are.
-    // Its size, which StyleX's font sizes do not list.
+    // Its size, a custom property, as the token lint takes a `var()` only whole, not in a calc.
     "--opening-lead-size": "calc(1.1 * var(--text-reading-size))",
     fontSize: "var(--opening-lead-size)",
     fontWeight: fontWeightVars["--font-weight-semibold"],
@@ -42,9 +43,8 @@ const styles = stylex.create({
     listStylePosition: "outside",
     listStyleType: "disc",
     margin: 0,
-    // The markers' room, which StyleX's paddings do not list.
-    "--opening-list-room": "1.25em",
-    paddingInlineStart: "var(--opening-list-room)",
+    // The markers' room.
+    paddingInlineStart: markVars["--mark-list-room"],
   },
   section: {
     // A section of the spec drawn in this part, its anchor's element, its pieces spaced as the

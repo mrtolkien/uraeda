@@ -9,6 +9,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
+import { markVars } from "./marks.stylex.ts";
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { rereadChanges, usePriorities } from "./data.ts";
@@ -28,11 +29,9 @@ import { WriteButton } from "./writes/WriteButton.tsx";
 const styles = stylex.create({
   // One change: its kind, small, over what it is about.
   change: {
-    // Its bar's width, which StyleX's border widths do not list.
-    "--commit-bar": "2px",
     borderInlineStartColor: colorVars["--color-border"],
     borderInlineStartStyle: "solid",
-    borderInlineStartWidth: "var(--commit-bar)",
+    borderInlineStartWidth: markVars["--mark-change-bar"],
     paddingInlineStart: spacingVars["--spacing-3"],
   },
 });

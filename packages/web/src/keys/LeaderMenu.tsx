@@ -13,6 +13,7 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { menuVars } from "./menu.stylex.ts";
 import { type ComponentProps, useLayoutEffect, useRef, useState } from "react";
 import { bareButtonStyles } from "../layout/bareButton.ts";
 import { glassStyles } from "../layout/glass.ts";
@@ -115,13 +116,8 @@ const styles = stylex.create({
     insetInline: spacingVars["--spacing-2"],
     minWidth: 0,
   },
-  // The frame at the menu's natural size, in pixels, which StyleX's size values do not list.
-  sized: (width: number, height: number) => ({
-    "--leader-height": `${height}px`,
-    "--leader-width": `${width}px`,
-    height: "var(--leader-height)",
-    width: "var(--leader-width)",
-  }),
+  // The frame at the menu's natural size, in pixels, as measured.
+  sized: (width: number, height: number) => ({ height, width }),
   // The keys pressed so far, in the accent, as an active pane's title.
   title: {
     color: colorVars["--color-text-accent"],
@@ -129,9 +125,7 @@ const styles = stylex.create({
   },
   // The menu's words, a step over the supporting text, at the body's 16 px and its weight.
   text: {
-    // No type token is 16 px under the theme's 120% sizes.
-    "--leader-text": "16px",
-    fontSize: "var(--leader-text)",
+    fontSize: menuVars["--menu-text"],
     fontWeight: fontWeightVars["--font-weight-normal"],
     lineHeight: typeScaleVars["--text-label-leading"],
   },

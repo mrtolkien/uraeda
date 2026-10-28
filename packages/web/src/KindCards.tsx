@@ -9,6 +9,7 @@ import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tok
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
+import { kindVars } from "./kind.stylex.ts";
 import { type KeyboardEvent, useId, useRef } from "react";
 import { KindArt } from "./KindArt.tsx";
 import { useKeys } from "./keys/registry.tsx";
@@ -34,9 +35,8 @@ const styles = stylex.create({
     display: "flex",
     gap: spacingVars["--spacing-1"],
     justifyContent: "center",
-    // A touch target's height, which StyleX's heights do not list.
-    "--kind-chip-height": "2.75rem",
-    minHeight: "var(--kind-chip-height)",
+    // A touch target's height.
+    minHeight: kindVars["--kind-card-chip"],
     minWidth: 0,
     whiteSpace: "nowrap",
   },

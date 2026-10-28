@@ -14,6 +14,7 @@ import {
   typographyVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { markVars } from "../../marks.stylex.ts";
 import { type ReactNode, useState } from "react";
 import type { PartChange } from "uraeda-binding";
 import { linesMark, Tappable } from "../../Selection.tsx";
@@ -57,13 +58,12 @@ const styles = stylex.create({
   },
   // The sign's column, as wide for every row, so the words line up whether a row has one or not.
   sign: {
-    // A character and a half of the code font, which StyleX's width values do not list.
-    "--ledger-sign": "1.5em",
+    // A character and a half of the code font.
     flexShrink: 0,
     fontFamily: typographyVars["--font-family-code"],
     fontWeight: fontWeightVars["--font-weight-bold"],
     textAlign: "center",
-    width: "var(--ledger-sign)",
+    width: markVars["--mark-sign"],
   },
   signAdded: { color: colorVars["--color-text-green"] },
   signChanged: { color: colorVars["--color-text-yellow"] },
