@@ -7,7 +7,6 @@ import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
-import { Popover } from "@astryxdesign/core/Popover";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -387,7 +386,8 @@ function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: bo
       endContent={<Icon icon="chevronDown" />}
       {...(hasLogo ? { icon: <Logo /> } : {})}
       label={label}
-      onClick={wide ? undefined : () => setOpen(true)}
+      // A picker, as `Space r` opens it: its dialog on wide screens, its sheet here on the phone.
+      onClick={wide ? openRepositoryMenu : () => setOpen(true)}
       variant="ghost"
       width="100%"
       xstyle={styles.trigger}
@@ -413,25 +413,11 @@ function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: bo
 
   return (
     <>
-      {wide ? (
-        <Popover
-          content={open ? menu : null}
-          isOpen={open}
-          label={MENU}
-          onOpenChange={setOpen}
-          padding={2}
-          placement="below"
-          width="var(--size-menu)"
-        >
-          {trigger}
-        </Popover>
-      ) : (
-        <>
-          {trigger}
-          <Drawn isOpen={open} label={MENU} onClose={() => setOpen(false)}>
-            {menu}
-          </Drawn>
-        </>
+      {trigger}
+      {!wide && (
+        <Drawn isOpen={open} label={MENU} onClose={() => setOpen(false)}>
+          {menu}
+        </Drawn>
       )}
       {form}
     </>
@@ -452,7 +438,8 @@ function setKeyOpen(open: boolean) {
 /**
  * Opens the repository menu from a key, `Space r`: the navigation's heading may be folded away, or
  * on a page that has none, so the menu is its own dialog (a sheet on narrow screens), drawn by
- * `RepositoryMenuHost`, and the heading's popover stays what a click opens.
+ * `RepositoryMenuHost`. A click on the heading opens the same dialog on wide screens, as every
+ * picker is one.
  */
 export function openRepositoryMenu() {
   setKeyOpen(true);
