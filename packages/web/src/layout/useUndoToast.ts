@@ -114,9 +114,14 @@ export function useUndoToast(): (
       // `u` presses it too: its key, after its label, while the single keys are on.
       const key = singleKeys ? createElement(KeyCap, null, "u") : undefined;
       const revert = async () => {
-        const error = await undo();
-        if (error) {
-          showPageError(error);
+        // A read or a write of the Undo that fails shows as its refusal does, never as a rejection
+        // nothing catches.
+        const refused = await undo().catch(
+          (error: unknown) =>
+            `Could not undo: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        if (refused) {
+          showPageError(refused);
         }
       };
       const dismiss = showToast({

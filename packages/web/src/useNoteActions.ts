@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
-import { refusal } from "./errors.ts";
+import { guarded, refusal } from "./errors.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { TITLES } from "./QuickAdd.tsx";
 import type { ActionOptions } from "./pane/usePriorityActions.ts";
@@ -91,10 +91,9 @@ function useMovesOut(
   const here = useRepoPath();
 
   const toPriorities = async (section: string) => {
-    const prioritiesHash = await readPrioritiesHash(fate);
-    const result = await run(() =>
+    const result = await run(async () =>
       fate.mutations.inbox.toPriorities({
-        input: { ...input, prioritiesHash, section },
+        input: { ...input, prioritiesHash: await readPrioritiesHash(fate), section },
         view: InboxView,
       }),
     );
@@ -116,10 +115,9 @@ function useMovesOut(
   };
 
   const underPriority = async (line: UnderLine) => {
-    const prioritiesHash = await readPrioritiesHash(fate);
-    const result = await run(() =>
+    const result = await run(async () =>
       fate.mutations.inbox.underPriority({
-        input: { ...input, entry: line.id, prioritiesHash },
+        input: { ...input, entry: line.id, prioritiesHash: await readPrioritiesHash(fate) },
         view: InboxView,
       }),
     );
@@ -197,7 +195,9 @@ export function useNoteActions(
   /** Runs a change: its refusal shows, and a conflict reads both files again. */
   const run: Run = async (call) => {
     setMessage(undefined);
-    const result = await call();
+    // A read before the write, or the request itself, that fails shows as a refusal: the actions
+    // run unawaited, from a key or a picker, where nothing would catch a rejection.
+    const result = await guarded(call);
     if (result.error) {
       const failed = refusal(result.error);
       setMessage(failed.message);
