@@ -239,13 +239,12 @@ fn an_ambiguous_note_drop_is_refused() {
 }
 
 /// A note that links a draft stays a note: nested, its draft would no longer be found by its link.
+/// It still moves among the notes, and its own items still indent.
 #[test]
 fn a_note_with_a_draft_does_not_nest() {
     let repo = fixture_repo();
-    repo.write(
-        INBOX,
-        "# Inbox\n\n- First\n- [Dark mode](drafts/dark-mode.md)\n",
-    );
+    let text = "# Inbox\n\n- First\n- [Dark mode](drafts/dark-mode.md)\n  - Contrast\n  - Icons\n";
+    repo.write(INBOX, text);
     let hash = inbox_hash(&repo);
 
     let indent = api::outline_note(repo.path(), "note-2", None, "indent", None, &hash).unwrap_err();
@@ -257,11 +256,14 @@ fn a_note_with_a_draft_does_not_nest() {
         &hash,
     )
     .unwrap_err();
-
     assert_eq!((indent.code, drop.code), ("refused", "refused"));
+    assert_eq!(repo.read(INBOX), text);
+
+    let nested = api::outline_note(repo.path(), "note-2", Some(1), "indent", None, &hash).unwrap();
+    api::drop_note(repo.path(), "note-2", None, &into(None, 0), &nested.hash).unwrap();
     assert_eq!(
         repo.read(INBOX),
-        "# Inbox\n\n- First\n- [Dark mode](drafts/dark-mode.md)\n"
+        "# Inbox\n\n- [Dark mode](drafts/dark-mode.md)\n  - Contrast\n    - Icons\n- First\n"
     );
 }
 
@@ -385,6 +387,11 @@ fn a_line_with_a_draft_does_not_nest() {
 
     assert_eq!((indent.code, drop.code), ("refused", "refused"));
     assert_eq!(repo.read(PRIORITIES), before);
+
+    api::drop_priority(repo.path(), "next-2", None, &into(Some("now"), 0), &hash).unwrap();
+    assert!(repo.read(PRIORITIES).contains(
+        "- [Git listener process](drafts/git-listener.md)\n- [Web UI for the workflow files]"
+    ));
 }
 
 /// A note goes under a line of the priorities with its own items, and its Undo takes it back to
