@@ -27,6 +27,7 @@ pub mod history;
 pub mod inbox_categories;
 pub mod inbox_writes;
 pub mod moves;
+pub mod note_images;
 pub mod priority_writes;
 pub mod settings;
 
