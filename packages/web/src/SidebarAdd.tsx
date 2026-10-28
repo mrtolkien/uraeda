@@ -21,9 +21,14 @@ type Form = "note" | "priority" | undefined;
 
 /**
  * Where a form opens when a key asks for a place: a priorities section's id, or an inbox category's
- * name, `null` for "No category". Without a place a form opens in its default one.
+ * name, `null` for "No category". Without a place a form opens in its default one. `images`, files
+ * dropped on the inbox with no note selected, are added to the note form's picked images.
  */
-export type AddPlace = { category?: string | null; section?: string };
+export type AddPlace = {
+  category?: string | null;
+  images?: ReadonlyArray<File>;
+  section?: string;
+};
 
 /** Opens a form, from a ＋ in the navigation or a key, in `place` when given. */
 type OpenForm = (form: Form, place?: AddPlace) => void;
@@ -193,22 +198,25 @@ async function undoAdd(
  * The inbox's form, "Add a note": a toast says the note was added, with Undo, which removes the
  * note it added, found by its lines wherever it is now; a note added as a draft goes with its
  * draft, unless the human typed in it. On a feature's or a change's pages, the note is about it. The
- * image picked for a note is held here, so that the form gets it back as it opens again, until it
- * is added, removed, or cancelled (ruling R21).
+ * images picked for a note, `images`, are held by the forms' host, so that the form gets them back
+ * as it opens again, until they are added, removed, or cancelled (ruling R21).
  */
 function NoteOverlay({
   category,
+  images,
   isOpen,
   onClose,
+  picked,
 }: {
   category?: string | null;
+  images: ReturnType<typeof usePickedImages>[0];
   isOpen: boolean;
   onClose: () => void;
+  picked: ReturnType<typeof usePickedImages>[1];
 }) {
   const fate = useFateClient();
   const toast = useUndoToast();
   const { route } = useRoute();
-  const [images, picked] = usePickedImages();
   // The page's folder: the core marks the note with its slug when it is a feature's or a change's.
   const about = "folder" in route ? route.folder : undefined;
 
@@ -254,11 +262,16 @@ export function SidebarAddForms({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState<Form>();
   const [place, setPlace] = useState<AddPlace>({});
   const [drawn, setDrawn] = useState<ReadonlyArray<Form>>([]);
+  // The note form's picked images, held here so that a drop on the inbox can open the form with them.
+  const [images, picked] = usePickedImages();
   const close = () => setOpen(undefined);
-  const openForm: OpenForm = (form, where = {}) => {
+  const openForm: OpenForm = (form, { images: dropped, ...where } = {}) => {
     setDrawn((forms) => (forms.includes(form) ? forms : [...forms, form]));
     setPlace(where);
     setOpen(form);
+    if (dropped && dropped.length > 0) {
+      picked.add(dropped);
+    }
   };
   return (
     <OpenContext value={openForm}>
@@ -267,7 +280,13 @@ export function SidebarAddForms({ children }: { children: ReactNode }) {
         <PriorityOverlay isOpen={open === "priority"} onClose={close} section={place.section} />
       )}
       {drawn.includes("note") && (
-        <NoteOverlay category={place.category} isOpen={open === "note"} onClose={close} />
+        <NoteOverlay
+          category={place.category}
+          images={images}
+          isOpen={open === "note"}
+          onClose={close}
+          picked={picked}
+        />
       )}
     </OpenContext>
   );
