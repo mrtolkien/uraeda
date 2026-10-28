@@ -97,6 +97,71 @@ function focusSoon(find: () => HTMLElement | null | undefined) {
 }
 
 /**
+ * The page's keys, which the status line names: `i` edits, `p` previews, `r` picks the next
+ * research effort, `f` and `c` pick a feature or a change, and a draft's `s` goes to the slug, where
+ * Ctrl+Enter starts it; a proposal's `s` saves.
+ */
+function useEditorKeys(
+  draft: Draft | undefined,
+  {
+    edit,
+    editor,
+    focusSlug,
+    level,
+    preview,
+    setKind,
+    setLevel,
+    startNow,
+  }: {
+    edit: () => void;
+    editor: ReturnType<typeof useDraftEditor>;
+    focusSlug: () => void;
+    level: string | undefined;
+    preview: () => void;
+    setKind: (kind: StartKind) => void;
+    setLevel: (to: string) => void;
+    startNow: () => void;
+  },
+) {
+  const isDraft = draft?.kind === "draft";
+  const levels = draft?.discoveryLevels ?? [];
+  const cycle = () => {
+    const next = levels[(levels.indexOf(level ?? "") + 1) % levels.length];
+    if (next !== undefined) {
+      setLevel(next);
+    }
+  };
+  useKeys(
+    draft
+      ? [
+          { hint: "i", keys: "i", label: "edit", run: edit },
+          ...(editor.drawn ? [] : [{ hint: "p", keys: "p", label: "preview", run: preview }]),
+          ...(draft.discovery == null
+            ? []
+            : [{ hint: "r", keys: "r", label: "research", run: cycle }]),
+          ...(isDraft
+            ? [
+                { hint: "f", keys: "f", label: "feature", run: () => setKind("feature") },
+                { hint: "c", keys: "c", label: "change", run: () => setKind("change") },
+              ]
+            : []),
+          // Last, in the order of use: a draft's `s` brings the focus to the slug, and Ctrl+Enter
+          // starts it, in the text field too, which has its own; a proposal has no slug, and its
+          // `s` saves.
+          ...(isDraft
+            ? [
+                { hint: "s", keys: "s", label: "slug", run: focusSlug },
+                { hint: "⌃⏎", keys: "mod+Enter", label: "start", run: startNow },
+              ]
+            : editor.field.dirty
+              ? [{ hint: "s", keys: "s", label: "save", run: editor.saveText }]
+              : []),
+        ]
+      : [],
+  );
+}
+
+/**
  * A draft or a proposal: drawn once written, edited as text, with the template's guidance for each
  * empty section; saved with Save or Ctrl+Enter over the version it was read at, its unsaved text
  * kept until then, committed, and, for a draft, started as a feature or a change.
@@ -112,7 +177,6 @@ export function EditorPage({ path }: { path: string }) {
   const slugBox = useRef<HTMLDivElement>(null);
   const [kind, setKind] = useState<StartKind>("feature");
   const isDraft = draft?.kind === "draft";
-
   const edit = () => {
     editor.setDrawn(false);
     focusSoon(() => box.current?.querySelector("textarea"));
@@ -149,42 +213,7 @@ export function EditorPage({ path }: { path: string }) {
   };
   // Starts it as the kind picked: the branch and worktree, then its session, saved text first.
   const startNow = () => void editor.actions.start(true, kind);
-  const levels = draft?.discoveryLevels ?? [];
-  const cycle = () => {
-    const next = levels[(levels.indexOf(level ?? "") + 1) % levels.length];
-    if (next !== undefined) {
-      setLevel(next);
-    }
-  };
-  useKeys(
-    draft
-      ? [
-          { hint: "i", keys: "i", label: "edit", run: edit },
-          ...(editor.drawn ? [] : [{ hint: "p", keys: "p", label: "preview", run: preview }]),
-          ...(draft.discovery == null
-            ? []
-            : [{ hint: "r", keys: "r", label: "research", run: cycle }]),
-          ...(isDraft
-            ? [
-                { hint: "f", keys: "f", label: "feature", run: () => setKind("feature") },
-                { hint: "c", keys: "c", label: "change", run: () => setKind("change") },
-              ]
-            : []),
-          // Last, in the order of use: a draft's `s` brings the focus to the slug, and Ctrl+Enter
-          // starts it, in the text field too, which has its own; a proposal has no slug, and its
-          // `s` saves.
-          ...(isDraft
-            ? [
-                { hint: "s", keys: "s", label: "slug", run: focusSlug },
-                { hint: "⌃⏎", keys: "mod+Enter", label: "start", run: startNow },
-              ]
-            : editor.field.dirty
-              ? [{ hint: "s", keys: "s", label: "save", run: editor.saveText }]
-              : []),
-        ]
-      : [],
-  );
-
+  useEditorKeys(draft, { edit, editor, focusSlug, level, preview, setKind, setLevel, startNow });
   if (!draft) {
     return (
       <Page>

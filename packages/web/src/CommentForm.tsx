@@ -208,30 +208,13 @@ function CommentFields({
             <Text type="supporting">{quote}</Text>
           </div>
         )}
-        {images ? (
-          <DropHint hint={images.hint} isLabelled>
-            <TextField
-              hasAutoFocus={hasAutoFocus}
-              kind="comment"
-              isLabelHidden
-              label="Comment text"
-              onChange={onChange}
-              onSubmit={submitKey}
-              value={text}
-              {...images.fieldProps}
-            />
-          </DropHint>
-        ) : (
-          <TextField
-            hasAutoFocus={hasAutoFocus}
-            kind="comment"
-            isLabelHidden
-            label="Comment text"
-            onChange={onChange}
-            onSubmit={submitKey}
-            value={text}
-          />
-        )}
+        <CommentText
+          hasAutoFocus={hasAutoFocus}
+          images={images}
+          onChange={onChange}
+          onSubmit={submitKey}
+          text={text}
+        />
         {images && <AttachStatus status={images.status} />}
         {(error ?? notice) && <StatusText tone="error">{error ?? notice}</StatusText>}
         <HStack align="center" gap={2} justify="end" wrap="wrap">
@@ -255,6 +238,46 @@ function CommentFields({
         </HStack>
       </VStack>
     </form>
+  );
+}
+
+/** The comment's text field, which takes images dropped on it when the form has some. */
+function CommentText({
+  hasAutoFocus,
+  images,
+  onChange,
+  onSubmit,
+  text,
+}: {
+  hasAutoFocus: boolean | undefined;
+  images: CommentImages | undefined;
+  onChange: (text: string) => void;
+  onSubmit: () => void;
+  text: string;
+}) {
+  return images ? (
+    <DropHint hint={images.hint} isLabelled>
+      <TextField
+        hasAutoFocus={hasAutoFocus}
+        isLabelHidden
+        kind="comment"
+        label="Comment text"
+        onChange={onChange}
+        onSubmit={onSubmit}
+        value={text}
+        {...images.fieldProps}
+      />
+    </DropHint>
+  ) : (
+    <TextField
+      hasAutoFocus={hasAutoFocus}
+      isLabelHidden
+      kind="comment"
+      label="Comment text"
+      onChange={onChange}
+      onSubmit={onSubmit}
+      value={text}
+    />
   );
 }
 

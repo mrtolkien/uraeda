@@ -15,7 +15,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { useFateClient } from "react-fate";
 import type { Trigger } from "uraeda-server/fate";
 import { IMAGE_REFUSALS } from "uraeda-server/limits";
 import { AttachButton } from "./attach/AttachButton.tsx";
@@ -26,15 +25,12 @@ import { useImageDrop } from "./attach/useImageDrop.ts";
 import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
 import { useAgent } from "./data.ts";
 import { useKeys } from "./keys/registry.tsx";
-import { refusal } from "./errors.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { FreshDefault, useFreshRun } from "./HandOver.tsx";
 import { footerActions, sendButtons } from "./ComposerSend.tsx";
 import { type Inserted, withInserted } from "./RecommendedMessage.tsx";
-import { sendMessage } from "./sessions.ts";
+import { useSend } from "./useComposerSend.ts";
 import type { DraftRun } from "./useDraft.ts";
-import { SessionView } from "./views.ts";
-import { clearPending, markPending } from "./writes/store.ts";
 
 const styles = stylex.create({
   input: { minHeight: "var(--size-composer-input)" },
@@ -86,13 +82,13 @@ export type ComposerProps = {
   hasAttach?: boolean;
   /** The message's images, kept by the page with its text. */
   images: ReadonlyArray<DraftImage>;
+  /** The field's handle, for a page that gives it the focus, as when it inserts text. */
+  inputRef?: RefObject<ChatComposerInputHandle | null>;
   /**
    * With `folder` and no `session`: the message goes to a new session of the feature, created with
    * it, as "New session" opens one, not to its latest.
    */
   isNewSession?: boolean;
-  /** The field's handle, for a page that gives it the focus, as when it inserts text. */
-  inputRef?: RefObject<ChatComposerInputHandle | null>;
   /**
    * Why the page cannot do what it was opened for, shown under the composer, which still sends what
    * it holds, as a chat.
@@ -156,98 +152,19 @@ function imageRefusal(agent: ReturnType<typeof useAgent>, unavailable?: string, 
 }
 
 /**
- * Sends the composer's message and stops its turn: a refused send puts its text and images back,
- * with the reason. The workflow's message goes alone: the draft's images stay for the next one
- * (R67).
+ * Why no image can be added to the composer: none ever to a file's text, and to a message sent
+ * elsewhere than a session, only while it cannot be sent.
  */
-function useSend(
-  {
-    folder,
-    images,
-    isNewSession,
-    onChange,
-    onImagesChange,
-    onSend,
-    onSent,
-    session,
-    workflow,
-  }: ComposerProps,
-  { canSend, sent }: { canSend: boolean; sent: () => void },
+function attachRefusal(
+  { hasAttach, onSend, workflow }: ComposerProps,
+  agent: ReturnType<typeof useAgent>,
+  unavailable: string | undefined,
 ) {
-  const fate = useFateClient();
-  const [error, setError] = useState<string>();
-  const [pending, setPending] = useState(false);
-  const withImages = workflow === undefined;
-  const submit = (text: string) => {
-    if (!canSend || pending) {
-      return;
-    }
-    if (onSend) {
-      // The text stays until it is sent, and `onSend` clears it: a refusal leaves it as typed.
-      setPending(true);
-      void onSend(text, images).then((done) => {
-        setPending(false);
-        if (done) {
-          onImagesChange([]);
-          sent();
-        }
-      });
-      return;
-    }
-    const sending = withImages ? images : [];
-    setError(undefined);
-    // The feature's card says so at once, until the server's status for it changes.
-    const starting = workflow !== undefined ? folder : undefined;
-    if (starting !== undefined) {
-      markPending(starting, "Starting the agent…");
-    }
-    onChange("");
-    if (withImages) {
-      onImagesChange([]);
-      sent();
-    }
-    void sendMessage(fate, {
-      ...(session === undefined
-        ? folder === undefined
-          ? {}
-          : { folder, ...(isNewSession ? { newSession: true } : {}) }
-        : { session }),
-      images: sending.flatMap((image) => (image.image ? [image.image] : [])),
-      text,
-      ...(workflow === undefined ? {} : { workflow }),
-    }).then((result) => {
-      if (result.ok) {
-        onSent?.(result.session);
-        return;
-      }
-      if (starting !== undefined) {
-        clearPending(starting);
-      }
-      onChange(text);
-      if (sending.length > 0) {
-        onImagesChange((now) => [...sending, ...now]);
-      }
-      setError(result.message);
-    });
-  };
-  const stop = () => {
-    if (session !== undefined) {
-      setError(undefined);
-      if (folder !== undefined) {
-        markPending(folder, "Stopping…");
-      }
-      // The turn ends once the agent answers the interrupt: its live update brings the state.
-      void fate.mutations.session.stop({ input: { session }, view: SessionView }).then((result) => {
-        if (result.error) {
-          if (folder !== undefined) {
-            clearPending(folder);
-          }
-          setError(refusal(result.error).message);
-        }
-      });
-    }
-  };
-  return { error, pending, stop, submit };
+  return hasAttach === false
+    ? TEXT_ONLY
+    : onSend
+      ? unavailable
+      : imageRefusal(agent, unavailable, workflow);
 }
 
 /**
@@ -411,11 +328,7 @@ export function Composer(given: ComposerProps) {
   const unavailable =
     onSend || agent?.available ? blocked : `${name} is not available on this machine.`;
   const hasAttach = given.hasAttach !== false;
-  const refusedWith = !hasAttach
-    ? TEXT_ONLY
-    : onSend
-      ? unavailable
-      : imageRefusal(agent, unavailable, workflow);
+  const refusedWith = attachRefusal(props, agent, unavailable);
   const attaching = useChatImages({
     images,
     onImagesChange: props.onImagesChange,
@@ -432,10 +345,7 @@ export function Composer(given: ComposerProps) {
   const hasContent = value.trim() !== "" || (!workflow && !onSend && images.length > 0);
   // Another page's write blocks the page's own send, not the typing.
   const canSend = hasContent && !saving && !unavailable && props.sendWaits === undefined;
-  const { error, pending, stop, submit } = useSend(props, {
-    canSend,
-    sent: attaching.sent,
-  });
+  const { error, pending, stop, submit } = useSend(props, { canSend, sent: attaching.sent });
   const onKeyDown = useFieldKeys(input, {
     isDisabled: Boolean(unavailable),
     send: canSend ? () => submit(value.trim()) : undefined,
@@ -462,7 +372,6 @@ export function Composer(given: ComposerProps) {
       onFiles={attaching.addFiles}
     />
   );
-
   return (
     <>
       <DropHint hint={drop.hint}>

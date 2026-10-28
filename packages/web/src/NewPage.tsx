@@ -164,28 +164,10 @@ function Search({
 }
 
 /**
- * The New page: the cards, the kind's composer, then the entries to start from. On the phone no
- * card is picked until one is, the address naming a kind: the flow there is New, pick, composer,
- * and the pick moves the focus to the composer.
+ * The composer's focus: `input` is its field, `box` what holds it, and `focusComposer` gives it the
+ * focus; `wantsFocus` asks for it once the kind picked draws its composer.
  */
-export function NewPage({ kind: addressed }: { kind: NewKind }) {
-  useRestoreScroll(true);
-  const here = useRepoPath();
-  const fate = useFateClient();
-  const narrow = isNarrow(useWidthClass());
-  const named = new URLSearchParams(useSearch()).has("kind");
-  const kind = narrow && !named ? undefined : addressed;
-  const [search, setSearch] = useState("");
-  const searchField = useRef<HTMLInputElement>(null);
-  useKeys([
-    {
-      hint: "/",
-      icon: "search",
-      keys: "/",
-      label: "search",
-      run: () => searchField.current?.focus(),
-    },
-  ]);
+function useComposerFocus(kind: NewKind | undefined) {
   const input = useRef<ChatComposerInputHandle>(null);
   // A pick by a click moves the focus to the composer, which the pick may draw: once it is there.
   const wantsFocus = useRef(false);
@@ -210,10 +192,26 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
       focusComposer();
     }
   }, [kind]);
-  const session = useDraft();
-  // Kept as a new chat's text is: leaving the page does not ask.
-  const change = useTextField("new-change", "", { drawn: false });
-  const feature = useTextField("new-feature-proposal", "", { drawn: false });
+  return { box, focusComposer, input, wantsFocus };
+}
+
+/**
+ * What each kind's composer was filled from, and `insert`, which puts an entry into the picked
+ * kind's composer, keeps it as one of them, and gives the field the focus.
+ */
+function useSources({
+  change,
+  feature,
+  input,
+  kind,
+  session,
+}: {
+  change: ReturnType<typeof useTextField>;
+  feature: ReturnType<typeof useTextField>;
+  input: React.RefObject<ChatComposerInputHandle | null>;
+  kind: NewKind | undefined;
+  session: ReturnType<typeof useDraft>;
+}) {
   const [sources, setSources] = useState<Record<NewKind, ReadonlyArray<Source>>>({
     change: [],
     feature: [],
@@ -259,6 +257,38 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
     // The field takes the focus once the text is in: `Escape` goes back to the list's keys.
     requestAnimationFrame(() => input.current?.focus());
   };
+  return { insert, sources };
+}
+
+/**
+ * The New page: the cards, the kind's composer, then the entries to start from. On the phone no
+ * card is picked until one is, the address naming a kind: the flow there is New, pick, composer,
+ * and the pick moves the focus to the composer.
+ */
+export function NewPage({ kind: addressed }: { kind: NewKind }) {
+  useRestoreScroll(true);
+  const here = useRepoPath();
+  const fate = useFateClient();
+  const narrow = isNarrow(useWidthClass());
+  const named = new URLSearchParams(useSearch()).has("kind");
+  const kind = narrow && !named ? undefined : addressed;
+  const [search, setSearch] = useState("");
+  const searchField = useRef<HTMLInputElement>(null);
+  useKeys([
+    {
+      hint: "/",
+      icon: "search",
+      keys: "/",
+      label: "search",
+      run: () => searchField.current?.focus(),
+    },
+  ]);
+  const { box, focusComposer, input, wantsFocus } = useComposerFocus(kind);
+  const session = useDraft();
+  // Kept as a new chat's text is: leaving the page does not ask.
+  const change = useTextField("new-change", "", { drawn: false });
+  const feature = useTextField("new-feature-proposal", "", { drawn: false });
+  const { insert, sources } = useSources({ change, feature, input, kind, session });
   // A priority's Start opens the page with its line to insert: once, as soon as the priorities and
   // the composer are there, and not again on a reload.
   const priorities = usePriorities();

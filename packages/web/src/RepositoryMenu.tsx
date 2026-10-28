@@ -128,8 +128,6 @@ function RepositoryRow({
 }) {
   return (
     <ListItem
-      // The row the arrows are on: a list's selected row's tint, with its bar at the start.
-      xstyle={isCursor ? pickedStyles.picked : undefined}
       description={
         row.missing ? (
           <div {...stylex.props(styles.path)}>
@@ -165,8 +163,34 @@ function RepositoryRow({
           <Icon icon="check" xstyle={styles.unchecked} />
         )
       }
+      // The row the arrows are on: a list's selected row's tint, with its bar at the start.
+      xstyle={isCursor ? pickedStyles.picked : undefined}
     />
   );
+}
+
+/**
+ * A repository's removal from the list, which calls `onRemovedCurrent` once the current one is
+ * gone: `refused` is why the last removal could not be done.
+ */
+function useRemove(current: string | null, onRemovedCurrent: () => void) {
+  const fate = useFateClient();
+  const [refused, setRefused] = useState<string>();
+  const remove = async (name: string) => {
+    setRefused(undefined);
+    const { error } = await fate.mutations.repositories.remove({
+      input: { name },
+      view: RepositoriesView,
+    });
+    if (error) {
+      setRefused(refusal(error).message);
+      return;
+    }
+    if (name === current) {
+      onRemovedCurrent();
+    }
+  };
+  return { refused, remove };
 }
 
 /** The menu's content: the filter, the list's problem, the rows, a refused removal, and Add. */
@@ -181,10 +205,9 @@ function Menu({
   onPick: (name: string) => void;
   onRemovedCurrent: () => void;
 }) {
-  const fate = useFateClient();
   const list = useRepositories();
   const [filter, setFilter] = useState("");
-  const [refused, setRefused] = useState<string>();
+  const { refused, remove } = useRemove(current, onRemovedCurrent);
   const needle = filter.trim().toLowerCase();
   const rows = (list?.rows ?? []).filter(
     (row) => row.name.toLowerCase().includes(needle) || row.home.toLowerCase().includes(needle),
@@ -207,27 +230,10 @@ function Menu({
         )
       : 0;
   const cursor = Math.min(moved ?? first, rows.length - 1);
-
-  const remove = async (name: string) => {
-    setRefused(undefined);
-    const { error } = await fate.mutations.repositories.remove({
-      input: { name },
-      view: RepositoriesView,
-    });
-    if (error) {
-      setRefused(refusal(error).message);
-      return;
-    }
-    if (name === current) {
-      onRemovedCurrent();
-    }
-  };
-
   return (
     <VStack gap={2}>
       <TextInput
         isLabelHidden
-        ref={field}
         label="Filter repositories"
         onChange={(value: string) => {
           setFilter(value);
@@ -245,6 +251,7 @@ function Menu({
           }
         }}
         placeholder="Filter repositories"
+        ref={field}
         startIcon="search"
         value={filter}
       />

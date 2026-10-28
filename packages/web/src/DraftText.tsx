@@ -61,7 +61,6 @@ function Drawn({
     onEdit();
   };
   return (
-    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- `i` edits from the keyboard
     <div onClick={click} {...stylex.props(styles.drawn)}>
       <DropHint hint={editor.images.hint}>
         <StoriesProvider folder={MAIN_CHECKOUT} mockups={draft.mockups} stories={draft.stories}>

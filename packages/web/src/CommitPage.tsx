@@ -28,9 +28,11 @@ import { WriteButton } from "./writes/WriteButton.tsx";
 const styles = stylex.create({
   // One change: its kind, small, over what it is about.
   change: {
+    // Its bar's width, which StyleX's border widths do not list.
+    "--commit-bar": "2px",
     borderInlineStartColor: colorVars["--color-border"],
     borderInlineStartStyle: "solid",
-    borderInlineStartWidth: "2px",
+    borderInlineStartWidth: "var(--commit-bar)",
     paddingInlineStart: spacingVars["--spacing-3"],
   },
 });
@@ -42,6 +44,29 @@ function parts(line: string) {
   return at === -1
     ? { kind: "", text: body }
     : { kind: body.slice(0, at), text: body.slice(at + 2) };
+}
+
+/** What the commit holds: one change to a line, its kind over its text. */
+function Changes({ lines }: { lines: ReadonlyArray<string> }) {
+  return (
+    <Pane icon="check" title="This commit holds">
+      <VStack gap={2}>
+        {lines.map((line, at) => {
+          const { kind, text } = parts(line);
+          return (
+            <div key={at} {...stylex.props(styles.change)}>
+              {kind && (
+                <Text color="secondary" display="block" type="supporting">
+                  {kind}
+                </Text>
+              )}
+              <Text display="block">{text}</Text>
+            </div>
+          );
+        })}
+      </VStack>
+    </Pane>
+  );
 }
 
 /**
@@ -113,25 +138,7 @@ export function CommitPage() {
             title={message.text}
           />
         )}
-        {count > 0 && (
-          <Pane icon="check" title="This commit holds">
-            <VStack gap={2}>
-              {lines.map((line, at) => {
-                const { kind, text } = parts(line);
-                return (
-                  <div key={at} {...stylex.props(styles.change)}>
-                    {kind && (
-                      <Text color="secondary" display="block" type="supporting">
-                        {kind}
-                      </Text>
-                    )}
-                    <Text display="block">{text}</Text>
-                  </div>
-                );
-              })}
-            </VStack>
-          </Pane>
-        )}
+        {count > 0 && <Changes lines={lines} />}
         {count > 0 ? (
           <HStack align="center" gap={2}>
             <WriteButton
