@@ -4,6 +4,7 @@
 pub mod clarifications;
 pub mod document;
 pub mod frontmatter;
+pub mod image_links;
 pub mod inbox;
 pub mod items;
 pub(crate) mod lines;
