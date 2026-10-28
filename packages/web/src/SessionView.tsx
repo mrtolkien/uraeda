@@ -245,6 +245,7 @@ export function SessionPane({
   handing = {},
   id,
   isBoxed = false,
+  isNewSession = false,
   item,
   onSent,
   title,
@@ -259,6 +260,11 @@ export function SessionPane({
   id?: string;
   /** Drawn in the box that scrolls it, not as a page. */
   isBoxed?: boolean;
+  /**
+   * A new session of the feature in `folder`, which its first message creates: until then there
+   * is none, and leaving makes none.
+   */
+  isNewSession?: boolean;
   /** The change or the feature the session belongs to, once read. */
   item?: SessionItem;
   /** Called with the session a message created, before it exists. */
@@ -308,7 +314,7 @@ export function SessionPane({
         <Composer
           {...(folder === undefined ? {} : { folder })}
           {...composerDraft(draft)}
-          {...(id === undefined ? {} : { session: id })}
+          {...(id === undefined ? { isNewSession } : { session: id })}
           working={session?.status === "working"}
           {...(session && id !== undefined
             ? {

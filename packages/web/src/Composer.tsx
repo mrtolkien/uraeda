@@ -86,6 +86,11 @@ export type ComposerProps = {
   hasAttach?: boolean;
   /** The message's images, kept by the page with its text. */
   images: ReadonlyArray<DraftImage>;
+  /**
+   * With `folder` and no `session`: the message goes to a new session of the feature, created with
+   * it, as "New session" opens one, not to its latest.
+   */
+  isNewSession?: boolean;
   /** The field's handle, for a page that gives it the focus, as when it inserts text. */
   inputRef?: RefObject<ChatComposerInputHandle | null>;
   /**
@@ -156,7 +161,17 @@ function imageRefusal(agent: ReturnType<typeof useAgent>, unavailable?: string, 
  * (R67).
  */
 function useSend(
-  { folder, images, onChange, onImagesChange, onSend, onSent, session, workflow }: ComposerProps,
+  {
+    folder,
+    images,
+    isNewSession,
+    onChange,
+    onImagesChange,
+    onSend,
+    onSent,
+    session,
+    workflow,
+  }: ComposerProps,
   { canSend, sent }: { canSend: boolean; sent: () => void },
 ) {
   const fate = useFateClient();
@@ -192,7 +207,11 @@ function useSend(
       sent();
     }
     void sendMessage(fate, {
-      ...(session === undefined ? (folder === undefined ? {} : { folder }) : { session }),
+      ...(session === undefined
+        ? folder === undefined
+          ? {}
+          : { folder, ...(isNewSession ? { newSession: true } : {}) }
+        : { session }),
       images: sending.flatMap((image) => (image.image ? [image.image] : [])),
       text,
       ...(workflow === undefined ? {} : { workflow }),

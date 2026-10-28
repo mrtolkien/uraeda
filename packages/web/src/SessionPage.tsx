@@ -26,7 +26,8 @@ import { Missing } from "./layout/Missing.tsx";
  * composer holds goes as a chat. Opened to ask about a block (`?ask=<quote>`), it starts with the
  * quote and an empty line. Otherwise, its composer offers the feature's recommended message.
  * Given the ID of one of its sessions, an earlier one, it draws that session, and its run goes
- * there; one whose change or feature is gone, as once dropped, draws as a session alone.
+ * there; one whose change or feature is gone, as once dropped, draws as a session alone. Opened
+ * as a new session (`?new`), it draws none until its first message creates one.
  */
 function FeatureSession({ folder, id: given }: { folder: string; id?: string }) {
   const feature = useFeature(folder);
@@ -36,9 +37,12 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   // The feature's latest session's draft, which the round's column holds too: moving between them
   // keeps it. An earlier session's goes with its page.
   const repo = useRepositoryPath();
-  const draft = useDraft(given === undefined ? featureDraftKey(repo, folder) : undefined);
-  const { ask: askInto, handOver, refused: refuse } = draft;
   const search = useSearch();
+  // "New session" (`?new`): none until its first message creates it, which leaving never does. Its
+  // draft is its page's own, not the latest session's.
+  const isNew = new URLSearchParams(search).has("new");
+  const draft = useDraft(given === undefined && !isNew ? featureDraftKey(repo, folder) : undefined);
+  const { ask: askInto, handOver, refused: refuse } = draft;
   const workflow = useHandOver(search);
   const ask = new URLSearchParams(search).get("ask") ?? undefined;
   // The refusal read for an address: shown only while the address asks for that message.
@@ -63,7 +67,7 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   // A feature whose proposal is not committed has no branch for the agent to work on: the server
   // refuses every message with the same words.
   const blocked = feature.branch ? undefined : NO_BRANCH;
-  const id = given ?? feature.session ?? created;
+  const id = isNew ? created : (given ?? feature.session ?? created);
   const item: SessionItem = {
     branch: feature.branch ?? null,
     folder,
@@ -107,7 +111,14 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
         title={feature.title}
         {...(id === undefined ? {} : { id })}
         {...(blocked === undefined ? {} : { blocked })}
-        onSent={setCreated}
+        isNewSession={isNew}
+        onSent={(session) => {
+          setCreated(session);
+          // The new session has its address now, which Back and a reload keep.
+          if (isNew) {
+            redirect(here(sessionIdPath(session)));
+          }
+        }}
       />
       <SessionAnnouncer
         feature={folder}

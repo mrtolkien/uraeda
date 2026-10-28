@@ -292,6 +292,11 @@ const repositoryMutations = {
       folder?: string;
       /** The chat images, as `POST /attach` saved them. */
       images?: Array<ChatImage>;
+      /**
+       * With `folder`: a new session of the feature, as "New session" asks, created with this first
+       * message, never before; without it, the feature's session, created if it has none.
+       */
+      newSession?: boolean;
       /** The session to send to. */
       session?: string;
       text: string;
@@ -319,7 +324,9 @@ const repositoryMutations = {
         }
         // A folder that is no feature's gets no session.
         await ctx.binding.readFeature(ctx.repo, input.folder);
-        return (await ctx.sessions.featureSession(ctx.repo, input.folder)).id;
+        return input.newSession === true
+          ? (await ctx.sessions.newSession(ctx.repo, input.folder)).id
+          : (await ctx.sessions.featureSession(ctx.repo, input.folder)).id;
       });
       // A run that starts fresh went to a new session: the one it went to answers.
       const sent = await refusedOn(() =>
