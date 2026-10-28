@@ -18,8 +18,6 @@ the whole UI changes together, and more colour schemes can join it later.
   title sits in their top border. Checked by review.
 - On the phone, a pane MUST keep only its titled top border, so its text has the screen's width.
   Checked by review.
-- What floats over the page, such as the phone's bottom bars or the leader menu, SHOULD be frosted
-  glass: a light tint of its own, what is behind it blurred, and square corners. Checked by review.
 - Text MUST be set for readability first: a monospace font by default, and a proportional font where
   it reads better, such as long prose. Checked by review.
 - A new colour scheme MUST be added as a named scheme of the same theme, never as styles in a view.
@@ -31,6 +29,8 @@ the whole UI changes together, and more colour schemes can join it later.
   another host. Checked by a test of the built app.
 - A harness MUST be marked by Codicons' drawing of its mark where Codicons has one, and by a neutral
   glyph drawn for Uraeda otherwise. Checked by review.
+- What floats over the page, such as the phone's bottom bars or the leader menu, SHOULD be frosted
+  glass: a light tint of its own, what is behind it blurred, and square corners. Checked by review.
 - Icons SHOULD come from Lucide, and another free set's glyph MAY stand in where it fits a concept
   clearly better. Checked by review.
 
