@@ -3,12 +3,36 @@
 // Each is a pane of the sidebar's own cards; `coreParts` gives each its node and its height, for
 // the layout.
 import type { Icon } from "@astryxdesign/core/Icon";
+import { colorVars, focusVars } from "@astryxdesign/core/theme/tokens.stylex";
+import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactNode } from "react";
 import { waiting } from "../labels.ts";
 import { Empty } from "../layout/Empty.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { byStatus, type Feature, type Row } from "../sidebar/cards.ts";
 import { FeatureCard, SessionCard } from "../sidebar/Cards.tsx";
+
+const styles = stylex.create({
+  // A card, framed as a list's row: the keyboard's focus ring around the whole card, its task list
+  // too, drawn just inside it, not the ring of its row alone, whose edge would cut across it.
+  card: {
+    outlineColor: { ":has(:focus-visible)": colorVars["--color-accent"], default: null },
+    outlineOffset: {
+      ":has(:focus-visible)": `calc(-1 * ${focusVars["--focus-outline-width"]})`,
+      default: null,
+    },
+    outlineStyle: { ":has(:focus-visible)": "solid", default: null },
+    outlineWidth: { ":has(:focus-visible)": focusVars["--focus-outline-width"], default: null },
+  },
+  // The card's own row draws no ring: the card does.
+  ringless: { [focusVars["--focus-outline-style"]]: "none" },
+  // The card the keys or the pointer picked: the mauve tint of a list's selected row, with its bar
+  // at the start, so that home has one selection, whether it is in a pane or in a list.
+  picked: {
+    backgroundColor: colorVars["--color-accent-muted"],
+    boxShadow: `inset 2px 0 0 0 ${colorVars["--color-accent"]}`,
+  },
+});
 
 /** A pane of the core, drawn by `key`, as tall as `height` card lines. */
 export type CorePart = { height: number; key: string; node: ReactNode };
@@ -18,7 +42,13 @@ const FRAME = 2;
 const CARD = 3;
 const EMPTY = 1.5;
 
-/** A pane of cards: `cards` each with its detail line if it has one, or `empty` text. */
+/** A card of the core: its key among them, `f:<folder>` or `s:<session>`, and its node. */
+type CoreCard = { detail?: string | undefined; key: string; node: ReactNode };
+
+/**
+ * A pane of cards: `cards` each with its detail line if it has one, or `empty` text. The card whose
+ * key is `picked` is drawn picked.
+ */
 function part(
   key: string,
   pane: {
@@ -27,8 +57,9 @@ function part(
     title: string;
     tone?: "attention" | "problem";
   },
-  cards: Array<{ detail?: string | undefined; node: ReactNode }>,
+  cards: Array<CoreCard>,
   empty: string,
+  picked: string | undefined,
 ): CorePart {
   const height = FRAME + (cards.length === 0 ? EMPTY : cards.length * CARD);
   return {
@@ -36,7 +67,20 @@ function part(
     key,
     node: (
       <Pane {...pane}>
-        {cards.length === 0 ? <Empty isInset>{empty}</Empty> : cards.map((card) => card.node)}
+        {cards.length === 0 ? (
+          <Empty isInset>{empty}</Empty>
+        ) : (
+          cards.map((card) => (
+            // What the core's keys and pointer find it by (see `coreKeys.ts`).
+            <div
+              data-core-key={card.key}
+              key={card.key}
+              {...stylex.props(styles.card, card.key === picked && styles.picked)}
+            >
+              <div {...stylex.props(styles.ringless)}>{card.node}</div>
+            </div>
+          ))
+        )}
       </Pane>
     ),
   };
@@ -44,23 +88,27 @@ function part(
 
 /**
  * The core's panes in their reading order: the problems, when there are any, what waits on the
- * human, what is in progress, and the sessions without a workflow, when one runs.
+ * human, what is in progress, and the sessions without a workflow, when one runs. The card whose
+ * key is `picked` is drawn picked.
  */
 export function coreParts({
   agents,
   human,
   invalid,
+  picked,
   rows,
 }: {
   agents: Array<Feature>;
   human: Array<Feature>;
   invalid: Array<Feature>;
+  picked?: string | undefined;
   rows: Array<Row>;
 }): Array<CorePart> {
   const rowOf = (feature: Feature) => rows.find((row) => row.folder === feature.folder);
-  const feature = (f: Feature, detail?: string) => ({
+  const feature = (f: Feature, detail?: string): CoreCard => ({
     detail,
-    node: <FeatureCard detail={detail} feature={f} key={f.folder} pathname="" row={rowOf(f)} />,
+    key: `f:${f.folder}`,
+    node: <FeatureCard detail={detail} feature={f} pathname="" row={rowOf(f)} />,
   });
   const sessions = byStatus(
     rows
@@ -80,6 +128,7 @@ export function coreParts({
             { count: invalid.length, icon: "warning", title: "Problems", tone: "problem" },
             invalid.map((f) => feature(f, f.problems[0]?.message)),
             "",
+            picked,
           ),
         ]),
     part(
@@ -87,12 +136,14 @@ export function coreParts({
       { count: human.length, icon: "uraeda:hourglass", title: "Needs you", tone: "attention" },
       human.map((f) => feature(f, waiting(f).line)),
       "Nothing waits on you.",
+      picked,
     ),
     part(
       "in-progress",
       { count: agents.length, icon: "uraeda:activity", title: "In progress" },
       agents.map((f) => feature(f, f.step.task ?? undefined)),
       "Nothing in progress.",
+      picked,
     ),
     // Only while a session runs, as the sidebar's: an empty pane has nothing to tell.
     ...(sessions.length === 0
@@ -102,9 +153,11 @@ export function coreParts({
             "sessions",
             { count: sessions.length, icon: "uraeda:bot", title: "Sessions" },
             sessions.map(({ row }) => ({
-              node: <SessionCard key={row.id} pathname="" row={row} />,
+              key: `s:${row.id}`,
+              node: <SessionCard pathname="" row={row} />,
             })),
             "",
+            picked,
           ),
         ]),
   ];

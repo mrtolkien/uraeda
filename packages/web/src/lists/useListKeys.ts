@@ -255,6 +255,7 @@ export function useListKeys({
   isOff = false,
   keys,
   onClose,
+  onEdge,
   onEdit,
   onMoveEnd,
   onMoveItem,
@@ -267,6 +268,11 @@ export function useListKeys({
   isOff?: boolean;
   keys?: ReadonlyArray<string>;
   onClose: () => boolean;
+  /**
+   * A move up from the top row of a column, or any move with no row selected (`row` -1): `true`
+   * says what is around the list took it, as home's panes above it do.
+   */
+  onEdge?: ((move: Move, row: number) => boolean) | undefined;
   onEdit: () => boolean;
   /** Given while the selected row is in the move mode: what ends it. */
   onMoveEnd?: () => void;
@@ -295,6 +301,12 @@ export function useListKeys({
         return false;
       }
       const to = destination(move, row, count, columns);
+      // Up past the top of its column, or any move with no row selected: what is around the list
+      // may take the focus.
+      const isEdge = row === -1 || (move === "previous" && to === row);
+      if (isEdge && onEdge?.(move, row) === true) {
+        return true;
+      }
       if (to !== -1 && focusRow(to)) {
         onSelect(to);
       }

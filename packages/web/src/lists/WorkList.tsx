@@ -18,6 +18,7 @@ import {
   type RefObject,
   useCallback,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useRef,
   useState,
@@ -28,6 +29,7 @@ import { Card, RowStateContext, type WorkRow } from "./Card.tsx";
 import { type OnDrop, type OnMove, useDragOrder } from "./useDragOrder.ts";
 import { withMoves } from "./itemMoves.ts";
 import { type Ahead, stillAhead, useItemMoves } from "./useItemMoves.ts";
+import type { Move } from "./destination.ts";
 import { type Columns, type ItemMove, useListKeys } from "./useListKeys.ts";
 import { useRefocus } from "./useRefocus.ts";
 import type { BarAction } from "./RowBar.tsx";
@@ -430,7 +432,10 @@ function shiftRows(root: HTMLElement, shifts: Shifts, isMoving: boolean) {
   const next = new Map<string, { x: number; y: number }>();
   for (const row of root.querySelectorAll<HTMLElement>("[data-row-key]")) {
     const key = row.dataset.rowKey ?? "";
-    const placeOf = (box: DOMRect) => ({ x: box.left - origin.left + left, y: box.top - origin.top });
+    const placeOf = (box: DOMRect) => ({
+      x: box.left - origin.left + left,
+      y: box.top - origin.top,
+    });
     const running = shifts.running.get(row);
     const isGliding = running?.playState === "running";
     if (!isMoving && isGliding) {
@@ -567,6 +572,7 @@ function alignColumns(scroller: HTMLElement, column: HTMLElement, rest: number) 
  * resolves, the list stays as the drag left it.
  */
 export function WorkList({
+  clear,
   initial,
   isFocused = false,
   isLayoutChosen = false,
@@ -576,19 +582,26 @@ export function WorkList({
   follow,
   onAddBeside,
   onDelete,
+  onEdge,
   onMove,
   onNest,
   onOpen,
   onOutline,
   onPromote,
+  onSelected,
   onStart,
   rowActions,
   sectionPicker,
   sections,
   selected: named,
 }: {
+  /**
+   * Each new object leaves the list with no row selected, as something else on its page is:
+   * home's panes.
+   */
+  clear?: object | undefined;
   /** A row to select, with the focus, as a write placed it: each new object selects it again. */
-  follow?: { key: string };
+  follow?: { key: string } | undefined;
   /** The key of the row selected until another is, where the address names none. */
   initial?: string;
   isFocused?: boolean;
@@ -609,6 +622,11 @@ export function WorkList({
    * resolve with `false` when the write is refused, for the row to come back.
    */
   onDelete?: (row: WorkRow) => Promise<boolean | void> | void;
+  /**
+   * Up from the top row of a section, or any move with no row selected (`section` undefined):
+   * `true` says what is above the list took the focus, as home's panes do.
+   */
+  onEdge?: (move: Move, section: string | undefined) => boolean;
   onMove?: OnMove;
   /**
    * A drop that nests a row, moves a nested row, or makes one a line: the list then drags every
@@ -623,6 +641,8 @@ export function WorkList({
   onOutline?: (row: WorkRow, edit: OutlineMove) => void;
   /** What `p` calls for the selected row; returning `false` says it has nothing to promote. */
   onPromote?: (row: WorkRow) => boolean | void;
+  /** Hears the key of the row selected, as it changes: by the keys, the pointer, or a write. */
+  onSelected?: (key: string | undefined) => void;
   /** What `s` calls for the selected row: it starts from it. */
   onStart?: (row: WorkRow) => void;
   /** The list's own keys on the selected row, in its bar, as the inbox's `p` and `v`. */
@@ -639,6 +659,14 @@ export function WorkList({
 }) {
   const [selected, setSelected] = useSelection(named, initial);
   const isPhone = isNarrow(useWidthClass());
+  // Something else on the page took the selection: none here.
+  useEffect(() => {
+    if (clear !== undefined) {
+      setSelected(undefined);
+    }
+  }, [clear, setSelected]);
+  const heard = useEffectEvent((key: string | undefined) => onSelected?.(key));
+  useEffect(() => heard(selected), [selected]);
   // The row whose bar shows: the one the keys, a click, or a write picked, while it is selected. The
   // mouse passing over a row selects it with no bar, which would push the rows under it as it goes.
   const [barred, setBarred] = useState<string>();
@@ -674,9 +702,7 @@ export function WorkList({
   const onDrop: OnDrop | undefined =
     onMove || onNest
       ? (key, to) =>
-          to.depth === 0 && lines.has(key)
-            ? onMove?.(key, to.section, to.index)
-            : onNest?.(key, to)
+          to.depth === 0 && lines.has(key) ? onMove?.(key, to.section, to.index) : onNest?.(key, to)
       : undefined;
   const { asColumns, below, drag, inRow, live, placed, rows, rowsOf, shown } = useShown(
     kept,
@@ -790,13 +816,14 @@ export function WorkList({
       return;
     }
     pick(follow.key);
-    requestAnimationFrame(() =>
-      document
-        .querySelector<HTMLElement>(
-          `[data-row-key="${CSS.escape(follow.key)}"] :is([data-row-link] button, a[href])`,
-        )
-        ?.focus({ preventScroll: true }),
-    );
+    // With the focus, once drawn, and in view: it may have come from elsewhere on the page.
+    requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(follow.key)}"]`);
+      row?.querySelector<HTMLElement>(":is([data-row-link] button, a[href])")?.focus({
+        preventScroll: true,
+      });
+      row?.scrollIntoView({ block: "nearest" });
+    });
   }, [follow, pick]);
   // The selection's column comes into view whole, any part of it outside the window moves the page
   // or the row: a key that changes column may land beyond the edge. The row glides there sideways
@@ -824,6 +851,13 @@ export function WorkList({
     isOff: isOpen,
     keys: rows.map((row) => row.key),
     onClose: () => false,
+    onEdge:
+      onEdge &&
+      ((move, at) => {
+        const key = rows[at]?.key;
+        const section = placed.find((one) => one.rows.some((row) => row.key === key))?.id;
+        return onEdge(move, section);
+      }),
     onEdit: () => false,
     ...(isMoving ? { onMoveEnd: () => setMoving(undefined) } : {}),
     onMoveItem,
