@@ -2,16 +2,19 @@ import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/Segme
 import { Switch } from "@astryxdesign/core/Switch";
 import type { SpecItems } from "uraeda-binding";
 
+/** What the choices read of a spec: its risk tier, and the tiers it offers. */
+type Tiered = Pick<SpecItems, "riskTier" | "tiers">;
+
 /** What an approval of a spec may change: its risk tier, and the plan review the human set. */
 export type Choices = { planReview?: boolean; tier: string };
 
 /** The choices as the spec has them: its tier, else the least risky, and no plan review set. */
-export function initialChoices(spec: SpecItems | undefined): Choices {
+export function initialChoices(spec: Tiered | undefined): Choices {
   return { tier: spec?.riskTier ?? spec?.tiers[0]?.value ?? "" };
 }
 
 /** What an approval sends of the choices: only what differs from the spec. */
-export function approveChoices(spec: SpecItems | undefined, { planReview, tier }: Choices) {
+export function approveChoices(spec: Tiered | undefined, { planReview, tier }: Choices) {
   return {
     ...(tier !== spec?.riskTier ? { tier } : {}),
     ...(planReview !== undefined ? { planReview } : {}),
@@ -29,7 +32,7 @@ export function ReviewChoices({
 }: {
   choices: Choices;
   onChange: (choices: Choices) => void;
-  spec: SpecItems | undefined;
+  spec: Tiered | undefined;
 }) {
   const plannedReview =
     planReview ?? spec?.tiers.find((choice) => choice.value === tier)?.planReview ?? false;
