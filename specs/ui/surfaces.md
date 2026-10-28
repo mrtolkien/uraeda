@@ -41,8 +41,8 @@ changes, so the mode is visible where it acts. On the phone the same actions flo
 bottom as big icons on glass (see [the phone](phone.md)).
 
 The row's bar replaced the rows' `…` menus, icons drawn over the row's text, and a right-click menu:
-"The `...` are weird af." A few `…` menus remain, on a category's pane and on a session's and a
-feature's header; whether they should go is an [open question](open-questions.md).
+"The `...` are weird af." A `…` menu is the last resort, and never inside a card or a pane: only a
+page's header holds one, a session's and a feature's.
 
 ## A list's detail
 
@@ -75,7 +75,9 @@ Two jobs only:
 
 - **Confirming what cannot be undone**, through the one shared confirmation (`fields/Confirm.tsx`),
   answered by `y` or `n`, its focus on Cancel: deleting, discarding uncommitted changes, dropping
-  typed text. "Make sure every cancel modal uses the same window."
+  typed text. "Make sure every cancel modal uses the same window." A question with more than two
+  answers, like deleting a category that holds notes, is the same confirmation with one more answer
+  and its key.
 - **One short question at a decision point**: a single field, with a suggestion at most, like a new
   feature's slug after `Ctrl+Enter`, or a quick note.
 
@@ -138,4 +140,6 @@ opens it again; every other overlay is an entry of the history, so Back closes i
 - **Hover as the only way.** Hover brightens, moves the selection, and unfolds the rail; nothing is
   reachable only by hovering.
 - **A toast for an error.** An error stays next to what it concerns until dealt with.
-- **A popover of content.** Menus may be popovers on wide screens; reading content never is.
+- **A popover of content.** Menus may be popovers on wide screens; reading content never is. One
+  exception: a note's images show under its row, over the page, while the row is hovered or
+  selected.

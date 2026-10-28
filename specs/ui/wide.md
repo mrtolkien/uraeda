@@ -27,8 +27,8 @@ sideways to it.
 
 - **Popovers** for menus, anchored to what opened them.
 - **Dialogs** for the shared confirmation, short forms, and pickers, centred.
-- **The leader menu** in the bottom right, over the page, rising from the bottom, its frame easing
-  to each group's size.
+- **The leader menu** in the bottom right, over the page, in the phone bars' frosted glass, rising
+  from the bottom, its frame easing to each group's size.
 
 ## The pointer
 

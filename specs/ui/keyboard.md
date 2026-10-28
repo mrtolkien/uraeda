@@ -71,8 +71,8 @@ priorities' `v` to switch between columns and a list. A page never gives a base 
 - **A row's keys show under the selected row**, in its bar, each written out ("⏎ edit", "m move", "d
   delete"), not in the status line.
 - **The leader menu** shows every sequence: `Space` then its groups (go, find, new, the ui), and the
-  `g` keys. A page's single keys are not in it: they show in the status line. Its rows are buttons,
-  and a click on `Space menu` opens it at once.
+  `g` keys. It is a menu of its own, not an index of every key: a page's single keys are not in it,
+  they show in the status line. Its rows are buttons, and a click on `Space menu` opens it at once.
 - **Nothing on the phone.** Keys still work with a keyboard attached, but the phone's bars show
   icons, not keys (see [the phone](phone.md)).
 

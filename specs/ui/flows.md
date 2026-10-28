@@ -43,7 +43,8 @@ whose answers either continue the implementation or revise the spec.
   open, takes its place while it is written: one general field at a time. There is no separate
   summary: "the only one that matters is the general comment."
 - **The verdict is the human's**: Approve, or Request changes, which needs a comment. "Approving or
-  not depends on me." Both commit and open the session prefilled.
+  not depends on me." Both commit and open the session prefilled. The verdict's buttons are at the
+  review's end only, never repeated in a sheet or a column.
 - **Answers come back where the comments were**: a revised file says, under each of the human's
   comments, what was done.
 

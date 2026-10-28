@@ -12,7 +12,8 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
   removed. "I want it gone everywhere."
 - **No menu for one action, no `…` for the sake of it.** "Remove the `...` completely, it's
   pointless." Actions sit on the row's bar, among the page's keys, or on the page that owns them
-  ("rename will be only on the feature page").
+  ("rename will be only on the feature page"). A `…` menu is the last resort, and never inside a
+  card or a pane: a page's header may hold one, as a session's and a feature's do.
 - **No second copy.** What the sidebar or the page already shows is not shown again beside it: the
   ongoing work in home's "Priorities now", the settings and the navigation in the phone's sidebar
   when the top tabs hold them, a Review tab repeating the page's end.
@@ -55,17 +56,19 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 - **The accent** (mauve) is what can be pressed: the primary button, the next-step mark, the
   selection.
 - **Orange** is what needs the human: the Needs-you border, a pane asking for attention.
-- **Maroon** marks sub-agents.
+- **Teal** marks sub-agents, apart from red, which reads as wrong.
 - **Green** is the repository's mark and what was added; **red** what was removed or is wrong.
 - **Text stays the text's colour.** The secondary colour is for what reads second, never for the
   row's own text.
 
 ## Glass
 
-The phone's floating bars, a row's actions and a page's bottom bar, are frosted glass
-(`layout/glass.ts`): square, in a warm amber tint of their own, blurred enough that the page under
-them shows its shapes and colours but none of its words, with a bright rim on the edge that faces
-the page. A new floating surface uses those styles, never a second glass. Not the gradients of early
-2010s mobile interfaces: "just a bit square… extremely blurred". Glass marks what floats over the
-page; it is not a background for panes. Whether wide screens get it too is an
-[open question](open-questions.md).
+The look is a terminal's, with frosted glass for what floats over the page, as modern Linux desktops
+draw their panels with transparency and blur. The phone's floating bars, a row's actions and a
+page's bottom bar, and the leader menu on wide screens, are frosted glass (`layout/glass.ts`):
+square, in a warm amber tint of their own, blurred enough that the page under them shows its shapes
+and colours but none of its words, with a bright rim on the edge that faces the page. A new floating
+surface uses those styles, never a second glass. Not the gradients of early 2010s mobile interfaces:
+"just a bit square… extremely blurred". Glass marks what floats over the page; it is not a
+background for panes. Nothing on glass is a filled block, not even the main action: an action stands
+out by its icon in the accent.
