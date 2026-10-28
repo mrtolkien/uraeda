@@ -19,7 +19,6 @@ import {
 import { Dialog } from "@astryxdesign/core/Dialog";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { Text } from "@astryxdesign/core/Text";
 import {
   borderVars,
   colorVars,
@@ -42,7 +41,8 @@ import { searchRanked } from "../decisions/jump.ts";
 import { afterOverlayCloses } from "../layout/Overlay.tsx";
 import { useBackCloses } from "../layout/useBackCloses.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
-import { KIND_LABELS, type PickerItem } from "./pickerSources.ts";
+import { CardKindIcon, CardStatus } from "../sidebar/ItemCard.tsx";
+import type { PickerItem } from "./pickerSources.ts";
 
 export { useKeyPicker } from "./pickerState.ts";
 
@@ -108,10 +108,13 @@ const toEntry = (item: PickerItem): PickerEntry => ({
   label: item.title,
 });
 
-/** An item's numeral, or its icon, in one column. */
+/** An item's numeral, or its icon, its card's for a card, in one column. */
 function Mark({ item }: { item: PickerItem }) {
   return (
-    <span {...stylex.props(styles.mark)}>{item.mark ?? <Icon icon={item.icon} size="sm" />}</span>
+    <span {...stylex.props(styles.mark)}>
+      {item.mark ??
+        (item.card ? <CardKindIcon item={item.card} /> : <Icon icon={item.icon} size="sm" />)}
+    </span>
   );
 }
 
@@ -179,17 +182,16 @@ function Preview({ item }: { item: PickerItem | undefined }) {
   );
 }
 
-/** A row of the list: the mark, the title, and, among several kinds, the kind. */
-function Row({ item, showKind }: { item: PickerItem; showKind: boolean }) {
+/**
+ * A row of the list: the mark, the title, and a card's status, as the sidebar's card draws it, the
+ * agent at work on it. The kind is the mark's icon, among several kinds too.
+ */
+function Row({ item }: { item: PickerItem }) {
   return (
     <HStack align="center" gap={2} xstyle={styles.rowFill}>
       <Mark item={item} />
       <span {...stylex.props(styles.row)}>{item.title}</span>
-      {showKind && (
-        <Text color="secondary" type="supporting">
-          {KIND_LABELS[item.kind]}
-        </Text>
-      )}
+      {item.card && <CardStatus item={item.card} />}
     </HStack>
   );
 }
@@ -204,7 +206,6 @@ function Search({
   onOpenChange,
   onPick,
   placeholder,
-  showKinds,
 }: {
   isLoading: boolean;
   items: ReadonlyArray<PickerItem>;
@@ -215,7 +216,6 @@ function Search({
   onOpenChange: (open: boolean) => void;
   onPick: (id: string) => void;
   placeholder: string;
-  showKinds: boolean;
 }) {
   const field = useRef<HTMLInputElement>(null);
   // The caller builds the items again at each render: they are kept until what the list shows of
@@ -256,7 +256,7 @@ function Search({
       onOpenChange={onOpenChange}
       onValueChange={onPick}
       renderItem={(entry: PickerEntry) =>
-        entry.auxiliaryData && <Row item={entry.auxiliaryData.item} showKind={showKinds} />
+        entry.auxiliaryData && <Row item={entry.auxiliaryData.item} />
       }
       role="group"
       searchSource={source}
@@ -279,7 +279,6 @@ function Body({
   onOpenChange: (open: boolean) => void;
   onPick: (id: string) => void;
   placeholder: string;
-  showKinds: boolean;
 }) {
   // Its own state: a picker opened again starts with no cursor, and so no old item's preview.
   const [cursor, setCursor] = useState<string>();
@@ -305,7 +304,6 @@ function Body({
  * The picker over `items` while `isOpen`: Enter or a tap on an item calls `onPick` once the
  * picker's history entry is gone, Escape, Back, or a tap outside closes it, `onClose`. `title`
  * names the dialog and its history entry; `label` names its search field, `title` unless given.
- * `showKinds` labels each row with its kind, for a picker over several.
  */
 export function KeyPicker({
   isLoading = false,
@@ -315,7 +313,6 @@ export function KeyPicker({
   onClose,
   onPick,
   placeholder = "Find…",
-  showKinds = false,
   title,
 }: {
   /** Its items are still being read: the list says "Loading…" and the search is kept. */
@@ -327,7 +324,6 @@ export function KeyPicker({
   /** What Enter does with an item: it opens its page, and the picker closes. */
   onPick: (item: PickerItem) => void;
   placeholder?: string;
-  showKinds?: boolean;
   title: string;
 }): ReactNode {
   const narrow = isNarrow(useWidthClass());
@@ -359,7 +355,6 @@ export function KeyPicker({
       onOpenChange={onOpenChange}
       onPick={pick}
       placeholder={placeholder}
-      showKinds={showKinds}
     />
   );
   if (narrow) {

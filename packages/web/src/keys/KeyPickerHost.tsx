@@ -66,7 +66,6 @@ export function KeyPickerHost() {
         picked.current = item.path;
         closePicker();
       }}
-      showKinds={kind === "all"}
       title={titleOf(kind)}
     />
   );

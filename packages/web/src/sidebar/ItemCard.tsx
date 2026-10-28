@@ -175,6 +175,16 @@ function KindIcon({ item }: { item: CardItem }) {
 }
 
 /**
+ * A card's icon and status as another list draws its item, the key picker's: the icon of its kind
+ * or step, and the mark of its status, the agent's at work on it, or the chevron of its next step.
+ */
+export const CardKindIcon = KindIcon;
+export function CardStatus({ item }: { item: CardItem }) {
+  const hasNext = item.status.status === "needs-you" && item.step?.kind !== "problem";
+  return <Status hasNext={hasNext} hasWork={item.status.status === "working"} item={item} />;
+}
+
+/**
  * The kind's icon; in the folded rail, with a warning under it while the item needs the human, its
  * status read in the card's name.
  */
@@ -325,7 +335,9 @@ export function ItemCard({
     <div
       data-card
       // A card of one line is too short for its icon with the mark under it: the rail shows the mark alone.
-      {...(!detail && !item.step && item.status.status !== "idle" ? { "data-rail-mark-only": "" } : {})}
+      {...(!detail && !item.step && item.status.status !== "idle"
+        ? { "data-rail-mark-only": "" }
+        : {})}
       {...stylex.props(styles.card)}
     >
       <span aria-hidden="true" data-rail-only {...stylex.props(styles.railMark)}>

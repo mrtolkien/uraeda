@@ -6,7 +6,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { navigateHere, sessionIdPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
-import { stepOf } from "../sidebar/cards.ts";
+import { sessionCard, stepOf, toCard } from "../sidebar/cards.ts";
 import { statusPath } from "../sidebar/statusPath.ts";
 import { type Entry, needsYouEntries } from "../sidebar/entries.ts";
 import { KeyPicker } from "./KeyPicker.tsx";
@@ -22,6 +22,7 @@ function itemOf(entry: Entry): PickerItem {
   if (entry.kind === "session") {
     const path = sessionIdPath(entry.row.id);
     return {
+      card: sessionCard(entry.row),
       icon: KIND_ICONS.sessions,
       id: path,
       kind: "sessions",
@@ -33,6 +34,7 @@ function itemOf(entry: Entry): PickerItem {
   const { feature } = entry;
   const isChange = feature.kind === "change";
   return {
+    card: toCard(feature, entry.row),
     icon: KIND_ICONS[isChange ? "changes" : "features"],
     id: `/f/${encodeURIComponent(feature.folder)}`,
     kind: isChange ? "changes" : "features",
@@ -83,7 +85,6 @@ export function useContinue(): { binding: Binding; picker: ReactNode } {
         picked.current = item.path;
         setOpen(false);
       }}
-      showKinds
       title="Continue"
     />
   );

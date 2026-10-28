@@ -80,28 +80,13 @@ const ITEMS: ReadonlyArray<PickerItem> = [
 ];
 
 /** The shell around the home, with the picker over it. */
-function Over({
-  items,
-  showKinds,
-  title,
-}: {
-  items: ReadonlyArray<PickerItem>;
-  showKinds: boolean;
-  title: string;
-}) {
+function Over({ items, title }: { items: ReadonlyArray<PickerItem>; title: string }) {
   return (
     <>
       <Shell>
         <Home />
       </Shell>
-      <KeyPicker
-        isOpen
-        items={items}
-        onClose={() => {}}
-        onPick={() => {}}
-        showKinds={showKinds}
-        title={title}
-      />
+      <KeyPicker isOpen items={items} onClose={() => {}} onPick={() => {}} title={title} />
     </>
   );
 }
@@ -121,7 +106,6 @@ type Story = StoryObj<typeof meta>;
 export const Decisions: Story = {
   args: {
     items: ITEMS.filter((item) => item.kind === "decisions"),
-    showKinds: false,
     title: "Find decisions",
   },
   play: async ({ canvasElement }) => {
@@ -130,7 +114,7 @@ export const Decisions: Story = {
   },
 };
 
-/** `Space Space`: every kind in one list, each row labelled by its kind. */
+/** `Space Space`: every kind in one list, each row marked by its kind, or its card. */
 export const Everything: Story = {
-  args: { items: ITEMS, showKinds: true, title: "Find anything" },
+  args: { items: ITEMS, title: "Find anything" },
 };
