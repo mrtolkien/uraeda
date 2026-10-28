@@ -55,6 +55,12 @@ const styles = stylex.create({
     paddingInlineStart: spacingVars["--spacing-1"],
     position: "relative",
   },
+  // A block of the document, not a list's item: the block's room under it, which its drawing, the
+  // last of this box, leaves out (`Blocks`), but the last block's, followed only by what follows
+  // it, which ends with what holds it.
+  spaced: {
+    marginBlockEnd: { ":nth-last-child(2)": 0, default: spacingVars["--spacing-3"] },
+  },
   // A list's item: its room before its text taken back, out into its marker's gap.
   inList: { marginInlineStart: `calc(-2 * ${spacingVars["--spacing-1"]})` },
   // The room `selectable` takes before a block's text, without its tap or its tint.
@@ -244,6 +250,7 @@ export function Selectable({
           styles.selectable,
           isNarrowScreen && styles.selectableNarrow,
           isInList && !isNarrowScreen && styles.inList,
+          !isInList && styles.spaced,
           select.pressed && styles.selected,
           select.pressed && isNarrowScreen && styles.selectedNarrow,
         )}

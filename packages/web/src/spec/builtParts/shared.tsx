@@ -25,11 +25,6 @@ export const builtStyles = stylex.create({
     height: "var(--pill-slot)",
     lineHeight: "var(--text-reading-line)",
   },
-  reading: {
-    // The part's text at the reading size, as the spec's other blocks.
-    fontSize: "var(--text-reading-size)",
-    lineHeight: "var(--text-reading-line)",
-  },
   row: {
     // A row of the part, set apart from the one before by a hairline.
     paddingBlockStart: spacingVars["--spacing-3"],
@@ -44,7 +39,7 @@ export type DrawingProps = { items: SpecItems; part: Part; props: PartProps };
 
 /**
  * A part's blocks in their order: those `own` draws, its own way or as nothing for `null`, the
- * others as the spec's blocks, each run of them in one `Blocks`.
+ * others as the spec's blocks, given air as a round's context, each run of them in one `Blocks`.
  */
 export function inOrder(
   part: Part,
@@ -59,6 +54,7 @@ export function inOrder(
         <Blocks
           document={props.document}
           ids={run}
+          isAiry
           key={`blocks-${run[0]}`}
           selection={props.selection}
         />,
