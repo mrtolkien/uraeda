@@ -1,5 +1,5 @@
 // The spec's and the plan's column: on wide and semi-wide screens, the questions page's document
-// column, of Contents, then Review while a review waits, then the page's other tabs; on the phone,
+// column, of Contents, then the page's other tabs, the review's being at the page's end; on the phone,
 // no column, but the status line's Contents, the comments' count, and Verdict, the first two
 // opening the same panels in sheets, Verdict bringing the page's end into view, or, with no review,
 // Session, opening the session's page.
@@ -11,7 +11,7 @@ import { type ColumnSheet, ColumnStatusLine } from "../layout/ColumnStatusLine.t
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { Review } from "../review/useReview.tsx";
 import { ColumnGo, ColumnVerdict } from "./columnGo.ts";
-import { CommentCount, commentsLabel } from "./CommentCount.tsx";
+import { commentsLabel } from "./CommentCount.tsx";
 import type { File } from "./parts.ts";
 import { ReviewTab } from "./ReviewTab.tsx";
 import { toVerdict } from "../ReviewVerdict.tsx";
@@ -116,8 +116,8 @@ function PhoneParts({
 
 /**
  * The page of `file`, `content`, with its column: `contents`, the Contents panel, first and open;
- * while `review` waits, its Review tab, the pending comments counted in its badge; then `extra`,
- * the page's other tabs, Session among them. On the phone, the status line's parts instead (see
+ * then `extra`, the page's other tabs, Session among them. The review is at the page's end, its
+ * comments and verdict there: the column has no tab for it. On the phone, the status line's parts instead (see
  * `PhoneParts`).
  */
 export function SpecColumn({
@@ -139,17 +139,6 @@ export function SpecColumn({
   const session = extra.find((tab) => tab.key === "session");
   const panels: Array<ColumnPanel> = [
     { content: contents, icon: "uraeda:list", key: "contents", label: "Contents" },
-    ...(review
-      ? [
-          {
-            ...(count > 0 ? { badge: <CommentCount count={count} /> } : {}),
-            content: reviewPanel,
-            icon: "uraeda:comment" as const,
-            key: "review",
-            label: "Review",
-          },
-        ]
-      : []),
     ...extra,
   ];
   return (

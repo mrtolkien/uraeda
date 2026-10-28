@@ -1,7 +1,6 @@
 // The Review tab of the spec's and the plan's column, and the phone's Review sheet: the pending
 // comments by their places, a tap bringing each one's block to the top, a general comment, and the
-// verdict's buttons, which commit what the page's end set: the summary, the risk tier, and the plan
-// review.
+// verdict's buttons, which commit what the page's end set: a spec's risk tier and plan review.
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -122,9 +121,6 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
   const { retry, verdict } = useVerdict(file, choices, refusals);
   const hold = images?.hold;
   const { error, message } = refusals;
-  // What the end's form holds: a plan's has no risk tier and no plan review.
-  const rest =
-    file.kind === "spec" ? "Risk tier, plan review, and your summary are" : "Your summary is";
   return (
     <VStack gap={3}>
       <Summary count={comments.length} />
@@ -152,20 +148,23 @@ export function ReviewTab({ file, review }: { file: File; review: Review }) {
       {message && !images?.hides?.(message) && (
         <StatusText tone={message.ok ? "saved" : "error"}>{message.text}</StatusText>
       )}
-      <Text color="secondary" type="supporting">
-        {rest} with the verdict at{" "}
-        <Link
-          hasUnderline
-          href={`#${VERDICT_ID}`}
-          onClick={(event: React.MouseEvent) => {
-            event.preventDefault();
-            go(toVerdict);
-          }}
-        >
-          the page&apos;s end
-        </Link>
-        .
-      </Text>
+      {/* A plan's end holds nothing more than its verdict: no risk tier and no plan review. */}
+      {file.kind === "spec" && (
+        <Text color="secondary" type="supporting">
+          Risk tier and plan review are with the verdict at{" "}
+          <Link
+            hasUnderline
+            href={`#${VERDICT_ID}`}
+            onClick={(event: React.MouseEvent) => {
+              event.preventDefault();
+              go(toVerdict);
+            }}
+          >
+            the page&apos;s end
+          </Link>
+          .
+        </Text>
+      )}
     </VStack>
   );
 }

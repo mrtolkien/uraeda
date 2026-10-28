@@ -5,9 +5,6 @@ import { useFateClient } from "react-fate";
 import { CommitActions } from "./CommitActions.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
-import { RestoreNotice } from "./fields/RestoreNotice.tsx";
-import { TextField } from "./fields/TextField.tsx";
-import { useTextField } from "./fields/useTextField.ts";
 import { StatusText } from "./fields/StatusText.tsx";
 import { approveChoices, type Choices, ReviewChoices } from "./ReviewChoices.tsx";
 import { HookRefusal } from "./RoundSubmit.tsx";
@@ -62,24 +59,6 @@ export function useRefusals() {
   return { continued, continues, error, message, run, setMessage };
 }
 
-/** A review's summary, kept in the unsaved store until the verdict sends it. */
-function SummaryField({ summary }: { summary: ReturnType<typeof useTextField> }) {
-  return (
-    <>
-      {summary.restored && (
-        <RestoreNotice changed="" onDiscard={summary.discard} restored={summary.restored} />
-      )}
-      <TextField
-        kind="comment"
-        label="Summary"
-        onChange={summary.change}
-        placeholder="Optional"
-        value={summary.text}
-      />
-    </>
-  );
-}
-
 /**
  * The verdict's buttons, Request changes and Approve, each committing, then opening the session
  * with the workflow's message, unsent, when the agent works on this machine; `onVerdict` resolves to
@@ -119,23 +98,20 @@ export type ChoicesState = [Choices, Dispatch<SetStateAction<Choices>>];
 
 /**
  * A review's verdict, wherever its buttons are: `verdict(approve, next)` commits it with the
- * summary typed at the page's end and the `choices` set there, then hands the feature over to the
- * agent when `next`; `retry` commits again after a hook's refusal. Resolves to whether it was done.
+ * `choices` set at the page's end, then hands the feature over to the agent when `next`; `retry` commits again after a hook's refusal. Resolves to whether it was done.
  */
 export function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusals) {
   const fate = useFateClient();
   const spec = (file.committed ?? file.current).items.spec;
   const isSpec = file.kind === "spec";
   const where = { file: file.name, folder: file.folder };
-  // Drawn by the page's end, read here: the summary another component draws.
-  const summary = useTextField(`${file.path}#summary`, "", { drawn: false });
 
   /** Hands the feature over to the agent, once the verdict is committed. */
   const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
 
   const verdict = async (approve: boolean, next: boolean) => {
-    const sent = summary.unsavedNow()?.text ?? "";
-    const input = { ...where, summary: sent || undefined };
+    // No summary: what the human says beyond the verdict is a general comment.
+    const input = where;
     const trigger = approve ? "approval" : "changes";
     refusals.continues(next ? trigger : undefined);
     const done = await refusals.run(() =>
@@ -146,10 +122,6 @@ export function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusa
           })
         : fate.mutations.review.requestChanges({ input, view: FileView }),
     );
-    // The summary sent goes; text typed while the verdict was sent stays unsaved.
-    if (done && summary.unsavedNow()?.text === sent) {
-      summary.discard();
-    }
     if (done && next) {
       proceed(trigger);
     }
@@ -196,7 +168,7 @@ export function VerdictNotices({
 }
 
 /**
- * The end of a review: its summary, a spec's risk tier and plan review, and the verdict, which
+ * The end of a review: a spec's risk tier and plan review, and the verdict, which
  * commits and may hand the feature over to the agent. `choices` are the review's, which the Review
  * tab's buttons commit too.
  */
@@ -214,11 +186,9 @@ export function ReviewVerdict({
 }) {
   const { error, hides, hold, message } = refusals;
   const spec = (file.committed ?? file.current).items.spec;
-  const summary = useTextField(`${file.path}#summary`, "");
   const { retry, verdict } = useVerdict(file, choices, refusals);
   return (
     <>
-      <SummaryField summary={summary} />
       {file.kind === "spec" && (
         <ReviewChoices choices={choices[0]} onChange={choices[1]} spec={spec} />
       )}
