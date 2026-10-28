@@ -6,8 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Proposal naming](/specs/changes/2026-10-28-proposal-naming/proposal.md)
-
 - [Full interactive UI pass: manual small fixes](proposals/full-interactive-ui-pass-manual-small-fixes.md)
   - Write down our UI decisions and strategy based on the "UI fixes" worktree
 - [Phone bottom bars on more pages](proposals/phone-bottom-bars.md)
