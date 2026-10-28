@@ -16,7 +16,7 @@ import { KeysProvider } from "./keys/registry.tsx";
 import { ScrollKeys } from "./keys/scroll.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
-import { useUndoErrors } from "./layout/useUndoToast.ts";
+import { UndoKey, useUndoErrors } from "./layout/useUndoToast.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Notifier, NotifyBanner } from "./notify/Notifier.tsx";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
@@ -205,6 +205,7 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
                 <LeaderMenuHost />
                 <Writing />
                 <ScrollKeys />
+                <UndoKey />
                 <LeaderKeys />
                 <NotifyBanner />
                 <Notifier />
