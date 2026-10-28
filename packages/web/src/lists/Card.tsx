@@ -1,7 +1,10 @@
 // A line of the priorities or the inbox as a row of a list: a bullet and its text, three lines at
 // most, its marks before the text, and its sub-lines under it, with no frame of its own. The whole
 // row is one control, stretched over it, and drags from anywhere past 5 px of a mouse press, or
-// after half a second of a touch press (see `SENSORS`). The `…` button shows over its end.
+// after half a second of a touch press (see `SENSORS`). The `…` button shows over its end, and the
+// row the list picked shows what it can do under its text (see `RowBar`). A nested row of an outline
+// is a card of its own, tabbed in by its depth, that the keys select and a drag moves, its own
+// nested rows with it (see `useDragOrder`).
 import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
@@ -18,9 +21,11 @@ import {
   type ComponentProps,
   createContext,
   type MouseEvent,
+  type PointerEvent,
   type ReactNode,
   useContext,
 } from "react";
+import { type BarAction, RowBar } from "./RowBar.tsx";
 
 /**
  * What a card's editor tells the list: that it closed, whether it holds text not saved yet, and the
@@ -59,17 +64,38 @@ export interface WorkRow {
   isLinked?: boolean;
   /** Its marks, as small text after its own. */
   marks?: ReactNode;
-  /** Enter shows its whole content in a pane beside it, in place of following `href`. */
-  peek?: boolean;
+  /** Enter or a click edits it in place, in place of following `href`. */
+  editsInPlace?: boolean;
+  /**
+   * Its rows nested under it, at any depth, in the order of the file: each drawn after it as a card
+   * of its own, which the keys select, edit, and move among its siblings, and a drag moves.
+   */
+  children?: ReadonlyArray<WorkRow>;
+  /** A nested row's depth, 1 under its line. */
+  depth?: number;
+  /** A nested row's line: the key of the row it is drawn in. */
+  parent?: string;
+  /** A new row being typed: its editor shows from the start, and nothing else of it. */
+  isFresh?: boolean;
+  /** Where its list places it, as the list knows it: the priorities' place in the file. */
+  spot?: object;
   /** The `…` button, at the card's corner. */
   menu?: ReactNode;
   /** Its text, plain: the row's label when `label` is absent. */
   text: string;
 }
 
-/** What the list says of its cards: the one edited in place, and the one whose menu is open. */
+/**
+ * What the list says of its cards: the one edited in place, the one whose menu is open, and the one
+ * whose bar shows, with what its bar holds.
+ */
 export type RowState = {
+  /** The key of the row whose bar shows under it: the one the keys or a click picked. */
+  barred?: string;
+  barOf?: (row: WorkRow) => ReadonlyArray<BarAction>;
   editing?: string;
+  /** A field is open, edited or new: nothing drags, as a new row is no row of the file yet. */
+  isTyping?: boolean;
   menu?: string;
   /** The editor of the card edited holds unsaved text, or no longer does. */
   onDirty: (isDirty: boolean) => void;
@@ -146,10 +172,14 @@ const styles = stylex.create({
     // oxlint-disable-next-line stylex/valid-styles -- WebKit's own property, missing from StyleX's list: a long press that starts a drag must not open the link's menu
     WebkitTouchCallout: "none",
   },
-  lifted: {
-    backgroundColor: colorVars["--color-background-card"],
-    zIndex: 1,
-  },
+  // A row being dragged: over the others, on a surface of its own.
+  lifted: { backgroundColor: colorVars["--color-background-card"] },
+  raised: { zIndex: 1 },
+  // The card itself, around its row: no frame, no list marker.
+  item: { listStyle: "none", minWidth: 0, position: "relative" },
+  // A nested row, tabbed in by its depth inside its card, which a drag lifts whole from the list's
+  // edge: its text is in the secondary colour (see `RowLink`).
+  depth: (depth: number) => ({ paddingInlineStart: `${depth * 1.5}rem` }),
   // The marks, after the text: small, and apart from it.
   marks: {
     color: "var(--color-text-lavender)",
@@ -231,7 +261,9 @@ function RowLink({
     <Link
       // The normal text colour, not the link's accent; three lines at most, then an ellipsis, with
       // the whole text in a tooltip.
-      color={row.isAdd ? "secondary" : row.isLinked ? "accent" : "primary"}
+      color={
+        row.isLinked ? "accent" : row.isAdd || row.depth !== undefined ? "secondary" : "primary"
+      }
       hasUnderline={row.isLinked === true}
       {...(onOpen ? {} : { href: row.href })}
       maxLines={3}
@@ -254,12 +286,48 @@ function RowLink({
   return onOpen ? <span data-row-link="">{link}</span> : link;
 }
 
+/** What a row of a card, its own or a nested one, hears from the pointer, and opens with. */
+type RowEvents = {
+  /** The mouse left the row. */
+  onHoverEnd?: (row: WorkRow) => void;
+  /** The mouse moved over the row: the selection and the focus follow it. */
+  onHover?: (row: WorkRow) => void;
+  /** Opens the row on a plain click or Enter, in place of following its link. */
+  onOpen?: (row: WorkRow, isClick: boolean) => void;
+};
+
+/** The pointer's handlers of a row: only a mouse, and only one that moved over it. */
+function pointerOf(row: WorkRow, { onHover, onHoverEnd }: RowEvents) {
+  return {
+    onPointerLeave: (event: PointerEvent) => {
+      if (event.pointerType === "mouse") {
+        onHoverEnd?.(row);
+      }
+    },
+    // A row scrolled under a still pointer takes nothing.
+    onPointerMove: (event: PointerEvent) => {
+      if (event.pointerType === "mouse" && (event.movementX !== 0 || event.movementY !== 0)) {
+        onHover?.(row);
+      }
+    },
+  };
+}
+
+/** The bar under a row the list picked, while it is not edited: what it can do, with their keys. */
+function Bar({ isEditing, row }: { isEditing: boolean; row: WorkRow }) {
+  const state = useContext(RowStateContext);
+  const actions = state.barred === row.key && !isEditing ? (state.barOf?.(row) ?? []) : [];
+  return actions.length > 0 ? <RowBar actions={actions} /> : null;
+}
+
 /**
- * One card. A card that moves is a sortable of its section, dragged from anywhere, with reduced
- * motion jumping to its place; a fixed one, such as a running entry, is only drawn. `index` is its
- * place among its section's cards.
+ * One row, a line's or a nested one, tabbed in by its depth. A row that moves is a sortable of its
+ * section, dragged from anywhere, with reduced motion jumping to its place; a fixed one, such as a
+ * running entry, is only drawn, and so is a nested row where the list does not nest (`canNest`).
+ * `index` is its place among its section's rows, nested ones included.
  */
 export function Card({
+  canNest = false,
   index,
   isSelected,
   onHover,
@@ -267,26 +335,25 @@ export function Card({
   onOpen,
   row,
   section,
-}: {
+}: RowEvents & {
+  canNest?: boolean;
   index: number;
   isSelected: boolean;
-  /** The mouse left the card. */
-  onHoverEnd?: (row: WorkRow) => void;
-  /** The mouse moved over the card: the selection and the focus follow it. */
-  onHover?: (row: WorkRow) => void;
-  /** Opens the card on a plain click or Enter, in place of following its link. */
-  onOpen?: (row: WorkRow, isClick: boolean) => void;
   row: WorkRow;
   section: string;
 }) {
   const isReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const state = useContext(RowStateContext);
-  const isEditing = state.editing === row.key && row.editor !== undefined;
+  const isEditing =
+    (state.editing === row.key || row.isFresh === true) && row.editor !== undefined;
+  const events = { onHover, onHoverEnd, onOpen };
+  const isStill = row.isFixed === true || (row.depth !== undefined && !canNest);
   const { handleRef, isDragging, ref } = useSortable({
     accept: "line",
     data: { text: row.text },
-    // A card edited in place does not drag: a press in its field selects text.
-    disabled: row.isFixed === true || isEditing,
+    // Nothing drags while a field is open: a press in it selects text, and a new row would count
+    // as a row of the file.
+    disabled: isStill || state.isTyping === true,
     group: section,
     id: row.key,
     index,
@@ -301,71 +368,72 @@ export function Card({
       data-row=""
       // What the list's keys find the row by, whether or not it draws a link (see `useListKeys`).
       data-row-key={row.key}
-      onPointerLeave={(event) => {
-        if (event.pointerType === "mouse") {
-          onHoverEnd?.(row);
-        }
-      }}
-      // Only a mouse that moved: a card scrolled under a still pointer takes nothing.
-      onPointerMove={(event) => {
-        if (event.pointerType === "mouse" && (event.movementX !== 0 || event.movementY !== 0)) {
-          onHover?.(row);
-        }
-      }}
-      ref={row.isFixed ? undefined : ref}
+      ref={isStill ? undefined : ref}
       {...stylex.props(
-        styles.frame,
-        row.icon !== undefined && styles.iconed,
-        isSelected && styles.selected,
-        isDragging && styles.lifted,
+        styles.item,
+        row.depth !== undefined && styles.depth(row.depth),
+        isDragging && styles.raised,
       )}
     >
-      {/* dnd-kit's accessibility attributes (a button role, a tab stop) go on its handle: an empty, hidden element, so the card stays a link and the sensor takes a press anywhere on it. */}
-      {!row.isFixed && <span aria-hidden="true" ref={handleRef} tabIndex={-1} />}
-      {row.icon !== undefined && (
-        <span aria-hidden="true" {...stylex.props(styles.gutterIcon)}>
-          <Icon color="secondary" icon={row.icon} size="sm" />
-        </span>
-      )}
-      {isEditing ? (
-        row.editor?.({
-          onDirty: state.onDirty,
-          onDone: state.onEdited,
-          onRenamed: state.onRenamed,
-        })
-      ) : (
-        <RowLink onOpen={onOpen} row={row} />
-      )}
-      {row.lines.map((line, at) => (
-        // A bullet, indented under the text, in the smaller type, two lines at most.
-        <span key={at} {...stylex.props(styles.subline)}>
-          <span aria-hidden="true">•</span>
-          <Text color="secondary" maxLines={2} type="supporting" xstyle={styles.sublineText}>
-            {line}
-          </Text>
-        </span>
-      ))}
-      {/* A block of its own: under the text, as a note's row draws it, not beside it. */}
-      {row.image !== undefined && <div>{row.image}</div>}
-      {/* After the link, so Tab from the card reaches it; over the link by its z-index. */}
-      {row.menu !== undefined && (
-        <span
-          {...stylex.props(
-            styles.menu,
-            isSelected && styles.menuSelected,
-            state.menu === row.key && styles.menuOpen,
-          )}
-        >
-          <MenuStateContext
-            value={{
-              isOpen: state.menu === row.key,
-              onOpenChange: (isOpen) => state.onMenu(row.key, isOpen),
-            }}
+      <div
+        // What a drag tabs to the depth it would land at (see `useDragOrder`).
+        data-row-frame=""
+        {...pointerOf(row, events)}
+        {...stylex.props(
+          styles.frame,
+          row.icon !== undefined && styles.iconed,
+          isSelected && styles.selected,
+          isDragging && styles.lifted,
+        )}
+      >
+        {/* dnd-kit's accessibility attributes (a button role, a tab stop) go on its handle: an empty, hidden element, so the card stays a link and the sensor takes a press anywhere on it. */}
+        {!isStill && <span aria-hidden="true" ref={handleRef} tabIndex={-1} />}
+        {row.icon !== undefined && (
+          <span aria-hidden="true" {...stylex.props(styles.gutterIcon)}>
+            <Icon color="secondary" icon={row.icon} size="sm" />
+          </span>
+        )}
+        {isEditing ? (
+          row.editor?.({
+            onDirty: state.onDirty,
+            onDone: state.onEdited,
+            onRenamed: state.onRenamed,
+          })
+        ) : (
+          <RowLink onOpen={onOpen} row={row} />
+        )}
+        {row.lines.map((line, at) => (
+          // A bullet, indented under the text, in the smaller type, two lines at most.
+          <span key={at} {...stylex.props(styles.subline)}>
+            <span aria-hidden="true">•</span>
+            <Text color="secondary" maxLines={2} type="supporting" xstyle={styles.sublineText}>
+              {line}
+            </Text>
+          </span>
+        ))}
+        {/* A block of its own: under the text, as a note's row draws it, not beside it. */}
+        {row.image !== undefined && <div>{row.image}</div>}
+        <Bar isEditing={isEditing} row={row} />
+        {/* After the link, so Tab from the card reaches it; over the link by its z-index. */}
+        {row.menu !== undefined && (
+          <span
+            {...stylex.props(
+              styles.menu,
+              isSelected && styles.menuSelected,
+              state.menu === row.key && styles.menuOpen,
+            )}
           >
-            {row.menu}
-          </MenuStateContext>
-        </span>
-      )}
+            <MenuStateContext
+              value={{
+                isOpen: state.menu === row.key,
+                onOpenChange: (isOpen) => state.onMenu(row.key, isOpen),
+              }}
+            >
+              {row.menu}
+            </MenuStateContext>
+          </span>
+        )}
+      </div>
     </li>
   );
 }

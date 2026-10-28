@@ -101,6 +101,11 @@ const mutations = {
     FateAPI['mutations']['inbox.category']['input'],
     FateAPI['mutations']['inbox.category']['output']
   >('Inbox'),
+  'inbox.drop': mutation<
+    Inbox,
+    FateAPI['mutations']['inbox.drop']['input'],
+    FateAPI['mutations']['inbox.drop']['output']
+  >('Inbox'),
   'inbox.edit': mutation<
     Inbox,
     FateAPI['mutations']['inbox.edit']['input'],
@@ -110,6 +115,11 @@ const mutations = {
     Inbox,
     FateAPI['mutations']['inbox.insert']['input'],
     FateAPI['mutations']['inbox.insert']['output']
+  >('Inbox'),
+  'inbox.outline': mutation<
+    Inbox,
+    FateAPI['mutations']['inbox.outline']['input'],
+    FateAPI['mutations']['inbox.outline']['output']
   >('Inbox'),
   'inbox.place': mutation<
     Inbox,
@@ -211,6 +221,11 @@ const mutations = {
     FateAPI['mutations']['priorities.discard']['input'],
     FateAPI['mutations']['priorities.discard']['output']
   >('Priorities'),
+  'priorities.drop': mutation<
+    Priorities,
+    FateAPI['mutations']['priorities.drop']['input'],
+    FateAPI['mutations']['priorities.drop']['output']
+  >('Priorities'),
   'priorities.edit': mutation<
     Priorities,
     FateAPI['mutations']['priorities.edit']['input'],
@@ -225,6 +240,11 @@ const mutations = {
     Priorities,
     FateAPI['mutations']['priorities.move']['input'],
     FateAPI['mutations']['priorities.move']['output']
+  >('Priorities'),
+  'priorities.outline': mutation<
+    Priorities,
+    FateAPI['mutations']['priorities.outline']['input'],
+    FateAPI['mutations']['priorities.outline']['output']
   >('Priorities'),
   'priorities.remove': mutation<
     Priorities,

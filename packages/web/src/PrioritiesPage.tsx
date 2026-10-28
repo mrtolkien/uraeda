@@ -55,7 +55,7 @@ function LayoutSwitch({
   return (
     <SegmentedControl
       label="View"
-      onChange={(value) => isLayout(value) && onChange(value)}
+      onChange={(value: string) => isLayout(value) && onChange(value)}
       size="sm"
       value={layout}
     >

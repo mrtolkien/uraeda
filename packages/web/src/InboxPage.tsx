@@ -14,12 +14,12 @@ import { useStartChat } from "./StartChat.tsx";
 import { Page } from "./layout/Page.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { NoteMenu } from "./lists/CardMenu.tsx";
-import { NoteEditor } from "./lists/RowEditors.tsx";
 import { useOpenAddForm } from "./SidebarAdd.tsx";
 import { CategoryMenu, CategoryTitle } from "./lists/CategoryPane.tsx";
 import { useCategoryActions } from "./lists/useCategoryActions.ts";
 import { draftFile } from "./pane/NoteParts.tsx";
-import { WorkList, type WorkSection } from "./lists/WorkList.tsx";
+import { useOutline } from "./lists/useOutline.tsx";
+import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
 import { NOTE, openDetail } from "./pane/DetailOverlay.tsx";
 import { repoPath, useLocalPath, useRepoPath, useRepository, useRestoreScroll } from "./routes.tsx";
 import { imagePath, plain, Spans } from "./Spans.tsx";
@@ -87,43 +87,6 @@ function panesOf(inbox: NonNullable<ReturnType<typeof useInbox>>) {
 }
 
 /**
- * The write of a note dropped, or moved by a key, in a category at an index: over the version the
- * move started from, so an inbox changed meanwhile refuses it, and a conflict reads it again.
- */
-function useNoteMove(
-  inbox: NonNullable<ReturnType<typeof useInbox>>,
-  categories: ReturnType<typeof panesOf>,
-  onRefused: (message: string | undefined) => void,
-) {
-  const fate = useFateClient();
-  return async (key: string, section: string, index: number) => {
-    const note = categories.flatMap((c) => c.notes).find((one) => one.key === key);
-    const target = categories.find((category) => sectionId(category.name) === section);
-    if (!note || !target) {
-      return false;
-    }
-    onRefused(undefined);
-    const result = await fate.mutations.inbox.place({
-      input: {
-        hash: inbox.hash,
-        index: Math.min(index, target.notes.length),
-        note: note.id,
-        ...(target.name === undefined ? {} : { category: target.name }),
-      },
-      view: InboxView,
-    });
-    if (result.error) {
-      const failed = refusal(result.error);
-      onRefused(failed.message);
-      if (failed.kind === "conflict") {
-        rereadChanges(fate);
-      }
-    }
-    return !result.error;
-  };
-}
-
-/**
  * The inbox's categories as sections of the shared list, "No category" first when it holds notes,
  * then each category in the file's order, the empty ones too, each note a row with its children; a
  * drop moves the note to its place in `INBOX.md`. A category's title renames it in place, and its
@@ -139,75 +102,179 @@ function InboxList({
   inbox: NonNullable<ReturnType<typeof useInbox>>;
   onRefused: (message: string | undefined) => void;
 }) {
+  const fate = useFateClient();
   const here = useRepoPath();
   const pathname = useLocalPath();
-  const openForm = useOpenAddForm();
   // The drafts' titles are read once a menu is opened, for "Add to a draft".
   const [wantsDrafts, setWantsDrafts] = useState(false);
   const paths = (useWorkspace()?.drafts ?? []).map(draftFile);
   const drafts = useDraftTitles(wantsDrafts ? paths : []);
   const categories = panesOf(inbox);
-  const sections = categories.map((category): WorkSection => ({
-    id: sectionId(category.name),
-    ...(category.name === undefined
-      ? {}
-      : {
-          menu: (
-            <CategoryMenu
-              count={category.notes.length}
-              name={category.name}
-              onRefused={onRefused}
-              onRemove={actions.remove}
-            />
-          ),
-          titleNode: <CategoryTitle name={category.name} onRename={actions.rename} />,
-        }),
-    rows: category.notes.map((note, index) => ({
-      editor: (hooks) => (
-        <NoteEditor
-          hash={inbox.hash}
-          hooks={hooks}
-          placed={{ category: category.name, index, note }}
-        />
-      ),
-      href: here(`/inbox/${note.key}`),
-      key: note.key,
-      // The row is one link: a link of its text, like a note's draft, would nest in it.
-      image: <Image note={note} />,
-      label: <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />,
-      lines: note.nestedSpans.map(plain),
-      marks: marksOf(note),
-      menu: (
-        <NoteMenu
-          drafts={drafts}
-          inbox={inbox}
-          onOpen={() => setWantsDrafts(true)}
-          onRefused={onRefused}
-          placed={{ category: category.name, index, note }}
-        />
-      ),
-      text: plain(note.spans),
-    })),
-    title: category.name ?? "No category",
-    tone: "neutral",
-  }));
+  /** Writes a change: a refusal is its message, and a conflict reads the inbox again. */
+  const run = async (call: () => Promise<{ error?: unknown }>) => {
+    const result = await call();
+    if (!result.error) {
+      return undefined;
+    }
+    const failed = refusal(result.error);
+    if (failed.kind === "conflict") {
+      rereadChanges(fate);
+    }
+    return failed.message;
+  };
+  const categoryOf = (section: string) =>
+    categories.find((category) => sectionId(category.name) === section)?.name;
+  const outline = useOutline(
+    inbox,
+    {
+      add: (now, section, text) => {
+        const category = categoryOf(section);
+        return run(() =>
+          fate.mutations.inbox.add({
+            input: { hash: now.hash, text, ...(category === undefined ? {} : { category }) },
+            view: InboxView,
+          }),
+        );
+      },
+      drop: (now, from, to) => {
+        const category = "under" in to ? undefined : categoryOf(to.section);
+        return run(() =>
+          fate.mutations.inbox.drop({
+            input: {
+              ...(from.at === undefined ? {} : { at: from.at }),
+              hash: now.hash,
+              index: to.index,
+              note: from.id,
+              ...("under" in to
+                ? {
+                    under: to.under.id,
+                    ...(to.under.at === undefined ? {} : { underAt: to.under.at }),
+                  }
+                : category === undefined
+                  ? {}
+                  : { category }),
+            },
+            view: InboxView,
+          }),
+        );
+      },
+      edit: (now, id, at, kind, text) =>
+        run(() =>
+          fate.mutations.inbox.outline({
+            input: {
+              ...(at === undefined ? {} : { at }),
+              hash: now.hash,
+              kind,
+              note: id,
+              ...(text === undefined ? {} : { text }),
+            },
+            view: InboxView,
+          }),
+        ),
+      read: (now) => ({
+        hash: now.hash,
+        sections: panesOf(now).map((category) => ({
+          id: sectionId(category.name),
+          items: category.notes.map((note) => ({
+            children: note.children,
+            id: note.id,
+            key: note.key,
+            source: note,
+            spans: note.spans,
+            text: note.text,
+          })),
+        })),
+      }),
+    },
+    onRefused,
+    { edit: "Edit the note", fresh: "New note" },
+  );
+  const sections = outline.drawn.sections.map((section): WorkSection => {
+    const name = categoryOf(section.id);
+    return {
+      id: section.id,
+      ...(name === undefined
+        ? {}
+        : {
+            menu: (
+              <CategoryMenu
+                count={section.items.length}
+                name={name}
+                onRefused={onRefused}
+                onRemove={actions.remove}
+              />
+            ),
+            titleNode: <CategoryTitle name={name} onRename={actions.rename} />,
+          }),
+      rows: section.items.map((item, index): WorkRow => {
+        const note = item.source;
+        const href = here(`/inbox/${item.key}`);
+        const { isWritten, ...drawn } = outline.rowOf(item, { index, section: section.id }, href);
+        return {
+          ...drawn,
+          // A note that is a draft opens its view, as a line with a draft opens its draft.
+          editsInPlace: isWritten && note?.draft === undefined,
+          href,
+          // The row is one link: a link of its text, like a note's draft, would nest in it.
+          ...(note
+            ? {
+                image: <Image note={note} />,
+                label: <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />,
+                marks: marksOf(note),
+                menu: (
+                  <NoteMenu
+                    drafts={drafts}
+                    inbox={inbox}
+                    onOpen={() => setWantsDrafts(true)}
+                    onOpenNote={() => openDetail(href, NOTE)}
+                    onRefused={onRefused}
+                    placed={{ category: name, index, note }}
+                  />
+                ),
+              }
+            : {}),
+          text: plain(item.spans),
+        };
+      }),
+      title: name ?? "No category",
+      tone: "neutral",
+    };
+  });
   const selected = categories
     .flatMap((category) => category.notes)
     .find((note) => pathname === `/inbox/${note.key}`)?.key;
 
-  const onMove = useNoteMove(inbox, categories, onRefused);
+  /** A note dropped, or moved by a key, in its category at an index, in turn with the others. */
+  const onMove = (key: string, section: string, index: number) =>
+    outline.write((now) => {
+      const panes = panesOf(now);
+      const note = panes.flatMap((pane) => pane.notes).find((one) => one.key === key);
+      const target = panes.find((pane) => sectionId(pane.name) === section);
+      if (!note || !target) {
+        return Promise.resolve("The note or its category is no longer in INBOX.md.");
+      }
+      return run(() =>
+        fate.mutations.inbox.place({
+          input: {
+            hash: now.hash,
+            index: Math.min(index, target.notes.length),
+            note: note.id,
+            ...(target.name === undefined ? {} : { category: target.name }),
+          },
+          view: InboxView,
+        }),
+      );
+    });
 
   return (
     <WorkList
-      // `o`: the form in the category of the note, `null` for the notes before the first.
-      onAddBeside={(section) =>
-        openForm("note", {
-          category:
-            categories.find((category) => sectionId(category.name) === section)?.name ?? null,
-        })
-      }
+      follow={outline.follow}
+      onAddBeside={(_section, row, isAbove) => outline.onAddBeside(row, isAbove)}
+      onDelete={outline.onDelete}
       onMove={onMove}
+      onNest={outline.onNest}
       onOpen={(href) => openDetail(href, NOTE)}
+      onOutline={outline.onOutline}
       sections={sections}
       selected={selected}
     />

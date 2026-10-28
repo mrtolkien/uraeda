@@ -4,11 +4,25 @@
 // they set is what `Card` reads: which card is edited, and which card's menu is held open.
 import { useCallback, useState } from "react";
 import { deleteLine, useConfirm } from "../fields/Confirm.tsx";
+import { usePress } from "../keys/registry.tsx";
 import type { RowState, WorkRow } from "./Card.tsx";
+import type { BarAction } from "./RowBar.tsx";
 import type { RowKey } from "./useListKeys.ts";
 
 /** A section as the keys see it: its id, and its rows as they show. */
 type Rows = { id: string; rows: ReadonlyArray<WorkRow> };
+
+/**
+ * A row key that the row's bar shows (see `RowBar`), with its key as written there, for the rows
+ * `isFor` accepts: the status line names none of them.
+ */
+type BarKey = RowKey & { bar?: { isFor?: (row: WorkRow) => boolean; keys: string } };
+
+/** The order of the bar's actions, by their keys. */
+const BAR_ORDER = ["m", "Tab", "shift+Tab", "p", "s", "d"];
+
+/** A line of its own, not nested: what `p` and `s` act on, so only its bar shows them. */
+const isLine = (row: WorkRow) => row.parent === undefined;
 
 /**
  * The row keys of a list whose `sections` are in the order they show, and the state they set.
@@ -21,22 +35,32 @@ type Rows = { id: string; rows: ReadonlyArray<WorkRow> };
  */
 export function useRowKeys(
   sections: ReadonlyArray<Rows>,
-  onAddBeside: ((section: string, row: WorkRow) => void) | undefined,
+  onAddBeside: ((section: string, row: WorkRow, isAbove?: boolean) => void) | undefined,
   select: (key: string) => void,
   {
     canMoveItems = false,
     onDelete,
+    onOpen,
+    onOutline,
     onPromote,
+    onStart,
   }: {
     /** The list moves its rows with `m` and a key after it, so `m` opens no menu. */
     canMoveItems?: boolean;
     /** What `d` calls once the human confirmed: it deletes the line. */
     onDelete?: ((row: WorkRow) => void) | undefined;
+    /** What Enter does on a row, which its bar's `⏎ open` does too. */
+    onOpen?: ((row: WorkRow) => void) | undefined;
+    /** What Tab and Shift+Tab call: they indent and outdent the row in its outline. */
+    onOutline?: ((row: WorkRow, edit: "indent" | "outdent") => void) | undefined;
     /** What `p` calls: it makes the line a draft; `false` says the row has nothing to promote. */
     onPromote?: ((row: WorkRow) => boolean | void) | undefined;
+    /** What `s` calls: it starts from the line. */
+    onStart?: ((row: WorkRow) => void) | undefined;
   } = {},
 ) {
   const confirm = useConfirm();
+  const press = usePress();
   const [editing, setEditing] = useState<string>();
   const [menu, setMenu] = useState<string>();
   const [keyed, setKeyed] = useState<string>();
@@ -73,25 +97,61 @@ export function useRowKeys(
     },
   };
 
-  const keys: Array<RowKey> = [];
+  const keys: Array<BarKey> = [];
   if (onAddBeside !== undefined) {
+    const adding = (isAbove: boolean) => (at: number) => {
+      const row = rows[at];
+      const section = sections.find((one) => one.rows.includes(row));
+      if (row === undefined || section === undefined) {
+        return false;
+      }
+      onAddBeside(section.id, row, isAbove);
+      return undefined;
+    };
+    keys.push(
+      // Not the row's own: it adds another, so the status line names it, not the row's bar.
+      { hint: "o", keys: "o", label: "add below", run: adding(false) },
+      { keys: "O", label: "add above", run: adding(true) },
+    );
+  }
+  if (onOutline !== undefined) {
+    const outlining = (edit: "indent" | "outdent") => (at: number) => {
+      const row = rows[at];
+      if (row === undefined || row.isFixed === true || row.isAdd === true) {
+        return false;
+      }
+      onOutline(row, edit);
+      return undefined;
+    };
+    keys.push(
+      { bar: { keys: "⇥" }, keys: "Tab", label: "indent", run: outlining("indent") },
+      {
+        bar: { isFor: (row) => !isLine(row), keys: "⇧⇥" },
+        keys: "shift+Tab",
+        label: "outdent",
+        run: outlining("outdent"),
+      },
+    );
+  }
+  if (onStart !== undefined) {
     keys.push({
-      hint: "o",
-      keys: "o",
-      label: "add beside",
+      bar: { isFor: isLine, keys: "s" },
+      keys: "s",
+      label: "start",
       run: (at) => {
         const row = rows[at];
-        const section = sections.find((one) => one.rows.includes(row));
-        if (row === undefined || section === undefined) {
+        if (row === undefined || row.isAdd === true) {
           return false;
         }
-        onAddBeside(section.id, row);
+        select(row.key);
+        onStart(row);
+        return undefined;
       },
     });
   }
   if (rows.some((row) => row.editor !== undefined)) {
     keys.push({
-      hint: "i",
+      // Not in the bar: Enter edits a row edited in place, and the bar names Enter.
       keys: "i",
       label: "edit",
       run: (at) => {
@@ -107,9 +167,9 @@ export function useRowKeys(
   }
   if (onPromote !== undefined) {
     keys.push({
-      hint: "p",
+      bar: { isFor: isLine, keys: "p" },
       keys: "p",
-      label: "promote to draft",
+      label: "draft",
       run: (at) => {
         const row = rows[at];
         if (row === undefined || row.isFixed === true) {
@@ -122,7 +182,7 @@ export function useRowKeys(
   }
   if (onDelete !== undefined) {
     keys.push({
-      hint: "d",
+      bar: { keys: "d" },
       keys: "d",
       label: "delete",
       run: (at) => {
@@ -143,7 +203,7 @@ export function useRowKeys(
   // With item moves, `m` leads to their keys (`useListKeys`); else it opens the card's menu.
   if (!canMoveItems && rows.some((row) => row.menu !== undefined)) {
     keys.push({
-      hint: "m",
+      bar: { isFor: (row) => row.menu !== undefined, keys: "m" },
       keys: "m",
       label: "move",
       run: (at) => {
@@ -170,5 +230,41 @@ export function useRowKeys(
     return true;
   };
 
-  return { edit, held: editing ?? keyed, keys, onRefocused, renamed, state };
+  /**
+   * What the bar under `row` shows: the keys that act on it, in the bar's order. Enter first, which
+   * edits a row edited in place and opens any other; `m` leads to the moves, whose keys the leader's
+   * menu shows. A row that stays where it is only opens, and one that adds a line has no bar.
+   */
+  const barOf = (row: WorkRow): ReadonlyArray<BarAction> => {
+    const at = rows.findIndex((one) => one.key === row.key);
+    if (at === -1 || row.isAdd === true) {
+      return [];
+    }
+    const open: ReadonlyArray<BarAction> =
+      onOpen === undefined
+        ? []
+        : [{ keys: "⏎", label: row.editsInPlace ? "edit" : "open", run: () => onOpen(row) }];
+    if (row.isFixed === true) {
+      return open;
+    }
+    const own = keys
+      .filter((key) => key.bar !== undefined && (key.bar.isFor?.(row) ?? true))
+      .map((key) => ({
+        keys: key.bar?.keys ?? key.keys,
+        label: key.label,
+        order: key.keys,
+        run: () => void key.run(at),
+      }));
+    const moves = canMoveItems
+      ? [{ keys: "m", label: "move", order: "m", run: () => press("m") }]
+      : [];
+    return [
+      ...open,
+      ...[...own, ...moves]
+        .sort((a, b) => BAR_ORDER.indexOf(a.order) - BAR_ORDER.indexOf(b.order))
+        .map(({ order: _, ...action }) => action),
+    ];
+  };
+
+  return { barOf, edit, held: editing ?? keyed, keys, onRefocused, renamed, state };
 }

@@ -12,7 +12,7 @@ import { stepTitle } from "../labels.ts";
 import { Paragraph } from "../layout/Paragraph.tsx";
 import { pathLink } from "../links.tsx";
 import { TITLES } from "../QuickAdd.tsx";
-import { redirect, useRepoPath, useRepository } from "../routes.tsx";
+import { navigate, redirect, useRepoPath, useRepository } from "../routes.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { EntryPane, EntryText, RunningPart, Steps } from "./EntryPane.tsx";
 import { type Found, usePriorityActions } from "./usePriorityActions.ts";
@@ -25,17 +25,10 @@ function linkOf(spans: ReadonlyArray<Span>) {
 
 /**
  * What the entry is past its text, as the core says: running, a linked file, or nothing yet. A
- * line with a draft opens that draft's page instead: its route never draws this pane.
+ * line with a draft opens that draft's page instead: its route never draws this pane. Start opens
+ * the New page, its composer holding the line: nothing starts before the human sends it.
  */
-function Kind({
-  draft,
-  found,
-  startChange,
-}: {
-  draft: () => Promise<void>;
-  found: Found;
-  startChange: () => Promise<void>;
-}) {
+function Kind({ draft, found }: { draft: () => Promise<void>; found: Found }) {
   const here = useRepoPath();
   const repo = useRepository();
   const { entry } = found;
@@ -61,8 +54,8 @@ function Kind({
       <HStack gap={2} wrap="wrap">
         <Button clickAction={draft} label="Draft" variant="primary" />
         <Button
-          clickAction={startChange}
-          label="Start a change from this line"
+          label="Start"
+          onClick={() => navigate(here("/new?kind=feature"), { insert: `line:${entry.id}` })}
           variant="secondary"
         />
       </HStack>
@@ -110,7 +103,7 @@ function PriorityBody({
       text={<EntryText label="Line" line={line} nested={entry.nestedSpans} spans={entry.spans} />}
     >
       <Divider />
-      <Kind draft={actions.draft} found={found} startChange={actions.startChange} />
+      <Kind draft={actions.draft} found={found} />
       {/* A running entry's line does not move its branch: it has no section to pick. */}
       {!entry.running && (
         <>

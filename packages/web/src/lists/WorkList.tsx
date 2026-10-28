@@ -2,8 +2,9 @@
 // border, their context under the title, and a card for each line (see `Card`). `columns` sets the
 // panes in one row that scrolls sideways, each at least 400 px wide, and a pane titled "Blocked"
 // under it; the phone, and `stack`, set them one under the other. A card drags from anywhere: past
-// 5 px of a mouse press, or after half a second of a touch press. The keys move the selection, and
-// Enter or a click opens the card in its overlay (see `useListKeys`).
+// 5 px of a mouse press, or after half a second of a touch press, its nested rows with it. The keys
+// move the selection through every row, nested ones included, and Enter or a click edits a row in
+// place, or opens it in its overlay (see `useListKeys`).
 import type { HeadingLevel } from "@astryxdesign/core/Heading";
 import type { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
@@ -15,6 +16,7 @@ import {
   type ReactNode,
   type Ref,
   type RefObject,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -23,11 +25,10 @@ import {
 import { Pane, type PaneTint } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Card, RowStateContext, type WorkRow } from "./Card.tsx";
-import { Peek } from "./Peek.tsx";
-import { type OnMove, useDragOrder } from "./useDragOrder.ts";
+import { type OnDrop, type OnMove, useDragOrder } from "./useDragOrder.ts";
 import { withMoves } from "./itemMoves.ts";
 import { type Ahead, stillAhead, useItemMoves } from "./useItemMoves.ts";
-import { type Columns, useListKeys } from "./useListKeys.ts";
+import { type Columns, type ItemMove, useListKeys } from "./useListKeys.ts";
 import { useRefocus } from "./useRefocus.ts";
 import { useRowKeys } from "./useRowKeys.ts";
 
@@ -63,9 +64,8 @@ export interface WorkSection {
 /** How the sections are arranged: panes in a row that scrolls, or one under the other. */
 export type WorkLayout = "columns" | "stack";
 
-/** How long the mouse rests on a row before its pane shows, and how long after it leaves it stays. */
-const HOVER_MS = 600;
-const LEAVE_MS = 150;
+/** An edit of a row's place in its outline, from the keys: Tab, Shift+Tab, and a nested row's moves. */
+export type OutlineMove = "indent" | "outdent" | "up" | "down";
 
 /** The title of the section that is drawn under the row of columns. */
 const BELOW = "Blocked";
@@ -158,22 +158,23 @@ const TINTS: Record<Tone, PaneTint | undefined> = {
 
 /** A section as a pane: its title and count, its context, its cards, and its footer. */
 function SectionBody({
+  canNest,
   isColumn,
   isRoomy,
   level,
   onHover,
-  onHoverEnd,
   onOpen,
   ref,
   rows,
   section,
   selected,
 }: {
+  /** Its nested rows drag on their own, as its lines do. */
+  canNest: boolean;
   isColumn: boolean;
   isRoomy?: boolean;
   level?: HeadingLevel | undefined;
   onHover: (row: WorkRow) => void;
-  onHoverEnd: (row: WorkRow) => void;
   onOpen: (row: WorkRow, isClick: boolean) => void;
   ref?: Ref<HTMLDivElement>;
   rows: ReadonlyArray<WorkRow>;
@@ -185,17 +186,24 @@ function SectionBody({
       // What the list brings into view, whole, when its selection is in it.
       data-column={isColumn ? "" : undefined}
       ref={ref}
-      {...stylex.props(isColumn && styles.column, isColumn && isRoomy && styles.roomy)}
+      // The pane's side room, which it inherits: Astryx's `xstyle` takes no custom property.
+      {...stylex.props(
+        isColumn && styles.column,
+        isColumn && isRoomy && styles.roomy,
+        isColumn || !isRoomy ? styles.snug : styles.wide,
+      )}
     >
       <Pane
         actions={section.menu}
-        count={section.count ?? rows.filter((row) => !row.isAdd).length}
+        count={
+          section.count ??
+          rows.filter((row) => !row.isAdd && !row.isFresh && row.depth === undefined).length
+        }
         {...(section.icon ? { icon: section.icon } : {})}
         {...(level ? { level } : {})}
         tint={TINTS[section.tone]}
         title={section.title}
         titleNode={section.titleNode}
-        xstyle={[isColumn || !isRoomy ? styles.snug : styles.wide]}
       >
         {section.context && (
           <Text color="secondary" display="block" xstyle={styles.context}>
@@ -207,11 +215,11 @@ function SectionBody({
           <ul aria-label={`${section.title} lines`} {...stylex.props(styles.cards)}>
             {rows.map((row, index) => (
               <Card
+                canNest={canNest}
                 index={index}
                 isSelected={row.key === selected}
                 key={row.key}
                 onHover={onHover}
-                onHoverEnd={onHoverEnd}
                 onOpen={onOpen}
                 row={section.isFixed ? { ...row, isFixed: true } : row}
                 section={section.id}
@@ -228,11 +236,11 @@ function SectionBody({
 
 /** A section rows are dropped in, even when it is empty. */
 function DropSection(props: {
+  canNest: boolean;
   isColumn: boolean;
   isRoomy?: boolean;
   level?: HeadingLevel | undefined;
   onHover: (row: WorkRow) => void;
-  onHoverEnd: (row: WorkRow) => void;
   onOpen: (row: WorkRow, isClick: boolean) => void;
   rows: ReadonlyArray<WorkRow>;
   section: WorkSection;
@@ -248,7 +256,10 @@ function DropSection(props: {
   return <SectionBody ref={ref} {...props} />;
 }
 
-/** The columns of the keys: each section's rows as indexes into all the rows, without the empty. */
+/**
+ * The columns of the keys: each section's rows, nested ones included, as indexes into all the rows,
+ * without the empty.
+ */
 function columnsOf(sections: ReadonlyArray<ReadonlyArray<WorkRow>>): Columns {
   let start = 0;
   return sections
@@ -284,20 +295,39 @@ function useSelection(named: string | undefined, initial: string | undefined) {
 function useShown(
   sections: ReadonlyArray<WorkSection>,
   layout: WorkLayout,
-  onMove: OnMove | undefined,
+  { canNest, onDrop }: { canNest: boolean; onDrop: OnDrop | undefined },
   ahead: ReadonlyArray<Ahead>,
   isLayoutChosen: boolean,
 ) {
   // The rows that add are no lines: a drag knows none of them, and they stay at the section's end.
+  // A drag reorders every row, a line's nested rows after it, each a row of its own.
   const drag = useDragOrder(
     sections.map((section) => ({
       ...section,
-      rows: section.rows.filter((row) => !row.isAdd),
+      rows: withNested(section.rows.filter((row) => !row.isAdd)),
     })),
-    onMove,
+    onDrop,
+    canNest,
   );
+  // A row a drop placed at another depth, under another line, shows there until the file has it.
   const byKey = new Map(
-    drag.sections.flatMap((section) => section.rows.map((row) => [row.key, row] as const)),
+    drag.sections.flatMap((section) =>
+      section.rows.map((row) => {
+        const placed = drag.placed.get(row.key);
+        if (placed === undefined) {
+          return [row.key, row] as const;
+        }
+        const { depth: _, parent: __, ...rest } = row;
+        return [
+          row.key,
+          {
+            ...rest,
+            ...(placed.depth === 0 ? {} : { depth: placed.depth }),
+            ...(placed.parent === undefined ? {} : { parent: placed.parent }),
+          },
+        ] as const;
+      }),
+    ),
   );
   const addsOf = (section: WorkSection) =>
     sections.find((one) => one.id === section.id)?.rows.filter((row) => row.isAdd) ?? [];
@@ -312,6 +342,7 @@ function useShown(
       : (order[section.id] ?? []).flatMap((key) => byKey.get(key) ?? [])),
     ...addsOf(section),
   ];
+  // The keys go through every row, a line's nested rows after it.
   const placedIn = (rowsOf: (section: WorkSection) => ReadonlyArray<WorkRow>) =>
     [...inRow, ...below].map((section) => ({
       id: section.id,
@@ -324,7 +355,47 @@ function useShown(
   const rowsOf = rowsIn(moves.length > 0 ? withMoves(drag.order, live, moves) : drag.order);
   const shown = [...inRow, ...below].map(rowsOf);
   const placed = placedIn(rowsOf);
-  return { asColumns, below, drag, inRow, live, placed, rows: shown.flat(), rowsOf, shown };
+  return {
+    asColumns,
+    below,
+    drag,
+    inRow,
+    live,
+    placed,
+    rows: shown.flat(),
+    rowsOf,
+    shown,
+  };
+}
+
+/** Rows, each followed by its nested rows: the order the keys go through them. */
+function withNested(rows: ReadonlyArray<WorkRow>) {
+  return rows.flatMap((row) => [row, ...(row.children ?? [])]);
+}
+
+/** The rows a nested row at `at` of `rows`, a line's nested rows, is under, nearest first. */
+function ancestorsOf(rows: ReadonlyArray<WorkRow>, at: number) {
+  const found: Array<WorkRow> = [];
+  let depth = rows[at]?.depth ?? 0;
+  for (let index = at - 1; index >= 0 && depth > 1; index -= 1) {
+    const row = rows[index];
+    if ((row.depth ?? 0) < depth) {
+      found.push(row);
+      depth = row.depth ?? 0;
+    }
+  }
+  return found;
+}
+
+/** The rows nested under `row` among `rows`, in order: none for a row that has none. */
+function nestedUnder(rows: ReadonlyArray<WorkRow>, row: WorkRow) {
+  const at = rows.indexOf(row);
+  const depth = row.depth ?? 0;
+  const after = rows.slice(at + 1);
+  const end = after.findIndex(
+    (other) => other.parent !== (row.parent ?? row.key) || (other.depth ?? 0) <= depth,
+  );
+  return end === -1 ? after : after.slice(0, end);
 }
 
 /** How long the row of columns takes to glide sideways to the selection's column. */
@@ -347,10 +418,10 @@ type Shifts = {
 function shiftRows(root: HTMLElement, shifts: Shifts, isMoving: boolean) {
   const origin = root.getBoundingClientRect();
   const left = root.querySelector("[data-list-page]")?.scrollLeft ?? 0;
-  const placeOf = (box: DOMRect) => ({ x: box.left - origin.left + left, y: box.top - origin.top });
   const next = new Map<string, { x: number; y: number }>();
   for (const row of root.querySelectorAll<HTMLElement>("[data-row-key]")) {
     const key = row.dataset.rowKey ?? "";
+    const placeOf = (box: DOMRect) => ({ x: box.left - origin.left + left, y: box.top - origin.top });
     const running = shifts.running.get(row);
     const isGliding = running?.playState === "running";
     if (!isMoving && isGliding) {
@@ -463,14 +534,20 @@ export function WorkList({
   isRoomy = false,
   layout = "stack",
   level,
+  follow,
   onAddBeside,
   onDelete,
   onMove,
+  onNest,
   onOpen,
+  onOutline,
   onPromote,
+  onStart,
   sections,
   selected: named,
 }: {
+  /** A row to select, with the focus, as a write placed it: each new object selects it again. */
+  follow?: { key: string };
   /** The key of the row selected until another is, where the address names none. */
   initial?: string;
   isFocused?: boolean;
@@ -484,40 +561,84 @@ export function WorkList({
   layout?: WorkLayout;
   /** The level of its panes' titles, where the page's headings put them. */
   level?: HeadingLevel;
-  onAddBeside?: (section: string, row: WorkRow) => void;
+  /** What `o` calls for the selected row, and `O` with `isAbove`. */
+  onAddBeside?: (section: string, row: WorkRow, isAbove?: boolean) => void;
   /**
    * What `d` calls for the selected row, once the human confirmed: it deletes the line, and may
    * resolve with `false` when the write is refused, for the row to come back.
    */
   onDelete?: (row: WorkRow) => Promise<boolean | void> | void;
   onMove?: OnMove;
+  /**
+   * A drop that nests a row, moves a nested row, or makes one a line: the list then drags every
+   * row, nested ones too, to the depth it is dragged to sideways.
+   */
+  onNest?: OnDrop;
   onOpen?: (href: string) => void;
+  /**
+   * An edit of the outline of the selected row: Tab indents it, Shift+Tab outdents it, and the keys
+   * that move a nested row move it up or down among its siblings.
+   */
+  onOutline?: (row: WorkRow, edit: OutlineMove) => void;
   /** What `p` calls for the selected row; returning `false` says it has nothing to promote. */
   onPromote?: (row: WorkRow) => boolean | void;
+  /** What `s` calls for the selected row: it starts from it. */
+  onStart?: (row: WorkRow) => void;
   sections: ReadonlyArray<WorkSection>;
   selected?: string;
 }) {
   const [selected, setSelected] = useSelection(named, initial);
+  // The row whose bar shows: the one the keys, a click, or a write picked, while it is selected. The
+  // mouse passing over a row selects it with no bar, which would push the rows under it as it goes.
+  const [barred, setBarred] = useState<string>();
+  const pick = useCallback(
+    (key: string) => {
+      setSelected(key);
+      setBarred(key);
+    },
+    [setSelected],
+  );
   // The moves the keys made, and the rows `d` deleted, that show before their writes do.
   const [ahead, setAhead] = useState<ReadonlyArray<Ahead>>([]);
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
+  // A row deleted goes with its nested rows: they follow it in its line's rows.
+  const without = (rows: ReadonlyArray<WorkRow>) =>
+    rows.filter(
+      (row, at) =>
+        !gone.has(row.key) && !ancestorsOf(rows, at).some((above) => gone.has(above.key)),
+    );
   const kept =
     gone.size === 0
       ? sections
       : sections.map((section) => ({
           ...section,
-          rows: section.rows.filter((row) => !gone.has(row.key)),
+          rows: section.rows
+            .filter((row) => !gone.has(row.key))
+            .map((row) =>
+              row.children === undefined ? row : { ...row, children: without(row.children) },
+            ),
         }));
+  // A drop that leaves a line a line moves it; any other nests a row, or takes it out.
+  const lines = new Set(kept.flatMap((section) => section.rows.map((row) => row.key)));
+  const onDrop: OnDrop | undefined =
+    onMove || onNest
+      ? (key, to) =>
+          to.depth === 0 && lines.has(key)
+            ? onMove?.(key, to.section, to.index)
+            : onNest?.(key, to)
+      : undefined;
   const { asColumns, below, drag, inRow, live, placed, rows, rowsOf, shown } = useShown(
     kept,
     layout,
-    onMove,
+    { canNest: onNest !== undefined, onDrop },
     ahead,
     isLayoutChosen,
   );
   // A row deleted ahead stops being hidden once the file no longer has it.
   useLayoutEffect(() => {
-    const all = new Set(sections.flatMap((section) => section.rows.map((row) => row.key)));
+    const all = new Set(
+      sections.flatMap((section) => withNested(section.rows).map((row) => row.key)),
+    );
     if ([...gone].some((key) => !all.has(key))) {
       setGone(new Set([...gone].filter((key) => all.has(key))));
     }
@@ -532,10 +653,12 @@ export function WorkList({
       const section = placed.find((one) => one.rows.some((other) => other.key === row.key));
       const lines = section?.rows.filter((other) => !other.isAdd) ?? [];
       const at = lines.findIndex((other) => other.key === row.key);
-      const next = lines[at + 1] ?? lines[at - 1] ?? section?.rows.find((other) => other.isAdd);
+      // The row after it and its nested rows, which go with it, or else the one before it.
+      const after = at + 1 + nestedUnder(lines, lines[at]).length;
+      const next = lines[after] ?? lines[at - 1] ?? section?.rows.find((other) => other.isAdd);
       setGone((before) => new Set([...before, row.key]));
       if (next) {
-        setSelected(next.key);
+        pick(next.key);
         // With the focus, once drawn: the question gave it back to the row that went.
         requestAnimationFrame(() =>
           document
@@ -545,40 +668,56 @@ export function WorkList({
             ?.focus({ preventScroll: true }),
         );
       }
+      // Written, the file no longer has it; refused, it comes back. Either way it is hidden no more:
+      // a row that took its key since is another row.
       void Promise.resolve(onDelete(row)).then((isDeleted) => {
-        if (isDeleted === false) {
+        if (isDeleted !== undefined) {
           setGone((before) => new Set([...before].filter((key) => key !== row.key)));
         }
       });
     });
   const isOpen = named !== undefined;
-  // Whether the pane of the selected row shows: Enter on a row that peeks, and it follows the
-  // selection, as the keys and the mouse move it, until Escape or Enter again.
-  const [isPeeking, setPeeking] = useState(false);
-  const peeked = isPeeking ? rows.find((row) => row.key === selected) : undefined;
-  // The pane of the row the mouse rests on: it goes when the mouse leaves, or the selection moves.
-  const [hoverKey, setHoverKey] = useState<string>();
-  const dwelling = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const leaving = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => {
-    if (hoverKey !== undefined && hoverKey !== selected) {
-      setHoverKey(undefined);
-    }
-  }, [hoverKey, selected]);
-  useEffect(
-    () => () => {
-      clearTimeout(dwelling.current);
-      clearTimeout(leaving.current);
-    },
-    [],
-  );
-  const hovered = hoverKey === undefined ? undefined : rows.find((row) => row.key === hoverKey);
-  const own = useRowKeys(placed, onAddBeside, setSelected, {
+  const own = useRowKeys(placed, onAddBeside, pick, {
     canMoveItems: onMove !== undefined,
     onDelete: deleteAhead,
+    // The bar's `⏎ open`, as Enter or a click opens the row.
+    onOpen: onOpen && ((row) => open(row)),
+    onOutline,
     onPromote,
+    onStart,
   });
-  const onMoveItem = useItemMoves(onMove, placed, setSelected, { live, setAhead });
+  const onMoveLine = useItemMoves(onMove, placed, pick, { live, setAhead });
+  // A nested row moves among its siblings, up or down, in its line's outline; a line, as a drop
+  // would move it.
+  const onMoveItem =
+    onMoveLine &&
+    ((move: ItemMove, at: number) => {
+      const row = rows[at];
+      if (row?.parent === undefined) {
+        onMoveLine(move, at);
+      } else if (move === "up" || move === "down") {
+        onOutline?.(row, move);
+      }
+    });
+  // A row a write placed elsewhere, as an indent did, is selected again where it went, with the
+  // focus, once it is drawn there.
+  // Not while a field is open, edited or new: the focus is the human's there.
+  const isTyping = own.state.editing !== undefined || rows.some((row) => row.isFresh);
+  const typing = useRef(isTyping);
+  typing.current = isTyping;
+  useEffect(() => {
+    if (follow === undefined || typing.current) {
+      return;
+    }
+    pick(follow.key);
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>(
+          `[data-row-key="${CSS.escape(follow.key)}"] :is([data-row-link] button, a[href])`,
+        )
+        ?.focus({ preventScroll: true }),
+    );
+  }, [follow, pick]);
   // The selection's column comes into view whole, any part of it outside the window moves the page
   // or the row: a key that changes column may land beyond the edge. The row glides there sideways
   // from where it rested, which the focus moved to the new column has already jumped from.
@@ -599,19 +738,13 @@ export function WorkList({
   const { focusSelected, ref } = useListKeys({
     columns: asColumns ? columnsOf(shown) : undefined,
     // Enter opens the focused card's link; the overlay, once open, has its own Escape.
-    escapeLabel: isOpen || peeked ? "close" : null,
+    escapeLabel: isOpen ? "close" : null,
     isOff: isOpen,
     keys: rows.map((row) => row.key),
-    onClose: () => {
-      if (!peeked) {
-        return false;
-      }
-      setPeeking(false);
-      return true;
-    },
+    onClose: () => false,
     onEdit: () => false,
     onMoveItem,
-    onSelect: (index) => setSelected(rows[index].key),
+    onSelect: (index) => pick(rows[index].key),
     rowKeys: own.keys,
     selected: rows.findIndex((row) => row.key === selected),
   });
@@ -625,60 +758,57 @@ export function WorkList({
     renamed: own.renamed,
     selected,
   });
-  const open = (row: WorkRow, isClick = false) => {
-    setSelected(row.key);
-    // A click on a line that opens no page edits it in place; Enter shows its pane.
-    if (isClick && row.peek && own.edit(row.key)) {
-      return;
-    }
-    if (row.peek) {
-      // Enter again, on the row whose pane shows, closes it.
-      setPeeking(!(isPeeking && selected === row.key));
+  // Enter or a click: a row edited in place opens its field, any other its page.
+  const open = (row: WorkRow) => {
+    pick(row.key);
+    if (row.editsInPlace && own.edit(row.key)) {
       return;
     }
     onOpen?.(row.href);
   };
+  /**
+   * A click on a row that can do more than open shows its bar first, and a click on it with its bar
+   * shown opens it, as a double click does: the mouse reaches its actions before its field. Enter,
+   * and a click on an Add row or a row that only opens, open it at once.
+   */
+  const clickOpen = (row: WorkRow, isClick: boolean) => {
+    const isBarShown = !isTyping && barred === row.key && selected === row.key;
+    if (isClick && !row.isAdd && !isBarShown && own.barOf(row).length > 1) {
+      pick(row.key);
+      return;
+    }
+    open(row);
+  };
   // The mouse moving over a card selects it and takes the focus to it, so the keys act on what the
   // pointer is on. Not while a card is edited or its menu is open, nor during a drag.
   const hover = (row: WorkRow) => {
-    clearTimeout(leaving.current);
     const isBusy =
       own.state.editing !== undefined ||
       own.state.menu !== undefined ||
+      rows.some((one) => one.isFresh) ||
       document.querySelector("[data-dragging], [data-dnd-dragging]") !== null;
-    // A pointer that rests on a row that peeks brings up its pane after `HOVER_MS`; one that moves
-    // starts the wait again.
-    if (row.peek && !isBusy && hoverKey !== row.key) {
-      clearTimeout(dwelling.current);
-      dwelling.current = setTimeout(() => setHoverKey(row.key), HOVER_MS);
-    }
     if (row.key === selected || isBusy) {
       return;
     }
     setSelected(row.key);
+    setBarred(undefined);
     document
       .querySelector<HTMLElement>(
         `[data-row-key="${CSS.escape(row.key)}"] :is([data-row-link] button, a[href])`,
       )
       ?.focus({ preventScroll: true });
   };
-  /** The pointer left a row, or the pane: the pane goes soon after, unless it is on the other. */
-  const unhover = () => {
-    clearTimeout(dwelling.current);
-    clearTimeout(leaving.current);
-    leaving.current = setTimeout(() => setHoverKey(undefined), LEAVE_MS);
-  };
   const drawn = (section: WorkSection, isColumn: boolean) => {
     const Body = section.isFixed ? SectionBody : DropSection;
     return (
       <Body
+        canNest={onNest !== undefined}
         isColumn={isColumn}
         isRoomy={isRoomy}
         key={section.id}
         level={level}
         onHover={hover}
-        onHoverEnd={unhover}
-        onOpen={open}
+        onOpen={clickOpen}
         rows={rowsOf(section)}
         section={section}
         selected={selected}
@@ -686,7 +816,16 @@ export function WorkList({
     );
   };
   return (
-    <RowStateContext value={own.state}>
+    // While a field is open, its own bar is the only one.
+    <RowStateContext
+      value={{
+        ...own.state,
+        barOf: own.barOf,
+        // Only under the row selected: the address may have selected another since.
+        barred: isTyping || barred !== selected ? undefined : barred,
+        isTyping,
+      }}
+    >
       <div ref={ref}>
         <DragDropProvider {...drag.provider}>
           {/* The row scrolls sideways: a region the keyboard can scroll, which its panes' links reach. */}
@@ -712,13 +851,6 @@ export function WorkList({
           </div>
           {below.map((section) => drawn(section, false))}
         </DragDropProvider>
-        {(peeked ?? hovered) && (
-          <Peek
-            onPointerEnter={() => clearTimeout(leaving.current)}
-            onPointerLeave={unhover}
-            row={(peeked ?? hovered)!}
-          />
-        )}
       </div>
     </RowStateContext>
   );

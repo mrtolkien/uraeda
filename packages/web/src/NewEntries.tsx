@@ -37,13 +37,38 @@ export type Source = Pick<Entry, "draft" | "id" | "kind"> & {
 const FILES: Record<SourceKind, string> = { line: "specs/PRIORITIES.md", note: "specs/INBOX.md" };
 
 /**
- * What an entry becomes in the composer: its text, its nested lines as bullets under it, and a link
- * to its file on a line of its own, so that the text alone is the first line, a change's title.
+ * What an entry becomes in the composer: its text, its nested lines as bullets under it, each
+ * indented as its line is, and a link to its file on a line of its own, so that the text alone is
+ * the first line, a change's title.
  */
 export function insertion(entry: Entry): string {
   const name = entry.file.split("/").pop() ?? entry.file;
-  const nested = entry.lines.map((line) => `\n- ${line}`).join("");
+  const nested = entry.lines
+    .map((line) => {
+      const indent = /^ */.exec(line)?.[0] ?? "";
+      return `\n${indent}- ${line.trimStart()}`;
+    })
+    .join("");
   return `${entry.text}${nested}\nFrom [${name}](${entry.file})`;
+}
+
+/**
+ * A line of the priorities as an entry to start from: its nested items as lines, each indented two
+ * spaces a level below the first.
+ */
+export function lineEntry(
+  line: NonNullable<ReturnType<typeof usePriorities>>["sections"][number]["entries"][number],
+  here: ReturnType<typeof useRepoPath>,
+): Entry {
+  return {
+    ...(line.draft ? { draft: line.draft.path } : {}),
+    ...(line.draft ? { draftHref: here(`/edit/${line.draft.path}`) } : {}),
+    file: FILES.line,
+    id: line.id,
+    kind: "line",
+    lines: line.children.map((child) => `${"  ".repeat(child.depth - 1)}${plain(child.spans)}`),
+    text: plain(line.spans),
+  };
 }
 
 /** What is in the composer, then `added`, a paragraph under it: just `added` in an empty one. */
@@ -116,15 +141,7 @@ function useEntries(search: string) {
       // Not running, and linking no file but a draft: those have started.
       .filter((line) => !line.running && (line.draft || !line.spans.some((span) => span.link)))
       .flatMap((line) => {
-        const entry: Entry = {
-          ...(line.draft ? { draft: line.draft.path } : {}),
-          ...(line.draft ? { draftHref: here(`/edit/${line.draft.path}`) } : {}),
-          file: FILES.line,
-          id: line.id,
-          kind: "line",
-          lines: line.nestedSpans.map(plain),
-          text: plain(line.spans),
-        };
+        const entry = lineEntry(line, here);
         if (!holds(needle, [entry.text, ...entry.lines])) {
           return [];
         }

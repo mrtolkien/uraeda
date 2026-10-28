@@ -5,16 +5,18 @@ import type { ItemMove } from "./useListKeys.ts";
 
 /**
  * A section as the keys see it: its rows as they show, and whether nothing is dropped in it. A row
- * that adds is no line: it never moves, and no line moves past it.
+ * that adds is no line: it never moves, and no line moves past it; nor is a row nested under a
+ * line, which moves with it.
  */
 export type Placed = {
   id: string;
   isFixed?: boolean;
-  rows: ReadonlyArray<{ isAdd?: boolean; key: string }>;
+  rows: ReadonlyArray<{ isAdd?: boolean; key: string; parent?: string }>;
 };
 
-/** A section's lines, without its rows that add. */
-const linesOf = (section: Placed) => section.rows.filter((row) => !row.isAdd);
+/** A section's lines, without its rows that add and its nested rows. */
+const linesOf = (section: Placed) =>
+  section.rows.filter((row) => !row.isAdd && row.parent === undefined);
 
 /**
  * The move of the row `key` among `sections`, in the order they show: its section and its index
@@ -40,8 +42,8 @@ export function itemTarget(sections: ReadonlyArray<Placed>, key: string, move: I
 
 /**
  * Each section's keys, in `order`, once `moves` are made one after another, as the keys made them
- * before their writes show: a move with nowhere to go is left out. The sections of `sections` that
- * stay put keep their rows.
+ * before their writes show: a move with nowhere to go is left out. A line moves with its nested
+ * rows, which follow it in `order`. The sections of `sections` that stay put keep their rows.
  */
 export function withMoves(
   order: Readonly<Record<string, ReadonlyArray<string>>>,
@@ -49,18 +51,25 @@ export function withMoves(
   moves: ReadonlyArray<{ key: string; move: ItemMove }>,
 ) {
   const now = Object.fromEntries(Object.entries(order).map(([id, keys]) => [id, [...keys]]));
+  const rows = new Map(sections.flatMap((section) => section.rows.map((row) => [row.key, row])));
+  const rowOf = (key: string) => rows.get(key) ?? { key };
   for (const { key, move } of moves) {
     const placed = sections.map((section) => ({
       ...section,
-      rows: section.isFixed ? section.rows : (now[section.id] ?? []).map((one) => ({ key: one })),
+      rows: section.isFixed ? section.rows : (now[section.id] ?? []).map(rowOf),
     }));
     const target = itemTarget(placed, key, move);
     const from = Object.values(now).find((keys) => keys.includes(key));
-    if (target === undefined || from === undefined || now[target.section] === undefined) {
+    const into = target === undefined ? undefined : now[target.section];
+    if (target === undefined || from === undefined || into === undefined) {
       continue;
     }
-    from.splice(from.indexOf(key), 1);
-    now[target.section].splice(target.index, 0, key);
+    const at = from.indexOf(key);
+    const end = from.findIndex((one, index) => index > at && rowOf(one).parent !== key);
+    const moved = from.splice(at, (end === -1 ? from.length : end) - at);
+    // Before the line now at its place, or at the section's end.
+    const before = into.filter((one) => rowOf(one).parent === undefined)[target.index];
+    into.splice(before === undefined ? into.length : into.indexOf(before), 0, ...moved);
   }
   return now;
 }

@@ -12,6 +12,7 @@ import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
+import { usePriorities } from "./data.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { useKeys } from "./keys/registry.tsx";
 import { KindCards } from "./KindCards.tsx";
@@ -19,7 +20,15 @@ import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { ChangeComposer, StartError } from "./NewChangePage.tsx";
-import { type Entry, EntryLists, insertion, type Source, withAdded } from "./NewEntries.tsx";
+import {
+  type Entry,
+  EntryLists,
+  insertion,
+  lineEntry,
+  type Source,
+  withAdded,
+} from "./NewEntries.tsx";
+import { currentEntry } from "./routeHistory.ts";
 import {
   type NewKind,
   navigate,
@@ -250,6 +259,22 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
     // The field takes the focus once the text is in: `Escape` goes back to the list's keys.
     requestAnimationFrame(() => input.current?.focus());
   };
+  // A priority's Start opens the page with its line to insert: once, as soon as the priorities and
+  // the composer are there, and not again on a reload.
+  const priorities = usePriorities();
+  useEffect(() => {
+    const wanted = currentEntry().insert?.replace(/^line:/, "");
+    const line = priorities?.sections
+      .flatMap((section) => section.entries)
+      .find((entry) => entry.id === wanted);
+    if (line === undefined || kind === undefined) {
+      return;
+    }
+    const { insert: _, ...rest } = currentEntry();
+    window.history.replaceState(rest, "");
+    insert(lineEntry(line, here));
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, when the line and the composer are there
+  }, [priorities, kind]);
   return (
     <Page>
       <VStack gap={4}>

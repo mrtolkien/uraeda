@@ -19,6 +19,8 @@ type Entry = {
   focus?: "text";
   from?: string;
   id?: string;
+  /** What the New page's composer is filled from on arrival: a priority's id, `line:next-2`. */
+  insert?: string;
   open?: Array<string>;
   opener?: number;
   overlay?: string;
@@ -98,7 +100,7 @@ function besideSameList(path: string) {
  */
 export function navigate(
   path: string,
-  state?: { created?: boolean; focus?: "text"; from?: string },
+  state?: { created?: boolean; focus?: "text"; from?: string; insert?: string },
 ) {
   const asking = besideSameList(path) ? undefined : guard?.();
   if (asking) {
@@ -112,7 +114,10 @@ export function navigate(
   openPage(path, state);
 }
 
-function openPage(path: string, state?: { created?: boolean; focus?: "text"; from?: string }) {
+function openPage(
+  path: string,
+  state?: { created?: boolean; focus?: "text"; from?: string; insert?: string },
+) {
   const opener = window.scrollY;
   saveScroll();
   left = entry().id;

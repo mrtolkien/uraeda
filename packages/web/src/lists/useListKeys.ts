@@ -128,8 +128,8 @@ type Acts = {
 
 /**
  * The list's bindings, with the hints the status line names: `j k move`, `h l column` only with
- * columns, `⏎ open`, and Escape's. With `isOff`, a layer the list owns holds the keys, and only
- * Escape's stays named, as the layer's owner keeps it.
+ * columns, and Escape's; Enter and `m` are the row's, in its bar. With `isOff`, a layer the list
+ * owns holds the keys, and only Escape's stays named, as the layer's owner keeps it.
  */
 function bindingsOf({
   acts,
@@ -166,10 +166,8 @@ function bindingsOf({
   );
   const items: ReadonlyArray<Binding> = canMoveItems
     ? ITEM_MOVES.map(([keys, move, label]) => ({
-        // `m` is the one hint of the sequences: the keys after it show in the leader's menu.
-        ...(keys === "m j" && !isOff
-          ? { hint: "m", hintLabel: "move", hintPress: "m" }
-          : {}),
+        // No hint: `m` is the row's, in its bar (see `useRowKeys`), and the keys after it show in
+        // the leader's menu.
         keys,
         label,
         run: onRow((row) => acts.item(move, row)),
@@ -188,7 +186,7 @@ function bindingsOf({
     ...items,
     ...own,
     {
-      ...(isOff ? {} : { hint: "⏎" }),
+      // No hint: opening is the row's, in its bar (see `useRowKeys`).
       keys: "Enter",
       label: "open",
       run: onRow(acts.edit),

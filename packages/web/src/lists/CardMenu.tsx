@@ -1,19 +1,15 @@
-// A card's `…` menu. A priority's offers its moves, a draft, Start, and Delete; a note's, its moves
-// out of the inbox and its category, and Delete. Every item runs what the pane runs
-// (`usePriorityActions`, `useNoteActions`), and a move within a section is `moveIndex`'s, which
-// the drag's `fileIndex` owns. The button shows on hover, on the selected card, on keyboard focus
+// A card's `…` menu: a note's opens its view, and offers its moves out of the inbox, its category,
+// and Delete, each running what the pane runs (`useNoteActions`). A priority has none: its keys and
+// a drag do all of it. The button shows on hover, on the selected card, on keyboard focus
 // within the card, and always when the pointer cannot hover, by the card's `--menu-opacity`.
 import { DropdownMenu, type DropdownMenuOption } from "@astryxdesign/core/DropdownMenu";
 import * as stylex from "@stylexjs/stylex";
 import { useContext, useEffect, useState } from "react";
 import type { Inbox } from "uraeda-server/fate";
 import { useMenuPresentation } from "../layout/useWidthClass.ts";
-import { type Found, usePriorityActions } from "../pane/usePriorityActions.ts";
 import { TITLES } from "../QuickAdd.tsx";
-import { navigate, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { type Placed, useNoteActions } from "../useNoteActions.ts";
-import { type Direction, moveIndex, movesOf } from "./cardMoves.ts";
 import { MenuStateContext } from "./Card.tsx";
 import { MORE_ICON } from "../layout/ActionsMenu.tsx";
 
@@ -91,63 +87,6 @@ function go(call: Promise<unknown>) {
 
 const DIVIDER: DropdownMenuOption = { type: "divider" };
 
-/** A priority's menu: `found` is its line and place, over the priorities of `hash`. */
-export function PriorityMenu({
-  found,
-  hash,
-  onRefused,
-}: {
-  found: Found;
-  hash: string;
-  onRefused: (message: string | undefined) => void;
-}) {
-  const here = useRepoPath();
-  const actions = usePriorityActions(found, hash, () => undefined);
-  useRefusal(actions.message, onRefused);
-  const { entry, section } = found;
-  const label = `Actions of ${plain(entry.spans)}`;
-  if (entry.running) {
-    // Derived: its section is not the file's to move it from, and it never deletes.
-    return (
-      <CardMenu
-        items={[{ label: "Open", onClick: () => navigate(here(`/f/${entry.running?.folder}`)) }]}
-        label={label}
-      />
-    );
-  }
-  const within = (to: Direction) => () =>
-    go(actions.moveTo(section.section, moveIndex(section.entries, entry.key, to)).then(onRefused));
-  const place = movesOf(section.entries, entry.key);
-  const isDrafted = entry.draft !== null && entry.draft !== undefined;
-  const hasLink = entry.spans.some((span) => span.link?.path);
-  return (
-    <CardMenu
-      items={[
-        ...[...TITLES]
-          .filter(([id]) => id !== section.section)
-          .map(([id, title]) => ({
-            label: `Move to ${title}`,
-            onClick: () => go(actions.moveTo(id, Number.MAX_SAFE_INTEGER).then(onRefused)),
-          })),
-        { isDisabled: !place.up, label: "Move up", onClick: within("up") },
-        { isDisabled: !place.down, label: "Move down", onClick: within("down") },
-        { isDisabled: !place.up, label: "To the top", onClick: within("top") },
-        { isDisabled: !place.down, label: "To the bottom", onClick: within("bottom") },
-        ...(isDrafted || hasLink
-          ? []
-          : [
-              DIVIDER,
-              { label: "Make a draft", onClick: () => go(actions.draft()) },
-              { label: "Start", onClick: () => go(actions.startChange()) },
-            ]),
-        DIVIDER,
-        { label: "Delete", onClick: () => go(actions.remove()), variant: "destructive" as const },
-      ]}
-      label={label}
-    />
-  );
-}
-
 /** A draft the menu lists: its file and its title. */
 export type DraftChoice = { path: string; title: string };
 
@@ -156,6 +95,7 @@ export function NoteMenu({
   drafts,
   inbox,
   onOpen,
+  onOpenNote,
   onRefused,
   placed,
 }: {
@@ -163,6 +103,8 @@ export function NoteMenu({
   drafts: ReadonlyArray<DraftChoice> | undefined;
   inbox: Pick<Inbox, "hash" | "names">;
   onOpen: () => void;
+  /** Opens the note's view, with its images and its draft: the row itself edits in place. */
+  onOpenNote?: () => void;
   onRefused: (message: string | undefined) => void;
   placed: Placed;
 }) {
@@ -185,6 +127,7 @@ export function NoteMenu({
   return (
     <CardMenu
       items={[
+        ...(onOpenNote === undefined ? [] : [{ label: "Open", onClick: onOpenNote }]),
         {
           items: [...TITLES].map(([id, title]) => ({
             label: title,
