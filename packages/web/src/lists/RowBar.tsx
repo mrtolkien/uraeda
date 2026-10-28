@@ -7,7 +7,6 @@
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import * as stylex from "@stylexjs/stylex";
 import {
   type ComponentProps,
@@ -21,6 +20,8 @@ import { createPortal } from "react-dom";
 import { KeyCap } from "../keys/KeyCap.tsx";
 import { keepFocus } from "../keys/press.ts";
 import { glassStyles } from "../layout/glass.ts";
+import { NavTile } from "../layout/NavBar.tsx";
+import { SCROLLED_PX } from "../shell/useHidesOnScroll.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useCoverStatusLine } from "../statusHints.tsx";
 
@@ -46,9 +47,6 @@ const sink = stylex.keyframes({
   from: { opacity: 1, transform: "translateY(0)" },
   to: { opacity: 0, transform: "translateY(calc(100% + 1rem))" },
 });
-
-/** How far the page scrolls, in pixels, before the phone's bar goes: a finger's tremor is no scroll. */
-const SCROLLED_PX = 8;
 
 const styles = stylex.create({
   // A line of its own under the text, over the row's stretched link so a press reaches it.
@@ -99,29 +97,6 @@ const styles = stylex.create({
   }),
   // Going, as the page scrolls: it sinks out of the screen.
   sinking: { animationName: sink, pointerEvents: "none" },
-  // An action of the phone's bar: its icon over its word, as wide as a finger at least, in the
-  // theme's text colour, which reads over the clear glass.
-  tile: {
-    alignItems: "center",
-    background: "none",
-    borderRadius: 0,
-    borderStyle: "none",
-    color: colorVars["--color-text-primary"],
-    cursor: "pointer",
-    display: "flex",
-    flexDirection: "column",
-    font: "inherit",
-    // The room between its icon and its word, and its least width, which StyleX's values do not
-    // list.
-    "--bar-tile-gap": "0.25rem",
-    "--bar-tile-least": "4rem",
-    gap: "var(--bar-tile-gap)",
-    minWidth: "var(--bar-tile-least)",
-    paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-3"],
-  },
-  // A tile's word, small under its icon.
-  word: { "--bar-word": "0.75rem", fontSize: "var(--bar-word)" },
 });
 
 /** Runs an action from a press, which is not the row's own click: that edits it or opens it. */
@@ -293,16 +268,13 @@ function FloatingBar({
       )}
     >
       {actions.map((action) => (
-        // oxlint-disable-next-line react/forbid-elements -- a tile of the phone's floating bar, its big icon over its word, flat on the bar's glass, which Astryx's Button, with its own height, padding, and surface, does not draw (an Astryx gap)
-        <button
+        <NavTile
+          hasWord
+          icon={action.icon}
           key={action.label}
-          onClick={pressed(action)}
-          type="button"
-          {...stylex.props(focusOutlineStyles.focusVisible, styles.tile)}
-        >
-          <Icon icon={action.icon} size="lg" />
-          <span {...stylex.props(styles.word)}>{action.label}</span>
-        </button>
+          label={action.label}
+          onPress={pressed(action)}
+        />
       ))}
     </div>,
     document.body,
