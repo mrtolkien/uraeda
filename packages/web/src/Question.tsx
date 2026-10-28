@@ -15,9 +15,11 @@ import type { useAnswer } from "./useAnswer.ts";
 import { holdsStory, type Stories } from "./stories.tsx";
 
 const styles = stylex.create({
-  // On the phone, the options' borders run at the screen's edges.
+  // Room under the example's pane before the context, as the why's pane has above it.
+  example: { marginBlockEnd: spacingVars["--spacing-3"] },
+  // On the phone, the options' borders run at the screen's edges: the page's inset taken back.
   optionsPhone: {
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+    marginInline: "var(--page-bleed)",
   },
   // Room above the first option for the half of its letter over its border.
   optionsSpaced: {
@@ -42,6 +44,32 @@ export function holdsVariants(stories: Stories | null, document: Document, quest
   return question.options.some((choice) =>
     choice.other.some((id) => holdsStory(stories, document, id)),
   );
+}
+
+/**
+ * Whether a question holds something wide, in its context, its example, its why, or an option: a
+ * table, an HTML mockup, or a story. Its card then keeps one column, the whole card's width theirs.
+ */
+export function holdsWide(stories: Stories | null, document: Document, question: QuestionItem) {
+  const roots = new Set([
+    ...question.context,
+    ...(question.example === undefined ? [] : [question.example]),
+    ...(question.why === undefined ? [] : [question.why]),
+    ...question.options.flatMap((choice) => choice.other),
+  ]);
+  const wide = [
+    ...document.blocks.filter((block) => block.kind === "table").map((block) => block.id),
+    ...(stories?.mockups ?? []).map((mockup) => mockup.block),
+    ...(stories?.preview ? stories.stories.map((story) => story.block) : []),
+  ];
+  return wide.some((id) => {
+    for (let at: number | undefined = id; at !== undefined; at = document.blocks[at]?.parent) {
+      if (roots.has(at)) {
+        return true;
+      }
+    }
+    return false;
+  });
 }
 
 /**
@@ -119,7 +147,13 @@ export function QuestionContext({
   return (
     <>
       {question.example !== undefined && (
-        <Pane isOpenOnPhone level={3} title="Example" tone="example">
+        <Pane
+          isOpenOnPhone
+          level={3}
+          title="Example"
+          tone="example"
+          xstyle={[styles.example]}
+        >
           <Blocks document={panes} ids={[question.example]} />
         </Pane>
       )}

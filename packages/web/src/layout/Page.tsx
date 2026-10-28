@@ -1,6 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { createContext, type ReactNode, type RefObject, useRef } from "react";
+import { paneVars } from "./pane.stylex.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
@@ -32,6 +33,11 @@ const styles = stylex.create({
     "--pane-centre": "auto",
     "--pane-max": "95ch",
     "--pane-width": "100%",
+  },
+  // A round's page on wide screens: as wide as two of its context panes side by side, as its Scope
+  // and Sources are, so that a question's card, its question beside its answers, takes both.
+  paired: {
+    maxWidth: `calc(2 * ${paneVars["--pane-context"]} + ${spacingVars["--spacing-4"]} + 2 * var(--page-inset))`,
   },
   // The whole width of the window, for a page of columns.
   full: { maxWidth: "none" },
@@ -67,6 +73,7 @@ export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>
 export function Page({
   children,
   isFull = false,
+  isPaired = false,
   isReading = false,
   isSession = false,
   isSnug = false,
@@ -75,6 +82,8 @@ export function Page({
   children: ReactNode;
   /** The window's whole width, not the page's column: a page of columns, the priorities'. */
   isFull?: boolean;
+  /** A round's page on wide screens: as wide as two context panes side by side. */
+  isPaired?: boolean;
   /** A document's page on wide screens, a round's or a spec's: each pane 95 characters wide at most. */
   isReading?: boolean;
   /** A session's column on wide screens: a line of text, not the page's full width. */
@@ -96,6 +105,7 @@ export function Page({
           isFull && styles.full,
           wide && isSession && styles.session,
           wide && isReading && styles.reading,
+          wide && isPaired && styles.paired,
         )}
       >
         {children}

@@ -15,7 +15,7 @@ const styles = stylex.create({
     marginBlock: spacingVars["--spacing-5"],
   },
   bandBleed: {
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+    marginInline: "var(--page-bleed)",
   },
   card: {
     // On a wide screen, cards apart from each other and from the round's opening.
@@ -32,8 +32,8 @@ const styles = stylex.create({
     borderBlockStartStyle: "solid",
     borderBlockStartWidth: `calc(2 * ${borderVars["--border-width"]})`,
     marginBlockStart: spacingVars["--spacing-6"],
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
-    paddingInline: spacingVars["--spacing-4"],
+    marginInline: "var(--page-bleed)",
+    paddingInline: "var(--page-inset)",
   },
   joint: {
     // The accent line from a card to the follow-up's after it.

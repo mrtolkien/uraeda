@@ -140,7 +140,18 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-bold"],
     minWidth: spacingVars["--spacing-4"],
   },
-  table: { maxWidth: "100%", minWidth: "100%", width: "max-content" },
+  table: {
+    // A card's block padding is not the table's to take back, as Astryx's table does in a card
+    // (`containerBleed`): it is a block among others, with room before and after it, but at the
+    // start and end of what holds it.
+    "--container-padding-block-end": "0px",
+    "--container-padding-block-start": "0px",
+    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-5"] },
+    marginBlockStart: { ":first-child": 0, default: spacingVars["--spacing-5"] },
+    maxWidth: "100%",
+    minWidth: "100%",
+    width: "max-content",
+  },
   warning: { color: colorVars["--color-warning"] },
 });
 
@@ -210,7 +221,10 @@ function diagramPlace(block: Block, document: Document): Place {
   };
 }
 
-/** A table in a block of its own, which may reach into the margin, as far as the screen's edge. */
+/**
+ * A table in a block of its own, which may reach into the margin, `--table-reach` past its text, as
+ * far as the screen's edge: 16rem, or none where a box holds it, as a question's card.
+ */
 function TableBlock({ block, context }: { block: Block; context: BlockContext }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -220,7 +234,7 @@ function TableBlock({ block, context }: { block: Block; context: BlockContext })
     }
     const measure = () => {
       const room = window.innerWidth - element.getBoundingClientRect().left - 16;
-      element.style.maxWidth = `min(calc(100% + 16rem), ${Math.max(0, room)}px)`;
+      element.style.maxWidth = `min(calc(100% + var(--table-reach, 16rem)), ${Math.max(0, room)}px)`;
     };
     measure();
     window.addEventListener("resize", measure);

@@ -5,7 +5,7 @@ import { useContext } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
-import { holdsVariants, Options, QuestionContext, QuestionHead } from "./Question.tsx";
+import { holdsVariants, holdsWide, Options, QuestionContext, QuestionHead } from "./Question.tsx";
 import { AnswerComment } from "./QuestionComment.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
 import { StoryContext } from "./stories.tsx";
@@ -23,8 +23,16 @@ const styles = stylex.create({
     borderRadius: 0,
     overflow: "visible",
   },
+  // A card of one column, on a wide screen: a pane's width, centred, as the page's single panes; a
+  // split one takes the page's, two context panes' wide.
+  single: {
+    marginInline: "var(--pane-centre, 0)",
+    maxWidth: "var(--pane-max, none)",
+  },
   rows: {
     "--container-padding-inline-end": "0px",
+    // A table keeps to the card: it scrolls rather than reach past it.
+    "--table-reach": "0px",
   },
   split: {
     // The title and context on the left, the options and comment on the right, 5 to 6.
@@ -48,8 +56,8 @@ const styles = stylex.create({
     // edge to edge.
     backgroundColor: colorVars["--color-background-surface"],
     insetBlockStart: spacingVars["--spacing-12"],
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
-    paddingInline: spacingVars["--spacing-4"],
+    marginInline: "var(--page-bleed)",
+    paddingInline: "var(--page-inset)",
   },
   stretch: {
     alignSelf: "stretch",
@@ -57,8 +65,8 @@ const styles = stylex.create({
 });
 
 /**
- * A question as a card: on a wide screen, an Astryx card, of two columns once `roomy` and none of
- * its options holds stories: its title and context on the left, its options and comment on the
+ * A question as a card: on a wide screen, an Astryx card, of two columns once `roomy`, none of
+ * its options holding stories and none of its parts a table, a mockup, or a story: its title and context on the left, its options and comment on the
  * right. On the phone, no card. At every width, its header sticks at the top while its card is on
  * screen, below the top bar on the phone, and a question taller than the screen scrolls under it.
  * A tap on an option toggles its letter and saves the answer, with the comment as saved; the
@@ -94,7 +102,8 @@ export function QuestionCard({
   // answered. Its unsaved text is the question's own: another question of the round may embed the
   // same story.
   const stories = useContext(StoryContext);
-  const split = wide && roomy && !holdsVariants(stories, document, question);
+  const split =
+    wide && roomy && !holdsVariants(stories, document, question) && !holdsWide(stories, document, question);
   const comments =
     stories && !readOnly
       ? {
@@ -127,7 +136,7 @@ export function QuestionCard({
   // card; split, the left column is as tall as the card.
   return (
     <StoryContext value={comments}>
-      <section id={question.id} {...stylex.props(margin)}>
+      <section id={question.id} {...stylex.props(margin, wide && !split && styles.single)}>
         <Card
           padding={wide ? 6 : 0}
           variant={wide ? "default" : "transparent"}
