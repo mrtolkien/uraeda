@@ -220,6 +220,12 @@ export declare function movePriority(repo: string, id: string, section: string, 
 /** A feature's next step, with its branch and the main checkout's path, for an agent's run. */
 export declare function nextStep(repo: string, folder: string): Promise<NextView>
 
+/** An image's removal's answer: the inbox, and what `restoreNoteImage` takes back. */
+export interface NoteImageRemoved {
+  inbox: Inbox
+  removed: RemovedImage
+}
+
 /** Adds a note at the end of the `## What` of the draft at `draft`, from the top level. */
 export declare function noteToDraft(repo: string, id: string, draft: string, previous: string): Promise<void>
 
@@ -371,6 +377,13 @@ export declare function removeNote(repo: string, id: string, previous: string): 
  */
 export declare function removeNoteAndCommit(repo: string, id: string, previous: string): Promise<InboxAdded>
 
+/**
+ * Takes the image at `image` out of the draft at `draft`, both from the top level: the lines
+ * linking it go, and its file stays. Refused as a conflict when the draft changed since it was
+ * read at `previous`.
+ */
+export declare function removeNoteImage(repo: string, draft: string, image: string, previous: string): Promise<NoteImageRemoved>
+
 /** Removes a priority line and its nested lines. */
 export declare function removePriority(repo: string, id: string, previous: string): Promise<Priorities>
 
@@ -388,6 +401,12 @@ export declare function requestChanges(repo: string, folder: string, file: strin
 
 /** Takes back a delete: writes `before` back over the inbox read at `previous`. */
 export declare function restoreCategory(repo: string, before: string, previous: string): Promise<Inbox>
+
+/**
+ * Takes back an image's removal: its lines go back where they were, over the draft as it is now.
+ * Refused once the lines there changed, or the draft links the image again.
+ */
+export declare function restoreNoteImage(repo: string, removed: RemovedImage): Promise<Inbox>
 
 /** Commits again what a hook refused to commit: a submitted round, or a verdict. */
 export declare function retryCommit(repo: string, folder: string, name: string): Promise<CommitView>
@@ -1486,6 +1505,21 @@ export interface QuestionItem {
   asked: boolean
   /** The line of its `**Answer:**` marker, or 0. */
   answerLine: number
+}
+
+/**
+ * What taking an image out of a draft wrote, which its Undo takes back: the draft's `before`
+ * lines from its line `at`, and the `after` lines written in their place. Both hold a line of
+ * the draft around the change where it has one, which the Undo finds unchanged.
+ */
+export interface RemovedImage {
+  /** The draft, from the top level. */
+  draft: string
+  /** The image, from the top level. */
+  image: string
+  at: number
+  before: Array<string>
+  after: Array<string>
 }
 
 /** A repository of the list. */
