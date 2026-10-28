@@ -9,11 +9,15 @@
 - [Proposal naming](/specs/changes/2026-10-28-proposal-naming/proposal.md)
 
 - [Full interactive UI pass: manual small fixes](drafts/full-interactive-ui-pass-manual-small-fixes.md)
-- Write down our UI decisions and strategy based on the "UI fixes" worktree
-- Amend the latest commits if the commits only touch workflow files
+  - Write down our UI decisions and strategy based on the "UI fixes" worktree
+
+- Decisions needs to be understandable with _no context_. Often agents just read the decisions, they
+  can't be expected to search for extra info in records.
+- Amend the latest commits if the commits touches only workflow files
 - Add `?` in status, after leader, for shortcuts
-- Cooler home view: logo, progress, gauges, ...
+
 - Performance pass: the UI feels sluggish
+
 - Empty inbox
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
@@ -25,41 +29,45 @@
 >
 > Goals once I'm happy with the core feature set
 
+- [Worker lifecycle](drafts/worker-lifecycle.md): runs survive server restarts, usage limits, and
+  their own background work, and go on to the next human gate without a "Continue"
+
+- Run options
+  - Master session vs one session per step
+  - Review options: model, command, prompt, depth, ...
+  - Can set global defaults and override per-feature
+
+- Heartbeat/cron jobs
+- Global undo
+- Keyboard nav in questions and specs
+- Vim in text edit mode
+
+- Cooler home view: logo, progress, gauges, ...
+
 - References (docs) querying and storing workflow -> our own local context8?
   - Issue faced: I'm using Astryx which is pretty new, and the agents did make errors with it
   - Where is this information saved? Not evergreen enough for AGENTS.md, not human-approved so not a
     decision?
   - This is early because it will help us develop the rest
 
-- [Worker lifecycle](drafts/worker-lifecycle.md): runs survive server restarts, usage limits, and
-  their own background work, and go on to the next human gate without a "Continue"
-- Heartbeat/cron jobs
-
-- Keyboard navigation in web UI
-  - Leader-key inspired nav and/or vimium for extra links
-  - ?Vim mode in text editing? -> depends on how much complexity it adds
-
-- Run options
-  - Master session vs one session per step
-  - Review options: command, prompt, depth, ...
-  - Can set global defaults and override per-feature
+- Extensions system
+  - claude integration could become an extension
+  - Needs both core extenstions (WASM?), server extensions (TS?), and UI extensions
+  - same for the references system which is more of a skill tbh
 
 - Nix + Docker based execution environments
 - Passkeys to sign in, on top of the access key of basic security
-
-- Extensions system: claude integration could become an extension?
 
 - Git listener process?
 
 - Monorepo support: multiple `specs` folders, principles per package, ...
 - Multi-repo projects: an agent/project aware of multiple repos, for projects spanning multiple
   repos and not in a monorepo
-- Adversarial review flow with a secondary model + review settings
-
-- Codex runtime + model settings
 
 - Basic git UI in the web ui (pull, see diffs, ...)
+  - Pretty much web lazygit?
 
+- Codex runtime + model settings
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable
   - This is v2.0

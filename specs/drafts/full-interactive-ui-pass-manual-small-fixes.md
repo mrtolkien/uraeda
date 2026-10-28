@@ -10,42 +10,37 @@ Full interactive UI pass: manual small fixes
 
 DONE:
 
-- [x] Home
-  - [x] Desktop
-  - [x] Semiwide
-  - [x] Phone
+- [x] Home + shell
 
-- [ ] New
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] Leader and status bar
 
-- [ ] Inbox
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] Settings
 
-- [ ] Priorities
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] New
 
-- [ ] Decisions
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [x] Draft
+
+- [x] Priorities
+
+- [x] Inbox
+
+- [x] Feature home
+
+- [x] Session list (gs)
+
+- [x] Questions
+
+- [x] Specs
+
+- [ ] Glass leader
 
 - [ ] Session
   - [ ] Desktop
-  - [ ] Semiwide
   - [ ] Phone
 
-- [ ] Feature
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [ ] New Note dialog
 
-- [ ] Settings
-  - [ ] Desktop
-  - [ ] Semiwide
-  - [ ] Phone
+- [ ] Proposal, Plan, Report, ...
+- [ ] Inbox triage
+- [ ] Constitution/Decisions + detail
+- [ ] Login
