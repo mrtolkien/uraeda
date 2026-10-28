@@ -164,7 +164,9 @@ function useNoteImagesPost() {
       body.append(key, value);
     }
     for (const image of images) {
-      body.append("file", image);
+      // A part with an empty file name may be read as a text, not a file: a pasted image's part
+      // is named, and the query's empty name still tells the core it was pasted.
+      body.append("file", image, image.name || "pasted image");
     }
     // One name per image, in order: an empty one for a pasted image, which the core names.
     const query = new URLSearchParams(images.map((image) => ["name", image.name]));
@@ -255,3 +257,44 @@ export function useAddWithImage() {
 
 /** The refusal of an add the server did not answer in time. */
 const TIMED_OUT = "The note could not be added: the server did not answer in time.";
+
+/**
+ * Adds images to an existing note, one request: into the draft it links, or into the draft it
+ * becomes, its line then linking it. "Adding <name>…" shows and is heard while it runs; `attach`
+ * resolves with nothing once added, or with the refusal to show, and a conflict reads the inbox
+ * again.
+ */
+export function useAttachToNote() {
+  const fate = useFateClient();
+  const post = useNoteImagesPost();
+  const announce = useAnnounce();
+  const [status, setStatus] = useState<AttachStatus>();
+
+  const attach = async (
+    note: { hash: string; id: string },
+    files: ReadonlyArray<File>,
+  ): Promise<string | undefined> => {
+    const big = tooBig(files);
+    if (big) {
+      return big;
+    }
+    const adding = `Adding ${files.map((file) => file.name || "pasted image").join(", ")}…`;
+    setStatus({ error: false, text: adding });
+    announce(adding, "polite");
+    let sent: string | Refusal;
+    try {
+      sent = await post({ hash: note.hash, id: note.id }, files);
+    } catch (error) {
+      const timedOut = (error as { name?: unknown } | null)?.name === "TimeoutError";
+      return timedOut
+        ? "The image was not added: the server did not answer in time."
+        : "Could not reach the Uraeda server.";
+    } finally {
+      setStatus(undefined);
+    }
+    rereadChanges(fate);
+    return typeof sent === "string" ? undefined : sent.message;
+  };
+
+  return { attach, status };
+}
