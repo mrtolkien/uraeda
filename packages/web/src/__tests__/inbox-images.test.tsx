@@ -38,6 +38,10 @@ function controlOf(note: string) {
 /** The row of a note. */
 const rowOf = (note: string) => controlOf(note).closest("[data-row]") as HTMLElement;
 
+/** The images drawn under a note's row, if any. */
+const imagesOf = (note: string) =>
+  within(rowOf(note)).queryByRole("group", { name: "The note's images" });
+
 /** The page over a repository holding `INBOX`, with the focus on the row of `note`. */
 async function onNote(note: string) {
   const repo = fixtureRepo();
@@ -169,15 +173,14 @@ test("the selected note shows its images under its row, and Remove takes one out
   const draft = draftOf(repo, "Idea one");
   const [image] = filesOf(repo, draft).images;
 
-  const imagesOf = (note: string) =>
-    within(rowOf(note)).queryByRole("group", { name: "The note's images" });
   // Another row selected: the note's images are not drawn, and its row says it has one.
   act(() => controlOf("Idea one").focus());
   await press("j", controlOf("Idea one"));
   await waitFor(() => expect(rowOf("Idea two").getAttribute("aria-current")).toBe("true"));
   expect(imagesOf("Idea one")).toBeNull();
   expect(imagesOf("Idea two")).toBeNull();
-  expect(rowOf("Idea one").textContent).toContain("1 image");
+  // The row counts the image once the inbox is read again after the drop.
+  await waitFor(() => expect(rowOf("Idea one").textContent).toContain("1 image"));
 
   // Selected by the keys: its images show under it, as they would to a tap.
   await selectIdeaOne();
@@ -190,14 +193,17 @@ test("the selected note shows its images under its row, and Remove takes one out
   await press("Enter", remove);
   expect(screen.queryByRole("textbox", { name: "Edit the note" })).toBeNull();
 
+  const before = filesOf(repo, draft).text;
   await click(remove);
 
   await waitFor(() => expect(filesOf(repo, draft).text).not.toContain(`images/${image}`));
   expect(await screen.findByText(`Removed ${image} from the note's draft`)).toBeTruthy();
   expect(screen.queryByRole("textbox", { name: "Edit the note" })).toBeNull();
-  // Undo writes the draft's text back, its link with it.
+  // The image's file stays, for `ura inbox clean` or a commit to delete.
+  expect(filesOf(repo, draft).images).toEqual([image]);
+  // Undo puts the link back where it was, the draft as it was before.
   await click(await screen.findByRole("button", { name: /^Undo/ }));
-  await waitFor(() => expect(filesOf(repo, draft).text).toContain(`](images/${image})`));
+  await waitFor(() => expect(filesOf(repo, draft).text).toBe(before));
 });
 
 test("a drop goes to the inbox, not to the add form once it closed", async () => {
