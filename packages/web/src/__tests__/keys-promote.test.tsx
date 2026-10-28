@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atWidth, fixtureRepo, read, renderPage } from "./helpers.tsx";
+import { navigate } from "../routes.tsx";
+import { atRepo, atWidth, fixtureRepo, read, renderPage } from "./helpers.tsx";
 
 const INBOX = `# Inbox
 
@@ -79,4 +80,33 @@ test("p on a note that links a draft offers no line to go under, and a level kee
   );
   // The move ends on its toast, once its line is read back: the test ends after it.
   await screen.findByText(/Moved to Later/);
+});
+
+test("a note added to a draft whose editor was open before shows in its editor", async () => {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, "specs/INBOX.md"), INBOX);
+  // The draft's editor, read once as it was before.
+  await renderPage("/edit/specs/drafts/git-listener.md", repo);
+  const before = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  expect(before.value).not.toContain("Loose note");
+  await act(async () => navigate(atRepo("/inbox")));
+  const link = (await screen.findAllByRole("button", { name: /Loose note/ })).find(
+    (one) => one.closest("[data-row-link]") !== null,
+  ) as HTMLElement;
+  act(() => link.focus());
+  await act(async () => {
+    fireEvent.keyDown(link, { key: "p" });
+  });
+  await screen.findByRole("combobox", { name: "Promote the note" });
+
+  const draft = screen
+    .getAllByRole("option")
+    .find((option) => option.textContent?.includes("Git listener"));
+  await act(async () => {
+    fireEvent.click(draft!);
+  });
+
+  await waitFor(() => expect(read(repo, "specs/drafts/git-listener.md")).toContain("Loose note"));
+  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  await waitFor(() => expect(field.value).toContain("Loose note"));
 });

@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
+import { rereadDraft } from "./attach/useEditorImages.ts";
 import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { guarded, refusal } from "./errors.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
@@ -157,6 +158,9 @@ function useMovesOut(
         ),
       );
       left();
+      // The server sends no draft for the write: its editor, read before, would show it without
+      // the note.
+      await rereadDraft(fate, draft);
       navigate(here(`/edit/${draft}`));
     }
   };
