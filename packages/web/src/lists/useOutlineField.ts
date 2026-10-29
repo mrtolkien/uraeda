@@ -26,6 +26,8 @@ export function useOutlineField({
   useLayoutEffect(() => {
     const element = field.current;
     if (element) {
+      // Written on the element, not a StyleX style: its height must be let go and measured again in
+      // the same frame, which a render between the two would show.
       element.style.height = "auto";
       element.style.height = `${element.scrollHeight}px`;
     }

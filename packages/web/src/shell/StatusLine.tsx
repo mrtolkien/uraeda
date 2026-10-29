@@ -167,28 +167,37 @@ function Counts() {
 
 /**
  * The line: on the phone, only the page's own controls, `slot`, which only the phone's pages fill,
- * else the hints, then the counts.
+ * else the hints, then the counts. `onAway` hears whether the phone's bar is out of the way.
  */
-export function StatusLine({ isNarrow, slot }: { isNarrow: boolean; slot: ReactNode }) {
-  return isNarrow ? <PhoneBar slot={slot} /> : <Line />;
+export function StatusLine({
+  isNarrow,
+  onAway,
+  slot,
+}: {
+  isNarrow: boolean;
+  onAway?: (isAway: boolean) => void;
+  slot: ReactNode;
+}) {
+  return isNarrow ? <PhoneBar onAway={onAway ?? noAway} slot={slot} /> : <Line />;
+}
+
+/** No one to tell where the phone's bar is. */
+function noAway() {
+  // Nothing sits on the bar.
 }
 
 /**
- * Sets `--status-line-offset` to 0 on the document while the phone's bar is out of the way, so
- * what sits on it, as the session's composer, follows it down as it slides away; while it shows,
- * the property is unset and they fall back to the bar's height.
+ * Tells `onAway` while the phone's bar is out of the way, and once it shows again, so that what
+ * sits on it, as the session's composer, follows it down as it slides away (`Shell.tsx`).
  */
-function useShownForOthers(isShown: boolean) {
+function useShownForOthers(isShown: boolean, onAway: (isAway: boolean) => void) {
   useEffect(() => {
     if (isShown) {
       return;
     }
-    const root = document.documentElement;
-    root.style.setProperty("--status-line-offset", "0px");
-    return () => {
-      root.style.removeProperty("--status-line-offset");
-    };
-  }, [isShown]);
+    onAway(true);
+    return () => onAway(false);
+  }, [isShown, onAway]);
 }
 
 /**
@@ -196,10 +205,10 @@ function useShownForOthers(isShown: boolean) {
  * any. The hints are for keys and the counts are on the tabs, Sessions' running and Home's need-you.
  * It goes as the page scrolls down, out of the reading's way, and comes back as it scrolls up.
  */
-function PhoneBar({ slot }: { slot: ReactNode }) {
+function PhoneBar({ onAway, slot }: { onAway: (isAway: boolean) => void; slot: ReactNode }) {
   const isCovered = useStatusLineCovered();
   const isHidden = useHidesOnScroll();
-  useShownForOthers(!isHidden && !isCovered && slot !== null);
+  useShownForOthers(!isHidden && !isCovered && slot !== null, onAway);
   if (isCovered || slot === null) {
     return null;
   }

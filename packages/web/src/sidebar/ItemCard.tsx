@@ -7,8 +7,10 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { useClosedRail } from "../layout/closedRail.ts";
+import { usePaneTone } from "../layout/paneContext.tsx";
 import { columnVars } from "../shell/column.stylex.ts";
 import type { SessionStatus } from "uraeda-server/fate";
 import { HarnessMark, harnessMark } from "../HarnessMark.tsx";
@@ -79,8 +81,33 @@ const styles = stylex.create({
   reachStatus: {
     marginInlineEnd: `calc(-1 * (${spacingVars["--spacing-2"]} + ${spacingVars["--spacing-4"]}))`,
   },
-  // The closed rail's mark of the card's status, under its icon: shown by the column's rail rule.
-  // Its top is a property of its own, as the token lint takes a `var()` only whole, not in a calc.
+  // In the closed rail: a bar the rail's row wide, framing the card's icon and its mark, which no
+  // longer clips them. The frame's colour is its pane's, orange where it needs the human.
+  rail: {
+    "::after": {
+      borderColor: colorVars["--color-border"],
+      borderStyle: "solid",
+      borderWidth: borderVars["--border-width"],
+      content: '""',
+      insetBlockEnd: 0,
+      insetBlockStart: 0,
+      insetInlineStart: `calc(-1 * ${columnVars["--rail-frame-pull"]})`,
+      pointerEvents: "none",
+      position: "absolute",
+      width: columnVars["--rail-row-box"],
+    },
+    isolation: "isolate",
+    overflow: "visible",
+  },
+  railAttention: { "::after": { borderColor: colorVars["--color-border-orange"] } },
+  // The selected card's grey fills its frame, behind its icons: its row's, as wide as the open
+  // card, would run past the frame.
+  railSelected: { "::after": { backgroundColor: colorVars["--color-neutral"], zIndex: -1 } },
+  // A sub-agent's mark under the card's, its description hidden.
+  railGone: { display: "none" },
+  railSubagent: { paddingInlineStart: columnVars["--rail-mark-start"] },
+  // The closed rail's mark of the card's status, under its icon, shown by `railMarkShown`. Its top
+  // is a property of its own, as the token lint takes a `var()` only whole, not in a calc.
   railMark: {
     "--card-rail-mark-top": `calc(var(--size-label-line) + ${columnVars["--rail-mark-below"]})`,
     display: "none",
@@ -89,6 +116,14 @@ const styles = stylex.create({
     position: "absolute",
     top: "var(--card-rail-mark-top)",
     zIndex: 1,
+  },
+  railMarkShown: { display: "flex" },
+  // A card of one line: its mark alone, in the middle of its height, in place of its icon.
+  railMarkCentred: {
+    bottom: 0,
+    height: "fit-content",
+    marginBlock: "auto",
+    top: 0,
   },
   spacer: { flexGrow: 1 },
   subagent: {
@@ -264,9 +299,26 @@ function Meta({
  * The closed rail's mark of the card's status, under its icon: the next step's chevron, the agent
  * at work on it, or its status mark.
  */
-function RailMark({ hasNext, item }: { hasNext: boolean; item: CardItem }) {
+function RailMark({
+  hasNext,
+  isMarkOnly,
+  item,
+}: {
+  hasNext: boolean;
+  isMarkOnly: boolean;
+  item: CardItem;
+}) {
+  const isRail = useClosedRail();
   return (
-    <span aria-hidden="true" data-rail-only {...stylex.props(styles.railMark)}>
+    <span
+      aria-hidden="true"
+      data-rail-only
+      {...stylex.props(
+        styles.railMark,
+        isRail && styles.railMarkShown,
+        isRail && isMarkOnly && styles.railMarkCentred,
+      )}
+    >
       {hasNext ? (
         <ActionMark isSmall kind="next" />
       ) : item.status.status === "working" ? (
@@ -329,21 +381,27 @@ export function ItemCard({
   // A session works on it: its status is a button to the session, as big.
   const hasWork = onStatus !== undefined && item.status.status === "working";
   const hasButton = hasNext || hasWork;
+  const isRail = useClosedRail();
+  const tone = usePaneTone();
+  // A card of one line is too short for its icon with the mark under it: the rail shows the mark alone.
+  const isMarkOnly = !detail && !item.step && item.status.status !== "idle";
   return (
     <div
       data-card
-      // A card of one line is too short for its icon with the mark under it: the rail shows the mark alone.
-      {...(!detail && !item.step && item.status.status !== "idle"
-        ? { "data-rail-mark-only": "" }
-        : {})}
       {...stylex.props(
         styles.card,
         isPicked && pickedStyles.picked,
         isPicked && pickedStyles.ringWithin,
+        isRail && [
+          styles.rail,
+          tone === "attention" && styles.railAttention,
+          isSelected && styles.railSelected,
+        ],
       )}
     >
-      <RailMark hasNext={hasNext} item={item} />
+      <RailMark hasNext={hasNext} isMarkOnly={isMarkOnly} item={item} />
       <CardRow
+        {...(isRail ? { rail: isMarkOnly ? "mark" : "card" } : {})}
         endContent={<Status hasNext={hasNext} hasWork={hasWork} item={item} />}
         hasRing={!isPicked}
         href={href}
@@ -365,9 +423,14 @@ export function ItemCard({
         {...(onOpen || onStatus ? { onClick: cardClick(onOpen, onStatus) } : {})}
       />
       {item.subagents?.map((subagent) => (
-        <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
+        <HStack
+          align="center"
+          gap={2}
+          key={subagent.id}
+          xstyle={[styles.subagent, isRail && styles.railSubagent]}
+        >
           <StatusMark isSubagent label="Working" small status="working" />
-          <Text color="secondary" type="supporting">
+          <Text color="secondary" type="supporting" xstyle={isRail && styles.railGone}>
             {subagent.description}
           </Text>
         </HStack>

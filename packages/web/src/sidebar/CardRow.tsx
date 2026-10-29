@@ -5,7 +5,7 @@
 // for nav rows.
 import { navItemStyles } from "@astryxdesign/core/NavItem/navItemStyles.stylex";
 import { Text } from "@astryxdesign/core/Text";
-import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { fontWeightVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
 import { interactionOverlayStyles } from "@astryxdesign/core/utils/interactionOverlay.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -69,6 +69,27 @@ const styles = stylex.create({
   },
 });
 
+/** The closed rail's look of a row: what of it shows (`rail`). */
+const railStyles = stylex.create({
+  // Gone, as a done row's text: the row is its icon alone.
+  gone: { display: "none" },
+  // Hidden, as a card's text: it keeps its room, so the card keeps its height.
+  hidden: { visibility: "hidden" },
+  // Selected, as its card's frame shows it: in the selection's weight, with no fill of its own,
+  // under the pointer or a press either.
+  selected: {
+    backgroundColor: "transparent",
+    backgroundImage: "none",
+    fontWeight: fontWeightVars["--font-weight-medium"],
+  },
+});
+
+/**
+ * How the closed rail draws a row: a card's keeps its lines' room, hidden, by its icon, `card`, or
+ * with its icon hidden too, under the card's mark, `mark`; a done row is its icon alone, `row`.
+ */
+export type RailLook = "card" | "mark" | "row";
+
 export function CardRow({
   endContent,
   hasRing = true,
@@ -80,6 +101,7 @@ export function CardRow({
   label,
   name,
   onClick,
+  rail,
   sub,
 }: {
   /** Passive content at the link's end, like its status. */
@@ -98,6 +120,8 @@ export function CardRow({
   /** What screen readers read, in full words. */
   name: string;
   onClick?: (event: MouseEvent) => void;
+  /** How the closed rail draws it, while it does. */
+  rail?: RailLook;
   /** Its second line, like a feature's step, which `name` reads after the name. */
   sub?: ReactNode;
 }) {
@@ -105,6 +129,11 @@ export function CardRow({
   // surfaces, and only the one under it brightens.
   const [over, setOver] = useState<"button" | "card" | "none">("none");
   const isCardLit = isEndTall && over === "card";
+  // What the closed rail hides after the icon, and the icon itself under a card's mark alone.
+  const railRest = rail === "row" ? railStyles.gone : rail && railStyles.hidden;
+  const railIcon = rail === "mark" && railStyles.hidden;
+  // A card's frame shows its selection, in the closed rail.
+  const isFramed = rail === "card" || rail === "mark";
   return (
     <div
       {...(isEndTall
@@ -118,7 +147,7 @@ export function CardRow({
         navItemStyles.item,
         interactionOverlayStyles.backgroundColor,
         navItemStyles.sm,
-        isSelected && navItemStyles.selected,
+        isSelected && (isFramed ? railStyles.selected : navItemStyles.selected),
         styles.row,
         isEndTall ? styles.pointer : brighten,
         hasRing && focusOutlineStyles.focusWithinFirstChild,
@@ -136,8 +165,8 @@ export function CardRow({
           isPicked && pickedStyles.picked,
         )}
       >
-        <span {...stylex.props(styles.icon, isCardLit && styles.lit)}>{icon}</span>
-        <span {...stylex.props(styles.text, isCardLit && styles.lit)}>
+        <span {...stylex.props(styles.icon, isCardLit && styles.lit, railIcon)}>{icon}</span>
+        <span {...stylex.props(styles.text, isCardLit && styles.lit, railRest)}>
           <span {...stylex.props(styles.name)}>{label}</span>
           {sub !== undefined && (
             <>
@@ -153,7 +182,9 @@ export function CardRow({
           )}
         </span>
         {/* A space before its end too: its visible text, as the name reads it, never runs together. */}{" "}
-        <span {...stylex.props(styles.end, isEndTall && styles.endTall)}>{endContent}</span>
+        <span {...stylex.props(styles.end, isEndTall && styles.endTall, railRest)}>
+          {endContent}
+        </span>
       </RouterAnchor>
     </div>
   );

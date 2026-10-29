@@ -4,6 +4,7 @@
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type MouseEvent, type RefObject, use, useLayoutEffect, useRef, useState } from "react";
+import { useClosedRail } from "../layout/closedRail.ts";
 import { Pane } from "../layout/Pane.tsx";
 import { PickedCard } from "../layout/picked.ts";
 import { CardRow } from "./CardRow.tsx";
@@ -89,6 +90,8 @@ export function DoneArea({
   rows: Array<DoneRow>;
 }) {
   const picked = use(PickedCard);
+  // The closed rail shows only the rows' icons.
+  const isRail = useClosedRail();
   const area = useRef<HTMLDivElement>(null);
   const measured = useRowsThatFit(content, area);
   const shown = rows.slice(0, Math.min(measured, DONE_ROWS));
@@ -105,7 +108,7 @@ export function DoneArea({
     return null;
   }
   return (
-    // `data-done-area`: the closed rail shows only the rows' icons (`Column.tsx`).
+    // `data-done-area`: the sessions' page's keys reach its rows (`SessionsPage.tsx`).
     <div data-done-area ref={area} {...stylex.props(styles.area)}>
       <Pane isGroup title="Done">
         {/* Home's Recent draws the same items with the same row, `CardRow`, and icon. */}
@@ -119,6 +122,7 @@ export function DoneArea({
             key={row.folder}
             label={row.label}
             name={`${row.label}, ${row.kind ?? row.title}, done`}
+            {...(isRail ? { rail: "row" as const } : {})}
             {...opening(row.href)}
           />
         ))}

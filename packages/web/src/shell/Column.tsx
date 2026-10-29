@@ -1,8 +1,9 @@
 // The shell's column, on semi-wide and wide screens: its heading, Commit and New, then the panes,
-// Navigate and the work, and at its foot the 5 h window and Settings. Wide, it is 14% of
-// the window until its edge is dragged, folds to its 52 px rail with `[` or `Space u [`, its width
-// easing over 200 ms; semi-wide, it is the rail, which opens over the page (`Rail.tsx`). An Astryx
-// gap (plan, Complexity tracking): `SideNav` folds to icons, but cannot open over the page.
+// Navigate and the work, and at its foot the 5 h window and Settings. Wide, it is 14% of the window
+// until its edge is dragged, folds to its 52 px rail with `[` or `Space u [`, and unfolds with
+// them or its rail's Unfold, its width easing over 200 ms; semi-wide, it is the rail, which opens
+// over the page (`Rail.tsx`). An Astryx gap (plan, Complexity tracking): `SideNav` folds to
+// icons, but cannot open over the page.
 import { ResizeHandle } from "@astryxdesign/core/Resizable";
 import {
   borderVars,
@@ -13,10 +14,11 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import { useCallback, useRef, useState } from "react";
 import { useKeys } from "../keys/registry.tsx";
+import { ClosedRail } from "../layout/closedRail.ts";
 import { paneVars } from "../layout/pane.stylex.ts";
 import { columnVars } from "./column.stylex.ts";
 import { Allowance } from "../sidebar/Allowance.tsx";
-import { ColumnActions, ColumnFoot, ColumnHeading, Navigate } from "./ColumnPanes.tsx";
+import { ColumnActions, ColumnFoot, ColumnHeading, Navigate, Unfold } from "./ColumnPanes.tsx";
 import { useColumnWidth } from "./columnWidth.ts";
 import { LogoButton, useRail } from "./Rail.tsx";
 import { ShellPanes, useShellPath } from "./ShellPanes.tsx";
@@ -151,52 +153,23 @@ const widths = stylex.create({
   }),
 });
 
-/** In the closed rail: the panes keep their top line as a separator, each card a bar, and its status shows. */
-const RAIL_CSS = `nav[data-rail="closed"] section {
-  border-inline-color: transparent !important;
-  border-block-end-color: transparent !important;
-  border-block-start-color: transparent !important;
+/**
+ * The closed rail's rows of `SideNavItem` (`sidebar/Row.tsx`), each its icon alone, centred in the
+ * rail's box, its label, count, and controls hidden: a stylesheet, as no prop of `SideNavItem`
+ * reaches its row, a link or, with controls, a `div` around one, its `xstyle` only its root.
+ * Everything else of the rail's look is the parts' own StyleX, from `ClosedRail`. It names Astryx's
+ * class: look at the rail after an Astryx upgrade.
+ */
+const RAIL_ROW_CSS = `nav[data-rail="closed"] .astryx-side-nav-item {
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  width: ${columnVars["--rail-row-box"]} !important;
 }
-nav[data-rail="closed"] section::before {
-  border-block-start: 1px solid var(--color-border);
-  content: "";
-  inset-block-start: calc(-1 * var(--pane-border, 1px));
-  inset-inline: -40px -40px;
-  pointer-events: none;
-  position: absolute;
-}
-nav[data-rail="closed"] [data-card] { overflow: visible !important; }
-nav[data-rail="closed"] [data-card]::after {
-  border: 1px solid var(--color-border);
-  content: "";
-  inset-block: 0;
-  inset-inline-start: -4px;
-  pointer-events: none;
-  position: absolute;
-  width: 38px;
-}
-nav[data-rail="closed"] section[data-tone="attention"] [data-card]::after { border-color: var(--color-border-orange); }
-/* The selected card's grey fills its frame, behind its icons: its row's, as wide as the open card, ran past the frame. */
-nav[data-rail="closed"] [data-card] { isolation: isolate; }
-nav[data-rail="closed"] [data-card]:has(a[aria-current="page"])::after { background-color: var(--color-neutral); z-index: -1; }
-nav[data-rail="closed"] [data-card] div:has(> a[aria-current="page"]) { background-color: transparent !important; }
-nav[data-rail="closed"] [data-card][data-rail-mark-only] [data-rail-only] { bottom: 0; height: fit-content; margin-block: auto; top: 0 !important; }
-nav[data-rail="closed"] [data-card][data-rail-mark-only] a > span:first-child { visibility: hidden; }
-nav[data-rail="closed"] h2, nav[data-rail="closed"] h3 { visibility: hidden; }
-nav[data-rail="closed"] .astryx-side-nav-item { width: 38px !important; min-width: 0; overflow: hidden; justify-content: center; padding-inline: 0; }
-nav[data-rail="closed"] section .astryx-side-nav-item { margin-inline-start: -4px; }
 nav[data-rail="closed"] div.astryx-side-nav-item { padding-inline: 0 !important; }
 nav[data-rail="closed"] div.astryx-side-nav-item > a { flex: 1; gap: 0; justify-content: center; }
-nav[data-rail="closed"] [data-rail-fit] { justify-content: start !important; padding-inline: 11.5px 0 !important; }
-nav [data-rail-fit] .astryx-icon, nav [data-rail-fit] svg { font-size: 20px; height: 20px; width: 20px; }
-nav[data-rail="closed"] [data-rail-only] { display: flex !important; }
-nav[data-rail="closed"] [data-rail-fit] { width: 38px !important; min-width: 0; overflow: hidden; }
-nav[data-rail="closed"] .astryx-side-nav-item > :not(:first-child), nav[data-rail="closed"] div.astryx-side-nav-item > a > :not(:first-child),
-nav[data-rail="closed"] [data-rail-foot] section { display: none !important; }
-nav[data-rail="closed"] [data-card] a > :not(:first-child) { visibility: hidden; }
-nav[data-rail="closed"] [data-card] > .astryx-stack { padding-inline-start: 7.7px !important; }
-nav[data-rail="closed"] [data-card] > .astryx-stack > :not(:first-child) { display: none; }
-nav[data-rail="closed"] [data-done-area] a > :not(:first-child) { display: none !important; }`;
+nav[data-rail="closed"] .astryx-side-nav-item > :not(:first-child),
+nav[data-rail="closed"] div.astryx-side-nav-item > a > :not(:first-child) { display: none !important; }`;
 
 /** The width a rail opens to over the page, in px: it shows on hover only, so it is roomy. */
 const OPEN_RAIL_PX = 400;
@@ -283,19 +256,24 @@ export function Column({ isWide }: { isWide: boolean }) {
           (isRail || easing) && styles.easing,
         )}
       >
-        <style>{RAIL_CSS}</style>
-        <div {...stylex.props(styles.inner, isRail && widths.content(openWidth))}>
-          <ColumnHeading
-            {...(isWide
-              ? {}
-              : { logo: <LogoButton isOpen={rail.isOpen} onTap={rail.tap} ref={logo} /> })}
-          />
-          <ColumnActions />
-          <div {...stylex.props(styles.scroll, isClosed && styles.scrollRail)}>
-            <ShellPanes before={<Navigate pathname={pathname} />} isFitted />
+        <style>{RAIL_ROW_CSS}</style>
+        <ClosedRail value={isClosed}>
+          <div {...stylex.props(styles.inner, isRail && widths.content(openWidth))}>
+            <ColumnHeading
+              {...(isWide
+                ? {}
+                : { logo: <LogoButton isOpen={rail.isOpen} onTap={rail.tap} ref={logo} /> })}
+            />
+            <ColumnActions
+              isColumn
+              {...(isWide ? { lead: <Unfold isShown={column.isFolded} onUnfold={fold} /> } : {})}
+            />
+            <div {...stylex.props(styles.scroll, isClosed && styles.scrollRail)}>
+              <ShellPanes before={<Navigate pathname={pathname} />} isFitted />
+            </div>
+            <ColumnFoot pathname={pathname} />
           </div>
-          <ColumnFoot pathname={pathname} />
-        </div>
+        </ClosedRail>
       </nav>
       {isWide && !column.isFolded && (
         <ResizeHandle

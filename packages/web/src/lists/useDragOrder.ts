@@ -373,6 +373,7 @@ function useDragEvents<Section extends DragSection>(
     const key = String(event.operation.source?.id ?? "");
     const frame = frameOf(event.operation.source?.element);
     if (frame) {
+      // What `snapTo` wrote as the pointer moved (`dragDepth.ts`), let go as the drag ends.
       frame.style.translate = "";
     }
     const now = after.current;

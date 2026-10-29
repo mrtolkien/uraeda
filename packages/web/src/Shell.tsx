@@ -82,6 +82,9 @@ const styles = stylex.create({
     "--size-viewport-height": "calc(100dvh - var(--size-status-line))",
     paddingBlockEnd: "var(--size-status-line)",
   },
+  // The phone's bar out of the way: what sits on it, as the session's composer, follows it down
+  // (`SessionView.tsx`).
+  statusAway: { "--status-line-offset": "0px" },
   statusNarrow: {
     // On the phone, a row as tall as the tabs', which holds the page's controls, as a round's Next.
     "--size-status-line": spacingVars["--spacing-12"],
@@ -124,12 +127,15 @@ function UndoErrors() {
 function Frame({
   bottom,
   children,
+  isAway = false,
   isNarrow = false,
   start,
   top,
 }: {
   bottom?: ReactNode;
   children: ReactNode;
+  /** Whether the phone's bar is out of the way. */
+  isAway?: boolean;
   isNarrow?: boolean;
   start?: ReactNode;
   top?: ReactNode;
@@ -141,6 +147,7 @@ function Frame({
         styles.frame,
         status && styles.status,
         status && isNarrow && styles.statusNarrow,
+        isAway && styles.statusAway,
       )}
     >
       {top}
@@ -172,6 +179,8 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
   const narrow = isNarrow(width);
   // The phone's column, which the tabs' toggle opens over the page: it folds as a page opens.
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  // Whether the phone's bar slid out of the way, which the composer follows.
+  const [isBarAway, setBarAway] = useState(false);
   const pathname = useShellPath();
   const [sidebarPath, setSidebarPath] = useState(pathname);
   if (sidebarPath !== pathname) {
@@ -188,8 +197,11 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
               <Frame
                 // The phone has no bar but for a page's own controls: none takes no room there.
                 bottom={
-                  narrow && slot === null ? undefined : <StatusLine isNarrow={narrow} slot={slot} />
+                  narrow && slot === null ? undefined : (
+                    <StatusLine isNarrow={narrow} onAway={setBarAway} slot={slot} />
+                  )
                 }
+                isAway={isBarAway}
                 isNarrow={narrow}
                 start={
                   narrow ? (

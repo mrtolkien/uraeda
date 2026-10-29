@@ -13,16 +13,15 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ComponentProps, type ReactNode, createContext, use, useId, useRef } from "react";
+import { type ComponentProps, type ReactNode, use, useId, useRef } from "react";
 import { SinceSign, useSinceTitle } from "../sinceMarks.tsx";
+import { railPaneStyles, useClosedRail } from "./closedRail.ts";
+import { InPane, PaneContent } from "./paneContext.tsx";
 import { paneVars } from "./pane.stylex.ts";
 import { PaneSuffix } from "./PaneSuffix.tsx";
 import { useScrollMargin } from "./scrollMargin.ts";
 import { useActionsRoom } from "./useActionsRoom.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
-
-/** Whether a pane is inside another: there, it keeps its borders on the phone too. */
-const InPane = createContext(false);
 
 /**
  * What a pane's colour tells: it needs the human, it shows an example, or it holds a problem; a
@@ -260,15 +259,24 @@ function colours(isActive: boolean, tone: PaneTone | undefined) {
   return tone === undefined ? ([null, null] as const) : TONES[tone];
 }
 
-/** The pane's and its title's styles, by its state, its colours and `isTinted`'s background. */
-function looks(isActive: boolean, tone: PaneTone | undefined, isTinted: boolean) {
+/**
+ * The pane's and its title's styles, by its state, its colours, `isTinted`'s background, and the
+ * closed rail's look, `isRail`.
+ */
+function looks(isActive: boolean, tone: PaneTone | undefined, isTinted: boolean, isRail: boolean) {
   const [border, ink] = colours(isActive, tone);
+  // The closed rail's look over its colours: a separator for a frame, and no title.
+  const frame = isRail && railPaneStyles.pane;
+  const title = isRail && railPaneStyles.title;
   return isTinted
     ? ([
-        [border, styles.tinted],
-        [styles.tintedTitle, ink],
+        [border, styles.tinted, frame],
+        [styles.tintedTitle, ink, title],
       ] as const)
-    : ([border, ink] as const);
+    : ([
+        [border, frame],
+        [ink, title],
+      ] as const);
 }
 
 /** The title's room by the actions: the width it keeps free beside them, or its place under them. */
@@ -385,7 +393,7 @@ export function Pane({
   const own = useRef<HTMLElement>(null);
   const actionsBox = useRef<HTMLDivElement>(null);
   const beside = besideActions(useActionsRoom(own, actionsBox, actions !== undefined));
-  const [border, ink] = looks(isActive, tone, isTinted);
+  const [border, ink] = looks(isActive, tone, isTinted, useClosedRail());
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
   const isOpen = isOpenOnPhone && isNarrow(width) && !use(InPane);
@@ -407,7 +415,6 @@ export function Pane({
   return (
     <section
       aria-labelledby={titleId}
-      data-tone={tone}
       id={id}
       ref={own}
       role={isGroup ? "group" : undefined}
@@ -439,7 +446,7 @@ export function Pane({
           {actions}
         </div>
       )}
-      <PaneBody fold={fold}>{children}</PaneBody>
+      <PaneBody content={children} fold={fold} tone={tone} />
     </section>
   );
 }
@@ -472,9 +479,11 @@ function TitleWords({
 }
 
 /** A pane's content, open, as inside a pane; folded, not mounted, but its line that opens it. */
-function PaneBody({ children, fold }: { children: ReactNode; fold?: PaneFold }) {
+type BodyProps = { content: ReactNode; fold?: PaneFold | undefined; tone?: PaneTone | undefined };
+
+function PaneBody({ content, fold, tone }: BodyProps) {
   if (!fold || fold.isOpen) {
-    return <InPane value>{children}</InPane>;
+    return <PaneContent {...(tone ? { tone } : {})}>{content}</PaneContent>;
   }
   return (
     fold.folded !== undefined && (

@@ -47,6 +47,11 @@ const styles = stylex.create({
   barPhone: { top: spacingVars["--spacing-12"] },
 });
 
+const jumpStyles = stylex.create({
+  // The section jumped to stops below the bar, `margin` from the top.
+  margin: (margin: number) => ({ scrollMarginTop: margin }),
+});
+
 /** One section's rows, those `shows` keeps. */
 function Rows({
   category,
@@ -104,20 +109,29 @@ function SearchField({
 
 /**
  * Scrolls the section `id` names into view, unless the page has a place of its own to return to,
- * below the sticky `bar`, with room for the pane's title, which stands half over its border.
+ * below the sticky `bar`, with room for the pane's title, which stands half over its border. The
+ * room is measured once drawn, set on the section's scroll margin, and the scroll follows once it
+ * is: the jump, which the section's pane takes (`jumpStyles`).
  */
 function useScrollToSection(id: CategoryId | undefined, bar: RefObject<HTMLElement | null>) {
+  const [jump, setJump] = useState<{ margin: number | undefined; to: CategoryId }>();
   useLayoutEffect(() => {
     if (id === undefined || typeof currentEntry().scroll === "number") {
       return;
     }
-    const target = document.getElementById(sectionId(id));
-    if (target && bar.current) {
-      const stuckAt = Number.parseFloat(getComputedStyle(bar.current).top) || 0;
-      target.style.scrollMarginTop = `${stuckAt + bar.current.offsetHeight + 16}px`;
-    }
-    target?.scrollIntoView?.({ block: "start" });
+    const stuckAt = bar.current ? Number.parseFloat(getComputedStyle(bar.current).top) || 0 : 0;
+    // oxlint-disable-next-line react/set-state-in-effect -- the room is the bar's height, read only once drawn; the jump waits for it, and both happen before the page shows
+    setJump({
+      margin: bar.current ? stuckAt + bar.current.offsetHeight + 16 : undefined,
+      to: id,
+    });
   }, [bar, id]);
+  useLayoutEffect(() => {
+    if (jump) {
+      document.getElementById(sectionId(jump.to))?.scrollIntoView?.({ block: "start" });
+    }
+  }, [jump]);
+  return jump;
 }
 
 /**
@@ -139,7 +153,7 @@ export function SettingsView({
   const wide = !isNarrow(useWidthClass());
   const [text, setText] = useState(initialSearch);
   const bar = useRef<HTMLDivElement>(null);
-  useScrollToSection(id, bar);
+  const jump = useScrollToSection(id, bar);
   const search = <SearchField onChange={setText} text={text} wide={wide} />;
   const sections = CATEGORIES.map((category) => ({ category, shown: shownLabels(category, text) }))
     .filter(({ shown }) => shown.size > 0)
@@ -149,6 +163,9 @@ export function SettingsView({
         id={sectionId(category.id)}
         key={category.id}
         title={category.label}
+        xstyle={[
+          jump?.to === category.id && jump.margin !== undefined && jumpStyles.margin(jump.margin),
+        ]}
       >
         <Rows
           category={category}

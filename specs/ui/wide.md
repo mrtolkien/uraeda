@@ -7,6 +7,9 @@ page and its companions side by side.
 
 - **The sidebar** on the left, open, about 14% of the window and resizable, or folded to the rail
   with `[`, unfolding over the page on hover as on [semi-wide screens](semi-wide.md).
+- **Unfold**, folded, the rail's first button, above Commit and New: its icon alone in the rail, its
+  name too once the rail opens over the page. A click or a tap unfolds the sidebar, as `[` does. Its
+  room opens and closes as the sidebar's width eases, so the rows under it glide, never jump.
 - **The page** in the middle, centred on the screen, not on the room between the sidebars, as far as
   that room allows: "They should be center of _the whole screen_ when it's possible". A document
   page centres its panes, each as wide as about 80 characters of prose, two side by side sharing the

@@ -8,6 +8,7 @@ import { columnVars } from "../shell/column.stylex.ts";
 import { Suspense } from "react";
 import { useAgent } from "../data.ts";
 import { UsageWindow } from "../UsageWindow.tsx";
+import { useClosedRail } from "../layout/closedRail.ts";
 import { Pane } from "../layout/Pane.tsx";
 
 /** What is left, in percent, at which the allowance reads as nearly gone: `UsageWindow`'s too. */
@@ -24,8 +25,10 @@ const styles = stylex.create({
     height: "100%",
     width,
   }),
-  // The rail's bar: hidden but in the closed rail (`Column.tsx` shows `data-rail-only`), centred in
-  // the 38 px box the rail's rows have (`shell/column.stylex.ts`).
+  // The usage pane, gone in the closed rail, where the bar stands in for it.
+  gone: { display: "none" },
+  // The rail's bar: hidden but in the closed rail (`railShown`), centred in the 38 px box the
+  // rail's rows have (`shell/column.stylex.ts`).
   rail: {
     alignItems: "center",
     display: "none",
@@ -34,6 +37,7 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-2"],
     width: columnVars["--rail-row-box"],
   },
+  railShown: { display: "flex" },
   // The bar's track, in the border's colour.
   track: {
     backgroundColor: colorVars["--color-border"],
@@ -51,18 +55,19 @@ const styles = stylex.create({
 function Bar() {
   const agent = useAgent();
   const limit = agent?.fiveHourLimit;
+  const isRail = useClosedRail();
   if (!agent || !limit) {
     return null;
   }
   const remaining = Math.min(100, Math.max(0, 100 - limit.percentUsed));
   return (
     <>
-      <Pane isGroup title="Usage" xstyle={[styles.apart]}>
+      <Pane isGroup title="Usage" xstyle={[styles.apart, isRail && styles.gone]}>
         <VStack gap={1} xstyle={styles.usage}>
           <UsageWindow kind={agent.kind} limit={limit} name="5h" />
         </VStack>
       </Pane>
-      <div data-rail-only {...stylex.props(styles.rail)}>
+      <div data-rail-only {...stylex.props(styles.rail, isRail && styles.railShown)}>
         <div
           aria-label="5h allowance remaining"
           aria-valuemax={100}

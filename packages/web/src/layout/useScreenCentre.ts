@@ -26,6 +26,8 @@ function centre(page: HTMLElement): () => void {
   if (!parent) {
     return () => {};
   }
+  // Written on the element, not a StyleX style: it changes frame by frame while a column eases,
+  // where a render of the page each frame would stutter.
   const place = () => {
     page.style.marginInlineStart = `${marginOf(page, parent)}px`;
     page.style.marginInlineEnd = "0";

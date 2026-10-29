@@ -69,6 +69,8 @@ export function snapTo(
   }
   const left = list.getBoundingClientRect().left;
   const at = (from ?? left) + by;
+  // Written on the element, not a StyleX style: it follows the pointer frame by frame, outside the
+  // drag's renders.
   frame.style.translate = `${left + depth * tabOf() - at}px 0`;
 }
 

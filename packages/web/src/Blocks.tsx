@@ -4,7 +4,7 @@ import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
+import { type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Block, Document, Span } from "uraeda-binding";
 import { listStyles, ListNode } from "./BlockList.tsx";
 import { proseRhythm, proseStyles } from "./Prose.tsx";
@@ -21,6 +21,7 @@ import { opensImage, Spans } from "./Spans.tsx";
 import { EmbedNode } from "./EmbedNode.tsx";
 import { useMockupAt, useStoryAt } from "./stories.tsx";
 import { ruleStyles } from "./layout/rules.ts";
+import { tableVars } from "./layout/table.stylex.ts";
 
 /** A callout's title when it has none of its own, by its kind. */
 const CALLOUT_TITLES: Record<string, string> = {
@@ -83,6 +84,13 @@ const styles = stylex.create({
     minWidth: "100%",
     width: "max-content",
   },
+  // Into the margin, `--table-reach` past its text, as far as `room`, the screen's edge.
+  // Its widest as a property of its own, as the token lint takes a `var()` only whole, not in a
+  // calc.
+  reach: (room: number) => ({
+    "--table-widest": `min(calc(100% + var(--table-reach, ${tableVars["--table-reach-free"]})), ${room}px)`,
+    maxWidth: "var(--table-widest)",
+  }),
 });
 
 /** A callout's bar's colour, by its kind: the accent's for the others. */
@@ -141,22 +149,27 @@ function diagramPlace(block: Block, document: Document): Place {
  */
 function TableBlock({ block, context }: { block: Block; context: BlockContext }) {
   const ref = useRef<HTMLDivElement>(null);
+  // The room to the screen's edge, measured once drawn, before it shows, and as the window resizes.
+  const [room, setRoom] = useState<number>();
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) {
       return;
     }
-    const measure = () => {
-      const room = window.innerWidth - element.getBoundingClientRect().left - 16;
-      element.style.maxWidth = `min(calc(100% + var(--table-reach, 16rem)), ${Math.max(0, room)}px)`;
-    };
+    const measure = () =>
+      setRoom(Math.max(0, window.innerWidth - element.getBoundingClientRect().left - 16));
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, []);
+  // The table itself, drawn again only for its own changes, not as the window resizes.
+  const table = useMemo(() => <TableNode block={block} context={context} />, [block, context]);
   return (
-    <div {...stylex.props(styles.block, styles.table)} ref={ref}>
-      <TableNode block={block} context={context} />
+    <div
+      {...stylex.props(styles.block, styles.table, room !== undefined && styles.reach(room))}
+      ref={ref}
+    >
+      {table}
     </div>
   );
 }
