@@ -188,6 +188,7 @@ fn a_note_with_an_image_makes_a_single_proposal_file_a_folder_and_undo_takes_it_
     let repo = fixture_repo();
     add_dark_mode(&repo);
     api::commit_changes(repo.path()).unwrap();
+    repo.keep();
     let paths = [INBOX, PRIORITIES, LISTENER, DARK, IMAGE];
     let before = snapshot(&repo, &paths);
     let folder = "specs/proposals/git-listener/proposal.md";
@@ -293,6 +294,7 @@ fn add_slow_lists(repo: &TestRepo) {
     repo.write(INBOX, &inbox);
     repo.write(SLOW, SLOW_TEXT);
     repo.commit("chore: slow lists");
+    repo.keep();
 }
 
 /// Adds the note `text` to the proposal `id` of the priorities, which has no file, over both lists

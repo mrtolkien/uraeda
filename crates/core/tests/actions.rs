@@ -917,6 +917,7 @@ fn proposal_files_note_files_and_proposals_are_committed_with_the_skills_message
         &hash(&read(&main, file)),
     )
     .unwrap();
+    repo.keep();
     let committed = text::commit(&main, file).unwrap();
     assert_eq!(
         committed.change.subject,
@@ -924,6 +925,7 @@ fn proposal_files_note_files_and_proposals_are_committed_with_the_skills_message
     );
     let note = "specs/notes/benchmarks.md";
     text::save(&main, note, "# Benchmarks\n", &hash("")).unwrap();
+    repo.keep();
     let committed = text::commit(&main, note).unwrap();
     assert_eq!(committed.change.subject, "chore: add the note Benchmarks");
     text::save(
@@ -933,6 +935,7 @@ fn proposal_files_note_files_and_proposals_are_committed_with_the_skills_message
         &hash("# Benchmarks\n"),
     )
     .unwrap();
+    repo.keep();
     let committed = text::commit(&main, note).unwrap();
     assert_eq!(committed.change.subject, "chore: edit the note Benchmarks");
 

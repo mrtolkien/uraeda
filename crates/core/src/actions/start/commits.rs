@@ -98,7 +98,7 @@ impl Start<'_> {
         }
         paths.sort();
         // Written, so a failed commit stays here: switching back could carry the staged files away.
-        if let Err(error) = self.at.commit(&paths, &plan.start_subject, None) {
+        if let Err(error) = self.at.commit(&paths, &plan.start_subject, None, false) {
             return Err(partial(&done, self.left_after_write(plan), error));
         }
         Ok(())

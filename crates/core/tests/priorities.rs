@@ -301,6 +301,7 @@ fn the_priorities_commit_holds_the_inbox() {
     let repo = repo();
     repo.write("specs/INBOX.md", "# Inbox\n\n- An idea\n- A typo\n");
     repo.commit("chore: inbox");
+    repo.keep();
     let place = main_place(&repo);
     let inbox = uraeda_core::actions::inbox::read(&place);
     let read = actions::read(&place);

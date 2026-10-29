@@ -138,6 +138,12 @@ impl TestRepo {
         self.switch(&current);
     }
 
+    /// Keeps the latest commit as it is: a branch holds it, so the tools' next commit is one of
+    /// its own, never an amend of it.
+    pub fn keep(&self) {
+        self.git(&["branch", "--force", "kept"]);
+    }
+
     pub fn branch(&self, name: &str) {
         self.git(&["branch", name]);
     }

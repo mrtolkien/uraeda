@@ -375,6 +375,7 @@ fn a_moved_note_file_is_discarded_back_or_committed_as_a_move() {
     let repo = fixture_repo();
     add_with_image(&repo);
     api::commit_changes(repo.path()).unwrap();
+    repo.keep();
     let written = repo.read(&note_file());
     move_to_next(&repo);
 
@@ -856,6 +857,7 @@ fn a_committed_note_file_edited_since_survives_its_notes_removal_and_commit() {
     let repo = fixture_repo();
     add_with_image(&repo);
     api::commit_changes(repo.path()).unwrap();
+    repo.keep();
     let edited = repo
         .read(&note_file())
         .replace(&format!("# {NOTE}\n"), &format!("# {NOTE}\n\nMy eyes.\n"));
@@ -885,9 +887,11 @@ fn a_note_file_goes_into_the_notes_of_a_proposal_file_with_its_image() {
             &fixture_text("repo/main/specs/proposals/git-listener.md"),
         );
         repo.commit("chore: listener");
+        repo.keep();
         add_with_image(&repo);
         if committed {
             api::commit_changes(repo.path()).unwrap();
+            repo.keep();
         }
         let written = repo.read(&note_file());
         let (note, index) = noted(&repo);
