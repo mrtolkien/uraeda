@@ -1,6 +1,7 @@
 // The column's own parts, around the shell's panes of work: its heading with the logo and the
 // repository menu, New and Note, the Navigate pane with the inbox's and the priorities' ＋ and
 // counts, and at its foot the 5 h window and Settings. Folded to the rail, each row is its icon.
+import { NewMenu } from "./NewMenu.tsx";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -18,7 +19,7 @@ import { Allowance } from "../sidebar/Allowance.tsx";
 import { nowCount } from "../sidebar/entries.ts";
 import { Item } from "../sidebar/Row.tsx";
 import { DESTINATIONS } from "../destinations.ts";
-import { AddNoteButton, AddProposalButton, useOpenAddForm } from "../SidebarAdd.tsx";
+import { AddNoteButton, AddProposalButton } from "../SidebarAdd.tsx";
 import { columnVars } from "./column.stylex.ts";
 import { useColumnFold } from "./fold.ts";
 import { ShellPane } from "./ShellPanes.tsx";
@@ -146,46 +147,32 @@ function CommitAction({ isFolded }: { isFolded: boolean }) {
  * form. In the rail, Commit alone.
  */
 export function ColumnActions() {
-  const here = useRepoPath();
-  const open = useOpenAddForm();
   const { isFolded } = useColumnFold();
   return (
     <div {...stylex.props(styles.actions)}>
       <Suspense fallback={null}>
         <CommitAction isFolded={isFolded} />
       </Suspense>
-      {!isFolded && <NewAndNote here={here} open={open} />}
+      {!isFolded && <NewButton />}
     </div>
   );
 }
 
-/** New and Note, the two buttons that start something. */
-function NewAndNote({
-  here,
-  open,
-}: {
-  here: ReturnType<typeof useRepoPath>;
-  open: ReturnType<typeof useOpenAddForm>;
-}) {
+/** New, the button that starts something: its menu asks what (`NewMenu`). */
+function NewButton() {
   return (
-    <>
-      <Button
-        data-rail-fit
-        href={here("/new")}
-        icon={<Icon icon="uraeda:plus" />}
-        label="New"
-        variant="primary"
-        xstyle={styles.action}
-      />
-      <Button
-        data-rail-fit
-        icon={<Icon icon="uraeda:pencil" />}
-        label="Note"
-        onClick={() => open("note")}
-        variant="secondary"
-        xstyle={styles.action}
-      />
-    </>
+    <NewMenu
+      trigger={(props) => (
+        <Button
+          data-rail-fit
+          icon={<Icon icon="uraeda:plus" />}
+          label="New"
+          variant="primary"
+          xstyle={styles.action}
+          {...props}
+        />
+      )}
+    />
   );
 }
 

@@ -12,6 +12,7 @@ import { type ComponentProps, Suspense } from "react";
 import { useInbox, usePriorities } from "../data.ts";
 import { useRepoPath } from "../routes.tsx";
 import { DESTINATIONS } from "../destinations.ts";
+import { NewMenu } from "./NewMenu.tsx";
 import { useNavigation } from "../sessionData.ts";
 import { needsYouEntries, runningSessions } from "../sidebar/entries.ts";
 import { selects } from "../sidebar/Row.tsx";
@@ -221,12 +222,16 @@ export function Tabs({
       <Suspense fallback={null}>
         <CommitTab isCurrent={at(DESTINATIONS.commit.path)} />
       </Suspense>
-      <Tab
-        icon={DESTINATIONS.new.icon}
-        isCurrent={at(DESTINATIONS.new.path)}
-        label={DESTINATIONS.new.label}
-        to={DESTINATIONS.new.path}
-        variant="primary"
+      <NewMenu
+        trigger={(props) => (
+          <IconButton
+            aria-current={at(DESTINATIONS.new.path) ? "page" : undefined}
+            icon={<Icon icon={DESTINATIONS.new.icon} />}
+            label={DESTINATIONS.new.label}
+            variant={at(DESTINATIONS.new.path) ? "secondary" : "primary"}
+            {...props}
+          />
+        )}
       />
     </nav>
   );
