@@ -22,7 +22,7 @@ mod unlink;
 
 pub use categories::{add_category, remove_category, rename_category, restore_category};
 pub use image::{NoteImage, add_with_image, attach_to_note, with_images};
-pub use moves::{into_proposal, to_proposal, to_proposal_file, under_proposal};
+pub use moves::{into_proposal, into_proposal_line, to_proposal, to_proposal_file, under_proposal};
 pub(crate) use note_file::{
     back_to_notes, committed as committed_note_file, restore as restore_note_file,
 };

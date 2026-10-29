@@ -300,3 +300,21 @@ pub fn remove_linked(text: &str, path: &str) -> Option<(String, String)> {
     .ok()?;
     Some((without, name?))
 }
+
+/// Puts `lines`, a proposal's lines as written, back in place of the first proposal whose link
+/// leads to `path`, from the top level: the Undo of [`link`]. `None` when no proposal links it, or
+/// when the proposal has nested lines since, which would go with it.
+pub fn unlink(text: &str, path: &str, lines: &[String]) -> Option<String> {
+    super::super::with_unix_newlines(text, |text| {
+        let proposal = parse(text)
+            .into_iter()
+            .find(|proposal| {
+                (proposal.link.as_deref()).and_then(|link| crate::workspace::resolve("specs", link))
+                    == Some(path.to_string())
+            })
+            .filter(|proposal| proposal.item.text_end == proposal.item.end)
+            .ok_or(())?;
+        Ok::<_, ()>(lines::replace(text, &proposal.item, lines))
+    })
+    .ok()
+}

@@ -83,6 +83,31 @@ pub fn create(place: &Place, id: &str) -> Result<Expanded, ActionError> {
     expand_line(place, &text, proposal)
 }
 
+/// What expanding the proposal `proposal` of the priorities `text` into a file at `path` writes,
+/// without writing it: the file's text, from the template, the line as its title and What, its
+/// nested lines after it; and the priorities with the line a link to the file, alone. Refused when
+/// the line links a file already.
+pub(crate) fn expanded(
+    text: &str,
+    proposal: &Proposal,
+    path: &str,
+) -> Result<(String, String), ActionError> {
+    if let Some(link) = &proposal.link {
+        return Err(ActionError::Refused(format!(
+            "{} already links {link}",
+            proposal.text
+        )));
+    }
+    let content = from_note(path, &proposal.text, &proposal.nested(text));
+    if content.is_empty() {
+        return Err(ActionError::Refused("no proposal template".into()));
+    }
+    let target = path.trim_start_matches("specs/");
+    let linked = priorities::link(text, proposal.line, target)
+        .ok_or_else(|| ActionError::Refused("cannot link the proposal".into()))?;
+    Ok((content, linked))
+}
+
 fn expand_line(place: &Place, text: &str, proposal: &Proposal) -> Result<Expanded, ActionError> {
     let priorities_path = place.root.join(PRIORITIES);
     if let Some(link) = &proposal.link {
@@ -96,13 +121,7 @@ fn expand_line(place: &Place, text: &str, proposal: &Proposal) -> Result<Expande
     if file.exists() {
         return Err(ActionError::Refused(format!("{path} exists")));
     }
-    let content = from_note(&path, &proposal.text, &proposal.nested(text));
-    if content.is_empty() {
-        return Err(ActionError::Refused("no proposal template".into()));
-    }
-    let target = path.trim_start_matches("specs/");
-    let linked = priorities::link(text, proposal.line, target)
-        .ok_or_else(|| ActionError::Refused("cannot link the proposal".into()))?;
+    let (content, linked) = expanded(text, proposal, &path)?;
     fs::create_dir_all(file.parent().unwrap_or(&place.root))?;
     fs::write(&file, content)?;
     fs::write(&priorities_path, linked)?;

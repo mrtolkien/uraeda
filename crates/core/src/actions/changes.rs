@@ -115,6 +115,32 @@ fn item_link(path: &str, markdown: &str) -> Option<String> {
     crate::workspace::resolve(folder, &link?)
 }
 
+/// Takes out of `proposals` the edit that made a line of the priorities a link to the proposal file
+/// at `path`, its text unchanged: the line `linked` has now.
+fn take_linked(
+    proposals: &mut [Option<ProposalChange>],
+    linked: &[priorities::Proposal],
+    path: &str,
+) {
+    let links_path = |text: &str| {
+        linked.iter().any(|proposal| {
+            proposal.text == text
+                && proposal
+                    .link
+                    .as_deref()
+                    .and_then(|link| crate::workspace::resolve("specs", link))
+                    .is_some_and(|linked| linked == path)
+        })
+    };
+    let found = proposals.iter_mut().find(|change| {
+        matches!(change, Some(ProposalChange::Edited { before, after, .. })
+            if before == after && links_path(after))
+    });
+    if let Some(found) = found {
+        *found = None;
+    }
+}
+
 /// Each change, a removed note paired with a proposal or a proposal file's item of the same text as
 /// a move, and the files those moves and the added notes went into, or the removed notes left.
 fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Found) {
@@ -154,6 +180,8 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Found) {
                 && let Some((undo, path, title)) = take_note(grown, text)
             {
                 changes.push(moved_out(text, &format!("the proposal {title}")));
+                // A line given its file for the note: its link is part of the move.
+                take_linked(&mut proposals, &linked_proposals, &path);
                 found.removed(place, note);
                 found.undo.push(undo);
                 found.paths.push(path);

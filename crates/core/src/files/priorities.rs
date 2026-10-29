@@ -12,7 +12,7 @@ pub use outline::{Drop, append_under, drop_item, outline, remove_under};
 
 pub use edits::{
     add, add_started, edit, insert_proposal, link, move_proposal, move_to_started, remove,
-    remove_added, remove_linked, remove_written,
+    remove_added, remove_linked, remove_written, unlink,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
@@ -120,6 +120,15 @@ impl Proposal {
             .map(String::from)
             .collect();
         lines::dedented(&lines)
+    }
+
+    /// Its lines in `text`, the text it was parsed from, as written, nested lines included.
+    pub fn written(&self, text: &str) -> Vec<String> {
+        text.lines()
+            .skip(self.line - 1)
+            .take(self.item.end + 1 - self.line)
+            .map(String::from)
+            .collect()
     }
 }
 

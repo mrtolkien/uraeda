@@ -170,6 +170,34 @@ pub fn to_proposal_file(
     Ok(path)
 }
 
+/// Adds a note with a note file to the proposal of `PRIORITIES.md` with the id `proposal`, like
+/// `later-2`, which links no file yet, and takes it out of the inbox: the proposal gets its file
+/// first, from the template, under a free name, its line linking it, then the note file's text
+/// goes into its `## Notes`, as [`into_proposal`] adds it to any proposal file (see
+/// [`merge::into_new`]). Both lists are checked against the versions read before anything is
+/// written. Returns the new proposal file's path.
+pub fn into_proposal_line(
+    place: &Place,
+    id: &str,
+    proposal: &str,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<String, ActionError> {
+    let (inbox, priorities) = both(place, previous, priorities_previous)?;
+    let line = priorities::parse(&priorities)
+        .into_iter()
+        .find(|line| format!("{}-{}", line.section.id(), line.position) == proposal)
+        .ok_or_else(|| ActionError::Refused(format!("no proposal {proposal}")))?;
+    let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
+    let file = movable(place, &inbox, &note).ok_or_else(|| {
+        ActionError::Refused(format!(
+            "{} has no note file to go into a proposal's file.",
+            note.text
+        ))
+    })?;
+    merge::into_new(place, &inbox, &priorities, id, &file, &line)
+}
+
 /// The text of the proposal file or the note file at `path`, from the top level, refused when it
 /// is neither.
 pub(super) fn file_text(place: &Place, path: &str) -> Result<String, ActionError> {

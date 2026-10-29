@@ -7,14 +7,16 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use crate::files::inbox;
+use crate::files::priorities::{self, Proposal};
 use crate::files::proposal;
 use crate::files::retarget;
 
 use super::super::ActionError;
 use super::super::attach;
-use super::super::expand::INBOX_FOLDER;
+use super::super::expand::{self, INBOX_FOLDER, PROPOSALS};
 use super::super::images::{folder_of, in_place};
 use super::super::place::Place;
+use super::super::priorities::PATH as PRIORITIES;
 use super::{PATH, no_note, note_file, write_both};
 
 /// An add of a note file to a proposal file, what its Undo takes back: the repository's root, the
@@ -28,6 +30,16 @@ struct Merged {
     single: Option<String>,
     inserted: String,
     images: Vec<(String, String)>,
+    created: Option<Created>,
+}
+
+/// A proposal file an add made for a line of the priorities that had none, for the note to go
+/// into: the text it was written with, from the template, and the line's lines as they were before
+/// it linked the file, which its Undo puts back.
+#[derive(Clone)]
+struct Created {
+    written: String,
+    lines: Vec<String>,
 }
 
 /// The adds of note files to proposal files, newest last. Only the latest few are kept: an Undo
@@ -240,9 +252,76 @@ pub(super) fn merge(
         single,
         inserted: inserted(text, &edited),
         images: copied,
+        created: None,
     });
     let over = held.len().saturating_sub(KEPT);
     held.drain(..over);
+    Ok(target)
+}
+
+/// Adds the note `id` of the inbox text `inbox`, whose note file is `file`, to the proposal `line`
+/// of the priorities text `priorities`, which links no file: the line gets its proposal file
+/// first, as expanding it writes one (see [`expand::expanded`]), under a free name in
+/// `specs/proposals/`, a folder's `proposal.md` when the note file has images for it, and links
+/// it; then the note goes into it, as [`merge`] adds it to any proposal file. Held for [`undo`],
+/// which unlinks the line and deletes the file too. Returns the proposal file's path. Nothing is
+/// left half written when a step fails.
+pub(super) fn into_new(
+    place: &Place,
+    inbox: &str,
+    priorities: &str,
+    id: &str,
+    file: &str,
+    line: &Proposal,
+) -> Result<String, ActionError> {
+    let images = images_of(place, file)?;
+    let name = expand::free_name(place, PROPOSALS, &line.text);
+    let path = if images.is_empty() {
+        format!("{PROPOSALS}/{name}.md")
+    } else {
+        format!("{PROPOSALS}/{name}/proposal.md")
+    };
+    let (written, linked) = expand::expanded(priorities, line, &path)?;
+    let lines = line.written(priorities);
+    let full = place.root.join(&path);
+    fs::create_dir_all(full.parent().unwrap_or(&place.root))?;
+    // `create_new` claims the name, even when another process claims it at the same time.
+    let made = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&full)
+        .and_then(|mut new| std::io::Write::write_all(&mut new, written.as_bytes()));
+    // Takes back the file, and its folder once empty.
+    let remove = || {
+        let _ = fs::remove_file(&full);
+        if let Some(folder) = folder_of(&path) {
+            let _ = fs::remove_dir(place.root.join(folder));
+        }
+    };
+    if let Err(error) = made {
+        remove();
+        return Err(error.into());
+    }
+    if let Err(error) = fs::write(place.root.join(PRIORITIES), &linked) {
+        let _ = fs::write(place.root.join(PRIORITIES), priorities);
+        remove();
+        return Err(error.into());
+    }
+    let target = match merge(place, inbox, id, file, &path, &written) {
+        Ok(target) => target,
+        Err(error) => {
+            let _ = fs::write(place.root.join(PRIORITIES), priorities);
+            remove();
+            return Err(error);
+        }
+    };
+    let root = root_of(place);
+    if let Some(kept) = merged()
+        .iter_mut()
+        .rfind(|kept| kept.root == root && kept.note == file)
+    {
+        kept.created = Some(Created { written, lines });
+    }
     Ok(target)
 }
 
@@ -270,7 +349,7 @@ pub(super) fn undo(
     gone: impl Fn() -> ActionError,
 ) -> Result<(), ActionError> {
     let root = root_of(place);
-    let (proposal, inserted, single, images) = {
+    let (proposal, inserted, single, images, created) = {
         let held = merged();
         let kept = held
             .iter()
@@ -281,11 +360,19 @@ pub(super) fn undo(
             kept.inserted.clone(),
             kept.single.clone(),
             kept.images.clone(),
+            kept.created.clone(),
         )
     };
     let written = fs::read_to_string(place.root.join(&proposal)).map_err(|_| gone())?;
     let at = written.rfind(&inserted).ok_or_else(&gone)?;
     let without = format!("{}{}", &written[..at], &written[at + inserted.len()..]);
+    // A proposal file the add made, still as it wrote it, leaves, and its line is unlinked again.
+    let unlinked = created
+        .filter(|created| created.written == without)
+        .and_then(|created| {
+            let text = fs::read_to_string(place.root.join(PRIORITIES)).ok()?;
+            priorities::unlink(&text, &proposal, &created.lines)
+        });
     let unit = note_file::unit(note_file);
     if place.root.join(unit).exists() {
         return Err(ActionError::Refused(format!(
@@ -298,8 +385,24 @@ pub(super) fn undo(
         )));
     }
     note_file::restore(place, note_file)?;
-    if let Err(error) = write_both(place, &proposal, &without, back) {
+    let priorities_before = fs::read_to_string(place.root.join(PRIORITIES)).ok();
+    // Takes back what was written so far when a later write fails.
+    let back_out = || {
+        if unlinked.is_some()
+            && let Some(before) = &priorities_before
+        {
+            let _ = fs::write(place.root.join(PRIORITIES), before);
+        }
         let _ = note_file::remove(place, note_file);
+    };
+    if let Some(unlinked) = &unlinked
+        && let Err(error) = fs::write(place.root.join(PRIORITIES), unlinked)
+    {
+        back_out();
+        return Err(error.into());
+    }
+    if let Err(error) = write_both(place, &proposal, &without, back) {
+        back_out();
         return Err(error);
     }
     merged().retain(|kept| !(kept.root == root && kept.note == note_file));
@@ -312,9 +415,12 @@ pub(super) fn undo(
         .collect();
     remove_copies(place, &unchanged);
     // The Undo is whole once both files are written: a folder that cannot become a single file
-    // again stays a folder, which loses nothing.
+    // again stays a folder, and a file that cannot be deleted stays unlinked, which loses nothing.
     if let Some(single) = single {
         let _ = attach::to_file(place, &proposal, &single);
+    }
+    if unlinked.is_some() {
+        let _ = expand::remove_written(place, &proposal, &[without]);
     }
     Ok(())
 }

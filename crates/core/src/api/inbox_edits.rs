@@ -249,6 +249,28 @@ pub fn note_into_proposal(repo: &Path, id: &str, proposal: &str, previous: &str)
     Ok(edits::into_proposal(&place, id, proposal, previous)?)
 }
 
+/// Adds a note with a note file to the proposal of `PRIORITIES.md` with the id `proposal`, like
+/// `later-2`, which has no file yet: the proposal gets its file, from the template, linked from its
+/// line, and the note file's text goes into its `## Notes`, over both lists as read. Returns the new
+/// proposal file's path.
+pub fn note_into_proposal_line(
+    repo: &Path,
+    id: &str,
+    proposal: &str,
+    previous: &str,
+    priorities_previous: &str,
+) -> Result<String> {
+    let _lock = write_lock();
+    let place = reach_default(repo)?;
+    Ok(edits::into_proposal_line(
+        &place,
+        id,
+        proposal,
+        previous,
+        priorities_previous,
+    )?)
+}
+
 /// An image sent with a note: its bytes, and its original file name, `None` for a pasted image.
 pub type NoteImage = (Vec<u8>, Option<String>);
 
