@@ -18,7 +18,6 @@ import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
-import { useMenuPresentation } from "./layout/useWidthClass.ts";
 import {
   type AddInput,
   addedNote,
@@ -59,7 +58,6 @@ function CategoryField({
   onCategory: (category: string) => void;
   onName: (name: string) => void;
 }) {
-  const presentation = useMenuPresentation();
   return (
     <>
       <Selector
@@ -71,7 +69,7 @@ function CategoryField({
           { type: "divider" as const },
           { label: "New category…", value: NEW },
         ]}
-        presentation={presentation}
+        presentation="popover"
         value={category}
       />
       {category === NEW && (
