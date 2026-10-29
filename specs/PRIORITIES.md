@@ -6,6 +6,8 @@
 >
 > Features for v1.0.0
 
+- [Amend the latest commit if the commit touches only workflow files (proposals/not](/specs/changes/2026-10-29-amend-latest/proposal.md)
+
 - [Phone bottom bars on more pages](proposals/phone-bottom-bars.md)
 
 - Amend the latest commit if the commit touches only workflow files (proposals/notes)
