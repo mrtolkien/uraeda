@@ -259,7 +259,8 @@ pub fn edit(
 }
 
 /// Edits the outline of a note: the note, or with `at`, the item at `at` of its nested items in the
-/// order of the file (see [`inbox::outline`]).
+/// order of the file (see [`inbox::outline`]). The note itself removed is a [`remove`]: its note
+/// file goes with it, held for the removal's Undo.
 pub fn outline(
     place: &Place,
     id: &str,
@@ -267,6 +268,9 @@ pub fn outline(
     change: &crate::files::nested::OutlineEdit,
     previous: Option<&str>,
 ) -> Result<Inbox, ActionError> {
+    if at.is_none() && *change == crate::files::nested::OutlineEdit::Remove {
+        return remove(place, id, previous);
+    }
     apply(
         place,
         previous,

@@ -4,8 +4,9 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
-import { rereadChanges } from "./data.ts";
+import { readInbox, rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { deleteNote } from "./fields/Confirm.tsx";
 import { useInboxImages } from "./InboxImages.tsx";
 import { type Inbox, panesOf, sectionId } from "./inboxPanes.ts";
 import { type Actions, useCategoryKeys, useMovePicker, usePromote } from "./InboxPickers.tsx";
@@ -13,6 +14,7 @@ import { CategoryTitle, DeleteCategoryButton } from "./lists/CategoryPane.tsx";
 import { useOutline } from "./lists/useOutline.tsx";
 import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
 import { plural } from "./labels.ts";
+import { useUndoToast } from "./layout/useUndoToast.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import type { Placed } from "./useNoteActions.ts";
@@ -197,6 +199,47 @@ function useInboxOutline(
 type InboxOutline = ReturnType<typeof useInboxOutline>["outline"];
 
 /**
+ * The Undo of a note's delete: its lines go back to its place, over the inbox as it is now, and the
+ * core writes back the note file the delete took away.
+ */
+async function putBack(
+  fate: ReturnType<typeof useFateClient>,
+  { category, index, note }: Placed,
+): Promise<string | undefined> {
+  const now = await readInbox(fate);
+  const result = await fate.mutations.inbox.insert({
+    input: {
+      hash: now.hash,
+      index,
+      lines: note.lines,
+      ...(category === undefined ? {} : { category }),
+    },
+    view: InboxView,
+  });
+  rereadChanges(fate);
+  return result.error ? refusal(result.error).message : undefined;
+}
+
+/**
+ * `d`, confirmed: the outline deletes the row, and a note's note file goes with it. A note, not a
+ * nested row, gets a toast with Undo, which puts back both. `placedOf` is each note's place, by its
+ * row's key.
+ */
+function useNoteDelete(outline: InboxOutline) {
+  const fate = useFateClient();
+  const toast = useUndoToast();
+  return (placedOf: ReadonlyMap<string, Placed>) => async (row: WorkRow) => {
+    const placed = placedOf.get(row.key);
+    const isDeleted = await outline.onDelete(row);
+    if (isDeleted && placed) {
+      // The note file may have stayed, edited and not committed: the toast names the note alone.
+      toast("Deleted the note", () => putBack(fate, placed));
+    }
+    return isDeleted;
+  };
+}
+
+/**
  * The sections the list draws, from the `outline`: each category's notes, then its Add row. A
  * category's title renames it in place, `renaming` when its pick opens it, and its menu deletes it.
  * With them, each note's place, by its row's key, what `p` acts on, and each Add row's section, by
@@ -236,6 +279,7 @@ function sectionsOf({
             menu: (
               <DeleteCategoryButton
                 count={section.items.length}
+                files={section.items.flatMap((item) => item.source?.file ?? [])}
                 name={name}
                 onRefused={onRefused}
                 onRemove={actions.remove}
@@ -260,6 +304,9 @@ function sectionsOf({
           placedOf.set(item.key, { category: name, index, note });
           const row: WorkRow = {
             ...drawn,
+            ...(note.file === undefined
+              ? {}
+              : { deleting: deleteNote(item.text, note.file, note.images.length > 0) }),
             // A note with a note file opens its file's page, as a proposal with a file does.
             editsInPlace: isWritten && note.file === undefined,
             href,
@@ -331,6 +378,7 @@ export function InboxList({
   const categoryOf = (section: string) =>
     categories.find((category) => sectionId(category.name) === section)?.name;
   const { onMove, outline } = useInboxOutline(inbox, run, onRefused, categoryOf);
+  const deleteOf = useNoteDelete(outline);
   const images = useInboxImages({ categoryOf, inbox, onRefused, outline });
   const follow = useFollow(outline.follow, select);
   const moving = useMovePicker(categories);
@@ -367,7 +415,7 @@ export function InboxList({
         <WorkList
           follow={follow}
           onAddBeside={(_section, row, isAbove) => outline.onAddBeside(row, isAbove)}
-          onDelete={outline.onDelete}
+          onDelete={deleteOf(placedOf)}
           onMove={onMove}
           onNest={outline.onNest}
           onOpen={open}

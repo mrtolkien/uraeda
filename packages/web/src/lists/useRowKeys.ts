@@ -159,7 +159,10 @@ function promoteKey(
   };
 }
 
-/** `d`: the line selected, and deleted by `onDelete` once the human confirmed it. */
+/**
+ * `d`: the line selected, and deleted by `onDelete` once the human confirmed it, asked the row's own
+ * question when it has one.
+ */
 function deleteKey(
   rows: ReadonlyArray<WorkRow>,
   select: (key: string) => void,
@@ -177,7 +180,7 @@ function deleteKey(
       }
       select(row.key);
       // The question takes `d` again for yes: `d d` deletes, as `y` does.
-      void confirm(deleteLine(row.text)).then((isConfirmed) => {
+      void confirm(row.deleting ?? deleteLine(row.text)).then((isConfirmed) => {
         if (isConfirmed) {
           onDelete(row);
         }

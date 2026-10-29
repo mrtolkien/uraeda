@@ -128,7 +128,12 @@ export function useCategoryKeys(
       return;
     }
     if (choosing === "delete") {
-      void deleting.start(name, category?.notes.length ?? 0);
+      const notes = category?.notes ?? [];
+      void deleting.start(
+        name,
+        notes.length,
+        notes.flatMap((note) => note.file ?? []),
+      );
     } else {
       setRenaming((before) => ({ count: (before?.count ?? 0) + 1, name }));
     }

@@ -2,14 +2,14 @@
 // answer: Cancel first and focused, then "No, keep the notes", then the destructive "Yes, delete
 // the notes". Each button and each key, `c`, `n`, and `y`, resolves the question with its answer,
 // once the question's history entry is gone. The category's pane reaches it by its delete button.
-import { writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Button } from "@astryxdesign/core/Button";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { ConfirmHost, useConfirm } from "../fields/Confirm.tsx";
 import { deleteCategory } from "../lists/CategoryPane.tsx";
-import { atWidth, fixtureRepo, read, renderPage } from "./helpers.tsx";
+import { atWidth, fixtureRepo, git, read, renderPage } from "./helpers.tsx";
 
 const TITLE = "Delete the category UI";
 const INBOX = "specs/INBOX.md";
@@ -113,4 +113,31 @@ test("a category's delete button asks, and No keeps its notes under No category"
   });
   await waitFor(() => expect(read(repo, INBOX)).not.toContain("## UI"));
   expect(read(repo, INBOX)).toContain("- One");
+});
+
+test("a category's delete names its notes' note files, and Yes deletes them with the notes", async () => {
+  const repo = fixtureRepo();
+  const file = "specs/notes/sort-tasks/note.md";
+  writeFileSync(
+    join(repo, INBOX),
+    "# Inbox\n\n## UI\n\n- One\n- [Sort tasks](notes/sort-tasks/note.md)\n",
+  );
+  mkdirSync(join(repo, "specs/notes/sort-tasks"), { recursive: true });
+  writeFileSync(join(repo, file), "# Sort tasks\n");
+  git(repo, "add", "-A");
+  git(repo, "commit", "--quiet", "-m", "chore: a note with a note file");
+  await renderPage("/inbox", repo);
+  await screen.findByRole("heading", { name: "UI · 2" });
+  await act(async () => {
+    fireEvent.click(await screen.findByRole("button", { name: "Delete category UI" }));
+  });
+  const dialog = await screen.findByRole("dialog", { name: TITLE });
+  expect(
+    within(dialog).getByText(new RegExp(`Yes deletes their note file too: ${file}\\.`)),
+  ).toBeTruthy();
+  await act(async () => {
+    fireEvent.keyDown(document.body, { key: "y" });
+  });
+  await waitFor(() => expect(read(repo, INBOX)).not.toContain("## UI"));
+  expect(existsSync(join(repo, file))).toBe(false);
 });

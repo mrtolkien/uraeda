@@ -65,6 +65,22 @@ export function deleteLine(text: string): ConfirmOptions {
   };
 }
 
+/**
+ * What `d` asks on a note of the inbox with a note file, `file`, before it deletes both: the note's
+ * folder goes, its images with it, unless the file has changes of its own not committed.
+ */
+export function deleteNote(text: string, file: string, hasImages: boolean): ConfirmOptions {
+  return {
+    body: text,
+    cancel: "Keep both",
+    confirm: "Delete both",
+    confirmKey: "d",
+    destructive: true,
+    detail: `Its note file, ${file}, is deleted with it${hasImages ? ", images included" : ""}. A note file edited since and not committed stays.`,
+    title: "Delete this note and its note file?",
+  };
+}
+
 /** What Escape or Cancel asks on a changed line, quick add, or slug: fields that are not comments. */
 export const DISCARD_CHANGES: ConfirmOptions = {
   body: "The text you typed is deleted.",

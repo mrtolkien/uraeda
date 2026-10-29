@@ -65,10 +65,16 @@ export function CategoryTitle({
 }
 
 /**
- * What a category's delete asks, `name` holding `count` notes: Yes, `y`, deletes them; No, `n`,
- * keeps them under no category; Cancel, `c`, Close, Escape, and Back change nothing.
+ * What a category's delete asks, `name` holding `count` notes: Yes, `y`, deletes them, and the note
+ * files `files` they link, which it names; No, `n`, keeps them under no category; Cancel, `c`,
+ * Close, Escape, and Back change nothing.
  */
-export function deleteCategory(name: string, count: number): ConfirmOptions<"keep"> {
+export function deleteCategory(
+  name: string,
+  count: number,
+  files: ReadonlyArray<string> = [],
+): ConfirmOptions<"keep"> {
+  const keeps = "No keeps the notes, in their order, under No category.";
   return {
     answers: [{ key: "n", label: "No, keep the notes", value: "keep" }],
     body: `Delete the ${plural(count, "note")} too?`,
@@ -76,7 +82,10 @@ export function deleteCategory(name: string, count: number): ConfirmOptions<"kee
     cancelKey: "c",
     confirm: "Yes, delete the notes",
     destructive: true,
-    detail: "No keeps the notes, in their order, under No category.",
+    detail:
+      files.length === 0
+        ? keeps
+        : `Yes deletes their ${files.length === 1 ? "note file" : "note files"} too: ${files.join(", ")}. ${keeps}`,
     title: `Delete the category ${name}`,
   };
 }
@@ -85,7 +94,7 @@ export function deleteCategory(name: string, count: number): ConfirmOptions<"kee
  * A category's delete, from its button or a key: with notes it asks first (`deleteCategory`); an
  * empty category goes at once, with its Undo, as there is nothing to ask about. `onRemove` writes
  * the delete, keeping the notes or not, and resolves with the refusal's message to show, if any.
- * Returns what starts it, for a category and its count of notes.
+ * Returns what starts it, for a category, its count of notes, and the note files they link.
  */
 export function useCategoryDelete(
   onRemove: (name: string, keepNotes: boolean) => Promise<string | undefined>,
@@ -98,8 +107,8 @@ export function useCategoryDelete(
   };
   // The answer comes once the question's history entry is gone: the page's own Back must not undo
   // what follows.
-  const start = async (name: string, count: number) => {
-    const answer = count === 0 ? true : await confirm(deleteCategory(name, count));
+  const start = async (name: string, count: number, files: ReadonlyArray<string> = []) => {
+    const answer = count === 0 ? true : await confirm(deleteCategory(name, count, files));
     if (answer !== false) {
       remove(name, answer === "keep");
     }
@@ -113,11 +122,14 @@ export function useCategoryDelete(
  */
 export function DeleteCategoryButton({
   count,
+  files,
   name,
   onRefused,
   onRemove,
 }: {
   count: number;
+  /** The note files its notes link, which a delete of its notes takes with them. */
+  files: ReadonlyArray<string>;
   name: string;
   onRefused: (message: string | undefined) => void;
   onRemove: (name: string, keepNotes: boolean) => Promise<string | undefined>;
@@ -128,7 +140,7 @@ export function DeleteCategoryButton({
       icon={<Icon icon="uraeda:trash" />}
       isIconOnly
       label={`Delete category ${name}`}
-      onClick={() => void start(name, count)}
+      onClick={() => void start(name, count, files)}
       size="sm"
       tooltip="Delete category"
       variant="ghost"

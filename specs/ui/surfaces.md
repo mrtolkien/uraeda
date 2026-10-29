@@ -78,7 +78,8 @@ Two jobs only:
   answered by `y` or `n`, its focus on Cancel: deleting, discarding uncommitted changes, dropping
   typed text. "Make sure every cancel modal uses the same window." A question with more than two
   answers, like deleting a category that holds notes, is the same confirmation with one more answer
-  and its key.
+  and its key. A delete that takes a file with it says so: `d` on a note with a note file asks
+  "Delete this note and its note file?", naming the file.
 - **One short question at a decision point**: a single field, with a suggestion at most, like a new
   feature's slug after `Ctrl+Enter`, or a quick note.
 
@@ -90,9 +91,10 @@ exist?" A proposal file opens its page, not an overlay. On the phone a dialog is
 
 A write the human may regret, but that needs no question first, like a note promoted out of the
 inbox or an empty category deleted, shows a toast with Undo for 5 seconds
-(`layout/useUndoToast.ts`); `u` presses the newest one's Undo. Committing clears them. A toast is
-for this, and for a confirmation from another page, never for an error, which stays next to what it
-concerns.
+(`layout/useUndoToast.ts`); `u` presses the newest one's Undo. A note of the inbox deleted with `d`
+gets one too, after its question: Undo puts back the note and the note file that went with it.
+Committing clears them. A toast is for this, and for a confirmation from another page, never for an
+error, which stays next to what it concerns.
 
 ## Pages
 

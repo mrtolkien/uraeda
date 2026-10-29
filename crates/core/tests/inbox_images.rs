@@ -448,6 +448,46 @@ fn a_removed_notes_file_comes_back_byte_for_byte_on_undo() {
     assert_eq!(std::fs::read(&image).unwrap(), bytes);
 }
 
+/// A note deleted as the outline deletes a row, the web UI's `d`, takes its note file with it,
+/// image included, as a removal does; Undo, which inserts the note's lines back, writes the file
+/// back byte for byte.
+#[test]
+fn a_note_deleted_by_the_outline_takes_its_file_and_undo_brings_it_back() {
+    let repo = fixture_repo();
+    add_with_image(&repo);
+    let written = repo.read(&note_file());
+    let image = repo
+        .path()
+        .join(format!("specs/notes/{SLUG}/images/spec-headings.webp"));
+    let bytes = std::fs::read(&image).unwrap();
+    let (note, index) = noted(&repo);
+    let hash = api::read_inbox(repo.path()).unwrap().hash;
+
+    let removed = api::outline_note(repo.path(), &note.id, None, "remove", None, &hash).unwrap();
+
+    assert!(!repo.read(INBOX).contains(NOTE));
+    assert!(!repo.exists(&format!("specs/notes/{SLUG}")));
+    assert!(removed.categories.iter().all(|category| {
+        category
+            .notes
+            .iter()
+            .all(|other| other.file != Some(note_file()))
+    }));
+
+    api::insert_note(
+        repo.path(),
+        Some("UI".into()),
+        index,
+        &note.lines,
+        &removed.hash,
+    )
+    .unwrap();
+
+    assert!(repo.read(INBOX).contains(NOTE));
+    assert_eq!(repo.read(&note_file()), written);
+    assert_eq!(std::fs::read(&image).unwrap(), bytes);
+}
+
 /// A note file typed in since its note wrote it, and not committed so, survives the note's
 /// removal, as the git decision keeps the user's work: only the line goes.
 #[test]

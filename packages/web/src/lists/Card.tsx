@@ -26,6 +26,7 @@ import {
   type ReactNode,
   useContext,
 } from "react";
+import type { ConfirmOptions } from "../fields/Confirm.tsx";
 import { pickedStyles } from "../layout/picked.ts";
 import { type BarAction, RowBar } from "./RowBar.tsx";
 
@@ -41,6 +42,8 @@ export interface WorkRow {
    * of its own, which the keys select, edit, and move among its siblings, and a drag moves.
    */
   children?: ReadonlyArray<WorkRow>;
+  /** What `d` asks before it deletes it, when not `deleteLine`'s question: a note's with a file. */
+  deleting?: ConfirmOptions;
   /** A nested row's depth, 1 under its line. */
   depth?: number;
   /**
