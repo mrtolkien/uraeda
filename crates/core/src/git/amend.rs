@@ -1,5 +1,5 @@
 //! The latest commit, read to decide whether a commit amends it: its parents, its message, the
-//! files it changed, and whether another branch holds it. The files and the branches come from
+//! files it changed, and whether another branch or a tag holds it. The files and the branches come from
 //! `git`, which gix does not give, its output parsed only in its `-z` and `--format` forms.
 
 use super::{Git, GitError, ObjectId, read_error};
@@ -67,7 +67,7 @@ impl Git {
             .collect())
     }
 
-    /// Whether a branch other than `branch`, local or remote, holds `commit`.
+    /// Whether a branch other than `branch`, local or remote, or a tag holds `commit`.
     pub fn held_elsewhere(&self, commit: ObjectId, branch: &str) -> Result<bool, GitError> {
         let commit = commit.to_string();
         let output = self.output(
@@ -79,11 +79,10 @@ impl Git {
                 &commit,
                 "refs/heads/",
                 "refs/remotes/",
+                "refs/tags/",
             ],
         )?;
         let own = format!("refs/heads/{branch}");
-        Ok(output
-            .lines()
-            .any(|name| name != own && !name.ends_with("/HEAD")))
+        Ok(output.lines().any(|name| name != own))
     }
 }

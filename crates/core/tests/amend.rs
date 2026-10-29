@@ -248,3 +248,43 @@ fn a_commit_off_the_default_branch_is_not_amended() {
 
     assert_eq!(repo.subjects("2026-10-29-dark-mode").len(), 4);
 }
+
+/// A proposal's image goes into its commit as its folder: undoing the edit that added it is still
+/// a commit of its own, not an empty amend that git refuses.
+#[test]
+fn an_undo_of_an_image_edit_is_not_amended() {
+    let repo = repo();
+    let file = "specs/proposals/dark-mode/proposal.md";
+    repo.write(file, "# Dark mode\n\nA dark theme.\n");
+    repo.commit("chore: expand Dark mode");
+    repo.keep();
+    let place = main_place(&repo);
+    repo.write(
+        file,
+        "# Dark mode\n\nA dark theme.\n\n![Theme](images/theme.png)\n",
+    );
+    repo.write("specs/proposals/dark-mode/images/theme.png", "png");
+    text::commit(&place, file).unwrap();
+    repo.write(file, "# Dark mode\n\nA dark theme.\n");
+
+    text::commit(&place, file).unwrap();
+
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: edit the proposal Dark mode"
+    );
+    assert_eq!(repo.subjects("main").len(), 5);
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// A tag marks a commit as released: amending it would leave the tag on a commit main lost.
+#[test]
+fn a_tagged_commit_is_not_amended() {
+    let repo = repo();
+    note(&repo, "An idea").unwrap();
+    repo.git(&["tag", "v1"]);
+
+    note(&repo, "Another idea").unwrap();
+
+    assert_eq!(repo.subjects("main").len(), 4);
+}
