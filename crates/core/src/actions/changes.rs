@@ -14,11 +14,13 @@ use super::priorities::{describe, line, short};
 use super::{ActionError, Change, Committed, commit, images};
 
 mod files;
+mod linked;
 
 use files::{
-    FOLDERS, Found, Grown, Undo, files_in, grown_files, linked_by, never_committed, take_item,
-    take_note, unmerge, written_for_link, written_from,
+    FOLDERS, Found, Grown, Undo, files_in, grown_files, linked_by, take_item, take_note, unmerge,
+    written_for_link, written_from,
 };
+use linked::never_committed;
 
 const INBOX: &str = super::inbox::PATH;
 const PRIORITIES: &str = super::priorities::PATH;
