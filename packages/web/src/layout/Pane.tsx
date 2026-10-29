@@ -16,6 +16,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, createContext, use, useId, useRef } from "react";
 import { SinceSign, useSinceTitle } from "../sinceMarks.tsx";
 import { paneVars } from "./pane.stylex.ts";
+import { PaneSuffix } from "./PaneSuffix.tsx";
 import { useScrollMargin } from "./scrollMargin.ts";
 import { useActionsRoom } from "./useActionsRoom.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
@@ -200,16 +201,6 @@ const styles = stylex.create({
   under: (below: string) => ({
     marginBlockStart: below,
   }),
-  // What follows the title, such as a live window's size and scale: secondary, in the title's line,
-  // taking the room the title leaves, its words wrapping in it, or under the title when that room
-  // is narrower than a few words.
-  suffix: {
-    color: colorVars["--color-text-secondary"],
-    flexBasis: 0,
-    flexGrow: 1,
-    fontWeight: fontWeightVars["--font-weight-normal"],
-    minWidth: paneVars["--pane-suffix-least"],
-  },
   // A tinted pane, as a picked card: its background the accent's muted tint. Its title's band is
   // the page's above the border's middle and the tint's below it, so the title sits on both.
   tinted: {
@@ -331,7 +322,7 @@ function PaneName({
         {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
         {renamed && <SinceSign />}
       </span>
-      {titleSuffix !== undefined && <span {...stylex.props(styles.suffix)}> {titleSuffix}</span>}
+      {titleSuffix !== undefined && <PaneSuffix>{titleSuffix}</PaneSuffix>}
     </span>
   );
 }
