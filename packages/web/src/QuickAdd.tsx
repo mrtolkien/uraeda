@@ -109,7 +109,8 @@ export function AddButtons({
   onAdd: () => Promise<void>;
   /** Without it, Add alone, the primary button. */
   onAddAndCommit?: () => void;
-  onCancel: () => void;
+  /** Without it, no Cancel: the overlay's Close cancels. */
+  onCancel?: () => void;
   start?: ReactNode;
 }) {
   const wide = !isNarrow(useWidthClass());
@@ -117,7 +118,9 @@ export function AddButtons({
   return (
     <HStack gap={2} justify="end" wrap="wrap">
       {start}
-      <Button label="Cancel" onClick={onCancel} variant={committing ? "ghost" : "secondary"} />
+      {onCancel && (
+        <Button label="Cancel" onClick={onCancel} variant={committing ? "ghost" : "secondary"} />
+      )}
       <Button
         clickAction={onAdd}
         isDisabled={!isReady}

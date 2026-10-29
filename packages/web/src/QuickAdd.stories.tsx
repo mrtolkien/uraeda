@@ -51,9 +51,9 @@ function NoteForm() {
       size={{ width: "var(--size-quick-add)" }}
     >
       <AddNote
+        closes={() => {}}
         images={[]}
         onAdded={() => {}}
-        onCancel={() => {}}
         picked={{ add: () => {}, clear: () => {}, remove: () => {} }}
       />
     </Overlay>

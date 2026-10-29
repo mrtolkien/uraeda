@@ -3,7 +3,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Spinner } from "@astryxdesign/core/Spinner";
-import { createContext, type ReactNode, Suspense, useContext, useState } from "react";
+import { createContext, type ReactNode, Suspense, useContext, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AddNote, type NoteAdded } from "./AddNote.tsx";
@@ -91,12 +91,15 @@ async function undoCommitted(
  * screens, a sheet as tall as the form on the phone, `loading` read while its file loads.
  */
 function AddOverlay({
+  canClose,
   children,
   isOpen,
   label,
   loading,
   onClose,
 }: {
+  /** Asked before the overlay's own close: `false` keeps it open. */
+  canClose?: () => Promise<boolean>;
   children: ReactNode;
   isOpen: boolean;
   label: string;
@@ -105,6 +108,7 @@ function AddOverlay({
 }) {
   return (
     <Overlay
+      {...(canClose ? { canClose } : {})}
       isOpen={isOpen}
       label={label}
       onClose={onClose}
@@ -239,14 +243,25 @@ function NoteOverlay({
     );
   };
 
+  // Asked before Close, Escape, or a click outside closes the form: it asks while it holds text.
+  const closes = useRef<() => Promise<boolean>>(undefined);
+  const [register] = useState(() => (ask: () => Promise<boolean>) => {
+    closes.current = ask;
+  });
   return (
-    <AddOverlay isOpen={isOpen} label="Add a note" loading="Loading the inbox" onClose={onClose}>
+    <AddOverlay
+      canClose={() => closes.current?.() ?? Promise.resolve(true)}
+      isOpen={isOpen}
+      label="Add a note"
+      loading="Loading the inbox"
+      onClose={onClose}
+    >
       <AddNote
         about={about}
         category={category}
+        closes={register}
         images={images}
         onAdded={added}
-        onCancel={onClose}
         picked={picked}
       />
     </AddOverlay>

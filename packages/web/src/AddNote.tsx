@@ -4,7 +4,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { HStack } from "@astryxdesign/core/HStack";
-import { type ClipboardEvent, useRef, useState } from "react";
+import { type ClipboardEvent, type FocusEvent, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AttachButton } from "./attach/AttachButton.tsx";
@@ -27,14 +27,7 @@ import {
   type PickedChanges,
   useAddWithImage,
 } from "./NoteImage.tsx";
-import {
-  AddButtons,
-  useAddAndCommit,
-  CommitBanner,
-  type CommitNotice,
-  enterAdds,
-  uncommitted,
-} from "./QuickAdd.tsx";
+import { AddButtons, enterAdds } from "./QuickAdd.tsx";
 import { InboxAddedView, InboxView } from "./views.ts";
 
 /** The Category menu's values for no category and a new one; a category's is its name, after `:`. */
@@ -42,8 +35,21 @@ const NONE = "none";
 const NEW = "new";
 
 /**
+ * Opens a selector reached with the keyboard, as Tab does from the note's field, by the key that
+ * opens it: not one clicked, which opens itself, nor one the focus comes back to as it closes.
+ */
+function openOnTab(event: FocusEvent<HTMLElement>) {
+  const trigger = event.currentTarget;
+  const from = event.relatedTarget;
+  if (!trigger.matches(":focus-visible") || from?.closest("[role='listbox'], [popover]")) {
+    return;
+  }
+  trigger.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" }));
+}
+
+/**
  * The Category menu: "No category", the inbox's categories, and "New category…", which shows a
- * field for the new one's name.
+ * field for the new one's name. Tab from the note's field opens it.
  */
 function CategoryField({
   category,
@@ -63,6 +69,7 @@ function CategoryField({
       <Selector
         label="Category"
         onChange={onCategory}
+        onFocus={openOnTab}
         options={[
           { label: "No category", value: NONE },
           ...names.map((one) => ({ label: one, value: `:${one}` })),
@@ -118,18 +125,20 @@ function useTypedNote(start?: string | null) {
   };
 }
 
-/** What a note's add reports: the note, its note file when added as one, and its commit, if any. */
+/**
+ * What a note's add reports: the note, and its note file when added as one. It is never committed:
+ * commits come from the commit page.
+ */
 export type NoteAdded = {
-  /** With "Add and commit", the inbox's version after the commit, for Undo to remove it from. */
+  /** The inbox's version after a commit, for Undo to remove the note from: none now. */
   committed?: { hash: string };
   file?: string;
   note: InboxNote | undefined;
 };
 
 /**
- * Add, Add as a file with images, or "Add and commit": the note through the core, its refusal as
- * the message to show, and a conflict reading the inbox again, for the next try to add to it as it
- * is now. When "Add and commit" only added, `notice` says why, and the form stays open.
+ * Add, or Add as a file with images: the note through the core, its refusal as the message to
+ * show, and a conflict reading the inbox again, for the next try to add to it as it is now.
  */
 function useAdd({
   about,
@@ -146,7 +155,6 @@ function useAdd({
   const inbox = useInbox();
   const withImages = useAddWithImage();
   const [message, setMessage] = useState<string>();
-  const [notice, setNotice] = useState<CommitNotice>();
   const text = typed.note.text;
   const chosen = typed.chosen;
   const ready = text.trim() !== "" && chosen !== "";
@@ -170,12 +178,11 @@ function useAdd({
     onAdded({ file: result.file, note: result.note });
   };
 
-  const add = async (commit = false) => {
+  const add = async () => {
     if (!ready) {
       return;
     }
     setMessage(undefined);
-    setNotice(undefined);
     const input: AddInput = {
       hash: inbox?.hash ?? "",
       text,
@@ -191,80 +198,96 @@ function useAdd({
     }
     const before = inbox?.categories ?? [];
     const result = await fate.mutations.inbox.add({
-      input: { ...input, commit },
+      input: { ...input, commit: false },
       view: InboxAddedView,
     });
     if (result.error) {
       refused(refusal(result.error));
       return;
     }
-    const answer = result.result;
     typed.added(text, typed.name.text);
-    // Only added: the form stays open, saying why.
-    const why = commit ? uncommitted(answer?.added, "the inbox", "INBOX.md") : undefined;
-    if (why) {
-      setNotice(why);
-      return;
-    }
-    onAdded({
-      ...(commit && answer ? { committed: { hash: answer.hash } } : {}),
-      note: addedNote(before, answer?.categories ?? []),
-    });
+    onAdded({ note: addedNote(before, result.result?.categories ?? []) });
   };
 
   return {
     add,
     message,
     names: inbox?.names ?? [],
-    notice,
     ready,
     status: withImages.statusOf(images.map((image) => image.file)),
   };
 }
 
 /**
+ * Gives the overlay, through `closes`, what it asks before it closes: with text or images, "Discard
+ * your changes?", which discards them; with neither, nothing.
+ */
+function useCloseGuard({
+  closes,
+  images,
+  picked,
+  typed,
+}: {
+  closes: (ask: () => Promise<boolean>) => void;
+  images: ReadonlyArray<Picked>;
+  picked: PickedChanges;
+  typed: ReturnType<typeof useTypedNote>;
+}) {
+  const confirm = useConfirm();
+  // What the overlay's close reads: the form as it is now.
+  const now = useRef({ images, typed });
+  useEffect(() => {
+    now.current = { images, typed };
+  }, [images, typed]);
+  // Its text and images go once the human confirms, or with nothing typed.
+  useEffect(
+    () =>
+      closes(async () => {
+        const { images, typed } = now.current;
+        if ((typed.dirty || images.length > 0) && !(await confirm(DISCARD_CHANGES))) {
+          return false;
+        }
+        typed.discard();
+        picked.clear();
+        return true;
+      }),
+    [closes, confirm, picked],
+  );
+}
+
+/**
  * The add form: a note's text, and its category, "No category" by default, one of the inbox's, or
  * a new one, named in its own field. It reads the inbox when it opens, for the version it adds to.
  * `about`, on a feature's or a change's page, is its folder, which marks the note with its slug. Its
- * text is kept as the overlay closes and restored as it opens again (`useTypedNote`); Cancel asks
- * "Discard your changes?" first when it holds text or images. Enter adds and commits, as "Add and
- * commit" does, beside Add. With `images`, picked with "Attach an image", dropped, or pasted, and
- * held by the overlay (`picked`), Add becomes "Add as a file", the one way to add, which Enter
- * takes.
+ * text is kept as the page changes and restored as it opens again (`useTypedNote`); closing the
+ * overlay asks "Discard your changes?" first when it holds text or images, through `closes`, which
+ * the overlay asks. Enter adds, as Add does, its one button: the commit page commits. With
+ * `images`, picked with "Attach an image", dropped, or pasted, and held by the overlay (`picked`),
+ * Add becomes "Add as a file".
  */
 export function AddNote({
   about,
   category,
+  closes,
   images,
   onAdded,
-  onCancel,
   picked,
 }: {
   about?: string;
   /** The category the form opens on: a name, or `null` for none, which is the default. */
   category?: string | null;
+  /** Gives the overlay what it asks before it closes: `false` keeps the form open. */
+  closes: (ask: () => Promise<boolean>) => void;
   images: ReadonlyArray<Picked>;
   onAdded: (added: NoteAdded) => void;
-  onCancel: () => void;
   picked: PickedChanges;
 }) {
-  const confirm = useConfirm();
   const typed = useTypedNote(category);
-  const { add, message, names, notice, ready, status } = useAdd({ about, images, onAdded, typed });
-  // A note file with its images is never committed by its add.
-  const commits = images.length === 0;
+  const { add, message, names, ready, status } = useAdd({ about, images, onAdded, typed });
   const field = useRef<HTMLTextAreaElement>(null);
   const drop = useImageDrop({ label: "the note", onFiles: picked.add, priority: 1, ref: field });
-  const commit = useAddAndCommit(() => add(true));
 
-  const cancel = async () => {
-    if ((typed.dirty || images.length > 0) && !(await confirm(DISCARD_CHANGES))) {
-      return;
-    }
-    typed.discard();
-    picked.clear();
-    onCancel();
-  };
+  useCloseGuard({ closes, images, picked, typed });
 
   return (
     <VStack gap={4}>
@@ -281,8 +304,8 @@ export function AddNote({
           kind="line"
           label="Note"
           onChange={typed.note.change}
-          // A note is one line: Enter adds and commits it, or adds it as a file with its images.
-          onKeyDown={enterAdds(() => (commits ? ready && commit.onAddAndCommit() : void add()))}
+          // A note is one line: Enter adds it, or adds it as a file with its images.
+          onKeyDown={enterAdds(() => void add())}
           onPaste={(event: ClipboardEvent<HTMLTextAreaElement>) => {
             const files = pastedImages(event);
             if (files) {
@@ -320,13 +343,10 @@ export function AddNote({
         </VStack>
       )}
       {message && <AnnouncedBanner status="error" title={message} />}
-      <CommitBanner notice={notice} />
       <AddButtons
-        addLabel={commits ? "Add" : "Add as a file"}
+        addLabel={images.length === 0 ? "Add" : "Add as a file"}
         isReady={ready}
-        onAdd={() => add()}
-        {...(commits ? commit : {})}
-        onCancel={() => void cancel()}
+        onAdd={add}
         start={<AttachButton multiple onFiles={picked.add} text="Attach an image" />}
       />
     </VStack>
