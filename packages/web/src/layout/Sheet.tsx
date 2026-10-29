@@ -10,6 +10,7 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { glassStyles } from "./glass.ts";
+import { useFieldFocus } from "./useFieldFocus.ts";
 
 const styles = stylex.create({
   // Astryx paints its surface on the sheet, its scrolling body, and its handle's band: taken away
@@ -40,8 +41,6 @@ const styles = stylex.create({
 const GRIP_PX = 64;
 /** How far up a drag goes before the sheet takes the whole screen. */
 const PULL_PX = 32;
-/** The frames the field that asks for the focus is waited for, as the sheet opens. */
-const FOCUS_FRAMES = 10;
 
 /**
  * Takes the sheet `panel` to the whole screen, `onFull`, on a drag up from its top: Astryx's sheet
@@ -78,29 +77,6 @@ function usePullUp(panel: RefObject<HTMLDivElement | null>, isOpen: boolean, onF
       element.removeEventListener("pointercancel", up, { capture: true });
     };
   }, [isOpen, onFull, panel]);
-}
-
-/**
- * Gives the focus to the field of the sheet `panel` that asks for it (`hasAutoFocus`), once it is
- * drawn: Astryx's sheet focuses itself when the field is not there yet as it opens.
- */
-function useFieldFocus(panel: RefObject<HTMLDivElement | null>, isOpen: boolean) {
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    let frames = 0;
-    let frame = requestAnimationFrame(function find() {
-      const field = panel.current?.querySelector<HTMLElement>("[data-autofocus]");
-      const focused = document.activeElement;
-      if (field && (focused === panel.current || !panel.current?.contains(focused))) {
-        field.focus({ preventScroll: true });
-      } else if (!field && ++frames < FOCUS_FRAMES) {
-        frame = requestAnimationFrame(find);
-      }
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [isOpen, panel]);
 }
 
 /**
