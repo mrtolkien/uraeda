@@ -58,5 +58,8 @@ whose answers either continue the implementation or revise the spec.
 
 - **A move shows where it lands**: promoting a note offers the priority levels first, then proposal
   files, and every one of them.
+- **A note's category is changed with its picker (`c`); a proposal's section with the priorities'
+  segmented control**, which stays: "I like the segmented control of the priorities". The priorities
+  have no `c`.
 - **The human lands with what moved**: after promoting, the priorities open at the new line.
 - **A proposal file always opens as a page**: "just open the page every time".

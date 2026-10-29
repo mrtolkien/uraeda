@@ -66,10 +66,13 @@ priorities' `v` to switch between columns and a list. A page never gives a base 
   bindings declare (a binding with a `hint`), each one a button that does what its key does.
   `Space menu` comes first and `[ ] fold` second, then the page's hints, in the order the human uses
   them, the step that ends the page's work last ("Start should be at the end"), then the shell's.
-- **What stays unhinted, and works**: a key that works on every page (`b`, `Ctrl+D`, `gg`), a second
-  key for an action already shown (`a` beside `o`, `Enter` beside `n`), and the movement keys.
-- **A row's keys show under the selected row**, in its bar, each written out ("⏎ edit", "m move", "d
-  delete"), not in the status line.
+- **The most important keys of the whole page**, decided page by page: "the status bar holds the
+  _most important_ shortcuts for the _full page_". A key that works on every page (`b`, `Ctrl+D`,
+  `gg`), a second key for an action already shown (`a` beside `o`, `Enter` beside `n`), and the
+  movement keys usually stay unhinted, and work.
+- **A row's or a pane's keys show close to it**: "Shortcuts applying to a row or pane should be
+  close to that pane". A row's show under the selected row, in its bar, each written out ("⏎ edit",
+  "m move", "d delete"), not in the status line.
 - **The leader menu** shows every sequence: `Space` then its groups (go, find, new, the ui), and the
   `g` keys. It is a menu of its own, not an index of every key: a page's single keys are not in it,
   they show in the status line. Its rows are buttons, and a click on `Space menu` opens it at once.

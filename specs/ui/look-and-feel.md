@@ -61,6 +61,13 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 - **Text stays the text's colour.** The secondary colour is for what reads second, never for the
   row's own text.
 
+## Counts
+
+A count is `· N` in a titled box, a pane's or a group's title (`Inbox · 10`); a badge only in the
+navigation (the sidebar's `10`); plain text where a sentence says it ("10 notes to organize"). The
+rule bends to what matters: "each component looks good, is easy to read, and conveys the key
+information".
+
 ## Glass
 
 The look is a terminal's, with frosted glass for what floats over the page, as modern Linux desktops
