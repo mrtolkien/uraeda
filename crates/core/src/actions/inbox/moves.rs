@@ -1,5 +1,6 @@
 //! The moves of notes out of the inbox: into a section of the priorities, under a proposal, into a
-//! new proposal file, or into an existing one. A note's file moves with it to the proposals.
+//! new proposal file, or into an existing one. A note's file moves with it to the proposals, or,
+//! into an existing proposal file, goes into its text.
 
 use std::fs;
 
@@ -12,7 +13,7 @@ use super::super::ActionError;
 use super::super::expand;
 use super::super::place::Place;
 use super::super::priorities::PATH as PRIORITIES;
-use super::{PATH, current, no_note, note_file, write_both};
+use super::{PATH, current, merge, no_note, note_file, write_both};
 
 /// The inbox and the priorities, each refused when it changed since it was read.
 fn both(
@@ -36,8 +37,8 @@ fn movable(place: &Place, inbox: &str, note: &inbox::Note) -> Option<String> {
     (!shared).then_some(file)
 }
 
-/// Moves the note `id`'s lines, without its marks, into the file `target`, `PRIORITIES.md` or a
-/// proposal file, written by `edit` from the lines: its note file, when a move takes it along,
+/// Moves the note `id`'s lines, without its marks, into `PRIORITIES.md`, the file `target`,
+/// written by `edit` from the lines: its note file, when a move takes it along,
 /// moves among the proposals first, and its link follows it. Returns the note's file, as a
 /// proposal file now. Both files are written, or none, and the file moves back when they are not.
 fn move_out(
@@ -187,21 +188,27 @@ pub(super) fn into_file(lines: &[String], path: &str) -> Vec<String> {
         .collect()
 }
 
-/// Adds a note's lines, without its marks, at the end of the `## What` section of the proposal
-/// file at `proposal`, from the top level: a note with a note file moves it among the proposals,
-/// and the line it adds links it there.
+/// Adds a note to the proposal file at `proposal`, from the top level, and takes it out of the
+/// inbox: its lines, without its marks, at the end of the file's `## What` section; or, for a note
+/// with a note file, the note file's text at the end of its `## Notes`, under the note's title,
+/// its images beside it, the note file deleted (see [`merge::merge`]). Returns the proposal file's
+/// path, which a single proposal file made a folder for the images changes.
 pub fn into_proposal(
     place: &Place,
     id: &str,
     proposal: &str,
     previous: &str,
-) -> Result<(), ActionError> {
+) -> Result<String, ActionError> {
     let inbox = current(place, PATH, previous)?;
     let text = file_text(place, proposal)?;
+    let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
+    if let Some(file) = movable(place, &inbox, &note) {
+        return merge::merge(place, &inbox, id, &file, proposal, &text);
+    }
     let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
-    let append = |lines: &[String]| proposal::append_to_what(&text, &into_file(lines, proposal));
-    append(&lines)
+    let edited = proposal::append_to_what(&text, &into_file(&lines, proposal))
         .ok_or_else(|| ActionError::Refused(format!("{proposal} has no ## What section")))?;
-    move_out(place, &inbox, id, proposal, append)?;
-    Ok(())
+    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+    write_both(place, proposal, &edited, &without)?;
+    Ok(proposal.to_string())
 }

@@ -239,8 +239,11 @@ pub fn note_to_proposal_file(
     )?)
 }
 
-/// Adds a note at the end of the `## What` of the proposal file at `proposal`, from the top level.
-pub fn note_into_proposal(repo: &Path, id: &str, proposal: &str, previous: &str) -> Result<()> {
+/// Adds a note to the proposal file at `proposal`, from the top level: its lines at the end of the
+/// file's `## What`, or, for a note with a note file, the note file's text at the end of its
+/// `## Notes`, its images beside it. Returns the proposal file's path, which a single proposal file
+/// made a folder for the images changes.
+pub fn note_into_proposal(repo: &Path, id: &str, proposal: &str, previous: &str) -> Result<String> {
     let _lock = write_lock();
     let place = reach_default(repo)?;
     Ok(edits::into_proposal(&place, id, proposal, previous)?)

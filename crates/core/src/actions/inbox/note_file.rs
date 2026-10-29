@@ -16,7 +16,7 @@ use super::super::place::Place;
 
 /// What a move or a removal of the note file at `path` acts on, from the top level: its folder,
 /// or the file itself when it is a single file.
-fn unit(path: &str) -> &str {
+pub(super) fn unit(path: &str) -> &str {
     folder_of(path).unwrap_or(path)
 }
 
@@ -293,6 +293,14 @@ pub(super) fn restore_all(place: &Place, text: &str) -> Result<bool, ActionError
         restored |= restore(place, &file)?;
     }
     Ok(restored)
+}
+
+/// Whether a removal holds the note file at `path`, for [`restore`] to write back.
+pub(super) fn is_held(place: &Place, path: &str) -> bool {
+    let root = root_of(place);
+    held()
+        .iter()
+        .any(|kept| kept.root == root && kept.path == path)
 }
 
 /// Writes back the note file at `path` a removal took away, byte for byte, images included, while

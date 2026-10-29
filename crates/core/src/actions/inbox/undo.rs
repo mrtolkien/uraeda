@@ -15,7 +15,7 @@ use crate::files::retarget;
 use super::super::place::{self, Place};
 use super::super::{ActionError, Change, STALE, commit, expand, priorities as proposal_edits};
 use super::moves::{file_text, into_file};
-use super::{PATH, file, note_file, text, write_both};
+use super::{PATH, file, merge, note_file, text, write_both};
 
 /// The refusal of an Undo whose note is no longer where the move put it.
 fn gone(note: &str, file: &str) -> ActionError {
@@ -115,9 +115,10 @@ pub fn undo_under_proposal(
     write_both(place, proposal_edits::PATH, &without, &back)
 }
 
-/// Takes back an add to the proposal file at `proposal`: the note's lines leave its `## What`,
-/// every other edit kept, as Discard takes them back, and the note goes back to its place, its
-/// note file, which the add put among the proposals, back among the notes.
+/// Takes back an add to the proposal file at `proposal`, by its path then or now, and puts the
+/// note back at its place: the note's lines leave its `## What`, every other edit kept, as Discard
+/// takes them back; or, for a note whose note file went into the file's `## Notes`, the text the
+/// add inserted leaves it, and the note file comes back with its images (see [`merge::undo`]).
 pub fn undo_into_proposal(
     place: &Place,
     proposal: &str,
@@ -127,40 +128,19 @@ pub fn undo_into_proposal(
 ) -> Result<(), ActionError> {
     let (note, unmarked) = parts(lines)?;
     let current = text(place)?;
-    let written = file_text(place, proposal)?;
     let name = proposal.strip_prefix("specs/").unwrap_or(proposal);
     let back = put_back(&current, category, index, lines)?;
-    let item = |unmarked: &[String]| {
-        lines::markdown_of(&into_file(unmarked, proposal))
-            .and_then(|markdown| proposal::without_item(&written, &markdown))
-    };
-    // The note's lines as written: a note without a file, or one the move left in place.
-    if let Some(without) = item(&unmarked) {
-        return write_both(place, proposal, &without, &back);
+    if let Some(note_file) = inbox::file_of_lines(lines)
+        && merge::is_held(place, &note_file, proposal)
+    {
+        return merge::undo(place, &note_file, &back, || gone(&note, name));
     }
-    // Else its note file moved among the proposals: the item links it at one of the proposal files
-    // the file links.
-    let note_file = inbox::file_of_lines(lines).ok_or_else(|| gone(&note, name))?;
-    let folder = proposal.rsplit_once('/').map_or("", |(folder, _)| folder);
-    let (without, moved) = crate::files::markdown::Document::parse(&written)
-        .links
-        .iter()
-        .filter_map(|link| crate::workspace::resolve(folder, &link.target))
-        .filter(|path| crate::target::is_proposal_file(path))
-        .find_map(|moved| {
-            let rewritten: Vec<String> = retarget::moved(&unmarked.join("\n"), &note_file, &moved)
-                .split('\n')
-                .map(String::from)
-                .collect();
-            Some((item(&rewritten)?, moved))
-        })
+    let written = file_text(place, proposal)?;
+    let markdown = lines::markdown_of(&into_file(&unmarked, proposal));
+    let without = markdown
+        .and_then(|markdown| proposal::without_item(&written, &markdown))
         .ok_or_else(|| gone(&note, name))?;
-    note_file::back_to_notes(place, &moved, &note_file)?;
-    if let Err(error) = write_both(place, proposal, &without, &back) {
-        let _ = note_file::relocate(place, &note_file, &moved);
-        return Err(error);
-    }
-    Ok(())
+    write_both(place, proposal, &without, &back)
 }
 
 /// The inbox as it is now, and the id of the one note whose lines are `lines` as written: refused

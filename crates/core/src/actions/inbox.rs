@@ -14,6 +14,7 @@ use super::{ActionError, Change, Committed, STALE, changes, commit};
 
 mod categories;
 mod image;
+mod merge;
 mod moves;
 mod note_file;
 mod undo;

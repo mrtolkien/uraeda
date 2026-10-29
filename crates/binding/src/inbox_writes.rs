@@ -219,14 +219,17 @@ pub fn note_to_proposal_file(
     })
 }
 
-/// Adds a note at the end of the `## What` of the proposal file at `proposal`, from the top level.
-#[napi(ts_return_type = "Promise<void>")]
+/// Adds a note to the proposal file at `proposal`, from the top level: its lines at the end of the
+/// file's `## What`, or, for a note with a note file, the note file's text at the end of its
+/// `## Notes`, its images beside it. Returns the proposal file's path, which a single proposal file
+/// made a folder for the images changes.
+#[napi(ts_return_type = "Promise<string>")]
 pub fn note_into_proposal(
     repo: String,
     id: String,
     proposal: String,
     previous: String,
-) -> AsyncTask<Job<()>> {
+) -> AsyncTask<Job<String>> {
     job(move || api::note_into_proposal(Path::new(&repo), &id, &proposal, &previous))
 }
 

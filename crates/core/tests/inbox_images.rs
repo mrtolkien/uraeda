@@ -795,11 +795,12 @@ fn a_committed_note_file_edited_since_survives_its_notes_removal_and_commit() {
 /// The proposal file the notes go into, committed.
 const LISTENER: &str = "specs/proposals/git-listener.md";
 
-/// A note with a note file added to a proposal file takes its file among the proposals, and the
-/// line it adds links it there; Undo moves the file back. Committed or not before, the commit
-/// holds the moved file with the proposal file.
+/// A note with a note file added to a proposal file goes into its `## Notes`, its image beside it,
+/// the single proposal file made a folder for it, and its note file leaves; Undo puts the note file
+/// back, and the proposal file as it was. Committed or not before, the commit holds the proposal
+/// file's folder and its image.
 #[test]
-fn a_note_file_goes_among_the_proposals_with_its_note_into_a_proposal_file() {
+fn a_note_file_goes_into_the_notes_of_a_proposal_file_with_its_image() {
     for committed in [false, true] {
         let repo = fixture_repo();
         repo.write(
@@ -815,16 +816,17 @@ fn a_note_file_goes_among_the_proposals_with_its_note_into_a_proposal_file() {
         let (note, index) = noted(&repo);
         let hash = api::read_inbox(repo.path()).unwrap().hash;
 
-        api::note_into_proposal(repo.path(), &note.id, LISTENER, &hash).unwrap();
+        let moved = api::note_into_proposal(repo.path(), &note.id, LISTENER, &hash).unwrap();
 
-        let moved = format!("specs/proposals/{SLUG}/proposal.md");
-        assert_eq!(repo.read(&moved), written, "{committed}");
+        assert_eq!(moved, "specs/proposals/git-listener/proposal.md");
         assert!(!repo.exists(&format!("specs/notes/{SLUG}")));
+        assert!(!repo.exists(LISTENER));
         assert!(
-            repo.read(LISTENER)
-                .contains(&format!("- [{NOTE}]({SLUG}/proposal.md)\n")),
+            repo.read(&moved).ends_with(&format!(
+                "## Notes\n\n### {NOTE}\n\n#### What\n\n{NOTE}\n\n{LINK}\n"
+            )),
             "{}",
-            repo.read(LISTENER)
+            repo.read(&moved)
         );
 
         let inbox = api::undo_note_into_proposal(
@@ -837,14 +839,18 @@ fn a_note_file_goes_among_the_proposals_with_its_note_into_a_proposal_file() {
         .unwrap();
 
         assert_eq!(repo.read(&note_file()), written);
-        assert!(!repo.exists(&format!("specs/proposals/{SLUG}")));
+        assert_eq!(
+            repo.read(LISTENER),
+            fixture_text("repo/main/specs/proposals/git-listener.md")
+        );
+        assert!(!repo.exists("specs/proposals/git-listener"));
 
         api::note_into_proposal(repo.path(), &note.id, LISTENER, &inbox.hash).unwrap();
         api::commit_changes(repo.path()).unwrap();
 
         let changed = repo.changed_in("main");
-        let image = format!("specs/proposals/{SLUG}/images/spec-headings.webp");
-        for path in [LISTENER, image.as_str(), moved.as_str()] {
+        let image = "specs/proposals/git-listener/images/spec-headings.webp";
+        for path in [LISTENER, image, moved.as_str()] {
             assert!(changed.iter().any(|c| c == path), "{committed} {changed:?}");
         }
         assert_eq!(
