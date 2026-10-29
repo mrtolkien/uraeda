@@ -9,7 +9,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
 import { type Entry, needsYouEntries, runningSessions } from "../sidebar/entries.ts";
@@ -174,6 +174,24 @@ export function StatusLine({ isNarrow, slot }: { isNarrow: boolean; slot: ReactN
 }
 
 /**
+ * Sets `--status-line-offset` to 0 on the document while the phone's bar is out of the way, so
+ * what sits on it, as the session's composer, follows it down as it slides away; while it shows,
+ * the property is unset and they fall back to the bar's height.
+ */
+function useShownForOthers(isShown: boolean) {
+  useEffect(() => {
+    if (isShown) {
+      return;
+    }
+    const root = document.documentElement;
+    root.style.setProperty("--status-line-offset", "0px");
+    return () => {
+      root.style.removeProperty("--status-line-offset");
+    };
+  }, [isShown]);
+}
+
+/**
  * The phone's bar: only the page's own controls, such as a round's Next, and only while it has
  * any. The hints are for keys and the counts are on the tabs, Sessions' running and Home's need-you.
  * It goes as the page scrolls down, out of the reading's way, and comes back as it scrolls up.
@@ -181,6 +199,7 @@ export function StatusLine({ isNarrow, slot }: { isNarrow: boolean; slot: ReactN
 function PhoneBar({ slot }: { slot: ReactNode }) {
   const isCovered = useStatusLineCovered();
   const isHidden = useHidesOnScroll();
+  useShownForOthers(!isHidden && !isCovered && slot !== null);
   if (isCovered || slot === null) {
     return null;
   }

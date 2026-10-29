@@ -5,6 +5,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import {
   type ReactNode,
+  type RefObject,
   Suspense,
   useCallback,
   useEffect,
@@ -21,10 +22,10 @@ import { MAIN_CHECKOUT } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import { composerDraft, type Draft, storyCommentsInto, takeBackInto } from "./useDraft.ts";
 import type { SessionItem } from "./dropItem.ts";
-import { SessionActions } from "./SessionActions.tsx";
 import { SessionHeader } from "./SessionHeader.tsx";
 import { OffersProvider, SessionEnd } from "./SessionOffers.tsx";
-import { JumpToLatest } from "./JumpToLatest.tsx";
+import { SessionActions } from "./SessionActions.tsx";
+import { JumpToLatest, usePublishJump } from "./JumpToLatest.tsx";
 import { type ScrolledAway, useFollowEnd, useOpenAtEnd, useScrolledAway } from "./following.ts";
 import { Attention } from "./SessionAttention.tsx";
 import { Page } from "./layout/Page.tsx";
@@ -52,11 +53,21 @@ const styles = stylex.create({
   },
   composer: {
     // The composer stays at the bottom of the window while the transcript scrolls, above the
-    // shell's status line, fixed at the window's bottom.
-    backgroundColor: colorVars["--color-background-surface"],
-    bottom: "var(--size-status-line, 0px)",
-    paddingBlock: spacingVars["--spacing-3"],
+    // shell's status line, fixed at the window's bottom. On the phone, its box alone floats over
+    // the transcript, which shows around it, and it follows the bar down as the bar slides away.
+    backgroundColor: {
+      "@media (max-width: 767px)": "transparent",
+      default: colorVars["--color-background-surface"],
+    },
+    bottom: "var(--status-line-offset, var(--size-status-line, 0px))",
+    paddingBlock: {
+      "@media (max-width: 767px)": spacingVars["--spacing-2"],
+      default: spacingVars["--spacing-3"],
+    },
     position: "sticky",
+    transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
+    transitionProperty: "bottom",
+    transitionTimingFunction: "ease-out",
   },
 });
 
@@ -119,10 +130,11 @@ function SessionLog({
     [away, isFollowing],
   );
   useKeepPlace(log);
+  const toLastReply = useLastReply(log, working, jumpToLatest);
   useEffect(() => {
-    onJump?.(following ? undefined : jumpToLatest);
+    onJump?.(following ? undefined : toLastReply);
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once per change of following: `onJump` is a new function at each draw
-  }, [following, jumpToLatest]);
+  }, [following, toLastReply]);
   // Shown with its latest turn ended: the human saw the reply, whatever the status shows, as "Needs
   // you" at a gate.
   const unseen = session?.unseen === true;
@@ -240,6 +252,54 @@ function Unstarted({ title }: { title: string }) {
 }
 
 /**
+ * The jump to the latest: to the start of the agent's last message, where its reply reads from,
+ * below the phone's tabs (its scroll margin); while the session works, to its end, following it,
+ * as `jumpToLatest`.
+ */
+function useLastReply(
+  logRef: RefObject<HTMLDivElement | null>,
+  working: boolean,
+  jumpToLatest: () => void,
+) {
+  return useCallback(() => {
+    const last = [
+      ...(logRef.current?.querySelectorAll<HTMLElement>('[data-sender="assistant"]') ?? []),
+    ].at(-1);
+    if (working || !last) {
+      jumpToLatest();
+      return;
+    }
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    last.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+  }, [jumpToLatest, logRef, working]);
+}
+
+/**
+ * The composer's part of a session: its "…", unless the session is a feature's, whose actions are
+ * the feature's, on its page; and "Allow all".
+ */
+function sessionComposer(
+  session: NonNullable<ReturnType<typeof useSessionRecord>>,
+  controls: Controls,
+  item: SessionItem | undefined,
+) {
+  return {
+    ...(item?.kind === "feature"
+      ? {}
+      : {
+          actions: (
+            <SessionActions
+              controls={controls}
+              item={item}
+              session={{ ...session, title: session.name ?? session.title }}
+            />
+          ),
+        }),
+    allow: { count: session.allowable, onAllowAll: controls.allowAll },
+  };
+}
+
+/**
  * A session's pane: its header, transcript, and composer, and the session's column, or, before its
  * first message creates it, the title and the composer alone. A feature's or a new chat's first
  * message creates the session under the same composer, which keeps the field typed in, its focus,
@@ -288,6 +348,7 @@ export function SessionPane({
   // Kept by the pane, which the transcript's data does not wait for.
   const away = useScrolledAway(composer, id);
   const [jump, setJump] = useState<() => void>();
+  usePublishJump(jump);
   const stretchHref = useStretchHref(isBoxed ? folder : undefined);
   if (session === null) {
     return (
@@ -323,18 +384,7 @@ export function SessionPane({
           {...composerDraft(draft)}
           {...(id === undefined ? { isNewSession } : { session: id })}
           working={session?.status === "working"}
-          {...(session && id !== undefined
-            ? {
-                actions: (
-                  <SessionActions
-                    controls={controls}
-                    item={item}
-                    session={{ ...session, title: session.name ?? session.title }}
-                  />
-                ),
-                allow: { count: session.allowable, onAllowAll: controls.allowAll },
-              }
-            : {})}
+          {...(session && id !== undefined ? sessionComposer(session, controls, item) : {})}
           {...handing}
           {...(blocked === undefined ? {} : { blocked })}
           onSent={(created) => {

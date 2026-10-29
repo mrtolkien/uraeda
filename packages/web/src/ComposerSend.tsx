@@ -3,7 +3,7 @@ import { ChatSendButton } from "@astryxdesign/core/Chat";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { Suspense } from "react";
 import type { ComposerProps } from "./Composer.tsx";
 import { type Inserted, RecommendedMessage } from "./RecommendedMessage.tsx";
@@ -21,6 +21,14 @@ function SendKeys() {
       <Icon icon="uraeda:enter" label="Enter" />
     </HStack>
   );
+}
+
+/** Gives the field of the composer around the button pressed the focus. */
+function focusField(event: MouseEvent<HTMLElement>) {
+  event.currentTarget
+    .closest(".astryx-chat-composer")
+    ?.querySelector<HTMLElement>('[role="textbox"]')
+    ?.focus();
 }
 
 /**
@@ -48,7 +56,10 @@ export function sendButtons({
   allow: ComposerProps["allow"];
   canSend: boolean;
   hasContent: boolean;
-  /** Whether to show the send key, Ctrl+Enter: on wide screens, where a keyboard is likely. */
+  /**
+   * Whether the screen is wide, where a keyboard is likely: the send key, Ctrl+Enter, shows; else
+   * the composer is on the phone's glass, where Send is a button as the paperclip is.
+   */
   keys: boolean;
   label: string | undefined;
   pending: boolean;
@@ -57,8 +68,18 @@ export function sendButtons({
   workflow: boolean;
   working: boolean;
 }): { sendActions?: ReactNode; sendButton?: ReactNode } {
-  // Astryx's Send takes text alone: this one takes a message of images too (an Astryx gap).
-  const sendButton = (
+  // Astryx's Send takes text alone: this one takes a message of images too (an Astryx gap). On
+  // the phone's glass, a button as the paperclip is, its arrow alone, not a filled one.
+  const sendButton = !keys ? (
+    // Never dimmed, as the paperclip is not: with nothing to send, it opens the field instead.
+    <Button
+      clickAction={canSend ? send : focusField}
+      icon={<Icon icon="arrowUp" />}
+      isDisabled={pending}
+      isIconOnly
+      label="Send"
+    />
+  ) : (
     <ChatSendButton
       isDisabled={!canSend || pending}
       isStopShown={false}
@@ -128,7 +149,7 @@ export function footerActions(
     </Suspense>
   );
   return attach || offer ? (
-    <HStack align="center" gap={2} wrap="wrap">
+    <HStack align="center" gap={2}>
       {attach}
       {offer}
     </HStack>

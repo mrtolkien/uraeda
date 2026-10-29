@@ -1,10 +1,4 @@
-import {
-  ChatComposer,
-  ChatComposerInput,
-  type ChatComposerInputHandle,
-  type ChatComposerInputProps,
-} from "@astryxdesign/core/Chat";
-import * as stylex from "@stylexjs/stylex";
+import { ChatComposer, type ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import {
   type Dispatch,
   type KeyboardEvent,
@@ -17,11 +11,11 @@ import {
 } from "react";
 import type { Trigger } from "uraeda-server/fate";
 import { IMAGE_REFUSALS } from "uraeda-server/limits";
-import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { type DraftImage, useChatImages } from "./attach/chatImages.ts";
 import { DropHint, dropStyles } from "./attach/DropHint.tsx";
 import { useImageDrop } from "./attach/useImageDrop.ts";
+import { FoldingField, paperclip, phoneBoxStyles, useFolded } from "./ComposerField.tsx";
 import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
 import { useAgent } from "./data.ts";
 import { useKeys } from "./keys/registry.tsx";
@@ -31,27 +25,6 @@ import { footerActions, sendButtons } from "./ComposerSend.tsx";
 import { type Inserted, withInserted } from "./RecommendedMessage.tsx";
 import { useSend } from "./useComposerSend.ts";
 import type { DraftRun } from "./useDraft.ts";
-
-const styles = stylex.create({
-  input: { minHeight: "var(--size-composer-input)" },
-  narrow: { minHeight: "var(--size-composer-input-narrow)" },
-});
-
-/**
- * The composer's field: 7 rows empty on wide screens, 3 on the phone, growing upward with its text
- * up to 20 rows, or 9 on the phone (the UI behaviour decision), its text scrolling inside them past
- * that.
- */
-function ComposerInput(props: Omit<ChatComposerInputProps, "maxRows" | "xstyle">) {
-  const wide = !isNarrow(useWidthClass());
-  return (
-    <ChatComposerInput
-      {...props}
-      maxRows={wide ? 20 : 9}
-      xstyle={wide ? styles.input : styles.narrow}
-    />
-  );
-}
 
 /** Why a composer of a file's text takes no image: the editor adds them. */
 const TEXT_ONLY = "A proposal is text: add its images in the editor.";
@@ -291,6 +264,31 @@ function workflowOf({ file, step, trigger }: DraftRun): Workflow {
   };
 }
 
+/** The paperclip, unless the composer takes no image, or the agent reads none. */
+function attachOf(
+  { hasAttach, onSend }: ComposerProps,
+  agent: ReturnType<typeof useAgent>,
+  unavailable: string | undefined,
+  onFiles: (files: Array<File>) => void,
+) {
+  return (
+    hasAttach !== false &&
+    (onSend || agent?.capabilities.images) &&
+    paperclip(Boolean(unavailable), onFiles)
+  );
+}
+
+/** Whether the composer holds nothing to send, nor a send under way or refused: it may fold. */
+function isBlank(
+  value: string,
+  images: ReadonlyArray<DraftImage>,
+  workflow: Workflow | undefined,
+  pending: boolean,
+  error: string | undefined,
+) {
+  return value === "" && images.length === 0 && !workflow && !pending && !error;
+}
+
 /**
  * The composer under a transcript, on Astryx's `ChatComposer`: Send, which turns into Stop while
  * the session works, and reads "Start the agent" while it holds the workflow's message, or "Start
@@ -327,7 +325,6 @@ export function Composer(given: ComposerProps) {
   const name = agent?.name ?? "the agent";
   const unavailable =
     onSend || agent?.available ? blocked : `${name} is not available on this machine.`;
-  const hasAttach = given.hasAttach !== false;
   const refusedWith = attachRefusal(props, agent, unavailable);
   const attaching = useChatImages({
     images,
@@ -351,6 +348,7 @@ export function Composer(given: ComposerProps) {
     send: canSend ? () => submit(value.trim()) : undefined,
   });
   const placeholder = given.placeholder ?? `Message ${name}`;
+  const isFolded = useFolded(box, !wide && isBlank(value, images, workflow, pending, error));
   const buttons = sendButtons({
     actions: props.actions,
     allow: props.allow,
@@ -364,14 +362,7 @@ export function Composer(given: ComposerProps) {
     workflow: workflow !== undefined,
     working,
   });
-  const attach = hasAttach && (onSend || agent?.capabilities.images) && (
-    <AttachButton
-      isDisabled={Boolean(unavailable)}
-      isIconOnly
-      multiple
-      onFiles={attaching.addFiles}
-    />
-  );
+  const attach = attachOf(given, agent, unavailable, attaching.addFiles);
   return (
     <>
       <DropHint hint={drop.hint}>
@@ -383,13 +374,17 @@ export function Composer(given: ComposerProps) {
           }
           // A border, as a text field has, so it reads as writable: the flat look has no shadow.
           elevation="none"
-          footerActions={footerActions(props, attach, { insert, unavailable })}
+          footerActions={
+            isFolded ? undefined : footerActions(props, attach, { insert, unavailable })
+          }
           input={
-            <ComposerInput
+            <FoldingField
               handleRef={input}
+              isFolded={isFolded}
               label={placeholder}
               onFiles={attaching.addFiles}
               onKeyDown={onKeyDown}
+              send={buttons.sendButton}
             />
           }
           isDisabled={Boolean(unavailable)}
@@ -399,11 +394,13 @@ export function Composer(given: ComposerProps) {
           onSubmit={submit}
           placeholder={placeholder}
           ref={box}
-          sendActions={buttons.sendActions}
-          sendButton={buttons.sendButton}
+          sendActions={isFolded ? undefined : buttons.sendActions}
+          // Folded, Send is beside the field, and the footer holds nothing.
+          sendButton={isFolded ? <></> : buttons.sendButton}
           status={composerStatus(error, props, unavailable)}
           value={value}
-          xstyle={drop.isTarget ? dropStyles.target : undefined}
+          {...(wide ? {} : { density: "compact" as const })}
+          xstyle={[!wide && phoneBoxStyles, drop.isTarget && dropStyles.target]}
         />
       </DropHint>
       <AttachStatus status={attaching.status} />

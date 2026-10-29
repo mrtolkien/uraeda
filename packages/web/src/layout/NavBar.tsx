@@ -50,6 +50,8 @@ const styles = stylex.create({
   // The step forward, as Next, Verdict, or Submit: its icon in the accent, on the glass as the
   // others.
   tinted: { color: colorVars["--color-text-accent"] },
+  // A tile with nothing to do now, as the jump to the latest at the end: dimmed.
+  disabled: { color: colorVars["--color-text-disabled"] },
 });
 
 /**
@@ -60,6 +62,7 @@ const styles = stylex.create({
 export function NavTile({
   hasWord = false,
   icon,
+  isDisabled = false,
   isOpen,
   isTinted = false,
   label,
@@ -67,6 +70,7 @@ export function NavTile({
 }: {
   hasWord?: boolean;
   icon: ComponentProps<typeof Icon>["icon"];
+  isDisabled?: boolean;
   isOpen?: boolean;
   isTinted?: boolean;
   label: string;
@@ -77,6 +81,7 @@ export function NavTile({
     <button
       aria-label={hasWord ? undefined : label}
       aria-pressed={isOpen}
+      disabled={isDisabled}
       onClick={onPress}
       type="button"
       {...stylex.props(
@@ -86,6 +91,7 @@ export function NavTile({
         hasWord ? styles.worded : styles.shared,
         isOpen && styles.open,
         isTinted && styles.tinted,
+        isDisabled && styles.disabled,
       )}
     >
       <Icon icon={icon} size="lg" />

@@ -1,7 +1,6 @@
 // The one workflow message the server recommends for a feature now, which the session's composer
 // offers to insert.
 import { Button } from "@astryxdesign/core/Button";
-import { Text } from "@astryxdesign/core/Text";
 import { sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { Trigger } from "uraeda-server/fate";
@@ -29,7 +28,7 @@ export function withInserted(message: string, typed: string): string {
 
 /**
  * The composer's offer of the feature's recommended message: "Insert: <name>", which hands it to
- * `onInsert`, unsent, or why none applies, as supporting text. Nothing before it is read.
+ * `onInsert`, unsent, or nothing when none applies. Nothing before it is read.
  */
 export function RecommendedMessage({
   folder,
@@ -42,13 +41,10 @@ export function RecommendedMessage({
   if (!recommended) {
     return null;
   }
-  const { name, reason, step, text, trigger } = recommended;
+  const { name, step, text, trigger } = recommended;
+  // Without one, nothing: the composer's footer keeps its one line.
   if (name === null || step === null || trigger === null) {
-    return reason === null ? null : (
-      <Text color="secondary" type="supporting">
-        {reason}
-      </Text>
-    );
+    return null;
   }
   return (
     <Button
