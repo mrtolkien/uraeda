@@ -59,6 +59,26 @@ pub fn rebase(text: &str, from: &str, to: &str) -> String {
     })
 }
 
+/// The text written in the folder `from`, from the top level, as written in the folder `to`, the
+/// files of `moved` gone from each first path to its second: a link to one of them points where it
+/// went, rooted when it was, and every other relative link is rebased, as [`rebase`] does. A note
+/// file's text, its images moved, merged into a proposal file.
+pub fn relocated(text: &str, from: &str, to: &str, moved: &[(String, String)]) -> String {
+    rewrite(text, |raw| {
+        let path = crate::workspace::resolve(from, raw)?;
+        let Some((_, new)) = moved.iter().find(|(old, _)| *old == path) else {
+            return (!raw.starts_with('/') && from != to)
+                .then(|| rebased(raw, from, to))
+                .flatten();
+        };
+        let rest = raw.find(['?', '#']).map_or("", |at| &raw[at..]);
+        if raw.starts_with('/') {
+            return Some(format!("/{new}{rest}"));
+        }
+        rebased(&format!("{new}{rest}"), "", to)
+    })
+}
+
 /// A relative destination written in the folder `from`, as written in the folder `to`: its path
 /// through their common folder, its `?query` and `#anchor` kept. `None` when it climbs out of the
 /// top level.
@@ -202,7 +222,38 @@ fn destination(text: &str, start: usize) -> Option<Range<usize>> {
 
 #[cfg(test)]
 mod tests {
-    use super::rebase;
+    use super::{rebase, relocated};
+
+    #[test]
+    fn moved_files_are_linked_where_they_went_and_the_others_rebased() {
+        let moved = [(
+            "specs/notes/dark/images/a.webp".to_string(),
+            "specs/proposals/look/images/a-2.webp".to_string(),
+        )];
+        let cases = [
+            ("![a](images/a.webp)", "![a](images/a-2.webp)"),
+            ("![a](./images/a.webp#x)", "![a](images/a-2.webp#x)"),
+            (
+                "![a](/specs/notes/dark/images/a.webp)",
+                "![a](/specs/proposals/look/images/a-2.webp)",
+            ),
+            ("[b](../other.md)", "[b](../../notes/other.md)"),
+            ("[c](../../README.md)", "[c](../../README.md)"),
+            ("[d](images/b.webp)", "[d](../../notes/dark/images/b.webp)"),
+            ("[e](https://x.y) [f](#f)", "[e](https://x.y) [f](#f)"),
+        ];
+        for (text, expected) in cases {
+            assert_eq!(
+                relocated(text, "specs/notes/dark", "specs/proposals/look", &moved),
+                expected,
+                "{text}"
+            );
+        }
+        assert_eq!(
+            relocated("![a](images/a.webp)", "specs/notes", "specs/notes", &[]),
+            "![a](images/a.webp)"
+        );
+    }
 
     #[test]
     fn relative_links_are_rebased_and_the_others_kept() {
