@@ -82,7 +82,12 @@ export async function seedSessions(
       await sessions.settled(turn);
     }
     if (realistic !== undefined) {
-      seedLiveSession(sessions.cache, realistic, REALISTIC_FOLDERS.reviewing);
+      // Under the repository's root as every session's, a path through a link resolved.
+      seedLiveSession(
+        sessions.cache,
+        await sessions.mainRoot(realistic),
+        REALISTIC_FOLDERS.reviewing,
+      );
     }
   } finally {
     await sessions.closeAll();

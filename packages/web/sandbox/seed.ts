@@ -87,6 +87,11 @@ export const SOURCES = [
   "fixtures/preview",
   "fixtures/spec-page",
   "fixtures/realistic",
+  "fixtures/sessions",
+  "fixtures/images",
+  "fixtures/plan-page",
+  "fixtures/round-merge-chats",
+  "fixtures/round-layout-look",
   "skills/uraeda/assets/templates/specs",
 ];
 
