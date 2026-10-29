@@ -102,13 +102,14 @@ An image belongs beside the file that links it, and `INBOX.md` has no folder of 
 images live in its note file's folder, in `specs/notes/`, as
 [the attachments decision](/specs/decisions/attachments.md) says. By hand, to add images to a note:
 
-1. When the note has no note file, write one, `specs/notes/<slug>/note.md`, as
-   [a new proposal file](#organizing-by-hand) is written: the note's text is its title and the first
-   paragraph of What, its sub-items follow, and the note's line becomes a link to the file, with its
-   marks kept and no sub-items left. When the slug is taken, it gets `-2`, `-3`, ...
-2. Put each image in the note file folder's `images/`, and link it at the end of What, each on a
-   line of its own after a blank line: `![alt](images/name.webp)`. A single-file note file,
-   `<slug>.md`, becomes a folder first, `<slug>/note.md`, and the links to it follow.
+1. When the note has no note file, write one, `specs/notes/<slug>/note.md`. A note file is free
+   form, from no template: the note's text is its `# ` title, and its sub-items follow. The note's
+   line becomes a link to the file, with its marks kept and no sub-items left. When the slug is
+   taken, it gets `-2`, `-3`, ...
+2. Put each image in the note file folder's `images/`, and link it at the end of the file, each on a
+   line of its own after a blank line: `![alt](images/name.webp)`. In a note file written from the
+   proposal template, as older tools wrote them, the links go at the end of its What. A single-file
+   note file, `<slug>.md`, becomes a folder first, `<slug>/note.md`, and the links to it follow.
 
 The web UI does it from a note's page, with "Add images", or by dropping them on the page, and draws
 the images under the note's text, and the first one on its row.
@@ -127,7 +128,10 @@ commit as what it became:
 - **A proposal**: the note's lines become the last proposal of a `PRIORITIES.md` section, links kept
   and marks dropped. A note with a note file takes it along: the file, or its folder with its
   images, moves to `specs/proposals/` under a free name, its `note.md` becoming `proposal.md`, and
-  the line links its new path.
+  the line links its new path. A proposal file needs a `## What`, so a free-form note file takes the
+  proposal template's shape on the way: its `# ` title as the title and the first paragraph of What,
+  the rest of its text after it, and no placeholder text. A note file with a `## What` moves as it
+  is.
 - **A new proposal file**: `specs/proposals/<slug>.md` from the proposal template, with the note as
   its title and the first paragraph of What, and no placeholder text, linked from the end of a
   section of `PRIORITIES.md`. When the slug is taken, it gets `-2`, `-3`, ... A note with a note
@@ -137,7 +141,11 @@ commit as what it became:
   `## Notes` instead, added at the file's end when it has none: the note file's text at its end,
   under a `### <note title>` heading, its own headings nested below it and its images moved beside
   the proposal file (a single proposal file becomes its folder's `proposal.md`). The note file is
-  deleted.
+  deleted. A note with a note file can go into any proposal of `PRIORITIES.md`: a proposal without a
+  file gets one first, `specs/proposals/<slug>.md` from the proposal template, named after the
+  proposal's text, which is its title and the first paragraph of What, its sub-items after it, or
+  `<slug>/proposal.md` when the note file has images. The proposal becomes a link to it, alone, and
+  the note goes into its `## Notes`.
 - **A change**, for a bug or a small change: the note becomes a new proposal file, as above, which
   the human then starts as a change, as [starting a change](change.md#starting-a-change) says. The
   note leaves the inbox in the proposal file's commit. Starting makes a branch, which only the human
