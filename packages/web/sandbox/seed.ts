@@ -44,7 +44,7 @@ export type Sandbox = { configDir: string; dataDir: string; projects: Projects; 
 /** What a seed builds with: the sample projects into a folder, and the sessions of "sample". */
 export type Builders = {
   projects: (dir: string) => Projects;
-  sessions: (dataDir: string, sample: string) => Promise<void>;
+  sessions: (dataDir: string, sample: string, realistic: string) => Promise<void>;
 };
 
 const BUILDERS: Builders = { projects: buildProjects, sessions: seedSessions };
@@ -243,7 +243,7 @@ async function build(root: string, version: string, builders: Builders) {
     for (const project of [projects.broken, projects.empty, projects.realistic, projects.sample]) {
       await addRepository(dataDir, project);
     }
-    await builders.sessions(dataDir, projects.sample);
+    await builders.sessions(dataDir, projects.sample, projects.realistic);
     writeFileSync(join(folder, "stamp.new"), version);
     renameSync(join(folder, "stamp.new"), join(folder, "stamp"));
   } catch (error) {
