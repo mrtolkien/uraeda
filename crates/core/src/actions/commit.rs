@@ -21,28 +21,35 @@ pub fn commit_only(place: &Place, change: &Change) -> Result<Committed, ActionEr
     committed(place, change, Git::commit_only)
 }
 
-/// Commits `change` with `run`, and returns it with the message committed, an amend's.
+/// Commits `change` with `run`, and returns it with the message committed, an amend's. An amend
+/// git or a hook refuses is tried again as a commit of its own, so a commit never stays stuck on
+/// one.
 fn committed(
     place: &Place,
     change: &Change,
-    run: impl FnOnce(&Git, &[String], &str, Option<&str>, bool) -> Result<(), GitError>,
+    run: impl Fn(&Git, &[String], &str, Option<&str>, bool) -> Result<(), GitError>,
 ) -> Result<Committed, ActionError> {
     let git = Git::open(&place.root)?;
-    let amended = super::amend::message(place, change);
-    let amend = amended.is_some();
-    let (subject, body) = match amended {
-        Some((subject, body)) => (subject, Some(body)),
-        None => (change.subject.clone(), change.body.clone()),
-    };
-    match run(&git, &change.paths, &subject, body.as_deref(), amend) {
-        Ok(()) => {}
-        Err(GitError::Command {
-            subcommand,
-            message,
-            output,
-        }) if subcommand == "commit" => return Err(ActionError::Hook { message, output }),
-        Err(error) => return Err(error.into()),
+    let mut result = None;
+    if let Some((subject, body)) = super::amend::message(place, change) {
+        let amended = run(&git, &change.paths, &subject, Some(&body), true);
+        result = amended.is_ok().then_some((subject, Some(body)));
     }
+    let (subject, body) = match result {
+        Some(message) => message,
+        None => {
+            let message = (change.subject.clone(), change.body.clone());
+            match run(&git, &change.paths, &message.0, message.1.as_deref(), false) {
+                Ok(()) => message,
+                Err(GitError::Command {
+                    subcommand,
+                    message,
+                    output,
+                }) if subcommand == "commit" => return Err(ActionError::Hook { message, output }),
+                Err(error) => return Err(error.into()),
+            }
+        }
+    };
     let head = Git::open(&place.root)?
         .head()
         .map(|id| id.to_hex_with_len(7).to_string())

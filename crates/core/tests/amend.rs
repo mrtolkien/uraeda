@@ -288,3 +288,29 @@ fn a_tagged_commit_is_not_amended() {
 
     assert_eq!(repo.subjects("main").len(), 4);
 }
+
+/// An amend git or a hook refuses is tried again as a commit of its own: a tool's commit never
+/// stays stuck on an amend. A hook that refuses both reports its refusal as before.
+#[test]
+fn a_refused_amend_is_tried_again_as_a_commit_of_its_own() {
+    let repo = repo();
+    note(&repo, "An idea").unwrap();
+    // Refuses its first run alone, then lets every commit through.
+    repo.set_hook("[ -f .git/refused ] && exit 0; touch .git/refused; exit 1");
+
+    note(&repo, "Another idea").unwrap();
+
+    assert_eq!(
+        repo.subjects("main")[..2],
+        [
+            "chore: add \"Another idea\" to the inbox",
+            "chore: add \"An idea\" to the inbox"
+        ]
+    );
+    assert_eq!(repo.porcelain(), "");
+
+    repo.set_hook("echo refused; exit 1");
+    let error = note(&repo, "A third").unwrap_err();
+    assert!(matches!(error, ActionError::Hook { .. }), "{error:?}");
+    assert_eq!(repo.subjects("main").len(), 4);
+}
