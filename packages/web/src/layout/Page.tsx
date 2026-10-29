@@ -53,9 +53,8 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-3"],
   },
   tight: {
-    // On the phone, `--spacing-3` (14.4 px) at the sides, past the sidebar's own: the inset of the
-    // spec's page, and of the plan's, the document's, and the data model's, which share its column
-    // and its bar, and follow its look.
+    // On the phone, `--spacing-3` (14.4 px) at the sides, past the sidebar's own: the sessions'
+    // page of cards.
     "--page-bleed": `calc(-1 * ${spacingVars["--spacing-3"]})`,
     "--page-inset": spacingVars["--spacing-3"],
     paddingBlock: spacingVars["--spacing-3"],
@@ -75,7 +74,7 @@ export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>
 
 /**
  * A page's content: its inset, and its column on wide screens, or with `isFull` the window's whole
- * width. On the phone, `isTight` gives it the spec family's inset, `--spacing-3`, and `isSnug`
+ * width. On the phone, `isTight` gives it `--spacing-3`, the sessions' page's inset, and `isSnug`
  * `--spacing-2`, a session's.
  */
 export function Page({

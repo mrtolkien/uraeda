@@ -5,11 +5,12 @@ not a desktop squeezed down, and not a lesser version.
 
 ## The frame
 
-- **One column of content**, with small insets, the sidebar's own, so text has the screen's width. A
-  document's panes, a round's, a spec's, keep only their titled top border on the phone (`Pane`'s
-  `isOpenOnPhone`), their text reaching the insets; a pane inside another keeps its borders. What is
-  meant to reach the screen's edges, like a question's options or a band between questions, takes
-  the inset back with `--page-bleed`.
+- **One column of content**, with small insets, the sidebar's own, so text has the screen's width:
+  "We want less margins on phones for max readability". A round, a spec, a plan, a document, and the
+  data model share that inset, 7.8 px. A document's panes, a round's, a spec's, keep only their
+  titled top border on the phone (`Pane`'s `isOpenOnPhone`), their text reaching the insets; a pane
+  inside another keeps its borders. What is meant to reach the screen's edges, like a question's
+  options or a band between questions, takes the inset back with `--page-bleed`.
 - **The top tabs** stay in view: the sidebar's toggle on their far left, set apart, then Home (with
   the Needs-you count on its icon), and the other places. The sidebar opens over the page, up to 400
   px, animated, and holds no copy of the tabs' places.
@@ -47,10 +48,13 @@ brings it back. It covers the bottom bar while it shows.
 
 ## Layers
 
-- **Sheets, not dialogs or popovers**: menus, pickers, short forms, confirmations, and the side
-  column's tabs rise from the bottom as sheets, each in the address, so Back closes it. They are one
-  sheet (`layout/Sheet.tsx`), whatever it holds: its title on top, a Close, in frosted glass ("make
-  them all 3 the same component"). A `…`'s actions are its rows.
+- **Sheets, not dialogs**: pickers, short forms, confirmations, and the side column's tabs rise from
+  the bottom as sheets, each in the address, so Back closes it. They are one sheet
+  (`layout/Sheet.tsx`), whatever it holds: its title on top, a Close, in frosted glass ("make them
+  all 3 the same component"). It opens with the focus in its field, and a drag up on its top takes
+  it to the whole screen.
+- **Menus and selectors are popovers**, as on wide screens, not sheets: a `…`'s actions, a sort, a
+  category to choose ("Decision sort should just open a selector… It shouldn't be a sheet").
 - **Pages for anything read**: a proposal file, a session, a spec.
 
 ## Flows
