@@ -524,9 +524,7 @@ fn replaced_behaviour_and_gotchas_are_optional_sections_in_their_place() {
     );
 }
 
-/// SC-003: a story link is a plain markdown link, and a spec holding one checks without problem.
-/// `specs/ui/`, the project's UI guides, is a folder of its own, free form, as `proposal files/`
-/// is.
+/// `specs/ui/`, the project's UI guides, is a folder of its own, free form, as `proposals/` is.
 #[test]
 fn a_ui_folder_has_no_problem() {
     let example = Example::new();
@@ -538,6 +536,7 @@ fn a_ui_folder_has_no_problem() {
     assert_eq!(summary(&example.problems()), Vec::<String>::new());
 }
 
+/// SC-003: a story link is a plain markdown link, and a spec holding one checks without problem.
 #[test]
 fn a_spec_with_a_story_link_has_no_problem() {
     let example = Example::new();
@@ -995,7 +994,7 @@ fn an_old_bugs_folder_says_how_to_move_it() {
     );
 }
 
-/// Edge case: a project not moved to the proposals, its `specs/proposal files/` holding files: the
+/// Edge case: a project not moved to the proposals, its `specs/drafts/` holding files: the
 /// check points to the migration. An old folder left empty but for its `.gitkeep` is not reported.
 #[test]
 fn an_old_drafts_folder_points_to_the_migration() {

@@ -10,7 +10,7 @@ const INBOX: &str = "specs/INBOX.md";
 const PRIORITIES: &str = "specs/PRIORITIES.md";
 
 /// A repository on `main` with the fixture's `INBOX.md`, `PRIORITIES.md`, and the proposal file its
-/// Next links, `proposal files/git-listener.md`.
+/// Next links, `proposals/git-listener.md`.
 fn fixture_repo() -> TestRepo {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");

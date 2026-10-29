@@ -39,6 +39,8 @@ editing it.
   links into the skill and the example. It holds no workflow rules: update it when a change to the
   workflow makes it wrong.
 - `specs/PRIORITIES.md`: what is being worked on now, next, and later.
+- `specs/ui/`: the web UI's guides, how its views read, behave, and look at each width. Read them
+  before designing or changing a view.
 
 ## Repository layout
 

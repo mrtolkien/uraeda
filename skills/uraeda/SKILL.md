@@ -82,6 +82,7 @@ specs/
                             # <slug>/proposal.md, images/, ...
   notes/                    # note files: inbox notes with images, <slug>/note.md, images/
   decisions/                # decision ledger, one file per topic: due-dates.md
+  ui/                       # the project's UI guides, free form: read before designing a view
   done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change, in place of its folder
   changes/                  # one folder per change, YYYY-MM-DD-<slug>/: proposal.md (human),
                             # clarifications-NN.md, rulings.md, images/, mockups/

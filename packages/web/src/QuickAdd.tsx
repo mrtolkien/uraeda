@@ -3,7 +3,6 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { VStack } from "@astryxdesign/core/VStack";
-import { Icon } from "@astryxdesign/core/Icon";
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { AddCommit } from "uraeda-binding";
@@ -14,10 +13,7 @@ import { showPageError } from "./layout/useUndoToast.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
-import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { PrioritiesAddedView } from "./views.ts";
-import { useOwnWrite } from "./writes/useOwnWrite.ts";
-import { WriteButtonView, type WriteState } from "./writes/WriteFeedback.tsx";
 
 /**
  * The sections a line goes to, with their titles, in the order the page shows them: a map, which
@@ -78,67 +74,30 @@ export function enterAdds(onEnter: () => void) {
 }
 
 /**
- * "Add and commit" as a git write, from its button or Enter: it reads "Committing…" at once, and
- * does nothing while another write runs. `add` adds and commits the form's line.
- */
-export function useAddAndCommit(add: () => Promise<unknown>) {
-  const { start, state } = useOwnWrite({ label: "Committing…" });
-  return { commitState: state, onAddAndCommit: () => start(add) };
-}
-
-/**
- * A ＋ form's buttons: Cancel, Add, which adds the line uncommitted, and "Add and commit", the
- * primary one and Enter's, which commits that file alone. On wide screens, where a keyboard is
- * likely, "Add and commit" shows the Enter key it shares (C4); its name stays "Add and commit".
- * `start` comes first in the row, like the inbox's "Attach an image". `commitState` is "Add and
- * commit"'s write, as `useAddAndCommit` gives it.
+ * A ＋ form's buttons: `start` first in the row, like the inbox's "Attach an image", Cancel when
+ * the form has one, then Add, the primary one and Enter's, which adds the line uncommitted, for the
+ * commit page's Commit.
  */
 export function AddButtons({
   addLabel = "Add",
-  commitState = "idle",
   isReady,
   onAdd,
-  onAddAndCommit,
   onCancel,
   start,
 }: {
   /** Add's label, like "Add as a file". */
   addLabel?: string;
-  commitState?: WriteState;
   isReady: boolean;
   onAdd: () => Promise<void>;
-  /** Without it, Add alone, the primary button. */
-  onAddAndCommit?: () => void;
   /** Without it, no Cancel: the overlay's Close cancels. */
   onCancel?: () => void;
   start?: ReactNode;
 }) {
-  const wide = !isNarrow(useWidthClass());
-  const committing = onAddAndCommit !== undefined;
   return (
     <HStack gap={2} justify="end" wrap="wrap">
       {start}
-      {onCancel && (
-        <Button label="Cancel" onClick={onCancel} variant={committing ? "ghost" : "secondary"} />
-      )}
-      <Button
-        clickAction={onAdd}
-        isDisabled={!isReady}
-        label={addLabel}
-        variant={committing ? "secondary" : "primary"}
-      />
-      {committing && (
-        <WriteButtonView
-          // Out of the button's name, which stays its label; named, for the tests to find it.
-          endContent={wide && <Icon aria-hidden="true" icon="uraeda:enter" label="Enter" />}
-          isDisabled={!isReady}
-          label="Add and commit"
-          onClick={onAddAndCommit}
-          runningLabel="Committing…"
-          state={commitState}
-          variant="primary"
-        />
-      )}
+      {onCancel && <Button label="Cancel" onClick={onCancel} variant="secondary" />}
+      <Button clickAction={onAdd} isDisabled={!isReady} label={addLabel} variant="primary" />
     </HStack>
   );
 }
