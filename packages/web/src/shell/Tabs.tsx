@@ -1,16 +1,17 @@
 // The phone's bar of tabs, at the top of every page: Home with the count of what needs the human,
-// Inbox with its notes' count, Priorities, Sessions with the running sessions' count, Decisions,
-// Settings, and New, each an icon named by its page, the current page's marked. The Sessions tab
-// opens the shell's panes as a page of their own. The phone's status line holds a page's own
-// controls only: these counts are its counts.
+// Inbox with its notes' count, Priorities, Sessions with the running sessions' count, Commit while
+// something waits for one, a `…` that holds Decisions and Settings, and New, each an icon named by
+// its page, the current page's marked. The Sessions tab opens the shell's panes as a page of
+// their own. The phone's status line holds a page's own controls only: these counts are its counts.
 import { Badge } from "@astryxdesign/core/Badge";
+import { DropdownMenu, type DropdownMenuTriggerProps } from "@astryxdesign/core/DropdownMenu";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
 import { useInbox, usePriorities } from "../data.ts";
-import { useRepoPath } from "../routes.tsx";
+import { navigate, useRepoPath } from "../routes.tsx";
 import { DESTINATIONS } from "../destinations.ts";
 import { NewMenu } from "./NewMenu.tsx";
 import { useNavigation } from "../sessionData.ts";
@@ -34,7 +35,8 @@ const styles = stylex.create({
     alignItems: "center",
     boxSizing: "border-box",
     display: "flex",
-    // None between them at the least: eight 44 px buttons and the line are what a 375 px phone holds.
+    // None between them at the least: eight 44 px buttons and the line are what a 375 px phone
+    // holds, so Decisions and Settings wait in the `…` (see `MoreTab`).
     gap: 0,
     height: spacingVars["--spacing-12"],
     justifyContent: "space-between",
@@ -132,6 +134,38 @@ function CommitTab({ isCurrent }: { isCurrent: boolean }) {
   );
 }
 
+/** The places the `…` holds: the least visited, with no count to show. */
+const FOLDED = [DESTINATIONS.decisions, DESTINATIONS.settings] as const;
+
+/**
+ * The `…` of the places the bar has no room for, Decisions and Settings, a popover anchored to it:
+ * marked as the current page's tab while one of them is open, and named by it then.
+ */
+function MoreTab({ at }: { at: (to: string) => boolean }) {
+  const here = useRepoPath();
+  const current = FOLDED.find((place) => at(place.path));
+  return (
+    <DropdownMenu
+      alignment="end"
+      items={FOLDED.map((place) => ({
+        icon: place.icon,
+        label: place.label,
+        onClick: () => navigate(here(place.path)),
+      }))}
+      presentation="popover"
+      renderTrigger={(props: DropdownMenuTriggerProps) => (
+        <IconButton
+          aria-current={current ? "page" : undefined}
+          icon={<Icon icon="moreHorizontal" />}
+          label={current ? `More, ${current.label}` : "More"}
+          variant={current ? "secondary" : "ghost"}
+          {...props}
+        />
+      )}
+    />
+  );
+}
+
 /** The inbox's tab, with its notes' count once read. */
 function InboxCounted({ isCurrent }: { isCurrent: boolean }) {
   const inbox = useInbox();
@@ -207,21 +241,11 @@ export function Tabs({
         label={DESTINATIONS.sessions.label}
         to={DESTINATIONS.sessions.path}
       />
-      <Tab
-        icon={DESTINATIONS.decisions.icon}
-        isCurrent={at(DESTINATIONS.decisions.path)}
-        label={DESTINATIONS.decisions.label}
-        to={DESTINATIONS.decisions.path}
-      />
-      <Tab
-        icon={DESTINATIONS.settings.icon}
-        isCurrent={at(DESTINATIONS.settings.path)}
-        label={DESTINATIONS.settings.label}
-        to={DESTINATIONS.settings.path}
-      />
       <Suspense fallback={null}>
         <CommitTab isCurrent={at(DESTINATIONS.commit.path)} />
       </Suspense>
+      {/* Between Commit and New, so their two filled blocks do not run into one. */}
+      <MoreTab at={at} />
       <NewMenu
         trigger={(props) => (
           <IconButton

@@ -30,16 +30,24 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-1"],
     paddingInline: spacingVars["--spacing-1"],
   },
-  // The row bar's tile: its icon over its word, as wide as a finger at least.
+  // The row bar's tile: its icon over its word, as wide as a finger at least. A step of room on
+  // each side of its word, no more: five tiles fit a 360 px phone's bar.
   worded: {
     flexDirection: "column",
     gap: barVars["--bar-tile-gap"],
     minWidth: barVars["--bar-tile-least"],
     paddingBlock: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-3"],
+    paddingInline: spacingVars["--spacing-1"],
   },
-  // A tile's word, small under its icon.
-  word: { fontSize: barVars["--bar-word"] },
+  // A tile's word, small under its icon, on one line: where a wide font leaves the tiles too little
+  // room, it ends in an ellipsis inside its tile, never over its neighbour's.
+  word: {
+    fontSize: barVars["--bar-word"],
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
   // The tiles share the bar's width, each as tall as the bar.
   tiles: {
     alignSelf: "stretch",

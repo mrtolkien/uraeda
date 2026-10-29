@@ -15,8 +15,12 @@ not a desktop squeezed down, and not a lesser version.
   mobile, multi-line text should ALWAYS take up the full width". A row's icon, number, count, or
   date goes on a line of its own above the text, never in a column beside it that squeezes it.
 - **The top tabs** stay in view: the sidebar's toggle on their far left, set apart, then Home (with
-  the Needs-you count on its icon), and the other places. The sidebar opens over the page, up to 400
-  px, animated, and holds no copy of the tabs' places.
+  the Needs-you count on its icon), Inbox, Priorities, Sessions, Commit while something waits for
+  one, a `…`, and New (`shell/Tabs.tsx`). The `…` holds Decisions and Settings, the least visited
+  places, in a popover anchored to it; while one of them is open, the `…` is the current tab. Eight
+  44 px controls are what a 375 px phone holds, so from 375 px the bar never scrolls sideways,
+  Commit showing or not; a narrower one, 360 px, scrolls it 3 px. The sidebar opens over the page,
+  up to 400 px, animated, and holds no copy of the tabs' places.
 - **No status line**, unless the page has a bottom bar (below): keys are no help on a touch screen,
   and the counts are on the tabs.
 
@@ -61,8 +65,13 @@ decision the previous and the next one. The constitution, read top to bottom, ha
 ## A row's actions
 
 When a row is selected, its actions float at the bottom as a glass bar of big icons over short
-words, above the keyboard when it is open. It sinks away when the page scrolls, and a tap on a row
-brings it back. It covers the bottom bar while it shows.
+words, above the keyboard when it is open (`lists/RowBar.tsx`). It sinks away when the page scrolls,
+and a tap on a row brings it back. It covers the bottom bar while it shows.
+
+Its tiles are a finger wide at least, 3.5 rem, with a small step of room beside each word, so five
+actions, a row's most, fit a 360 px phone on one line in every bundled font. Where a font leaves too
+little room, a word ends in an ellipsis inside its tile: the bar never runs past the screen, and
+never wraps.
 
 ## Layers
 
