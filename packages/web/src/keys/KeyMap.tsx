@@ -2,17 +2,19 @@
 // (`keyMap.ts`), with a search over them. A reference, not a palette: its rows run nothing, for a
 // page's key acts on the selection the map covers, and the leader menu already runs the sequences.
 // On wide and semi-wide screens, a dialog on the frosted glass of what floats over the page, square,
-// over the page dimmed by the dialog's backdrop, so the glass's text reads over any page; on narrow
-// screens, the phone's sheet (`Sheet`), already glass over a dimmed page. Opening it adds a history
-// entry, so Back closes it, as Escape and a click outside do, and the focus returns to where it was.
+// over the page dimmed by the dialog's backdrop, lightly (`--glass-dim`), so the glass's text reads
+// at 4.5:1 or more over any page; on narrow screens, the phone's sheet (`Sheet`), already glass over
+// a dimmed page. Opening it adds a history entry, so Back closes it, as Escape and a click outside
+// do, and the focus returns to where it was.
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { Fragment, type ReactNode, useRef, useState } from "react";
 import { glassStyles } from "../layout/glass.ts";
+import { glassVars } from "../layout/glass.stylex.ts";
 import { GroupTitle } from "../layout/GroupTitle.tsx";
 import { Sheet } from "../layout/Sheet.tsx";
 import { useBackCloses } from "../layout/useBackCloses.ts";
@@ -45,7 +47,11 @@ const styles = stylex.create({
   // A box only to find the search in: the dialog lays its content out.
   contents: { display: "contents" },
   // Square, as every glass is, and as tall whatever the search finds, so the search never moves.
-  glass: { borderRadius: 0, height: "var(--size-palette-height)" },
+  glass: {
+    borderRadius: 0,
+    [colorVars["--color-overlay"]]: glassVars["--glass-dim"],
+    height: "var(--size-palette-height)",
+  },
   keys: {
     display: "inline-flex",
     flexShrink: 0,
@@ -96,7 +102,7 @@ function Row({ row }: { row: KeyRow }) {
         ))}
       </span>
       {row.icon !== undefined && <Icon icon={row.icon} size="sm" />}
-      <Text type="supporting" xstyle={styles.text}>
+      <Text color="primary" type="supporting" xstyle={styles.text}>
         {row.label}
       </Text>
     </li>
