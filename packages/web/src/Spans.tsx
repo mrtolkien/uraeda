@@ -17,12 +17,19 @@ const styles = stylex.create({
     display: "inline-flex",
     minHeight: sizeVars["--size-element-md"],
   },
+  // Inline code, in a font of other heights than the text's: its line height, the text's, would
+  // make its line taller than the others, so it takes its own size's, and its line keeps the text's.
+  code: { lineHeight: "100%" },
 });
 
 function Marked({ span }: { span: Span }) {
   let node: React.ReactNode = span.text;
   if (span.code) {
-    node = <Code size="inherit">{node}</Code>;
+    node = (
+      <Code size="inherit" xstyle={styles.code}>
+        {node}
+      </Code>
+    );
   }
   if (span.strike) {
     node = <s>{node}</s>;
