@@ -336,6 +336,8 @@ export const uraedaTheme = defineTheme({
     "--size-image-max-height": "80dvh",
     // A chat message's image, a preview the human opens full screen.
     "--size-message-image": "120px",
+    // An inbox note's image, under its selected row: twice a message's, to be read in place.
+    "--size-note-image": "240px",
     // The chat composer's field at its smallest: 7 rows of Astryx's composer lines, 22 px at every
     // size.
     "--size-composer-input": "154px",

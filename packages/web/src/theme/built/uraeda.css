@@ -311,6 +311,7 @@
     --size-viewport-height: 100dvh;
     --size-image-max-height: 80dvh;
     --size-message-image: 120px;
+    --size-note-image: 240px;
     --size-composer-input: 154px;
     --size-composer-input-narrow: 66px;
     --size-round-accent: 4px;

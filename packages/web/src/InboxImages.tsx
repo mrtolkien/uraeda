@@ -76,7 +76,7 @@ export function NoteImages({
       <HStack gap={2} wrap="wrap">
         {shown.map(({ path, src }) => (
           <VStack gap={1} hAlign="center" key={path}>
-            <ImageView alt={imageName(path)} size="message" src={src} />
+            <ImageView alt={imageName(path)} size="note" src={src} />
             <Button
               icon={<Icon icon="close" />}
               isIconOnly
