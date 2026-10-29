@@ -48,21 +48,41 @@ export function holdsVariants(stories: Stories | null, document: Document, quest
 
 /**
  * Whether a question holds something wide, in its context, its example, its why, or an option: a
- * table, an HTML mockup, or a story. Its card then keeps one column, the whole card's width theirs.
+ * table, or a live window (`holdsWindow`). Its card then keeps one column, the whole card's width
+ * theirs.
  */
 export function holdsWide(stories: Stories | null, document: Document, question: QuestionItem) {
+  const tables = document.blocks.filter((block) => block.kind === "table");
+  return (
+    holdsAny(
+      document,
+      question,
+      tables.map((block) => block.id),
+    ) || holdsWindow(stories, document, question)
+  );
+}
+
+/**
+ * Whether a question holds a live window, an HTML mockup or a story, in its context, its example,
+ * its why, or an option. Its card then takes the page's column, so the window shows nearer its own
+ * size, its text a pane's width.
+ */
+export function holdsWindow(stories: Stories | null, document: Document, question: QuestionItem) {
+  return holdsAny(document, question, [
+    ...(stories?.mockups ?? []).map((mockup) => mockup.block),
+    ...(stories?.preview ? stories.stories.map((story) => story.block) : []),
+  ]);
+}
+
+/** Whether any of the blocks `ids` is in a question's context, example, why, or options. */
+function holdsAny(document: Document, question: QuestionItem, ids: ReadonlyArray<number>) {
   const roots = new Set([
     ...question.context,
     ...(question.example === undefined ? [] : [question.example]),
     ...(question.why === undefined ? [] : [question.why]),
     ...question.options.flatMap((choice) => choice.other),
   ]);
-  const wide = [
-    ...document.blocks.filter((block) => block.kind === "table").map((block) => block.id),
-    ...(stories?.mockups ?? []).map((mockup) => mockup.block),
-    ...(stories?.preview ? stories.stories.map((story) => story.block) : []),
-  ];
-  return wide.some((id) => {
+  return ids.some((id) => {
     for (let at: number | undefined = id; at !== undefined; at = document.blocks[at]?.parent) {
       if (roots.has(at)) {
         return true;

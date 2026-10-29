@@ -104,9 +104,13 @@ export function useOutgrow(
       );
     };
     measure();
+    // Every box from its parent up to the page's container: one that clips it, like a card, may
+    // widen while its column keeps its width, as a question's card does once it knows it holds one.
     const observer = new ResizeObserver(measure);
+    for (let at: Element | null = parent; at && at !== outer; at = at.parentElement) {
+      observer.observe(at);
+    }
     observer.observe(outer);
-    observer.observe(parent);
     return () => observer.disconnect();
   }, [column, embed, wide, width]);
   return grow;

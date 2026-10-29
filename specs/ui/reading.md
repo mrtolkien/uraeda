@@ -29,9 +29,9 @@ on purpose: its marks are what the human edits.
 - **A pane of prose is as wide as its prose**: a reading page's pane (`Page`'s `isReading`: the
   round, the spec, the plan, a document, the data model) is at most `--size-reading-pane`, the
   measure and the pane's own padding and border, so its text fills it and never stops short of the
-  border: a pane's text and its border end together. Wide content inside it, a table or a mockup,
-  scrolls or scales inside it. The draft editor's panes hold monospace text and stay 95 of the UI's
-  characters (`isWriting`).
+  border: a pane's text and its border end together. A table inside it scrolls inside it; a live
+  window, a mockup or a story, grows past it into the empty room beside it, up to its own size. The
+  draft editor's panes hold monospace text and stay 95 of the UI's characters (`isWriting`).
 - **A single pane is centred** on a wide screen, at its maximum width; two panes side by side share
   the page's width, each up to its maximum. "A _single_ pane should not be too big, but for two
   panes they should be able to use the available space." "The single-panes should be CENTERED."
@@ -89,7 +89,10 @@ not emptiness: a pane ends right after its last line, with only the pane's own r
 - A table has room above and below it, as a block among others, never touching the text.
 - No empty row between rows: a row's comments get a row of their own only when there are some.
 - A question whose context, example, or options hold a table, a mockup, or a story keeps one column,
-  so the wide content has the card's whole width.
+  so the wide content has the card's whole width. A card holding a mockup or a story takes the
+  page's whole column, so its live window shows nearer its own size, the card's border around it,
+  while its text stays a single card's width, about 80 characters a line, centred: "The mockup
+  itself should be bigger than the pane… The text should stay 80 characters wide".
 
 ## Not in text
 

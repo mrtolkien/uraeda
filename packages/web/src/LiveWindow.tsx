@@ -13,6 +13,9 @@ import { type Fit, PHONE_BELOW } from "./LiveFrame.tsx";
 
 const styles = stylex.create({
   figure: {
+    // Its pane is as wide as the figure, grown past its column: not a pane of prose's width, which
+    // a reading page gives its panes.
+    "--pane-max": "none",
     marginBlockEnd: spacingVars["--spacing-3"],
     marginBlockStart: 0,
     marginInline: 0,

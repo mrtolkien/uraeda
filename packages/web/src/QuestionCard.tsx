@@ -3,9 +3,17 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useContext } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
+import { paneVars } from "./layout/pane.stylex.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
-import { holdsVariants, holdsWide, Options, QuestionContext, QuestionHead } from "./Question.tsx";
+import {
+  holdsVariants,
+  holdsWide,
+  holdsWindow,
+  Options,
+  QuestionContext,
+  QuestionHead,
+} from "./Question.tsx";
 import { AnswerComment } from "./QuestionComment.tsx";
 import type { RoundTarget } from "./roundTarget.ts";
 import { StoryContext } from "./stories.tsx";
@@ -65,6 +73,19 @@ const styles = stylex.create({
   // On a wide screen, a table's rows' lines run into the card's room, as far as its cells' own
   // room at their edges, Astryx's 12 px: its columns' text then at the card's text's edges.
   tableBleed: { "--table-bleed": spacingVars["--spacing-3"] },
+  // A card's text beside a live window, a single card's width, centred.
+  text: {
+    marginInline: "auto",
+    maxWidth: `calc(${paneVars["--pane-prose"]} - 2 * ${spacingVars["--spacing-6"]})`,
+    width: "100%",
+  },
+  // A card holding a live window, a mockup or a story, on a wide screen: the page's column, so the
+  // window grows to the card's edges (`useOutgrow`), the card's border around it, while its text
+  // keeps a single card's width, centred: about 80 characters a line.
+  windowed: {
+    marginInline: 0,
+    maxWidth: "none",
+  },
 });
 
 /**
@@ -110,6 +131,8 @@ export function QuestionCard({
     roomy &&
     !holdsVariants(stories, document, question) &&
     !holdsWide(stories, document, question);
+  const windowed = wide && holdsWindow(stories, document, question);
+  const text = windowed && styles.text;
   const comments =
     stories && !readOnly
       ? {
@@ -123,7 +146,7 @@ export function QuestionCard({
   const head = <QuestionHead question={question} {...(onAsk ? { onAsk } : {})} />;
   const context = <QuestionContext document={document} question={question} />;
   const answering = (
-    <div>
+    <div {...stylex.props(text)}>
       <Options answer={answer} document={document} question={question} readOnly={readOnly} />
       <AnswerComment
         answer={answer}
@@ -142,7 +165,10 @@ export function QuestionCard({
   // card; split, the left column is as tall as the card.
   return (
     <StoryContext value={comments}>
-      <section id={question.id} {...stylex.props(margin, wide && !split && styles.single)}>
+      <section
+        id={question.id}
+        {...stylex.props(margin, wide && !split && styles.single, windowed && styles.windowed)}
+      >
         <Card
           padding={wide ? 6 : 0}
           variant={wide ? "default" : "transparent"}
@@ -156,10 +182,10 @@ export function QuestionCard({
             )}
           >
             <div {...stylex.props(split ? styles.stretch : styles.contents)}>
-              <div {...stylex.props(styles.stickyHead, !wide && styles.stickyHeadPhone)}>
+              <div {...stylex.props(styles.stickyHead, !wide && styles.stickyHeadPhone, text)}>
                 {head}
               </div>
-              {context}
+              <div {...stylex.props(text || styles.contents)}>{context}</div>
             </div>
             {answering}
           </div>
