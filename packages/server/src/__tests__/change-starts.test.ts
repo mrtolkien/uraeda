@@ -72,9 +72,10 @@ test("change.fromNote starts a change from a note file's title, text, and image"
     [readFileSync(fixture("images/phone.png"))],
     ["phone.png"],
   );
+  // Typed under the title of the freeform note file.
   const typed = readFileSync(join(server.repo, file), "utf8").replace(
-    "## Why\n",
-    "## Why\n\nReaders lose their place.\n",
+    "# Headings are flat\n",
+    "# Headings are flat\n\nReaders lose their place.\n",
   );
   writeFileSync(join(server.repo, file), typed);
   server.adapter.script([]);
