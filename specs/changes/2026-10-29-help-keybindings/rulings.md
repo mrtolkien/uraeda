@@ -53,3 +53,31 @@ decisions.
 - **Rationale**: a dialog that shrinks as the rows go recentres, and the search field jumps under
   the typing.
 - **Where**: [`KeyMap.tsx`](/packages/web/src/keys/KeyMap.tsx)
+
+## R6: A fallback is listed only with the keys nothing else takes
+
+- **Decision**: a fallback binding, which runs only when the key's other binding did nothing, keeps
+  only its keys that no other listed binding holds, and is left out with none: on a list, `j` reads
+  "Next row" alone, and "Scroll to the bottom" keeps only `G`.
+- **Rationale**: the map cannot tell when the other binding does nothing, and two rows for `j` read
+  as one key with two meanings, which the [Keyboard](/specs/decisions/keyboard.md) decision forbids
+  on a page.
+- **Alternatives considered**: marking the fallback ("else: Scroll down"), which explains a detail
+  most readers do not need.
+- **Where**: [`keyMap.ts`](/packages/web/src/keys/keyMap.ts)
+
+## R7: Chords are written with Ctrl on every platform
+
+- **Decision**: a `mod+` key reads `Ctrl+K`, on a Mac too.
+- **Rationale**: the registry takes Ctrl as `mod` everywhere, and the half-screen keys refuse
+  Command on a Mac, which the browser owns there: `Cmd+D` would bookmark the page.
+- **Where**: [`keyMap.ts`](/packages/web/src/keys/keyMap.ts)
+
+## R8: The key map's list is drawn with raw elements, an Astryx gap
+
+- **Decision**: its sections, rows, and scrolling box are a `ul`, `li`, and `section`, with their
+  reason in comments, as the leader menu's rows are.
+- **Rationale**: Astryx's `List` draws rows with their own padding and surface, not keys beside
+  their words in columns, and its `ScrollableArea` adds a scrollbar and fades of its own. A change
+  has no plan to list a gap in, so it is listed here.
+- **Where**: [`KeyMap.tsx`](/packages/web/src/keys/KeyMap.tsx)

@@ -14,6 +14,11 @@ const shell = (keys: string, label: string): Placed => ({
   place: "shell",
 });
 
+const fallback = (keys: string, label: string): Placed => ({
+  binding: { fallback: true, keys, label, run },
+  place: "shell",
+});
+
 const LISTED: ReadonlyArray<Placed> = [
   shell("g h", "Home"),
   shell("space f d", "Decisions"),
@@ -82,4 +87,45 @@ test("the search keeps the rows with every word in their label, keys, or section
   expect(shown(searchKeyMap(sections, "↓ next"))).toEqual([["This page", ["j, ↓ Next row"]]]);
   expect(searchKeyMap(sections, "nothing like it")).toEqual([]);
   expect(searchKeyMap(sections, "  ")).toEqual(sections);
+});
+
+// Break: a fallback listed beside the key it falls back from gives `j` two meanings in the map.
+test("a fallback is listed only with the keys no other binding listed holds", () => {
+  const listed = [
+    page("j", "next row"),
+    page("End", "last row"),
+    fallback("j", "scroll down"),
+    fallback("End", "scroll to the bottom"),
+    fallback("G", "scroll to the bottom"),
+  ];
+  expect(shown(keyMapSections(listed, document.body, true))).toEqual([
+    ["This page", ["j Next row", "End Last row"]],
+    ["Everywhere", ["G Scroll to the bottom"]],
+  ]);
+});
+
+// Break: Space on a checkbox ticks it, so the leader's keys start from the chord there.
+test("on a control that keeps Space, the leader's keys are written from the chord", () => {
+  const box = document.createElement("input");
+  box.type = "checkbox";
+  document.body.append(box);
+  expect(shown(keyMapSections([shell("space h", "Home")], box, true))).toEqual([
+    ["Leader menu", ["Ctrl+K h Home"]],
+  ]);
+  box.remove();
+});
+
+// Break: on a Mac, Cmd+D bookmarks the page; Ctrl is what every `mod+` key takes everywhere.
+test("a chord is written with Ctrl on a Mac too, which every `mod+` key takes", () => {
+  const platform = Object.getOwnPropertyDescriptor(navigator, "platform");
+  Object.defineProperty(navigator, "platform", { configurable: true, value: "MacIntel" });
+  try {
+    expect(["mod+d", "mod+k"].map(written)).toEqual(["Ctrl+D", "Ctrl+K"]);
+  } finally {
+    if (platform) {
+      Object.defineProperty(navigator, "platform", platform);
+    } else {
+      delete (navigator as { platform?: string }).platform;
+    }
+  }
 });

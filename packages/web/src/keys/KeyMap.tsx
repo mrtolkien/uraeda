@@ -123,13 +123,16 @@ function Body({ sections }: { sections: ReadonlyArray<KeySection> }) {
         placeholder="Search…"
         value={query}
       />
-      {/* Tabbed to, the list scrolls by the arrows, as a page does. */}
+      {/* Tabbed to, the list scrolls by the arrows, as a page does: a plain scrolling box, which
+          Astryx's `ScrollableArea` would draw with its own scrollbar and fades (an Astryx gap). */}
       <section aria-label="Keys" tabIndex={0} {...stylex.props(styles.scroll)}>
         {found.length === 0 ? (
           <Text color="secondary" type="supporting">
             No key matches.
           </Text>
         ) : (
+          // A raw list in columns, its sections kept whole: Astryx's `List` draws rows with their own
+          // padding and surface, not keys beside their words (an Astryx gap, as the leader menu's).
           <div {...stylex.props(styles.columns)}>
             {found.map((section) => (
               <div key={section.title} {...stylex.props(styles.section)}>
@@ -177,6 +180,7 @@ export function KeyMap({
   }
   return (
     <Dialog
+      aria-label={KEY_MAP_TITLE}
       isOpen={isOpen}
       maxHeight="var(--size-palette-height)"
       onOpenChange={onOpenChange}

@@ -81,8 +81,9 @@ light theme's lies over 85% of it, with a faint tint: a darker, smoked tint over
 looked more like glass ("the light theme pane don't look glassy enough"), but its text fell under
 the theme's contrast, and to 2:1 over a dimmed page, so the human chose the lighter glass for every
 surface ([the key map's round](/specs/changes/2026-10-29-help-keybindings/clarifications-01.md)). A
-glass that holds the focus, the key map, dims the page under it lightly (`--glass-dim`), not as
-Astryx's dialogs do, which turns the glass grey. A new floating surface uses those styles, never a
-second glass. Not the gradients of early 2010s mobile interfaces: "just a bit square… extremely
-blurred". Glass marks what floats over the page; it is not a background for panes. Nothing on glass
-is a filled block, not even the main action: an action stands out by its icon in the accent.
+glass that holds the focus on a wide screen, the key map, dims the page under it lightly
+(`--glass-dim`), not as Astryx's dialogs do, which turns the glass grey; the phone's sheets keep
+their dim. A new floating surface uses those styles, never a second glass. Not the gradients of
+early 2010s mobile interfaces: "just a bit square… extremely blurred". Glass marks what floats over
+the page; it is not a background for panes. Nothing on glass is a filled block, not even the main
+action: an action stands out by its icon in the accent.

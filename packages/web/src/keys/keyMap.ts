@@ -2,9 +2,11 @@
 // sections, and the search over them. A page's own keys come first, then the shell's single keys,
 // then the leader's sequences by the group the menu names, then the go keys. Keys with one label
 // share a row, `j` beside `↓`. With the single-key switch off, only the keys that still work are
-// listed: the leader's sequences, written from the chord that opens the menu then.
+// listed: the leader's sequences, written from the chord that opens the menu then, and a fallback
+// only with the keys nothing else listed takes.
 import { GROUPS } from "./groups.ts";
-import { isSingleKey, onMac } from "./match.ts";
+import { keepsSpace } from "./fields.ts";
+import { isSingleKey } from "./match.ts";
 import { CHORD, LEADER } from "./sequence.ts";
 import type { IconName, Placed } from "./store.ts";
 
@@ -20,10 +22,13 @@ const SHELL = "Everywhere";
 const MENU = "Leader menu";
 const GO = "Go";
 
+/** Whether a binding is a sequence of the leader's menu: Space, then a key. */
+const isLeader = (path: ReadonlyArray<string>) => path[0] === LEADER && path.length > 1;
+
 /** Where a binding is listed: its group for a sequence of the leader or of `g`, else its place. */
 function sectionOf({ binding, place }: Placed): string {
   const path = binding.keys.split(" ");
-  if (path[0] === LEADER && path.length > 1) {
+  if (isLeader(path)) {
     return path.length === 2 ? MENU : (GROUPS[path.slice(0, -1).join(" ")]?.label ?? MENU);
   }
   if (path[0] === "g" && path.length === 2) {
@@ -53,7 +58,8 @@ export function written(token: string): string {
     .split("+")
     .filter(Boolean)
     .map((mod) =>
-      mod === "mod" ? (onMac() ? "Cmd" : "Ctrl") : mod.charAt(0).toUpperCase() + mod.slice(1),
+      // Ctrl on a Mac too: every `mod+` key takes it, where some refuse Command (`scroll.ts`'s).
+      mod === "mod" ? "Ctrl" : mod.charAt(0).toUpperCase() + mod.slice(1),
     );
   const name = ARROWS[key] ?? (mods.length > 0 ? key.toUpperCase() : key);
   return [...mods, name].join("+");
@@ -63,38 +69,51 @@ export function written(token: string): string {
 const capital = (label: string) => label.charAt(0).toUpperCase() + label.slice(1);
 
 /**
- * The sections of the bindings that work for `target`, the element the keys go to: those whose
- * guard lets them, and with `singleKeys` off, only the leader's, from its chord.
+ * The bindings that work for `target`, each with its tokens as the human types them: those whose
+ * guard lets them, and with `singleKeys` off only those that still work. The leader's are written
+ * from its chord where Space is not its key: with the switch off, or on a control that keeps Space.
+ * A fallback keeps only its keys that no other binding listed holds, and goes with none left: it
+ * runs only when the other did nothing, which the map cannot tell.
  */
+function working(listed: ReadonlyArray<Placed>, target: EventTarget | null, singleKeys: boolean) {
+  const byChord = !singleKeys || keepsSpace(target);
+  const kept = listed.filter(
+    ({ binding }) =>
+      (singleKeys || !isSingleKey(binding.keys) || isLeader(binding.keys.split(" "))) &&
+      (binding.when?.(target) ?? true),
+  );
+  const held = new Set(
+    kept.filter(({ binding }) => binding.fallback !== true).map(({ binding }) => binding.keys),
+  );
+  return kept.flatMap((entry) => {
+    if (entry.binding.fallback === true && held.has(entry.binding.keys)) {
+      return [];
+    }
+    const path = entry.binding.keys.split(" ");
+    return [{ entry, tokens: byChord && isLeader(path) ? [CHORD, ...path.slice(1)] : path }];
+  });
+}
+
+/** The sections of the bindings that work for `target`, the element the keys go to. */
 export function keyMapSections(
   listed: ReadonlyArray<Placed>,
   target: EventTarget | null,
   singleKeys: boolean,
 ): Array<KeySection> {
   const sections = new Map<string, Map<string, KeyRow>>();
-  for (const entry of listed) {
-    const { binding } = entry;
-    const path = binding.keys.split(" ");
-    const isLeader = path[0] === LEADER && path.length > 1;
-    if (
-      (!singleKeys && isSingleKey(binding.keys) && !isLeader) ||
-      !(binding.when?.(target) ?? true)
-    ) {
-      continue;
-    }
-    const tokens = !singleKeys && isLeader ? [CHORD, ...path.slice(1)] : path;
+  for (const { entry, tokens } of working(listed, target, singleKeys)) {
     const title = sectionOf(entry);
     const rows = sections.get(title) ?? new Map<string, KeyRow>();
     sections.set(title, rows);
-    const label = capital(binding.label);
+    const label = capital(entry.binding.label);
     const row = rows.get(label);
     if (row === undefined) {
-      rows.set(label, { icon: binding.icon, keys: [tokens], label });
+      rows.set(label, { icon: entry.binding.icon, keys: [tokens], label });
     } else if (!row.keys.some((keys) => keys.join(" ") === tokens.join(" "))) {
       row.keys.push(tokens);
     }
   }
-  return ORDER.filter((title, index) => ORDER.indexOf(title) === index).flatMap((title) => {
+  return ORDER.flatMap((title) => {
     const rows = sections.get(title);
     return rows === undefined ? [] : [{ rows: [...rows.values()], title }];
   });

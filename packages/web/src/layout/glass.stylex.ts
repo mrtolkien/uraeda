@@ -11,8 +11,9 @@ export const glassVars = stylex.defineVars({
   // more, since dark text needs a lighter ground than the blurred shapes of a light page give it.
   "--glass-scrim":
     "light-dark(color-mix(in srgb, var(--color-background-body) 85%, transparent), color-mix(in srgb, var(--color-background-body) 66%, transparent))",
-  // The page dimmed under a glass that holds the focus, the key map's: on a light page, Latte's text
-  // at 30%, where Astryx's dialogs dim it to 70%, which turns the glass grey; on a dark page, as
-  // theirs, Mocha's crust at 80%.
-  "--glass-dim": "light-dark(rgb(76 79 105 / 0.3), rgb(17 17 27 / 0.8))",
+  // The page dimmed under a glass that holds the focus, the key map's dialog: on a light page, the
+  // text's colour at 30%, where Astryx's dialogs dim it to 70%, which turns the glass grey; on a
+  // dark page, as theirs, the darkest background at 80%.
+  "--glass-dim":
+    "light-dark(color-mix(in srgb, var(--color-text-primary) 30%, transparent), color-mix(in srgb, var(--color-background-muted) 80%, transparent))",
 });
