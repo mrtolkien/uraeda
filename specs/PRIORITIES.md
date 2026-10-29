@@ -8,11 +8,18 @@
 
 - [Phone bottom bars on more pages](proposals/phone-bottom-bars.md)
 
+- Amend the latest commit if the commit touches only workflow files (proposals/notes)
+  - This will reduce noise in commits from small changes
+- Add `?` in status, after leader. It should show all shortcuts of the page and be searchable
+  - It'll be an overlay that uses the glassy look, but also darkens the rest of the page for
+    readability (modal-like)
+  - If it's too different from other views or the contrast is bad, tell me
 - Decisions needs to be understandable with _no context_. Often agents just read the decisions, they
   can't be expected to search for extra info in records.
-- Amend the latest commit if the commit touches only workflow files (proposals/notes)
-- Add `?` in status, after leader. It should show all shortcuts of the page and be searchable
-  - It'll be an overlay so use the glassy look, but also darken the rest of the page (modal-like)
+  - Many decisions are too specific and can't easily be validated by me
+  - Also the why is usually extremely verbose
+  - I want you to review decisions and the guidelines to create them, and make sure they are easy to
+    read, even with no context, and contain valuable information only
 
 - Performance pass: the UI feels sluggish
   - needs optimistic UI _everywhere_
@@ -29,7 +36,6 @@
     - If a session is running, it should always be visible in the sidebar/card/feature page
     - Generally we need better handling of "corner cases" of feature state/session state
 
-- Review the UI guidelines properly
 - Empty inbox
 
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
@@ -42,6 +48,8 @@
 > [!NOTE]
 >
 > Goals once I'm happy with the core feature set
+
+- Review the UI guidelines properly
 
 - Vim in text edit mode
 
