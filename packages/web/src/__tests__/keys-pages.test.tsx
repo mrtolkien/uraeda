@@ -45,16 +45,31 @@ const composer = () => screen.findByRole("textbox", { name: "Message Claude Code
 /** The feature's composer, which writes its proposal. */
 const proposal = () => screen.findByRole("textbox", { name: "Write Proposal" });
 
+/** The link of the first card of Home's core, not the sidebar's copy of it. */
+const firstCoreLink = () =>
+  document.querySelector<HTMLElement>("[data-core-column] [data-core-key] a[href]");
+
 /** Home, wide, with the focus on the first card of its core, not on the sidebar's copy of it. */
 async function onCoreCard() {
   atWidth(1400);
   await renderPage("/", fixtureRepo(), { agent: await fakeAgent() });
   await homeShown();
-  const link = await waitFor(() => {
-    const first = document.querySelector<HTMLElement>("[data-core-column] [data-core-key] a[href]");
-    expect(first).not.toBeNull();
-    return first!;
+  // The core lays its panes out by their height, so a pane drawn late moves the others, remounting
+  // their cards and dropping the focus: the card is focused once it has stayed the same a while.
+  let link = await waitFor(() => {
+    expect(firstCoreLink()).not.toBeNull();
+    return firstCoreLink()!;
   });
+  for (let tries = 0; tries < 20; tries++) {
+    await act(() => new Promise((settled) => setTimeout(settled, 150)));
+    const now = firstCoreLink();
+    if (now === link) {
+      break;
+    }
+    if (now) {
+      link = now;
+    }
+  }
   act(() => link.focus());
   return link;
 }
