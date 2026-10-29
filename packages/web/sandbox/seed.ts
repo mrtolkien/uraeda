@@ -85,6 +85,7 @@ export const SOURCES = [
   "fixtures/spec-leader-key",
   "fixtures/preview",
   "fixtures/spec-page",
+  "fixtures/realistic",
   "skills/uraeda/assets/templates/specs",
 ];
 

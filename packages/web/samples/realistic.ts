@@ -6,8 +6,9 @@
 // the four live features', which show apart as Ongoing (a feature waiting on the human is one), and
 // Later six, one of them linking its proposal file, some of them long; and an inbox of ten notes,
 // three of them long, and one with a freeform note file holding a screenshot, which can be added
-// to the Notes of any proposal, its file made first for a line without one.
-import { readFileSync } from "node:fs";
+// to the Notes of any proposal, its file made first for a line without one. Its constitution and
+// decisions are Uraeda's own, as they are on its `main`: real files from `fixtures/realistic/`.
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { commitsAt, fixture, git } from "uraeda-binding/test-utils";
 import { at, code, finish, firstStages, record } from "./features.ts";
@@ -139,10 +140,17 @@ const DONE = [
   },
 ];
 
+/**
+ * A feature's first stages but the decision they write: the project's decisions are Uraeda's own,
+ * from `fixtures/realistic/`.
+ */
+const stagesOf = (folder: string, title: string) =>
+  firstStages(folder, title).filter(({ message }) => !message.startsWith("decision("));
+
 /** A done feature, merged by rebase onto `main`: its stages, its code, and its record. */
 function addDone(repo: string, { finished, folder, questions, title }: (typeof DONE)[number]) {
   commitsAt(repo, "main", [
-    ...firstStages(folder, title),
+    ...stagesOf(folder, title),
     {
       at: at("17 16:00"),
       files: code(folder.slice(11)),
@@ -155,6 +163,25 @@ function addDone(repo: string, { finished, folder, questions, title }: (typeof D
       { at: at(finished), committed: at(finished) },
     ),
   ]);
+}
+
+/** A file of `fixtures/realistic/`: Uraeda's own constitution and decisions. */
+const realistic = (path: string) => readFileSync(fixture(`realistic/${path}`), "utf8");
+
+/**
+ * Uraeda's own constitution and decisions, as they are on its `main`, its GitHub user written as
+ * `human`: their links to its code lead nowhere here.
+ */
+function governance(): Record<string, string | null> {
+  const decisions = readdirSync(fixture("realistic/decisions")).map((name) => [
+    `specs/decisions/${name}`,
+    realistic(`decisions/${name}`),
+  ]);
+  return {
+    "specs/CONSTITUTION.md": realistic("CONSTITUTION.md"),
+    "specs/decisions/.gitkeep": null,
+    ...Object.fromEntries(decisions),
+  };
 }
 
 /** The files of the leader key's round, besides its proposal: its discovery and its mockups. */
@@ -205,6 +232,10 @@ const LEADER_KEY_SPEC_STAGES = [
  * priorities on `main`, then the four live features on their branches.
  */
 export function addRealistic(repo: string) {
+  // First, so that every branch has them: the leader key's spec links the Keyboard decision.
+  commitsAt(repo, "main", [
+    { at: at("16 09:30"), files: governance(), message: "docs: the constitution and decisions" },
+  ]);
   for (const done of DONE) {
     addDone(repo, done);
   }
@@ -232,7 +263,7 @@ export function addRealistic(repo: string) {
   // An agent builds the plan, checked out in its worktree as a feature being built is.
   git(repo, "branch", building, "main");
   commitsAt(repo, building, [
-    ...firstStages(building, "Due date reminders"),
+    ...stagesOf(building, "Due date reminders"),
     {
       at: at("17 15:08"),
       files: code("reminders"),
