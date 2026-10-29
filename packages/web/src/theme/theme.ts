@@ -275,9 +275,9 @@ export const uraedaTheme = defineTheme({
   icons: uraedaIcons,
   localTokens: {
     // Reading text: paragraphs of documents, questions, and stories.
-    "--text-reading-line": "1.45",
+    "--text-reading-line": "1.4",
     // Reading text given air, as a round's context or a spec's opening: taller lines.
-    "--text-reading-line-airy": "1.55",
+    "--text-reading-line-airy": "1.5",
     "--text-reading-size": "19px",
     // A pane's title in its border, and what is set like it: between the supporting text's size
     // and the body's, so it holds its own over the pane's text.

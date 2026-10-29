@@ -289,8 +289,8 @@
     --astryx-theme-neutral-color-on-tint-overlay-pressed: light-dark(#fafafa33, #0a0a0a33);
     --astryx-theme-neutral-color-destructive-overlay-hover: light-dark(#ff7f770D, #ee736c0D);
     --astryx-theme-neutral-color-destructive-overlay-pressed: light-dark(#ff7f771A, #ee736c1A);
-    --text-reading-line: 1.45;
-    --text-reading-line-airy: 1.55;
+    --text-reading-line: 1.4;
+    --text-reading-line-airy: 1.5;
     --text-reading-size: 19px;
     --text-title-size: calc((var(--font-size-sm) + var(--font-size-base)) / 2);
     --font-family-reading: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
