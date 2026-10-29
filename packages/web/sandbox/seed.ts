@@ -72,6 +72,7 @@ const checkout = join(import.meta.dirname, "../../..");
 export const SOURCES = [
   "packages/web/samples",
   "packages/web/sandbox/agent.ts",
+  "packages/web/sandbox/liveSession.ts",
   "packages/web/sandbox/sessions.ts",
   "packages/web/sandbox/seed.ts",
   "packages/binding/test-utils.ts",
