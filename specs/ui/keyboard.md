@@ -23,6 +23,7 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `gg`, `G`                 | Top and bottom                                                                                                            | Every page                            |
 | `g` then a letter         | Go: `h` home, `i` inbox, `p` priorities, `d` decisions, `s` sessions, `,` settings, `n` new, `c` commit, `r` a repository | Every page                            |
 | `Space`                   | The leader menu                                                                                                           | Every page                            |
+| `?`                       | The key map: every key that works where the focus is, with a search                                                       | Every page                            |
 | `b`                       | Back                                                                                                                      | Every page                            |
 | `Ctrl+D`, `Ctrl+U`        | Half a screen down and up (never Cmd on a Mac, which the browser owns)                                                    | Every page                            |
 | `[`, `]`                  | Fold the sidebar, and the right column                                                                                    | `[` everywhere; `]` on wide screens   |
@@ -64,8 +65,9 @@ priorities' `v` to switch between columns and a list. A page never gives a base 
 
 - **The status line**, at the bottom of wide and semi-wide screens, shows the hints the page's
   bindings declare (a binding with a `hint`), each one a button that does what its key does.
-  `Space menu` comes first and `[ ] fold` second, then the page's hints, in the order the human uses
-  them, the step that ends the page's work last ("Start should be at the end"), then the shell's.
+  `Space menu` comes first, `? keys` second, and `[ ] fold` third, then the page's hints, in the
+  order the human uses them, the step that ends the page's work last ("Start should be at the end"),
+  then the shell's.
 - **The most important keys of the whole page**, decided page by page: "the status bar holds the
   _most important_ shortcuts for the _full page_". A key that works on every page (`b`, `Ctrl+D`,
   `gg`), a second key for an action already shown (`a` beside `o`, `Enter` beside `n`), and the
@@ -76,6 +78,12 @@ priorities' `v` to switch between columns and a list. A page never gives a base 
 - **The leader menu** shows every sequence: `Space` then its groups (go, find, new, the ui), and the
   `g` keys. It is a menu of its own, not an index of every key: a page's single keys are not in it,
   they show in the status line. Its rows are buttons, and a click on `Space menu` opens it at once.
+- **The key map**, `?` or `Space ?`, lists every key that works where the focus is, read from the
+  registry: the page's, the shell's, the leader menu's by group, and the `g` keys, keys of one label
+  on one row (`j ↓ +`), with a search over the labels, the keys, and the groups. It is the index the
+  leader menu is not, and runs nothing: a reference over the page, on glass over the dimmed page, a
+  sheet on the phone. With the single keys off it lists only the keys that still work, the leader's
+  written from `Ctrl+K`.
 - **Nothing on the phone.** Keys still work with a keyboard attached, but the phone's bars show
   icons, not keys (see [the phone](phone.md)).
 

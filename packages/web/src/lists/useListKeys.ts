@@ -31,7 +31,7 @@ type Keys<Kind> = ReadonlyArray<readonly [keys: string, move: Kind, label: strin
 
 /** The keys that move the selection, each with its label. */
 const MOVES: Keys<Move> = [
-  ["j", "next", "move"],
+  ["j", "next", "next row"],
   ["ArrowDown", "next", "next row"],
   ["+", "next", "next row"],
   ["k", "previous", "previous row"],
@@ -43,7 +43,7 @@ const MOVES: Keys<Move> = [
 
 /** The keys between columns: only a list in columns binds them. */
 const COLUMN_MOVES: Keys<Move> = [
-  ["h", "left", "column"],
+  ["h", "left", "previous column"],
   ["ArrowLeft", "left", "previous column"],
   ["l", "right", "next column"],
   ["ArrowRight", "right", "next column"],
@@ -81,8 +81,14 @@ const MOVE_ENDS = ["Escape", "Enter", "m"];
 
 const NO_KEYS: ReadonlyArray<RowKey> = [];
 
-/** The hint of a key of the tables above, which only the first key of each pair names. */
-const HINTS: Record<string, string> = { h: "h l", j: "j k" };
+/**
+ * The hint of a key of the tables above, which only the first key of each pair names, and the word
+ * the status line says for the pair: the key's own label is what the key map lists.
+ */
+const HINTS: Record<string, { hint: string; hintLabel: string }> = {
+  h: { hint: "h l", hintLabel: "column" },
+  j: { hint: "j k", hintLabel: "move" },
+};
 
 /**
  * A key of the page that acts on the row the focus is on, or the selected one, `o`, `i`, `m`:
@@ -184,7 +190,7 @@ function bindingsOf({
       ...MOVE_ENDS.map((keys) => ({ keys, label: "done moving", run: onMoveEnd, when })),
     ];
   }
-  const hint = (keys: string) => (isOff || HINTS[keys] === undefined ? {} : { hint: HINTS[keys] });
+  const hint = (keys: string) => (isOff ? {} : (HINTS[keys] ?? {}));
   const moves: ReadonlyArray<Binding> = [...MOVES, ...(columns ? COLUMN_MOVES : [])].map(
     ([keys, move, label]) => ({
       ...hint(keys),

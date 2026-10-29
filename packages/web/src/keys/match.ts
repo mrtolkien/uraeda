@@ -34,7 +34,7 @@ export function isPrintable(key: string) {
 const LETTER = /^[a-zA-Z]$/;
 
 /** Whether the browser runs on macOS, where Option types characters as AltGr does elsewhere. */
-function onMac() {
+export function onMac() {
   const { userAgentData } = navigator as { userAgentData?: { platform?: string } };
   return /mac/i.test(userAgentData?.platform || navigator.platform || "");
 }
