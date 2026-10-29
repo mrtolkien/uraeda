@@ -6,6 +6,7 @@ import { DESTINATIONS, type Destination } from "../destinations.ts";
 import { KIND_ICONS } from "./kinds.ts";
 import type { PickerKind } from "./pickerSources.ts";
 import type { Binding } from "./store.ts";
+import { NEW_PROPOSAL_HASH } from "../lists/PrioritiesList.tsx";
 
 /** The key of each place, after `Space` or `g`. */
 const PLACES: ReadonlyArray<readonly [key: string, place: Destination]> = [
@@ -116,7 +117,8 @@ export function newBindings(
       icon: KIND_ICONS.priorities,
       keys: "space n p",
       label: "Proposal",
-      run: () => openForm("proposal"),
+      // A new row at the top of Now, as New's Proposal opens it.
+      run: () => go(`/priorities${NEW_PROPOSAL_HASH}`),
     },
   ];
 }

@@ -11,7 +11,7 @@ import { stepKindOf } from "../sidebar/cards.ts";
 import { STEP_ICONS } from "../sidebar/StepIcon.tsx";
 import { titleOf, TITLES } from "../QuickAdd.tsx";
 import { refusal } from "../errors.ts";
-import { currentEntry, navigate, useLocalPath, useRepoPath } from "../routes.tsx";
+import { currentEntry, navigate, useHash, useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { ProposalFileView, PrioritiesView } from "../views.ts";
 import { fileIndex } from "./cardMoves.ts";
@@ -151,6 +151,29 @@ function usePrioritiesOutline(
 
 /** The priorities' outline, as `useOutline` gives it. */
 type PrioritiesOutline = ReturnType<typeof usePrioritiesOutline>;
+
+/** The address's hash that opens a new proposal's row at the top of Now: New's Proposal. */
+export const NEW_PROPOSAL_HASH = "#new-proposal";
+
+/**
+ * Opens a new row at the top of Now when the address asks for it with `NEW_PROPOSAL_HASH`, as New
+ * does, then takes the hash out of the address, so a reload or Back does not open another.
+ */
+function useNewAtTop(outline: PrioritiesOutline) {
+  const hash = useHash();
+  const { openAt } = outline;
+  useEffect(() => {
+    if (hash !== NEW_PROPOSAL_HASH) {
+      return;
+    }
+    const { pathname, search } = window.location;
+    window.history.replaceState(window.history.state, "", `${pathname}${search}`);
+    // After the page placed its focus, on its first row as it opens, which the new row's field
+    // would lose, and an empty new row is dropped when it loses the focus. Not cancelled as the
+    // hash goes: taking it out draws the page again.
+    requestAnimationFrame(() => openAt("now", 0));
+  }, [hash, openAt]);
+}
 
 /**
  * The sections the list draws, from the `outline`: "Ongoing" first, when something runs, then each
@@ -366,6 +389,7 @@ export function PrioritiesList({
   const here = useRepoPath();
   const pathname = useLocalPath();
   const outline = usePrioritiesOutline(priorities, run, onMoveRefused);
+  useNewAtTop(outline);
   const all = sectionsOf(outline, priorities, here);
   const { onPromote, onStart, open } = useProposalKeys(priorities, outline, onMoveRefused);
 

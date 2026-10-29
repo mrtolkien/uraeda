@@ -153,10 +153,13 @@ export function freshActions<Data, Source>({
     setFresh({ spot: row.isAdd || isAbove ? spot : below(spot), text: "" });
   };
 
-  /** A new row at the end of `section`'s items, as Enter on its Add row opens it. */
-  const openAt = (section: string) => {
+  /**
+   * A new row in `section`, at `index` among its items, or at their end, as Enter on its Add row
+   * opens it.
+   */
+  const openAt = (section: string, index?: number) => {
     const items = drawn.sections.find((one) => one.id === section)?.items ?? [];
-    setFresh({ spot: { index: items.length, section }, text: "" });
+    setFresh({ spot: { index: index ?? items.length, section }, text: "" });
   };
 
   return { freshDone, freshIndent, onAddBeside, openAt };

@@ -1,9 +1,11 @@
 // The ＋ that starts something, the sidebar's New and the phone's tab: a small menu asks what, a
-// session or a proposal, on the New page, or a note, in its form.
+// session, on the New page, a proposal, a new row at the top of Now in the priorities, or a note,
+// in its form.
 import { DropdownMenu, type DropdownMenuTriggerProps } from "@astryxdesign/core/DropdownMenu";
 import type { ReactNode } from "react";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { useOpenAddForm } from "../SidebarAdd.tsx";
+import { NEW_PROPOSAL_HASH } from "../lists/PrioritiesList.tsx";
 
 /** The New menu hanging off `trigger`, the control drawn with the props it is given. */
 export function NewMenu({ trigger }: { trigger: (props: DropdownMenuTriggerProps) => ReactNode }) {
@@ -18,7 +20,7 @@ export function NewMenu({ trigger }: { trigger: (props: DropdownMenuTriggerProps
         {
           icon: "uraeda:file-text",
           label: "Proposal",
-          onClick: () => navigate(here("/new?kind=feature")),
+          onClick: () => navigate(here(`/priorities${NEW_PROPOSAL_HASH}`)),
         },
         { icon: "uraeda:pencil", label: "Note", onClick: () => open("note") },
       ]}
