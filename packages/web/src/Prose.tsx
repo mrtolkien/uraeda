@@ -29,8 +29,6 @@ export const proseStyles = stylex.create({
   size: { fontSize: "var(--text-reading-size)" },
   // About 80 characters of prose a line, the theme's reading measure.
   measure: { maxWidth: "var(--size-reading-measure)" },
-  // Prose given air, as a round's context or a spec's opening: taller lines.
-  airy: { "--text-reading-line": "var(--text-reading-line-airy)" },
   // Astryx's markdown sets its text in the body font: its text takes the reading font instead.
   markdown: { fontFamily: "var(--font-family-reading)" },
   // Prose as wide as its pane, past the measure: for a pane whose width sets its line, as a reading

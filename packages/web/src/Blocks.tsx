@@ -372,11 +372,7 @@ export function Blocks({
       <div
         // Such a section's text: as wide as its pane, which its page keeps narrow, about 80
         // characters a line, and more room between its lines.
-        {...stylex.props(
-          proseStyles.doc,
-          isAiry && proseStyles.airy,
-          isAiry && proseStyles.paneWide,
-        )}
+        {...stylex.props(proseStyles.doc, isAiry && proseStyles.paneWide)}
       >
         {blocks.map((block) => {
           if (!folded.has(block.id)) {

@@ -294,7 +294,7 @@ export function SpecOpening({
       isOpenOnPhone
       title={title || GROUPS.approve.title}
     >
-      <VStack gap={3} xstyle={proseStyles.airy}>
+      <VStack gap={3}>
         {/* The record is the title, which takes no comment: one saved on it, or elsewhere on the
             block's lines outside its items, draws here (R13). */}
         {block && selection?.after && <After>{selection.after(block)}</After>}
