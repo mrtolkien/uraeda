@@ -11,7 +11,7 @@ import { Kbd } from "@astryxdesign/core/Kbd";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { use, useState } from "react";
+import { type ReactNode, use, useState } from "react";
 import type { Ledger } from "uraeda-server/fate";
 import { useAgent, useLedger, useWorkspace } from "../data.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
@@ -25,6 +25,8 @@ import { useListKeys } from "../lists/useListKeys.ts";
 import { KeyPicker } from "../keys/KeyPicker.tsx";
 import { useKeys, useSingleKeys } from "../keys/registry.tsx";
 import { navigateHere, useRepoPath, useRestoreScroll } from "../routes.tsx";
+import { NavTile, NavTiles } from "../layout/NavBar.tsx";
+import { TopBarSlot } from "../layout/TopBarSlot.tsx";
 import { useStartChat } from "../StartChat.tsx";
 import { ConstitutionReader } from "./ConstitutionReader.tsx";
 import { ConstitutionRegion } from "./ConstitutionRegion.tsx";
@@ -127,7 +129,9 @@ function LedgerList({
   const shown = shownPath(ledger, open);
   const jump = useJump();
   // `/` is a letter key: with the switch off it names no key (the button still opens the palette).
-  const singleKeys = useSingleKeys();
+  // Hinted on wide screens only: the phone hints no key.
+  const narrow = isNarrow(useWidthClass());
+  const singleKeys = useSingleKeys() && !narrow;
   const { ref } = useListKeys({
     // What Escape does, on the status line: back to the constitution, or nothing when it shows.
     escapeLabel: open && pane ? "constitution" : null,
@@ -146,7 +150,7 @@ function LedgerList({
     selected: paths.indexOf(shown ?? ""),
   });
   return (
-    <Pane isActive level={1} title="Constitution and decisions">
+    <ListFrame>
       <VStack gap={4}>
         <HStack align="center" gap={3} wrap="wrap">
           <Button
@@ -185,6 +189,21 @@ function LedgerList({
         placeholder="Find a decision…"
         title="Jump to…"
       />
+    </ListFrame>
+  );
+}
+
+/**
+ * The list's frame: its pane on wide and semi-wide screens; on the phone, where it is the whole
+ * page, no pane, its content alone.
+ */
+function ListFrame({ children }: { children: ReactNode }) {
+  const narrow = isNarrow(useWidthClass());
+  return narrow ? (
+    <section aria-label="Constitution and decisions">{children}</section>
+  ) : (
+    <Pane isActive level={1} title="Constitution and decisions">
+      {children}
     </Pane>
   );
 }
@@ -239,30 +258,65 @@ function Reader({
   );
   const file =
     open?.kind === "decision" ? `specs/decisions/${open.name}.md` : "specs/CONSTITUTION.md";
+  if (narrow) {
+    return (
+      <Page>
+        <ReaderBar next={next} onClose={onClose} previous={previous} />
+        <ReaderBody ledger={ledger} open={open} />
+      </Page>
+    );
+  }
   return (
     <Pane title={file}>
       <Page>
         <VStack gap={4}>
-          <HStack align="center" gap={1} justify="between" wrap="wrap">
-            {narrow && onClose ? (
-              <Button
-                icon={<Icon icon="chevronLeft" />}
-                label="Constitution and decisions"
-                onClick={onClose}
-                variant="ghost"
-              />
-            ) : (
-              <span />
-            )}
-            <HStack gap={1}>
-              {step("Previous", previous)}
-              {step("Next", next)}
-            </HStack>
+          <HStack gap={1} justify="end">
+            {step("Previous", previous)}
+            {step("Next", next)}
           </HStack>
           <ReaderBody ledger={ledger} open={open} />
         </VStack>
       </Page>
     </Pane>
+  );
+}
+
+/**
+ * On the phone, the reader's bottom bar: the list, back to the constitution and decisions, at its
+ * start, then the previous and the next item, each dimmed at the list's ends.
+ */
+function ReaderBar({
+  next,
+  onClose,
+  previous,
+}: {
+  next: string | undefined;
+  onClose: (() => void) | undefined;
+  previous: string | undefined;
+}) {
+  return (
+    <TopBarSlot>
+      <NavTiles label="The constitution and decisions">
+        <NavTile
+          icon="uraeda:list"
+          isDisabled={onClose === undefined}
+          label="Constitution and decisions"
+          onPress={() => onClose?.()}
+        />
+        <NavTile
+          icon="chevronLeft"
+          isDisabled={previous === undefined}
+          label="Previous"
+          onPress={() => previous && navigateHere(previous)}
+        />
+        <NavTile
+          icon="chevronRight"
+          isDisabled={next === undefined}
+          label="Next"
+          onPress={() => next && navigateHere(next)}
+        />
+      </NavTiles>
+    </TopBarSlot>
   );
 }
 
