@@ -130,7 +130,10 @@ test("the add form takes a pasted image, and adds the note as a file holding it"
   });
   const { images, text } = filesOf(repo, fileOf(repo, "Headings are flat"));
   expect(images).toHaveLength(1);
-  expect(text).toContain(`](images/${images[0]})`);
+  // Freeform: the note as its title, then its image, and no template.
+  expect(text).toMatch(
+    new RegExp(`^# Headings are flat\\n\\n!\\[[^\\]]*\\]\\(images/${images[0]}\\)\\n$`),
+  );
 });
 
 test("an image pasted in a note's field saves its text first, then gives it a file holding it", async () => {
@@ -144,8 +147,7 @@ test("an image pasted in a note's field saves its text first, then gives it a fi
   await waitFor(() => expect(read(repo, PATH)).toMatch(/- \[Idea deux\]\(/));
   const { images, text } = filesOf(repo, fileOf(repo, "Idea deux"));
   expect(images).toHaveLength(1);
-  expect(text).toContain("Idea deux");
-  expect(text).toContain(`](images/${images[0]})`);
+  expect(text).toMatch(new RegExp(`^# Idea deux\\n\\n!\\[[^\\]]*\\]\\(images/${images[0]}\\)\\n$`));
   expect(read(repo, PATH)).toContain("- Idea one\n");
 });
 
