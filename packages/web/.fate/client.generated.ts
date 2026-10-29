@@ -112,10 +112,10 @@ const mutations = {
     FateAPI['mutations']['inbox.insert']['output']
   >('Inbox'),
   'inbox.intoProposal': mutation<
-    Inbox,
+    ProposalFile,
     FateAPI['mutations']['inbox.intoProposal']['input'],
     FateAPI['mutations']['inbox.intoProposal']['output']
-  >('Inbox'),
+  >('ProposalFile'),
   'inbox.outline': mutation<
     Inbox,
     FateAPI['mutations']['inbox.outline']['input'],
