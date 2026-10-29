@@ -1,13 +1,13 @@
 /// <reference types="vite-plus/client" />
 // Every story of Uraeda's Storybook, as the app draws it: Astryx's stylesheets and Uraeda's theme,
-// in the colour mode of the page that embeds it, inside the fixture repository's providers, on a
+// with the fonts the app picked in this browser, or its defaults, in the colour mode of the page
+// that embeds it, inside the fixture repository's providers, on a
 // fate client that reaches Uraeda's server in Storybook through GETs (R4), and that server's preview
 // URLs under Storybook's base (R43). The skill's pick script lets Uraeda's embeds pick an element in
 // it.
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
-import "@fontsource-variable/inter/index.css";
-import "@fontsource-variable/jetbrains-mono/index.css";
+import "../src/theme/fontFiles.ts";
 import "../src/theme/built/uraeda.css";
 import "../../../skills/uraeda/assets/storybook/uraeda-pick.js";
 import { LayerProvider } from "@astryxdesign/core/Layer";
@@ -21,6 +21,7 @@ import { RepositoryContext } from "../src/routes.tsx";
 import { PreviewBase } from "../src/stories.tsx";
 import type { ThemeMode } from "../src/theme.tsx";
 import { uraedaTheme } from "../src/theme/built/uraeda.js";
+import { PickedFonts } from "../src/theme/PickedFonts.tsx";
 import { fetchOverGet, liveWithoutCredentials } from "./fateOverGet.ts";
 
 /** The fixture's name in the server's list: `fixture.ts` builds it at `<folder>/fixture`. */
@@ -80,17 +81,19 @@ function InUraeda({ children }: { children: ReactNode }) {
   return (
     <FateClient client={clientFor(null)}>
       <Theme mode={mode} theme={uraedaTheme}>
-        <LayerProvider>
-          <ListClientContext value={clientFor(null)}>
-            <RepositoryContext value={REPOSITORY}>
-              <FateClient client={clientFor(REPOSITORY)}>
-                <PreviewBase value={BASE}>
-                  <Suspense>{children}</Suspense>
-                </PreviewBase>
-              </FateClient>
-            </RepositoryContext>
-          </ListClientContext>
-        </LayerProvider>
+        <PickedFonts>
+          <LayerProvider>
+            <ListClientContext value={clientFor(null)}>
+              <RepositoryContext value={REPOSITORY}>
+                <FateClient client={clientFor(REPOSITORY)}>
+                  <PreviewBase value={BASE}>
+                    <Suspense>{children}</Suspense>
+                  </PreviewBase>
+                </FateClient>
+              </RepositoryContext>
+            </ListClientContext>
+          </LayerProvider>
+        </PickedFonts>
       </Theme>
     </FateClient>
   );

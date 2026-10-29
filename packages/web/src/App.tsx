@@ -5,6 +5,7 @@ import { LinkProvider } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { Theme } from "@astryxdesign/core/theme";
 import { uraedaTheme } from "./theme/built/uraeda.js";
+import { PickedFonts } from "./theme/PickedFonts.tsx";
 import {
   Component,
   type ReactNode,
@@ -396,30 +397,32 @@ export function App({
       <ThemeModeProvider>
         {(mode) => (
           <Theme mode={mode} theme={uraedaTheme}>
-            <LinkProvider component={RouterAnchor}>
-              <LayerProvider toast={{ position: "bottomEnd" }}>
-                <ConfirmHost>
-                  <LeaveGuard />
-                  {signedOut ? (
-                    <SignInPage onSignedIn={onSignedIn} />
-                  ) : (
-                    <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
-                      <Suspense fallback={<Loading />}>
-                        <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
-                          <Suspense fallback={<Loading />}>
-                            <Shell keysSwitch={keysSwitch}>
-                              <Suspense fallback={<Loading />}>
-                                <Page key={pageKey(route, pathname, entryId)} route={route} />
-                              </Suspense>
-                            </Shell>
-                          </Suspense>
-                        </InRepository>
-                      </Suspense>
-                    </ServerErrorBoundary>
-                  )}
-                </ConfirmHost>
-              </LayerProvider>
-            </LinkProvider>
+            <PickedFonts>
+              <LinkProvider component={RouterAnchor}>
+                <LayerProvider toast={{ position: "bottomEnd" }}>
+                  <ConfirmHost>
+                    <LeaveGuard />
+                    {signedOut ? (
+                      <SignInPage onSignedIn={onSignedIn} />
+                    ) : (
+                      <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
+                        <Suspense fallback={<Loading />}>
+                          <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
+                            <Suspense fallback={<Loading />}>
+                              <Shell keysSwitch={keysSwitch}>
+                                <Suspense fallback={<Loading />}>
+                                  <Page key={pageKey(route, pathname, entryId)} route={route} />
+                                </Suspense>
+                              </Shell>
+                            </Suspense>
+                          </InRepository>
+                        </Suspense>
+                      </ServerErrorBoundary>
+                    )}
+                  </ConfirmHost>
+                </LayerProvider>
+              </LinkProvider>
+            </PickedFonts>
           </Theme>
         )}
       </ThemeModeProvider>

@@ -19,6 +19,7 @@ import { EarlierRecap, StretchRecap } from "./session/RecapLine.tsx";
 import { slotsOf } from "./session/stretches.ts";
 import { useOfferPlugins } from "./SessionOffers.tsx";
 import { SessionView } from "./views.ts";
+import { humanWords } from "./theme/fonts.ts";
 
 /** The page's width: the list's 12 px at the sides, less the page's inset, given back. */
 const AGENT_WIDTH = `calc(100% + 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-2"]}))`;
@@ -173,10 +174,9 @@ function Message({
       sender="user"
     >
       <ChatMessageBubble
-        // In the human's messages' font once sent (`theme/fonts.ts`).
-        data-words={pending ? undefined : "human"}
         variant={pending ? "ghost" : "filled"}
-        xstyle={pending ? undefined : styles.user}
+        // In the human's messages' font once sent (`theme/fonts.ts`).
+        xstyle={pending ? undefined : [styles.user, humanWords]}
       >
         <MessageBody item={item} pending={pending} />
       </ChatMessageBubble>

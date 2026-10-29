@@ -1,0 +1,33 @@
+// The fonts each part of the UI may pick (`fonts.ts`), bundled with the app: their files load once a
+// page uses them. The app's entry loads them, and Storybook's preview, so stories show the app's
+// faces.
+import "@fontsource-variable/inter/index.css";
+import "@fontsource-variable/inter/wght-italic.css";
+import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
+import "@fontsource-variable/literata/index.css";
+import "@fontsource-variable/jetbrains-mono/index.css";
+import "@fontsource/monaspace-neon/400.css";
+import "@fontsource/monaspace-neon/500.css";
+import "@fontsource/monaspace-neon/600.css";
+import "@fontsource/monaspace-neon/700.css";
+import "@fontsource/monaspace-neon/400-italic.css";
+import "@fontsource/monaspace-argon/400.css";
+import "@fontsource/monaspace-argon/500.css";
+import "@fontsource/monaspace-argon/600.css";
+import "@fontsource/monaspace-argon/700.css";
+import "@fontsource/monaspace-argon/400-italic.css";
+import "@fontsource/monaspace-xenon/400.css";
+import "@fontsource/monaspace-xenon/500.css";
+import "@fontsource/monaspace-xenon/600.css";
+import "@fontsource/monaspace-xenon/700.css";
+import "@fontsource/monaspace-xenon/400-italic.css";
+import "@fontsource/monaspace-radon/400.css";
+import "@fontsource/monaspace-radon/500.css";
+import "@fontsource/monaspace-radon/600.css";
+import "@fontsource/monaspace-radon/700.css";
+import "@fontsource/monaspace-radon/400-italic.css";
+import "@fontsource/monaspace-krypton/400.css";
+import "@fontsource/monaspace-krypton/500.css";
+import "@fontsource/monaspace-krypton/600.css";
+import "@fontsource/monaspace-krypton/700.css";
+import "@fontsource/monaspace-krypton/400-italic.css";

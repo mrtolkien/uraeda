@@ -8,6 +8,7 @@ import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useStoredShown } from "../layout/useStoredShown.ts";
 import { uraedaTheme } from "../theme/built/uraeda.js";
+import { PickedFonts } from "../theme/PickedFonts.tsx";
 import { elementOf, type Pick, pickText } from "./pickText.ts";
 import { type PickStatus, SandboxBar } from "./SandboxBar.tsx";
 
@@ -154,14 +155,17 @@ function Picker({ page }: { page: Window }) {
         data-theme={mode}
         {...stylex.props(styles.theme, styles[mode])}
       >
-        <SandboxBar
-          last={last}
-          onPickingChange={pick}
-          onShownChange={setShown}
-          picking={picking}
-          shortcut={PICK_SHORTCUT}
-          shown={shown}
-        />
+        {/* The fonts picked, as the app's root has them, inside the theme's element. */}
+        <PickedFonts>
+          <SandboxBar
+            last={last}
+            onPickingChange={pick}
+            onShownChange={setShown}
+            picking={picking}
+            shortcut={PICK_SHORTCUT}
+            shown={shown}
+          />
+        </PickedFonts>
       </div>
     </ThemeContext>
   );

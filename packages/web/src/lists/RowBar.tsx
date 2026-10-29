@@ -23,6 +23,7 @@ import { KeyCap } from "../keys/KeyCap.tsx";
 import { keepFocus } from "../keys/press.ts";
 import { bareButtonStyles } from "../layout/bareButton.ts";
 import { glassStyles } from "../layout/glass.ts";
+import { useFontStyle } from "../theme/fonts.ts";
 import { NavTile } from "../layout/NavBar.tsx";
 import { SCROLLED_PX } from "../shell/useHidesOnScroll.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
@@ -237,6 +238,8 @@ function FloatingBar({
   const isAway = useScrolledAway(quiet) && !isField;
   const keyboard = useKeyboardInset();
   useCoverStatusLine(!isAway);
+  // In the body, outside the app's root: the fonts picked, as the app has them.
+  const fonts = useFontStyle();
   useLayoutEffect(() => {
     if (anchor.current && bar.current) {
       reveal(anchor.current, bar.current, quiet);
@@ -254,6 +257,7 @@ function FloatingBar({
       ref={bar}
       role="toolbar"
       {...stylex.props(
+        fonts,
         glassStyles.surface,
         glassStyles.floating,
         styles.floating,

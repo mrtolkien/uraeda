@@ -1,9 +1,11 @@
 // The fonts, picked for each part of the UI, kept in this browser: the interface, the headings,
 // prose, code and keys, and the human's messages in a session. Each part is a font family token of
-// the theme, written over the theme's own in a stylesheet of the page's head, outside Astryx's
-// theme layer, so it wins. One choice for the whole app: the settings' Fonts section and
-// `Space u f` show and pick the same.
+// the theme, written over the theme's own by a StyleX style on the app's root, and on what draws
+// outside it (`useFontStyle`), from the app's first draw, so no text changes face. One choice for
+// the whole app: the settings' Fonts section and `Space u f` show and pick the same.
+import * as stylex from "@stylexjs/stylex";
 import { useSyncExternalStore } from "react";
+import { paneVars } from "../layout/pane.stylex.ts";
 
 /** A part of the UI with a font of its own. */
 export type FontRole = "body" | "heading" | "reading" | "code" | "human";
@@ -127,38 +129,61 @@ function snapshot(): Fonts {
   return current;
 }
 
-/** The stylesheet of the fonts picked: the theme's tokens, and the human's messages. */
-function sheet(fonts: Fonts) {
+const styles = stylex.create({
+  // The fonts picked, over the theme's tokens, which the theme sets on its own element: each part's
+  // family, and prose's measure, which each font sets so a line holds about 80 characters. The
+  // tokens made of the measure are made again here, as a token holding a `var()` takes its value
+  // where it is set; and the text takes the interface's family, as the theme's element gives it.
+  picked: (
+    body: string,
+    heading: string,
+    reading: string,
+    code: string,
+    human: string,
+    measure: number,
+  ) => ({
+    "--font-family-body": body,
+    "--font-family-code": code,
+    "--font-family-heading": heading,
+    "--font-family-human": human,
+    "--font-family-reading": reading,
+    "--size-reading-measure": `calc(${measure} * var(--text-reading-size))`,
+    "--size-reading-pane":
+      "calc(var(--size-reading-measure) + 2 * var(--spacing-3) + 2 * var(--border-width))",
+    fontFamily: "var(--font-family-body)",
+    [paneVars["--pane-prose"]]: "var(--size-reading-pane)",
+  }),
+  // The app's root, which only carries the fonts: no box of its own.
+  root: { display: "contents" },
+  // A human's message once sent, in their font, its prose too.
+  human: {
+    "--font-family-body": "var(--font-family-human)",
+    "--font-family-reading": "var(--font-family-human)",
+    fontFamily: "var(--font-family-human)",
+  },
+});
+
+/** The human's sent messages' font, for their bubble's style (`TranscriptMessages.tsx`). */
+export const humanWords = styles.human;
+
+/** The style of a root that only carries the fonts, with no box of its own. */
+export const fontRoot = styles.root;
+
+/**
+ * The style of the fonts picked, for the app's root, inside the theme, and for what draws outside
+ * it, as a bar put in the page's body: only the theme's own tokens are there.
+ */
+export function useFontStyle(): stylex.StyleXStyles {
+  const fonts = useFonts();
   const family = (role: FontRole) => fontOf(role, fonts[role]).family;
-  return `:root [data-astryx-theme], :root[data-astryx-theme] {
-  --font-family-body: ${family("body")};
-  --font-family-heading: ${family("heading")};
-  --font-family-reading: ${family("reading")};
-  --font-family-code: ${family("code")};
-  --font-family-human: ${family("human")};
-  --size-reading-measure: calc(${fontOf("reading", fonts.reading).measure} * var(--text-reading-size));
-}
-[data-words="human"] {
-  font-family: var(--font-family-human);
-  --font-family-body: var(--font-family-human);
-  --font-family-reading: var(--font-family-human);
-}`;
-}
-
-/** Writes the stylesheet of `fonts` in the page's head. */
-function apply(fonts: Fonts) {
-  let style = document.querySelector<HTMLStyleElement>("style[data-uraeda-fonts]");
-  if (!style) {
-    style = document.createElement("style");
-    style.dataset.uraedaFonts = "";
-    document.head.append(style);
-  }
-  style.textContent = sheet(fonts);
-}
-
-/** Writes the fonts picked before the app draws, so no text changes face. */
-export function applyStoredFonts() {
-  apply(snapshot());
+  return styles.picked(
+    family("body"),
+    family("heading"),
+    family("reading"),
+    family("code"),
+    family("human"),
+    fontOf("reading", fonts.reading).measure,
+  );
 }
 
 /** What re-reads the fonts picked, one for each component that shows them. */
@@ -191,7 +216,6 @@ function store(next: Fonts, keeps: boolean) {
     // Private windows may refuse storage: the choice lasts until the page reloads.
   }
   current = next;
-  apply(next);
   for (const listener of listeners) {
     listener();
   }
