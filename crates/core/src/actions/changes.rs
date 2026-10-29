@@ -17,7 +17,7 @@ mod files;
 
 use files::{
     FOLDERS, Found, Grown, Undo, files_in, grown_files, linked_by, never_committed, take_item,
-    written_for_link, written_from,
+    take_note, unmerge, written_for_link, written_from,
 };
 
 const INBOX: &str = super::inbox::PATH;
@@ -148,10 +148,21 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Found) {
                 continue;
             }
             let grown = grown.get_or_insert_with(|| grown_files(place));
+            // A note whose note file went into a proposal file's `## Notes`, under its title.
+            let note = note_file(inbox_then, text);
+            if let Some(note) = &note
+                && let Some((undo, path, title)) = take_note(grown, text)
+            {
+                changes.push(moved_out(text, &format!("the proposal {title}")));
+                found.removed(place, note);
+                found.undo.push(undo);
+                found.paths.push(path);
+                continue;
+            }
             if let Some((path, title, markdown)) = take_item(grown, text) {
                 changes.push(moved_out(text, &format!("the proposal {title}")));
-                if let Some(note) = note_file(inbox_then, text) {
-                    found.moved(place, &note, item_link(&path, &markdown));
+                if let Some(note) = &note {
+                    found.moved(place, note, item_link(&path, &markdown));
                 }
                 found.undo.push(Undo::Grown {
                     path: path.clone(),
@@ -160,8 +171,8 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Found) {
                 found.paths.push(path);
                 continue;
             }
-            if let Some(note) = note_file(inbox_then, text) {
-                found.removed(place, &note);
+            if let Some(note) = &note {
+                found.removed(place, note);
             }
         }
         if let NoteChange::Added { text, .. } = &change
@@ -412,6 +423,11 @@ pub fn discard(place: &Place) -> Result<(), ActionError> {
                     fs::write(file, without)?;
                 }
             }
+            Undo::Merged {
+                path,
+                title,
+                drop_notes,
+            } => unmerge(place, &path, &title, drop_notes)?,
             Undo::Moved { path, note } => super::inbox::back_to_notes(place, &path, &note)?,
             Undo::Removed { note, paths } => {
                 if !super::inbox::restore_note_file(place, &note)? {

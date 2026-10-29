@@ -7,6 +7,7 @@ use std::fs;
 use crate::files::inbox;
 use crate::files::lines;
 use crate::files::priorities;
+use crate::files::proposal;
 
 use super::super::expand;
 use super::super::images::folder_of;
@@ -20,6 +21,14 @@ pub(super) enum Undo {
     Created { path: String, written: String },
     /// A proposal file a note was added to: the note's item, by its markdown, taken out again.
     Grown { path: String, markdown: String },
+    /// A proposal file a note's note file went into: the `## Notes` subsection titled `title`, the
+    /// note's text, taken out again, with the images it linked that no commit has, and the
+    /// `## Notes` it left empty when the last commit had none.
+    Merged {
+        path: String,
+        title: String,
+        drop_notes: bool,
+    },
     /// A committed single file an attached image made a folder, at `path`: put back at `old` while
     /// the folder holds what the conversion wrote, with at most images added.
     Converted { old: String, path: String },
@@ -75,12 +84,28 @@ fn items(text: &str) -> Vec<(String, String)> {
         .collect()
 }
 
-/// A proposal file changed since the last commit: its path, its title, and the list items added to
-/// it, each as its markdown and its text.
+/// A proposal file changed since the last commit: its path, its title, the list items added to it,
+/// each as its markdown and its text, the titles of the `## Notes` subsections added to it, and
+/// whether the last commit had a `## Notes`.
 pub(super) struct Grown {
     path: String,
     title: String,
     added: Vec<(String, String)>,
+    notes: Vec<String>,
+    had_notes: bool,
+}
+
+/// The items of `now` that `then` lacks, each as often as it lacks it.
+fn added_to<T: PartialEq>(now: Vec<T>, mut then: Vec<T>) -> Vec<T> {
+    now.into_iter()
+        .filter(|item| match then.iter().position(|was| was == item) {
+            Some(at) => {
+                then.remove(at);
+                false
+            }
+            None => true,
+        })
+        .collect()
 }
 
 pub(super) fn grown_files(place: &Place) -> Vec<Grown> {
@@ -105,8 +130,20 @@ pub(super) fn grown_files(place: &Place) -> Vec<Grown> {
                     },
                 )
                 .collect();
+            // A folder no commit has, which an image made of a single file, had that file's text.
+            let then = then
+                .or_else(|| place::committed(place, &format!("{}.md", folder_of(&path)?)))
+                .unwrap_or_default();
+            let notes = added_to(proposal::note_titles(&now), proposal::note_titles(&then));
+            let had_notes = proposal::has_notes(&then);
             let title = crate::view::title(&now).unwrap_or_else(|| path.clone());
-            Some(Grown { path, title, added })
+            Some(Grown {
+                path,
+                title,
+                added,
+                notes,
+                had_notes,
+            })
         })
         .collect()
 }
@@ -273,18 +310,25 @@ pub(super) fn never_committed(place: &Place, texts: &Texts, found: &mut Found) {
     let then = file_links(&text(&texts.inbox.1), &text(&texts.priorities.1));
     let now = file_links(&text(&texts.inbox.0), &text(&texts.priorities.0));
     for (path, title) in now.clone() {
-        if found.paths.contains(&path)
-            || !place.root.join(&path).is_file()
-            || place::committed(place, &path).is_some()
-        {
+        if !place.root.join(&path).is_file() || place::committed(place, &path).is_some() {
             continue;
         }
-        if let Some(old) = converted_from(place, &path, &then, &now) {
+        // A proposal file made a folder, which a note went into too: once its note is taken out,
+        // Discard makes it the single file again.
+        if let Some(old) = converted_from(place, &path, &then, &now)
+            && !found.paths.contains(&old)
+        {
             found.undo.push(Undo::Converted {
                 old: old.clone(),
                 path: path.clone(),
             });
-            found.paths.extend([old, path]);
+            found.paths.push(old);
+            if !found.paths.contains(&path) {
+                found.paths.push(path);
+            }
+            continue;
+        }
+        if found.paths.contains(&path) {
             continue;
         }
         if let Some(title) = title.filter(|_| !then.iter().any(|(was, _)| *was == path))
@@ -362,6 +406,66 @@ fn converted_from(
                 && place::committed(place, old).is_some()
         })
         .cloned()
+}
+
+/// Takes a `## Notes` subsection titled `text` out of those added to the proposal files, and gives
+/// what Discard does to it, and its file's path and title.
+pub(super) fn take_note(grown: &mut [Grown], text: &str) -> Option<(Undo, String, String)> {
+    grown.iter_mut().find_map(|file| {
+        let at = file.notes.iter().position(|title| title == text)?;
+        let title = file.notes.remove(at);
+        let undo = Undo::Merged {
+            path: file.path.clone(),
+            title,
+            drop_notes: !file.had_notes,
+        };
+        Some((undo, file.path.clone(), file.title.clone()))
+    })
+}
+
+/// Takes back, for Discard, the `## Notes` subsection titled `title` of the proposal file at
+/// `path`, a note's note file's text, with the `## Notes` it left empty, `drop_notes`, and the
+/// images of the file's folder it linked that no commit has and nothing links any more.
+pub(super) fn unmerge(
+    place: &Place,
+    path: &str,
+    title: &str,
+    drop_notes: bool,
+) -> Result<(), crate::actions::ActionError> {
+    let file = place.root.join(path);
+    let text = fs::read_to_string(&file)?;
+    let Some((without, removed)) = proposal::without_note(&text, title, drop_notes) else {
+        return Ok(());
+    };
+    fs::write(&file, &without)?;
+    let folder = path.rsplit_once('/').map_or("", |(folder, _)| folder);
+    let images = super::super::images::images_folder(folder);
+    if !super::super::images::in_place(&place.root, &images) {
+        return Ok(());
+    }
+    let git = crate::git::Git::open(&place.root)?;
+    let committed = |file: &str| {
+        git.head()
+            .is_some_and(|head| git.read_file(head, file).ok().flatten().is_some())
+    };
+    let linked: Vec<String> = crate::files::markdown::Document::parse(&without)
+        .links
+        .iter()
+        .filter_map(|link| crate::workspace::resolve(folder, &link.target))
+        .collect();
+    for link in crate::files::markdown::Document::parse(&removed).links {
+        let Some(image) = crate::workspace::resolve(folder, &link.target) else {
+            continue;
+        };
+        if image.starts_with(&format!("{images}/"))
+            && !linked.contains(&image)
+            && !committed(&image)
+        {
+            let _ = fs::remove_file(place.root.join(&image));
+        }
+    }
+    let _ = fs::remove_dir(place.root.join(&images));
+    Ok(())
 }
 
 /// Takes an item of the text `text` out of the items added to the proposal files, and gives its
