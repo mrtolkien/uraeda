@@ -25,6 +25,10 @@ export function useSplit(
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
+    // The least widths are in characters: a font picked changes them, not the page's room.
+    if (least.current) {
+      observer.observe(least.current);
+    }
     return () => observer.disconnect();
   }, [box, least]);
   return isSplit;
