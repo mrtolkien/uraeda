@@ -282,6 +282,28 @@ pub(crate) fn from_note(path: &str, line: &str, nested: &[String]) -> String {
     }
 }
 
+/// The proposal file at `path`, its `text`, with `nested`, the lines nested under the proposal of
+/// `PRIORITIES.md` that links it, their relative links rebased to the file's folder: at the end of
+/// its `## What`, as expand puts them, or at its end without one. A start or a promote leaves the
+/// proposal a link alone, and the file takes its lines, so none is lost.
+pub(crate) fn with_nested(text: &str, path: &str, nested: &[String]) -> String {
+    let count = nested.len()
+        - nested
+            .iter()
+            .rev()
+            .take_while(|l| l.trim().is_empty())
+            .count();
+    if count == 0 {
+        return text.to_string();
+    }
+    let lines: Vec<String> = rebased(path, &nested[..count].join("\n"))
+        .split('\n')
+        .map(String::from)
+        .collect();
+    crate::files::proposal::append_to_what(text, &lines)
+        .unwrap_or_else(|| format!("{}\n\n{}\n", text.trim_end(), lines.join("\n")))
+}
+
 /// What a tool may have written at `path` for a note or a proposal titled `line`, with its
 /// `nested` lines: [`from_note`]'s text, and for a note file, the proposal template older tools
 /// wrote note files from.

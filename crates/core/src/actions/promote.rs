@@ -14,6 +14,7 @@ use crate::git::Git;
 use crate::steps::StepName;
 use crate::workspace::{Feature, Kind, Workspace, folder_branch, folder_path, resolve};
 
+use super::expand::with_nested;
 use super::place;
 use super::start::{StartError, check_free, partial};
 
@@ -68,7 +69,7 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, S
     let at = Git::open(&place.root)?;
     let hint = "rename or remove that branch or folder first";
     let on_default = check_on_default(&at, folder, &default)?;
-    let (name, edited) = relinked(&place.root, change)?;
+    let (name, edited, nested) = relinked(&place.root, change)?;
     // A move run again after its first commit: the default branch holds the feature's folder and
     // proposal already, so only the branch's name must be free.
     let resumed = edited.is_none()
@@ -88,6 +89,7 @@ pub fn run(git: &Git, workspace: &Workspace, folder: &str) -> Result<Promoted, S
         to,
         default: &default,
         on_default,
+        nested,
     };
     move_.run(&at, &name, edited.as_deref())
 }
@@ -135,8 +137,9 @@ fn check_on_default(at: &Git, folder: &str, default: &str) -> Result<bool, Start
     )))
 }
 
-/// A move under way: the change, its branch's names before and after, and whether its folder is
-/// on the default branch.
+/// A move under way: the change, its branch's names before and after, whether its folder is on
+/// the default branch, and the lines nested under its proposal in **Now**, which the relink takes
+/// out.
 struct Move<'a> {
     git: &'a Git,
     folder: &'a str,
@@ -145,6 +148,7 @@ struct Move<'a> {
     to: String,
     default: &'a str,
     on_default: bool,
+    nested: Vec<String>,
 }
 
 impl Move<'_> {
@@ -193,6 +197,12 @@ impl Move<'_> {
             .root;
         if let Err(error) = fs::rename(root.join(&old), root.join(&new)) {
             return Err(partial(&done, vec![move_left, commit_left], error));
+        }
+        if let Err(error) = self.carry(&root, &new) {
+            let left = format!(
+                "add the proposal's nested lines in Now to the end of {new}/proposal.md's What"
+            );
+            return Err(partial(&done, vec![left, commit_left], error));
         }
         done.push(format!("the move of {old} to {new}"));
         let on_branch = Git::open(&root)?;
@@ -251,9 +261,22 @@ impl Move<'_> {
             fs::rename(root.join(&old), root.join(&new)).inspect_err(|_| restore())?;
             paths.extend([old.clone(), new.clone()]);
         }
+        // The proposal file as it was, put back with the folder when the commit is refused.
+        let proposal = root.join(&new).join("proposal.md");
+        let written = fs::read_to_string(&proposal).ok();
+        if self.on_default
+            && let Err(error) = self.carry(root, &new)
+        {
+            restore();
+            let _ = fs::rename(root.join(&new), root.join(&old));
+            return Err(error.into());
+        }
         at.commit(&paths, subject, None).map_err(|error| {
             restore();
             if self.on_default {
+                if let Some(text) = &written {
+                    let _ = fs::write(&proposal, text);
+                }
                 let _ = fs::rename(root.join(&new), root.join(&old));
             }
             let (what, them, back) = match (edited.is_some(), self.on_default) {
@@ -277,6 +300,17 @@ impl Move<'_> {
             left.extend(rest.into_iter().cloned());
             partial(&[], left, error)
         })
+    }
+
+    /// Adds the lines nested under the proposal in **Now** to the proposal file of the folder `new`,
+    /// under `root`: the relink leaves the proposal a link alone.
+    fn carry(&self, root: &Path, new: &str) -> std::io::Result<()> {
+        if self.nested.is_empty() {
+            return Ok(());
+        }
+        let path = format!("{new}/proposal.md");
+        let text = fs::read_to_string(root.join(&path))?;
+        fs::write(root.join(&path), with_nested(&text, &path, &self.nested))
     }
 
     /// Sets each decision the branch changed, and that reads `active`, back to `proposed`, its
@@ -316,10 +350,14 @@ fn decision_path(name: &str) -> String {
     format!("specs/decisions/{name}.md")
 }
 
-/// The proposal's name, and `PRIORITIES.md` with its line linking the change's proposal linking the
-/// feature's, or a new one on top of **Now** when none links it. Nothing to write when a proposal
-/// already links the feature's: a move run again after a failure relinked it.
-fn relinked(root: &Path, change: &Feature) -> Result<(String, Option<String>), StartError> {
+/// The proposal's name, `PRIORITIES.md` with its line linking the change's proposal linking the
+/// feature's, or a new one on top of **Now** when none links it, and the lines nested under that
+/// line, which the relink takes out. Nothing to write when a proposal already links the feature's:
+/// a move run again after a failure relinked it.
+fn relinked(
+    root: &Path,
+    change: &Feature,
+) -> Result<(String, Option<String>, Vec<String>), StartError> {
     let text = fs::read_to_string(root.join(PRIORITIES)).unwrap_or_default();
     let old = format!("{}/proposal.md", folder_path(Kind::Change, &change.folder));
     let target = format!(
@@ -338,18 +376,18 @@ fn relinked(root: &Path, change: &Feature) -> Result<(String, Option<String>), S
         })
     };
     if let Some(proposal) = linking(&target[1..]) {
-        return Ok((proposal.text.clone(), None));
+        return Ok((proposal.text.clone(), None, Vec::new()));
     }
     match linking(&old) {
         Some(proposal) => {
             let edited = priorities::link(&text, proposal.line, &target)
                 .ok_or_else(|| StartError::Refused("cannot relink the proposal".into()))?;
-            Ok((proposal.text.clone(), Some(edited)))
+            Ok((proposal.text.clone(), Some(edited), proposal.nested(&text)))
         }
         None => {
             let name = change.slug.clone();
             let edited = priorities::add_started(&text, &name, &target);
-            Ok((name, Some(edited)))
+            Ok((name, Some(edited), Vec::new()))
         }
     }
 }

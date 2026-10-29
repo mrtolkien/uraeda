@@ -5,6 +5,7 @@ use std::fs;
 
 use super::plan::Plan;
 use super::{Source, Start, StartError, partial};
+use crate::actions::expand::with_nested;
 
 impl Start<'_> {
     /// What is left to do by hand once the proposal file is in the dated folder.
@@ -68,6 +69,20 @@ impl Start<'_> {
     /// proposal file's removal.
     pub(super) fn commit_start(&self, plan: &Plan, done: &str) -> Result<(), StartError> {
         let done = [done.to_string()];
+        let proposal = format!("{}/proposal.md", plan.destination);
+        if !plan.nested.is_empty()
+            && let Err(error) = fs::read_to_string(self.root.join(&proposal)).and_then(|text| {
+                let carried = with_nested(&text, &proposal, &plan.nested);
+                fs::write(self.root.join(&proposal), carried)
+            })
+        {
+            let mut left = vec![
+                format!("add the proposal's nested lines in Now to the end of {proposal}'s What"),
+                "move the proposal to the top of Now in specs/PRIORITIES.md".into(),
+            ];
+            left.extend(self.left_after_write(plan));
+            return Err(partial(&done, left, error));
+        }
         if let Err(error) = fs::write(self.root.join("specs/PRIORITIES.md"), &plan.priorities) {
             let mut left =
                 vec!["move the proposal to the top of Now in specs/PRIORITIES.md".into()];

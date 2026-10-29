@@ -148,6 +148,9 @@ pub(super) struct Plan {
     pub(super) worktree: PathBuf,
     /// `PRIORITIES.md` with the proposal moved to **Now**.
     pub(super) priorities: String,
+    /// The lines nested under the proposal in `PRIORITIES.md`, which its move to **Now** takes
+    /// out: the proposal file takes them.
+    pub(super) nested: Vec<String>,
     pub(super) start_subject: String,
     /// `specs/<folder>`, or `specs/changes/<folder>` for a change.
     pub(super) destination: String,
@@ -218,17 +221,18 @@ impl Start<'_> {
         let target = format!("/{destination}/proposal.md");
         let priorities_text =
             fs::read_to_string(self.root.join("specs/PRIORITIES.md")).unwrap_or_default();
-        let (name, priorities, write_left) = match &origin {
+        let (name, priorities, nested, write_left) = match &origin {
             Origin::Proposal(proposed) => {
-                let (name, priorities) =
+                let (name, priorities, nested) =
                     moved_proposal(&priorities_text, proposed, &slug, &target)?;
                 let write_left = format!("move {} to {destination}", proposed.proposal);
-                (name, priorities, write_left)
+                (name, priorities, nested, write_left)
             }
             Origin::Text(typed, images) => {
                 let name = typed.title.clone();
                 let priorities = priorities::add_started(&priorities_text, &name, &target);
-                (name, priorities, typed_write_left(&destination, *images))
+                let write_left = typed_write_left(&destination, *images);
+                (name, priorities, Vec::new(), write_left)
             }
         };
         let postponed = matches!(&origin, Origin::Proposal(proposed) if proposed.postponed);
@@ -247,6 +251,7 @@ impl Start<'_> {
             folder,
             worktree,
             priorities,
+            nested,
         })
     }
 
@@ -365,14 +370,15 @@ fn typed_write_left(destination: &str, images: usize) -> String {
     }
 }
 
-/// The feature's name, and `PRIORITIES.md` with its proposal moved to the top of **Now** as a
-/// link to `target`, or added there when no proposal links the proposal file.
+/// The feature's name, `PRIORITIES.md` with its proposal moved to the top of **Now** as a link
+/// to `target`, or added there when no proposal links the proposal file, and the lines nested
+/// under the proposal, which the move takes out.
 fn moved_proposal(
     priorities_text: &str,
     proposed: &Proposed<'_>,
     slug: &str,
     target: &str,
-) -> Result<(String, String), StartError> {
+) -> Result<(String, String, Vec<String>), StartError> {
     let Proposed {
         proposal,
         proposal_source,
@@ -396,13 +402,13 @@ fn moved_proposal(
                 .find(|h| h.level == 1)
                 .map_or_else(|| slug.to_string(), |h| h.text);
             let edited = priorities::add_started(priorities_text, &name, target);
-            Ok((name, edited))
+            Ok((name, edited, Vec::new()))
         }
         [line] => {
             let edited =
                 priorities::move_to_started(priorities_text, line.line, &line.text, target)
                     .ok_or_else(|| StartError::Refused("cannot move the proposal".into()))?;
-            Ok((line.text.clone(), edited))
+            Ok((line.text.clone(), edited, line.nested(priorities_text)))
         }
         several => {
             let lines: Vec<&Proposal> = several.iter().collect();

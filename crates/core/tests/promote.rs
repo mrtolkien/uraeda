@@ -84,6 +84,32 @@ fn assert_nothing_moved(repo: &TestRepo) {
     );
 }
 
+// Break: the relink dropping the lines nested under the Now proposal, written nowhere.
+#[test]
+fn a_promoted_proposals_nested_lines_go_to_its_file() {
+    let repo = started(Kind::Change);
+    let priorities = repo.read("specs/PRIORITIES.md");
+    let line = format!("- [Priorities sections](/specs/changes/{FOLDER}/proposal.md)\n");
+    assert!(priorities.contains(&line), "{priorities}");
+    repo.write(
+        "specs/PRIORITIES.md",
+        &priorities.replace(&line, &format!("{line}  - Keep this\n")),
+    );
+    repo.commit("chore: note under the change");
+
+    promote(&repo).unwrap();
+
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(!priorities.contains("Keep this"), "{priorities}");
+    let carried = "# Priorities sections\n\n## What\n\nSections.\n\n- Keep this\n";
+    let proposal = format!("specs/{FOLDER}/proposal.md");
+    assert_eq!(repo.git(&["show", &format!("main:{proposal}")]), carried);
+    assert_eq!(
+        repo.git(&["show", &format!("{FOLDER}:{proposal}")]),
+        carried
+    );
+}
+
 /// US4.1: the branch and the folder become a feature's, and Now links it.
 #[test]
 fn a_change_becomes_a_feature_in_place() {

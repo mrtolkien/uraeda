@@ -1104,6 +1104,46 @@ fn a_started_proposal_file_tops_now() {
     );
 }
 
+// Break: the move to Now dropping the lines nested under the proposal, written nowhere.
+#[test]
+fn a_started_proposals_nested_lines_go_to_its_file() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        "specs/PRIORITIES.md",
+        "# Priorities\n\n## Now\n\n## Next\n\n- [X](proposals/x.md)\n  - Keep this\n  - See [Y](proposals/y.md)\n\n## Later\n\n## Blocked\n",
+    );
+    repo.write(
+        "specs/proposals/x.md",
+        "# X\n\n## What\n\nX\n\n## Why\n\nW\n",
+    );
+    repo.write("specs/proposals/y.md", "# Y\n");
+    repo.commit("chore: expand X");
+    let git = Git::discover(repo.path()).unwrap();
+    let workspace = Workspace::read(&git).unwrap();
+
+    start::run(
+        &git,
+        &workspace,
+        "specs/proposals/x.md",
+        Some("x"),
+        Kind::Feature,
+        today(),
+        false,
+    )
+    .unwrap();
+
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(
+        priorities.contains("## Now\n\n- [X](/specs/2026-10-11-x/proposal.md)\n\n## Next\n"),
+        "{priorities}"
+    );
+    assert_eq!(
+        repo.git(&["show", "main:specs/2026-10-11-x/proposal.md"]),
+        "# X\n\n## What\n\nX\n\n- Keep this\n- See [Y](../proposals/y.md)\n\n## Why\n\nW\n"
+    );
+}
+
 const PROPOSAL: &str = "specs/2026-10-11-web-ui/proposal.md";
 const IMAGES: &str = "specs/2026-10-11-web-ui/images";
 
