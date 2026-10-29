@@ -624,6 +624,7 @@ fn crash_repo() -> (TestRepo, place::Place, String) {
     let inbox = format!("{}{CRASH}", repo.read(INBOX));
     repo.write(INBOX, &inbox);
     repo.commit("chore: a note with code");
+    repo.keep();
     let place = main_place(&repo);
     let read = actions::read(&place);
     let priorities = uraeda_core::actions::priorities::read(&place);

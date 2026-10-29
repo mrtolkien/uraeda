@@ -37,8 +37,8 @@ const FILES: Record<SourceKind, string> = { line: "specs/PRIORITIES.md", note: "
 
 /**
  * What an entry becomes in the composer: its text, its nested lines as bullets under it, each
- * indented as its line is, and a link to its file on a line of its own, so that the text alone is
- * the first line, a change's title.
+ * indented as its line is, and a link to its file from the repository's root on a line of its own,
+ * so that the text alone is the first line, a change's title.
  */
 export function insertion(entry: Entry): string {
   const name = entry.file.split("/").pop() ?? entry.file;
@@ -48,7 +48,7 @@ export function insertion(entry: Entry): string {
       return `\n${indent}- ${line.trimStart()}`;
     })
     .join("");
-  return `${entry.text}${nested}\nFrom [${name}](${entry.file})`;
+  return `${entry.text}${nested}\nFrom [${name}](/${entry.file})`;
 }
 
 /**

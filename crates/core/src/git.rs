@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
+mod amend;
 mod branches;
 mod commit;
 mod history;
@@ -14,6 +15,7 @@ mod status;
 
 use process::Failure;
 
+pub use amend::Latest;
 pub use commit::others_staged;
 pub use history::{CommitInfo, Range};
 

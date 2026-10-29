@@ -6,11 +6,7 @@
 >
 > Features for v1.0.0
 
-- [Amend the latest commit if the commit touches only workflow files (proposals/not](/specs/changes/2026-10-29-amend-latest/proposal.md)
 - [Decisions needs to be understandable with no context. Often agents just read the decisions, they can't be expected to search for extra info in records.](/specs/2026-10-29-decisions-needs/proposal.md)
-
-- Amend the latest commit if the commit touches only workflow files (proposals/notes)
-  - This will reduce noise in commits from small changes
 
 - [Performance pass: the UI feels sluggish](proposals/performance-pass-the-ui-feels-sluggish.md)
 
