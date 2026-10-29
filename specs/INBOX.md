@@ -8,6 +8,10 @@
 - [amend-latest]
   [Single-commands in sessions should also be ellipsed](notes/single-commands-in-sessions-should-also-be/note.md)
 - Adding a note was SUPER slow, not sure why. Like 1+ minute slow.
+- [decisions-needs] Need a bit more padding on mobile and slightly smaller text
+- [decisions-needs]
+  [New note on mobile has the keyboard hiding the note. Closing the keyboard and opening it again works.](notes/new-note-on-mobile-has-the-keyboard-hiding-the/note.md)
+- [decisions-needs] Floating questions should use the glass style when they overlay content
 
 ## Bugfix
 
