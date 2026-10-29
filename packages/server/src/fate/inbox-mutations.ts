@@ -1,8 +1,7 @@
 /**
  * The mutations of the inbox, each written on the default branch over the hash it was read at: its
- * notes' edits, their moves into the priorities and proposal files, the commit bar's Commit and
- * Discard,
- * and the answers of the default branch's rounds. None writes a feature's files, so none is
+ * notes' edits, their moves into the priorities and proposal files, the commit page's Commit and
+ * Discard, and the answers of the default branch's rounds. None writes a feature's files, so none is
  * refused while an agent works: `writable` guards features only.
  */
 import type { Resolver } from "./context.ts";
@@ -15,11 +14,8 @@ import { fileDataView, type FileRecord, sentFile } from "./views.ts";
 /** A note's edit: the note's id, `note-3`, and the inbox's hash as read. */
 type NoteInput = { hash: string; note: string };
 
-/**
- * A note to add: its text, its category, none when left out, the feature or change it is about,
- * and `commit`, for "Add and commit".
- */
-type AddInput = { about?: string; category?: string; commit?: boolean; hash: string; text: string };
+/** A note to add: its text, its category, none when left out, and the feature or change it is about. */
+type AddInput = { about?: string; category?: string; hash: string; text: string };
 
 /**
  * The Undo of a move: the note's lines as written, and its place, its category, none when left
@@ -117,17 +113,11 @@ export const inboxMutations = {
   "inbox.add": {
     resolve: async ({ ctx, input, select }: Resolver<AddInput>) => {
       const { about, category, hash, text } = input;
-      if (!input.commit) {
-        return inbox(
-          ctx,
-          await refusable(() => ctx.binding.addNote(ctx.repo, text, hash, category, about)),
-          select,
-        );
-      }
-      const result = await refusable(() =>
-        ctx.binding.addNoteAndCommit(ctx.repo, text, hash, category, about),
+      return inbox(
+        ctx,
+        await refusable(() => ctx.binding.addNote(ctx.repo, text, hash, category, about)),
+        select,
       );
-      return inbox(ctx, result.inbox, select, { added: result.added });
     },
     type: "Inbox",
   },

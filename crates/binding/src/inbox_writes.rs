@@ -1,5 +1,5 @@
 //! The inbox: its notes' edits, each written on the default branch over the inbox read at
-//! `previous`; the moves of notes into the priorities and proposal files; the commit bar's Commit
+//! `previous`; the moves of notes into the priorities and proposal files; the commit page's Commit
 //! and Discard; and the answers of the default branch's rounds. A category or `about` left out is
 //! none, so they come last.
 
@@ -14,7 +14,7 @@ use uraeda_core::view::FileView;
 
 use super::{Job, job};
 
-/// The inbox, with the count of the commit bar's changes and the triage's status.
+/// The inbox, with the count of the changes waiting for a commit and the triage's status.
 #[napi(ts_return_type = "Promise<Inbox>")]
 pub fn read_inbox(repo: String) -> AsyncTask<Job<Inbox>> {
     job(move || api::read_inbox(Path::new(&repo)))
@@ -31,23 +31,6 @@ pub fn add_note(
     about: Option<String>,
 ) -> AsyncTask<Job<Inbox>> {
     job(move || api::add_note(Path::new(&repo), category, about, &text, &previous))
-}
-
-/// Adds a note as `addNote` does, then commits `INBOX.md` alone when it had no other change: "Add
-/// and commit".
-#[napi(ts_return_type = "Promise<InboxAdded>")]
-pub fn add_note_and_commit(
-    repo: String,
-    text: String,
-    previous: String,
-    category: Option<String>,
-    about: Option<String>,
-) -> AsyncTask<Job<InboxAdded>> {
-    job(move || {
-        let (inbox, added) =
-            api::add_note_and_commit(Path::new(&repo), category, about, &text, &previous)?;
-        Ok(InboxAdded { inbox, added })
-    })
 }
 
 /// Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
@@ -315,7 +298,7 @@ pub fn attach_note_images(
     })
 }
 
-/// Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
+/// Commits the commit page's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
 /// moved, or left.
 #[napi(ts_return_type = "Promise<void>")]
 pub fn commit_changes(repo: String) -> AsyncTask<Job<()>> {

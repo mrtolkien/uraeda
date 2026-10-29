@@ -2,7 +2,6 @@
 // mapped type turns napi-rs's interfaces into type literals, which fate's record constraint accepts.
 import { dataView, list } from "@nkzw/fate/server";
 import type {
-  AddCommit,
   BranchDecision,
   ProposalItem,
   FeatureView,
@@ -132,27 +131,23 @@ export function sentBranchDecision(decision: BranchDecision): BranchDecisionReco
 type ProposalRecord = Omit<ProposalItem, "running"> & {
   running?: Omit<RunningFeature, "step"> & { step: StepRecord };
 };
-/** Whether "Add and commit" committed: set on the answer of an add, null on other answers. */
-type Added = { added?: Record_<AddCommit> | null };
-export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> &
-  Added & {
-    id: string;
-    sections: Array<Omit<SectionItems, "proposals"> & { proposals: Array<ProposalRecord> }>;
-  };
+export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> & {
+  id: string;
+  sections: Array<Omit<SectionItems, "proposals"> & { proposals: Array<ProposalRecord> }>;
+};
 
 /** The inbox: one record, `inbox`, its triage's status sent as null when there is no triage. */
-export type InboxRecord = Omit<Record_<Inbox>, "triage"> &
-  Added & {
-    id: string;
-    /**
-     * What `inbox.restoreImage` takes back, set only on the answer of `inbox.removeImage`, null
-     * otherwise.
-     */
-    imageRemoved?: Record_<RemovedImage> | null;
-    /** The file as it was, set only on the answer of `inbox.removeCategory`, null otherwise. */
-    removed?: string | null;
-    triage: string | null;
-  };
+export type InboxRecord = Omit<Record_<Inbox>, "triage"> & {
+  id: string;
+  /**
+   * What `inbox.restoreImage` takes back, set only on the answer of `inbox.removeImage`, null
+   * otherwise.
+   */
+  imageRemoved?: Record_<RemovedImage> | null;
+  /** The file as it was, set only on the answer of `inbox.removeCategory`, null otherwise. */
+  removed?: string | null;
+  triage: string | null;
+};
 
 /** The agent sessions run on, and what it can do: one record, `agent`. */
 export type AgentRecord = {
@@ -368,7 +363,6 @@ export const branchDecisionDataView = dataView<BranchDecisionRecord>("BranchDeci
 });
 
 export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
-  added: true,
   changeLines: true,
   changes: true,
   hash: true,
@@ -377,7 +371,6 @@ export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
 });
 
 export const inboxDataView = dataView<InboxRecord>("Inbox")({
-  added: true,
   categories: true,
   changes: true,
   count: true,

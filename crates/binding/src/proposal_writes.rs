@@ -1,11 +1,10 @@
 //! The priorities: their lines' edits, outlines, and drops, each written on the default branch over
-//! the priorities read at `previous`, and the commit bar's Commit and Discard.
+//! the priorities read at `previous`, and the commit page's Commit and Discard.
 
 use std::path::Path;
 
 use napi::bindgen_prelude::AsyncTask;
 use napi_derive::napi;
-use uraeda_core::actions::commit::ProposalAdded;
 use uraeda_core::api;
 use uraeda_core::files::priorities::Priorities;
 
@@ -20,22 +19,6 @@ pub fn add_proposal(
     previous: String,
 ) -> AsyncTask<Job<Priorities>> {
     job(move || api::add_proposal(Path::new(&repo), &section, &text, &previous))
-}
-
-/// Adds a line at the end of a section of the priorities, then commits `PRIORITIES.md` alone when
-/// it had no other change: "Add and commit".
-#[napi(ts_return_type = "Promise<ProposalAdded>")]
-pub fn add_proposal_and_commit(
-    repo: String,
-    section: String,
-    text: String,
-    previous: String,
-) -> AsyncTask<Job<ProposalAdded>> {
-    job(move || {
-        let (priorities, added) =
-            api::add_proposal_and_commit(Path::new(&repo), &section, &text, &previous)?;
-        Ok(ProposalAdded { priorities, added })
-    })
 }
 
 /// Takes back a committed add: the proposal, `lines` as written, leaves the priorities, and the

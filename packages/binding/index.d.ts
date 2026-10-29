@@ -34,12 +34,6 @@ export declare function addComment(repo: string, folder: string, file: string, s
 export declare function addNote(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<Inbox>
 
 /**
- * Adds a note as `addNote` does, then commits `INBOX.md` alone when it had no other change: "Add
- * and commit".
- */
-export declare function addNoteAndCommit(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<InboxAdded>
-
-/**
  * Adds a note as a new note file's folder holding its text and the `images`, linked from the end
  * of a category, all written or none. `names` holds each image's file name, empty for a pasted
  * one. Returns the note file's path.
@@ -48,12 +42,6 @@ export declare function addNoteWithImages(repo: string, text: string, previous: 
 
 /** Adds a line at the end of a section of the priorities. */
 export declare function addProposal(repo: string, section: string, text: string, previous: string): Promise<Priorities>
-
-/**
- * Adds a line at the end of a section of the priorities, then commits `PRIORITIES.md` alone when
- * it had no other change: "Add and commit".
- */
-export declare function addProposalAndCommit(repo: string, section: string, text: string, previous: string): Promise<ProposalAdded>
 
 /**
  * Adds the git repository holding `folder`, an absolute path, to the list; one listed already
@@ -108,7 +96,7 @@ export declare function checkedPort(typed: string): number
 export declare function checkoutCommit(checkout: string): Promise<string | null>
 
 /**
- * Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
+ * Commits the commit page's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
  * moved, or left.
  */
 export declare function commitChanges(repo: string): Promise<void>
@@ -339,7 +327,7 @@ export declare function readHistory(repo: string, folder: string): Promise<Histo
  */
 export declare function readImage(repo: string, path: string): Promise<ImageFile>
 
-/** The inbox, with the count of the commit bar's changes and the triage's status. */
+/** The inbox, with the count of the changes waiting for a commit and the triage's status. */
 export declare function readInbox(repo: string): Promise<Inbox>
 
 /** The constitution and the decisions of the default branch, each decision with its last change. */

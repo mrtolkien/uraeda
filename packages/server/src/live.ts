@@ -56,7 +56,8 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
   for (const id of changes.branchDecisions) {
     live.update("BranchDecision", id, { eventId: eventId(`branch-decision:${id}`) });
   }
-  // The inbox and the priorities share the commit bar's count, so a change of either sends both.
+  // The inbox and the priorities share the count of changes waiting for a commit, so a change of
+  // either sends both.
   if (changes.priorities || changes.inbox) {
     live.update("Priorities", PRIORITIES_ID, { eventId: eventId("priorities") });
     live.update("Inbox", INBOX_ID, { eventId: eventId("inbox") });

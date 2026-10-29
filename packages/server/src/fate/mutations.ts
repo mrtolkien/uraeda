@@ -91,21 +91,14 @@ const repositoryMutations = {
       ctx,
       input,
       select,
-    }: Resolver<{ commit?: boolean; hash: string; section: string; text: string }>) => {
-      if (!input.commit) {
-        return priorities(
-          ctx,
-          await refusable(() =>
-            ctx.binding.addProposal(ctx.repo, input.section, input.text, input.hash),
-          ),
-          select,
-        );
-      }
-      const result = await refusable(() =>
-        ctx.binding.addProposalAndCommit(ctx.repo, input.section, input.text, input.hash),
-      );
-      return priorities(ctx, result.priorities, select, result.added);
-    },
+    }: Resolver<{ hash: string; section: string; text: string }>) =>
+      priorities(
+        ctx,
+        await refusable(() =>
+          ctx.binding.addProposal(ctx.repo, input.section, input.text, input.hash),
+        ),
+        select,
+      ),
     type: "Priorities",
   },
   "proposals.edit": {
