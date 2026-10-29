@@ -11,6 +11,9 @@ not a desktop squeezed down, and not a lesser version.
   titled top border on the phone (`Pane`'s `isOpenOnPhone`), their text reaching the insets; a pane
   inside another keeps its borders. What is meant to reach the screen's edges, like a question's
   options or a band between questions, takes the inset back with `--page-bleed`.
+- **Text of more than one line takes the full width**, always, but in extremely rare cases: "On
+  mobile, multi-line text should ALWAYS take up the full width". A row's icon, number, count, or
+  date goes on a line of its own above the text, never in a column beside it that squeezes it.
 - **The top tabs** stay in view: the sidebar's toggle on their far left, set apart, then Home (with
   the Needs-you count on its icon), and the other places. The sidebar opens over the page, up to 400
   px, animated, and holds no copy of the tabs' places.
