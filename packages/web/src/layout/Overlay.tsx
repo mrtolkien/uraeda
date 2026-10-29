@@ -22,6 +22,7 @@ export function Overlay({
   fills = false,
   isModal = true,
   isOpen,
+  isTitleInContent = false,
   label,
   onClose,
   purpose = "form",
@@ -43,6 +44,8 @@ export function Overlay({
   /** On narrow screens, whether the page behind the sheet is blocked, and dimmed. */
   isModal?: boolean;
   isOpen: boolean;
+  /** On narrow screens, whether the content draws the title, and only the Close stays (`Sheet`). */
+  isTitleInContent?: boolean;
   label: string;
   onClose: () => void;
   /** `info` also closes on a click outside; `form`, the default, only on Close, Back, or Escape. */
@@ -101,6 +104,7 @@ export function Overlay({
       hasScrim={isModal}
       height={sheetHeight}
       isOpen={isOpen}
+      isTitleInContent={isTitleInContent}
       label={label}
       onClose={() => void closing()}
       purpose={purpose}

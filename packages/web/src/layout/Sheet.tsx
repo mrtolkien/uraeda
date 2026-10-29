@@ -30,6 +30,16 @@ const styles = stylex.create({
     height: "100%",
     minHeight: 0,
   },
+  // A content that draws its own title, and scrolls it away: the Close alone stays, at the
+  // sheet's top right, over what scrolls under it.
+  float: {
+    insetBlockStart: 0,
+    insetInlineEnd: 0,
+    position: "absolute",
+    zIndex: 2,
+  },
+  // The content the Close floats over.
+  under: { position: "relative" },
   // A sheet whose content brings its own inset, a picker's: its title row takes the sheet's.
   inset: {
     paddingBlockStart: spacingVars["--spacing-4"],
@@ -90,6 +100,7 @@ export function Sheet({
   height = "tall",
   isOpen,
   isPadded = true,
+  isTitleInContent = false,
   label,
   onClose,
   purpose = "info",
@@ -104,6 +115,11 @@ export function Sheet({
   height?: "tall" | "capped" | "hug";
   isOpen: boolean;
   isPadded?: boolean;
+  /**
+   * Whether the content draws the title itself, at its top, scrolling it away with the rest: the
+   * Close alone stays, floating at the sheet's top right. With `fills`.
+   */
+  isTitleInContent?: boolean;
   label: string;
   onClose: () => void;
   /** `form` closes only on Close, Back, or Escape; `info` also on a tap outside, or a swipe. */
@@ -121,17 +137,26 @@ export function Sheet({
   const [onFull] = useState(() => () => setFull(true));
   usePullUp(panel, isOpen, onFull);
   useFieldFocus(panel, isOpen);
-  const content = (
+  const close = (
+    <Button
+      icon={<Icon icon="close" />}
+      isIconOnly
+      label="Close"
+      onClick={onClose}
+      variant="ghost"
+      {...(isTitleInContent ? { xstyle: styles.float } : {})}
+    />
+  );
+  const content = isTitleInContent ? (
+    <>
+      {close}
+      {isOpen && children}
+    </>
+  ) : (
     <>
       <HStack align="center" gap={2} justify="between" xstyle={isPadded ? undefined : styles.inset}>
         <Heading level={2}>{label}</Heading>
-        <Button
-          icon={<Icon icon="close" />}
-          isIconOnly
-          label="Close"
-          onClick={onClose}
-          variant="ghost"
-        />
+        {close}
       </HStack>
       {isOpen && children}
     </>
@@ -157,7 +182,11 @@ export function Sheet({
       }}
       xstyle={[glassStyles.surface, glassStyles.docked, styles.sheet]}
     >
-      {fills ? <div {...stylex.props(styles.fill)}>{content}</div> : content}
+      {fills ? (
+        <div {...stylex.props(styles.fill, isTitleInContent && styles.under)}>{content}</div>
+      ) : (
+        content
+      )}
     </BottomSheet>
   );
 }

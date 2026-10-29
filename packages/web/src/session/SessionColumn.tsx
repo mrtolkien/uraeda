@@ -9,21 +9,15 @@
 // agent runs sub-agents, or while the address opens it, a Sub-agents panel over the Changes joins
 // it (US3), a tab in the column and in the phone's sheet (ruling R23), which a reload or a width
 // change keeps.
+import { Heading } from "@astryxdesign/core/Heading";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useFateClient, useView } from "react-fate";
 import type { Session } from "uraeda-server/fate";
 import { ColumnStatusLine } from "../layout/ColumnStatusLine.tsx";
+import { usePublishedJump } from "../JumpToLatest.tsx";
 import { NavTile, NavTiles } from "../layout/NavBar.tsx";
-import {
-  type ColumnPanel,
-  ColumnTabs,
-  DocumentColumn,
-  panelId,
-  tabId,
-  useAskedTab,
-  useColumnTab,
-} from "../layout/DocumentColumn.tsx";
+import { type ColumnPanel, DocumentColumn, useAskedTab } from "../layout/DocumentColumn.tsx";
 import { useSessionColumnWidth } from "../layout/documentColumnWidth.ts";
 import { Overlay } from "../layout/Overlay.tsx";
 import { splitPanel } from "../layout/SplitPanel.tsx";
@@ -44,9 +38,21 @@ import { SpokenCount } from "../layout/SpokenCount.tsx";
 /** The key of the Sub-agents panel, its tab's in the address. */
 const SUBAGENTS = "subagents";
 
+/** The key of the Changes panel, its own on the phone. */
+const CHANGES = "changes";
+
 const styles = stylex.create({
-  // The sheet's open panel takes the room under its tabs, so the split's parts scroll on their own.
-  panel: { display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0 },
+  // The sheet's open panel takes the room under its title, and scrolls on its own: the title and
+  // its Close stay in view.
+  panel: {
+    display: "flex",
+    flexDirection: "column",
+    flexGrow: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    // What its content places is placed in it, and scrolls with it, not past it in the sheet.
+    position: "relative",
+  },
 });
 
 /** What the session's column draws from: the feature's or the change's folder, and the session. */
@@ -55,14 +61,16 @@ type Of = { folder?: string | undefined; session?: string | undefined };
 /**
  * The session column's panels: the Activity over the Changes, a split shown as the Activity's tab;
  * then, while the main agent runs `running` sub-agents or the address's tab, `asked`, is theirs,
- * the Sub-agents over the Changes, its tab counting them.
+ * the Sub-agents over the Changes, its tab counting them. On the phone, `isSplit` false, each its
+ * own panel, as the bottom bar has a tile for each.
  */
 function sessionPanels({
   asked = null,
   folder,
+  isSplit,
   running = 0,
   session,
-}: Of & { asked?: string | null; running?: number }): Array<ColumnPanel> {
+}: Of & { asked?: string | null; isSplit: boolean; running?: number }): Array<ColumnPanel> {
   const activity: ColumnPanel = {
     // Before its first message, the session has no call.
     content: session === undefined ? <NoCall /> : <ActivityPanel session={session} />,
@@ -78,20 +86,30 @@ function sessionPanels({
       />
     ),
     icon: "uraeda:git-compare",
-    key: "changes",
+    key: CHANGES,
     label: "Changes",
   };
-  if (running === 0 && asked !== SUBAGENTS) {
+  const hasSubagents = running > 0 || asked === SUBAGENTS;
+  if (!isSplit) {
+    return hasSubagents
+      ? [activity, changes, subagentsPanel(session, running)]
+      : [activity, changes];
+  }
+  if (!hasSubagents) {
     return [splitPanel(activity, changes)];
   }
-  const subagents: ColumnPanel = {
+  return [splitPanel(activity, changes), splitPanel(subagentsPanel(session, running), changes)];
+}
+
+/** The Sub-agents panel, its tab counting the `running` ones. */
+function subagentsPanel(session: string | undefined, running: number): ColumnPanel {
+  return {
     ...(running === 0 ? {} : { badge: <SpokenCount count={running} word="running" /> }),
     content: <SubagentsPanel session={session} />,
     icon: "uraeda:users",
     key: SUBAGENTS,
     label: "Sub-agents",
   };
-  return [splitPanel(activity, changes), splitPanel(subagents, changes)];
 }
 
 /**
@@ -140,10 +158,19 @@ function useFirstLatest(latest: string | undefined) {
  * The bottom bar's Changes: the `count` files the session edited, opening the sheet. Its name
  * starts with what it shows, as a spoken command names it.
  */
-function ChangesTile({ count, onOpen }: { count: number; onOpen: () => void }) {
+function ChangesTile({
+  count,
+  isOpen,
+  onOpen,
+}: {
+  count: number;
+  isOpen: boolean;
+  onOpen: () => void;
+}) {
   return (
     <NavTile
       icon="uraeda:git-compare"
+      isOpen={isOpen}
       label={`Changes ${count} · ${fileCount(count)} edited`}
       onPress={onOpen}
     />
@@ -151,17 +178,26 @@ function ChangesTile({ count, onOpen }: { count: number; onOpen: () => void }) {
 }
 
 /** The status line's Changes of the session `session`, as it is read. */
-function SessionChanges({ onOpen, session }: { onOpen: () => void; session: string }) {
-  return <ChangesTile count={useSession(session)?.edited.length ?? 0} onOpen={onOpen} />;
+function SessionChanges({
+  isOpen,
+  onOpen,
+  session,
+}: {
+  isOpen: boolean;
+  onOpen: () => void;
+  session: string;
+}) {
+  return (
+    <ChangesTile count={useSession(session)?.edited.length ?? 0} isOpen={isOpen} onOpen={onOpen} />
+  );
 }
 
 /** The name of the phone's sheet of the column, the status line's Activity, which opens it. */
 const SHEET = "Activity";
 
 /**
- * The phone's sheet of the column, open on `open`'s panel among `panels`: their tabs at its top
- * while more than one shows, a tap on one replacing the sheet's entry's `?tab=`, so Back still
- * closes the sheet. One sheet, named after the Activity that opens it, whichever panel shows.
+ * The phone's sheet of the column, open on `open`'s panel among `panels`, titled by it: no tabs,
+ * since the bottom bar has a tile for each panel. Back closes it.
  */
 function ColumnSheet({
   onClose,
@@ -172,33 +208,21 @@ function ColumnSheet({
   open: string | undefined;
   panels: ReadonlyArray<ColumnPanel>;
 }) {
-  const [, setTab] = useColumnTab(panels.map((panel) => panel.key));
-  const ids = useId();
   const shown = panels.find((panel) => panel.key === open) ?? panels[0];
-  const tabbed = panels.length > 1 && shown !== undefined;
+  // No tabs: the bottom bar has a tile for each panel, and the sheet is titled by the one it shows.
   return (
-    <Overlay fills isOpen={open !== undefined} label={SHEET} onClose={onClose}>
-      {tabbed && (
-        <ColumnTabs
-          ids={ids}
-          label="The session's column"
-          onChange={setTab}
-          open={shown.key}
-          panels={panels}
-        />
-      )}
-      {tabbed ? (
-        <div
-          aria-labelledby={tabId(ids, shown.key)}
-          id={panelId(ids, shown.key)}
-          role="tabpanel"
-          {...stylex.props(styles.panel)}
-        >
-          {shown.content}
-        </div>
-      ) : (
-        shown?.content
-      )}
+    <Overlay
+      fills
+      isOpen={open !== undefined}
+      isTitleInContent
+      label={shown?.label ?? SHEET}
+      onClose={onClose}
+    >
+      {/* Its title scrolls away with the panel; the sheet's Close alone stays. */}
+      <div {...stylex.props(styles.panel)}>
+        <Heading level={2}>{shown?.label ?? SHEET}</Heading>
+        {shown?.content}
+      </div>
     </Overlay>
   );
 }
@@ -223,20 +247,32 @@ function PhoneParts({ folder, panels, session }: Of & { panels: ReadonlyArray<Co
   const sheet = useSheetTab(sheets, true);
   const [open, setSheet] = sheet;
   const hasSubagents = panels.some((panel) => panel.key === SUBAGENTS);
+  const jump = usePublishedJump();
   const buttons = (
     <NavTiles label="The session's parts">
+      {/* Always there, dimmed at the end, so the other tiles never move. */}
+      <NavTile
+        icon="arrowDown"
+        isDisabled={jump === undefined}
+        label="Jump to the latest"
+        onPress={() => jump?.()}
+      />
       <NavTile
         icon="uraeda:activity"
-        isOpen={open !== undefined && open !== SUBAGENTS}
+        isOpen={open !== undefined && open !== SUBAGENTS && open !== CHANGES}
         label="Activity"
         onPress={openActivity}
       />
       {/* Before its first message, the session does not exist: it changed nothing. */}
       {session === undefined ? (
-        <ChangesTile count={0} onOpen={openActivity} />
+        <ChangesTile count={0} isOpen={open === CHANGES} onOpen={() => setSheet(CHANGES)} />
       ) : (
         <Section>
-          <SessionChanges onOpen={openActivity} session={session} />
+          <SessionChanges
+            isOpen={open === CHANGES}
+            onOpen={() => setSheet(CHANGES)}
+            session={session}
+          />
         </Section>
       )}
       {hasSubagents && (
@@ -291,6 +327,7 @@ export function SessionColumn({ content, folder, session }: Of & { content: Reac
   const panels = sessionPanels({
     asked: useAskedTab(),
     folder,
+    isSplit: wide,
     running: topLevel(record?.subagents ?? []).length,
     session,
   });
