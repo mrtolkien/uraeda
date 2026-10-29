@@ -1,6 +1,7 @@
 //! A note with a note file added to a proposal file: the note file's text goes into the proposal
 //! file's `## Notes`, as a subsection titled by the note, its images beside the proposal file, then
-//! the note file and the note's row leave, all held for the add's Undo, which puts each back.
+//! the note file and the note's row leave, all held for the add's Undo, which puts each back. A
+//! proposal of the priorities without a file gets its file first, which the Undo takes back too.
 
 use std::fs;
 use std::path::PathBuf;
@@ -340,8 +341,9 @@ pub(super) fn is_held(place: &Place, note_file: &str, proposal: &str) -> bool {
 /// file, every other edit kept, the note file comes back with its images, and the inbox becomes
 /// `back`, the note's row back at its place, in one write of both files or none. Then the images'
 /// copies leave, unchanged ones only, and a proposal file the add made a folder becomes a single
-/// file again while nothing else was added to it. `gone` is the refusal when the inserted text is
-/// no longer in the proposal file.
+/// file again while nothing else was added to it. A proposal file the add made for a line without
+/// one, still as it was written, leaves too, its line as it was before, in the same writes.
+/// `gone` is the refusal when the inserted text is no longer in the proposal file.
 pub(super) fn undo(
     place: &Place,
     note_file: &str,
