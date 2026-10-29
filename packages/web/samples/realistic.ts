@@ -5,7 +5,7 @@
 // starts: `sandbox/agent.ts`), three are done, and Now, Next, and Later hold five lines each, not
 // counting the four live features', which show apart as Ongoing (a feature waiting on the human is
 // one), some of them long, and an inbox of ten notes, three of them long, and one with a note file
-// holding a screenshot.
+// holding a screenshot, and a proposal file that no line of the priorities links yet.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { commitsAt, fixture, git } from "uraeda-binding/test-utils";
@@ -112,6 +112,26 @@ ${PICKER_NOTE}
 ## Notes
 `;
 
+/** A proposal file the priorities do not link yet: a note can be added to it from the inbox. */
+const SHARED_LISTS = `---
+discovery: medium # low, medium, or high: how far the agent researches before asking
+---
+
+# Shared lists
+
+## What
+
+A list can be shared with other people, who see its tasks and can add, complete, and edit them.
+
+## Why
+
+A household or a small team keeps one list today by sending screenshots of it.
+
+## Notes
+
+- Only whole lists are shared, not single tasks.
+`;
+
 /** The features finished and merged, each with the time it was finished at. */
 const DONE = [
   { finished: "17 18:30", folder: "2026-10-12-task-search", questions: 6, title: "Task search" },
@@ -203,6 +223,7 @@ export function addRealistic(repo: string) {
         ),
         "specs/notes/due-date-picker/note.md": PICKER_NOTE_FILE,
         "specs/PRIORITIES.md": PRIORITIES,
+        "specs/proposals/shared-lists.md": SHARED_LISTS,
       },
       message: "docs: priorities and inbox",
     },
