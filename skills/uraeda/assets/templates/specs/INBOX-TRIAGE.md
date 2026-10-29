@@ -16,10 +16,10 @@ status: awaiting-human
 [How many notes the inbox holds, and how many this triage covers. What you read to propose each
 outcome: the code, `PRIORITIES.md`, the proposal files, and the open branches.]
 
-## Q1: [What to do with "note text", or with the notes about subject]
+## Q1: [What to do with the note, or the notes, about subject]
 
-[The notes it covers, each quoted by its text. Then as much context as deciding needs: what you
-found about them in the code, `PRIORITIES.md`, and the proposal files, with links.]
+[The notes it covers, each quoted whole by its text, never cut. Then as much context as deciding
+needs: what you found about them in the code, `PRIORITIES.md`, and the proposal files, with links.]
 
 Why it matters: [what this outcome costs or saves later].
 

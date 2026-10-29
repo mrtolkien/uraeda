@@ -197,11 +197,13 @@ decisions.
      wait for a later triage.
    - **One question per note, or per group of notes** that go to the same place. A question names
      its notes by their text, quoted, so the human, and the agent that applies it, find them without
-     line numbers. Its options, the recommended one first, are among these: a proposal in a section
-     of `PRIORITIES.md`, a new proposal file, an existing proposal file named by its title, a
-     change, deletion, or keeping it in the inbox. A new proposal file option names its title and
-     the section that links it. A change option, for a bug or a small change, names its proposal
-     file's title and the slug it would start with.
+     line numbers. Quote each note whole, word for word, however long: never cut it or end it with
+     an ellipsis, since a cut note is not found and the human cannot read the rest. Its heading
+     names its notes by their subject, in a few words, not by a quote. Its options, the recommended
+     one first, are among these: a proposal in a section of `PRIORITIES.md`, a new proposal file, an
+     existing proposal file named by its title, a change, deletion, or keeping it in the inbox. A
+     new proposal file option names its title and the section that links it. A change option, for a
+     bug or a small change, names its proposal file's title and the slug it would start with.
    - **Links** only to files on the default branch, such as proposal files. A started feature's or
      change's files live on its branch: name it by its title, or `ura check` reports the link.
    - **Notes:**, last, for the human. A triage has no points settled without the human: every
