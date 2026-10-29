@@ -1,15 +1,15 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: flask-conical
 ---
 
 # Sandbox
 
-Uraeda's built UI is reviewed in a sandbox. It is the whole web app, hot-reloading from the code of
-the checkout it runs in, over sample projects and a fake agent. It never touches the human's real
-projects, data, or agent. Storybook stays the place for mockups and variants: the sandbox is where
-the pages are browsed together, as a user does.
+Uraeda's built UI is reviewed in a sandbox: the whole web app, hot-reloading from the code of the
+checkout it runs in, over sample projects and a fake agent. It never touches the human's real
+projects, data, or agent. Storybook stays the place for mockups and variants, and the sandbox is
+where pages are browsed together, as a user does.
 
 ## Rules
 
@@ -17,40 +17,31 @@ the pages are browsed together, as a user does.
   projects only. Checked by review.
 - The sandbox MUST NOT read or write the human's real repositories, data folder, config folder, or
   agent. Checked by a test.
-- The sandbox's sessions MUST run on the fake agent, which answers from canned text and changes no
+- The sandbox's sessions MUST run on a fake agent, which answers from canned text and changes no
   file. Checked by a test.
 - The sandbox's state MUST survive its restarts, until the human asks for a reset. Checked by a
   test.
-- A pick MUST be copied to the clipboard as text that names the page, the element, and its source
-  location. Checked by a test.
+- A pick, an element the human points at in the sandbox, MUST be copied to the clipboard as text
+  naming the page, the element, and its source location. Checked by a test.
 - The sandbox's code, sample projects, and picker MUST NOT reach the built app or the package.
   Checked by a test of the build's output.
-- Mockups and variants SHOULD stay Storybook stories, as the [preview](preview.md) decision says:
-  the sandbox shows the built app, not choices to pick from. Checked by review.
+- Mockups and variants SHOULD stay Storybook stories, as [Preview](preview.md) says. Checked by
+  review.
 - The sandbox MAY take source locations from a build plugin that only the sandbox loads. Checked by
   review.
 
 ## Why
 
-UI work needs the app in many states, and the review of the built UI was dropped from the UI
-iteration flow ([the sandbox's record](../done/2026-10-20-ui-sandbox.md)). The human chose a
-whole-app command beside Storybook
-([where the sandbox lives](../done/2026-10-20-ui-sandbox.md#q2-where-does-the-sandbox-live)), a fake
-agent
-([agents in the sandbox](../done/2026-10-20-ui-sandbox.md#q4-how-do-agents-behave-inside-the-sandbox)),
-state kept until a reset
-([state lifetime](../done/2026-10-20-ui-sandbox.md#q5-how-long-does-the-sandboxs-state-last)), picks
-pasted to the agent from the clipboard
-([where a pick goes](../done/2026-10-20-ui-sandbox.md#q3-where-does-a-pick-go)), and source
-locations from a build plugin
-([what a pick tells the agent](../done/2026-10-20-ui-sandbox.md#q7-what-does-a-pick-tell-the-agent)).
+UI work needs the app in many states, and Storybook's whole-page stories cannot navigate from page
+to page. A fake agent costs nothing, answers at once, and answers the same every time. State kept
+until a reset brings the human back where they were. A pick pasted to the agent carries what it
+needs to find the code. History: [UI sandbox](../done/2026-10-20-ui-sandbox.md).
 
 ## Alternatives considered
 
-- More whole-page stories in Storybook: links between pages do not navigate.
-- A sandbox mode inside `vp run dev`: sample and real data in one app.
+- A sandbox mode inside the development server: sample and real data in one app.
 - The real agent on the sample projects: costly, slow, and never the same twice.
-- A pick queue an agent waits on: more surface, when the human types a request with each pick
+- A queue of picks an agent waits on: more to build, when the human types a request with each pick
   anyway.
 
 ## Consequences
@@ -64,5 +55,5 @@ locations from a build plugin
 
 - [`packages/web/`](/packages/web/), its sandbox and its Vite configuration, and every feature with
   UI work
-- [`packages/binding/test-utils.ts`](/packages/binding/test-utils.ts), the builders of the sample
-  projects, and every feature that adds a workflow step or file
+- The builders of the sample projects, in [`packages/binding/`](/packages/binding/), and every
+  feature that adds a workflow step or file

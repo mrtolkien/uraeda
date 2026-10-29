@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: history
 ---
 
@@ -24,27 +24,23 @@ code reads only the new format, and old files are updated, or fail `ura check` u
 
 ## Why
 
-You asked not to keep backward compatibility before version 1.0, and to write it down as a decision,
-when the clarifications redesign changed the round's format (the Notes of
-[round 01](../done/2026-10-17-redesign-clarifications.md)). Reviewing the spec, you added that an
-agent meeting a file that fails `ura check` fixes it anyway (C1 of the
-[spec's review](../done/2026-10-17-redesign-clarifications.md)). Uraeda is a proof of concept whose
-formats still move feature after feature: code that reads old formats would grow with each of them,
-for files that live a few days on a branch.
+Uraeda is a proof of concept whose formats change feature after feature. Code reading old formats
+would grow with each change, for files that live a few days on a branch. An agent meeting an old
+file fixes it, rather than working around it. History:
+[Redesign clarifications](../done/2026-10-17-redesign-clarifications.md).
 
 ## Consequences
 
 - Format changes stay small: one reader, one template, no versions.
 - A branch in flight when a format changes fails `ura check` until it catches up with the default
-  branch. The agent running its next step then rewrites its files: a small cost per branch, paid
-  once.
+  branch, and the agent running its next step rewrites its files.
 - Records in `specs/done/` are not converted: they are history, read by humans.
 
 ## Applies to
 
 - The skill's [templates](/skills/uraeda/assets/templates/) and
   [examples](/skills/uraeda/assets/example/), the core's parsers and checks in
-  [`crates/core`](/crates/core/), and every feature that changes a workflow file's format
+  [`crates/core/`](/crates/core/), and every feature that changes a workflow file's format
 
 ## Revisit when
 

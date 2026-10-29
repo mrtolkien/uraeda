@@ -1,61 +1,64 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: key-round
 ---
 
 # Sign-in
 
-Uraeda's server has one owner, who signs each browser in once with a key the server generates. Every
-route is closed without a session, except the few that cannot carry a cookie, which prove themselves
-with a secret instead. Nothing but code turns sign-in off.
+Uraeda's server has one owner, who signs each browser in once with a key the server generates. The
+server listens only on its own machine, and accepts only requests from Uraeda's own pages, or from
+the frames that show previews when they carry a secret it gave them. Nothing but code turns sign-in
+off.
 
 ## Rules
 
-- Every request MUST carry a valid session, except the built UI's files, the sign-in routes, and
-  preview and mockup paths that carry the current frame secret. Checked by a table-driven test over
-  every route.
-- The access key MUST be generated, shown once, and stored only as a hash; sessions MUST be random
-  and stored hashed. Checked by the sign-in store's tests.
-- A session MUST end after 30 days without use, at sign-out, or when the key changes, and signing
-  out MUST end its live streams. Checked by the sign-in routes' tests.
-- A failed sign-in MUST NOT lock the owner out, and MUST NOT be a cheap guess. Checked by the
+- Every request MUST carry a valid session, except the built UI's files, the sign-in routes, and the
+  preview paths that carry the current frame secret. Checked by a table-driven test over every
+  route.
+- The server MUST listen only on the loopback interface, accepting only requests made by Uraeda's
+  own pages or by frames carrying the frame secret. Checked by the guard's tests.
+- The access key and the sessions MUST be random and stored only as hashes, the key shown once.
+  Checked by the sign-in store's tests.
+- A session MUST end after 30 days without use, at sign-out, or when the key changes, along with its
+  live streams. Checked by the sign-in routes' tests.
+- A failed sign-in MUST cost a guesser time without ever locking the owner out. Checked by the
   sign-in routes' tests.
-- The frame secret MUST change whenever a session ends and reach only signed-in pages, and a process
-  the server runs MUST NOT receive Uraeda's credentials. Checked by the preview proxy's tests.
-- The server MUST NOT treat an address, `Host`, or proxy header as proof of identity, and a public
-  address MUST reach it through a same-machine proxy that ends TLS. Checked by review.
-- Sign-in MUST NOT be turned off by a flag, an environment variable, or a setting: only code MAY
-  build an app without it, for tests, Uraeda's own Storybook fixture, and the [sandbox](sandbox.md).
-  Checked by review.
+- The frame secret MUST change whenever a session ends, and reach only signed-in pages. Checked by
+  the preview proxy's tests.
+- Previews MUST run in a sandbox apart from Uraeda's pages, unable to save, create, or open files.
+  Checked by the preview proxy's and the embed's tests.
+- A process the server runs MUST NOT receive Uraeda's credentials. Checked by the preview proxy's
+  tests.
+- The server MUST NOT treat an address, a `Host`, or a proxy header as proof of identity. Checked by
+  review.
+- Sign-in MUST NOT be turned off by a flag, an environment variable, or a setting: only code builds
+  an app without it, for tests, Storybook, and the [sandbox](sandbox.md). Checked by review.
 
 ## Why
 
 The server commits, starts agents, and runs project code, and its owner reaches it from several
-devices and one day a public address ([the proposal](../done/2026-10-16-basic-security.md)). A
-generated key cannot be guessed, so it needs no lockout an attacker could turn against the owner
-([what you sign in with](../done/2026-10-16-basic-security.md#q1-what-do-you-sign-in-with)). No
-address or header proves the sender, since proxies connect from 127.0.0.1 and can forge headers
-([trusting the tailnet](../done/2026-10-16-basic-security.md#q4-does-your-tailnet-sign-you-in)).
-Sandboxed frames get no `Lax` cookie and share one Storybook, so they share one secret in their path
-([how previews prove themselves](../done/2026-10-16-basic-security.md#q6-how-do-previews-and-mockups-prove-they-come-from-you)).
-The sandbox holds sample projects only, and an agent must open its pages without signing in
-([sign-in in the sandbox](../done/2026-10-20-ui-sandbox.md#q8-does-the-sandbox-need-sign-in)).
+devices, one day from a public address. A generated key cannot be guessed, so it needs no lockout an
+attacker could turn against the owner. Proxies connect from the machine itself and can forge
+headers, so no address proves the sender. Preview frames cannot carry the sign-in cookie, so they
+prove themselves with a secret. History: [Basic security](../done/2026-10-16-basic-security.md).
 
 ## Alternatives considered
 
 - A password the owner chooses: guessable, and any limit on failures lets an attacker lock the owner
   out.
-- Passkeys: the strongest, kept for a later feature, on top of the key.
 - Trusting `127.0.0.1` or Tailscale's identity: a full bypass behind a misconfigured or second
   proxy.
 - One secret per session in preview paths: impossible while one Storybook serves every session.
 
 ## Consequences
 
-- Every device signs in once, and stays signed in while used at least every 30 days.
-- A lost key is replaced from the host's shell, which signs every device out, and any sign-out
-  restarts the running Storybooks under a new address.
+- Every device signs in once, and stays signed in while used at least every 30 days. A lost key is
+  replaced from the host's shell, which signs every device out.
+- A public address needs a proxy on the same machine that ends TLS, and anyone signed in can allow a
+  new host name.
+- A story can read any checkout's preview and mockup paths, and make Storybook show another story,
+  but nothing more.
 - Every new route is closed by default: a route that cannot carry a cookie needs a change to this
   decision.
 
@@ -63,4 +66,4 @@ The sandbox holds sample projects only, and an agent must open its pages without
 
 - [`packages/server/`](/packages/server/), and every feature that adds a route, a WebSocket, or a
   process the server runs
-- [`packages/web/`](/packages/web/), for the sign-in screen and the frames' addresses
+- [`packages/web/`](/packages/web/), for the sign-in screen and the previews' frames
