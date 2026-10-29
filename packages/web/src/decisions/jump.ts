@@ -48,7 +48,7 @@ export function jumpEntries(
     const first = rules[0];
     return {
       kind: "principle",
-      path: `/decisions/constitution/${principle.slug}`,
+      path: "/decisions/constitution",
       preview: [
         `### ${principle.number}. ${principle.title}`,
         "",

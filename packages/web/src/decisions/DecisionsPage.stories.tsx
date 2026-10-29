@@ -25,7 +25,7 @@ export const Constitution: Story = {};
 
 /** Principle III picked: the reader on the whole constitution, scrolled to it. */
 export const Principle: Story = {
-  args: { open: { kind: "principle", slug: "iii" } },
+  args: { open: { kind: "constitution" } },
 };
 
 /** The "UI behaviour" decision open: beside the list on wide screens, its own page on narrow. */

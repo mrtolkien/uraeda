@@ -16,7 +16,7 @@ export type Route =
   | { page: "decisions-check" }
   | { name: string; page: "decision" }
   | { folder: string; name: string; page: "branch-decision" }
-  | { page: "principle"; slug: string }
+  | { page: "constitution" }
   | { page: "commit" }
   | { page: "edit"; path: string }
   | { folder: string; name: string; page: "mockup" }
@@ -154,7 +154,10 @@ export function branchDecisionPath(folder: string, name: string): string {
   return `/f/${encodeURIComponent(folder)}/decisions/${encodeURIComponent(name)}`;
 }
 
-/** `/decisions`, `/decisions/check`, `/decisions/<name>`, or `/decisions/constitution/<slug>`. */
+/**
+ * `/decisions`, `/decisions/check`, `/decisions/constitution`, one page, or `/decisions/<name>`. An
+ * old link to a principle, `/decisions/constitution/<slug>`, opens the constitution.
+ */
 function decisionsRoute(parts: Array<string>, pathname: string): Route {
   if (parts.length === 1) {
     return { page: "decisions" };
@@ -162,10 +165,11 @@ function decisionsRoute(parts: Array<string>, pathname: string): Route {
   if (parts.length === 2 && parts[1] === "check") {
     return { page: "decisions-check" };
   }
+  if (parts[1] === "constitution") {
+    return { page: "constitution" };
+  }
   if (parts.length === 2) {
     return { name: parts[1], page: "decision" };
   }
-  return parts[1] === "constitution"
-    ? { page: "principle", slug: parts[2] }
-    : { page: "missing", path: pathname };
+  return { page: "missing", path: pathname };
 }

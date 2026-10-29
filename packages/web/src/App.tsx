@@ -101,10 +101,10 @@ class ServerErrorBoundary extends Component<
  * stays drawn while the overlay opens, closes, and shows another line, and keeps its selection, its
  * scroll, and its focus; and the decisions page with its reader, which stays drawn while the reader
  * follows the list's keys to another row in the same history entry: on the decisions page, from a
- * principle to a decision too.
+ * the constitution to a decision too.
  */
 function pageKey(route: Route, pathname: string, entryId: string | undefined) {
-  if (route.page === "decisions" || route.page === "decision" || route.page === "principle") {
+  if (route.page === "decisions" || route.page === "decision" || route.page === "constitution") {
     return `ledger:${entryId}`;
   }
   switch (route.page) {
@@ -155,8 +155,8 @@ function RoutePage({ route }: { route: Route }) {
       return <LedgerRoute open={undefined} />;
     case "decision":
       return <LedgerRoute open={{ kind: "decision", name: route.name }} />;
-    case "principle":
-      return <LedgerRoute open={{ kind: "principle", slug: route.slug }} />;
+    case "constitution":
+      return <LedgerRoute open={{ kind: "constitution" }} />;
     case "commit":
       return <CommitPage />;
     case "edit":

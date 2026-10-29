@@ -55,17 +55,10 @@ export function rulesOf(constitution: LedgerConstitution, principle: LedgerPrinc
 
 /**
  * The constitution, first: its principles, highest first, each a row of its numeral and count of
- * rules, its title, and its first rule, a link to the whole constitution in the reader, at it.
+ * rules, its title, and its first rule, each a link to the whole constitution, one page.
  * "No constitution yet." without `CONSTITUTION.md`.
  */
-export function ConstitutionRegion({
-  constitution,
-  selected,
-}: {
-  constitution: LedgerConstitution | null;
-  /** The slug of the principle the reader is at. */
-  selected: string | undefined;
-}) {
+export function ConstitutionRegion({ constitution }: { constitution: LedgerConstitution | null }) {
   const here = useRepoPath();
   return (
     <section aria-label="Constitution">
@@ -90,8 +83,7 @@ export function ConstitutionRegion({
                   // What the list's keys move between: see `useListKeys`.
                   data-row=""
                   description={rules[0] && <Text color="secondary">{plain(rules[0].spans)}</Text>}
-                  href={here(`/decisions/constitution/${principle.slug}`)}
-                  isSelected={selected === principle.slug}
+                  href={here("/decisions/constitution")}
                   key={principle.slug}
                   label={
                     // Its numeral and count of rules, then its title in bold, its first rule
