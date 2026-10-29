@@ -4,7 +4,8 @@
 // two have an agent working (one writes the spec, one builds the plan, which the sandbox starts as it
 // starts: `sandbox/agent.ts`), three are done, and Now, Next, and Later hold five lines each, not
 // counting the four live features', which show apart as Ongoing (a feature waiting on the human is
-// one), some of them long, and an inbox of nine notes, three of them long.
+// one), some of them long, and an inbox of ten notes, three of them long, and one with a note file
+// holding a screenshot.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { commitsAt, fixture, git } from "uraeda-binding/test-utils";
@@ -79,6 +80,7 @@ const INBOX = `# Inbox
 ## UI
 
 - [run-ui] The count on the Today tab is not centered in its badge
+- [The due date picker hides the task's title on a phone](notes/due-date-picker/note.md)
 - A task with a very long title pushes its due date out of the row on a phone, where it should wrap to a second line and keep the date visible beside the first one, as the desktop does
 - The empty state of a new list has no way to add a first task from the keyboard
 
@@ -87,6 +89,27 @@ const INBOX = `# Inbox
 - Two devices that complete the same repeating task at the same time create the next one twice
 - [agent] After a long time offline the app replays every change at once, which freezes it for several seconds, where it should replay them in small batches and show a progress line that the human can leave
 - The calendar sync should not touch tasks that have no due date
+`;
+
+/** The title of the inbox's note with a note file, and a screenshot in it. */
+const PICKER_NOTE = "The due date picker hides the task's title on a phone";
+
+/** That note's file, as an image added to a note writes it: the proposal's skeleton, and the link. */
+const PICKER_NOTE_FILE = `---
+discovery: high # low, medium, or high: how far the agent researches before asking
+---
+
+# ${PICKER_NOTE}
+
+## What
+
+${PICKER_NOTE}
+
+![due-date-picker](images/due-date-picker.webp)
+
+## Why
+
+## Notes
 `;
 
 /** The features finished and merged, each with the time it was finished at. */
@@ -173,7 +196,14 @@ export function addRealistic(repo: string) {
   commitsAt(repo, "main", [
     {
       at: at("17 09:00"),
-      files: { "specs/INBOX.md": INBOX, "specs/PRIORITIES.md": PRIORITIES },
+      files: {
+        "specs/INBOX.md": INBOX,
+        "specs/notes/due-date-picker/images/due-date-picker.webp": readFileSync(
+          fixture("images/lossy.webp"),
+        ),
+        "specs/notes/due-date-picker/note.md": PICKER_NOTE_FILE,
+        "specs/PRIORITIES.md": PRIORITIES,
+      },
       message: "docs: priorities and inbox",
     },
   ]);

@@ -29,7 +29,7 @@ export type DatedCommit = {
   at?: string;
   /** The committer time, RFC 3339; `at` when left out. */
   committed?: string;
-  files: Record<string, string | null>;
+  files: Record<string, string | Uint8Array | null>;
   message: string;
 };
 
@@ -63,8 +63,10 @@ export function commitsAt(repo: string, branch: string, commits: Array<DatedComm
   }
 }
 
-/** Writes files in a folder, their paths from it; a file given `null` is removed. */
-function writeFiles(folder: string, files: Record<string, string | null>) {
+/**
+ * Writes files in a folder, their paths from it, as text or bytes; a file given `null` is removed.
+ */
+function writeFiles(folder: string, files: Record<string, string | Uint8Array | null>) {
   for (const [path, text] of Object.entries(files)) {
     if (text === null) {
       rmSync(join(folder, path), { force: true });
