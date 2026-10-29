@@ -72,6 +72,11 @@ async function movedInto(fate: Fate) {
 /** A note's change, run as `useNoteActions` runs it: its refusal shown, a conflict read again. */
 type Run = <R extends { error?: unknown }>(call: () => Promise<R>) => Promise<R>;
 
+/** A proposal's first words: a toast is no place for a whole line. */
+function shortened(text: string) {
+  return text.length > 40 ? `${text.slice(0, 39).trimEnd()}…` : text;
+}
+
 /** A proposal a note goes under: its id as written now, `now-2`, its key, and its text. */
 export type UnderLine = { id: string; key: string; text: string };
 
@@ -133,9 +138,7 @@ function useMovesOut(
       now?.sections.flatMap((s) => s.proposals).find((proposal) => proposal.key === line.key)
         ?.children ?? [];
     const moved = children.findLast((child) => child.depth === 1)?.key;
-    // The proposal's first words: a toast is no place for a whole line.
-    const name = line.text.length > 40 ? `${line.text.slice(0, 39).trimEnd()}…` : line.text;
-    toast(`Moved under "${name}", not committed`, () =>
+    toast(`Moved under "${shortened(line.text)}", not committed`, () =>
       undone(
         fate,
         fate.mutations.inbox.undoUnderProposal({
@@ -179,7 +182,7 @@ function useAddsIn(
       return;
     }
     const path = (result.result as { path?: string } | undefined)?.path ?? file;
-    toast(`Added to ${title}, not committed`, () =>
+    toast(`Added to ${shortened(title)}, not committed`, () =>
       undone(
         fate,
         fate.mutations.inbox.undoIntoProposal({

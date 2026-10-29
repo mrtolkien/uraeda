@@ -3,8 +3,8 @@
 // it becomes the proposal's last item, or for a proposal with a file, the end of the file's "What";
 // then the proposal files no proposal links. A note with a note file never goes under a proposal,
 // where nested, its file would no longer be found by its link: it goes into a file's "Notes", its
-// note file's text under its title, the note file gone, and a proposal without a file gets its
-// file first.
+// note file's text under its title, the note file gone, and a proposal that links nothing gets its
+// file first; one that links a feature or a web page is not offered.
 // Each item's preview is the place it lands in, the note in it. A pick runs as the note's
 // actions run it (`useNoteActions`), with a toast and Undo, then opens the priorities with the
 // note's row selected, or the proposal file's page.
@@ -94,13 +94,15 @@ function newFilePreview(proposal: Proposal, placed: Placed) {
 
 /**
  * The picker's item of `proposal`: its file, which `textOf` reads once the files are read; else the
- * proposal to go under, or for a note with a note file, the file the proposal gets first.
+ * proposal to go under, or for a note with a note file, the file the proposal gets first. None for
+ * a note with a note file and a proposal that links anything else, like a feature, whose proposal
+ * is on its branch, or a web page: it can neither nest the note nor get a file.
  */
 function proposalItem(
   proposal: Proposal,
   placed: Placed,
   textOf: (path: string) => string | undefined,
-): PickerItem {
+): PickerItem | undefined {
   const file = proposal.file?.path;
   // Its words, its links' text without their targets.
   const title = plain(proposal.spans);
@@ -117,6 +119,9 @@ function proposalItem(
     };
   }
   if (placed.note.file !== undefined) {
+    if (proposal.spans.some((span) => span.link)) {
+      return undefined;
+    }
     const preview = newFilePreview(proposal, placed);
     return {
       icon: "uraeda:file-text",
@@ -183,7 +188,7 @@ export function PromotePicker({
       ),
       title,
     })),
-    ...proposals.map((proposal) => proposalItem(proposal, placed, textOf)),
+    ...proposals.flatMap((proposal) => proposalItem(proposal, placed, textOf) ?? []),
     ...(files ?? [])
       .filter((file) => !linked.has(file.path))
       .map((file) => ({

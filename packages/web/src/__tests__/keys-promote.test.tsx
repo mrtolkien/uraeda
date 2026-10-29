@@ -80,6 +80,8 @@ test("p on a note with a note file offers every proposal, and a level moves its 
       title,
     ).toBe(true);
   }
+  // A line linking a feature can neither nest the note nor get a file.
+  expect(titles.some((one) => one.includes("Web UI for the workflow files"))).toBe(false);
 
   const later = screen.getAllByRole("option").find((option) => option.textContent === "Later");
   await act(async () => {
