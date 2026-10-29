@@ -186,11 +186,16 @@ pub fn note_subsection(note: &str, title: &str) -> Vec<String> {
             lines[at] = format!("{}{}", "#".repeat(shifted), &lines[at][level..]);
         }
     }
-    // Blank lines run together where sections left.
+    // Blank lines run together where sections left, never inside fenced code.
     let mut kept: Vec<String> = Vec::new();
+    let mut in_code = false;
     for line in lines {
+        if super::is_fence(&line) {
+            in_code = !in_code;
+        }
         let blank = line.trim().is_empty();
         if blank
+            && !in_code
             && kept
                 .last()
                 .is_none_or(|last: &String| last.trim().is_empty())
@@ -435,6 +440,11 @@ mod tests {
         assert_eq!(
             note_subsection("# Dark mode\n", "Dark mode"),
             ["### Dark mode"]
+        );
+        // Code keeps its blank lines.
+        assert_eq!(
+            note_subsection("# Dark mode\n\n```\na\n\n\nb\n```\n", "Dark mode").join("\n"),
+            "### Dark mode\n\n```\na\n\n\nb\n```"
         );
     }
 
