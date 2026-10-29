@@ -94,13 +94,7 @@ export function CommentNote({
   text: string;
 }) {
   return (
-    <div
-      aria-label={name}
-      data-words="human"
-      id={id}
-      role="group"
-      {...stylex.props(ruleStyles.bar, styles.pending)}
-    >
+    <div aria-label={name} id={id} role="group" {...stylex.props(ruleStyles.bar, styles.pending)}>
       <HStack align="center" gap={2} justify="between" wrap="wrap">
         <Text color="secondary" type="supporting">
           {label}

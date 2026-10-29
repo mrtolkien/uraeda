@@ -144,7 +144,9 @@ function Message({
       sender="user"
     >
       <ChatMessageBubble
-        data-words="human"
+        // TEMPORARY: the Monaspace experiment's handwriting, for a message once sent
+        // (`theme/monaspace.css`).
+        data-words={pending ? undefined : "human"}
         variant={pending ? "ghost" : "filled"}
         xstyle={pending ? undefined : styles.user}
       >

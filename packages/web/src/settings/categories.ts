@@ -80,7 +80,7 @@ export const CATEGORIES: ReadonlyArray<Category> = [
       },
       {
         // TEMPORARY: the Monaspace experiment (`theme/fonts.ts`).
-        help: "Current is Inter for prose and JetBrains Mono for the rest. Monaspace gives each part its own face: Neon for the UI, Argon for prose, Xenon for headings, Radon for your own words, and Krypton for code. Kept on this browser only.",
+        help: "Current is Inter for prose and JetBrains Mono for the rest. Monaspace gives each part its own face: Neon for the UI, Argon for prose, Xenon for headings, Radon for your messages in a session, and Krypton for code. Kept on this browser only.",
         icon: "uraeda:palette",
         label: "Fonts",
         terms: ["font", "monaspace", "typeface"],

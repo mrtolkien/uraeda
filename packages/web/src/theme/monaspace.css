@@ -4,7 +4,7 @@
  * - Neon, a neo-grotesque, the UI itself;
  * - Argon, the humanist, the most readable, prose;
  * - Xenon, a slab serif, headings;
- * - Radon, handwritten, the human's own words: what they typed, notes, comments, messages;
+ * - Radon, handwritten, the human's messages in a session, once sent;
  * - Krypton, mechanical, code, paths, and keys.
  * Outside Astryx's theme layer, so the attribute on the root wins over the theme's own tokens.
  */
@@ -19,14 +19,9 @@
   --size-reading-measure: calc(49.6 * var(--text-reading-size));
 }
 
-/* What the human wrote, wherever it shows: its text in Radon, its code still in Krypton. */
+/* The human's message in a session, once sent: its text in Radon, its code still in Krypton. */
 :root[data-fonts="monaspace"] [data-words="human"] {
   font-family: var(--font-family-human);
   --font-family-body: var(--font-family-human);
   --font-family-reading: var(--font-family-human);
-}
-
-/* What the human types. */
-:root[data-fonts="monaspace"] textarea {
-  font-family: var(--font-family-human);
 }

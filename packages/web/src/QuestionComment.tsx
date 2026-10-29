@@ -204,11 +204,7 @@ export function AnswerComment({
             restored={{ at: field.entry.at, changed: false }}
           />
         )}
-        {saved && (
-          <Paragraph data-words="human" xstyle={styles.spaced}>
-            {saved}
-          </Paragraph>
-        )}
+        {saved && <Paragraph xstyle={styles.spaced}>{saved}</Paragraph>}
       </>
     );
   }
