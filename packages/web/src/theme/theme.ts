@@ -279,6 +279,9 @@ export const uraedaTheme = defineTheme({
     // Reading text given air, as a round's context or a spec's opening: taller lines.
     "--text-reading-line-airy": "1.65",
     "--text-reading-size": "19px",
+    // A pane's title in its border, and what is set like it: between the supporting text's size
+    // and the body's, so it holds its own over the pane's text.
+    "--text-title-size": "calc((var(--font-size-sm) + var(--font-size-base)) / 2)",
     // Prose's font, a proportional one where long text reads better than in the monospace font.
     "--font-family-reading":
       '"Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',

@@ -292,6 +292,7 @@
     --text-reading-line: 1.5;
     --text-reading-line-airy: 1.65;
     --text-reading-size: 19px;
+    --text-title-size: calc((var(--font-size-sm) + var(--font-size-base)) / 2);
     --font-family-reading: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --color-text-lavender: light-dark(#4254c8, #b4befe);
     --color-fill-teal: light-dark(#179299, #94e2d5);

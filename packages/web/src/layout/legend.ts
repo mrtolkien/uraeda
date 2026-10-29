@@ -19,7 +19,7 @@ export const legendStyles = stylex.create({
   onCard: { backgroundColor: colorVars["--color-background-card"] },
   // At a pane title's size.
   text: {
-    fontSize: typeScaleVars["--text-supporting-size"],
+    fontSize: "var(--text-title-size)",
     lineHeight: typeScaleVars["--text-supporting-leading"],
   },
 });

@@ -226,8 +226,8 @@ const styles = stylex.create({
     // Catppuccin's lavender, a local token of the theme (`theme.ts`).
     color: "var(--color-text-lavender)",
     display: "flex",
-    fontSize: typeScaleVars["--text-supporting-size"],
-    fontWeight: fontWeightVars["--font-weight-semibold"],
+    fontSize: "var(--text-title-size)",
+    fontWeight: fontWeightVars["--font-weight-bold"],
     lineHeight: typeScaleVars["--text-supporting-leading"],
     // Up by half the border and half its first line, then down to the content's usual room.
     marginBlockEnd: `calc(${spacingVars["--spacing-3"]} + var(--pane-border) / 2 - 0.5lh)`,
