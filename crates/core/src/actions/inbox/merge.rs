@@ -170,7 +170,7 @@ pub(super) fn merge(
     let unit = note_file::unit(file);
     if proposal == file || proposal.starts_with(&format!("{unit}/")) {
         return Err(ActionError::Refused(format!(
-            "{proposal} is the note's own file"
+            "A note cannot go into its own note file, {proposal}."
         )));
     }
     let title = inbox::link_title(inbox, id).ok_or_else(|| no_note(id))?;
@@ -289,12 +289,12 @@ pub(super) fn undo(
     let unit = note_file::unit(note_file);
     if place.root.join(unit).exists() {
         return Err(ActionError::Refused(format!(
-            "Could not undo: {unit} exists."
+            "Could not undo: something stands at {unit} now."
         )));
     }
     if !note_file::is_held(place, note_file) {
         return Err(ActionError::Refused(format!(
-            "Could not undo: {unit} is no longer held."
+            "Could not undo: the deleted {unit} can no longer be brought back."
         )));
     }
     note_file::restore(place, note_file)?;
