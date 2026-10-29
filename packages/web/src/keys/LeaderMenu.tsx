@@ -1,8 +1,8 @@
 // The leader menu: the keys pressed so far as its title, then what each next key does, each with its
 // icon, a group marked by an arrow, in alphabetical order of their keys, on the phone's frosted glass
 // (`glassStyles`), square, as the phone's floating bars are. It sits at the window's bottom right,
-// above the status line, and on narrow screens spans the window's width, as the UI layout
-// decision's sheets do. `LeaderMenuHost` feeds it the registry's step.
+// above the status line, and on narrow screens spans the window's width, as the phone's sheets do.
+// `LeaderMenuHost` feeds it the registry's step.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import {

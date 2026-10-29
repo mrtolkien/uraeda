@@ -26,11 +26,12 @@ asking the human for something it should not.
 
 The default. A row is edited where it is (`i`, or a click on the selected row), a category is
 renamed in its own title, a comment is written under the block it is about. A one-line field saves
-on `Enter`; a field of several lines on `Ctrl+Enter` or its button; leaving the field saves what
-changed; `Escape` drops the change, asking first when there is one. Lists that nest are outlines:
-`Enter` after a row opens the next one, `Tab` and `Shift+Tab` indent and outdent, a row with its
-children moves as one. "Not really elegant to type a text with bullet points inside a multiline in a
-modal."
+on `Enter` or its button, and leaving it keeps it open with its text; a field of several lines saves
+on `Ctrl+Enter` or its button; `Escape` drops the change, asking first when there is one. Lists that
+nest are outlines: a row's field also saves what changed as it is left, `Enter` after a row opens
+the next one, `Tab` and `Shift+Tab` indent and outdent, a row with its children moves as one. "Not
+really elegant to type a text with bullet points inside a multiline in a modal. What if children
+were just treated like priorities themselves? Something behaving like an Outliner."
 
 ## The row's bar
 
@@ -147,15 +148,16 @@ See [the phone](phone.md) for what goes in it.
 
 ## Sheets
 
-On the phone, what a dialog, a picker, a menu, or a side column's tab would be on a wide screen
-rises from the bottom as a sheet. A side column's sheet keeps its tab in the address, so a reload
-opens it again; every other overlay is an entry of the history, so Back closes it.
+On the phone, what a dialog, a picker, or a side column's tab would be on a wide screen rises from
+the bottom as a sheet. A menu or a selector is not a sheet: it stays a popover, as on a wide screen.
+A side column's sheet keeps its tab in the address, so a reload opens it again; every other overlay
+is an entry of the history, so Back closes it.
 
 ## Never
 
 - **Hover as the only way.** Hover brightens, moves the selection, and unfolds the rail; nothing is
   reachable only by hovering.
 - **A toast for an error.** An error stays next to what it concerns until dealt with.
-- **A popover of content.** Menus may be popovers on wide screens; reading content never is. One
-  exception: a note's images show under its row, over the page, while the row is hovered or
+- **A popover of content.** Menus and selectors are popovers at every width; reading content never
+  is. One exception: a note's images show under its row, over the page, while the row is hovered or
   selected.

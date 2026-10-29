@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: palette
 ---
 
@@ -10,7 +10,8 @@ Uraeda looks like a terminal tool: a monospace font, Catppuccin colours, square 
 bordered panes with their title in their border, as in Neovim. What floats over the page is frosted
 glass, as modern Linux desktops draw their panels with transparency and blur. Readability comes
 first, so text that reads better in a proportional font gets one. The look lives in one theme, so
-the whole UI changes together, and more colour schemes can join it later.
+the whole UI changes together, and more colour schemes can join it later. Only the fonts step
+outside it: the human picks one for each role.
 
 ## Rules
 
@@ -18,8 +19,8 @@ the whole UI changes together, and more colour schemes can join it later.
   title sits in their top border. Checked by review.
 - On the phone, a pane MUST keep only its titled top border, so its text has the screen's width.
   Checked by review.
-- Text MUST be set for readability first: a monospace font by default, and a proportional font where
-  it reads better, such as long prose. Checked by review.
+- Text MUST be set for readability first, in the font picked for its role: a monospace font by
+  default, and a proportional font where it reads better, such as long prose. Checked by review.
 - A new colour scheme MUST be added as a named scheme of the same theme, never as styles in a view.
   Checked by review.
 - Every text colour MUST reach 4.5:1 against its background, and borders and controls 3:1, the
@@ -55,6 +56,12 @@ and the dot-matrix tree as the logo
 investigation is in
 [discovery](../done/2026-10-20-layout-look.md#q2-which-visual-direction-should-the-ui-take).
 
+Monaspace and Atkinson Hyperlegible Next are the default fonts, and each role's font is the human's
+pick: the UI, headings, prose, code and keys, and their own messages
+([fonts, by role](../ui/reading.md#fonts-by-role)). A pick is kept in the browser and read before
+the app draws, so `theme/fonts.ts` writes it over the theme's font tokens, with its prose measure.
+The theme keeps JetBrains Mono and Inter underneath.
+
 ## Alternatives considered
 
 - Other visual directions, a natural one, a cyber one, and a blueprint one, each mocked up over the
@@ -67,9 +74,9 @@ investigation is in
 
 - Every view inherits the look from the theme, so later features restyle nothing.
 - The marks of Claude Code and Codex are used without their owners' approval, as the human chose.
-- The bundled font adds to the app's download.
+- The bundled fonts add to the app's download.
 
 ## Applies to
 
-- [`packages/web/`](/packages/web/): its theme in [`src/theme/`](/packages/web/src/theme/), its
-  icons, and every view
+- [`packages/web/`](/packages/web/): its theme and its fonts in
+  [`src/theme/`](/packages/web/src/theme/), its icons, and every view
