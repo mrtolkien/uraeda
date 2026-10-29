@@ -11,7 +11,7 @@ import { Kbd } from "@astryxdesign/core/Kbd";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, use, useState } from "react";
+import { type ReactNode, use, useRef, useState } from "react";
 import type { Ledger } from "uraeda-server/fate";
 import { useAgent, useLedger, useWorkspace } from "../data.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
@@ -34,9 +34,19 @@ import { DecisionDetail } from "./DecisionDetail.tsx";
 import { DecisionList } from "./DecisionList.tsx";
 import { CheckButton, CheckMessage, DecisionsCheckBanner } from "./DecisionsCheckBanner.tsx";
 import { jumpEntries, pickerItemOf } from "./jump.ts";
+import { useSplit } from "./useSplit.ts";
 import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts";
 import { NoSpecs } from "../layout/Missing.tsx";
 import { Empty } from "../layout/Empty.tsx";
+
+/** The list's column, about 60 characters a line at least, 80 at most, with its pane's inset. */
+const LIST_LEAST = `calc(60ch + 2 * ${spacingVars["--spacing-6"]})`;
+const LIST_MOST = `calc(80ch + 2 * ${spacingVars["--spacing-6"]})`;
+/** The reader's column, about 60 characters of prose a line at least, 80 at most, with its inset. */
+const READER_LEAST = `calc(0.75 * var(--size-reading-measure) + 2 * ${spacingVars["--spacing-8"]})`;
+const READER_MOST = `calc(var(--size-reading-measure) + 2 * ${spacingVars["--spacing-8"]})`;
+/** Both least columns, and the reader's pane's inset: past it, they stand side by side. */
+const TWO_LEAST = `calc(${LIST_LEAST} + ${READER_LEAST} + 2 * ${spacingVars["--spacing-2"]})`;
 
 const styles = stylex.create({
   column: {
@@ -44,10 +54,30 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-3"],
     paddingInlineStart: spacingVars["--spacing-2"],
   },
+  // The page's room, which `useSplit` measures.
+  room: { position: "relative" },
+  // The two columns' least widths together, unseen: past them, the list and the reader side by
+  // side, each about 60 characters a line.
+  least: (width: string) => ({
+    position: "absolute",
+    visibility: "hidden",
+    width,
+  }),
+  // The reader alone on a wider screen than the phone's: its text at the reading measure, as in
+  // its pane beside the list.
+  alone: { marginInline: "auto", maxWidth: "var(--size-reading-measure)" },
+  // The reader's text in its pane, side by side with the list: its inset, not a page's column.
+  reader: {
+    paddingBlock: spacingVars["--spacing-6"],
+    paddingInline: spacingVars["--spacing-8"],
+  },
 });
 
-/** What is open in the reader: a decision by its file name, or a principle by its slug. */
-export type LedgerOpen = { kind: "decision"; name: string } | { kind: "principle"; slug: string };
+/** What is open in the reader: a decision by its file name, or the constitution, one page. */
+export type LedgerOpen = { kind: "decision"; name: string } | { kind: "constitution" };
+
+/** The constitution's one address: each of its principles' rows opens it. */
+const CONSTITUTION = "/decisions/constitution";
 
 /** The ledger, as the page reads it. */
 type LedgerData = Pick<Ledger, "constitution" | "decisions" | "decisionsCheck">;
@@ -55,33 +85,20 @@ type LedgerData = Pick<Ledger, "constitution" | "decisions" | "decisionsCheck">;
 /** The address of each item, in the page's order: the principles, then the decisions as sorted. */
 function itemPaths(ledger: LedgerData, decisions: ReadonlyArray<LedgerDecision>): Array<string> {
   return [
-    ...(ledger.constitution?.principles ?? []).map(
-      (principle) => `/decisions/constitution/${principle.slug}`,
-    ),
+    ...(ledger.constitution?.principles ?? []).map(() => CONSTITUTION),
     ...decisions.map((decision) => `/decisions/${decision.name}`),
   ];
 }
 
 /**
- * The address of the item the reader is at: what is open, else the first principle, for the
- * reader starts on the constitution; none without one.
+ * The address of the item the reader is at: what is open, else the constitution, which the reader
+ * starts on; none without one.
  */
 function shownPath(ledger: LedgerData, open: LedgerOpen | undefined): string | undefined {
-  if (open) {
-    return open.kind === "decision"
-      ? `/decisions/${open.name}`
-      : `/decisions/constitution/${open.slug}`;
+  if (open?.kind === "decision") {
+    return `/decisions/${open.name}`;
   }
-  const first = ledger.constitution?.principles[0];
-  return first && `/decisions/constitution/${first.slug}`;
-}
-
-/** The principle the list marks: the one open, else the first while the constitution is read. */
-function markedPrinciple(ledger: LedgerData, open: LedgerOpen | undefined): string | undefined {
-  if (open) {
-    return open.kind === "principle" ? open.slug : undefined;
-  }
-  return ledger.constitution?.principles[0]?.slug;
+  return ledger.constitution ? CONSTITUTION : undefined;
 }
 
 /**
@@ -108,6 +125,7 @@ function useJump() {
  */
 function LedgerList({
   decisions,
+  isSplit,
   ledger,
   onSort,
   open,
@@ -115,6 +133,8 @@ function LedgerList({
   sort,
 }: {
   decisions: ReadonlyArray<LedgerDecision>;
+  /** Whether the reader is beside the list. */
+  isSplit: boolean;
   ledger: LedgerData;
   onSort: (sort: DecisionSort) => void;
   open: LedgerOpen | undefined;
@@ -145,8 +165,8 @@ function LedgerList({
     },
     // Nothing here is edited: Enter opens the row.
     onEdit: () => false,
-    // On wide screens the reader follows the selection; without it, only the focus moves.
-    onSelect: (index) => pane?.follow(here(paths[index])),
+    // Beside the list, the reader follows the selection; without it, only the focus moves.
+    onSelect: (index) => (isSplit ? pane?.follow(here(paths[index])) : undefined),
     selected: paths.indexOf(shown ?? ""),
   });
   return (
@@ -167,10 +187,7 @@ function LedgerList({
         {chat.error && <AnnouncedBanner collapsible={false} status="error" title={chat.error} />}
         <div ref={ref}>
           <VStack gap={6}>
-            <ConstitutionRegion
-              constitution={ledger.constitution}
-              selected={markedPrinciple(ledger, open)}
-            />
+            <ConstitutionRegion constitution={ledger.constitution} />
             <DecisionList
               decisions={decisions}
               onSort={onSort}
@@ -216,83 +233,81 @@ function ReaderBody({ ledger, open }: { ledger: LedgerData; open: LedgerOpen | u
     return decision ? <DecisionDetail decision={decision} /> : <Empty>Nothing here.</Empty>;
   }
   return constitution ? (
-    <ConstitutionReader
-      constitution={constitution}
-      slug={open?.kind === "principle" ? open.slug : undefined}
-    />
+    <ConstitutionReader constitution={constitution} />
   ) : (
     <Paragraph>There is no constitution to read: specs/CONSTITUTION.md is missing.</Paragraph>
   );
 }
 
 /**
- * The reader's pane, named by the file it shows: on narrow screens, the way back to the list, and
- * the previous and next items of the list.
+ * The reader: beside the list, a pane named by the file it shows, the list's keys stepping through
+ * it. Alone, a page: on the phone, its bottom bar goes back to the list and, on a decision, steps
+ * to the previous and the next; on a wider screen, a way back above it.
  */
 function Reader({
+  isSplit,
   ledger,
   onClose,
   open,
   paths,
 }: {
+  isSplit: boolean;
   ledger: LedgerData;
   onClose: (() => void) | undefined;
   open: LedgerOpen | undefined;
   paths: ReadonlyArray<string>;
 }) {
-  const here = useRepoPath();
   const narrow = isNarrow(useWidthClass());
   const shown = shownPath(ledger, open);
   const index = shown === undefined ? -1 : paths.indexOf(shown);
-  const previous = index > 0 ? paths[index - 1] : undefined;
-  const next = paths[index + 1];
-  const step = (label: "Next" | "Previous", path: string | undefined) => (
-    <Button
-      href={path && here(path)}
-      icon={<Icon icon={label === "Next" ? "chevronRight" : "chevronLeft"} />}
-      isDisabled={path === undefined}
-      isIconOnly
-      label={label}
-      variant="ghost"
-    />
-  );
   const file =
     open?.kind === "decision" ? `specs/decisions/${open.name}.md` : "specs/CONSTITUTION.md";
-  if (narrow) {
+  if (isSplit) {
     return (
-      <Page>
-        <ReaderBar next={next} onClose={onClose} previous={previous} />
-        <ReaderBody ledger={ledger} open={open} />
-      </Page>
+      <Pane title={file}>
+        <div {...stylex.props(styles.reader)}>
+          <ReaderBody ledger={ledger} open={open} />
+        </div>
+      </Pane>
     );
   }
   return (
-    <Pane title={file}>
-      <Page>
-        <VStack gap={4}>
-          <HStack gap={1} justify="end">
-            {step("Previous", previous)}
-            {step("Next", next)}
-          </HStack>
-          <ReaderBody ledger={ledger} open={open} />
-        </VStack>
-      </Page>
-    </Pane>
+    <Page>
+      <div {...stylex.props(!narrow && styles.alone)}>
+        {narrow ? (
+          <ReaderBar
+            onClose={onClose}
+            {...(open?.kind === "decision"
+              ? { steps: { next: paths[index + 1], previous: paths[index - 1] } }
+              : {})}
+          />
+        ) : (
+          onClose && (
+            <Button
+              icon={<Icon icon="chevronLeft" />}
+              label="Constitution and decisions"
+              onClick={onClose}
+              variant="ghost"
+            />
+          )
+        )}
+        <ReaderBody ledger={ledger} open={open} />
+      </div>
+    </Page>
   );
 }
 
 /**
  * On the phone, the reader's bottom bar: the list, back to the constitution and decisions, at its
- * start, then the previous and the next item, each dimmed at the list's ends.
+ * start; on a decision, `steps`, the previous and the next item, each dimmed at the list's ends.
+ * The constitution, read top to bottom, has none.
  */
 function ReaderBar({
-  next,
   onClose,
-  previous,
+  steps,
 }: {
-  next: string | undefined;
   onClose: (() => void) | undefined;
-  previous: string | undefined;
+  steps?: { next: string | undefined; previous: string | undefined };
 }) {
   return (
     <TopBarSlot>
@@ -303,31 +318,38 @@ function ReaderBar({
           label="Constitution and decisions"
           onPress={() => onClose?.()}
         />
-        <NavTile
-          icon="chevronLeft"
-          isDisabled={previous === undefined}
-          label="Previous"
-          onPress={() => previous && navigateHere(previous)}
-        />
-        <NavTile
-          icon="chevronRight"
-          isDisabled={next === undefined}
-          label="Next"
-          onPress={() => next && navigateHere(next)}
-        />
+        {steps && (
+          <>
+            <NavTile
+              icon="chevronLeft"
+              isDisabled={steps.previous === undefined}
+              label="Previous"
+              onPress={() => steps.previous && navigateHere(steps.previous)}
+            />
+            <NavTile
+              icon="chevronRight"
+              isDisabled={steps.next === undefined}
+              label="Next"
+              onPress={() => steps.next && navigateHere(steps.next)}
+            />
+          </>
+        )}
       </NavTiles>
     </TopBarSlot>
   );
 }
 
 /**
- * The constitution and the decisions, the reader beside them on wide and semi-wide screens, on
- * `open` or the constitution; on narrow ones, the list, or `open` alone with a way back, `onClose`.
+ * The constitution and the decisions, the reader beside them where each has about 60 characters a
+ * line (`useSplit`), on `open` or the constitution, the two centred together; narrower, the list,
+ * or `open` alone with a way back, `onClose`.
  */
 export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: LedgerOpen }) {
   const workspace = useWorkspace();
   const ledger = useLedger();
-  const narrow = isNarrow(useWidthClass());
+  const room = useRef<HTMLDivElement>(null);
+  const least = useRef<HTMLDivElement>(null);
+  const isSplit = useSplit(room, least);
   const [sort, setSort] = useDecisionSort();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(ledger !== null && ledger !== undefined);
@@ -346,6 +368,7 @@ export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: 
   const list = (
     <LedgerList
       decisions={decisions}
+      isSplit={isSplit}
       ledger={ledger}
       onSort={setSort}
       open={open}
@@ -354,15 +377,19 @@ export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: 
     />
   );
   return (
-    <Panes
-      detail={
-        narrow && !open ? undefined : (
-          <Reader ledger={ledger} onClose={onClose} open={open} paths={paths} />
-        )
-      }
-      detailKey={shownPath(ledger, open)}
-      list={narrow ? <Page>{list}</Page> : <div {...stylex.props(styles.column)}>{list}</div>}
-      listWidth="var(--size-ledger-list)"
-    />
+    <div ref={room} {...stylex.props(styles.room)}>
+      <div aria-hidden="true" ref={least} {...stylex.props(styles.least(TWO_LEAST))} />
+      <Panes
+        columns={`minmax(${LIST_LEAST}, ${LIST_MOST}) minmax(${READER_LEAST}, ${READER_MOST})`}
+        detail={
+          !isSplit && !open ? undefined : (
+            <Reader isSplit={isSplit} ledger={ledger} onClose={onClose} open={open} paths={paths} />
+          )
+        }
+        detailKey={shownPath(ledger, open)}
+        isSplit={isSplit}
+        list={isSplit ? <div {...stylex.props(styles.column)}>{list}</div> : <Page>{list}</Page>}
+      />
+    </div>
   );
 }
