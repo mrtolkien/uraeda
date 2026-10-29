@@ -17,11 +17,7 @@
     readability (modal-like)
   - If it's too different from other views or the contrast is bad, tell me
 
-- Performance pass: the UI feels sluggish
-  - needs optimistic UI _everywhere_
-  - needs caching of almost all values ahead of time
-  - ideally locally no page takes more than 100ms to load
-  - Moving a draft to a feature takes upwards of 10s with many page changes and no clear feedback
+- [Performance pass: the UI feels sluggish](proposals/performance-pass-the-ui-feels-sluggish.md)
 
 - [Feature state pass](proposals/feature-state-pass/proposal.md)
 
