@@ -1,7 +1,8 @@
 // TEMPORARY: the Monaspace experiment's switch, kept in this browser: the current fonts, Inter and
 // JetBrains Mono, or Monaspace's five faces (`monaspace.css`), named on the root element as
-// `data-fonts`.
-import { useState } from "react";
+// `data-fonts`. One choice for the whole app: the settings' control and `Space u f` show and pick
+// the same.
+import { useSyncExternalStore } from "react";
 
 /** The fonts picked: the current ones, or Monaspace's. */
 export type Fonts = "current" | "monaspace";
@@ -31,9 +32,17 @@ export function applyStoredFonts() {
   apply(readFonts());
 }
 
+/** What re-reads the fonts picked, one for each component that shows them. */
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 /** The fonts picked, and the function that picks others. */
 export function useFonts(): [Fonts, (fonts: Fonts) => void] {
-  const [fonts, setFonts] = useState(readFonts);
+  const fonts = useSyncExternalStore(subscribe, readFonts, () => "current" as const);
   const set = (next: Fonts) => {
     try {
       if (next === "current") {
@@ -45,7 +54,9 @@ export function useFonts(): [Fonts, (fonts: Fonts) => void] {
       // Private windows may refuse storage: the choice lasts until the page reloads.
     }
     apply(next);
-    setFonts(next);
+    for (const listener of listeners) {
+      listener();
+    }
   };
   return [fonts, set];
 }
