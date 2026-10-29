@@ -40,7 +40,7 @@ export type ConfirmOptions<T extends string = never> = {
   title: string;
 };
 
-/** What the commit bar's Discard asks: `count` changes waiting for a commit are written back. */
+/** What the commit page's Discard asks: `count` changes waiting for a commit are written back. */
 export function discardChanges(count: number): ConfirmOptions {
   return {
     body: `${count === 1 ? "The change" : `The ${count} changes`} waiting for a commit will be discarded.`,

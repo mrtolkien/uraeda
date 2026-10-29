@@ -230,7 +230,7 @@ export const uraedaTheme = defineTheme({
     // Buttons and badges in the UI's font, where Astryx has them inherit it: inside reading text,
     // a control keeps the monospace font (the UI look decision).
     button: { base: { fontFamily: "var(--font-family-body)" } },
-    // Square badges, switches and progress bars, as the terminal look's corners; status dots stay round.
+    // Square badges, status dots, switches and progress bars, as the terminal look's corners.
     badge: { base: { "--radius-full": "0px", fontFamily: "var(--font-family-body)" } },
     // A markdown list as a document's (`BlockList.tsx`), through prose's rhythm: on the text's
     // edge, its items' text the list room in, its bullet in the room's end, in the secondary colour
@@ -357,9 +357,6 @@ export const uraedaTheme = defineTheme({
     // wide (the page's font is monospace, so `ch` is one character), and 60% of the window tall.
     "--size-detail": "108ch",
     "--size-detail-height": "60dvh",
-    // The decisions' list beside their reader: 30% of the window, never under 320 px, where less
-    // would cut its titles short.
-    "--size-ledger-list": "max(320px, 30vw)",
     // The decisions' palette on wide and semi-wide screens: its list, about 30 characters wide,
     // and the preview of the entry under the cursor beside it, in a dialog that leaves the page's
     // edges in view.
@@ -397,7 +394,7 @@ export const uraedaTheme = defineTheme({
     // A picker with no preview beside its list, the repositories' on wide and semi-wide screens: as
     // wide as the ＋ forms' dialog, and, as the palette, leaving the page's edges in view.
     "--size-picker": "min(640px, 92vw)",
-    // The ＋ forms' dialog: its buttons, "Attach an image" to "Add and commit ↵", on one line.
+    // The ＋ forms' dialog: its buttons, "Attach an image" to "Add as a file", on one line.
     "--size-quick-add": "640px",
     // A story's frames: the phone's width, the desktop's, scaled to the space left, the height of a
     // story that never reports its own, and the most any frame grows to, a desktop window's 900 px:
@@ -480,7 +477,8 @@ export const uraedaTheme = defineTheme({
     "--color-text-secondary": [LATTE.subtext1, MOCHA.subtext0],
     "--color-warning": pair("yellow"),
     "--color-warning-muted": tint("yellow"),
-    // Square corners; `--radius-full` stays round for dots and avatars.
+    // Square corners; `--radius-full` stays round for avatars, as the components that square theirs
+    // set it apart (`components` above).
     "--radius-chat": "0px",
     "--radius-container": "0px",
     "--radius-element": "0px",

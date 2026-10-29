@@ -94,7 +94,7 @@ export function SessionsPage() {
             <RepositoryMenu current={current} hasLogo />
             <PageTitle>Sessions</PageTitle>
             <VStack gap={1}>
-              <ShellPanes hasDone={false} query="" />
+              <ShellPanes hasDone={false} />
               <Columns>
                 <div {...stylex.props(styles.done)}>
                   <ShellDone />

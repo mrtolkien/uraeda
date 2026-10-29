@@ -163,7 +163,7 @@ function useEditorKeys(
 }
 
 /**
- * A proposal file, a started proposal, or a note file: drawn once written, edited as text, with
+ * A proposal file, a started proposal, or a note file: edited as text, drawn by its preview, with
  * the template's guidance for each empty section; saved with Save or Ctrl+Enter over the version it
  * was read at, its unsaved text kept until then, committed, and, for a proposal file, started as a
  * feature or a change. A note file has no research effort.
@@ -173,7 +173,7 @@ export function EditorPage({ path }: { path: string }) {
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const slug = useTextField(`${path}#slug`, file?.slug ?? "");
-  const editor = useProposalEditor({ file, isDrawnFirst: false, path, slug });
+  const editor = useProposalEditor({ file, path, slug });
   const isWide = useWidthClass() === "wide";
   const box = useRef<HTMLDivElement>(null);
   const slugBox = useRef<HTMLDivElement>(null);

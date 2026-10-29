@@ -1,11 +1,9 @@
-import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
-import type { AddCommit } from "uraeda-binding";
 import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
@@ -28,39 +26,6 @@ export const TITLES = new Map([
 /** A section's title to display, a Blocked an existing file still has included. */
 export function titleOf(section: string) {
   return section === "blocked" ? "Blocked" : (TITLES.get(section) ?? section);
-}
-
-/**
- * What "Add and commit" says when the file had other changes: the line is added, not committed.
- * `place` is where it went, "Next" or "the inbox", and `file` the file it went in.
- */
-export function notCommitted(place: string, file = "PRIORITIES.md") {
-  return `Added to ${place}. Not committed: ${file} has other changes to commit or discard.`;
-}
-
-/** What the form says after "Add and commit", and how: a warning, or the hook's error. */
-export type CommitNotice = { status: "error" | "warning"; title: string };
-
-/**
- * Why "Add and commit" only added, for its form to say until it closes: the file's other changes,
- * or the hook that refused the commit, by the first line of its output. Nothing once committed.
- */
-export function uncommitted(
-  added: AddCommit | null | undefined,
-  place: string,
-  file?: string,
-): CommitNotice | undefined {
-  if (!added || added.committed) {
-    return undefined;
-  }
-  return added.reason === "hook-failed"
-    ? { status: "error", title: `Commit failed: ${added.message ?? ""}` }
-    : { status: "warning", title: notCommitted(place, file) };
-}
-
-/** What a form says after "Add and commit", in the form, until it closes. */
-export function CommitBanner({ notice }: { notice: CommitNotice | undefined }) {
-  return notice && <AnnouncedBanner status={notice.status} title={notice.title} />;
 }
 
 /** A one-line field's Enter, Shift+Enter aside: it calls `onEnter` instead of a new line. */
@@ -102,12 +67,8 @@ export function AddButtons({
   );
 }
 
-/**
- * The line ＋ added, as the core wrote it: its key, its text after its marker, and its lines; with
- * "Add and commit", the file's version after the commit, for Undo to remove it from.
- */
+/** The line ＋ added, as the core wrote it: its key, its text after its marker, and its lines. */
 export type Added = {
-  committed?: { hash: string };
   key: string;
   lines: ReadonlyArray<string>;
   text: string;
@@ -136,13 +97,10 @@ function SectionPicker({
  * asks "Discard your changes?" first when it holds text.
  */
 export function AddForm({
-  notice,
   onAdded,
   onCancel,
   section: start = "next",
 }: {
-  /** What "Add and commit" said last, from the start: the stories' not-committed state. */
-  notice?: CommitNotice;
   onAdded: (section: string, added: Added | undefined) => void;
   onCancel: () => void;
   /** The section the form opens on, Next by default. */
@@ -212,7 +170,6 @@ export function AddForm({
         />
       </div>
       <SectionPicker onChange={setSection} section={section} />
-      <CommitBanner notice={notice} />
       <AddButtons isReady={text.trim() !== ""} onAdd={add} onCancel={() => void cancel()} />
     </VStack>
   );

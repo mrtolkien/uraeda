@@ -1,4 +1,4 @@
-// What the parts after the stories share: their rows' and pills' styles, and how a part draws its
+// What the parts after the stories share: their lists' and rows' styles, and how a part draws its
 // blocks in their order, those it does not draw its own way as the spec's blocks.
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -13,17 +13,6 @@ export const builtStyles = stylex.create({
     listStyleType: "none",
     margin: 0,
     padding: 0,
-  },
-  pill: {
-    "--pill-slot": "calc(var(--text-reading-size) * var(--text-reading-line))",
-    // A pill keeps its width beside text of several lines, and is centred on the first one: its
-    // slot is a line of the reading text high.
-    alignItems: "center",
-    display: "flex",
-    flexShrink: 0,
-    fontSize: "var(--text-reading-size)",
-    height: "var(--pill-slot)",
-    lineHeight: "var(--text-reading-line)",
   },
   row: {
     // A row of the part, set apart from the one before by a hairline.
@@ -74,14 +63,6 @@ export function inOrder(
   }
   flush();
   return nodes;
-}
-
-/** The blocks among `ids` whose parent is `parent`, in their order. */
-export function childrenIn(props: PartProps, ids: ReadonlyArray<number>, parent: number) {
-  return ids.flatMap((id) => {
-    const block = props.document.blocks[id];
-    return block && block.parent === parent ? [block] : [];
-  });
 }
 
 /** The parents of the blocks `ids`. */

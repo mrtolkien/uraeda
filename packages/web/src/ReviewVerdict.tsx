@@ -64,7 +64,7 @@ export function useRefusals() {
  * with the workflow's message, unsent, when the agent works on this machine; `onVerdict` resolves to
  * whether the verdict was committed.
  */
-export function Verdicts({
+function Verdicts({
   comments,
   file,
   onVerdict,
@@ -100,7 +100,7 @@ export type ChoicesState = [Choices, Dispatch<SetStateAction<Choices>>];
  * A review's verdict, wherever its buttons are: `verdict(approve, next)` commits it with the
  * `choices` set at the page's end, then hands the feature over to the agent when `next`; `retry` commits again after a hook's refusal. Resolves to whether it was done.
  */
-export function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusals) {
+function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusals) {
   const fate = useFateClient();
   const spec = (file.committed ?? file.current).items.spec;
   const isSpec = file.kind === "spec";
@@ -143,7 +143,7 @@ export function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusa
  * What holds a verdict back, wherever its buttons are: a hook's refusal of its commit, with Try
  * again, `retry`, and changes to the file not committed.
  */
-export function VerdictNotices({
+function VerdictNotices({
   error,
   file,
   retry,

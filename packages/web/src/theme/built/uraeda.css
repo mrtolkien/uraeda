@@ -308,7 +308,6 @@
     --size-pane-min: 400px;
     --size-detail: 108ch;
     --size-detail-height: 60dvh;
-    --size-ledger-list: max(320px, 30vw);
     --size-palette: min(1024px, 92vw);
     --size-palette-height: min(600px, 76dvh);
     --size-palette-list: 360px;

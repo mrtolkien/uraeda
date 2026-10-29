@@ -6,7 +6,6 @@ import * as stylex from "@stylexjs/stylex";
 import { type MouseEvent, type RefObject, use, useLayoutEffect, useRef, useState } from "react";
 import { Pane } from "../layout/Pane.tsx";
 import { PickedCard } from "../layout/picked.ts";
-import { useColumnFold } from "../shell/fold.ts";
 import { CardRow } from "./CardRow.tsx";
 import { DoneIcon } from "./StepIcon.tsx";
 
@@ -89,7 +88,6 @@ export function DoneArea({
   /** Every done item, newest first. */
   rows: Array<DoneRow>;
 }) {
-  const { isFolded } = useColumnFold();
   const picked = use(PickedCard);
   const area = useRef<HTMLDivElement>(null);
   const measured = useRowsThatFit(content, area);
@@ -103,7 +101,7 @@ export function DoneArea({
           },
         }
       : {};
-  if (shown.length === 0 || isFolded) {
+  if (shown.length === 0) {
     return null;
   }
   return (

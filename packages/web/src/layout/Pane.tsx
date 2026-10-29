@@ -378,7 +378,7 @@ export function Pane({
   titleNode?: ReactNode;
   titleSuffix?: ReactNode;
   tone?: PaneTone;
-  /** Styles for the pane's frame, as the leader menu's sizing. */
+  /** Styles for the pane's frame, as the room under the usage pane (`Allowance`) or a question's example (`Question`). */
   xstyle?: ReadonlyArray<stylex.StyleXStyles | false | undefined>;
 }) {
   const titleId = useId();

@@ -122,7 +122,6 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 2,
     reason: "Escape pressed inside the open rail folds it and returns the focus to its logo (R100)",
   },
-  "sidebar/Search.tsx": { hits: 1, reason: "a text field's own keys: Escape clears the search" },
   "sign-in/SignInPage.tsx": {
     hits: 1,
     reason: "a text field's own keys: Enter signs in, on a page outside the shell",

@@ -1,6 +1,6 @@
-// The shell's column, on semi-wide and wide screens: its heading, New and Note, the search, then
-// the panes, Navigate and the work, and at its foot the 5 h window and Settings. Wide, it is 14% of
-// the window until its edge is dragged, folds to its 52 px rail from its button or `[`, its width
+// The shell's column, on semi-wide and wide screens: its heading, Commit and New, then the panes,
+// Navigate and the work, and at its foot the 5 h window and Settings. Wide, it is 14% of
+// the window until its edge is dragged, folds to its 52 px rail with `[` or `Space u [`, its width
 // easing over 200 ms; semi-wide, it is the rail, which opens over the page (`Rail.tsx`). An Astryx
 // gap (plan, Complexity tracking): `SideNav` folds to icons, but cannot open over the page.
 import { ResizeHandle } from "@astryxdesign/core/Resizable";
@@ -11,15 +11,13 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useKeys } from "../keys/registry.tsx";
 import { paneVars } from "../layout/pane.stylex.ts";
 import { columnVars } from "./column.stylex.ts";
 import { Allowance } from "../sidebar/Allowance.tsx";
-import { useSessionQuery } from "../sidebar/Search.tsx";
 import { ColumnActions, ColumnFoot, ColumnHeading, Navigate } from "./ColumnPanes.tsx";
 import { useColumnWidth } from "./columnWidth.ts";
-import { ColumnFoldContext } from "./fold.ts";
 import { LogoButton, useRail } from "./Rail.tsx";
 import { ShellPanes, useShellPath } from "./ShellPanes.tsx";
 
@@ -129,12 +127,6 @@ const styles = stylex.create({
     },
     scrollbarWidth: "thin",
   },
-  scrollFolded: {
-    // The rail's icons fade out at its foot, where the list scrolls on, instead of showing an
-    // icon's sliver there: the last icon scrolls up clear of the fade.
-    maskImage: `linear-gradient(to bottom, black calc(100% - ${spacingVars["--spacing-6"]}), transparent)`,
-    paddingBlockEnd: spacingVars["--spacing-6"],
-  },
   // In the rail, the panes' own border and inset are left of the icons' column: the rows move back
   // over it, so that their icons stand under the heading's.
   scrollRail: {
@@ -217,25 +209,21 @@ const FOLD_MS = 200;
  * and above the status line: the whole column, as the open rail draws it, never folded.
  */
 export function PhoneColumn({ isOpen }: { isOpen: boolean }) {
-  const { query } = useSessionQuery();
-  const fold = useMemo(() => ({ isFolded: false, toggle: () => {} }), []);
   return (
-    <ColumnFoldContext value={fold}>
-      <nav
-        aria-label="Navigation"
-        {...stylex.props(styles.nav, styles.phone, isOpen ? styles.phoneOpen : styles.phoneClosed)}
-      >
-        <div {...stylex.props(styles.inner)}>
-          <ColumnHeading isRevealed />
-          <ColumnActions />
-          {/* No Navigate pane and no Settings: the tabs above have the places and Settings. The usage goes with the rest, at the list's end: pinned, it took too much of the phone's view while it scrolls, and its panes need no fit to the room above. */}
-          <div {...stylex.props(styles.scroll)}>
-            <ShellPanes query={query} />
-            <Allowance />
-          </div>
+    <nav
+      aria-label="Navigation"
+      {...stylex.props(styles.nav, styles.phone, isOpen ? styles.phoneOpen : styles.phoneClosed)}
+    >
+      <div {...stylex.props(styles.inner)}>
+        <ColumnHeading />
+        <ColumnActions />
+        {/* No Navigate pane and no Settings: the tabs above have the places and Settings. The usage goes with the rest, at the list's end: pinned, it took too much of the phone's view while it scrolls, and its panes need no fit to the room above. */}
+        <div {...stylex.props(styles.scroll)}>
+          <ShellPanes />
+          <Allowance />
         </div>
-      </nav>
-    </ColumnFoldContext>
+      </div>
+    </nav>
   );
 }
 
@@ -247,27 +235,21 @@ export function Column({ isWide }: { isWide: boolean }) {
   const isRail = !isWide || column.isFolded;
   const rail = useRail(isRail, nav, logo);
   const pathname = useShellPath();
-  const { query } = useSessionQuery();
   const [easing, setEasing] = useState(false);
   const { toggle: toggleStored } = column;
   // A rail shows its icons until the mouse rests on it, which opens it over the page, wide or not.
   const isClosed = isRail && !rail.isOpen;
   const openWidth = isRail ? Math.max(column.width, OPEN_RAIL_PX) : column.width;
-  const fold = useMemo(
-    () => ({
-      // Always drawn open: a closed rail clips the open column, so the rows never move.
-      isFolded: false,
-      toggle: () => {
-        setEasing(true);
-        setTimeout(() => setEasing(false), FOLD_MS);
-        toggleStored();
-      },
-    }),
-    [toggleStored],
-  );
+  // Folds the wide column to its rail, or unfolds it, its width easing meanwhile. Its rows are
+  // always drawn open: a closed rail clips the open column, so the rows never move.
+  const fold = useCallback(() => {
+    setEasing(true);
+    setTimeout(() => setEasing(false), FOLD_MS);
+    toggleStored();
+  }, [toggleStored]);
   // The fold is the column's own key: wide, it folds the column; semi-wide, it opens the rail over
   // the page, or folds it again. The leader's `u [` is the same, named in full.
-  const toggleSidebar = isWide ? fold.toggle : rail.tap;
+  const toggleSidebar = isWide ? fold : rail.tap;
   useKeys(
     [
       // One hint for both sidebars' keys: the right column's `]` declares none.
@@ -282,52 +264,49 @@ export function Column({ isWide }: { isWide: boolean }) {
     "shell",
   );
   return (
-    <ColumnFoldContext value={fold}>
-      <div
+    <div
+      {...stylex.props(
+        styles.place,
+        isRail ? styles.rail : widths.of(column.width),
+        easing && styles.easing,
+      )}
+    >
+      <nav
+        aria-label="Navigation"
+        data-rail={isClosed ? "closed" : undefined}
+        ref={nav}
+        {...rail.handlers}
         {...stylex.props(
-          styles.place,
-          isRail ? styles.rail : widths.of(column.width),
-          easing && styles.easing,
+          styles.nav,
+          rail.isOpen && [styles.over, widths.of(openWidth)],
+          // The rail opens and closes by easing its width, over the page.
+          (isRail || easing) && styles.easing,
         )}
       >
-        <nav
-          aria-label="Navigation"
-          data-rail={isClosed ? "closed" : undefined}
-          ref={nav}
-          {...rail.handlers}
-          {...stylex.props(
-            styles.nav,
-            rail.isOpen && [styles.over, widths.of(openWidth)],
-            // The rail opens and closes by easing its width, over the page.
-            (isRail || easing) && styles.easing,
-          )}
-        >
-          <style>{RAIL_CSS}</style>
-          <div {...stylex.props(styles.inner, isRail && widths.content(openWidth))}>
-            <ColumnHeading
-              isRevealed={rail.isHovered}
-              {...(isWide
-                ? {}
-                : { logo: <LogoButton isOpen={rail.isOpen} onTap={rail.tap} ref={logo} /> })}
-            />
-            <ColumnActions />
-            <div {...stylex.props(styles.scroll, isClosed && styles.scrollRail)}>
-              <ShellPanes before={<Navigate pathname={pathname} />} isFitted query={query} />
-            </div>
-            <ColumnFoot pathname={pathname} />
-          </div>
-        </nav>
-        {isWide && !column.isFolded && (
-          <ResizeHandle
-            isAlwaysVisible={false}
-            label="Resize navigation"
-            // Its grab zone over the column's edge, where the pointer looks for it.
-            pillPlacement="center"
-            position="overlay"
-            resizable={column.resizable.props}
+        <style>{RAIL_CSS}</style>
+        <div {...stylex.props(styles.inner, isRail && widths.content(openWidth))}>
+          <ColumnHeading
+            {...(isWide
+              ? {}
+              : { logo: <LogoButton isOpen={rail.isOpen} onTap={rail.tap} ref={logo} /> })}
           />
-        )}
-      </div>
-    </ColumnFoldContext>
+          <ColumnActions />
+          <div {...stylex.props(styles.scroll, isClosed && styles.scrollRail)}>
+            <ShellPanes before={<Navigate pathname={pathname} />} isFitted />
+          </div>
+          <ColumnFoot pathname={pathname} />
+        </div>
+      </nav>
+      {isWide && !column.isFolded && (
+        <ResizeHandle
+          isAlwaysVisible={false}
+          label="Resize navigation"
+          // Its grab zone over the column's edge, where the pointer looks for it.
+          pillPlacement="center"
+          position="overlay"
+          resizable={column.resizable.props}
+        />
+      )}
+    </div>
   );
 }

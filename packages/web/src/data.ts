@@ -171,8 +171,9 @@ export async function readInbox(
 }
 
 /**
- * The commit bar's count, which `Inbox` and `Priorities` both carry, read again with both files
- * after a change of the other, like a move across them, a commit, or a discard.
+ * The count of changes waiting for a commit, which `Inbox` and `Priorities` both carry and the
+ * commit tab shows, read again with both files after a change of the other, like a move across
+ * them, a commit, or a discard.
  */
 export function rereadChanges(fate: ReturnType<typeof useFateClient>) {
   void fate

@@ -3,9 +3,9 @@
 // on the phone, with Close, and on the line's own address. The page stays drawn under it, so its
 // selection and its scroll are kept.
 //
-// The history: opening is one entry, the overlay's, which Back goes over; `openDetail` pushes it
-// for a click, and an address opened any other way, by a link, a reload, or Forward, is given one
-// by `DetailHost`. Previous and Next replace the entry, so they add none.
+// The history: opening is one entry, the overlay's, which Back goes over; an address opened by a
+// link, a reload, or Forward is given one by `DetailHost`. Previous and Next replace the entry, so
+// they add none.
 import { useToast } from "@astryxdesign/core/Toast";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -32,15 +32,6 @@ const styles = stylex.create({
 export type DetailKind = { label: "Proposal"; page: "proposal" };
 
 export const PROPOSAL: DetailKind = { label: "Proposal", page: "proposal" };
-
-/**
- * Opens the proposal at `href` in its overlay, from a click or Enter on its card: one history
- * entry, the overlay's, so Back closes it, without what the page's own entry says of where it came
- * from.
- */
-export function openDetail(href: string, kind: DetailKind) {
-  openOverlayAt(href, kind.label, { from: undefined });
-}
 
 /**
  * Closes the overlay of the line shown now, from the line's own action, like its delete: going

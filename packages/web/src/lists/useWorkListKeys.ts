@@ -74,8 +74,6 @@ export function useWorkListKeys({
     held: own.held,
     isFocused,
     named,
-    onRefocused: own.onRefocused,
-    renamed: own.renamed,
     selected,
   });
   return ref;

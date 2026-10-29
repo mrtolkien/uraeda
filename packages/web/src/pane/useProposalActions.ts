@@ -8,18 +8,11 @@ import { useUndoToast } from "../layout/useUndoToast.ts";
 import { currentEntry, parseLocation, redirect, useRepoPath } from "../routes.tsx";
 import { closeDetail } from "./DetailOverlay.tsx";
 import { plain } from "../Spans.tsx";
-import { useMoveTo } from "./useMoveTo.ts";
-import { useExpand, useStartChange } from "./useStartChange.ts";
+import { useExpand } from "./useExpand.ts";
 import { PrioritiesView } from "../views.ts";
 
 /** A proposal found in the priorities, with its section and its place in it. */
 export type Found = NonNullable<ReturnType<typeof useProposal>["found"]>;
-
-/**
- * What a proposal's or a note's editor asks of the actions: see `useProposalActions` and
- * `useNoteActions`.
- */
-export type ActionOptions = { onRenamed?: (key: string) => void; redirects?: boolean };
 
 /**
  * The page an overlay was opened from, within its repository, which it returns to once its
@@ -31,14 +24,13 @@ function origin() {
 
 /**
  * Saves the proposal's new text, `rename`, over the priorities of `hash`: it resolves with the
- * refusal, if any, and otherwise tells `onRenamed` the proposal's key and follows it, as
- * `useProposalActions` says.
+ * refusal, if any, and otherwise follows the proposal to its new address, as `useProposalActions`
+ * says.
  */
 function useRename(
   { proposal }: Found,
   hash: string,
   onRenaming: (id: string | undefined) => void,
-  { onRenamed, redirects = true }: ActionOptions,
 ) {
   const fate = useFateClient();
   const here = useRepoPath();
@@ -57,11 +49,8 @@ function useRename(
     const key = result.result?.sections
       .flatMap((s) => s.proposals)
       .find((p) => p.id === proposal.id)?.key;
-    if (key !== undefined) {
-      onRenamed?.(key);
-      if (redirects && key !== proposal.key) {
-        redirect(here(`/priorities/${key}`));
-      }
+    if (key !== undefined && key !== proposal.key) {
+      redirect(here(`/priorities/${key}`));
     }
     return undefined;
   };
@@ -71,21 +60,18 @@ function useRename(
  * The pane's actions on `found`, over the priorities of `hash`, and the last refusal to show.
  * `onRenaming` gets the proposal's id while its text is saved, as its key changes before its
  * address does, and nothing once the save is refused. A rename that changes the proposal's key
- * follows it to its new address, unless `redirects` is `false`, as for an editor in a card of a
- * list, which leaves the page as it is. `onRenamed` gets the proposal's new key once a rename is
- * saved.
+ * follows it to its new address.
  */
 export function useProposalActions(
   found: Found,
   hash: string,
   onRenaming: (id: string | undefined) => void,
-  options: ActionOptions = {},
 ) {
   const { index, proposal, section } = found;
   const fate = useFateClient();
   const toast = useUndoToast();
   const here = useRepoPath();
-  const rename = useRename(found, hash, onRenaming, options);
+  const rename = useRename(found, hash, onRenaming);
   const [message, setMessage] = useState<string>();
 
   /**
@@ -153,9 +139,7 @@ export function useProposalActions(
     expand: useExpand(proposal.id, hash, run),
     message,
     move,
-    moveTo: useMoveTo(found, hash, run),
     remove,
     rename,
-    startChange: useStartChange(proposal.id, hash, run),
   };
 }

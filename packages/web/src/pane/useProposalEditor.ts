@@ -19,18 +19,15 @@ type File = ReturnType<typeof useProposalFile>;
 
 /**
  * The editor of the file at `path`, read as `file`, its slug typed in `slug`. `drawn` says
- * whether its text shows drawn: on the editor page, a written proposal opens drawn, unless it holds
- * unsaved text; with `isDrawnFirst` false, as in a pane, it opens as text. Its `state` is the
- * save's, a conflict's own message aside, as the conflict says why already.
+ * whether its text shows drawn: it opens as text. Its `state` is the save's, a conflict's own
+ * message aside, as the conflict says why already.
  */
 export function useProposalEditor({
   file,
-  isDrawnFirst,
   path,
   slug,
 }: {
   file: File;
-  isDrawnFirst: boolean;
   path: string;
   slug: ReturnType<typeof useTextField>;
 }) {
@@ -39,9 +36,7 @@ export function useProposalEditor({
   const { body, head } = splitProposal(file);
   const frontmatter = useFrontmatter(path, head);
   const field = useTextField(`${path}#editor`, body);
-  const [drawn, setDrawn] = useState(
-    () => isDrawnFirst && !moved && !field.entry && (file?.written ?? false),
-  );
+  const [drawn, setDrawn] = useState(false);
   const [conflict, setConflict] = useState<string>();
   const save = useSave<string>(async (value, previous) => {
     const result = await fate.mutations.text.save({

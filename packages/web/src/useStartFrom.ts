@@ -1,5 +1,5 @@
-// What the New page starts from an inbox note, a proposal line, or a feature's title: a change,
-// whose session opens, or a feature's proposal file, which opens in the editor.
+// What the New page writes from its composer: a feature's proposal file, made from an inbox note,
+// a proposal line, or a title, which opens in the editor.
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { readProposalFile } from "./attach/useEditorImages.ts";
@@ -7,29 +7,22 @@ import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./
 import { refusal } from "./errors.ts";
 import { splitProposal } from "./pane/proposalText.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
-import { handOver, sessionPath } from "./sessions.ts";
-import { ProposalFileView, FeatureView, InboxView, PrioritiesView } from "./views.ts";
+import { ProposalFileView, InboxView, PrioritiesView } from "./views.ts";
 import { runWrite } from "./writes/store.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
 
 /** A proposal line of the priorities, as the view reads it: its id, and the file it links. */
-export type StartLine = { file?: { path: string } | null; id: string };
+type StartLine = { file?: { path: string } | null; id: string };
 
-/** A note of the inbox, by its id. */
-export type StartNote = { id: string };
-
-/** A call's result: a proposal file's path or a feature's folder, or the refusal to show. */
-type Made<T = string> = { error: string } | { value: T };
-
-/** A started change: its folder, and whether its first run was sent, its agent at work. */
-type Started = { folder: string; sent: boolean };
+/** A call's result: a proposal file's path, or the refusal to show. */
+type Made = { error: string } | { value: string };
 
 /** The section a note or a title is written into: the work starts now. */
 const NOW = "now";
 
 /** A mutation's result as `Made`, from the field of its result that names what it made. */
-function made(result: { error?: unknown; result?: unknown }, field: "folder" | "path"): Made {
+function made(result: { error?: unknown; result?: unknown }, field: "path"): Made {
   const value = (result.result as Record<string, unknown> | undefined)?.[field];
   if (result.error || typeof value !== "string") {
     return { error: result.error ? refusal(result.error).message : "Nothing was made." };
@@ -37,35 +30,11 @@ function made(result: { error?: unknown; result?: unknown }, field: "folder" | "
   return { value };
 }
 
-/** A start's result as `Made`: the change's folder, and whether a run was sent. */
-function started(result: { error?: unknown; result?: unknown }): Made<Started> {
-  const folder = made(result, "folder");
-  if ("error" in folder) {
-    return folder;
-  }
-  const session = (result.result as { session?: unknown }).session;
-  return { value: { folder: folder.value, sent: session !== null && session !== undefined } };
-}
-
-/**
- * Starts the note as a change, from its text, as a typed change starts: the note leaves
- * `INBOX.md`, committed alone when it had no other change, and the change's first run is sent.
- */
-async function noteChange(fate: Fate, note: StartNote): Promise<Made<Started>> {
-  const { hash } = await readInbox(fate);
-  const result = await fate.mutations.change.fromNote({
-    input: { hash, note: note.id },
-    view: FeatureView,
-  });
-  rereadChanges(fate);
-  return started(result);
-}
-
 /**
  * Turns the note into a new proposal file in Now, or moves its note file there: the note leaves
  * `INBOX.md`.
  */
-async function noteFile(fate: Fate, note: StartNote): Promise<Made> {
+async function noteFile(fate: Fate, note: { id: string }): Promise<Made> {
   const [inbox, prioritiesHash] = await Promise.all([readInbox(fate), readPrioritiesHash(fate)]);
   const result = await fate.mutations.inbox.toProposalFile({
     input: { hash: inbox.hash, note: note.id, prioritiesHash, section: NOW },
@@ -116,7 +85,7 @@ async function titleFile(fate: Fate, title: string): Promise<Made> {
     "path",
   );
   if ("error" in expanded) {
-    // The refusal shown is the expand's: a proposal left behind is in the commit bar's changes.
+    // The refusal shown is the expand's: a proposal left behind is in the commit page's changes.
     await fate.mutations.proposals.remove({
       input: { hash: inserted.result.hash, proposal },
       view: PrioritiesView,
@@ -204,34 +173,17 @@ async function proposalWritten(
 }
 
 /**
- * Starts the proposal file as a change: its branch and worktree are written, its proposal moves to
- * Now, and its first run is sent.
- */
-async function startChange(fate: Fate, file: Made): Promise<Made<Started>> {
-  if ("error" in file) {
-    return file;
-  }
-  return started(
-    await fate.mutations.change.startProposal({
-      input: { proposal: file.value },
-      view: FeatureView,
-    }),
-  );
-}
-
-/**
- * The New page's starts from a note, a proposal line, or a title. A change opens its session, where
- * its agent works, or with the workflow's message to send when no run was sent; a feature's
- * proposal file opens in the editor. A refusal is `error`.
+ * The New page's proposal written in its composer, `feature.fromText`, whose proposal file opens in
+ * the editor. A refusal is `error`.
  */
 export function useStartFrom() {
   const fate = useFateClient();
   const here = useRepoPath();
   const [error, setError] = useState<string>();
   // Whether it opened what it made: a refusal, or a read that failed, shows why.
-  const run = async <T>(making: () => Promise<Made<T>>, open: (value: T) => void) => {
+  const run = async (making: () => Promise<Made>, open: (value: string) => void) => {
     setError(undefined);
-    let result: Made<T>;
+    let result: Made;
     try {
       result = await making();
     } catch (error) {
@@ -245,28 +197,14 @@ export function useStartFrom() {
     return true;
   };
   const edit = (path: string) => navigate(here(`/edit/${path}`));
-  const change = (starting: () => Promise<Made<Started>>) =>
-    run(
-      () => runWrite({ label: "Starting the change…" }, starting),
-      ({ folder, sent }) =>
-        sent ? navigate(here(sessionPath(folder))) : handOver(folder, "start"),
-    );
   return {
-    change: {
-      fromLine: (entry: StartLine) =>
-        change(async () => startChange(fate, await lineFile(fate, entry))),
-      fromNote: (note: StartNote) => change(() => noteChange(fate, note)),
-    },
     error,
     feature: {
-      fromLine: (entry: StartLine) => run(() => lineFile(fate, entry), edit),
-      fromNote: (note: StartNote) => run(() => noteFile(fate, note), edit),
       fromText: (input: Parameters<typeof proposalWritten>[1]) =>
         run(
           () => runWrite({ label: "Writing the proposal…" }, () => proposalWritten(fate, input)),
           edit,
         ),
-      fromTitle: (title: string) => run(() => titleFile(fate, title), edit),
     },
   };
 }

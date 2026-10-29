@@ -9,7 +9,6 @@ import { Suspense } from "react";
 import { useAgent } from "../data.ts";
 import { UsageWindow } from "../UsageWindow.tsx";
 import { Pane } from "../layout/Pane.tsx";
-import { useColumnFold } from "../shell/fold.ts";
 
 /** What is left, in percent, at which the allowance reads as nearly gone: `UsageWindow`'s too. */
 const LOW = 20;
@@ -51,9 +50,8 @@ const styles = stylex.create({
 
 function Bar() {
   const agent = useAgent();
-  const { isFolded } = useColumnFold();
   const limit = agent?.fiveHourLimit;
-  if (!agent || !limit || isFolded) {
+  if (!agent || !limit) {
     return null;
   }
   const remaining = Math.min(100, Math.max(0, 100 - limit.percentUsed));

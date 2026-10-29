@@ -1,6 +1,6 @@
 // The repository menu, in the navigation's heading: the repositories, most recently opened first,
 // the current one checked, a filter, each row's ⋯ menu with Remove, and "Add a repository…".
-// Signing out is in the settings' Sign-in category. A popover on wide screens, a bottom sheet on
+// Signing out is in the settings' Sign-in category. A dialog on wide screens, a bottom sheet on
 // narrow ones. Its reads and the list's mutations go through the global client, which the
 // repository gate reads too.
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
@@ -340,25 +340,16 @@ const FORM = "Add a repository";
 const PICKER = { width: "var(--size-picker)" };
 
 /**
- * The menu's content and the add form it leads to, over the caller's `isOpen` state: `isDeferred`
- * says the menu is an overlay, whose sheet's history entry is gone before what follows runs, as on
- * narrow screens, and not a popover.
+ * The menu's content and the add form it leads to, over the caller's `isOpen` state. The menu is an
+ * overlay, whose history entry is gone before what follows a pick runs.
  */
-function useSwitcher(
-  current: string | null,
-  isDeferred: boolean,
-  setOpen: (open: boolean) => void,
-) {
+function useSwitcher(current: string | null, setOpen: (open: boolean) => void) {
   const [adding, setAdding] = useState(false);
 
-  /** Closes the menu, then runs what follows once its sheet's history entry is gone. */
+  /** Closes the menu, then runs what follows once its history entry is gone. */
   const closeThen = (run: () => void) => {
     setOpen(false);
-    if (isDeferred) {
-      afterOverlayCloses(MENU, run);
-    } else {
-      run();
-    }
+    afterOverlayCloses(MENU, run);
   };
   const menu = (
     <Suspense fallback={<Spinner label="Loading the repositories" />}>
@@ -387,7 +378,7 @@ function useSwitcher(
 function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: boolean }) {
   const wide = !isNarrow(useWidthClass());
   const [open, setOpen] = useState(false);
-  const { form, menu } = useSwitcher(current, !wide, setOpen);
+  const { form, menu } = useSwitcher(current, setOpen);
   const label = current === null ? "Uraeda" : `Uraeda ${current}`;
 
   const trigger = (
@@ -464,7 +455,7 @@ function KeyedMenu({ current }: { current: string | null }) {
     () => isKeyOpen,
     () => false,
   );
-  const { form, menu } = useSwitcher(current, true, setKeyOpen);
+  const { form, menu } = useSwitcher(current, setKeyOpen);
   // The page it was opened on goes, and the menu with it.
   useEffect(() => () => setKeyOpen(false), []);
   return (

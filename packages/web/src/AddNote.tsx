@@ -28,7 +28,7 @@ import {
   useAddWithImage,
 } from "./NoteImage.tsx";
 import { AddButtons, enterAdds } from "./QuickAdd.tsx";
-import { InboxAddedView, InboxView } from "./views.ts";
+import { InboxView } from "./views.ts";
 
 /** The Category menu's values for no category and a new one; a category's is its name, after `:`. */
 const NONE = "none";
@@ -130,8 +130,6 @@ function useTypedNote(start?: string | null) {
  * commits come from the commit page.
  */
 export type NoteAdded = {
-  /** The inbox's version after a commit, for Undo to remove the note from: none now. */
-  committed?: { hash: string };
   file?: string;
   note: InboxNote | undefined;
 };
@@ -198,8 +196,8 @@ function useAdd({
     }
     const before = inbox?.categories ?? [];
     const result = await fate.mutations.inbox.add({
-      input: { ...input, commit: false },
-      view: InboxAddedView,
+      input,
+      view: InboxView,
     });
     if (result.error) {
       refused(refusal(result.error));

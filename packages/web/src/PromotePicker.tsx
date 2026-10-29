@@ -162,7 +162,7 @@ export function PromotePicker({
   onRefused: (message: string | undefined) => void;
   placed: Placed;
 }) {
-  const actions = useNoteActions(placed, hash, () => undefined);
+  const actions = useNoteActions(placed, hash);
   const priorities = usePriorities();
   useEffect(() => {
     if (actions.message !== undefined) {

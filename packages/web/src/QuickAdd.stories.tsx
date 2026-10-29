@@ -1,7 +1,6 @@
-// The ＋ forms with "Add and commit", mockups of the redesign of the priorities and the inbox (Q8):
-// beside Add, the primary button and Enter's, which commits that file alone; when the file had
-// other changes, it only adds, and says so in the form. A dialog on wide screens, a sheet on narrow
-// ones, over the fixture repository's real priorities and inbox, through fate.
+// The ＋ forms of the priorities and the inbox, with Add, the primary button and Enter's, which
+// adds the line uncommitted, for the commit page's Commit. A dialog on wide screens, a sheet on
+// narrow ones, over the fixture repository's real priorities and inbox, through fate.
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";
 import { userEvent, within } from "storybook/test";
@@ -9,7 +8,7 @@ import { AddNote } from "./AddNote.tsx";
 import { useWorkspace } from "./data.ts";
 import { dropUnsaved } from "./fields/unsaved.ts";
 import { Overlay } from "./layout/Overlay.tsx";
-import { AddForm, type CommitNotice, uncommitted } from "./QuickAdd.tsx";
+import { AddForm } from "./QuickAdd.tsx";
 import { RepositoryPathContext } from "./routes.tsx";
 
 /** The fixture's folder, as `App` sets it: what keeps the forms' unsaved text apart. */
@@ -27,7 +26,7 @@ const inRepositoryFolder: Decorator = (Story) => (
 );
 
 /** The priorities' ＋ form, open, as the navigation's ＋ opens it. */
-function ProposalForm({ notice }: { notice?: CommitNotice }) {
+function ProposalForm() {
   return (
     <Overlay
       isOpen
@@ -35,7 +34,7 @@ function ProposalForm({ notice }: { notice?: CommitNotice }) {
       onClose={() => {}}
       size={{ width: "var(--size-quick-add)" }}
     >
-      <AddForm notice={notice} onAdded={() => {}} onCancel={() => {}} />
+      <AddForm onAdded={() => {}} onCancel={() => {}} />
     </Overlay>
   );
 }
@@ -93,8 +92,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * "New proposal": a proposal typed, the section, Next by default, then Add and "Add and commit".
- * The line is typed as the human would, so the buttons show enabled.
+ * "New proposal": a proposal typed, the section, Next by default, then Cancel and Add. The line is
+ * typed as the human would, so Add shows enabled.
  */
 export const Proposal: Story = {
   play: async () => {
@@ -104,19 +103,11 @@ export const Proposal: Story = {
   },
 };
 
-/** "New note": the inbox's form, with the same two buttons, a note typed. */
+/** "New note": the inbox's form, with the same Add, a note typed. */
 export const Note: Story = {
   play: async () => {
     const field = await within(document.body).findByPlaceholderText("What did you notice?");
     await userEvent.type(field, "The inbox count is hard to read in dark mode");
   },
   render: () => <NoteForm />,
-};
-
-/**
- * After "Add and commit", when `PRIORITIES.md` had other uncommitted changes: the line is added,
- * not committed, and the form says so where the human looks, staying open, its field emptied.
- */
-export const NotCommitted: Story = {
-  args: { notice: uncommitted({ committed: false, reason: "other-changes" }, "Next") },
 };

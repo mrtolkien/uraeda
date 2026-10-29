@@ -1,16 +1,9 @@
-// The records of the agent's sessions: a session, its turns and their items, the navigation's list,
-// and the search, read as `data.ts` reads the others.
+// The records of the agent's sessions: a session, its turns and their items, and the navigation's
+// list, read as `data.ts` reads the others.
 import { useEffect } from "react";
-import { useFateClient, useLiveView, useRequest, useView } from "react-fate";
+import { useFateClient, useLiveView, useRequest } from "react-fate";
 import { useRefreshOnShow, WORKSPACE_ID } from "./data.ts";
-import {
-  SessionListView,
-  SessionSearchView,
-  SessionView,
-  TurnLogView,
-  TurnView,
-  WorkspaceView,
-} from "./views.ts";
+import { SessionListView, SessionView, TurnLogView, TurnView, WorkspaceView } from "./views.ts";
 
 /** The id of the sessions' list, as the server names it. */
 export const SESSION_LIST_ID = "all";
@@ -88,12 +81,4 @@ export function useNavigation() {
     sessionList: useLiveView(SessionListView, sessionList),
     workspace: useLiveView(WorkspaceView, workspace),
   };
-}
-
-/** The sessions whose title or messages hold the query: read again as the query changes. */
-export function useSessionSearch(query: string) {
-  const request = { sessionSearch: { id: query, view: SessionSearchView } };
-  const { sessionSearch } = useRequest(request);
-  useRefreshOnShow(request);
-  return useView(SessionSearchView, sessionSearch);
 }

@@ -62,8 +62,8 @@ function useStart(text: ReturnType<typeof useTextField>, sources: ReadonlyArray<
     const result = await fate.mutations.change.start({
       input: {
         images: images.flatMap((image) => (image.image ? [image.image] : [])),
-        // Cleared in the dialog, the core proposes its own.
-        ...(slug ? { slug } : {}),
+        // Never empty: the dialog starts nothing while its field is.
+        slug,
         text: sent,
       },
       view: FeatureView,

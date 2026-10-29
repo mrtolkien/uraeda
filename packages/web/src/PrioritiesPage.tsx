@@ -78,7 +78,7 @@ function LayoutSwitch({
 /**
  * Every line of `PRIORITIES.md`, by section, with the running ones apart in "Ongoing": each opens
  * its task view, drags to its place, and each section ends with an Add row; each change is written
- * at once, and a bar commits or discards them. While a line is dragged, and until its move is
+ * at once, and the commit page commits or discards them. While a line is dragged, and until its move is
  * written, the list stays as the drag found it: a live update waits for the drag's end. `select`
  * and `isFocused` select a row and focus it, for a mockup.
  */

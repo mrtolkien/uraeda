@@ -91,10 +91,10 @@ export function tabAddress(key: string | undefined): string {
 }
 
 /** The id of the tab `key` among the tabs `ids`. */
-export const tabId = (ids: string, key: string) => `${ids}-tab-${key}`;
+const tabId = (ids: string, key: string) => `${ids}-tab-${key}`;
 
 /** The id of the panel of the tab `key` among the tabs `ids`. */
-export const panelId = (ids: string, key: string) => `${ids}-panel-${key}`;
+const panelId = (ids: string, key: string) => `${ids}-panel-${key}`;
 
 /**
  * The tabs of `panels`, a list named `label`, `open` selected, each controlling its panel by its
@@ -102,7 +102,7 @@ export const panelId = (ids: string, key: string) => `${ids}-panel-${key}`;
  * than a document's, the tabs drop their icons, which the folded rail keeps, and draw closer, so
  * their names read whole rather than scrolling out of the strip (ruling R29).
  */
-export function ColumnTabs({
+function ColumnTabs({
   ids,
   isCompact = false,
   label,

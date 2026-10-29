@@ -25,7 +25,7 @@ import { useWorkListKeys } from "./useWorkListKeys.ts";
 import type { WorkListProps, WorkSection } from "./workSection.ts";
 
 export type { WorkRow };
-export type { OutlineMove, Tone, WorkLayout, WorkListProps, WorkSection } from "./workSection.ts";
+export type { Tone, WorkLayout, WorkSection } from "./workSection.ts";
 
 const styles = stylex.create({
   // The table of a list whose lines are long, centred in the page: 80 characters a line at most, the

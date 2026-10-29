@@ -29,14 +29,9 @@ import {
 import { pickedStyles } from "../layout/picked.ts";
 import { type BarAction, RowBar } from "./RowBar.tsx";
 
-/**
- * What a card's editor tells the list: that it closed, whether it holds text not saved yet, and the
- * new key of the line it saved.
- */
+/** What a card's editor tells the list: that it closed. */
 export type EditorHooks = {
-  onDirty: (isDirty: boolean) => void;
   onDone: () => void;
-  onRenamed: (key: string) => void;
 };
 
 /** A card's line: what a list draws, and where a tap on it leads. */
@@ -50,8 +45,7 @@ export interface WorkRow {
   depth?: number;
   /**
    * What the card shows in the place of its link while it is edited in place (the `i` key): its
-   * editor, which calls `onDone` once it closed, saved or not, and `onRenamed` with the key the
-   * line has once saved, as the text that is its key changed.
+   * editor, which calls `onDone` once it closed, saved or not.
    */
   editor?: (hooks: EditorHooks) => ReactNode;
   /** Enter or a click edits it in place, in place of following `href`. */
@@ -105,18 +99,12 @@ export type RowState = {
   moving?: string;
   /** The bar went, as a scroll sends the phone's away: the row stays selected, with no bar. */
   onBarAway?: () => void;
-  /** The editor of the card edited holds unsaved text, or no longer does. */
-  onDirty: (isDirty: boolean) => void;
   onEdited: () => void;
-  /** The line of the card edited was saved: `key` is the key it has now. */
-  onRenamed: (key: string) => void;
 };
 
 /** The list's state of its cards: nothing is edited outside a list. */
 export const RowStateContext = createContext<RowState>({
-  onDirty: () => {},
   onEdited: () => {},
-  onRenamed: () => {},
 });
 
 const styles = stylex.create({
@@ -229,15 +217,15 @@ const styles = stylex.create({
 });
 
 /**
- * The card's text as the control stretched over it: a plain click opens it with `onOpen`. A list
- * that opens its cards itself draws a button, with no address: the browser shows an address at the
- * window's bottom for a link under the pointer or the focus, over the status line.
+ * The card's text as the control stretched over it: a plain click opens it with `onOpen`. A button,
+ * with no address: the browser shows an address at the window's bottom for a link under the
+ * pointer or the focus, over the status line.
  */
 function RowLink({
   onOpen,
   row,
 }: {
-  onOpen?: (row: WorkRow, isClick: boolean) => void;
+  onOpen: (row: WorkRow, isClick: boolean) => void;
   row: WorkRow;
 }) {
   const link = (
@@ -248,12 +236,11 @@ function RowLink({
         row.isLinked ? "accent" : row.isAdd || row.depth !== undefined ? "secondary" : "primary"
       }
       hasUnderline={row.isLinked === true}
-      {...(onOpen ? {} : { href: row.href })}
       maxLines={3}
       onClick={(event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
         // A click that is a drag's end is already prevented, and a modified one is the browser's.
         const plain = !(event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0);
-        if (onOpen && plain && !event.defaultPrevented) {
+        if (plain && !event.defaultPrevented) {
           event.preventDefault();
           // A click with the pointer counts one or more; Enter on the control, none.
           onOpen(row, event.detail > 0);
@@ -266,27 +253,20 @@ function RowLink({
     </Link>
   );
   // What the list's keys find the row's control by: `useListKeys`.
-  return onOpen ? <span data-row-link="">{link}</span> : link;
+  return <span data-row-link="">{link}</span>;
 }
 
 /** What a row of a card, its own or a nested one, hears from the pointer, and opens with. */
 type RowEvents = {
   /** The mouse moved over the row: the selection and the focus follow it. */
   onHover?: (row: WorkRow) => void;
-  /** The mouse left the row. */
-  onHoverEnd?: (row: WorkRow) => void;
-  /** Opens the row on a plain click or Enter, in place of following its link. */
-  onOpen?: (row: WorkRow, isClick: boolean) => void;
+  /** Opens the row on a plain click or Enter. */
+  onOpen: (row: WorkRow, isClick: boolean) => void;
 };
 
 /** The pointer's handlers of a row: only a mouse, and only one that moved over it. */
-function pointerOf(row: WorkRow, { onHover, onHoverEnd }: RowEvents) {
+function pointerOf(row: WorkRow, { onHover }: RowEvents) {
   return {
-    onPointerLeave: (event: PointerEvent) => {
-      if (event.pointerType === "mouse") {
-        onHoverEnd?.(row);
-      }
-    },
     // A row scrolled under a still pointer takes nothing.
     onPointerMove: (event: PointerEvent) => {
       if (event.pointerType === "mouse" && (event.movementX !== 0 || event.movementY !== 0)) {
@@ -329,7 +309,6 @@ export function Card({
   index,
   isSelected,
   onHover,
-  onHoverEnd,
   onOpen,
   row,
   section,
@@ -343,7 +322,7 @@ export function Card({
   const isReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const state = useContext(RowStateContext);
   const isEditing = (state.editing === row.key || row.isFresh === true) && row.editor !== undefined;
-  const events = { onHover, onHoverEnd, onOpen };
+  const events = { onHover, onOpen };
   const isStill = row.isFixed === true || (row.depth !== undefined && !canNest);
   const { handleRef, isDragging, ref } = useSortable({
     accept: "line",
@@ -394,11 +373,7 @@ export function Card({
           </span>
         )}
         {isEditing ? (
-          row.editor?.({
-            onDirty: state.onDirty,
-            onDone: state.onEdited,
-            onRenamed: state.onRenamed,
-          })
+          row.editor?.({ onDone: state.onEdited })
         ) : (
           <RowLink onOpen={onOpen} row={row} />
         )}

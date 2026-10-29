@@ -33,18 +33,7 @@ import type { Dropped } from "./useDragOrder.ts";
 import { DROPPED, useWritesInTurn } from "./useWritesInTurn.ts";
 import type { OutlineMove } from "./workSection.ts";
 
-export {
-  type DropPlace,
-  FRESH,
-  isPending,
-  type ItemPlace,
-  type Outline,
-  type OutlineItem,
-  type OutlineWrites,
-  type Spot,
-  spotOfRow,
-} from "./outline.ts";
-export { useWritesInTurn } from "./useWritesInTurn.ts";
+export type { Outline, OutlineItem } from "./outline.ts";
 
 /** A write, in turn: refused, it shows; resolves with whether it was written. */
 type Write<Data, Source> = (

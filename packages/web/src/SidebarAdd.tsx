@@ -71,22 +71,6 @@ export function AddNoteButton({ text }: { text?: string }) {
 }
 
 /**
- * Undo of a committed add: the core removes the proposal by its lines and commits the removal
- * alone, refusing once the file changed since the add's commit, `hash`.
- */
-async function undoCommitted(
-  fate: ReturnType<typeof useFateClient>,
-  line: Added,
-  hash: string,
-): Promise<string | undefined> {
-  const result = await fate.mutations.proposals.undoCommitted({
-    input: { hash, lines: [...line.lines] },
-    view: PrioritiesView,
-  });
-  return result.error ? refusal(result.error).message : undefined;
-}
-
-/**
  * The overlay of a ＋ button's form, `label` its title: a dialog of the quick add's width on wider
  * screens, a sheet as tall as the form on the phone, `loading` read while its file loads.
  */
@@ -141,11 +125,6 @@ function ProposalOverlay({
   // The form closed as it added: one opened again meanwhile stays open.
   const added = (section: string, line: Added | undefined) => {
     const title = titleOf(section);
-    if (line?.committed) {
-      const { hash } = line.committed;
-      toast(`Added to ${title} and committed`, () => undoCommitted(fate, line, hash), true);
-      return;
-    }
     toast(`Added to ${title}, not committed`, async () => {
       // Found again in the file as it is now, by its text: the proposal it added, wherever it is.
       const now = await readPriorities(fate);
@@ -176,24 +155,16 @@ function ProposalOverlay({
 
 /**
  * Undo of the note just added: the core takes it out, found by its lines wherever it is now, and
- * refuses once it changed or left, or when two notes hold its lines. A committed note's removal
- * is committed too, refused once the inbox changed since the add's commit, `committed.hash`.
+ * refuses once it changed or left, or when two notes hold its lines.
  */
-async function undoAdd(
-  fate: ReturnType<typeof useFateClient>,
-  note: InboxNote | undefined,
-  committed?: { hash: string },
-) {
+async function undoAdd(fate: ReturnType<typeof useFateClient>, note: InboxNote | undefined) {
   if (!note) {
     return "Could not undo: the note is no longer in INBOX.md.";
   }
-  const lines = [...note.lines];
-  const result = committed
-    ? await fate.mutations.inbox.undoCommitted({
-        input: { hash: committed.hash, lines },
-        view: InboxView,
-      })
-    : await fate.mutations.inbox.undoAdd({ input: { lines }, view: InboxView });
+  const result = await fate.mutations.inbox.undoAdd({
+    input: { lines: [...note.lines] },
+    view: InboxView,
+  });
   return result.error ? refusal(result.error).message : undefined;
 }
 
@@ -223,14 +194,10 @@ function NoteOverlay({
   // The page's folder: the core marks the note with its slug when it is a feature's or a change's.
   const about = "folder" in route ? route.folder : undefined;
 
-  const added = ({ committed, file, note }: NoteAdded) => {
+  const added = ({ file, note }: NoteAdded) => {
     onClose();
     if (file === undefined) {
-      toast(
-        committed ? "Added to the inbox and committed" : "Added to the inbox, not committed",
-        () => undoAdd(fate, note, committed),
-        committed !== undefined,
-      );
+      toast("Added to the inbox, not committed", () => undoAdd(fate, note));
       return;
     }
     picked.clear();

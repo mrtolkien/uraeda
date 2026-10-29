@@ -20,7 +20,6 @@ import type {
   Repositories,
   Session,
   SessionList,
-  SessionSearch,
   Settings,
   SlugProposal,
   Story,
@@ -210,9 +209,8 @@ export const PrioritiesView = view<Priorities>()({
   sections: true,
 });
 
-/** The priorities as an add answers them: with `added`, whether "Add and commit" committed. */
+/** The priorities as an add answers them: its sections, the line added ending its own. */
 export const PrioritiesAddedView = view<Priorities>()({
-  added: { committed: true, message: true, reason: true },
   changes: true,
   hash: true,
   id: true,
@@ -239,18 +237,6 @@ export const InboxRemovedView = view<Inbox>()({
   id: true,
   names: true,
   removed: true,
-  triage: true,
-});
-
-/** The inbox as an add answers it: with `added`, whether "Add and commit" committed. */
-export const InboxAddedView = view<Inbox>()({
-  added: { committed: true, message: true, reason: true },
-  categories: true,
-  changes: true,
-  count: true,
-  hash: true,
-  id: true,
-  names: true,
   triage: true,
 });
 
@@ -355,11 +341,6 @@ export const TurnLogView = view<TurnLog>()({
 });
 
 export const SessionListView = view<SessionList>()({
-  id: true,
-  rows: true,
-});
-
-export const SessionSearchView = view<SessionSearch>()({
   id: true,
   rows: true,
 });

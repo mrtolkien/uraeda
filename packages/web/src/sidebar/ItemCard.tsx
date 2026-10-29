@@ -12,11 +12,8 @@ import * as stylex from "@stylexjs/stylex";
 import { columnVars } from "../shell/column.stylex.ts";
 import type { SessionStatus } from "uraeda-server/fate";
 import { HarnessMark, harnessMark } from "../HarnessMark.tsx";
-import { useColumnFold } from "../shell/fold.ts";
 import { StatusMark } from "../StatusMark.tsx";
-import { needsYou } from "./cards.ts";
 import { CardRow } from "./CardRow.tsx";
-import { RailLink } from "./Row.tsx";
 import { brighten } from "./brighten.ts";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 import { DiffCount } from "../layout/DiffCount.tsx";
@@ -81,13 +78,6 @@ const styles = stylex.create({
   reachGap: { marginInlineEnd: `calc(-1 * ${spacingVars["--spacing-2"]})` },
   reachStatus: {
     marginInlineEnd: `calc(-1 * (${spacingVars["--spacing-2"]} + ${spacingVars["--spacing-4"]}))`,
-  },
-  // The folded rail's icon: the kind's icon, the mark of what it needs under it.
-  railIcon: {
-    alignItems: "center",
-    display: "inline-flex",
-    flexDirection: "column",
-    gap: spacingVars["--spacing-1"],
   },
   // The closed rail's mark of the card's status, under its icon: shown by the column's rail rule.
   // Its top is a property of its own, as the token lint takes a `var()` only whole, not in a calc.
@@ -190,31 +180,6 @@ export const CardKindIcon = KindIcon;
 export function CardStatus({ item }: { item: CardItem }) {
   const hasNext = item.status.status === "needs-you" && item.step?.kind !== "problem";
   return <Status hasNext={hasNext} hasWork={item.status.status === "working"} item={item} />;
-}
-
-/**
- * The kind's icon; in the folded rail, with a warning under it while the item needs the human, its
- * status read in the card's name.
- */
-function CardIcon({ hasNext, item }: { hasNext: boolean; item: CardItem }) {
-  const { isFolded } = useColumnFold();
-  if (!isFolded || !needsYou(item.status)) {
-    return <KindIcon item={item} />;
-  }
-  return (
-    <span {...stylex.props(styles.railIcon)}>
-      <KindIcon item={item} />
-      {hasNext ? (
-        <ActionMark isSmall kind="next" />
-      ) : (
-        <Icon
-          color={item.status.status === "attention" ? "error" : "warning"}
-          icon="warning"
-          size="sm"
-        />
-      )}
-    </span>
-  );
 }
 
 /**
@@ -358,25 +323,12 @@ export function ItemCard({
   /** Opens what its status points to, on a click on the status: its session, or what it asks. */
   onStatus?: () => void;
 }) {
-  const { isFolded } = useColumnFold();
   // A step waits on the human: its status is a button to it, two lines high.
   const hasNext =
     onStatus !== undefined && item.status.status === "needs-you" && item.step?.kind !== "problem";
   // A session works on it: its status is a button to the session, as big.
   const hasWork = onStatus !== undefined && item.status.status === "working";
   const hasButton = hasNext || hasWork;
-  if (isFolded) {
-    // The rail: its icon alone, its name read in full, its status a warning while it needs you.
-    return (
-      <RailLink
-        href={href}
-        icon={<CardIcon hasNext={hasNext} item={item} />}
-        isSelected={isSelected}
-        label={cardName(item)}
-        {...(onOpen ? { onOpen } : {})}
-      />
-    );
-  }
   return (
     <div
       data-card
@@ -395,7 +347,7 @@ export function ItemCard({
         endContent={<Status hasNext={hasNext} hasWork={hasWork} item={item} />}
         hasRing={!isPicked}
         href={href}
-        icon={<CardIcon hasNext={hasNext} item={item} />}
+        icon={<KindIcon item={item} />}
         isEndTall={hasButton}
         isSelected={isSelected}
         label={item.label}
