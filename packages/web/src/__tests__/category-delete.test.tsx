@@ -138,6 +138,9 @@ test("a category's delete names its notes' note files, and Yes deletes them with
   await act(async () => {
     fireEvent.keyDown(document.body, { key: "y" });
   });
-  await waitFor(() => expect(read(repo, INBOX)).not.toContain("## UI"));
-  expect(existsSync(join(repo, file))).toBe(false);
+  // The inbox is written before the note files go: both are waited for.
+  await waitFor(() => {
+    expect(read(repo, INBOX)).not.toContain("## UI");
+    expect(existsSync(join(repo, file))).toBe(false);
+  });
 });
