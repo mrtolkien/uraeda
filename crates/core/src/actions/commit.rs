@@ -22,20 +22,23 @@ pub fn commit_only(place: &Place, change: &Change) -> Result<Committed, ActionEr
 }
 
 /// Commits `change` with `run`, and returns it with the message committed, an amend's. An amend
-/// git or a hook refuses is tried again as a commit of its own, so a commit never stays stuck on
-/// one.
+/// that git or a hook refuses is tried again as a plain commit, so the files are committed whenever
+/// a plain commit would be.
 fn committed(
     place: &Place,
     change: &Change,
     run: impl Fn(&Git, &[String], &str, Option<&str>, bool) -> Result<(), GitError>,
 ) -> Result<Committed, ActionError> {
     let git = Git::open(&place.root)?;
-    let mut result = None;
-    if let Some((subject, body)) = super::amend::message(place, change) {
-        let amended = run(&git, &change.paths, &subject, Some(&body), true);
-        result = amended.is_ok().then_some((subject, Some(body)));
-    }
-    let (subject, body) = match result {
+    let amended = match super::amend::message(place, change) {
+        Some((subject, body)) => match run(&git, &change.paths, &subject, Some(&body), true) {
+            Ok(()) => Some((subject, Some(body))),
+            Err(GitError::Command { subcommand, .. }) if subcommand == "commit" => None,
+            Err(error) => return Err(error.into()),
+        },
+        None => None,
+    };
+    let (subject, body) = match amended {
         Some(message) => message,
         None => {
             let message = (change.subject.clone(), change.body.clone());

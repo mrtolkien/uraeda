@@ -50,11 +50,13 @@ The low-impact choices made while building [the change](proposal.md), inside the
 ## R4: An edit that undoes the whole latest commit is a commit of its own
 
 - **Decision**: when the files committed would take every file of the latest commit back to its
-  parent's, the commit is a new one, not an amend.
+  parent's, the commit is a new one, not an amend. An amend that git or a hook refuses anyway is
+  tried again as a plain commit, with the action's own message.
 - **Rationale**: the amend would leave an empty commit, which git refuses. Dropping the commit
   instead would delete history, which the git decision leaves to the human. A hook that rewrites a
   file, or a line-ending filter, can still make the amend empty, or a hook refuse it: an amend git
   or a hook refuses is tried again as a commit of its own, so a tool's commit never stays stuck.
+- **If wrong**: a hook that refuses the amend runs twice, the second time for the plain commit.
 - **Where**: [`amend.rs`](/crates/core/src/actions/amend.rs), and
   [`commit.rs`](/crates/core/src/actions/commit.rs) for the second try
 
