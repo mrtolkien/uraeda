@@ -35,6 +35,7 @@ import { DecisionList } from "./DecisionList.tsx";
 import { CheckButton, CheckMessage, DecisionsCheckBanner } from "./DecisionsCheckBanner.tsx";
 import { jumpEntries, pickerItemOf } from "./jump.ts";
 import { useSplit } from "./useSplit.ts";
+import { proseStyles, READING_MEASURE } from "../Prose.tsx";
 import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts";
 import { NoSpecs } from "../layout/Missing.tsx";
 import { Empty } from "../layout/Empty.tsx";
@@ -46,13 +47,13 @@ const LIST_MOST = `calc(60ch + 2 * ${spacingVars["--spacing-6"]})`;
  * The reader's column, about 60 characters of prose a line at least, with its inset at its least,
  * to 80 with its whole inset.
  */
-const READER_LEAST = `calc(0.75 * var(--size-reading-measure) + 2 * ${spacingVars["--spacing-4"]})`;
-const READER_MOST = `calc(var(--size-reading-measure) + 2 * (${spacingVars["--spacing-8"]} + ${spacingVars["--spacing-4"]}))`;
+const READER_LEAST = `calc(0.75 * ${READING_MEASURE} + 2 * ${spacingVars["--spacing-4"]})`;
+const READER_MOST = `calc(${READING_MEASURE} + 2 * (${spacingVars["--spacing-8"]} + ${spacingVars["--spacing-4"]}))`;
 /**
  * The reader's inset: its whole, `--spacing-8`, in a pane with room for 80 characters and it; less,
  * down to `--spacing-4`, in a narrower one, the text keeping the room.
  */
-const READER_INSET = `clamp(${spacingVars["--spacing-4"]}, calc((100% - var(--size-reading-measure)) / 2), ${spacingVars["--spacing-8"]})`;
+const READER_INSET = `clamp(${spacingVars["--spacing-4"]}, calc((100% - ${READING_MEASURE}) / 2), ${spacingVars["--spacing-8"]})`;
 /** Both least columns, and the reader's pane's inset: past it, they stand side by side. */
 const TWO_LEAST = `calc(${LIST_LEAST} + ${READER_LEAST} + 2 * ${spacingVars["--spacing-2"]})`;
 
@@ -73,7 +74,7 @@ const styles = stylex.create({
   }),
   // The reader alone on a wider screen than the phone's: its text at the reading measure, as in
   // its pane beside the list.
-  alone: { marginInline: "auto", maxWidth: "var(--size-reading-measure)" },
+  alone: { marginInline: "auto" },
   // The reader's text in its pane, side by side with the list: its inset, not a page's column.
   reader: (inset: string) => ({
     paddingBlock: spacingVars["--spacing-6"],
@@ -281,7 +282,7 @@ function Reader({
   }
   return (
     <Page>
-      <div {...stylex.props(!narrow && styles.alone)}>
+      <div {...stylex.props(!narrow && [styles.alone, proseStyles.measure])}>
         {narrow ? (
           <ReaderBar
             onClose={onClose}

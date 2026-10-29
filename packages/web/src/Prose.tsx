@@ -38,6 +38,12 @@ export function ProseParagraph({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * The reading measure, about 80 characters of prose a line, for a layout that sizes itself by it, as
+ * the decisions page's columns and a session's reply do: read from here, never written in a view.
+ */
+export const READING_MEASURE = "var(--size-reading-measure)";
+
 export const proseStyles = stylex.create({
   // Body text at the UI layout decision's size, from the theme, 19 px at every width, in the
   // reading font, the UI look decision's proportional one. Its text inherits the font, while

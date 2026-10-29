@@ -27,6 +27,7 @@ import { OffersProvider, SessionEnd } from "./SessionOffers.tsx";
 import { SessionActions } from "./SessionActions.tsx";
 import { JumpToLatest, usePublishJump } from "./JumpToLatest.tsx";
 import { type ScrolledAway, useFollowEnd, useOpenAtEnd, useScrolledAway } from "./following.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Attention } from "./SessionAttention.tsx";
 import { Page } from "./layout/Page.tsx";
 import { SessionColumn } from "./session/SessionColumn.tsx";
@@ -53,21 +54,19 @@ const styles = stylex.create({
   },
   composer: {
     // The composer stays at the bottom of the window while the transcript scrolls, above the
-    // shell's status line, fixed at the window's bottom. On the phone, its box alone floats over
-    // the transcript, which shows around it, and it follows the bar down as the bar slides away.
-    backgroundColor: {
-      "@media (max-width: 767px)": "transparent",
-      default: colorVars["--color-background-surface"],
-    },
+    // shell's status line, fixed at the window's bottom, following it down as it slides away.
+    backgroundColor: colorVars["--color-background-surface"],
     bottom: "var(--status-line-offset, var(--size-status-line, 0px))",
-    paddingBlock: {
-      "@media (max-width: 767px)": spacingVars["--spacing-2"],
-      default: spacingVars["--spacing-3"],
-    },
+    paddingBlock: spacingVars["--spacing-3"],
     position: "sticky",
     transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
     transitionProperty: "bottom",
     transitionTimingFunction: "ease-out",
+  },
+  // On the phone, its box alone floats over the transcript, which shows around it.
+  composerPhone: {
+    backgroundColor: "transparent",
+    paddingBlock: spacingVars["--spacing-2"],
   },
 });
 
@@ -342,6 +341,7 @@ export function SessionPane({
   /** The title before the session exists. */
   title?: string;
 }) {
+  const wide = !isNarrow(useWidthClass());
   const session = useSessionRecord(id);
   const controls = useSessionControls(id, session);
   const composer = useRef<HTMLDivElement>(null);
@@ -377,7 +377,14 @@ export function SessionPane({
           />
         </Suspense>
       )}
-      <div ref={composer} {...stylex.props(styles.composer, isBoxed && styles.boxedComposer)}>
+      <div
+        ref={composer}
+        {...stylex.props(
+          styles.composer,
+          !wide && styles.composerPhone,
+          isBoxed && styles.boxedComposer,
+        )}
+      >
         {jump && <JumpToLatest composer={composer} onJump={jump} />}
         <Composer
           {...(folder === undefined ? {} : { folder })}

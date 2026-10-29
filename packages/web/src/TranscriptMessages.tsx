@@ -12,7 +12,8 @@ import type { ChatImage, Item } from "uraeda-server/fate";
 import { agentStories, MessageStories } from "./AgentStories.tsx";
 import { refusal } from "./errors.ts";
 import { StatusText } from "./fields/StatusText.tsx";
-import { ProseMarkdown } from "./Prose.tsx";
+import { ProseMarkdown, proseStyles, READING_MEASURE } from "./Prose.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { MessageBody } from "./MessageBody.tsx";
 import { EarlierRecap, StretchRecap } from "./session/RecapLine.tsx";
 import { slotsOf } from "./session/stretches.ts";
@@ -25,16 +26,16 @@ const AGENT_WIDTH = `calc(100% + 2 * (${spacingVars["--spacing-3"]} - ${spacingV
 const styles = stylex.create({
   agent: {
     // The agent's text on the page's inset: no padding of its own, and the list's 12 px at the
-    // sides given back down to the page's inset; about 80 characters a line, the reading measure.
+    // sides given back down to the page's inset; at the reading measure (`proseStyles.measure`).
     boxSizing: "border-box",
     marginInline: `calc(${spacingVars["--spacing-2"]} - ${spacingVars["--spacing-3"]})`,
-    maxWidth: "var(--size-reading-measure)",
     paddingInline: 0,
-    // A jump to the latest brings its start below the phone's tabs, or a step from the top.
-    scrollMarginTop: {
-      "@media (max-width: 767px)": `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
-      default: spacingVars["--spacing-4"],
-    },
+    // A jump to the latest brings its start a step from the top.
+    scrollMarginTop: spacingVars["--spacing-4"],
+  },
+  // On the phone, a jump to the latest brings its start below the tabs.
+  agentPhone: {
+    scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
   },
   notice: {
     // Astryx centres a system line, as a chat's date separators are; the UI layout decision keeps
@@ -48,24 +49,22 @@ const styles = stylex.create({
     [colorVars["--color-text-primary"]]: colorVars["--color-text-secondary"],
   },
   // The turn's reply, its last text once it is done, set apart from the texts between its calls,
-  // which are context: on a raised surface in a border, square-cornered as the panes are. On the
-  // phone, a rule above and below it alone, as a question's, its text on the page's inset: the
-  // screen's width goes to the text.
+  // which are context: on a raised surface in a border, square-cornered as the panes are, its text
+  // at the measure inside its padding and border (`replyMost`).
   reply: {
     backgroundColor: colorVars["--color-background-surface"],
     borderBlockWidth: borderVars["--border-width"],
     borderColor: colorVars["--color-border"],
-    borderInlineWidth: { "@media (max-width: 767px)": 0, default: borderVars["--border-width"] },
+    borderInlineWidth: borderVars["--border-width"],
     borderRadius: 0,
     borderStyle: "solid",
     paddingBlock: spacingVars["--spacing-3"],
-    paddingInline: { "@media (max-width: 767px)": 0, default: spacingVars["--spacing-4"] },
-    // Its text at the measure still, inside its padding and border.
-    maxWidth: {
-      "@media (max-width: 767px)": "var(--size-reading-measure)",
-      default: `calc(var(--size-reading-measure) + 2 * (${spacingVars["--spacing-4"]} + ${borderVars["--border-width"]}))`,
-    },
+    paddingInline: spacingVars["--spacing-4"],
   },
+  // On the phone, a rule above and below it alone, as a question's, its text on the page's inset:
+  // the screen's width goes to the text.
+  replyMost: (most: string) => ({ maxWidth: most }),
+  replyPhone: { borderInlineWidth: 0, paddingInline: 0 },
   user: {
     // A faint blue over the page's surface: the human's color, dark enough for its text.
     backgroundColor: `color-mix(in oklab, ${colorVars["--color-text-blue"]} 14%, ${colorVars["--color-background-surface"]})`,
@@ -190,6 +189,9 @@ function Message({
  * flat text across the page, with no bubble of its own, so a story shows in the width the page
  * has. `at` is its place in the session, `<turn>:<seq>`.
  */
+/** A reply's widest, its text at the measure: inside its padding and border on wide screens. */
+const REPLY_MOST = `calc(${READING_MEASURE} + 2 * (${spacingVars["--spacing-4"]} + ${borderVars["--border-width"]}))`;
+
 function AgentMessage({
   at,
   isReply,
@@ -202,6 +204,7 @@ function AgentMessage({
   streaming: boolean;
   text: string;
 }) {
+  const wide = !isNarrow(useWidthClass());
   const stories = useMemo<MessageStories>(() => ({ ended: !streaming }), [streaming]);
   const plugins = useOfferPlugins(at, streaming, text);
   return (
@@ -209,7 +212,18 @@ function AgentMessage({
       <ChatMessageBubble
         variant="ghost"
         width={AGENT_WIDTH}
-        xstyle={[styles.agent, isReply ? styles.reply : styles.aside]}
+        xstyle={[
+          styles.agent,
+          proseStyles.measure,
+          !wide && styles.agentPhone,
+          isReply
+            ? [
+                styles.reply,
+                !wide && styles.replyPhone,
+                styles.replyMost(wide ? REPLY_MOST : READING_MEASURE),
+              ]
+            : styles.aside,
+        ]}
       >
         <MessageStories value={stories}>
           {/* Drawn again once its offer shows: Astryx keeps a text's parse while the text stays. */}
