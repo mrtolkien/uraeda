@@ -1,14 +1,19 @@
 // The leader's tree: what `Space` and `g` lead to, declared where the shell mounts it. Each entry
 // runs what a button or a page already runs: the places navigate (`destinations.ts`), New opens
 // the page or the form of its button, Find opens the key picker over a kind, Continue opens what
-// needs the human, `r` the repository menu, `u t` cycles the theme, and `u f` flips the fonts. The entries of the UI group
+// needs the human, `r` the repository menu, `u t` cycles the theme, and `u f` then a part's key
+// opens the picker of that part's font (`FontPicker`), or `d` restores the default fonts, once
+// confirmed. The entries of the UI group
 // that fold the navigation and the right column are declared by those columns (`u [`, `u ]`), as
 // a key belongs to the owner of its action.
+import { useState } from "react";
 import { openRepositoryMenu, RepositoryMenuHost } from "../RepositoryMenu.tsx";
 import { navigateHere, useRepository } from "../routes.tsx";
 import { useOpenAddForm } from "../SidebarAdd.tsx";
 import { type Scheme, useScheme } from "../theme.tsx";
-import { useFonts } from "../theme/fonts.ts";
+import { useConfirm } from "../fields/Confirm.tsx";
+import { type FontRole, restoreDefaultFonts, ROLES } from "../theme/fonts.ts";
+import { FontPicker } from "./FontPicker.tsx";
 import { useContinue } from "./Continue.tsx";
 import { useKeyPicker } from "./KeyPicker.tsx";
 import {
@@ -31,7 +36,8 @@ export function LeaderKeys() {
   const openForm = useOpenAddForm();
   const picker = useKeyPicker();
   const [scheme, setScheme] = useScheme();
-  const [fonts, setFonts] = useFonts();
+  const [fontRole, setFontRole] = useState<FontRole>();
+  const confirm = useConfirm();
   const { binding: continuing, picker: continuePicker } = useContinue();
   const bindings: Array<Binding> = [
     ...placeBindings("space", navigateHere),
@@ -65,12 +71,27 @@ export function LeaderKeys() {
       label: "Theme",
       run: () => setScheme(NEXT[scheme]),
     },
+    ...ROLES.map(({ key, label, role }) => ({
+      icon: "uraeda:palette" as const,
+      keys: `space u f ${key}`,
+      label: `${label}…`,
+      run: () => setFontRole(role),
+    })),
     {
-      // TEMPORARY: the Monaspace experiment (`theme/fonts.ts`), flipped from any page.
       icon: "uraeda:palette",
-      keys: "space u f",
-      label: "Fonts",
-      run: () => setFonts(fonts === "monaspace" ? "current" : "monaspace"),
+      keys: "space u f d",
+      label: "Default fonts…",
+      run: async () => {
+        const restores = await confirm({
+          body: "Every part of the UI goes back to its default font: Atkinson Hyperlegible Next for prose, Monaspace for the rest.",
+          cancel: "Keep mine",
+          confirm: "Restore",
+          title: "Restore the default fonts?",
+        });
+        if (restores) {
+          restoreDefaultFonts();
+        }
+      },
     },
     {
       icon: "arrowUp",
@@ -96,6 +117,7 @@ export function LeaderKeys() {
     <>
       <RepositoryMenuHost current={current} />
       {continuePicker}
+      <FontPicker onClose={() => setFontRole(undefined)} role={fontRole} />
     </>
   );
 }

@@ -20,7 +20,12 @@ import {
   shownLabels,
 } from "./categories.ts";
 import { KeyboardSettings } from "./KeyboardSettings.tsx";
-import { AppearanceSettings, PlannedSettings, SignInSettings } from "./OtherSettings.tsx";
+import {
+  AppearanceSettings,
+  FontSettings,
+  PlannedSettings,
+  SignInSettings,
+} from "./OtherSettings.tsx";
 import { RunSettings } from "./RunSettings.tsx";
 import { RefusalsProvider } from "./SettingRow.tsx";
 import { type ServerActions, ServerSettings, type ServerValues } from "./ServerSettings.tsx";
@@ -60,6 +65,8 @@ function Rows({
       return <ServerSettings {...props} />;
     case "appearance":
       return <AppearanceSettings category={category} />;
+    case "fonts":
+      return <FontSettings category={category} shows={shows} />;
     case "keyboard":
       return <KeyboardSettings {...props} />;
     case "sign-in":

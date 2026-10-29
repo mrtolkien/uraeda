@@ -6,14 +6,15 @@ import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/Segme
 import { VStack } from "@astryxdesign/core/VStack";
 import { useSignOut, useSignOutEverywhere } from "../sign-in/useSignOut.ts";
 import { type Scheme, useScheme } from "../theme.tsx";
-import { type Fonts, useFonts } from "../theme/fonts.ts";
+import { Selector, SelectorOption, type SelectorOptionData } from "@astryxdesign/core/Selector";
+import * as stylex from "@stylexjs/stylex";
+import { FONTS, fontOf, pickFont, ROLES, useFonts } from "../theme/fonts.ts";
 import { type Category, PLANNED_ICON, plannedHelp, settingOf } from "./categories.ts";
 import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
 
-/** The colour scheme, kept in this browser: Mocha, Latte, or the system's; and the fonts. */
+/** The colour scheme, kept in this browser: Mocha, Latte, or the system's. */
 export function AppearanceSettings({ category }: { category: Category }) {
   const [scheme, setScheme] = useScheme();
-  const [fonts, setFonts] = useFonts();
   return (
     <SettingRows>
       <SettingRow setting={settingOf(category, "Colour scheme")}>
@@ -27,16 +28,53 @@ export function AppearanceSettings({ category }: { category: Category }) {
           <SegmentedControlItem label="System" value="system" />
         </SegmentedControl>
       </SettingRow>
-      <SettingRow setting={settingOf(category, "Fonts")}>
-        <SegmentedControl
-          label="Fonts"
-          onChange={(value: string) => setFonts(value as Fonts)}
-          value={fonts}
-        >
-          <SegmentedControlItem label="Current" value="current" />
-          <SegmentedControlItem label="Monaspace" value="monaspace" />
-        </SegmentedControl>
-      </SettingRow>
+    </SettingRows>
+  );
+}
+
+const styles = stylex.create({
+  // A font's name, written in it.
+  face: (family: string) => ({ fontFamily: family }),
+});
+
+/** A font's option, its name written in it, in the list and in the closed field. */
+function FontOption({ option }: { option: SelectorOptionData }) {
+  const font = FONTS.find((one) => one.id === option.value);
+  return (
+    <SelectorOption
+      label={<span {...stylex.props(font && styles.face(font.family))}>{option.label}</span>}
+    />
+  );
+}
+
+/** The font of each part of the UI, kept in this browser, the rows that `shows` keeps. */
+export function FontSettings({
+  category,
+  shows,
+}: {
+  category: Category;
+  shows: (label: string) => boolean;
+}) {
+  const fonts = useFonts();
+  const options = FONTS.map((font) => ({ label: font.label, value: font.id }));
+  return (
+    <SettingRows>
+      {ROLES.filter(({ label }) => shows(label)).map(({ label, role }) => (
+        <SettingRow key={role} setting={settingOf(category, label)}>
+          <Selector
+            isLabelHidden
+            label={label}
+            onChange={(value: string) => pickFont(role, value)}
+            options={options}
+            presentation="popover"
+            renderOption={(option: SelectorOptionData) => <FontOption option={option} />}
+            renderValue={(option: SelectorOptionData) => <FontOption option={option} />}
+            value={fontOf(role, fonts[role]).id}
+            // As wide as the longest name, Atkinson Hyperlegible Next, and the arrow.
+            width="32ch"
+          />
+        </SettingRow>
+      ))}
     </SettingRows>
   );
 }

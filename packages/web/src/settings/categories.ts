@@ -3,10 +3,12 @@
 // feature that brings it; and the search that filters the form's rows, the settings to come too.
 import type { Icon } from "@astryxdesign/core/Icon";
 import type { ComponentProps } from "react";
+import { ROLES } from "../theme/fonts.ts";
 
 export type CategoryId =
   | "server"
   | "appearance"
+  | "fonts"
   | "keyboard"
   | "sign-in"
   | "agents"
@@ -78,14 +80,19 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         label: "Colour scheme",
         terms: ["theme"],
       },
-      {
-        // TEMPORARY: the Monaspace experiment (`theme/fonts.ts`).
-        help: "Current is Inter for prose and JetBrains Mono for the rest. Monaspace gives each part its own face: Neon for the UI, Argon for prose, Xenon for headings, Radon for your messages in a session, and Krypton for code. Kept on this browser only.",
-        icon: "uraeda:palette",
-        label: "Fonts",
-        terms: ["font", "monaspace", "typeface"],
-      },
     ],
+  },
+  {
+    icon: "uraeda:palette",
+    id: "fonts",
+    label: "Fonts",
+    // One row for each part of the UI with a font of its own, kept on this browser only.
+    settings: ROLES.map(({ help, label }) => ({
+      help,
+      icon: "uraeda:palette" as const,
+      label,
+      terms: ["font", "typeface"],
+    })),
   },
   {
     icon: "uraeda:keyboard",

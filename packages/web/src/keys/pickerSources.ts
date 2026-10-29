@@ -23,6 +23,8 @@ export type PickerItem = {
    * its step's for a feature, and its status's mark, the agent's at work on it, as the card does.
    */
   card?: CardItem;
+  /** The font its preview is written in, a font's in the font picker; the code's otherwise. */
+  family?: string;
   icon: IconName;
   /** An address, which the kind's page is at: unique among the items. */
   id: string;

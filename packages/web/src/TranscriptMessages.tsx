@@ -144,8 +144,7 @@ function Message({
       sender="user"
     >
       <ChatMessageBubble
-        // TEMPORARY: the Monaspace experiment's handwriting, for a message once sent
-        // (`theme/monaspace.css`).
+        // In the human's messages' font once sent (`theme/fonts.ts`).
         data-words={pending ? undefined : "human"}
         variant={pending ? "ghost" : "filled"}
         xstyle={pending ? undefined : styles.user}

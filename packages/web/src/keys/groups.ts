@@ -9,4 +9,5 @@ export const GROUPS: Readonly<Record<string, Group>> = {
   "space f": { icon: "search", label: "Find" },
   "space n": { icon: "uraeda:plus", label: "New" },
   "space u": { icon: "uraeda:palette", label: "UI" },
+  "space u f": { icon: "uraeda:palette", label: "Fonts" },
 };

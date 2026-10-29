@@ -63,19 +63,23 @@ test("a marked function over the limit passes", () => {
   expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
 });
 
-/** TEMPORARY: the Monaspace experiment's fonts and its stylesheet (`theme/fonts.ts`). */
-const experiment = (path: string) =>
-  path.startsWith("@fontsource/monaspace-") || path === "./theme/monaspace.css";
-
 test("no stylesheet but Astryx's and the fonts' is imported (SC-001)", () => {
   const allowed = [
     "@astryxdesign/core/reset.css",
     "@astryxdesign/core/astryx.css",
     "./theme/built/uraeda.css",
     "../theme/built/uraeda.css",
-    // The UI look decision's fonts, bundled with the app.
+    // The fonts each part of the UI may pick, bundled with the app (`theme/fonts.ts`).
     "@fontsource-variable/inter/index.css",
+    "@fontsource-variable/inter/wght-italic.css",
+    "@fontsource-variable/atkinson-hyperlegible-next/index.css",
+    "@fontsource-variable/literata/index.css",
     "@fontsource-variable/jetbrains-mono/index.css",
+    ...["neon", "argon", "xenon", "radon", "krypton"].flatMap((face) =>
+      ["400", "500", "600", "700", "400-italic"].map(
+        (weight) => `@fontsource/monaspace-${face}/${weight}.css`,
+      ),
+    ),
   ];
   const imports: Array<string> = [];
   for (const entry of readdirSync(src, { recursive: true, withFileTypes: true })) {
@@ -87,7 +91,7 @@ test("no stylesheet but Astryx's and the fonts' is imported (SC-001)", () => {
     }
   }
   expect(imports.length).toBeGreaterThan(0);
-  expect(imports.filter((path) => !allowed.includes(path) && !experiment(path))).toEqual([]);
+  expect(imports.filter((path) => !allowed.includes(path))).toEqual([]);
   expect(readdirSync(src)).not.toContain("styles.css");
 });
 

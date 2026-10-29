@@ -77,6 +77,8 @@ const styles = stylex.create({
     minWidth: 0,
     overflowY: "auto",
   },
+  // A preview in a font of its own: the font picker's.
+  face: (family: string) => ({ fontFamily: family }),
   raw: {
     fontFamily: typographyVars["--font-family-code"],
     margin: 0,
@@ -174,7 +176,7 @@ function Preview({ item }: { item: PickerItem | undefined }) {
   return (
     <section aria-label="Preview" {...stylex.props(styles.preview)}>
       {item && (
-        <div {...stylex.props(styles.raw)}>
+        <div {...stylex.props(styles.raw, item.family !== undefined && styles.face(item.family))}>
           {/* A line is its own block, an empty one held open by a break. */}
           {item.preview
             .split("\n")
