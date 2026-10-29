@@ -144,6 +144,7 @@ function Message({
       sender="user"
     >
       <ChatMessageBubble
+        data-words="human"
         variant={pending ? "ghost" : "filled"}
         xstyle={pending ? undefined : styles.user}
       >

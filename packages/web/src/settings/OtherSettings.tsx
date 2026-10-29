@@ -6,12 +6,14 @@ import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/Segme
 import { VStack } from "@astryxdesign/core/VStack";
 import { useSignOut, useSignOutEverywhere } from "../sign-in/useSignOut.ts";
 import { type Scheme, useScheme } from "../theme.tsx";
+import { type Fonts, useFonts } from "../theme/fonts.ts";
 import { type Category, PLANNED_ICON, plannedHelp, settingOf } from "./categories.ts";
 import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
 
-/** The colour scheme, kept in this browser: Mocha, Latte, or the system's. */
+/** The colour scheme, kept in this browser: Mocha, Latte, or the system's; and the fonts. */
 export function AppearanceSettings({ category }: { category: Category }) {
   const [scheme, setScheme] = useScheme();
+  const [fonts, setFonts] = useFonts();
   return (
     <SettingRows>
       <SettingRow setting={settingOf(category, "Colour scheme")}>
@@ -23,6 +25,16 @@ export function AppearanceSettings({ category }: { category: Category }) {
           <SegmentedControlItem label="Mocha" value="mocha" />
           <SegmentedControlItem label="Latte" value="latte" />
           <SegmentedControlItem label="System" value="system" />
+        </SegmentedControl>
+      </SettingRow>
+      <SettingRow setting={settingOf(category, "Fonts")}>
+        <SegmentedControl
+          label="Fonts"
+          onChange={(value: string) => setFonts(value as Fonts)}
+          value={fonts}
+        >
+          <SegmentedControlItem label="Current" value="current" />
+          <SegmentedControlItem label="Monaspace" value="monaspace" />
         </SegmentedControl>
       </SettingRow>
     </SettingRows>

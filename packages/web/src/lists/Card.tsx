@@ -247,6 +247,9 @@ function RowLink({
       color={
         row.isLinked ? "accent" : row.isAdd || row.depth !== undefined ? "secondary" : "primary"
       }
+      // TEMPORARY: the Monaspace experiment's mark of the human's words (`theme/monaspace.css`):
+      // a row's text, not an add row's.
+      data-words={row.isAdd ? undefined : "human"}
       hasUnderline={row.isLinked === true}
       {...(onOpen ? {} : { href: row.href })}
       maxLines={3}
