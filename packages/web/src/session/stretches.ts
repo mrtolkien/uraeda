@@ -331,7 +331,7 @@ function callTime(ms: number): string {
 export function rowWords(item: ActivityItem, ended: boolean, calls: number): RowWords {
   if (item.kind === "thought") {
     return item.durationMs >= 1000
-      ? { end: elapsed(item.durationMs), label: "Thought" }
+      ? { end: elapsed(item.durationMs), label: "Thought", time: elapsed(item.durationMs) }
       : { label: "Thought" };
   }
   const word = rowWord(item, ended);

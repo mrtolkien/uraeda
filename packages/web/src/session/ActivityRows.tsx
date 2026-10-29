@@ -12,6 +12,7 @@ import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
   colorVars,
@@ -148,10 +149,10 @@ function Outcome({ item, view }: { item: ActivityItem; view: RunView }) {
     return null;
   }
   if (item.status === "completed") {
-    return <Icon aria-label="Done" icon="check" size="sm" xstyle={styles.done} />;
+    return <Icon icon="check" label="Done" size="sm" xstyle={styles.done} />;
   }
   if (item.status === "failed" || item.status === "cancelled") {
-    return <Icon aria-label="Failed" icon="close" size="sm" xstyle={styles.failed} />;
+    return <Icon icon="close" label="Failed" size="sm" xstyle={styles.failed} />;
   }
   return view.ended ? <Text color="secondary">not finished</Text> : null;
 }
@@ -161,7 +162,7 @@ function Outcome({ item, view }: { item: ActivityItem; view: RunView }) {
  * calls, and its time at the end.
  */
 function RowHead({ item, live, view }: { item: ActivityItem; live: boolean; view: RunView }) {
-  const { calls, time } = wordsOf(item, view);
+  const { calls, label, time } = wordsOf(item, view);
   return (
     <span {...stylex.props(styles.head)}>
       {live ? (
@@ -174,7 +175,12 @@ function RowHead({ item, live, view }: { item: ActivityItem; live: boolean; view
         />
       )}
       <Outcome item={item} view={view} />
-      {item.kind === "thought" && <span>Thought</span>}
+      {item.kind === "thought" ? (
+        <span>Thought</span>
+      ) : (
+        // Shown under the head, whole or cut: the head, the fold's toggle, is named by it too.
+        <VisuallyHidden>{label}</VisuallyHidden>
+      )}
       {calls !== undefined && <Text color="secondary">{`sub-agent · ${calls}`}</Text>}
       {time !== undefined && (
         <Text color="secondary" xstyle={styles.time}>

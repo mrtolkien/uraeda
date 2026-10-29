@@ -348,7 +348,8 @@ export function SessionPane({
   // Kept by the pane, which the transcript's data does not wait for.
   const away = useScrolledAway(composer, id);
   const [jump, setJump] = useState<() => void>();
-  usePublishJump(jump);
+  // The bottom bar's arrow is the session page's: a boxed session keeps its own.
+  usePublishJump(isBoxed ? undefined : jump);
   const stretchHref = useStretchHref(isBoxed ? folder : undefined);
   if (session === null) {
     return (
@@ -385,7 +386,7 @@ export function SessionPane({
           isBoxed && styles.boxedComposer,
         )}
       >
-        {jump && <JumpToLatest composer={composer} onJump={jump} />}
+        {jump && <JumpToLatest composer={composer} isBoxed={isBoxed} onJump={jump} />}
         <Composer
           {...(folder === undefined ? {} : { folder })}
           {...composerDraft(draft)}

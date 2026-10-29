@@ -57,18 +57,21 @@ export function usePublishedJump() {
 
 /**
  * "Jump to the latest", above the composer, while the page does not follow the transcript's end.
- * Pressed, it goes as the page follows again: the focus moves first to the composer's text field,
- * in `composer`, rather than falling to the page.
+ * Pressed, it goes to the latest reply (`onJump`): the focus moves first to the composer's text
+ * field, in `composer`, rather than falling to the page.
  */
 export function JumpToLatest({
   composer,
+  isBoxed,
   onJump,
 }: {
   composer: RefObject<HTMLElement | null>;
+  /** Whether the session is in a page's box, a sheet on the phone, where no bottom bar jumps. */
+  isBoxed: boolean;
   onJump: () => void;
 }) {
-  // On the phone, the bottom bar's arrow jumps: nothing floats over the text.
-  const wide = !isNarrow(useWidthClass());
+  // On the session's page on the phone, the bottom bar's arrow jumps: nothing floats over the text.
+  const wide = !isNarrow(useWidthClass()) || isBoxed;
   const jump = () => {
     composer.current
       ?.querySelector<HTMLElement>('[role="textbox"]')

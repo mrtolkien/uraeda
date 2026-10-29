@@ -12,7 +12,7 @@ import {
 } from "@astryxdesign/core/Markdown/plugins";
 import { typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ComponentProps, ReactNode } from "react";
+import { type ComponentProps, type ReactNode, useMemo } from "react";
 
 /**
  * Prose's rhythm, from the theme's `--prose-*` tokens: a paragraph's room under it, a list's, and a
@@ -138,6 +138,9 @@ export function fencePlugin<Data extends Record<string, string>>({
  * wider default of Astryx's would cap lists and headings and leave a replaced paragraph alone).
  * `components` replaces how some of its parts draw, and `plugins` draws some fenced blocks.
  */
+/** The markdown's parts as prose draws them, when the caller gives none of its own. */
+const PROSE_COMPONENTS = { paragraph: ProseParagraph };
+
 export function ProseMarkdown({
   children,
   components,
@@ -147,11 +150,16 @@ export function ProseMarkdown({
   components?: ComponentProps<typeof Markdown>["components"];
   plugins?: ReadonlyArray<ProsePlugin>;
 }): ReactNode {
+  // One object while `components` stays: Astryx's markdown keeps its blocks while it does.
+  const drawn = useMemo(
+    () => (components ? { paragraph: ProseParagraph, ...components } : PROSE_COMPONENTS),
+    [components],
+  );
   return (
     <div {...stylex.props(proseStyles.reading)}>
       <Markdown
         autolink="gfm"
-        components={{ paragraph: ProseParagraph, ...components }}
+        components={drawn}
         contentWidth="100%"
         headingLevelStart={4}
         plugins={plugins}

@@ -84,7 +84,8 @@ export function FoldingField({
  * Whether the phone's composer folds to one line, its field and Send, so the transcript keeps the
  * screen: while it is empty and nothing inside it has the focus. A press inside opens it too, since
  * a phone may not focus the button pressed, and it folds a moment after the focus leaves, once a
- * press that moved it inside has landed.
+ * press that moved it inside has landed, or a moment after a press that left no focus inside, as
+ * on a disabled composer.
  */
 export function useFolded(box: RefObject<HTMLDivElement | null>, canFold: boolean) {
   const [isInside, setInside] = useState(false);
@@ -98,6 +99,10 @@ export function useFolded(box: RefObject<HTMLDivElement | null>, canFold: boolea
       clearTimeout(timer);
       setInside(true);
     };
+    const pressed = () => {
+      enter();
+      timer = setTimeout(() => setInside(element.contains(document.activeElement)), 1000);
+    };
     const leave = (event: FocusEvent) => {
       if (element.contains(event.relatedTarget as Node | null)) {
         return;
@@ -106,12 +111,12 @@ export function useFolded(box: RefObject<HTMLDivElement | null>, canFold: boolea
       timer = setTimeout(() => setInside(element.contains(document.activeElement)), 300);
     };
     element.addEventListener("focusin", enter);
-    element.addEventListener("pointerdown", enter);
+    element.addEventListener("pointerdown", pressed);
     element.addEventListener("focusout", leave);
     return () => {
       clearTimeout(timer);
       element.removeEventListener("focusin", enter);
-      element.removeEventListener("pointerdown", enter);
+      element.removeEventListener("pointerdown", pressed);
       element.removeEventListener("focusout", leave);
     };
   }, [box]);

@@ -386,3 +386,8 @@ test("a finished call's row says how long it ran: tenths under a second, then as
   const untimed = call("execute", "Bash", "ls", 0, { durationMs: undefined });
   expect(rowWords(untimed, true, 0).time).toBeUndefined();
 });
+
+test("a thought's row says how long it thought, from a second", () => {
+  expect(rowWords(thought(10_400), true, 0).time).toBe("10 s");
+  expect(rowWords(thought(400), true, 0).time).toBeUndefined();
+});

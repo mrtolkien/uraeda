@@ -184,14 +184,14 @@ function Message({
   );
 }
 
+/** A reply's widest, its text at the measure: inside its padding and border on wide screens. */
+const REPLY_MOST = `calc(${READING_MEASURE} + 2 * (${spacingVars["--spacing-4"]} + ${borderVars["--border-width"]}))`;
+
 /**
  * An agent's message, as markdown, with the stories it links and its offer card once it ended:
  * flat text across the page, with no bubble of its own, so a story shows in the width the page
  * has. `at` is its place in the session, `<turn>:<seq>`.
  */
-/** A reply's widest, its text at the measure: inside its padding and border on wide screens. */
-const REPLY_MOST = `calc(${READING_MEASURE} + 2 * (${spacingVars["--spacing-4"]} + ${borderVars["--border-width"]}))`;
-
 function AgentMessage({
   at,
   isReply,

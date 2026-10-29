@@ -42,8 +42,8 @@ const SUBAGENTS = "subagents";
 const CHANGES = "changes";
 
 const styles = stylex.create({
-  // The sheet's open panel takes the room under its title, and scrolls on its own: the title and
-  // its Close stay in view.
+  // The sheet's open panel, its title first, takes the sheet's room and scrolls on its own, its
+  // title with it: the sheet's Close alone stays in view.
   panel: {
     display: "flex",
     flexDirection: "column",
@@ -236,14 +236,14 @@ function openActivity() {
 }
 
 /**
- * On the phone, the column outside the page, in the bottom bar by their icons: Activity and Changes,
- * each opening the column's sheet at the Activity, Sub-agents while the column has them, opening it
- * there, and the plan's progress, opening the plan at its task. The sheet may open at each of
+ * On the phone, the column outside the page, in the bottom bar by their icons, after the jump to
+ * the latest: Activity and Changes, each opening its own sheet, Sub-agents while the column has
+ * them, and the plan's progress, opening the plan at its task. A sheet may open at each of
  * `panels`, as the address asks, as a reload or a width change does.
  */
 function PhoneParts({ folder, panels, session }: Of & { panels: ReadonlyArray<ColumnPanel> }) {
-  // Every panel opens the one sheet: its tabs switch within its history entry.
-  const sheets = Object.fromEntries(panels.map((panel) => [panel.key, SHEET]));
+  // Each sheet's history entry is named as its title is, so Close and Back leave none behind.
+  const sheets = Object.fromEntries(panels.map((panel) => [panel.key, panel.label]));
   const sheet = useSheetTab(sheets, true);
   const [open, setSheet] = sheet;
   const hasSubagents = panels.some((panel) => panel.key === SUBAGENTS);
