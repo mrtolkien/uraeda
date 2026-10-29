@@ -190,3 +190,28 @@ test("a declarer whose hints change keeps its place before the others", () => {
   );
   expect(hints()).toBe("j k move · ⏎ open · n p unanswered");
 });
+
+/** The shell's hints, as `LeaderKeys` and the column declare them, in an order of their own. */
+function ShellHints() {
+  useKeys(
+    [
+      { hint: "[ ]", keys: "[", label: "fold", run: () => {} },
+      { hint: "?", hintLabel: "keys", keys: "?", label: "Keyboard shortcuts…", run: () => {} },
+      { hint: "space", hintLabel: "menu", keys: "space r", label: "Switch", run: () => {} },
+    ],
+    "shell",
+  );
+  return null;
+}
+
+// The help-keybindings change: `?` comes right after the leader, whoever declared first.
+test("the key map's hint comes second, after the menu's and before the folds", () => {
+  render(
+    <KeysProvider>
+      <Hinting keys={[["j", "j k", "move"]]} />
+      <ShellHints />
+      <Line />
+    </KeysProvider>,
+  );
+  expect(hints()).toBe("space menu · ? keys · [ ] fold · j k move");
+});

@@ -49,6 +49,9 @@ export type Binding = {
 /** Who declares: a page or a list, whose hints show first, or the shell, whose hints follow. */
 export type Place = "page" | "shell";
 
+/** A binding and who declared it, as the key map lists it. */
+export type Placed = { binding: Binding; place: Place };
+
 /** A key that works, and what it does, as the status line shows it: "j k" "move". */
 export type StatusHint = {
   keys: string;
@@ -128,7 +131,7 @@ function assertGroupsNamed(bindings: ReadonlyArray<Binding>) {
 }
 
 /** The hints that come first in the status line, by their keys, in this order. */
-const FIRST_HINTS = ["space", "[ ]"];
+const FIRST_HINTS = ["space", "?", "[ ]"];
 
 /** A hint's place among the first hints, by its keys: past them for any other. */
 const rank = (keys: string) => {
@@ -142,14 +145,22 @@ export function createKeyStore(initialSingleKeys: boolean) {
   let singleKeys = initialSingleKeys;
   let hints: ReadonlyArray<Hint> = [];
 
-  /** Every declared binding, the page's first, each place in the order they were declared. */
-  const declared = () =>
+  /** Every declared binding with its place, the page's first, each in the order declared. */
+  const placed = (): Array<Placed> =>
     (["page", "shell"] as const).flatMap((place) =>
-      [...entries.values()].filter((entry) => entry.place === place).flatMap((e) => e.bindings),
+      [...entries.values()]
+        .filter((entry) => entry.place === place)
+        .flatMap((entry) => entry.bindings.map((binding) => ({ binding, place }))),
     );
 
-  /** The bindings that are on: with the switch off, not the single-key ones. */
-  const active = () => declared().filter((binding) => singleKeys || !isSingleKey(binding.keys));
+  /** Every declared binding, the page's first, each place in the order they were declared. */
+  const declared = () => placed().map(({ binding }) => binding);
+
+  /** Whether a binding is on: with the switch off, not a single-key one. */
+  const isOn = (binding: Binding) => singleKeys || !isSingleKey(binding.keys);
+
+  /** The bindings that are on. */
+  const active = () => declared().filter(isOn);
 
   /** Publishes the hints, to the readers only when their text changed. */
   const publish = () => {
@@ -168,8 +179,9 @@ export function createKeyStore(initialSingleKeys: boolean) {
       seen.add(id);
       return [{ ...hint, keys: hint.keys }];
     });
-    // The leader's hint, "space menu", is always the first, the way into every other key, and the
-    // sidebars' folds the second; the others keep their order after them.
+    // The leader's hint, "space menu", is always the first, the way into every other key, the key
+    // map's, "? keys", the second, and the sidebars' folds the third; the others keep their order
+    // after them.
     next.sort((a, b) => rank(a.keys) - rank(b.keys));
     if (JSON.stringify(next) !== JSON.stringify(hints)) {
       hints = next;
@@ -184,7 +196,9 @@ export function createKeyStore(initialSingleKeys: boolean) {
     /** Every binding, switch or not: the menu the Ctrl or Cmd+K chord opens walks its tree. */
     all: declared,
     getHints: () => hints,
+    /** Every binding with its place, switch or not: what the key map lists. */
     getSingleKeys: () => singleKeys,
+    listed: placed,
     /** The bindings of a one-token key that are on. */
     matching: (token: string) => active().filter((binding) => binding.keys === token),
     remove(id: string) {

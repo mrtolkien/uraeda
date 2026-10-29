@@ -14,6 +14,7 @@ asking the human for something it should not.
 | Read an item of a list for a while                 | The list beside its reader (the decisions)  | A dialog                               |
 | Go anywhere, find anything, start anything         | The leader menu, the `g` keys, a picker     | A page's own menu                      |
 | Choose one of many: a place, a target, a thing     | A picker                                    | A dropdown of the page                 |
+| Find which key does what, here                     | The key map, `?`                            | A help page, a list in the leader menu |
 | Confirm what cannot be undone                      | The shared confirmation                     | A second, page-made dialog             |
 | Take back what was just done                       | The undo toast, or `u`                      | A confirmation before each write       |
 | Answer one short question at a decision point      | A dialog with one field                     | A page                                 |
