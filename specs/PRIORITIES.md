@@ -8,8 +8,7 @@
 
 - [Amend the latest commit if the commit touches only workflow files (proposals/not](/specs/changes/2026-10-29-amend-latest/proposal.md)
 - [Add ? in status, after leader. It should show all shortcuts of the page and be s](/specs/changes/2026-10-29-help-keybindings/proposal.md)
-
-- [Phone bottom bars on more pages](proposals/phone-bottom-bars.md)
+- [Decisions needs to be understandable with no context. Often agents just read the decisions, they can't be expected to search for extra info in records.](/specs/2026-10-29-decisions-needs/proposal.md)
 
 - Amend the latest commit if the commit touches only workflow files (proposals/notes)
   - This will reduce noise in commits from small changes
@@ -17,12 +16,6 @@
   - It'll be an overlay that uses the glassy look, but also darkens the rest of the page for
     readability (modal-like)
   - If it's too different from other views or the contrast is bad, tell me
-- Decisions needs to be understandable with _no context_. Often agents just read the decisions, they
-  can't be expected to search for extra info in records.
-  - Many decisions are too specific and can't easily be validated by me
-  - Also the why is usually extremely verbose
-  - I want you to review decisions and the guidelines to create them, and make sure they are easy to
-    read, even with no context, and contain valuable information only
 
 - Performance pass: the UI feels sluggish
   - needs optimistic UI _everywhere_
@@ -30,17 +23,11 @@
   - ideally locally no page takes more than 100ms to load
   - Moving a draft to a feature takes upwards of 10s with many page changes and no clear feedback
 
-- Feature state pass
-  - [testing-communication] A stopped session marks the feature as "needing attention" even if
-    another session is running
-  - After approving a spec the feature stayed in "needs you" until I ran a full refresh
-  - Many, many issues with the "state" of a run: if a PR is up, it's "done" even if I restarted the
-    session
-    - If a session is running, it should always be visible in the sidebar/card/feature page
-    - Generally we need better handling of "corner cases" of feature state/session state
+- [Feature state pass](proposals/feature-state-pass/proposal.md)
 
 - Empty inbox
 
+- [Phone bottom bars on more pages](proposals/phone-bottom-bars.md)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Onboarding/docs in the UI
