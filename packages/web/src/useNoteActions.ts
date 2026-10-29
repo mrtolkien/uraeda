@@ -147,13 +147,34 @@ function useMovesOut(
     navigate(here("/priorities"), { select: moved ?? line.key });
   };
 
-  // A note goes into the file's What; a note with a note file, its text into the file's Notes,
-  // under the note's title, and its note file leaves. The server sends the file as written, at its
-  // path now: a single file becomes a folder for the note file's images.
-  const intoProposal = async (file: string, title: string) => {
-    const result = await run(() =>
-      fate.mutations.inbox.intoProposal({ input: { ...input, file }, view: ProposalFileView }),
-    );
+  return { toProposal, underProposal, ...useAddsIn(placed, input, run, left) };
+}
+
+/**
+ * The adds of a note into a proposal's file, as `useMovesOut` runs its moves: an existing proposal
+ * file, or the file a proposal without one gets for a note with a note file. Each, once written,
+ * opens the file.
+ */
+function useAddsIn(
+  placed: Placed,
+  input: { hash: string; note: string },
+  run: Run,
+  left: () => void,
+) {
+  const fate = useFateClient();
+  const toast = useUndoToast();
+  const here = useRepoPath();
+
+  /**
+   * Runs `call`, an add into the proposal file `file`, titled `title`, then shows its toast, whose
+   * Undo takes the add back from the file at its path now, and opens the file.
+   */
+  const landIn = async (
+    call: () => Promise<{ error?: unknown; result?: unknown }>,
+    file: string,
+    title: string,
+  ) => {
+    const result = await run(call);
     if (result.error) {
       return;
     }
@@ -171,7 +192,31 @@ function useMovesOut(
     navigate(here(`/edit/${path}`));
   };
 
-  return { intoProposal, toProposal, underProposal };
+  // A note goes into the file's What; a note with a note file, its text into the file's Notes,
+  // under the note's title, and its note file leaves. The server sends the file as written, at its
+  // path now: a single file becomes a folder for the note file's images.
+  const intoProposal = (file: string, title: string) =>
+    landIn(
+      () =>
+        fate.mutations.inbox.intoProposal({ input: { ...input, file }, view: ProposalFileView }),
+      file,
+      title,
+    );
+
+  // A note with a note file into a proposal without a file: the proposal gets its file first, which
+  // the server sends as written. Its Undo deletes that file and unlinks the line again.
+  const intoProposalLine = (line: UnderLine) =>
+    landIn(
+      async () =>
+        fate.mutations.inbox.intoProposalLine({
+          input: { ...input, prioritiesHash: await readPrioritiesHash(fate), proposal: line.id },
+          view: ProposalFileView,
+        }),
+      "",
+      line.text,
+    );
+
+  return { intoProposal, intoProposalLine };
 }
 
 /** Reads both files again once the note left the inbox, for the commit bar. */

@@ -1,8 +1,10 @@
 // `p` on a note of the inbox: one quick picker of where the note goes up to. First the priorities'
 // levels, Now, Next, and Later, where it becomes a proposal at the end; then every proposal, where
 // it becomes the proposal's last item, or for a proposal with a file, the end of the file's "What";
-// then the proposal files no proposal links. A note with a note file is offered no proposal to go
-// under, and goes into a file's "Notes", its note file's text under its title, the note file gone.
+// then the proposal files no proposal links. A note with a note file never goes under a proposal,
+// where nested, its file would no longer be found by its link: it goes into a file's "Notes", its
+// note file's text under its title, the note file gone, and a proposal without a file gets its
+// file first.
 // Each item's preview is the place it lands in, the note in it. A pick runs as the note's
 // actions run it (`useNoteActions`), with a toast and Undo, then opens the priorities with the
 // note's row selected, or the proposal file's page.
@@ -79,12 +81,61 @@ function filePreview(text: string, placed: Placed) {
 }
 
 /**
- * Whether the picker offers the proposal `proposal`: a note with a note file never goes under a
- * proposal, where nested, its file would no longer be found by its link; it goes into a proposal's
- * file.
+ * The proposal file a proposal without one gets for a note with a note file, as expanding it writes
+ * it: its text as its title and What, its items after it, then empty Why and Notes, the note's
+ * heading under Notes.
  */
-function isOffered(proposal: Proposal, placed: Placed) {
-  return placed.note.file === undefined || proposal.file !== undefined;
+function newFilePreview(proposal: Proposal, placed: Placed) {
+  const items = proposal.children.map((child) => `${"  ".repeat(child.depth - 1)}- ${child.text}`);
+  const what = [proposal.text, ...(items.length === 0 ? [] : ["", ...items])];
+  const text = [`# ${proposal.text}`, "", "## What", "", ...what, "", "## Why", "", "## Notes", ""];
+  return filePreview(text.join("\n"), placed);
+}
+
+/**
+ * The picker's item of `proposal`: its file, which `textOf` reads once the files are read; else the
+ * proposal to go under, or for a note with a note file, the file the proposal gets first.
+ */
+function proposalItem(
+  proposal: Proposal,
+  placed: Placed,
+  textOf: (path: string) => string | undefined,
+): PickerItem {
+  const file = proposal.file?.path;
+  // Its words, its links' text without their targets.
+  const title = plain(proposal.spans);
+  if (file !== undefined) {
+    const text = textOf(file);
+    const preview = text === undefined ? "Loading the proposal…" : filePreview(text, placed);
+    return {
+      icon: "uraeda:file-text",
+      id: `file:${file}`,
+      kind: "priorities",
+      path: "",
+      preview,
+      title,
+    };
+  }
+  if (placed.note.file !== undefined) {
+    const preview = newFilePreview(proposal, placed);
+    return {
+      icon: "uraeda:file-text",
+      id: `new:${proposal.key}`,
+      kind: "priorities",
+      path: "",
+      preview,
+      title,
+    };
+  }
+  const preview = linePreview(proposal, placed);
+  return {
+    icon: "uraeda:list",
+    id: `line:${proposal.key}`,
+    kind: "priorities",
+    path: "",
+    preview,
+    title,
+  };
 }
 
 /**
@@ -132,26 +183,7 @@ export function PromotePicker({
       ),
       title,
     })),
-    ...proposals
-      .filter((proposal) => isOffered(proposal, placed))
-      .map((proposal) => {
-        const file = proposal.file?.path;
-        const text = file === undefined ? undefined : textOf(file);
-        return {
-          icon: file === undefined ? ("uraeda:list" as const) : ("uraeda:file-text" as const),
-          id: file === undefined ? `line:${proposal.key}` : `file:${file}`,
-          kind: "priorities" as const,
-          path: "",
-          preview:
-            file === undefined
-              ? linePreview(proposal, placed)
-              : text === undefined
-                ? "Loading the proposal…"
-                : filePreview(text, placed),
-          // Its words, its links' text without their targets.
-          title: plain(proposal.spans),
-        };
-      }),
+    ...proposals.map((proposal) => proposalItem(proposal, placed, textOf)),
     ...(files ?? [])
       .filter((file) => !linked.has(file.path))
       .map((file) => ({
@@ -174,10 +206,11 @@ export function PromotePicker({
         const target = rest.join(":");
         if (kind === "level") {
           void actions.toProposal(target);
-        } else if (kind === "line") {
+        } else if (kind === "line" || kind === "new") {
           const proposal = proposals.find((one) => one.key === target);
           if (proposal) {
-            void actions.underProposal({ id: proposal.id, key: proposal.key, text: item.title });
+            const line = { id: proposal.id, key: proposal.key, text: item.title };
+            void (kind === "line" ? actions.underProposal(line) : actions.intoProposalLine(line));
           }
         } else {
           void actions.intoProposal(target, item.title);
