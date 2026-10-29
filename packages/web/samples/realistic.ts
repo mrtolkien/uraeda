@@ -2,10 +2,11 @@
 // full day's load rather than on one feature at each step. Two features wait for the human, both
 // Uraeda's own leader key, real files from `fixtures/`: on its round of questions, and on its spec;
 // two have an agent working (one writes the spec, one builds the plan, which the sandbox starts as it
-// starts: `sandbox/agent.ts`), three are done, and Now, Next, and Later hold five lines each, not
-// counting the four live features', which show apart as Ongoing (a feature waiting on the human is
-// one), some of them long, and an inbox of ten notes, three of them long, and one with a note file
-// holding a screenshot, and a proposal file that no line of the priorities links yet.
+// starts: `sandbox/agent.ts`), three are done, and Now and Next hold five lines each, not counting
+// the four live features', which show apart as Ongoing (a feature waiting on the human is one), and
+// Later six, one of them linking its proposal file, some of them long; and an inbox of ten notes,
+// three of them long, and one with a freeform note file holding a screenshot, which can be added
+// to the Notes of any proposal, its file made first for a line without one.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { commitsAt, fixture, git } from "uraeda-binding/test-utils";
@@ -63,6 +64,7 @@ const PRIORITIES = `# Priorities
 > Ideas for one day, and what waits on another line
 
 - Calendar sync with Google and Apple, both ways, so that a task dragged on the calendar moves its due date and an event moved in the calendar moves the task
+- [Shared lists](proposals/shared-lists.md)
 - Team workspaces
   - after sharing lists, with roles for who may edit, who may only comment, and who is only told when a task is done
 - Time tracking
@@ -94,25 +96,18 @@ const INBOX = `# Inbox
 /** The title of the inbox's note with a note file, and a screenshot in it. */
 const PICKER_NOTE = "The due date picker hides the task's title on a phone";
 
-/** That note's file, as an image added to a note writes it: the proposal's skeleton, and the link. */
-const PICKER_NOTE_FILE = `---
-discovery: high # low, medium, or high: how far the agent researches before asking
----
+/**
+ * That note's file, freeform, as an image added to a note writes it, the note as its title, then a
+ * line the human typed in, and the image's link at its end.
+ */
+const PICKER_NOTE_FILE = `# ${PICKER_NOTE}
 
-# ${PICKER_NOTE}
-
-## What
-
-${PICKER_NOTE}
+The picker opens over the top of the screen, so the task it sets a date for is hidden.
 
 ![due-date-picker](images/due-date-picker.webp)
-
-## Why
-
-## Notes
 `;
 
-/** A proposal file the priorities do not link yet: a note can be added to it from the inbox. */
+/** The proposal file of a line of Later: a note can be added to its Notes from the inbox. */
 const SHARED_LISTS = `---
 discovery: medium # low, medium, or high: how far the agent researches before asking
 ---
