@@ -186,6 +186,23 @@ export const inboxMutations = {
     },
     type: "ProposalFile",
   },
+  // A note with a note file into a line of the priorities without a file: the line gets its
+  // proposal file first. Answers with the new file as written.
+  "inbox.intoProposalLine": {
+    resolve: async ({ ctx, input, select }: Resolver<UnderProposalInput>) => {
+      const path = await refusable(() =>
+        ctx.binding.noteIntoProposalLine(
+          ctx.repo,
+          input.note,
+          input.proposal,
+          input.hash,
+          input.prioritiesHash,
+        ),
+      );
+      return proposalFile(ctx, await ctx.binding.readText(ctx.repo, path), select);
+    },
+    type: "ProposalFile",
+  },
   "inbox.outline": {
     resolve: async ({
       ctx,

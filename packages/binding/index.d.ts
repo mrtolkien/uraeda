@@ -243,6 +243,14 @@ export interface NoteImageRemoved {
  */
 export declare function noteIntoProposal(repo: string, id: string, proposal: string, previous: string): Promise<string>
 
+/**
+ * Adds a note with a note file to the proposal of `PRIORITIES.md` with the id `proposal`, like
+ * `later-2`, which has no file yet: the proposal gets its file, from the template, linked from its
+ * line, and the note file's text goes into its `## Notes`, over both lists as read. Returns the new
+ * proposal file's path.
+ */
+export declare function noteIntoProposalLine(repo: string, id: string, proposal: string, previous: string, prioritiesPrevious: string): Promise<string>
+
 /** Moves a note to the end of a section of the priorities, over both files as read. */
 export declare function noteToProposal(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<void>
 

@@ -244,8 +244,7 @@ test("a note with a note file goes into a proposal file's Notes, which becomes a
 
   expect(result.data.path).toBe("specs/proposals/git-listener/proposal.md");
   expect(result.data.text).toContain(
-    "## Notes\n\n### Headings are flat\n\n#### What\n\nHeadings are flat\n\n" +
-      "![spec-headings](images/spec-headings.webp)\n",
+    "## Notes\n\n### Headings are flat\n\n![spec-headings](images/spec-headings.webp)\n",
   );
   expect(existsSync(join(repo, "specs/proposals/git-listener/images/spec-headings.webp"))).toBe(
     true,
@@ -253,6 +252,60 @@ test("a note with a note file goes into a proposal file's Notes, which becomes a
   expect(existsSync(join(repo, "specs/notes/headings-are-flat"))).toBe(false);
   expect(read(repo, "specs/INBOX.md")).not.toContain("Headings are flat");
 });
+
+test("a note with a note file goes into a proposal line without a file, which gets its file first", async () => {
+  const repo = fixtureRepo();
+  const served = await testApp(repo);
+  const { hash } = await readInbox(served.app);
+  await noteImage(served, { category: "UI", hash, text: "Headings are flat" }, ["phone.png"]);
+  const inbox = await readInbox(served.app);
+  const [priorities] = await byId(served.app, "Priorities", ["priorities"], ["id", "hash"]);
+  const note = noteOf(inbox, "[Headings are flat](notes/headings-are-flat/note.md)");
+
+  const result = await mutate(
+    served.app,
+    "inbox.intoProposalLine",
+    { hash: inbox.hash, note: note.id, prioritiesHash: priorities.hash, proposal: "next-1" },
+    ["id", "path", "text"],
+  );
+
+  const path = "specs/proposals/claude-code-runner-triggered-manually/proposal.md";
+  expect(result.data.path).toBe(path);
+  expect(result.data.text).toContain(
+    "# Claude Code runner (triggered manually)\n\n## What\n\n" +
+      "Claude Code runner (triggered manually)\n\n## Why\n\n## Notes\n\n" +
+      "### Headings are flat\n\n![spec-headings](images/spec-headings.webp)\n",
+  );
+  expect(read(repo, "specs/PRIORITIES.md")).toContain(
+    "- [Claude Code runner (triggered manually)]" +
+      "(proposals/claude-code-runner-triggered-manually/proposal.md)\n",
+  );
+  expect(existsSync(join(repo, "specs/notes/headings-are-flat"))).toBe(false);
+
+  const undone = await mutate(
+    served.app,
+    "inbox.undoIntoProposal",
+    { category: "UI", file: path, index: noteIndex(inbox, note), lines: lines(note) },
+    INBOX,
+  );
+
+  expect(undone.ok).toBe(true);
+  expect(existsSync(join(repo, "specs/proposals/claude-code-runner-triggered-manually"))).toBe(
+    false,
+  );
+  expect(read(repo, "specs/PRIORITIES.md")).toContain(
+    "- Claude Code runner (triggered manually)\n",
+  );
+  expect(read(repo, "specs/notes/headings-are-flat/note.md")).toBe(
+    "# Headings are flat\n\n![spec-headings](images/spec-headings.webp)\n",
+  );
+});
+
+/** The index of `note` in its category of `inbox`. */
+const noteIndex = (inbox: Data, note: unknown) =>
+  inbox.categories
+    .find((category: { notes: Array<unknown> }) => category.notes.includes(note))
+    .notes.indexOf(note);
 
 /**
  * Posts a note with images to the repository's `/inbox/note-image`, as the add form does, or the
@@ -290,8 +343,9 @@ test("US6 2: adds a note with an image as a note file's folder, linked from the 
 
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ file: "specs/notes/headings-are-flat/note.md" });
-  expect(read(repo, "specs/notes/headings-are-flat/note.md")).toContain(
-    "Headings are flat\n\n![spec-headings](images/spec-headings.webp)\n",
+  // Freeform: the note as its title, then its image, and no template.
+  expect(read(repo, "specs/notes/headings-are-flat/note.md")).toBe(
+    "# Headings are flat\n\n![spec-headings](images/spec-headings.webp)\n",
   );
   expect(read(repo, "specs/INBOX.md")).toContain(
     "- [Headings are flat](notes/headings-are-flat/note.md)\n",

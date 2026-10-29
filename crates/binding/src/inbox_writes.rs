@@ -233,6 +233,29 @@ pub fn note_into_proposal(
     job(move || api::note_into_proposal(Path::new(&repo), &id, &proposal, &previous))
 }
 
+/// Adds a note with a note file to the proposal of `PRIORITIES.md` with the id `proposal`, like
+/// `later-2`, which has no file yet: the proposal gets its file, from the template, linked from its
+/// line, and the note file's text goes into its `## Notes`, over both lists as read. Returns the new
+/// proposal file's path.
+#[napi(ts_return_type = "Promise<string>")]
+pub fn note_into_proposal_line(
+    repo: String,
+    id: String,
+    proposal: String,
+    previous: String,
+    priorities_previous: String,
+) -> AsyncTask<Job<String>> {
+    job(move || {
+        api::note_into_proposal_line(
+            Path::new(&repo),
+            &id,
+            &proposal,
+            &previous,
+            &priorities_previous,
+        )
+    })
+}
+
 /// The images of a call, as the core takes them: each one's bytes, and its file name, `names` holding
 /// an empty one for a pasted image.
 fn note_images(images: Vec<Buffer>, names: Vec<String>) -> Vec<api::NoteImage> {
