@@ -5,6 +5,9 @@
 - Formatted markdown files look like shit in the multi line editor since there are line jumps a bit
   randomly...
 - `e` for expand, not p...
+- [amend-latest]
+  [Single-commands in sessions should also be ellipsed](notes/single-commands-in-sessions-should-also-be/note.md)
+- Adding a note was SUPER slow, not sure why. Like 1+ minute slow.
 
 ## Bugfix
 
