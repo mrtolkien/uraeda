@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Decisions understandable with no context
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 5 questions and 1 follow-up, about 20 minutes.
+> Answered on 2026-10-30.
 >
 > - Verdict: worth building, with changes: the skill already asks for intent and a short history,
 >   but nothing measures it. The ledger grew 45% in the ten days since the last rewrite.
@@ -98,7 +98,7 @@ review in its spec.
   - [pro] almost nothing to review now.
   - [con] decisions no feature touches keep their history and detail for good.
 
-**Answer:**
+**Answer:** A
 
 ### Q1.A: Does the rewrite also merge the decisions that overlap?
 
@@ -128,7 +128,7 @@ Why it matters: an agent reading one decision of a pair misses the other half of
   - [pro] each diff compares one decision with itself.
   - [con] the overlaps stay, and need a round of their own.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How specific may a decision's rule be?
 
@@ -171,7 +171,7 @@ each takes.
   - [pro] no change to the skill.
   - [con] the test that let this detail in stays as it is.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What does a decision's Why hold?
 
@@ -212,7 +212,7 @@ Why it matters: the **Why** is what an agent uses to apply a rule to a case the 
   - [pro] the shortest decisions.
   - [con] costs and reasons share three sentences, and some reasons will not fit.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: What do Alternatives considered and Consequences keep?
 
@@ -246,7 +246,7 @@ Why it matters: these two sections are where history and code detail accumulate,
   - [pro] nothing changes.
   - [con] they keep growing, as UI layout's did.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Does `ura check` measure a decision's length?
 
@@ -273,7 +273,7 @@ Why it matters: without a measure, the next edits regrow what the rewrite cuts.
   - [pro] no new rule.
   - [con] the review is the only guard, which held for ten days last time.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
