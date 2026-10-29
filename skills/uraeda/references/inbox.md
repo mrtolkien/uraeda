@@ -89,9 +89,7 @@ and add that title to a file without one.
   `--no-commit` leaves the file for you to commit. It refuses a blank note with "A note needs
   text.", and runs only in a repository with a `specs/` folder.
 - **In the web UI**: the ＋ next to Inbox in the sidebar, from any page. From a feature's or a
-  change's page, the note gets its slug. "Add and commit" commits the note alone, with
-  `chore: add "<note>" to the inbox`, unless `INBOX.md` had other changes; its Undo commits the
-  removal, `chore: remove "<note>" from the inbox`. "Add" leaves it for the commit bar's Commit.
+  change's page, the note gets its slug. "Add" leaves it uncommitted, for the commit page's Commit.
   "Add as a file" saves a note with images as a file that holds them, linked from the inbox: pick,
   paste, or drop as many as it needs.
 - **In the editor**: the plugin's "Add a note" action, which writes without committing.

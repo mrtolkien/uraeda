@@ -121,6 +121,22 @@ The bottom line of wide and semi-wide screens: the page's key hints and the coun
 human and what runs. It holds no content. It has a slot for a page's own controls, which only the
 phone's bar uses today.
 
+## A session
+
+- **The agent's reply is set apart**: a done turn's last text, after its last call, is a square card
+  on a raised surface; on the phone, a rule above and below it alone, its text at the screen's
+  width. The texts between its calls are context, in the secondary colour: "The in-turn responses
+  are interesting context but not actual info."
+- **The agent's text is at the reading measure**, about 80 characters a line, not the page's width.
+- **The human's sent messages** are on a faint blue, in their own font (Radon).
+- **Jump to the latest** goes to the start of the agent's last message, where its reply reads from;
+  while the session works, to its end, following it. On wide screens, a small arrow over the
+  composer's top; on the phone, the bottom bar's ↓ alone.
+- **An Activity row** is a head line, its kind's icon, a check or a cross, and how long it ran, over
+  what it acted on, across the row's whole width, three lines at most, cut in its middle around
+  `[...]`, which shows it whole. A divider sets steps apart. Opened, a row scrolls to its start.
+- **Changes** sits under the Activity on wide screens, resized from the rule between them.
+
 ## The bottom bar, on the phone
 
 The phone's version of the side column: one row of icon tiles in frosted glass, a page's companions

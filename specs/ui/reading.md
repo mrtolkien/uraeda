@@ -18,6 +18,17 @@ through `Prose`. If a sentence is meant to be read, it is in the reading font. T
 text edited as its markdown source, like a proposal file's in its editor, which is in the code font
 on purpose: its marks are what the human edits.
 
+## Fonts, by role
+
+Each role has its font, picked in Settings, Fonts, or with `Space u f` then the role's key, each
+font's name drawn in its own face: the UI, headings, prose, code and keys, and the human's sent
+messages in a session (`theme/fonts.ts`). By default the UI is Monaspace Neon, headings Xenon, code
+and keys Krypton, the human's messages Radon, and prose Atkinson Hyperlegible Next: "Make
+hyperlegible + monaspace fonts the default". `Space u f d` restores them, after a confirmation.
+Radon is for the human's sent bubbles alone: "use it _only_ for human text bubbles in the session
+view, after sending". Each font sets its own reading measure, so a line holds about 80 characters
+whatever font is picked. Lines are 1.4 high everywhere: "just do 1.4 everywhere".
+
 ## Line length
 
 - **The target is about 80 characters of prose a line**: "Let's target 80 characters per line

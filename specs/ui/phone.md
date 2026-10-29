@@ -31,7 +31,9 @@ What goes in it, in this order:
 1. **The page's companions, as its side column has them on wide screens**: Outline, Notes, and
    Session on a round; Contents, Comments (while a review waits), and Session on a spec or a plan;
    Activity, Changes, Sub-agents (while any run), and the plan's progress on a session. Each opens
-   its sheet; the open one's icon is in the accent.
+   its sheet; the open one's icon is in the accent. A session's bar starts with ↓, the jump to the
+   latest, dimmed at the end, so the other tiles never move; its Activity and Changes each open
+   their own sheet.
 2. **At its end, the one step that moves the human forward**: Next to the next blank question, or
    Verdict to the review's end. An icon in the accent, never a filled block, even when it is the
    step that finishes the page, like Submit once every question has an answer.
@@ -42,6 +44,19 @@ readers), a page's content, and anything the page already shows in reach.
 It slides away as the page scrolls down, out of the reading's way, and back as it scrolls up, at the
 page's top, and at its end. A jump of more than a screen, like a restored place, moves it neither
 way.
+
+## The composer
+
+A session's composer floats over the transcript on the glass of the bar under it, its box alone,
+nothing drawn around it, and it follows the bar down as the bar slides away. Empty and unfocused, it
+folds to one line, its field and Send; a tap opens it, its paperclip and actions on one line. Send
+is an icon, as the paperclip is, not a filled button.
+
+## The decisions page
+
+No pane: the list is the page, "Jump to…" and "Ask" (Review with AI) on one line. What is open is a
+page of its own, without a border, its bottom bar holding the list, back to the decisions, and on a
+decision the previous and the next one. The constitution, read top to bottom, has no steps.
 
 ## A row's actions
 
@@ -54,8 +69,9 @@ brings it back. It covers the bottom bar while it shows.
 - **Sheets, not dialogs**: pickers, short forms, confirmations, and the side column's tabs rise from
   the bottom as sheets, each in the address, so Back closes it. They are one sheet
   (`layout/Sheet.tsx`), whatever it holds: its title on top, a Close, in frosted glass ("make them
-  all 3 the same component"). It opens with the focus in its field, and a drag up on its top takes
-  it to the whole screen.
+  all 3 the same component"). A side column's sheet, the session's Activity or Changes, draws its
+  title in its content, which scrolls it away, and its Close alone stays. It opens with the focus in
+  its field, and a drag up on its top takes it to the whole screen.
 - **Menus and selectors are popovers**, as on wide screens, not sheets: a `…`'s actions, a sort, a
   category to choose ("Decision sort should just open a selector… It shouldn't be a sheet").
 - **Pages for anything read**: a proposal file, a session, a spec.
