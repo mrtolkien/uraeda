@@ -73,8 +73,8 @@ fn note_files(repo: &TestRepo) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// US6 2: the note file holds the note as its title and What, then the image; the inbox links the
-/// folder's proposal under UI; Commit holds the image with them.
+/// US6 2: the note file is freeform: the note as its title, then the image, and no template; the
+/// inbox links the folder's note file under UI; Commit holds the image with them.
 #[test]
 fn a_note_with_an_image_is_a_linked_note_file_committed_with_its_image() {
     let repo = fixture_repo();
@@ -82,13 +82,7 @@ fn a_note_with_an_image_is_a_linked_note_file_committed_with_its_image() {
     let path = add_with_image(&repo);
 
     assert_eq!(path, note_file());
-    assert!(
-        repo.read(&path).contains(&format!(
-            "# {NOTE}\n\n## What\n\n{NOTE}\n\n{LINK}\n\n## Why\n"
-        )),
-        "{}",
-        repo.read(&path)
-    );
+    assert_eq!(repo.read(&path), format!("# {NOTE}\n\n{LINK}\n"));
     assert!(repo.read(INBOX).contains(&format!(
         "- Text input feels laggy on the sessions page\n- [{NOTE}](notes/{SLUG}/note.md)\n\n## CLI"
     )));
@@ -218,9 +212,10 @@ fn discard_deletes_an_untouched_note_file_with_its_image() {
 fn discard_keeps_a_note_file_with_an_image_typed_in() {
     let repo = fixture_repo();
     let path = add_with_image(&repo);
-    let typed = repo
-        .read(&path)
-        .replace("## Why\n", "## Why\n\nIt reads flat.\n");
+    let typed = repo.read(&path).replace(
+        &format!("# {NOTE}\n"),
+        &format!("# {NOTE}\n\nIt reads flat.\n"),
+    );
     repo.write(&path, &typed);
 
     api::discard_changes(repo.path()).unwrap();
@@ -251,9 +246,10 @@ fn undo_takes_back_the_note_and_its_untouched_note_file() {
 fn undo_keeps_a_note_file_typed_in_and_is_refused_once_the_note_is_gone() {
     let repo = fixture_repo();
     let path = add_with_image(&repo);
-    let typed = repo
-        .read(&path)
-        .replace("## Why\n", "## Why\n\nIt reads flat.\n");
+    let typed = repo.read(&path).replace(
+        &format!("# {NOTE}\n"),
+        &format!("# {NOTE}\n\nIt reads flat.\n"),
+    );
     repo.write(&path, &typed);
     let lines = vec![format!("- [{NOTE}](notes/{SLUG}/note.md)")];
 
@@ -289,7 +285,9 @@ fn move_to_next(repo: &TestRepo) -> (Vec<String>, u32) {
 }
 
 /// US6 3: the note, moved to Next, links its file there, moved among the proposals, `note.md`
-/// becoming `proposal.md`, its image with it; the move's Undo moves the file back.
+/// becoming `proposal.md`, its image with it, and the freeform note file takes the proposal
+/// template's shape, the note's text as its What; the move's Undo moves the file back, freeform
+/// again.
 #[test]
 fn a_note_file_moves_to_the_proposals_with_its_note_and_back_on_undo() {
     let repo = fixture_repo();
@@ -304,7 +302,14 @@ fn a_note_file_moves_to_the_proposals_with_its_note_and_back_on_undo() {
         priorities.contains(&format!("- [{NOTE}](proposals/{SLUG}/proposal.md)\n")),
         "{priorities}"
     );
-    assert_eq!(repo.read(&moved), written);
+    let proposal = repo.read(&moved);
+    assert!(proposal.starts_with("---\ndiscovery: high"), "{proposal}");
+    assert!(
+        proposal.ends_with(&format!(
+            "---\n\n# {NOTE}\n\n## What\n\n{NOTE}\n\n{LINK}\n\n## Why\n\n## Notes\n"
+        )),
+        "{proposal}"
+    );
     assert!(repo.exists(&format!("specs/proposals/{SLUG}/images/spec-headings.webp")));
     assert!(!repo.exists(&format!("specs/notes/{SLUG}")));
 
@@ -451,7 +456,7 @@ fn a_typed_in_uncommitted_note_file_survives_its_notes_removal() {
     add_with_image(&repo);
     let typed = repo
         .read(&note_file())
-        .replace("## Why\n", "## Why\n\nMy eyes.\n");
+        .replace(&format!("# {NOTE}\n"), &format!("# {NOTE}\n\nMy eyes.\n"));
     repo.write(&note_file(), &typed);
     let (note, _) = noted(&repo);
     let hash = api::read_inbox(repo.path()).unwrap().hash;
@@ -603,12 +608,9 @@ fn an_image_on_a_note_makes_it_a_note_file_linked_in_place() {
         path,
         "specs/notes/opening-a-session-with-2-000-messages-takes-4-s/note.md"
     );
-    assert!(
-        repo.read(&path).contains(&format!(
-            "# {text}\n\n## What\n\n{text}\n\n![slow](images/slow.webp)\n"
-        )),
-        "{}",
-        repo.read(&path)
+    assert_eq!(
+        repo.read(&path),
+        format!("# {text}\n\n![slow](images/slow.webp)\n")
     );
     assert!(repo.read(INBOX).contains(&format!(
         "- [agent] [session-view] [{text}](notes/opening-a-session-with-2-000-messages-takes-4-s/note.md)\n- Text input feels laggy"
@@ -635,12 +637,9 @@ fn the_sub_items_of_a_note_go_into_its_note_file() {
     )
     .unwrap();
 
-    let file = repo.read(&path);
-    assert!(
-        file.contains(
-            "Slow lists\n\n- on the home page\n- and in the sidebar\n\n![list](images/list.webp)"
-        ),
-        "{file}"
+    assert_eq!(
+        repo.read(&path),
+        "# Slow lists\n\n- on the home page\n- and in the sidebar\n\n![list](images/list.webp)\n"
     );
     assert_eq!(
         repo.read(INBOX),
@@ -648,8 +647,46 @@ fn the_sub_items_of_a_note_go_into_its_note_file() {
     );
 }
 
-/// A note that links a single-file note file: the note file becomes a folder, the image's link goes
-/// at the end of its What, and the note's link follows the note file.
+/// A note that links a freeform single-file note file: the note file becomes a folder, the images'
+/// links go at its end, each its own paragraph, and the note's link follows the note file.
+#[test]
+fn an_image_on_a_note_with_a_freeform_note_file_goes_at_its_end() {
+    let repo = fixture_repo();
+    repo.write(INBOX, "# Inbox\n\n- [Slow lists](notes/slow-lists.md)\n");
+    repo.write(
+        "specs/notes/slow-lists.md",
+        "# Slow lists\n\nOn the home page.\n\n- and in the sidebar\n",
+    );
+    repo.commit("chore: link");
+    let id = note_id(&repo, "[Slow lists](notes/slow-lists.md)");
+    let inbox = api::read_inbox(repo.path()).unwrap();
+
+    let (_, path) = api::attach_note_images(
+        repo.path(),
+        &id,
+        &[
+            note_image("phone.png", "one.png"),
+            note_image("desktop.png", "two.png"),
+        ],
+        &inbox.hash,
+    )
+    .unwrap();
+
+    assert_eq!(path, "specs/notes/slow-lists/note.md");
+    assert_eq!(
+        repo.read(&path),
+        "# Slow lists\n\nOn the home page.\n\n- and in the sidebar\n\n\
+         ![one](images/one.webp)\n\n![two](images/two.webp)\n"
+    );
+    assert_eq!(
+        repo.read(INBOX),
+        "# Inbox\n\n- [Slow lists](notes/slow-lists/note.md)\n"
+    );
+}
+
+/// A note that links a single-file note file older tools wrote from the proposal template: the note
+/// file becomes a folder, the image's link goes at the end of its What, and the note's link follows
+/// the note file.
 #[test]
 fn an_image_on_a_note_with_a_note_file_goes_into_that_note_file() {
     let repo = fixture_repo();
@@ -781,7 +818,7 @@ fn a_committed_note_file_edited_since_survives_its_notes_removal_and_commit() {
     api::commit_changes(repo.path()).unwrap();
     let edited = repo
         .read(&note_file())
-        .replace("## Why\n", "## Why\n\nMy eyes.\n");
+        .replace(&format!("# {NOTE}\n"), &format!("# {NOTE}\n\nMy eyes.\n"));
     repo.write(&note_file(), &edited);
     let (note, _) = noted(&repo);
     let hash = api::read_inbox(repo.path()).unwrap().hash;
@@ -822,9 +859,8 @@ fn a_note_file_goes_into_the_notes_of_a_proposal_file_with_its_image() {
         assert!(!repo.exists(&format!("specs/notes/{SLUG}")));
         assert!(!repo.exists(LISTENER));
         assert!(
-            repo.read(&moved).ends_with(&format!(
-                "## Notes\n\n### {NOTE}\n\n#### What\n\n{NOTE}\n\n{LINK}\n"
-            )),
+            repo.read(&moved)
+                .ends_with(&format!("## Notes\n\n### {NOTE}\n\n{LINK}\n")),
             "{}",
             repo.read(&moved)
         );
@@ -915,4 +951,100 @@ fn a_note_with_a_file_removed_and_committed_is_named_by_its_title() {
         repo.subjects("main")[0],
         format!("chore: remove \"{NOTE}\" from the inbox")
     );
+}
+
+/// The note file of the note with an image as older tools wrote it, from the proposal template, the
+/// note as its title and What, then the image.
+fn template_shaped(repo: &TestRepo) {
+    repo.write(
+        &note_file(),
+        &format!(
+            "---\ndiscovery: high # low, medium, or high: how far the agent researches before \
+             asking\n---\n\n# {NOTE}\n\n## What\n\n{NOTE}\n\n{LINK}\n\n## Why\n\n## Notes\n"
+        ),
+    );
+}
+
+/// A note file older tools wrote from the proposal template still counts as what its note wrote:
+/// Undo, Discard, and the note's removal each take it away with its image.
+#[test]
+fn a_template_shaped_note_file_still_leaves_with_its_note() {
+    let undone = fixture_repo();
+    add_with_image(&undone);
+    template_shaped(&undone);
+    let lines = vec![format!("- [{NOTE}](notes/{SLUG}/note.md)")];
+    api::undo_note_as_file(undone.path(), &lines).unwrap();
+    assert!(!undone.exists(&format!("specs/notes/{SLUG}")));
+
+    let discarded = fixture_repo();
+    add_with_image(&discarded);
+    template_shaped(&discarded);
+    api::discard_changes(discarded.path()).unwrap();
+    assert!(!discarded.exists(&format!("specs/notes/{SLUG}")));
+    assert_eq!(discarded.porcelain(), "");
+
+    let removed = fixture_repo();
+    add_with_image(&removed);
+    template_shaped(&removed);
+    let (note, _) = noted(&removed);
+    let hash = api::read_inbox(removed.path()).unwrap().hash;
+    api::remove_note(removed.path(), &note.id, &hash).unwrap();
+    assert!(!removed.exists(&format!("specs/notes/{SLUG}")));
+}
+
+/// A note file older tools wrote from the proposal template is a proposal's shape already: moved to
+/// the priorities with its note, it is moved as it is, and back as it was on Undo.
+#[test]
+fn a_template_shaped_note_file_moves_to_the_proposals_as_it_is() {
+    let repo = fixture_repo();
+    add_with_image(&repo);
+    template_shaped(&repo);
+    let written = repo.read(&note_file());
+
+    let (lines, index) = move_to_next(&repo);
+
+    assert_eq!(
+        repo.read(&format!("specs/proposals/{SLUG}/proposal.md")),
+        written
+    );
+
+    api::undo_note_to_proposal(repo.path(), &lines, Some("UI".into()), index, "next", None)
+        .unwrap();
+
+    assert!(repo.exists(&note_file()));
+}
+
+/// A note file promoted to a proposal and edited there stays as the human left it when the move is
+/// undone: only a proposal file still as the move made it becomes freeform again.
+#[test]
+fn a_promoted_note_file_edited_since_goes_back_as_it_is() {
+    let repo = fixture_repo();
+    add_with_image(&repo);
+    let (lines, index) = move_to_next(&repo);
+    let moved = format!("specs/proposals/{SLUG}/proposal.md");
+    let edited = repo
+        .read(&moved)
+        .replace("## Why\n", "## Why\n\nMy eyes.\n");
+    repo.write(&moved, &edited);
+
+    api::undo_note_to_proposal(repo.path(), &lines, Some("UI".into()), index, "next", None)
+        .unwrap();
+
+    assert_eq!(repo.read(&note_file()), edited);
+}
+
+/// Discard takes back a committed note file's promotion: the note file goes back among the notes,
+/// freeform, as committed, and nothing is left to commit.
+#[test]
+fn discard_takes_back_a_promoted_note_file_freeform() {
+    let repo = fixture_repo();
+    add_with_image(&repo);
+    api::commit_changes(repo.path()).unwrap();
+    let written = repo.read(&note_file());
+    move_to_next(&repo);
+
+    api::discard_changes(repo.path()).unwrap();
+
+    assert_eq!(repo.read(&note_file()), written);
+    assert_eq!(repo.porcelain(), "");
 }

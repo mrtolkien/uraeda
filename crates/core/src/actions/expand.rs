@@ -159,6 +159,60 @@ pub fn write_new(
     Ok(())
 }
 
+/// The text of the note file `note`, freeform, as a proposal file's, as the workflow reads a
+/// proposal's `## What`: the template with the note's `#` title, or `title` when its first line is
+/// none, as its title and the first paragraph of What, and the rest of the note after it, as
+/// [`proposal`] writes a note's line and nested lines. `None` for a note file with a `## What`
+/// already, as older tools wrote them from the template, or without the template.
+pub(crate) fn note_as_proposal(note: &str, title: &str) -> Option<String> {
+    if crate::files::proposal::has_what(note) {
+        return None;
+    }
+    let shaped = crate::files::with_unix_newlines(note, |note| {
+        let (first, rest) = note.split_once('\n').unwrap_or((note, ""));
+        let (title, body) = match first.strip_prefix("# ") {
+            Some(own) => (own.trim(), rest),
+            None => (title, note),
+        };
+        let body = body.trim_matches('\n');
+        let nested = if body.is_empty() {
+            Vec::new()
+        } else {
+            vec![body.to_string()]
+        };
+        Some(proposal(title, &nested))
+            .filter(|shaped| !shaped.is_empty())
+            .ok_or(())
+    });
+    shaped.ok()
+}
+
+/// The note file a proposal file [`note_as_proposal`] made was, while it is still exactly that,
+/// as the Undo of a note's promotion takes it back. `None` once the human changed it: it stays a
+/// proposal's text, which a note file may hold too.
+pub(crate) fn proposal_as_note(text: &str) -> Option<String> {
+    const MARK: &str = "\u{1}note";
+    let note = crate::files::with_unix_newlines(text, |text| {
+        let title = text
+            .lines()
+            .find_map(|line| line.strip_prefix("# "))
+            .ok_or(())?
+            .trim();
+        if proposal(title, &[]) == text {
+            return Ok::<_, ()>(format!("# {title}\n"));
+        }
+        let marked = proposal(title, &[MARK.to_string()]);
+        let (head, tail) = marked.split_once(MARK).ok_or(())?;
+        let body = text
+            .strip_prefix(head)
+            .and_then(|rest| rest.strip_suffix(tail))
+            .ok_or(())?;
+        Ok(format!("# {title}\n\n{body}\n"))
+    })
+    .ok()?;
+    (note_as_proposal(&note, "").as_deref() == Some(text)).then_some(note)
+}
+
 /// The proposal template with `line` as its title and as the paragraph of What, and no other
 /// placeholder: each section keeps its heading, empty. `nested` lines follow the paragraph.
 pub(crate) fn proposal(line: &str, nested: &[String]) -> String {
@@ -181,32 +235,64 @@ pub(crate) fn proposal(line: &str, nested: &[String]) -> String {
     paragraphs.join("\n\n") + "\n"
 }
 
-/// What a proposal file or a note file at `path` made from a note of `INBOX.md` or a proposal of
-/// `PRIORITIES.md` holds: the [`proposal`] of its line and nested lines, their relative links
-/// rebased from `specs/` to the file's folder, so they point at the same files.
-pub(crate) fn from_note(path: &str, line: &str, nested: &[String]) -> String {
-    let folder = path.rsplit_once('/').map_or("", |(folder, _)| folder);
-    crate::files::retarget::rebase(&proposal(line, nested), INBOX_FOLDER, folder)
+/// A note file's text, freeform: the note's `line` as its `#` title, then its `nested` lines, and
+/// nothing else.
+pub(crate) fn note(line: &str, nested: &[String]) -> String {
+    if nested.is_empty() {
+        return format!("# {line}\n");
+    }
+    format!("# {line}\n\n{}\n", nested.join("\n"))
 }
 
-/// Deletes the proposal file or note file at `path` while it holds what a move wrote, `written`,
-/// with at most a note's images added at the end of its What: with it go its whole `images/`,
+/// `text`, written from `specs/`, its relative links rebased to the folder of `path`, so they
+/// point at the same files.
+fn rebased(path: &str, text: &str) -> String {
+    let folder = path.rsplit_once('/').map_or("", |(folder, _)| folder);
+    crate::files::retarget::rebase(text, INBOX_FOLDER, folder)
+}
+
+/// What a file at `path` made from a note of `INBOX.md` or a proposal of `PRIORITIES.md` holds,
+/// its relative links rebased from `specs/` to the file's folder: for a note file, under
+/// `specs/notes/`, the [`note`] of its line and nested lines; for a proposal file, their
+/// [`proposal`].
+pub(crate) fn from_note(path: &str, line: &str, nested: &[String]) -> String {
+    if crate::target::is_note_file(path) {
+        rebased(path, &note(line, nested))
+    } else {
+        rebased(path, &proposal(line, nested))
+    }
+}
+
+/// What a tool may have written at `path` for a note or a proposal titled `line`, with its
+/// `nested` lines: [`from_note`]'s text, and for a note file, the proposal template older tools
+/// wrote note files from.
+pub(crate) fn written_shapes(path: &str, line: &str, nested: &[String]) -> Vec<String> {
+    let mut shapes = vec![from_note(path, line, nested)];
+    if crate::target::is_note_file(path) {
+        shapes.push(rebased(path, &proposal(line, nested)));
+    }
+    shapes
+}
+
+/// Deletes the proposal file or note file at `path` while it holds what a move wrote, one of
+/// `written`, with at most a note's images added at its end: with it go its whole `images/`,
 /// which only the move filled, as an image attached since would have changed the text, then its
 /// folder once empty. A file typed in is kept. Returns whether it was deleted.
 pub(crate) fn remove_written(
     place: &Place,
     path: &str,
-    written: &str,
+    written: &[String],
 ) -> Result<bool, ActionError> {
     let file = place.root.join(path);
     let Ok(text) = fs::read_to_string(&file) else {
         return Ok(false);
     };
-    if !crate::files::proposal::holds_written(&text, written) {
-        return Ok(false);
-    }
     let folder = super::images::folder_of(path);
-    if folder.is_none() && text != written {
+    let holds = |written: &String| match folder {
+        Some(_) => crate::files::proposal::holds_written(&text, written),
+        None => text == *written,
+    };
+    if !written.iter().any(holds) {
         return Ok(false);
     }
     fs::remove_file(&file)?;

@@ -268,6 +268,12 @@ fn note_subsections(text: &str) -> Vec<(String, usize, usize)> {
         .collect()
 }
 
+/// Whether a text has a `## What` section: a proposal's, or a note file older tools wrote from the
+/// proposal template.
+pub fn has_what(text: &str) -> bool {
+    what_section(&text.replace("\r\n", "\n")).is_some()
+}
+
 /// Whether a proposal file's text has a `## Notes` section.
 pub fn has_notes(text: &str) -> bool {
     section(&text.replace("\r\n", "\n"), "Notes").is_some()
@@ -383,8 +389,32 @@ pub fn image_file(line: &str) -> Option<&str> {
     plain.then_some(name)
 }
 
-/// Whether a proposal file a move wrote as `written` holds it still, with at most lines of images
-/// added at the end of its `## What`, as a note's image adds them: the human typed nothing in it.
+/// The text with the images' `links` at its end, each its own paragraph: at the end of its
+/// `## What`, as the proposal template and the note files older tools wrote have one, else at the
+/// end of the text, as a note file is freeform.
+pub fn with_images(text: &str, links: &[String]) -> String {
+    let Some(first) = links.first() else {
+        return text.to_string();
+    };
+    // One blank line before each: right after a list item, a link would read as part of the item.
+    let stacked: Vec<String> = links
+        .iter()
+        .flat_map(|link| [String::new(), link.clone()])
+        .collect();
+    if let Some(edited) = append_to_what(text, &stacked) {
+        // After a paragraph, the What's own blank line and the first link's run together.
+        return edited.replacen(&format!("\n\n\n{first}"), &format!("\n\n{first}"), 1);
+    }
+    super::with_unix_newlines(text, |text| {
+        let links: String = links.iter().map(|link| format!("\n\n{link}")).collect();
+        Ok::<_, ()>(format!("{}{links}\n", text.trim_end_matches('\n')))
+    })
+    .unwrap_or_else(|()| text.to_string())
+}
+
+/// Whether a proposal file or a note file a move wrote as `written` holds it still, with at most
+/// lines of images added at its end, as [`with_images`] adds a note's: the human typed nothing in
+/// it.
 pub fn holds_written(text: &str, written: &str) -> bool {
     let images: Vec<String> = text
         .lines()
@@ -394,7 +424,7 @@ pub fn holds_written(text: &str, written: &str) -> bool {
     if images.is_empty() {
         return text == written;
     }
-    append_to_what(written, &images).is_some_and(|expected| expected == text)
+    with_images(written, &images) == text
 }
 
 #[cfg(test)]

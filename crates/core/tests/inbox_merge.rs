@@ -116,7 +116,7 @@ fn a_folder_note_with_an_image_goes_into_a_new_notes_section_and_undo_puts_it_ba
     assert_eq!(
         repo.read(LOOK),
         format!(
-            "{LOOK_TEXT}\n## Notes\n\n### Dark mode\n\n#### What\n\nDark mode\n\n\
+            "{LOOK_TEXT}\n## Notes\n\n### Dark mode\n\n\
              ![phone](images/phone.webp)\n"
         )
     );
@@ -198,8 +198,8 @@ fn a_note_with_an_image_makes_a_single_proposal_file_a_folder_and_undo_takes_it_
     assert!(!repo.exists(LISTENER));
     assert!(
         repo.read(folder).ends_with(
-            "So agents start without me.\n\n## Notes\n\n### Dark mode\n\n#### What\n\n\
-             Dark mode\n\n![phone](images/phone.webp)\n"
+            "So agents start without me.\n\n## Notes\n\n### Dark mode\n\n\
+             ![phone](images/phone.webp)\n"
         ),
         "{}",
         repo.read(folder)

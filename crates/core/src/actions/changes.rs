@@ -410,7 +410,7 @@ pub fn discard(place: &Place) -> Result<(), ActionError> {
                 let Some(written) = place::committed(place, &old) else {
                     continue;
                 };
-                if super::expand::remove_written(place, &path, &written)? {
+                if super::expand::remove_written(place, &path, &[written])? {
                     git.restore(&old)?;
                 } else {
                     super::attach::retarget(place, &old, &path)?;

@@ -20,7 +20,7 @@ use super::{Marks, PATH, checked_note, current, no_note};
 pub type NoteImage = (Encoded, Option<String>);
 
 /// Adds a note as a new note file's folder, `specs/notes/<slug>/note.md` or the next free name,
-/// over the inbox read at `previous`: the file holds the note as its title and What, then the
+/// over the inbox read at `previous`: the file, freeform, holds the note as its title, then the
 /// images' links in order; the images are in its `images/`; and the note links the file at the end
 /// of its category. A failed write takes back what was written. Returns the note file's path.
 pub fn add_with_image(
@@ -42,7 +42,7 @@ pub fn add_with_image(
 
 /// Adds images to a note of the inbox, over the inbox read at `previous`, and returns the note file
 /// that holds them, from the top level. A note with a note file has its images in that file, linked
-/// at the end of its What. Another note gets a note file's folder holding its text, its sub-items,
+/// at its end. Another note gets a note file's folder holding its text, its sub-items,
 /// and the images, and links it from its own place, its marks kept. A failed write takes back the
 /// file it made.
 pub fn attach_to_note(
@@ -93,7 +93,8 @@ fn new_note_file(
 }
 
 /// Adds `images` to the note file at `path`, a folder's `note.md` or a single file that becomes a
-/// folder, linked at the end of its What. Returns the file's path once it is a folder's.
+/// folder, linked at its end, or at the end of its What for one older tools wrote from the proposal
+/// template. Returns the file's path once it is a folder's.
 fn into_file(place: &Place, path: &str, images: &[NoteImage]) -> Result<String, ActionError> {
     let mut path = path.to_string();
     let mut links = Vec::new();
@@ -105,31 +106,12 @@ fn into_file(place: &Place, path: &str, images: &[NoteImage]) -> Result<String, 
         links.push(attached.link);
     }
     let text = fs::read_to_string(place.root.join(&path))?;
-    let edited = with_links(&text, links)
-        .ok_or_else(|| ActionError::Refused(format!("{path} has no ## What section")))?;
-    fs::write(place.root.join(&path), edited)?;
+    fs::write(place.root.join(&path), proposal::with_images(&text, &links))?;
     Ok(path)
 }
 
-/// The links as paragraphs, one image each, the first after a blank line: right after a list item,
-/// it would read as part of the item.
-fn stacked(links: Vec<String>) -> Vec<String> {
-    links
-        .into_iter()
-        .flat_map(|link| [String::new(), link])
-        .collect()
-}
-
-/// The text of `what` with the images' `links` at the end of its What, set off from what comes
-/// before them by one blank line, whether that is a paragraph or a list.
-fn with_links(what: &str, links: Vec<String>) -> Option<String> {
-    let first = links.first()?.clone();
-    let edited = proposal::append_to_what(what, &stacked(links))?;
-    Some(edited.replacen(&format!("\n\n\n{first}"), &format!("\n\n{first}"), 1))
-}
-
-/// Writes the note file at `path` in its new `folder`: the images first, then the file, with the
-/// note's `nested` lines, and the images' links at the end of its What.
+/// Writes the note file at `path` in its new `folder`: the images first, then the file, freeform,
+/// the note as its title, its `nested` lines, and the images' links at its end.
 fn write_note_file(
     place: &Place,
     folder: &str,
@@ -148,8 +130,7 @@ fn write_note_file(
             crate::today::stamp,
         )?);
     }
-    let text = with_links(&expand::from_note(path, title, nested), links)
-        .ok_or_else(|| ActionError::Refused("no proposal template".to_string()))?;
+    let text = proposal::with_images(&expand::from_note(path, title, nested), &links);
     fs::write(place.root.join(path), text)?;
     Ok(())
 }

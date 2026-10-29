@@ -85,12 +85,15 @@ pub(super) fn relocate(place: &Place, from: &str, to: &str) -> Result<(), Action
 }
 
 /// Moves the note file at `path`, from the top level, among the proposals, under a free name: its
-/// folder with its images, `note.md` becoming `proposal.md`, or its single file. Returns the
+/// folder with its images, `note.md` becoming `proposal.md`, or its single file. A freeform note
+/// file, titled `title` when its first line is no `#` title, takes the proposal template's shape,
+/// as the workflow reads a proposal's `## What` (see [`expand::note_as_proposal`]). Returns the
 /// proposal file's path.
-pub(super) fn to_proposals(place: &Place, path: &str) -> Result<String, ActionError> {
+pub(super) fn to_proposals(place: &Place, path: &str, title: &str) -> Result<String, ActionError> {
     if !place.root.join(path).is_file() {
         return Err(ActionError::Refused(format!("no note file {path}")));
     }
+    let text = fs::read_to_string(place.root.join(path))?;
     let name = expand::free_name(place, PROPOSALS, stem(unit(path)));
     fs::create_dir_all(place.root.join(PROPOSALS))?;
     let to = match folder_of(path) {
@@ -98,20 +101,36 @@ pub(super) fn to_proposals(place: &Place, path: &str) -> Result<String, ActionEr
         None => format!("{PROPOSALS}/{name}.md"),
     };
     relocate(place, path, &to)?;
+    if let Some(shaped) = expand::note_as_proposal(&text, title)
+        && let Err(error) = fs::write(place.root.join(&to), shaped)
+    {
+        let _ = relocate(place, &to, path);
+        return Err(error.into());
+    }
     Ok(to)
 }
 
 /// Moves the proposal file at `proposal` back to the note file it was, `note`, both from the top
-/// level: the Undo of [`to_proposals`]. Refused when the proposal file is gone, or a file stands at
-/// the note file's place.
+/// level: the Undo of [`to_proposals`], freeform again while it holds what the move made of it.
+/// Refused when the proposal file is gone, or a file stands at the note file's place.
 pub(crate) fn back_to_notes(place: &Place, proposal: &str, note: &str) -> Result<(), ActionError> {
-    if !place.root.join(proposal).is_file() {
+    let Ok(text) = fs::read_to_string(place.root.join(proposal)) else {
         return Err(ActionError::Refused(format!(
             "Could not undo: {} is no longer in specs/proposals/.",
             base(unit(proposal))
         )));
+    };
+    // A note file committed in the proposal's shape, as older tools wrote them, stays so.
+    let freeform = expand::proposal_as_note(&text)
+        .filter(|_| super::super::place::committed(place, note).as_deref() != Some(text.as_str()));
+    relocate(place, proposal, note)?;
+    if let Some(freeform) = freeform
+        && let Err(error) = fs::write(place.root.join(note), freeform)
+    {
+        let _ = relocate(place, note, proposal);
+        return Err(error.into());
     }
-    relocate(place, proposal, note)
+    Ok(())
 }
 
 /// A file's path from the top level, and its bytes.
@@ -245,13 +264,16 @@ fn as_written(place: &Place, path: &str, title: &str) -> bool {
     let Ok(text) = fs::read_to_string(place.root.join(path)) else {
         return false;
     };
-    let written = expand::from_note(path, title, &[]);
-    if !crate::files::proposal::holds_written(&text, &written) {
+    let shapes = expand::written_shapes(path, title, &[]);
+    let Some(folder) = folder_of(path) else {
+        return shapes.contains(&text);
+    };
+    if !shapes
+        .iter()
+        .any(|written| crate::files::proposal::holds_written(&text, written))
+    {
         return false;
     }
-    let Some(folder) = folder_of(path) else {
-        return text == written;
-    };
     fs::read_dir(place.root.join(folder))
         .into_iter()
         .flatten()

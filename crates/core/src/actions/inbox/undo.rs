@@ -182,7 +182,7 @@ pub fn undo_as_file(place: &Place, lines: &[String]) -> Result<(), ActionError> 
     if let (Some(path), Some(title)) = (linked, title)
         && place::committed(place, &path).is_none()
     {
-        expand::remove_written(place, &path, &expand::from_note(&path, &title, &[]))?;
+        expand::remove_written(place, &path, &expand::written_shapes(&path, &title, &[]))?;
     }
     Ok(())
 }

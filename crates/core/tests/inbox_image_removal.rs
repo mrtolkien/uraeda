@@ -81,7 +81,7 @@ fn an_image_leaves_its_note_and_comes_back_on_undo() {
 
 /// The last image leaves no blank line where it was.
 #[test]
-fn the_last_image_leaves_the_what_as_it_was_written() {
+fn the_last_image_leaves_the_note_file_as_it_was_written() {
     let repo = repo();
     with_two_images(&repo);
     let text = repo.read(NOTE_FILE);
@@ -91,7 +91,7 @@ fn the_last_image_leaves_the_what_as_it_was_written() {
     let (inbox, _) = api::remove_note_image(repo.path(), NOTE_FILE, SECOND, &hash(&text)).unwrap();
 
     let text = repo.read(NOTE_FILE);
-    assert!(text.contains(&format!("{NOTE}\n\n## Why")), "{text}");
+    assert_eq!(text, format!("# {NOTE}\n"));
     assert!(images(&inbox).is_empty());
 }
 
@@ -135,17 +135,13 @@ fn undo_keeps_other_edits_and_refuses_a_changed_place() {
     with_two_images(&repo);
     let text = repo.read(NOTE_FILE);
     let (_, removed) = api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&text)).unwrap();
-    let edited = repo
-        .read(NOTE_FILE)
-        .replace("## Why\n", "## Why\n\nTyped meanwhile.\n");
+    // Typed after the images, at the end of the freeform note file.
+    let edited = format!("{}\nTyped meanwhile.\n", repo.read(NOTE_FILE));
     repo.write(NOTE_FILE, &edited);
 
     api::restore_note_image(repo.path(), &removed).unwrap();
 
-    assert_eq!(
-        repo.read(NOTE_FILE),
-        text.replace("## Why\n", "## Why\n\nTyped meanwhile.\n")
-    );
+    assert_eq!(repo.read(NOTE_FILE), format!("{text}\nTyped meanwhile.\n"));
 
     let error = api::restore_note_image(repo.path(), &removed).unwrap_err();
     assert_eq!(error.code, "refused");
@@ -153,9 +149,10 @@ fn undo_keeps_other_edits_and_refuses_a_changed_place() {
     let (_, removed) =
         api::remove_note_image(repo.path(), NOTE_FILE, FIRST, &hash(&repo.read(NOTE_FILE)))
             .unwrap();
-    let moved = repo
-        .read(NOTE_FILE)
-        .replace("## What\n", "## What\n\nA paragraph above.\n");
+    let moved = repo.read(NOTE_FILE).replace(
+        &format!("# {NOTE}\n"),
+        &format!("# {NOTE}\n\nA paragraph above.\n"),
+    );
     repo.write(NOTE_FILE, &moved);
 
     let error = api::restore_note_image(repo.path(), &removed).unwrap_err();

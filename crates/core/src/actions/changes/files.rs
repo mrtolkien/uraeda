@@ -18,7 +18,7 @@ use super::{Texts, versions};
 /// loses the human's text.
 pub(super) enum Undo {
     /// A file a move wrote and nobody committed: deleted while it holds what the move wrote.
-    Created { path: String, written: String },
+    Created { path: String, written: Vec<String> },
     /// A proposal file a note was added to: the note's item, by its markdown, taken out again.
     Grown { path: String, markdown: String },
     /// A proposal file a note's note file went into: the `## Notes` subsection titled `title`, the
@@ -168,12 +168,12 @@ pub(super) struct Found {
 
 impl Found {
     /// Holds the file `link` in the commit when it changed; when no commit has it, Discard deletes
-    /// it while it holds what the move wrote at its path, `written`.
+    /// it while it holds what the move wrote at its path, one of `written`.
     pub(super) fn linked(
         &mut self,
         place: &Place,
         link: Option<&str>,
-        written: impl FnOnce(&str) -> Option<String>,
+        written: impl FnOnce(&str) -> Option<Vec<String>>,
     ) {
         let Some((path, committed)) = link.and_then(|link| uncommitted_file(place, link)) else {
             return;
@@ -259,18 +259,19 @@ pub(super) fn linked_by(place: &Place, paths: &[String]) -> Vec<String> {
 
 /// What a file at `path` made from the note of the text `text` in `inbox`, not a link, held when a
 /// move wrote it.
-pub(super) fn written_from(inbox: &str, text: &str, path: &str) -> Option<String> {
+pub(super) fn written_from(inbox: &str, text: &str, path: &str) -> Option<Vec<String>> {
     let note = inbox::parse(inbox)
         .into_iter()
         .find(|note| note.text == text && note.file().is_none())?;
     let (title, nested) = inbox::note_file_parts(inbox, &note.id)?;
-    Some(expand::from_note(path, &title, &nested))
+    Some(expand::written_shapes(path, &title, &nested))
 }
 
 /// What the note file at `path` a note added as a file links held when it was written: its link's
-/// text.
-pub(super) fn written_for_link(inbox: &str, id: &str, path: &str) -> Option<String> {
-    Some(expand::from_note(path, &inbox::link_title(inbox, id)?, &[]))
+/// text, freeform, or in the proposal template's shape older tools wrote.
+pub(super) fn written_for_link(inbox: &str, id: &str, path: &str) -> Option<Vec<String>> {
+    let title = inbox::link_title(inbox, id)?;
+    Some(expand::written_shapes(path, &title, &[]))
 }
 
 /// The links of the lists' texts to proposal files and note files, each with the markdown of its
@@ -328,33 +329,87 @@ pub(super) fn never_committed(place: &Place, texts: &Texts, found: &mut Found) {
             }
             continue;
         }
-        if found.paths.contains(&path) {
-            continue;
-        }
+        let listed = found.paths.contains(&path);
+        // A file listed already is another change's, unless a note went into its `## Notes`.
+        let merged = |undo: &Undo| matches!(undo, Undo::Merged { path: p, .. } if *p == path);
         if let Some(title) = title.filter(|_| !then.iter().any(|(was, _)| *was == path))
-            && let Some(written) = written_by_move(place, &path, &title)
+            && (!listed || found.undo.iter().any(merged))
         {
-            found.undo.push(Undo::Created {
-                path: path.clone(),
-                written,
-            });
+            created(place, found, &path, &title);
         }
-        found.paths.push(path);
+        if !listed {
+            found.paths.push(path);
+        }
     }
+}
+
+/// Has Discard delete the file at `path`, linked since the last commit by a line or a note titled
+/// `title`, while it holds what a tool wrote for it once the notes Discard takes out of its
+/// `## Notes` are out: a proposal file expanded for a note to go into, its template's `## Notes`
+/// then kept for it.
+fn created(place: &Place, found: &mut Found, path: &str, title: &str) {
+    let has_created = |undo: &Undo| matches!(undo, Undo::Created { path: p, .. } if p == path);
+    if found.undo.iter().any(has_created) {
+        return;
+    }
+    let Ok(mut text) = fs::read_to_string(place.root.join(path)) else {
+        return;
+    };
+    let mut merged = false;
+    for undo in &found.undo {
+        if let Undo::Merged { path: p, title, .. } = undo
+            && p == path
+            && let Some((without, _)) = proposal::without_note(&text, title, false)
+        {
+            text = without;
+            merged = true;
+        }
+    }
+    let Some(written) = written_by_move(path, title, &text) else {
+        return;
+    };
+    if merged {
+        for undo in &mut found.undo {
+            if let Undo::Merged {
+                path: p,
+                drop_notes,
+                ..
+            } = undo
+                && p == path
+            {
+                *drop_notes = false;
+            }
+        }
+    }
+    found.undo.push(Undo::Created {
+        path: path.to_string(),
+        written,
+    });
 }
 
 /// What a move wrote in the file at `path` titled `title`, read from the file itself: the lines
 /// between its title line and its next section are the proposal's children, which may have changed
 /// since the last commit, so any list lines stand for them. `None` when anything else stands
 /// there, or in the sections: the human typed in it.
-fn written_by_move(place: &Place, path: &str, title: &str) -> Option<String> {
+fn written_by_move(path: &str, title: &str, text: &str) -> Option<Vec<String>> {
     const MARK: &str = "\u{1}children";
-    let text = fs::read_to_string(place.root.join(path)).ok()?;
-    let bare = expand::from_note(path, title, &[]);
+    let bare = expand::written_shapes(path, title, &[]);
+    let marked = expand::written_shapes(path, title, &[MARK.to_string()]);
+    let found: Vec<String> = bare
+        .into_iter()
+        .zip(marked)
+        .filter_map(|(bare, marked)| written_in(text, bare, &marked))
+        .collect();
+    (!found.is_empty()).then_some(found)
+}
+
+/// What a move wrote in `text`, as [`written_by_move`] finds it, for one shape of the file: `bare`
+/// without children, and `marked` with a mark where they go.
+fn written_in(text: &str, bare: String, marked: &str) -> Option<String> {
+    const MARK: &str = "\u{1}children";
     if text == bare {
         return Some(bare);
     }
-    let marked = expand::from_note(path, title, &[MARK.to_string()]);
     let (head, tail) = marked.split_once(MARK)?;
     let middle = text
         .strip_prefix(head)?

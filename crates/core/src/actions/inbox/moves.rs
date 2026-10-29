@@ -56,7 +56,8 @@ fn move_out(
     };
     // Checked before the file moves: nothing is written when the target refuses the lines.
     edit(&lines).ok_or_else(|| no_note(id))?;
-    let to = note_file::to_proposals(place, &file)?;
+    let title = inbox::link_title(inbox, id).unwrap_or_else(|| note.text.clone());
+    let to = note_file::to_proposals(place, &file, &title)?;
     let lines: Vec<String> = retarget::moved(&lines.join("\n"), &file, &to)
         .split('\n')
         .map(String::from)

@@ -520,7 +520,7 @@ fn discard_deletes_only_untouched_proposal_files_made_from_notes() {
     let untouched = add_with_image(&repo, None, "Light mode");
     let text = repo
         .read(&typed)
-        .replace("## Why\n", "## Why\n\nMy eyes.\n");
+        .replace("# Dark mode\n", "# Dark mode\n\nMy eyes.\n");
     repo.write(&typed, &text);
 
     changes::discard(&place).unwrap();
@@ -890,7 +890,7 @@ fn a_notes_relative_links_are_rebased_into_a_folder_proposal_file() {
     assert_eq!(repo.read(folder), LOOK_TEXT);
 }
 
-/// A note with links added with an image: its proposal file folder's title and What link the same
+/// A note with links added with an image: its note file folder's title links the same
 /// files, and Discard still deletes it untouched.
 #[test]
 fn a_note_with_links_added_with_an_image_links_the_same_files() {
@@ -901,7 +901,7 @@ fn a_note_with_links_added_with_an_image_links_the_same_files() {
 
     let proposal_file = repo.read(&path);
     assert!(
-        proposal_file.contains("\n# Like [readme](../../../README.md)\n\n## What\n\nLike [readme](../../../README.md)\n"),
+        proposal_file.starts_with("# Like [readme](../../../README.md)\n\n![phone]"),
         "{proposal_file}"
     );
     changes::discard(&place).unwrap();
