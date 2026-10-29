@@ -49,7 +49,6 @@ When two conflict, the higher one wins.
 - [Space and motion](space-and-motion.md): room, tokens, animation, and speed.
 - [Flows](flows.md): committing, starting the agent, confirming, and reviewing.
 - By width: [the phone](phone.md), [semi-wide](semi-wide.md), and [wide](wide.md) screens.
-- [Open questions](open-questions.md): where the direction is not settled yet.
 
 ## How the direction was found
 
