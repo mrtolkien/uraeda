@@ -68,7 +68,8 @@ test("on a Home card, a key the leader's menu waits for is the menu's: Space the
 
   // Alone, `l` moves to the next column: the key above was the menu's, not a key with nowhere to go.
   await press("l", link);
-  expect(document.activeElement).not.toBe(link);
+  // Under a loaded run, Home may draw again between the key and the read: the focus is waited for.
+  await waitFor(() => expect(document.activeElement).not.toBe(link));
 });
 
 // Break: every key a sequence waits for left to it, the arrows too, which no sequence takes.
