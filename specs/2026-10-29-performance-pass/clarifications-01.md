@@ -46,6 +46,10 @@ Measured in this session, on this repository, by calling the Rust core directly:
   reads ([`api.rs`](/crates/core/src/api.rs)).
 - `vp run start` builds the core's binding without `--release`
   ([`packages/binding/package.json`](/packages/binding/package.json)).
+- In the browser, a page whose data is cached draws in under 50 ms. One that reads draws in 200 to
+  700 ms, and a reload in 0.4 to 2.6 s.
+- A reload is slowed by the sidebar: each feature's card reads its own changes. On the sample
+  project, 32 requests go ahead of the page's own.
 - The web UI has no prefetch, and keeps the data of 10 left pages. Pages chain 2 to 4 reads.
 - About 10 of 95 write call sites show their result before the server answers: the priorities' and
   inbox's outliners, and a review comment.
@@ -278,6 +282,8 @@ Why it matters: a decision makes every later feature keep the target, and says h
 
 - **Each record a page reads is resolved once**: the server stops resolving each subscription a
   second time right after it subscribes. See [discovery](discovery-01.md#important-reads).
+- **The sidebar's cards read their changes in one request**, not one each, so a reload no longer
+  queues the page behind them. See [discovery](discovery-01.md#important-reads).
 - **Live updates are coalesced**: one change re-sends each record once, read from the cache. See
   [discovery](discovery-01.md#important-reads).
 - **A write takes its base from the cache**: the read before each write goes. A write the server

@@ -231,7 +231,12 @@ Read in the installed package's docs and types (`node_modules/@nkzw/fate/docs/gu
   without `gcReleaseBufferSize`, persistence, or prefetch.
 - [`packages/web/src/data.ts`](/packages/web/src/data.ts): every hook reads `cache-first`, then
   follows live updates. `readPriorities`, `readInbox`, and `rereadChanges` read `network-only`,
-  before and after many writes.
+  before and after many writes. `useRefreshOnShow` reads every mounted request again when the tab
+  comes back to the foreground: one batch of 43 reads, 2.1 s on the sample project.
+- [`packages/web/src/sidebar/Cards.tsx`](/packages/web/src/sidebar/Cards.tsx) `WithChanges`: each
+  feature's card in the sidebar reads its own `BranchChanges`, a full workspace read on the server.
+  A reload sends one request per card, 32 on the sample project. The page's own reads queue behind
+  them, in the browser's 6 connections per origin, 2 of them held by live streams.
 - [`packages/web/src/writes/store.ts`](/packages/web/src/writes/store.ts): one git write at a time.
   Its button reads what it does, a card shows the action until the server's status changes, and a
   thin bar runs at the top.
@@ -300,6 +305,8 @@ only their proposal.
   workspace kept between reads and invalidated by the watcher, with [a server cache](#server-reads).
 - [`packages/server/src/fate.ts`](/packages/server/src/fate.ts),
   [`live.ts`](/packages/server/src/live.ts): no second resolve per subscription; fan-out coalesced.
+- [`packages/web/src/sidebar/Cards.tsx`](/packages/web/src/sidebar/Cards.tsx): every card's changes
+  in one read, under every option.
 - [`packages/web/src/clients.ts`](/packages/web/src/clients.ts),
   [`data.ts`](/packages/web/src/data.ts), [`links.tsx`](/packages/web/src/links.tsx),
   [`routes.tsx`](/packages/web/src/routes.tsx), [`App.tsx`](/packages/web/src/App.tsx): prefetch, a
@@ -340,8 +347,10 @@ Measured in this session, with Node calling the binding directly, on this reposi
 | A fresh worktree's effect on each read | +3.3 s per worktree   | about +10 ms    |
 
 - A read after `git worktree add` took 6.8 s with two fresh worktrees in the debug build, and 0.3 s
-  once `git status` had run in each. Judgment: gix rehashes every file of a worktree whose index is
-  not refreshed, and the debug build hashes slowly.
+  once `git status` had run in each. Each read runs a gix status of every checked-out feature
+  ([`workspace/read.rs`](/crates/core/src/workspace/read.rs) `folder_uncommitted`, through
+  [`git/status.rs`](/crates/core/src/git/status.rs)). Judgment: gix rehashes every file of a fresh
+  worktree and never writes the refreshed index back, and the debug build hashes slowly.
 - The core's calls of the draft→feature path, on a clone of this repository, without hooks: **20.7
   s** with the debug binding, **3.3 s** with the release one. Starting itself took 11.4 s and 1.6 s.
 - The git commands of a start take about 0.4 s: `git worktree add` 0.23 s, `git commit` 0.01 to 0.2
@@ -350,6 +359,30 @@ Measured in this session, with Node calling the binding directly, on this reposi
   2.1 s for one markdown file ([`vite.config.ts`](/vite.config.ts)).
 - The human's server runs `vp run start` from the main checkout, whose binding is the 188 MB debug
   build.
+
+In the browser, measured by a research agent with Playwright's Chromium against the built UI and the
+real server, with the debug binding. The machine was shared with test runs from other worktrees, so
+single numbers vary by about 30%. Medians of 3 runs, on the sandbox's sample project of 36 features:
+
+| Page    | Reload, content drawn | Navigation in the app, content drawn | Reads on navigation |
+| ------- | --------------------- | ------------------------------------ | ------------------- |
+| Home    | 753 ms                | 46 ms                                | 0, from the cache   |
+| Inbox   | 1,558 ms              | 37 ms                                | 0                   |
+| Feature | 2,155 ms              | 235 ms                               | 4, in 2 steps       |
+| Spec    | 2,290 ms              | 600 ms                               | 4, in 3 steps       |
+| Session | 1,856 ms              | 209 ms                               | 3                   |
+| Editor  | 2,140 ms              | 352 ms                               | 1                   |
+
+- The first paint comes after 40 to 150 ms everywhere: the time goes to data, not to the bundle.
+- A reload sends about 40 reads, each also subscribed live by its own request. The per-card
+  `BranchChanges` reads hold back the page's own: the feature's read took 336 ms on the server and
+  ended after 2 s.
+- On this repository, read-only, every read took 870 to 940 ms on the server, and a feature's page
+  drew 681 ms after its click.
+- The draft→feature path on the sample project took about 4.2 s, with 2 page changes. On a clone of
+  this repository with its pre-commit hook, it took about 29 s. A second run, with 4 fresh worktrees
+  by then, took about 71 s: every request waited 3.7 to 13.7 s for its first byte.
+- The pre-commit hook took 1.7 to 1.9 s per commit, and 3.6 to 10.9 s while the machine was loaded.
 
 Judgment: the debug build and the reads after a fresh worktree explain most of "upwards of 10s".
 With a release build, the start would cost about 5 s: 3.3 s of core calls, 1.2 to 2.1 s of hook,
@@ -363,6 +396,8 @@ to where.
 - A page from the cache can draw in one frame. A page that suspends waits for its reads, and React
   reveals suspended content at most every 300 ms (see [React 19](#react-19)).
 - A read costs about 95 ms on this repository in a release build. Pages chain 2 to 4 reads.
+- A navigation to a page whose data is cached already draws in 22 to 46 ms. One that reads draws in
+  200 to 700 ms on the sample project, in the debug build.
 - A reload parses one bundle of every page before its first request.
 - A commit runs the user's hooks, which take what they take.
 
@@ -516,12 +551,15 @@ How the target is kept once reached. Relies on [response-time limits](#response-
 - **Code splitting by route**: lowers the reload's parse time, with no behaviour to choose.
 - **The server's double resolve and coalesced fan-out**: fixes in the code, with nothing visible to
   choose.
+- **The sidebar's per-card reads**: one read for every card's changes is a fix in the code, with
+  nothing visible to choose.
 
 ## Not checked
 
-- The cause of gix's slow reads on a fresh worktree: measured, not traced.
-- In-browser timings of each page and of the whole path: the sandbox run in this session produced no
-  scripts or numbers I could verify. The numbers above are the binding's.
+- Why gix does not keep a fresh worktree's refreshed index: traced to the status call, not into gix
+  itself.
+- Browser timings with a release binding: only the binding's calls were measured in release.
+- Long tasks and main-thread time per page: no CPU profile was taken.
 - The Linear sync-engine talk itself; only Linear's blog and the unofficial write-up were read.
 - Whether `useLiveView` subscribes in an Effect, which decides whether a hidden `<Activity>` page
   stays live.
