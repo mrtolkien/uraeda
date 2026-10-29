@@ -168,7 +168,7 @@ fn commit_runs_the_hook_and_commits_only_the_given_paths() {
     repo.write("b.md", "b2\n");
 
     let git = Git::discover(repo.path()).unwrap();
-    git.commit(&["a.md".to_string()], "docs: a", Some("Body."))
+    git.commit(&["a.md".to_string()], "docs: a", Some("Body."), false)
         .unwrap();
 
     assert_eq!(repo.subjects("main")[0], "docs: a");
@@ -186,7 +186,7 @@ fn commit_refuses_other_staged_files() {
 
     let error = Git::discover(repo.path())
         .unwrap()
-        .commit(&["a.md".to_string()], "docs: a", None)
+        .commit(&["a.md".to_string()], "docs: a", None, false)
         .err()
         .unwrap();
 
@@ -205,7 +205,7 @@ fn commit_keeps_what_the_hook_reformats() {
 
     Git::discover(repo.path())
         .unwrap()
-        .commit(&["a.md".to_string()], "docs: a", None)
+        .commit(&["a.md".to_string()], "docs: a", None, false)
         .unwrap();
 
     assert_eq!(repo.git(&["show", "HEAD:a.md"]), "a\nformatted\n");
@@ -220,7 +220,7 @@ fn commit_reports_a_failing_hook() {
 
     let error = Git::discover(repo.path())
         .unwrap()
-        .commit(&["a.md".to_string()], "docs: a", None)
+        .commit(&["a.md".to_string()], "docs: a", None, false)
         .err()
         .unwrap();
 

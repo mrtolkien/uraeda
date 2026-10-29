@@ -648,6 +648,7 @@ fn proposal_files_proposals_and_priorities_are_committed() {
         [PRIORITIES, "specs/proposals/codex-runtime.md"]
     );
 
+    repo.keep();
     repo.write(
         PRIORITIES,
         &repo
@@ -1178,6 +1179,7 @@ fn with_inbox() -> TestRepo {
     let inbox = std::fs::read_to_string(repository().join("fixtures/repo/main/specs/INBOX.md"));
     repo.write(INBOX, &inbox.unwrap());
     repo.commit("chore: inbox");
+    repo.keep();
     repo
 }
 

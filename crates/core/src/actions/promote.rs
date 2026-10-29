@@ -211,7 +211,7 @@ impl Move<'_> {
             .map_err(|error| partial(&done, vec![commit_left.clone()], error))?;
         let mut paths = vec![old, new];
         paths.extend(decisions.iter().map(|name| decision_path(name)));
-        if let Err(error) = on_branch.commit(&paths, &subject, None) {
+        if let Err(error) = on_branch.commit(&paths, &subject, None, false) {
             let left = vec![format!(
                 "commit {} as \"{subject}\"",
                 crate::actions::list(&paths)
@@ -271,7 +271,7 @@ impl Move<'_> {
             let _ = fs::rename(root.join(&new), root.join(&old));
             return Err(error.into());
         }
-        at.commit(&paths, subject, None).map_err(|error| {
+        at.commit(&paths, subject, None, false).map_err(|error| {
             restore();
             if self.on_default {
                 if let Some(text) = &written {

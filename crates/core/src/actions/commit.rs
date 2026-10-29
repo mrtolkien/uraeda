@@ -8,8 +8,9 @@ use crate::git::{Git, GitError};
 use super::place::Place;
 use super::{ActionError, Change, Committed};
 
-/// Commits an action's files in the working tree it wrote in, running the hooks. A hook's refusal
-/// keeps the files written, and returns its whole output.
+/// Commits an action's files in the working tree it wrote in, running the hooks, or amends the
+/// latest commit with them, as [`amend`](super::amend) says. A hook's refusal keeps the files
+/// written, and returns its whole output.
 pub fn commit(place: &Place, change: &Change) -> Result<Committed, ActionError> {
     committed(place, change, Git::commit)
 }
@@ -20,13 +21,20 @@ pub fn commit_only(place: &Place, change: &Change) -> Result<Committed, ActionEr
     committed(place, change, Git::commit_only)
 }
 
+/// Commits `change` with `run`, and returns it with the message committed, an amend's.
 fn committed(
     place: &Place,
     change: &Change,
-    run: impl FnOnce(&Git, &[String], &str, Option<&str>) -> Result<(), GitError>,
+    run: impl FnOnce(&Git, &[String], &str, Option<&str>, bool) -> Result<(), GitError>,
 ) -> Result<Committed, ActionError> {
     let git = Git::open(&place.root)?;
-    match run(&git, &change.paths, &change.subject, change.body.as_deref()) {
+    let amended = super::amend::message(place, change);
+    let amend = amended.is_some();
+    let (subject, body) = match amended {
+        Some((subject, body)) => (subject, Some(body)),
+        None => (change.subject.clone(), change.body.clone()),
+    };
+    match run(&git, &change.paths, &subject, body.as_deref(), amend) {
         Ok(()) => {}
         Err(GitError::Command {
             subcommand,
@@ -40,7 +48,11 @@ fn committed(
         .map(|id| id.to_hex_with_len(7).to_string())
         .unwrap_or_default();
     Ok(Committed {
-        change: change.clone(),
+        change: Change {
+            paths: change.paths.clone(),
+            subject,
+            body,
+        },
         commit: head,
     })
 }
