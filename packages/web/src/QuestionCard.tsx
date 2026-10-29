@@ -57,7 +57,8 @@ const styles = stylex.create({
     insetBlockStart: 0,
     paddingBlock: spacingVars["--spacing-2"],
     position: "sticky",
-    zIndex: 1,
+    // Over its card's live windows too, which lie over an option's hover tint (`LiveWindow`).
+    zIndex: 2,
   },
   stickyHeadPhone: {
     // On the phone, below the tabs, a row of `--spacing-12`, over the page's background, from
