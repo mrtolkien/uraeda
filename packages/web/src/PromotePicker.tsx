@@ -2,7 +2,8 @@
 // levels, Now, Next, and Later, where it becomes a proposal at the end; then every proposal, where
 // it becomes the proposal's last item, or for a proposal with a file, the end of the file's "What";
 // then the proposal files no proposal links. A note with a note file is offered no proposal to go
-// under. Each item's preview is the place it lands in, the note in it. A pick runs as the note's
+// under, and goes into a file's "Notes", its note file's text under its title, the note file gone.
+// Each item's preview is the place it lands in, the note in it. A pick runs as the note's
 // actions run it (`useNoteActions`), with a toast and Undo, then opens the priorities with the
 // note's row selected, or the proposal file's page.
 import { useEffect } from "react";
@@ -42,17 +43,38 @@ function linePreview(proposal: Proposal, placed: Placed) {
 }
 
 /**
- * A proposal file's text with the note at the end of its "What", where a move adds it, else at its
- * end.
+ * The index of the line after the last non-blank line of the `## name` section of `lines`, which
+ * ends at the next `#` or `##` heading; `undefined` without the section.
+ */
+function sectionEnd(lines: ReadonlyArray<string>, name: string) {
+  const heading = lines.findIndex((line) => new RegExp(`^##\\s+${name}\\s*$`).test(line));
+  if (heading === -1) {
+    return undefined;
+  }
+  const next = lines.findIndex((line, at) => at > heading && /^#{1,2}\s/.test(line));
+  let end = next === -1 ? lines.length : next;
+  while (end > heading + 1 && lines[end - 1]?.trim() === "") {
+    end -= 1;
+  }
+  return end;
+}
+
+/**
+ * A proposal file's text with the note where an add puts it: at the end of its "What", else at its
+ * end. A note with a note file goes, under its title, at the end of its "Notes", added at its end
+ * when the file has none.
  */
 function filePreview(text: string, placed: Placed) {
   const lines = text.split("\n");
-  const what = lines.findIndex((line) => /^##\s+What\s*$/.test(line));
-  const next = what === -1 ? -1 : lines.findIndex((line, at) => at > what && /^##\s/.test(line));
-  let end = next === -1 ? lines.length : next;
-  while (end > 0 && lines[end - 1]?.trim() === "") {
-    end -= 1;
+  if (placed.note.file !== undefined) {
+    const heading = `### ${placed.note.fileTitle ?? placed.note.text}${HERE}`;
+    const end = sectionEnd(lines, "Notes");
+    if (end === undefined) {
+      return [text.trimEnd(), "", "## Notes", "", heading].join("\n");
+    }
+    return [...lines.slice(0, end), "", heading, ...lines.slice(end)].join("\n");
   }
+  const end = sectionEnd(lines, "What") ?? text.trimEnd().split("\n").length;
   return [...lines.slice(0, end), ...noteLines(placed, 0), ...lines.slice(end)].join("\n");
 }
 

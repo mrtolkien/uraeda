@@ -5,14 +5,13 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
-import { rereadProposalFile } from "./attach/useEditorImages.ts";
 import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { guarded, refusal } from "./errors.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { TITLES } from "./QuickAdd.tsx";
 import type { ActionOptions } from "./pane/useProposalActions.ts";
 import { navigate, redirect, useRepoPath } from "./routes.tsx";
-import { InboxView } from "./views.ts";
+import { InboxView, ProposalFileView } from "./views.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
 export type Placed = { category?: string; index: number; note: InboxNote };
@@ -148,26 +147,28 @@ function useMovesOut(
     navigate(here("/priorities"), { select: moved ?? line.key });
   };
 
+  // A note goes into the file's What; a note with a note file, its text into the file's Notes,
+  // under the note's title, and its note file leaves. The server sends the file as written, at its
+  // path now: a single file becomes a folder for the note file's images.
   const intoProposal = async (file: string, title: string) => {
     const result = await run(() =>
-      fate.mutations.inbox.intoProposal({ input: { ...input, file }, view: InboxView }),
+      fate.mutations.inbox.intoProposal({ input: { ...input, file }, view: ProposalFileView }),
     );
-    if (!result.error) {
-      toast(`Added to ${title}, not committed`, () =>
-        undone(
-          fate,
-          fate.mutations.inbox.undoIntoProposal({
-            input: { ...at(placed), file },
-            view: InboxView,
-          }),
-        ),
-      );
-      left();
-      // The server sends no file for the write: its editor, read before, would show it without
-      // the note.
-      await rereadProposalFile(fate, file);
-      navigate(here(`/edit/${file}`));
+    if (result.error) {
+      return;
     }
+    const path = (result.result as { path?: string } | undefined)?.path ?? file;
+    toast(`Added to ${title}, not committed`, () =>
+      undone(
+        fate,
+        fate.mutations.inbox.undoIntoProposal({
+          input: { ...at(placed), file: path },
+          view: InboxView,
+        }),
+      ),
+    );
+    left();
+    navigate(here(`/edit/${path}`));
   };
 
   return { intoProposal, toProposal, underProposal };

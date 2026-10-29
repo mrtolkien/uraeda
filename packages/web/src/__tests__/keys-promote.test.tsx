@@ -1,7 +1,7 @@
 // `p` on a note of the inbox opens its promote picker: the priorities' levels, every proposal, and
 // the proposal files. A note with a note file never nests, its file found by its link: its picker
 // offers no proposal to go under, only the levels, where it becomes a proposal, its file moved to
-// the proposals, and the proposal files.
+// the proposals, and the proposal files, whose Notes take its file's text, its file gone.
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
@@ -84,6 +84,35 @@ test("p on a note with a note file offers no proposal to go under, and a level m
   expect(existsSync(join(repo, "specs/notes/dark-mode.md"))).toBe(false);
   // The move ends on its toast, once its line is read back: the test ends after it.
   await screen.findByText(/Moved to Later/);
+});
+
+test("a note with a note file added to a proposal's file goes into its Notes, and Undo puts it back", async () => {
+  const repo = await promoting("Dark mode");
+  const listener = "specs/proposals/git-listener.md";
+  const before = read(repo, listener);
+
+  const proposal = screen
+    .getAllByRole("option")
+    .find((option) => option.textContent?.includes("Git listener"));
+  await act(async () => {
+    fireEvent.click(proposal!);
+  });
+
+  await waitFor(() =>
+    expect(read(repo, listener)).toBe(
+      `${before}\n## Notes\n\n### Dark mode\n\n#### What\n\nThe dark.\n`,
+    ),
+  );
+  expect(existsSync(join(repo, "specs/notes/dark-mode.md"))).toBe(false);
+  expect(read(repo, "specs/INBOX.md")).not.toContain("Dark mode");
+
+  await act(async () => {
+    fireEvent.click(await screen.findByRole("button", { name: /^Undo/ }));
+  });
+
+  await waitFor(() => expect(read(repo, listener)).toBe(before));
+  expect(read(repo, "specs/notes/dark-mode.md")).toBe("# Dark mode\n\n## What\n\nThe dark.\n");
+  expect(read(repo, "specs/INBOX.md")).toContain("- [Dark mode](notes/dark-mode.md)\n");
 });
 
 test("a note added to a proposal whose editor was open before shows in its editor", async () => {
