@@ -298,7 +298,7 @@ fn a_refused_amend_is_tried_again_as_a_commit_of_its_own() {
     // Refuses its first run alone, then lets every commit through.
     repo.set_hook("[ -f .git/refused ] && exit 0; touch .git/refused; exit 1");
 
-    note(&repo, "Another idea").unwrap();
+    let committed = note(&repo, "Another idea").unwrap();
 
     assert_eq!(
         repo.subjects("main")[..2],
@@ -307,6 +307,11 @@ fn a_refused_amend_is_tried_again_as_a_commit_of_its_own() {
             "chore: add \"An idea\" to the inbox"
         ]
     );
+    assert_eq!(
+        committed.change.subject,
+        "chore: add \"Another idea\" to the inbox"
+    );
+    assert_eq!(committed.change.body, None);
     assert_eq!(repo.porcelain(), "");
 
     repo.set_hook("echo refused; exit 1");
