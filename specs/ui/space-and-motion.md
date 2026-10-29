@@ -5,15 +5,15 @@
 Room is consistent, so the eye reads structure from it, and set by tokens, never by a number in a
 view:
 
-| Room                                           | Token                                                 |
-| ---------------------------------------------- | ----------------------------------------------------- |
-| Under a pane's last line, and under its title  | `--pane-end` (`layout/pane.stylex.ts`)                |
-| A pane's sides                                 | `--pane-inset`, the theme's `--spacing-3` by default  |
-| The page's sides, and what reaches past them   | `--page-inset` and `--page-bleed` (`layout/Page.tsx`) |
-| Between blocks of a document                   | `--spacing-3`; between airy paragraphs, `--spacing-4` |
-| Around a table                                 | `--spacing-5`                                         |
-| Between a round's question cards, and sections | `--spacing-8`                                         |
-| Between a list's items                         | `--spacing-2`                                         |
+| Room                                           | Token                                                   |
+| ---------------------------------------------- | ------------------------------------------------------- |
+| Under a pane's last line, and under its title  | `--pane-end` (`layout/pane.stylex.ts`)                  |
+| A pane's sides                                 | `--pane-inset`, the theme's `--spacing-3` by default    |
+| The page's sides, and what reaches past them   | `--page-inset` and `--page-bleed` (`layout/Page.tsx`)   |
+| Between blocks of prose, a list's included     | `--prose-paragraph-gap`; airy paragraphs, `--spacing-4` |
+| Around a table                                 | `--spacing-5`                                           |
+| Between a round's question cards, and sections | `--spacing-8`                                           |
+| Between a list's items                         | `--prose-item-gap`                                      |
 
 - **A pane ends right after its last line**, with one room under it, `--pane-end`, the same as under
   its title, whether it ends with text or with a button. "Generally all those buttons at the end of

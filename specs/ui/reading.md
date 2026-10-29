@@ -72,6 +72,12 @@ its line taller than the others. "It's a big block, pretty compact, with no hier
 complaint to avoid. Air is not emptiness: a pane ends right after its last line, with only the
 pane's own room under it (see [Space and motion](space-and-motion.md)).
 
+**One rhythm for all prose.** A document's blocks and every markdown text, an agent's message and a
+thought included, share the theme's `--prose-*` tokens through `Prose.tsx`'s `proseRhythm`: the same
+room between paragraphs, before and after a list, and between items, and the same bullet, in the
+secondary colour, its text a list room in. Astryx's markdown lists take it from the theme's
+`markdown` rule. "Bullet points should look the same everywhere."
+
 ## Lists
 
 - **The browser's own markers**, on the first line's baseline, close to their text: a disc on wide

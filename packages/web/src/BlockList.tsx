@@ -5,7 +5,7 @@ import type { Block, Span } from "uraeda-binding";
 import type { BlockContext } from "./Blocks.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { markVars } from "./marks.stylex.ts";
-import { proseStyles } from "./Prose.tsx";
+import { proseRhythm, proseStyles } from "./Prose.tsx";
 import { Selectable } from "./Selection.tsx";
 import { sentences } from "./sentences.ts";
 import { SinceWords } from "./sinceMarks.tsx";
@@ -51,15 +51,10 @@ export const listStyles = stylex.create({
       fontWeight: fontWeightVars["--font-weight-bold"],
     },
   },
+  // A list item's marker in the secondary colour; its room under it is prose's (`proseRhythm`).
   item: {
-    // A list item's room under it, but the last's, and its marker in the secondary colour.
     "::marker": { color: colorVars["--color-text-secondary"] },
-    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-2"] },
     whiteSpace: "normal",
-  },
-  list: {
-    // A list's margin, but last in its item or callout, which end with it.
-    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-3"] },
   },
   // A list, the browser's: its markers in `room` before its items' text, outside it, so that a
   // wrapped line hangs under the text, not under the marker.
@@ -149,7 +144,7 @@ export function ListNode({
     <Tag
       {...(block.ordered && (block.start ?? 1) !== 1 ? { start: block.start } : {})}
       {...stylex.props(
-        listStyles.list,
+        proseRhythm.list,
         listStyles.native(room),
         block.ordered ? listStyles.numbered : isHanging ? listStyles.dashed : listStyles.disc,
         isHanging && !isNested && listStyles.hanging(room),
@@ -165,6 +160,7 @@ export function ListNode({
             {...stylex.props(
               proseStyles.reading,
               listStyles.item,
+              proseRhythm.item,
               isSignMarker && listStyles.signMarker(`"${sign} "`),
               isSignMarker && SIGN_MARKERS[marker],
             )}
@@ -221,7 +217,12 @@ function ItemText({
           {others.map((sentence, index) => (
             <li
               key={index}
-              {...stylex.props(proseStyles.reading, listStyles.item, listStyles.splitItem)}
+              {...stylex.props(
+                proseStyles.reading,
+                listStyles.item,
+                proseRhythm.item,
+                listStyles.splitItem,
+              )}
             >
               <Spans spans={sentence} />
             </li>

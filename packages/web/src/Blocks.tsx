@@ -7,7 +7,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
 import type { Block, Document, Span } from "uraeda-binding";
 import { listStyles, ListNode } from "./BlockList.tsx";
-import { proseStyles } from "./Prose.tsx";
+import { proseRhythm, proseStyles } from "./Prose.tsx";
 import { Diagram, type Place } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
@@ -62,10 +62,6 @@ const styles = stylex.create({
     color: colorVars["--color-text-primary"],
     display: "block",
     fontWeight: fontWeightVars["--font-weight-medium"],
-  },
-  paragraph: {
-    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-3"] },
-    marginBlockStart: 0,
   },
   // A table as wide as its columns: past the reading measure into the page's margin, scrolling only
   // past that.
@@ -216,7 +212,7 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       return (
         <Paragraph
           as={!context.staticImages && block.spans.some(opensImage) ? "div" : "p"}
-          xstyle={[styles.paragraph, context.isAiry && styles.airyParagraph]}
+          xstyle={[proseRhythm.paragraph, context.isAiry && styles.airyParagraph]}
         >
           <SinceWords block={block}>
             {block.id === context.lead ? (
@@ -238,7 +234,7 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
     case "item":
       // Drawn by its list, or alone, as an option's plain bullet: its text, then its blocks.
       return (
-        <div {...stylex.props(proseStyles.reading, listStyles.item)}>
+        <div {...stylex.props(proseStyles.reading, listStyles.item, proseRhythm.item)}>
           <SinceWords block={block}>{spans}</SinceWords>
           <Children block={block} context={context} />
         </div>

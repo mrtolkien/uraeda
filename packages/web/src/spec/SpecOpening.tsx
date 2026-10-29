@@ -10,24 +10,20 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { markVars } from "../marks.stylex.ts";
 import type { Block, Document, Span } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Pane } from "../layout/Pane.tsx";
-import { proseStyles } from "../Prose.tsx";
+import { listStyles } from "../BlockList.tsx";
+import { proseRhythm, proseStyles } from "../Prose.tsx";
 import { After, Selectable, type Selection } from "../Selection.tsx";
 import { cellRuns, type SinceMark, SinceMarked, SinceSign, useSinceMark } from "../sinceMarks.tsx";
 import { plain, Spans } from "../Spans.tsx";
 import { GROUPS, type PartProps, partOf, type SpecItems } from "./parts.ts";
 
 const styles = stylex.create({
-  item: {
-    // An item of the block's list: its marker in the secondary colour, room under it but the last.
-    "::marker": { color: colorVars["--color-text-secondary"] },
-    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-2"] },
-  },
   // An item's label, up to its colon, as "New decision:": heavier, read first.
   label: { fontWeight: fontWeightVars["--font-weight-medium"] },
   lead: {
@@ -39,13 +35,8 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-semibold"],
     margin: 0,
   },
-  list: {
-    listStylePosition: "outside",
-    listStyleType: "disc",
-    margin: 0,
-    // The markers' room.
-    paddingInlineStart: markVars["--mark-list-room"],
-  },
+  // The block's list as a document's (`BlockList.tsx`), its own margin the part's gap.
+  list: { marginBlockEnd: 0 },
   section: {
     // A section of the spec drawn in this part, its anchor's element, its pieces spaced as the
     // part's.
@@ -101,7 +92,7 @@ function labelled(spans: ReadonlyArray<Span>): [Array<Span>, Array<Span>] | unde
 function Item({ item, selection }: { item: Block; selection: Selection | undefined }) {
   const split = labelled(item.spans);
   return (
-    <li {...stylex.props(styles.item)}>
+    <li {...stylex.props(listStyles.item, proseRhythm.item)}>
       <Selectable block={item} isInList selection={selection}>
         <div>
           {split ? (
@@ -306,7 +297,15 @@ export function SpecOpening({
           </Selectable>
         )}
         {others.length > 0 && (
-          <ul {...stylex.props(proseStyles.reading, proseStyles.measure, styles.list)}>
+          <ul
+            {...stylex.props(
+              proseStyles.reading,
+              proseStyles.measure,
+              listStyles.native(markVars["--mark-list-room"]),
+              listStyles.disc,
+              styles.list,
+            )}
+          >
             {others.map((item) => (
               <Item item={item} key={item.id} selection={selection} />
             ))}

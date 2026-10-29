@@ -4,8 +4,6 @@
 // link shows as a plain one until it is known. A message streaming shows no story: a paragraph that
 // is a link alone for a moment would start a Storybook for nothing.
 import { Link } from "@astryxdesign/core/Link";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
 import {
   Children,
   createContext,
@@ -15,17 +13,10 @@ import {
   useContext,
 } from "react";
 import { useStoryHref } from "./data.ts";
+import { ProseParagraph } from "./Prose.tsx";
 import { useRepoPath } from "./routes.tsx";
 import { StoryEmbed } from "./StoryEmbed.tsx";
 import { embedComment, type Stories, StoryContext, storyHref } from "./stories.tsx";
-
-const styles = stylex.create({
-  paragraph: {
-    // As Astryx's compact paragraphs: a little room between them, none at the message's edges.
-    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-1"] },
-    marginBlockStart: { ":first-child": 0, default: spacingVars["--spacing-1"] },
-  },
-});
 
 type LinkProps = { children: ReactNode; href: string };
 
@@ -120,16 +111,15 @@ function StoryParagraph({
   );
 }
 
-/** An agent's paragraph: a story link alone in it shows the story, once the message ended. */
+/**
+ * An agent's paragraph, in prose's rhythm as any markdown's: a story link alone in it shows the
+ * story, once the message ended.
+ */
 function AgentParagraph({ children }: { children: ReactNode }) {
   const stories = useContext(StoryContext);
   const ended = useContext(MessageStories)?.ended ?? true;
   const link = stories?.preview && ended ? linkAlone(children) : undefined;
-  const paragraph = (
-    <div role="paragraph" {...stylex.props(styles.paragraph)}>
-      {children}
-    </div>
-  );
+  const paragraph = <ProseParagraph>{children}</ProseParagraph>;
   if (!stories || !link) {
     return paragraph;
   }

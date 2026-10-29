@@ -227,6 +227,10 @@ export const uraedaTheme = {
     "--astryx-theme-neutral-color-destructive-overlay-pressed": "light-dark(#ff7f771A, #ee736c1A)",
     "--text-reading-line": "1.4",
     "--text-reading-size": "19px",
+    "--prose-bullet-gap": "0.5em",
+    "--prose-item-gap": "var(--spacing-2)",
+    "--prose-list-room": "1.25em",
+    "--prose-paragraph-gap": "var(--spacing-3)",
     "--text-title-size": "calc((var(--font-size-sm) + var(--font-size-base)) / 2)",
     "--font-family-reading": "\"Inter Variable\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
     "--color-text-lavender": "light-dark(#4254c8, #b4befe)",
@@ -280,6 +284,10 @@ export const uraedaTheme = {
     "--astryx-theme-neutral-color-destructive-overlay-pressed": "neutral",
     "--text-reading-line": "uraeda",
     "--text-reading-size": "uraeda",
+    "--prose-bullet-gap": "uraeda",
+    "--prose-item-gap": "uraeda",
+    "--prose-list-room": "uraeda",
+    "--prose-paragraph-gap": "uraeda",
     "--text-title-size": "uraeda",
     "--font-family-reading": "uraeda",
     "--color-text-lavender": "uraeda",
@@ -617,6 +625,30 @@ export const uraedaTheme = {
     "code": {
       "base": {
         "fontSize": "0.9em"
+      }
+    },
+    "markdown": {
+      "base": {
+        ":is(*) li": {
+          "columnGap": "0 !important",
+          "marginBlockEnd": "var(--prose-item-gap)",
+          "padding": "0 !important"
+        },
+        ":is(*) li:last-child": {
+          "marginBlockEnd": "0"
+        },
+        ":is(*) li > span:first-child": {
+          "justifyContent": "flex-end !important",
+          "paddingInlineEnd": "var(--prose-bullet-gap)",
+          "width": "var(--prose-list-room) !important"
+        },
+        ":is(*) li > span:first-child > span:only-child": {
+          "backgroundColor": "var(--color-text-secondary) !important"
+        },
+        ":is(*) ul, :is(*) ol": {
+          "marginInline": "0 !important",
+          "rowGap": "0 !important"
+        }
       }
     },
     "popover": {

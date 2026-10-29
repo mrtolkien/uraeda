@@ -232,6 +232,32 @@ export const uraedaTheme = defineTheme({
     button: { base: { fontFamily: "var(--font-family-body)" } },
     // Square badges, switches and progress bars, as the terminal look's corners; status dots stay round.
     badge: { base: { "--radius-full": "0px", fontFamily: "var(--font-family-body)" } },
+    // A markdown list as a document's (`BlockList.tsx`), through prose's rhythm: on the text's
+    // edge, its items' text the list room in, its bullet in the room's end, in the secondary colour
+    // of a document's markers, and no room between items but the item gap. Astryx draws its items
+    // as rows, which StyleX cannot reach inside: the theme does, with `:is(*)` for a descendant.
+    // Important, as the rows' atomic padding and gaps may be emitted outside any layer, where they
+    // win over the theme's.
+    markdown: {
+      base: {
+        ":is(*) li": {
+          columnGap: "0 !important",
+          marginBlockEnd: "var(--prose-item-gap)",
+          padding: "0 !important",
+        },
+        ":is(*) li:last-child": { marginBlockEnd: "0" },
+        // The bullet's box: the list room, the bullet at its end, the bullet gap before the text.
+        ":is(*) li > span:first-child": {
+          justifyContent: "flex-end !important",
+          paddingInlineEnd: "var(--prose-bullet-gap)",
+          width: "var(--prose-list-room) !important",
+        },
+        ":is(*) li > span:first-child > span:only-child": {
+          backgroundColor: "var(--color-text-secondary) !important",
+        },
+        ":is(*) ul, :is(*) ol": { marginInline: "0 !important", rowGap: "0 !important" },
+      },
+    },
     "progress-bar": { base: { "--radius-full": "0px" } },
     "status-dot": { base: { "--radius-full": "0px" } },
     switch: { base: { "--radius-full": "0px" } },
@@ -277,6 +303,14 @@ export const uraedaTheme = defineTheme({
     // Reading text: paragraphs of documents, questions, and stories.
     "--text-reading-line": "1.4",
     "--text-reading-size": "19px",
+    // Prose's rhythm, a document's and every markdown text's, an agent's message included
+    // (`Prose.tsx`'s `proseRhythm`, the `markdown` rule above): the room between paragraphs, around
+    // a list and between its items; a list's room for its bullets (`marks.stylex.ts`), and a
+    // drawn bullet's gap before the text, about where the browser's own disc sits.
+    "--prose-bullet-gap": "0.5em",
+    "--prose-item-gap": "var(--spacing-2)",
+    "--prose-list-room": "1.25em",
+    "--prose-paragraph-gap": "var(--spacing-3)",
     // A pane's title in its border, and what is set like it: between the supporting text's size
     // and the body's, so it holds its own over the pane's text.
     "--text-title-size": "calc((var(--font-size-sm) + var(--font-size-base)) / 2)",

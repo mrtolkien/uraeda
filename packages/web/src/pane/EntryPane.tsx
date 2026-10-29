@@ -14,7 +14,10 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { Span } from "uraeda-binding";
+import { listStyles } from "../BlockList.tsx";
 import { LineField } from "../EditableLine.tsx";
+import { markVars } from "../marks.stylex.ts";
+import { proseRhythm } from "../Prose.tsx";
 import { Spans } from "../Spans.tsx";
 import type { useLineSave } from "../useLineSave.ts";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -38,14 +41,8 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-4"],
   },
   // Previous and Next stay in view as the pane scrolls, under the body, as the bar stays over it.
-  child: {
-    paddingBlock: spacingVars["--spacing-0-5"],
-  },
-  children: {
-    listStyleType: "disc",
-    margin: 0,
-    paddingInlineStart: spacingVars["--spacing-6"],
-  },
+  // Its nested lines, bullets as a document's (`BlockList.tsx`), its own margin the stack's gap.
+  children: { marginBlockEnd: 0 },
   footer: {
     backgroundColor: colorVars["--color-background-surface"],
     bottom: 0,
@@ -116,10 +113,16 @@ export function EntryText({
         </Heading>
       )}
       {nested.length > 0 && (
-        <ul {...stylex.props(styles.children)}>
+        <ul
+          {...stylex.props(
+            listStyles.native(markVars["--mark-list-room"]),
+            listStyles.disc,
+            styles.children,
+          )}
+        >
           {nested.map((child, at) => (
             // A child has no key of its own: its place is its identity, as in the file.
-            <li key={at} {...stylex.props(styles.child)}>
+            <li key={at} {...stylex.props(listStyles.item, proseRhythm.item)}>
               <Spans spans={child} />
             </li>
           ))}
