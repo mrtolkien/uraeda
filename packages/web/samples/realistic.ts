@@ -7,7 +7,9 @@
 // Later six, one of them linking its proposal file, some of them long; and an inbox of ten notes,
 // three of them long, and one with a freeform note file holding a screenshot, which can be added
 // to the Notes of any proposal, its file made first for a line without one. Its constitution and
-// decisions are Uraeda's own, as they are on its `main`: real files from `fixtures/realistic/`.
+// decisions are Uraeda's own, as they are on its `main`, and an inbox triage waits for the human's
+// answers, written for these ten notes in the form of Uraeda's own of October 18: files of
+// `fixtures/realistic/`.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { commitsAt, fixture, git } from "uraeda-binding/test-utils";
@@ -165,8 +167,11 @@ function addDone(repo: string, { finished, folder, questions, title }: (typeof D
   ]);
 }
 
-/** A file of `fixtures/realistic/`: Uraeda's own constitution and decisions. */
+/** A file of `fixtures/realistic/`: Uraeda's own constitution and decisions, and the triage. */
 const realistic = (path: string) => readFileSync(fixture(`realistic/${path}`), "utf8");
+
+/** The triage's first line, "8 questions on 10 notes, about 15 minutes": its commit's body. */
+const TRIAGE_SUMMARY = realistic("INBOX-TRIAGE.md").match(/^> (\d+ questions on .+)$/m)?.[1];
 
 /**
  * Uraeda's own constitution and decisions, as they are on its `main`, its GitHub user written as
@@ -252,6 +257,12 @@ export function addRealistic(repo: string) {
         "specs/proposals/shared-lists.md": SHARED_LISTS,
       },
       message: "docs: priorities and inbox",
+    },
+    // A triage of that inbox, committed alone as an agent proposes one: it waits for the human.
+    {
+      at: at("21 11:00"),
+      files: { "specs/INBOX-TRIAGE.md": realistic("INBOX-TRIAGE.md") },
+      message: `chore: propose an inbox triage\n\n${TRIAGE_SUMMARY}`,
     },
   ]);
   const { asking, building, reviewing, specifying } = REALISTIC_FOLDERS;
