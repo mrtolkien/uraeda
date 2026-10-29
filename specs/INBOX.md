@@ -8,6 +8,10 @@
 
 ## Bugfix
 
+- [agent] [help-keybindings] A proposal started from a priority links `specs/PRIORITIES.md` from its
+  own folder, a link `ura check` reports broken, so `vp run ready` fails on every such branch
+  (`NewEntries.tsx`'s `insertion`)
+
 ## To test
 
 - See if we can integrate Claude Design
