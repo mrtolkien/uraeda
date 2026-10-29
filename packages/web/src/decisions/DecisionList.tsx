@@ -20,11 +20,14 @@ const styles = stylex.create({
     color: colorVars["--color-text-secondary"],
     display: "inline-flex",
   },
+  // The head line's facts at its end, whole: past the title's room, on a line of their own.
+  facts: { flexShrink: 0, marginInlineStart: "auto", whiteSpace: "nowrap" },
 });
 
 /**
- * A decision's row: its icon, its title, its first sentence, or "Can't read this file" when it
- * cannot be parsed, its count of rules, its last change, and its status unless active.
+ * A decision's row, its text the list's whole width: a head line of its icon, its title, its status
+ * unless active, its count of rules, and its last change; then its first sentence, or "Can't read
+ * this file" when it cannot be parsed.
  */
 function DecisionRow({ decision, isSelected }: { decision: LedgerDecision; isSelected: boolean }) {
   const here = useRepoPath();
@@ -34,37 +37,44 @@ function DecisionRow({ decision, isSelected }: { decision: LedgerDecision; isSel
       // What the list's keys move between: see `useListKeys`.
       data-row=""
       description={subtitle && <Text color="secondary">{subtitle}</Text>}
-      endContent={
-        <HStack align="center" gap={1}>
-          {decision.status !== null && decision.status !== "active" && (
-            <Badge label={statusLabel(decision.status)} variant="yellow" />
-          )}
-          {decision.rules.length > 0 && (
-            <Text color="secondary" hasTabularNumbers type="supporting">
-              {ruleCount(decision.rules.length)}
-            </Text>
-          )}
-          {decision.rules.length > 0 && decision.changed && (
-            <Text color="secondary" type="supporting">
-              ·
-            </Text>
-          )}
-          {decision.changed && (
-            <Text color="secondary" hasTabularNumbers type="supporting">
-              {shortDate(decision.changed)}
-            </Text>
-          )}
-        </HStack>
-      }
       href={here(`/decisions/${decision.name}`)}
       isSelected={isSelected}
-      label={<Text weight="medium">{decision.title}</Text>}
-      startContent={
-        <span {...stylex.props(styles.icon)}>
-          <Icon icon={decisionIcon(decision.icon)} />
-        </span>
+      label={
+        <HStack align="center" gap={2} wrap="wrap">
+          <span {...stylex.props(styles.icon)}>
+            <Icon icon={decisionIcon(decision.icon)} />
+          </span>
+          <Text weight="medium">{decision.title}</Text>
+          <DecisionFacts decision={decision} />
+        </HStack>
       }
     />
+  );
+}
+
+/** A decision's status unless active, its count of rules, and its last change, at its line's end. */
+function DecisionFacts({ decision }: { decision: LedgerDecision }) {
+  return (
+    <HStack align="center" gap={1} xstyle={styles.facts}>
+      {decision.status !== null && decision.status !== "active" && (
+        <Badge label={statusLabel(decision.status)} variant="yellow" />
+      )}
+      {decision.rules.length > 0 && (
+        <Text color="secondary" hasTabularNumbers type="supporting">
+          {ruleCount(decision.rules.length)}
+        </Text>
+      )}
+      {decision.rules.length > 0 && decision.changed && (
+        <Text color="secondary" type="supporting">
+          ·
+        </Text>
+      )}
+      {decision.changed && (
+        <Text color="secondary" hasTabularNumbers type="supporting">
+          {shortDate(decision.changed)}
+        </Text>
+      )}
+    </HStack>
   );
 }
 

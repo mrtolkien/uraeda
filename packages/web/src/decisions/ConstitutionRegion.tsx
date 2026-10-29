@@ -2,7 +2,7 @@ import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, fontWeightVars } from "@astryxdesign/core/theme/tokens.stylex";
 import type { Ledger } from "uraeda-server/fate";
 import { useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
@@ -18,11 +18,8 @@ export type LedgerPrinciple = LedgerConstitution["principles"][number];
 
 const styles = stylex.create({
   numeral: {
-    // The numerals in one column, as the decisions' icons are.
     color: colorVars["--color-text-secondary"],
-    display: "inline-block",
     fontWeight: fontWeightVars["--font-weight-semibold"],
-    minWidth: spacingVars["--spacing-6"],
   },
 });
 
@@ -57,8 +54,8 @@ export function rulesOf(constitution: LedgerConstitution, principle: LedgerPrinc
 }
 
 /**
- * The constitution, first: its principles, highest first, each a row of its numeral, its title,
- * its first rule, and its count of rules, a link to the whole constitution in the reader, at it.
+ * The constitution, first: its principles, highest first, each a row of its numeral and count of
+ * rules, its title, and its first rule, a link to the whole constitution in the reader, at it.
  * "No constitution yet." without `CONSTITUTION.md`.
  */
 export function ConstitutionRegion({
@@ -93,16 +90,20 @@ export function ConstitutionRegion({
                   // What the list's keys move between: see `useListKeys`.
                   data-row=""
                   description={rules[0] && <Text color="secondary">{plain(rules[0].spans)}</Text>}
-                  endContent={
-                    <Text color="secondary" hasTabularNumbers type="supporting">
-                      {ruleCount(rules.length)}
-                    </Text>
-                  }
                   href={here(`/decisions/constitution/${principle.slug}`)}
                   isSelected={selected === principle.slug}
                   key={principle.slug}
-                  label={<Text weight="medium">{principle.title}</Text>}
-                  startContent={<span {...stylex.props(styles.numeral)}>{principle.number}</span>}
+                  label={
+                    // Its numeral and count of rules, then its title in bold, its first rule
+                    // under them: each the list's whole width.
+                    <VStack gap={0}>
+                      <Text color="secondary" hasTabularNumbers type="supporting">
+                        <span {...stylex.props(styles.numeral)}>{principle.number}</span>
+                        {` · ${ruleCount(rules.length)}`}
+                      </Text>
+                      <Text weight="bold">{principle.title}</Text>
+                    </VStack>
+                  }
                 />
               );
             })}
