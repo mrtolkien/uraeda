@@ -9,16 +9,18 @@ import { MessageToCopy, RoundBanner, type StartChat } from "../StartChat.tsx";
 import { Foldable } from "../layout/Foldable.tsx";
 
 /**
- * "Review with AI": starts the check's chat, disabled while a check exists. On the phone, its
- * question icon and "Ask", beside "Jump to…" on one line.
+ * "Review with AI": starts the check's chat, gone while a check exists, whose banner leads to it.
+ * On the phone, its question icon and "Ask", beside "Jump to…" on one line.
  */
 export function CheckButton({ chat, check }: { chat: StartChat; check: string | null }) {
   const narrow = isNarrow(useWidthClass());
+  if (check !== null) {
+    return null;
+  }
   return (
     <Button
       clickAction={() => chat.start(RUN_DECISIONS_CHECK)}
       icon={<Icon icon="uraeda:step-questions" />}
-      isDisabled={check !== null}
       label="Review with AI"
       variant="secondary"
     >
