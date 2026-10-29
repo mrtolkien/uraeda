@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: The key map's light theme
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 1 question, about 5 minutes.
+> Answered on 2026-10-29.
 >
 > - Verdict: built as proposed, and it reads well in the dark theme. In the light theme the glass
 >   over the dimmed page makes its text unreadable, which you asked to hear about.
@@ -106,7 +106,7 @@ glass keeps one look everywhere.
   - [con] the light theme's text at about 2:1, which the [UI look](/specs/decisions/ui-look.md)
     decision's contrast rule forbids: choosing it is an exception to that rule.
 
-**Answer:**
+**Answer:** B
 
 ## Settled without the human
 
