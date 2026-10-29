@@ -1,7 +1,8 @@
 import * as stylex from "@stylexjs/stylex";
 import { borderVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import { createContext, type ReactNode, type RefObject, useRef } from "react";
+import { createContext, type ReactNode, type RefObject, useCallback, useRef } from "react";
 import { paneVars } from "./pane.stylex.ts";
+import { useScreenCentre } from "./useScreenCentre.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
@@ -103,10 +104,19 @@ export function Page({
 }) {
   const wide = !isNarrow(useWidthClass());
   const column = useRef<HTMLDivElement>(null);
+  // On a wide screen, the column sits in the screen's middle where its margins leave room.
+  const centred = useScreenCentre(wide && !isFull);
+  const placed = useCallback(
+    (element: HTMLDivElement | null) => {
+      column.current = element;
+      return centred(element);
+    },
+    [centred],
+  );
   return (
     <PageColumn value={column}>
       <div
-        ref={column}
+        ref={placed}
         {...stylex.props(
           styles.page,
           isTight && styles.tight,
