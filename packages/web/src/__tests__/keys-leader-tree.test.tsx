@@ -68,10 +68,11 @@ test("Space n n and Space n p open the forms of the column's buttons (US1 key 1)
   expect(await screen.findByRole("dialog", { name: "Add a note" })).toBeTruthy();
 });
 
-test("Space n p opens the proposal form", async () => {
+test("Space n p opens a new proposal's row at the top of Now in the priorities", async () => {
   await atHome();
   keys(" ", "n", "p");
-  expect(await screen.findByRole("dialog", { name: "New proposal" })).toBeTruthy();
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/priorities")));
+  expect(await screen.findByRole("textbox", { name: "New proposal" })).toBeTruthy();
 });
 
 test("Space f d opens the decisions picker, and Space Space the one over everything (US4)", async () => {

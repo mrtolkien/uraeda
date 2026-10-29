@@ -77,13 +77,16 @@ test("on a Home card, the arrows move the focus while a `g` sequence waits", asy
 
   await press("g", link);
   await press("ArrowRight", link);
-  const moved = document.activeElement;
-  expect(moved).not.toBe(link);
-  expect(moved?.closest("[data-core-key]")).not.toBeNull();
+  // Under a loaded run, Home may draw again between the key and the read: the focus is waited for.
+  await waitFor(() => {
+    expect(document.activeElement).not.toBe(link);
+    expect(document.activeElement?.closest("[data-core-key]")).not.toBeNull();
+  });
+  const moved = document.activeElement as HTMLElement;
 
-  await press("g", moved!);
-  await press("ArrowLeft", moved!);
-  expect(document.activeElement).toBe(link);
+  await press("g", moved);
+  await press("ArrowLeft", moved);
+  await waitFor(() => expect(document.activeElement).toBe(link));
 });
 
 test("US3: `a` on Home opens the New page, as its button does", async () => {

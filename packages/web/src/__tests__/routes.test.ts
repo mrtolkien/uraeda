@@ -18,10 +18,12 @@ test.each([
   ["/f/x/storybook", { folder: "x", page: "storybook" }],
   ["/storybook", { folder: "main", page: "storybook" }],
   ["/f/x/storybook.md", { folder: "x", name: "storybook.md", page: "file" }],
-  // US8: the decisions page, a decision open, and a principle open.
+  // US8: the decisions page, a decision open, and the constitution, one page, which an old
+  // principle's address opens too.
   ["/decisions", { page: "decisions" }],
   ["/decisions/ui-behaviour", { name: "ui-behaviour", page: "decision" }],
-  ["/decisions/constitution/iv", { page: "principle", slug: "iv" }],
+  ["/decisions/constitution", { page: "constitution" }],
+  ["/decisions/constitution/iv", { page: "constitution" }],
   ["/decisions/git/rules", { page: "missing", path: "/decisions/git/rules" }],
   // US2 more 5: a decision as a feature's branch has it.
   [

@@ -8,6 +8,7 @@ import {
   liveText,
   recapText,
   rowWord,
+  rowWords,
   type Slot,
   slotsOf,
   type Stretch,
@@ -375,4 +376,13 @@ test("review focus 1: a page of a sub-agent's calls alone leaves the stretch ope
   const keys = [first[1]!, last[0]!].map((item) => run?.stretches.get(item.seq));
   expect(keys[0]).toBe(stretchKey("7", first[1]!.seq));
   expect(keys[1]).toBe(keys[0]);
+});
+
+test("a finished call's row says how long it ran: tenths under a second, then as a thought does", () => {
+  expect(rowWords(run("vp check", 400), true, 0).time).toBe("0.4 s");
+  expect(rowWords(run("vp check", 6200), true, 0).time).toBe("6 s");
+  expect(rowWords(run("vp run ready", 125_000), true, 0).time).toBe("2 min 5 s");
+  // A call cached before it was timed says nothing.
+  const untimed = call("execute", "Bash", "ls", 0, { durationMs: undefined });
+  expect(rowWords(untimed, true, 0).time).toBeUndefined();
 });

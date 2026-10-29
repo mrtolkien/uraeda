@@ -17,7 +17,7 @@ const decision = (title: string, summary: string | null = null) =>
 const principle = (number: string, title: string) =>
   ({
     kind: "principle",
-    path: `/decisions/constitution/${title}`,
+    path: "/decisions/constitution",
     principle: { number, title },
     summary: null,
     title,
@@ -76,7 +76,7 @@ test("the entries are the principles, then the decisions in the order given", ()
   expect(
     jumpEntries(ledger, decisions).map(({ path, summary, title }) => [path, summary, title]),
   ).toEqual([
-    ["/decisions/constitution/humans", null, "Humans"],
+    ["/decisions/constitution", null, "Humans"],
     ["/decisions/testing", "How tests.", "Testing"],
     ["/decisions/sandbox", null, "Sandbox"],
   ]);
