@@ -39,12 +39,20 @@ import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort 
 import { NoSpecs } from "../layout/Missing.tsx";
 import { Empty } from "../layout/Empty.tsx";
 
-/** The list's column, about 60 characters a line at least, 80 at most, with its pane's inset. */
-const LIST_LEAST = `calc(60ch + 2 * ${spacingVars["--spacing-6"]})`;
+/** The list's column, about 40 characters a line at least, 80 at most, with its pane's inset. */
+const LIST_LEAST = `calc(40ch + 2 * ${spacingVars["--spacing-6"]})`;
 const LIST_MOST = `calc(80ch + 2 * ${spacingVars["--spacing-6"]})`;
-/** The reader's column, about 60 characters of prose a line at least, 80 at most, with its inset. */
-const READER_LEAST = `calc(0.75 * var(--size-reading-measure) + 2 * ${spacingVars["--spacing-8"]})`;
-const READER_MOST = `calc(var(--size-reading-measure) + 2 * ${spacingVars["--spacing-8"]})`;
+/**
+ * The reader's column, about 60 characters of prose a line at least, with its inset at its least,
+ * to 80 with its whole inset.
+ */
+const READER_LEAST = `calc(0.75 * var(--size-reading-measure) + 2 * ${spacingVars["--spacing-4"]})`;
+const READER_MOST = `calc(var(--size-reading-measure) + 2 * (${spacingVars["--spacing-8"]} + ${spacingVars["--spacing-4"]}))`;
+/**
+ * The reader's inset: its whole, `--spacing-8`, in a pane with room for 80 characters and it; less,
+ * down to `--spacing-4`, in a narrower one, the text keeping the room.
+ */
+const READER_INSET = `clamp(${spacingVars["--spacing-4"]}, calc((100% - var(--size-reading-measure)) / 2), ${spacingVars["--spacing-8"]})`;
 /** Both least columns, and the reader's pane's inset: past it, they stand side by side. */
 const TWO_LEAST = `calc(${LIST_LEAST} + ${READER_LEAST} + 2 * ${spacingVars["--spacing-2"]})`;
 
@@ -57,7 +65,7 @@ const styles = stylex.create({
   // The page's room, which `useSplit` measures.
   room: { position: "relative" },
   // The two columns' least widths together, unseen: past them, the list and the reader side by
-  // side, each about 60 characters a line.
+  // side, about 40 characters a line in the list and 60 in the reader.
   least: (width: string) => ({
     position: "absolute",
     visibility: "hidden",
@@ -67,10 +75,10 @@ const styles = stylex.create({
   // its pane beside the list.
   alone: { marginInline: "auto", maxWidth: "var(--size-reading-measure)" },
   // The reader's text in its pane, side by side with the list: its inset, not a page's column.
-  reader: {
+  reader: (inset: string) => ({
     paddingBlock: spacingVars["--spacing-6"],
-    paddingInline: spacingVars["--spacing-8"],
-  },
+    paddingInline: inset,
+  }),
 });
 
 /** What is open in the reader: a decision by its file name, or the constitution, one page. */
@@ -265,7 +273,7 @@ function Reader({
   if (isSplit) {
     return (
       <Pane title={file}>
-        <div {...stylex.props(styles.reader)}>
+        <div {...stylex.props(styles.reader(READER_INSET))}>
           <ReaderBody ledger={ledger} open={open} />
         </div>
       </Pane>
@@ -340,8 +348,8 @@ function ReaderBar({
 }
 
 /**
- * The constitution and the decisions, the reader beside them where each has about 60 characters a
- * line (`useSplit`), on `open` or the constitution, the two centred together; narrower, the list,
+ * The constitution and the decisions, the reader beside them where the list has about 40 characters a
+ * line and the reader 60 (`useSplit`), on `open` or the constitution, the two centred together; narrower, the list,
  * or `open` alone with a way back, `onClose`.
  */
 export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: LedgerOpen }) {

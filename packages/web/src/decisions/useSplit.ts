@@ -1,5 +1,5 @@
-// Whether the decisions page has room for its list and its reader side by side: each showing about
-// 60 characters a line at least, the list in the UI's font and the reader in the reading one.
+// Whether the decisions page has room for its list and its reader side by side: the list showing
+// about 40 characters a line at least, in the UI's font, and the reader 60, in the reading one.
 // Narrower, the list is the page, and what is open is a page of its own, as on the phone.
 import { type RefObject, useLayoutEffect, useState } from "react";
 import { isNarrow, widthClassNow } from "../layout/useWidthClass.ts";
