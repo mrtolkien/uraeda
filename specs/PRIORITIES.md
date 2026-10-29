@@ -6,21 +6,36 @@
 >
 > Features for v1.0.0
 
-- [Proposal naming](/specs/changes/2026-10-28-proposal-naming/proposal.md)
-
 - [Full interactive UI pass: manual small fixes](drafts/full-interactive-ui-pass-manual-small-fixes.md)
   - Write down our UI decisions and strategy based on the "UI fixes" worktree
 
 - Decisions needs to be understandable with _no context_. Often agents just read the decisions, they
   can't be expected to search for extra info in records.
-- Amend the latest commits if the commits touches only workflow files
-- Add `?` in status, after leader, for shortcuts
+- Amend the latest commit if the commit touches only workflow files (proposals/notes)
+- Add `?` in status, after leader. It should show all shortcuts of the page and be searchable
+  - It'll be an overlay so use the glassy look, but also darken the rest of the page (modal-like)
 
 - Performance pass: the UI feels sluggish
+  - needs optimistic UI _everywhere_
+  - needs caching of almost all values ahead of time
+  - ideally locally no page takes more than 100ms to load
+  - Moving a draft to a feature takes upwards of 10s with many page changes and no clear feedback
 
+- Feature state pass
+  - [testing-communication] A stopped session marks the feature as "needing attention" even if
+    another session is running
+  - After approving a spec the feature stayed in "needs you" until I ran a full refresh
+  - Many, many issues with the "state" of a run: if a PR is up, it's "done" even if I restarted the
+    session
+    - If a session is running, it should always be visible in the sidebar/card/feature page
+    - Generally we need better handling of "corner cases" of feature state/session state
+
+- Review the UI guidelines properly
 - Empty inbox
+
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
+  - Onboarding/docs in the UI
   - Setup with agent (checks project and creates relevant files)
 
 ## Next
@@ -29,8 +44,13 @@
 >
 > Goals once I'm happy with the core feature set
 
+- Vim in text edit mode
+
 - [Worker lifecycle](drafts/worker-lifecycle.md): runs survive server restarts, usage limits, and
   their own background work, and go on to the next human gate without a "Continue"
+
+- Basic git UI in the web ui (pull, see diffs, ...)
+  - Pretty much web lazygit?
 
 - Run options
   - Master session vs one session per step
@@ -40,9 +60,11 @@
 - Heartbeat/cron jobs
 - Global undo
 - Keyboard nav in questions and specs
-- Vim in text edit mode
 
+- Color themes
+  - The classic open source ones
 - Cooler home view: logo, progress, gauges, ...
+- eink mode?
 
 - References (docs) querying and storing workflow -> our own local context8?
   - Issue faced: I'm using Astryx which is pretty new, and the agents did make errors with it
@@ -56,16 +78,17 @@
   - same for the references system which is more of a skill tbh
 
 - Nix + Docker based execution environments
-- Passkeys to sign in, on top of the access key of basic security
+
+- Dedicated docs website
+  - Explain the concepts and the controls
+  - Make sure docs stay up-to-date with agents instructions
 
 - Git listener process?
 
+- Proper security: Passkeys to sign in, on top of the access key of basic security
 - Monorepo support: multiple `specs` folders, principles per package, ...
 - Multi-repo projects: an agent/project aware of multiple repos, for projects spanning multiple
   repos and not in a monorepo
-
-- Basic git UI in the web ui (pull, see diffs, ...)
-  - Pretty much web lazygit?
 
 - Codex runtime + model settings
 - Dedicated Pi-durable runtime with basic tooling

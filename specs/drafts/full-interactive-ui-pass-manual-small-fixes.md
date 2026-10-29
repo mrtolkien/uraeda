@@ -32,15 +32,17 @@ DONE:
 
 - [x] Specs
 
-- [ ] Glass leader
+- [x] Glass leader
 
-- [ ] Session
-  - [ ] Desktop
-  - [ ] Phone
+- [x] New Note dialog
 
-- [ ] New Note dialog
+- [x] Proposal, Plan, Report, ...
 
-- [ ] Proposal, Plan, Report, ...
-- [ ] Inbox triage
-- [ ] Constitution/Decisions + detail
-- [ ] Login
+- [x] Session
+
+- [x] Constitution/Decisions + detail
+
+- [x] Inbox triage
+  - In clarifications of inbox triage, most notes were cut -> very hard to read
+
+- [x] Login
