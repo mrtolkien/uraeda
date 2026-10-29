@@ -76,6 +76,7 @@ function TailPage({
             latest={latest && last}
             piece={piece}
             queued={turn.state === "queued"}
+            replies={last && turn.state === "done"}
           />
         )}
         {live && <LiveRecap actions={actions} activity={live} pages={turn.pages} turn={turn.id} />}
@@ -93,6 +94,7 @@ function PageItems({
   latest,
   piece,
   queued,
+  replies,
 }: {
   actions: Actions;
   /** Whether a stretch open at the page's end draws its line here. */
@@ -101,6 +103,8 @@ function PageItems({
   latest: boolean;
   piece: Piece;
   queued: boolean;
+  /** Whether the page ends a done turn, whose last text is its reply. */
+  replies: boolean;
 }) {
   const page = useTurnLog(`${piece.turn}:${piece.page}`, latest);
   if (!page) {
@@ -119,6 +123,7 @@ function PageItems({
       firstMessage={first?.kind === "message" ? first.id : undefined}
       items={page.items.slice(piece.from)}
       queued={queued}
+      replies={replies}
       turn={piece.turn}
     />
   );
