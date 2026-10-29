@@ -64,9 +64,9 @@ A block of prose with no hierarchy is hard to read, however short. Make what mat
 
 ## Air
 
-Prose meant to be read for a while gets air: a taller line (`--text-reading-line` at 1.5 in `isAiry`
-panes, against 1.4 elsewhere, the close end of body text's 1.4 to 1.6: 1.65, then 1.55, read as "too
-spaced"), more room between paragraphs than between a list's items, and room around tables and
+Prose meant to be read for a while gets air: a taller line (`--text-reading-line` at 1.4 in `isAiry`
+panes, against 1.3 elsewhere, within print's 1.2 to 1.45 for body text: 1.65, 1.55, then 1.5 read as
+"too spaced"), more room between paragraphs than between a list's items, and room around tables and
 panes. Inline code never makes its line taller than the others. "It's a big block, pretty compact,
 with no hierarchy" is the complaint to avoid. Air is not emptiness: a pane ends right after its last
 line, with only the pane's own room under it (see [Space and motion](space-and-motion.md)).
