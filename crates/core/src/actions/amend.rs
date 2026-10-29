@@ -50,13 +50,42 @@ fn joins(subject: &str, body: Option<&str>, paths: &[String]) -> bool {
 }
 
 /// Whether committing `paths` as they are in the working tree takes every file of `latest` back
-/// to its parent's: the amend would leave it empty.
+/// to its parent's: the amend would leave it empty. A path is a file or a folder, like an images
+/// folder, which covers the files under it. A doubt counts as not undoing it: a plain commit is
+/// always safe.
 fn undoes(place: &Place, git: &Git, latest: &Latest, paths: &[String]) -> bool {
+    let covered = |file: &str| {
+        paths
+            .iter()
+            .any(|path| file == path || file.starts_with(&format!("{path}/")))
+    };
+    if !latest.files.iter().all(|file| covered(file)) {
+        return false;
+    }
+    let mut files = latest.files.clone();
+    for path in paths {
+        files.extend(files_under(place, path));
+    }
     let parent = latest.parents[0];
-    latest.files.iter().all(|file| paths.contains(file))
-        && paths.iter().all(|path| {
-            fs::read(place.root.join(path)).ok() == git.read_file(parent, path).ok().flatten()
+    files.iter().all(|file| {
+        fs::read(place.root.join(file)).ok() == git.read_file(parent, file).ok().flatten()
+    })
+}
+
+/// The files at `path` on disk, from the top level: itself, or every file under the folder.
+fn files_under(place: &Place, path: &str) -> Vec<String> {
+    let Ok(entries) = fs::read_dir(place.root.join(path)) else {
+        return vec![path.to_string()];
+    };
+    entries
+        .flatten()
+        .flat_map(|entry| {
+            files_under(
+                place,
+                &format!("{path}/{}", entry.file_name().to_string_lossy()),
+            )
         })
+        .collect()
 }
 
 /// The subject naming the latest commit's first change and the count of the others, and the body

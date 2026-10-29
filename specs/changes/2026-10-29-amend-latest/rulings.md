@@ -5,11 +5,13 @@ The low-impact choices made while building [the change](proposal.md), inside the
 
 ## R1: Never amend a commit another branch holds
 
-- **Decision**: a tool amends the latest commit only when no other branch, local or remote, holds
-  it. A pushed commit is never amended, nor one a feature or a change was started from.
+- **Decision**: a tool amends the latest commit only when it has one parent, and no other branch,
+  local or remote, nor a tag holds it. A pushed commit is never amended, nor one a feature or a
+  change was started from, nor a merge. A push that leaves no remote branch behind, to a URL or from
+  another clone, cannot be seen: the next push of such an amend needs the human's force.
 - **Rationale**: the git decision forbids force-pushing. A pushed commit, once amended, could only
   be pushed again by force. A branch started from it would keep the old commit, and its merge would
-  bring the same edits twice.
+  bring the same edits twice. A tag would stay on a commit the branch no longer has.
 - **If wrong**: edits after a push make one more commit until the next push. The check is
   [`held_elsewhere`](/crates/core/src/git/amend.rs).
 - **Where**: [`amend.rs`](/crates/core/src/actions/amend.rs)
@@ -22,7 +24,9 @@ The low-impact choices made while building [the change](proposal.md), inside the
 - **Rationale**: these are the commits of small edits the proposal names: the commit bar's, a
   proposal file's or a note file's from its editor, and `ura note`'s. A start, a drop, or a triage
   holds other files, and their commits are a step's record. A human's `docs:` commit, or a body they
-  wrote, keeps its words rather than being folded into a list.
+  wrote, keeps its words rather than being folded into a list. Two hand-made records hold only these
+  files and are amended by the next tool commit, their changes kept: the scratchpad's move into the
+  inbox, and a split-out item's `chore: expand <Name>`.
 - **Alternatives considered**: any commit of those files, which would rewrite a message the human
   wrote by hand.
 - **Where**: [`amend.rs`](/crates/core/src/actions/amend.rs)
@@ -58,3 +62,16 @@ The low-impact choices made while building [the change](proposal.md), inside the
   [`inbox_moves.rs`](/crates/core/tests/inbox_moves.rs),
   [`priorities.rs`](/crates/core/tests/priorities.rs), and
   [`commands.rs`](/crates/lsp/tests/commands.rs)
+
+## R6: Two reads go through `git`
+
+- **Decision**: the files the latest commit changed come from `git diff-tree`, and the branches and
+  tags that hold it from `git for-each-ref --contains`, both parsed in their `-z` and `--format`
+  forms.
+- **Rationale**: the git decision asks for reads with gix, and
+  [`log.rs`](/crates/core/src/git/log.rs) already reads through `git` what gix does not give. gix
+  has no `--contains`, and its tree diff needs a feature the workspace does not build: one process
+  each, once per tool commit, costs little.
+- **If wrong**: both move to gix inside [`git/amend.rs`](/crates/core/src/git/amend.rs), behind the
+  same two methods.
+- **Where**: [`git/amend.rs`](/crates/core/src/git/amend.rs)

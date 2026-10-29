@@ -253,10 +253,11 @@ changes the same way: `add "<note>" to the inbox`, `edit "<note>" in the inbox`,
 
 `ura` and the web UI amend the latest commit rather than add one when both are `chore:` commits
 without a scope, of `INBOX.md`, `PRIORITIES.md`, and files under `specs/proposals/` and
-`specs/notes/` alone, on the default branch. They never amend a commit another branch holds, local
-or remote, so a pushed commit stays as it is. The latest commit's body must be empty or a list of
-changes, and the amend must not leave it empty. The amended subject names the first change and ends
-with `, and <count> more`, and the body lists every change of both commits, a commit's one change
-given by its subject: `- Add "<note>" to the inbox`. By hand, amending is optional.
+`specs/notes/` alone, on the default branch. The latest commit has one parent, and no other branch,
+remote branch as last fetched or pushed, or tag holds it: a commit pushed and known to be pushed
+stays as it is. Its body must be empty or a list of changes, and the amend must not leave it empty.
+The amended subject names the first change and ends with `, and <count> more`, and the body lists
+every change of both commits, a commit's one change given by its subject:
+`- Add "<note>" to the inbox`. By hand, amending is optional.
 
 The commit type is only a label: the `status` fields and the checkboxes are the source of truth.
