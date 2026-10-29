@@ -4,20 +4,20 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::actions::draft::listed;
+use crate::actions::expand::listed;
 use crate::actions::place;
 use crate::check::change_holds;
 use crate::files::markdown::Document;
-use crate::files::priorities::{self, Entry};
+use crate::files::priorities::{self, Proposal};
 use crate::git::{Git, GitError};
-use crate::target::draft_name;
+use crate::target::proposal_name;
 use crate::today::Date;
 use crate::workspace::{Kind, Workspace, folder_branch, folder_path, resolve};
 
 use super::typed::Typed;
 use super::{Source, Start, StartError};
 
-/// A slug as `ura draft` makes them: lowercase letters, digits, and hyphens.
+/// A slug as `ura expand` makes them: lowercase letters, digits, and hyphens.
 fn valid_slug(slug: &str) -> bool {
     !slug.is_empty()
         && !slug.starts_with('-')
@@ -26,12 +26,12 @@ fn valid_slug(slug: &str) -> bool {
             .all(|c| (c.is_alphanumeric() && !c.is_uppercase()) || c == '-')
 }
 
-/// The files of a draft: the file itself, or every file of a postponed folder, from the top
+/// The files of a proposal file: the file itself, or every file of a postponed folder, from the top
 /// level.
-fn draft_files(root: &Path, draft: &str) -> Result<Vec<String>, StartError> {
-    let path = root.join(draft);
+fn proposal_files(root: &Path, proposal: &str) -> Result<Vec<String>, StartError> {
+    let path = root.join(proposal);
     if path.is_file() {
-        return Ok(vec![draft.to_string()]);
+        return Ok(vec![proposal.to_string()]);
     }
     let mut files = Vec::new();
     let mut stack = vec![path.clone()];
@@ -46,35 +46,39 @@ fn draft_files(root: &Path, draft: &str) -> Result<Vec<String>, StartError> {
     }
     files.sort();
     if files.is_empty() {
-        return Err(StartError::Refused(format!("{draft}: no such draft")));
+        return Err(StartError::Refused(format!(
+            "{proposal}: no such proposal file"
+        )));
     }
     Ok(files)
 }
 
-/// A draft, read: its file or postponed folder, its files, its proposal, and the proposal's text.
-struct Drafted<'a> {
-    draft: &'a str,
-    folder_draft: bool,
+/// A proposal file, read: its file or postponed folder, its files, its proposal, and the
+/// proposal's text.
+struct Proposed<'a> {
+    proposal: &'a str,
+    postponed: bool,
     files: Vec<String>,
-    /// The proposal's path: the draft's file, or the postponed folder's `proposal.md`.
+    /// The proposal's path: the file itself, or the postponed folder's `proposal.md`.
     proposal_source: String,
     text: String,
 }
 
-impl<'a> Drafted<'a> {
-    fn read(root: &Path, draft: &'a str) -> Result<Drafted<'a>, StartError> {
-        let folder_draft = root.join(draft).is_dir();
-        let proposal_source = if folder_draft {
-            format!("{draft}/proposal.md")
+impl<'a> Proposed<'a> {
+    fn read(root: &Path, proposal: &'a str) -> Result<Proposed<'a>, StartError> {
+        let postponed = root.join(proposal).is_dir();
+        let proposal_source = if postponed {
+            format!("{proposal}/proposal.md")
         } else {
-            draft.to_string()
+            proposal.to_string()
         };
-        let files = draft_files(root, draft)?;
-        let text = fs::read_to_string(root.join(&proposal_source))
-            .map_err(|_| StartError::Refused(format!("{proposal_source}: no such draft")))?;
-        Ok(Drafted {
-            draft,
-            folder_draft,
+        let files = proposal_files(root, proposal)?;
+        let text = fs::read_to_string(root.join(&proposal_source)).map_err(|_| {
+            StartError::Refused(format!("{proposal_source}: no such proposal file"))
+        })?;
+        Ok(Proposed {
+            proposal,
+            postponed,
             files,
             proposal_source,
             text,
@@ -84,7 +88,7 @@ impl<'a> Drafted<'a> {
     /// Refuses a postponed folder holding files a change's folder has no place for, like a
     /// feature's `spec.md`, which `ura check` would report once the folder is a change's.
     fn check_change(&self) -> Result<(), StartError> {
-        let prefix = format!("{}/", self.draft);
+        let prefix = format!("{}/", self.proposal);
         let mut misplaced: Vec<String> = Vec::new();
         for file in &self.files {
             let Some(inside) = file.strip_prefix(&prefix) else {
@@ -116,25 +120,25 @@ impl<'a> Drafted<'a> {
         Err(StartError::Refused(format!(
             "{} holds {list}, which {verb} no place in a change: start it as a feature, without \
              --change",
-            self.draft
+            self.proposal
         )))
     }
 }
 
-/// What a start starts from, read: a draft, or a typed change and its number of images.
+/// What a start starts from, read: a proposal file, or a typed change and its number of images.
 enum Origin<'a> {
-    Draft(Drafted<'a>),
+    Proposal(Proposed<'a>),
     Text(&'a Typed, usize),
 }
 
 /// Everything a start writes, settled before anything is written.
 pub(super) struct Plan {
-    /// Whether the draft is a postponed folder rather than a file.
-    pub(super) folder_draft: bool,
-    /// The draft's file or postponed folder, for a start from a draft.
-    pub(super) draft: Option<String>,
+    /// Whether the proposal file is a postponed folder rather than a file.
+    pub(super) postponed: bool,
+    /// The proposal file or postponed folder, for a start from a proposal file.
+    pub(super) proposal: Option<String>,
     pub(super) files: Vec<String>,
-    /// The draft's files that are committed.
+    /// The proposal file's files that are committed.
     pub(super) tracked: Vec<String>,
     /// The dated folder.
     pub(super) folder: String,
@@ -142,8 +146,11 @@ pub(super) struct Plan {
     pub(super) branch: String,
     /// Where the branch's worktree goes, unless `switch`.
     pub(super) worktree: PathBuf,
-    /// `PRIORITIES.md` with the entry moved to **Now**.
+    /// `PRIORITIES.md` with the proposal moved to **Now**.
     pub(super) priorities: String,
+    /// The lines nested under the proposal in `PRIORITIES.md`, which its move to **Now** takes
+    /// out: the proposal file takes them.
+    pub(super) nested: Vec<String>,
     pub(super) start_subject: String,
     /// `specs/<folder>`, or `specs/changes/<folder>` for a change.
     pub(super) destination: String,
@@ -152,11 +159,11 @@ pub(super) struct Plan {
 }
 
 impl Plan {
-    /// The start commit, as the step left to do by hand: with the draft's removal, when it was
-    /// committed.
+    /// The start commit, as the step left to do by hand: with the proposal file's removal, when it
+    /// was committed.
     pub(super) fn commit_left(&self, default: &str) -> String {
-        let removal = match &self.draft {
-            Some(draft) if !self.tracked.is_empty() => format!(", the removal of {draft},"),
+        let removal = match &self.proposal {
+            Some(proposal) if !self.tracked.is_empty() => format!(", the removal of {proposal},"),
             _ => String::new(),
         };
         format!(
@@ -182,54 +189,57 @@ impl Start<'_> {
     /// Every check, before anything is written.
     pub(super) fn plan(&self, slug: Option<&str>, today: Date) -> Result<Plan, StartError> {
         let origin = match self.source {
-            Source::Draft(draft) => Origin::Draft(Drafted::read(self.root, draft)?),
+            Source::Proposal(proposal) => Origin::Proposal(Proposed::read(self.root, proposal)?),
             Source::Text { typed, images } => Origin::Text(typed, images.len()),
         };
-        if let Origin::Draft(drafted) = &origin
+        if let Origin::Proposal(proposed) = &origin
             && self.kind == Kind::Change
         {
-            drafted.check_change()?;
+            proposed.check_change()?;
         }
         let slug = slug.map_or_else(
             || match &origin {
-                Origin::Draft(drafted) => crate::slug::short(draft_name(drafted.draft)),
+                Origin::Proposal(proposed) => crate::slug::short(proposal_name(proposed.proposal)),
                 Origin::Text(typed, _) => typed.proposed_slug(),
             },
             str::to_string,
         );
         let (folder, worktree) = self.claim(&slug, today)?;
         let files = match &origin {
-            Origin::Draft(drafted) => drafted.files.clone(),
+            Origin::Proposal(proposed) => proposed.files.clone(),
             Origin::Text(..) => Vec::new(),
         };
-        // Which of the draft's files are committed, read before any write of ours.
+        // Which of the proposal file's files are committed, read before any write of ours.
         let tracked = self.tracked(&files);
         match &origin {
-            Origin::Draft(_) => self.check_clean(&files)?,
-            // A typed change commits its own folder with the entry: the main checkout's edits stay.
+            Origin::Proposal(_) => self.check_clean(&files)?,
+            // A typed change commits its own folder with the proposal: the main checkout's edits
+            // stay.
             Origin::Text(..) => check_staged(&self.at)?,
         }
         let destination = folder_path(self.kind, &folder);
         let target = format!("/{destination}/proposal.md");
         let priorities_text =
             fs::read_to_string(self.root.join("specs/PRIORITIES.md")).unwrap_or_default();
-        let (name, priorities, write_left) = match &origin {
-            Origin::Draft(drafted) => {
-                let (name, priorities) = moved_entry(&priorities_text, drafted, &slug, &target)?;
-                let write_left = format!("move {} to {destination}", drafted.draft);
-                (name, priorities, write_left)
+        let (name, priorities, nested, write_left) = match &origin {
+            Origin::Proposal(proposed) => {
+                let (name, priorities, nested) =
+                    moved_proposal(&priorities_text, proposed, &slug, &target)?;
+                let write_left = format!("move {} to {destination}", proposed.proposal);
+                (name, priorities, nested, write_left)
             }
             Origin::Text(typed, images) => {
                 let name = typed.title.clone();
                 let priorities = priorities::add_started(&priorities_text, &name, &target);
-                (name, priorities, typed_write_left(&destination, *images))
+                let write_left = typed_write_left(&destination, *images);
+                (name, priorities, Vec::new(), write_left)
             }
         };
-        let folder_draft = matches!(&origin, Origin::Draft(drafted) if drafted.folder_draft);
+        let postponed = matches!(&origin, Origin::Proposal(proposed) if proposed.postponed);
         Ok(Plan {
-            folder_draft,
-            draft: match &origin {
-                Origin::Draft(drafted) => Some(drafted.draft.to_string()),
+            postponed,
+            proposal: match &origin {
+                Origin::Proposal(proposed) => Some(proposed.proposal.to_string()),
                 Origin::Text(..) => None,
             },
             files,
@@ -241,6 +251,7 @@ impl Start<'_> {
             folder,
             worktree,
             priorities,
+            nested,
         })
     }
 
@@ -282,8 +293,8 @@ impl Start<'_> {
             .collect()
     }
 
-    /// Refuses uncommitted changes outside the draft and `PRIORITIES.md`, and staged files the
-    /// start commit would carry.
+    /// Refuses uncommitted changes outside the proposal file and `PRIORITIES.md`, and staged files
+    /// the start commit would carry.
     fn check_clean(&self, files: &[String]) -> Result<(), StartError> {
         check_clean(&self.at, files)
     }
@@ -359,28 +370,28 @@ fn typed_write_left(destination: &str, images: usize) -> String {
     }
 }
 
-/// The feature's name, and `PRIORITIES.md` with its entry moved to the top of **Now** as a link
-/// to `target`, or added there when no entry links the draft.
-fn moved_entry(
+/// The feature's name, `PRIORITIES.md` with its proposal moved to the top of **Now** as a link
+/// to `target`, or added there when no proposal links the proposal file, and the lines nested
+/// under the proposal, which the move takes out.
+fn moved_proposal(
     priorities_text: &str,
-    drafted: &Drafted<'_>,
+    proposed: &Proposed<'_>,
     slug: &str,
     target: &str,
-) -> Result<(String, String), StartError> {
-    let Drafted {
-        draft,
+) -> Result<(String, String, Vec<String>), StartError> {
+    let Proposed {
+        proposal,
         proposal_source,
         text,
         ..
-    } = drafted;
-    let linking: Vec<Entry> = priorities::parse(priorities_text)
+    } = proposed;
+    let linking: Vec<Proposal> = priorities::parse(priorities_text)
         .into_iter()
-        .filter(|entry| {
-            entry
-                .link
+        .filter(|line| {
+            line.link
                 .as_deref()
                 .and_then(|link| resolve("specs", link))
-                .is_some_and(|path| path == *draft || path == *proposal_source)
+                .is_some_and(|path| path == *proposal || path == *proposal_source)
         })
         .collect();
     match linking.as_slice() {
@@ -391,20 +402,20 @@ fn moved_entry(
                 .find(|h| h.level == 1)
                 .map_or_else(|| slug.to_string(), |h| h.text);
             let edited = priorities::add_started(priorities_text, &name, target);
-            Ok((name, edited))
+            Ok((name, edited, Vec::new()))
         }
-        [entry] => {
+        [line] => {
             let edited =
-                priorities::move_to_started(priorities_text, entry.line, &entry.text, target)
-                    .ok_or_else(|| StartError::Refused("cannot move the entry".into()))?;
-            Ok((entry.text.clone(), edited))
+                priorities::move_to_started(priorities_text, line.line, &line.text, target)
+                    .ok_or_else(|| StartError::Refused("cannot move the proposal".into()))?;
+            Ok((line.text.clone(), edited, line.nested(priorities_text)))
         }
         several => {
-            let entries: Vec<&Entry> = several.iter().collect();
+            let lines: Vec<&Proposal> = several.iter().collect();
             Err(StartError::Refused(format!(
-                "{} lines link {draft}:{}",
+                "{} proposals link {proposal}:{}",
                 several.len(),
-                listed(&entries)
+                listed(&lines)
             )))
         }
     }

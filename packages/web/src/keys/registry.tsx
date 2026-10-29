@@ -20,6 +20,7 @@ import { inTextField, keepsSpace } from "./fields.ts";
 import { createLeader, type Leader, type Pressed } from "./leader.ts";
 import { useLayerOpen, isLayerOpen } from "./layers.ts";
 import { tokenOf } from "./match.ts";
+import { pressKeys } from "./press.ts";
 import type { Step } from "./sequence.ts";
 import {
   type Binding,
@@ -179,6 +180,18 @@ export function useKeys(bindings: ReadonlyArray<Binding>, place: Place = "page")
   useLayoutEffect(() => () => store?.remove(id), [id, store]);
 }
 
+/**
+ * Presses the keys of a hint a click named, as the keyboard would; the menu a sequence opens shows
+ * at once, where a key typed waits for a pause.
+ */
+export function usePress() {
+  const registry = use(StoreContext);
+  return (keys: string) => {
+    pressKeys(keys);
+    registry?.leader.show();
+  };
+}
+
 const NONE: ReadonlyArray<never> = [];
 const noSubscription = () => () => {};
 
@@ -197,7 +210,7 @@ export function useHints(): ReadonlyArray<StatusHint> {
     () =>
       hints
         .filter((hint) => !isLayerShown || hint.inLayer)
-        .map(({ keys, label }) => ({ keys, label })),
+        .map(({ keys, label, press }) => ({ keys, label, press })),
     [hints, isLayerShown],
   );
 }
@@ -213,6 +226,15 @@ export function useSingleKeys(): boolean {
     store?.subscribe ?? noSubscription,
     store?.getSingleKeys ?? (() => true),
   );
+}
+
+/**
+ * Whether a sequence or the leader's menu waits for a key, read as a key comes, for a widget that
+ * takes keys of its own before the registry does: those keys are then the leader's.
+ */
+export function useLeaderWaits(): () => boolean {
+  const registry = use(StoreContext);
+  return () => (registry?.leader.get() ?? null) !== null;
 }
 
 /**

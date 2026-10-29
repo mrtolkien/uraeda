@@ -1,41 +1,40 @@
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
-import { Button } from "@astryxdesign/core/Button";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
-import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode, RefObject } from "react";
+import { type ReactNode, type RefObject, useRef } from "react";
 import { useCoverStatusLine } from "../statusHints.tsx";
+import { Sheet } from "./Sheet.tsx";
 import { useBackCloses } from "./useBackCloses.ts";
+import { useFieldFocus } from "./useFieldFocus.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
-  // The sheet's heading over its content, which takes the rest of the sheet's height: a part of it
-  // that scrolls on its own stays in the sheet, under the parts after it.
-  fill: {
-    display: "flex",
-    flexDirection: "column",
-    height: "100%",
-    minHeight: 0,
-  },
+  // The dialog's content, laid out by the dialog: a box only to find its field in.
+  body: { display: "contents" },
 });
 
 /**
  * A short form over the page: a dialog on wide screens, a bottom sheet on narrow ones, tall unless
- * told otherwise, each with a visible Close. Opening it adds a history entry, so Back closes it.
+ * told otherwise (`Sheet`), each with a visible Close. Opening it adds a history entry, so Back closes it.
  */
 export function Overlay({
+  canClose,
   children,
   fills = false,
   isModal = true,
   isOpen,
+  isTitleInContent = false,
   label,
   onClose,
+  purpose = "form",
   sheetHeight = "tall",
   sheetRef,
   size,
 }: {
+  /**
+   * Asked before Close, Escape, or a tap outside closes it: `false` keeps it open, as a form with
+   * text does when the human keeps it. Back closes it without asking.
+   */
+  canClose?: () => Promise<boolean>;
   children: ReactNode;
   /**
    * On narrow screens, whether the content fills the sheet's height, as a flex column's item,
@@ -45,8 +44,12 @@ export function Overlay({
   /** On narrow screens, whether the page behind the sheet is blocked, and dimmed. */
   isModal?: boolean;
   isOpen: boolean;
+  /** On narrow screens, whether the content draws the title, and only the Close stays (`Sheet`). */
+  isTitleInContent?: boolean;
   label: string;
   onClose: () => void;
+  /** `info` also closes on a click outside; `form`, the default, only on Close, Back, or Escape. */
+  purpose?: "form" | "info";
   /**
    * On narrow screens, the sheet's height: Astryx's `tall` (92%), `capped` (62%), or `hug`, as tall
    * as its content, up to 92%.
@@ -62,11 +65,19 @@ export function Overlay({
 }) {
   const wide = !isNarrow(useWidthClass());
   const close = useBackCloses(label, isOpen, onClose);
+  // On wide screens, the dialog's field takes the focus, not its Close (the sheet's does it).
+  const body = useRef<HTMLDivElement>(null);
+  useFieldFocus(body, wide && isOpen);
   // A sheet that is no modal is not in the top layer: the shell's status line would cover its foot.
   useCoverStatusLine(!wide && !isModal && isOpen);
+  const closing = async () => {
+    if (!canClose || (await canClose())) {
+      close();
+    }
+  };
   const onOpenChange = (open: boolean) => {
     if (!open) {
-      close();
+      void closing();
     }
   };
 
@@ -77,42 +88,30 @@ export function Overlay({
         maxHeight={size?.height}
         onOpenChange={onOpenChange}
         padding={4}
-        purpose="form"
+        purpose={purpose}
         width={size?.width}
       >
         <DialogHeader hasDivider={false} onOpenChange={onOpenChange} title={label} />
-        {isOpen && children}
+        <div ref={body} {...stylex.props(styles.body)}>
+          {isOpen && children}
+        </div>
       </Dialog>
     );
   }
-  const sheet = (
-    <>
-      <HStack align="center" gap={2} justify="between">
-        <Heading level={2}>{label}</Heading>
-        <Button
-          icon={<Icon icon="close" />}
-          isIconOnly
-          label="Close"
-          onClick={close}
-          variant="ghost"
-        />
-      </HStack>
-      {isOpen && children}
-    </>
-  );
   return (
-    <BottomSheet
+    <Sheet
+      fills={fills}
       hasScrim={isModal}
       height={sheetHeight}
       isOpen={isOpen}
+      isTitleInContent={isTitleInContent}
       label={label}
-      onOpenChange={onOpenChange}
-      padding={4}
-      purpose="form"
+      onClose={() => void closing()}
+      purpose={purpose}
       ref={sheetRef}
     >
-      {fills ? <div {...stylex.props(styles.fill)}>{sheet}</div> : sheet}
-    </BottomSheet>
+      {children}
+    </Sheet>
   );
 }
 

@@ -1,4 +1,4 @@
-// The Home's column: the feature's sessions, what it produced, and its links, stacked. On wide and
+// The Home's column: what the feature produced, and its links, stacked. On wide and
 // semi-wide screens it sits at the window's right edge, in the width and fold of the documents'
 // column (`]` folds it to a rail of icons); on the phone, it follows the timeline in the page's one
 // column.
@@ -14,7 +14,6 @@ import { LinksPane } from "./LinksPane.tsx";
 import { ProducedPane } from "./ProducedPane.tsx";
 import { useNow } from "../useNow.ts";
 import { QUESTIONS_KEY } from "./Record.tsx";
-import { SessionsPane } from "./SessionsPane.tsx";
 
 type FeatureData = NonNullable<ReturnType<typeof useFeature>>;
 type HistoryData = NonNullable<ReturnType<typeof useHistory>>;
@@ -27,7 +26,7 @@ function isDone(history: HistoryData): boolean {
   return history.current >= history.stages.length;
 }
 
-/** The three panes: Sessions, "Produced so far" or "What it produced", and Links. */
+/** The two panes: "Produced so far" or "What it produced", and Links. */
 export function FeatureColumn({ feature, history, keys }: ColumnProps) {
   const done = isDone(history);
   const agent = feature.agent ?? null;
@@ -45,11 +44,6 @@ export function FeatureColumn({ feature, history, keys }: ColumnProps) {
   });
   return (
     <VStack gap={4}>
-      <SessionsPane
-        folder={feature.folder}
-        progress={feature.step.progress}
-        sessions={feature.sessions}
-      />
       <ProducedPane
         done={done}
         onOpen={(id) => id === "record-questions" && keys.onOpenChange(QUESTIONS_KEY, true)}
@@ -64,7 +58,6 @@ export function FeatureColumn({ feature, history, keys }: ColumnProps) {
 function Rail() {
   return (
     <VStack align="center" gap={3}>
-      <Icon icon="uraeda:terminal" label="Sessions" />
       <Icon icon="uraeda:activity" label="Figures" />
       <Icon icon="uraeda:step-pull-request" label="Links" />
     </VStack>

@@ -1,6 +1,6 @@
 // What home reads from the priorities and the inbox: a running entry's status, the inbox summed
 // up, and a section of the priorities as home lists it.
-import type { PriorityEntry } from "uraeda-server/fate";
+import type { Proposal } from "uraeda-server/fate";
 import type { useInbox } from "../data.ts";
 import { stepTitle } from "../labels.ts";
 import { byRunning, type Priorities } from "../lists/PrioritiesList.tsx";
@@ -10,7 +10,7 @@ import { byRunning, type Priorities } from "../lists/PrioritiesList.tsx";
  * agent working, or its step.
  */
 export function runningStatus(
-  running: NonNullable<PriorityEntry["running"]>,
+  running: NonNullable<Proposal["running"]>,
   working: Array<string>,
 ): { label: string; variant: "info" | "success" | "warning" } {
   if (running.step.waitsOn === "human") {
@@ -22,7 +22,7 @@ export function runningStatus(
 }
 
 /** The name of the notes without a category. */
-const NOT_SORTED = "Not sorted";
+export const NOT_SORTED = "Not sorted";
 
 /**
  * The inbox as home sums it up: its count, each category with its number of notes, the notes
@@ -49,15 +49,15 @@ export function inboxSummary(inbox: ReturnType<typeof useInbox>, latest = 3) {
 }
 
 /**
- * The entries the hub lists for a section, as the priorities page shows them (R10): for Now, the
- * running entries of every section first, then Now's others; for another section, its entries not
- * running. Each keeps the file's order.
+ * The proposals the hub lists for a section, as the priorities page shows them (R10): for Now, the
+ * running proposals of every section first, then Now's others; for another section, its proposals
+ * not running. Each keeps the file's order.
  */
 export function prioritySection(
   priorities: Pick<Priorities, "sections">,
   section: "now" | "next",
-): Array<PriorityEntry> {
+): Array<Proposal> {
   const { ongoing, sections } = byRunning(priorities);
-  const rest = sections.find((s) => s.section === section)?.entries ?? [];
+  const rest = sections.find((s) => s.section === section)?.proposals ?? [];
   return section === "now" ? [...ongoing, ...rest] : rest;
 }

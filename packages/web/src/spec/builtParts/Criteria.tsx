@@ -11,6 +11,7 @@ import { plain, Spans } from "../../Spans.tsx";
 import type { PartProps, SpecItems } from "../parts.ts";
 import { builtStyles, type DrawingProps, inOrder, Leftover, Nested, parentsOf } from "./shared.tsx";
 import { ruleStyles } from "../../layout/rules.ts";
+import { proseStyles } from "../../Prose.tsx";
 
 /** A criterion: its id and measure as pills, then its sentence, as the core cuts it (R75). */
 function Criterion({
@@ -31,7 +32,7 @@ function Criterion({
               <Badge label={criterion.id} variant="neutral" />
               {criterion.measure != null && <Badge label={criterion.measure} variant="info" />}
             </HStack>
-            <Text display="block" type="inherit" xstyle={builtStyles.reading}>
+            <Text display="block" type="inherit" xstyle={proseStyles.reading}>
               {/* Changed since your review: its words after the id and measure, its pills'. */}
               <SinceWords
                 block={item}

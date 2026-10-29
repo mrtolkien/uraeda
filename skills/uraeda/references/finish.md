@@ -7,7 +7,7 @@ ready for the human.
 - **Runs when**: the final review of a feature, or the review of a change, is done and its pull
   request is a draft; or the branch has the record, and its pull request is not ready yet
 - **Writes**: `specs/done/YYYY-MM-DD-<slug>.md`, the deletion of the folder, the links into it, the
-  records it supersedes, the `PRIORITIES.md` entry, and the pull request's body, made from the
+  records it supersedes, its proposal in `PRIORITIES.md`, and the pull request's body, made from the
   record
 - **Ends at**: a human gate, the pull request
 
@@ -115,8 +115,8 @@ this record back, and about one that names no record.
 
 ## Rewrite the links
 
-Every link into the folder, in any file of the branch, now points to the record: decisions, drafts,
-other records, the code's documentation.
+Every link into the folder, in any file of the branch, now points to the record: decisions, proposal
+files, other records, the code's documentation.
 
 - A link to a question, `../<folder>/clarifications-01.md#q6-how-does-ura-run-git`, keeps its
   anchor: `../done/<folder>.md#q6-how-does-ura-run-git`.
@@ -130,9 +130,9 @@ reports every link that does not resolve.
 ## The finishing commit
 
 In one commit: the record, the deletion of the whole folder, its images included, the rewritten
-links, the older records' `superseded-by` and line, and the removal of the feature's entry from
+links, the older records' `superseded-by` and line, and the removal of the feature's proposal from
 `PRIORITIES.md`, if the branch still has it, with the blank line after it when it was the last
-started entry. Its message: `finish(<slug>): <feature name>`. Run `ura check` first, with `ura`.
+started proposal. Its message: `finish(<slug>): <feature name>`. Run `ura check` first, with `ura`.
 
 ## Mark the pull request ready
 

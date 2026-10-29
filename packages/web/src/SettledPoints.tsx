@@ -14,7 +14,6 @@ import {
   SettledForm,
   SettledNote,
 } from "./SettledForm.tsx";
-import { PointActions } from "./RoundParts.tsx";
 import { type SettledPart, SettledGroups } from "./SettledGroups.tsx";
 import { useSettledWrites } from "./settledWrites.ts";
 import { CommentBox } from "./layout/CommentBox.tsx";
@@ -26,7 +25,12 @@ type File = NonNullable<ReturnType<typeof useFile>>;
  * awaits the human, and the writes it makes: the one holding unsaved text when the page is drawn
  * opens again, and a write done or a removal closes or follows it.
  */
-function useSettledForm(file: File, readOnly: boolean, points: ReadonlyArray<SettledPoint>) {
+function useSettledForm(
+  file: File,
+  readOnly: boolean,
+  points: ReadonlyArray<SettledPoint>,
+  onAsk?: (subject: string, text: string) => Promise<string | undefined>,
+) {
   const repo = useRepositoryPath();
   const round = file.current.items.clarifications;
   const [open, setOpen] = useState<Open | undefined>(() =>
@@ -41,6 +45,7 @@ function useSettledForm(file: File, readOnly: boolean, points: ReadonlyArray<Set
   const form = shown && (
     <SettledForm
       onClose={() => setOpen(undefined)}
+      {...(onAsk ? { onAsk } : {})}
       path={file.path}
       shown={shown}
       writes={writes}
@@ -75,8 +80,8 @@ function partOf(file: File, part: SettledPart | undefined) {
  * form under it on wide screens and in a sheet on the phone, and its comments have Edit and
  * Remove. Each form's text is kept in the unsaved store; the one holding text when the page is
  * drawn opens again, "Under the hood" opened for it. With `part`, only that part's points, with
- * a comment form of their own: "Check these", or the groups of the round's end. With `onAsk`, each
- * point has "Ask", beside its comment button.
+ * a comment form of their own: "Check these", or the groups of the round's end. With `onAsk`, a new
+ * comment's form has "Ask AI", which sends its text to the feature's session instead.
  */
 export function SettledPoints({
   file,
@@ -85,14 +90,14 @@ export function SettledPoints({
   readOnly,
 }: {
   file: File;
-  onAsk?: (subject: string) => void;
+  onAsk?: (subject: string, text: string) => Promise<string | undefined>;
   part?: SettledPart;
   readOnly: boolean;
 }) {
   const wide = !isNarrow(useWidthClass());
   const document = file.current.document;
   const { all, comments, groups, points } = partOf(file, part);
-  const { form, setOpen, shown, writes } = useSettledForm(file, readOnly, points);
+  const { form, setOpen, shown, writes } = useSettledForm(file, readOnly, points, onAsk);
   if (groups.length === 0) {
     return null;
   }
@@ -113,13 +118,6 @@ export function SettledPoints({
     }
     return (
       <>
-        {!readOnly && (
-          <PointActions
-            onAsk={onAsk}
-            onComment={() => setOpen({ kind: "new", point })}
-            subject={point.subject}
-          />
-        )}
         {comments
           .filter((comment) => comment.point === block.id)
           .map((comment) =>
@@ -160,7 +158,9 @@ export function SettledPoints({
         groups={groups}
         hoodForced={shown !== undefined && groupOf(document, groups, shown.point)?.kind === "hood"}
         part={part}
-        points={(group) => <Blocks document={document} ids={group.blocks} selection={selection} />}
+        points={(group) => (
+          <Blocks document={document} ids={group.blocks} selection={selection} splitsItems />
+        )}
       />
       {inPage(gone)}
       {!wide && !readOnly && (

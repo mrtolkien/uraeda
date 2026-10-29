@@ -97,7 +97,7 @@ export function HomeRow({
 export function PaneLink({ href, label }: { href: string; label: string }) {
   return (
     <div {...stylex.props(styles.foot)}>
-      <Button href={href} label={label} size="sm" variant="ghost" />
+      <Button href={href} label={label} size="sm" variant="secondary" />
     </div>
   );
 }

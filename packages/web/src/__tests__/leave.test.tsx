@@ -10,6 +10,9 @@ const PAGE = `/f/${FOLDER}/clarifications-01.md`;
 const FEATURE = `/f/${FOLDER}`;
 const LEAVE = "Leave page?";
 const BODY = "Your unsaved text stays in this browser, and comes back when you return.";
+/** The dialog's answers, each named with the key that gives it after its label: n, y. */
+const STAY = /^Stay\b/;
+const LEAVE_PAGE = /^Leave page\b/;
 
 today("2026-10-11");
 
@@ -55,7 +58,7 @@ test("a link away from unsaved text asks first; Stay keeps the page, Leave page 
 
   const dialog = await screen.findByRole("dialog", { name: LEAVE });
   expect(within(dialog).getByText(BODY)).toBeTruthy();
-  await click(within(dialog).getByRole("button", { name: "Stay" }));
+  await click(within(dialog).getByRole("button", { name: STAY }));
   await waitFor(() => expect(leaveDialog()).toBeNull());
   expect(window.location.pathname).toBe(atRepo(PAGE));
   expect(q3Comment().value).toBe("Neither, keep it simple");
@@ -63,7 +66,7 @@ test("a link away from unsaved text asks first; Stay keeps the page, Leave page 
   await click(featureLink());
   await click(
     within(await screen.findByRole("dialog", { name: LEAVE })).getByRole("button", {
-      name: "Leave page",
+      name: LEAVE_PAGE,
     }),
   );
   await waitFor(() => expect(window.location.pathname).toBe(atRepo(FEATURE)));
@@ -78,7 +81,7 @@ test("Back from unsaved text asks first, the page staying while it asks", async 
 
   const dialog = await screen.findByRole("dialog", { name: LEAVE });
   expect(window.location.pathname).toBe(atRepo(PAGE));
-  await click(within(dialog).getByRole("button", { name: "Stay" }));
+  await click(within(dialog).getByRole("button", { name: STAY }));
   await waitFor(() => expect(leaveDialog()).toBeNull());
   expect(window.location.pathname).toBe(atRepo(PAGE));
   expect(q3Comment().value).toBe("Neither, keep it simple");
@@ -86,7 +89,7 @@ test("Back from unsaved text asks first, the page staying while it asks", async 
   await back();
   await click(
     within(await screen.findByRole("dialog", { name: LEAVE })).getByRole("button", {
-      name: "Leave page",
+      name: LEAVE_PAGE,
     }),
   );
   await waitFor(() => expect(window.location.pathname).toBe(atRepo(FEATURE)));

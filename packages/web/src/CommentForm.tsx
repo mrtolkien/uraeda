@@ -62,6 +62,11 @@ type Shared = {
   images?: CommentImages;
   /** An error about the comment from outside it, like a verdict refused while it is open. */
   notice?: string;
+  /**
+   * "Ask AI", before Cancel: sends the text to the agent instead of writing the comment. Resolves
+   * with nothing once sent, the form then discarded and closed, or with the error to show.
+   */
+  onAsk?: (text: string) => Promise<string | undefined>;
   onCancel: () => void;
   /** Resolves with nothing once the comment is written, or with the error to show, the text kept. */
   onSubmit: (text: string) => Promise<string | undefined>;
@@ -82,6 +87,7 @@ type Shared = {
 export function CommentForm({
   extra,
   field: key,
+  onAsk,
   onCancel,
   onSubmit,
   picked,
@@ -111,9 +117,20 @@ export function CommentForm({
     }
     return error;
   };
+  const ask =
+    onAsk &&
+    (async (text: string) => {
+      const error = await onAsk(text);
+      if (error === undefined) {
+        field.discard();
+        onCancel();
+      }
+      return error;
+    });
   return (
     <CommentFields
       {...shared}
+      {...(ask ? { onAsk: ask } : {})}
       dirty={field.dirty}
       onCancel={() => void cancel()}
       onChange={field.change}
@@ -140,6 +157,7 @@ function CommentFields({
   hasAutoFocus,
   images,
   notice,
+  onAsk,
   onCancel,
   onChange,
   onSubmit,
@@ -159,19 +177,20 @@ function CommentFields({
   // sent, by either, nor when the button is disabled.
   const [sending, setSending] = useState(false);
   const inFlight = useRef(false);
-  const submit = async () => {
+  const send = async (to: (text: string) => Promise<string | undefined>) => {
     if (!canSubmit || inFlight.current) {
       return;
     }
     inFlight.current = true;
     setSending(true);
     try {
-      setError(await onSubmit(text));
+      setError(await to(text));
     } finally {
       inFlight.current = false;
       setSending(false);
     }
   };
+  const submit = () => send(onSubmit);
   const submitKey = () => void submit();
   return (
     <form
@@ -189,34 +208,26 @@ function CommentFields({
             <Text type="supporting">{quote}</Text>
           </div>
         )}
-        {images ? (
-          <DropHint hint={images.hint} isLabelled>
-            <TextField
-              hasAutoFocus={hasAutoFocus}
-              kind="comment"
-              label="Comment text"
-              onChange={onChange}
-              onSubmit={submitKey}
-              value={text}
-              {...images.fieldProps}
-            />
-          </DropHint>
-        ) : (
-          <TextField
-            hasAutoFocus={hasAutoFocus}
-            kind="comment"
-            label="Comment text"
-            onChange={onChange}
-            onSubmit={submitKey}
-            value={text}
-          />
-        )}
+        <CommentText
+          hasAutoFocus={hasAutoFocus}
+          images={images}
+          onChange={onChange}
+          onSubmit={submitKey}
+          text={text}
+        />
         {images && <AttachStatus status={images.status} />}
         {(error ?? notice) && <StatusText tone="error">{error ?? notice}</StatusText>}
         <HStack align="center" gap={2} justify="end" wrap="wrap">
           <SaveStatus dirty={dirty} state={IDLE} />
           {images && <AttachButton onFiles={(files) => void images.addFiles(files)} />}
           {action}
+          {onAsk && (
+            <Button
+              clickAction={() => send(onAsk)}
+              isDisabled={!canSubmit || sending}
+              label="Ask AI"
+            />
+          )}
           <Button label="Cancel" onClick={onCancel} />
           <Button
             clickAction={submit}
@@ -227,6 +238,46 @@ function CommentFields({
         </HStack>
       </VStack>
     </form>
+  );
+}
+
+/** The comment's text field, which takes images dropped on it when the form has some. */
+function CommentText({
+  hasAutoFocus,
+  images,
+  onChange,
+  onSubmit,
+  text,
+}: {
+  hasAutoFocus: boolean | undefined;
+  images: CommentImages | undefined;
+  onChange: (text: string) => void;
+  onSubmit: () => void;
+  text: string;
+}) {
+  return images ? (
+    <DropHint hint={images.hint} isLabelled>
+      <TextField
+        hasAutoFocus={hasAutoFocus}
+        isLabelHidden
+        kind="comment"
+        label="Comment text"
+        onChange={onChange}
+        onSubmit={onSubmit}
+        value={text}
+        {...images.fieldProps}
+      />
+    </DropHint>
+  ) : (
+    <TextField
+      hasAutoFocus={hasAutoFocus}
+      isLabelHidden
+      kind="comment"
+      label="Comment text"
+      onChange={onChange}
+      onSubmit={onSubmit}
+      value={text}
+    />
   );
 }
 

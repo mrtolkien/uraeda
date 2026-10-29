@@ -4,6 +4,8 @@ import { join } from "node:path";
 import type { AgentEvent } from "uraeda-server/runner/events";
 import { fakeSessions } from "uraeda-server/testing";
 import { sandboxAgent } from "./agent.ts";
+import { seedLiveSession } from "./liveSession.ts";
+import { REALISTIC_FOLDERS } from "../samples/index.ts";
 
 /** A turn's end, as the agent reports it. */
 function result(end: Partial<Extract<AgentEvent, { type: "result" }>> = {}): AgentEvent {
@@ -58,10 +60,15 @@ const CHATS: Array<{ script: Array<AgentEvent>; text: string }> = [
 
 /**
  * Writes the sample project's sessions in `dataDir`'s `runner.sqlite`: a finished chat, and chats
- * that failed, were stopped, and were stopped by the usage limit. The turn at work is not one: the
+ * that failed, were stopped, and were stopped by the usage limit; and with `realistic`, its leader
+ * key's spec session as a live run left it (`liveSession.ts`). The turn at work is not one: the
  * sandbox starts it as it starts, with `atWork`. The cache is closed after, releasing the file.
  */
-export async function seedSessions(dataDir: string, sample: string): Promise<void> {
+export async function seedSessions(
+  dataDir: string,
+  sample: string,
+  realistic?: string,
+): Promise<void> {
   const { adapter, sessions } = fakeSessions({
     adapter: sandboxAgent({ wait: async () => {} }),
     cache: join(dataDir, "runner.sqlite"),
@@ -73,6 +80,14 @@ export async function seedSessions(dataDir: string, sample: string): Promise<voi
       adapter.script(script);
       const { turn } = await sessions.send(sample, chat.id, { text });
       await sessions.settled(turn);
+    }
+    if (realistic !== undefined) {
+      // Under the repository's root as every session's, a path through a link resolved.
+      seedLiveSession(
+        sessions.cache,
+        await sessions.mainRoot(realistic),
+        REALISTIC_FOLDERS.reviewing,
+      );
     }
   } finally {
     await sessions.closeAll();

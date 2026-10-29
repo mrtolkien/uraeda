@@ -2,9 +2,12 @@ import { useAnnounce } from "@astryxdesign/core/hooks";
 import { createContext, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useImageText } from "./attach/useImageText.ts";
 import type { useFile } from "./data.ts";
+import { readUnsaved, unsavedKey } from "./fields/unsaved.ts";
 import type { useTextField } from "./fields/useTextField.ts";
 import type { Refusals } from "./ReviewVerdict.tsx";
 import type { useCommentDraft } from "./useCommentDraft.ts";
+import { useRepositoryPath } from "./routes.tsx";
+import { generalField } from "./reviewField.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 type Draft = ReturnType<typeof useCommentDraft>;
@@ -34,7 +37,8 @@ export const withoutCommentRefusal = <T extends { text: string }>(shown?: T) =>
 /**
  * The images of a review's comments: they go into the comment being written, `field`, or a new
  * general comment when none is. A comment open with text not added yet holds the verdict, as one
- * linking images does, since a commit deletes the images no file links (R64, R70, R71, R16).
+ * linking images does, since a commit deletes the images no file links (R64, R70, R71, R16); so does
+ * text typed in the end's general comment and not added yet.
  */
 export function useReviewImages(
   file: File,
@@ -44,6 +48,7 @@ export function useReviewImages(
   field: ReturnType<typeof useTextField>,
 ) {
   const { change: setText, dirty, text } = field;
+  const generalKey = unsavedKey(useRepositoryPath(), generalField(file.path));
   // The comment that holds images, by its `writing`: they are in no file until it is added.
   const [linkedIn, setLinkedIn] = useState<number>();
   const linked = linkedIn === writing;
@@ -102,8 +107,12 @@ export function useReviewImages(
      * page's other errors, like a hook's, as they are (R70).
      */
     hold: () => {
+      // The end's field, while it shows: a general draft takes its place, and holds the verdict itself.
+      const isGeneralTyped =
+        draft?.kind !== "general" && (readUnsaved(generalKey)?.text.trim() ?? "") !== "";
       const reason =
-        draft && (dirty || linked || (images.busy && runFor.current === writing))
+        (draft && (dirty || linked || (images.busy && runFor.current === writing))) ||
+        isGeneralTyped
           ? UNSENT
           : images.busy
             ? STILL_ADDING

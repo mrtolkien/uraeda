@@ -48,7 +48,7 @@ export function jumpEntries(
     const first = rules[0];
     return {
       kind: "principle",
-      path: `/decisions/constitution/${principle.slug}`,
+      path: "/decisions/constitution",
       preview: [
         `### ${principle.number}. ${principle.title}`,
         "",
@@ -125,12 +125,15 @@ export function searchEntries(entries: ReadonlyArray<JumpEntry>, query: string):
   return searchRanked(entries, query, searchable);
 }
 
-/** An entry as the key picker holds it: a principle by its numeral, a decision by its icon. */
+/**
+ * An entry as the key picker holds it: a principle by its numeral, a decision by its icon. Its id is
+ * its own: every principle opens the constitution's one address, so the address is no id.
+ */
 export function pickerItemOf(entry: JumpEntry): PickerItem {
   return {
     icon:
       entry.kind === "principle" ? DESTINATIONS.decisions.icon : decisionIcon(entry.decision.icon),
-    id: entry.path,
+    id: entry.kind === "principle" ? `${entry.path}#${entry.principle.number}` : entry.path,
     kind: "decisions",
     mark: entry.kind === "principle" ? entry.principle.number : undefined,
     path: entry.path,

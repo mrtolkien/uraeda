@@ -139,3 +139,6 @@ export function reanchor(key: string, extra: Unsaved["extra"]) {
   const { extra: _before, ...rest } = entry;
   writeUnsaved(key, extra ? { ...rest, extra } : rest);
 }
+
+/** The unsaved store's field of the review's end's general comment, which the verdict reads too. */
+export const generalField = (path: string) => `${path}#general`;

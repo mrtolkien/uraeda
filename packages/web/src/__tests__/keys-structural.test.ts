@@ -71,6 +71,12 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     reason: "a text field's own keys: Enter saves the line, Escape leaves it",
   },
   "embedLayout.ts": { hits: 1, reason: "Escape leaves the full-screen overlay it draws (R132)" },
+  "fields/Confirm.tsx": {
+    hits: 4,
+    reason:
+      "a dialog's own keys while it is open, whatever the single-key setting: y, the cancel key " +
+      "(n), and the question's own confirm key and answers' keys, as a category delete's n and c",
+  },
   "fields/TextField.tsx": {
     hits: 2,
     reason: "a text field's own keys: Ctrl or Cmd+Enter submits",
@@ -79,6 +85,12 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 1,
     reason:
       "listens for the human's own scrolling input, a key among them, to end a scripted scroll",
+  },
+  "home/HomeHub.tsx": {
+    hits: 1,
+    reason:
+      "a grid of cards' own keys, as a radio group's: the arrows and j k h l move between its " +
+      "cards, and leave a key a sequence or the leader's menu waits for to the registry",
   },
   "keepPlace.ts": {
     hits: 1,
@@ -89,9 +101,14 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 1,
     reason: "a radio group's own keys: the arrows move between its cards",
   },
-  "lists/CategoryPane.tsx": {
-    hits: 4,
-    reason: "a dialog's own keys while it is open: Y, N, C, which follow the switch (R90)",
+  "lists/OutlineEditor.tsx": {
+    hits: 3,
+    reason: "a text field's own keys: Enter saves the row, Escape cancels it, Tab indents it",
+  },
+  "NewPage.tsx": { hits: 1, reason: "a text field's own keys: Escape leaves the search" },
+  "ProposalText.tsx": {
+    hits: 1,
+    reason: "a text field's own keys: Escape leaves the file's text for the page's keys",
   },
   "QuickAdd.tsx": { hits: 1, reason: "a text field's own keys: Enter adds the note" },
   "RepositoryMenu.tsx": { hits: 1, reason: "the menu's filter field's own keys" },
@@ -105,7 +122,6 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 2,
     reason: "Escape pressed inside the open rail folds it and returns the focus to its logo (R100)",
   },
-  "sidebar/Search.tsx": { hits: 1, reason: "a text field's own keys: Escape clears the search" },
   "sign-in/SignInPage.tsx": {
     hits: 1,
     reason: "a text field's own keys: Enter signs in, on a page outside the shell",

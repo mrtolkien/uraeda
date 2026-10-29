@@ -2,13 +2,13 @@
 // mapped type turns napi-rs's interfaces into type literals, which fate's record constraint accepts.
 import { dataView, list } from "@nkzw/fate/server";
 import type {
-  AddCommit,
   BranchDecision,
-  EntryItem,
+  ProposalItem,
   FeatureView,
   FileView,
   Inbox,
   Priorities,
+  RemovedImage,
   RunningFeature,
   SectionItems,
   StepView,
@@ -35,13 +35,13 @@ import type { FeatureAgent } from "./agentTime.ts";
 import type { FeatureTokens } from "./tokens.ts";
 import { branchChangesDataView } from "./views-branch.ts";
 import {
-  type DraftRecord,
-  draftDataView,
+  type ProposalFileRecord,
+  proposalFileDataView,
   type ProposalHintsRecord,
   proposalHintsDataView,
   type SlugProposalRecord,
   slugProposalDataView,
-} from "./views-draft.ts";
+} from "./views-proposal-file.ts";
 import { droppedDataView } from "./views-dropped.ts";
 import { historyDataView } from "./views-history.ts";
 import { ledgerDataView } from "./views-ledger.ts";
@@ -49,8 +49,8 @@ import { folderSuggestionsDataView, repositoriesDataView } from "./views-reposit
 
 export type Record_<T> = { [Key in keyof T]: T[Key] };
 
-export { draftDataView, proposalHintsDataView, slugProposalDataView };
-export type { DraftRecord, ProposalHintsRecord, SlugProposalRecord };
+export { proposalFileDataView, proposalHintsDataView, slugProposalDataView };
+export type { ProposalFileRecord, ProposalHintsRecord, SlugProposalRecord };
 
 /** A feature's step, its progress sent as null when it has none. */
 export type StepRecord = Omit<StepView, "progress"> & { progress: TaskProgress | null };
@@ -127,26 +127,27 @@ export function sentBranchDecision(decision: BranchDecision): BranchDecisionReco
     missing: null,
   } as unknown as BranchDecisionRecord;
 }
-/** An entry, the step of its running feature sent as `sentStep` sends it. */
-type EntryRecord = Omit<EntryItem, "running"> & {
+/** A proposal, the step of its running feature sent as `sentStep` sends it. */
+type ProposalRecord = Omit<ProposalItem, "running"> & {
   running?: Omit<RunningFeature, "step"> & { step: StepRecord };
 };
-/** Whether "Add and commit" committed: set on the answer of an add, null on other answers. */
-type Added = { added?: Record_<AddCommit> | null };
-export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> &
-  Added & {
-    id: string;
-    sections: Array<Omit<SectionItems, "entries"> & { entries: Array<EntryRecord> }>;
-  };
+export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> & {
+  id: string;
+  sections: Array<Omit<SectionItems, "proposals"> & { proposals: Array<ProposalRecord> }>;
+};
 
 /** The inbox: one record, `inbox`, its triage's status sent as null when there is no triage. */
-export type InboxRecord = Omit<Record_<Inbox>, "triage"> &
-  Added & {
-    id: string;
-    /** The file as it was, set only on the answer of `inbox.removeCategory`, null otherwise. */
-    removed?: string | null;
-    triage: string | null;
-  };
+export type InboxRecord = Omit<Record_<Inbox>, "triage"> & {
+  id: string;
+  /**
+   * What `inbox.restoreImage` takes back, set only on the answer of `inbox.removeImage`, null
+   * otherwise.
+   */
+  imageRemoved?: Record_<RemovedImage> | null;
+  /** The file as it was, set only on the answer of `inbox.removeCategory`, null otherwise. */
+  removed?: string | null;
+  triage: string | null;
+};
 
 /** The agent sessions run on, and what it can do: one record, `agent`. */
 export type AgentRecord = {
@@ -291,13 +292,13 @@ export type WorkflowMessageRecord = {
 export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
   currentBranch: true,
   defaultBranch: true,
-  drafts: true,
   features: true,
   id: true,
   noSpecs: true,
   preview: true,
   priorities: true,
   prioritiesHash: true,
+  proposals: true,
   root: true,
   running: true,
 });
@@ -362,7 +363,7 @@ export const branchDecisionDataView = dataView<BranchDecisionRecord>("BranchDeci
 });
 
 export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
-  added: true,
+  changeLines: true,
   changes: true,
   hash: true,
   id: true,
@@ -370,12 +371,12 @@ export const prioritiesDataView = dataView<PrioritiesRecord>("Priorities")({
 });
 
 export const inboxDataView = dataView<InboxRecord>("Inbox")({
-  added: true,
   categories: true,
   changes: true,
   count: true,
   hash: true,
   id: true,
+  imageRemoved: true,
   names: true,
   removed: true,
   triage: true,
@@ -464,7 +465,6 @@ export const Root = {
   agents: list(agentDataView),
   branchChangesList: list(branchChangesDataView),
   branchDecisions: list(branchDecisionDataView),
-  drafts: list(draftDataView),
   droppedItems: list(droppedDataView),
   features: list(featureDataView),
   folderSuggestionsList: list(folderSuggestionsDataView),
@@ -474,6 +474,7 @@ export const Root = {
   needsYouLists: list(needsYouListDataView),
   previews: list(previewDataView),
   prioritiesList: list(prioritiesDataView),
+  proposalFiles: list(proposalFileDataView),
   proposalHintsList: list(proposalHintsDataView),
   recommendedMessages: list(recommendedDataView),
   repositoriesList: list(repositoriesDataView),

@@ -8,7 +8,7 @@ import { sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { layout } from "uraeda-server/paths";
 import { defineConfig, type Plugin, type UserConfig } from "vite-plus";
-import { atWork, sandboxAgent } from "./sandbox/agent.ts";
+import { atWork, atWorkOnDiscovery, atWorkOnRealistic, sandboxAgent } from "./sandbox/agent.ts";
 import { sourceLocations } from "./sandbox/sourceLocations.ts";
 import { themeWatcher, uraedaServer } from "./vite.config.ts";
 import { uiTransforms } from "./vite.transforms.ts";
@@ -84,8 +84,9 @@ function sandboxPage(): Plugin {
 
 /**
  * The sandbox's config, its server reading `.env` nowhere, `checkout`'s included, on `port` or the
- * next one free. Once the server has started, the implementation feature's session is at work, as
- * at each start.
+ * next one free. Once the server has started, the implementation feature's session is at work, with
+ * three sub-agents, and the discovery feature's too, as are the two of the realistic project, as at
+ * each start.
  */
 export function sandboxConfig({
   checkout = layout().checkout,
@@ -106,11 +107,19 @@ export function sandboxConfig({
           signIn: false,
           started: (server) => {
             const repo = process.env.URAEDA_REPO ?? "";
-            atWork(server.sessions, repo).catch((error: Error) =>
-              process.stderr.write(
-                `uraeda: the turn at work did not start in ${repo}: ${error.message}\n`,
-              ),
-            );
+            // One after the other: the realistic project's sessions take another agent kind as
+            // they are made, which a start beside them would copy.
+            void (async () => {
+              for (const start of [atWork, atWorkOnDiscovery, atWorkOnRealistic]) {
+                try {
+                  await start(server.sessions, repo);
+                } catch (error) {
+                  process.stderr.write(
+                    `uraeda: the turn at work did not start in ${repo}: ${(error as Error).message}\n`,
+                  );
+                }
+              }
+            })();
           },
         },
         checkout,

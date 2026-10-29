@@ -211,7 +211,8 @@ export const uraedaTheme = {
     "--spacing-1-5": "7.2px",
     "--size-element-lg": "43.2px",
     "--size-element-md": "38.4px",
-    "--size-element-sm": "33.6px"
+    "--size-element-sm": "33.6px",
+    "--radius-chat": "0px"
   },
   localTokens: {
     "--astryx-theme-neutral-color-status-fill-accent": "light-dark(#7b2fe0, #cba6f7)",
@@ -224,37 +225,43 @@ export const uraedaTheme = {
     "--astryx-theme-neutral-color-on-tint-overlay-pressed": "light-dark(#fafafa33, #0a0a0a33)",
     "--astryx-theme-neutral-color-destructive-overlay-hover": "light-dark(#ff7f770D, #ee736c0D)",
     "--astryx-theme-neutral-color-destructive-overlay-pressed": "light-dark(#ff7f771A, #ee736c1A)",
-    "--text-reading-line": "1.5",
+    "--text-reading-line": "1.4",
     "--text-reading-size": "19px",
+    "--prose-bullet-gap": "0.5em",
+    "--prose-item-gap": "var(--spacing-2)",
+    "--prose-list-room": "1.25em",
+    "--prose-paragraph-gap": "var(--spacing-3)",
+    "--text-title-size": "calc((var(--font-size-sm) + var(--font-size-base)) / 2)",
     "--font-family-reading": "\"Inter Variable\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
     "--color-text-lavender": "light-dark(#4254c8, #b4befe)",
+    "--color-fill-teal": "light-dark(#179299, #94e2d5)",
     "--color-border-sapphire": "light-dark(#04699a, #74c7ec)",
     "--color-text-sapphire": "light-dark(#04699a, #74c7ec)",
-    "--size-reading-measure": "86ch",
+    "--size-reading-measure": "calc(37.85 * var(--text-reading-size))",
+    "--size-reading-pane": "calc(var(--size-reading-measure) + 2 * var(--spacing-3) + 2 * var(--border-width))",
     "--size-page-max": "720px",
     "--size-session-max": "95ch",
     "--size-pane-min": "400px",
     "--size-detail": "108ch",
     "--size-detail-height": "60dvh",
-    "--size-ledger-list": "max(320px, 30vw)",
     "--size-palette": "min(1024px, 92vw)",
     "--size-palette-height": "min(600px, 76dvh)",
     "--size-palette-list": "360px",
     "--size-viewport-height": "100dvh",
     "--size-image-max-height": "80dvh",
     "--size-message-image": "120px",
+    "--size-note-image": "240px",
     "--size-composer-input": "154px",
     "--size-composer-input-narrow": "66px",
     "--size-round-accent": "4px",
     "--size-round-split": "840px",
     "--size-round-pair": "820px",
-    "--size-round-measure": "75ch",
     "--size-settings-search": "240px",
     "--size-rail": "52px",
     "--size-rail-inset": "calc((var(--size-rail) - var(--size-element-md)) / 2)",
     "--size-label-line": "calc(var(--text-label-size) * var(--text-label-leading))",
     "--size-form": "560px",
-    "--size-menu": "360px",
+    "--size-picker": "min(640px, 92vw)",
     "--size-quick-add": "640px",
     "--size-story-desktop": "1440px",
     "--size-story-height": "560px",
@@ -276,35 +283,41 @@ export const uraedaTheme = {
     "--astryx-theme-neutral-color-destructive-overlay-pressed": "neutral",
     "--text-reading-line": "uraeda",
     "--text-reading-size": "uraeda",
+    "--prose-bullet-gap": "uraeda",
+    "--prose-item-gap": "uraeda",
+    "--prose-list-room": "uraeda",
+    "--prose-paragraph-gap": "uraeda",
+    "--text-title-size": "uraeda",
     "--font-family-reading": "uraeda",
     "--color-text-lavender": "uraeda",
+    "--color-fill-teal": "uraeda",
     "--color-border-sapphire": "uraeda",
     "--color-text-sapphire": "uraeda",
     "--size-reading-measure": "uraeda",
+    "--size-reading-pane": "uraeda",
     "--size-page-max": "uraeda",
     "--size-session-max": "uraeda",
     "--size-pane-min": "uraeda",
     "--size-detail": "uraeda",
     "--size-detail-height": "uraeda",
-    "--size-ledger-list": "uraeda",
     "--size-palette": "uraeda",
     "--size-palette-height": "uraeda",
     "--size-palette-list": "uraeda",
     "--size-viewport-height": "uraeda",
     "--size-image-max-height": "uraeda",
     "--size-message-image": "uraeda",
+    "--size-note-image": "uraeda",
     "--size-composer-input": "uraeda",
     "--size-composer-input-narrow": "uraeda",
     "--size-round-accent": "uraeda",
     "--size-round-split": "uraeda",
     "--size-round-pair": "uraeda",
-    "--size-round-measure": "uraeda",
     "--size-settings-search": "uraeda",
     "--size-rail": "uraeda",
     "--size-rail-inset": "uraeda",
     "--size-label-line": "uraeda",
     "--size-form": "uraeda",
-    "--size-menu": "uraeda",
+    "--size-picker": "uraeda",
     "--size-quick-add": "uraeda",
     "--size-story-desktop": "uraeda",
     "--size-story-height": "uraeda",
@@ -499,6 +512,9 @@ export const uraedaTheme = {
       },
       "variant:accent": {
         "backgroundColor": "var(--astryx-theme-neutral-color-status-fill-accent)"
+      },
+      "base": {
+        "--radius-full": "0px"
       }
     },
     "avatar-status-dot": {
@@ -578,7 +594,8 @@ export const uraedaTheme = {
     },
     "progress-bar": {
       "base": {
-        "--color-background-muted": "var(--color-border-emphasized)"
+        "--color-background-muted": "var(--color-border-emphasized)",
+        "--radius-full": "0px"
       },
       "variant:accent": {
         "--color-accent": "var(--astryx-theme-neutral-color-status-fill-accent)"
@@ -606,6 +623,30 @@ export const uraedaTheme = {
     "code": {
       "base": {
         "fontSize": "0.9em"
+      }
+    },
+    "markdown": {
+      "base": {
+        ":is(*) li": {
+          "columnGap": "0 !important",
+          "marginBlockEnd": "var(--prose-item-gap)",
+          "padding": "0 !important"
+        },
+        ":is(*) li:last-child": {
+          "marginBlockEnd": "0"
+        },
+        ":is(*) li > span:first-child": {
+          "justifyContent": "flex-end !important",
+          "paddingInlineEnd": "var(--prose-bullet-gap)",
+          "width": "var(--prose-list-room) !important"
+        },
+        ":is(*) li > span:first-child > span:only-child": {
+          "backgroundColor": "var(--color-text-secondary) !important"
+        },
+        ":is(*) ul, :is(*) ol": {
+          "marginInline": "0 !important",
+          "rowGap": "0 !important"
+        }
       }
     },
     "popover": {

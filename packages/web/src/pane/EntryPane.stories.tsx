@@ -1,17 +1,15 @@
-// The entry pane: a priority's and a note's detail, read-only on arrival, Edit in its bar. Over the
-// fixture repository's real priorities and inbox (see `.storybook/fixture.ts`), through fate, in
+// The entry pane: a proposal's detail, read-only on arrival, Edit in its bar. Over the
+// fixture repository's real priorities (see `.storybook/fixture.ts`), through fate, in
 // the detail overlay over the real page: a dialog on wide screens, a bottom sheet on the phone.
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useEffect } from "react";
 import { userEvent, within } from "storybook/test";
-import { useInbox, usePriorities, useWorkspace } from "../data.ts";
-import { InboxPage } from "../InboxPage.tsx";
+import { usePriorities, useWorkspace } from "../data.ts";
 import { PrioritiesPage } from "../PrioritiesPage.tsx";
 import { dropUnsaved, unsavedKey } from "../fields/unsaved.ts";
 import { RepositoryPathContext, useRepositoryPath } from "../routes.tsx";
 import { DetailOverlay } from "./DetailOverlay.tsx";
-import { NotePane } from "./NotePane.tsx";
-import { PriorityPane } from "./PriorityPane.tsx";
+import { ProposalPane } from "./ProposalPane.tsx";
 
 /** The page, with the detail in its overlay over it, as a click on a card opens it. */
 function Over({ label, list, pane }: { label: string; list: ReactNode; pane: ReactNode }) {
@@ -26,32 +24,25 @@ function Over({ label, list, pane }: { label: string; list: ReactNode; pane: Rea
 }
 
 /**
- * A priority's pane, found by its text in the fixture's `PRIORITIES.md`. What a story types in its
+ * A proposal's pane, found by its text in the fixture's `PRIORITIES.md`. What a story types in its
  * line is forgotten as the story leaves, so another never finds it restored.
  */
-function Priority({ text }: { text: string }) {
-  const entry = usePriorities()
-    ?.sections.flatMap((section) => section.entries)
+function ProposalStory({ text }: { text: string }) {
+  const proposal = usePriorities()
+    ?.sections.flatMap((section) => section.proposals)
     .find((one) => one.text.includes(text));
-  const field = unsavedKey(useRepositoryPath(), `priorities#${entry?.key}`);
+  const field = unsavedKey(useRepositoryPath(), `priorities#${proposal?.key}`);
   useEffect(() => () => dropUnsaved(field), [field]);
-  if (!entry) {
+  if (!proposal) {
     return null;
   }
   return (
-    <Over label="Priority" list={<PrioritiesPage />} pane={<PriorityPane entryKey={entry.key} />} />
+    <Over
+      label="Proposal"
+      list={<PrioritiesPage />}
+      pane={<ProposalPane proposalKey={proposal.key} />}
+    />
   );
-}
-
-/** A note's pane, found by its text in the fixture's `INBOX.md`. */
-function InboxNote({ text }: { text: string }) {
-  const note = useInbox()
-    ?.categories.flatMap((category) => category.notes)
-    .find((one) => one.text === text);
-  if (!note) {
-    return null;
-  }
-  return <Over label="Note" list={<InboxPage />} pane={<NotePane noteKey={note.key} />} />;
 }
 
 /** The fixture's folder, as `App` sets it: what keeps the fields' unsaved text apart. */
@@ -69,12 +60,12 @@ const inRepositoryFolder: Decorator = (Story) => (
 );
 
 const meta = {
-  component: Priority,
+  component: ProposalStory,
   decorators: [inRepositoryFolder],
   // The pane fills the frame, as in the app's main column.
   parameters: { layout: "fullscreen" },
   title: "Entry pane",
-} satisfies Meta<typeof Priority>;
+} satisfies Meta<typeof ProposalStory>;
 
 export default meta;
 
@@ -100,14 +91,14 @@ export const OverlayPhone: Story = {
 };
 
 /**
- * A drafted priority, as a click opens it: its text, its draft drawn with its slug and Start the
+ * A proposal with a file, as a click opens it: its text, its file drawn with its slug and Start the
  * feature, its section, Delete, and its neighbours. Nothing has the focus.
  */
 export const Reading: Story = { args: { text: "Git listener process" } };
 
 /**
  * The same, after Edit: the one-line field in place, its text changed, so "Unsaved changes", and
- * the draft's text under it, with Save and Commit.
+ * the file's text under it, with Save and Commit.
  */
 export const Editing: Story = {
   args: { text: "Git listener process" },
@@ -115,20 +106,11 @@ export const Editing: Story = {
     // The overlay is drawn outside the canvas, in the top layer.
     const pane = within(await within(document.body).findByRole("dialog"));
     await userEvent.click(await pane.findByRole("button", { name: "Edit" }));
-    const line = await pane.findByRole("textbox", { name: "Line" });
+    const line = await pane.findByRole("textbox", { name: "Proposal" });
     await userEvent.clear(line);
     await userEvent.type(line, "Git listener process, polling every minute");
   },
 };
 
-/** A Now priority whose feature is started: Running in green, its step, and Open the feature. */
+/** A Now proposal whose feature is started: Running in green, its step, and Open the feature. */
 export const Running: Story = { args: { text: "Recurring tasks" } };
-
-/**
- * An inbox note, read-only, with its children under it: its category, Organize, Delete, and its
- * neighbours.
- */
-export const Note: Story = {
-  args: { text: "Icons are blurry on retina screens" },
-  render: ({ text }) => <InboxNote text={text} />,
-};

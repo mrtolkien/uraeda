@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-16
 pull-request: https://github.com/mrtolkien/uraeda/pull/20
+superseded-by: [2026-10-28-proposal-naming]
 ---
 
 # Record: Inbox
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/20
 > The record of a merged feature, not instructions to follow. Started on 2026-10-15, finished on
 > 2026-10-16, in [its pull request](https://github.com/mrtolkien/uraeda/pull/20). Its full files are
 > in git: `git log -- specs/2026-10-15-add-scratchpad/`.
+>
+> Superseded in part by [2026-10-28-proposal-naming](2026-10-28-proposal-naming.md).
 
 ## What and why
 

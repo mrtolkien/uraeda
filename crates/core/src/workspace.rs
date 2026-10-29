@@ -23,9 +23,9 @@ mod read;
 use merged::Merged;
 use read::read_feature;
 
-pub use links::{EntryLink, LinkedFile, RunningFeature, resolve};
+pub use links::{Linked, LinkedFile, RunningFeature, resolve};
 
-use links::priority_entries;
+use links::linked_proposals;
 pub(crate) use paths::folder_path;
 pub use paths::{branch_folder, first_file, folder_branch, folder_slug, path_folder, record_path};
 pub use problem::{Problem, Severity};
@@ -216,10 +216,10 @@ impl Feature {
     }
 }
 
-/// An entry of `PRIORITIES.md`, and the feature it matches.
+/// A proposal of `PRIORITIES.md`, and the feature it matches.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct PriorityEntry {
+pub struct LinkedProposal {
     pub section: priorities::Section,
     pub position: usize,
     /// Its address, from [`priorities::keys`].
@@ -227,8 +227,8 @@ pub struct PriorityEntry {
     pub text: String,
     pub link: Option<String>,
     pub feature: Option<String>,
-    /// The draft or backlog file it links, from the top level, when the default branch has it.
-    pub draft: Option<String>,
+    /// The proposal file it links, from the top level, when the default branch has it.
+    pub file: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -239,11 +239,11 @@ pub struct Workspace {
     pub current_branch: Option<String>,
     /// When `origin` was last fetched, in RFC 3339.
     pub fetched_at: Option<String>,
-    pub priorities: Vec<PriorityEntry>,
+    pub priorities: Vec<LinkedProposal>,
     pub features: Vec<Feature>,
-    /// Drafts and postponed features, from the default branch: `specs/drafts/x.md`,
-    /// `specs/backlog/y` for a folder that holds its `proposal.md`.
-    pub drafts: Vec<String>,
+    /// Proposal files and postponed features, from the default branch: `specs/proposals/x.md`,
+    /// `specs/proposals/y` for a folder that holds its `proposal.md`.
+    pub proposals: Vec<String>,
     /// The text of `INBOX.md`, from the default branch, as the priorities are read.
     #[serde(skip)]
     pub inbox: Option<String>,
@@ -316,37 +316,36 @@ impl Reader<'_> {
         }
     }
 
-    /// The drafts and postponed folders of `specs/drafts/` and `specs/backlog/`, with a proposal.
-    fn drafts(&self, from: ReadFrom) -> Vec<String> {
-        let mut drafts = BTreeSet::new();
-        for dir in ["specs/drafts", "specs/backlog"] {
-            let paths: Vec<String> = match from {
-                ReadFrom::Commit(commit) => self.git.list_files(commit, dir).unwrap_or_default(),
-                ReadFrom::Disk => fs::read_dir(self.git.root().join(dir))
-                    .into_iter()
-                    .flatten()
-                    .flatten()
-                    .filter_map(|entry| {
-                        let name = entry.file_name().into_string().ok()?;
-                        let is_dir = entry.file_type().is_ok_and(|t| t.is_dir());
-                        let file = if is_dir { "/proposal.md" } else { "" };
-                        Some(format!("{dir}/{name}{file}"))
-                    })
-                    .filter(|path| self.git.root().join(path).is_file())
-                    .collect(),
+    /// The proposal files and postponed folders of `specs/proposals/`, with a proposal.
+    fn proposals(&self, from: ReadFrom) -> Vec<String> {
+        let dir = "specs/proposals";
+        let paths: Vec<String> = match from {
+            ReadFrom::Commit(commit) => self.git.list_files(commit, dir).unwrap_or_default(),
+            ReadFrom::Disk => fs::read_dir(self.git.root().join(dir))
+                .into_iter()
+                .flatten()
+                .flatten()
+                .filter_map(|entry| {
+                    let name = entry.file_name().into_string().ok()?;
+                    let is_dir = entry.file_type().is_ok_and(|t| t.is_dir());
+                    let file = if is_dir { "/proposal.md" } else { "" };
+                    Some(format!("{dir}/{name}{file}"))
+                })
+                .filter(|path| self.git.root().join(path).is_file())
+                .collect(),
+        };
+        let mut proposals = BTreeSet::new();
+        for path in paths {
+            let Some(rest) = path.strip_prefix(dir).and_then(|r| r.strip_prefix('/')) else {
+                continue;
             };
-            for path in paths {
-                let Some(rest) = path.strip_prefix(dir).and_then(|r| r.strip_prefix('/')) else {
-                    continue;
-                };
-                match rest.split_once('/') {
-                    Some((folder, "proposal.md")) => drafts.insert(format!("{dir}/{folder}")),
-                    None if rest.ends_with(".md") => drafts.insert(path.clone()),
-                    _ => false,
-                };
-            }
+            match rest.split_once('/') {
+                Some((folder, "proposal.md")) => proposals.insert(format!("{dir}/{folder}")),
+                None if rest.ends_with(".md") => proposals.insert(path.clone()),
+                _ => false,
+            };
         }
-        drafts.into_iter().collect()
+        proposals.into_iter().collect()
     }
 }
 
@@ -452,8 +451,8 @@ impl Workspace {
             .filter(|worktree| worktree.path != root && worktree.path.exists())
             .filter_map(|worktree| Some((worktree.branch?, worktree.path)))
             .collect();
-        // The priorities and drafts: from this checkout on the default branch, else from the
-        // worktree that has it, uncommitted edits included, else from its tip.
+        // The priorities and proposal files: from this checkout on the default branch, else from
+        // the worktree that has it, uncommitted edits included, else from its tip.
         let default_worktree = default_branch
             .as_ref()
             .filter(|_| !on_default)
@@ -504,14 +503,14 @@ impl Workspace {
             fetched_ago: fetched.map(today::ago),
             priorities: Vec::new(),
             features,
-            drafts: default_reader.drafts(priorities_from),
+            proposals: default_reader.proposals(priorities_from),
             inbox: default_reader.read(priorities_from, "specs/INBOX.md"),
             triage: default_reader.read(priorities_from, DefaultRound::Triage.path()),
             decisions_check: default_reader
                 .read(priorities_from, DefaultRound::DecisionsCheck.path()),
             problems: Vec::new(),
         };
-        workspace.priorities = priority_entries(&priorities_text, &workspace);
+        workspace.priorities = linked_proposals(&priorities_text, &workspace);
         Ok(workspace)
     }
 

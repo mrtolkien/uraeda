@@ -1,15 +1,14 @@
-import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useRef, useState } from "react";
 import type { QuestionItem } from "uraeda-binding";
 import { CandidatesContext } from "./decisions/Candidates.tsx";
 import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { Band, followUpsOf, QuestionCards } from "./QuestionCards.tsx";
+import { Band } from "./layout/Band.tsx";
+import { followUpsOf, QuestionCards } from "./QuestionCards.tsx";
 import { RoundOpening } from "./RoundOpening.tsx";
 import { RoundColumn, useRoundActions } from "./RoundColumn.tsx";
 import type { NavQuestion } from "./roundJump.ts";
-import { RoundIndex } from "./RoundOutline.tsx";
 import { useRoundNotes } from "./RoundNotes.tsx";
 import { RoundEnd, useRoundSubmit } from "./RoundSubmit.tsx";
 import { isDefaultRound, RoundHash, type RoundTarget, useHashes } from "./roundTarget.ts";
@@ -21,13 +20,6 @@ import { useRoundPosition } from "./useRoundPosition.ts";
 import { type useFile, useAgent } from "./data.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
-
-const styles = stylex.create({
-  measure: {
-    // The round's reading text, a default-branch round's too, holds to the round's measure.
-    "--size-reading-measure": "var(--size-round-measure)",
-  },
-});
 
 /**
  * A round of questions on one page: its context, every question in full with its follow-ups, the
@@ -46,7 +38,6 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const hash = useHashes(document.hash);
   const notes = useRoundNotes(file, target, hash);
   const submitting = useRoundSubmit(file, notes, pending, target, hash);
-  const wide = !isNarrow(useWidthClass());
   const end = useRef<HTMLDivElement>(null);
   // Submit's buttons, which the bar's Submit focuses.
   const submitRow = useRef<HTMLDivElement>(null);
@@ -75,7 +66,6 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const content = (
     <RoundBody
       file={file}
-      index={!readOnly && !wide && <RoundIndex questions={nav} />}
       readOnly={readOnly}
       target={target}
       {...(actions.asks ? { onAsk: actions.asks } : {})}
@@ -100,12 +90,18 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
       <CandidatesContext value={file.candidates}>
         <PendingSaves value={pending}>
           {readOnly ? (
-            <Page>{content}</Page>
+            <Page isPaired isReading>
+              {content}
+            </Page>
           ) : (
             // While the round waits on answers, its column beside it.
             <RoundColumn
               actions={actions}
-              content={<Page>{content}</Page>}
+              content={
+                <Page isPaired isReading>
+                  {content}
+                </Page>
+              }
               draft={actions.asks && draft}
               file={file}
               nav={nav}
@@ -120,23 +116,20 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
 }
 
 /**
- * The round's page itself: its opening, `index` after its block and its points to check after its
- * context, its questions, its other settled points, then `children`, its end. `onAsk` asks the
- * agent about a question or a point.
+ * The round's page itself: its opening, its points to check after its context, its questions, its other settled points, then `children`, its end. `onAsk` asks the
+ * agent about a question, or sends a point's comment to it.
  */
 function RoundBody({
   children,
   file,
-  index,
   onAsk,
   readOnly,
   target,
 }: {
   children: ReactNode;
   file: File;
-  index: ReactNode;
   onAsk?: {
-    point: (subject: string) => void;
+    point: (subject: string, text: string) => Promise<string | undefined>;
     question: (question: { id: string; title: string }) => void;
   };
   readOnly: boolean;
@@ -152,15 +145,13 @@ function RoundBody({
   // On the phone, a band before the settled points of the end, which a wide screen draws in panes.
   const ends = round.settledGroups.some((group) => group.kind !== "check" && group.points > 0);
   return (
-    <div {...stylex.props(styles.measure)}>
+    <>
       <RoundOpening
         check={<SettledPoints file={file} part="check" readOnly={readOnly} {...asks} />}
         document={document}
         round={round}
         {...(isDefaultRound(target) ? {} : { crumbs: { folder: file.folder, name: file.name } })}
-      >
-        {index}
-      </RoundOpening>
+      />
       <QuestionCards
         document={document}
         path={file.path}
@@ -173,7 +164,7 @@ function RoundBody({
       {!wide && ends && <Band />}
       <SettledPoints file={file} part="end" readOnly={readOnly} {...asks} />
       {children}
-    </div>
+    </>
   );
 }
 

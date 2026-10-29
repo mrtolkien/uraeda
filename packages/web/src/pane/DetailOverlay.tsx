@@ -1,11 +1,11 @@
-// The detail of a priority or a note, in the shared overlay over the page the line was opened
+// The detail of a proposal or a note, in the shared overlay over the page the line was opened
 // from: a dialog of 108 characters wide and 60% of the window tall on wide screens, a bottom sheet
 // on the phone, with Close, and on the line's own address. The page stays drawn under it, so its
 // selection and its scroll are kept.
 //
-// The history: opening is one entry, the overlay's, which Back goes over; `openDetail` pushes it
-// for a click, and an address opened any other way, by a link, a reload, or Forward, is given one
-// by `DetailHost`. Previous and Next replace the entry, so they add none.
+// The history: opening is one entry, the overlay's, which Back goes over; an address opened by a
+// link, a reload, or Forward is given one by `DetailHost`. Previous and Next replace the entry, so
+// they add none.
 import { useToast } from "@astryxdesign/core/Toast";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -29,18 +29,9 @@ const styles = stylex.create({
 });
 
 /** What an overlay's history entry is named by, and what its dialog is titled. */
-export type DetailKind = { label: "Priority"; page: "task" } | { label: "Note"; page: "note" };
+export type DetailKind = { label: "Proposal"; page: "proposal" };
 
-export const PRIORITY: DetailKind = { label: "Priority", page: "task" };
-export const NOTE: DetailKind = { label: "Note", page: "note" };
-
-/**
- * Opens the line at `href` in its overlay, from a click or Enter on its card: one history entry,
- * the overlay's, so Back closes it, without what the page's own entry says of where it came from.
- */
-export function openDetail(href: string, kind: DetailKind) {
-  openOverlayAt(href, kind.label, { from: undefined });
-}
+export const PROPOSAL: DetailKind = { label: "Proposal", page: "proposal" };
 
 /**
  * Closes the overlay of the line shown now, from the line's own action, like its delete: going
@@ -110,36 +101,37 @@ export function DetailOverlay({
 }
 
 /**
- * The detail overlay of the line `entryKey` of the page `list`, a path within the repository, once
- * `exists` says whether the line is there (`undefined` while it is read). A line the address names
- * that is not there shows the page and says `gone`, at the list's address. The overlay stays open
- * on the lines of one address after another, as Previous and Next, or a rename, change it.
+ * The detail overlay of the proposal `proposalKey` of the page `list`, a path within the
+ * repository, once `exists` says whether the proposal is there (`undefined` while it is read). A
+ * proposal the address names that is not there shows the page and says `gone`, at the list's
+ * address. The overlay stays open on the proposals of one address after another, as Previous and
+ * Next, or a rename, change it.
  */
 export function DetailHost({
   children,
-  entryKey,
   exists,
   gone,
   kind,
   list,
+  proposalKey,
 }: {
   children: ReactNode;
-  entryKey: string;
   exists: boolean | undefined;
   gone: string;
   kind: DetailKind;
   list: string;
+  proposalKey: string;
 }) {
   const here = useRepoPath();
   const showToast = useToast();
   // Whether the line was there when its address came up: a line deleted from its own overlay is
   // gone for a moment before Back closes it, and that is no news.
   const [arrived, setArrived] = useState<{ key: string; there: boolean }>();
-  if (exists !== undefined && arrived?.key !== entryKey) {
-    setArrived({ key: entryKey, there: exists });
+  if (exists !== undefined && arrived?.key !== proposalKey) {
+    setArrived({ key: proposalKey, there: exists });
   }
-  const there = arrived?.key === entryKey && arrived.there;
-  const missing = arrived?.key === entryKey && !arrived.there;
+  const there = arrived?.key === proposalKey && arrived.there;
+  const missing = arrived?.key === proposalKey && !arrived.there;
 
   // An address opened by a link or a reload has no overlay entry yet: it is given one, before the
   // overlay would push its own, so it has the page's state, and Back goes over it once.
@@ -169,7 +161,7 @@ export function DetailHost({
     }
   };
   return there ? (
-    <DetailOverlay label={kind.label} line={entryKey} onClose={close}>
+    <DetailOverlay label={kind.label} line={proposalKey} onClose={close}>
       {children}
     </DetailOverlay>
   ) : null;

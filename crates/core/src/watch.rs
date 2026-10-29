@@ -29,8 +29,8 @@ pub struct Changes {
     pub features: Vec<String>,
     /// The files whose text changed, as `<folder>/<name>`.
     pub files: Vec<String>,
-    /// Whether the priorities record changed: `PRIORITIES.md`, the drafts, or the step of a feature
-    /// an entry links.
+    /// Whether the priorities record changed: `PRIORITIES.md`, the proposal files, or the step of a
+    /// feature a proposal links.
     pub priorities: bool,
     /// Whether the default branch's `INBOX.md`, `INBOX-TRIAGE.md`, or `DECISIONS-CHECK.md` changed.
     pub inbox: bool,
@@ -149,12 +149,12 @@ fn snapshot(root: &Path) -> Snapshot {
         features,
         files,
         branch_decisions,
-        // The entries as the priorities record shows them: nested lines, drafts, and the steps
+        // The proposals as the priorities record shows them: nested lines, files, and the steps
         // of their running features included.
         priorities: hash(
             &serde_json::to_string(&(
                 &workspace.priorities,
-                &workspace.drafts,
+                &workspace.proposals,
                 crate::api::joined_priorities(&git, &workspace).sections,
             ))
             .unwrap_or_default(),

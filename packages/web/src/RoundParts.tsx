@@ -1,14 +1,9 @@
-// The round's own parts, in titled panes: its block, titled by its first line, with the verdict's
-// badge before its sentence; its context, a pane per part, Today folded; the "Check these" pane;
-// and a settled point's actions. Round-only parts, as the plan's Complexity tracking names them.
-import { Badge, type BadgeVariant } from "@astryxdesign/core/Badge";
-import { Button } from "@astryxdesign/core/Button";
+// The round's own parts, in titled panes: its block, titled by its first line, with the verdict as
+// its lead over its sentence; its context, a pane per part, Today folded; and the "Check these"
+// pane. Round-only parts, as the plan's Complexity tracking names them.
 import { Grid } from "@astryxdesign/core/Grid";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
-import { Stack } from "@astryxdesign/core/Stack";
 import { Text } from "@astryxdesign/core/Text";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useMemo, useRef, useState } from "react";
 import type { Block, ContextPart, Document, RoundItems, VerdictKind } from "uraeda-binding";
@@ -16,24 +11,25 @@ import { Blocks } from "./Blocks.tsx";
 import { type Folds, useHashFold } from "./Folds.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { useAtLeast } from "./layout/useWidthOf.ts";
-import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { proseStyles } from "./Prose.tsx";
 import { PART_IDS } from "./roundPartIds.ts";
 import { plain, Spans } from "./Spans.tsx";
 
 const styles = stylex.create({
-  badge: { flexShrink: 0 },
-  // On the phone, above its sentence, as wide as its words.
-  badgeNarrow: { alignSelf: "flex-start" },
+  error: { color: colorVars["--color-error"] },
   lead: { marginBlock: spacingVars["--spacing-1"] },
+  success: { color: colorVars["--color-success"] },
   verdict: { paddingBlock: spacingVars["--spacing-2"] },
+  // The verdict's words, on a line of their own over its sentence, heavier, in its colour.
+  verdictLead: { display: "block", fontWeight: fontWeightVars["--font-weight-medium"] },
+  warning: { color: colorVars["--color-warning"] },
 });
 
-/** The verdict's badge, by the kind the core reads: its words and its colour. */
-const VERDICTS: Record<VerdictKind, { label: string; variant: BadgeVariant }> = {
-  "as-proposed": { label: "As proposed", variant: "success" },
-  "not-as-proposed": { label: "Not as proposed", variant: "error" },
-  "with-changes": { label: "With changes", variant: "warning" },
+/** The verdict's lead, by the kind the core reads: its words and its colour. */
+const VERDICTS: Record<VerdictKind, { label: string; tone: stylex.StyleXStyles }> = {
+  "as-proposed": { label: "As proposed", tone: styles.success },
+  "not-as-proposed": { label: "Not as proposed", tone: styles.error },
+  "with-changes": { label: "With changes", tone: styles.warning },
 };
 
 /** A context part's icon, by its heading's anchor. */
@@ -58,7 +54,7 @@ function blockParts(document: Document, block: Block) {
 }
 
 /**
- * The document with the verdict's item out of its list, as the badge and its sentence draw it: the
+ * The document with the verdict's item out of its list, as its lead and its sentence draw it: the
  * item keeps its index, but no longer has the list as its parent.
  */
 function withoutItem(document: Document, item: number | undefined): Document {
@@ -72,34 +68,21 @@ function withoutItem(document: Document, item: number | undefined): Document {
 }
 
 /**
- * The verdict: its badge, then its sentence, beside it, under it on the phone, within the reading
- * measure.
+ * The verdict, as the round's lead: its words on a line of their own, in its colour and heavier, as
+ * the goal's first sentence leads, then its sentence under it, the whole measure's width.
  */
 function Verdict({ verdict }: { verdict: NonNullable<RoundItems["verdict"]> }) {
-  const isNarrowScreen = isNarrow(useWidthClass());
   const look = VERDICTS[verdict.kind];
   return (
-    <Stack
-      direction={isNarrowScreen ? "vertical" : "horizontal"}
-      gap={isNarrowScreen ? 1 : 3}
-      vAlign={isNarrowScreen ? undefined : "baseline"}
-      // Reading text, its badge and its sentence held to the measure as one line.
-      xstyle={[styles.verdict, proseStyles.reading, proseStyles.measure]}
-    >
-      <Badge
-        label={look.label}
-        variant={look.variant}
-        xstyle={[styles.badge, isNarrowScreen && styles.badgeNarrow]}
-      />
-      <div {...stylex.props(proseStyles.reading)}>
-        <Spans spans={verdict.text} />
-      </div>
-    </Stack>
+    <div {...stylex.props(styles.verdict, proseStyles.reading, proseStyles.measure)}>
+      <span {...stylex.props(styles.verdictLead, look.tone)}>{look.label}</span>
+      <Spans spans={verdict.text} />
+    </div>
   );
 }
 
 /**
- * The round's block, a pane titled by its first line, `id="summary"`: the verdict's badge then its
+ * The round's block, a pane titled by its first line, `id="summary"`: the verdict's lead then its
  * sentence, then the rest of the block's items.
  */
 export function RoundBlock({ document, round }: { document: Document; round: RoundItems }) {
@@ -176,7 +159,13 @@ function ContextPane({
       isOpenOnPhone
       title={part.title || "Context"}
     >
-      <Blocks document={document} ids={part.blocks} />
+      {/* Prose given air, and the goal's and the scope's first sentence leading: what each says first. */}
+      <Blocks
+        document={document}
+        hasLead={anchor === "goal" || anchor === "scope"}
+        ids={part.blocks}
+        isAiry
+      />
     </Pane>
   );
 }
@@ -243,43 +232,5 @@ export function CheckPane({ children, count }: { children: ReactNode; count: num
       </Text>
       {children}
     </Pane>
-  );
-}
-
-/**
- * A settled point's actions: "Ask", named `Ask about "<subject>"`, with `onAsk`, and its comment
- * button.
- */
-export function PointActions({
-  onAsk,
-  onComment,
-  subject,
-}: {
-  onAsk?: (subject: string) => void;
-  onComment: () => void;
-  subject: string;
-}) {
-  return (
-    <HStack gap={1} justify="end">
-      {onAsk && (
-        <Button
-          icon={<Icon icon="uraeda:comment" />}
-          label={`Ask about "${subject}"`}
-          onClick={() => onAsk(subject)}
-          size="sm"
-          variant="ghost"
-        >
-          Ask
-        </Button>
-      )}
-      <Button
-        icon={<Icon icon="uraeda:pencil" />}
-        isIconOnly
-        label={`Comment on "${subject}"`}
-        onClick={onComment}
-        size="sm"
-        variant="ghost"
-      />
-    </HStack>
   );
 }

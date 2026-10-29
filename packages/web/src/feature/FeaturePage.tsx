@@ -1,12 +1,13 @@
 // The page of a feature or a change, top to bottom: where it is, what blocks it, what's next, its
-// timeline, a done one's record, and its notes, folded; beside them, or after them on the phone, its column of
-// sessions, figures, and links.
+// sessions, its timeline, a done one's record, and its notes, folded; beside them, or after them on
+// the phone, its column of figures and links.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
 import { VStack } from "@astryxdesign/core/VStack";
-import { Suspense, useState } from "react";
+import { type RefObject, Suspense, useCallback, useRef, useState } from "react";
 import { Crumbs } from "../Crumbs.tsx";
 import { useAgent, useFeature, useHistory, useRecommendedMessage } from "../data.ts";
+import { useKeys } from "../keys/registry.tsx";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
@@ -19,6 +20,7 @@ import { nextOf, type Recommended } from "./next.ts";
 import { NextPane } from "./NextPane.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
 import { Record } from "./Record.tsx";
+import { SessionsPane } from "./SessionsPane.tsx";
 import { Timeline } from "./Timeline.tsx";
 import { day } from "./times.ts";
 import { Missing } from "../layout/Missing.tsx";
@@ -53,14 +55,42 @@ function recommendedOf(read: ReturnType<typeof useRecommendedMessage>): Recommen
   return read.reason === null ? undefined : { reason: read.reason };
 }
 
+/** What "Next" tells the page of its button: what it does, or none. */
+type OnNextRun = (run: (() => void) | undefined) => void;
+
+/**
+ * `n`, what "Next"'s button does: declared before the sessions' `s` and `S`, as "Next" comes before
+ * them, though it draws once its data is read.
+ */
+function NextKey({ hasNext, run }: { hasNext: boolean; run: RefObject<(() => void) | undefined> }) {
+  useKeys(
+    hasNext
+      ? [
+          { hint: "n", keys: "n", label: "next step", run: () => run.current?.() },
+          // Enter too, with no hint, on the page itself: a link or a button with the focus keeps
+          // its own Enter.
+          {
+            keys: "Enter",
+            label: "next step",
+            run: () => run.current?.(),
+            when: (target) => target === document.body || target === document.documentElement,
+          },
+        ]
+      : [],
+  );
+  return null;
+}
+
 /** "Next": the one action of the feature's step. */
 function NextStep({
   feature,
   history,
+  onRun,
   working = false,
 }: {
   feature: FeatureData;
   history: HistoryData;
+  onRun: OnNextRun;
   working?: boolean;
 }) {
   const merge = history.stages.find((stage) => stage.name === "merged")?.started;
@@ -74,7 +104,7 @@ function NextStep({
   });
   // A human gate is peach; the agent's turn, a build, or a merge is the active pane.
   const tone = feature.step.waitsOn === "human" ? "attention" : "active";
-  return <NextPane folder={feature.folder} next={next} tone={tone} />;
+  return <NextPane folder={feature.folder} next={next} onRun={onRun} tone={tone} />;
 }
 
 /** "Next", once the feature's latest session is read, which its runs go to. */
@@ -82,13 +112,22 @@ function WithSession({
   feature,
   history,
   id,
+  onRun,
 }: {
   feature: FeatureData;
   history: HistoryData;
   id: string;
+  onRun: OnNextRun;
 }) {
   const session = useSession(id);
-  return <NextStep feature={feature} history={history} working={session?.status === "working"} />;
+  return (
+    <NextStep
+      feature={feature}
+      history={history}
+      onRun={onRun}
+      working={session?.status === "working"}
+    />
+  );
 }
 
 /** What a finished feature left behind: its worktree, its branch, or both. */
@@ -153,6 +192,13 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
   const [refused, setRefused] = useState<string>();
   // The record's folds, which a figure of the column opens.
   const keys = useOpenKeys();
+  // What "Next"'s button does, which `n` does too, once "Next" is drawn.
+  const nextRun = useRef<() => void>(undefined);
+  const [hasNext, setHasNext] = useState(false);
+  const onNextRun = useCallback((run: (() => void) | undefined) => {
+    nextRun.current = run;
+    setHasNext(run !== undefined);
+  }, []);
   const inline = isNarrow(useWidthClass());
   if (!history) {
     return (
@@ -205,11 +251,23 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
         <LeftBanner feature={feature} />
         <Suspense fallback={null}>
           {feature.session ? (
-            <WithSession feature={feature} history={history} id={feature.session} />
+            <WithSession
+              feature={feature}
+              history={history}
+              id={feature.session}
+              onRun={onNextRun}
+            />
           ) : (
-            <NextStep feature={feature} history={history} />
+            <NextStep feature={feature} history={history} onRun={onNextRun} />
           )}
         </Suspense>
+        {/* Before the sessions' keys, as "Next" comes before them, though "Next" draws later. */}
+        <NextKey hasNext={hasNext} run={nextRun} />
+        <SessionsPane
+          folder={feature.folder}
+          progress={feature.step.progress}
+          sessions={feature.sessions}
+        />
         <Timeline feature={feature} history={history} progress={feature.step.progress} />
         <RecordPart feature={feature} history={history} keys={keys} />
         {inline && <FeatureColumn feature={feature} history={history} keys={keys} />}

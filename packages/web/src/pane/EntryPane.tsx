@@ -1,8 +1,8 @@
-// The detail pane of an entry, a priority or a note, shared by both pages and drawn in their
+// The detail pane of an entry, a proposal or a note, shared by both pages and drawn in their
 // overlay: a bar with its place and its actions, then its body, read-only on arrival, the entry
 // read as markdown. Edit, in the bar, turns its text into
-// the one-line field, in place (Q4, Q5 of the redesign's first round), and a drafted entry's
-// draft into its text, under it (C2).
+// the one-line field, in place (Q4, Q5 of the redesign's first round), and an entry's own file
+// into its text, under it (C2).
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
@@ -14,7 +14,10 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { Span } from "uraeda-binding";
+import { listStyles } from "../BlockList.tsx";
 import { LineField } from "../EditableLine.tsx";
+import { markVars } from "../marks.stylex.ts";
+import { proseRhythm } from "../Prose.tsx";
 import { Spans } from "../Spans.tsx";
 import type { useLineSave } from "../useLineSave.ts";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -38,14 +41,8 @@ const styles = stylex.create({
     paddingBlock: spacingVars["--spacing-4"],
   },
   // Previous and Next stay in view as the pane scrolls, under the body, as the bar stays over it.
-  child: {
-    paddingBlock: spacingVars["--spacing-0-5"],
-  },
-  children: {
-    listStyleType: "disc",
-    margin: 0,
-    paddingInlineStart: spacingVars["--spacing-6"],
-  },
+  // Its nested lines, bullets as a document's (`BlockList.tsx`), its own margin the stack's gap.
+  children: { marginBlockEnd: 0 },
   footer: {
     backgroundColor: colorVars["--color-background-surface"],
     bottom: 0,
@@ -58,14 +55,12 @@ const styles = stylex.create({
   },
 });
 
-/** The pane's bar: where the entry is, then Edit and Open draft when it links one. */
+/** The pane's bar: where the entry is, then Edit. */
 function PaneBar({
-  draftHref,
   isEditing,
   location,
   onEdit,
 }: {
-  draftHref?: string;
   isEditing: boolean;
   location: string;
   onEdit: () => void;
@@ -79,7 +74,6 @@ function PaneBar({
           </Text>
           <HStack align="center" gap={2}>
             <Button isDisabled={isEditing} label="Edit" onClick={onEdit} variant="secondary" />
-            {draftHref && <Button href={draftHref} label="Open draft" variant="secondary" />}
           </HStack>
         </HStack>
       </div>
@@ -119,10 +113,16 @@ export function EntryText({
         </Heading>
       )}
       {nested.length > 0 && (
-        <ul {...stylex.props(styles.children)}>
+        <ul
+          {...stylex.props(
+            listStyles.native(markVars["--mark-list-room"]),
+            listStyles.disc,
+            styles.children,
+          )}
+        >
           {nested.map((child, at) => (
             // A child has no key of its own: its place is its identity, as in the file.
-            <li key={at} {...stylex.props(styles.child)}>
+            <li key={at} {...stylex.props(listStyles.item, proseRhythm.item)}>
               <Spans spans={child} />
             </li>
           ))}
@@ -132,7 +132,7 @@ export function EntryText({
   );
 }
 
-/** A priority whose feature is started: a green Running badge, its step, and the way to it. */
+/** A proposal whose feature is started: a green Running badge, its step, and the way to it. */
 export function RunningPart({ href, step }: { href: string; step: string }) {
   return (
     <HStack align="center" gap={2} wrap="wrap">
@@ -170,7 +170,6 @@ export function Steps({
  */
 export function EntryPane({
   children,
-  draftHref,
   isEditing,
   location,
   onDelete,
@@ -179,7 +178,6 @@ export function EntryPane({
   text,
 }: {
   children: ReactNode;
-  draftHref?: string;
   isEditing: boolean;
   location: string;
   onDelete: () => Promise<void> | void;
@@ -189,7 +187,7 @@ export function EntryPane({
 }) {
   return (
     <VStack gap={0}>
-      <PaneBar draftHref={draftHref} isEditing={isEditing} location={location} onEdit={onEdit} />
+      <PaneBar isEditing={isEditing} location={location} onEdit={onEdit} />
       <div {...stylex.props(styles.body)}>
         <VStack gap={4}>
           {text}

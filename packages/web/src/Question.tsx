@@ -15,9 +15,11 @@ import type { useAnswer } from "./useAnswer.ts";
 import { holdsStory, type Stories } from "./stories.tsx";
 
 const styles = stylex.create({
-  // On the phone, the options' borders run at the screen's edges.
+  // Room under the example's pane before the context, as the why's pane has above it.
+  example: { marginBlockEnd: spacingVars["--spacing-3"] },
+  // On the phone, the options' borders run at the screen's edges: the page's inset taken back.
   optionsPhone: {
-    marginInline: `calc(-1 * ${spacingVars["--spacing-4"]})`,
+    marginInline: "var(--page-bleed)",
   },
   // Room above the first option for the half of its letter over its border.
   optionsSpaced: {
@@ -42,6 +44,52 @@ export function holdsVariants(stories: Stories | null, document: Document, quest
   return question.options.some((choice) =>
     choice.other.some((id) => holdsStory(stories, document, id)),
   );
+}
+
+/**
+ * Whether a question holds something wide, in its context, its example, its why, or an option: a
+ * table, or a live window (`holdsWindow`). Its card then keeps one column, the whole card's width
+ * theirs.
+ */
+export function holdsWide(stories: Stories | null, document: Document, question: QuestionItem) {
+  const tables = document.blocks.filter((block) => block.kind === "table");
+  return (
+    holdsAny(
+      document,
+      question,
+      tables.map((block) => block.id),
+    ) || holdsWindow(stories, document, question)
+  );
+}
+
+/**
+ * Whether a question holds a live window, an HTML mockup or a story, in its context, its example,
+ * its why, or an option. Its card then takes the page's column, so the window shows nearer its own
+ * size, its text a pane's width.
+ */
+export function holdsWindow(stories: Stories | null, document: Document, question: QuestionItem) {
+  return holdsAny(document, question, [
+    ...(stories?.mockups ?? []).map((mockup) => mockup.block),
+    ...(stories?.preview ? stories.stories.map((story) => story.block) : []),
+  ]);
+}
+
+/** Whether any of the blocks `ids` is in a question's context, example, why, or options. */
+function holdsAny(document: Document, question: QuestionItem, ids: ReadonlyArray<number>) {
+  const roots = new Set([
+    ...question.context,
+    ...(question.example === undefined ? [] : [question.example]),
+    ...(question.why === undefined ? [] : [question.why]),
+    ...question.options.flatMap((choice) => choice.other),
+  ]);
+  return ids.some((id) => {
+    for (let at: number | undefined = id; at !== undefined; at = document.blocks[at]?.parent) {
+      if (roots.has(at)) {
+        return true;
+      }
+    }
+    return false;
+  });
 }
 
 /**
@@ -119,7 +167,7 @@ export function QuestionContext({
   return (
     <>
       {question.example !== undefined && (
-        <Pane isOpenOnPhone level={3} title="Example" tone="example">
+        <Pane isOpenOnPhone level={3} title="Example" tone="example" xstyle={[styles.example]}>
           <Blocks document={panes} ids={[question.example]} />
         </Pane>
       )}

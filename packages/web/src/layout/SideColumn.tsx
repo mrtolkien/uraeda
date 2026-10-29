@@ -11,7 +11,7 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { Layout, LayoutPanel } from "@astryxdesign/core/Layout";
 import { ResizeHandle, type useResizable } from "@astryxdesign/core/Resizable";
 import { Text } from "@astryxdesign/core/Text";
-import { easeVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, easeVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type MouseEvent, type ReactNode, useState } from "react";
 import { useKeys } from "../keys/registry.tsx";
@@ -73,6 +73,8 @@ const styles = stylex.create({
     opacity: { ":focus-visible": 1, "@media (hover: none)": 1, default: 0 },
   },
   panel: {
+    // On the secondary surface, as the sidebar at the window's other edge.
+    backgroundColor: colorVars["--color-background-body"],
     // As tall as the window, so the column and its edge run the whole height, scrolling on its own
     // when its content is taller.
     boxSizing: "border-box",
@@ -81,7 +83,7 @@ const styles = stylex.create({
     overflowY: "auto",
   },
   rail: {
-    // Folded: the rail's icons, under the button that unfolds it.
+    // Folded: the rail's icons, in a column under the button that unfolds it.
     alignItems: "center",
     cursor: "pointer",
     display: "flex",

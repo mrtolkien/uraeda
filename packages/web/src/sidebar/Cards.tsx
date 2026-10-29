@@ -1,39 +1,42 @@
-// The shell's cards: a feature's or a change's, which opens its page, its status what it asks, and
-// its "…" its settings; and a session's, whose "…" renames or archives it.
-import { Suspense } from "react";
-import { useFateClient } from "react-fate";
+// The shell's cards: a feature's or a change's, which opens its page, its status what it asks; and
+// a session's, which opens the session.
+import { Suspense, use } from "react";
+import { PickedCard } from "../layout/picked.ts";
 import { useBranchChanges } from "../data.ts";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
-import { SessionView } from "../views.ts";
 import { usePendingAction } from "../writes/store.ts";
 import { type Feature, type Row, sessionCard, toCard } from "./cards.ts";
 import { statusPath } from "./statusPath.ts";
 import type { Entry } from "./entries.ts";
-import { useOpenSettings } from "./FeatureSettingsDialog.tsx";
 import { type CardItem, ItemCard } from "./ItemCard.tsx";
-import { useOpenRename } from "./RenameSession.tsx";
 import { selects } from "./Row.tsx";
 
-/** A feature's or a change's card, with the lines its branch changed once read. */
-function FeatureCard({
+/**
+ * A feature's or a change's card, with the lines its branch changed once read, and `detail` under
+ * its name on home.
+ */
+export function FeatureCard({
+  detail,
   feature,
   pathname,
   row,
 }: {
+  detail?: string | undefined;
   feature: Feature;
   pathname: string;
   row: Row | undefined;
 }) {
   const here = useRepoPath();
-  const settings = useOpenSettings();
   const to = `/f/${feature.folder}`;
+  const isPicked = use(PickedCard) === here(to);
   const card = (item: CardItem) => (
     <ItemCard
+      detail={detail}
       href={here(to)}
+      isPicked={isPicked}
       isSelected={selects(pathname, to)}
       item={item}
       onOpen={() => navigate(here(to))}
-      onSettings={() => settings(feature)}
       onStatus={() => navigate(here(statusPath(feature, item.status)))}
     />
   );
@@ -66,26 +69,14 @@ function WithChanges({
   );
 }
 
-/** A session's card: its "…" renames it, and archives it or brings it back. */
-function SessionCard({ pathname, row }: { pathname: string; row: Row }) {
+/** A session's card, which opens the session. */
+export function SessionCard({ pathname, row }: { pathname: string; row: Row }) {
   const here = useRepoPath();
-  const fate = useFateClient();
-  const rename = useOpenRename();
   const to = sessionIdPath(row.id);
   return (
     <ItemCard
-      actions={[
-        { label: "Rename", onClick: () => rename(row) },
-        {
-          label: row.archived ? "Unarchive" : "Archive",
-          onClick: () =>
-            void fate.mutations.session.archive({
-              input: { archived: !row.archived, session: row.id },
-              view: SessionView,
-            }),
-        },
-      ]}
       href={here(to)}
+      isPicked={use(PickedCard) === here(to)}
       isSelected={selects(pathname, to)}
       item={sessionCard(row)}
       onOpen={() => navigate(here(to))}

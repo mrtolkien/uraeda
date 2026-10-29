@@ -1,10 +1,40 @@
 import { createElement, useCallback, useSyncExternalStore } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
+import { KeyCap } from "../keys/KeyCap.tsx";
+import { useKeys, useSingleKeys } from "../keys/registry.tsx";
 import { WriteButton } from "../writes/WriteButton.tsx";
 
 /** The undo toasts on screen, by the function that closes each. */
 const open = new Set<() => void>();
+
+/** The ids of the undo toasts shown, oldest first, by which `u` finds their Undo. */
+const shown: Array<number> = [];
+
+/** How many toasts' ids are kept: more than ever show at once. */
+const SHOWN_MAX = 20;
+let nextToast = 0;
+
+/**
+ * Presses the Undo of the newest undo toast still on screen, as a click does: `false` when none
+ * is. A toast hidden after its 5 seconds is no longer there to press.
+ */
+function undoLatest() {
+  for (const id of [...shown].reverse()) {
+    const button = document.querySelector<HTMLButtonElement>(`[data-undo="${id}"] button`);
+    if (button) {
+      button.click();
+      return true;
+    }
+  }
+  return false;
+}
+
+/** `u`: the Undo of the newest undo toast on screen. Mounted once, in the shell. */
+export function UndoKey() {
+  useKeys([{ keys: "u", label: "undo", run: () => (undoLatest() ? undefined : false) }], "shell");
+  return null;
+}
 
 /**
  * Closes every undo toast on screen: once the changes are committed, there is nothing left for
@@ -39,6 +69,15 @@ export function forgetUndoToasts() {
   setErrors([]);
 }
 
+/**
+ * Shows `text` where a refused Undo's error shows, until dismissed: for a write refused after the
+ * form that made it closed.
+ */
+export function showPageError(text: string) {
+  nextId += 1;
+  setErrors([...errors, { id: nextId, text }]);
+}
+
 /** The errors of refused Undos, and how to dismiss one, by its id. */
 export function useUndoErrors(): [ReadonlyArray<UndoError>, (id: number) => void] {
   const shown = useSyncExternalStore(
@@ -64,41 +103,63 @@ export function useUndoToast(): (
   commits?: boolean,
 ) => void {
   const showToast = useToast();
+  const singleKeys = useSingleKeys();
   return useCallback(
     (message, undo, commits = false) => {
+      nextToast += 1;
+      const id = nextToast;
+      // A toast that hid on its own stays listed: only the newest few can still be on screen.
+      shown.push(id);
+      shown.splice(0, Math.max(0, shown.length - SHOWN_MAX));
+      // `u` presses it too: its key, after its label, while the single keys are on.
+      const key = singleKeys ? createElement(KeyCap, null, "u") : undefined;
       const revert = async () => {
-        const error = await undo();
-        if (error) {
-          nextId += 1;
-          setErrors([...errors, { id: nextId, text: error }]);
+        // A read or a write of the Undo that fails shows as its refusal does, never as a rejection
+        // nothing catches.
+        const refused = await undo().catch(
+          (error: unknown) =>
+            `Could not undo: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        if (refused) {
+          showPageError(refused);
         }
       };
       const dismiss = showToast({
         autoHideDuration: 5000,
         body: message,
-        endContent: commits
-          ? createElement(WriteButton, {
-              label: "Undo",
-              onClick: () => revert().finally(close),
-              runningLabel: "Undoing…",
-              variant: "ghost",
-            })
-          : createElement(Button, {
-              clickAction: async () => {
-                close();
-                await revert();
-              },
-              label: "Undo",
-              variant: "ghost",
-            }),
+        endContent: createElement(
+          "span",
+          { "data-undo": id },
+          commits
+            ? createElement(WriteButton, {
+                endContent: key,
+                label: "Undo",
+                onClick: () => revert().finally(close),
+                runningLabel: "Undoing…",
+                variant: "ghost",
+              })
+            : createElement(Button, {
+                clickAction: async () => {
+                  close();
+                  await revert();
+                },
+                endContent: key,
+                label: "Undo",
+                variant: "ghost",
+              }),
+        ),
       });
       const close = () => {
         open.delete(close);
+        const at = shown.indexOf(id);
+        if (at !== -1) {
+          shown.splice(at, 1);
+        }
         dismiss();
       };
       // Closing a toast already hidden after its 5 seconds does nothing.
       open.add(close);
     },
-    [showToast],
+    [showToast, singleKeys],
   );
 }

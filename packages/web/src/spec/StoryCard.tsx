@@ -19,6 +19,7 @@ import { type PartProps, type SpecItems, storyId } from "./parts.ts";
 import { plural } from "../labels.ts";
 import { Foldable } from "../layout/Foldable.tsx";
 import { ruleStyles } from "../layout/rules.ts";
+import { proseStyles } from "../Prose.tsx";
 
 /** The icon of each step word, as the core names them. */
 const STEP_ICONS: Record<string, string> = {
@@ -33,13 +34,11 @@ const styles = stylex.create({
     paddingBlockStart: spacingVars["--spacing-3"],
   },
   scenario: {
-    // A scenario, set apart from the one before by a hairline, its step words in a column.
+    // A scenario, set apart from the one before by a hairline, its step words in a column, its
+    // sentences reading text (`proseStyles.reading`), as wide as the pane of prose it is in.
     columnGap: spacingVars["--spacing-3"],
     display: "grid",
-    fontSize: "var(--text-reading-size)",
     gridTemplateColumns: "auto minmax(0, 1fr)",
-    lineHeight: "var(--text-reading-line)",
-    maxWidth: "var(--size-reading-measure)",
     paddingBlockStart: spacingVars["--spacing-3"],
     rowGap: spacingVars["--spacing-2"],
   },
@@ -79,7 +78,7 @@ function ScenarioNode({
   return (
     <Selectable block={block} selection={selection}>
       <SinceWords block={block} isParagraph>
-        <div {...stylex.props(ruleStyles.between, styles.scenario)}>
+        <div {...stylex.props(proseStyles.reading, ruleStyles.between, styles.scenario)}>
           {steps.map(({ spans, word }, at) => (
             // The spaces between the cells, which the grid drops, keep the words apart when read.
             <div key={at} {...stylex.props(styles.contents)}>

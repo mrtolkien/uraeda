@@ -312,8 +312,16 @@ export function rowWord(tool: ToolItem, ended: boolean): string {
   return wordsOf(tool)?.row ?? tool.name;
 }
 
-/** An activity row's words: its `label`, its `end` word, and a sub-agent's count of `calls`. */
-export type RowWords = { calls?: string; end?: string; label: string };
+/**
+ * An activity row's words: its `label`, its `end` word, a sub-agent's count of `calls`, and a
+ * finished call's `time`.
+ */
+export type RowWords = { calls?: string; end?: string; label: string; time?: string };
+
+/** How long a call ran: `0.4 s` under a second, then as `elapsed` says it. */
+function callTime(ms: number): string {
+  return ms < 1000 ? `${(ms / 1000).toFixed(1)} s` : elapsed(ms);
+}
 
 /**
  * An activity row's words: what it acted on, "Thought", or the sub-agent's description; then its
@@ -323,12 +331,15 @@ export type RowWords = { calls?: string; end?: string; label: string };
 export function rowWords(item: ActivityItem, ended: boolean, calls: number): RowWords {
   if (item.kind === "thought") {
     return item.durationMs >= 1000
-      ? { end: elapsed(item.durationMs), label: "Thought" }
+      ? { end: elapsed(item.durationMs), label: "Thought", time: elapsed(item.durationMs) }
       : { label: "Thought" };
   }
   const word = rowWord(item, ended);
   if (item.subagent) {
     return { calls: callCount(calls), end: word, label: item.subagent.description };
   }
-  return { end: word, label: item.target ?? item.name };
+  const label = item.target ?? item.name;
+  return item.durationMs === undefined
+    ? { end: word, label }
+    : { end: word, label, time: callTime(item.durationMs) };
 }

@@ -1,29 +1,46 @@
 // The New page's three kinds, Session, Change, and Feature, as cards: each a titled pane with its
-// icon, its sentence, its example, what it ends with, and what waits on the human (US5). The cards
-// are a group of radios, with the radios' keys. An Astryx gap (plan, Complexity tracking; R12):
-// `SelectableCard` is a checkbox and `RadioList` draws round radios, which approval comment C3
-// forbids, so the group is drawn by the page, each card a raw element holding the shared `Pane`.
+// icon and a drawing of what it starts (`KindArt.tsx`), so that a card looks like what it is (US5);
+// its one sentence is for screen readers. The cards are a group of radios, with the radios' keys. An Astryx gap
+// (plan, Complexity tracking; R12): `SelectableCard` is a checkbox and `RadioList` draws round
+// radios, which approval comment C3 forbids, so the group is drawn by the page, each card a raw
+// element holding the shared `Pane`.
 import { Icon } from "@astryxdesign/core/Icon";
-import { Text } from "@astryxdesign/core/Text";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { focusOutlineStyles } from "@astryxdesign/core/utils/focusOutline.stylex";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
+import { kindVars } from "./kind.stylex.ts";
 import { type KeyboardEvent, useId, useRef } from "react";
+import { KindArt } from "./KindArt.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { proseStyles } from "./Prose.tsx";
 import type { NewKind } from "./routes.tsx";
-import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
   body: {
     display: "flex",
     flexDirection: "column",
-    gap: spacingVars["--spacing-2"],
+    gap: spacingVars["--spacing-3"],
     paddingBlock: spacingVars["--spacing-1"],
     paddingInline: spacingVars["--spacing-2"],
   },
+  // A compact card: its icon and name on one line, as tall as a touch target, square like a pane.
+  chip: {
+    alignItems: "center",
+    borderColor: colorVars["--color-border"],
+    borderStyle: "solid",
+    borderWidth: borderVars["--border-width"],
+    color: colorVars["--color-text-secondary"],
+    display: "flex",
+    gap: spacingVars["--spacing-1"],
+    justifyContent: "center",
+    // A touch target's height.
+    minHeight: kindVars["--kind-card-chip"],
+    minWidth: 0,
+    whiteSpace: "nowrap",
+  },
+  chipPicked: { borderColor: colorVars["--color-accent"], color: colorVars["--color-text-accent"] },
   // A grid of one, so its pane stretches to the card's height.
   card: { cursor: "pointer", display: "grid", minWidth: 0 },
   // The cards side by side at semi-wide and wide, as tall as the tallest.
@@ -32,97 +49,46 @@ const styles = stylex.create({
     gap: spacingVars["--spacing-3"],
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
   },
-  // A fact on one line: its icon and label, then its value right beside it (C3), which wraps in
-  // its own room when the card is narrow. Both start at the line's top, in the same line height,
-  // so their words share a baseline: the label's icon has none to align on.
-  fact: {
-    alignItems: "start",
-    columnGap: spacingVars["--spacing-2"],
-    display: "flex",
-  },
-  // On the picked card's tint, the rule in the accent, which keeps its 3:1 there in dark.
-  pickedFacts: { borderBlockStartColor: colorVars["--color-accent"] },
-  // The facts under a rule, as the mockup draws them apart from the sentence.
-  facts: {
-    display: "flex",
-    flexDirection: "column",
-    gap: spacingVars["--spacing-1"],
-    margin: 0,
-    paddingBlockStart: spacingVars["--spacing-2"],
-  },
-  label: {
-    alignItems: "center",
-    display: "flex",
-    flexShrink: 0,
-    gap: spacingVars["--spacing-1"],
-    margin: 0,
-  },
   // On the phone, stacked.
   stacked: { gridTemplateColumns: "minmax(0, 1fr)" },
-  value: { margin: 0, minWidth: 0 },
+  // On the phone once a card is picked: a row of three titles, so that the composer is in view.
+  compact: { gap: spacingVars["--spacing-2"], gridTemplateColumns: "repeat(3, minmax(0, 1fr))" },
 });
 
-/** A kind's card: its name and icon, its sentence, its example, and its two facts. */
+/** A kind's card: its name and icon, and its sentence. */
 type Kind = {
-  endsWith: string;
-  example: string;
   icon: string;
   /** The key that picks the card, a mnemonic of its name. */
   key: "c" | "f" | "s";
   kind: NewKind;
   name: string;
   sentence: string;
-  waitsOnYou: string;
 };
 
 /** The three kinds, in the order the cards and the arrow keys follow. */
 const KINDS: Array<Kind> = [
   {
-    endsWith: "the chat",
-    example: "“Why is CI slow?”",
     icon: "uraeda:bot",
     key: "s",
     kind: "session",
     name: "Session",
-    sentence: "Talk to the agent in the main checkout, like plain Claude Code.",
-    waitsOnYou: "nothing",
+    sentence: "A plain chat with the agent.",
   },
   {
-    endsWith: "a pull request",
-    example: "“Fix the due-date typo”",
     icon: "uraeda:wrench",
     key: "c",
     kind: "change",
     name: "Change",
-    sentence: "A bug fix or a small change, on its own branch.",
-    waitsOnYou: "the pull request",
+    sentence: "A message in, a pull request out.",
   },
   {
-    endsWith: "a spec, then a pull request",
-    example: "“Add recurring tasks”",
     icon: "uraeda:file-text",
     key: "f",
     kind: "feature",
     name: "Feature",
-    sentence: "A larger piece of work, designed with the agent before any code.",
-    waitsOnYou: "questions, then the spec",
+    sentence: "Questions, a spec you review, then a pull request.",
   },
 ];
-
-/** A fact: its icon, its label in secondary text, and its value beside it. */
-function Fact({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <div {...stylex.props(styles.fact)}>
-      <dt {...stylex.props(styles.label)}>
-        <Icon color="secondary" icon={icon} size="sm" />
-        <Text color="secondary">{label}</Text>
-      </dt>
-      <dd {...stylex.props(styles.value)}>
-        <Text>{value}</Text>
-      </dd>
-    </div>
-  );
-}
 
 /** The index the keys move to from `index`, wrapping at the ends, or none for another key. */
 function moved(key: string, index: number): number | undefined {
@@ -146,16 +112,29 @@ function moved(key: string, index: number): number | undefined {
 /**
  * The New page's cards: a `radiogroup` named "What to start" of three `radio` cards, Session,
  * Change, and Feature, the picked one the active pane and the group's one stop in the tab order. A
- * click or Space picks a card; the arrow keys, Home, and End, without a modifier, move the focus
- * and the pick. The examples are left out on the phone, where the cards stack.
+ * click or Space picks a card, and the focus goes on to the composer; the arrow keys, Home, and End,
+ * without a modifier, move the focus and the pick. `s c f` pick a card too, and the status line
+ * names them.
  */
-export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewKind) => void }) {
+export function KindCards({
+  kind,
+  onPick,
+}: {
+  /** The picked kind, or none: the phone's New page starts with no card picked. */
+  kind: NewKind | undefined;
+  /** `focus` says the pick was an activation, a click or Space, which moves on to the composer. */
+  onPick: (kind: NewKind, options?: { focus?: boolean }) => void;
+}) {
   const narrow = isNarrow(useWidthClass());
+  // The phone, once a card is picked: the drawings give way to the composer.
+  const compact = narrow && kind !== undefined;
   const cards = useRef<Array<HTMLDivElement | null>>([]);
   const bodies = useId();
   // `s c f` pick a card as a click would; the radio's own keys, below, move between them.
   useKeys(
     KINDS.map((card) => ({
+      hint: card.key,
+      hintLabel: card.name.toLowerCase(),
       keys: card.key,
       label: `Pick ${card.name}`,
       run: () => onPick(card.kind),
@@ -168,7 +147,7 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
     }
     if (event.key === " ") {
       event.preventDefault();
-      onPick(KINDS[index].kind);
+      onPick(KINDS[index].kind, { focus: true });
       return;
     }
     const next = moved(event.key, index);
@@ -183,7 +162,7 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
     <div
       aria-label="What to start"
       role="radiogroup"
-      {...stylex.props(styles.cards, narrow && styles.stacked)}
+      {...stylex.props(styles.cards, narrow && styles.stacked, compact && styles.compact)}
     >
       {KINDS.map((card, index) => {
         const isPicked = card.kind === kind;
@@ -191,37 +170,35 @@ export function KindCards({ kind, onPick }: { kind: NewKind; onPick: (kind: NewK
           <div
             aria-checked={isPicked}
             // A radio's content is presentational: its name is the card's, and its body, the
-            // sentence, example, and facts, is read as its description.
+            // sentence, is read as its description; the drawing is for the eye.
             aria-describedby={`${bodies}-${card.kind}`}
             aria-label={card.name}
             key={card.kind}
-            onClick={() => onPick(card.kind)}
+            onClick={() => onPick(card.kind, { focus: true })}
             onKeyDown={(event) => keyDown(event, index)}
             ref={(element) => {
               cards.current[index] = element;
             }}
             role="radio"
-            tabIndex={isPicked ? 0 : -1}
+            // The group's one stop: the picked card, or the first while none is.
+            tabIndex={isPicked || (kind === undefined && index === 0) ? 0 : -1}
             {...stylex.props(styles.card, focusOutlineStyles.focusVisible)}
           >
-            <Pane
-              icon={card.icon}
-              isActive={isPicked}
-              isGroup
-              isTinted={isPicked}
-              title={card.name}
-            >
-              <div id={`${bodies}-${card.kind}`} {...stylex.props(styles.body)}>
-                <div {...stylex.props(proseStyles.reading)}>{card.sentence}</div>
-                {!narrow && <Text color="secondary">{card.example}</Text>}
-                <dl
-                  {...stylex.props(ruleStyles.above, styles.facts, isPicked && styles.pickedFacts)}
-                >
-                  <Fact icon="uraeda:flag" label="Ends with" value={card.endsWith} />
-                  <Fact icon="uraeda:hourglass" label="Waits on you" value={card.waitsOnYou} />
-                </dl>
+            {compact ? (
+              <div {...stylex.props(styles.chip, isPicked && styles.chipPicked)}>
+                <Icon icon={card.icon} size="sm" />
+                {card.name}
+                <VisuallyHidden id={`${bodies}-${card.kind}`}>{card.sentence}</VisuallyHidden>
               </div>
-            </Pane>
+            ) : (
+              <Pane icon={card.icon} isActive={isPicked} isGroup title={card.name}>
+                <div {...stylex.props(styles.body)}>
+                  {/* The drawing says what it is; the sentence is for screen readers. */}
+                  <KindArt kind={card.kind} />
+                  <VisuallyHidden id={`${bodies}-${card.kind}`}>{card.sentence}</VisuallyHidden>
+                </div>
+              </Pane>
+            )}
           </div>
         );
       })}

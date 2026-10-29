@@ -1,25 +1,31 @@
 // The repository menu, in the navigation's heading: the repositories, most recently opened first,
 // the current one checked, a filter, each row's ⋯ menu with Remove, and "Add a repository…".
-// Signing out is in the settings' Sign-in category. A popover on wide screens, a bottom sheet on
+// Signing out is in the settings' Sign-in category. A dialog on wide screens, a bottom sheet on
 // narrow ones. Its reads and the list's mutations go through the global client, which the
 // repository gate reads too.
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
-import { Popover } from "@astryxdesign/core/Popover";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { fontWeightVars, sizeVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  fontWeightVars,
+  sizeVars,
+  spacingVars,
+  typeScaleVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import {
+  type ComponentProps,
   createContext,
   type ReactNode,
   Suspense,
   use,
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -34,6 +40,7 @@ import { Logo } from "./Logo.tsx";
 import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
 import { ActionsMenu } from "./layout/ActionsMenu.tsx";
+import { pickedStyles } from "./layout/picked.ts";
 import { StatusText } from "./fields/StatusText.tsx";
 
 const styles = stylex.create({
@@ -44,9 +51,10 @@ const styles = stylex.create({
     lineHeight: typeScaleVars["--text-large-leading"],
   },
   names: {
-    alignItems: "flex-start",
+    alignItems: "baseline",
+    columnGap: spacingVars["--spacing-2"],
     display: "flex",
-    flexDirection: "column",
+    flexWrap: "wrap",
     minWidth: 0,
   },
   path: {
@@ -54,15 +62,17 @@ const styles = stylex.create({
     overflowWrap: "anywhere",
   },
   repository: {
-    // The repository's name under "Uraeda" wraps anywhere too, inside the button's one-line label.
+    // The repository's name after "Uraeda" wraps anywhere too, inside the button's one-line label.
     overflowWrap: "anywhere",
     whiteSpace: "normal",
   },
   trigger: {
-    // The heading's trigger: "Uraeda" over the repository's name, two lines, the chevron at its end.
+    // The heading's trigger: "Uraeda | repository" on one line, wrapping when it must, and the
+    // chevron at its end.
     height: "auto",
     justifyContent: "space-between",
     minHeight: sizeVars["--size-element-md"],
+    paddingInlineStart: spacingVars["--spacing-1"],
     textAlign: "start",
   },
   unchecked: {
@@ -105,11 +115,14 @@ type Row = NonNullable<ReturnType<typeof useRepositories>>["rows"][number];
  */
 function RepositoryRow({
   current,
+  isCursor,
   onPick,
   onRemove,
   row,
 }: {
   current: string | null;
+  /** The row the arrows are on, which Enter opens: tinted as a list's selected row. */
+  isCursor: boolean;
   onPick: (name: string) => void;
   onRemove: (name: string) => void;
   row: Row;
@@ -151,31 +164,19 @@ function RepositoryRow({
           <Icon icon="check" xstyle={styles.unchecked} />
         )
       }
+      // The row the arrows are on: a list's selected row's tint, with its bar at the start.
+      xstyle={isCursor ? pickedStyles.picked : undefined}
     />
   );
 }
 
-/** The menu's content: the filter, the list's problem, the rows, a refused removal, and Add. */
-function Menu({
-  current,
-  onAdd,
-  onPick,
-  onRemovedCurrent,
-}: {
-  current: string | null;
-  onAdd: () => void;
-  onPick: (name: string) => void;
-  onRemovedCurrent: () => void;
-}) {
+/**
+ * A repository's removal from the list, which calls `onRemovedCurrent` once the current one is
+ * gone: `refused` is why the last removal could not be done.
+ */
+function useRemove(current: string | null, onRemovedCurrent: () => void) {
   const fate = useFateClient();
-  const list = useRepositories();
-  const [filter, setFilter] = useState("");
   const [refused, setRefused] = useState<string>();
-  const needle = filter.trim().toLowerCase();
-  const rows = (list?.rows ?? []).filter(
-    (row) => row.name.toLowerCase().includes(needle) || row.home.toLowerCase().includes(needle),
-  );
-
   const remove = async (name: string) => {
     setRefused(undefined);
     const { error } = await fate.mutations.repositories.remove({
@@ -190,29 +191,77 @@ function Menu({
       onRemovedCurrent();
     }
   };
+  return { refused, remove };
+}
 
+/** The menu's content: the filter, the list's problem, the rows, a refused removal, and Add. */
+function Menu({
+  current,
+  onAdd,
+  onPick,
+  onRemovedCurrent,
+}: {
+  current: string | null;
+  onAdd: () => void;
+  onPick: (name: string) => void;
+  onRemovedCurrent: () => void;
+}) {
+  const list = useRepositories();
+  const [filter, setFilter] = useState("");
+  const { refused, remove } = useRemove(current, onRemovedCurrent);
+  const needle = filter.trim().toLowerCase();
+  const rows = (list?.rows ?? []).filter(
+    (row) => row.name.toLowerCase().includes(needle) || row.home.toLowerCase().includes(needle),
+  );
+  // The row the arrows are on, which Enter opens: at first the latest other than the current one,
+  // where a switch goes; once a letter is typed, the first that matches.
+  const [moved, setMoved] = useState<number>();
+  // The focus in the filter once the menu is drawn, its list read: typing filters at once, and the
+  // arrows move along the rows. The dialog's own focus goes to its title as it opens, before.
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => field.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const first =
+    needle === ""
+      ? Math.max(
+          rows.findIndex((row) => row.name !== current),
+          0,
+        )
+      : 0;
+  const cursor = Math.min(moved ?? first, rows.length - 1);
   return (
     <VStack gap={2}>
       <TextInput
         isLabelHidden
         label="Filter repositories"
-        onChange={(value: string) => setFilter(value)}
+        onChange={(value: string) => {
+          setFilter(value);
+          setMoved(undefined);
+        }}
         onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-          // The filter leaving one repository: Enter opens it.
-          if (event.key === "Enter" && rows.length === 1) {
+          // The arrows move along the rows from the field, and Enter opens the one they are on.
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
-            onPick(rows[0]!.name);
+            const by = event.key === "ArrowDown" ? 1 : -1;
+            setMoved(Math.min(Math.max(cursor + by, 0), rows.length - 1));
+          } else if (event.key === "Enter" && rows[cursor] !== undefined) {
+            event.preventDefault();
+            onPick(rows[cursor].name);
           }
         }}
         placeholder="Filter repositories"
+        ref={field}
         startIcon="search"
         value={filter}
       />
       {list?.problem && <AnnouncedBanner collapsible={false} status="error" title={list.problem} />}
       <List aria-label="Repositories" density="compact">
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <RepositoryRow
             current={current}
+            isCursor={index === cursor}
             key={row.name}
             onPick={onPick}
             onRemove={(name) => void remove(name)}
@@ -233,8 +282,8 @@ function Menu({
 }
 
 /**
- * The navigation's heading as the menu's trigger: "Uraeda" over the current repository's name, or
- * alone on a page of none, with a chevron, after the logo with `hasLogo`. It opens the menu, and
+ * The navigation's heading as the menu's trigger: "Uraeda | " and the current repository's name, or
+ * "Uraeda" alone on a page of none, with a chevron, after the logo with `hasLogo`. It opens the menu, and
  * the menu the add form.
  */
 export function RepositoryMenu({
@@ -260,11 +309,14 @@ function Drawn({
   isOpen,
   label,
   onClose,
+  size,
 }: {
   children: ReactNode;
   isOpen: boolean;
   label: string;
   onClose: () => void;
+  /** On wide screens, the dialog's size, as `Overlay` takes it. */
+  size?: ComponentProps<typeof Overlay>["size"];
 }) {
   const [drawn, setDrawn] = useState(isOpen);
   if (isOpen && !drawn) {
@@ -276,7 +328,7 @@ function Drawn({
     }
   }, [isOpen, drawn, label]);
   return drawn ? (
-    <Overlay isOpen={isOpen} label={label} onClose={onClose}>
+    <Overlay isOpen={isOpen} label={label} onClose={onClose} size={size}>
       {children}
     </Overlay>
   ) : null;
@@ -284,27 +336,20 @@ function Drawn({
 
 const MENU = "Repositories";
 const FORM = "Add a repository";
+/** The menu's dialog on wide screens: as wide as a picker, the theme's, so its paths keep a line. */
+const PICKER = { width: "var(--size-picker)" };
 
 /**
- * The menu's content and the add form it leads to, over the caller's `isOpen` state: `isDeferred`
- * says the menu is an overlay, whose sheet's history entry is gone before what follows runs, as on
- * narrow screens, and not a popover.
+ * The menu's content and the add form it leads to, over the caller's `isOpen` state. The menu is an
+ * overlay, whose history entry is gone before what follows a pick runs.
  */
-function useSwitcher(
-  current: string | null,
-  isDeferred: boolean,
-  setOpen: (open: boolean) => void,
-) {
+function useSwitcher(current: string | null, setOpen: (open: boolean) => void) {
   const [adding, setAdding] = useState(false);
 
-  /** Closes the menu, then runs what follows once its sheet's history entry is gone. */
+  /** Closes the menu, then runs what follows once its history entry is gone. */
   const closeThen = (run: () => void) => {
     setOpen(false);
-    if (isDeferred) {
-      afterOverlayCloses(MENU, run);
-    } else {
-      run();
-    }
+    afterOverlayCloses(MENU, run);
   };
   const menu = (
     <Suspense fallback={<Spinner label="Loading the repositories" />}>
@@ -333,7 +378,7 @@ function useSwitcher(
 function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: boolean }) {
   const wide = !isNarrow(useWidthClass());
   const [open, setOpen] = useState(false);
-  const { form, menu } = useSwitcher(current, !wide, setOpen);
+  const { form, menu } = useSwitcher(current, setOpen);
   const label = current === null ? "Uraeda" : `Uraeda ${current}`;
 
   const trigger = (
@@ -341,19 +386,26 @@ function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: bo
       endContent={<Icon icon="chevronDown" />}
       {...(hasLogo ? { icon: <Logo /> } : {})}
       label={label}
-      onClick={wide ? undefined : () => setOpen(true)}
+      // A picker, as `Space r` opens it: its dialog on wide screens, its sheet here on the phone.
+      onClick={wide ? openRepositoryMenu : () => setOpen(true)}
       variant="ghost"
       width="100%"
       xstyle={styles.trigger}
     >
       <span {...stylex.props(styles.names)}>
-        <span {...stylex.props(styles.brand)}>Uraeda</span>
-        {/* Its accessible name, the label, is the text it shows, words apart. */}
-        {current !== null && " "}
-        {current !== null && (
-          <Text color="secondary" display="block" type="supporting" xstyle={styles.repository}>
-            {current}
-          </Text>
+        {current === null ? (
+          <span {...stylex.props(styles.brand)}>Uraeda</span>
+        ) : (
+          <>
+            <Text color="secondary" type="supporting">
+              Uraeda
+            </Text>
+            {/* Its accessible name, the label, is the text it shows, words apart. */}{" "}
+            <Text aria-hidden color="secondary" type="supporting">
+              |
+            </Text>{" "}
+            <span {...stylex.props(styles.brand, styles.repository)}>{current}</span>
+          </>
         )}
       </span>
     </Button>
@@ -361,25 +413,11 @@ function MenuTrigger({ current, hasLogo }: { current: string | null; hasLogo: bo
 
   return (
     <>
-      {wide ? (
-        <Popover
-          content={open ? menu : null}
-          isOpen={open}
-          label={MENU}
-          onOpenChange={setOpen}
-          padding={2}
-          placement="below"
-          width="var(--size-menu)"
-        >
-          {trigger}
-        </Popover>
-      ) : (
-        <>
-          {trigger}
-          <Drawn isOpen={open} label={MENU} onClose={() => setOpen(false)}>
-            {menu}
-          </Drawn>
-        </>
+      {trigger}
+      {!wide && (
+        <Drawn isOpen={open} label={MENU} onClose={() => setOpen(false)}>
+          {menu}
+        </Drawn>
       )}
       {form}
     </>
@@ -400,7 +438,8 @@ function setKeyOpen(open: boolean) {
 /**
  * Opens the repository menu from a key, `Space r`: the navigation's heading may be folded away, or
  * on a page that has none, so the menu is its own dialog (a sheet on narrow screens), drawn by
- * `RepositoryMenuHost`, and the heading's popover stays what a click opens.
+ * `RepositoryMenuHost`. A click on the heading opens the same dialog on wide screens, as every
+ * picker is one.
  */
 export function openRepositoryMenu() {
   setKeyOpen(true);
@@ -416,12 +455,12 @@ function KeyedMenu({ current }: { current: string | null }) {
     () => isKeyOpen,
     () => false,
   );
-  const { form, menu } = useSwitcher(current, true, setKeyOpen);
+  const { form, menu } = useSwitcher(current, setKeyOpen);
   // The page it was opened on goes, and the menu with it.
   useEffect(() => () => setKeyOpen(false), []);
   return (
     <>
-      <Drawn isOpen={isOpen} label={MENU} onClose={() => setKeyOpen(false)}>
+      <Drawn isOpen={isOpen} label={MENU} onClose={() => setKeyOpen(false)} size={PICKER}>
         {menu}
       </Drawn>
       {form}

@@ -1,6 +1,7 @@
-// The one place reading text is drawn: its size, its line, its measure, and the markdown that holds
-// prose. A page draws text through these, so a change here changes every page (the UI coherence
-// decision). Nothing else reads `--text-reading-*` or `--size-reading-measure`.
+// The one place reading text is drawn: its size, its line, its measure, its rhythm, and the
+// markdown that holds prose. A page draws text through these, so a change here changes every page
+// (the UI coherence decision). Nothing else reads `--text-reading-*`, `--prose-*`, or
+// `--size-reading-measure`, but the theme's rule for markdown lists, which StyleX cannot reach.
 import { Markdown } from "@astryxdesign/core/Markdown";
 import {
   createMarkdownFenceTransform,
@@ -9,8 +10,39 @@ import {
   type MarkdownFenceContext,
   type MarkdownPluginEntry,
 } from "@astryxdesign/core/Markdown/plugins";
+import { typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ComponentProps, ReactNode } from "react";
+import { type ComponentProps, type ReactNode, useMemo } from "react";
+
+/**
+ * Prose's rhythm, from the theme's `--prose-*` tokens: a paragraph's room under it, a list's, and a
+ * list item's, but the last's of what holds it. A document's blocks (`Blocks.tsx`,
+ * `BlockList.tsx`) and every markdown text's paragraphs (`ProseParagraph`) take it; the theme's
+ * `markdown` rule gives Astryx's markdown lists the same, so a bullet looks alike everywhere.
+ */
+export const proseRhythm = stylex.create({
+  item: { marginBlockEnd: { ":last-child": 0, default: "var(--prose-item-gap)" } },
+  list: { marginBlockEnd: { ":last-child": 0, default: "var(--prose-paragraph-gap)" } },
+  paragraph: {
+    marginBlockEnd: { ":last-child": 0, default: "var(--prose-paragraph-gap)" },
+    marginBlockStart: 0,
+  },
+});
+
+/** A markdown paragraph in prose's rhythm: what `ProseMarkdown` draws a paragraph as. */
+export function ProseParagraph({ children }: { children: ReactNode }) {
+  return (
+    <div role="paragraph" {...stylex.props(proseRhythm.paragraph)}>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * The reading measure, about 80 characters of prose a line, for a layout that sizes itself by it, as
+ * the decisions page's columns and a session's reply do: read from here, never written in a view.
+ */
+export const READING_MEASURE = "var(--size-reading-measure)";
 
 export const proseStyles = stylex.create({
   // Body text at the UI layout decision's size, from the theme, 19 px at every width, in the
@@ -27,10 +59,18 @@ export const proseStyles = stylex.create({
   // The reading size alone, for a control that reads as text, such as a fold's toggle: its font
   // stays the UI's.
   size: { fontSize: "var(--text-reading-size)" },
-  // About 110 characters of text a line, the theme's reading measure.
+  // About 80 characters of prose a line, the theme's reading measure.
   measure: { maxWidth: "var(--size-reading-measure)" },
-  // Astryx's markdown sets its text in the body font: its text takes the reading font instead.
-  markdown: { fontFamily: "var(--font-family-reading)" },
+  // Astryx's markdown sets its text in the body font, at the body's size and line, its list items
+  // too: its text takes the reading font, and the body's size and line are the reading ones inside.
+  markdown: {
+    fontFamily: "var(--font-family-reading)",
+    [typeScaleVars["--text-body-leading"]]: "var(--text-reading-line)",
+    [typeScaleVars["--text-body-size"]]: "var(--text-reading-size)",
+  },
+  // Prose as wide as its pane, past the measure: for a pane whose width sets its line, as a reading
+  // page's pane of prose does, its text ending at its border.
+  paneWide: { "--size-reading-measure": "none" },
   // A document's text: reading text at the measure, left-aligned.
   doc: {
     fontFamily: "var(--font-family-reading)",
@@ -98,6 +138,9 @@ export function fencePlugin<Data extends Record<string, string>>({
  * wider default of Astryx's would cap lists and headings and leave a replaced paragraph alone).
  * `components` replaces how some of its parts draw, and `plugins` draws some fenced blocks.
  */
+/** The markdown's parts as prose draws them, when the caller gives none of its own. */
+const PROSE_COMPONENTS = { paragraph: ProseParagraph };
+
 export function ProseMarkdown({
   children,
   components,
@@ -107,11 +150,16 @@ export function ProseMarkdown({
   components?: ComponentProps<typeof Markdown>["components"];
   plugins?: ReadonlyArray<ProsePlugin>;
 }): ReactNode {
+  // One object while `components` stays: Astryx's markdown keeps its blocks while it does.
+  const drawn = useMemo(
+    () => (components ? { paragraph: ProseParagraph, ...components } : PROSE_COMPONENTS),
+    [components],
+  );
   return (
     <div {...stylex.props(proseStyles.reading)}>
       <Markdown
         autolink="gfm"
-        components={components}
+        components={drawn}
         contentWidth="100%"
         headingLevelStart={4}
         plugins={plugins}

@@ -31,11 +31,14 @@ export function restoredForm(
 
 /** The comment form open on a point, keyed by what it writes: a new comment, or an edit. */
 export function SettledForm({
+  onAsk,
   onClose,
   path,
   shown,
   writes,
 }: {
+  /** Sends a new comment's text to the feature's session, about its point, in place of the comment. */
+  onAsk?: (subject: string, text: string) => Promise<string | undefined>;
   onClose: () => void;
   path: string;
   shown: Open;
@@ -57,6 +60,7 @@ export function SettledForm({
         : {
             field: newKey(path, shown.point.subject),
             onSubmit: (text: string) => writes.add(shown.point.subject, text),
+            ...(onAsk ? { onAsk: (text: string) => onAsk(shown.point.subject, text) } : {}),
           })}
     />
   );

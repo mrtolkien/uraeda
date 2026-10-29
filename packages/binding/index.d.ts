@@ -34,26 +34,14 @@ export declare function addComment(repo: string, folder: string, file: string, s
 export declare function addNote(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<Inbox>
 
 /**
- * Adds a note as `addNote` does, then commits `INBOX.md` alone when it had no other change: "Add
- * and commit".
- */
-export declare function addNoteAndCommit(repo: string, text: string, previous: string, category?: string | undefined | null, about?: string | undefined | null): Promise<InboxAdded>
-
-/**
- * Adds a note as a new draft folder holding its text and the `images`, linked from the end of a
- * category, all written or none. `names` holds each image's file name, empty for a pasted one.
- * Returns the draft's path.
+ * Adds a note as a new note file's folder holding its text and the `images`, linked from the end
+ * of a category, all written or none. `names` holds each image's file name, empty for a pasted
+ * one. Returns the note file's path.
  */
 export declare function addNoteWithImages(repo: string, text: string, previous: string, images: Array<Buffer>, names: Array<string>, category?: string | undefined | null, about?: string | undefined | null): Promise<string>
 
 /** Adds a line at the end of a section of the priorities. */
-export declare function addPriority(repo: string, section: string, text: string, previous: string): Promise<Priorities>
-
-/**
- * Adds a line at the end of a section of the priorities, then commits `PRIORITIES.md` alone when
- * it had no other change: "Add and commit".
- */
-export declare function addPriorityAndCommit(repo: string, section: string, text: string, previous: string): Promise<PrioritiesAdded>
+export declare function addProposal(repo: string, section: string, text: string, previous: string): Promise<Priorities>
 
 /**
  * Adds the git repository holding `folder`, an absolute path, to the list; one listed already
@@ -69,14 +57,14 @@ export declare function approve(repo: string, folder: string, file: string, summ
 
 /**
  * Re-encodes an image, saves it in the `images/` folder next to the markdown file at `path`, and
- * returns its link. `name` is the file's name, absent for a pasted image. A single-file draft
+ * returns its link. `name` is the file's name, absent for a pasted image. A single proposal file
  * becomes a folder first.
  */
 export declare function attachImage(repo: string, path: string, bytes: Buffer, name?: string | undefined | null): Promise<AttachedView>
 
 /**
- * Adds `images` to the note `id`, into the draft it links or into the draft it becomes. `names`
- * holds each image's file name, empty for a pasted one. Returns the draft's path.
+ * Adds `images` to the note `id`, into its note file or into the note file it gets. `names` holds
+ * each image's file name, empty for a pasted one. Returns the note file's path.
  */
 export declare function attachNoteImages(repo: string, id: string, previous: string, images: Array<Buffer>, names: Array<string>): Promise<string>
 
@@ -107,13 +95,19 @@ export declare function checkedPort(typed: string): number
  */
 export declare function checkoutCommit(checkout: string): Promise<string | null>
 
-/** Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the drafts notes went into. */
+/**
+ * Commits the commit page's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
+ * moved, or left.
+ */
 export declare function commitChanges(repo: string): Promise<void>
 
 /** Commits the priorities alone. */
 export declare function commitPriorities(repo: string): Promise<Priorities>
 
-/** Commits a draft, with the priorities when they changed, or a proposal. */
+/**
+ * Commits a proposal file or a note file, with the priorities and the inbox when they changed, or
+ * a proposal.
+ */
 export declare function commitText(repo: string, path: string): Promise<CommitView>
 
 /**
@@ -122,9 +116,6 @@ export declare function commitText(repo: string, path: string): Promise<CommitVi
  */
 export declare function configDir(custom?: string | undefined | null): string
 
-/** Drafts a priority line by its id, like `next-2`, over the priorities read at `previous`. */
-export declare function createDraft(repo: string, id: string, previous: string): Promise<DraftView>
-
 /**
  * Uraeda's data folder: `custom` when set and not empty, else `URAEDA_DATA_DIR` from this
  * process's environment, else the operating system's default.
@@ -132,8 +123,8 @@ export declare function createDraft(repo: string, id: string, previous: string):
 export declare function dataDir(custom?: string | undefined | null): string
 
 /**
- * Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of drafts,
- * keeping any text the human typed.
+ * Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of proposal
+ * files, keeping any text the human typed.
  */
 export declare function discardChanges(repo: string): Promise<void>
 
@@ -141,10 +132,22 @@ export declare function discardChanges(repo: string): Promise<void>
 export declare function discardPriorities(repo: string): Promise<Priorities>
 
 /**
- * Drops a started feature or change: its entry leaves the priorities, its worktree is removed
+ * Drops a started feature or change: its proposal leaves the priorities, its worktree is removed
  * unless it has uncommitted changes, never forced, and its branch stays.
  */
 export declare function dropItem(repo: string, folder: string): Promise<DroppedView>
+
+/**
+ * Moves a note, or with `at` its nested item at `at`, its own items with it, to `to`: what a drop
+ * writes. Under a note, or else a note of `to`'s list, a category, or of the notes without one.
+ */
+export declare function dropNote(repo: string, id: string, at: number | undefined | null, to: DropAt, previous: string): Promise<Inbox>
+
+/**
+ * Moves a proposal, or with `at` its nested item at `at`, its own items with it, to `to`:
+ * what a drop writes. Under a line, or else a line of `to`'s list, a section.
+ */
+export declare function dropProposal(repo: string, id: string, at: number | undefined | null, to: DropAt, previous: string): Promise<Priorities>
 
 /** Replaces an allowed host name with another, in its place. */
 export declare function editAllowedHost(dir: string, from: string, to: string): Promise<Settings>
@@ -155,8 +158,8 @@ export declare function editComment(repo: string, folder: string, file: string, 
 /** Replaces a note's text, its marks kept. */
 export declare function editNote(repo: string, id: string, text: string, previous: string): Promise<Inbox>
 
-/** Replaces a priority line's text. */
-export declare function editPriority(repo: string, id: string, text: string, previous: string): Promise<Priorities>
+/** Replaces a proposal's text. */
+export declare function editProposal(repo: string, id: string, text: string, previous: string): Promise<Priorities>
 
 /** Writes comment `number` on the settled point `subject` over its text last read. */
 export declare function editSettledComment(repo: string, folder: string, number: number, subject: string, text: string, previous: string): Promise<FileView>
@@ -178,6 +181,12 @@ export interface EncodedImage {
  */
 export declare function encodeImage(bytes: Buffer, name: string): Promise<EncodedImage>
 
+/**
+ * Expands a proposal into a file by its id, like `next-2`, over the priorities read at
+ * `previous`.
+ */
+export declare function expandProposal(repo: string, id: string, previous: string): Promise<ProposalFileView>
+
 /** The bytes of an image file, with the MIME type detected from its first bytes. */
 export interface ImageFile {
   bytes: Buffer
@@ -186,15 +195,15 @@ export interface ImageFile {
 
 /**
  * Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
- * Undo of a removal.
+ * Undo of a removal, with the note file the removal took away, as it was.
  */
 export declare function insertNote(repo: string, index: number, lines: Array<string>, previous: string, category?: string | undefined | null): Promise<Inbox>
 
 /**
- * Inserts a priority line with its nested lines, as written, before the line at `index` of a
+ * Inserts a proposal with its nested lines, as written, before the line at `index` of a
  * section, or at its end: Undo of a removal.
  */
-export declare function insertPriority(repo: string, section: string, index: number, lines: Array<string>, previous: string): Promise<Priorities>
+export declare function insertProposal(repo: string, section: string, index: number, lines: Array<string>, previous: string): Promise<Priorities>
 
 /** The main checkout's path, from any of the repository's working trees. */
 export declare function mainRoot(repo: string): Promise<string>
@@ -202,26 +211,65 @@ export declare function mainRoot(repo: string): Promise<string>
 /** Moves a note to the end of a category, or of the notes without one. */
 export declare function moveNoteToCategory(repo: string, id: string, previous: string, category?: string | undefined | null): Promise<Inbox>
 
-/** Moves a priority line before the line at `index` of a section, or to its end. */
-export declare function movePriority(repo: string, id: string, section: string, index: number, previous: string): Promise<Priorities>
+/** Moves a proposal before the line at `index` of a section, or to its end. */
+export declare function moveProposal(repo: string, id: string, section: string, index: number, previous: string): Promise<Priorities>
 
 /** A feature's next step, with its branch and the main checkout's path, for an agent's run. */
 export declare function nextStep(repo: string, folder: string): Promise<NextView>
 
-/** Adds a note at the end of the `## What` of the draft at `draft`, from the top level. */
-export declare function noteToDraft(repo: string, id: string, draft: string, previous: string): Promise<void>
+/** An image's removal's answer: the inbox, and what `restoreNoteImage` takes back. */
+export interface NoteImageRemoved {
+  inbox: Inbox
+  removed: RemovedImage
+}
 
 /**
- * Makes a note a new draft, linked from the end of a section of the priorities. Returns the
- * draft's path, from the top level.
+ * Adds a note to the proposal file at `proposal`, from the top level: its lines at the end of the
+ * file's `## What`, or, for a note with a note file, the note file's text at the end of its
+ * `## Notes`, its images beside it. Returns the proposal file's path, which a single proposal file
+ * made a folder for the images changes.
  */
-export declare function noteToNewDraft(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<string>
+export declare function noteIntoProposal(repo: string, id: string, proposal: string, previous: string): Promise<string>
+
+/**
+ * Adds a note with a note file to the proposal of `PRIORITIES.md` with the id `proposal`, like
+ * `later-2`, which has no file yet: the proposal gets its file, from the template, linked from its
+ * line, and the note file's text goes into its `## Notes`, over both lists as read. Returns the new
+ * proposal file's path.
+ */
+export declare function noteIntoProposalLine(repo: string, id: string, proposal: string, previous: string, prioritiesPrevious: string): Promise<string>
 
 /** Moves a note to the end of a section of the priorities, over both files as read. */
-export declare function noteToPriorities(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<void>
+export declare function noteToProposal(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<void>
+
+/**
+ * Makes a note a new proposal file, linked from the end of a section of the priorities, or moves
+ * its note file among the proposals. Returns the proposal file's path, from the top level.
+ */
+export declare function noteToProposalFile(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<string>
+
+/**
+ * Moves a note under the proposal `proposal` of the priorities, `now-2`, as its last item, over
+ * both files as read.
+ */
+export declare function noteUnderProposal(repo: string, id: string, proposal: string, previous: string, prioritiesPrevious: string): Promise<void>
 
 /** Records that a repository was opened now, and returns it. */
 export declare function openRepository(dataDir: string, name: string): Promise<Repository>
+
+/**
+ * Edits a note's outline: the note, or with `at`, its nested item at `at` in the order of the
+ * file. `kind` is `edit`, `insert-below`, `insert-above`, `append-child`, `remove`, `indent`,
+ * `outdent`, `up`, or `down`; `text` is the line those that write one write.
+ */
+export declare function outlineNote(repo: string, id: string, at: number | undefined | null, kind: string, text: string | undefined | null, previous: string): Promise<Inbox>
+
+/**
+ * Edits a proposal's outline: the line, or with `at`, its nested item at `at` in the order
+ * of the file. `kind` is `edit`, `insert-below`, `insert-above`, `append-child`, `remove`,
+ * `indent`, `outdent`, `up`, or `down`; `text` is the line those that write one write.
+ */
+export declare function outlineProposal(repo: string, id: string, at: number | undefined | null, kind: string, text: string | undefined | null, previous: string): Promise<Priorities>
 
 /**
  * The folder of the feature or the change that a path from the top level is in: `<folder>` for
@@ -264,9 +312,6 @@ export declare function proposeSlug(text: string): string
  */
 export declare function readDecision(repo: string, folder: string, name: string): Promise<BranchDecision>
 
-/** A draft, by its path from the top level. */
-export declare function readDraft(repo: string, path: string): Promise<DraftView>
-
 /** One feature, by its folder. */
 export declare function readFeature(repo: string, folder: string): Promise<FeatureView>
 
@@ -282,7 +327,7 @@ export declare function readHistory(repo: string, folder: string): Promise<Histo
  */
 export declare function readImage(repo: string, path: string): Promise<ImageFile>
 
-/** The inbox, with the count of the commit bar's changes and the triage's status. */
+/** The inbox, with the count of the changes waiting for a commit and the triage's status. */
 export declare function readInbox(repo: string): Promise<Inbox>
 
 /** The constitution and the decisions of the default branch, each decision with its last change. */
@@ -290,6 +335,9 @@ export declare function readLedger(repo: string): Promise<Ledger>
 
 /** `PRIORITIES.md`, with its changes since the last commit. */
 export declare function readPriorities(repo: string): Promise<Priorities>
+
+/** A proposal file, by its path from the top level. */
+export declare function readProposalFile(repo: string, path: string): Promise<ProposalFileView>
 
 /** A file of the repository as text, for links to code and mockups. */
 export declare function readRaw(repo: string, path: string): Promise<string>
@@ -306,10 +354,10 @@ export declare function readRound(repo: string, id: string): Promise<FileView | 
 /** The settings in the folder's file, the defaults when there is none. */
 export declare function readSettings(dir: string): Promise<Settings>
 
-/** A draft or a proposal, for its editor, by its path from the top level. */
-export declare function readText(repo: string, path: string): Promise<DraftView>
+/** A proposal file or a proposal, for its editor, by its path from the top level. */
+export declare function readText(repo: string, path: string): Promise<ProposalFileView>
 
-/** Every feature, change, and priority of the repository at `repo`. */
+/** Every feature, change, and proposal of the repository at `repo`. */
 export declare function readWorkspace(repo: string): Promise<WorkspaceView>
 
 /**
@@ -330,7 +378,7 @@ export declare function removeCategory(repo: string, name: string, keepNotes: bo
 /** Removes a pending comment. */
 export declare function removeComment(repo: string, folder: string, file: string, number: number): Promise<FileView>
 
-/** Removes a note, sub-items included. */
+/** Removes a note, sub-items included, and its note file, which `insertNote` brings back. */
 export declare function removeNote(repo: string, id: string, previous: string): Promise<Inbox>
 
 /**
@@ -339,8 +387,15 @@ export declare function removeNote(repo: string, id: string, previous: string): 
  */
 export declare function removeNoteAndCommit(repo: string, id: string, previous: string): Promise<InboxAdded>
 
-/** Removes a priority line and its nested lines. */
-export declare function removePriority(repo: string, id: string, previous: string): Promise<Priorities>
+/**
+ * Takes the image at `image` out of the note file or proposal file at `file`, both from the top
+ * level: the lines linking it go, and its file stays. Refused as a conflict when the file changed
+ * since it was read at `previous`.
+ */
+export declare function removeNoteImage(repo: string, file: string, image: string, previous: string): Promise<NoteImageRemoved>
+
+/** Removes a proposal and its nested lines. */
+export declare function removeProposal(repo: string, id: string, previous: string): Promise<Priorities>
 
 /** Takes a repository off the list, leaving its folder and sessions as they are. */
 export declare function removeRepository(dataDir: string, name: string): Promise<void>
@@ -356,6 +411,12 @@ export declare function requestChanges(repo: string, folder: string, file: strin
 
 /** Takes back a delete: writes `before` back over the inbox read at `previous`. */
 export declare function restoreCategory(repo: string, before: string, previous: string): Promise<Inbox>
+
+/**
+ * Takes back an image's removal: its lines go back where they were, over the proposal file as it
+ * is now. Refused once the lines there changed, or the proposal file links the image again.
+ */
+export declare function restoreNoteImage(repo: string, removed: RemovedImage): Promise<Inbox>
 
 /** Commits again what a hook refused to commit: a submitted round, or a verdict. */
 export declare function retryCommit(repo: string, folder: string, name: string): Promise<CommitView>
@@ -382,16 +443,16 @@ export declare function saveRoundAnswer(repo: string, id: string, question: stri
 export declare function saveRoundNotes(repo: string, id: string, notes: string, previous: string, base: string): Promise<FileView>
 
 /**
- * Saves a draft or a proposal as typed, over the version read at `previous`; resolves with the
- * new hash.
+ * Saves a proposal file or a proposal as typed, over the version read at `previous`; resolves with
+ * the new hash.
  */
 export declare function saveText(repo: string, path: string, text: string, previous: string): Promise<string>
 
 /** Sets whether the run after a spec's approval starts in a new agent session. */
 export declare function setBuildInFreshSession(dir: string, fresh: boolean): Promise<Settings>
 
-/** Sets the discovery effort of a draft or a proposal, over the version read at `previous`. */
-export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<DraftView>
+/** Sets the discovery effort of a proposal file or a proposal, over the version read at `previous`. */
+export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<ProposalFileView>
 
 /**
  * Sets the name a feature or a change of a repository shows in the sidebar, by its folder: an
@@ -420,8 +481,8 @@ export declare function settingsFile(dir: string): string
  */
 export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null): Promise<StartedView>
 
-/** Starts a drafted feature, or a change with the kind `"change"`, in its own worktree. */
-export declare function startFeature(repo: string, draft: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null): Promise<StartedView>
+/** Starts a proposed feature, or a change with the kind `"change"`, in its own worktree. */
+export declare function startFeature(repo: string, proposal: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null): Promise<StartedView>
 
 /** Deletes the pending review of a file. */
 export declare function startOver(repo: string, folder: string, file: string): Promise<FileView>
@@ -451,10 +512,10 @@ export declare function submitRound(repo: string, id: string, previous: string):
 export declare function undoCommittedNote(repo: string, lines: Array<string>, previous: string): Promise<Inbox>
 
 /**
- * Takes back a committed add: the entry, `lines` as written, leaves the priorities, and the
+ * Takes back a committed add: the proposal, `lines` as written, leaves the priorities, and the
  * removal is committed alone.
  */
-export declare function undoCommittedPriority(repo: string, lines: Array<string>, previous: string): Promise<Priorities>
+export declare function undoCommittedProposal(repo: string, lines: Array<string>, previous: string): Promise<Priorities>
 
 /**
  * Takes back a note's add: the note, found by its lines, leaves the inbox wherever it is now.
@@ -463,10 +524,11 @@ export declare function undoCommittedPriority(repo: string, lines: Array<string>
 export declare function undoNoteAdd(repo: string, lines: Array<string>): Promise<Inbox>
 
 /**
- * Takes back a note added as a draft: the note, found by its lines, leaves the inbox, and its
- * draft goes with it, images included, unless a commit has it or the human typed in it.
+ * Takes back a note added as a proposal file: the note, found by its lines, leaves the inbox, and
+ * its proposal file goes with it, images included, unless a commit has it or the human typed in
+ * it.
  */
-export declare function undoNoteAsDraft(repo: string, lines: Array<string>): Promise<Inbox>
+export declare function undoNoteAsFile(repo: string, lines: Array<string>): Promise<Inbox>
 
 /**
  * Takes back a note's move to another category, in one write: the note, found by its lines,
@@ -475,17 +537,25 @@ export declare function undoNoteAsDraft(repo: string, lines: Array<string>): Pro
 export declare function undoNoteCategory(repo: string, lines: Array<string>, index: number, category?: string | undefined | null): Promise<Inbox>
 
 /**
- * Takes back a note's add to a draft, in one write of both files or none: the note's lines leave
- * the draft, every other edit kept, and the note goes back to its place.
+ * Takes back a note's add to a proposal file, in one write of both files or none: the note's lines
+ * leave the proposal file, every other edit kept, and the note goes back to its place.
  */
-export declare function undoNoteToDraft(repo: string, draft: string, lines: Array<string>, index: number, category?: string | undefined | null): Promise<Inbox>
+export declare function undoNoteIntoProposal(repo: string, proposal: string, lines: Array<string>, index: number, category?: string | undefined | null): Promise<Inbox>
 
 /**
- * Takes back a note's move to a section of the priorities, in one write of both files or none:
- * the line the move wrote leaves the section, found by the note's lines and, among several, by
- * `entryKey`, its key once moved; the note goes back before the note at `index` of its category.
+ * Takes back a note's move to a section of the priorities, in one write of both files or none: the
+ * line the move wrote leaves the section, found by the note's lines and, among several, by
+ * `proposalKey`, its key once moved; the note goes back before the note at `index` of its
+ * category, and its note file, moved among the proposals, back among the notes.
  */
-export declare function undoNoteToPriorities(repo: string, lines: Array<string>, index: number, section: string, category?: string | undefined | null, entryKey?: string | undefined | null): Promise<Inbox>
+export declare function undoNoteToProposal(repo: string, lines: Array<string>, index: number, section: string, category?: string | undefined | null, proposalKey?: string | undefined | null): Promise<Inbox>
+
+/**
+ * Takes back a note's move under a proposal of the priorities, in one write of both files or none:
+ * the item the move wrote leaves the proposal whose key is `proposalKey`, and the note goes back
+ * before the note at `index` of its category.
+ */
+export declare function undoNoteUnderProposal(repo: string, lines: Array<string>, index: number, proposalKey: string, category?: string | undefined | null): Promise<Inbox>
 
 /** The binding's version, the Cargo workspace's. It reads nothing, so it returns at once. */
 export declare function version(): string
@@ -521,7 +591,7 @@ export interface AttachedView {
   path: string
   /** The markdown to insert, linking the image from the file. */
   link: string
-  /** The file's new path, when a single-file draft became a folder. */
+  /** The file's new path, when a single proposal file or note file became a folder. */
   moved?: string
 }
 
@@ -615,8 +685,8 @@ export interface Changes {
   /** The files whose text changed, as `<folder>/<name>`. */
   files: Array<string>
   /**
-   * Whether the priorities record changed: `PRIORITIES.md`, the drafts, or the step of a feature
-   * an entry links.
+   * Whether the priorities record changed: `PRIORITIES.md`, the proposal files, or the step of a
+   * feature a proposal links.
    */
   priorities: boolean
   /** Whether the default branch's `INBOX.md`, `INBOX-TRIAGE.md`, or `DECISIONS-CHECK.md` changed. */
@@ -813,48 +883,27 @@ export interface Document {
   hash: string
 }
 
-/** A draft or a postponed proposal, for its editor. */
-export interface DraftView {
-  /** From the repository's top level. */
-  path: string
-  title: string
-  text: string
-  hash: string
-  document: Document
-  /** The stories its paragraphs embed. */
-  stories: Array<StoryLink>
-  /** The HTML mockups its paragraphs embed. */
-  mockups: Array<MockupEmbed>
-  /** Whether its current text is committed. */
-  committed: boolean
-  /** The priority line linking it. */
-  entry?: PriorityView
-  /** How many priority changes are not committed, which its commit takes along. */
-  priorityChanges: number
-  /** `draft` for a file of `specs/drafts/` or `specs/backlog/`, or `proposal`. */
-  kind: string
-  /** The feature's or the change's folder, for a proposal. */
-  folder?: string
-  /** The slug Start gives a draft's feature unless another is typed. */
-  slug?: string
-  /** The effort its `discovery` field asks for, `high` by default. */
-  discovery?: string
-  /** The discovery efforts it may ask for, from the least research to the most. */
-  discoveryLevels: Array<string>
-  /** Whether it holds more than its title and What: text in any other part of it. */
-  written: boolean
-  /** The headings of its `##` sections that hold no text yet. */
-  emptySections: Array<string>
+/**
+ * Where a drag drops what it moves: under the item `under`, or with `under_at` under its nested
+ * item at `under_at`; else into the list `list`, a section of the priorities or a category of the
+ * inbox, none for the inbox's notes without a category. `index` is its place there, counted once
+ * it left.
+ */
+export interface DropAt {
+  list?: string
+  under?: string
+  underAt?: number
+  index: number
 }
 
 /**
  * A feature or a change dropped: its branch, kept, why its worktree stays, when it does, and
- * whether its entry's removal was committed.
+ * whether its proposal's removal was committed.
  */
 export interface DroppedView {
   branch: string
   worktreeLeft?: string
-  /** Whether the entry's removal was committed: when not, it stays written for the commit bar. */
+  /** Whether the proposal's removal was committed: when not, it stays written for the commit bar. */
   committed: boolean
 }
 
@@ -864,35 +913,6 @@ export interface EdgeCase {
   importance: string
   /** Its row's block. */
   row: number
-}
-
-/** An entry of `PRIORITIES.md`, for editing: its markdown, its spans, and its nested lines. */
-export interface EntryItem {
-  /** `next-2`: its section and its position in it, from 1. */
-  id: string
-  /** Its address, stable while its text or draft stays: see [`keys`]. */
-  key: string
-  /** The markdown of its text, after its marker, on one line. */
-  text: string
-  spans: Array<Span>
-  startLine: number
-  endLine: number
-  /**
-   * Its lines as written, its marker, wrapped text, and nested lines included: what an Undo of
-   * its removal writes back.
-   */
-  lines: Array<string>
-  /** Its nested lines, as written. */
-  nested: Array<string>
-  /** The text of each nested item, without its marker. */
-  nestedSpans: Array<Array<Span>>
-  /**
-   * The draft or backlog file it links, when it exists: set by the workspace, see
-   * [`Workspace::join_priorities`](crate::workspace::Workspace::join_priorities).
-   */
-  draft?: LinkedFile
-  /** The feature or change it links, while it runs: set by the workspace. */
-  running?: RunningFeature
 }
 
 export interface FeatureView {
@@ -1080,16 +1100,19 @@ export interface InboxNote {
   agent: boolean
   /** The slug of the feature or change it is about. */
   about?: string
-  /** The path of the draft its whole text links to, from the repository's top level. */
-  draft?: string
   /**
-   * The markdown of that link's text, unescaped: a note added as a draft as it was typed, which
+   * The path of its note file, the file of `specs/notes/` its whole text links to, from the
+   * repository's top level.
+   */
+  file?: string
+  /**
+   * The markdown of that link's text, unescaped: a note added as a file as it was typed, which
    * an add whose answer was lost finds it by.
    */
-  draftTitle?: string
+  fileTitle?: string
   /**
-   * The images the draft links, in order, from the repository's top level: filled in from the
-   * draft, where it is read. Empty for a note with no draft.
+   * The images its note file links, in order, from the repository's top level: filled in from
+   * the file, where it is read. Empty for a note with no file.
    */
   images: Array<string>
   startLine: number
@@ -1100,6 +1123,11 @@ export interface InboxNote {
   nested: Array<string>
   /** The text of each nested item, without its marker. */
   nestedSpans: Array<Array<Span>>
+  /**
+   * Its nested items at any depth, in the order of the file: what its outline shows, and what an
+   * edit of one names by its index.
+   */
+  children: Array<NestedItem>
 }
 
 /**
@@ -1156,12 +1184,10 @@ export interface LinesView {
   files: number
 }
 
-/** The draft or backlog file a priorities entry links, as it is on the default branch. */
+/** The proposal file a proposal of the priorities links, as it is on the default branch. */
 export interface LinkedFile {
-  /** From the top level: `specs/drafts/x.md`, `specs/backlog/y/proposal.md`. */
+  /** From the top level: `specs/proposals/x.md`, `specs/proposals/y/proposal.md`. */
   path: string
-  /** Whether it is under `specs/backlog/`. */
-  backlog: boolean
 }
 
 /** An item of `## Decisions`: a decision the spec creates, changes, or removes. */
@@ -1208,6 +1234,20 @@ export interface MockupLink {
   block: number
   /** The story it names, when it is a story link. */
   story?: StoryTarget
+}
+
+/** An item nested under a list's item, for editing: its address, its depth, and its text. */
+export interface NestedItem {
+  /**
+   * Its address, `<item's key>/<slug of its text>`, unique under its item as the items' keys
+   * are: stable while its text stays.
+   */
+  key: string
+  /** 1 for the item's own items, 2 for theirs, ... */
+  depth: number
+  /** The markdown of its text, after its marker, on one line. */
+  text: string
+  spans: Array<Span>
 }
 
 /** A feature's next step, as `ura next` gives it, for an agent's run. */
@@ -1312,30 +1352,10 @@ export interface Priorities {
   /** The SHA-256 of the text, to refuse edits over a change made elsewhere. */
   hash: string
   sections: Array<SectionItems>
-  /** How many entries were added, moved, edited, or removed since the last commit. */
+  /** How many proposals were added, moved, edited, or removed since the last commit. */
   changes: number
-}
-
-/** The priorities after "Add and commit", and whether it committed. */
-export interface PrioritiesAdded {
-  priorities: Priorities
-  added: AddCommit
-}
-
-export interface PriorityView {
-  /** `next-2`. */
-  id: string
-  /** Its address, `/priorities/<key>`: the linked draft's name, or the slug of its text. */
-  key: string
-  /** `now`, `next`, `later`, or `blocked`. */
-  section: string
-  position: number
-  text: string
-  link?: string
-  /** The folder of the feature it links. */
-  feature?: string
-  /** The draft it links. */
-  draft?: string
+  /** The changes the commit would hold, each as a line: what a commit page shows. */
+  changeLines: Array<string>
 }
 
 export interface ProblemView {
@@ -1354,10 +1374,106 @@ export interface PromotedView {
   decisions: Array<string>
 }
 
+/** The priorities after "Add and commit", and whether it committed. */
+export interface ProposalAdded {
+  priorities: Priorities
+  added: AddCommit
+}
+
+/**
+ * A proposal file, a postponed folder's proposal, a note file, or a feature's or a change's
+ * proposal, for its editor.
+ */
+export interface ProposalFileView {
+  /** From the repository's top level. */
+  path: string
+  title: string
+  text: string
+  hash: string
+  document: Document
+  /** The stories its paragraphs embed. */
+  stories: Array<StoryLink>
+  /** The HTML mockups its paragraphs embed. */
+  mockups: Array<MockupEmbed>
+  /** Whether its current text is committed. */
+  committed: boolean
+  /** The proposal of `PRIORITIES.md` linking it. */
+  proposal?: ProposalView
+  /** How many changes of `PRIORITIES.md` are not committed, which its commit takes along. */
+  priorityChanges: number
+  /**
+   * `proposal-file` for a file of `specs/proposals/`, `note-file` for a file of `specs/notes/`,
+   * or `proposal` for a feature's or a change's.
+   */
+  kind: string
+  /** The feature's or the change's folder, for a proposal. */
+  folder?: string
+  /** The slug Start gives a proposal file's feature unless another is typed. */
+  slug?: string
+  /** The effort its `discovery` field asks for, `high` by default. */
+  discovery?: string
+  /** The discovery efforts it may ask for, from the least research to the most. */
+  discoveryLevels: Array<string>
+  /** Whether it holds more than its title and What: text in any other part of it. */
+  written: boolean
+  /** The headings of its `##` sections that hold no text yet. */
+  emptySections: Array<string>
+}
+
 /** A section of the proposal template, with the guidance the editor shows while it is empty. */
 export interface ProposalHint {
   heading: string
   hint: string
+}
+
+/** A proposal of `PRIORITIES.md`, for editing: its markdown, its spans, and its nested lines. */
+export interface ProposalItem {
+  /** `next-2`: its section and its position in it, from 1. */
+  id: string
+  /** Its address, stable while its text or file stays: see [`keys`]. */
+  key: string
+  /** The markdown of its text, after its marker, on one line. */
+  text: string
+  spans: Array<Span>
+  startLine: number
+  endLine: number
+  /**
+   * Its lines as written, its marker, wrapped text, and nested lines included: what an Undo of
+   * its removal writes back.
+   */
+  lines: Array<string>
+  /** Its nested lines, as written. */
+  nested: Array<string>
+  /** The text of each nested item, without its marker. */
+  nestedSpans: Array<Array<Span>>
+  /**
+   * Its nested items at any depth, in the order of the file: what its outline shows, and what
+   * an edit of one names by its index.
+   */
+  children: Array<NestedItem>
+  /**
+   * The proposal file it links, when it exists: set by the workspace, see
+   * [`Workspace::join_priorities`](crate::workspace::Workspace::join_priorities).
+   */
+  file?: LinkedFile
+  /** The feature or change it links, while it runs: set by the workspace. */
+  running?: RunningFeature
+}
+
+export interface ProposalView {
+  /** `next-2`. */
+  id: string
+  /** Its address, `/priorities/<key>`: the linked proposal file's name, or the slug of its text. */
+  key: string
+  /** `now`, `next`, `later`, or `blocked`. */
+  section: string
+  position: number
+  text: string
+  link?: string
+  /** The folder of the feature it links. */
+  feature?: string
+  /** The proposal file it links. */
+  file?: string
 }
 
 /** An open pull request's state. */
@@ -1408,6 +1524,21 @@ export interface QuestionItem {
   asked: boolean
   /** The line of its `**Answer:**` marker, or 0. */
   answerLine: number
+}
+
+/**
+ * What taking an image out of a file wrote, which its Undo takes back: the file's `before`
+ * lines from its line `at`, and the `after` lines written in their place. Both hold a line of
+ * the file around the change where it has one, which the Undo finds unchanged.
+ */
+export interface RemovedImage {
+  /** The note file or proposal file, from the top level. */
+  file: string
+  /** The image, from the top level. */
+  image: string
+  at: number
+  before: Array<string>
+  after: Array<string>
 }
 
 /** A repository of the list. */
@@ -1505,7 +1636,7 @@ export interface Run {
   text: string
 }
 
-/** The feature or change a priorities entry links, while its step is not `done`. */
+/** The feature or change a proposal of the priorities links, while its step is not `done`. */
 export interface RunningFeature {
   folder: string
   /** Whether it is a change. */
@@ -1548,10 +1679,10 @@ export interface SectionItems {
   title: string
   /**
    * The text of the first callout under the first of its headings that has one, before its
-   * first entry: what the section holds.
+   * first proposal: what the section holds.
    */
   context?: string
-  entries: Array<EntryItem>
+  proposals: Array<ProposalItem>
 }
 
 /** The `[server]` table. */
@@ -1853,10 +1984,11 @@ export interface WorkspaceView {
   defaultBranch?: string
   currentBranch?: string
   features: Array<FeatureView>
-  priorities: Array<PriorityView>
-  /** The hash of `PRIORITIES.md` as read, for drafting a line by its id. */
+  priorities: Array<ProposalView>
+  /** The hash of `PRIORITIES.md` as read, for expanding a proposal by its id. */
   prioritiesHash: string
-  drafts: Array<string>
+  /** The proposal files and postponed folders, from the top level. */
+  proposals: Array<string>
   /** The repository's path when it has no `specs/` folder: nothing else is read. */
   noSpecs?: string
 }

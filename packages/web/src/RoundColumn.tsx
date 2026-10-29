@@ -1,27 +1,30 @@
 // A round waiting for answers beside its column: on wide and semi-wide screens, the document's
 // column of Outline, Notes, and, for a feature whose agent can be asked, Session; on the phone, the
-// status line's count, Notes, and Next or Submit, the count and Notes each opening a sheet.
-import { Button } from "@astryxdesign/core/Button";
-import { Icon } from "@astryxdesign/core/Icon";
+// same parts in the bottom bar, each opening a sheet, then Next or Submit.
 import type { ReactNode } from "react";
+import { useFateClient } from "react-fate";
 import type { Document, RoundItems } from "uraeda-binding";
 import { focusOnceDrawn, sessionTab, useColumnAsk } from "./ColumnSession.tsx";
 import { type useFile, useAgent } from "./data.ts";
 import { ColumnStatusLine } from "./layout/ColumnStatusLine.tsx";
+import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { type ColumnPanel, DocumentColumn, useColumnTab } from "./layout/DocumentColumn.tsx";
 import { useDocumentColumnWidth } from "./layout/documentColumnWidth.ts";
 import { type SheetState, useSheetTab } from "./layout/useSheetTab.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { NOTES_FIELD, NotesField, useNotesDrop, type useRoundNotes } from "./RoundNotes.tsx";
-import { NextOrSubmit, OutlineSheetPanel, RoundOutline, useBlankKeys } from "./RoundOutline.tsx";
+import { NextTile, OutlineSheetPanel, RoundOutline, useBlankKeys } from "./RoundOutline.tsx";
 import type { NavQuestion } from "./roundJump.ts";
-import { quoted } from "./sessions.ts";
+import { quoted, sendMessage } from "./sessions.ts";
 import type { Draft } from "./useDraft.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
 /** The phone's sheets' names, by their keys in the address: `?tab=notes`, `?tab=outline`. */
 const SHEETS = { notes: "Notes", outline: "Outline" } as const;
+
+/** The phone's sheets where the agent can be asked: Session's too, `?tab=session`. */
+const SESSION_SHEETS = { ...SHEETS, session: "Session" } as const;
 
 /** The column's tabs, by their keys in the address: Session only where the agent can be asked. */
 function columnKeys(asks: boolean) {
@@ -30,10 +33,11 @@ function columnKeys(asks: boolean) {
 
 /**
  * What the round's page does from its parts: the phone's open sheet, `sheet`; asking the agent
- * about a question or a point, with `draft`, the feature's session draft, when the
- * agent can be asked; and opening the notes' field. Asking writes the quote into the composer,
- * in place of the one it held, and opens the Session tab, its composer focused; on the phone, it
- * opens the session's page. "Edit notes" opens the Notes tab, or the phone's sheet, its field
+ * about a question, with `draft`, the feature's session draft, when the agent can be asked, or about
+ * a point, with a comment's text; and opening the notes' field. Asking about a question writes the
+ * quote into the composer, in place of the one it held, and opens the Session tab, its composer
+ * focused; on the phone, it opens the session's page. Asking about a point sends its quote and the
+ * text to the feature's session at once, then opens the Session tab on wide screens. "Edit notes" opens the Notes tab, or the phone's sheet, its field
  * focused. Both unfold the column the human folded (R23): `column` is its width and fold, which
  * the page holds. `notesShown` says whether the notes' field is drawn, and `sessionShown` the
  * session's composer.
@@ -42,12 +46,13 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
   const wide = !isNarrow(useWidthClass());
   const column = useDocumentColumnWidth();
   const [tab, setTab] = useColumnTab(columnKeys(draft !== undefined));
-  const sheet = useSheetTab(SHEETS, !wide);
+  const sheet = useSheetTab(draft ? SESSION_SHEETS : SHEETS, !wide);
   const openTab = (key: string) => {
     column.setShown(true);
     setTab(key);
   };
   const ask = useColumnAsk(file.folder, draft);
+  const fate = useFateClient();
   const editNotes = () => {
     if (wide) {
       openTab("notes");
@@ -57,7 +62,17 @@ export function useRoundActions(file: File, draft: Draft | undefined) {
     focusOnceDrawn(() => document.getElementById(NOTES_FIELD));
   };
   const asks = draft && {
-    point: (subject: string) => ask(quoted(`About the settled point of ${file.path}:`, [subject])),
+    point: async (subject: string, text: string) => {
+      const header = quoted(`About the settled point of ${file.path}:`, [subject]);
+      const sent = await sendMessage(fate, { folder: file.folder, text: `${header}\n\n${text}` });
+      if (!sent.ok) {
+        return sent.message;
+      }
+      if (wide) {
+        openTab("session");
+      }
+      return undefined;
+    },
     question: (question: { id: string; title: string }) =>
       ask(quoted(`About ${question.id} of ${file.path}:`, [question.title])),
   };
@@ -132,8 +147,9 @@ export function RoundColumn({
     },
     { content: notesField, icon: "uraeda:pencil", key: "notes", label: "Notes" },
   ];
-  if (draft) {
-    panels.push(sessionTab(draft, file.folder, agent?.kind));
+  const session = draft && sessionTab(draft, file.folder, agent?.kind);
+  if (session) {
+    panels.push(session);
   }
   return (
     <>
@@ -149,6 +165,7 @@ export function RoundColumn({
           notesField={notesField}
           onSubmit={onSubmit}
           round={{ document, round }}
+          session={session}
           sheet={actions.sheet}
         />
       )}
@@ -157,42 +174,53 @@ export function RoundColumn({
 }
 
 /**
- * On the phone, the round's parts outside its page: the status line's count, Notes, and Next or
- * Submit, the count opening the outline's sheet, and Notes the notes' sheet, over `notesField`,
- * the open one kept in the address (`useSheetTab`).
+ * On the phone, the round's parts outside its page, in the bottom bar as in the column, by their
+ * icons: Outline, named with how many questions are answered, Notes over `notesField`, and Session, `session`, where the
+ * agent can be asked, each opening its sheet, the open one kept in the address (`useSheetTab`);
+ * then Next or Submit.
  */
 function PhoneParts({
   nav,
   notesField,
   onSubmit,
   round: { document, round },
+  session,
   sheet,
 }: {
   nav: ReadonlyArray<NavQuestion>;
   notesField: ReactNode;
   onSubmit: () => void;
   round: { document: Document; round: RoundItems };
+  session: ColumnPanel | undefined;
   sheet: SheetState;
 }) {
-  const [, setSheet] = sheet;
+  const [open, setSheet] = sheet;
   const answered = nav.filter((q) => q.answered).length;
+  const count = `${answered}/${nav.length}`;
   const buttons = (
-    <>
-      <Button
-        label={`${answered}/${nav.length} answered, outline`}
-        onClick={() => setSheet("outline")}
-        variant="ghost"
-      >
-        {`${answered}/${nav.length}`}
-      </Button>
-      <Button
-        icon={<Icon icon="uraeda:pencil" />}
-        label="Notes"
-        onClick={() => setSheet("notes")}
-        variant="ghost"
+    <NavTiles label="The round's parts">
+      <NavTile
+        icon="uraeda:list"
+        isOpen={open === "outline"}
+        label={`Outline, ${count} answered`}
+        onPress={() => setSheet("outline")}
       />
-      <NextOrSubmit onSubmit={onSubmit} questions={nav} />
-    </>
+      <NavTile
+        icon="uraeda:pencil"
+        isOpen={open === "notes"}
+        label="Notes"
+        onPress={() => setSheet("notes")}
+      />
+      {session && (
+        <NavTile
+          icon={session.icon}
+          isOpen={open === "session"}
+          label="Session"
+          onPress={() => setSheet("session")}
+        />
+      )}
+      <NextTile onSubmit={onSubmit} questions={nav} />
+    </NavTiles>
   );
   return (
     <ColumnStatusLine
@@ -207,6 +235,7 @@ function PhoneParts({
           panel: (
             <OutlineSheetPanel
               document={document}
+              label={SHEETS.outline}
               onClose={() => setSheet()}
               questions={nav}
               round={round}
@@ -215,6 +244,9 @@ function PhoneParts({
         },
         // The round stays where it was read under the notes' field.
         { key: "notes", label: SHEETS.notes, panel: notesField },
+        ...(session
+          ? [{ key: "session", label: SESSION_SHEETS.session, panel: session.content }]
+          : []),
       ]}
     />
   );

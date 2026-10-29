@@ -21,6 +21,8 @@ export async function sendMessage(
   input: {
     folder?: string;
     images?: ReadonlyArray<ChatImage>;
+    /** With `folder`: a new session of the feature, created with this message, not its latest. */
+    newSession?: boolean;
     session?: string;
     text: string;
     workflow?: { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
@@ -39,7 +41,9 @@ export async function sendMessage(
   }
   const result = await fate.mutations.session.send({
     input: {
-      ...(session === undefined ? { folder: input.folder } : { session }),
+      ...(session === undefined
+        ? { folder: input.folder, ...(input.newSession ? { newSession: true } : {}) }
+        : { session }),
       text: input.text,
       ...(input.images?.length ? { images: [...input.images] } : {}),
       ...(input.workflow === undefined ? {} : { workflow: input.workflow }),

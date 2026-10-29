@@ -278,6 +278,7 @@
     --size-element-lg: 43.2px;
     --size-element-md: 38.4px;
     --size-element-sm: 33.6px;
+    --radius-chat: 0px;
     --astryx-theme-neutral-color-status-fill-accent: light-dark(#7b2fe0, #cba6f7);
     --astryx-theme-neutral-color-status-fill-success: light-dark(#2c6f1f, #a6e3a1);
     --astryx-theme-neutral-color-status-fill-warning: light-dark(#875800, #f9e2af);
@@ -288,37 +289,43 @@
     --astryx-theme-neutral-color-on-tint-overlay-pressed: light-dark(#fafafa33, #0a0a0a33);
     --astryx-theme-neutral-color-destructive-overlay-hover: light-dark(#ff7f770D, #ee736c0D);
     --astryx-theme-neutral-color-destructive-overlay-pressed: light-dark(#ff7f771A, #ee736c1A);
-    --text-reading-line: 1.5;
+    --text-reading-line: 1.4;
     --text-reading-size: 19px;
+    --prose-bullet-gap: 0.5em;
+    --prose-item-gap: var(--spacing-2);
+    --prose-list-room: 1.25em;
+    --prose-paragraph-gap: var(--spacing-3);
+    --text-title-size: calc((var(--font-size-sm) + var(--font-size-base)) / 2);
     --font-family-reading: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --color-text-lavender: light-dark(#4254c8, #b4befe);
+    --color-fill-teal: light-dark(#179299, #94e2d5);
     --color-border-sapphire: light-dark(#04699a, #74c7ec);
     --color-text-sapphire: light-dark(#04699a, #74c7ec);
-    --size-reading-measure: 86ch;
+    --size-reading-measure: calc(37.85 * var(--text-reading-size));
+    --size-reading-pane: calc(var(--size-reading-measure) + 2 * var(--spacing-3) + 2 * var(--border-width));
     --size-page-max: 720px;
     --size-session-max: 95ch;
     --size-pane-min: 400px;
     --size-detail: 108ch;
     --size-detail-height: 60dvh;
-    --size-ledger-list: max(320px, 30vw);
     --size-palette: min(1024px, 92vw);
     --size-palette-height: min(600px, 76dvh);
     --size-palette-list: 360px;
     --size-viewport-height: 100dvh;
     --size-image-max-height: 80dvh;
     --size-message-image: 120px;
+    --size-note-image: 240px;
     --size-composer-input: 154px;
     --size-composer-input-narrow: 66px;
     --size-round-accent: 4px;
     --size-round-split: 840px;
     --size-round-pair: 820px;
-    --size-round-measure: 75ch;
     --size-settings-search: 240px;
     --size-rail: 52px;
     --size-rail-inset: calc((var(--size-rail) - var(--size-element-md)) / 2);
     --size-label-line: calc(var(--text-label-size) * var(--text-label-leading));
     --size-form: 560px;
-    --size-menu: 360px;
+    --size-picker: min(640px, 92vw);
     --size-quick-add: 640px;
     --size-story-desktop: 1440px;
     --size-story-height: 560px;
@@ -547,6 +554,10 @@
     background-color: var(--astryx-theme-neutral-color-status-fill-accent);
   }
 
+  .astryx-status-dot {
+    --radius-full: 0px;
+  }
+
   .astryx-avatar-status-dot[data-variant="success"] {
     background-color: var(--astryx-theme-neutral-color-status-fill-success);
   }
@@ -630,6 +641,7 @@
 
   .astryx-progress-bar {
     --color-background-muted: var(--color-border-emphasized);
+    --radius-full: 0px;
   }
 
   .astryx-progress-bar[data-variant="accent"] {
@@ -658,6 +670,31 @@
 
   .astryx-code {
     font-size: 0.9em;
+  }
+
+  .astryx-markdown:is(*) li {
+    column-gap: 0 !important;
+    margin-block-end: var(--prose-item-gap);
+    padding: 0 !important;
+  }
+
+  .astryx-markdown:is(*) li:last-child {
+    margin-block-end: 0;
+  }
+
+  .astryx-markdown:is(*) li > span:first-child {
+    justify-content: flex-end !important;
+    padding-inline-end: var(--prose-bullet-gap);
+    width: var(--prose-list-room) !important;
+  }
+
+  .astryx-markdown:is(*) li > span:first-child > span:only-child {
+    background-color: var(--color-text-secondary) !important;
+  }
+
+  .astryx-markdown:is(*) ul, :is(*) ol {
+    margin-inline: 0 !important;
+    row-gap: 0 !important;
   }
 
   .astryx-popover {

@@ -1,15 +1,15 @@
 import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, use } from "react";
+import { type ReactNode, use, useState } from "react";
 import type { CommentItem } from "uraeda-binding";
+import { CommentForm } from "./CommentForm.tsx";
 import type { useFile } from "./data.ts";
+import { Band } from "./layout/Band.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { generalField } from "./reviewField.ts";
 import { where } from "./ReviewComments.tsx";
 import { type ChoicesState, type Refusals, ReviewVerdict } from "./ReviewVerdict.tsx";
 import { ReviewImagesContext } from "./useReviewImages.ts";
@@ -17,24 +17,6 @@ import { Empty } from "./layout/Empty.tsx";
 import { plural } from "./labels.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
-
-const styles = stylex.create({
-  band: {
-    // A band before the review's end, to the screen's edges on the phone.
-    backgroundColor: colorVars["--color-background-muted"],
-    height: spacingVars["--spacing-2"],
-    marginBlock: spacingVars["--spacing-5"],
-  },
-  bandBleed: {
-    // The page's inset, taken back (see `Page`).
-    marginInline: "var(--page-bleed)",
-  },
-});
-
-/** The band before a review's end, to the screen's edges on the phone. */
-function Band({ wide }: { wide: boolean }) {
-  return <div {...stylex.props(styles.band, !wide && styles.bandBleed)} />;
-}
 
 /** Says that the file changed under the pending comments, with Start over. */
 export function StaleBanner({
@@ -54,6 +36,41 @@ export function StaleBanner({
         count === 1 ? "is" : "are"
       } on the previous version. Adding a comment replaces it.`}
     />
+  );
+}
+
+/** The id of the end's general comment, whose field the Review sheet's button focuses. */
+export const GENERAL_ID = "review-general";
+
+/**
+ * A general comment's field, always at the review's end, its text kept in the unsaved store:
+ * "Add comment" writes it, and the field is empty again for the next one; Cancel empties it.
+ */
+function GeneralComment({
+  file,
+  onAdd,
+}: {
+  file: File;
+  onAdd: (text: string) => Promise<string | undefined>;
+}) {
+  // A new field for each comment written: the one written leaves it.
+  const [written, setWritten] = useState(0);
+  return (
+    <div id={GENERAL_ID}>
+      <CommentForm
+        anchor="General comment"
+        field={generalField(file.path)}
+        key={written}
+        onCancel={() => setWritten((count) => count + 1)}
+        onSubmit={async (text) => {
+          const error = await onAdd(text);
+          if (error === undefined) {
+            setWritten((count) => count + 1);
+          }
+          return error;
+        }}
+      />
+    </div>
   );
 }
 
@@ -83,15 +100,16 @@ export function YourVerdict({
 
 /**
  * The review's own part, after the file: its comments, each where it points, the general ones
- * with Edit and Remove, a general comment's field, and the verdict, unless `hasVerdict` is false,
- * when the page shows it elsewhere.
+ * with Edit and Remove, `general`, what an edit of one shows, a general comment's field, always
+ * there but while `isGeneralOpen`, the review's own general draft taking its place, as an image
+ * dropped with no comment open starts it, and the verdict.
  */
 export function YourReview({
   choices,
   comments,
   file,
   general,
-  hasVerdict = true,
+  isGeneralOpen,
   onGeneral,
   pendingNote,
   refusals,
@@ -101,15 +119,17 @@ export function YourReview({
   comments: ReadonlyArray<CommentItem>;
   file: File;
   general: ReactNode;
-  hasVerdict?: boolean;
-  onGeneral: () => void;
+  /** Whether the review's general draft is open: one general comment's form at a time. */
+  isGeneralOpen: boolean;
+  /** Adds a general comment: the error to show, or nothing once written. */
+  onGeneral: (text: string) => Promise<string | undefined>;
   pendingNote: (comment: CommentItem) => ReactNode;
   refusals: Refusals;
   wide: boolean;
 }) {
   return (
     <>
-      <Band wide={wide} />
+      <Band />
       <Heading level={2}>Your review</Heading>
       {comments.length === 0 && <Empty>No comment yet.</Empty>}
       {comments.map((comment) =>
@@ -125,13 +145,9 @@ export function YourReview({
           </VStack>
         ),
       )}
-      <HStack gap={2}>
-        <Button label="Add a general comment" onClick={onGeneral} />
-      </HStack>
       {general}
-      {hasVerdict && (
-        <YourVerdict choices={choices} comments={comments.length} file={file} refusals={refusals} />
-      )}
+      {!isGeneralOpen && <GeneralComment file={file} onAdd={onGeneral} />}
+      <YourVerdict choices={choices} comments={comments.length} file={file} refusals={refusals} />
     </>
   );
 }

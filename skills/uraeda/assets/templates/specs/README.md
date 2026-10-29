@@ -11,17 +11,20 @@ Without it, the file names and their `status` fields still tell where each featu
 
 - `CONSTITUTION.md`: the project's principles, by priority. Binding for all work.
 - `PRIORITIES.md`: what is worked on now, next, and later
-- `INBOX.md`: notes about the software, by category, waiting to become priorities, drafts, changes,
-  or nothing; and `INBOX-TRIAGE.md`, an agent's proposal for them, answered like questions
+- `INBOX.md`: notes about the software, by category, waiting to become proposals, changes, or
+  nothing; and `INBOX-TRIAGE.md`, an agent's suggested outcome for each, answered like questions
 - `DECISIONS-CHECK.md`: an agent's questions about how the decisions fit together, answered like
   questions; and `decisions-check/`, holding each option's edited decision until it is applied
-- `drafts/`: upcoming features, written by humans, free form
-- `backlog/`: nice-to-have features, not scheduled
-- In `drafts/` and `backlog/`, a folder is a postponed feature: its proposal, with the discovery
-  rounds and questions it had, kept for when it starts again; or a draft with images, its
-  `proposal.md` next to its `images/`
+- `proposals/`: proposal files, upcoming features written by humans, free form, usually linked from
+  `PRIORITIES.md`. A folder is a postponed feature: its proposal, with the discovery rounds and
+  questions it had, kept for when it starts again; or a proposal with images, its `proposal.md` next
+  to its `images/`
+- `notes/`: note files, the inbox's notes written as files, free form: `<slug>.md`, or a `note.md`
+  next to its `images/`
 - `decisions/`: the decision ledger, one file per topic, named after the question it answers:
   high-impact choices made by humans, binding for all work once `active`
+- `ui/`: for a project with a UI, its guides, free form: how its views read and behave, which every
+  view follows
 - `done/YYYY-MM-DD-<slug>.md`: the record of a merged feature or change, written in place of its
   folder in the last commit of its branch: what it does and why, each question with its answer, and
   the changes made after approval. The folder's files stay in git: `git log -- specs/<folder>/`
@@ -30,9 +33,9 @@ Without it, the file names and their `status` fields still tell where each featu
   human, its rounds of `clarifications-NN.md` when it needs a decision, and `rulings.md`. There is
   no spec or plan: the agent's investigation is in its commits, and the human reviews the pull
   request
-- `images/`, in a feature's, a change's, or a draft's folder: the images a human attached, as WebP
-  or animated GIF, linked from the folder's files with `![alt](images/name.webp)`, and deleted with
-  a feature's or a change's folder when it is finished
+- `images/`, in a feature's, a change's, a proposal's, or a note's folder: the images a human
+  attached, as WebP or animated GIF, linked from the folder's files with `![alt](images/name.webp)`,
+  and deleted with a feature's or a change's folder when it is finished
 - `YYYY-MM-DD-feature-slug/`: one folder per feature, dated the day it started: its proposal is on
   the default branch from the start, and the rest on the branch of the same name until it is
   finished into its record, with these files, in workflow order:
@@ -86,7 +89,7 @@ end with **Notes:**, for the human's notes on the points settled without them.
 
 The optional `ura` command-line tool reads and writes these files: `ura status` shows where each
 feature stands, `ura check` validates the files, `ura answer` and `ura review` record answers and
-reviews, `ura draft` and `ura start` begin features, and `ura clean` removes what merged features
+reviews, `ura expand` and `ura start` begin features, and `ura clean` removes what merged features
 leave behind. Everything it does can be done by hand.
 
 ## Links

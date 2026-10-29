@@ -144,6 +144,8 @@ test("a token is canonical where tokenOf can give it, and not otherwise", () => 
     press("J", { shiftKey: true }),
     press("["),
     press("k", { ctrlKey: true }),
+    press("Enter", { ctrlKey: true }),
+    press("ArrowDown", { metaKey: true }),
     press("ArrowDown"),
     press("ArrowDown", { shiftKey: true }),
     press("F5"),
@@ -152,10 +154,22 @@ test("a token is canonical where tokenOf can give it, and not otherwise", () => 
   for (const token of given) {
     expect(isCanonical(token ?? ""), `${token}`).toBe(true);
   }
-  // Ctrl or Cmd with a named key is given, and is no binding's.
-  expect(isCanonical("mod+ArrowDown")).toBe(false);
+  // Ctrl or Cmd with a named key is a binding's too, as the draft page's `mod+Enter`; with Shift
+  // and a letter, the case is Shift's and the token is never given.
+  expect(isCanonical("mod+Enter")).toBe(true);
   expect(isCanonical("mod+shift+k")).toBe(false);
-  for (const token of ["Space", "escape", "ctrl+k", "mod+K", "shift+J", "Shift", "alt+x", ""]) {
+  for (const token of [
+    "Space",
+    "escape",
+    "ctrl+k",
+    "mod+K",
+    "mod+enter",
+    "mod+Shift",
+    "shift+J",
+    "Shift",
+    "alt+x",
+    "",
+  ]) {
     expect(isCanonical(token), token).toBe(false);
   }
 });

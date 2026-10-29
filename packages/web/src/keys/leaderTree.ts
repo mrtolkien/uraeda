@@ -6,6 +6,7 @@ import { DESTINATIONS, type Destination } from "../destinations.ts";
 import { KIND_ICONS } from "./kinds.ts";
 import type { PickerKind } from "./pickerSources.ts";
 import type { Binding } from "./store.ts";
+import { NEW_PROPOSAL_HASH } from "../lists/PrioritiesList.tsx";
 
 /** The key of each place, after `Space` or `g`. */
 const PLACES: ReadonlyArray<readonly [key: string, place: Destination]> = [
@@ -25,6 +26,32 @@ export function placeBindings(prefix: string, go: (path: string) => void): Array
     label: place.label,
     run: () => go(place.path),
   }));
+}
+
+/**
+ * `g n`: the New page, as the go keys' one more place. Not one of `PLACES`: `Space n` is the New
+ * keys' group, so only the go keys can take `n` for the page.
+ */
+export function goNewBinding(go: (path: string) => void): Binding {
+  return {
+    icon: DESTINATIONS.new.icon,
+    keys: "g n",
+    label: DESTINATIONS.new.label,
+    run: () => go(DESTINATIONS.new.path),
+  };
+}
+
+/**
+ * `g c`: the commit page, as the go keys' one more place. Not one of `PLACES`: `Space c` is
+ * Continue's, so only the go keys can take `c` for the page.
+ */
+export function goCommitBinding(go: (path: string) => void): Binding {
+  return {
+    icon: DESTINATIONS.commit.icon,
+    keys: "g c",
+    label: DESTINATIONS.commit.label,
+    run: () => go(DESTINATIONS.commit.path),
+  };
 }
 
 /** The kinds `Space f` finds, by their key, as the picker's sources name them. */
@@ -50,12 +77,12 @@ export function findBindings(open: (kind: PickerKind | "all") => void): Array<Bi
   ];
 }
 
-/** The forms a New key opens: the inbox's note and the priorities' line. */
-export type AddForm = "note" | "priority";
+/** The forms a New key opens: the inbox's note and the priorities' proposal. */
+export type AddForm = "note" | "proposal";
 
 /**
  * `Space n`: a session, a change, a feature (the pages the New page's cards lead to), a note, and
- * a priority (the forms of the column's buttons).
+ * a proposal (the forms of the column's buttons).
  */
 export function newBindings(
   go: (path: string) => void,
@@ -89,8 +116,9 @@ export function newBindings(
     {
       icon: KIND_ICONS.priorities,
       keys: "space n p",
-      label: "Priority",
-      run: () => openForm("priority"),
+      label: "Proposal",
+      // A new row at the top of Now, as New's Proposal opens it.
+      run: () => go(`/priorities${NEW_PROPOSAL_HASH}`),
     },
   ];
 }

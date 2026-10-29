@@ -1,5 +1,5 @@
-//! Dropping a started feature or change: its entry leaves the priorities, its worktree goes unless
-//! that would lose work, and its branch stays.
+//! Dropping a started feature or change: its proposal leaves the priorities, its worktree goes
+//! unless that would lose work, and its branch stays.
 
 use std::path::Path;
 
@@ -8,14 +8,14 @@ use crate::actions::clean::{Left, Leftover, WhyLeft};
 use crate::actions::drop;
 
 /// A feature or a change dropped: its branch, kept, why its worktree stays, when it does, and
-/// whether its entry's removal was committed.
+/// whether its proposal's removal was committed.
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DroppedView {
     pub branch: String,
     pub worktree_left: Option<String>,
-    /// Whether the entry's removal was committed: when not, it stays written for the commit bar.
+    /// Whether the proposal's removal was committed: when not, it stays written for the commit bar.
     pub committed: bool,
 }
 

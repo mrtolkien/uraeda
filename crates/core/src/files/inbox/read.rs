@@ -18,13 +18,14 @@ pub struct InboxNote {
     pub agent: bool,
     /// The slug of the feature or change it is about.
     pub about: Option<String>,
-    /// The path of the draft its whole text links to, from the repository's top level.
-    pub draft: Option<String>,
-    /// The markdown of that link's text, unescaped: a note added as a draft as it was typed, which
+    /// The path of its note file, the file of `specs/notes/` its whole text links to, from the
+    /// repository's top level.
+    pub file: Option<String>,
+    /// The markdown of that link's text, unescaped: a note added as a file as it was typed, which
     /// an add whose answer was lost finds it by.
-    pub draft_title: Option<String>,
-    /// The images the draft links, in order, from the repository's top level: filled in from the
-    /// draft, where it is read. Empty for a note with no draft.
+    pub file_title: Option<String>,
+    /// The images its note file links, in order, from the repository's top level: filled in from
+    /// the file, where it is read. Empty for a note with no file.
     pub images: Vec<String>,
     pub start_line: u32,
     pub end_line: u32,
@@ -34,6 +35,9 @@ pub struct InboxNote {
     pub nested: Vec<String>,
     /// The text of each nested item, without its marker.
     pub nested_spans: Vec<Vec<super::super::document::Span>>,
+    /// Its nested items at any depth, in the order of the file: what its outline shows, and what an
+    /// edit of one names by its index.
+    pub children: Vec<super::super::nested::NestedItem>,
 }
 
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
@@ -69,11 +73,11 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
     let (_, _, text) = body(lines, item);
     let markdown = text.join(" ");
     let doc = super::super::document::parse(&markdown, "specs");
-    let draft = note.draft();
-    let draft_title = draft.as_ref().and_then(|_| link_text(&markdown));
+    let file = note.file();
+    let file_title = file.as_ref().and_then(|_| link_text(&markdown));
     InboxNote {
         id: note.id,
-        key: note.key,
+        key: note.key.clone(),
         text: markdown,
         spans: doc
             .blocks
@@ -82,9 +86,9 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
             .unwrap_or_default(),
         agent: note.agent,
         about: note.about,
-        draft_title,
+        file_title,
         images: Vec::new(),
-        draft,
+        file,
         start_line: note.line as u32,
         end_line: note.end as u32,
         lines: lines[note.line - 1..note.end]
@@ -96,6 +100,7 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
             .map(|l| l.to_string())
             .collect(),
         nested_spans: super::super::lines::nested_spans(&lines[item.text_end..item.end]),
+        children: super::super::nested::nested_items(&note.key, &lines[item.text_end..item.end]),
     }
 }
 

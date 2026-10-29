@@ -219,6 +219,8 @@ function holdEnd(
           (sum, side) => sum + (Number.parseFloat(style[side as "paddingTop"]) || 0),
           0,
         );
+  // Written on the element, not a StyleX style: it follows the transcript frame by frame as it
+  // streams and scrolls, where a render of the column each frame would stutter.
   column.style.minHeight = kept === undefined ? "" : `${kept - frame}px`;
   return kept;
 }

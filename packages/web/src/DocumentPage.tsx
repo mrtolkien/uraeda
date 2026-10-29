@@ -42,7 +42,7 @@ export function DocumentPage({ file }: { file: File }) {
     run.kind === "blocks" ? <Blocks {...drawing} ids={run.ids} key={run.ids[0]} /> : null,
   );
   const page = (
-    <Page>
+    <Page isReading>
       <Crumbs current={file.name} folder={file.folder} />
       <VStack gap={3}>
         {title && (

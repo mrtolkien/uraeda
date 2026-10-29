@@ -68,10 +68,11 @@ test("Space n n and Space n p open the forms of the column's buttons (US1 key 1)
   expect(await screen.findByRole("dialog", { name: "Add a note" })).toBeTruthy();
 });
 
-test("Space n p opens the priority form", async () => {
+test("Space n p opens a new proposal's row at the top of Now in the priorities", async () => {
   await atHome();
   keys(" ", "n", "p");
-  expect(await screen.findByRole("dialog", { name: "New priority" })).toBeTruthy();
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/priorities")));
+  expect(await screen.findByRole("textbox", { name: "New proposal" })).toBeTruthy();
 });
 
 test("Space f d opens the decisions picker, and Space Space the one over everything (US4)", async () => {
@@ -144,6 +145,26 @@ test("Space r opens the repository menu, and Space shows the whole top level (US
   await atHome();
   keys(" ", "r");
   expect(await screen.findByRole("dialog", { name: "Repositories" })).toBeTruthy();
+});
+
+// Break: the heading's click opening a popover of its own on wide screens, or the dialog closing
+// with the focus left on the page's body.
+test("a click on the repository's name opens the dialog Space r opens, which gives the focus back as it closes", async () => {
+  await atHome();
+  const nav = screen.getByRole("navigation", { name: "Navigation" });
+  const trigger = within(nav).getByRole("button", { name: /^Uraeda/ });
+  act(() => trigger.focus());
+
+  fireEvent.click(trigger);
+
+  const dialog = await screen.findByRole("dialog", { name: "Repositories" });
+  expect(screen.getAllByRole("dialog", { name: "Repositories" })).toHaveLength(1);
+  // Its filter takes the focus, so that closing it has a focus to give back.
+  const filter = within(dialog).getByRole("textbox", { name: "Filter repositories" });
+  await waitFor(() => expect(document.activeElement).toBe(filter));
+  fireEvent.keyDown(filter, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Repositories" })).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(trigger));
 });
 
 test("the menu at Space lists the places, the groups, Continue, and Find anything", async () => {
@@ -258,21 +279,58 @@ test("the phone's tabs name theirs as the menu does (SC-007)", async () => {
   ]);
 });
 
-/** Each kind: how a picker row names it, its entry in the Find group, and in the New group if any. */
+/**
+ * Each kind: the title of a picker row of it in the repository below, its entry in the Find group,
+ * and in the New group if any.
+ */
 const KINDS: Array<{ add?: string; find: string; kind: PickerKind; row: string }> = [
-  { add: "Feature", find: "Features", kind: "features", row: "Feature" },
-  { add: "Change", find: "Changes", kind: "changes", row: "Change" },
-  { add: "Session", find: "Sessions", kind: "sessions", row: "Session" },
-  { add: "Note (inbox entry)", find: "Notes", kind: "notes", row: "Note" },
-  { add: "Priority", find: "Priorities", kind: "priorities", row: "Priority" },
-  { find: "Decisions", kind: "decisions", row: "Decision" },
+  { add: "Feature", find: "Features", kind: "features", row: "Web UI for the workflow files" },
+  { add: "Change", find: "Changes", kind: "changes", row: "Centre the x" },
+  { add: "Session", find: "Sessions", kind: "sessions", row: "List the drafts" },
+  {
+    add: "Note (inbox entry)",
+    find: "Notes",
+    kind: "notes",
+    row: "Text input feels laggy on the sessions page",
+  },
+  {
+    add: "Proposal",
+    find: "Priorities",
+    kind: "priorities",
+    row: "Nix + Docker based execution environments",
+  },
+  { find: "Decisions", kind: "decisions", row: "UI behaviour" },
 ];
 
-/** The picker's row labelled with a kind's name. */
-const named = (all: Array<HTMLElement>, kind: string) =>
-  all.find((one) => within(one).queryByText(kind) !== null);
+/**
+ * The kinds whose picker rows draw the item's card icon in place of the kind's, each with the name
+ * of its row's card in the sidebar: a feature's is its slug.
+ */
+const CARDS: Partial<Record<PickerKind, string>> = {
+  features: "web-ui",
+  sessions: "List the drafts",
+};
 
-// Break: the New group's note, or any picker row, drawn with an icon of its own.
+/** Whether `element` draws `text` as a whole text of its own, not a part of a longer one. */
+const draws = (element: HTMLElement, text: string) =>
+  within(element).queryAllByText(text).length > 0;
+
+/** The picker's row of a title: a title may be a line of another kind too, so the first. */
+const named = (all: Array<HTMLElement>, title: string) => all.find((one) => draws(one, title));
+
+/** The icon of the sidebar's card of a name: its kind's, its step's, or its agent's. */
+function cardIconOf(name: string) {
+  const nav = screen.getByRole("navigation", { name: "Navigation" });
+  const card = Array.from(nav.querySelectorAll<HTMLElement>("[data-card]")).find((one) =>
+    draws(one, name),
+  );
+  return Array.from(card?.querySelectorAll("svg") ?? []).find(
+    (svg) => !svg.closest("kbd, [data-rail-only]"),
+  )?.innerHTML;
+}
+
+// Break: the New group's note, or any picker row, drawn with an icon of its own. A feature's and a
+// session's rows draw their card's icon, a feature's step or a session's agent, as the sidebar does.
 test("a kind has one icon in the New group, the Find group, and the picker's rows (UI coherence)", async () => {
   // A repository with a row of every kind: a change, and a session besides the fixture's.
   const repo = fixtureRepo();
@@ -297,7 +355,7 @@ test("a kind has one icon in the New group, the Find group, and the picker's row
   const inFind = new Map(KINDS.map(({ find, kind }) => [kind, iconOf(rowNamed(found, find))]));
   press("Escape");
 
-  // Every kind's rows in the one picker, each labelled with its kind.
+  // Every kind's rows in the one picker.
   keys(" ", " ");
   await screen.findByRole("combobox", { name: "Find anything" });
   const rows = await waitFor(() => {
@@ -309,9 +367,14 @@ test("a kind has one icon in the New group, the Find group, and the picker's row
   });
 
   for (const { kind, row } of KINDS) {
-    // A decision's row draws its own decision's icon; the other kinds draw their kind's.
-    if (kind !== "decisions") {
-      const drawn = iconOf(named(rows, row)!);
+    // A decision's row draws its own decision's icon; a feature's and a session's their card's,
+    // and the other kinds draw their kind's.
+    const drawn = iconOf(named(rows, row)!);
+    const card = CARDS[kind];
+    if (card !== undefined) {
+      expect(drawn, `${kind} in the picker`).toBeDefined();
+      expect(drawn, `${kind} in the picker`).toBe(cardIconOf(card));
+    } else if (kind !== "decisions") {
       expect(drawn, `${kind} in the picker`).toBe(inFind.get(kind));
     }
     if (inNew.has(kind)) {

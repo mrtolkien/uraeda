@@ -13,14 +13,15 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ComponentProps, type ReactNode, createContext, use, useId, useRef } from "react";
+import { type ComponentProps, type ReactNode, use, useId, useRef } from "react";
 import { SinceSign, useSinceTitle } from "../sinceMarks.tsx";
+import { railPaneStyles, useClosedRail } from "./closedRail.ts";
+import { InPane, PaneContent } from "./paneContext.tsx";
+import { paneVars } from "./pane.stylex.ts";
+import { PaneSuffix } from "./PaneSuffix.tsx";
 import { useScrollMargin } from "./scrollMargin.ts";
 import { useActionsRoom } from "./useActionsRoom.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
-
-/** Whether a pane is inside another: there, it keeps its borders on the phone too. */
-const InPane = createContext(false);
 
 /**
  * What a pane's colour tells: it needs the human, it shows an example, or it holds a problem; a
@@ -81,16 +82,17 @@ const styles = stylex.create({
     height: "auto",
     justifyContent: "start",
     lineHeight: "inherit",
-    // A pixel over the control's height, so a line's fractional height cannot round it under.
-    marginBlock: `calc((1lh - 1px - ${sizeVars["--size-element-sm"]}) / 2)`,
-    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + 1px - 1lh) / 2)`,
+    // A pixel over the control's height (`--pane-title-slack`).
+    marginBlock: `calc((1lh - ${paneVars["--pane-title-slack"]} - ${sizeVars["--size-element-sm"]}) / 2)`,
+    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + ${paneVars["--pane-title-slack"]} - 1lh) / 2)`,
     paddingInline: 0,
     textAlign: "start",
     whiteSpace: "normal",
   },
   // An icon in the title, centred on its first line.
   glyph: {
-    // One line's height, which StyleX's height values do not list.
+    // One line's height, a unit of the layout, not a token: the token lint takes it in a custom
+    // property.
     "--pane-line": "1lh",
     alignItems: "center",
     display: "inline-flex",
@@ -121,6 +123,8 @@ const styles = stylex.create({
     flexWrap: "wrap",
     minWidth: 0,
   },
+  // A pane in a pane: its room's width, which that pane keeps, or more, as a live window grows.
+  nested: { maxWidth: "none" },
   new: { borderColor: colorVars["--color-border-green"] },
   newTitle: { color: colorVars["--color-text-green"] },
   // On the phone, a round's pane keeps only its titled top border, so its text takes the screen's
@@ -130,6 +134,7 @@ const styles = stylex.create({
   // the order of the stylesheet's rules.
   openOnPhone: {
     "--pane-surface": colorVars["--color-background-surface"],
+    "--table-bleed": "0px",
     backgroundColor: "transparent",
     borderBlockEndWidth: 0,
     borderInlineEndWidth: 0,
@@ -166,12 +171,24 @@ const styles = stylex.create({
     borderInlineStartWidth: "var(--pane-border)",
     // Room above for the half of the title over the border.
     marginBlockStart: spacingVars["--spacing-3"],
+    // As wide as a page that reads lets one pane be (`--pane-max`, see `Page`'s `isReading`), its
+    // prose about 80 characters a line, ending at its border, and centred in its room (`--pane-width`, `--pane-centre`):
+    // alone, in the page; two side by side share the room, each up to it, in the page's middle.
+    boxSizing: "border-box",
+    marginInline: "var(--pane-centre, 0)",
+    maxWidth: "var(--pane-max, none)",
     minWidth: 0,
-    paddingBlockEnd: spacingVars["--spacing-1"],
+    width: "var(--pane-width, auto)",
+    // Under its last line or button, the room under its title: one token, every pane's.
+    paddingBlockEnd: paneVars["--pane-end"],
     // The title, in the flow, takes the room above the content.
     paddingBlockStart: 0,
     // The theme's room, or a narrower one an ancestor sets, as the shell's column does.
     paddingInline: `var(--pane-inset, ${spacingVars["--spacing-3"]})`,
+    // A table keeps to the pane: it scrolls rather than reach past its border, and its rows' lines
+    // run to the border, through the pane's room (`TableBlock`).
+    "--table-bleed": `var(--pane-inset, ${spacingVars["--spacing-3"]})`,
+    "--table-reach": "0px",
     position: "relative",
   },
   problem: { borderColor: colorVars["--color-border-red"] },
@@ -183,18 +200,6 @@ const styles = stylex.create({
   under: (below: string) => ({
     marginBlockStart: below,
   }),
-  // What follows the title, such as a live window's size and scale: secondary, in the title's line,
-  // taking the room the title leaves, its words wrapping in it, or under the title when that room
-  // is narrower than a few words.
-  suffix: {
-    // A few words of the suffix's own text.
-    "--pane-suffix-room": "12ch",
-    color: colorVars["--color-text-secondary"],
-    flexBasis: 0,
-    flexGrow: 1,
-    fontWeight: fontWeightVars["--font-weight-normal"],
-    minWidth: "var(--pane-suffix-room)",
-  },
   // A tinted pane, as a picked card: its background the accent's muted tint. Its title's band is
   // the page's above the border's middle and the tint's below it, so the title sits on both.
   tinted: {
@@ -211,8 +216,8 @@ const styles = stylex.create({
     // Catppuccin's lavender, a local token of the theme (`theme.ts`).
     color: "var(--color-text-lavender)",
     display: "flex",
-    fontSize: typeScaleVars["--text-supporting-size"],
-    fontWeight: fontWeightVars["--font-weight-semibold"],
+    fontSize: "var(--text-title-size)",
+    fontWeight: fontWeightVars["--font-weight-bold"],
     lineHeight: typeScaleVars["--text-supporting-leading"],
     // Up by half the border and half its first line, then down to the content's usual room.
     marginBlockEnd: `calc(${spacingVars["--spacing-3"]} + var(--pane-border) / 2 - 0.5lh)`,
@@ -254,15 +259,24 @@ function colours(isActive: boolean, tone: PaneTone | undefined) {
   return tone === undefined ? ([null, null] as const) : TONES[tone];
 }
 
-/** The pane's and its title's styles, by its state, its colours and `isTinted`'s background. */
-function looks(isActive: boolean, tone: PaneTone | undefined, isTinted: boolean) {
+/**
+ * The pane's and its title's styles, by its state, its colours, `isTinted`'s background, and the
+ * closed rail's look, `isRail`.
+ */
+function looks(isActive: boolean, tone: PaneTone | undefined, isTinted: boolean, isRail: boolean) {
   const [border, ink] = colours(isActive, tone);
+  // The closed rail's look over its colours: a separator for a frame, and no title.
+  const frame = isRail && railPaneStyles.pane;
+  const title = isRail && railPaneStyles.title;
   return isTinted
     ? ([
-        [border, styles.tinted],
-        [styles.tintedTitle, ink],
+        [border, styles.tinted, frame],
+        [styles.tintedTitle, ink, title],
       ] as const)
-    : ([border, ink] as const);
+    : ([
+        [border, frame],
+        [ink, title],
+      ] as const);
 }
 
 /** The title's room by the actions: the width it keeps free beside them, or its place under them. */
@@ -316,7 +330,7 @@ function PaneName({
         {count !== undefined && <span {...stylex.props(styles.count)}>· {count}</span>}
         {renamed && <SinceSign />}
       </span>
-      {titleSuffix !== undefined && <span {...stylex.props(styles.suffix)}> {titleSuffix}</span>}
+      {titleSuffix !== undefined && <PaneSuffix>{titleSuffix}</PaneSuffix>}
     </span>
   );
 }
@@ -354,6 +368,7 @@ export function Pane({
   titleNode,
   titleSuffix,
   tone,
+  xstyle,
 }: {
   actions?: ReactNode;
   children: ReactNode;
@@ -371,12 +386,14 @@ export function Pane({
   titleNode?: ReactNode;
   titleSuffix?: ReactNode;
   tone?: PaneTone;
+  /** Styles for the pane's frame, as the room under the usage pane (`Allowance`) or a question's example (`Question`). */
+  xstyle?: ReadonlyArray<stylex.StyleXStyles | false | undefined>;
 }) {
   const titleId = useId();
   const own = useRef<HTMLElement>(null);
   const actionsBox = useRef<HTMLDivElement>(null);
   const beside = besideActions(useActionsRoom(own, actionsBox, actions !== undefined));
-  const [border, ink] = looks(isActive, tone, isTinted);
+  const [border, ink] = looks(isActive, tone, isTinted, useClosedRail());
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
   const isOpen = isOpenOnPhone && isNarrow(width) && !use(InPane);
@@ -403,10 +420,12 @@ export function Pane({
       role={isGroup ? "group" : undefined}
       {...stylex.props(
         styles.pane,
+        use(InPane) && styles.nested,
         isOpen && styles.openOnPhone,
         margin,
         border,
         isTinted && styles.tinted,
+        xstyle,
       )}
     >
       <Heading
@@ -427,7 +446,7 @@ export function Pane({
           {actions}
         </div>
       )}
-      <PaneBody fold={fold}>{children}</PaneBody>
+      <PaneBody content={children} fold={fold} tone={tone} />
     </section>
   );
 }
@@ -460,9 +479,11 @@ function TitleWords({
 }
 
 /** A pane's content, open, as inside a pane; folded, not mounted, but its line that opens it. */
-function PaneBody({ children, fold }: { children: ReactNode; fold?: PaneFold }) {
+type BodyProps = { content: ReactNode; fold?: PaneFold | undefined; tone?: PaneTone | undefined };
+
+function PaneBody({ content, fold, tone }: BodyProps) {
   if (!fold || fold.isOpen) {
-    return <InPane value>{children}</InPane>;
+    return <PaneContent {...(tone ? { tone } : {})}>{content}</PaneContent>;
   }
   return (
     fold.folded !== undefined && (

@@ -80,9 +80,20 @@ function Note({ block, selection }: { block: Block; selection: Selection | undef
   );
 }
 
+/** The pane's title over the section's table of what is relied on. */
+const RELIED = "Relied on";
+
+/** Whether a block is a paragraph saying only the pane's title, "Relied on:", which it repeats. */
+function saysRelied(block: Block | undefined) {
+  return (
+    block?.kind === "paragraph" &&
+    plain(block.spans).trim().replace(/:$/, "").toLowerCase() === RELIED.toLowerCase()
+  );
+}
+
 /**
- * The section's other blocks: with a table, in a pane "Relied on", counting its rows; as they are
- * otherwise.
+ * The section's other blocks: with a table, in a pane "Relied on", counting its rows, without a
+ * paragraph that only says its title again; as they are otherwise.
  */
 function Rest({
   document,
@@ -96,15 +107,16 @@ function Rest({
   if (ids.length === 0) {
     return null;
   }
-  const blocks = <Blocks document={document} ids={ids} selection={selection} />;
   const rows = document.blocks.filter(
     (block) => block.kind === "row" && !block.header && ids.includes(block.parent ?? -1),
   ).length;
-  return rows === 0 ? (
-    blocks
-  ) : (
-    <Pane count={rows} level={3} title="Relied on">
-      {blocks}
+  if (rows === 0) {
+    return <Blocks document={document} ids={ids} selection={selection} />;
+  }
+  const shown = ids.filter((id) => !saysRelied(document.blocks[id]));
+  return (
+    <Pane count={rows} level={3} title={RELIED}>
+      <Blocks document={document} ids={shown} selection={selection} />
     </Pane>
   );
 }

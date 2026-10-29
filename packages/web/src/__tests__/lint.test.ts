@@ -30,6 +30,8 @@ test.each([
   ["style-prop.tsx", "react(forbid-dom-props)"],
   ["class-name.tsx", "react(forbid-component-props)"],
   ["raw-color.tsx", "valid-styles"],
+  // A raw value moved into a custom property and read back with `var()`.
+  ["raw-custom-property.tsx", "custom-property-tokens"],
   // The UI coherence decision: markdown goes through `Prose.tsx`.
   ["raw-markdown.tsx", "no-restricted-imports"],
   // US3.6: a `test.only` left behind fails the lint.
@@ -51,6 +53,11 @@ test("a suppression with its reason passes", () => {
   expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
 });
 
+test("custom properties set to tokens pass", () => {
+  const result = lint("src/__lint__/token-custom-property.tsx");
+  expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
+});
+
 test("a marked function over the limit passes", () => {
   const result = lint("src/__lint__/marked-function.tsx");
   expect(result.status, `${result.stdout}${result.stderr}`).toBe(0);
@@ -62,9 +69,17 @@ test("no stylesheet but Astryx's and the fonts' is imported (SC-001)", () => {
     "@astryxdesign/core/astryx.css",
     "./theme/built/uraeda.css",
     "../theme/built/uraeda.css",
-    // The UI look decision's fonts, bundled with the app.
+    // The fonts each part of the UI may pick, bundled with the app (`theme/fonts.ts`).
     "@fontsource-variable/inter/index.css",
+    "@fontsource-variable/inter/wght-italic.css",
+    "@fontsource-variable/atkinson-hyperlegible-next/index.css",
+    "@fontsource-variable/literata/index.css",
     "@fontsource-variable/jetbrains-mono/index.css",
+    ...["neon", "argon", "xenon", "radon", "krypton"].flatMap((face) =>
+      ["400", "500", "600", "700", "400-italic"].map(
+        (weight) => `@fontsource/monaspace-${face}/${weight}.css`,
+      ),
+    ),
   ];
   const imports: Array<string> = [];
   for (const entry of readdirSync(src, { recursive: true, withFileTypes: true })) {

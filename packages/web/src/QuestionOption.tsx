@@ -107,7 +107,6 @@ const styles = stylex.create({
   },
   pro: { color: colorVars["--color-success"] },
   proBox: { borderColor: colorVars["--color-border-green"] },
-  recommended: { borderColor: colorVars["--color-border-yellow"] },
   sign: {
     fontWeight: fontWeightVars["--font-weight-bold"],
     insetInlineStart: 0,
@@ -214,7 +213,6 @@ export function OptionCard({
         xstyle={[
           styles.option,
           !wide && styles.optionPhone,
-          choice.recommended && styles.recommended,
           selected && styles.picked,
           disabled && styles.optionReadOnly,
         ]}

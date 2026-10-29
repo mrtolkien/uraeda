@@ -1,13 +1,12 @@
 // The Done pane: up to the five latest done items, sessions read to their end and merged features
 // and changes, newest first; in the column, as many as fit in the room the rows above leave, and
-// gone, title included, when none fits. "…" opens Home's Done group, which lists every done feature
-// and change.
-import { SideNavItem } from "@astryxdesign/core/SideNav";
+// gone, title included, when none fits. Home's Recent lists every done feature and change.
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type MouseEvent, type RefObject, useLayoutEffect, useRef, useState } from "react";
+import { type MouseEvent, type RefObject, use, useLayoutEffect, useRef, useState } from "react";
+import { useClosedRail } from "../layout/closedRail.ts";
 import { Pane } from "../layout/Pane.tsx";
-import { useColumnFold } from "../shell/fold.ts";
+import { PickedCard } from "../layout/picked.ts";
 import { CardRow } from "./CardRow.tsx";
 import { DoneIcon } from "./StepIcon.tsx";
 
@@ -33,14 +32,14 @@ const styles = stylex.create({
   },
 });
 
-/** A Done row's height, and the heading's, divider's, and "…" row's together, before measuring. */
+/** A Done row's height, and the heading's and divider's together, before measuring. */
 const ROW = 40;
-const CHROME = 96;
+const CHROME = 56;
 
 /**
  * How many done rows fit below the rows above: the room the sidebar's scrolling list and the Done
  * area share, which stays the same whatever the area shows, less `content`, the other rows, and the
- * area's heading, divider, and "…". Its sizes are measured once drawn, and the count is measured
+ * area's heading and divider. Its sizes are measured once drawn, and the count is measured
  * again as the window or the rows above change size.
  */
 function useRowsThatFit(
@@ -61,8 +60,8 @@ function useRowsThatFit(
       const links = drawn?.querySelectorAll("a") ?? [];
       const row = links[0]?.getBoundingClientRect().height;
       if (drawn && row) {
-        // Every link is a row: the done ones, and "…".
-        sizes.current = { chrome: taken - row * (links.length - 1), row };
+        // Every link is a done row.
+        sizes.current = { chrome: taken - row * links.length, row };
       }
       const { chrome, row: height } = sizes.current;
       const room = list.clientHeight + taken - rows.offsetHeight - chrome;
@@ -79,13 +78,10 @@ function useRowsThatFit(
 }
 
 export function DoneArea({
-  allHref,
   content,
   onOpen,
   rows,
 }: {
-  /** Home's Done group. */
-  allHref: string;
   /** The column's rows above it, in its scrolling list: none on a page, which shows all five. */
   content?: RefObject<HTMLElement | null>;
   /** Opens a row's page inside the app, instead of loading it. */
@@ -93,7 +89,9 @@ export function DoneArea({
   /** Every done item, newest first. */
   rows: Array<DoneRow>;
 }) {
-  const { isFolded } = useColumnFold();
+  const picked = use(PickedCard);
+  // The closed rail shows only the rows' icons.
+  const isRail = useClosedRail();
   const area = useRef<HTMLDivElement>(null);
   const measured = useRowsThatFit(content, area);
   const shown = rows.slice(0, Math.min(measured, DONE_ROWS));
@@ -106,11 +104,12 @@ export function DoneArea({
           },
         }
       : {};
-  if (shown.length === 0 || isFolded) {
+  if (shown.length === 0) {
     return null;
   }
   return (
-    <div ref={area} {...stylex.props(styles.area)}>
+    // `data-done-area`: the sessions' page's keys reach its rows (`SessionsPage.tsx`).
+    <div data-done-area ref={area} {...stylex.props(styles.area)}>
       <Pane isGroup title="Done">
         {/* Home's Recent draws the same items with the same row, `CardRow`, and icon. */}
         {shown.map((row) => (
@@ -118,20 +117,15 @@ export function DoneArea({
             endContent={null}
             href={row.href}
             icon={<DoneIcon isSession={row.kind !== undefined} />}
+            isPicked={picked === row.href}
             isSelected={row.isSelected ?? false}
             key={row.folder}
             label={row.label}
             name={`${row.label}, ${row.kind ?? row.title}, done`}
+            {...(isRail ? { rail: "row" as const } : {})}
             {...opening(row.href)}
           />
         ))}
-        <SideNavItem
-          aria-label="All done features and changes"
-          href={allHref}
-          label="…"
-          size="sm"
-          {...opening(allHref)}
-        />
       </Pane>
     </div>
   );

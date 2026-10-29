@@ -12,31 +12,34 @@ use uraeda_core::workspace::{Kind, Workspace};
 
 const FOLDER: &str = "2026-10-20-priorities-sections";
 const CHANGE_BRANCH: &str = "change/2026-10-20-priorities-sections";
-const DRAFT: &str = "specs/drafts/priorities-sections.md";
+const PROPOSAL_FILE: &str = "specs/proposals/priorities-sections.md";
 const DECISION: &str = "specs/decisions/inbox.md";
 /// An active decision the change leaves alone.
 const OTHER_DECISION: &str = "specs/decisions/stack.md";
 const OTHER_TEXT: &str = "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# Stack\n\nRust.\n";
 
-/// `main` with the draft "Priorities sections", linked from Next, and an active decision, started
-/// as `kind` on 2026-10-20 in its worktree.
+/// `main` with the proposal file "Priorities sections", linked from Next, and an active decision,
+/// started as `kind` on 2026-10-20 in its worktree.
 fn started(kind: Kind) -> TestRepo {
     let repo = TestRepo::new();
     repo.write("specs/README.md", "# Specs\n");
     repo.write(
         "specs/PRIORITIES.md",
-        "# Priorities\n\n## Now\n\n## Next\n\n- [Priorities sections](drafts/priorities-sections.md)\n\n## Later\n\n## Blocked\n",
+        "# Priorities\n\n## Now\n\n## Next\n\n- [Priorities sections](proposals/priorities-sections.md)\n\n## Later\n\n## Blocked\n",
     );
-    repo.write(DRAFT, "# Priorities sections\n\n## What\n\nSections.\n");
+    repo.write(
+        PROPOSAL_FILE,
+        "# Priorities sections\n\n## What\n\nSections.\n",
+    );
     repo.write(
         DECISION,
         "---\nstatus: active\napproved-by: mrtolkien\n---\n\n# Inbox\n\nA choice.\n",
     );
     repo.write(OTHER_DECISION, OTHER_TEXT);
-    repo.commit("chore: draft Priorities sections");
+    repo.commit("chore: expand Priorities sections");
     let (git, workspace) = opened(&repo);
     let day = Date::parse("2026-10-20").unwrap();
-    start::run(&git, &workspace, DRAFT, None, kind, day, false).unwrap();
+    start::run(&git, &workspace, PROPOSAL_FILE, None, kind, day, false).unwrap();
     repo
 }
 
@@ -64,7 +67,7 @@ fn promote(repo: &TestRepo) -> Result<promote::Promoted, StartError> {
     promote::run(&git, &workspace, FOLDER)
 }
 
-/// Nothing moved: the change's branch, folder, and Now entry are as the start left them.
+/// Nothing moved: the change's branch, folder, and Now proposal are as the start left them.
 fn assert_nothing_moved(repo: &TestRepo) {
     assert_eq!(
         repo.subjects("main")[0],
@@ -78,6 +81,32 @@ fn assert_nothing_moved(repo: &TestRepo) {
         worktree(repo)
             .join(format!("specs/changes/{FOLDER}/proposal.md"))
             .exists()
+    );
+}
+
+// Break: the relink dropping the lines nested under the Now proposal, written nowhere.
+#[test]
+fn a_promoted_proposals_nested_lines_go_to_its_file() {
+    let repo = started(Kind::Change);
+    let priorities = repo.read("specs/PRIORITIES.md");
+    let line = format!("- [Priorities sections](/specs/changes/{FOLDER}/proposal.md)\n");
+    assert!(priorities.contains(&line), "{priorities}");
+    repo.write(
+        "specs/PRIORITIES.md",
+        &priorities.replace(&line, &format!("{line}  - Keep this\n")),
+    );
+    repo.commit("chore: note under the change");
+
+    promote(&repo).unwrap();
+
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(!priorities.contains("Keep this"), "{priorities}");
+    let carried = "# Priorities sections\n\n## What\n\nSections.\n\n- Keep this\n";
+    let proposal = format!("specs/{FOLDER}/proposal.md");
+    assert_eq!(repo.git(&["show", &format!("main:{proposal}")]), carried);
+    assert_eq!(
+        repo.git(&["show", &format!("{FOLDER}:{proposal}")]),
+        carried
     );
 }
 
@@ -121,10 +150,10 @@ fn a_change_becomes_a_feature_in_place() {
     assert_eq!(repo.porcelain(), "");
 }
 
-/// The start put the change's folder on main: its move there takes the folder with the entry, in
-/// one commit, so the entry never links a missing folder.
+/// The start put the change's folder on main: its move there takes the folder with the proposal, in
+/// one commit, so the proposal never links a missing folder.
 #[test]
-fn the_folder_on_main_moves_with_the_entry() {
+fn the_folder_on_main_moves_with_the_proposal() {
     let repo = started(Kind::Change);
     let before = repo.subjects("main").len();
 
@@ -346,7 +375,7 @@ fn a_failed_commit_reports_what_is_done_and_left() {
         done,
         [
             format!(
-                "the entry in Now relinked, and specs/changes/{FOLDER} moved to specs/{FOLDER}, on \
+                "the proposal in Now relinked, and specs/changes/{FOLDER} moved to specs/{FOLDER}, on \
                  main"
             ),
             format!("the branch renamed to {FOLDER}"),
@@ -385,9 +414,9 @@ fn a_refused_relink_renames_nothing() {
 }
 
 /// Review: a refused relink puts the priorities back with the folder, and says so; a move run again
-/// then commits the entry with the folder.
+/// then commits the proposal with the folder.
 #[test]
-fn a_move_run_again_after_a_refused_relink_commits_the_entry() {
+fn a_move_run_again_after_a_refused_relink_commits_the_proposal() {
     let repo = started(Kind::Change);
     repo.set_hook("[ \"$(git branch --show-current)\" != main ] || exit 1");
     let failed = promote(&repo);
@@ -397,7 +426,7 @@ fn a_move_run_again_after_a_refused_relink_commits_the_entry() {
     assert_eq!(
         left[0],
         format!(
-            "relink the entry in Now, and move specs/changes/{FOLDER} to specs/{FOLDER}, on \
+            "relink the proposal in Now, and move specs/changes/{FOLDER} to specs/{FOLDER}, on \
              main, and commit them as \"chore(priorities-sections): start Priorities sections as \
              a feature\": the refused commit put specs/PRIORITIES.md and the folder back"
         )
@@ -454,7 +483,7 @@ fn a_pushed_change_is_renamed_locally_only() {
 
 /// Review: a move run again after its rename failed relinks nothing twice, and completes.
 #[test]
-fn a_move_run_again_after_a_failed_rename_completes_with_one_entry() {
+fn a_move_run_again_after_a_failed_rename_completes_with_one_proposal() {
     let repo = started(Kind::Change);
     let lock = repo.path().join(format!(".git/refs/heads/{FOLDER}.lock"));
     std::fs::write(&lock, "").unwrap();

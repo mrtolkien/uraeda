@@ -1,5 +1,5 @@
 // The leader's runtime: the pending sequence of `sequence.ts`, and the two delays that act on it.
-// The menu shows half a second after the last key while it is hidden, and once shown it stays and
+// The menu shows 300 ms after the last key while it is hidden, and once shown it stays and
 // follows each key at once; a pending `g` ends two seconds after its key. A step of the leader
 // (Space, or Ctrl or Cmd+K) has no end of its own: it is closed by Escape, a layer, a page change, or
 // the switch. A plain store, read through `useSyncExternalStore`.
@@ -7,7 +7,7 @@ import { CHORD, LEADER, next, type Step } from "./sequence.ts";
 import type { KeyStore } from "./store.ts";
 
 /** How long after the last key a hidden menu shows: quick typing shows nothing. */
-export const SHOW_AFTER = 500;
+export const SHOW_AFTER = 300;
 /** How long a pending `g` waits for its second key. */
 export const WAIT = 2000;
 
@@ -66,6 +66,14 @@ export function createLeader() {
       }
     },
     get: () => step,
+    /** Shows the menu of the sequence pending now, with no wait: a click asked for it. */
+    show() {
+      if (step !== null && !step.isShown) {
+        step = { ...step, isShown: true };
+        arm();
+        notify();
+      }
+    },
     /**
      * Feeds a key to the sequence. A step already pending, or begun by the chord, walks every
      * binding, the single-key ones too: only the chord can have begun it with the switch off.

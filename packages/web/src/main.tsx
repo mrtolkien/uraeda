@@ -1,7 +1,7 @@
 import "@astryxdesign/core/reset.css";
 import "@astryxdesign/core/astryx.css";
-import "@fontsource-variable/inter/index.css";
-import "@fontsource-variable/jetbrains-mono/index.css";
+// The fonts each part of the UI may pick (`theme/fonts.ts`).
+import "./theme/fontFiles.ts";
 import "./theme/built/uraeda.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

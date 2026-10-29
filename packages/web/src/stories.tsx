@@ -45,7 +45,7 @@ export const StoryContext = createContext<Stories | null>(null);
  */
 export const PreviewBase = createContext("");
 
-/** Gives the stories and HTML mockups of a workflow file or a draft to what draws it. */
+/** Gives the stories and HTML mockups of a workflow file or a proposal file to what draws it. */
 export function StoriesProvider({
   children,
   comment,

@@ -19,19 +19,18 @@ import { KindBadge } from "./ledger/KindBadge.tsx";
 import { Ledger } from "./ledger/Section.tsx";
 
 const styles = stylex.create({
+  body: {
+    // A pane's text, at the reading size, as wide as the pane of prose it is in.
+    fontSize: "var(--text-reading-size)",
+    lineHeight: "var(--text-reading-line)",
+    paddingBlockEnd: spacingVars["--spacing-2"],
+    paddingInline: spacingVars["--spacing-2"],
+  },
   link: {
     // The link to the decision's page, a control's height under a touch pointer, as a crumb's is.
     alignItems: "center",
     display: "inline-flex",
     minHeight: sizeVars["--size-element-md"],
-  },
-  measure: {
-    // A pane's text, at the reading size, holds 75 characters a line, as a round's does.
-    fontSize: "var(--text-reading-size)",
-    lineHeight: "var(--text-reading-line)",
-    maxWidth: "var(--size-round-measure)",
-    paddingBlockEnd: spacingVars["--spacing-2"],
-    paddingInline: spacingVars["--spacing-2"],
   },
   // On the phone, the pane keeps only its titled top border: its text takes the page's width.
   open: { paddingInline: 0 },
@@ -143,7 +142,7 @@ export function DecisionCard(props: DecisionCardProps) {
       }
       tone={TONES[kind]}
     >
-      <VStack gap={3} xstyle={[styles.measure, isOpen && styles.open]}>
+      <VStack gap={3} xstyle={[styles.body, isOpen && styles.open]}>
         {note}
         {change && <ChangeBody {...props} change={change} />}
         {href && (

@@ -50,13 +50,22 @@ export function useReviewSelection({
     );
 
   const blocks: Selection = {
-    after: (block) => (
-      <>
-        {placed.get(block.id)?.map(pendingNote)}
-        {adding && addingUnder === block.id && <AddingNote adding={adding} />}
-        {inPage(draft?.kind === "lines" && block.id === last)}
-      </>
-    ),
+    // Nothing when nothing follows the block: a table row then has no row of its own after it.
+    after: (block) => {
+      const notes = placed.get(block.id) ?? [];
+      const isAdding = adding !== undefined && addingUnder === block.id;
+      const form = inPage(draft?.kind === "lines" && block.id === last);
+      if (notes.length === 0 && !isAdding && !form) {
+        return null;
+      }
+      return (
+        <>
+          {notes.map(pendingNote)}
+          {isAdding && <AddingNote adding={adding} />}
+          {form}
+        </>
+      );
+    },
     isSelected: (block) =>
       selection !== undefined &&
       selection.decision === undefined &&

@@ -7,11 +7,11 @@ dropping a feature or a change. And how a feature ends, once its work is done.
 
 When asked to set up Uraeda in a project, copy `assets/templates/specs/README.md`,
 `CONSTITUTION.md`, `PRIORITIES.md`, and `INBOX.md` into the project's `specs/` folder, and create
-its `drafts/`, `backlog/`, `decisions/`, and `changes/` folders, each with an empty `.gitkeep`,
-since git keeps no empty folder. Never overwrite a file that exists. The constitution is the
-human's: help them write it by asking about the project's goals and constraints, and propose
-principles with recommended wording. Do not copy the feature or decision templates: they stay in
-this skill.
+its `proposals/`, `decisions/`, and `changes/` folders, each with an empty `.gitkeep`, since git
+keeps no empty folder. `specs/notes/` comes with the first note file. Never overwrite a file that
+exists. The constitution is the human's: help them write it by asking about the project's goals and
+constraints, and propose principles with recommended wording. Do not copy the feature or decision
+templates: they stay in this skill.
 
 Once the constitution is written, propose a code-quality decision,
 `specs/decisions/code-quality.md`, for the project's own linters: limits, the stack's shared lint
@@ -60,38 +60,59 @@ add to `~/.zshrc`; alone, it leaves the skill as it is. In a terminal, `ura inst
 Agents always pass these flags and `--no-input`: an agent's terminal can pass the terminal check,
 yet no one presses its keys.
 
+### Moving drafts and the backlog to the proposals
+
+A project set up before proposal files kept them in `specs/drafts/` and `specs/backlog/`, which
+tools no longer read: `ura check` reports each of the two that holds files. Move them in one commit
+on the default branch, from the files as they are then:
+
+1. **Move every file and folder** of `specs/drafts/` and `specs/backlog/` into `specs/proposals/`,
+   unchanged, with `git mv`. A name already taken gets `-2`, then `-3`, ...
+2. **Move the note files**: a draft that a note of `INBOX.md` links, and no proposal of
+   `PRIORITIES.md` does, goes to `specs/notes/` instead, unchanged. In a folder, its `proposal.md`
+   becomes `note.md`.
+3. **Link the backlog under Later**: each former backlog file that no proposal links gets a proposal
+   at the end of **Later**, a link to it with its title as the text.
+4. **Rewrite the links** to the old paths, in `PRIORITIES.md`, `INBOX.md`, and every other workflow
+   file, the moved ones included. In the records of `specs/done/`, only those links change.
+5. **Remove the old folders**, empty now but for their `.gitkeep`. When `specs/proposals/` holds no
+   file, give it an empty `.gitkeep`.
+6. **Commit** the moves and the files whose links changed, alone, with
+   `chore: move the drafts and the backlog to the proposals`.
+
 ## Starting, postponing, and dropping a feature
 
 Do these only when a human asks.
 
-- **Draft**: a line of `PRIORITIES.md` becomes a draft in `specs/drafts/<slug>.md`, from the
-  proposal template with the line as its title and as the first paragraph of What, followed by its
-  children, which leave the line, and no placeholder text, and the line links to it alone. The
-  children's relative links are rewritten to point at the same files from the draft's folder. With
-  `ura`, `ura draft <text>` does it, on the default branch, without committing, and opens the
-  editor.
+- **Expand**: a proposal line of `PRIORITIES.md` becomes a proposal file,
+  `specs/proposals/<slug>.md` or the next free name with `-2`, `-3`, ..., from the proposal template
+  with the line as its title and as the first paragraph of What, followed by its children, which
+  leave the line, and no placeholder text, and the line links to it alone. The children's relative
+  links are rewritten to point at the same files from the proposal file's folder. With `ura`,
+  `ura expand <text>` does it, on the default branch, without committing, and opens the editor.
 - **Start**: name the folder with today's date and a slug of two words at most,
   `YYYY-MM-DD-feature-slug`, like `2026-10-06-recurring-tasks`. Propose a slug from the feature's
   name and ask the human for theirs before starting. The date never changes, even if the feature is
   renamed. If a folder or branch with that name exists, choose another slug. With `ura`,
-  `ura start <draft> --slug <slug>` runs these steps for a draft file or postponed folder, whatever
-  it holds: the proposal is freeform. Without `--slug`, it takes the first two words of the draft's
-  name that name something.
-  1. On the default branch, create `specs/YYYY-MM-DD-feature-slug/`, and move the draft or backlog
-     file into it as `proposal.md`, unchanged: the proposal is the human's words, never rewritten.
-     When the entry is a folder, a feature postponed earlier or a draft with images, move all its
-     files into it, unchanged. An entry with no file is drafted first, as **Draft** says: the human
-     writes the draft, and asks for the start once it is ready.
-  2. In the same commit, move the feature's `PRIORITIES.md` entry to the top of **Now**, after the
-     other started entries, then a blank line, unless the human says otherwise, as a link to the
-     `proposal.md` from the repository root, `[Name](/specs/YYYY-MM-DD-feature-slug/proposal.md)`,
-     and commit with `chore(<slug>): start <feature name>`. The link resolves on the default branch,
-     which holds the proposal from the start. Entries match branches through that link. Started
-     entries are those linking a dated folder's `proposal.md`, a feature's or a change's. Entries
-     started lower in **Now** stay where they are, and no blank line is left at the end of **Now**.
-     `PRIORITIES.md` lives on the default branch: feature branches only remove their own entry, in
-     their last commit. While the branch is there, the folder is the branch's: the default branch's
-     copy is read as merged only once the branch is gone.
+  `ura start <proposal> --slug <slug>` runs these steps for a proposal file or folder of
+  `specs/proposals/`, or its name, whatever it holds: the proposal is freeform. Without `--slug`, it
+  takes the first two words of the proposal file's name that name something.
+  1. On the default branch, create `specs/YYYY-MM-DD-feature-slug/`, and move the proposal file into
+     it as `proposal.md`, unchanged: the proposal is the human's words, never rewritten. When the
+     proposal is a folder, a feature postponed earlier or a proposal with images, move all its files
+     into it, unchanged. A proposal with no file is expanded first, as **Expand** says: the human
+     writes its file, and asks for the start once it is ready.
+  2. In the same commit, move the feature's proposal in `PRIORITIES.md` to the top of **Now**, after
+     the other started proposals, then a blank line, unless the human says otherwise, as a link to
+     the `proposal.md` from the repository root,
+     `[Name](/specs/YYYY-MM-DD-feature-slug/proposal.md)`, and commit with
+     `chore(<slug>): start <feature name>`. The link resolves on the default branch, which holds the
+     proposal from the start. Proposals match branches through that link. Started proposals are
+     those linking a dated folder's `proposal.md`, a feature's or a change's. Proposals started
+     lower in **Now** stay where they are, and no blank line is left at the end of **Now**.
+     `PRIORITIES.md` lives on the default branch: feature branches only remove their own proposal,
+     in their last commit. While the branch is there, the folder is the branch's: the default
+     branch's copy is read as merged only once the branch is gone.
   3. Create the branch `YYYY-MM-DD-feature-slug` from there, checked out in its worktree,
      `.worktrees/YYYY-MM-DD-feature-slug/`, unless the human asks to switch their checkout to it.
      Every later step writes on the branch.
@@ -103,29 +124,29 @@ Do these only when a human asks.
 - **Start as a change**: a bug fix or a small change starts as a [change](change.md), with the same
   steps under its own names: the folder `specs/changes/YYYY-MM-DD-<slug>/`, the branch
   `change/YYYY-MM-DD-<slug>`, and the worktree `.worktrees/YYYY-MM-DD-<slug>/`. In the web UI,
-  Change on the New page starts one from a typed request, an inbox note, or a priority line, with no
-  draft: a note's text is its request, and the note leaves `INBOX.md` in a commit of its own. A
-  session's offer starts one too: see [Change](change.md#starting-a-change). With `ura`,
-  `ura start <draft> --slug <slug> --change` starts a draft as a change, and refuses a postponed
-  folder holding files a change's folder has no place for, like a feature's `spec.md`: start that
-  one as a feature. By hand, the steps above, with the entry linked to
+  Change on the New page starts one from a typed request, an inbox note, or a proposal line, with no
+  proposal file: a note's text is its request, and the note leaves `INBOX.md` in a commit of its
+  own. A session's offer starts one too: see [Change](change.md#starting-a-change). With `ura`,
+  `ura start <proposal> --slug <slug> --change` starts a proposal file as a change, and refuses a
+  postponed folder holding files a change's folder has no place for, like a feature's `spec.md`:
+  start that one as a feature. By hand, the steps above, with the proposal linked to
   `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the [change](change.md) step.
 - **Start a change as a feature**: on the human's yes, a started change becomes a feature in place.
   It keeps its code, its worktree, and its sessions. With `ura`, `ura start <change> --feature`. By
   hand, as [Upgrading](change.md#upgrading) says.
-- **Postpone or block**: on the feature's branch, move the whole folder to `specs/drafts/<slug>/` or
-  `specs/backlog/<slug>/`, as the human prefers, without its date: the proposal, the discovery
-  rounds, and the questions, answered or not, stay as they are. Revert the branch's edits to the
-  decisions: delete the ones it created. Restore the ones it changed or removed to their text at the
-  merge base with the default branch. In the same commit, move the `PRIORITIES.md` entry to the
-  right section, after what it needs when it is blocked, and link it to the folder's `proposal.md`.
-  Commit with `chore(<slug>): postpone <feature name>`, merge the branch into the default branch,
-  and delete it.
+- **Postpone or block**: on the feature's branch, move the whole folder to
+  `specs/proposals/<slug>/`, without its date: the proposal, the discovery rounds, and the
+  questions, answered or not, stay as they are. Revert the branch's edits to the decisions: delete
+  the ones it created. Restore the ones it changed or removed to their text at the merge base with
+  the default branch. In the same commit, move the feature's proposal in `PRIORITIES.md` to the
+  section the human names, **Later** for one not scheduled, after what it needs when it is blocked,
+  and link it to the folder's `proposal.md`. Commit with `chore(<slug>): postpone <feature name>`,
+  merge the branch into the default branch, and delete it.
 - **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
-  `PRIORITIES.md` entry and its dated folder, which the start put there, so the default branch keeps
-  no folder of a dropped item: it would read as merged once its branch is gone. Stop first when that
-  folder has uncommitted changes, since they would be lost. Commit both alone,
-  `chore(<slug>): drop <name>`, only when `PRIORITIES.md` had no other changes: otherwise the
+  proposal from `PRIORITIES.md`, and its dated folder, which the start put there, so the default
+  branch keeps no folder of a dropped feature or change: it would read as merged once its branch is
+  gone. Stop first when that folder has uncommitted changes, since they would be lost. Commit both
+  alone, `chore(<slug>): drop <name>`, only when `PRIORITIES.md` had no other changes: otherwise the
   removals stay uncommitted, beside the human's edits. Remove its worktree, never forced. It stays
   when it has uncommitted changes, is locked, is the one you are in, or is outside `.worktrees/`:
   then say where it stays. Keep the branch, so nothing is lost, and give the human

@@ -6,7 +6,7 @@
 // navigation for the phone.
 import { LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
@@ -16,11 +16,12 @@ import { KeysProvider } from "./keys/registry.tsx";
 import { ScrollKeys } from "./keys/scroll.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { TopBarSlotProvider } from "./layout/TopBarSlot.tsx";
-import { useUndoErrors } from "./layout/useUndoToast.ts";
+import { UndoKey, useUndoErrors } from "./layout/useUndoToast.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Notifier, NotifyBanner } from "./notify/Notifier.tsx";
 import { RepositoryMenu } from "./RepositoryMenu.tsx";
-import { Column } from "./shell/Column.tsx";
+import { Column, PhoneColumn } from "./shell/Column.tsx";
+import { useShellPath } from "./shell/ShellPanes.tsx";
 import { StatusLine } from "./shell/StatusLine.tsx";
 import { Tabs } from "./shell/Tabs.tsx";
 import { FeatureSettingsHost } from "./sidebar/FeatureSettingsDialog.tsx";
@@ -44,7 +45,10 @@ const styles = stylex.create({
     marginInline: "auto",
     maxWidth: "var(--size-page-max)",
     paddingBlockStart: spacingVars["--spacing-4"],
-    paddingInline: spacingVars["--spacing-4"],
+    // The phone page's inset (`Page.tsx`), a property of its own, as the token lint takes a `var()`
+    // only whole, not in a calc.
+    "--errors-inset": `calc(var(--size-rail-inset) + ${borderVars["--border-width"]})`,
+    paddingInline: "var(--errors-inset)",
     width: "100%",
   },
   errorsWide: {
@@ -78,6 +82,9 @@ const styles = stylex.create({
     "--size-viewport-height": "calc(100dvh - var(--size-status-line))",
     paddingBlockEnd: "var(--size-status-line)",
   },
+  // The phone's bar out of the way: what sits on it, as the session's composer, follows it down
+  // (`SessionView.tsx`).
+  statusAway: { "--status-line-offset": "0px" },
   statusNarrow: {
     // On the phone, a row as tall as the tabs', which holds the page's controls, as a round's Next.
     "--size-status-line": spacingVars["--spacing-12"],
@@ -120,12 +127,15 @@ function UndoErrors() {
 function Frame({
   bottom,
   children,
+  isAway = false,
   isNarrow = false,
   start,
   top,
 }: {
   bottom?: ReactNode;
   children: ReactNode;
+  /** Whether the phone's bar is out of the way. */
+  isAway?: boolean;
   isNarrow?: boolean;
   start?: ReactNode;
   top?: ReactNode;
@@ -137,6 +147,7 @@ function Frame({
         styles.frame,
         status && styles.status,
         status && isNarrow && styles.statusNarrow,
+        isAway && styles.statusAway,
       )}
     >
       {top}
@@ -166,6 +177,16 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
   const [singleKeys, setSingleKeys] = keysSwitch ?? own;
   const width = useWidthClass();
   const narrow = isNarrow(width);
+  // The phone's column, which the tabs' toggle opens over the page: it folds as a page opens.
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  // Whether the phone's bar slid out of the way, which the composer follows.
+  const [isBarAway, setBarAway] = useState(false);
+  const pathname = useShellPath();
+  const [sidebarPath, setSidebarPath] = useState(pathname);
+  if (sidebarPath !== pathname) {
+    setSidebarPath(pathname);
+    setSidebarOpen(false);
+  }
   return (
     <SidebarAddForms>
       <FeatureSettingsHost>
@@ -174,14 +195,29 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
             <KeysProvider singleKeys={singleKeys}>
               <SingleKeysSetting onRead={setSingleKeys} />
               <Frame
-                bottom={<StatusLine isNarrow={narrow} slot={slot} />}
+                // The phone has no bar but for a page's own controls: none takes no room there.
+                bottom={
+                  narrow && slot === null ? undefined : (
+                    <StatusLine isNarrow={narrow} onAway={setBarAway} slot={slot} />
+                  )
+                }
+                isAway={isBarAway}
                 isNarrow={narrow}
-                start={narrow ? null : <Column isWide={width === "wide"} />}
+                start={
+                  narrow ? (
+                    <PhoneColumn isOpen={isSidebarOpen} />
+                  ) : (
+                    <Column isWide={width === "wide"} />
+                  )
+                }
                 top={
                   narrow ? (
                     // The page's banner, by its role as the pages look it up, as `AppShell` drew it.
                     <header role="banner" {...stylex.props(styles.header)}>
-                      <Tabs />
+                      <Tabs
+                        isSidebarOpen={isSidebarOpen}
+                        onToggleSidebar={() => setSidebarOpen((open) => !open)}
+                      />
                     </header>
                   ) : null
                 }
@@ -189,6 +225,7 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
                 <LeaderMenuHost />
                 <Writing />
                 <ScrollKeys />
+                <UndoKey />
                 <LeaderKeys />
                 <NotifyBanner />
                 <Notifier />

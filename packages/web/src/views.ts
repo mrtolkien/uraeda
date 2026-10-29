@@ -5,7 +5,7 @@ import type {
   Agent,
   BranchChanges,
   BranchDecision,
-  Draft,
+  ProposalFile,
   Dropped,
   Feature,
   FolderSuggestions,
@@ -20,7 +20,6 @@ import type {
   Repositories,
   Session,
   SessionList,
-  SessionSearch,
   Settings,
   SlugProposal,
   Story,
@@ -70,8 +69,6 @@ const ItemsSelection = {
     riskTier: true,
     stories: true,
     tiers: true,
-    tradeoffs: true,
-    units: true,
   },
 } as const;
 
@@ -86,13 +83,13 @@ const VersionSelection = {
 export const WorkspaceView = view<Workspace>()({
   currentBranch: true,
   defaultBranch: true,
-  drafts: true,
   features: true,
   id: true,
   noSpecs: true,
   preview: true,
   priorities: true,
   prioritiesHash: true,
+  proposals: true,
   root: true,
   running: true,
 });
@@ -205,15 +202,15 @@ export const FileView = view<WorkflowFile>()({
 });
 
 export const PrioritiesView = view<Priorities>()({
+  changeLines: true,
   changes: true,
   hash: true,
   id: true,
   sections: true,
 });
 
-/** The priorities as an add answers them: with `added`, whether "Add and commit" committed. */
+/** The priorities as an add answers them: its sections, the line added ending its own. */
 export const PrioritiesAddedView = view<Priorities>()({
-  added: { committed: true, message: true, reason: true },
   changes: true,
   hash: true,
   id: true,
@@ -243,34 +240,12 @@ export const InboxRemovedView = view<Inbox>()({
   triage: true,
 });
 
-/** The inbox as an add answers it: with `added`, whether "Add and commit" committed. */
-export const InboxAddedView = view<Inbox>()({
-  added: { committed: true, message: true, reason: true },
-  categories: true,
-  changes: true,
-  count: true,
-  hash: true,
-  id: true,
-  names: true,
-  triage: true,
-});
-
-export const DraftView = view<Draft>()({
+export const ProposalFileView = view<ProposalFile>()({
   committed: true,
   discovery: true,
   discoveryLevels: true,
   document: DocumentSelection,
   emptySections: true,
-  entry: {
-    draft: true,
-    feature: true,
-    id: true,
-    key: true,
-    link: true,
-    position: true,
-    section: true,
-    text: true,
-  },
   folder: true,
   hash: true,
   id: true,
@@ -278,6 +253,16 @@ export const DraftView = view<Draft>()({
   mockups: true,
   path: true,
   priorityChanges: true,
+  proposal: {
+    feature: true,
+    file: true,
+    id: true,
+    key: true,
+    link: true,
+    position: true,
+    section: true,
+    text: true,
+  },
   slug: true,
   stories: true,
   text: true,
@@ -285,10 +270,14 @@ export const DraftView = view<Draft>()({
   written: true,
 });
 
-/** A draft's title, for the lists that offer drafts by title, like "Add to a draft". */
-export const DraftTitleView = view<Draft>()({
+/**
+ * A proposal file's title and text, for the lists that offer proposal files, like the inbox's `p`
+ * picker.
+ */
+export const ProposalFileTextView = view<ProposalFile>()({
   id: true,
   path: true,
+  text: true,
   title: true,
 });
 
@@ -352,11 +341,6 @@ export const TurnLogView = view<TurnLog>()({
 });
 
 export const SessionListView = view<SessionList>()({
-  id: true,
-  rows: true,
-});
-
-export const SessionSearchView = view<SessionSearch>()({
   id: true,
   rows: true,
 });

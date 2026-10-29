@@ -13,9 +13,16 @@ import { type Fit, PHONE_BELOW } from "./LiveFrame.tsx";
 
 const styles = stylex.create({
   figure: {
+    // Its pane is as wide as the figure, grown past its column: not a pane of prose's width, which
+    // a reading page gives its panes.
+    "--pane-max": "none",
     marginBlockEnd: spacingVars["--spacing-3"],
     marginBlockStart: 0,
     marginInline: 0,
+    // Over the hover's tint of an option's card it is in, Astryx's `::after` over the whole card:
+    // the window shows its page as drawn, never brightened.
+    position: "relative",
+    zIndex: 1,
   },
   // Full screen, which the browser sizes to the screen, on the page's own background.
   full: {

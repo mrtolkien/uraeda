@@ -49,7 +49,7 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         match output::target(&workspace, options.target.as_deref(), Purpose::Review)? {
             Target::Feature(index) => (index, None),
             Target::File(index, file) => (index, Some(file)),
-            Target::Draft(draft) => return Err(format!("{draft} is not started")),
+            Target::Proposal(proposal) => return Err(format!("{proposal} is not started")),
         };
     let feature = &workspace.features[index];
     let file = review::reviewed_file(feature, named.as_deref()).map_err(|e| e.to_string())?;

@@ -32,8 +32,8 @@ test("reads the workspace of a repository", async () => {
     "2026-10-12-cli-tuis": "plan",
     "2026-10-13-plan-review": "human-gate",
   });
-  expect(workspace.priorities.find((p) => p.id === "next-2")?.draft).toBe(
-    "specs/drafts/git-listener.md",
+  expect(workspace.priorities.find((p) => p.id === "next-2")?.file).toBe(
+    "specs/proposals/git-listener.md",
   );
 });
 

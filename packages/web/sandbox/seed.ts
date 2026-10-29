@@ -36,7 +36,7 @@ export const STALE_WARNING =
 export const SANDBOX_TODAY = DATE.slice(0, 10);
 
 /** The sample projects' folders, by the name the server lists each one by. */
-export type Projects = { broken: string; empty: string; sample: string };
+export type Projects = { broken: string; empty: string; realistic: string; sample: string };
 
 /** The sandbox's folders, and whether older builders built them. */
 export type Sandbox = { configDir: string; dataDir: string; projects: Projects; stale: boolean };
@@ -44,7 +44,7 @@ export type Sandbox = { configDir: string; dataDir: string; projects: Projects; 
 /** What a seed builds with: the sample projects into a folder, and the sessions of "sample". */
 export type Builders = {
   projects: (dir: string) => Projects;
-  sessions: (dataDir: string, sample: string) => Promise<void>;
+  sessions: (dataDir: string, sample: string, realistic: string) => Promise<void>;
 };
 
 const BUILDERS: Builders = { projects: buildProjects, sessions: seedSessions };
@@ -72,6 +72,7 @@ const checkout = join(import.meta.dirname, "../../..");
 export const SOURCES = [
   "packages/web/samples",
   "packages/web/sandbox/agent.ts",
+  "packages/web/sandbox/liveSession.ts",
   "packages/web/sandbox/sessions.ts",
   "packages/web/sandbox/seed.ts",
   "packages/binding/test-utils.ts",
@@ -81,8 +82,16 @@ export const SOURCES = [
   "fixtures/repo",
   "fixtures/broken",
   "fixtures/round-mockup",
+  "fixtures/round-leader-key",
+  "fixtures/spec-leader-key",
   "fixtures/preview",
   "fixtures/spec-page",
+  "fixtures/realistic",
+  "fixtures/sessions",
+  "fixtures/images",
+  "fixtures/plan-page",
+  "fixtures/round-merge-chats",
+  "fixtures/round-layout-look",
   "skills/uraeda/assets/templates/specs",
 ];
 
@@ -115,6 +124,7 @@ function paths(folder: string): Omit<Sandbox, "stale"> {
     projects: {
       broken: join(projects, "broken"),
       empty: join(projects, "empty"),
+      realistic: join(projects, "realistic"),
       sample: join(projects, "sample"),
     },
   };
@@ -237,10 +247,10 @@ async function build(root: string, version: string, builders: Builders) {
       repairWorktrees(project, join(temporary, "projects"), join(folder, "projects"));
     }
     // "sample" last, the most recently opened.
-    for (const project of [projects.broken, projects.empty, projects.sample]) {
+    for (const project of [projects.broken, projects.empty, projects.realistic, projects.sample]) {
       await addRepository(dataDir, project);
     }
-    await builders.sessions(dataDir, projects.sample);
+    await builders.sessions(dataDir, projects.sample, projects.realistic);
     writeFileSync(join(folder, "stamp.new"), version);
     renameSync(join(folder, "stamp.new"), join(folder, "stamp"));
   } catch (error) {

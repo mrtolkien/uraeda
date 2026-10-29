@@ -1,6 +1,8 @@
-// A feature's or a change's sessions, in a pane of the Home's column: the latest first, each with its status, its
-// running sub-agents, and when it started; the latest's task and last run, Stop for a working one,
-// and "New session", which opens a new session in its worktree, on its own page.
+// A feature's or a change's sessions, in a pane of its page, under "Next": the latest first, each
+// with its status, its running sub-agents, and when it started; the latest's task and last run;
+// and "New session", which opens a new session's page, the session created with its first message.
+// A working one stops from its own page. `s` opens its session, or a picker of them when there are
+// several, and `S` opens a new one.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { ProgressBar } from "@astryxdesign/core/ProgressBar";
@@ -9,19 +11,18 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { Suspense, useState } from "react";
-import { useFateClient } from "react-fate";
 import type { TaskProgress } from "uraeda-binding";
 import { useAgent } from "../data.ts";
-import { refusal } from "../errors.ts";
 import { stepLabel } from "../labels.ts";
 import { Pane } from "../layout/Pane.tsx";
-import { StatusText } from "../fields/StatusText.tsx";
+import { KeyPicker } from "../keys/KeyPicker.tsx";
+import type { PickerItem } from "../keys/pickerSources.ts";
+import { useKeys } from "../keys/registry.tsx";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
-import { useSession, useTurn } from "../sessionData.ts";
+import { useNavigation, useSession, useTurn } from "../sessionData.ts";
+import { sessionCard } from "../sidebar/cards.ts";
 import { sessionPath } from "../sessions.ts";
 import { StatusMark } from "../StatusMark.tsx";
-import { SessionView } from "../views.ts";
-import { clearPending, markPending } from "../writes/store.ts";
 import { clock, day, duration } from "./times.ts";
 import { CardRow } from "../sidebar/CardRow.tsx";
 import { Empty } from "../layout/Empty.tsx";
@@ -53,30 +54,6 @@ function LastRun({ id }: { id: string }) {
     <Text color="secondary" type="supporting">
       {[`Last run: ${what}`, turn.state, time].filter(Boolean).join(" · ")}
     </Text>
-  );
-}
-
-/** Stop, while the session works, and why it was refused. */
-function Stop({ folder, id }: { folder: string; id: string }) {
-  const fate = useFateClient();
-  const [error, setError] = useState<string>();
-  const stop = async () => {
-    setError(undefined);
-    markPending(folder, "Stopping…");
-    // The turn ends once the agent answers the interrupt: its live update brings the state.
-    const result = await fate.mutations.session.stop({ input: { session: id }, view: SessionView });
-    if (result.error) {
-      clearPending(folder);
-      setError(refusal(result.error).message);
-    }
-  };
-  return (
-    <>
-      <HStack>
-        <Button clickAction={stop} label="Stop" size="sm" variant="destructive" />
-      </HStack>
-      {error && <StatusText tone="error">{error}</StatusText>}
-    </>
   );
 }
 
@@ -116,7 +93,7 @@ function Row({
       />
       {session.subagents.map((subagent) => (
         <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
-          <StatusMark label="Working" small status="working" />
+          <StatusMark isSubagent label="Working" small status="working" />
           <Text color="secondary" maxLines={1} type="supporting">
             {subagent.description}
           </Text>
@@ -130,7 +107,6 @@ function Row({
         />
       )}
       {latest && last !== undefined && <LastRun id={last} />}
-      {working && <Stop folder={folder} id={session.id} />}
     </VStack>
   );
 }
@@ -159,26 +135,79 @@ function SessionItem({ id, ...props }: RowProps & { id: string }) {
   );
 }
 
-/** "New session": opens a new session of the folder on its own page, or says why it could not. */
-function NewSession({ folder }: { folder: string }) {
-  const fate = useFateClient();
+/**
+ * The page of a new session of the folder, which its first message creates: "New session" and `S`
+ * open it, and leaving it before sending makes none.
+ */
+const newSessionPath = (folder: string) => `${sessionPath(folder)}?new`;
+
+/**
+ * The keys of the feature's sessions: `s` opens its session, the latest, as its row does, or with
+ * several, a picker of them, the latest first; `S` opens a new one, as "New session" does.
+ */
+function useSessionKeys(
+  folder: string,
+  sessions: ReadonlyArray<string>,
+  start: (() => void) | undefined,
+) {
   const here = useRepoPath();
-  const [error, setError] = useState<string>();
-  const start = async () => {
-    setError(undefined);
-    const created = await fate.mutations.session.new({ input: { folder }, view: SessionView });
-    const id = (created.result as { id: string } | undefined)?.id;
-    if (created.error || id === undefined) {
-      setError(created.error ? refusal(created.error).message : "The session did not start.");
-      return;
+  const rows = useNavigation().sessionList?.rows ?? [];
+  const [isPicking, setPicking] = useState(false);
+  // Drawn from its first opening on: the page's focus is its own until then.
+  const [isDrawn, setDrawn] = useState(false);
+  const items = sessions.flatMap((id, index): Array<PickerItem> => {
+    const row = rows.find((one) => one.id === id);
+    if (!row) {
+      return [];
     }
-    navigate(here(sessionIdPath(id)), { created: true });
-  };
+    // The latest opens as the feature's session, as its row does.
+    const path = index === 0 ? sessionPath(folder) : sessionIdPath(id);
+    const started = `${day(row.startedAt)}, ${clock(row.startedAt)}`;
+    return [
+      {
+        card: sessionCard(row),
+        icon: "uraeda:terminal",
+        id: path,
+        kind: "sessions",
+        path,
+        preview: [row.statusLabel, started].join("\n"),
+        title: `${started} · ${row.statusLabel}`,
+      },
+    ];
+  });
+  useKeys([
+    ...(sessions.length > 0
+      ? [
+          {
+            hint: "s",
+            keys: "s",
+            label: sessions.length > 1 ? "sessions" : "session",
+            run: () => {
+              if (sessions.length === 1) {
+                navigate(here(sessionPath(folder)));
+              } else {
+                setDrawn(true);
+                setPicking(true);
+              }
+            },
+          },
+        ]
+      : []),
+    ...(start ? [{ hint: "S", keys: "S", label: "new session", run: start }] : []),
+  ]);
   return (
-    <>
-      <Button clickAction={start} label="New session" size="sm" variant="secondary" />
-      {error && <StatusText tone="error">{error}</StatusText>}
-    </>
+    isDrawn && (
+      <KeyPicker
+        isOpen={isPicking}
+        items={items}
+        onClose={() => setPicking(false)}
+        onPick={(item) => {
+          setPicking(false);
+          navigate(here(item.path));
+        }}
+        title="Open a session"
+      />
+    )
   );
 }
 
@@ -196,6 +225,10 @@ export function SessionsPane({
   sessions: ReadonlyArray<string>;
 }) {
   const agent = useAgent();
+  const here = useRepoPath();
+  const canStart = agent?.available !== false;
+  const start = () => navigate(here(newSessionPath(folder)));
+  const picker = useSessionKeys(folder, sessions, canStart ? start : undefined);
   return (
     <Pane count={sessions.length} title="Sessions">
       <VStack gap={3}>
@@ -205,13 +238,23 @@ export function SessionsPane({
             <SessionItem folder={folder} id={id} latest={index === 0} progress={progress} />
           </Suspense>
         ))}
-        {agent?.available !== false && <NewSession folder={folder} />}
+        {canStart && (
+          <HStack>
+            <Button
+              href={here(newSessionPath(folder))}
+              label="New session"
+              size="sm"
+              variant="secondary"
+            />
+          </HStack>
+        )}
         {agent?.available === false && (
           <Text color="secondary" type="supporting">
             {agent.name} is not available on this machine.
           </Text>
         )}
       </VStack>
+      {picker}
     </Pane>
   );
 }

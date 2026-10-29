@@ -58,6 +58,9 @@ function tools(cache: SessionCache, turn: number) {
 /** A wait that never ends but by the turn's end. */
 const never = () => new Promise<void>(() => {});
 
+/** How long the turn at work streams its tool calls: 12 hours, as long as a sandbox is open. */
+const AT_WORK_MS = 12 * 60 * 60 * 1000;
+
 const sum = (values: Array<number>) => values.reduce((total, value) => total + value, 0);
 
 /** What `git status` shows in `dir`, and its commit. */
@@ -139,7 +142,7 @@ test("the timer's waits leave no listener on the turn's signal", async () => {
   expect(getEventListeners(turn.signal, "abort")).toEqual([]);
 });
 
-test("the turn at work streams tool calls for 10 minutes, then ends done", async () => {
+test("the turn at work streams tool calls for 12 hours, then ends done", async () => {
   const waits: Array<number> = [];
   const { sessions } = await sandboxSessions(async (ms) => void waits.push(ms));
 
@@ -147,7 +150,7 @@ test("the turn at work streams tool calls for 10 minutes, then ends done", async
   await sessions.settled(turn);
 
   expect(sessions.cache.turn(turn)).toMatchObject({ kind: "workflow", state: "done" });
-  expect(sum(waits)).toBe(600_000);
+  expect(sum(waits)).toBe(AT_WORK_MS);
   const calls = tools(sessions.cache, turn);
   expect(calls.length).toBeGreaterThan(10);
   expect(calls.every((call) => call.status === "completed")).toBe(true);
@@ -181,7 +184,7 @@ test("a message sent during the turn at work waits for it, and does not cut it s
   await sessions.settled(working);
   await sessions.settled(message);
   expect(sessions.cache.turn(working)?.state).toBe("done");
-  expect(sum(waits)).toBe(600_000 + 3000);
+  expect(sum(waits)).toBe(AT_WORK_MS + 3000);
   expect(tools(sessions.cache, working).every((call) => call.status === "completed")).toBe(true);
   expect(sessions.cache.turn(message)?.state).toBe("done");
   expect(lastText(sessions.cache, message)).toBe(CANNED_REPLY);
@@ -213,13 +216,17 @@ test("the turn at work plays again from its start after a restart stopped it", a
   const dataDir = temporaryFolder("sandbox-restart");
   const cache = join(dataDir, "runner.sqlite");
   let reached!: () => void;
-  const atFirstWait = new Promise<void>((resolve) => (reached = resolve));
-  // The first sandbox's turn at work holds at its first wait, a tool call started, until it stops.
+  const atThirdWait = new Promise<void>((resolve) => (reached = resolve));
+  // The first sandbox's turn at work holds at its third wait, three tool calls started, until it
+  // stops.
+  let firstWaits = 0;
   const first = fakeSessions({
     adapter: sandboxAgent({
-      wait: () => {
-        reached();
-        return never();
+      wait: async () => {
+        if (++firstWaits === 3) {
+          reached();
+          await never();
+        }
       },
     }),
     cache,
@@ -228,27 +235,46 @@ test("the turn at work plays again from its start after a restart stopped it", a
   try {
     await first.sessions.check();
     ({ turn: stopped } = await atWork(first.sessions, sample));
-    await atFirstWait;
+    await atThirdWait;
   } finally {
     await first.sessions.closeAll();
     first.sessions.close();
     first.sessions.cache.db.close();
   }
 
+  // The second sandbox's turn holds at its first wait: played through, its 12 hours take minutes
+  // on the file's cache, and a turn's end is the 12 hours' test's to check.
   const waits: Array<number> = [];
+  let started!: () => void;
+  const atFirstWait = new Promise<void>((resolve) => (started = resolve));
   const { adapter, sessions } = fakeSessions({
-    adapter: sandboxAgent({ wait: async (ms) => void waits.push(ms) }),
+    adapter: sandboxAgent({
+      wait: (ms) => {
+        waits.push(ms);
+        started();
+        return never();
+      },
+    }),
     cache,
   });
   open = sessions;
   await sessions.check();
   const { turn } = await atWork(sessions, sample);
-  await sessions.settled(turn);
+  await atFirstWait;
+  await sessions.closeAll();
 
+  /** The targets of a turn's own tool calls: its sub-agents, and their calls, left out. */
+  const targets = (id: number) =>
+    tools(sessions.cache, id)
+      .filter((call) => call.parent === undefined && call.subagent === undefined)
+      .map((call) => call.target);
+  const plan = `specs/${SAMPLE_FOLDERS.features.implementation}/plan.md`;
   expect(sessions.cache.turn(stopped)?.state).toBe("stopped");
-  expect(tools(sessions.cache, stopped).length).toBeGreaterThan(0);
-  expect(sessions.cache.turn(turn)?.state).toBe("done");
-  expect(sum(waits)).toBe(600_000);
+  expect(targets(stopped)).toHaveLength(3);
+  expect(targets(turn)).toEqual([plan]);
+  expect(targets(stopped)[0]).toBe(plan);
+  // The first call's share of the 12 hours: 15 seconds.
+  expect(waits).toEqual([15_000]);
   expect(adapter.opens).toHaveLength(1);
 });
 

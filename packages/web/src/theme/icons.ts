@@ -8,6 +8,7 @@ import {
   bookOpen,
   bot,
   calendarClock,
+  columns3,
   comment,
   component,
   crop,
@@ -47,6 +48,7 @@ import {
   questions,
   repeat,
   review,
+  rows3,
   ruler,
   scanEye,
   server,
@@ -66,7 +68,7 @@ import {
 import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
 import { badgeCheck, hourglass, keyboard, lightbulb, map, scale, shield } from "./lucideParts.ts";
 import { filePenLine, gitCompare, listChecks, users } from "./sessionIcons.ts";
-import { arrowRightLeft, brain, trash } from "./activityIcons.ts";
+import { arrowRightLeft, brain, indent, outdent, trash } from "./activityIcons.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
 // Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The README's
@@ -185,6 +187,7 @@ export const uraedaIcons = {
   "uraeda:book-open": bookOpen,
   "uraeda:bot": bot,
   "uraeda:brain": brain,
+  "uraeda:columns-3": columns3,
   "uraeda:comment": comment,
   "uraeda:crop": crop,
   "uraeda:database": database,
@@ -204,6 +207,7 @@ export const uraedaIcons = {
   "uraeda:home": home,
   "uraeda:hourglass": hourglass,
   "uraeda:inbox": inbox,
+  "uraeda:indent": indent,
   "uraeda:key-round": keyRound,
   "uraeda:keyboard": keyboard,
   "uraeda:layers": layers,
@@ -215,6 +219,7 @@ export const uraedaIcons = {
   "uraeda:maximize": maximize,
   "uraeda:minimize": minimize,
   "uraeda:monitor": monitor,
+  "uraeda:outdent": outdent,
   "uraeda:palette": palette,
   "uraeda:panel-left": panelLeft,
   "uraeda:panel-right": panelRight,
@@ -222,6 +227,7 @@ export const uraedaIcons = {
   "uraeda:pick": pick,
   "uraeda:plug": plug,
   "uraeda:plus": plus,
+  "uraeda:rows-3": rows3,
   "uraeda:ruler": ruler,
   "uraeda:scale": scale,
   "uraeda:server": server,

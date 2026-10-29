@@ -20,9 +20,6 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** The block's pane, titled by the revision's record line: drawn once the page is. */
-const BLOCK = "Spec to review, revision 2, about 10 minutes.";
-
 /**
  * The spec at its second revision, waiting for review, in titled panes: the block, "Since your
  * review" listing the parts changed since revision 1, each marked Δ in the page, your review
@@ -32,21 +29,8 @@ const BLOCK = "Spec to review, revision 2, about 10 minutes.";
  */
 export const Waiting: Story = {};
 
-/** The same spec approved: its approval record first, the same panes, no Review tab, no verdict. */
+/** The same spec approved: its approval record first, the same panes, no review, no verdict. */
 export const Approved: Story = { args: { folder: SPEC_PAGES.approved } };
-
-/**
- * The column's Review tab: the comments with their places, then "Request changes" and "Approve".
- * On the phone, the same list opens from the status line's "Verdict".
- */
-export const ReviewTab: Story = {
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement);
-    await page.findByRole("region", { name: BLOCK });
-    const tab = page.queryByRole("tab", { name: /^Review/ });
-    await userEvent.click(tab ?? page.getByRole("button", { name: /^Verdict/ }));
-  },
-};
 
 /**
  * "Ask the agent" on a rule of Task storage: the column's Session tab opens, its composer holding

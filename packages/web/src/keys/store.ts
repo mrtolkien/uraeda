@@ -24,6 +24,10 @@ export type Binding = {
    * the binding's `run` never fires under a layer, whose owner takes its own keys.
    */
   hintInLayer?: boolean;
+  /** The words the status line says after the hint's keys, where they are not the binding's label. */
+  hintLabel?: string;
+  /** The keys a click on the hint presses, where they are not the binding's own: "space". */
+  hintPress?: string;
   icon?: IconName;
   /**
    * One token, or tokens separated by spaces for a sequence: "j", "J", "ArrowDown", "Home",
@@ -46,7 +50,12 @@ export type Binding = {
 export type Place = "page" | "shell";
 
 /** A key that works, and what it does, as the status line shows it: "j k" "move". */
-export type StatusHint = { keys: string; label: string };
+export type StatusHint = {
+  keys: string;
+  label: string;
+  /** The keys of the binding that named it, which a click on the hint presses. */
+  press: string;
+};
 
 /** A hint of the registry, and whether it stays while a layer is open. */
 export type Hint = StatusHint & { inLayer: boolean };
@@ -93,8 +102,8 @@ function assertCanonical(bindings: ReadonlyArray<Binding>) {
     if (bad !== undefined) {
       throw new Error(
         `"${keys}" (${label}) can never run: "${bad}" is not a key as the browser names it ` +
-          `(modifiers lowercase, "mod+" only before a printable character, named keys as in ` +
-          `event.key, Space as "space")`,
+          `(modifiers lowercase, "mod+" only before a lowercase character or a named key, ` +
+          `named keys as in event.key, Space as "space")`,
       );
     }
   }
@@ -118,6 +127,15 @@ function assertGroupsNamed(bindings: ReadonlyArray<Binding>) {
   }
 }
 
+/** The hints that come first in the status line, by their keys, in this order. */
+const FIRST_HINTS = ["space", "[ ]"];
+
+/** A hint's place among the first hints, by its keys: past them for any other. */
+const rank = (keys: string) => {
+  const at = FIRST_HINTS.indexOf(keys);
+  return at === -1 ? FIRST_HINTS.length : at;
+};
+
 export function createKeyStore(initialSingleKeys: boolean) {
   const entries = new Map<string, Entry>();
   const listeners = new Set<() => void>();
@@ -140,7 +158,8 @@ export function createKeyStore(initialSingleKeys: boolean) {
       const hint = {
         inLayer: binding.hintInLayer === true,
         keys: binding.hint,
-        label: binding.label,
+        label: binding.hintLabel ?? binding.label,
+        press: binding.hintPress ?? binding.keys,
       };
       const id = `${hint.keys} ${hint.label}`;
       if (hint.keys === undefined || seen.has(id)) {
@@ -149,6 +168,9 @@ export function createKeyStore(initialSingleKeys: boolean) {
       seen.add(id);
       return [{ ...hint, keys: hint.keys }];
     });
+    // The leader's hint, "space menu", is always the first, the way into every other key, and the
+    // sidebars' folds the second; the others keep their order after them.
+    next.sort((a, b) => rank(a.keys) - rank(b.keys));
     if (JSON.stringify(next) !== JSON.stringify(hints)) {
       hints = next;
       for (const listener of listeners) {

@@ -55,6 +55,32 @@ fn a_note_is_added_last_in_its_category() {
     assert_eq!(api::read_inbox(repo.path()).unwrap(), added);
 }
 
+/// A blank category is no category: the note goes with the notes without one, under no heading of
+/// no name.
+#[test]
+fn a_note_added_to_a_blank_category_has_none() {
+    let repo = fixture_repo();
+    let before = repo.read(INBOX);
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    api::add_note(repo.path(), Some("  ".into()), None, "Loose", &read.hash).unwrap();
+
+    let after = repo.read(INBOX);
+    assert!(!after.contains("## \n"), "{after}");
+    assert!(!after.contains("##  \n"), "{after}");
+    let expected = api::read_inbox(repo.path()).unwrap();
+    let loose = expected
+        .categories
+        .iter()
+        .find(|category| category.name.is_none())
+        .unwrap();
+    assert!(
+        loose.notes.iter().any(|note| note.text == "Loose"),
+        "{after}"
+    );
+    assert_ne!(after, before);
+}
+
 /// US1 6: the first note creates the file.
 #[test]
 fn the_first_note_creates_the_inbox() {
@@ -297,7 +323,7 @@ fn only_a_stale_edit_is_a_conflict() {
     );
     assert_eq!(code("the branch changed on disk meanwhile"), "refused");
     assert_eq!(
-        api::ApiError::from(ActionError::changed("specs/drafts/x.md")).code,
+        api::ApiError::from(ActionError::changed("specs/proposals/x.md")).code,
         "conflict"
     );
 }

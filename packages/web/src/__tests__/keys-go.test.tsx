@@ -5,22 +5,23 @@ import { act, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { atRepo, atWidth, quiet, renderPage } from "./helpers.tsx";
 
-const scrollBy = vi.fn();
 const scrollTo = vi.fn();
+
+/** Where the page is scrolled: the vertical keys glide its `scrollTop`. */
+const scrolled = () => document.documentElement.scrollTop;
 
 beforeEach(() => {
   atWidth(1440);
-  window.scrollBy = scrollBy;
   window.scrollTo = scrollTo;
   Object.defineProperty(document.documentElement, "scrollHeight", {
     configurable: true,
     value: 5000,
   });
+  document.documentElement.scrollTop = 0;
 });
 
 afterEach(() => {
   vi.useRealTimers();
-  scrollBy.mockReset();
   scrollTo.mockReset();
 });
 
@@ -65,22 +66,34 @@ test("g g scrolls the page to the top (US2 2)", async () => {
   expect(scrollTo.mock.calls[0]?.[0]).toMatchObject({ top: 0 });
 });
 
+// On the settings, a page with no rows, where `j` scrolls: home's lists take it.
 test("a pending g ends after 2 seconds, and a later key acts as itself (US2 3)", async () => {
-  await loaded("/");
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  await loaded("/settings");
+  // The frames too, which the scroll glides on.
+  vi.useFakeTimers({
+    toFake: [
+      "setTimeout",
+      "clearTimeout",
+      "requestAnimationFrame",
+      "cancelAnimationFrame",
+      "performance",
+    ],
+  });
   press("g");
   act(() => void vi.advanceTimersByTime(1999));
   // Still pending: the vertical key is the sequence's, and nothing scrolls.
   press("j");
-  expect(scrollBy).not.toHaveBeenCalled();
+  act(() => void vi.advanceTimersByTime(1000));
+  expect(scrolled()).toBe(0);
 
   press("g");
   act(() => void vi.advanceTimersByTime(2000));
   press("j");
-  expect(scrollBy).toHaveBeenCalledTimes(1);
+  act(() => void vi.advanceTimersByTime(1000));
+  expect(scrolled()).toBeGreaterThan(0);
   // And `i` is no longer the second key of a go.
   press("i");
-  expect(window.location.pathname).toBe(atRepo("/"));
+  expect(window.location.pathname).toBe(atRepo("/settings"));
 });
 
 test("after the 2 seconds a go key's pending g is over, and `a` acts as the page's own (US2 3)", async () => {

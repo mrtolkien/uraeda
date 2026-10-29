@@ -2,36 +2,28 @@ import { Blockquote } from "@astryxdesign/core/Blockquote";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
-import { List, ListItem } from "@astryxdesign/core/List";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useLayoutEffect, useMemo, useRef } from "react";
-import type { Block, Document } from "uraeda-binding";
-import { proseStyles } from "./Prose.tsx";
+import { type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { Block, Document, Span } from "uraeda-binding";
+import { listStyles, ListNode } from "./BlockList.tsx";
+import { proseRhythm, proseStyles } from "./Prose.tsx";
 import { Diagram, type Place } from "./Diagram.tsx";
 import { type Fold, FoldNode, type Folds, useHashFold } from "./Folds.tsx";
 import { useStaticImages } from "./ImageView.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
-import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { After, Selectable, type Selection } from "./Selection.tsx";
+import { firstSentence } from "./sentences.ts";
 import { SinceBlock, SinceScoped, SinceWords } from "./sinceMarks.tsx";
 import { TableNode } from "./BlockTable.tsx";
 import { opensImage, Spans } from "./Spans.tsx";
 import { EmbedNode } from "./EmbedNode.tsx";
 import { useMockupAt, useStoryAt } from "./stories.tsx";
 import { ruleStyles } from "./layout/rules.ts";
+import { tableVars } from "./layout/table.stylex.ts";
 
-const SIGNS: Record<string, string> = {
-  ask: "?",
-  con: "−",
-  important: "!",
-  note: "&",
-  pro: "+",
-  question: "?",
-  warning: "⚠",
-};
-
+/** A callout's title when it has none of its own, by its kind. */
 const CALLOUT_TITLES: Record<string, string> = {
   caution: "Caution",
   important: "Important",
@@ -42,16 +34,17 @@ const CALLOUT_TITLES: Record<string, string> = {
 };
 
 const styles = stylex.create({
-  // A table as wide as its columns: past the reading measure into the page's margin, scrolling only
-  // past that.
-  // Its maximum width is set by `TableBlock`, which measures what remains of the screen.
+  // A section that reads as prose, a round's context: more room between its paragraphs.
+  airyParagraph: { marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-4"] } },
+  // Each block's room under it, but the last's of what holds it, a pane or a callout, which ends with
+  // it: its own room would add to the pane's under it.
   block: {
-    marginBlockEnd: spacingVars["--spacing-3"],
+    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-3"] },
   },
   callout: {
     // A callout: a bar down its side, coloured by its kind, its title above its text.
     borderInlineStartColor: colorVars["--color-accent"],
-    marginBlockEnd: spacingVars["--spacing-4"],
+    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-4"] },
   },
   calloutImportant: { borderInlineStartColor: colorVars["--color-border-purple"] },
   calloutTip: { borderInlineStartColor: colorVars["--color-success"] },
@@ -60,80 +53,52 @@ const styles = stylex.create({
     fontWeight: fontWeightVars["--font-weight-bold"],
   },
   calloutWarning: { borderInlineStartColor: colorVars["--color-warning"] },
-  con: { color: colorVars["--color-error"] },
-  dash: { color: colorVars["--color-text-secondary"] },
-  doc: {
-    // The page's inset, which a list's rows take back, so their text lines up with the paragraphs'.
-    "--container-padding-inline-start": spacingVars["--spacing-4"],
-  },
-  // On narrow screens, a list hangs its markers in the page's margin, as far as their room
-  // (`--list-marker`) and the page's inset allow: the text of a list of dashes on the paragraphs'
-  // edge, wider markers' text in by what the inset lacks; a nested list's text one character in from
-  // its parent's.
-  hanging: {
-    marginInlineStart: `calc(-1 * min(var(--list-marker), var(--page-inset, ${spacingVars["--spacing-3"]})))`,
-  },
-  hangingNested: {
-    marginInlineStart: `calc(1ch - min(var(--list-marker), var(--page-inset, ${spacingVars["--spacing-3"]}) + 1ch))`,
-  },
-  hangingRow: { gap: 0 },
-  hangingSign: {
-    // The marker's room, as wide as the list's widest marker, its sign at its end, before the text,
-    // on one line.
-    boxSizing: "border-box",
-    display: "flex",
-    flexShrink: 0,
-    justifyContent: "flex-end",
-    minWidth: 0,
-    paddingInlineEnd: spacingVars["--spacing-1"],
-    whiteSpace: "nowrap",
-    width: "var(--list-marker)",
-  },
   heading: {
     marginBlockEnd: spacingVars["--spacing-2"],
     marginBlockStart: { ":first-child": 0, default: spacingVars["--spacing-6"] },
   },
-  important: { color: colorVars["--color-warning"] },
-  item: {
-    // A list item's text, at the reading size, which Astryx's rows set smaller.
-    whiteSpace: "normal",
+  // A leading paragraph's first sentence, on a line of its own, and the rest under it, dimmer.
+  leadRest: { color: colorVars["--color-text-secondary"], display: "block" },
+  leadSentence: {
+    color: colorVars["--color-text-primary"],
+    display: "block",
+    fontWeight: fontWeightVars["--font-weight-medium"],
   },
-  list: {
-    // A list's margin, but last in its item or callout, which end with it.
-    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-3"] },
+  // A table as wide as its columns: past the reading measure into the page's margin, scrolling only
+  // past that.
+  // Its maximum width is set by `TableBlock`, which measures what remains of the screen.
+  table: {
+    // A card's block padding is not the table's to take back, as Astryx's table does in a card
+    // (`containerBleed`): it is a block among others, with room before and after it, but at the
+    // start and end of what holds it.
+    "--container-padding-block-end": "0px",
+    "--container-padding-block-start": "0px",
+    // Its rows' lines run as far as `--table-bleed` past its sides, its holder's room, as a pane's
+    // to its border: Astryx's table takes it back, its first and last columns' text then at the
+    // text's edges. None outside a holder.
+    "--container-padding-inline-end": "var(--table-bleed, 0px)",
+    "--container-padding-inline-start": "var(--table-bleed, 0px)",
+    marginBlockEnd: { ":last-child": 0, default: spacingVars["--spacing-5"] },
+    marginBlockStart: { ":first-child": 0, default: spacingVars["--spacing-5"] },
+    maxWidth: "100%",
+    minWidth: "100%",
+    width: "max-content",
   },
-  // The room of a hanging list's markers, its gap before the text included.
-  markerRoom: (width: string) => ({ "--list-marker": width }),
-  paragraph: {
-    marginBlockEnd: spacingVars["--spacing-3"],
-    marginBlockStart: 0,
-  },
-  pro: { color: colorVars["--color-success"] },
-  row: {
-    // A list's row, as tall as its text: a touch screen's 44 px rows (`theme.ts`) are for controls,
-    // and would push a one-line item's text below its marker.
-    minHeight: 0,
-  },
-  sign: {
-    fontWeight: fontWeightVars["--font-weight-bold"],
-    minWidth: spacingVars["--spacing-4"],
-  },
-  table: { maxWidth: "100%", minWidth: "100%", width: "max-content" },
-  warning: { color: colorVars["--color-warning"] },
+  // Into the margin, `--table-reach` past its text, as far as `room`, the screen's edge.
+  // Its widest as a property of its own, as the token lint takes a `var()` only whole, not in a
+  // calc.
+  reach: (room: number) => ({
+    "--table-widest": `min(calc(100% + var(--table-reach, ${tableVars["--table-reach-free"]})), ${room}px)`,
+    maxWidth: "var(--table-widest)",
+  }),
 });
 
+/** A callout's bar's colour, by its kind: the accent's for the others. */
 const CALLOUT_STYLES: Record<string, stylex.StyleXStyles> = {
   caution: styles.calloutWarning,
   important: styles.calloutImportant,
   tip: styles.calloutTip,
   warning: styles.calloutWarning,
-};
-
-const SIGN_STYLES: Record<string, stylex.StyleXStyles> = {
-  con: styles.con,
-  important: styles.important,
-  pro: styles.pro,
-  warning: styles.warning,
 };
 
 /** The children of each block, by id. */
@@ -152,11 +117,17 @@ function useChildren(document: Document) {
 export type BlockContext = {
   children: Map<number | undefined, Array<Block>>;
   document: Document;
+  /** Its paragraphs given more room between them, as a round's context's (see `Blocks`). */
+  isAiry?: boolean;
+  /** The paragraph whose first sentence leads, set apart: a round's goal's first. */
+  lead?: number;
   /** Draws a block its own way, when it returns something. */
   override?: (block: Block) => ReactNode | undefined;
   /** The room a jump to a heading leaves above it, as below the phone's tabs. */
   scrollMargin: stylex.StyleXStyles;
   selection?: Selection;
+  /** Its list items' sentences after their first, each a bullet under it: a round's settled points. */
+  splitsItems?: boolean;
   /** Whether images are drawn alone, inside a control: no lightbox, so no dialog to hold. */
   staticImages: boolean;
 };
@@ -172,131 +143,62 @@ function diagramPlace(block: Block, document: Document): Place {
   };
 }
 
-/** A table in a block of its own, which may reach into the margin, as far as the screen's edge. */
+/**
+ * A table in a block of its own, which may reach into the margin, `--table-reach` past its text, as
+ * far as the screen's edge: 16rem, or none where a box holds it, as a question's card.
+ */
 function TableBlock({ block, context }: { block: Block; context: BlockContext }) {
   const ref = useRef<HTMLDivElement>(null);
+  // The room to the screen's edge, measured once drawn, before it shows, and as the window resizes.
+  const [room, setRoom] = useState<number>();
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) {
       return;
     }
-    const measure = () => {
-      const room = window.innerWidth - element.getBoundingClientRect().left - 16;
-      element.style.maxWidth = `min(calc(100% + 16rem), ${Math.max(0, room)}px)`;
-    };
+    const measure = () =>
+      setRoom(Math.max(0, window.innerWidth - element.getBoundingClientRect().left - 16));
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, []);
+  // The table itself, drawn again only for its own changes, not as the window resizes.
+  const table = useMemo(() => <TableNode block={block} context={context} />, [block, context]);
   return (
-    <div {...stylex.props(styles.block, styles.table)} ref={ref}>
-      <TableNode block={block} context={context} />
+    <div
+      {...stylex.props(styles.block, styles.table, room !== undefined && styles.reach(room))}
+      ref={ref}
+    >
+      {table}
     </div>
   );
 }
 
+/** A block's children, each drawn as its kind. */
 function Children({ block, context }: { block: Block; context: BlockContext }) {
   return (context.children.get(block.id) ?? []).map((child) => (
     <BlockNode block={child} context={context} key={child.id} />
   ));
 }
 
-/** The sign a typed bullet or a task item shows in place of its marker. */
-function signOf(block: Block) {
-  const marker = block.marker ?? "plain";
-  if (marker === "task") {
-    return block.checked ? "☑" : "☐";
-  }
-  return marker in SIGNS ? SIGNS[marker] : undefined;
-}
-
 /**
- * The room a hanging list gives its markers, gap included: a dash's, a sign's, or its longest
- * number's and its dot, in the font the list is drawn in.
+ * A paragraph that leads: its first sentence on a line of its own, in the text's colour and
+ * heavier, the rest under it in the secondary colour, so that what a section is about reads first.
  */
-function markerRoom(list: Block, items: Array<Block>) {
-  if (list.ordered) {
-    const digits = String((list.start ?? 1) + Math.max(items.length - 1, 0)).length;
-    return `calc(${digits}ch + 0.5ch + ${spacingVars["--spacing-1"]})`;
+function Led({ spans }: { spans: ReadonlyArray<Span> }) {
+  const split = firstSentence(spans);
+  if (!split) {
+    return <Spans isAlone spans={spans} />;
   }
-  return items.some((item) => signOf(item) !== undefined)
-    ? `calc(1em + ${spacingVars["--spacing-1"]})`
-    : spacingVars["--spacing-3"];
-}
-
-/**
- * The marker a row shows before its text, if not the list's own: its typed sign, or, where the list
- * hangs its markers, its number or a dash, an ordered row's sign after its number.
- */
-function rowMarker(list: Block, item: Block, index: number, isHanging: boolean) {
-  const marker = item.marker ?? "plain";
-  const sign = signOf(item);
-  const signed = (isHanging: boolean) =>
-    sign && (
-      <span
-        aria-hidden="true"
-        {...stylex.props(styles.sign, isHanging && styles.hangingSign, SIGN_STYLES[marker])}
-      >
-        {sign}
-      </span>
-    );
-  if (isHanging && list.ordered) {
-    return (
-      <>
-        <span {...stylex.props(styles.hangingSign)}>{(list.start ?? 1) + index}.</span>
-        {signed(false)}
-      </>
-    );
-  }
-  if (isHanging && !sign) {
-    return (
-      <span aria-hidden="true" {...stylex.props(styles.hangingSign, styles.dash)}>
-        -
-      </span>
-    );
-  }
-  return signed(isHanging);
-}
-
-function ListNode({ block, context }: { block: Block; context: BlockContext }) {
-  const items = context.children.get(block.id) ?? [];
-  // On narrow screens, every row draws its own marker, hanging in the page's margin.
-  const isHanging = isNarrow(useWidthClass());
-  const parent = block.parent === undefined ? undefined : context.document.blocks[block.parent];
-  // A list of typed bullets shows their signs only.
-  const signed = items.length > 0 && items.every((item) => signOf(item) !== undefined);
   return (
-    <List
-      density="compact"
-      edge="flush"
-      listStyle={isHanging ? "none" : block.ordered ? "decimal" : signed ? "none" : "disc"}
-      start={block.ordered ? (block.start ?? 1) : undefined}
-      xstyle={[
-        styles.list,
-        isHanging && styles.markerRoom(markerRoom(block, items)),
-        isHanging && (parent?.kind === "item" ? styles.hangingNested : styles.hanging),
-      ]}
-    >
-      {items.map((item, index) => (
-        <ListItem
-          // A marker beside a wrapping item stays on its first line.
-          align="first-line"
-          key={item.id}
-          label={
-            <Selectable block={item} selection={context.selection}>
-              <div {...stylex.props(proseStyles.reading, styles.item)}>
-                <SinceWords block={item}>
-                  <Spans spans={item.spans} />
-                </SinceWords>
-                <Children block={item} context={context} />
-              </div>
-            </Selectable>
-          }
-          startContent={rowMarker(block, item, index, isHanging)}
-          xstyle={[styles.row, isHanging && styles.hangingRow]}
-        />
-      ))}
-    </List>
+    <>
+      <span {...stylex.props(styles.leadSentence)}>
+        <Spans spans={split[0]} />
+      </span>
+      <span {...stylex.props(styles.leadRest)}>
+        <Spans spans={split[1]} />
+      </span>
+    </>
   );
 }
 
@@ -323,19 +225,29 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
       return (
         <Paragraph
           as={!context.staticImages && block.spans.some(opensImage) ? "div" : "p"}
-          xstyle={styles.paragraph}
+          xstyle={[proseRhythm.paragraph, context.isAiry && styles.airyParagraph]}
         >
           <SinceWords block={block}>
-            <Spans isAlone spans={block.spans} />
+            {block.id === context.lead ? (
+              <Led spans={block.spans} />
+            ) : (
+              <Spans isAlone spans={block.spans} />
+            )}
           </SinceWords>
         </Paragraph>
       );
     case "list":
-      return <ListNode block={block} context={context} />;
+      return (
+        <ListNode
+          block={block}
+          context={context}
+          nested={(item) => <Children block={item} context={context} />}
+        />
+      );
     case "item":
       // Drawn by its list, or alone, as an option's plain bullet: its text, then its blocks.
       return (
-        <div {...stylex.props(proseStyles.reading, styles.item)}>
+        <div {...stylex.props(proseStyles.reading, listStyles.item, proseRhythm.item)}>
           <SinceWords block={block}>{spans}</SinceWords>
           <Children block={block} context={context} />
         </div>
@@ -424,36 +336,53 @@ function BlockNode({ block, context }: { block: Block; context: BlockContext }):
 export function Blocks({
   document,
   folds,
+  hasLead = false,
   ids,
+  isAiry = false,
   override,
   selection,
+  splitsItems = false,
 }: {
   document: Document;
   folds?: Folds;
+  /** Its first paragraph's first sentence leads, apart from the rest: a round's goal. */
+  hasLead?: boolean;
   ids?: ReadonlyArray<number>;
+  /** Prose given air: a shorter line, taller lines, more room between paragraphs. */
+  isAiry?: boolean;
   override?: (block: Block) => ReactNode | undefined;
   selection?: Selection;
+  /** Its list items' sentences after their first, each a bullet under it. */
+  splitsItems?: boolean;
 }) {
   const children = useChildren(document);
   useHashFold(document, folds);
-  const context = {
-    children,
-    document,
-    override,
-    scrollMargin: useScrollMargin(),
-    selection,
-    staticImages: useStaticImages(),
-  };
   const blocks = ids
     ? ids.map((id) => document.blocks[id]).filter(Boolean)
     : (children.get(undefined) ?? []);
+  const lead = hasLead ? blocks.find((block) => block.kind === "paragraph")?.id : undefined;
+  const context: BlockContext = {
+    children,
+    document,
+    isAiry,
+    ...(lead === undefined ? {} : { lead }),
+    ...(override ? { override } : {}),
+    scrollMargin: useScrollMargin(),
+    ...(selection ? { selection } : {}),
+    splitsItems,
+    staticImages: useStaticImages(),
+  };
   const folded = new Map<number, Fold | undefined>();
   for (const fold of folds?.list ?? []) {
     fold.ids.forEach((id, index) => folded.set(id, index === 0 ? fold : undefined));
   }
   return (
     <SinceScoped document={document}>
-      <div {...stylex.props(proseStyles.doc, styles.doc)}>
+      <div
+        // Such a section's text: as wide as its pane, which its page keeps narrow, about 80
+        // characters a line, and more room between its lines.
+        {...stylex.props(proseStyles.doc, isAiry && proseStyles.paneWide)}
+      >
         {blocks.map((block) => {
           if (!folded.has(block.id)) {
             return <BlockNode block={block} context={context} key={block.id} />;

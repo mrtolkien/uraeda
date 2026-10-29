@@ -11,22 +11,24 @@ use napi::bindgen_prelude::{AsyncTask, Buffer, ToNapiValue, TypeName};
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, Status, Task};
 use napi_derive::napi;
-use uraeda_core::actions::commit::PrioritiesAdded;
 use uraeda_core::api::{self, ApiError, BranchDecision, Ledger};
 use uraeda_core::changes::{self, BranchChanges};
 use uraeda_core::files::preview::Preview;
 use uraeda_core::files::priorities::Priorities;
 use uraeda_core::files::stories::{self, StoryTarget};
 use uraeda_core::view::{
-    AddedView, AttachedView, CommitView, DraftView, FeatureView, FileView, NextView, ProposalHint,
-    RepositoryView, StartedView, WorkspaceView,
+    AddedView, AttachedView, CommitView, FeatureView, FileView, NextView, ProposalFileView,
+    ProposalHint, RepositoryView, StartedView, WorkspaceView,
 };
 use uraeda_core::watch::{self, Changes};
 
 pub mod file_writes;
 pub mod history;
+pub mod inbox_categories;
 pub mod inbox_writes;
 pub mod moves;
+pub mod note_images;
+pub mod proposal_writes;
 pub mod settings;
 
 /// A core operation, run off the main thread.
@@ -93,7 +95,7 @@ pub fn checkout_commit(checkout: String) -> AsyncTask<Job<Option<String>>> {
     job(move || api::checkout_commit(Path::new(&checkout)))
 }
 
-/// Every feature, change, and priority of the repository at `repo`.
+/// Every feature, change, and proposal of the repository at `repo`.
 #[napi(ts_return_type = "Promise<WorkspaceView>")]
 pub fn read_workspace(repo: String) -> AsyncTask<Job<WorkspaceView>> {
     job(move || api::read_workspace(Path::new(&repo)))
@@ -130,15 +132,15 @@ pub fn read_ledger(repo: String) -> AsyncTask<Job<Ledger>> {
     job(move || api::read_ledger(Path::new(&repo)))
 }
 
-/// A draft, by its path from the top level.
-#[napi(ts_return_type = "Promise<DraftView>")]
-pub fn read_draft(repo: String, path: String) -> AsyncTask<Job<DraftView>> {
-    job(move || api::read_draft(Path::new(&repo), &path))
+/// A proposal file, by its path from the top level.
+#[napi(ts_return_type = "Promise<ProposalFileView>")]
+pub fn read_proposal_file(repo: String, path: String) -> AsyncTask<Job<ProposalFileView>> {
+    job(move || api::read_proposal_file(Path::new(&repo), &path))
 }
 
-/// A draft or a proposal, for its editor, by its path from the top level.
-#[napi(ts_return_type = "Promise<DraftView>")]
-pub fn read_text(repo: String, path: String) -> AsyncTask<Job<DraftView>> {
+/// A proposal file or a proposal, for its editor, by its path from the top level.
+#[napi(ts_return_type = "Promise<ProposalFileView>")]
+pub fn read_text(repo: String, path: String) -> AsyncTask<Job<ProposalFileView>> {
     job(move || api::read_text(Path::new(&repo), &path))
 }
 
@@ -180,14 +182,19 @@ pub fn main_root(repo: String) -> AsyncTask<Job<String>> {
     job(move || api::main_root(Path::new(&repo)))
 }
 
-/// Drafts a priority line by its id, like `next-2`, over the priorities read at `previous`.
-#[napi(ts_return_type = "Promise<DraftView>")]
-pub fn create_draft(repo: String, id: String, previous: String) -> AsyncTask<Job<DraftView>> {
-    job(move || api::create_draft(Path::new(&repo), &id, &previous))
+/// Expands a proposal into a file by its id, like `next-2`, over the priorities read at
+/// `previous`.
+#[napi(ts_return_type = "Promise<ProposalFileView>")]
+pub fn expand_proposal(
+    repo: String,
+    id: String,
+    previous: String,
+) -> AsyncTask<Job<ProposalFileView>> {
+    job(move || api::expand_proposal(Path::new(&repo), &id, &previous))
 }
 
-/// Saves a draft or a proposal as typed, over the version read at `previous`; resolves with the
-/// new hash.
+/// Saves a proposal file or a proposal as typed, over the version read at `previous`; resolves with
+/// the new hash.
 #[napi(ts_return_type = "Promise<string>")]
 pub fn save_text(
     repo: String,
@@ -198,18 +205,19 @@ pub fn save_text(
     job(move || api::save_text(Path::new(&repo), &path, &text, &previous))
 }
 
-/// Sets the discovery effort of a draft or a proposal, over the version read at `previous`.
-#[napi(ts_return_type = "Promise<DraftView>")]
+/// Sets the discovery effort of a proposal file or a proposal, over the version read at `previous`.
+#[napi(ts_return_type = "Promise<ProposalFileView>")]
 pub fn set_discovery(
     repo: String,
     path: String,
     level: String,
     previous: String,
-) -> AsyncTask<Job<DraftView>> {
+) -> AsyncTask<Job<ProposalFileView>> {
     job(move || api::set_discovery(Path::new(&repo), &path, &level, &previous))
 }
 
-/// Commits a draft, with the priorities when they changed, or a proposal.
+/// Commits a proposal file or a note file, with the priorities and the inbox when they changed, or
+/// a proposal.
 #[napi(ts_return_type = "Promise<CommitView>")]
 pub fn commit_text(repo: String, path: String) -> AsyncTask<Job<CommitView>> {
     job(move || api::commit_text(Path::new(&repo), &path))
@@ -221,20 +229,20 @@ pub fn proposal_hints() -> AsyncTask<Job<Vec<ProposalHint>>> {
     job(api::proposal_hints)
 }
 
-/// Starts a drafted feature, or a change with the kind `"change"`, in its own worktree.
+/// Starts a proposed feature, or a change with the kind `"change"`, in its own worktree.
 #[napi(
-    ts_args_type = "repo: string, draft: string, slug?: string | undefined | null, kind?: \"feature\" | \"change\" | undefined | null",
+    ts_args_type = "repo: string, proposal: string, slug?: string | undefined | null, kind?: \"feature\" | \"change\" | undefined | null",
     ts_return_type = "Promise<StartedView>"
 )]
 pub fn start_feature(
     repo: String,
-    draft: String,
+    proposal: String,
     slug: Option<String>,
     kind: Option<String>,
 ) -> AsyncTask<Job<StartedView>> {
     job(move || {
         let kind = api::start_kind(kind.as_deref())?;
-        api::start_feature(Path::new(&repo), &draft, slug.as_deref(), kind)
+        api::start_feature(Path::new(&repo), &proposal, slug.as_deref(), kind)
     })
 }
 
@@ -264,98 +272,6 @@ pub fn propose_slug(text: String) -> String {
 #[napi]
 pub fn path_folder(path: String) -> Option<String> {
     uraeda_core::workspace::path_folder(&path).map(|(_, folder, _)| folder.to_string())
-}
-
-/// Adds a line at the end of a section of the priorities.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn add_priority(
-    repo: String,
-    section: String,
-    text: String,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::add_priority(Path::new(&repo), &section, &text, &previous))
-}
-
-/// Adds a line at the end of a section of the priorities, then commits `PRIORITIES.md` alone when
-/// it had no other change: "Add and commit".
-#[napi(ts_return_type = "Promise<PrioritiesAdded>")]
-pub fn add_priority_and_commit(
-    repo: String,
-    section: String,
-    text: String,
-    previous: String,
-) -> AsyncTask<Job<PrioritiesAdded>> {
-    job(move || {
-        let (priorities, added) =
-            api::add_priority_and_commit(Path::new(&repo), &section, &text, &previous)?;
-        Ok(PrioritiesAdded { priorities, added })
-    })
-}
-
-/// Takes back a committed add: the entry, `lines` as written, leaves the priorities, and the
-/// removal is committed alone.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn undo_committed_priority(
-    repo: String,
-    lines: Vec<String>,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::undo_committed_priority(Path::new(&repo), &lines, &previous))
-}
-
-/// Inserts a priority line with its nested lines, as written, before the line at `index` of a
-/// section, or at its end: Undo of a removal.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn insert_priority(
-    repo: String,
-    section: String,
-    index: u32,
-    lines: Vec<String>,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::insert_priority(Path::new(&repo), &section, index, &lines, &previous))
-}
-
-/// Moves a priority line before the line at `index` of a section, or to its end.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn move_priority(
-    repo: String,
-    id: String,
-    section: String,
-    index: u32,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::move_priority(Path::new(&repo), &id, &section, index, &previous))
-}
-
-/// Replaces a priority line's text.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn edit_priority(
-    repo: String,
-    id: String,
-    text: String,
-    previous: String,
-) -> AsyncTask<Job<Priorities>> {
-    job(move || api::edit_priority(Path::new(&repo), &id, &text, &previous))
-}
-
-/// Removes a priority line and its nested lines.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn remove_priority(repo: String, id: String, previous: String) -> AsyncTask<Job<Priorities>> {
-    job(move || api::remove_priority(Path::new(&repo), &id, &previous))
-}
-
-/// Commits the priorities alone.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn commit_priorities(repo: String) -> AsyncTask<Job<Priorities>> {
-    job(move || api::commit_priorities(Path::new(&repo)))
-}
-
-/// Restores the committed priorities.
-#[napi(ts_return_type = "Promise<Priorities>")]
-pub fn discard_priorities(repo: String) -> AsyncTask<Job<Priorities>> {
-    job(move || api::discard_priorities(Path::new(&repo)))
 }
 
 /// Uraeda's data folder: `custom` when set and not empty, else `URAEDA_DATA_DIR` from this
@@ -422,7 +338,7 @@ pub struct ImageFile {
 }
 
 /// Re-encodes an image, saves it in the `images/` folder next to the markdown file at `path`, and
-/// returns its link. `name` is the file's name, absent for a pasted image. A single-file draft
+/// returns its link. `name` is the file's name, absent for a pasted image. A single proposal file
 /// becomes a folder first.
 #[napi(ts_return_type = "Promise<AttachedView>")]
 pub fn attach_image(

@@ -1,14 +1,16 @@
 // The column's own parts, around the shell's panes of work: its heading with the logo and the
 // repository menu, New and Note, the Navigate pane with the inbox's and the priorities' ＋ and
-// counts, and at its foot the 5 h window and Settings. Folded to the rail, each row is its icon.
+// counts, and at its foot the 5 h window and Settings. The closed rail clips each row to its icon.
+import { NewMenu } from "./NewMenu.tsx";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { easeVars, focusVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, Suspense } from "react";
-import { useInbox } from "../data.ts";
+import { useInbox, usePriorities } from "../data.ts";
+import { useClosedRail } from "../layout/closedRail.ts";
+import { Logo } from "../Logo.tsx";
 import { RepositoryMenu } from "../RepositoryMenu.tsx";
 import { useRepoPath, useRepository } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
@@ -16,25 +18,45 @@ import { Allowance } from "../sidebar/Allowance.tsx";
 import { nowCount } from "../sidebar/entries.ts";
 import { Item } from "../sidebar/Row.tsx";
 import { DESTINATIONS } from "../destinations.ts";
-import { AddNoteButton, AddPriorityButton, useOpenAddForm } from "../SidebarAdd.tsx";
-import { useColumnFold } from "./fold.ts";
+import { AddNoteButton, AddProposalButton } from "../SidebarAdd.tsx";
+import { columnVars } from "./column.stylex.ts";
 import { ShellPane } from "./ShellPanes.tsx";
 
 const styles = stylex.create({
   actions: {
     display: "flex",
-    gap: spacingVars["--spacing-2"],
+    flexDirection: "column",
+    gap: spacingVars["--spacing-1"],
+  },
+  // Left-aligned, its icon under the heading's: the closed rail shows the icon alone.
+  action: {
+    justifyContent: "start",
+    // Their icons, 20 px, stand under the rows' below (`--column-action-nudge`).
+    paddingInlineStart: `calc(${spacingVars["--spacing-2"]} + ${columnVars["--column-action-nudge"]})`,
+    width: "100%",
+  },
+  // In the closed rail: the rail's box, its icon under the rows' and its label clipped.
+  actionRail: {
+    justifyContent: "start",
+    minWidth: 0,
+    overflow: "hidden",
+    paddingInlineEnd: 0,
+    paddingInlineStart: columnVars["--rail-fit-inset"],
+    width: columnVars["--rail-row-box"],
   },
   heading: {
-    // The fold button or the logo first, at the same spot folded and unfolded (C3), then the menu.
+    // The logo, or the rail's logo button, first, then the menu.
     alignItems: "flex-start",
     display: "flex",
-    gap: spacingVars["--spacing-1"],
+    gap: 0,
     minWidth: 0,
   },
-  hidden: {
-    // Still focusable, and shown once focused: only its look waits for the pointer.
-    opacity: { ":focus-visible": 1, "@media (hover: none)": 1, default: 0 },
+  logo: {
+    alignItems: "center",
+    display: "flex",
+    flexShrink: 0,
+    height: "var(--size-element-md)",
+    paddingInline: spacingVars["--spacing-2"],
   },
   menu: {
     flexGrow: 1,
@@ -42,80 +64,165 @@ const styles = stylex.create({
   },
 });
 
+/** How long the column's width eases as it folds or unfolds (`Column.tsx`), which Unfold's room follows. */
+const FOLD_EASE = "200ms";
+
+const unfoldStyles = stylex.create({
+  // The gap under it, inside its room, which closes with it.
+  gap: { paddingBlockEnd: spacingVars["--spacing-1"] },
+  inner: { minHeight: 0 },
+  // Its room, closed: no height, and the actions' gap after it taken back, so the buttons below
+  // keep their place; out of view once it has closed. Clipped to its room and its focus ring, so it
+  // shows nothing past them as it closes, under the buttons that rise over it.
+  room: {
+    clipPath: `inset(calc(-1 * (${focusVars["--focus-outline-width"]} + ${focusVars["--focus-outline-offset"]})))`,
+    display: "grid",
+    gridTemplateRows: "0fr",
+    marginBlockEnd: `calc(-1 * ${spacingVars["--spacing-1"]})`,
+    transitionDelay: {
+      "@media (prefers-reduced-motion: reduce)": "0s, 0s",
+      default: `0s, ${FOLD_EASE}`,
+    },
+    transitionDuration: {
+      "@media (prefers-reduced-motion: reduce)": "0s, 0s",
+      default: `${FOLD_EASE}, 0s`,
+    },
+    transitionProperty: "grid-template-rows, visibility",
+    transitionTimingFunction: easeVars["--ease-standard"],
+    visibility: "hidden",
+  },
+  // Open: shown at once.
+  shown: { gridTemplateRows: "1fr", transitionDelay: "0s, 0s", visibility: "visible" },
+});
+
 /** A count at a row's end: seen, and left out of the row's name, which its visible label starts. */
 const count = (n: number) => <Badge aria-hidden label={String(n)} variant="neutral" />;
 
 /**
- * The wide column's fold button, which folds it to its rail and unfolds it: shown under the
- * pointer while unfolded, and always to the keyboard, on touch, and folded.
+ * The column's heading: the logo, or on a semi-wide screen `logo`, the rail's logo button, then the
+ * repository menu. The status line's "[ fold" folds the wide column.
  */
-function FoldButton({ isRevealed }: { isRevealed: boolean }) {
-  const { isFolded, toggle } = useColumnFold();
+export function ColumnHeading({
+  logo,
+}: {
+  /** The rail's logo button, on a semi-wide screen. */
+  logo?: ReactNode;
+}) {
+  const current = useRepository();
   return (
-    <IconButton
-      icon={<Icon icon="uraeda:panel-left" />}
-      label={isFolded ? "Expand navigation" : "Collapse navigation"}
-      onClick={toggle}
-      variant="ghost"
-      xstyle={isFolded || isRevealed ? undefined : styles.hidden}
-    />
+    <div {...stylex.props(styles.heading)}>
+      {logo ?? (
+        <span {...stylex.props(styles.logo)}>
+          <Logo />
+        </span>
+      )}
+      <div {...stylex.props(styles.menu)}>
+        <RepositoryMenu current={current} hasLogo={false} />
+      </div>
+    </div>
   );
 }
 
 /**
- * The column's heading: on a wide screen its fold button, then the repository menu with the logo;
- * on a semi-wide one, `logo`, the rail's logo button, then the menu. Folded, its first button alone.
+ * Commit, while something waits for one: the one place the inbox's, the priorities', and the
+ * proposal and note files' edits are committed, with what a commit would hold. First, as the thing
+ * to do before the rest; an icon alone in the closed rail.
  */
-export function ColumnHeading({
-  isRevealed,
-  logo,
-}: {
-  /** Whether the pointer is over the column, which shows the fold button. */
-  isRevealed: boolean;
-  /** The rail's logo button, on a semi-wide screen. */
-  logo?: ReactNode;
-}) {
-  const { isFolded } = useColumnFold();
-  const current = useRepository();
-  return (
-    <div {...stylex.props(styles.heading)}>
-      {logo ?? <FoldButton isRevealed={isRevealed} />}
-      {!isFolded && (
-        <div {...stylex.props(styles.menu)}>
-          <RepositoryMenu current={current} hasLogo={logo === undefined} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** New, which opens the New page, and Note, which opens the inbox's form; none in the rail. */
-export function ColumnActions() {
+function CommitAction({ look }: { look: ActionLook }) {
   const here = useRepoPath();
-  const open = useOpenAddForm();
-  const { isFolded } = useColumnFold();
-  if (isFolded) {
+  const count = usePriorities()?.changes ?? 0;
+  if (count === 0) {
     return null;
   }
   return (
+    <Button
+      href={here("/commit")}
+      icon={<Icon icon="check" size={look.icon} />}
+      label={`Commit · ${count}`}
+      variant="primary"
+      xstyle={look.xstyle}
+    />
+  );
+}
+
+/** The actions' look: their icon's size, and their style, the closed rail's box in it. */
+type ActionLook = { icon: "md" | undefined; xstyle: stylex.StyleXStyles };
+
+/** The actions' look: on the desktop's column, `isColumn`, with the rail's 20 px icons. */
+function useActionLook(isColumn: boolean): ActionLook {
+  const isRail = useClosedRail();
+  return {
+    icon: isColumn ? "md" : undefined,
+    xstyle: [styles.action, isRail && styles.actionRail],
+  };
+}
+
+/**
+ * `lead` first, as the folded column's Unfold; then Commit, while something waits; then New, whose
+ * menu asks what to start. On the desktop's column, `isColumn`, their icons are the rail's 20 px,
+ * which the closed rail shows alone.
+ */
+export function ColumnActions({
+  isColumn = false,
+  lead,
+}: {
+  isColumn?: boolean;
+  lead?: ReactNode;
+}) {
+  const look = useActionLook(isColumn);
+  return (
     <div {...stylex.props(styles.actions)}>
-      <Button
-        href={here("/new")}
-        icon={<Icon icon="uraeda:plus" />}
-        label="New"
-        variant="primary"
-      />
-      <Button
-        icon={<Icon icon="uraeda:pencil" />}
-        label="Note"
-        onClick={() => open("note")}
-        variant="secondary"
-      />
+      {lead}
+      <Suspense fallback={null}>
+        <CommitAction look={look} />
+      </Suspense>
+      <NewButton look={look} />
     </div>
   );
 }
 
-/** The inbox's row, its count once read, over its icon in the rail. */
+/**
+ * Unfold, the folded wide column's button, first in its rail, which unfolds it, for a pointer or a
+ * finger as `[` does for the keys. Its room opens and closes as the column's width eases, so the
+ * rows under it glide rather than jump; closed, it is out of the tab order.
+ */
+export function Unfold({ isShown, onUnfold }: { isShown: boolean; onUnfold: () => void }) {
+  const look = useActionLook(true);
+  return (
+    <div {...stylex.props(unfoldStyles.room, isShown && unfoldStyles.shown)}>
+      <div {...stylex.props(unfoldStyles.inner)}>
+        <div {...stylex.props(unfoldStyles.gap)}>
+          <Button
+            icon={<Icon icon="uraeda:panel-left" size={look.icon} />}
+            label="Unfold navigation"
+            onClick={onUnfold}
+            variant="secondary"
+            xstyle={look.xstyle}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** New, the button that starts something: its menu asks what (`NewMenu`). */
+function NewButton({ look }: { look: ActionLook }) {
+  return (
+    <NewMenu
+      trigger={(props) => (
+        <Button
+          icon={<Icon icon="uraeda:plus" size={look.icon} />}
+          label="New"
+          variant="primary"
+          xstyle={look.xstyle}
+          {...props}
+        />
+      )}
+    />
+  );
+}
+
+/** The inbox's row, its count once read. */
 function InboxCounted({ pathname }: { pathname: string }) {
   const inbox = useInbox();
   return <InboxRow notes={inbox?.count ?? 0} pathname={pathname} />;
@@ -126,7 +233,6 @@ function InboxRow({ notes, pathname }: { notes?: number; pathname: string }) {
   return (
     <Item
       actions={<AddNoteButton />}
-      count={notes}
       endContent={notes === undefined ? undefined : count(notes)}
       icon={<Icon icon={DESTINATIONS.inbox.icon} />}
       label={DESTINATIONS.inbox.label}
@@ -156,8 +262,7 @@ export function Navigate({ pathname }: { pathname: string }) {
         </Suspense>
       )}
       <Item
-        actions={<AddPriorityButton />}
-        count={now}
+        actions={<AddProposalButton />}
         endContent={count(now)}
         icon={<Icon icon={DESTINATIONS.priorities.icon} />}
         label={DESTINATIONS.priorities.label}

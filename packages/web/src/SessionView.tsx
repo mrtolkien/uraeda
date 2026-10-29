@@ -5,6 +5,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import {
   type ReactNode,
+  type RefObject,
   Suspense,
   useCallback,
   useEffect,
@@ -21,11 +22,12 @@ import { MAIN_CHECKOUT } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import { composerDraft, type Draft, storyCommentsInto, takeBackInto } from "./useDraft.ts";
 import type { SessionItem } from "./dropItem.ts";
-import { SessionActions } from "./SessionActions.tsx";
 import { SessionHeader } from "./SessionHeader.tsx";
 import { OffersProvider, SessionEnd } from "./SessionOffers.tsx";
-import { JumpToLatest } from "./JumpToLatest.tsx";
+import { SessionActions } from "./SessionActions.tsx";
+import { JumpToLatest, usePublishJump } from "./JumpToLatest.tsx";
 import { type ScrolledAway, useFollowEnd, useOpenAtEnd, useScrolledAway } from "./following.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Attention } from "./SessionAttention.tsx";
 import { Page } from "./layout/Page.tsx";
 import { SessionColumn } from "./session/SessionColumn.tsx";
@@ -52,11 +54,19 @@ const styles = stylex.create({
   },
   composer: {
     // The composer stays at the bottom of the window while the transcript scrolls, above the
-    // shell's status line, fixed at the window's bottom.
+    // shell's status line, fixed at the window's bottom, following it down as it slides away.
     backgroundColor: colorVars["--color-background-surface"],
-    bottom: "var(--size-status-line, 0px)",
+    bottom: "var(--status-line-offset, var(--size-status-line, 0px))",
     paddingBlock: spacingVars["--spacing-3"],
     position: "sticky",
+    transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
+    transitionProperty: "bottom",
+    transitionTimingFunction: "ease-out",
+  },
+  // On the phone, its box alone floats over the transcript, which shows around it.
+  composerPhone: {
+    backgroundColor: "transparent",
+    paddingBlock: spacingVars["--spacing-2"],
   },
 });
 
@@ -119,10 +129,11 @@ function SessionLog({
     [away, isFollowing],
   );
   useKeepPlace(log);
+  const toLastReply = useLastReply(log, working, jumpToLatest);
   useEffect(() => {
-    onJump?.(following ? undefined : jumpToLatest);
+    onJump?.(following ? undefined : toLastReply);
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once per change of following: `onJump` is a new function at each draw
-  }, [following, jumpToLatest]);
+  }, [following, toLastReply]);
   // Shown with its latest turn ended: the human saw the reply, whatever the status shows, as "Needs
   // you" at a gate.
   const unseen = session?.unseen === true;
@@ -229,6 +240,64 @@ function Framed({
   return isMissing ? page : <SessionColumn content={page} folder={crumbs} session={session} />;
 }
 
+/** A session before its first message creates it: its title over an empty transcript. */
+function Unstarted({ title }: { title: string }) {
+  return (
+    <VStack gap={3}>
+      <SessionHeader title={title} />
+      <Transcript session={{ id: "", turns: [] }} />
+    </VStack>
+  );
+}
+
+/**
+ * The jump to the latest: to the start of the agent's last message, where its reply reads from,
+ * below the phone's tabs (its scroll margin); while the session works, to its end, following it,
+ * as `jumpToLatest`.
+ */
+function useLastReply(
+  logRef: RefObject<HTMLDivElement | null>,
+  working: boolean,
+  jumpToLatest: () => void,
+) {
+  return useCallback(() => {
+    const last = [
+      ...(logRef.current?.querySelectorAll<HTMLElement>('[data-sender="assistant"]') ?? []),
+    ].at(-1);
+    if (working || !last) {
+      jumpToLatest();
+      return;
+    }
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    last.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+  }, [jumpToLatest, logRef, working]);
+}
+
+/**
+ * The composer's part of a session: its "…", unless the session is a feature's, whose actions are
+ * the feature's, on its page; and "Allow all".
+ */
+function sessionComposer(
+  session: NonNullable<ReturnType<typeof useSessionRecord>>,
+  controls: Controls,
+  item: SessionItem | undefined,
+) {
+  return {
+    ...(item?.kind === "feature"
+      ? {}
+      : {
+          actions: (
+            <SessionActions
+              controls={controls}
+              item={item}
+              session={{ ...session, title: session.name ?? session.title }}
+            />
+          ),
+        }),
+    allow: { count: session.allowable, onAllowAll: controls.allowAll },
+  };
+}
+
 /**
  * A session's pane: its header, transcript, and composer, and the session's column, or, before its
  * first message creates it, the title and the composer alone. A feature's or a new chat's first
@@ -245,6 +314,7 @@ export function SessionPane({
   handing = {},
   id,
   isBoxed = false,
+  isNewSession = false,
   item,
   onSent,
   title,
@@ -259,6 +329,11 @@ export function SessionPane({
   id?: string;
   /** Drawn in the box that scrolls it, not as a page. */
   isBoxed?: boolean;
+  /**
+   * A new session of the feature in `folder`, which its first message creates: until then there
+   * is none, and leaving makes none.
+   */
+  isNewSession?: boolean;
   /** The change or the feature the session belongs to, once read. */
   item?: SessionItem;
   /** Called with the session a message created, before it exists. */
@@ -266,12 +341,15 @@ export function SessionPane({
   /** The title before the session exists. */
   title?: string;
 }) {
+  const wide = !isNarrow(useWidthClass());
   const session = useSessionRecord(id);
   const controls = useSessionControls(id, session);
   const composer = useRef<HTMLDivElement>(null);
   // Kept by the pane, which the transcript's data does not wait for.
   const away = useScrolledAway(composer, id);
   const [jump, setJump] = useState<() => void>();
+  // The bottom bar's arrow is the session page's: a boxed session keeps its own.
+  usePublishJump(isBoxed ? undefined : jump);
   const stretchHref = useStretchHref(isBoxed ? folder : undefined);
   if (session === null) {
     return (
@@ -283,10 +361,7 @@ export function SessionPane({
   return (
     <Framed crumbs={crumbs} isBoxed={isBoxed} session={id}>
       {id === undefined ? (
-        <VStack gap={3}>
-          <SessionHeader title={title ?? ""} />
-          <Transcript session={{ id: "", turns: [] }} />
-        </VStack>
+        <Unstarted title={title ?? ""} />
       ) : (
         // Read once the first message created the session: its title stays, and the composer, as
         // it is read. The transcript waits for it: a page shows one log.
@@ -303,25 +378,21 @@ export function SessionPane({
           />
         </Suspense>
       )}
-      <div ref={composer} {...stylex.props(styles.composer, isBoxed && styles.boxedComposer)}>
-        {jump && <JumpToLatest composer={composer} onJump={jump} />}
+      <div
+        ref={composer}
+        {...stylex.props(
+          styles.composer,
+          !wide && styles.composerPhone,
+          isBoxed && styles.boxedComposer,
+        )}
+      >
+        {jump && <JumpToLatest composer={composer} isBoxed={isBoxed} onJump={jump} />}
         <Composer
           {...(folder === undefined ? {} : { folder })}
           {...composerDraft(draft)}
-          {...(id === undefined ? {} : { session: id })}
+          {...(id === undefined ? { isNewSession } : { session: id })}
           working={session?.status === "working"}
-          {...(session && id !== undefined
-            ? {
-                actions: (
-                  <SessionActions
-                    controls={controls}
-                    item={item}
-                    session={{ ...session, title: session.name ?? session.title }}
-                  />
-                ),
-                allow: { count: session.allowable, onAllowAll: controls.allowAll },
-              }
-            : {})}
+          {...(session && id !== undefined ? sessionComposer(session, controls, item) : {})}
           {...handing}
           {...(blocked === undefined ? {} : { blocked })}
           onSent={(created) => {

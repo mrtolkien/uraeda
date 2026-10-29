@@ -101,7 +101,7 @@ fn unknown_name() {
 
     let output = ura(&repo, &["next", "nothing"]);
 
-    assert_eq!(output.stderr, "ura: no feature or draft named nothing\n");
+    assert_eq!(output.stderr, "ura: no feature or proposal named nothing\n");
 }
 
 #[test]

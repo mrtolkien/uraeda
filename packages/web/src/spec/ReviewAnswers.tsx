@@ -12,6 +12,7 @@ import type { CommentItem } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { Paragraph } from "../layout/Paragraph.tsx";
+import { proseStyles } from "../Prose.tsx";
 import { Selectable } from "../Selection.tsx";
 import { SinceWords } from "../sinceMarks.tsx";
 import { Spans } from "../Spans.tsx";
@@ -122,7 +123,8 @@ export function ReviewAnswers({
                     <Badge label={verdict} variant={verdict === "done" ? "success" : "warning"} />
                   </HStack>
                   <Selectable block={item} selection={selection}>
-                    <Text display="block" type="inherit">
+                    {/* The answer reads as the comment it answers: reading text. */}
+                    <Text display="block" type="inherit" xstyle={proseStyles.reading}>
                       <SinceWords block={item}>
                         <Spans spans={item.spans} />
                       </SinceWords>

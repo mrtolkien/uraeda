@@ -92,9 +92,9 @@ const NAMED = /^[A-Z][A-Za-z0-9]+$/;
 
 /**
  * Whether a token of a binding is one `tokenOf` can give, so it can ever run: Space is `space`; a
- * printable character is itself, in the case Shift gives it; `mod+` goes only before a printable
- * character, lowercase; a named key is spelt as the browser spells it, with `shift+` before it or
- * not. A modifier is lowercase, and Alt is no binding's.
+ * printable character is itself, in the case Shift gives it; `mod+` goes before a printable
+ * character, lowercase, or a named key (`mod+Enter`); a named key is spelt as the browser spells it,
+ * with `shift+` before it or not. A modifier is lowercase, and Alt is no binding's.
  */
 export function isCanonical(token: string) {
   if (token === "space") {
@@ -105,10 +105,16 @@ export function isCanonical(token: string) {
   }
   const modded = token.startsWith("mod+") ? token.slice(4) : null;
   if (modded !== null) {
-    return isPrintable(modded) && modded !== " " && modded === modded.toLowerCase();
+    return isPrintable(modded)
+      ? modded !== " " && modded === modded.toLowerCase()
+      : isNamed(modded);
   }
-  const named = token.startsWith("shift+") ? token.slice(6) : token;
-  return NAMED.test(named) && named !== "Space" && !NOT_KEYS.has(named);
+  return isNamed(token.startsWith("shift+") ? token.slice(6) : token);
+}
+
+/** Whether a name is a named key as the browser spells it, as `Enter`: no Space, no modifier. */
+function isNamed(name: string) {
+  return NAMED.test(name) && name !== "Space" && !NOT_KEYS.has(name);
 }
 
 /** Whether the binding's first key is one printable character or Space: a single-key shortcut. */

@@ -3,7 +3,7 @@ import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import type { SaveState } from "./useSave.ts";
 
-const EMPTY = "A priority cannot be empty.";
+const EMPTY = "A proposal cannot be empty.";
 
 /**
  * A line edited in place, its text and its save. Its text is a field of the unsaved store, `field`
@@ -12,7 +12,7 @@ const EMPTY = "A priority cannot be empty.";
  * otherwise calls `onSave`, which resolves with the error to show, the typed text kept, or with
  * nothing once saved. `cancel`, from Escape or Cancel, asks "Discard your changes?" first when the
  * text changed. Leaving the field does nothing. With `stayOpen`, as an Add row, a saved field
- * empties and stays open for the next line. `empty` is the refusal of an empty text, a priority's
+ * empties and stays open for the next line. `empty` is the refusal of an empty text, a proposal's
  * by default. With `startOpen`, as a line a key turned into its editor, it opens as it is drawn.
  */
 export function useLineSave({

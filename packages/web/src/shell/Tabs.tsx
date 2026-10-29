@@ -1,17 +1,21 @@
-// The phone's bar of tabs, at the top of every page: Home, Inbox with its notes' count, Priorities,
-// Sessions with the running sessions' count, Decisions, Settings, and New, each an icon named by its
-// page, the current page's marked. The Sessions tab opens the shell's panes as a page of their own.
+// The phone's bar of tabs, at the top of every page: Home with the count of what needs the human,
+// Inbox with its notes' count, Priorities, Sessions with the running sessions' count, Commit while
+// something waits for one, a `…` that holds Decisions and Settings, and New, each an icon named by
+// its page, the current page's marked. The Sessions tab opens the shell's panes as a page of
+// their own. The phone's status line holds a page's own controls only: these counts are its counts.
 import { Badge } from "@astryxdesign/core/Badge";
+import { DropdownMenu, type DropdownMenuTriggerProps } from "@astryxdesign/core/DropdownMenu";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
-import { useInbox } from "../data.ts";
-import { useRepoPath } from "../routes.tsx";
+import { useInbox, usePriorities } from "../data.ts";
+import { navigate, useRepoPath } from "../routes.tsx";
 import { DESTINATIONS } from "../destinations.ts";
+import { NewMenu } from "./NewMenu.tsx";
 import { useNavigation } from "../sessionData.ts";
-import { runningSessions } from "../sidebar/entries.ts";
+import { needsYouEntries, runningSessions } from "../sidebar/entries.ts";
 import { selects } from "../sidebar/Row.tsx";
 import { useShellPath } from "./ShellPanes.tsx";
 import { plural } from "../labels.ts";
@@ -31,10 +35,18 @@ const styles = stylex.create({
     alignItems: "center",
     boxSizing: "border-box",
     display: "flex",
-    gap: spacingVars["--spacing-1"],
+    // None between them at the least: eight 44 px buttons and the line are what a 375 px phone
+    // holds, so Decisions and Settings wait in the `…` (see `MoreTab`).
+    gap: 0,
     height: spacingVars["--spacing-12"],
     justifyContent: "space-between",
     paddingInline: spacingVars["--spacing-2"],
+  },
+  divider: {
+    // The line between the sidebar's toggle and the pages' tabs.
+    backgroundColor: colorVars["--color-border"],
+    height: spacingVars["--spacing-5"],
+    width: borderVars["--border-width"],
   },
   icon: {
     display: "inline-flex",
@@ -45,6 +57,13 @@ const styles = stylex.create({
     height: spacingVars["--spacing-4"],
     paddingInline: spacingVars["--spacing-1"],
   },
+  toggle: {
+    // The sidebar's toggle apart, further left than the tabs: its own group, then a line.
+    alignItems: "center",
+    display: "flex",
+    gap: spacingVars["--spacing-1"],
+    marginInlineStart: `calc(-1 * ${spacingVars["--spacing-1"]})`,
+  },
 });
 
 type IconName = ComponentProps<typeof Icon>["icon"];
@@ -54,6 +73,7 @@ type IconName = ComponentProps<typeof Icon>["icon"];
  * name says after the page's, in `counted`'s words.
  */
 function Tab({
+  badge = "info",
   count,
   counted = String,
   icon,
@@ -62,6 +82,8 @@ function Tab({
   to,
   variant = "ghost",
 }: {
+  /** The count's colour: the usual info, or a warning for what waits on the human. */
+  badge?: "info" | "warning";
   count?: number | undefined;
   counted?: (n: number) => string;
   icon: IconName;
@@ -81,13 +103,65 @@ function Tab({
           <Icon icon={icon} />
           {shown && (
             <span {...stylex.props(styles.badge)}>
-              <Badge aria-hidden label={String(count)} variant="info" xstyle={styles.small} />
+              <Badge aria-hidden label={String(count)} variant={badge} xstyle={styles.small} />
             </span>
           )}
         </span>
       }
       label={shown ? `${label}, ${counted(count)}` : label}
       variant={isCurrent ? "secondary" : variant}
+    />
+  );
+}
+
+/** The commit tab, while something waits for a commit: the one place they are committed. */
+function CommitTab({ isCurrent }: { isCurrent: boolean }) {
+  const count = usePriorities()?.changes ?? 0;
+  if (count === 0) {
+    return null;
+  }
+  return (
+    <Tab
+      badge="warning"
+      count={count}
+      counted={(n) => plural(n, "change")}
+      icon={DESTINATIONS.commit.icon}
+      isCurrent={isCurrent}
+      label={DESTINATIONS.commit.label}
+      to={DESTINATIONS.commit.path}
+      variant="primary"
+    />
+  );
+}
+
+/** The places the `…` holds: the least visited, with no count to show. */
+const FOLDED = [DESTINATIONS.decisions, DESTINATIONS.settings] as const;
+
+/**
+ * The `…` of the places the bar has no room for, Decisions and Settings, a popover anchored to it:
+ * marked as the current page's tab while one of them is open, and named by it then.
+ */
+function MoreTab({ at }: { at: (to: string) => boolean }) {
+  const here = useRepoPath();
+  const current = FOLDED.find((place) => at(place.path));
+  return (
+    <DropdownMenu
+      alignment="end"
+      items={FOLDED.map((place) => ({
+        icon: place.icon,
+        label: place.label,
+        onClick: () => navigate(here(place.path)),
+      }))}
+      presentation="popover"
+      renderTrigger={(props: DropdownMenuTriggerProps) => (
+        <IconButton
+          aria-current={current ? "page" : undefined}
+          icon={<Icon icon="moreHorizontal" />}
+          label={current ? `More, ${current.label}` : "More"}
+          variant={current ? "secondary" : "ghost"}
+          {...props}
+        />
+      )}
     />
   );
 }
@@ -107,7 +181,13 @@ function InboxCounted({ isCurrent }: { isCurrent: boolean }) {
   );
 }
 
-export function Tabs() {
+export function Tabs({
+  isSidebarOpen,
+  onToggleSidebar,
+}: {
+  isSidebarOpen: boolean;
+  onToggleSidebar: () => void;
+}) {
   const pathname = useShellPath();
   const data = useNavigation();
   const at = (to: string) => selects(pathname, to);
@@ -121,7 +201,20 @@ export function Tabs() {
   );
   return (
     <nav aria-label="Tabs" {...stylex.props(ruleStyles.below, styles.bar)}>
+      <div {...stylex.props(styles.toggle)}>
+        <IconButton
+          aria-expanded={isSidebarOpen}
+          icon={<Icon icon="uraeda:panel-left" />}
+          label="Sidebar"
+          onClick={onToggleSidebar}
+          variant={isSidebarOpen ? "secondary" : "ghost"}
+        />
+        <span aria-hidden="true" {...stylex.props(styles.divider)} />
+      </div>
       <Tab
+        badge="warning"
+        count={needsYouEntries(data).length}
+        counted={(n) => `${n} need you`}
         icon={DESTINATIONS.home.icon}
         isCurrent={at(DESTINATIONS.home.path)}
         label={DESTINATIONS.home.label}
@@ -148,19 +241,22 @@ export function Tabs() {
         label={DESTINATIONS.sessions.label}
         to={DESTINATIONS.sessions.path}
       />
-      <Tab
-        icon={DESTINATIONS.decisions.icon}
-        isCurrent={at(DESTINATIONS.decisions.path)}
-        label={DESTINATIONS.decisions.label}
-        to={DESTINATIONS.decisions.path}
+      <Suspense fallback={null}>
+        <CommitTab isCurrent={at(DESTINATIONS.commit.path)} />
+      </Suspense>
+      {/* Between Commit and New, so their two filled blocks do not run into one. */}
+      <MoreTab at={at} />
+      <NewMenu
+        trigger={(props) => (
+          <IconButton
+            aria-current={at(DESTINATIONS.new.path) ? "page" : undefined}
+            icon={<Icon icon={DESTINATIONS.new.icon} />}
+            label={DESTINATIONS.new.label}
+            variant={at(DESTINATIONS.new.path) ? "secondary" : "primary"}
+            {...props}
+          />
+        )}
       />
-      <Tab
-        icon={DESTINATIONS.settings.icon}
-        isCurrent={at(DESTINATIONS.settings.path)}
-        label={DESTINATIONS.settings.label}
-        to={DESTINATIONS.settings.path}
-      />
-      <Tab icon="uraeda:plus" isCurrent={at("/new")} label="New" to="/new" variant="primary" />
     </nav>
   );
 }

@@ -14,8 +14,8 @@
 >
 > Features for the next release, in order
 
-1. [Due date reminders](drafts/due-date-reminders.md)
-2. [Keyboard shortcuts](drafts/keyboard-shortcuts.md)
+1. [Due date reminders](proposals/due-date-reminders.md)
+2. [Keyboard shortcuts](proposals/keyboard-shortcuts.md)
 3. Tags and filters
 
 ## Later
@@ -24,5 +24,5 @@
 >
 > Nice to have, and what waits on something else
 
-- [Mobile layout](backlog/mobile-layout.md)
+- [Mobile layout](proposals/mobile-layout.md)
 - Sync between devices, after a server: against the constitution's local first principle

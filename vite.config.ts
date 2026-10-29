@@ -7,7 +7,10 @@ import { tasks } from "./vite.tasks.ts";
  * The UI components decision's values (see `specs/decisions/ui-components.md`): colours, spacing,
  * sizes, radii, borders, and type come from Astryx's tokens, imported from its `.stylex` files or
  * written `var(--…)` for the theme's own; raw values only for `0`, percentages, `auto`, and
- * keywords. `var(--*)` and `<percentage>` are read by `packages/web/lint/stylex.js`.
+ * keywords. `var(--*)` and `<percentage>` are read by `packages/web/lint/stylex.js`. The custom
+ * properties a style sets are held to it too (`stylex/custom-property-tokens`): a raw value moved
+ * into a local `--*` and read back with `var()` is still a raw value. The theme and the `.stylex.ts`
+ * token files are where tokens get their values.
  */
 const tokenLimit = {
   limit: [
@@ -193,11 +196,17 @@ export default {
               ],
             },
           ],
+          "stylex/custom-property-tokens": ["error", tokenLimit],
           "stylex/valid-styles": [
             "error",
             { propLimits: Object.fromEntries(tokenProps.map((prop) => [prop, tokenLimit])) },
           ],
         },
+      },
+      {
+        // The theme and the token files, where the tokens get their raw values.
+        files: ["packages/web/src/theme/**", "packages/web/src/**/*.stylex.ts"],
+        rules: { "stylex/custom-property-tokens": "off" },
       },
       {
         // The one place Astryx's Markdown is drawn, bar a story's mockup.

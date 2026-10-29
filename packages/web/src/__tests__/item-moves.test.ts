@@ -20,9 +20,14 @@ test("K and J move one place within the section, the index among the others once
   expect(itemTarget(SECTIONS, "x2", "down")).toEqual({ index: 2, section: "next" });
 });
 
-test("the first row has nowhere up, and the last nowhere down", () => {
-  expect(itemTarget(SECTIONS, "x1", "up")).toBeUndefined();
-  expect(itemTarget(SECTIONS, "x3", "down")).toBeUndefined();
+test("past a section's edge, K goes to the end of the section before, and J to the start of the next", () => {
+  expect(itemTarget(SECTIONS, "x1", "up")).toEqual({ index: 2, section: "now" });
+  expect(itemTarget(SECTIONS, "x3", "down")).toEqual({ index: 0, section: "later" });
+});
+
+test("the first row that moves has nowhere up, past the ongoing entries, and the last nowhere down", () => {
+  expect(itemTarget(SECTIONS, "n1", "up")).toBeUndefined();
+  expect(itemTarget([section("only", ["a", "b"])], "b", "down")).toBeUndefined();
 });
 
 test("L goes to the end of the next section, an empty one too", () => {

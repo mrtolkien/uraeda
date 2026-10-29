@@ -2,7 +2,7 @@ use uraeda_core::files::document::hash;
 use uraeda_core::files::inbox::{self, NoteChange};
 
 /// The spec's Data example.
-const DATA: &str = "# Inbox\n\n- We'll need a model selector for each step\n\n## UI\n\n- [run-ui] In failures the `x` is not centered in the circle\n- [agent] [session-view] Opening a session with 2,000 messages takes 4 s\n- [The spec page's headings are body-sized](drafts/the-spec-pages-headings-are-body-sized/proposal.md)\n\n## CLI\n\n- Allow no selection in responses (after a warning)\n";
+const DATA: &str = "# Inbox\n\n- We'll need a model selector for each step\n\n## UI\n\n- [run-ui] In failures the `x` is not centered in the circle\n- [agent] [session-view] Opening a session with 2,000 messages takes 4 s\n- [The spec page's headings are body-sized](notes/the-spec-pages-headings-are-body-sized/note.md)\n\n## CLI\n\n- Allow no selection in responses (after a warning)\n";
 
 /// A note as `parse` gives it, in short: its category, text, marks, link, and lines.
 type Row<'a> = (
@@ -48,7 +48,7 @@ const PARSE: [(&str, &[Row<'static>]); 8] = [
                 "The spec page's headings are body-sized",
                 false,
                 None,
-                Some("drafts/the-spec-pages-headings-are-body-sized/proposal.md"),
+                Some("notes/the-spec-pages-headings-are-body-sized/note.md"),
                 (9, 9),
             ),
             (
@@ -81,14 +81,14 @@ const PARSE: [(&str, &[Row<'static>]); 8] = [
         &[(None, "A note", false, None, None, (8, 8))],
     ),
     (
-        "# Inbox\n\n## UI\n\n- [Blurry](drafts/x/proposal.md)\n- See [this](drafts/y.md) too\n",
+        "# Inbox\n\n## UI\n\n- [Blurry](notes/x/note.md)\n- See [this](proposals/y.md) too\n",
         &[
             (
                 Some("UI"),
                 "Blurry",
                 false,
                 None,
-                Some("drafts/x/proposal.md"),
+                Some("notes/x/note.md"),
                 (5, 5),
             ),
             (Some("UI"), "See this too", false, None, None, (6, 6)),
@@ -171,7 +171,7 @@ fn a_note_line_has_its_marks_in_order() {
 
 #[test]
 fn read_groups_notes_with_no_category_first_and_hides_empty_categories() {
-    let text = "# Inbox\n\n- First\n\n## Empty\n\n## UI\n\n- [agent] [run-ui] Icons\n  - blurry\n\n## CLI\n\n- [Draft](drafts/x.md)\n";
+    let text = "# Inbox\n\n- First\n\n## Empty\n\n## UI\n\n- [agent] [run-ui] Icons\n  - blurry\n\n## CLI\n\n- [Noted](notes/x.md)\n";
 
     let read = inbox::read(text);
 
@@ -191,24 +191,24 @@ fn read_groups_notes_with_no_category_first_and_hides_empty_categories() {
     assert_eq!((icons.start_line, icons.end_line), (9, 10));
     assert_eq!(icons.lines, ["- [agent] [run-ui] Icons", "  - blurry"]);
     assert_eq!(icons.spans[0].text, "Icons");
-    let draft = &read.categories[2].notes[0];
-    assert_eq!(draft.draft.as_deref(), Some("specs/drafts/x.md"));
-    assert_eq!(draft.text, "[Draft](drafts/x.md)");
-    assert_eq!(draft.draft_title.as_deref(), Some("Draft"));
-    assert_eq!(icons.draft_title, None);
+    let noted = &read.categories[2].notes[0];
+    assert_eq!(noted.file.as_deref(), Some("specs/notes/x.md"));
+    assert_eq!(noted.text, "[Noted](notes/x.md)");
+    assert_eq!(noted.file_title.as_deref(), Some("Noted"));
+    assert_eq!(icons.file_title, None);
 }
 
-/// A note added as a draft is found by its draft's title, its markdown as typed: escapes undone,
-/// inline code kept.
+/// A note added as a proposal file is found by its proposal file's title, its markdown as typed:
+/// escapes undone, inline code kept.
 #[test]
-fn a_draft_notes_title_is_its_link_text_as_typed() {
-    let text = "# Inbox\n\n- [Fix \\[x\\] in the `a]b` view](drafts/fix.md)\n";
+fn a_note_files_title_is_its_link_text_as_typed() {
+    let text = "# Inbox\n\n- [Fix \\[x\\] in the `a]b` view](notes/fix.md)\n";
 
     let read = inbox::read(text);
 
     let note = &read.categories[0].notes[0];
     assert_eq!(
-        note.draft_title.as_deref(),
+        note.file_title.as_deref(),
         Some("Fix [x] in the `a]b` view")
     );
 }
@@ -487,7 +487,7 @@ fn closing_hashes_are_not_part_of_a_category() {
     );
 }
 
-/// US5 3: a note's children are read with it, as written and as spans, as an entry's are.
+/// US5 3: a note's children are read with it, as written and as spans, as a proposal's are.
 #[test]
 fn a_note_shows_its_children() {
     let text = "# Inbox\n\n## UI\n\n- Icons are blurry\n  - on retina screens\n  - in [the sidebar](decisions/ui-layout.md)\n- Next note\n";
@@ -513,4 +513,28 @@ fn a_note_shows_its_children() {
     );
     assert!(read.categories[0].notes[1].nested.is_empty());
     assert!(read.categories[0].notes[1].nested_spans.is_empty());
+}
+
+/// A note's code block is no outline: the list it may show, a snippet, gives no children, which no
+/// edit could write back.
+#[test]
+fn a_notes_code_block_gives_no_children() {
+    let text = "# Inbox\n\n- Keep this list\n  ```md\n  - not an item\n  ```\n  - an item\n";
+
+    let read = inbox::read(text);
+
+    let children: Vec<&str> = read.categories[0].notes[0]
+        .children
+        .iter()
+        .map(|child| child.text.as_str())
+        .collect();
+    assert_eq!(children, ["an item"]);
+}
+
+/// A note linking a proposal file has no note file: its link is only its text.
+#[test]
+fn a_note_linking_a_proposal_file_has_no_file() {
+    let read = inbox::read("# Inbox\n\n- [Planned](proposals/planned.md)\n");
+
+    assert_eq!(read.categories[0].notes[0].file, None);
 }

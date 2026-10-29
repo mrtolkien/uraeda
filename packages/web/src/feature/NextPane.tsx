@@ -1,10 +1,11 @@
-// What comes next: who acts and what, in a pane with its one button.
+// What comes next: who acts and what, in a pane with its one button, which `n` presses too.
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import { useCallback, useEffect } from "react";
 import { Pane } from "../layout/Pane.tsx";
-import { useRepoPath } from "../routes.tsx";
+import { navigate, useRepoPath } from "../routes.tsx";
 import { handOver } from "../sessions.ts";
 import type { Next } from "./next.ts";
 
@@ -16,14 +17,32 @@ import type { Next } from "./next.ts";
 export function NextPane({
   folder,
   next,
+  onRun,
   tone,
 }: {
   folder: string;
   next: Next;
+  /** Hears what its button does, for `n`, or that it does nothing. */
+  onRun?: (run: (() => void) | undefined) => void;
   tone: "active" | "attention";
 }) {
   const here = useRepoPath();
   const { action } = next;
+  // `n` does what its button does: opens the next step, or hands it to the session.
+  const run = useCallback(() => {
+    if (action?.kind === "link") {
+      if (action.external) {
+        window.open(action.href, "_blank", "noopener,noreferrer");
+      } else {
+        navigate(here(action.href));
+      }
+    } else if (action?.kind === "continue") {
+      handOver(folder, action.trigger);
+    }
+  }, [action, folder, here]);
+  // Told to the page as it changes, which declares `n` (see `NextKey`).
+  useEffect(() => onRun?.(action ? run : undefined), [action, onRun, run]);
+  useEffect(() => () => onRun?.(undefined), [onRun]);
   return (
     <Pane
       id="next"

@@ -4,8 +4,7 @@ import { ChatMessage, ChatMessageBubble, ChatSystemMessage } from "@astryxdesign
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { useMemo, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -13,23 +12,31 @@ import type { ChatImage, Item } from "uraeda-server/fate";
 import { agentStories, MessageStories } from "./AgentStories.tsx";
 import { refusal } from "./errors.ts";
 import { StatusText } from "./fields/StatusText.tsx";
-import { ProseMarkdown } from "./Prose.tsx";
+import { ProseMarkdown, proseStyles, READING_MEASURE } from "./Prose.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { MessageBody } from "./MessageBody.tsx";
 import { EarlierRecap, StretchRecap } from "./session/RecapLine.tsx";
 import { slotsOf } from "./session/stretches.ts";
 import { useOfferPlugins } from "./SessionOffers.tsx";
 import { SessionView } from "./views.ts";
+import { humanWords } from "./theme/fonts.ts";
 
 /** The page's width: the list's 12 px at the sides, less the page's inset, given back. */
 const AGENT_WIDTH = `calc(100% + 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-2"]}))`;
 
 const styles = stylex.create({
   agent: {
-    // The agent's text takes the page's width: no padding of its own, and the list's 12 px at the
-    // sides given back down to the page's inset.
+    // The agent's text on the page's inset: no padding of its own, and the list's 12 px at the
+    // sides given back down to the page's inset; at the reading measure (`proseStyles.measure`).
+    boxSizing: "border-box",
     marginInline: `calc(${spacingVars["--spacing-2"]} - ${spacingVars["--spacing-3"]})`,
-    maxWidth: "none",
     paddingInline: 0,
+    // A jump to the latest brings its start a step from the top.
+    scrollMarginTop: spacingVars["--spacing-4"],
+  },
+  // On the phone, a jump to the latest brings its start below the tabs.
+  agentPhone: {
+    scrollMarginTop: `calc(${spacingVars["--spacing-12"]} + ${spacingVars["--spacing-2"]})`,
   },
   notice: {
     // Astryx centres a system line, as a chat's date separators are; the UI layout decision keeps
@@ -37,8 +44,31 @@ const styles = stylex.create({
     justifyContent: "flex-start",
     textAlign: "start",
   },
+  // A text between a turn's calls is context, not its reply: in the secondary color, through the
+  // primary's token, which the markdown's text reads.
+  aside: {
+    [colorVars["--color-text-primary"]]: colorVars["--color-text-secondary"],
+  },
+  // The turn's reply, its last text once it is done, set apart from the texts between its calls,
+  // which are context: on a raised surface in a border, square-cornered as the panes are, its text
+  // at the measure inside its padding and border (`replyMost`).
+  reply: {
+    backgroundColor: colorVars["--color-background-surface"],
+    borderBlockWidth: borderVars["--border-width"],
+    borderColor: colorVars["--color-border"],
+    borderInlineWidth: borderVars["--border-width"],
+    borderRadius: 0,
+    borderStyle: "solid",
+    paddingBlock: spacingVars["--spacing-3"],
+    paddingInline: spacingVars["--spacing-4"],
+  },
+  // On the phone, a rule above and below it alone, as a question's, its text on the page's inset:
+  // the screen's width goes to the text.
+  replyMost: (most: string) => ({ maxWidth: most }),
+  replyPhone: { borderInlineWidth: 0, paddingInline: 0 },
   user: {
-    backgroundColor: colorVars["--color-background-blue"],
+    // A faint blue over the page's surface: the human's color, dark enough for its text.
+    backgroundColor: `color-mix(in oklab, ${colorVars["--color-text-blue"]} 14%, ${colorVars["--color-background-surface"]})`,
     // On the page's inset, as the agent's text: the list's 12 px at the side is given back.
     marginInlineEnd: `calc(${spacingVars["--spacing-2"]} - ${spacingVars["--spacing-3"]})`,
   },
@@ -145,7 +175,8 @@ function Message({
     >
       <ChatMessageBubble
         variant={pending ? "ghost" : "filled"}
-        xstyle={pending ? undefined : styles.user}
+        // In the human's messages' font once sent (`theme/fonts.ts`).
+        xstyle={pending ? undefined : [styles.user, humanWords]}
       >
         <MessageBody item={item} pending={pending} />
       </ChatMessageBubble>
@@ -153,17 +184,47 @@ function Message({
   );
 }
 
+/** A reply's widest, its text at the measure: inside its padding and border on wide screens. */
+const REPLY_MOST = `calc(${READING_MEASURE} + 2 * (${spacingVars["--spacing-4"]} + ${borderVars["--border-width"]}))`;
+
 /**
  * An agent's message, as markdown, with the stories it links and its offer card once it ended:
  * flat text across the page, with no bubble of its own, so a story shows in the width the page
  * has. `at` is its place in the session, `<turn>:<seq>`.
  */
-function AgentMessage({ at, streaming, text }: { at: string; streaming: boolean; text: string }) {
+function AgentMessage({
+  at,
+  isReply,
+  streaming,
+  text,
+}: {
+  at: string;
+  /** Whether it is its turn's reply: the done turn's last item. */
+  isReply: boolean;
+  streaming: boolean;
+  text: string;
+}) {
+  const wide = !isNarrow(useWidthClass());
   const stories = useMemo<MessageStories>(() => ({ ended: !streaming }), [streaming]);
   const plugins = useOfferPlugins(at, streaming, text);
   return (
     <ChatMessage sender="assistant">
-      <ChatMessageBubble variant="ghost" width={AGENT_WIDTH} xstyle={styles.agent}>
+      <ChatMessageBubble
+        variant="ghost"
+        width={AGENT_WIDTH}
+        xstyle={[
+          styles.agent,
+          proseStyles.measure,
+          !wide && styles.agentPhone,
+          isReply
+            ? [
+                styles.reply,
+                !wide && styles.replyPhone,
+                styles.replyMost(wide ? REPLY_MOST : READING_MEASURE),
+              ]
+            : styles.aside,
+        ]}
+      >
         <MessageStories value={stories}>
           {/* Drawn again once its offer shows: Astryx keeps a text's parse while the text stays. */}
           <ProseMarkdown
@@ -224,6 +285,7 @@ export function TranscriptItems({
   firstMessage,
   items,
   queued,
+  replies,
   turn,
 }: {
   actions: Actions;
@@ -242,9 +304,13 @@ export function TranscriptItems({
   firstMessage: string | undefined;
   items: ReadonlyArray<TranscriptItem>;
   queued: boolean;
+  /** Whether the items end a done turn, whose last text, after its last call, is its reply. */
+  replies: boolean;
   turn: string;
 }) {
   const slots = slotsOf(turn, items);
+  const end = slots.at(-1);
+  const reply = replies && end?.kind !== "stretch" ? end?.item : undefined;
   // A stretch the page before ends with, which these items do not go on with, is drawn before them:
   // the page before left it to this one. A page of a sub-agent's items alone leaves it to the page
   // after, unless it ends the turn.
@@ -275,6 +341,7 @@ export function TranscriptItems({
       return (
         <AgentMessage
           at={`${turn}:${item.seq}`}
+          isReply={item === reply}
           key={item.seq}
           streaming={item.streaming}
           text={item.text}

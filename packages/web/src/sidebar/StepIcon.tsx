@@ -17,7 +17,7 @@ export type StepKind =
   | "problem";
 
 /** Each step's icon: the app's own, registered through the theme, or Astryx's. */
-const ICONS = {
+export const STEP_ICONS = {
   change: "wrench",
   discovery: "uraeda:step-discovery",
   done: "check",
@@ -32,13 +32,15 @@ const ICONS = {
 } as const;
 
 export function StepIcon({ step }: { step: StepKind }) {
-  return <Icon color={step === "problem" ? "warning" : "secondary"} icon={ICONS[step]} size="sm" />;
+  return (
+    <Icon color={step === "problem" ? "warning" : "secondary"} icon={STEP_ICONS[step]} size="md" />
+  );
 }
 
 /** A done item's icon, in the column's Done and home's Recent: a session's comment, else done's. */
 export function DoneIcon({ isSession }: { isSession: boolean }) {
   return isSession ? (
-    <Icon color="secondary" icon="uraeda:comment" size="sm" />
+    <Icon color="secondary" icon="uraeda:comment" size="md" />
   ) : (
     <StepIcon step="done" />
   );

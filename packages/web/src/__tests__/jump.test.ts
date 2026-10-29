@@ -7,7 +7,7 @@ import { readLedger } from "uraeda-binding";
 import { fixture } from "uraeda-binding/test-utils";
 import type { Ledger } from "uraeda-server/fate";
 import { expect, test } from "vite-plus/test";
-import { type JumpEntry, jumpEntries, searchEntries } from "../decisions/jump.ts";
+import { type JumpEntry, jumpEntries, pickerItemOf, searchEntries } from "../decisions/jump.ts";
 
 /** A decision's entry, with its title and its first sentence. */
 const decision = (title: string, summary: string | null = null) =>
@@ -17,7 +17,7 @@ const decision = (title: string, summary: string | null = null) =>
 const principle = (number: string, title: string) =>
   ({
     kind: "principle",
-    path: `/decisions/constitution/${title}`,
+    path: "/decisions/constitution",
     principle: { number, title },
     summary: null,
     title,
@@ -76,7 +76,7 @@ test("the entries are the principles, then the decisions in the order given", ()
   expect(
     jumpEntries(ledger, decisions).map(({ path, summary, title }) => [path, summary, title]),
   ).toEqual([
-    ["/decisions/constitution/humans", null, "Humans"],
+    ["/decisions/constitution", null, "Humans"],
     ["/decisions/testing", "How tests.", "Testing"],
     ["/decisions/sandbox", null, "Sandbox"],
   ]);
@@ -116,4 +116,11 @@ test("every entry of this repository's ledger is first for a query of three lett
     )
     .map((entry) => entry.title);
   expect(unreachable).toEqual([]);
+});
+
+test("each entry is its own row in the picker, though every principle opens the constitution", async () => {
+  const { constitution, decisions } = await ownLedger();
+  const items = jumpEntries({ constitution }, decisions).map(pickerItemOf);
+  expect(new Set(items.map((item) => item.id)).size).toBe(items.length);
+  expect(items.filter((item) => item.path === "/decisions/constitution").length).toBeGreaterThan(1);
 });

@@ -3,15 +3,21 @@
 // level-2 section of the file, in a pane of its own, its tables drawn by Astryx's columns, a row
 // the core marks new, changed, or removed showing its change, in its "Change" column, as a green,
 // yellow, or red badge, the column first on the phone.
-import { Badge } from "@astryxdesign/core/Badge";
 import { proportional, Table } from "@astryxdesign/core/Table";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { ReactNode } from "react";
-import type { Block, DataModelItems, DataTable as Marked, Document } from "uraeda-binding";
+import type {
+  Block,
+  DataModelItems,
+  DataTable as Marked,
+  Document,
+  RowChangeKind,
+} from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { Spans } from "../Spans.tsx";
+import { KindBadge } from "./ledger/KindBadge.tsx";
 
 /** What the data panes draw: `data-model.md`'s tree, and its sections as the core reads them. */
 export type DataPartProps = {
@@ -26,29 +32,17 @@ export type DataPartProps = {
   prefix?: string;
 };
 
-/** The badge of each change, by the core's kind. */
-const CHANGES = {
-  changed: { label: "Changed", variant: "warning" },
-  new: { label: "New", variant: "success" },
-  removed: { label: "Removed", variant: "error" },
-} as const;
-
 /** A row of a data table: its cells, by column, and its change, if the core marks one. */
-type DataRow = { cells: ReadonlyArray<Block>; change?: keyof typeof CHANGES; id: string };
+type DataRow = { cells: ReadonlyArray<Block>; change?: RowChangeKind; id: string };
 
 /** The children of a block, in order. */
 function childrenOf(document: Document, id: number) {
   return document.blocks.filter((b) => b.parent === id);
 }
 
-/** A cell of a data table: in the "Change" column, a marked row's change as a badge. */
+/** A cell of a data table: in the "Change" column, a marked row's change as its kind's pill. */
 function cellOf(cell: Block | undefined, change: DataRow["change"], isChange: boolean): ReactNode {
-  const badge = isChange && change && CHANGES[change];
-  return badge ? (
-    <Badge label={badge.label} variant={badge.variant} />
-  ) : (
-    <Spans spans={cell?.spans ?? []} />
-  );
+  return isChange && change ? <KindBadge kind={change} /> : <Spans spans={cell?.spans ?? []} />;
 }
 
 /**

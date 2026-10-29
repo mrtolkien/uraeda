@@ -1,11 +1,15 @@
 // The leader menu on the registry (US1, US5; review focus 3, 5, 7, 8, 10), with fake timers: Space
-// and `g` start a sequence, the menu shows half a second after the last key and stays, and
-// what ends it. The state machine itself is `keys-sequence.test.ts`'s.
+// and `g` start a sequence, the menu shows 300 ms after the last key and stays, and what ends it. A
+// menu that ends slides away first, drawn until its slide is over: a check that it is gone waits
+// that out, and so does a check that it stays, which a closing menu would pass while it slides, and
+// which then presses the menu's next key, which only a sequence still waiting takes. The state
+// machine itself is `keys-sequence.test.ts`'s.
 import { Button } from "@astryxdesign/core/Button";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
+import { SLIDE_MS } from "../keys/LeaderMenu.tsx";
 import { LeaderMenuHost } from "../keys/LeaderMenuHost.tsx";
 import { KeysProvider, useKeys } from "../keys/registry.tsx";
 import { navigate } from "../routeHistory.ts";
@@ -80,8 +84,23 @@ const press = (key: string, init: KeyboardEventInit = {}, target: Element = docu
   fireEvent.keyDown(target, { key, ...init });
 const wait = (ms: number) => act(() => void vi.advanceTimersByTime(ms));
 
-/** The menu, by the keys it is titled with. */
+/** The menu, by the keys it is titled with: its unseen twin, which sizes its frame, is left out. */
 const menu = (title: string) => screen.queryByRole("group", { name: title });
+
+/** Waits out a closed menu's slide, after which only a menu still open is drawn. */
+const slid = () => wait(SLIDE_MS);
+
+/**
+ * Checks that the Space menu is still open, its sequence waiting: past a closing menu's slide, it
+ * is drawn, and its next key, `n`, opens its New group at once, where an ended sequence would
+ * take `n` as a key of its own.
+ */
+function expectSpaceOpen() {
+  slid();
+  expect(menu("Space")).not.toBeNull();
+  press("n");
+  expect(menu("Space n")).not.toBeNull();
+}
 
 test("Space, n, n typed with no time between runs the binding, and the menu never shows", () => {
   show();
@@ -94,14 +113,14 @@ test("Space, n, n typed with no time between runs the binding, and the menu neve
   expect(menu("Space n")).toBeNull();
 });
 
-test("Space shows the menu at 500 ms, and not before", () => {
+test("Space shows the menu at 300 ms, and not before", () => {
   show();
   press(" ");
-  wait(499);
+  wait(299);
   expect(menu("Space")).toBeNull();
   wait(1);
   expect(menu("Space")).not.toBeNull();
-  expect(screen.getByText("New →")).toBeTruthy();
+  expect(within(menu("Space")!).getByText("New →")).toBeTruthy();
 });
 
 test("Backspace goes up a level, Escape closes and nothing runs", () => {
@@ -109,11 +128,11 @@ test("Backspace goes up a level, Escape closes and nothing runs", () => {
   press(" ");
   press("n");
   wait(500);
-  expect(menu("Space n")).not.toBeNull();
-  expect(screen.getByText("Note")).toBeTruthy();
+  expect(within(menu("Space n")!).getByText("Note")).toBeTruthy();
   press("Backspace");
   expect(menu("Space")).not.toBeNull();
   press("Escape");
+  slid();
   expect(menu("Space")).toBeNull();
   press("n");
   expect(ran).toEqual([]);
@@ -131,11 +150,11 @@ test("a shown menu shows the next step at once", () => {
 test("while hidden, the delay restarts at each key", () => {
   show();
   press(" ");
-  wait(300);
-  press("n");
-  wait(300);
-  expect(menu("Space n")).toBeNull();
   wait(200);
+  press("n");
+  wait(200);
+  expect(menu("Space n")).toBeNull();
+  wait(100);
   expect(menu("Space n")).not.toBeNull();
 });
 
@@ -143,26 +162,31 @@ test("the menu lists an entry whose guard holds at the focus, and not one whose 
   show();
   press(" ");
   wait(500);
-  expect(screen.queryByText("Button only")).toBeNull();
+  expect(within(menu("Space")!).queryByText("Button only")).toBeNull();
   press("Escape");
+  slid();
   const button = screen.getByRole("button", { name: "Note button" });
   button.focus();
   press(" ", {}, button);
   wait(500);
-  expect(screen.getByText("Button only")).toBeTruthy();
+  expect(within(menu("Space")!).getByText("Button only")).toBeTruthy();
   press("b", {}, button);
   expect(ran).toEqual(["space b"]);
 });
 
-test("a pending g shows its menu at 500 ms, ends at 2 s, and then a is a again", () => {
+test("a pending g shows its menu at 300 ms, ends at 2 s, and then a is a again", () => {
   show();
   press("g");
-  wait(500);
-  expect(menu("g")).not.toBeNull();
-  wait(1500);
+  wait(299);
   expect(menu("g")).toBeNull();
+  wait(1);
+  expect(menu("g")).not.toBeNull();
+  wait(1700);
+  // Ended at 2 s, as its slide starts: `a` is the page's own again.
   press("a");
   expect(ran).toEqual(["a"]);
+  slid();
+  expect(menu("g")).toBeNull();
 });
 
 test("g then i runs g i, and g then a key no g sequence uses runs nothing", () => {
@@ -184,6 +208,7 @@ test("g, a pause, a key no g sequence uses, then i: the shown menu ended and not
   wait(500);
   expect(menu("g")).not.toBeNull();
   press("x");
+  slid();
   expect(menu("g")).toBeNull();
   press("i");
   expect(ran).toEqual([]);
@@ -209,6 +234,7 @@ test("a key the focused field already handled ends a shown menu", () => {
   wait(500);
   expect(menu("Space")).not.toBeNull();
   press("Enter", {}, screen.getByRole("textbox"));
+  slid();
   expect(menu("Space")).toBeNull();
 });
 
@@ -218,7 +244,7 @@ test("a lone modifier does not end a shown menu", () => {
   press(" ");
   wait(500);
   press("Shift");
-  expect(menu("Space")).not.toBeNull();
+  expectSpaceOpen();
 });
 
 test("a key bound to nothing keeps a shown menu open and runs nothing", () => {
@@ -227,7 +253,7 @@ test("a key bound to nothing keeps a shown menu open and runs nothing", () => {
   wait(500);
   press("z");
   press("a");
-  expect(menu("Space")).not.toBeNull();
+  expectSpaceOpen();
   expect(ran).toEqual([]);
 });
 
@@ -241,6 +267,7 @@ test("a pending g or a shown menu lets F5, PageDown, Enter, and the arrows throu
     wait(500);
     expect(menu("Space")).not.toBeNull();
     expect(press(key), `${key} in the menu`).toBe(true);
+    slid();
     expect(menu("Space")).toBeNull();
     // Nothing is pending: `i` is no `g i`.
     press("i");
@@ -255,7 +282,7 @@ test("a printable key the menu has no use for is consumed: x does nothing", () =
   press(" ");
   wait(500);
   expect(press("z")).toBe(false);
-  expect(menu("Space")).not.toBeNull();
+  expectSpaceOpen();
   expect(ran).toEqual([]);
 });
 
@@ -354,6 +381,7 @@ test("a navigation while the menu is shown closes it", () => {
   wait(500);
   expect(menu("Space")).not.toBeNull();
   act(() => navigate("/elsewhere"));
+  slid();
   expect(menu("Space")).toBeNull();
   // And what was pending is gone: `n` is no group key now.
   press("n");
@@ -368,6 +396,7 @@ test("a change of the query alone, the Change card's, closes a shown menu", () =
   wait(500);
   expect(menu("Space")).not.toBeNull();
   act(() => navigate("/new?kind=change"));
+  slid();
   expect(menu("Space")).toBeNull();
 });
 
@@ -382,6 +411,7 @@ test("a layer opening while the menu is shown closes it", async () => {
     document.body.append(dialog);
     await vi.advanceTimersByTimeAsync(16);
   });
+  slid();
   expect(menu("Space")).toBeNull();
 });
 
@@ -401,6 +431,7 @@ test("with single-key shortcuts off, Space and g do nothing, and Ctrl+K opens th
   expect(menu("Space n")).not.toBeNull();
   press("s");
   expect(ran).toEqual(["space n s"]);
+  slid();
   expect(menu("Space n")).toBeNull();
 });
 
@@ -410,6 +441,7 @@ test("turning the switch off with the menu open closes it", () => {
   wait(500);
   expect(menu("Space")).not.toBeNull();
   setSingleKeys(false);
+  slid();
   expect(menu("Space")).toBeNull();
   press("n");
   expect(ran).toEqual([]);
@@ -429,5 +461,6 @@ test("a copy while the menu is open ends it and is left to the browser", () => {
   press(" ");
   wait(500);
   expect(fireEvent.keyDown(document.body, { ctrlKey: true, key: "c" })).toBe(true);
+  slid();
   expect(menu("Space")).toBeNull();
 });

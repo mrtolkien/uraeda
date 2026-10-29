@@ -40,11 +40,11 @@ const limited = () =>
 
 /**
  * `POST /inbox/note-image`: images added to the inbox in one call to the core, which encodes them
- * and writes the draft folder holding them, all or nothing: a new note's, when the multipart body
- * holds `text`, with `category` and `about` when given, or those of the note `id`, which becomes a
- * draft when it links none. The body also holds `hash`, the inbox's as read, and one `file` per
+ * and writes the note file's folder holding them, all or nothing: a new note's, when the multipart
+ * body holds `text`, with `category` and `about` when given, or those of the note `id`, which gets
+ * a note file when it has none. The body also holds `hash`, the inbox's as read, and one `file` per
  * image; the images' names are the query string's `name`s, in the same order, as for `/attach`.
- * Answers `{ draft }`, the draft's path, or `400` with `{ error }`.
+ * Answers `{ file }`, the note file's path, or `400` with `{ error }`.
  */
 async function noteImage(context: Context<{ Variables: FateVariables }>) {
   // Mounted under `/r/<name>/` only: the repository is the route's.
@@ -70,7 +70,7 @@ async function noteImage(context: Context<{ Variables: FateVariables }>) {
     // An empty name stands for a pasted image.
     const queried = context.req.queries("name") ?? [];
     const names = images.map((_, index) => queried[index] ?? "");
-    const draft =
+    const path =
       id === undefined
         ? await ctx.binding.addNoteWithImages(
             ctx.repo,
@@ -82,7 +82,7 @@ async function noteImage(context: Context<{ Variables: FateVariables }>) {
             field("about"),
           )
         : await ctx.binding.attachNoteImages(ctx.repo, id, hash, images, names);
-    return context.json({ draft });
+    return context.json({ file: path });
   } catch (error) {
     return context.json(refusal(error), 400);
   }

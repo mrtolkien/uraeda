@@ -126,7 +126,7 @@ test.each([
   const write = asQuery({
     input: { hash: "", section: "Now", text: "Reached" },
     kind: "mutation",
-    name: "priorities.add",
+    name: "proposals.add",
     select: ["id"],
   });
 

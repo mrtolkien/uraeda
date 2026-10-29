@@ -1,14 +1,12 @@
-// Rename, from a session's "…" in the shell or on its page: a dialog on wide screens, a bottom sheet on the phone,
+// Rename, from a session's "…" on its page: a dialog on wide screens, a bottom sheet on the phone,
 // drawn beside the shell, as a feature's settings are. The server refuses a blank title.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
-import { useFateClient } from "react-fate";
-import { refusal } from "../errors.ts";
 import { Overlay } from "../layout/Overlay.tsx";
-import { SessionView } from "../views.ts";
+import { useRenameSession } from "../useSessionControls.ts";
 import type { Row } from "./cards.ts";
 import { StatusText } from "../fields/StatusText.tsx";
 
@@ -26,18 +24,15 @@ export function useOpenRename(): Open {
 }
 
 function Rename({ onClose, row }: { onClose: () => void; row: Renamed }) {
-  const fate = useFateClient();
+  const renameSession = useRenameSession();
   const [title, setTitle] = useState(row.title);
   const [error, setError] = useState<string>();
   const changed = title.trim() !== row.title;
   const save = async () => {
     setError(undefined);
-    const result = await fate.mutations.session.rename({
-      input: { session: row.id, title: title.trim() },
-      view: SessionView,
-    });
-    if (result.error) {
-      setError(refusal(result.error).message);
+    const refused = await renameSession(row.id, title.trim());
+    if (refused !== undefined) {
+      setError(refused);
       return;
     }
     onClose();

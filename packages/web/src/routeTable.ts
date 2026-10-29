@@ -8,7 +8,7 @@ export type Route =
   | { folder: string; page: "feature" }
   | { folder: string; name: string; page: "file" }
   | { page: "priorities" }
-  | { key: string; page: "task" }
+  | { key: string; page: "proposal" }
   | { page: "inbox" }
   | { key: string; page: "note" }
   | { page: "triage" }
@@ -16,7 +16,8 @@ export type Route =
   | { page: "decisions-check" }
   | { name: string; page: "decision" }
   | { folder: string; name: string; page: "branch-decision" }
-  | { page: "principle"; slug: string }
+  | { page: "constitution" }
+  | { page: "commit" }
   | { page: "edit"; path: string }
   | { folder: string; name: string; page: "mockup" }
   | { folder: string; page: "session" }
@@ -91,6 +92,9 @@ export function parseRoute(pathname: string, search = ""): Route {
   if (parts[0] === "f" && parts.length === 4 && parts[2] === "runs") {
     return { folder: parts[1], id: parts[3], page: "run" };
   }
+  if (parts[0] === "commit" && parts.length === 1) {
+    return { page: "commit" };
+  }
   if (parts[0] === "sessions" && parts.length === 1) {
     return { page: "sessions" };
   }
@@ -114,7 +118,7 @@ export function parseRoute(pathname: string, search = ""): Route {
     return { page: "priorities" };
   }
   if (parts[0] === "priorities" && parts.length === 2) {
-    return { key: parts[1], page: "task" };
+    return { key: parts[1], page: "proposal" };
   }
   if (parts[0] === "inbox" && parts.length === 1) {
     return { page: "inbox" };
@@ -150,7 +154,10 @@ export function branchDecisionPath(folder: string, name: string): string {
   return `/f/${encodeURIComponent(folder)}/decisions/${encodeURIComponent(name)}`;
 }
 
-/** `/decisions`, `/decisions/check`, `/decisions/<name>`, or `/decisions/constitution/<slug>`. */
+/**
+ * `/decisions`, `/decisions/check`, `/decisions/constitution`, one page, or `/decisions/<name>`. An
+ * old link to a principle, `/decisions/constitution/<slug>`, opens the constitution.
+ */
 function decisionsRoute(parts: Array<string>, pathname: string): Route {
   if (parts.length === 1) {
     return { page: "decisions" };
@@ -158,10 +165,11 @@ function decisionsRoute(parts: Array<string>, pathname: string): Route {
   if (parts.length === 2 && parts[1] === "check") {
     return { page: "decisions-check" };
   }
+  if (parts[1] === "constitution") {
+    return { page: "constitution" };
+  }
   if (parts.length === 2) {
     return { name: parts[1], page: "decision" };
   }
-  return parts[1] === "constitution"
-    ? { page: "principle", slug: parts[2] }
-    : { page: "missing", path: pathname };
+  return { page: "missing", path: pathname };
 }

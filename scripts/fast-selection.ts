@@ -98,7 +98,7 @@ export const families = {
     // Every focused test, and the existing tests that need no application or native binding.
     tests: [
       "src/__focused__/**/*.test.tsx",
-      "src/__tests__/{drop,draft-text,insertLink,keep-place,readLetters,edited}.test.ts",
+      "src/__tests__/{drop,proposal-text,insertLink,keep-place,readLetters,edited}.test.ts",
     ],
   },
 };

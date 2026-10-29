@@ -39,13 +39,38 @@ function runAfters() {
   }
 }
 
+/** The longest a run waits for a sheet's scroll lock to go, in ms. */
+const LOCK_MS = 2000;
+
+/**
+ * Runs `run` once a sheet's scroll lock is gone, at most `LOCK_MS` later: while a modal sheet is
+ * open the page cannot scroll, and closing it puts the page back where it was, then returns the
+ * focus to the sheet's trigger.
+ */
+function afterScrollLock(run: () => void) {
+  const start = performance.now();
+  const tick = () => {
+    if (document.body.style.position === "fixed" && performance.now() - start < LOCK_MS) {
+      requestAnimationFrame(tick);
+      return;
+    }
+    run();
+  };
+  requestAnimationFrame(tick);
+}
+
 /**
  * Runs once the overlay `label` is closed, its history entry gone, and the Backs under way landed:
  * a page opened, or another overlay, while its entry is still there would be undone by the Back
- * that closes it.
+ * that closes it. A run that `scrolls` the page waits for the sheet's scroll lock to go too, which
+ * would put the page back where it was.
  */
-export function afterOverlayCloses(label: string, run: () => void) {
-  afters.add({ label, run });
+export function afterOverlayCloses(
+  label: string,
+  run: () => void,
+  { scrolls = false }: { scrolls?: boolean } = {},
+) {
+  afters.add({ label, run: scrolls ? () => afterScrollLock(run) : run });
   runAfters();
   listen();
 }

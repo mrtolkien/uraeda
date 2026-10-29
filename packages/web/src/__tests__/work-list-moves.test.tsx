@@ -1,7 +1,8 @@
 // US3 4, on a `WorkList` alone: the keys that move the focused card ask `onMove` for the move a drop
 // would, one at a time (R9): a second key pressed before the first is written waits for it, and its
 // target is read from the list as the first left it. The card moved is the focused one, not the
-// selected one. Their writes on the priorities page are in `__browser__/keys-shift.test.tsx`.
+// selected one. The list opens its cards itself, so a card's control is a button, not a link.
+// Their writes on the priorities page are in `__browser__/keys-shift.test.tsx`.
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { KeysProvider } from "../keys/registry.tsx";
@@ -27,8 +28,9 @@ function list(keys: ReadonlyArray<string>, onMove: Parameters<typeof WorkList>[0
   );
 }
 
+/** Puts the focus on the card `name`'s control. */
 const focus = (name: string) => {
-  const link = screen.getByRole("link", { name });
+  const link = screen.getByRole("button", { name });
   link.focus();
   return link;
 };
@@ -84,7 +86,7 @@ test("+ and - move the selection like j and k", () => {
   const first = focus("a");
 
   fireEvent.keyDown(first, { key: "+" });
-  expect(document.activeElement).toBe(screen.getByRole("link", { name: "b" }));
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "b" }));
   fireEvent.keyDown(document.activeElement as Element, { key: "-" });
   expect(document.activeElement).toBe(first);
 });

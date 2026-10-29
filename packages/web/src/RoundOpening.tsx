@@ -15,19 +15,16 @@ const styles = stylex.create({
 
 /**
  * A round's opening: the feature's crumbs, unless it is a default-branch round's, the round's
- * title, its block's pane, `children`, then its context's panes, and `check` after them.
+ * title, its block's pane, then its context's panes, and `check` after them.
  */
 export function RoundOpening({
   check,
-  children,
   crumbs,
   document,
   round,
 }: {
   /** The "Check these" pane, after the context's last part. */
   check?: ReactNode;
-  /** What comes between the block and the context: the round's index, on narrow screens. */
-  children?: ReactNode;
   /** The feature's folder and the round's name, for its crumbs; none for a default-branch round. */
   crumbs?: { folder: string; name: string };
   document: Document;
@@ -43,7 +40,6 @@ export function RoundOpening({
         </Heading>
       )}
       <RoundBlock document={document} round={round} />
-      {children}
       <RoundContext check={check} document={document} round={round} />
     </>
   );

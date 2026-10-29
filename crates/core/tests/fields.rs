@@ -199,7 +199,7 @@ fn every_kind_lists_the_fields_check_requires() {
         ),
         ("specs/changes/2026-10-12-y/assessment.md".into(), vec![]),
         ("specs/PRIORITIES.md".into(), vec![]),
-        ("specs/drafts/an-idea.md".into(), vec![]),
+        ("specs/proposals/an-idea.md".into(), vec![]),
         (format!("{FEATURE}/rulings.md"), vec![]),
     ];
     for (path, expected) in rows {

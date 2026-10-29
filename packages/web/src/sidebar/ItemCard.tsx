@@ -1,27 +1,25 @@
 // A session's, a change's, or a feature's card in the shell: every line about it, a row of its pane.
 // Its first line is its kind's icon, its whole name, wrapping when it must, and at the end its
-// background command and status, then its "…": a session's actions, or a change's or a feature's
-// settings. Under the name, a change's or a feature's step; then, while it has any, its task's
-// progress and the lines its branch changed, with its pull request; then its running sub-agents.
+// background command and status. Under the name, a change's or a feature's step; then, while it
+// has any, its task's progress and the lines its branch changed, with its pull request; then its
+// running sub-agents.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
-import { Link } from "@astryxdesign/core/Link";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
-import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
+import { useClosedRail } from "../layout/closedRail.ts";
+import { usePaneTone } from "../layout/paneContext.tsx";
+import { columnVars } from "../shell/column.stylex.ts";
 import type { SessionStatus } from "uraeda-server/fate";
 import { HarnessMark, harnessMark } from "../HarnessMark.tsx";
-import { ProgressRing } from "../ProgressRing.tsx";
-import { useColumnFold } from "../shell/fold.ts";
 import { StatusMark } from "../StatusMark.tsx";
-import { needsYou } from "./cards.ts";
 import { CardRow } from "./CardRow.tsx";
-import { RailLink } from "./Row.tsx";
+import { brighten } from "./brighten.ts";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 import { DiffCount } from "../layout/DiffCount.tsx";
-import { ActionsMenu, MORE_ICON } from "../layout/ActionsMenu.tsx";
+import { pickedStyles } from "../layout/picked.ts";
 
 /** What the sidebar shows of a session, a change, or a feature. */
 export type CardItem = {
@@ -31,6 +29,11 @@ export type CardItem = {
   changes?: { added: number; removed: number };
   /** Its folder, or a session's ID. */
   folder: string;
+  /**
+   * The agent kind of the session at work on a feature or a change, whose mark its working button
+   * wears. Not in the card's name, which the step and the status already tell.
+   */
+  harness?: string;
   /** Whether a background command of its run is still going. */
   hasBackgroundCommand?: boolean;
   kind: "session" | "change" | "feature";
@@ -49,28 +52,80 @@ export type CardItem = {
 };
 
 const styles = stylex.create({
-  activity: {
-    minWidth: 0,
-    // Room under the first line, so its selected background never covers the progress.
-    paddingBlockEnd: spacingVars["--spacing-1"],
-    paddingBlockStart: spacingVars["--spacing-1"],
-    paddingInline: spacingVars["--spacing-2"],
-  },
   card: {
-    // A row of its pane, which draws the border around its cards.
     marginBlockEnd: spacingVars["--spacing-1"],
     overflow: "hidden",
+    position: "relative",
   },
-  progressText: {
-    flexGrow: 1,
-    minWidth: 0,
-  },
-  railIcon: {
+  meta: { flexGrow: 1, minWidth: 0 },
+  next: {
+    // A square of a line and a half, centred on the card's two lines.
     alignItems: "center",
-    display: "inline-flex",
-    flexDirection: "column",
-    gap: spacingVars["--spacing-1"],
+    backgroundColor: colorVars["--color-accent"],
+    color: colorVars["--color-on-accent"],
+    // Its side as a property of its own, as the token lint takes a `var()` only whole, not in a
+    // calc.
+    "--card-next-side": "calc(1.35 * var(--size-label-line))",
+    display: "flex",
+    height: "var(--card-next-side)",
+    justifyContent: "center",
+    width: "var(--card-next-side)",
   },
+  nextSmall: {
+    // The rail's, the size of its small status mark.
+    height: spacingVars["--spacing-3"],
+    width: spacingVars["--spacing-3"],
+  },
+  // Out under the status at the first line's end, so the diff ends at the card's right edge.
+  reachGap: { marginInlineEnd: `calc(-1 * ${spacingVars["--spacing-2"]})` },
+  reachStatus: {
+    marginInlineEnd: `calc(-1 * (${spacingVars["--spacing-2"]} + ${spacingVars["--spacing-4"]}))`,
+  },
+  // In the closed rail: a bar the rail's row wide, framing the card's icon and its mark, which no
+  // longer clips them. The frame's colour is its pane's, orange where it needs the human.
+  rail: {
+    "::after": {
+      borderColor: colorVars["--color-border"],
+      borderStyle: "solid",
+      borderWidth: borderVars["--border-width"],
+      content: '""',
+      insetBlockEnd: 0,
+      insetBlockStart: 0,
+      insetInlineStart: `calc(-1 * ${columnVars["--rail-frame-pull"]})`,
+      pointerEvents: "none",
+      position: "absolute",
+      width: columnVars["--rail-row-box"],
+    },
+    isolation: "isolate",
+    overflow: "visible",
+  },
+  railAttention: { "::after": { borderColor: colorVars["--color-border-orange"] } },
+  // The selected card's grey fills its frame, behind its icons: its row's, as wide as the open
+  // card, would run past the frame.
+  railSelected: { "::after": { backgroundColor: colorVars["--color-neutral"], zIndex: -1 } },
+  // A sub-agent's mark under the card's, its description hidden.
+  railGone: { display: "none" },
+  railSubagent: { paddingInlineStart: columnVars["--rail-mark-start"] },
+  // The closed rail's mark of the card's status, under its icon, shown by `railMarkShown`. Its top
+  // is a property of its own, as the token lint takes a `var()` only whole, not in a calc.
+  railMark: {
+    "--card-rail-mark-top": `calc(var(--size-label-line) + ${columnVars["--rail-mark-below"]})`,
+    display: "none",
+    insetInlineStart: columnVars["--rail-mark-start"],
+    pointerEvents: "none",
+    position: "absolute",
+    top: "var(--card-rail-mark-top)",
+    zIndex: 1,
+  },
+  railMarkShown: { display: "flex" },
+  // A card of one line: its mark alone, in the middle of its height, in place of its icon.
+  railMarkCentred: {
+    bottom: 0,
+    height: "fit-content",
+    marginBlock: "auto",
+    top: 0,
+  },
+  spacer: { flexGrow: 1 },
   subagent: {
     paddingBlockEnd: spacingVars["--spacing-1"],
     paddingInlineStart: spacingVars["--spacing-6"],
@@ -94,6 +149,7 @@ export function cardName(item: CardItem) {
       ? `Task ${item.progress.position} of ${item.progress.total}, ${item.progress.title}`
       : undefined,
     item.hasBackgroundCommand ? "background command running" : undefined,
+    item.pullRequest ? `pull request #${item.pullRequest.number}` : undefined,
     item.changes ? `${item.changes.added} lines added, ${item.changes.removed} removed` : undefined,
   ]
     .filter(Boolean)
@@ -101,17 +157,34 @@ export function cardName(item: CardItem) {
 }
 
 /** The end of the first line: the background command, then the status or the action in flight. */
-function Status({ item }: { item: CardItem }) {
+function Status({
+  hasNext,
+  hasWork,
+  item,
+}: {
+  hasNext: boolean;
+  hasWork: boolean;
+  item: CardItem;
+}) {
   return (
     <HStack align="center" gap={1}>
       {item.hasBackgroundCommand && <Icon color="secondary" icon="uraeda:terminal" size="sm" />}
       {item.pending ? (
         // Read in the card's name: a `label` would show as text over the card.
         <Spinner aria-hidden size="sm" />
-      ) : (
+      ) : item.status.status === "idle" ? null : (
         // A click on it opens the status's own page: see `onStatus`.
         <span data-card-status>
-          <StatusMark label={item.status.label} status={item.status.status} />
+          {hasNext ? (
+            // A step waits on the human: a chevron on the accent leads to it, where a "!" read as
+            // an alert; the fill, as the status mark's, shows it is a button.
+            <ActionMark kind="next" />
+          ) : hasWork ? (
+            // A session works on it: its page is one click away, from a button as big.
+            <ActionMark harness={item.harness ?? item.agent} kind="work" />
+          ) : (
+            <StatusMark label={item.status.label} status={item.status.status} />
+          )}
         </span>
       )}
     </HStack>
@@ -127,163 +200,237 @@ function KindIcon({ item }: { item: CardItem }) {
     return <StepIcon step={item.step.kind} />;
   }
   if (item.kind === "session" && item.agent !== undefined) {
-    return <HarnessMark isDecorative kind={item.agent} />;
+    return <HarnessMark isDecorative kind={item.agent} size="md" />;
   }
   return (
-    <Icon color="secondary" icon={item.kind === "change" ? "wrench" : "uraeda:comment"} size="sm" />
+    <Icon color="secondary" icon={item.kind === "change" ? "wrench" : "uraeda:comment"} size="md" />
   );
 }
 
 /**
- * The kind's icon; in the folded rail, with a warning under it while the item needs the human, its
- * status read in the card's name.
+ * A card's icon and status as another list draws its item, the key picker's: the icon of its kind
+ * or step, and the mark of its status, the agent's at work on it, or the chevron of its next step.
  */
-function CardIcon({ item }: { item: CardItem }) {
-  const { isFolded } = useColumnFold();
-  if (!isFolded || !needsYou(item.status)) {
-    return <KindIcon item={item} />;
-  }
+export const CardKindIcon = KindIcon;
+export function CardStatus({ item }: { item: CardItem }) {
+  const hasNext = item.status.status === "needs-you" && item.step?.kind !== "problem";
+  return <Status hasNext={hasNext} hasWork={item.status.status === "working"} item={item} />;
+}
+
+/**
+ * The square that leads from the card to what its status points at, as the card's button or its
+ * small rail mark, on the accent as every button is: a chevron for the next step, which waits on
+ * the human, and, for the session at work on it, its agent's mark, or the activity icon when it
+ * names none.
+ */
+function ActionMark({
+  harness,
+  isSmall = false,
+  kind,
+}: {
+  harness?: string | undefined;
+  isSmall?: boolean;
+  kind: "next" | "work";
+}) {
+  const work = harness === undefined ? "uraeda:activity" : harnessMark(harness).icon;
   return (
-    <span {...stylex.props(styles.railIcon)}>
-      <KindIcon item={item} />
+    <span {...stylex.props(styles.next, isSmall ? styles.nextSmall : brighten)}>
       <Icon
-        color={item.status.status === "attention" ? "error" : "warning"}
-        icon="warning"
-        size="sm"
+        color="inherit"
+        icon={kind === "work" ? work : "chevronRight"}
+        size={isSmall ? "xsm" : "md"}
       />
     </span>
   );
 }
 
-/**
- * The line under the first one, only while there is a task or lines changed: the task's progress,
- * the pull request, and the lines changed.
- */
-function Activity({ item }: { item: CardItem }) {
-  const { changes, progress, pullRequest } = item;
-  if (!changes && !progress) {
-    return null;
-  }
+/** The card's second line: its step, its task's position, its pull request, its lines changed. */
+function Meta({
+  detail,
+  hasButton,
+  item,
+}: {
+  detail?: string | undefined;
+  /** Its end is a two-line button. */
+  hasButton: boolean;
+  item: CardItem;
+}) {
+  const { changes, progress, pullRequest, step } = item;
   return (
-    <HStack align="center" gap={2} xstyle={styles.activity}>
-      {progress && <ProgressRing position={progress.position} total={progress.total} />}
-      <span {...stylex.props(styles.progressText)}>
+    <>
+      <HStack
+        align="center"
+        gap={2}
+        xstyle={[
+          styles.meta,
+          // Beside a two-line button, the line ends where its room does.
+          !hasButton && (item.status.status === "idle" ? styles.reachGap : styles.reachStatus),
+        ]}
+      >
+        <Text color="secondary" type="supporting">
+          {step?.label}
+        </Text>
         {progress && (
-          <Text color="secondary" type="supporting">
-            {`${progress.position}/${progress.total} · ${progress.title}`}
+          <Text color="secondary" hasTabularNumbers type="supporting">
+            {`${progress.position}/${progress.total}`}
           </Text>
         )}
-      </span>
-      {pullRequest && (
-        <Link
-          href={pullRequest.url}
-          isExternalLink
-          label={`Pull request #${pullRequest.number}`}
-          type="supporting"
-        >
-          {`#${pullRequest.number}`}
-        </Link>
+        <span {...stylex.props(styles.spacer)} />
+        {pullRequest && (
+          // Opened by the card's click: a link cannot sit inside the card's own.
+          <span data-card-pr={pullRequest.url}>
+            <Text color="secondary" type="supporting">{`#${pullRequest.number}`}</Text>
+          </span>
+        )}
+        {changes && (
+          <DiffCount added={changes.added} isHidden removed={changes.removed} type="supporting" />
+        )}
+      </HStack>
+      {detail && (
+        <Text color="secondary" type="supporting">
+          {detail}
+        </Text>
       )}
-      {changes && (
-        // Read in the card's name, in words.
-        <DiffCount added={changes.added} isHidden removed={changes.removed} type="supporting" />
-      )}
-    </HStack>
+    </>
   );
 }
 
-/** A session's actions in its "…". */
-export type CardAction = { label: string; onClick: () => void };
-
-/** The "…": a session's actions as a menu, or a change's or a feature's settings. */
-function More({
-  actions,
+/**
+ * The closed rail's mark of the card's status, under its icon: the next step's chevron, the agent
+ * at work on it, or its status mark.
+ */
+function RailMark({
+  hasNext,
+  isMarkOnly,
   item,
-  onSettings,
 }: {
-  actions: Array<CardAction> | undefined;
+  hasNext: boolean;
+  isMarkOnly: boolean;
   item: CardItem;
-  onSettings: (() => void) | undefined;
 }) {
-  if (actions) {
-    return <ActionsMenu items={actions} label={`Actions of ${item.label}`} />;
-  }
+  const isRail = useClosedRail();
   return (
-    <IconButton
-      icon={MORE_ICON}
-      label={`Settings of ${item.label}`}
-      {...(onSettings ? { onClick: onSettings } : {})}
-      size="sm"
-      variant="ghost"
-    />
+    <span
+      aria-hidden="true"
+      data-rail-only
+      {...stylex.props(
+        styles.railMark,
+        isRail && styles.railMarkShown,
+        isRail && isMarkOnly && styles.railMarkCentred,
+      )}
+    >
+      {hasNext ? (
+        <ActionMark isSmall kind="next" />
+      ) : item.status.status === "working" ? (
+        // The size of the next step's chevron: one mark for whatever the rail shows.
+        <ActionMark harness={item.harness ?? item.agent} isSmall kind="work" />
+      ) : (
+        <StatusMark label={item.status.label} small status={item.status.status} />
+      )}
+    </span>
   );
+}
+
+/**
+ * A click on the card: on its pull request, opens it in a new tab; on its status, what the status
+ * points to (`onStatus`); anywhere else, the item's page inside the app (`onOpen`).
+ */
+function cardClick(onOpen: (() => void) | undefined, onStatus: (() => void) | undefined) {
+  return (event: React.MouseEvent) => {
+    const pr = (event.target as Element).closest("[data-card-pr]");
+    if (pr) {
+      event.preventDefault();
+      window.open(pr.getAttribute("data-card-pr") ?? "", "_blank", "noopener");
+    } else if (onStatus && (event.target as Element).closest("[data-card-status]")) {
+      event.preventDefault();
+      onStatus();
+    } else if (onOpen) {
+      event.preventDefault();
+      onOpen();
+    }
+  };
 }
 
 export function ItemCard({
-  actions,
+  detail,
   href,
+  isPicked = false,
   isSelected = false,
   item,
   onOpen,
-  onSettings,
   onStatus,
 }: {
-  /** A session's actions, which its "…" lists. */
-  actions?: Array<CardAction>;
+  /** More about it on a third line, as home's cards say: what it asks, how long it takes. */
+  detail?: string | undefined;
   href: string;
+  /**
+   * The keys or the pointer picked it: tinted as a list's selected row, the keyboard's ring around
+   * the whole card, its sub-agents too, not around its row alone.
+   */
+  isPicked?: boolean;
   isSelected?: boolean;
   item: CardItem;
   /** Opens the item's page inside the app, instead of loading `href`. */
   onOpen?: () => void;
-  /** Opens a change's or a feature's settings. */
-  onSettings?: () => void;
   /** Opens what its status points to, on a click on the status: its session, or what it asks. */
   onStatus?: () => void;
 }) {
-  const { isFolded } = useColumnFold();
-  if (isFolded) {
-    // The rail: its icon alone, its name read in full, its status a warning while it needs you.
-    return (
-      <RailLink
-        href={href}
-        icon={<CardIcon item={item} />}
-        isSelected={isSelected}
-        label={cardName(item)}
-        {...(onOpen ? { onOpen } : {})}
-      />
-    );
-  }
+  // A step waits on the human: its status is a button to it, two lines high.
+  const hasNext =
+    onStatus !== undefined && item.status.status === "needs-you" && item.step?.kind !== "problem";
+  // A session works on it: its status is a button to the session, as big.
+  const hasWork = onStatus !== undefined && item.status.status === "working";
+  const hasButton = hasNext || hasWork;
+  const isRail = useClosedRail();
+  const tone = usePaneTone();
+  // A card of one line is too short for its icon with the mark under it: the rail shows the mark alone.
+  const isMarkOnly = !detail && !item.step && item.status.status !== "idle";
   return (
-    <div {...stylex.props(styles.card)}>
+    <div
+      data-card
+      {...stylex.props(
+        styles.card,
+        isPicked && pickedStyles.picked,
+        isPicked && pickedStyles.ringWithin,
+        isRail && [
+          styles.rail,
+          tone === "attention" && styles.railAttention,
+          isSelected && styles.railSelected,
+        ],
+      )}
+    >
+      <RailMark hasNext={hasNext} isMarkOnly={isMarkOnly} item={item} />
       <CardRow
-        // Always drawn, muted, so the card keeps its size under the pointer (C4).
-        actions={<More actions={actions} item={item} onSettings={onSettings} />}
-        endContent={<Status item={item} />}
+        {...(isRail ? { rail: isMarkOnly ? "mark" : "card" } : {})}
+        endContent={<Status hasNext={hasNext} hasWork={hasWork} item={item} />}
+        hasRing={!isPicked}
         href={href}
-        icon={<CardIcon item={item} />}
+        icon={<KindIcon item={item} />}
+        isEndTall={hasButton}
         isSelected={isSelected}
         label={item.label}
         name={cardName(item)}
-        sub={item.step?.label}
-        {...(onOpen || onStatus
-          ? {
-              onClick: (event: React.MouseEvent) => {
-                if (onStatus && (event.target as Element).closest("[data-card-status]")) {
-                  event.preventDefault();
-                  onStatus();
-                } else if (onOpen) {
-                  event.preventDefault();
-                  onOpen();
-                }
-              },
-            }
-          : {})}
+        sub={
+          detail ? (
+            // Home's card: its detail is the second line, in place of the step's.
+            <Text color="secondary" type="supporting">
+              {detail}
+            </Text>
+          ) : item.step ? (
+            <Meta hasButton={hasButton} item={item} />
+          ) : undefined
+        }
+        {...(onOpen || onStatus ? { onClick: cardClick(onOpen, onStatus) } : {})}
       />
-      <Activity item={item} />
       {item.subagents?.map((subagent) => (
-        <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
-          <StatusMark label="Working" small status="working" />
-          <Text color="secondary" type="supporting">
+        <HStack
+          align="center"
+          gap={2}
+          key={subagent.id}
+          xstyle={[styles.subagent, isRail && styles.railSubagent]}
+        >
+          <StatusMark isSubagent label="Working" small status="working" />
+          <Text color="secondary" type="supporting" xstyle={isRail && styles.railGone}>
             {subagent.description}
           </Text>
         </HStack>

@@ -36,6 +36,10 @@ const styles = stylex.create({
   message: {
     maxBlockSize: "var(--size-message-image)",
   },
+  // Under an inbox note's selected row: a bigger preview, which opens full size too.
+  note: {
+    maxBlockSize: "var(--size-note-image)",
+  },
   // An image of a known size: its box, in its proportions and at most its own height, is drawn
   // before it loads.
   sized: (ratio: string, blockSize: string) => ({
@@ -112,7 +116,7 @@ export function ImageView({
   height?: number;
   isStatic?: boolean;
   label?: string;
-  size?: "column" | "message";
+  size?: "column" | "message" | "note";
   src: string;
   width?: number;
 }) {
@@ -132,7 +136,11 @@ export function ImageView({
     return <Missing alt={alt} />;
   }
   const known = width !== undefined && height !== undefined && width > 0 && height > 0;
-  const cap = size === "message" ? "var(--size-message-image)" : "var(--size-image-max-height)";
+  const cap = {
+    column: "var(--size-image-max-height)",
+    message: "var(--size-message-image)",
+    note: "var(--size-note-image)",
+  }[size];
   const image = (zoom: boolean, inline: boolean) => (
     <img
       alt={alt}
@@ -145,6 +153,7 @@ export function ImageView({
       {...stylex.props(
         styles.image,
         size === "message" && styles.message,
+        size === "note" && styles.note,
         known && styles.sized(`${width} / ${height}`, `min(${height}px, ${cap})`),
         zoom && styles.zoom,
         inline && styles.inline,

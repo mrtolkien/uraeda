@@ -1,17 +1,25 @@
-// A run's rows in the Activity: each call or thought with its kind's icon, what it acted on, and
-// its word, `stretches.ts`'s (ruling R6). A call with output, a thought with text, and a
-// sub-agent's group unfold, their content mounted only while open, kept open in the history entry.
-// The rows of the stretch the address names are marked, and a call still going in a running turn is
-// live. An open group mounts its latest 200 rows, and "Show earlier calls" adds 200 more, as the
-// runs do.
+// A run's rows in the Activity: each call or thought a head line, its kind's icon, how it ended,
+// a check or a cross, and how long it ran, over what it acted on, across the row's whole width,
+// three lines at most (`CallTarget.tsx`); a sub-agent's head says its calls, a thought's is the
+// thought. A call with output, a thought with text, and a sub-agent's group unfold, their content
+// mounted only while open, kept open in the history entry; an open call shows what it acted on
+// whole. The rows of the stretch the address names are marked, and a call still going in a running
+// turn is live. An open group mounts its latest 200 rows, and "Show earlier calls" adds 200 more,
+// as the runs do.
 import { Button } from "@astryxdesign/core/Button";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  colorVars,
+  fontWeightVars,
+  spacingVars,
+  typeScaleVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, startTransition, useRef, useState } from "react";
 import { scroller } from "../following.ts";
@@ -20,29 +28,35 @@ import { ProseMarkdown } from "../Prose.tsx";
 import { StatusMark } from "../StatusMark.tsx";
 import type { OpenKeys } from "../useOpenKeys.ts";
 import type { Run } from "./activityRuns.ts";
-import { Path } from "./Path.tsx";
+import { CallTarget, LineCharsRoom } from "./CallTarget.tsx";
 import { type ActivityItem, type RowWords, rowWords, type ToolItem } from "./stretches.ts";
 
 const styles = stylex.create({
-  // A part of a row's word, never broken.
-  group: { whiteSpace: "nowrap" },
-  // What a row acted on breaks after its slashes first, then anywhere, a long path or command whole
-  // on the row's lines, as the changes' paths: no text is cut. In a fold's toggle, which sets a
-  // larger text and grows to its content, it takes the row's text, and no width of its own, so it
-  // wraps rather than widening the list.
-  label: {
-    contain: "inline-size",
-    display: "block",
+  // The head line: the icon, how it ended, and the time at its end; in the row's text, not a fold
+  // toggle's larger and bolder one.
+  head: {
+    alignItems: "center",
+    display: "flex",
     fontSize: typeScaleVars["--text-body-size"],
+    fontWeight: fontWeightVars["--font-weight-normal"],
+    gap: spacingVars["--spacing-2"],
     lineHeight: typeScaleVars["--text-body-leading"],
-    overflowWrap: "anywhere",
-    textAlign: "start",
+    minWidth: 0,
   },
-  // In a narrow part of the column, a row's word, "sub-agent · 2 calls", wraps between its parts,
-  // so the row's description keeps the most room (approval comment C2).
-  end: {
-    maxInlineSize: { "@container (max-width: 360px)": "min-content", default: "none" },
-  },
+  // The time, at the head's end.
+  time: { marginInlineStart: "auto", whiteSpace: "nowrap" },
+  // A row: a little less room at its sides than a list's, for what it acted on.
+  row: { paddingInline: spacingVars["--spacing-1"] },
+  // A row's head and what it acted on, one under the other, across the row.
+  stack: { display: "flex", flexDirection: "column", gap: spacingVars["--spacing-1"], minWidth: 0 },
+  // A sub-agent's row icon, in the teal of its marks elsewhere (`StatusMark`).
+  subagentIcon: { color: "var(--color-fill-teal)" },
+  // A finished call's check, and a failed one's cross.
+  done: { color: colorVars["--color-text-green"] },
+  failed: { color: colorVars["--color-text-red"] },
+  // A row of the stretch the address names, on the muted background, a step darker than the
+  // column's: the selection's tint was too bright under the text.
+  marked: { backgroundColor: colorVars["--color-background-muted"] },
   // The live row, tinted in the accent, as the mockup's `.on`.
   live: { backgroundColor: colorVars["--color-accent-muted"] },
 });
@@ -116,12 +130,81 @@ export function rowWeight(run: Run, item: ActivityItem, keys: OpenKeys): number 
   return 1 + Math.min(group, GROUP_ROWS);
 }
 
+/** Scrolls `element`'s start to the top of its scroller, smoothly unless motion is reduced. */
+function toStart(element: HTMLElement | null) {
+  const box = element ? scroller(element) : undefined;
+  if (!element || !box) {
+    return;
+  }
+  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  box.scrollTo({
+    behavior: reduced ? "auto" : "smooth",
+    top: box.scrollTop + element.getBoundingClientRect().top - box.getBoundingClientRect().top,
+  });
+}
+
+/** How a call ended, on its head: a check, a cross, or "not finished" once its turn ended. */
+function Outcome({ item, view }: { item: ActivityItem; view: RunView }) {
+  if (item.kind !== "tool") {
+    return null;
+  }
+  if (item.status === "completed") {
+    return <Icon icon="check" label="Done" size="sm" xstyle={styles.done} />;
+  }
+  if (item.status === "failed" || item.status === "cancelled") {
+    return <Icon icon="close" label="Failed" size="sm" xstyle={styles.failed} />;
+  }
+  return view.ended ? <Text color="secondary">not finished</Text> : null;
+}
+
+/**
+ * A row's head line: its icon, or the live mark, how it ended, a thought's word or a sub-agent's
+ * calls, and its time at the end.
+ */
+function RowHead({ item, live, view }: { item: ActivityItem; live: boolean; view: RunView }) {
+  const { calls, label, time } = wordsOf(item, view);
+  return (
+    <span {...stylex.props(styles.head)}>
+      {live ? (
+        <StatusMark label="Live" small status="working" />
+      ) : (
+        <Icon
+          icon={iconOf(item)}
+          size="sm"
+          xstyle={item.kind === "tool" && item.subagent ? styles.subagentIcon : undefined}
+        />
+      )}
+      <Outcome item={item} view={view} />
+      {item.kind === "thought" ? (
+        <span>Thought</span>
+      ) : (
+        // Shown under the head, whole or cut: the head, the fold's toggle, is named by it too.
+        <VisuallyHidden>{label}</VisuallyHidden>
+      )}
+      {calls !== undefined && <Text color="secondary">{`sub-agent · ${calls}`}</Text>}
+      {time !== undefined && (
+        <Text color="secondary" xstyle={styles.time}>
+          {time}
+        </Text>
+      )}
+    </span>
+  );
+}
+
 /** A call or a thought of a run, marked when it belongs to the stretch the address names. */
 function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
-  const { calls, end, label } = wordsOf(item, view);
   const fold = foldOf(item, view);
   const key = foldKey(view.run.turn, item.seq);
   const isOpen = view.keys.open.includes(key);
+  const row = useRef<HTMLLIElement>(null);
+  const open = (next: boolean) => {
+    view.keys.onOpenChange(key, next);
+    if (next) {
+      // After the Activity kept its end in view, which would grow the row upwards: the row's start
+      // at the top of its part instead, where its content reads down.
+      requestAnimationFrame(() => toStart(row.current));
+    }
+  };
   // Live is a call the main agent runs now: a sub-agent's row keeps its bot, and the sub-agent's
   // own calls are its own work, not the run's.
   const live =
@@ -134,51 +217,33 @@ function ActivityRow({ item, view }: { item: ActivityItem; view: RunView }) {
     view.marked !== undefined &&
     item.parent === undefined &&
     view.run.stretches.get(item.seq) === view.marked;
+  // A thought's head says it all; a call's target, or a sub-agent's description, goes under it.
+  const target = item.kind === "thought" ? undefined : wordsOf(item, view).label;
+  const head = <RowHead item={item} live={live} view={view} />;
   return (
     <ListItem
-      align="first-line"
-      endContent={
-        end === undefined ? undefined : (
-          <Text color="secondary" type="supporting" xstyle={styles.end}>
-            {calls === undefined ? (
-              end
-            ) : (
-              <>
-                <span {...stylex.props(styles.group)}>{end}</span>{" "}
-                <span {...stylex.props(styles.group)}>{`· ${calls}`}</span>
-              </>
-            )}
-          </Text>
-        )
-      }
       isSelected={marked}
       label={
-        fold ? (
-          <Collapsible
-            isOpen={isOpen}
-            onOpenChange={(open: boolean) => view.keys.onOpenChange(key, open)}
-            trigger={
-              <span {...stylex.props(styles.label)}>
-                <Path inText path={label} />
-              </span>
-            }
-          >
-            {isOpen ? fold() : null}
-          </Collapsible>
-        ) : (
-          <span {...stylex.props(styles.label)}>
-            <Path inText path={label} />
-          </span>
-        )
+        <span {...stylex.props(styles.stack)}>
+          {fold ? (
+            <Collapsible isOpen={isOpen} onOpenChange={open} trigger={head}>
+              {isOpen ? (
+                <VStack gap={1}>
+                  {target !== undefined && <CallTarget isWhole label={target} />}
+                  {fold()}
+                </VStack>
+              ) : null}
+            </Collapsible>
+          ) : (
+            head
+          )}
+          {target !== undefined && !(fold && isOpen) && (
+            <CallTarget label={target} onWhole={fold ? () => open(true) : undefined} />
+          )}
+        </span>
       }
-      startContent={
-        live ? (
-          <StatusMark label="Live" small status="working" />
-        ) : (
-          <Icon icon={iconOf(item)} size="sm" />
-        )
-      }
-      xstyle={live ? styles.live : undefined}
+      ref={row}
+      xstyle={[styles.row, live ? styles.live : marked ? styles.marked : undefined]}
     />
   );
 }
@@ -219,10 +284,12 @@ export function RowList({
   view: RunView;
 }) {
   return (
-    <List aria-label={label} density="compact">
-      {items.map((item) => (
-        <ActivityRow item={item} key={item.seq} view={view} />
-      ))}
-    </List>
+    <LineCharsRoom>
+      <List aria-label={label} density="compact" hasDividers>
+        {items.map((item) => (
+          <ActivityRow item={item} key={item.seq} view={view} />
+        ))}
+      </List>
+    </LineCharsRoom>
   );
 }

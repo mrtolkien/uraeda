@@ -11,7 +11,7 @@ import { COMMENT_FIELD, type Each, here, settle, show, showNew, SPEC, wait } fro
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const ROUND = "/f/2026-10-11-web-ui/clarifications-01.md";
-const DRAFT = "specs/drafts/login-banner/proposal.md";
+const PROPOSAL = "specs/proposals/login-banner/proposal.md";
 const LEAD = "When the password is wrong, the banner covers the login button:";
 
 /** A file of `fixtures/images/`, under the name the human gives it. */
@@ -80,17 +80,17 @@ async function imagesLoaded(page: Page) {
   await settle(page);
 }
 
-/** The draft, written anew: a folder, with no image. */
-function freshDraft(repo: string) {
-  rmSync(join(repo, "specs/drafts/login-banner"), { force: true, recursive: true });
-  mkdirSync(join(repo, "specs/drafts/login-banner"), { recursive: true });
-  writeFileSync(join(repo, DRAFT), proposalText("Login error banner"));
+/** The proposal file, written anew: a folder, with no image. */
+function freshProposal(repo: string) {
+  rmSync(join(repo, "specs/proposals/login-banner"), { force: true, recursive: true });
+  mkdirSync(join(repo, "specs/proposals/login-banner"), { recursive: true });
+  writeFileSync(join(repo, PROPOSAL), proposalText("Login error banner"));
 }
 
-/** The draft's text field, its cursor after the paragraph that leads to the image. */
-async function editDraft(page: Page, repo: string) {
-  freshDraft(repo);
-  await show(page, `/edit/${DRAFT}`, "Login error banner");
+/** The proposal file's text field, its cursor after the paragraph that leads to the image. */
+async function editProposal(page: Page, repo: string) {
+  freshProposal(repo);
+  await show(page, `/edit/${PROPOSAL}`, "Login error banner");
   await page.getByRole("button", { name: "Edit" }).click();
   const field = page.getByRole("textbox", { name: "Text" });
   await field.evaluate((element: HTMLTextAreaElement, lead) => {
@@ -103,11 +103,12 @@ async function editDraft(page: Page, repo: string) {
 
 /**
  * The editor: a screenshot dropped at the cursor, its alt text selected, and another file dragged
- * over; a file that is no image, refused under the field; and the draft's preview, with the image.
+ * over; a file that is no image, refused under the field; and the proposal file's preview, with the
+ * image.
  */
 async function editorShots(each: Each, repo: string, base: string) {
   await each("editor-image", async ({ page }) => {
-    await editDraft(page, repo);
+    await editProposal(page, repo);
     await dragImages(page, "textarea", [fixtureImage("desktop.png", "login.png")]);
     await page.getByText("Added login.webp").first().waitFor();
     await dragImages(page, "textarea", [fixtureImage("phone.png", "shot.png")], true);
@@ -115,7 +116,7 @@ async function editorShots(each: Each, repo: string, base: string) {
     await settle(page);
   });
   await each("image-refused", async ({ page }) => {
-    await editDraft(page, repo);
+    await editProposal(page, repo);
     await dragImages(page, "textarea", [fixtureImage("drawing.svg", "diagram.svg")]);
     await page
       .getByText(/diagram\.svg is not one/)
@@ -124,10 +125,10 @@ async function editorShots(each: Each, repo: string, base: string) {
     await settle(page);
   });
   await each("editor-preview", async ({ page }) => {
-    freshDraft(repo);
-    const link = await attach(base, DRAFT, "desktop.png", "login.png");
-    writeFileSync(join(repo, DRAFT), proposalText("Login error banner", link));
-    await show(page, `/edit/${DRAFT}`, "Login error banner");
+    freshProposal(repo);
+    const link = await attach(base, PROPOSAL, "desktop.png", "login.png");
+    writeFileSync(join(repo, PROPOSAL), proposalText("Login error banner", link));
+    await show(page, `/edit/${PROPOSAL}`, "Login error banner");
     await page.getByRole("img", { name: "login" }).waitFor();
     await imagesLoaded(page);
   });

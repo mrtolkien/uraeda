@@ -24,5 +24,5 @@ export const NewSessionPage: Story = {};
 /** "＋ New", with Change picked: the composer, the slug, and the notes and priorities to start from. */
 export const NewChangePage: Story = { args: { kind: "change" } };
 
-/** "＋ New", with Feature picked: a title for a new proposal, or a note or a priority to draft. */
+/** "＋ New", with Feature picked: a title for a new proposal, or a note or a proposal to expand. */
 export const NewFeaturePage: Story = { args: { kind: "feature" } };

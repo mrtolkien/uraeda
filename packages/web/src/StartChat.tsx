@@ -4,9 +4,10 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useFateClient } from "react-fate";
 import { Paragraph } from "./layout/Paragraph.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { navigate, sessionIdPath, useRepoPath } from "./routes.tsx";
 import { sendMessage } from "./sessions.ts";
 
@@ -54,11 +55,14 @@ export function RoundBanner({
   titles: { answered: string; waiting: string };
 }) {
   const here = useRepoPath();
+  // On the phone, the action goes under the title, which keeps the banner's width.
+  const narrow = isNarrow(useWidthClass());
+  const placed = (action: ReactNode) => (narrow ? { description: action } : { endContent: action });
   if (status === "answered") {
     return agent ? (
       <Banner
         collapsible={false}
-        endContent={<Button clickAction={() => chat.start(apply)} label="Apply the answers" />}
+        {...placed(<Button clickAction={() => chat.start(apply)} label="Apply the answers" />)}
         status="info"
         title={titles.answered}
       />
@@ -72,7 +76,7 @@ export function RoundBanner({
     <Banner
       collapsible={false}
       // A link drawn as a button: as tall as a control, for a finger.
-      endContent={<Button href={here(href)} label="Answer it" />}
+      {...placed(<Button href={here(href)} label="Answer it" />)}
       status="info"
       title={titles.waiting}
     />

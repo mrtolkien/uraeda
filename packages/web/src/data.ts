@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import type { StoryTarget } from "uraeda-binding";
 import { useFateClient, useLiveView, useRequest, useView, type ViewRef } from "react-fate";
-import type { Draft, Inbox, Priorities, Trigger } from "uraeda-server/fate";
+import type { Inbox, Priorities, ProposalFile, Trigger } from "uraeda-server/fate";
 import {
   AgentView,
   BranchChangesView,
   BranchDecisionView,
-  DraftTitleView,
-  DraftView,
+  ProposalFileTextView,
+  ProposalFileView,
   FeatureView,
   FileView,
   FolderSuggestionsView,
@@ -171,8 +171,9 @@ export async function readInbox(
 }
 
 /**
- * The commit bar's count, which `Inbox` and `Priorities` both carry, read again with both files
- * after a change of the other, like a move across them, a commit, or a discard.
+ * The count of changes waiting for a commit, which `Inbox` and `Priorities` both carry and the
+ * commit tab shows, read again with both files after a change of the other, like a move across
+ * them, a commit, or a discard.
  */
 export function rereadChanges(fate: ReturnType<typeof useFateClient>) {
   void fate
@@ -186,33 +187,35 @@ export function rereadChanges(fate: ReturnType<typeof useFateClient>) {
     .catch(() => {});
 }
 
+/** A proposal file as the lists that offer them read it: its path, its title, and its text. */
+export type ProposalFileText = Pick<ProposalFile, "path" | "text" | "title">;
+
 /**
- * The titles of the drafts and backlog files at `paths`, read in one request once they are asked
+ * The titles and texts of the proposal files at `paths`, read in one request once they are asked
  * for, and again when the list changes; `undefined` while they load.
  */
-export function useDraftTitles(
+export function useProposalFileTexts(
   paths: ReadonlyArray<string>,
-): ReadonlyArray<Pick<Draft, "path" | "title">> | undefined {
+): ReadonlyArray<ProposalFileText> | undefined {
   const fate = useFateClient();
-  const [titles, setTitles] = useState<{
-    key: string;
-    rows: Array<Pick<Draft, "path" | "title">>;
-  }>();
+  const [titles, setTitles] = useState<{ key: string; rows: Array<ProposalFileText> }>();
   // The list, as one value, so a new array of the same paths reads nothing again.
   const key = paths.join("\n");
   useEffect(() => {
     let current = true;
     const ids = key === "" ? [] : key.split("\n");
     void (async () => {
-      const { drafts } = await fate.request({ drafts: { ids, view: DraftTitleView } });
+      const { proposalFiles } = await fate.request({
+        proposalFiles: { ids, view: ProposalFileTextView },
+      });
       const rows = await Promise.all(
-        (drafts as ReadonlyArray<Parameters<typeof fate.readView>[1]>).map(
-          async (draft) => (await fate.readView(DraftTitleView, draft)).data,
+        (proposalFiles as ReadonlyArray<Parameters<typeof fate.readView>[1]>).map(
+          async (file) => (await fate.readView(ProposalFileTextView, file)).data,
         ),
       );
       if (current) {
-        // fate types a root's records as any entity: the view gives the drafts' fields.
-        setTitles({ key, rows: rows as unknown as Array<Pick<Draft, "path" | "title">> });
+        // fate types a root's records as any entity: the view gives the files' fields.
+        setTitles({ key, rows: rows as unknown as Array<ProposalFileText> });
       }
     })().catch(() => {});
     return () => {
@@ -222,11 +225,12 @@ export function useDraftTitles(
   return titles?.key === key ? titles.rows : undefined;
 }
 
-export function useDraft(path: string) {
-  const request = { draft: { id: path, view: DraftView } };
-  const { draft } = useRequest(request);
+/** A proposal file, or a started proposal, by its path, for its editor. */
+export function useProposalFile(path: string) {
+  const request = { proposalFile: { id: path, view: ProposalFileView } };
+  const { proposalFile } = useRequest(request);
   useRefreshOnShow(request);
-  return useLiveView(DraftView, draft);
+  return useLiveView(ProposalFileView, proposalFile);
 }
 
 /** The agent sessions run on: whether it works on the server's machine, and what it can do. */
@@ -275,23 +279,24 @@ export function useSlugProposal(text: string) {
 }
 
 /**
- * A line of `PRIORITIES.md` by its key, with its section and its place in it: the priorities as
- * read, and `found` once the line is there. `id`, when given, finds the line by its place when its
- * key is gone, as right after its own rename.
+ * A proposal of `PRIORITIES.md` by its key, with its section and its place in it: the priorities
+ * as read, and `found` once the proposal is there. `id`, when given, finds the proposal by its
+ * place when its key is gone, as right after its own rename.
  */
-export function usePriority(key: string, id?: string) {
+export function useProposal(key: string, id?: string) {
   const priorities = usePriorities();
   const sections = priorities?.sections ?? [];
-  const find = (match: (entry: (typeof sections)[number]["entries"][number]) => boolean) => {
+  const find = (match: (proposal: (typeof sections)[number]["proposals"][number]) => boolean) => {
     for (const section of sections) {
-      const index = section.entries.findIndex(match);
+      const index = section.proposals.findIndex(match);
       if (index >= 0) {
-        return { entry: section.entries[index], index, section };
+        return { index, proposal: section.proposals[index], section };
       }
     }
     return undefined;
   };
-  const found = find((entry) => entry.key === key) ?? (id ? find((e) => e.id === id) : undefined);
+  const found =
+    find((proposal) => proposal.key === key) ?? (id ? find((p) => p.id === id) : undefined);
   return { found, priorities };
 }
 

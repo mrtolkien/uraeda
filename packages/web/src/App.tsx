@@ -5,6 +5,7 @@ import { LinkProvider } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
 import { Theme } from "@astryxdesign/core/theme";
 import { uraedaTheme } from "./theme/built/uraeda.js";
+import { PickedFonts } from "./theme/PickedFonts.tsx";
 import {
   Component,
   type ReactNode,
@@ -23,6 +24,7 @@ import { FeaturePage } from "./feature/FeaturePage.tsx";
 import { ConfirmHost } from "./fields/Confirm.tsx";
 import { LeaveGuard } from "./fields/LeaveGuard.tsx";
 import { pruneUnsaved } from "./fields/unsaved.ts";
+import { CommitPage } from "./CommitPage.tsx";
 import { EditorPage } from "./EditorPage.tsx";
 import { FilePage } from "./FilePage.tsx";
 import { MockupPage } from "./MockupPage.tsx";
@@ -100,16 +102,16 @@ class ServerErrorBoundary extends Component<
  * stays drawn while the overlay opens, closes, and shows another line, and keeps its selection, its
  * scroll, and its focus; and the decisions page with its reader, which stays drawn while the reader
  * follows the list's keys to another row in the same history entry: on the decisions page, from a
- * principle to a decision too.
+ * the constitution to a decision too.
  */
 function pageKey(route: Route, pathname: string, entryId: string | undefined) {
-  if (route.page === "decisions" || route.page === "decision" || route.page === "principle") {
+  if (route.page === "decisions" || route.page === "decision" || route.page === "constitution") {
     return `ledger:${entryId}`;
   }
   switch (route.page) {
     case "home":
     case "priorities":
-    case "task":
+    case "proposal":
       return "priorities";
     case "inbox":
     case "note":
@@ -139,9 +141,9 @@ function RoutePage({ route }: { route: Route }) {
       return <FilePage folder={route.folder} name={route.name} />;
     case "priorities":
       return <PrioritiesRoute isHome={false} />;
-    case "task":
+    case "proposal":
       // A line opened from home draws its overlay over home.
-      return <PrioritiesRoute entryKey={route.key} isHome={currentEntry().from === "/"} />;
+      return <PrioritiesRoute isHome={currentEntry().from === "/"} proposalKey={route.key} />;
     case "note":
       return <InboxRoute noteKey={route.key} />;
     case "inbox":
@@ -154,8 +156,10 @@ function RoutePage({ route }: { route: Route }) {
       return <LedgerRoute open={undefined} />;
     case "decision":
       return <LedgerRoute open={{ kind: "decision", name: route.name }} />;
-    case "principle":
-      return <LedgerRoute open={{ kind: "principle", slug: route.slug }} />;
+    case "constitution":
+      return <LedgerRoute open={{ kind: "constitution" }} />;
+    case "commit":
+      return <CommitPage />;
     case "edit":
       return <EditorPage key={route.path} path={route.path} />;
     case "mockup":
@@ -393,30 +397,32 @@ export function App({
       <ThemeModeProvider>
         {(mode) => (
           <Theme mode={mode} theme={uraedaTheme}>
-            <LinkProvider component={RouterAnchor}>
-              <LayerProvider toast={{ position: "bottomEnd" }}>
-                <ConfirmHost>
-                  <LeaveGuard />
-                  {signedOut ? (
-                    <SignInPage onSignedIn={onSignedIn} />
-                  ) : (
-                    <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
-                      <Suspense fallback={<Loading />}>
-                        <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
-                          <Suspense fallback={<Loading />}>
-                            <Shell keysSwitch={keysSwitch}>
-                              <Suspense fallback={<Loading />}>
-                                <Page key={pageKey(route, pathname, entryId)} route={route} />
-                              </Suspense>
-                            </Shell>
-                          </Suspense>
-                        </InRepository>
-                      </Suspense>
-                    </ServerErrorBoundary>
-                  )}
-                </ConfirmHost>
-              </LayerProvider>
-            </LinkProvider>
+            <PickedFonts>
+              <LinkProvider component={RouterAnchor}>
+                <LayerProvider toast={{ position: "bottomEnd" }}>
+                  <ConfirmHost>
+                    <LeaveGuard />
+                    {signedOut ? (
+                      <SignInPage onSignedIn={onSignedIn} />
+                    ) : (
+                      <ServerErrorBoundary key={attempt} onRetry={() => setAttempt((n) => n + 1)}>
+                        <Suspense fallback={<Loading />}>
+                          <InRepository clientFor={clientFor} pathname={pathname} repo={repo}>
+                            <Suspense fallback={<Loading />}>
+                              <Shell keysSwitch={keysSwitch}>
+                                <Suspense fallback={<Loading />}>
+                                  <Page key={pageKey(route, pathname, entryId)} route={route} />
+                                </Suspense>
+                              </Shell>
+                            </Suspense>
+                          </InRepository>
+                        </Suspense>
+                      </ServerErrorBoundary>
+                    )}
+                  </ConfirmHost>
+                </LayerProvider>
+              </LinkProvider>
+            </PickedFonts>
           </Theme>
         )}
       </ThemeModeProvider>

@@ -1,7 +1,7 @@
-// The three sample projects of the sandbox, each a repository in a folder of its own: "sample", a
+// The four sample projects of the sandbox, each a repository in a folder of its own: "sample", a
 // feature at every step, the spec, plan, and questions pages' features, and a change at each of its
-// states; "empty", a project just set up; and "broken", whose features carry the problems
-// `ura check` reports.
+// states; "empty", a project just set up; "broken", whose features carry the problems
+// `ura check` reports; and "realistic", a full day's load (`realistic.ts`).
 import { copyFileSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -16,6 +16,7 @@ import {
 } from "uraeda-binding/test-utils";
 import { CHANGE_FOLDERS, addChanges } from "./changes.ts";
 import { addFeaturePages, addQuestionsPages, addSpecPages, dated, proposal } from "./features.ts";
+import { addRealistic } from "./realistic.ts";
 import { addStepFeatures, FEATURE_FOLDERS, FEATURE_STEPS } from "./steps.ts";
 
 export { CHANGE_FOLDERS, FEATURE_FOLDERS, FEATURE_STEPS };
@@ -27,7 +28,7 @@ export const SAMPLE_FOLDERS = { changes: CHANGE_FOLDERS, features: FEATURE_FOLDE
 const SETUP_TEMPLATES = ["README.md", "CONSTITUTION.md", "PRIORITIES.md", "INBOX.md"];
 
 /** The folders setup creates, each with an empty `.gitkeep`. */
-const SETUP_FOLDERS = ["drafts", "backlog", "decisions", "changes"];
+const SETUP_FOLDERS = ["proposals", "decisions", "changes"];
 
 /** Commits what `git status` shows in `repo`. */
 function commitAll(repo: string, message: string) {
@@ -91,14 +92,27 @@ function buildBroken(repo: string) {
   git(repo, "switch", "--quiet", "main");
 }
 
+/** The realistic project: set up, then a full day's features and priorities (`realistic.ts`). */
+function buildRealistic(repo: string) {
+  initRepository(repo);
+  setUp(repo);
+  addRealistic(repo);
+}
+
 /**
- * Builds the three sample projects in `dir`, each in the folder the server lists it by, with
+ * Builds the four sample projects in `dir`, each in the folder the server lists it by, with
  * every commit dated: returns their paths.
  */
-export function buildProjects(dir: string): { broken: string; empty: string; sample: string } {
+export function buildProjects(dir: string): {
+  broken: string;
+  empty: string;
+  realistic: string;
+  sample: string;
+} {
   const paths = {
     broken: join(dir, "broken"),
     empty: join(dir, "empty"),
+    realistic: join(dir, "realistic"),
     sample: join(dir, "sample"),
   };
   dated(() => {
@@ -106,6 +120,7 @@ export function buildProjects(dir: string): { broken: string; empty: string; sam
     initRepository(paths.empty);
     setUp(paths.empty);
     buildBroken(paths.broken);
+    buildRealistic(paths.realistic);
   });
   return paths;
 }

@@ -1,4 +1,4 @@
-//! A section's context: the first callout under its heading, before its first entry.
+//! A section's context: the first callout under its heading, before its first proposal.
 
 use super::{Section, lines};
 
@@ -52,7 +52,7 @@ fn text_of<'a>(after: &'a str, rest: &[&'a str]) -> Option<String> {
     Some(text).filter(|text| !text.is_empty())
 }
 
-/// One per heading of a section that has a callout before its first entry, in order.
+/// One per heading of a section that has a callout before its first proposal, in order.
 pub fn contexts(text: &str) -> Vec<SectionContext> {
     let unix = text.replace("\r\n", "\n");
     let all: Vec<&str> = unix.split('\n').collect();

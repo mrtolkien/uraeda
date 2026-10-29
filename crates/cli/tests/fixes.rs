@@ -66,17 +66,17 @@ fn staged_files_refuse_before_anything_is_written() {
 }
 
 #[test]
-fn a_staged_draft_does_not_start_twice() {
+fn a_staged_proposal_file_does_not_start_twice() {
     let repo = TestRepo::new();
     specs(
         &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n- [Tags](drafts/tags.md)\n\n## Later\n\n## Blocked\n",
+        "# Priorities\n\n## Now\n\n## Next\n\n- [Tags](proposals/tags.md)\n\n## Later\n\n## Blocked\n",
     );
     repo.write(
-        "specs/drafts/tags.md",
+        "specs/proposals/tags.md",
         "# Tags\n\n## What\n\nTags.\n\n## Why\n\nFilters.\n",
     );
-    repo.git(&["add", "specs/drafts/tags.md"]);
+    repo.git(&["add", "specs/proposals/tags.md"]);
 
     let refused = ura(&repo, &["start", "tags"]);
     repo.git(&["reset", "--quiet"]);
@@ -210,17 +210,17 @@ fn start_moves_a_folder_with_an_ignored_file() {
     );
     repo.write(".gitignore", ".DS_Store\n");
     repo.write(
-        "specs/backlog/bench/proposal.md",
+        "specs/proposals/bench/proposal.md",
         "# Bench\n\n## What\n\nA.\n\n## Why\n\nB.\n",
     );
     repo.commit("bench");
-    repo.write("specs/backlog/bench/.DS_Store", "x");
+    repo.write("specs/proposals/bench/.DS_Store", "x");
 
-    let output = ura(&repo, &["start", "specs/backlog/bench"]);
+    let output = ura(&repo, &["start", "specs/proposals/bench"]);
 
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert!(repo.exists(".worktrees/2026-10-11-bench/specs/2026-10-11-bench/proposal.md"));
-    assert!(!repo.exists(".worktrees/2026-10-11-bench/specs/backlog/bench/proposal.md"));
+    assert!(!repo.exists(".worktrees/2026-10-11-bench/specs/proposals/bench/proposal.md"));
     assert_eq!(repo.porcelain(), "");
 }
 
@@ -250,14 +250,14 @@ fn check_without_specs_says_to_init() {
 }
 
 #[test]
-fn a_drafted_unicode_line_starts() {
+fn a_expanded_unicode_line_starts() {
     let repo = TestRepo::new();
     specs(
         &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n- [Café sync](drafts/café-sync.md)\n\n## Later\n\n## Blocked\n",
+        "# Priorities\n\n## Now\n\n## Next\n\n- [Café sync](proposals/café-sync.md)\n\n## Later\n\n## Blocked\n",
     );
     repo.write(
-        "specs/drafts/café-sync.md",
+        "specs/proposals/café-sync.md",
         "# Café sync\n\n## What\n\nA.\n\n## Why\n\nB.\n",
     );
     repo.commit("café");
@@ -272,10 +272,10 @@ fn a_failed_start_commit_leaves_the_checkout_on_its_branch() {
     let repo = TestRepo::new();
     specs(
         &repo,
-        "# Priorities\n\n## Now\n\n## Next\n\n- [Tags](drafts/tags.md)\n\n## Later\n\n## Blocked\n",
+        "# Priorities\n\n## Now\n\n## Next\n\n- [Tags](proposals/tags.md)\n\n## Later\n\n## Blocked\n",
     );
     repo.write(
-        "specs/drafts/tags.md",
+        "specs/proposals/tags.md",
         "# Tags\n\n## What\n\nTags.\n\n## Why\n\nFilters.\n",
     );
     repo.commit("tags");
@@ -293,7 +293,7 @@ fn a_failed_start_commit_leaves_the_checkout_on_its_branch() {
     assert!(repo.exists(".worktrees/main/specs/2026-10-11-tags/proposal.md"));
     assert!(
         output.stderr.ends_with(
-            "ura: git commit failed: boom\nDone: the move of the draft.\nLeft: commit specs/PRIORITIES.md, the removal of specs/drafts/tags.md, and specs/2026-10-11-tags/ on main as \"chore(tags): start Tags\", then create the branch 2026-10-11-tags in .worktrees/2026-10-11-tags.\n"
+            "ura: git commit failed: boom\nDone: the move of the proposal file.\nLeft: commit specs/PRIORITIES.md, the removal of specs/proposals/tags.md, and specs/2026-10-11-tags/ on main as \"chore(tags): start Tags\", then create the branch 2026-10-11-tags in .worktrees/2026-10-11-tags.\n"
         ),
         "{}",
         output.stderr

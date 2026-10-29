@@ -6,8 +6,7 @@
 >
 > Features for v1.0.0
 
-- [Full interactive UI pass: manual small fixes](drafts/full-interactive-ui-pass-manual-small-fixes.md)
-  - Write down our UI decisions and strategy based on the "UI fixes" worktree
+- [Phone bottom bars on more pages](proposals/phone-bottom-bars.md)
 
 - Decisions needs to be understandable with _no context_. Often agents just read the decisions, they
   can't be expected to search for extra info in records.
@@ -46,7 +45,7 @@
 
 - Vim in text edit mode
 
-- [Worker lifecycle](drafts/worker-lifecycle.md): runs survive server restarts, usage limits, and
+- [Worker lifecycle](proposals/worker-lifecycle.md): runs survive server restarts, usage limits, and
   their own background work, and go on to the next human gate without a "Continue"
 
 - Basic git UI in the web ui (pull, see diffs, ...)

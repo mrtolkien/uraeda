@@ -1,10 +1,4 @@
-import {
-  ChatComposer,
-  ChatComposerInput,
-  type ChatComposerInputHandle,
-  type ChatComposerInputProps,
-} from "@astryxdesign/core/Chat";
-import * as stylex from "@stylexjs/stylex";
+import { ChatComposer, type ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import {
   type Dispatch,
   type KeyboardEvent,
@@ -15,47 +9,25 @@ import {
   useRef,
   useState,
 } from "react";
-import { useFateClient } from "react-fate";
 import type { Trigger } from "uraeda-server/fate";
 import { IMAGE_REFUSALS } from "uraeda-server/limits";
-import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { type DraftImage, useChatImages } from "./attach/chatImages.ts";
 import { DropHint, dropStyles } from "./attach/DropHint.tsx";
 import { useImageDrop } from "./attach/useImageDrop.ts";
+import { FoldingField, paperclip, phoneBoxStyles, useFolded } from "./ComposerField.tsx";
 import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
 import { useAgent } from "./data.ts";
 import { useKeys } from "./keys/registry.tsx";
-import { refusal } from "./errors.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { FreshDefault, useFreshRun } from "./HandOver.tsx";
 import { footerActions, sendButtons } from "./ComposerSend.tsx";
 import { type Inserted, withInserted } from "./RecommendedMessage.tsx";
-import { sendMessage } from "./sessions.ts";
+import { useSend } from "./useComposerSend.ts";
 import type { DraftRun } from "./useDraft.ts";
-import { SessionView } from "./views.ts";
-import { clearPending, markPending } from "./writes/store.ts";
 
-const styles = stylex.create({
-  input: { minHeight: "var(--size-composer-input)" },
-  narrow: { minHeight: "var(--size-composer-input-narrow)" },
-});
-
-/**
- * The composer's field: 7 rows empty on wide screens, 3 on the phone, growing upward with its text
- * up to 20 rows, or 9 on the phone (the UI behaviour decision), its text scrolling inside them past
- * that.
- */
-function ComposerInput(props: Omit<ChatComposerInputProps, "maxRows" | "xstyle">) {
-  const wide = !isNarrow(useWidthClass());
-  return (
-    <ChatComposerInput
-      {...props}
-      maxRows={wide ? 20 : 9}
-      xstyle={wide ? styles.input : styles.narrow}
-    />
-  );
-}
+/** Why a composer of a file's text takes no image: the editor adds them. */
+const TEXT_ONLY = "A proposal is text: add its images in the editor.";
 
 /** Why the draft's images stay in the composer while it holds the workflow's message. */
 const WORKFLOW_KEEPS_IMAGES =
@@ -76,8 +48,20 @@ export type ComposerProps = {
   /** Why nothing can be sent here, like a feature with no branch yet: the composer is disabled. */
   blocked?: string;
   folder?: string;
+  /**
+   * Whether it takes images, by the paperclip, a paste, or a drop; false for text that is a file's,
+   * like a proposal. True by default.
+   */
+  hasAttach?: boolean;
   /** The message's images, kept by the page with its text. */
   images: ReadonlyArray<DraftImage>;
+  /** The field's handle, for a page that gives it the focus, as when it inserts text. */
+  inputRef?: RefObject<ChatComposerInputHandle | null>;
+  /**
+   * With `folder` and no `session`: the message goes to a new session of the feature, created with
+   * it, as "New session" opens one, not to its latest.
+   */
+  isNewSession?: boolean;
   /**
    * Why the page cannot do what it was opened for, shown under the composer, which still sends what
    * it holds, as a chat.
@@ -100,6 +84,8 @@ export type ComposerProps = {
   onSent?: (session: string) => void;
   /** The controls of the workflow's run, in the composer's footer while it holds its message. */
   options?: ReactNode;
+  /** What the empty field says, in place of "Message <the agent>": "Write Proposal". */
+  placeholder?: string;
   /** Whether it offers the recommended message of the feature in `folder`. */
   recommended?: boolean;
   /** The workflow's run the text holds, kept by the page with `onRun`. */
@@ -139,84 +125,19 @@ function imageRefusal(agent: ReturnType<typeof useAgent>, unavailable?: string, 
 }
 
 /**
- * Sends the composer's message and stops its turn: a refused send puts its text and images back,
- * with the reason. The workflow's message goes alone: the draft's images stay for the next one
- * (R67).
+ * Why no image can be added to the composer: none ever to a file's text, and to a message sent
+ * elsewhere than a session, only while it cannot be sent.
  */
-function useSend(
-  { folder, images, onChange, onImagesChange, onSend, onSent, session, workflow }: ComposerProps,
-  { canSend, sent }: { canSend: boolean; sent: () => void },
+function attachRefusal(
+  { hasAttach, onSend, workflow }: ComposerProps,
+  agent: ReturnType<typeof useAgent>,
+  unavailable: string | undefined,
 ) {
-  const fate = useFateClient();
-  const [error, setError] = useState<string>();
-  const [pending, setPending] = useState(false);
-  const withImages = workflow === undefined;
-  const submit = (text: string) => {
-    if (!canSend || pending) {
-      return;
-    }
-    if (onSend) {
-      // The text stays until it is sent, and `onSend` clears it: a refusal leaves it as typed.
-      setPending(true);
-      void onSend(text, images).then((done) => {
-        setPending(false);
-        if (done) {
-          onImagesChange([]);
-          sent();
-        }
-      });
-      return;
-    }
-    const sending = withImages ? images : [];
-    setError(undefined);
-    // The feature's card says so at once, until the server's status for it changes.
-    const starting = workflow !== undefined ? folder : undefined;
-    if (starting !== undefined) {
-      markPending(starting, "Starting the agent…");
-    }
-    onChange("");
-    if (withImages) {
-      onImagesChange([]);
-      sent();
-    }
-    void sendMessage(fate, {
-      ...(session === undefined ? (folder === undefined ? {} : { folder }) : { session }),
-      images: sending.flatMap((image) => (image.image ? [image.image] : [])),
-      text,
-      ...(workflow === undefined ? {} : { workflow }),
-    }).then((result) => {
-      if (result.ok) {
-        onSent?.(result.session);
-        return;
-      }
-      if (starting !== undefined) {
-        clearPending(starting);
-      }
-      onChange(text);
-      if (sending.length > 0) {
-        onImagesChange((now) => [...sending, ...now]);
-      }
-      setError(result.message);
-    });
-  };
-  const stop = () => {
-    if (session !== undefined) {
-      setError(undefined);
-      if (folder !== undefined) {
-        markPending(folder, "Stopping…");
-      }
-      // The turn ends once the agent answers the interrupt: its live update brings the state.
-      void fate.mutations.session.stop({ input: { session }, view: SessionView }).then((result) => {
-        if (result.error) {
-          if (folder !== undefined) {
-            clearPending(folder);
-          }
-          setError(refusal(result.error).message);
-        }
-      });
-    }
-  };
-  return { error, pending, stop, submit };
+  return hasAttach === false
+    ? TEXT_ONLY
+    : onSend
+      ? unavailable
+      : imageRefusal(agent, unavailable, workflow);
 }
 
 /**
@@ -233,6 +154,8 @@ function useFieldKeys(
 ) {
   useKeys([
     {
+      hint: "i",
+      hintLabel: "insert",
       keys: "i",
       label: "Write a message",
       run: () => (isDisabled ? false : input.current?.focus()),
@@ -341,6 +264,31 @@ function workflowOf({ file, step, trigger }: DraftRun): Workflow {
   };
 }
 
+/** The paperclip, unless the composer takes no image, or the agent reads none. */
+function attachOf(
+  { hasAttach, onSend }: ComposerProps,
+  agent: ReturnType<typeof useAgent>,
+  unavailable: string | undefined,
+  onFiles: (files: Array<File>) => void,
+) {
+  return (
+    hasAttach !== false &&
+    (onSend || agent?.capabilities.images) &&
+    paperclip(Boolean(unavailable), onFiles)
+  );
+}
+
+/** Whether the composer holds nothing to send, nor a send under way or refused: it may fold. */
+function isBlank(
+  value: string,
+  images: ReadonlyArray<DraftImage>,
+  workflow: Workflow | undefined,
+  pending: boolean,
+  error: string | undefined,
+) {
+  return value === "" && images.length === 0 && !workflow && !pending && !error;
+}
+
 /**
  * The composer under a transcript, on Astryx's `ChatComposer`: Send, which turns into Stop while
  * the session works, and reads "Start the agent" while it holds the workflow's message, or "Start
@@ -366,7 +314,8 @@ function workflowOf({ file, step, trigger }: DraftRun): Workflow {
  */
 export function Composer(given: ComposerProps) {
   const { blocked, images, onSend, value, working = false } = given;
-  const input = useRef<ChatComposerInputHandle>(null);
+  const own = useRef<ChatComposerInputHandle>(null);
+  const input = given.inputRef ?? own;
   const { edit, insert, props, reader } = useInserted(given, input);
   const { workflow } = props;
   const agent = useAgent();
@@ -376,7 +325,7 @@ export function Composer(given: ComposerProps) {
   const name = agent?.name ?? "the agent";
   const unavailable =
     onSend || agent?.available ? blocked : `${name} is not available on this machine.`;
-  const refusedWith = onSend ? unavailable : imageRefusal(agent, unavailable, workflow);
+  const refusedWith = attachRefusal(props, agent, unavailable);
   const attaching = useChatImages({
     images,
     onImagesChange: props.onImagesChange,
@@ -393,15 +342,13 @@ export function Composer(given: ComposerProps) {
   const hasContent = value.trim() !== "" || (!workflow && !onSend && images.length > 0);
   // Another page's write blocks the page's own send, not the typing.
   const canSend = hasContent && !saving && !unavailable && props.sendWaits === undefined;
-  const { error, pending, stop, submit } = useSend(props, {
-    canSend,
-    sent: attaching.sent,
-  });
+  const { error, pending, stop, submit } = useSend(props, { canSend, sent: attaching.sent });
   const onKeyDown = useFieldKeys(input, {
     isDisabled: Boolean(unavailable),
     send: canSend ? () => submit(value.trim()) : undefined,
   });
-  const placeholder = `Message ${name}`;
+  const placeholder = given.placeholder ?? `Message ${name}`;
+  const isFolded = useFolded(box, !wide && isBlank(value, images, workflow, pending, error));
   const buttons = sendButtons({
     actions: props.actions,
     allow: props.allow,
@@ -415,15 +362,7 @@ export function Composer(given: ComposerProps) {
     workflow: workflow !== undefined,
     working,
   });
-  const attach = (onSend || agent?.capabilities.images) && (
-    <AttachButton
-      isDisabled={Boolean(unavailable)}
-      isIconOnly
-      multiple
-      onFiles={attaching.addFiles}
-    />
-  );
-
+  const attach = attachOf(given, agent, unavailable, attaching.addFiles);
   return (
     <>
       <DropHint hint={drop.hint}>
@@ -433,13 +372,19 @@ export function Composer(given: ComposerProps) {
               <ComposerImages focusAt={focusAt} images={images} onRemove={attaching.remove} />
             ) : undefined
           }
-          footerActions={footerActions(props, attach, { insert, unavailable })}
+          // A border, as a text field has, so it reads as writable: the flat look has no shadow.
+          elevation="none"
+          footerActions={
+            isFolded ? undefined : footerActions(props, attach, { insert, unavailable })
+          }
           input={
-            <ComposerInput
+            <FoldingField
               handleRef={input}
+              isFolded={isFolded}
               label={placeholder}
               onFiles={attaching.addFiles}
               onKeyDown={onKeyDown}
+              send={buttons.sendButton}
             />
           }
           isDisabled={Boolean(unavailable)}
@@ -449,11 +394,13 @@ export function Composer(given: ComposerProps) {
           onSubmit={submit}
           placeholder={placeholder}
           ref={box}
-          sendActions={buttons.sendActions}
-          sendButton={buttons.sendButton}
+          sendActions={isFolded ? undefined : buttons.sendActions}
+          // Folded, Send is beside the field, and the footer holds nothing.
+          sendButton={isFolded ? <></> : buttons.sendButton}
           status={composerStatus(error, props, unavailable)}
           value={value}
-          xstyle={drop.isTarget ? dropStyles.target : undefined}
+          {...(wide ? {} : { density: "compact" as const })}
+          xstyle={[!wide && phoneBoxStyles, drop.isTarget && dropStyles.target]}
         />
       </DropHint>
       <AttachStatus status={attaching.status} />

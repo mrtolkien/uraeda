@@ -1,235 +1,40 @@
-import { Badge } from "@astryxdesign/core/Badge";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Icon } from "@astryxdesign/core/Icon";
-import { Thumbnail } from "@astryxdesign/core/Thumbnail";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
-import { useFateClient } from "react-fate";
-import type { InboxNote } from "uraeda-binding";
-import { CommitBar } from "./CommitBar.tsx";
-import { rereadChanges, useAgent, useDraftTitles, useInbox, useWorkspace } from "./data.ts";
+import { useAgent, useInbox } from "./data.ts";
 import { EditableLine } from "./EditableLine.tsx";
-import { refusal } from "./errors.ts";
+import { InboxList } from "./InboxList.tsx";
 import { OrganizeButton, OrganizeMessage, TriageBanner } from "./InboxTriage.tsx";
 import { useStartChat } from "./StartChat.tsx";
 import { Page } from "./layout/Page.tsx";
 import { useKeys } from "./keys/registry.tsx";
-import { NoteMenu } from "./lists/CardMenu.tsx";
-import { NoteEditor } from "./lists/RowEditors.tsx";
 import { useOpenAddForm } from "./SidebarAdd.tsx";
-import { CategoryMenu, CategoryTitle } from "./lists/CategoryPane.tsx";
 import { useCategoryActions } from "./lists/useCategoryActions.ts";
-import { draftFile } from "./pane/NoteParts.tsx";
-import { WorkList, type WorkSection } from "./lists/WorkList.tsx";
-import { NOTE, openDetail } from "./pane/DetailOverlay.tsx";
-import { repoPath, useLocalPath, useRepoPath, useRepository, useRestoreScroll } from "./routes.tsx";
-import { imagePath, plain, Spans } from "./Spans.tsx";
-import { InboxView } from "./views.ts";
-import { plural } from "./labels.ts";
+import { useRestoreScroll } from "./routes.tsx";
 import { Empty } from "./layout/Empty.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
-
-/** "1 note", "10 notes". */
-export function notes(count: number) {
-  return plural(count, "note");
-}
-
-/** A note's marks, as tags before its text: `agent` in a colour of its own, then its feature's. */
-export function Marks({ note }: { note: InboxNote }) {
-  if (!note.agent && !note.about) {
-    return null;
-  }
-  return (
-    <>
-      {note.agent && <Badge label="agent" variant="purple" />}
-      {note.agent && note.about && " "}
-      {note.about && <Badge label={note.about} variant="neutral" />}{" "}
-    </>
-  );
-}
-
-/** A note's tags as text in its card's border: `agent`, then its feature's, each apart. */
-function marksOf(note: InboxNote) {
-  if (!note.agent && !note.about) {
-    return undefined;
-  }
-  return (
-    <>
-      {note.agent && <span>agent</span>}
-      {note.agent && note.about && " "}
-      {note.about && <span>{note.about}</span>}
-    </>
-  );
-}
-
-/** A note's first image, under its text: decorative, as the text says what the note is. */
-function Image({ note }: { note: InboxNote }) {
-  const repo = useRepository();
-  const first = imagePath(note.images[0]);
-  return first ? <Thumbnail alt="" src={repoPath(repo, first)} /> : null;
-}
-
-/** A section's id: "none" for the notes before the first category. */
-function sectionId(name: string | undefined) {
-  return name === undefined ? "none" : `category:${name}`;
-}
-
-/** The notes of each pane: "No category" when it holds notes, then every category, file order. */
-function panesOf(inbox: NonNullable<ReturnType<typeof useInbox>>) {
-  const notesOf = new Map(inbox.categories.map((category) => [category.name, category.notes]));
-  const none = notesOf.get(undefined);
-  return [
-    ...(none && none.length > 0 ? [{ name: undefined, notes: none }] : []),
-    ...inbox.names.map((name) => ({
-      name: name as string | undefined,
-      notes: notesOf.get(name) ?? [],
-    })),
-  ];
-}
-
-/**
- * The write of a note dropped, or moved by a key, in a category at an index: over the version the
- * move started from, so an inbox changed meanwhile refuses it, and a conflict reads it again.
- */
-function useNoteMove(
-  inbox: NonNullable<ReturnType<typeof useInbox>>,
-  categories: ReturnType<typeof panesOf>,
-  onRefused: (message: string | undefined) => void,
-) {
-  const fate = useFateClient();
-  return async (key: string, section: string, index: number) => {
-    const note = categories.flatMap((c) => c.notes).find((one) => one.key === key);
-    const target = categories.find((category) => sectionId(category.name) === section);
-    if (!note || !target) {
-      return;
-    }
-    onRefused(undefined);
-    const result = await fate.mutations.inbox.place({
-      input: {
-        hash: inbox.hash,
-        index: Math.min(index, target.notes.length),
-        note: note.id,
-        ...(target.name === undefined ? {} : { category: target.name }),
-      },
-      view: InboxView,
-    });
-    if (result.error) {
-      const failed = refusal(result.error);
-      onRefused(failed.message);
-      if (failed.kind === "conflict") {
-        rereadChanges(fate);
-      }
-    }
-  };
-}
-
-/**
- * The inbox's categories as sections of the shared list, "No category" first when it holds notes,
- * then each category in the file's order, the empty ones too, each note a row with its children; a
- * drop moves the note to its place in `INBOX.md`. A category's title renames it in place, and its
- * menu deletes it. A refused move or delete goes to `onRefused`, and a conflict reads the inbox
- * again.
- */
-function InboxList({
-  actions,
-  inbox,
-  onRefused,
-}: {
-  actions: ReturnType<typeof useCategoryActions>;
-  inbox: NonNullable<ReturnType<typeof useInbox>>;
-  onRefused: (message: string | undefined) => void;
-}) {
-  const here = useRepoPath();
-  const pathname = useLocalPath();
-  const openForm = useOpenAddForm();
-  // The drafts' titles are read once a menu is opened, for "Add to a draft".
-  const [wantsDrafts, setWantsDrafts] = useState(false);
-  const paths = (useWorkspace()?.drafts ?? []).map(draftFile);
-  const drafts = useDraftTitles(wantsDrafts ? paths : []);
-  const categories = panesOf(inbox);
-  const sections = categories.map((category): WorkSection => ({
-    id: sectionId(category.name),
-    ...(category.name === undefined
-      ? {}
-      : {
-          menu: (
-            <CategoryMenu
-              count={category.notes.length}
-              name={category.name}
-              onRefused={onRefused}
-              onRemove={actions.remove}
-            />
-          ),
-          titleNode: <CategoryTitle name={category.name} onRename={actions.rename} />,
-        }),
-    rows: category.notes.map((note, index) => ({
-      editor: (hooks) => (
-        <NoteEditor
-          hash={inbox.hash}
-          hooks={hooks}
-          placed={{ category: category.name, index, note }}
-        />
-      ),
-      href: here(`/inbox/${note.key}`),
-      key: note.key,
-      // The row is one link: a link of its text, like a note's draft, would nest in it.
-      image: <Image note={note} />,
-      label: <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />,
-      lines: note.nestedSpans.map(plain),
-      marks: marksOf(note),
-      menu: (
-        <NoteMenu
-          drafts={drafts}
-          inbox={inbox}
-          onOpen={() => setWantsDrafts(true)}
-          onRefused={onRefused}
-          placed={{ category: category.name, index, note }}
-        />
-      ),
-      text: plain(note.spans),
-    })),
-    title: category.name ?? "No category",
-    tone: "neutral",
-  }));
-  const selected = categories
-    .flatMap((category) => category.notes)
-    .find((note) => pathname === `/inbox/${note.key}`)?.key;
-
-  const onMove = useNoteMove(inbox, categories, onRefused);
-
-  return (
-    <WorkList
-      // `o`: the form in the category of the note, `null` for the notes before the first.
-      onAddBeside={(section) =>
-        openForm("note", {
-          category:
-            categories.find((category) => sectionId(category.name) === section)?.name ?? null,
-        })
-      }
-      onMove={onMove}
-      onOpen={(href) => openDetail(href, NOTE)}
-      sections={sections}
-      selected={selected}
-    />
-  );
-}
 
 /**
  * The inbox: `INBOX.md`'s notes in a pane per category, the notes without one first, then in the
  * file's order, an empty category as an empty pane, under a line that says what the inbox is for.
- * "New category" adds a pane. Each note opens its view, and drags to its place; the commit bar
- * commits the inbox's changes with the priorities'. The heading carries the count, and "Organize
- * with an agent", on its right, asks for a triage, one at a time, which its banner leads to.
+ * "New category" adds a pane. Each note is edited in place, or opens its file, and drags to its
+ * place; the commit page commits the inbox's changes with the priorities'. The heading carries the
+ * count, and "Organize with AI", on its right, asks for a triage, one at a time, which its
+ * banner leads to. `select` selects a note, as its address names it.
  */
-export function InboxPage() {
+export function InboxPage({ select }: { select?: { key: string } | undefined } = {}) {
   const inbox = useInbox();
   const agent = useAgent()?.available === true;
   const chat = useStartChat();
   const [message, setMessage] = useState<string>();
   const actions = useCategoryActions(inbox?.hash ?? "");
   const openForm = useOpenAddForm();
-  // The ＋ next to Inbox, from the keyboard: the form in its default place.
-  useKeys([{ hint: "a", icon: "plus", keys: "a", label: "add", run: () => openForm("note") }]);
+  // The ＋ next to Inbox, from the keyboard: the form in its default place. Not named in the status
+  // line.
+  useKeys([{ icon: "plus", keys: "a", label: "add", run: () => openForm("note") }]);
+  // `C`, which the list declares with its other category keys, opens the New category line.
+  const [newCategory, setNewCategory] = useState(0);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   if (!inbox) {
@@ -241,7 +46,6 @@ export function InboxPage() {
         <PageTitle
           aside={agent && <OrganizeButton chat={chat} triage={inbox.triage} />}
           count={inbox.count > 0 ? inbox.count : undefined}
-          description="Things noticed, not decided: turn each into a priority, a draft, or nothing."
         >
           Inbox
         </PageTitle>
@@ -262,10 +66,16 @@ export function InboxPage() {
           field="inbox#new-category"
           label="New category"
           onSave={actions.add}
+          opens={newCategory}
           value=""
         />
-        <InboxList actions={actions} inbox={inbox} onRefused={setMessage} />
-        <CommitBar changes={inbox.changes} />
+        <InboxList
+          actions={actions}
+          inbox={inbox}
+          onNewCategory={() => setNewCategory((count) => count + 1)}
+          onRefused={setMessage}
+          select={select}
+        />
       </VStack>
     </Page>
   );

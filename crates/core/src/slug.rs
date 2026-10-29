@@ -42,7 +42,7 @@ pub fn short(slug: &str) -> String {
 }
 
 /// The slug proposed for a change typed as a text, from its title: the short slug of its words, as
-/// `ura start` proposes one from a draft's name.
+/// `ura start` proposes one from a proposal file's name.
 pub fn propose(title: &str) -> String {
     short(&from_text(title))
 }

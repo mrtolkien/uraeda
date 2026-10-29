@@ -2,20 +2,29 @@
 // markdown preview. The picker reads only what its kind needs, in one request, once it is opened
 // (never while closed, so no page waits on it); a feature's and a change's proposal comes in one
 // more request after the list, as a batch of the files, and joins the previews when it arrives.
-import { useEffect, useState } from "react";
-import { useFateClient, useLiveView, useRequestState, view, type ViewRef } from "react-fate";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useFateClient, useLiveView, view, type ViewRef } from "react-fate";
 import type { WorkflowFile } from "uraeda-server/fate";
 import { INBOX_ID, LEDGER_ID, PRIORITIES_ID, useWorkspace, WORKSPACE_ID } from "../data.ts";
 import { jumpEntries, pickerItemOf } from "../decisions/jump.ts";
 import { sessionIdPath } from "../routes.tsx";
 import { SESSION_LIST_ID } from "../sessionData.ts";
 import { InboxView, LedgerView, PrioritiesView, SessionListView, WorkspaceView } from "../views.ts";
+import { type Row, sessionCard, toCard } from "../sidebar/cards.ts";
+import type { CardItem } from "../sidebar/ItemCard.tsx";
 import { KIND_ICONS } from "./kinds.ts";
 import type { IconName } from "./store.ts";
 
 export type PickerKind = "features" | "changes" | "sessions" | "decisions" | "notes" | "priorities";
 
 export type PickerItem = {
+  /**
+   * A feature's, a change's, or a session's card, as the sidebar draws it: the row shows its icon,
+   * its step's for a feature, and its status's mark, the agent's at work on it, as the card does.
+   */
+  card?: CardItem;
+  /** The font its preview is written in, a font's in the font picker; the code's otherwise. */
+  family?: string;
   icon: IconName;
   /** An address, which the kind's page is at: unique among the items. */
   id: string;
@@ -29,16 +38,6 @@ export type PickerItem = {
   /** A first sentence, which a search reads after the title. */
   summary?: string | null;
   title: string;
-};
-
-/** The name of each kind, in the rows of a picker over several. */
-export const KIND_LABELS: Record<PickerKind, string> = {
-  changes: "Change",
-  decisions: "Decision",
-  features: "Feature",
-  notes: "Note",
-  priorities: "Priority",
-  sessions: "Session",
 };
 
 /** A proposal's text alone: the picker's previews do not need the rest of the file. */
@@ -148,11 +147,22 @@ type Records = {
   workspace?: ViewRef<"Workspace">;
 };
 
-/** The features and changes, the kind asked for, each previewed as its proposal. */
-function featureItems(workspace: Workspace | undefined, proposals: Proposals): Array<PickerItem> {
+/**
+ * The features and changes, the kind asked for, each previewed as its proposal, with its card as
+ * the sidebar draws it, the session at work on it from `rows`.
+ */
+function featureItems(
+  workspace: Workspace | undefined,
+  proposals: Proposals,
+  rows: ReadonlyArray<Row>,
+): Array<PickerItem> {
   return (workspace?.features ?? []).map((feature) => {
     const isChange = feature.kind === "change";
     return {
+      card: toCard(
+        feature,
+        rows.find((row) => row.folder === feature.folder),
+      ),
       icon: KIND_ICONS[isChange ? "changes" : "features"],
       id: `/f/${encodeURIComponent(feature.folder)}`,
       kind: isChange ? "changes" : "features",
@@ -170,13 +180,7 @@ function featureItems(workspace: Workspace | undefined, proposals: Proposals): A
  * previewed as its title, its state, and its branch, three plain lines.
  */
 function sessionItems(
-  rows: ReadonlyArray<{
-    archived: boolean;
-    folder: string | null;
-    id: string;
-    statusLabel: string;
-    title: string;
-  }>,
+  rows: ReadonlyArray<Row>,
   workspace: Workspace | undefined,
 ): Array<PickerItem> {
   const branches = new Map(workspace?.features.map((feature) => [feature.folder, feature.branch]));
@@ -185,6 +189,7 @@ function sessionItems(
       const branch = row.folder === null ? workspace?.currentBranch : branches.get(row.folder);
       const state = row.archived ? `Archived · ${row.statusLabel}` : row.statusLabel;
       return {
+        card: sessionCard(row),
         icon: KIND_ICONS.sessions,
         id: sessionIdPath(row.id),
         kind: "sessions",
@@ -214,18 +219,30 @@ export type PickerRead = {
  */
 export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): PickerRead {
   const is = (...kinds: Array<PickerKind>) => kind === "all" || kinds.includes(kind);
-  const state = useRequestState(
-    {
-      ...(is("features", "changes", "sessions") && {
-        workspace: { id: WORKSPACE_ID, view: WorkspaceView },
-      }),
-      ...(is("sessions") && { sessionList: { id: SESSION_LIST_ID, view: SessionListView } }),
-      ...(is("decisions") && { ledger: { id: LEDGER_ID, view: LedgerView } }),
-      ...(is("notes") && { inbox: { id: INBOX_ID, view: InboxView } }),
-      ...(is("priorities") && { priorities: { id: PRIORITIES_ID, view: PrioritiesView } }),
-    } as never,
-    { enabled: isEnabled },
+  const fate = useFateClient();
+  // The request's state, observed outside Suspense: it starts as the first reader subscribes, and
+  // ends as the last leaves. The request depends on `kind` alone, so the observer is kept per kind.
+  const observer = useMemo(
+    () =>
+      fate.observeRequest(
+        {
+          ...(is("features", "changes", "sessions") && {
+            workspace: { id: WORKSPACE_ID, view: WorkspaceView },
+          }),
+          // The sessions, and the ones at work on a feature or a change, whose card shows its agent.
+          ...(is("features", "changes", "sessions") && {
+            sessionList: { id: SESSION_LIST_ID, view: SessionListView },
+          }),
+          ...(is("decisions") && { ledger: { id: LEDGER_ID, view: LedgerView } }),
+          ...(is("notes") && { inbox: { id: INBOX_ID, view: InboxView } }),
+          ...(is("priorities") && { priorities: { id: PRIORITIES_ID, view: PrioritiesView } }),
+        } as never,
+        { enabled: isEnabled },
+      ),
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- `is` reads `kind` only
+    [fate, kind, isEnabled],
   );
+  const state = useSyncExternalStore(observer.subscribe, observer.getSnapshot);
   const records = (state.data ?? {}) as unknown as Records;
   const workspace = useLiveView(WorkspaceView, records.workspace);
   const sessionList = useLiveView(SessionListView, records.sessionList);
@@ -238,7 +255,7 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
         .map((feature) => feature.folder)
     : [];
   const proposals = useProposals(folders);
-  const features = featureItems(workspace, proposals);
+  const features = featureItems(workspace, proposals, sessionList?.rows ?? []);
   const items = [
     ...features.filter((item) => item.kind === "features" && is("features")),
     ...features.filter((item) => item.kind === "changes" && is("changes")),
@@ -255,13 +272,13 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
       })),
     ),
     ...(priorities?.sections ?? []).flatMap((section) =>
-      section.entries.map((entry): PickerItem => ({
+      section.proposals.map((proposal): PickerItem => ({
         icon: KIND_ICONS.priorities,
-        id: `/priorities/${encodeURIComponent(entry.key)}`,
+        id: `/priorities/${encodeURIComponent(proposal.key)}`,
         kind: "priorities",
-        path: `/priorities/${encodeURIComponent(entry.key)}`,
-        preview: entry.lines.join("\n"),
-        title: entry.text,
+        path: `/priorities/${encodeURIComponent(proposal.key)}`,
+        preview: proposal.lines.join("\n"),
+        title: proposal.text,
       })),
     ),
   ];

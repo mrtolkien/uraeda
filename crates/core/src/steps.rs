@@ -372,8 +372,8 @@ pub fn next_target(workspace: &crate::workspace::Workspace) -> Option<usize> {
     workspace
         .priorities
         .iter()
-        .filter(|entry| entry.section == Section::Now)
-        .filter_map(|entry| entry.feature.as_deref())
+        .filter(|proposal| proposal.section == Section::Now)
+        .filter_map(|proposal| proposal.feature.as_deref())
         .filter_map(|folder| workspace.features.iter().position(|f| f.folder == folder))
         .find(|&index| {
             let step = &workspace.features[index].step;

@@ -1,22 +1,27 @@
-// The status line, one line at the bottom of the window at every width: the hints of the keys that
-// work on the page (the key registry's), the page's own controls (`TopBarSlot`, as the round's count
-// and Next on the phone), then how many cards need the human and how many sessions run, left out
-// where the page's controls leave them no room (R25 of the spec page), as the spec's Contents,
-// count, and Verdict at 390 px: the phone's tabs show them too. An Astryx
-// gap (plan, Complexity tracking): no component draws a status line. Astryx's `Kbd` writes keys in
+// The status line, at the bottom of the window. On semi-wide and wide screens, one line: the hints
+// of the keys that work on the page (the key registry's), then how many cards need the human and
+// how many sessions run. On the phone, a bar of the page's own controls only (`TopBarSlot`, as a
+// round's count and Next), while it has any: the phone's tabs show the counts. An Astryx gap
+// (plan, Complexity tracking): no component draws a status line. Astryx's `Kbd` writes keys in
 // capitals, "J K", where the line writes them as typed. Its counts are not announced as they change:
 // the column's panes and the tabs say them where they are read.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type RefObject, useRef } from "react";
+import { type ReactNode, useEffect } from "react";
+import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { useNavigation } from "../sessionData.ts";
-import { type Data, needsYouEntries, runningSessions } from "../sidebar/entries.ts";
+import { type Entry, needsYouEntries, runningSessions } from "../sidebar/entries.ts";
+import { statusPath } from "../sidebar/statusPath.ts";
 import { useStatusLineCovered } from "../statusHints.tsx";
 import { KeyCap } from "../keys/KeyCap.tsx";
-import { useHints } from "../keys/registry.tsx";
-import { useCountsFit } from "./useCountsFit.ts";
+import { keepFocus } from "../keys/press.ts";
+import { useHints, usePress } from "../keys/registry.tsx";
+import { useHidesOnScroll } from "./useHidesOnScroll.ts";
+import { bareButtonStyles } from "../layout/bareButton.ts";
+import { barVars } from "../layout/bar.stylex.ts";
+import { glassStyles } from "../layout/glass.ts";
 import { ruleStyles } from "../layout/rules.ts";
 
 const styles = stylex.create({
@@ -29,8 +34,7 @@ const styles = stylex.create({
   counts: {
     // At the line's end, whatever comes before. The hints give way to them first; short of room
     // still, where no hint shows, the counts wrap onto a second line, each whole, never cut or past
-    // the edge; and where even the widest count has no room beside the page's controls, they are
-    // left out (`useCountsFit`).
+    // the edge.
     alignItems: "center",
     columnGap: spacingVars["--spacing-4"],
     display: "flex",
@@ -40,13 +44,6 @@ const styles = stylex.create({
     marginInlineStart: "auto",
     minWidth: 0,
     rowGap: 0,
-  },
-  countsLeftOut: {
-    // Still laid out at its own width, where nothing sees it, to be measured again as room grows.
-    insetInlineEnd: 0,
-    pointerEvents: "none",
-    position: "absolute",
-    visibility: "hidden",
   },
   hint: {
     flexShrink: 0,
@@ -78,6 +75,21 @@ const styles = stylex.create({
   needs: {
     color: colorVars["--color-text-orange"],
   },
+  // The phone's bar slid out of the way as the page scrolls down, its shadow too.
+  phoneHidden: {
+    pointerEvents: "none",
+    transform: `translateY(calc(100% + ${barVars["--bar-hide-past-docked"]}))`,
+  },
+  // The phone's bar: on glass, over the page scrolling under it, its controls its whole width.
+  // It slides out of the way as the page scrolls down, and back as it scrolls up.
+  phoneLine: {
+    paddingInline: spacingVars["--spacing-1"],
+    transform: "translateY(0)",
+    transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
+    transitionProperty: "transform",
+    transitionTimingFunction: "ease-out",
+  },
+  phoneSlot: { alignSelf: "stretch", flexGrow: 1 },
   slot: {
     alignItems: "center",
     display: "flex",
@@ -86,14 +98,21 @@ const styles = stylex.create({
   },
 });
 
-/** How many cards of the shell's panes need the human: those its Needs you pane holds. */
-function needsYouCount(data: Data) {
-  return needsYouEntries(data).length;
+/** Where the line's "need you" leads: the page of the one card that needs the human, else home. */
+function needsYouPath(entries: Array<Entry>) {
+  const [only] = entries;
+  if (entries.length !== 1 || !only) {
+    return "/";
+  }
+  return only.kind === "feature"
+    ? statusPath(only.feature, only.status)
+    : sessionIdPath(only.row.id);
 }
 
 /** The hints, each its keys then what they do, as the registry holds them. */
 function Hints() {
   const hints = useHints();
+  const press = usePress();
   return (
     <div {...stylex.props(styles.hints)}>
       {hints.map((hint) => (
@@ -103,29 +122,39 @@ function Hints() {
           type="supporting"
           xstyle={styles.hint}
         >
-          <KeyCap>{hint.keys}</KeyCap> {hint.label}
+          {/* oxlint-disable-next-line react/forbid-elements -- a hint pressed as its keys are, drawn as the status line's text, in its font and with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
+          <button
+            onClick={() => press(hint.press)}
+            onMouseDown={keepFocus}
+            type="button"
+            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit)}
+          >
+            <KeyCap>{hint.keys}</KeyCap> {hint.label}
+          </button>
         </Text>
       ))}
     </div>
   );
 }
 
-/**
- * The counts: what needs the human, left out at none, and the running sessions; hidden, still
- * measured, when `fits` is false.
- */
-function Counts({ fits, measured }: { fits: boolean; measured: RefObject<HTMLDivElement | null> }) {
+/** The counts: what needs the human, left out at none, and the running sessions. */
+function Counts() {
   const data = useNavigation();
-  const waiting = needsYouCount(data);
+  const here = useRepoPath();
+  const entries = needsYouEntries(data);
+  const waiting = entries.length;
   return (
-    <div
-      aria-hidden={fits ? undefined : true}
-      ref={measured}
-      {...stylex.props(styles.counts, !fits && styles.countsLeftOut)}
-    >
+    <div {...stylex.props(styles.counts)}>
       {waiting > 0 && (
         <Text type="supporting" xstyle={[styles.count, styles.needs]}>
-          {waiting} need you
+          {/* oxlint-disable-next-line react/forbid-elements -- the "need you" count, pressed to open its page, drawn as the status line's text, in its font and with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
+          <button
+            onClick={() => navigate(here(needsYouPath(entries)))}
+            type="button"
+            {...stylex.props(bareButtonStyles.bare, bareButtonStyles.lit)}
+          >
+            {waiting} need you
+          </button>
         </Text>
       )}
       <Text color="secondary" type="supporting" xstyle={styles.count}>
@@ -136,26 +165,80 @@ function Counts({ fits, measured }: { fits: boolean; measured: RefObject<HTMLDiv
   );
 }
 
-/** The line: the hints, left out on the phone, which has no keys, or the page's slot, then the counts. */
-export function StatusLine({ isNarrow, slot }: { isNarrow: boolean; slot: ReactNode }) {
+/**
+ * The line: on the phone, only the page's own controls, `slot`, which only the phone's pages fill,
+ * else the hints, then the counts. `onAway` hears whether the phone's bar is out of the way.
+ */
+export function StatusLine({
+  isNarrow,
+  onAway,
+  slot,
+}: {
+  isNarrow: boolean;
+  onAway?: (isAway: boolean) => void;
+  slot: ReactNode;
+}) {
+  return isNarrow ? <PhoneBar onAway={onAway ?? noAway} slot={slot} /> : <Line />;
+}
+
+/** No one to tell where the phone's bar is. */
+function noAway() {
+  // Nothing sits on the bar.
+}
+
+/**
+ * Tells `onAway` while the phone's bar is out of the way, and once it shows again, so that what
+ * sits on it, as the session's composer, follows it down as it slides away (`Shell.tsx`).
+ */
+function useShownForOthers(isShown: boolean, onAway: (isAway: boolean) => void) {
+  useEffect(() => {
+    if (isShown) {
+      return;
+    }
+    onAway(true);
+    return () => onAway(false);
+  }, [isShown, onAway]);
+}
+
+/**
+ * The phone's bar: only the page's own controls, such as a round's Next, and only while it has
+ * any. The hints are for keys and the counts are on the tabs, Sessions' running and Home's need-you.
+ * It goes as the page scrolls down, out of the reading's way, and comes back as it scrolls up.
+ */
+function PhoneBar({ onAway, slot }: { onAway: (isAway: boolean) => void; slot: ReactNode }) {
+  const isCovered = useStatusLineCovered();
+  const isHidden = useHidesOnScroll();
+  useShownForOthers(!isHidden && !isCovered && slot !== null, onAway);
+  if (isCovered || slot === null) {
+    return null;
+  }
+  return (
+    <footer
+      aria-label="Status line"
+      {...stylex.props(
+        styles.line,
+        glassStyles.surface,
+        glassStyles.docked,
+        styles.phoneLine,
+        isHidden && styles.phoneHidden,
+      )}
+    >
+      <div {...stylex.props(styles.slot, styles.phoneSlot)}>{slot}</div>
+    </footer>
+  );
+}
+
+/** The line of semi-wide and wide screens: the hints, and the counts. */
+function Line() {
   // Left out under a sheet that leaves the page usable, which rises from the same edge.
   const isCovered = useStatusLineCovered();
-  const line = useRef<HTMLElement>(null);
-  const controls = useRef<HTMLDivElement>(null);
-  const counts = useRef<HTMLDivElement>(null);
-  const fits = useCountsFit(line, controls, counts, slot !== null && !isCovered);
   if (isCovered) {
     return null;
   }
   return (
-    <footer aria-label="Status line" ref={line} {...stylex.props(ruleStyles.above, styles.line)}>
-      {!isNarrow && <Hints />}
-      {slot !== null && (
-        <div ref={controls} {...stylex.props(styles.slot)}>
-          {slot}
-        </div>
-      )}
-      <Counts fits={fits} measured={counts} />
+    <footer aria-label="Status line" {...stylex.props(ruleStyles.above, styles.line)}>
+      <Hints />
+      <Counts />
     </footer>
   );
 }

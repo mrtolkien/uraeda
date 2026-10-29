@@ -11,6 +11,21 @@ export type RenameControls = {
   onRename: (title: string) => Promise<string | undefined>;
 };
 
+/**
+ * What renames a session: its ID and its new title, to the server's refusal in words, or none. The
+ * session's page's title, edited in place, and its Rename dialog (`RenameSession`).
+ */
+export function useRenameSession() {
+  const fate = useFateClient();
+  return async (session: string, title: string) => {
+    const result = await fate.mutations.session.rename({
+      input: { session, title },
+      view: SessionView,
+    });
+    return result.error ? refusal(result.error).message : undefined;
+  };
+}
+
 /** A session without a workflow's Archive, which takes it out of the sidebar's list: search still finds it. */
 export type ArchiveControls = { archived: boolean; onArchive: () => Promise<void> };
 
@@ -27,17 +42,9 @@ export function useSessionControls(
   const id = given ?? "";
   const fate = useFateClient();
   const [error, setError] = useState<string>();
+  const renameSession = useRenameSession();
   const rename: RenameControls | undefined = session
-    ? {
-        field: `session#${id}:title`,
-        onRename: async (title) => {
-          const result = await fate.mutations.session.rename({
-            input: { session: id, title },
-            view: SessionView,
-          });
-          return result.error ? refusal(result.error).message : undefined;
-        },
-      }
+    ? { field: `session#${id}:title`, onRename: (title) => renameSession(id, title) }
     : undefined;
   const archive: ArchiveControls | undefined =
     session && session.folder === null

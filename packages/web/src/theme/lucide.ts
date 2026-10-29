@@ -2,6 +2,7 @@
 // dependency of the app. Written without JSX, which the theme's build does not compile; registered
 // with Astryx by `icons.ts`.
 import { createElement as h } from "react";
+import { outline } from "./outline.ts";
 
 /** A paperclip, for attaching images: the outline of Lucide's, at the neutral theme's size. */
 export const attach = h(
@@ -22,23 +23,8 @@ export const attach = h(
   }),
 );
 
-/** The outline of a Lucide icon, at the neutral theme's size, from its elements. */
-export const outline = (...children: Array<ReturnType<typeof h>>) =>
-  h(
-    "svg",
-    {
-      "aria-hidden": true,
-      fill: "none",
-      height: "1em",
-      stroke: "currentColor",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      strokeWidth: 2,
-      viewBox: "0 0 24 24",
-      width: "1em",
-    },
-    ...children,
-  );
+// The outline every glyph here is drawn with, which the icon files beside this one take from here.
+export { outline };
 
 /** A crosshair, for picking an element of a story: Lucide's. */
 export const pick = outline(
@@ -137,6 +123,20 @@ export const home = outline(
 export const panelLeft = outline(
   h("rect", { height: 18, rx: 2, width: 18, x: 3, y: 3 }),
   h("path", { d: "M9 3v18" }),
+);
+
+/** A box in three columns, for a list shown as columns: Lucide's `columns-3`. */
+export const columns3 = outline(
+  h("rect", { height: 18, rx: 2, width: 18, x: 3, y: 3 }),
+  h("path", { d: "M9 3v18" }),
+  h("path", { d: "M15 3v18" }),
+);
+
+/** A box in three rows, for a list shown as one table: Lucide's `rows-3`. */
+export const rows3 = outline(
+  h("rect", { height: 18, rx: 2, width: 18, x: 3, y: 3 }),
+  h("path", { d: "M21 9H3" }),
+  h("path", { d: "M21 15H3" }),
 );
 
 /** A window with its right side marked, for the right column's button: Lucide's `panel-right`. */

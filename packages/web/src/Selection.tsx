@@ -55,6 +55,14 @@ const styles = stylex.create({
     paddingInlineStart: spacingVars["--spacing-1"],
     position: "relative",
   },
+  // A block of the document, not a list's item: the block's room under it, which its drawing, the
+  // last of this box, leaves out (`Blocks`), but the last block's, followed only by what follows
+  // it, which ends with what holds it.
+  spaced: {
+    marginBlockEnd: { ":nth-last-child(2)": 0, default: spacingVars["--spacing-3"] },
+  },
+  // A list's item: its room before its text taken back, out into its marker's gap.
+  inList: { marginInlineStart: `calc(-2 * ${spacingVars["--spacing-1"]})` },
   // The room `selectable` takes before a block's text, without its tap or its tint.
   room: {
     borderInlineStartColor: "transparent",
@@ -208,10 +216,16 @@ export function After({ children }: { children: ReactNode }) {
 export function Selectable({
   block,
   children: drawing,
+  isInList = false,
   selection,
 }: {
   block: Block;
   children: ReactNode;
+  /**
+   * A list's item: its room for the bar is taken back, so that its text keeps the list's edge, as
+   * near its marker as another list's, the bar of a selected item in the marker's gap.
+   */
+  isInList?: boolean;
   selection: Selection | undefined;
 }) {
   const select = useSelect(block, selection);
@@ -235,6 +249,8 @@ export function Selectable({
         {...stylex.props(
           styles.selectable,
           isNarrowScreen && styles.selectableNarrow,
+          isInList && !isNarrowScreen && styles.inList,
+          !isInList && styles.spaced,
           select.pressed && styles.selected,
           select.pressed && isNarrowScreen && styles.selectedNarrow,
         )}

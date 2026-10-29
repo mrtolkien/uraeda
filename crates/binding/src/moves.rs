@@ -18,7 +18,7 @@ pub fn promote_change(repo: String, folder: String) -> AsyncTask<Job<PromotedVie
     job(move || api::promote_change(Path::new(&repo), &folder))
 }
 
-/// Drops a started feature or change: its entry leaves the priorities, its worktree is removed
+/// Drops a started feature or change: its proposal leaves the priorities, its worktree is removed
 /// unless it has uncommitted changes, never forced, and its branch stays.
 #[napi(ts_return_type = "Promise<DroppedView>")]
 pub fn drop_item(repo: String, folder: String) -> AsyncTask<Job<DroppedView>> {

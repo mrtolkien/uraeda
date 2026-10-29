@@ -1,50 +1,19 @@
-// The parts of a category's pane: its title, renamed in place; its menu, whose Delete asks what
-// becomes of the notes when there are any; and that question, three bordered lines that each show
-// their key, which work while it is open and the single-key shortcuts are on.
+// The parts of a category's pane: its title, renamed in place; and its delete, a button in the
+// pane's border, which asks what becomes of the notes when there are any, in the app's one
+// confirmation (`fields/Confirm.tsx`), with a third answer.
 import { Button } from "@astryxdesign/core/Button";
+import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
-import { Text } from "@astryxdesign/core/Text";
-import { VStack } from "@astryxdesign/core/VStack";
-import {
-  borderVars,
-  colorVars,
-  sizeVars,
-  spacingVars,
-} from "@astryxdesign/core/theme/tokens.stylex";
+import { sizeVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { LineField } from "../EditableLine.tsx";
-import { useSingleKeys } from "../keys/registry.tsx";
-import { Overlay, afterOverlayCloses } from "../layout/Overlay.tsx";
+import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
 import { useLineSave } from "../useLineSave.ts";
-import { CardMenu } from "./CardMenu.tsx";
 import { plural } from "../labels.ts";
-
-/** What the question's three lines answer. */
-export type Answer = "yes" | "no" | "cancel";
+import { paneVars } from "../layout/pane.stylex.ts";
 
 const styles = stylex.create({
-  // A choice: a bordered line, its words at the start and its key at the end.
-  choice: {
-    alignItems: "center",
-    borderColor: colorVars["--color-border"],
-    borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
-    display: "flex",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  // The key, a bordered mark of its own, as a terminal draws one.
-  key: {
-    // Against the line's end, past its words.
-    borderColor: colorVars["--color-border"],
-    borderStyle: "solid",
-    borderWidth: borderVars["--border-width"],
-    color: colorVars["--color-text-accent"],
-    font: "inherit",
-    marginInlineStart: "auto",
-    paddingInline: spacingVars["--spacing-2"],
-  },
   // The title, a button drawn as the title it stands for: a target as tall as a control, the
   // theme's 44 px on a touch screen, around its line, its padding taking no room from the title (as
   // a folding pane's title does: a pixel over the control's height, so a fractional line cannot
@@ -53,22 +22,24 @@ const styles = stylex.create({
     alignItems: "center",
     display: "inline-flex",
     fontWeight: "inherit",
-    marginBlock: `calc((1lh - 1px - ${sizeVars["--size-element-sm"]}) / 2)`,
-    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + 1px - 1lh) / 2)`,
+    marginBlock: `calc((1lh - ${paneVars["--pane-title-slack"]} - ${sizeVars["--size-element-sm"]}) / 2)`,
+    paddingBlock: `calc((${sizeVars["--size-element-sm"]} + ${paneVars["--pane-title-slack"]} - 1lh) / 2)`,
   },
 });
 
 /**
  * A category's title, renamed in place: a button that opens a field, where Enter saves and Escape
  * cancels (see `useLineSave`). `onRename` resolves with the refusal's message, which shows under the
- * field, or with nothing once written.
+ * field, or with nothing once written. Each new `opens` above 0 opens the field, as a key does.
  */
 export function CategoryTitle({
   name,
   onRename,
+  opens = 0,
 }: {
   name: string;
   onRename: (from: string, to: string) => Promise<string | undefined>;
+  opens?: number;
 }) {
   const line = useLineSave({
     empty: "A category needs a name.",
@@ -77,6 +48,12 @@ export function CategoryTitle({
     stayOpen: false,
     value: name,
   });
+  const openLine = useEffectEvent(line.openLine);
+  useEffect(() => {
+    if (opens > 0) {
+      openLine();
+    }
+  }, [opens]);
   if (line.open) {
     return <LineField isBare label={`Rename ${name}`} line={line} />;
   }
@@ -87,129 +64,86 @@ export function CategoryTitle({
   );
 }
 
-/** The question's words: "Delete the 3 notes too?", `count` of them. */
-function ask(count: number) {
-  return `Delete the ${plural(count, "note")} too?`;
+/**
+ * What a category's delete asks, `name` holding `count` notes: Yes, `y`, deletes them, and the note
+ * files `files` they link, which it names; No, `n`, keeps them under no category; Cancel, `c`,
+ * Close, Escape, and Back change nothing.
+ */
+export function deleteCategory(
+  name: string,
+  count: number,
+  files: ReadonlyArray<string> = [],
+): ConfirmOptions<"keep"> {
+  const keeps = "No keeps the notes, in their order, under No category.";
+  return {
+    answers: [{ key: "n", label: "No, keep the notes", value: "keep" }],
+    body: `Delete the ${plural(count, "note")} too?`,
+    cancel: "Cancel",
+    cancelKey: "c",
+    confirm: "Yes, delete the notes",
+    destructive: true,
+    detail:
+      files.length === 0
+        ? keeps
+        : `Yes deletes their ${files.length === 1 ? "note file" : "note files"} too: ${files.join(", ")}. ${keeps}`,
+    title: `Delete the category ${name}`,
+  };
 }
 
-/** The three lines of the question, by their key, words, and answer. */
-const CHOICES: ReadonlyArray<{ answer: Answer; key: string; words: string }> = [
-  { answer: "yes", key: "Y", words: "Yes, delete the notes" },
-  { answer: "no", key: "N", words: "No, keep the notes" },
-  { answer: "cancel", key: "C", words: "Cancel" },
-];
-
 /**
- * Y, N, and C answer while the question is open, whatever has the focus, and while the single-key
- * shortcuts are on: they are letter keys, which the setting stops everywhere (the buttons stay).
+ * A category's delete, from its button or a key: with notes it asks first (`deleteCategory`); an
+ * empty category goes at once, with its Undo, as there is nothing to ask about. `onRemove` writes
+ * the delete, keeping the notes or not, and resolves with the refusal's message to show, if any.
+ * Returns what starts it, for a category, its count of notes, and the note files they link.
  */
-function useAnswerKeys(isOpen: boolean, onAnswer: (answer: Answer) => void, singleKeys: boolean) {
-  useEffect(() => {
-    if (!isOpen || !singleKeys) {
-      return undefined;
+export function useCategoryDelete(
+  onRemove: (name: string, keepNotes: boolean) => Promise<string | undefined>,
+  onRefused: (message: string | undefined) => void,
+) {
+  const confirm = useConfirm();
+  const remove = (name: string, keepNotes: boolean) => {
+    onRefused(undefined);
+    void onRemove(name, keepNotes).then(onRefused);
+  };
+  // The answer comes once the question's history entry is gone: the page's own Back must not undo
+  // what follows.
+  const start = async (name: string, count: number, files: ReadonlyArray<string> = []) => {
+    const answer = count === 0 ? true : await confirm(deleteCategory(name, count, files));
+    if (answer !== false) {
+      remove(name, answer === "keep");
     }
-    const onKeyDown = (event: KeyboardEvent) => {
-      const found = CHOICES.find(({ key }) => key.toLowerCase() === event.key.toLowerCase());
-      if (!found || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) {
-        return;
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      onAnswer(found.answer);
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [isOpen, onAnswer, singleKeys]);
+  };
+  return { start };
 }
 
 /**
- * The question of a category's delete: what becomes of its `count` notes. Yes deletes them, No keeps
- * them under no category, and Cancel, Close, Escape, and Back change nothing; Y, N, and C choose.
+ * A category's delete, in its pane's border: its icon, named for screen readers and in its tooltip,
+ * a target for the mouse and touch beside the `D` key (see `useCategoryDelete`).
  */
-export function DeleteCategoryDialog({
+export function DeleteCategoryButton({
   count,
-  isOpen,
-  name,
-  onAnswer,
-}: {
-  count: number;
-  isOpen: boolean;
-  name: string;
-  onAnswer: (answer: Answer) => void;
-}) {
-  const singleKeys = useSingleKeys();
-  useAnswerKeys(isOpen, onAnswer, singleKeys);
-  return (
-    <Overlay
-      isOpen={isOpen}
-      label={`Delete the category ${name}`}
-      onClose={() => onAnswer("cancel")}
-      sheetHeight="hug"
-    >
-      <VStack gap={3}>
-        <Text display="block">{ask(count)}</Text>
-        <Text color="secondary" display="block">
-          No keeps the notes, in their order, under No category.
-        </Text>
-        <VStack gap={2}>
-          {CHOICES.map(({ answer, key, words }) => (
-            <Button
-              endContent={singleKeys ? <kbd {...stylex.props(styles.key)}>{key}</kbd> : undefined}
-              key={answer}
-              label={words}
-              onClick={() => onAnswer(answer)}
-              variant="ghost"
-              width="100%"
-              xstyle={styles.choice}
-            />
-          ))}
-        </VStack>
-      </VStack>
-    </Overlay>
-  );
-}
-
-/**
- * A category's menu, in its pane's border: Delete. With notes it asks first; an empty category goes
- * at once, with its Undo, as there is nothing to ask about. `onRemove` writes the delete, keeping
- * the notes or not, and resolves with the refusal's message to show, if any.
- */
-export function CategoryMenu({
-  count,
+  files,
   name,
   onRefused,
   onRemove,
 }: {
   count: number;
+  /** The note files its notes link, which a delete of its notes takes with them. */
+  files: ReadonlyArray<string>;
   name: string;
   onRefused: (message: string | undefined) => void;
   onRemove: (name: string, keepNotes: boolean) => Promise<string | undefined>;
 }) {
-  const [isOpen, setOpen] = useState(false);
-  const remove = (keepNotes: boolean) => {
-    onRefused(undefined);
-    void onRemove(name, keepNotes).then(onRefused);
-  };
-  const answer = (choice: Answer) => {
-    setOpen(false);
-    if (choice !== "cancel") {
-      // Once the question's history entry is gone: the page's own Back must not undo what follows.
-      afterOverlayCloses(`Delete the category ${name}`, () => remove(choice === "no"));
-    }
-  };
+  const { start } = useCategoryDelete(onRemove, onRefused);
   return (
-    <>
-      <CardMenu
-        items={[
-          {
-            label: "Delete",
-            onClick: () => (count === 0 ? remove(false) : setOpen(true)),
-            variant: "destructive",
-          },
-        ]}
-        label={`Actions of category ${name}`}
-      />
-      <DeleteCategoryDialog count={count} isOpen={isOpen} name={name} onAnswer={answer} />
-    </>
+    <Button
+      icon={<Icon icon="uraeda:trash" />}
+      isIconOnly
+      label={`Delete category ${name}`}
+      onClick={() => void start(name, count, files)}
+      size="sm"
+      tooltip="Delete category"
+      variant="ghost"
+    />
   );
 }

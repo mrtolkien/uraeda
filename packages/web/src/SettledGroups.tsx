@@ -12,6 +12,8 @@ import { useOpenKeys } from "./useOpenKeys.ts";
 import { plural } from "./labels.ts";
 
 const styles = stylex.create({
+  // The round's end set apart from the last question, as the questions' cards are from each other.
+  endHeading: { marginBlockStart: spacingVars["--spacing-8"] },
   settled: {
     marginBlockEnd: spacingVars["--spacing-6"],
   },
@@ -122,7 +124,9 @@ export function SettledGroups({
       {hasCheck && check && <CheckPane count={check.points}>{points(check)}</CheckPane>}
       {hasEnd && (
         <>
-          <Heading level={2}>Settled without you</Heading>
+          <Heading level={2} xstyle={styles.endHeading}>
+            Settled without you
+          </Heading>
           {end.map((group) => (
             <GroupPane document={document} folds={folds} group={group} key={group.heading}>
               {points(group)}

@@ -230,8 +230,36 @@ export const uraedaTheme = defineTheme({
     // Buttons and badges in the UI's font, where Astryx has them inherit it: inside reading text,
     // a control keeps the monospace font (the UI look decision).
     button: { base: { fontFamily: "var(--font-family-body)" } },
-    // Square badges and switches, as the terminal look's corners; status dots stay round.
+    // Square badges, status dots, switches and progress bars, as the terminal look's corners.
     badge: { base: { "--radius-full": "0px", fontFamily: "var(--font-family-body)" } },
+    // A markdown list as a document's (`BlockList.tsx`), through prose's rhythm: on the text's
+    // edge, its items' text the list room in, its bullet in the room's end, in the secondary colour
+    // of a document's markers, and no room between items but the item gap. Astryx draws its items
+    // as rows, which StyleX cannot reach inside: the theme does, with `:is(*)` for a descendant.
+    // Important, as the rows' atomic padding and gaps may be emitted outside any layer, where they
+    // win over the theme's.
+    markdown: {
+      base: {
+        ":is(*) li": {
+          columnGap: "0 !important",
+          marginBlockEnd: "var(--prose-item-gap)",
+          padding: "0 !important",
+        },
+        ":is(*) li:last-child": { marginBlockEnd: "0" },
+        // The bullet's box: the list room, the bullet at its end, the bullet gap before the text.
+        ":is(*) li > span:first-child": {
+          justifyContent: "flex-end !important",
+          paddingInlineEnd: "var(--prose-bullet-gap)",
+          width: "var(--prose-list-room) !important",
+        },
+        ":is(*) li > span:first-child > span:only-child": {
+          backgroundColor: "var(--color-text-secondary) !important",
+        },
+        ":is(*) ul, :is(*) ol": { marginInline: "0 !important", rowGap: "0 !important" },
+      },
+    },
+    "progress-bar": { base: { "--radius-full": "0px" } },
+    "status-dot": { base: { "--radius-full": "0px" } },
     switch: { base: { "--radius-full": "0px" } },
     // A popover, a menu's included, stands apart by a border, as a terminal's floating window does,
     // where the flat look sets every shadow to none and left its text floating over the page.
@@ -273,13 +301,28 @@ export const uraedaTheme = defineTheme({
   icons: uraedaIcons,
   localTokens: {
     // Reading text: paragraphs of documents, questions, and stories.
-    "--text-reading-line": "1.5",
+    "--text-reading-line": "1.4",
     "--text-reading-size": "19px",
+    // Prose's rhythm, a document's and every markdown text's, an agent's message included
+    // (`Prose.tsx`'s `proseRhythm`, the `markdown` rule above): the room between paragraphs, around
+    // a list and between its items; a list's room for its bullets (`marks.stylex.ts`), and a
+    // drawn bullet's gap before the text, about where the browser's own disc sits.
+    "--prose-bullet-gap": "0.5em",
+    "--prose-item-gap": "var(--spacing-2)",
+    "--prose-list-room": "1.25em",
+    "--prose-paragraph-gap": "var(--spacing-3)",
+    // A pane's title in its border, and what is set like it: between the supporting text's size
+    // and the body's, so it holds its own over the pane's text.
+    "--text-title-size": "calc((var(--font-size-sm) + var(--font-size-base)) / 2)",
     // Prose's font, a proportional one where long text reads better than in the monospace font.
     "--font-family-reading":
       '"Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     // Catppuccin's lavender, a hue Astryx has no name for.
     "--color-text-lavender": pair("lavender"),
+    // Catppuccin's teal, the fill of a sub-agent's mark, apart from its session's blue and from the
+    // red of what is wrong. Latte's own teal, not the darker step its text takes: a mark stands
+    // 3:1 from the page, as a control does.
+    "--color-fill-teal": ["#179299", MOCHA.teal],
     // Catppuccin's sapphire, a live window's border and title, apart from the panes' lavender.
     "--color-border-sapphire": pair("sapphire"),
     "--color-text-sapphire": pair("sapphire"),
@@ -290,9 +333,19 @@ export const uraedaTheme = defineTheme({
     "--astryx-theme-neutral-color-status-fill-success": pair("green"),
     "--astryx-theme-neutral-color-status-fill-warning": pair("yellow"),
     "--astryx-theme-neutral-color-status-muted-accent": tint("blue"),
-    // About 110 characters of text a line: `ch` is the width of a "0", wider than most letters, so
-    // 86ch of Inter holds about 110 of them. The layout checks hold reading text to it.
-    "--size-reading-measure": "86ch",
+    // About 80 characters of prose a line: 60 of Inter's "0", at the reading size. Inter's "0" is
+    // 0.631 em, and its average character in English prose, spaces included, 0.471 em, three
+    // quarters of it, so 60 of them hold about 80 characters (59.7 for 80, measured on the
+    // repository's prose). A length of the reading size, not `60ch`: `ch` and `em` resolve in the
+    // font of the element that uses them, and a pane, in the UI's monospace font, sizes itself on
+    // this measure too (`--size-reading-pane`). The layout checks hold reading text to it.
+    "--size-reading-measure": "calc(37.85 * var(--text-reading-size))",
+    // A pane of prose's widest on wide screens: the reading measure, its inset at each side, and
+    // its border, so that its text fills it and ends at its border. The inset is the theme's,
+    // `--spacing-3`, as a reading page sets no narrower one: a custom property's `var()` resolves
+    // where it is declared, not in the pane.
+    "--size-reading-pane":
+      "calc(var(--size-reading-measure) + 2 * var(--spacing-3) + 2 * var(--border-width))",
     // A page's column on wide screens, which holds the reading measure and the rows beside it.
     "--size-page-max": "720px",
     // A session's column on wide screens: about 115 characters a line.
@@ -300,13 +353,10 @@ export const uraedaTheme = defineTheme({
     // The detail pane beside a list on wide screens: at least this wide, and at most the window's
     // height, scrolling on its own.
     "--size-pane-min": "400px",
-    // The detail overlay of a priority or a note on wide screens: 108 characters of the page's font
+    // The detail overlay of a proposal or a note on wide screens: 108 characters of the page's font
     // wide (the page's font is monospace, so `ch` is one character), and 60% of the window tall.
     "--size-detail": "108ch",
     "--size-detail-height": "60dvh",
-    // The decisions' list beside their reader: 30% of the window, never under 320 px, where less
-    // would cut its titles short.
-    "--size-ledger-list": "max(320px, 30vw)",
     // The decisions' palette on wide and semi-wide screens: its list, about 30 characters wide,
     // and the preview of the entry under the cursor beside it, in a dialog that leaves the page's
     // edges in view.
@@ -318,6 +368,8 @@ export const uraedaTheme = defineTheme({
     "--size-image-max-height": "80dvh",
     // A chat message's image, a preview the human opens full screen.
     "--size-message-image": "120px",
+    // An inbox note's image, under its selected row: twice a message's, to be read in place.
+    "--size-note-image": "240px",
     // The chat composer's field at its smallest: 7 rows of Astryx's composer lines, 22 px at every
     // size.
     "--size-composer-input": "154px",
@@ -329,9 +381,6 @@ export const uraedaTheme = defineTheme({
     "--size-round-split": "840px",
     // The round's context at least this wide sets Scope and Sources side by side.
     "--size-round-pair": "820px",
-    // About 75 characters of text a line, on the round page and the triage, which hold their
-    // reading text to it in place of the reading measure.
-    "--size-round-measure": "75ch",
     // The settings page's search field, at the end of its heading row on wide screens.
     "--size-settings-search": "240px",
     // The shell's rail: its icons' column, folded, and on semi-wide screens.
@@ -340,10 +389,12 @@ export const uraedaTheme = defineTheme({
     "--size-rail-inset": "calc((var(--size-rail) - var(--size-element-md)) / 2)",
     // One line of a nav row's label: a card's icon and status sit on its name's first line.
     "--size-label-line": "calc(var(--text-label-size) * var(--text-label-leading))",
-    // The repository menu's popover on wide screens, and the add form's field in the first run.
+    // A form's field, as the add form's in the first run, and the sign-in's.
     "--size-form": "560px",
-    "--size-menu": "360px",
-    // The ＋ forms' dialog: its buttons, "Attach an image" to "Add and commit ↵", on one line.
+    // A picker with no preview beside its list, the repositories' on wide and semi-wide screens: as
+    // wide as the ＋ forms' dialog, and, as the palette, leaving the page's edges in view.
+    "--size-picker": "min(640px, 92vw)",
+    // The ＋ forms' dialog: its buttons, "Attach an image" to "Add as a file", on one line.
     "--size-quick-add": "640px",
     // A story's frames: the phone's width, the desktop's, scaled to the space left, the height of a
     // story that never reports its own, and the most any frame grows to, a desktop window's 900 px:
@@ -426,7 +477,9 @@ export const uraedaTheme = defineTheme({
     "--color-text-secondary": [LATTE.subtext1, MOCHA.subtext0],
     "--color-warning": pair("yellow"),
     "--color-warning-muted": tint("yellow"),
-    // Square corners; `--radius-full` stays round for dots and avatars.
+    // Square corners; `--radius-full` stays round for avatars, as the components that square theirs
+    // set it apart (`components` above).
+    "--radius-chat": "0px",
     "--radius-container": "0px",
     "--radius-element": "0px",
     "--radius-inner": "0px",

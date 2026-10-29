@@ -15,13 +15,19 @@ type Entry = {
   activity?: number;
   /** A chat its first message just created, on the page it left: its first turn is news. */
   created?: boolean;
+  /** What takes the focus on arrival: a file's text, as a proposal file just made opens. */
+  focus?: "text";
   from?: string;
   id?: string;
+  /** What the New page's composer is filled from on arrival: a proposal's id, `line:next-2`. */
+  insert?: string;
   open?: Array<string>;
   opener?: number;
   overlay?: string;
   pane?: number;
   scroll?: number;
+  /** The row a list selects on arrival, with the focus: a line a note just went to, by its key. */
+  select?: string;
   /** The count of messages a session's transcript draws, kept so Back draws as many. */
   shown?: number;
 };
@@ -80,13 +86,13 @@ const savers = new Set<() => void>();
 let left: string | undefined;
 
 /**
- * Whether `path` shows another priority or note beside the same list as now: the list stays, and
+ * Whether `path` shows another proposal or note beside the same list as now: the list stays, and
  * the text left unsaved in the pane comes back, with its notice, as that item opens again.
  */
 function besideSameList(path: string) {
   const from = parseLocation(window.location.pathname).route.page;
   const to = parseLocation(new URL(path, window.location.href).pathname).route.page;
-  return (from === "task" || from === "note") && to === from;
+  return (from === "proposal" || from === "note") && to === from;
 }
 
 /**
@@ -94,7 +100,10 @@ function besideSameList(path: string) {
  * holds unsaved text asks first, and stays if the human does, unless only its pane shows another
  * item of its list.
  */
-export function navigate(path: string, state?: { created?: boolean; from?: string }) {
+export function navigate(
+  path: string,
+  state?: { created?: boolean; focus?: "text"; from?: string; insert?: string; select?: string },
+) {
   const asking = besideSameList(path) ? undefined : guard?.();
   if (asking) {
     void asking.then((leave) => {
@@ -107,7 +116,10 @@ export function navigate(path: string, state?: { created?: boolean; from?: strin
   openPage(path, state);
 }
 
-function openPage(path: string, state?: { created?: boolean; from?: string }) {
+function openPage(
+  path: string,
+  state?: { created?: boolean; focus?: "text"; from?: string; insert?: string; select?: string },
+) {
   const opener = window.scrollY;
   saveScroll();
   left = entry().id;
