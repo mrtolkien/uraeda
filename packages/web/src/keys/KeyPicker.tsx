@@ -94,8 +94,11 @@ const styles = stylex.create({
   },
   // The sheet's handle floats over the top of its content, which would hide the search field's
   // outline: the list starts below it.
-  // Under the sheet's title row, the rest of its height: the list scrolls in it.
+  // Under the sheet's title row, the rest of its height: the palette shrinks to it, and its list
+  // scrolls in it.
   sheet: {
+    display: "flex",
+    flexDirection: "column",
     flexGrow: 1,
     minHeight: 0,
     paddingBlockStart: spacingVars["--spacing-2"],

@@ -1,6 +1,6 @@
-// The phone's one sheet, for whatever rises from the bottom: a dialog's form, a picker, a "…"'s
-// actions. Each has its title on top and a Close, over the frosted glass of what floats over the
-// page.
+// The phone's one sheet, for what rises from the bottom: a dialog's form, or a picker. Each has its
+// title on top and a Close, over the frosted glass of what floats over the page, and a drag up on
+// its top takes it to the whole screen.
 import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { Button } from "@astryxdesign/core/Button";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -8,7 +8,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode, RefObject } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { glassStyles } from "./glass.ts";
 
 const styles = stylex.create({
@@ -16,6 +16,10 @@ const styles = stylex.create({
   // inside the sheet, the glass under them shows.
   sheet: {
     [colorVars["--color-background-surface"]]: "transparent",
+    // Taken to the whole screen, it grows there, from its own height, even one that hugs its
+    // content: Astryx's sheet moves with its transform and opacity alone.
+    interpolateSize: "allow-keywords",
+    transitionProperty: "transform, opacity, height, max-height",
   },
   // The sheet's heading over its content, which takes the rest of the sheet's height: a part of it
   // that scrolls on its own stays in the sheet, under the parts after it.
@@ -31,6 +35,73 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-4"],
   },
 });
+
+/** The sheet's top, its handle and its title row, where a drag up takes it to the whole screen. */
+const GRIP_PX = 64;
+/** How far up a drag goes before the sheet takes the whole screen. */
+const PULL_PX = 32;
+/** The frames the field that asks for the focus is waited for, as the sheet opens. */
+const FOCUS_FRAMES = 10;
+
+/**
+ * Takes the sheet `panel` to the whole screen, `onFull`, on a drag up from its top: Astryx's sheet
+ * opens at its tallest height, and has no stop above it.
+ */
+function usePullUp(panel: RefObject<HTMLDivElement | null>, isOpen: boolean, onFull: () => void) {
+  useEffect(() => {
+    const element = panel.current;
+    if (!isOpen || !element) {
+      return;
+    }
+    let start: number | undefined;
+    const down = (event: PointerEvent) => {
+      const top = element.getBoundingClientRect().top;
+      start = event.clientY - top < GRIP_PX ? event.clientY : undefined;
+    };
+    const move = (event: PointerEvent) => {
+      if (start !== undefined && start - event.clientY > PULL_PX) {
+        start = undefined;
+        onFull();
+      }
+    };
+    const up = () => {
+      start = undefined;
+    };
+    element.addEventListener("pointerdown", down, { capture: true });
+    element.addEventListener("pointermove", move, { capture: true });
+    element.addEventListener("pointerup", up, { capture: true });
+    element.addEventListener("pointercancel", up, { capture: true });
+    return () => {
+      element.removeEventListener("pointerdown", down, { capture: true });
+      element.removeEventListener("pointermove", move, { capture: true });
+      element.removeEventListener("pointerup", up, { capture: true });
+      element.removeEventListener("pointercancel", up, { capture: true });
+    };
+  }, [isOpen, onFull, panel]);
+}
+
+/**
+ * Gives the focus to the field of the sheet `panel` that asks for it (`hasAutoFocus`), once it is
+ * drawn: Astryx's sheet focuses itself when the field is not there yet as it opens.
+ */
+function useFieldFocus(panel: RefObject<HTMLDivElement | null>, isOpen: boolean) {
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    let frames = 0;
+    let frame = requestAnimationFrame(function find() {
+      const field = panel.current?.querySelector<HTMLElement>("[data-autofocus]");
+      const focused = document.activeElement;
+      if (field && (focused === panel.current || !panel.current?.contains(focused))) {
+        field.focus({ preventScroll: true });
+      } else if (!field && ++frames < FOCUS_FRAMES) {
+        frame = requestAnimationFrame(find);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen, panel]);
+}
 
 /**
  * A bottom sheet titled `label`, with a Close that calls `onClose`, in frosted glass. `isPadded`
@@ -63,6 +134,17 @@ export function Sheet({
   purpose?: "form" | "info";
   ref?: RefObject<HTMLDivElement | null>;
 }) {
+  const panel = useRef<HTMLDivElement | null>(null);
+  const [full, setFull] = useState(false);
+  // A sheet opened again opens at its own height.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (wasOpen !== isOpen) {
+    setWasOpen(isOpen);
+    setFull(false);
+  }
+  const [onFull] = useState(() => () => setFull(true));
+  usePullUp(panel, isOpen, onFull);
+  useFieldFocus(panel, isOpen);
   const content = (
     <>
       <HStack align="center" gap={2} justify="between" xstyle={isPadded ? undefined : styles.inset}>
@@ -81,7 +163,7 @@ export function Sheet({
   return (
     <BottomSheet
       hasScrim={hasScrim}
-      height={height}
+      height={full ? "100dvh" : height}
       isOpen={isOpen}
       label={label}
       onOpenChange={(open: boolean) => {
@@ -91,7 +173,12 @@ export function Sheet({
       }}
       padding={isPadded ? 4 : 0}
       purpose={purpose}
-      ref={ref}
+      ref={(element: HTMLDivElement | null) => {
+        panel.current = element;
+        if (ref) {
+          ref.current = element;
+        }
+      }}
       xstyle={[glassStyles.surface, glassStyles.docked, styles.sheet]}
     >
       {fills ? <div {...stylex.props(styles.fill)}>{content}</div> : content}
