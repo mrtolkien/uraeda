@@ -48,7 +48,9 @@ brings it back. It covers the bottom bar while it shows.
 ## Layers
 
 - **Sheets, not dialogs or popovers**: menus, pickers, short forms, confirmations, and the side
-  column's tabs rise from the bottom as sheets, each in the address, so Back closes it.
+  column's tabs rise from the bottom as sheets, each in the address, so Back closes it. They are one
+  sheet (`layout/Sheet.tsx`), whatever it holds: its title on top, a Close, in frosted glass ("make
+  them all 3 the same component"). A `…`'s actions are its rows.
 - **Pages for anything read**: a proposal file, a session, a spec.
 
 ## Flows

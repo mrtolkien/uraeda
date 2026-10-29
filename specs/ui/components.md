@@ -32,7 +32,7 @@ anything, and a change made to one is made once.
 | A feature's or a session's card            | `sidebar/ItemCard.tsx` and `CardRow.tsx`: the sidebar, home, and the sessions page              |
 | A row's whole text                         | `pane/DetailOverlay.tsx`                                                                        |
 | Choosing one of many                       | `keys/KeyPicker.tsx`, its rows drawn with the card's icon and state                             |
-| A dialog, or the phone's sheet             | `layout/Overlay.tsx`                                                                            |
+| A dialog, or the phone's sheet             | `layout/Overlay.tsx`, its sheet `layout/Sheet.tsx`, shared by the pickers and the `…` menus     |
 | A confirmation                             | `fields/Confirm.tsx`'s `useConfirm`, answered by `y` and `n`, and more answers with their keys  |
 | An undo                                    | `layout/useUndoToast.ts`                                                                        |
 | A button that writes to git                | `writes/WriteButton.tsx`: it reads what it does while it runs, and blocks every other write     |

@@ -4,12 +4,11 @@
 // so the preview can sit beside them: an Astryx gap (plan, Complexity tracking), for the palette
 // has no preview slot, and the markdown is drawn as plain wrapped text. A part in its footer reads the cursor
 // from the palette's context, puts it on the first result after each letter, so Enter opens it, and
-// lifts it to the preview (rulings R1 and R28 of the layout look). On narrow screens it is a sheet,
-// its list alone. Opening it adds a history entry, so Back closes it; Escape closes it, and the
+// lifts it to the preview (rulings R1 and R28 of the layout look). On narrow screens it is the
+// phone's sheet (`Sheet`), titled, its list alone. Opening it adds a history entry, so Back closes it; Escape closes it, and the
 // focus returns to where it was: the dialog's own (Astryx's `Dialog` and `BottomSheet` keep the
 // element that had the focus as they open, whatever it is, and give it back as they close), so a pick
 // is left to the page it opens (R33).
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import {
   CommandPalette,
   CommandPaletteFooter,
@@ -39,6 +38,7 @@ import {
 } from "react";
 import { searchRanked } from "../decisions/jump.ts";
 import { afterOverlayCloses } from "../layout/Overlay.tsx";
+import { Sheet } from "../layout/Sheet.tsx";
 import { useBackCloses } from "../layout/useBackCloses.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { CardKindIcon, CardStatus } from "../sidebar/ItemCard.tsx";
@@ -94,8 +94,11 @@ const styles = stylex.create({
   },
   // The sheet's handle floats over the top of its content, which would hide the search field's
   // outline: the list starts below it.
+  // Under the sheet's title row, the rest of its height: the list scrolls in it.
   sheet: {
-    paddingBlockStart: spacingVars["--spacing-6"],
+    flexGrow: 1,
+    minHeight: 0,
+    paddingBlockStart: spacingVars["--spacing-2"],
   },
 });
 
@@ -359,15 +362,15 @@ export function KeyPicker({
   );
   if (narrow) {
     return (
-      <BottomSheet
-        height="tall"
+      <Sheet
+        fills
         isOpen={isOpen}
+        isPadded={false}
         label={title}
-        onOpenChange={onOpenChange}
-        padding={0}
+        onClose={() => onOpenChange(false)}
       >
         {body}
-      </BottomSheet>
+      </Sheet>
     );
   }
   return (

@@ -1,29 +1,13 @@
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
-import { Button } from "@astryxdesign/core/Button";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
-import { Heading } from "@astryxdesign/core/Heading";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
-import * as stylex from "@stylexjs/stylex";
 import type { ReactNode, RefObject } from "react";
 import { useCoverStatusLine } from "../statusHints.tsx";
+import { Sheet } from "./Sheet.tsx";
 import { useBackCloses } from "./useBackCloses.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
-const styles = stylex.create({
-  // The sheet's heading over its content, which takes the rest of the sheet's height: a part of it
-  // that scrolls on its own stays in the sheet, under the parts after it.
-  fill: {
-    display: "flex",
-    flexDirection: "column",
-    height: "100%",
-    minHeight: 0,
-  },
-});
-
 /**
  * A short form over the page: a dialog on wide screens, a bottom sheet on narrow ones, tall unless
- * told otherwise, each with a visible Close. Opening it adds a history entry, so Back closes it.
+ * told otherwise (`Sheet`), each with a visible Close. Opening it adds a history entry, so Back closes it.
  */
 export function Overlay({
   children,
@@ -88,34 +72,19 @@ export function Overlay({
       </Dialog>
     );
   }
-  const sheet = (
-    <>
-      <HStack align="center" gap={2} justify="between">
-        <Heading level={2}>{label}</Heading>
-        <Button
-          icon={<Icon icon="close" />}
-          isIconOnly
-          label="Close"
-          onClick={close}
-          variant="ghost"
-        />
-      </HStack>
-      {isOpen && children}
-    </>
-  );
   return (
-    <BottomSheet
+    <Sheet
+      fills={fills}
       hasScrim={isModal}
       height={sheetHeight}
       isOpen={isOpen}
       label={label}
-      onOpenChange={onOpenChange}
-      padding={4}
+      onClose={close}
       purpose={purpose}
       ref={sheetRef}
     >
-      {fills ? <div {...stylex.props(styles.fill)}>{sheet}</div> : sheet}
-    </BottomSheet>
+      {children}
+    </Sheet>
   );
 }
 
