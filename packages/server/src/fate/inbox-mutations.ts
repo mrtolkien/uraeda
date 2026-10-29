@@ -175,14 +175,16 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
+  // The proposal file as written, at its path now: a single file made a folder for a note file's
+  // images moves.
   "inbox.intoProposal": {
     resolve: async ({ ctx, input, select }: Resolver<NoteInput & { file: string }>) => {
-      await refusable(() =>
+      const path = await refusable(() =>
         ctx.binding.noteIntoProposal(ctx.repo, input.note, input.file, input.hash),
       );
-      return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select);
+      return proposalFile(ctx, await ctx.binding.readText(ctx.repo, path), select);
     },
-    type: "Inbox",
+    type: "ProposalFile",
   },
   "inbox.outline": {
     resolve: async ({

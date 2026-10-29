@@ -214,13 +214,44 @@ test("US2 3: adds a note to a proposal file's What", async () => {
       hash: inbox.hash,
       note: noteOf(inbox, "Make sure agents are resumable").id,
     },
-    INBOX,
+    ["id", "path", "text"],
   );
 
-  expect(result.data.count).toBe(9);
-  expect(read(repo, "specs/proposals/git-listener.md")).toContain(
+  expect(result.data.path).toBe("specs/proposals/git-listener.md");
+  expect(result.data.text).toContain(
     "Run the next step when a branch changes.\n\n- Make sure agents are resumable\n",
   );
+  expect((await readInbox(app)).count).toBe(9);
+});
+
+test("a note with a note file goes into a proposal file's Notes, which becomes a folder for its image", async () => {
+  const repo = fixtureRepo();
+  const served = await testApp(repo);
+  const { hash } = await readInbox(served.app);
+  await noteImage(served, { category: "UI", hash, text: "Headings are flat" }, ["phone.png"]);
+  const inbox = await readInbox(served.app);
+
+  const result = await mutate(
+    served.app,
+    "inbox.intoProposal",
+    {
+      file: "specs/proposals/git-listener.md",
+      hash: inbox.hash,
+      note: noteOf(inbox, "[Headings are flat](notes/headings-are-flat/note.md)").id,
+    },
+    ["id", "path", "text"],
+  );
+
+  expect(result.data.path).toBe("specs/proposals/git-listener/proposal.md");
+  expect(result.data.text).toContain(
+    "## Notes\n\n### Headings are flat\n\n#### What\n\nHeadings are flat\n\n" +
+      "![spec-headings](images/spec-headings.webp)\n",
+  );
+  expect(existsSync(join(repo, "specs/proposals/git-listener/images/spec-headings.webp"))).toBe(
+    true,
+  );
+  expect(existsSync(join(repo, "specs/notes/headings-are-flat"))).toBe(false);
+  expect(read(repo, "specs/INBOX.md")).not.toContain("Headings are flat");
 });
 
 /**
@@ -465,7 +496,7 @@ test("an Undo of each move puts both files back in one call", async () => {
     { hash: inbox.hash, note: moved.id, prioritiesHash: priorities.hash, section: "next" },
     INBOX,
   );
-  const intoFile = await mutate(
+  await mutate(
     app,
     "inbox.intoProposal",
     {
@@ -473,15 +504,16 @@ test("an Undo of each move puts both files back in one call", async () => {
       hash: toNext.data.hash,
       note: noteOf(toNext.data, "Make sure agents are resumable").id,
     },
-    INBOX,
+    ["id", "path"],
   );
+  const intoFile = await readInbox(app);
   await mutate(
     app,
     "inbox.category",
     {
       category: "CLI",
-      hash: intoFile.data.hash,
-      note: noteOf(intoFile.data, "We need a home icon").id,
+      hash: intoFile.hash,
+      note: noteOf(intoFile, "We need a home icon").id,
     },
     INBOX,
   );

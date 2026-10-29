@@ -235,8 +235,13 @@ export interface NoteImageRemoved {
   removed: RemovedImage
 }
 
-/** Adds a note at the end of the `## What` of the proposal file at `proposal`, from the top level. */
-export declare function noteIntoProposal(repo: string, id: string, proposal: string, previous: string): Promise<void>
+/**
+ * Adds a note to the proposal file at `proposal`, from the top level: its lines at the end of the
+ * file's `## What`, or, for a note with a note file, the note file's text at the end of its
+ * `## Notes`, its images beside it. Returns the proposal file's path, which a single proposal file
+ * made a folder for the images changes.
+ */
+export declare function noteIntoProposal(repo: string, id: string, proposal: string, previous: string): Promise<string>
 
 /** Moves a note to the end of a section of the priorities, over both files as read. */
 export declare function noteToProposal(repo: string, id: string, section: string, previous: string, prioritiesPrevious: string): Promise<void>
