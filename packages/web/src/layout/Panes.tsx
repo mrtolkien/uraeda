@@ -32,11 +32,12 @@ const styles = stylex.create({
     display: "grid",
     gridTemplateColumns: "minmax(0, 1fr) minmax(var(--size-pane-min), 40%)",
   },
-  // Columns of their own, `columns`, as wide as they ask, up to the room: the two together are
-  // put in the screen's middle (`useScreenCentre`).
-  sized: (columns: string) => ({
+  // Columns of their own, `columns`, the room's width up to `most`: the two together are put in
+  // the screen's middle (`useScreenCentre`).
+  sized: (columns: string, most: string) => ({
     gridTemplateColumns: columns,
-    width: "fit-content",
+    maxWidth: most,
+    width: "100%",
   }),
 });
 
@@ -45,7 +46,8 @@ const styles = stylex.create({
  * least 400 px, keeping its own scroll position for Back, and shown from its top when it shows
  * another item, `detailKey`, in the same entry; on narrow screens, the detail alone when there is
  * one, else the list. The detail draws its own Close. With `columns`, the list and the detail
- * take those columns, centred together, both drawing their own panes, so the detail draws no edge.
+ * take those columns, up to `most` together, centred together, both drawing their own panes, so
+ * the detail draws no edge.
  * `isSplit` says whether they are side by side, rather than the screen's width alone.
  */
 export function Panes({
@@ -54,6 +56,7 @@ export function Panes({
   detailKey,
   isSplit,
   list,
+  most = "none",
 }: {
   /** The list's and the detail's columns, a grid's template: the detail's 40% by default. */
   columns?: string;
@@ -61,6 +64,8 @@ export function Panes({
   detailKey?: string;
   isSplit?: boolean;
   list: ReactNode;
+  /** With `columns`, the most the two take together. */
+  most?: string;
 }) {
   const narrow = isNarrow(useWidthClass());
   const wide = isSplit ?? !narrow;
@@ -85,7 +90,7 @@ export function Panes({
   return (
     <div
       ref={centred}
-      {...stylex.props(styles.panes, columns !== undefined && styles.sized(columns))}
+      {...stylex.props(styles.panes, columns !== undefined && styles.sized(columns, most))}
     >
       <div {...stylex.props(styles.list)}>{list}</div>
       <section

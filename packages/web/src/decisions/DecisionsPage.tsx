@@ -39,9 +39,9 @@ import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort 
 import { NoSpecs } from "../layout/Missing.tsx";
 import { Empty } from "../layout/Empty.tsx";
 
-/** The list's column, about 40 characters a line at least, 80 at most, with its pane's inset. */
+/** The list's column, about 40 characters a line at least, 60 at most, with its pane's inset. */
 const LIST_LEAST = `calc(40ch + 2 * ${spacingVars["--spacing-6"]})`;
-const LIST_MOST = `calc(80ch + 2 * ${spacingVars["--spacing-6"]})`;
+const LIST_MOST = `calc(60ch + 2 * ${spacingVars["--spacing-6"]})`;
 /**
  * The reader's column, about 60 characters of prose a line at least, with its inset at its least,
  * to 80 with its whole inset.
@@ -388,7 +388,8 @@ export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: 
     <div ref={room} {...stylex.props(styles.room)}>
       <div aria-hidden="true" ref={least} {...stylex.props(styles.least(TWO_LEAST))} />
       <Panes
-        columns={`minmax(${LIST_LEAST}, ${LIST_MOST}) minmax(${READER_LEAST}, ${READER_MOST})`}
+        // The reader grows first, to its 80 characters, then the list takes the rest, to its own.
+        columns={`minmax(${LIST_LEAST}, 1fr) minmax(${READER_LEAST}, ${READER_MOST})`}
         detail={
           !isSplit && !open ? undefined : (
             <Reader isSplit={isSplit} ledger={ledger} onClose={onClose} open={open} paths={paths} />
@@ -397,6 +398,7 @@ export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: 
         detailKey={shownPath(ledger, open)}
         isSplit={isSplit}
         list={isSplit ? <div {...stylex.props(styles.column)}>{list}</div> : <Page>{list}</Page>}
+        most={`calc(${LIST_MOST} + ${READER_MOST})`}
       />
     </div>
   );
