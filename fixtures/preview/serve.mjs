@@ -22,7 +22,8 @@
 // - `/__index-reads`: how many requests for the index it got;
 // - `/__events`: a first chunk, then held open.
 //
-// Its modes: `ok`; `fail`, which prints `Error: Cannot find module 'storybook'` and exits 1; `hang`,
+// Its modes: `ok`; `fail`, which prints `Error: Cannot find module 'storybook'` framed as Storybook
+// frames its output, then Storybook's last line, and exits 1; `hang`,
 // which never answers `/index.json`; `hang-later`, which answers it once, then never again;
 // `bad-index`, which serves `not json` as the index; `no-pick`, without the pick script; `child`,
 // which starts a child that keeps its output open, and outlives it. `--delay` waits before
@@ -54,7 +55,11 @@ if (values.log) {
 }
 
 if (mode === "fail") {
-  process.stderr.write("Starting Storybook…\nError: Cannot find module 'storybook'\n");
+  process.stderr.write(
+    "│\n▲  Failed to load preset: \".storybook/main.ts\"\n│\n" +
+      "■  \u001b[31mError: Cannot find module 'storybook'\u001b[39m\n│\n" +
+      "└  Storybook exited with an error\n",
+  );
   process.exit(1);
 }
 
