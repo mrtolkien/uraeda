@@ -1,7 +1,6 @@
 // The column's own parts, around the shell's panes of work: its heading with the logo and the
 // repository menu, New and Note, the Navigate pane with the inbox's and the priorities' ＋ and
 // counts, and at its foot the 5 h window and Settings. The closed rail clips each row to its icon.
-import { NewMenu } from "./NewMenu.tsx";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -128,8 +127,8 @@ function useActionLook(isColumn: boolean): ActionLook {
 }
 
 /**
- * `lead` first, as the folded column's Unfold; then Commit, while something waits; then New, whose
- * menu asks what to start. On the desktop's column, `isColumn`, their icons are the rail's 20 px,
+ * `lead` first, as the folded column's Unfold; then Commit, while something waits; then New, which
+ * opens the New page. On the desktop's column, `isColumn`, their icons are the rail's 20 px,
  * which the closed rail shows alone.
  */
 export function ColumnActions({
@@ -175,19 +174,16 @@ export function Unfold({ isShown, onUnfold }: { isShown: boolean; onUnfold: () =
   );
 }
 
-/** New, the button that starts something: its menu asks what (`NewMenu`). */
+/** New, the button that starts something: the New page, whose cards and entries say what. */
 function NewButton({ look }: { look: ActionLook }) {
+  const here = useRepoPath();
   return (
-    <NewMenu
-      trigger={(props) => (
-        <Button
-          icon={<Icon icon="uraeda:plus" size={look.icon} />}
-          label="New"
-          variant="primary"
-          xstyle={look.xstyle}
-          {...props}
-        />
-      )}
+    <Button
+      href={here(DESTINATIONS.new.path)}
+      icon={<Icon icon={DESTINATIONS.new.icon} size={look.icon} />}
+      label={DESTINATIONS.new.label}
+      variant="primary"
+      xstyle={look.xstyle}
     />
   );
 }

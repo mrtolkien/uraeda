@@ -117,7 +117,7 @@ export function newBindings(
       icon: KIND_ICONS.priorities,
       keys: "space n p",
       label: "Proposal",
-      // A new row at the top of Now, as New's Proposal opens it.
+      // A new row at the top of Now.
       run: () => go(`/priorities${NEW_PROPOSAL_HASH}`),
     },
   ];
