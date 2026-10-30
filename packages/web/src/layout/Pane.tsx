@@ -161,8 +161,8 @@ const styles = stylex.create({
     paddingBlockStart: 0,
     // The theme's room, or a narrower one an ancestor sets, as the shell's column does.
     paddingInline: `var(--pane-inset, ${spacingVars["--spacing-3"]})`,
-    // A table keeps to the pane: it scrolls rather than reach past its border, and its rows' lines
-    // run to the border, through the pane's room (`TableBlock`).
+    // A table's rows' lines run to the border, through the pane's room, and it reaches past the
+    // border only by growing into the room beside the pane, framed (`TableBlock`).
     "--table-bleed": `var(--pane-inset, ${spacingVars["--spacing-3"]})`,
     "--table-reach": "0px",
     position: "relative",
@@ -181,9 +181,10 @@ const styles = stylex.create({
   // (`--pane-phone-inset`), so its text has nearly the screen's width, about where the page's own
   // text starts; its title, its actions, and a table's rows keep to that room.
   snugOnPhone: {
-    "--pane-inset": paneVars["--pane-phone-inset"],
     "--table-bleed": paneVars["--pane-phone-inset"],
-    marginInline: `calc(${paneVars["--pane-phone-margin"]} - var(--page-inset, 0px))`,
+    // `--pane-phone-reach`, how far its room already is from the screen's edges, is the page's
+    // inset, but where a part already takes it back, as a question's options do.
+    marginInline: `calc(${paneVars["--pane-phone-margin"]} - var(--pane-phone-reach, var(--page-inset, 0px)))`,
     paddingInline: paneVars["--pane-phone-inset"],
   },
   snugOnPhoneActions: { insetInlineEnd: 0 },
