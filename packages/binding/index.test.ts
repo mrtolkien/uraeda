@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
 import {
@@ -16,7 +16,7 @@ import {
   workDir,
   type Changes,
 } from "./index.js";
-import { fixture, fixtureRepo } from "./test-utils.ts";
+import { fixture, fixtureRepo, git } from "./test-utils.ts";
 
 const ROUND = "specs/2026-10-11-web-ui/clarifications-01.md";
 
@@ -147,6 +147,23 @@ test("refuses an SVG with the spec's text", async () => {
   );
   await expect(encodeImage(bytes, "drawing.svg")).rejects.toThrow(
     "refused: Only PNG, JPEG, GIF, and WebP images can be added: drawing.svg is not one.",
+  );
+});
+
+test("reads a committed SVG under specs as an image, and HTML named as one as none", async () => {
+  const repo = fixtureRepo();
+  git(repo, "switch", "--quiet", "2026-10-11-web-ui");
+  const mockups = join(repo, "specs/2026-10-11-web-ui/mockups");
+  mkdirSync(mockups);
+  writeFileSync(join(mockups, "drawing.svg"), readFileSync(fixture("images/drawing.svg")));
+  writeFileSync(join(mockups, "page.svg"), "<html><script></script></html>");
+
+  const image = await readImage(repo, "specs/2026-10-11-web-ui/mockups/drawing.svg");
+
+  expect(image.type).toBe("image/svg+xml");
+  expect(image.bytes.toString("utf8")).toBe(readFileSync(fixture("images/drawing.svg"), "utf8"));
+  await expect(readImage(repo, "specs/2026-10-11-web-ui/mockups/page.svg")).rejects.toThrow(
+    "no such file",
   );
 });
 

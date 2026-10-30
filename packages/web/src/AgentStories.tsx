@@ -1,8 +1,9 @@
-// The stories an agent's message links, drawn by the transcript's markdown: a story link alone in
-// its paragraph shows the story, and one inside a sentence opens the story page. Whether a
-// link is a story link is the core's rule, asked through a `StoryHref` record for each link (R3): a
-// link shows as a plain one until it is known. A message streaming shows no story: a paragraph that
-// is a link alone for a moment would start a Storybook for nothing.
+// The stories and images an agent's message links, drawn by the transcript's markdown: a story link
+// alone in its paragraph shows the story, and one inside a sentence opens the story page. An image
+// of the repository's `specs/`, or a prototype's image linked alone, is drawn from the repository.
+// Whether a link is a story link is the core's rule, asked through a `StoryHref` record for each
+// link (R3): a link shows as a plain one until it is known. A message streaming shows no story: a
+// paragraph that is a link alone for a moment would start a Storybook for nothing.
 import { Link } from "@astryxdesign/core/Link";
 import {
   Children,
@@ -13,8 +14,10 @@ import {
   useContext,
 } from "react";
 import { useStoryHref } from "./data.ts";
+import { ImageView } from "./ImageView.tsx";
 import { ProseParagraph } from "./Prose.tsx";
 import { useRepoPath } from "./routes.tsx";
+import { imagePath, prototypePath } from "./Spans.tsx";
 import { StoryEmbed } from "./StoryEmbed.tsx";
 import { embedComment, type Stories, StoryContext, storyHref } from "./stories.tsx";
 
@@ -112,13 +115,43 @@ function StoryParagraph({
 }
 
 /**
+ * The path, within its repository, an agent's link or image names, from the repository's top
+ * level, as its story links are: none for the web, another scheme, or a link within the page.
+ */
+function repositoryPath(href: string): string | undefined {
+  return /^([a-z][a-z\d+.-]*:|\/\/|#|\?)/i.test(href)
+    ? undefined
+    : href.replace(/^\//, "").split(/[?#]/)[0];
+}
+
+/**
+ * An agent's image: a file of the repository's `specs/`, as a prototype's SVG, drawn from the
+ * repository; any other as Astryx's markdown gave it.
+ */
+function AgentImage({ alt, src }: { alt: string; src: string }) {
+  const here = useRepoPath();
+  const path = imagePath(repositoryPath(src));
+  return <ImageView alt={alt} src={path === undefined ? src : here(path)} />;
+}
+
+/**
  * An agent's paragraph, in prose's rhythm as any markdown's: a story link alone in it shows the
- * story, once the message ended.
+ * story, once the message ended, and a link alone to a prototype's image draws the image.
  */
 function AgentParagraph({ children }: { children: ReactNode }) {
   const stories = useContext(StoryContext);
   const ended = useContext(MessageStories)?.ended ?? true;
-  const link = stories?.preview && ended ? linkAlone(children) : undefined;
+  const here = useRepoPath();
+  const alone = linkAlone(children);
+  const prototype = alone && prototypePath(repositoryPath(alone.href));
+  if (alone && prototype) {
+    return (
+      <ProseParagraph>
+        <ImageView alt={textOf(alone.children)} src={here(prototype)} />
+      </ProseParagraph>
+    );
+  }
+  const link = stories?.preview && ended ? alone : undefined;
   const paragraph = <ProseParagraph>{children}</ProseParagraph>;
   if (!stories || !link) {
     return paragraph;
@@ -131,7 +164,8 @@ function AgentParagraph({ children }: { children: ReactNode }) {
 }
 
 /**
- * The components an agent's markdown draws its links and paragraphs with: a story link alone in its
- * paragraph shows the story, and inside a sentence opens the story page.
+ * The components an agent's markdown draws its links, paragraphs, and images with: a story link
+ * alone in its paragraph shows the story, and inside a sentence opens the story page; an image of
+ * the repository draws from it.
  */
-export const agentStories = { link: AgentLink, paragraph: AgentParagraph };
+export const agentStories = { image: AgentImage, link: AgentLink, paragraph: AgentParagraph };

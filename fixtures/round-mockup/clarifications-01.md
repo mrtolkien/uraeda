@@ -69,6 +69,9 @@ needs a notion of series.
 
 - **A (recommended). Create the next occurrence as a new task when the current one is completed.
   Editing a task changes that task only.**
+
+  [A new task under the completed one](mockups/new-task.svg)
+
   - [pro] completed tasks stay in the list as a history.
   - [con] the list grows by one task per completion.
   - Why recommended: it keeps the history with the simplest model.
@@ -77,6 +80,9 @@ needs a notion of series.
   - [con] four times more repeating tasks, and the follow-up below.
 - **C. Keep a single task, and move its due date to the next occurrence when it is completed, like
   Todoist.**
+
+  ![The same task, its due date moved](mockups/moved-date.svg)
+
   - [pro] the list never grows.
   - [con] completed occurrences disappear.
 

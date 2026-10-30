@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" width="640" height="240" role="img" aria-label="A completed task, and the next one created under it">
+  <style>
+    .card{fill:#eff1f5;stroke:#9ca0b0}.text{fill:#4c4f69;font:14px sans-serif}.done{fill:#8c8fa1;text-decoration:line-through}.new{fill:#40a02b}
+    @media (prefers-color-scheme: dark){.card{fill:#1e1e2e;stroke:#585b70}.text{fill:#cdd6f4}.done{fill:#7f849c}.new{fill:#a6e3a1}}
+  </style>
+  <rect class="card" x="8" y="8" width="304" height="44" rx="6"/>
+  <text class="text done" x="24" y="35">Water the plants, Oct 14</text>
+  <rect class="card" x="8" y="68" width="304" height="44" rx="6"/>
+  <circle class="new" cx="28" cy="90" r="5"/>
+  <text class="text" x="44" y="95">Water the plants, Oct 21</text>
+</svg>

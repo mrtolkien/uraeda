@@ -136,6 +136,29 @@ test("serves an image with its type, nosniff, and default-src 'none'", async () 
   ).toBe("WEBP");
 });
 
+test("serves a committed SVG as an image that runs nothing, opened alone too", async () => {
+  const repo = fixtureRepo();
+  git(repo, "switch", "--quiet", "2026-10-11-web-ui");
+  mkdirSync(join(repo, "specs/2026-10-11-web-ui/mockups"));
+  writeFileSync(
+    join(repo, "specs/2026-10-11-web-ui/mockups/banner.svg"),
+    '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+  );
+  const { app, name } = await testApp(repo);
+
+  const response = await app.request(
+    `http://127.0.0.1:${port}/r/${name}/images/specs/2026-10-11-web-ui/mockups/banner.svg`,
+  );
+
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type")).toBe("image/svg+xml");
+  expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  // Its own styles draw it, opened in a tab; no script runs, and it loads nothing.
+  expect(response.headers.get("content-security-policy")).toBe(
+    "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+  );
+});
+
 test("does not serve a markdown file or a path outside specs as an image", async () => {
   const repo = fixtureRepo();
   // HTML named as a PNG, in a feature's images: refused by its first bytes.

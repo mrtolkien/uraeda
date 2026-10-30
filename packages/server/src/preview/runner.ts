@@ -14,6 +14,7 @@ import {
   type GroupRecorder,
   groups,
   keepLines,
+  lastReason,
   portTaken,
   signalGroup,
 } from "./process.ts";
@@ -382,7 +383,7 @@ export class Previews {
 
   /**
    * After a process ended by itself: a taken port is tried once more on a new one; any other end
-   * is failed, with its last line of output.
+   * is failed, with its last error line of output, or its last line.
    */
   async #exited(entry: Entry, run: Run, why: string) {
     if (entry.stopped || entry.run !== run || entry.state.state === "failed") {
@@ -401,7 +402,7 @@ export class Previews {
       void this.#launch(entry);
       return;
     }
-    this.#fail(entry, `Storybook did not start: ${run.lines.at(-1) ?? why}`);
+    this.#fail(entry, `Storybook did not start: ${lastReason(run.lines) ?? why}`);
   }
 
   /** Stops polling the entry's index. */

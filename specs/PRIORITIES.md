@@ -6,8 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Mockup previews](/specs/changes/2026-10-30-mockup-previews/proposal.md)
-
 - Empty inbox
 
 ## Next

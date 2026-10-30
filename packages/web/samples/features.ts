@@ -53,9 +53,9 @@ function roundMockupFile(name: string): string {
 }
 
 /**
- * Adds a round page's mockup feature, its round in the clarifications redesign's format with its
- * Q1 answered `answer`, on its own branch, from `main`, without a worktree. Answered B, its Q1 asks
- * its follow-up.
+ * Adds a round page's mockup feature, its round in the clarifications redesign's format with its Q1
+ * answered `answer`, and the SVG prototypes its options show, on its own branch, from `main`,
+ * without a worktree. Answered B, its Q1 asks its follow-up.
  */
 export function addRoundMockup(repo: string, folder: string, answer: string) {
   git(repo, "branch", folder, "main");
@@ -66,6 +66,8 @@ export function addRoundMockup(repo: string, folder: string, answer: string) {
   );
   commitOnBranch(repo, folder, {
     [`specs/${folder}/clarifications-01.md`]: round,
+    [`specs/${folder}/mockups/moved-date.svg`]: roundMockupFile("mockups/moved-date.svg"),
+    [`specs/${folder}/mockups/new-task.svg`]: roundMockupFile("mockups/new-task.svg"),
     [`specs/${folder}/proposal.md`]: roundMockupFile("proposal.md"),
   });
 }

@@ -6,7 +6,7 @@ import { type ReactNode, useContext } from "react";
 import type { Span } from "uraeda-binding";
 import { MAIN_CHECKOUT } from "./data.ts";
 import { ImageView } from "./ImageView.tsx";
-import { pathLink } from "./links.tsx";
+import { inMockups, pathLink } from "./links.tsx";
 import { repoPath, useRepository } from "./routes.tsx";
 import { StoryContext, storyHref } from "./stories.tsx";
 
@@ -136,8 +136,52 @@ export function imagePath(path: string | undefined): string | undefined {
 }
 
 /** Whether a span draws an image that opens in a lightbox, a dialog drawn beside it. */
-export function opensImage(span: Span): boolean {
+function opensImage(span: Span): boolean {
   return imageSource(span) !== undefined && !span.link;
+}
+
+/** The files a link alone in its paragraph draws as an image, by their extension. */
+const IMAGE_FILE = /\.(png|jpe?g|gif|webp|svg)$/i;
+
+/**
+ * The path, within its repository, the image a link alone in its paragraph names is drawn from: an
+ * image file in a `mockups` folder under `specs/`, like a discovery's prototype, as an HTML page
+ * there is drawn live; else none.
+ */
+export function prototypePath(path: string | undefined): string | undefined {
+  return path && inMockups(path) && IMAGE_FILE.test(path) ? imagePath(path) : undefined;
+}
+
+/**
+ * The spans of the one link a block holds, whitespace around it aside, as the core's embeds read
+ * it: a link whose text has several marks is several spans. None when the block holds anything else.
+ */
+function linkAlone(spans: ReadonlyArray<Span>): Array<Span> | undefined {
+  const links = spans.filter((span) => span.link);
+  const target = links[0]?.link?.target;
+  const alone =
+    target !== undefined &&
+    spans.every((span) =>
+      span.link ? span.link.target === target && !span.image : span.text.trim() === "",
+    );
+  return alone ? links : undefined;
+}
+
+/** Whether a block's spans are a link alone to a prototype's image, which draws in its place. */
+function drawsPrototype(spans: ReadonlyArray<Span>): boolean {
+  return prototypePath(linkAlone(spans)?.[0]?.link?.path) !== undefined;
+}
+
+/** Whether a paragraph's spans draw an image that opens in a lightbox: its own, or a prototype's. */
+export function holdsImage(spans: ReadonlyArray<Span>): boolean {
+  return spans.some(opensImage) || drawsPrototype(spans);
+}
+
+/** A link alone in its paragraph to a prototype's image: the image, its text as its alt text. */
+function SpanPrototype({ spans }: { spans: ReadonlyArray<Span> }) {
+  const repo = useRepository();
+  const link = linkAlone(spans)!;
+  return <ImageView alt={plain(link)} src={repoPath(repo, prototypePath(link[0]!.link!.path)!)} />;
 }
 
 /**
@@ -166,7 +210,7 @@ function SpanImage({ span }: { span: Span }) {
 
 /**
  * The spans of a block's text, with their marks, links, and images; `isAlone` for a block whose
- * one link is all its text, a control's height.
+ * one link is all its text, a control's height, or the image it names, a prototype's.
  */
 export function Spans({
   isAlone = false,
@@ -175,6 +219,9 @@ export function Spans({
   isAlone?: boolean;
   spans: ReadonlyArray<Span>;
 }) {
+  if (isAlone && drawsPrototype(spans)) {
+    return <SpanPrototype spans={spans} />;
+  }
   return spans.map((span, index) =>
     span.image ? (
       <SpanImage key={index} span={span} />
