@@ -18,6 +18,7 @@ import { readAlong, storyRead } from "../readAhead.ts";
 import { type Folds, useHashFold } from "../Folds.tsx";
 import { MountedSteps } from "../layout/MountedSteps.tsx";
 import { Page } from "../layout/Page.tsx";
+import { Pane } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { scrollMarginStyles } from "../layout/scrollMargin.ts";
 import {
@@ -204,7 +205,9 @@ function groups({
         title={GROUPS.replaced.title}
         wide={part.wide}
       >
-        <Blocks document={part.document} ids={replaced.blocks} selection={part.selection} />
+        <Pane icon="uraeda:arrow-right-left" isSnugOnPhone level={3} title="Behaviours">
+          <Blocks document={part.document} ids={replaced.blocks} selection={part.selection} />
+        </Pane>
       </Group>
     ),
     data && (
