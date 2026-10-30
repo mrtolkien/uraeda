@@ -10,6 +10,7 @@ import type { WriteInput, WriteQueue } from "../writes/queue.ts";
 import { STEP, StartProgress, startSteps } from "../writes/start-steps.ts";
 import type { RepoContext, Resolver } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
+import { sendKept } from "./kept-sends.ts";
 import { refusedOn } from "./list-mutations.ts";
 import { sources } from "./sources.ts";
 import { startPlanDataView, type StartPlanRecord } from "./views-start-plan.ts";
@@ -111,22 +112,17 @@ async function queueStart<R>(
 }
 
 /**
- * Sends the messages kept for the started folder, in order, to the session they were kept for:
- * logged, not refused, when one cannot be sent, as a started change's first run is.
+ * Sends the messages kept for the started folder, in order, to the session they were kept for,
+ * made for them: one that cannot be sent comes back to its composer, with the ones after it, as a
+ * started change's first run is not refused.
  */
-async function sendKept(ctx: RepoContext, root: string, folder: string): Promise<void> {
-  const kept = ctx.sessions.starts.take(root, folder);
-  if (kept.session === undefined) {
-    return;
-  }
-  let { session } = kept;
-  try {
-    for (const input of kept.inputs) {
-      session = (await ctx.sessions.send(ctx.repo, session, input)).session;
-    }
-  } catch (error) {
-    process.stderr.write(
-      `uraeda: ${folder} started, but its message was not sent: ${reasonOf(error)}\n`,
+async function sendStartKept(ctx: RepoContext, root: string, folder: string): Promise<void> {
+  const { inputs, session } = ctx.sessions.starts.take(root, folder);
+  if (session !== undefined) {
+    await sendKept(
+      ctx,
+      folder,
+      inputs.map((input) => ({ input, made: true, session })),
     );
   }
 }
@@ -183,7 +179,7 @@ async function startPlanned(
       folder,
       run: (onStep: (step: StartStepView) => void) =>
         ctx.binding.startFeature(ctx.repo, input.proposal, planned.slug, kind, onStep),
-      then: () => sendKept(ctx, root, folder),
+      then: () => sendStartKept(ctx, root, folder),
       write: input.write ?? { href: "", label: `Starting the ${kind} ${title}` },
     };
     const queued = await queueStart(ctx, queue, start, () => starts.drop(root, folder)).catch(

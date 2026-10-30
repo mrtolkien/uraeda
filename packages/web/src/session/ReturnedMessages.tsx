@@ -1,12 +1,16 @@
 // The messages sent to a feature while its commits were queued, which the server kept until they
 // landed (R65): when one of those commits is refused, the server drops them, their text in the
-// refused write's `queued`, and the composer of the feature's session takes it back, once.
+// refused write's `queued`, and the composer of the feature's session takes it back, once. A kept
+// message whose send was refused once they landed comes back the same, in an `unsent` write (R89).
 import { type ReactNode, Suspense, useEffect, useState } from "react";
 import { type Draft, takeBackInto } from "../useDraft.ts";
 import { useWriteQueue } from "../writes/useWriteQueue.ts";
 
 /** Why the composer holds a message it sent: it went back when the commit it waited for failed. */
 export const RETURNED = "Not sent: the commit it waited for was refused. Your message is back.";
+
+/** Why the composer holds a message it sent: its send was refused once its commits landed. */
+export const UNSENT = "Not sent: sending it failed. Your message is back.";
 
 /** The refused writes whose messages this document put back in a composer already. */
 const taken = new Set<string>();
@@ -24,7 +28,7 @@ function TakeBack({
 }: {
   draft: Take;
   folder: string;
-  onRead: (id: string | undefined) => void;
+  onRead: (returned: { id: string; unsent: boolean } | undefined) => void;
 }) {
   const write = useWriteQueue().findLast(
     (each) =>
@@ -35,13 +39,14 @@ function TakeBack({
   );
   const id = write?.id;
   const queued = write?.queued;
+  const unsent = write?.failure === "unsent";
   useEffect(() => {
     if (id !== undefined && queued !== undefined && !taken.has(id)) {
       taken.add(id);
       takeBackInto({ setImages, setText })(queued, []);
     }
-    onRead(id);
-  }, [id, onRead, queued, setImages, setText]);
+    onRead(id === undefined ? undefined : { id, unsent });
+  }, [id, onRead, queued, setImages, setText, unsent]);
   return null;
 }
 
@@ -61,9 +66,9 @@ export function useReturnedMessages<H extends Handed>(
   draft: Take,
   given: H,
 ): { element: ReactNode; handing: H & { onSent: (session: string) => void } } {
-  const [returned, setReturned] = useState<string>();
+  const [returned, setReturned] = useState<{ id: string; unsent: boolean }>();
   const [answered, setAnswered] = useState<string>();
-  const shows = returned !== undefined && answered !== returned;
+  const shows = returned !== undefined && answered !== returned.id;
   return {
     element:
       folder === undefined ? null : (
@@ -72,10 +77,10 @@ export function useReturnedMessages<H extends Handed>(
         </Suspense>
       ),
     handing: {
-      ...(shows ? { notice: RETURNED } : {}),
+      ...(shows ? { notice: returned.unsent ? UNSENT : RETURNED } : {}),
       ...given,
       onSent: (session: string) => {
-        setAnswered(returned);
+        setAnswered(returned?.id);
         given.onSent?.(session);
       },
     },

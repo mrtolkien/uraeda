@@ -102,6 +102,39 @@ test("a message sent while an approval is refused is dropped, and kept for the c
   expect(server.sessions.cache.session(sent.data.id)).toBeUndefined();
 });
 
+test("a kept message whose send is refused comes back for the composer, after the one sent", async () => {
+  const { hook, host, server } = await heldServer();
+  server.adapter.script([]);
+  await approve(server);
+  const message = await approvalMessage(server);
+  const first = await send(server, message);
+  const second = await mutate(server.app, "session.send", { folder: FOLDER, text: "And this" }, [
+    "id",
+  ]);
+  expect(second.error).toBeUndefined();
+  const sending = server.sessions.send.bind(server.sessions);
+  vi.spyOn(server.sessions, "send")
+    .mockImplementationOnce(sending)
+    .mockRejectedValueOnce(new Error("refused: the agent is unavailable"));
+
+  hook.release();
+  await host.queue.idle();
+
+  await vi.waitFor(async () =>
+    expect(await writes(server)).toMatchObject([
+      {
+        failure: "unsent",
+        folder: FOLDER,
+        output: "the agent is unavailable",
+        queued: "And this",
+        state: "refused",
+      },
+    ]),
+  );
+  await vi.waitFor(() => expect(server.sessions.cache.turns(first.data.id)).toHaveLength(1));
+  expect(server.adapter.sent).toEqual([expect.objectContaining({ text: message.text })]);
+});
+
 /** Adds a proposal to the priorities, then commits them: the commit queued, the hook holding it. */
 async function commitPriorities(server: Server, text: string) {
   const [read] = await byId(server.app, "Priorities", ["priorities"], ["id", "hash"]);

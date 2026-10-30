@@ -49,9 +49,14 @@ const happenedAt = (write: Write, where: Where) =>
   (where.file === undefined || write.file === where.file) &&
   (where.href === undefined || write.href === where.href);
 
-/** The write a hook refused at `where`, the latest, until it is dismissed. */
+/**
+ * The write a hook refused at `where`, the latest, until it is dismissed: messages not sent are no
+ * write of a place, as their composer shows them.
+ */
 export function useRefusal(where: Where): Write | undefined {
-  return useWriteQueue().findLast((write) => write.state === "refused" && happenedAt(write, where));
+  return useWriteQueue().findLast(
+    (write) => write.state === "refused" && write.failure !== "unsent" && happenedAt(write, where),
+  );
 }
 
 /** Takes a refused write out of the queue's record, in every tab. */

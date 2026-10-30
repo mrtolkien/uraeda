@@ -65,6 +65,9 @@ const styles = stylex.create({
 
 /** Why a refused write did not land, and what it left: a failure points to the commit page. */
 export function RefusalText({ commitHref, write }: { commitHref?: string; write: QueuedWrite }) {
+  if (write.failure === "unsent") {
+    return <>Not sent: your message is back in its composer.</>;
+  }
   if (write.failure !== "failed") {
     return <>A hook refused the commit: what it showed is back as it was.</>;
   }
@@ -192,10 +195,11 @@ export function CommitToast() {
     const write = writes.find((each) => each.id === id);
     if (write) {
       setOpened((before) => new Set(before).add(id));
-      // A feature's start opens its session, where its steps show the refusal; a write named by no
-      // page, as a change's start, opens home.
+      // A feature's start opens its session, where its steps show the refusal, and messages not
+      // sent, where their composer holds them; a write named by no page, as a change's start,
+      // opens home.
       const page =
-        write.steps !== undefined && write.folder !== undefined
+        (write.steps !== undefined || write.failure === "unsent") && write.folder !== undefined
           ? sessionPath(write.folder)
           : write.href || "/";
       navigateHere(page.includes("#") ? page : `${page}#${REFUSED_ID}`);

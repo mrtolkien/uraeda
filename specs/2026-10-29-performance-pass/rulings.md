@@ -1140,3 +1140,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   decision of their own, and the test's exception goes.
 - **Where**: `specs/decisions/ui-behaviour.md`, `specs/decisions/performance.md`,
   `crates/core/tests/check.rs`.
+
+## R89: A kept message whose send is refused comes back to its composer
+
+- **Decision**: the messages kept for a feature's commits (R65) or its start (R51) go in order once
+  they landed; the first send refused stops them, and its text and the ones after it go in an
+  `unsent` write of the queue, refused, its output the send's refusal, its `queued` their text. The
+  sessions made only for them go while they have no turn. The composer of the feature's session
+  takes the text back, once, as R75 says, under "Not sent: sending it failed. Your message is
+  back."; the toast reads "Not sent: your message is back in its composer.", and its Open goes to
+  the feature's session. A place's refusal banner never shows an `unsent` write.
+- **Rationale**: the send's refusal was only logged, the messages after it dropped, and a session
+  made for them left empty: the human's text was lost without a word.
+- **Alternatives considered**: going on with the next messages after a refusal, which would send
+  them out of the order they were written in.
+- **Where**: `packages/server/src/fate/kept-sends.ts`, `writes/queue.ts` (`unsent`),
+  `packages/web/src/session/ReturnedMessages.tsx`, `writes/CommitToast.tsx`, final review.
