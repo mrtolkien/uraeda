@@ -74,3 +74,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: `live.bench.ts` runs with `nix develop -c vp test bench --run <file>`, the command
   `vp run bench` runs; `vp bench` does not exist.
 - **Where**: task 1, step 5.
+
+## R10: The watcher's tests write beside the index, and an uncommitted answer
+
+- **Decision**: the re-created worktree's test reports an uncommitted answer first, then its commit.
+  The steady writes go to a file in the worktree's git folder, beside its index, instead of the
+  index itself.
+- **Rationale**: a commit moves a ref in the common git folder, watched apart from the worktree, so
+  a commit alone passed without the fix. Rewriting the index while `git commit` writes it races with
+  the commit; a file beside it gives the same events.
+- **Where**: task 2.

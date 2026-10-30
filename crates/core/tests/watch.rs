@@ -1,7 +1,8 @@
 mod common;
 
+use std::path::PathBuf;
 use std::sync::mpsc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use common::repo::{TestRepo, run_git, without_user_git};
 use common::texts::{clarifications, proposal};
@@ -513,4 +514,97 @@ fn a_switch_of_the_main_checkout_to_another_branch_reports_no_inbox_change() {
 
     let changes = next(&receiver);
     assert!(!changes.inbox);
+}
+
+/// Writes the answer of the feature's round in `root`, and commits it unless `commit` is false.
+fn answer(root: &std::path::Path, commit: bool) {
+    let round = root.join("specs/2026-10-11-web-ui/clarifications-01.md");
+    std::fs::write(
+        &round,
+        clarifications("answered", "1 question, about 3 minutes.", &["A"]),
+    )
+    .unwrap();
+    if commit {
+        run_git(root, &["add", "specs"]);
+        run_git(
+            root,
+            &[
+                "commit",
+                "--quiet",
+                "--no-verify",
+                "--message",
+                "answer(web-ui): A",
+            ],
+        );
+    }
+}
+
+/// The first report naming the feature, if one comes before `deadline`.
+fn reports_feature(receiver: &mpsc::Receiver<Changes>, deadline: Instant) -> Option<Changes> {
+    while let Some(left) = deadline.checked_duration_since(Instant::now()) {
+        match receiver.recv_timeout(left) {
+            Ok(changes) if changes.features.contains(&FOLDER.to_string()) => return Some(changes),
+            Ok(_) => {}
+            Err(_) => return None,
+        }
+    }
+    None
+}
+
+/// US3.3: a worktree deleted and re-created at its path is a new folder, watched again. An
+/// uncommitted answer shows only through the worktree's own watch, a commit through git's too.
+#[test]
+fn a_worktree_re_created_at_its_path_is_watched_again() {
+    let repo = repo();
+    let place = place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    let path = place.root.to_str().unwrap().to_string();
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.git(&["worktree", "remove", &path]);
+    repo.git(&["worktree", "add", "--quiet", &path, FOLDER]);
+    // The same worktree at the same path reports nothing: what the watcher read again settles.
+    std::thread::sleep(Duration::from_millis(800));
+    while receiver.try_recv().is_ok() {}
+
+    answer(&place.root, false);
+    let changes = reports_feature(&receiver, Instant::now() + Duration::from_secs(1))
+        .expect("the uncommitted answer within 1 second");
+    assert!(
+        changes
+            .files
+            .contains(&"2026-10-11-web-ui/clarifications-01.md".to_string()),
+        "{changes:?}"
+    );
+    answer(&place.root, true);
+    assert!(reports_feature(&receiver, Instant::now() + Duration::from_secs(1)).is_some());
+}
+
+/// US3, more scenario 2: git's commands writing the worktree's folder in `.git` every 100 ms keep
+/// a burst of events going, and a commit made meanwhile still shows within a second.
+#[test]
+fn a_burst_under_steady_writes_reports_within_a_second() {
+    let repo = repo();
+    let place = place::reach(&Git::discover(repo.path()).unwrap(), FOLDER).unwrap();
+    let admin = PathBuf::from(run_git(&place.root, &["rev-parse", "--absolute-git-dir"]).trim());
+    let (_watcher, receiver) = watching(&repo);
+
+    let start = Instant::now();
+    let writes = std::thread::spawn(move || {
+        while start.elapsed() < Duration::from_secs(3) {
+            std::fs::write(admin.join("steady"), format!("{:?}", start.elapsed())).unwrap();
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    });
+    std::thread::sleep(Duration::from_secs(1));
+    answer(&place.root, true);
+    let committed = Instant::now();
+
+    let changes = reports_feature(&receiver, start + Duration::from_millis(2900));
+    let waited = committed.elapsed();
+    writes.join().unwrap();
+    assert!(changes.is_some(), "no report while the writes went on");
+    assert!(
+        waited < Duration::from_millis(1500),
+        "reported {waited:?} after the commit"
+    );
 }
