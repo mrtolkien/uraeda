@@ -9,3 +9,7 @@
 ## To test
 
 ## Deferred fixes
+
+- [agent] [inbox-again] The leader key fixtures' spec and rounds still link the UI checks and UI
+  coherence decisions, gone from `fixtures/realistic/decisions/`: in the sandbox those links open a
+  missing decision (`fixtures/spec-leader-key/`, `fixtures/round-leader-key/`)
