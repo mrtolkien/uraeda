@@ -34,7 +34,7 @@ export type Draft = {
   /**
    * Puts the message the address hands over before the text, in place of the run's it holds, with
    * its run, once: the draft took it already when the address comes back, until it is sent or
-   * emptied.
+   * emptied. The same message read again with another text replaces it, unless the human changed it.
    */
   handOver: (address: string, run: DraftRun) => void;
   images: ReadonlyArray<DraftImage>;
@@ -186,9 +186,9 @@ function writesOf(held: Store): Omit<Draft, "images" | "run" | "text"> {
       ),
     handOver: (address, run) =>
       held.set((now) =>
-        now.address === address
-          ? now
-          : { ...now, address, run, text: withInserted(run.text, withoutRun(now)) },
+        now.address !== address || isReadAgain(now, run)
+          ? { ...now, address, run, text: withInserted(run.text, withoutRun(now)) }
+          : now,
       ),
     refused: (address) =>
       held.set(({ run, ...now }) =>
@@ -201,6 +201,21 @@ function writesOf(held: Store): Omit<Draft, "images" | "run" | "text"> {
       ),
     setText: (update) => held.set((now) => ({ ...now, text: apply(update, now.text) })),
   };
+}
+
+/**
+ * Whether `run` is the message the draft's address handed over, read again with another text or
+ * step, as once the commits it was read before landed: it replaces the one the text starts with,
+ * unless the human changed that one.
+ */
+function isReadAgain({ run: held, text }: Held, run: DraftRun): boolean {
+  return (
+    held !== undefined &&
+    held.trigger === run.trigger &&
+    held.file === run.file &&
+    (held.text !== run.text || held.step !== run.step) &&
+    text.startsWith(held.text)
+  );
 }
 
 /** The draft's text without its run's message at its start, and the empty lines after it. */

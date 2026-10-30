@@ -253,13 +253,16 @@ export function useAgent() {
   return useLiveView(AgentView, agent);
 }
 
-/** The workflow's message for a feature and a trigger, or why there is none. */
+/**
+ * The workflow's message for a feature and a trigger, or why there is none: live, as the server
+ * sends it again once the feature's queued commits land or are refused (R65).
+ */
 export function useWorkflowMessage(folder: string, trigger: Trigger, file?: string) {
   const id = [folder, trigger, ...(file === undefined ? [] : [file])].join(":");
   const request = { workflowMessage: { id, view: WorkflowMessageView } };
   const { workflowMessage } = useRequest(request);
   useRefreshOnShow(request);
-  return useView(WorkflowMessageView, workflowMessage);
+  return useLiveView(WorkflowMessageView, workflowMessage);
 }
 
 /** The one workflow message the server recommends for a feature now, or why none, by its folder. */
