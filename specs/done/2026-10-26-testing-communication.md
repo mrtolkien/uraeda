@@ -485,8 +485,8 @@ keep the skill's wording generic."
 
 - [Testing](../decisions/testing.md), new: tests follow the spec and the decisions, by the project's
   stage, and a web UI test is kept only when extremely useful.
-- [UI checks](../decisions/ui-checks.md), changed: the human checks UI work by using the app, with
-  one screenshot of each new view in the pull request.
+- [UI checks, now in Testing](../decisions/testing.md), changed: the human checks UI work by using
+  the app, with one screenshot of each new view in the pull request.
 - [UI layout](../decisions/ui-layout.md), [UI look](../decisions/ui-look.md),
   [UI behaviour](../decisions/ui-behaviour.md), [Problems](../decisions/problems.md),
   [Settings](../decisions/settings.md), and [Preview](../decisions/preview.md), changed: rules keep

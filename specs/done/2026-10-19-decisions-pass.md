@@ -104,7 +104,7 @@ view we use for specs".
 
 ## Decisions
 
-- New: [UI coherence](../decisions/ui-coherence.md).
+- New: [UI coherence, now in UI components](../decisions/ui-components.md).
 - Changed, rewritten to the bar: every other decision of [the ledger](../decisions/), 21 in all.
 
 ## Changes after approval

@@ -51,8 +51,8 @@ collapsed, and `Markdown` caps its prose at 680 px by default, which our own par
 
 ## Decisions
 
-- [UI coherence](../decisions/ui-coherence.md): reading text through `Prose`, and a column width as
-  a named `Page` property.
+- [UI coherence, now in UI components](../decisions/ui-components.md): reading text through `Prose`,
+  and a column width as a named `Page` property.
 - [UI behaviour](../decisions/ui-behaviour.md): a growing view mounts a bounded number of rows, and
   folded content is not mounted.
 - [UI components](../decisions/ui-components.md): the known Astryx gap of rows mounted while

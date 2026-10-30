@@ -262,8 +262,8 @@ of ideas) or the priorities page".
   wide screens, pages and sheets on the phone, 17 px and 19 px text, left-aligned.
 - [UI behaviour](../decisions/ui-behaviour.md), new: whole rows tappable, edits in place, modals
   only for confirmations and short forms, inline status, 5-second toasts, the place kept on Back.
-- [UI checks](../decisions/ui-checks.md), new: tests that guard behaviour only, layout and axe
-  checks at two sizes in `vp run ready`, and screenshots reviewed before handover.
+- [UI checks, now in Testing](../decisions/testing.md), new: tests that guard behaviour only, layout
+  and axe checks at two sizes in `vp run ready`, and screenshots reviewed before handover.
 
 ## Changes after approval
 

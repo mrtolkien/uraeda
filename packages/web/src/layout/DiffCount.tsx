@@ -1,6 +1,6 @@
 // Lines a change added and removed, "+120 −4", in green and red, the theme's text colours that read
 // at 4.5:1, with tabular figures: the same on a sidebar's card, a feature's column, and a session's
-// changed files (UI coherence).
+// changed files (UI components).
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";

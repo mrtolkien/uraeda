@@ -32,7 +32,7 @@ test.each([
   ["raw-color.tsx", "valid-styles"],
   // A raw value moved into a custom property and read back with `var()`.
   ["raw-custom-property.tsx", "custom-property-tokens"],
-  // The UI coherence decision: markdown goes through `Prose.tsx`.
+  // The UI components decision: markdown goes through `Prose.tsx`.
   ["raw-markdown.tsx", "no-restricted-imports"],
   // US3.6: a `test.only` left behind fails the lint.
   ["only-test.test.tsx", "no-only-tests"],
@@ -105,7 +105,7 @@ const LEGACY_READING = [
   "spec/builtParts/shared.tsx",
 ];
 
-test("reading text is set in Prose.tsx, bar the files that still move there (UI coherence)", () => {
+test("reading text is set in Prose.tsx, bar the files that still move there (UI components)", () => {
   const found: Array<string> = [];
   for (const entry of readdirSync(src, { recursive: true, withFileTypes: true })) {
     const file = relative(src, join(entry.parentPath, entry.name));

@@ -58,7 +58,7 @@ const styles = stylex.create({
     minWidth: 0,
   },
   path: {
-    // A path wraps anywhere rather than be cut: the UI checks decision cuts no text.
+    // A path wraps anywhere rather than be cut, so it reads whole on the phone.
     overflowWrap: "anywhere",
   },
   repository: {

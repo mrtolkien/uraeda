@@ -1,5 +1,5 @@
 // What a page shows when the thing its address names is not there: an error with the way out, the
-// same on every page (UI coherence); and a repository without a `specs/` folder.
+// same on every page (UI components); and a repository without a `specs/` folder.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Link } from "@astryxdesign/core/Link";
 import { useRepoPath } from "../routes.tsx";

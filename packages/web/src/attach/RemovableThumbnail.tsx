@@ -1,5 +1,5 @@
 // An image about to be sent, as a thumbnail with its Remove under it: the composer's images and a
-// note's picked images draw it alike (UI coherence).
+// note's picked images draw it alike (UI components).
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Thumbnail } from "@astryxdesign/core/Thumbnail";

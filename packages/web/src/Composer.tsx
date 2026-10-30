@@ -142,7 +142,7 @@ function attachRefusal(
 
 /**
  * The keys the field owns, as it is a text field and the registry never hears it. Ctrl+Enter or
- * Cmd+Enter sends, as it saves every other field (the UI coherence decision); Enter adds a line, on
+ * Cmd+Enter sends, as it saves every other field (the UI components decision); Enter adds a line, on
  * every screen. Astryx sends text alone on Enter: a message of images alone, or images still being
  * saved, are this handler's (an Astryx gap, see the plan). Escape leaves the field for the page,
  * keeping the draft, which `i`, the registry's key, comes back to unless the field is disabled. The

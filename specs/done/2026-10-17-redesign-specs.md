@@ -197,8 +197,9 @@ own rules, staying at 10.
   [settings](../decisions/settings.md), [sign-in](../decisions/sign-in.md),
   [stack](../decisions/stack.md), [toolchain](../decisions/toolchain.md),
   [TUI](../decisions/tui.md), [UI behaviour](../decisions/ui-behaviour.md),
-  [UI checks](../decisions/ui-checks.md), [UI components](../decisions/ui-components.md), and
-  [UI layout](../decisions/ui-layout.md): 18,728 words became about 9,400.
+  [UI checks, now in Testing](../decisions/testing.md),
+  [UI components](../decisions/ui-components.md), and [UI layout](../decisions/ui-layout.md): 18,728
+  words became about 9,400.
 - The stack decision folds in access-storybook's rule that Storybook's channel is forwarded only as
   a preview's.
 
