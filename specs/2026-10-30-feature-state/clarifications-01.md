@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Feature state pass
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 7 questions, about 20 minutes.
+> Answered on 2026-10-30.
 >
 > - Verdict: worth building, with changes: each symptom has a cause in the code, and three of them
 >   need a rule only you can set.
@@ -116,7 +116,7 @@ notifications, and the tab's title all say.
   - [pro] nothing that went wrong is ever hidden.
   - [con] an old crash comes back after every run, until it is cleared.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: While an agent works on a feature that waits on you, what does its card say?
 
@@ -143,7 +143,8 @@ fires.
   - [pro] the card never moves.
   - [con] Needs you lists work you should not touch yet.
 
-**Answer:**
+**Answer:** A: Any agent working on a feature means it's in progress. It can't be waiting for me if
+something's running. Normally.
 
 ## Q3: How does a failed or interrupted run stop asking for you?
 
@@ -177,7 +178,7 @@ you for days.
   - [pro] the same rule as a chat's new reply.
   - [con] a run you stopped yourself still asks for you once.
 
-**Answer:**
+**Answer:** B
 
 ## Q4: When should the step move after you approve a spec or answer a round?
 
@@ -213,7 +214,7 @@ either way.
   - [pro] manual edits show at once too.
   - [con] reverses the git decision, which dropped this for showing gates not committed yet.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: How should a plan's progress read while its tasks are built in parallel?
 
@@ -240,7 +241,7 @@ Why it matters: progress is the one number on a working feature's card.
   - [pro] no change.
   - [con] the symptom of the proposal stays.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Should an open pull request count as ready for your review once the branch has newer commits?
 
@@ -265,7 +266,7 @@ Why it matters: it changes the workflow's step table, which agents follow withou
   - [pro] the workflow does not change.
   - [con] you may review a pull request missing fixes the agent already made.
 
-**Answer:**
+**Answer:** A: Also if there’s a session running, it’s not ready for review
 
 ## Q7: Where should the rule of a feature's status be written down?
 
@@ -286,7 +287,8 @@ before changing a view.
   - [pro] binding on every feature that adds a view or a notification.
   - [con] one more decision to approve, for a rule about how views read.
 
-**Answer:**
+**Answer:** B: Can also take some of the lines from the git decision, if they are about the status
+of a feature
 
 ## Settled without the human
 
