@@ -540,24 +540,24 @@ planned, the plan is remembered with its message, its session opens with the mes
 - Modify: `specs/ui/flows.md` (Starting the agent), `README.md`, `docs/web-ui.md`,
   `skills/uraeda/references/projects.md`
 
-- [ ] **Step 1: Remove the drafting and its tests**
+- [x] **Step 1: Remove the drafting and its tests**
 
 `a_drafted_proposal_writes_its_line_and_its_file_in_one_call`,
 `a_refused_draft_leaves_the_priorities_and_the_folder_as_they_were`, and
 `a_draft_after_a_start_seen_by_the_watcher_goes_below_it` go, as the spec's replaced behaviour
-lists. Code only they used goes with them.
+lists. Code only they used goes with them: the priorities' `read_uncounted` and `insert_uncounted`.
 
-- [ ] **Step 2: Write the docs**
+- [x] **Step 2: Write the docs**
 
 The flows guide's Start fills the composer with the line alone, replacing the draft with an Undo,
 and the Feature card starts the feature into its session. The README's first proposal and the web UI
 docs say the same; the skill's projects say what the New page starts.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 `refactor(proposal-start): the New page's proposal drafting goes`

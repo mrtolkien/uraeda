@@ -116,7 +116,7 @@ Then:
 2. **Set it up.** Home's Setup pane lists the files the workflow needs: a constitution, the
    project's principles, and two decisions. Press "Set up with the agent", then send the message.
 3. **Write a first proposal.** On the New page, under Feature, write what you want and why, then
-   start it.
+   name it: its session opens with the agent's first message, for you to send.
 
 Without the web UI, run `ura init`, then ask your agent `/uraeda` to set the project up. Write a
 proposal in `specs/proposals/`, and tell the agent to start it, then "what is next?" when you

@@ -83,8 +83,10 @@ Sessions need `claude` installed and signed in on the machine, with a paid plan:
 [INSTALL.md](../INSTALL.md#claude-code). Without `claude`, the pages only commit.
 
 Every conversation with the agent is a session. "＋ New" opens one in the main checkout, or starts a
-change or a feature. A change or a feature holds one or more sessions, in its worktree, where the
-workflow's runs and your messages follow each other.
+change or a feature. Its three cards share one text, kept until it starts. A feature asks its slug
+and its research effort, then opens its session. A line's Start, on the priorities, puts the line in
+that text, in place of what it held, with an Undo. A change or a feature holds one or more sessions,
+in its worktree, where the workflow's runs and your messages follow each other.
 
 The buttons that hand a feature over, like "Commit and start the agent" and "Approve and start the
 agent", commit. They then open its session with the workflow's message in the composer. Nothing goes

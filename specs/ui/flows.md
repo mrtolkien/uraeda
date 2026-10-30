@@ -17,8 +17,10 @@ whose answers either continue the implementation or revise the spec.
 
 - **The agent never starts unseen.** A commit that hands the feature over opens its session with the
   workflow's message in the composer, unsent; the human sends it, edits it, or leaves it.
-- **A proposal's Start fills the New page's composer** with the proposal's link, rather than
-  starting a feature without a word: "this way it's coherent!"
+- **A proposal's Start fills the New page's composer** with the line and its nested lines, rather
+  than starting a feature without a word: "this way it's coherent!" It replaces the draft the
+  composer held, which the toast's Undo brings back: the intent is clear. The three cards share the
+  composer's one draft, and the Feature card starts the feature into its session.
 - **A new feature, change, or session is written first, then named**: its slug or title is asked for
   after `Ctrl+Enter`, in one short dialog.
 - **Asking the agent** about a question puts it, quoted, in the session's composer, in the column on

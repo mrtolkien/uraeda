@@ -154,12 +154,6 @@ export declare function discardPriorities(repo: string): Promise<Priorities>
 export declare function discoveryLevels(): Array<string>
 
 /**
- * Writes `title` as the first proposal of a section that has not started, expands it into a
- * proposal file, and writes `body` under its heading: the file, for its editor.
- */
-export declare function draftProposal(repo: string, section: string, title: string, body: string): Promise<ProposalFileView>
-
-/**
  * Drops a started feature or change: its proposal leaves the priorities, its worktree is removed
  * unless it has uncommitted changes, never forced, and its branch stays.
  */
