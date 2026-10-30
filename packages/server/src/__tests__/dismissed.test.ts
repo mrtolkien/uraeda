@@ -1,5 +1,6 @@
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
+import { live as globalLive } from "../fate.ts";
 import { SERVER_STOPPED } from "../runner/sessions.ts";
 import { byId, type Data, fixtureRepo, mutate, testDataDir, testServer } from "./helpers.ts";
 
@@ -86,4 +87,21 @@ test("a dismissed run stops asking, across a restart, and a new failure asks aga
     status: "attention",
     statusReason: "failed",
   });
+});
+
+test("a dismissal sends the session's list, feature, workspace, and what needs the human", async () => {
+  const server = await testServer(fixtureRepo());
+  const host = server.hosts.get(server.name)!;
+  const { session, turn } = await runningTurn(server, AGENT);
+  server.sessions.cache.endTurn(turn, { reason: "Usage limit reached.", state: "failed" });
+  const update = vi.spyOn(host.live, "update");
+  const global = vi.spyOn(globalLive, "update");
+
+  expect((await dismiss(server, turn)).error).toBeUndefined();
+
+  expect(update).toHaveBeenCalledWith("Session", session, expect.anything());
+  expect(update).toHaveBeenCalledWith("SessionList", "all", expect.anything());
+  expect(update).toHaveBeenCalledWith("Feature", AGENT, expect.anything());
+  expect(update).toHaveBeenCalledWith("Workspace", "workspace", expect.anything());
+  expect(global).toHaveBeenCalledWith("NeedsYouList", expect.anything(), expect.anything());
 });
