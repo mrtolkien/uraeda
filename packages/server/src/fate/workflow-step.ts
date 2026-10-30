@@ -1,8 +1,8 @@
 // The step a feature's workflow message reads, and the messages read, which a change of the feature
-// sends again: its step moves when its queued commits land, not only when its branch changes.
+// sends again: its step moves when its commits are queued, land, or are refused, not only when its
+// branch changes.
 import type { NextView } from "uraeda-binding";
 import type { RepoContext } from "./context.ts";
-import { featureKeys } from "./write-queue.ts";
 
 /** The ids of the workflow messages read, by repository and folder. */
 const read = new Map<string, Set<string>>();
@@ -22,15 +22,9 @@ export function readMessages(repo: string, folder: string): Array<string> {
 }
 
 /**
- * The step the workflow message of `folder` reads: while its commits are still queued, the step
- * they will give, which the core expects from its files on disk; otherwise the branch's,
- * read from its latest commit. Undefined when the core reads none.
+ * The step the workflow message of `folder` reads: the branch's, which the core reads from its
+ * latest commit with the commits still queued on top. Undefined when the core reads none.
  */
 export function messageStep(ctx: RepoContext, folder: string): Promise<NextView | undefined> {
-  const queue = ctx.hosts.byPath(ctx.repo)?.queue;
-  const step =
-    queue?.waits(featureKeys(folder)) === true
-      ? ctx.binding.expectedStep(ctx.repo, folder)
-      : ctx.binding.nextStep(ctx.repo, folder);
-  return step.catch(() => undefined);
+  return ctx.binding.nextStep(ctx.repo, folder).catch(() => undefined);
 }

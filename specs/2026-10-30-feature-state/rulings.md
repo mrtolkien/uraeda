@@ -58,3 +58,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: the banner of a failed run starts its text with the turn's reason, when it has one,
   as the approved `SessionBanners` story shows.
 - **Where**: task 9.
+
+## R8: A commit whose hooks run is still a pending write
+
+- **Decision**: `deferred::land` keeps the commit it lands in a `landing` map until git and the
+  hooks are done, and `pending` reads it with the commits not taken or waiting.
+- **Rationale**: `land` took the commit out of the repository's map before running its hooks, so
+  while a pre-commit hook held it, the step read neither its write nor a commit holding it, and the
+  card went back to the gate: review focus 2. It leaves the map under the write lock, so a read sees
+  it pending or committed.
+- **Where**: task 1, `crates/core/src/actions/deferred.rs`.
+
+## R9: The benchmark runs with `vp test bench --run`
+
+- **Decision**: `live.bench.ts` runs with `nix develop -c vp test bench --run <file>`, the command
+  `vp run bench` runs; `vp bench` does not exist.
+- **Where**: task 1, step 5.

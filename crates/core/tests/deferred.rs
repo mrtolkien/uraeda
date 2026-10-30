@@ -4,7 +4,7 @@ use std::sync::{Mutex, mpsc};
 use std::time::Duration;
 
 use common::repo::TestRepo;
-use common::texts::{clarifications, proposal, spec};
+use common::texts::{clarifications, decision, plan, proposal, spec};
 use uraeda_core::api;
 use uraeda_core::view::CommitView;
 
@@ -55,6 +55,77 @@ fn land_one(repo: &TestRepo) -> (Result<CommitView, api::ApiError>, Vec<String>)
         lines.lock().unwrap().push(line.to_string());
     });
     (landed, lines.into_inner().unwrap())
+}
+
+/// A repository on `main` whose feature branch, checked out nowhere, holds a spec to review after
+/// an answered round, with deferral on, and a hook that refuses while `refuse` exists in it.
+fn spec_to_review(spec_text: &str) -> TestRepo {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write("specs/decisions/storage.md", &decision("proposed"));
+    repo.commit("chore: specs");
+    repo.switch_new(FOLDER);
+    repo.write("specs/2026-10-11-web-ui/proposal.md", &proposal());
+    repo.write(ROUND, &clarifications("answered", "Answered.", &["A", "B"]));
+    repo.write(SPEC, spec_text);
+    repo.commit("spec(web-ui): spec");
+    repo.switch("main");
+    api::defer_commits(repo.path(), true);
+    let refuse = repo.path().join("refuse");
+    repo.set_hook(&format!(
+        "if [ -e '{}' ]; then exit 1; fi",
+        refuse.display()
+    ));
+    repo
+}
+
+fn step_of(repo: &TestRepo) -> String {
+    api::next_step(repo.path(), FOLDER).unwrap().step.name
+}
+
+/// US3, and review focus 1 and 2: the step is the tip's with the deferred write's own bytes on
+/// top, never the disk's: a plan written by hand beside the approval is not read. A landing keeps
+/// the step, and a refusal moves it back.
+#[test]
+fn a_deferred_approval_moves_the_step_and_a_refusal_moves_it_back() {
+    let repo = spec_to_review(&spec("awaiting-human", 1, 1));
+    assert_eq!(step_of(&repo), "human-gate");
+
+    api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap();
+    // Read from the disk, a plan waiting for review would make the step its gate.
+    let by_hand = "specs/2026-10-11-web-ui/plan.md";
+    repo.write(
+        &in_worktree(by_hand),
+        &plan("awaiting-human", 1, &[("Do", 0, 1)]),
+    );
+
+    assert_eq!(step_of(&repo), "plan");
+    std::fs::write(repo.path().join("refuse"), "").unwrap();
+    let (refused, _) = land_one(&repo);
+    assert_eq!(refused.unwrap_err().code, "hook");
+    assert_eq!(step_of(&repo), "human-gate");
+
+    std::fs::remove_file(repo.path().join("refuse")).unwrap();
+    repo.remove(&in_worktree(by_hand));
+    api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap();
+    assert_eq!(step_of(&repo), "plan");
+    let (landed, _) = land_one(&repo);
+    assert_eq!(landed.unwrap().subject, "spec(web-ui): approve");
+    assert_eq!(step_of(&repo), "plan");
+}
+
+/// A deferred approval of a spec whose new decision is proposed reads the decisions' approval.
+#[test]
+fn a_deferred_approval_with_a_proposed_decision_reads_its_approval() {
+    let with_decision = spec("awaiting-human", 1, 1).replace(
+        "Relied on:",
+        "- **New: [Storage](/specs/decisions/storage.md)**. Where tasks live.\n\nRelied on:",
+    );
+    let repo = spec_to_review(&with_decision);
+
+    api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap();
+
+    assert_eq!(step_of(&repo), "approval");
 }
 
 /// Review focus 2: undo puts back what the write left, never the committed version, and never over
