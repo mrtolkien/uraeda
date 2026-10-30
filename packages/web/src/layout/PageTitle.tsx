@@ -9,6 +9,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { fileStatusBadge } from "../labels.ts";
+import { pageText } from "./Page.tsx";
 import { Paragraph } from "./Paragraph.tsx";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
@@ -71,7 +72,7 @@ export function PageTitle({
     </HStack>
   );
   return (
-    <VStack gap={2}>
+    <VStack gap={2} xstyle={pageText}>
       {above}
       {status && (
         <HStack>

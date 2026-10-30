@@ -6,6 +6,7 @@ import { neutralTheme } from "@astryxdesign/theme-neutral";
 // A package import, `package.json`'s `imports`: the theme's build copies the specifier into
 // `built/uraeda.js` as it is written, where a relative path would not resolve.
 import { uraedaIcons } from "#theme-icons";
+import { MEASURE, measureOf, WIDTHS } from "#theme-scale";
 
 /** Text, controls, and spacing at 120% of Astryx's sizes at every width, the UI look decision's. */
 const SCALE = 1.2;
@@ -170,10 +171,6 @@ const ON: [string, string] = ["#ffffff", MOCHA.crust];
 export const uraedaTheme = defineTheme({
   adaptations: {
     rules: [
-      {
-        value: { localTokens: { "--size-page-max": "1200px" } },
-        when: { width: { from: "lg" } },
-      },
       // Last, so a wide touch screen keeps 44 px controls. Its type scale and sizes undo the neutral
       // theme's rule for touch screens under 1024 px, 16 px text on a re-derived scale: text is 120%
       // on every screen.
@@ -339,17 +336,17 @@ export const uraedaTheme = defineTheme({
     // repository's prose). A length of the reading size, not `60ch`: `ch` and `em` resolve in the
     // font of the element that uses them, and a pane, in the UI's monospace font, sizes itself on
     // this measure too (`--size-reading-pane`). The layout checks hold reading text to it.
-    "--size-reading-measure": "calc(37.85 * var(--text-reading-size))",
-    // A pane of prose's widest on wide screens: the reading measure, its inset at each side, and
-    // its border, so that its text fills it and ends at its border. The inset is the theme's,
-    // `--spacing-3`, as a reading page sets no narrower one: a custom property's `var()` resolves
-    // where it is declared, not in the pane.
-    "--size-reading-pane":
-      "calc(var(--size-reading-measure) + 2 * var(--spacing-3) + 2 * var(--border-width))",
-    // A page's column on wide screens, which holds the reading measure and the rows beside it.
-    "--size-page-max": "720px",
-    // A session's column on wide screens: about 115 characters a line.
+    "--size-reading-measure": measureOf(MEASURE),
+    // The scale's widths made of it (`scale.ts`): a reading pane, big text, a split card, two panes.
+    ...WIDTHS,
+    // The scale's widths in characters of the UI's monospace font: a draft's editor's panes, the
+    // formatter's 100 columns with the pane's and the field's room around them; a session's
+    // column, about 115 characters a line.
+    "--size-code": "108ch",
     "--size-session-max": "95ch",
+    // What sits beside a setting's text, on a page of rows: its widest control, a 32 characters'
+    // field (`OtherSettings.tsx`), and the gap before it.
+    "--size-setting-control": "calc(32ch + var(--spacing-3))",
     // The detail pane beside a list on wide screens: at least this wide, and at most the window's
     // height, scrolling on its own.
     "--size-pane-min": "400px",
@@ -377,8 +374,6 @@ export const uraedaTheme = defineTheme({
     "--size-composer-input-narrow": "66px",
     // The accent line of a follow-up's card, 4 px: `--spacing-1` is 4.8 px at 120%.
     "--size-round-accent": "4px",
-    // A question card at least this wide puts its options beside its title and context.
-    "--size-round-split": "840px",
     // The settings page's search field, at the end of its heading row on wide screens.
     "--size-settings-search": "240px",
     // The shell's rail: its icons' column, folded, and on semi-wide screens.

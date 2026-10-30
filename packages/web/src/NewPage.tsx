@@ -351,7 +351,7 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
   const { insert, sources } = useSources({ change, feature, input, kind, session });
   useSetupMessage({ input, kind, session });
   return (
-    <Page>
+    <Page kind="panes">
       <VStack gap={4}>
         <PageTitle
           // Beside the title at every width, as on a desktop.

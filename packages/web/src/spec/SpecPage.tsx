@@ -300,7 +300,7 @@ function SpecLayout({
   };
   const page = (
     <SinceMarks value={since?.marks ?? NO_SINCE}>
-      <Page isReading>
+      <Page kind="reading">
         <Crumbs current={file.name} folder={file.folder} />
         <VStack gap={wide ? 8 : 4} xstyle={styles.layer}>
           <VStack gap={3}>

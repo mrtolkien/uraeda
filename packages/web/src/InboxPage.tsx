@@ -41,7 +41,7 @@ export function InboxPage({ select }: { select?: { key: string } | undefined } =
     return null;
   }
   return (
-    <Page>
+    <Page kind="rows">
       <VStack gap={2}>
         <PageTitle
           aside={agent && <OrganizeButton chat={chat} triage={inbox.triage} />}

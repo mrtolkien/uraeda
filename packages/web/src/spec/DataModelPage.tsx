@@ -23,7 +23,7 @@ export function DataModelPage({ file }: { file: File }) {
   useHashFold(document, undefined, true);
   const session = usePageSession(file);
   const page = (
-    <Page isReading>
+    <Page kind="reading">
       <Crumbs current={file.name} folder={file.folder} />
       {model ? (
         <VStack gap={3}>

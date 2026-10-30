@@ -40,10 +40,9 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-2"],
   },
   errors: {
-    // The errors of refused Undos, in the page's column, above it.
+    // The errors of refused Undos, above the page.
     boxSizing: "border-box",
     marginInline: "auto",
-    maxWidth: "var(--size-page-max)",
     paddingBlockStart: spacingVars["--spacing-4"],
     // The phone page's inset (`Page.tsx`), a property of its own, as the token lint takes a `var()`
     // only whole, not in a calc.
@@ -52,7 +51,9 @@ const styles = stylex.create({
     width: "100%",
   },
   errorsWide: {
-    // The page's own inset on wide screens, so the banner lines up with its column.
+    // The page's own inset on wide screens, and a page of rows' text column: the banner lines up
+    // with its column.
+    maxWidth: `calc(var(--size-reading-pane) + 2 * ${spacingVars["--spacing-8"]})`,
     paddingBlockStart: spacingVars["--spacing-6"],
     paddingInline: spacingVars["--spacing-8"],
   },

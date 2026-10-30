@@ -57,7 +57,7 @@ function FeatureSession({ folder, id: given }: { folder: string; id?: string }) 
   }, [workflow, ask, search, askInto]);
   if (!feature || feature.missing) {
     return given === undefined ? (
-      <Page>
+      <Page kind="rows">
         <Missing title={`No feature ${folder}.`} />
       </Page>
     ) : (

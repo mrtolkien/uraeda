@@ -303,8 +303,12 @@
     --color-text-sapphire: light-dark(#04699a, #74c7ec);
     --size-reading-measure: calc(37.85 * var(--text-reading-size));
     --size-reading-pane: calc(var(--size-reading-measure) + 2 * var(--spacing-3) + 2 * var(--border-width));
-    --size-page-max: 720px;
+    --size-big-text: calc(1.25 * var(--size-reading-pane));
+    --size-split-card: calc(1.5 * var(--size-reading-measure) + var(--spacing-8) + 2 * var(--spacing-6) + 2 * var(--border-width));
+    --size-two-panes: calc(2 * var(--size-reading-pane) + var(--spacing-4));
+    --size-code: 108ch;
     --size-session-max: 95ch;
+    --size-setting-control: calc(32ch + var(--spacing-3));
     --size-pane-min: 400px;
     --size-detail: 108ch;
     --size-detail-height: 60dvh;
@@ -318,7 +322,6 @@
     --size-composer-input: 154px;
     --size-composer-input-narrow: 66px;
     --size-round-accent: 4px;
-    --size-round-split: 840px;
     --size-settings-search: 240px;
     --size-rail: 52px;
     --size-rail-inset: calc((var(--size-rail) - var(--size-element-md)) / 2);
@@ -833,14 +836,6 @@
     --font-family-body: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     --font-family-heading: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
     --font-family-code: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  }
-  }
-}
-
-@media (width >= 1024px) {
-  @scope ([data-astryx-theme="uraeda"]) to ([data-astryx-theme]) {
-    :scope {
-    --size-page-max: 1200px;
   }
   }
 }

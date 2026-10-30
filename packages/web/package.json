@@ -4,7 +4,8 @@
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "imports": {
-    "#theme-icons": "./src/theme/icons.ts"
+    "#theme-icons": "./src/theme/icons.ts",
+    "#theme-scale": "./src/theme/scale.ts"
   },
   "scripts": {
     "build": "vp build",

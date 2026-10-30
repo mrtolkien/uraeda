@@ -281,7 +281,7 @@ function Reader({
     );
   }
   return (
-    <Page>
+    <Page kind="rows">
       <div {...stylex.props(!narrow && [styles.alone, proseStyles.measure])}>
         {narrow ? (
           <ReaderBar
@@ -400,7 +400,13 @@ function Ledger({ onClose, open }: { onClose?: () => void; open?: LedgerOpen }) 
         }
         detailKey={shownPath(ledger, open)}
         isSplit={isSplit}
-        list={isSplit ? <div {...stylex.props(styles.column)}>{list}</div> : <Page>{list}</Page>}
+        list={
+          isSplit ? (
+            <div {...stylex.props(styles.column)}>{list}</div>
+          ) : (
+            <Page kind="rows">{list}</Page>
+          )
+        }
         most={`calc(${LIST_MOST} + ${READER_MOST})`}
       />
     </div>

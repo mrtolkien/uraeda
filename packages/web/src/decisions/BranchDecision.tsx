@@ -39,7 +39,7 @@ export function BranchDecisionPage({ folder, name }: { folder: string; name: str
   const sectionId = (title: string) =>
     tree.blocks.find((b) => b.kind === "heading" && b.level === 2 && b.text === title)?.anchor;
   return (
-    <Page>
+    <Page kind="rows">
       <Crumbs current={change.title} folder={folder} />
       <DecisionCard
         change={change}

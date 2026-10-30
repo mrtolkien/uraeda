@@ -3,13 +3,14 @@
 // task's with its steps checked out of its total. The spec's column beside it, of Contents, Review
 // while it waits, and Session; on the phone, in the status line.
 import { VStack } from "@astryxdesign/core/VStack";
+import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { Block, CommentItem, Document, PlanItems } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { Crumbs } from "./Crumbs.tsx";
 import type { useFile } from "./data.ts";
 import { useHashFold } from "./Folds.tsx";
-import { Page } from "./layout/Page.tsx";
+import { Page, pageText } from "./layout/Page.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { type Drawing, SectionPane } from "./document/SectionPane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -107,7 +108,9 @@ function PlanParts({
         run.kind === "lead" ? (
           <LeadPane drawing={drawing} key={run.block} run={run} />
         ) : (
-          <Blocks {...drawing} ids={run.ids} key={run.ids[0]} />
+          <div key={run.ids[0]} {...stylex.props(pageText)}>
+            <Blocks {...drawing} ids={run.ids} />
+          </div>
         ),
       )}
       {sections.map((section) => (
@@ -175,7 +178,7 @@ function ReviewedPlan({ file, session }: { file: File; session: PageSession | un
   const review = useReview(file, wide, session?.ask);
   const { comments, folds, selection, storyComments, tree, version } = review;
   const page = (
-    <Page isReading>
+    <Page kind="reading">
       <Crumbs current={file.name} folder={file.folder} />
       <VStack gap={3}>
         <StoriesProvider
@@ -232,7 +235,7 @@ function ReadPlan({ file, session }: { file: File; session: PageSession | undefi
     >
       <SpecColumn
         content={
-          <Page isReading>
+          <Page kind="reading">
             <Crumbs current={file.name} folder={file.folder} />
             <PlanParts
               drawing={{ document: file.current.document }}

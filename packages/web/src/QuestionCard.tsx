@@ -4,7 +4,6 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useContext, useRef } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
 import { glassStyles } from "./layout/glass.ts";
-import { paneVars } from "./layout/pane.stylex.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { useStuck } from "./layout/useStuck.ts";
@@ -79,7 +78,7 @@ const styles = stylex.create({
   // A card's text beside a live window, a single card's width, centred.
   text: {
     marginInline: "auto",
-    maxWidth: `calc(${paneVars["--pane-prose"]} - 2 * ${spacingVars["--spacing-6"]})`,
+    maxWidth: `calc(var(--size-reading-pane) - 2 * ${spacingVars["--spacing-6"]})`,
     width: "100%",
   },
   // A card holding a live window, a mockup or a story, on a wide screen: the page's column, so the

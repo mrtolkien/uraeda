@@ -22,7 +22,6 @@ import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useSheetTab } from "./layout/useSheetTab.ts";
-import { paneVars } from "./layout/pane.stylex.ts";
 import { ConflictBanner } from "./pane/ProposalEditor.tsx";
 import { useProposalEditor } from "./pane/useProposalEditor.ts";
 import { currentEntry, useRestoreScroll } from "./routes.tsx";
@@ -42,7 +41,7 @@ const styles = stylex.create({
   },
   stacked: { display: "flex", flexDirection: "column", gap: spacingVars["--spacing-4"] },
   start: { flex: "1 1 22rem", minWidth: 0 },
-  text: { flex: `0 1 ${paneVars["--pane-code"]}`, minWidth: 0 },
+  text: { flex: "0 1 var(--size-code)", minWidth: 0 },
 });
 
 const SECTIONS: Record<string, string> = {
@@ -246,7 +245,7 @@ export function EditorPage({ path }: { path: string }) {
   useEditorKeys(file, { edit, editor, focusSlug, level, preview, setKind, setLevel, startNow });
   if (!file) {
     return (
-      <Page>
+      <Page kind="rows">
         <Missing title={`No file ${path}.`} />
       </Page>
     );
@@ -269,7 +268,7 @@ export function EditorPage({ path }: { path: string }) {
     />
   );
   return (
-    <Page isWriting>
+    <Page kind="code">
       <VStack gap={4}>
         <EditorHeading file={file} path={path} />
         <ConflictBanner editor={editor} />

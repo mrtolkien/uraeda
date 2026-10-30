@@ -242,14 +242,14 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
   const inline = isNarrow(useWidthClass());
   if (!history) {
     return (
-      <Page>
+      <Page kind="rows">
         <Crumbs folder={feature.folder} />
       </Page>
     );
   }
   const done = isDone(history);
   const page = (
-    <Page>
+    <Page kind="rows">
       <Crumbs folder={feature.folder} />
       <VStack gap={6}>
         <FeatureTitle done={done} feature={feature} />
@@ -306,7 +306,7 @@ export function FeaturePage({ folder }: { folder: string }) {
   useRestoreScroll(true);
   if (!feature || feature.missing) {
     return (
-      <Page>
+      <Page kind="rows">
         <Missing title={`No feature ${folder}.`} />
       </Page>
     );

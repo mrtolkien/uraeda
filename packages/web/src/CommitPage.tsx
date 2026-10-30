@@ -164,7 +164,7 @@ export function CommitPage() {
     return null;
   }
   return (
-    <Page>
+    <Page kind="rows">
       <VStack gap={4}>
         <PageTitle meta={{ text: count > 0 ? plural(count, "change") : "Nothing waits" }}>
           Commit
