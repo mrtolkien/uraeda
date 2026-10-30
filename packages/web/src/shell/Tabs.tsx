@@ -241,9 +241,12 @@ export function Tabs({
         label={DESTINATIONS.sessions.label}
         to={DESTINATIONS.sessions.path}
       />
-      <Suspense fallback={null}>
-        <CommitTab isCurrent={at(DESTINATIONS.commit.path)} />
-      </Suspense>
+      {/* Without specs/, nothing waits for a commit, and the priorities cannot be read. */}
+      {!data.workspace?.noSpecs && (
+        <Suspense fallback={null}>
+          <CommitTab isCurrent={at(DESTINATIONS.commit.path)} />
+        </Suspense>
+      )}
       {/* Between Commit and New, so their two filled blocks do not run into one. */}
       <MoreTab at={at} />
       <NewMenu

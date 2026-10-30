@@ -170,12 +170,16 @@ export function ColumnActions({
   lead?: ReactNode;
 }) {
   const look = useActionLook(isColumn);
+  const noSpecs = useNavigation().workspace?.noSpecs;
   return (
     <div {...stylex.props(styles.actions)}>
       {lead}
-      <Suspense fallback={null}>
-        <CommitAction look={look} />
-      </Suspense>
+      {/* Without specs/, nothing waits for a commit, and the priorities cannot be read. */}
+      {!noSpecs && (
+        <Suspense fallback={null}>
+          <CommitAction look={look} />
+        </Suspense>
+      )}
       <NewButton look={look} />
     </div>
   );

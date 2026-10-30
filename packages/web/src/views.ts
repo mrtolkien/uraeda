@@ -92,6 +92,7 @@ export const WorkspaceView = view<Workspace>()({
   proposals: true,
   root: true,
   running: true,
+  setup: true,
 });
 
 export const FeatureView = view<Feature>()({

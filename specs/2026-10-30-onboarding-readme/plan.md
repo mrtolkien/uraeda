@@ -484,7 +484,9 @@ git commit -m "feat(onboarding-readme): ura status lists the missing setup files
   `packages/server/src/fate/views.ts` (`workspaceDataView`), `packages/web/src/views.ts`
   (`WorkspaceView`), `packages/web/src/home/Setup.tsx`, `packages/web/src/home/Setup.stories.tsx`,
   `packages/web/src/Home.tsx`, `packages/web/src/layout/Missing.tsx` (`NoSpecs`),
-  `packages/web/src/NewPage.tsx`, `packages/web/src/routeHistory.ts` (`Entry.insert`'s comment)
+  `packages/web/src/NewPage.tsx`, `packages/web/src/routeHistory.ts` (`Entry.insert`'s comment),
+  and, for a repository without `specs/` (R8), `packages/web/src/shell/Tabs.tsx`,
+  `packages/web/src/shell/ColumnPanes.tsx`, `packages/web/src/decisions/DecisionsPage.tsx`
 - Test: `packages/server/src/__tests__/server.test.ts` ("starting in a repository without specs/
   adds it, given: %s")
 
@@ -494,23 +496,23 @@ git commit -m "feat(onboarding-readme): ura status lists the missing setup files
 - Produces: `SET_UP_PROJECT`, the spec's message, exported from `round-messages.ts`. The New page
   reads `{ insert: "setup" }` in its history entry.
 
-- [ ] **Step 1: Assert the record carries `setup`**
+- [x] **Step 1: Assert the record carries `setup`**
 
 In the server's no-specs test, select `setup` beside `noSpecs`, and assert the record's first
 `setup` item is `{ key: "specs", state: "missing" }` (its other fields not compared). Update the
 test's comment: its home now shows the Setup pane. The break: a record that drops the field.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/server/src/__tests__/server.test.ts -t "without specs"`
 - Expected: FAIL, the record has no `setup`
 
-- [ ] **Step 3: Pass the field through, and add the message**
+- [x] **Step 3: Pass the field through, and add the message**
 
 Add `setup: true` to both selections, and `SET_UP_PROJECT` to `round-messages.ts`, with a comment
 saying it starts the skill's setup.
 
-- [ ] **Step 4: Draw the pane from the core's items**
+- [x] **Step 4: Draw the pane from the core's items**
 
 `SetupPane` takes the core's `SetupItem` (from `uraeda-binding` types, as other views import them),
 and keeps each item's "about" line in a map by `key`, the mockups' words, `specs`: "Where Uraeda
@@ -531,7 +533,13 @@ Start does. Nothing is sent.
 `NoSpecs`, on the Decisions page only, reads "No specs/ folder in <path>. Set the project up from
 Home.", with a link "Open home".
 
-- [ ] **Step 5: Review it in the sandbox**
+Once the core gives no item, the pane closes in 200 ms rather than vanish, showing its required
+items written meanwhile, and its announcements sit beside it, so the last file written is still
+heard (R9). On the phone, an item's "about" line takes the full width under its icon and name.
+Without `specs/`, the shell's Commit, the Decisions page, and the New page read no priorities nor
+ledger, which the core cannot give there (R8).
+
+- [x] **Step 5: Review it in the sandbox**
 
 - Run: `vp run sandbox --reset`, then open `bare`, `empty`, and `realistic`'s Home, and "Set up with
   the agent" on `empty`, at 1440 px and 402 px, in both themes. In `empty`, write a constitution and
@@ -541,12 +549,12 @@ Home.", with a link "Open home".
   once the three files are committed; `realistic` shows no pane. Save one screenshot of the pane for
   the pull request, outside the repository.
 
-- [ ] **Step 6: Run the task's validation**
+- [x] **Step 6: Run the task's validation**
 
 - Run: `vp test packages/server/src/__tests__/server.test.ts`, then `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/server packages/web/src

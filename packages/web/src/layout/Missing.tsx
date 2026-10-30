@@ -33,9 +33,22 @@ export function Missing({
   );
 }
 
-/** A page of a repository without a `specs/` folder: the folder, and how to set Uraeda up. */
+/**
+ * A page of a repository without a `specs/` folder, other than Home: the folder, and a link to Home,
+ * whose Setup pane sets the project up.
+ */
 export function NoSpecs({ path }: { path: string }) {
+  const here = useRepoPath();
   return (
-    <Banner status="warning" title={`No specs/ folder in ${path}. Set Uraeda up with ura init.`} />
+    <Banner
+      collapsible={false}
+      description={
+        <Link hasUnderline href={here("/")}>
+          Open home
+        </Link>
+      }
+      status="warning"
+      title={`No specs/ folder in ${path}. Set the project up from Home.`}
+    />
   );
 }

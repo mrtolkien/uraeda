@@ -145,7 +145,13 @@ async function workspaceOf(app: Awaited<ReturnType<typeof start>>["app"], name: 
   const response = await app.request(`http://127.0.0.1:4310/r/${name}/fate`, {
     body: JSON.stringify({
       operations: [
-        { id: "1", ids: ["workspace"], kind: "byId", select: ["noSpecs"], type: "Workspace" },
+        {
+          id: "1",
+          ids: ["workspace"],
+          kind: "byId",
+          select: ["noSpecs", "setup"],
+          type: "Workspace",
+        },
       ],
       version: 1,
     }),
@@ -155,7 +161,10 @@ async function workspaceOf(app: Awaited<ReturnType<typeof start>>["app"], name: 
   return (await response.json()) as { results: Array<{ data?: unknown; error?: unknown }> };
 }
 
-/** A repository without specs/ starts, as before repositories had a list: its home says ura init. */
+/**
+ * A repository without specs/ starts, as before repositories had a list: its home shows the Setup
+ * pane, the folder first among what it lacks.
+ */
 test.each([false, true])(
   "starting in a repository without specs/ adds it, given: %s",
   async (given) => {
@@ -169,6 +178,10 @@ test.each([false, true])(
     const body = await workspaceOf(app, name);
     expect(body.results[0].error).toBeUndefined();
     expect(JSON.stringify(body.results[0].data)).toContain(`"noSpecs":"${repo}"`);
+    const [record] = body.results[0].data as Array<{
+      setup?: Array<{ key: string; state: string }>;
+    }>;
+    expect(record.setup?.[0]).toMatchObject({ key: "specs", state: "missing" });
   },
 );
 
