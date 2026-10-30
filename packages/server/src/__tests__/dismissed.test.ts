@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { live as globalLive } from "../fate.ts";
 import { TAKEN_BACK } from "../runner/session-state.ts";
-import { SERVER_STOPPED } from "../runner/sessions.ts";
+import { REFUSALS, SERVER_STOPPED } from "../runner/sessions.ts";
 import { byId, type Data, fixtureRepo, mutate, testDataDir, testServer } from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
@@ -56,14 +56,26 @@ test("a dismissed run stops asking, across a restart, and a new failure asks aga
     statusReason: "interrupted",
   });
 
-  // A turn still running, and a turn of another repository, are refused, and nothing changes.
+  // A turn still running or queued, and a turn of another repository, are refused, and nothing
+  // changes.
   const chat = await runningTurn(server, null);
+  const queued = server.sessions.cache.addTurn({
+    allowed: null,
+    kind: "chat",
+    sessionId: chat.session,
+    state: "queued",
+    step: null,
+    trigger: null,
+  });
   const elsewhere = await runningTurn(server, null, "/another/repo");
   server.sessions.cache.endTurn(elsewhere.turn, { state: "failed" });
-  expect((await dismiss(server, chat.turn)).error?.message).toMatch(/^refused: /);
+  const stillRunning = `refused: ${REFUSALS.stillRunning}`;
+  expect((await dismiss(server, chat.turn)).error?.message).toBe(stillRunning);
+  expect((await dismiss(server, queued)).error?.message).toBe(stillRunning);
   expect((await dismiss(server, elsewhere.turn)).error?.message).toMatch(/^refused: /);
-  expect(server.sessions.cache.turn(chat.turn)).toMatchObject({ dismissedAt: null });
-  expect(server.sessions.cache.turn(elsewhere.turn)).toMatchObject({ dismissedAt: null });
+  for (const turn of [chat.turn, queued, elsewhere.turn]) {
+    expect(server.sessions.cache.turn(turn)).toMatchObject({ dismissedAt: null });
+  }
 
   const dismissed = await dismiss(server, stopped.turn);
 
@@ -73,17 +85,23 @@ test("a dismissed run stops asking, across a restart, and a new failure asks aga
   const restarted = await testServer(repo, { cache });
   expect(await rowOf(restarted, stopped.session)).toEqual({ status: "idle", statusReason: null });
 
-  // A new run fails: dismissing the older run leaves the new one asking.
-  const failed = restarted.sessions.cache.addTurn({
-    allowed: null,
-    kind: "workflow",
-    sessionId: stopped.session,
-    state: "running",
-    step: "plan",
-    trigger: "manual",
-  });
-  restarted.sessions.cache.endTurn(failed, { reason: "Usage limit reached.", state: "failed" });
-  await dismiss(restarted, stopped.turn);
+  // Two new runs fail: dismissing the older one, never dismissed before, leaves the newer asking.
+  const failed = (reason: string) => {
+    const turn = restarted.sessions.cache.addTurn({
+      allowed: null,
+      kind: "workflow",
+      sessionId: stopped.session,
+      state: "running",
+      step: "plan",
+      trigger: "manual",
+    });
+    restarted.sessions.cache.endTurn(turn, { reason, state: "failed" });
+    return turn;
+  };
+  const older = failed("Crashed.");
+  failed("Usage limit reached.");
+  expect((await dismiss(restarted, older)).error).toBeUndefined();
+  expect(restarted.sessions.cache.turn(older)?.dismissedAt).not.toBeNull();
   expect(await rowOf(restarted, stopped.session)).toEqual({
     status: "attention",
     statusReason: "failed",
