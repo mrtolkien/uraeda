@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,27 +8,25 @@ plan-review: false
 
 # Spec: Decisions understandable with no context
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-10-30: 1 comment in spec-review.md.
+> Spec to review again, about 5 minutes.
 >
 > - You approve a fifth test for decisions, a short self-contained Why, capped alternatives and
 >   consequences, five new `ura check` warnings, and the whole ledger rewritten to them.
-> - The ledger goes from 27 decisions and 13,658 words to 25 and about 10,900. UI checks joins
->   Testing, UI coherence joins UI components, and Stack's request rules join Sign-in.
-> - Read the rewrite as diffs on the decisions page. It changes every decision at once, as you
->   chose, past the split rule's 2 changed decisions.
-> - Rules the rewrite drops or softens are listed under Assumptions. Two to weigh: Sign-in's TLS
->   proxy becomes a consequence, and Agents loses "acts on a message only when asked".
-> - Details you approved once, like the base keymap's keys, now live only in the UI guides and the
->   code, which you do not approve line by line.
-> - Risk tier medium: every agent reads the ledger before its work, though no stored data changes.
+> - Changed since your review: in Git, reading a branch's step from its latest commit is now a
+>   SHOULD, without "never from files on disk", so step detection can stay robust and fast.
 
 Agents often read a decision alone, without the record of the feature that made it. This feature
 makes each decision readable on its own and checkable by you rule by rule: no history, no code
 detail, a short reason. It changes the skill's guidelines and `ura check`, and rewrites the ledger
 to them. Read the [proposal](proposal.md), the [discovery](discovery-01.md), and the
 [clarifications](clarifications-01.md).
+
+## Your review
+
+- **C1** (Git's step from the latest commit): done. The rule is a SHOULD, and "never from files on
+  disk" goes.
 
 ## Decisions
 
@@ -46,7 +44,8 @@ to them. Read the [proposal](proposal.md), the [discovery](discovery-01.md), and
 - **Changed: [Diagrams](../decisions/diagrams.md)**. Same rules, one idea each; one alternative
   goes.
 - **Changed: [Distribution](../decisions/distribution.md)**. Same rules, one idea each.
-- **Changed: [Git](../decisions/git.md)**. Same rules, one idea each; jujutsu's alternative goes.
+- **Changed: [Git](../decisions/git.md)**. Same rules, one idea each, but reading a branch's step
+  from its latest commit becomes a SHOULD; jujutsu's alternative goes.
 - **Changed: [Keyboard](../decisions/keyboard.md)**. Takes "every action by keyboard and by tap"
   from UI behaviour; the registry's fields and the base keymap's keys go to the code and the
   [keyboard guide](../ui/keyboard.md).
@@ -256,6 +255,8 @@ while writing this spec:
     consequence; the [wide guide](../ui/wide.md) keeps the decisions page's measured split.
   - UI look: the default fonts and how the picked fonts reach the theme stay in the
     [reading guide](../ui/reading.md).
+  - Git: "a branch's step MUST be read only from its latest commit" becomes a SHOULD, as you asked,
+    so step detection may read files on disk when git is too slow.
   - Toolchain: the coverage rule becomes a consequence. Its cargo-nextest rule joins the pinned
     tools.
   - 27 of the 86 alternatives go across the ledger: earlier versions of a detail that no agent would
@@ -270,3 +271,21 @@ while writing this spec:
 ## Risk tier
 
 **Medium**: no stored data or format changes, but every agent reads the ledger before its work.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-10-30: reading a branch's step from its latest commit becomes a SHOULD.
+>
+> - You approve a fifth test for decisions, a short self-contained Why, capped alternatives and
+>   consequences, five new `ura check` warnings, and the whole ledger rewritten to them.
+> - The ledger goes from 27 decisions and 13,658 words to 25 and about 10,900. UI checks joins
+>   Testing, UI coherence joins UI components, and Stack's request rules join Sign-in.
+> - Read the rewrite as diffs on the decisions page. It changes every decision at once, as you
+>   chose, past the split rule's 2 changed decisions.
+> - Rules the rewrite drops or softens are listed under Assumptions. Two to weigh: Sign-in's TLS
+>   proxy becomes a consequence, and Agents loses "acts on a message only when asked".
+> - Details you approved once, like the base keymap's keys, now live only in the UI guides and the
+>   code, which you do not approve line by line.
+> - Risk tier medium: every agent reads the ledger before its work, though no stored data changes.
