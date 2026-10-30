@@ -4,11 +4,15 @@ use std::collections::BTreeSet;
 use std::fs;
 
 use super::ReadFrom;
+use crate::actions::deferred::Pending;
 use crate::git::Git;
 
 /// Reads a working tree's files, or a commit's.
 pub(super) struct Reader<'a> {
     pub(super) git: &'a Git,
+    /// The repository's writes still landing, taken before any tip was read: see
+    /// [`crate::actions::deferred::pending`].
+    pub(super) pending: &'a Pending,
 }
 
 impl Reader<'_> {
