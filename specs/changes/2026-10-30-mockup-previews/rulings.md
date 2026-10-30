@@ -33,3 +33,18 @@ decisions. None binds future work: those are decisions.
 - **If wrong**: drop the `or_else` in `read_image`: SVGs show as "Image missing" again.
 - **Where**: `crates/core/src/images.rs`, `crates/core/src/api/files.rs`,
   `packages/server/src/files.ts`
+
+## R3: A link alone to a prototype's image draws the image, in pages and sessions
+
+- **Decision**: a paragraph holding only a link to a PNG, JPEG, GIF, WebP, or SVG file in a
+  `mockups/` folder under `specs/` draws the image, its link text as its alt text, as a link alone
+  to an HTML page there already drew it live. In an agent's message, an image or such a link is read
+  from the repository root, with or without its leading `/`, as story links are. A web image in a
+  message still loads from the web, as Astryx's markdown drew it.
+- **Rationale**: the skill has discoveries link each prototype alone in its paragraph, whatever its
+  format, and only HTML ones showed: the README banners' SVG options were three links to click.
+  Agents' markdown gave a repository path to `<img>` as it was, which the page's own address broke.
+- **Alternatives considered**: drawing a link alone to any image of the repository: a document's
+  links to screenshots would turn into images unasked.
+- **Where**: `packages/web/src/Spans.tsx`, `packages/web/src/AgentStories.tsx`, and the sandbox's
+  round mockup, whose options A and C show an SVG prototype each, with a sample chat showing both

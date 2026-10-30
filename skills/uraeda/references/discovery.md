@@ -466,7 +466,7 @@ whole layout or a colour scheme. They need no preview decision.
 
 - **In the feature's `mockups/` folder**, each prototype with the files it loads.
 - **Linked from the round**: each option links its prototype in a paragraph of its own, as a variant
-  does.
+  does. Uraeda shows an HTML page live there, and an image, an SVG or a PNG, in place.
 - **Throwaway**: they are not the spec's mockups. The [approval](approval.md#delete-the-prototypes)
   of the spec deletes them, and git keeps them.
 

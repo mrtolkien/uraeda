@@ -5,7 +5,7 @@ import type { AgentEvent } from "uraeda-server/runner/events";
 import { fakeSessions } from "uraeda-server/testing";
 import { sandboxAgent } from "./agent.ts";
 import { seedLiveSession } from "./liveSession.ts";
-import { REALISTIC_FOLDERS } from "../samples/index.ts";
+import { REALISTIC_FOLDERS, ROUND_MOCKUPS } from "../samples/index.ts";
 
 /** A turn's end, as the agent reports it. */
 function result(end: Partial<Extract<AgentEvent, { type: "result" }>> = {}): AgentEvent {
@@ -34,6 +34,30 @@ const CHATS: Array<{ script: Array<AgentEvent>; text: string }> = [
       },
     ],
     text: "What does the README say?",
+  },
+  {
+    script: [
+      {
+        id: "round",
+        input: { file_path: `specs/${ROUND_MOCKUPS.waiting}/clarifications-01.md` },
+        kind: "read",
+        name: "Read",
+        target: `specs/${ROUND_MOCKUPS.waiting}/clarifications-01.md`,
+        type: "toolStart",
+      },
+      { id: "round", isError: false, output: "# Questions", type: "toolEnd" },
+      {
+        text: [
+          "The round's options A and C each show a prototype:",
+          "",
+          `[A new task under the completed one](specs/${ROUND_MOCKUPS.waiting}/mockups/new-task.svg)`,
+          "",
+          `![The same task, its due date moved](/specs/${ROUND_MOCKUPS.waiting}/mockups/moved-date.svg)`,
+        ].join("\n"),
+        type: "text",
+      },
+    ],
+    text: "Show me the round's prototypes",
   },
   {
     script: [
@@ -79,9 +103,10 @@ async function withSessions(
 }
 
 /**
- * Writes the sample project's sessions in `dataDir`'s `runner.sqlite`: a finished chat, and chats
- * that failed, were stopped, and were stopped by the usage limit; and with `realistic`, its leader
- * key's spec session (`seedRealisticSession`). The turn at work is not one: the sandbox starts it
+ * Writes the sample project's sessions in `dataDir`'s `runner.sqlite`: two finished chats, the
+ * second showing the round mockup's SVG prototypes, and chats that failed, were stopped, and were
+ * stopped by the usage limit; and with `realistic`, its leader key's spec session
+ * (`seedRealisticSession`). The turn at work is not one: the sandbox starts it
  * as it starts, with `atWork`.
  */
 export async function seedSessions(

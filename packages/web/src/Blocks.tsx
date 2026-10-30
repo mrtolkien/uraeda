@@ -17,7 +17,7 @@ import { After, Selectable, type Selection } from "./Selection.tsx";
 import { firstSentence } from "./sentences.ts";
 import { SinceBlock, SinceScoped, SinceWords } from "./sinceMarks.tsx";
 import { TableNode } from "./BlockTable.tsx";
-import { opensImage, Spans } from "./Spans.tsx";
+import { holdsImage, Spans } from "./Spans.tsx";
 import { EmbedNode } from "./EmbedNode.tsx";
 import { useMockupAt, useStoryAt } from "./stories.tsx";
 import { ruleStyles } from "./layout/rules.ts";
@@ -220,11 +220,12 @@ function blockElement(block: Block, context: BlockContext): ReactNode {
         </Heading>
       );
     case "paragraph":
-      // A paragraph holding an image is a box: its lightbox, a dialog, cannot sit in a `<p>`. A
-      // link alone in it, like a story's mockup, is a control's height.
+      // A paragraph holding an image is a box: its lightbox, a dialog, cannot sit in a `<p>`, as a
+      // link alone to a prototype's image draws it. Another link alone in it, like a story's
+      // mockup, is a control's height.
       return (
         <Paragraph
-          as={!context.staticImages && block.spans.some(opensImage) ? "div" : "p"}
+          as={!context.staticImages && holdsImage(block.spans) ? "div" : "p"}
           xstyle={[proseRhythm.paragraph, context.isAiry && styles.airyParagraph]}
         >
           <SinceWords block={block}>

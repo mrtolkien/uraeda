@@ -136,8 +136,38 @@ export function imagePath(path: string | undefined): string | undefined {
 }
 
 /** Whether a span draws an image that opens in a lightbox, a dialog drawn beside it. */
-export function opensImage(span: Span): boolean {
+function opensImage(span: Span): boolean {
   return imageSource(span) !== undefined && !span.link;
+}
+
+/** The files a link alone in its paragraph draws as an image, by their extension. */
+const IMAGE_FILE = /\.(png|jpe?g|gif|webp|svg)$/i;
+
+/**
+ * The path, within its repository, the image a link alone in its paragraph names is drawn from: an
+ * image file in a `mockups` folder under `specs/`, like a discovery's prototype, as an HTML page
+ * there is drawn live; else none.
+ */
+export function prototypePath(path: string | undefined): string | undefined {
+  const inMockups = path?.split("/").slice(0, -1).includes("mockups");
+  return path && inMockups && IMAGE_FILE.test(path) ? imagePath(path) : undefined;
+}
+
+/** Whether a block's spans are a link alone to a prototype's image, which draws in its place. */
+function drawsPrototype(spans: ReadonlyArray<Span>): boolean {
+  const [only] = spans;
+  return spans.length === 1 && !only!.image && prototypePath(only!.link?.path) !== undefined;
+}
+
+/** Whether a paragraph's spans draw an image that opens in a lightbox: its own, or a prototype's. */
+export function holdsImage(spans: ReadonlyArray<Span>): boolean {
+  return spans.some(opensImage) || drawsPrototype(spans);
+}
+
+/** A link alone in its paragraph to a prototype's image: the image, its text as its alt text. */
+function SpanPrototype({ span }: { span: Span }) {
+  const repo = useRepository();
+  return <ImageView alt={span.text} src={repoPath(repo, prototypePath(span.link!.path)!)} />;
 }
 
 /**
@@ -166,7 +196,7 @@ function SpanImage({ span }: { span: Span }) {
 
 /**
  * The spans of a block's text, with their marks, links, and images; `isAlone` for a block whose
- * one link is all its text, a control's height.
+ * one link is all its text, a control's height, or the image it names, a prototype's.
  */
 export function Spans({
   isAlone = false,
@@ -175,6 +205,9 @@ export function Spans({
   isAlone?: boolean;
   spans: ReadonlyArray<Span>;
 }) {
+  if (isAlone && drawsPrototype(spans)) {
+    return <SpanPrototype span={spans[0]!} />;
+  }
   return spans.map((span, index) =>
     span.image ? (
       <SpanImage key={index} span={span} />

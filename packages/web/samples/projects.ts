@@ -16,7 +16,15 @@ import {
   STORY_FEATURE,
 } from "uraeda-binding/test-utils";
 import { CHANGE_FOLDERS, addChanges } from "./changes.ts";
-import { addFeaturePages, addQuestionsPages, addSpecPages, dated, proposal } from "./features.ts";
+import {
+  addFeaturePages,
+  addQuestionsPages,
+  addRoundMockup,
+  addSpecPages,
+  dated,
+  proposal,
+} from "./features.ts";
+import { ROUND_MOCKUPS } from "./folders.ts";
 import { addRealistic } from "./realistic.ts";
 import { addStepFeatures, FEATURE_FOLDERS, FEATURE_STEPS } from "./steps.ts";
 
@@ -67,8 +75,10 @@ function buildSample(repo: string) {
   // The spec page's and the plan page's features, as Storybook's fixture and the screenshots have
   // them: a spec revised since its review, approved, and a plan, auto-approved and waiting.
   addSpecPages(repo);
-  // The questions page's features, from the spec's rounds, as Storybook's fixture has them.
+  // The questions page's features, from the spec's rounds, as Storybook's fixture has them, and the
+  // round page's, whose options show SVG prototypes.
   addQuestionsPages(repo);
+  addRoundMockup(repo, ROUND_MOCKUPS.waiting, "B");
   // Uraeda's own code-quality and testing decisions, on `main`: the project is set up, and its Home
   // shows no Setup pane.
   git(repo, "switch", "--quiet", "main");

@@ -33,7 +33,9 @@ GitHub Flavored Markdown, plus these extensions, which stay readable where they 
   `.gif`, without metadata. A proposal file that gets an image becomes a folder,
   `<slug>/proposal.md`, and a note file `<slug>/note.md`, and links to them follow. When you commit
   a human's file, delete the images of its folder that no file there links to; starting a feature
-  moves them all, unchanged.
+  moves them all, unchanged. In Uraeda, an image under `specs/` shows in place, an SVG too, and a
+  link alone in its paragraph to an image in a `mockups/` folder, a prototype's, shows the image. In
+  a session's message, write their paths from the repository root.
 
 Templates are strict where tools and agents need to find things, and free elsewhere:
 

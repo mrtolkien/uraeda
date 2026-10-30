@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 64" width="640" height="128" role="img" aria-label="One task, its due date moved to the next occurrence">
+  <style>
+    .card{fill:#eff1f5;stroke:#9ca0b0}.text{fill:#4c4f69;font:14px sans-serif}.moved{fill:#1e66f5}
+    @media (prefers-color-scheme: dark){.card{fill:#1e1e2e;stroke:#585b70}.text{fill:#cdd6f4}.moved{fill:#89b4fa}}
+  </style>
+  <rect class="card" x="8" y="8" width="304" height="48" rx="6"/>
+  <text class="text" x="24" y="37">Water the plants,</text>
+  <text class="text moved" x="150" y="37">Oct 14 → Oct 21</text>
+</svg>
