@@ -227,10 +227,16 @@ function useSources({
     feature: feature.text,
     session: session.text,
   };
-  // A composer emptied no longer holds what it was filled from.
+  // A composer emptied no longer holds what it was filled from. Only once emptied: a line inserted
+  // as the page opens, its text not drawn yet, stays.
+  const before = useRef(texts);
   useEffect(() => {
+    const was = before.current;
+    before.current = texts;
     setSources((all) => {
-      const emptied = KINDS.filter((of) => texts[of].trim() === "" && all[of].length > 0);
+      const emptied = KINDS.filter(
+        (of) => texts[of].trim() === "" && was[of].trim() !== "" && all[of].length > 0,
+      );
       return emptied.length === 0
         ? all
         : { ...all, ...Object.fromEntries(emptied.map((of) => [of, []])) };

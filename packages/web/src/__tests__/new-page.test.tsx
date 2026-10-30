@@ -137,3 +137,25 @@ test("a change started from two lines of Now takes the second out by its text", 
   expect(read(repo)).toContain("- [Plan review](/specs/2026-10-13-plan-review/proposal.md)");
   expect(read(repo)).not.toContain("- Beta\n");
 });
+
+/**
+ * A line's Start on the Priorities page opens New change with it inserted as the page draws: it is
+ * one of the composer's sources, which its start takes out.
+ */
+test("a change started from a line's Start on the Priorities page takes it out", async () => {
+  const repo = fixtureRepo();
+  const fake = await fakeAgent({ installed: false });
+  await renderPage("/priorities", repo, { agent: fake, fetch: serverFetch(repo, fake.sessions) });
+  await screen.findByRole("heading", { level: 1, name: "Priorities" });
+  await act(async () => navigate(atRepo("/new?kind=change"), { insert: "line:next-1" }));
+  await quiet();
+  expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toContain(
+    "Claude Code runner (triggered manually)",
+  );
+
+  await start();
+
+  await waitFor(() =>
+    expect(read(repo)).not.toContain("\n- Claude Code runner (triggered manually)\n"),
+  );
+});
