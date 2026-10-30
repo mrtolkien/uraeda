@@ -9,6 +9,9 @@
   mockups didn't work at all locally
 - [onboarding-readme]
   [Couldn't preview an SVG or see it in the proposal. Should be pretty easy to show it.](notes/couldn-t-preview-an-svg-or-see-it-in-the-proposal/note.md)
+- "Proposal > Start" should not append, creates really weird beahviour
+- The proposal start flow sucks ass when it's from a single priorities row > after "new feature
+  start" it should be at the session page...
 
 ## Bugfix
 
