@@ -24,3 +24,18 @@ decisions. None binds future work: those are decisions.
 - **Alternatives considered**: a pane for each behaviour, its claim as the title: it parses the
   item's bold lead, which the spec page otherwise draws as written.
 - **Where**: `packages/web/src/spec/SpecPage.tsx`
+
+## R3: A wide table grows past its pane, framed, as a live window does
+
+- **Decision**: in a pane, on semi-wide and wide screens, a table wider than the pane grows past it
+  into the empty room beside it, centred as far as that room allows, with its own border over the
+  pane's; it scrolls only past that room. On the phone it still scrolls inside its pane.
+- **Rationale**: the reading guide already lets a live window grow past its pane, by the same
+  measure (`embedLayout.ts`). A wider pane would end at another edge than the page's other panes,
+  which the UI layout decision turned down. A table's width is its columns', from their longest
+  text, as Astryx lays them out.
+- **Alternatives considered**: keep it in the pane, with a fade at the clipped edge: the table still
+  reads a column at a time.
+- **If wrong**: a table drawn past its pane looks out of place: drop the growth in `TableBlock`, and
+  it scrolls inside again.
+- **Where**: `packages/web/src/Blocks.tsx`, `TableBlock`
