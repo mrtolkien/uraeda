@@ -39,6 +39,7 @@ pub fn plan_start(
             folder: planned.folder,
             branch: planned.branch,
             slug: planned.slug,
+            day: today.to_string(),
             title: planned.title,
         }),
         Err(error) => Err(refusal(error)),
@@ -58,11 +59,38 @@ pub fn start_feature(
     kind: Kind,
     on_step: &dyn Fn(StartProgress),
 ) -> Result<StartedView> {
+    start_on(repo, proposal, slug, kind, today::today(), on_step)
+}
+
+/// Starts a feature, or a change, as [`plan_start`] planned it: on `day`, its plan's, so that a
+/// start queued before midnight makes the folder its plan answered with. Otherwise as
+/// [`start_feature`].
+pub fn start_planned(
+    repo: &Path,
+    proposal: &str,
+    slug: Option<&str>,
+    kind: Kind,
+    day: &str,
+    on_step: &dyn Fn(StartProgress),
+) -> Result<StartedView> {
+    let day = today::Date::parse(day).ok_or_else(|| refused(format!("not a day: {day}")))?;
+    start_on(repo, proposal, slug, kind, day, on_step)
+}
+
+/// [`start_feature`] on `day`.
+fn start_on(
+    repo: &Path,
+    proposal: &str,
+    slug: Option<&str>,
+    kind: Kind,
+    day: today::Date,
+    on_step: &dyn Fn(StartProgress),
+) -> Result<StartedView> {
     proposal_path(proposal)?;
     let held = Cell::new(Some(write_lock(repo)));
     let lock = || held.take().unwrap_or_else(|| write_lock(repo));
     let (git, workspace) = open(repo)?;
-    let run = steps_run(repo, on_step, &lock);
+    let run = steps_run(repo, day, on_step, &lock);
     view(start::run_with(
         &git, &workspace, proposal, slug, kind, &run,
     ))
@@ -75,11 +103,12 @@ pub fn start_feature(
 /// included, runs meanwhile.
 fn steps_run<'a>(
     repo: &Path,
+    today: today::Date,
     on_step: &'a dyn Fn(StartProgress),
     lock: &'a dyn Fn() -> WriteGuard,
 ) -> Run<'a> {
     Run {
-        today: today::today(),
+        today,
         switch: false,
         on_step: Some(on_step),
         restore: deferred::deferring(&cache::key(repo)),
@@ -107,7 +136,7 @@ pub fn start_change(
     let held = Cell::new(Some(write_lock(repo)));
     let lock = || held.take().unwrap_or_else(|| write_lock(repo));
     let (git, workspace) = open(repo)?;
-    let run = steps_run(repo, on_step, &lock);
+    let run = steps_run(repo, today::today(), on_step, &lock);
     view(start::run_text_with(
         &git, &workspace, text, &encoded, slug, &run,
     ))

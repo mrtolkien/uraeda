@@ -201,7 +201,7 @@ async function startPlanned(
       branch,
       folder,
       run: (onStep: (step: StartStepView) => void) =>
-        ctx.binding.startFeature(ctx.repo, input.proposal, planned.slug, kind, onStep),
+        ctx.binding.startFeature(ctx.repo, input.proposal, planned.slug, kind, onStep, planned.day),
       then: () => sendStartKept(ctx, root, folder),
       write: input.write ?? { href: "", label: `Starting the ${kind} ${title}` },
     };

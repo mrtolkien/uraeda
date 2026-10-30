@@ -114,6 +114,8 @@ pub struct PlannedView {
     pub folder: String,
     pub branch: String,
     pub slug: String,
+    /// The day its folder is dated with, `YYYY-MM-DD`, which its start runs on.
+    pub day: String,
     /// The feature's or the change's name, its line in the priorities.
     pub title: String,
 }

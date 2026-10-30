@@ -278,6 +278,29 @@ test("a message sent before the start's write is queued is kept for the composer
   expect(await writes(server)).toMatchObject([{ queued: "Go", state: "refused" }]);
 });
 
+/** A plan as the core made it before midnight, on 2 January 2020. */
+const yesterday = (planned: Awaited<ReturnType<typeof binding.planStart>>) => ({
+  ...planned,
+  branch: `2020-01-02-${planned.slug}`,
+  day: "2020-01-02",
+  folder: `2020-01-02-${planned.slug}`,
+});
+
+test("a start planned before midnight makes the folder its plan answered with", async () => {
+  const using = {
+    ...binding,
+    planStart: async (...args: Parameters<typeof binding.planStart>) =>
+      yesterday(await binding.planStart(...args)),
+  } as typeof binding;
+  const server = await testServer(undefined, { binding: using });
+
+  const planned = await start(server, PROPOSAL);
+  await idle(server);
+
+  expect(planned.data.folder).toBe(`2020-01-02-${SLUG}`);
+  expect(git(server.repo, "branch", "--list", planned.data.folder)).toContain(planned.data.folder);
+});
+
 test("the lists' calls wait for a start's commit, not for its agent", async () => {
   const { hook, server } = await startServer();
   const planned = await start(server, PROPOSAL);

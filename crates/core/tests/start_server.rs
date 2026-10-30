@@ -256,3 +256,32 @@ fn a_save_returns_while_a_start_waits_on_its_hook() {
             .contains("Saved during the hook")
     );
 }
+
+/// Final review: a start queued before midnight runs on the day its plan answered, so the folder it
+/// makes is the one planned, not one dated the day it ran.
+#[test]
+fn a_planned_start_runs_on_its_plan_s_day() {
+    let repo = refusing("");
+    repo.set_hook("exit 0");
+    let planned = api::plan_start(
+        repo.path(),
+        PROPOSAL_FILE,
+        Some("login-banner"),
+        Kind::Feature,
+    )
+    .unwrap();
+
+    let started = api::start_planned(
+        repo.path(),
+        PROPOSAL_FILE,
+        Some("login-banner"),
+        Kind::Feature,
+        "2020-01-02",
+        &|_| {},
+    )
+    .unwrap();
+
+    assert_eq!(planned.day, uraeda_core::today::today().to_string());
+    assert_eq!(started.folder, "2020-01-02-login-banner");
+    assert!(repo.exists("specs/2020-01-02-login-banner/proposal.md"));
+}

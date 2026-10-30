@@ -91,6 +91,7 @@ use setup::setup_items;
 pub use setup::{SetupItem, read_setup};
 pub use start::{
     plan_start, promote_change, propose_slug, start_change, start_feature, start_kind,
+    start_planned,
 };
 pub(crate) use warm::warm;
 

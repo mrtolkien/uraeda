@@ -1182,3 +1182,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a start naming no slug still collides with a planned one at run time, refused then
   in the queue's record.
 - **Where**: `packages/server/src/fate/starts.ts` (`holdSlug`, `landedStart`), final review.
+
+## R92: A planned start runs on its plan's day
+
+- **Decision**: the core's plan of a start answers with its `day`, which dates its folder, and the
+  queue runs the start with that day (`startFeature`'s `day`, the core's `start_planned`): the
+  folder and the branch it makes are always those its plan answered with, even when it runs after
+  midnight. A start the core cannot plan, a typed change's, still runs on the day it runs.
+- **Rationale**: a start queued before midnight and run after it was planned again with the new day,
+  and made a folder other than the one its page, its messages, and its record named.
+- **Where**: `crates/core/src/api/start.rs`, `crates/binding/src/start.rs`,
+  `packages/server/src/fate/starts.ts`, final review.

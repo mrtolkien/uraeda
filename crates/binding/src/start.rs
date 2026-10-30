@@ -43,9 +43,10 @@ pub fn plan_start(
 
 /// Starts a proposed feature, or a change with the kind `"change"`, in its own worktree, calling
 /// `onStep` with each step, the commit's output line by line. With deferral on, a hook's refusal of
-/// its commit puts the proposal file and the priorities back, and rejects with `hook: `.
+/// its commit puts the proposal file and the priorities back, and rejects with `hook: `. Given
+/// `day`, its plan's, it runs on that day, making the folder its plan answered with.
 #[napi(
-    ts_args_type = "repo: string, proposal: string, slug?: string | undefined | null, kind?: \"feature\" | \"change\" | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null",
+    ts_args_type = "repo: string, proposal: string, slug?: string | undefined | null, kind?: \"feature\" | \"change\" | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null, day?: string | undefined | null",
     ts_return_type = "Promise<StartedView>"
 )]
 pub fn start_feature(
@@ -54,18 +55,24 @@ pub fn start_feature(
     slug: Option<String>,
     kind: Option<String>,
     on_step: Option<OnStep>,
+    day: Option<String>,
 ) -> AsyncTask<Job<StartedView>> {
     job(move || {
         let kind = api::start_kind(kind.as_deref())?;
-        api::start_feature(
-            Path::new(&repo),
-            &proposal,
-            slug.as_deref(),
-            kind,
-            &|step| {
-                report(on_step.as_ref(), step);
-            },
-        )
+        let on_step = |step| report(on_step.as_ref(), step);
+        match day {
+            Some(day) => api::start_planned(
+                Path::new(&repo),
+                &proposal,
+                slug.as_deref(),
+                kind,
+                &day,
+                &on_step,
+            ),
+            None => {
+                api::start_feature(Path::new(&repo), &proposal, slug.as_deref(), kind, &on_step)
+            }
+        }
     })
 }
 
