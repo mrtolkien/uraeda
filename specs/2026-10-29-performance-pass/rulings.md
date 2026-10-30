@@ -1101,3 +1101,42 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `packages/server/src/fate/masked.ts` (`proposalFile`) and the proposal files' source in
   `packages/server/src/fate/sources.ts`, both through `sentProposalFile`, which sends the fields the
   core leaves out as null.
+
+## R87: The branch catches up with main by a merge, not a rebase
+
+- **Decision**: `origin/main` is merged into the feature branch, its conflicts resolved once in the
+  merge commit, which lists each resolution. Main's new behaviour keeps working through this
+  branch's writes: the commit page's phone bar commits without blocking, a refused Start shows under
+  its slug in the phone's Start sheet, the feature page's drop refusal joins main's title component,
+  and a start's links pointed at the dated folder are put back as written when a hook refuses its
+  commit.
+- **Rationale**: main and the branch changed the same ~40 files. A rebase of the branch's ~95
+  commits would replay those conflicts commit by commit, each against code the next commit rewrites,
+  for a history no one reviews commit by commit before the squash.
+- **Alternatives considered**: a rebase, which replays the conflicts ~95 times; main's features left
+  out until the merge, which would ship them broken against this branch's writes.
+- **Where**: the merge commit; `crates/core/src/actions/start/commits.rs` and `restore.rs`, guarded
+  by `a_refused_start_puts_back_the_links_it_pointed_at_the_dated_folder` in
+  `crates/core/tests/start_server.rs`.
+
+## R88: UI behaviour and Performance fit main's decision format
+
+- **Decision**: UI behaviour takes main's text, with main's two git-write rules and their
+  consequence replaced by this branch's four, one claim and one keyword each: a write shows its
+  result and leads on; a refused write puts back what it showed and says why where it happened; a
+  git write shows its progress in a toast; git writes land in order without blocking. Its Why keeps
+  the human's words on feeling instant without lying, in 80 words, and ends with one link, to this
+  spec while it is in flight. The reversed blocking rule and the queue shown as its action join in
+  one alternative; "no toasts at all" goes, as toasts now carry every git write. Performance keeps
+  its rules' meaning: its benchmark rule splits from the development build's warning, one keyword
+  each, and its Why drops to 80 words with one link, to this spec.
+- **Rationale**: main's decisions rewrite (Decisions understandable with no context) checks one
+  keyword per rule, at most 10 rules, a Why of 80 words with at most one link, 3 alternatives, 4
+  consequences, and the ledger's size in `the_ledger_reads_alone`. UI behaviour now holds 12 rules,
+  past the 10 that `decision.rules` warns over: the human asked for the four rules one claim each,
+  so the test lists that warning as approved over its shape, as it does UI layout's, and the
+  ledger's limit rises from 11,100 to 11,800 words for the new decision.
+- **If wrong**: two of UI behaviour's rules merge by concept, or its write rules split into a
+  decision of their own, and the test's exception goes.
+- **Where**: `specs/decisions/ui-behaviour.md`, `specs/decisions/performance.md`,
+  `crates/core/tests/check.rs`.
