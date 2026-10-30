@@ -2,7 +2,7 @@
 // panel a tab in a labelled list at its top, WAI-ARIA's tabs pattern, the arrows moving between
 // them, and the open one under it, then the column's foot (approval comment C1 of the session's
 // spec: a panel shows as a tab, and a split, `SplitPanel.tsx`, is a panel of two). Its width is
-// one for every tab and every document, a third of the window until dragged
+// one for every tab and every document, 400 px until dragged
 // (`documentColumnWidth.ts`), so switching tabs moves nothing on the page. The open
 // tab is in the address, `?tab=<key>`, so reload, Back, and a width change keep it; switching
 // replaces the history entry. `]` folds it to a rail of the panels' icons. On narrow screens, the
@@ -14,6 +14,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, type ReactNode, useId } from "react";
 import { redirect, useSearch } from "../routes.tsx";
 import { LIMITS, useDocumentColumnWidth } from "./documentColumnWidth.ts";
+import { pickedStyles } from "./picked.ts";
 import { SideColumn } from "./SideColumn.tsx";
 
 /**
@@ -35,6 +36,8 @@ const styles = stylex.create({
   // A compact tab's sides, closer than a tab's own: with no icon, the session's tabs read whole in
   // its column at 300 px (ruling R29).
   compact: { paddingInline: spacingVars["--spacing-1"] },
+  // A rail's icon, in a box a little larger, which the open tab's tint fills.
+  railIcon: { display: "flex", padding: spacingVars["--spacing-1"] },
   // The foot keeps its height under a panel that fills the column.
   foot: {
     flexShrink: 0,
@@ -48,6 +51,9 @@ const styles = stylex.create({
     minHeight: 0,
   },
 });
+
+/** The open tab's icon in the rail, tinted as a picked row. */
+const picked = pickedStyles.picked;
 
 /** The address's parameter that names the open tab. */
 const PARAMETER = "tab";
@@ -146,6 +152,8 @@ type ColumnProps = {
    * `fills`; under another, right after the panel's content, scrolling with it.
    */
   footer?: ReactNode;
+  /** Keeps the column beside the page on a half screen, a session's (`SideColumn`). */
+  isBeside?: boolean;
   label: string;
   panels: ReadonlyArray<ColumnPanel>;
 };
@@ -173,6 +181,7 @@ function Drawn({
   column: { isShown, resizable, setShown },
   content,
   footer,
+  isBeside = false,
   label,
   panels,
 }: ColumnProps & { column: DocumentColumnState }) {
@@ -193,13 +202,17 @@ function Drawn({
           panels={panels}
         />
       }
+      isBeside={isBeside}
       isFilled={fills}
       isShown={isShown}
       label={label}
       onShownChange={setShown}
-      // The folded column's rail: each panel's icon, named by its tab, in the rail's column.
+      // The folded column's rail: each panel's icon, named by its tab, in the rail's column, the
+      // open tab's picked.
       rail={panels.map((panel) => (
-        <Icon icon={panel.icon} key={panel.key} label={panel.label} />
+        <span key={panel.key} {...stylex.props(styles.railIcon, panel.key === open && picked)}>
+          <Icon icon={panel.icon} label={panel.label} />
+        </span>
       ))}
       width={resizable}
     >

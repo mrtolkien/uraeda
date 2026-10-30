@@ -79,3 +79,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the spec's big-text width is for a spec's decision cards (US5), and the page of a
   decision is a page of rows (US1).
 - **Where**: task 1, `decisions/BranchDecision.tsx`.
+
+## R9: The railed column has its own button, and one owner for `]`
+
+- **Decision**: the railed column draws an "Show the column" button at the top of its rail, the
+  sidebar rail's logo button's twin, which a tap opens and Escape focuses; `]` stays `ColumnAt`'s
+  one binding, which opens or closes the rail when railed and folds the column otherwise.
+- **Rationale**: `useRail` needs a button to return the focus to on Escape, and touch needs a
+  target; two components binding `]` clashed in the key registry while the window crossed into the
+  rail.
+- **Where**: task 4, `layout/SideColumn.tsx`.

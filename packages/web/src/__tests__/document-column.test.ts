@@ -38,3 +38,22 @@ test("folding and unfolding the documents' column keeps a session's dragged widt
   documents.unmount();
   expect(renderHook(() => useSessionColumnWidth()).result.current.resizable.size).toBe(320);
 });
+
+/** Sets the window's width, as a resize does. */
+function setWindowWidth(width: number) {
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+  window.dispatchEvent(new Event("resize"));
+}
+
+test.each([
+  [800, undefined, 400],
+  [1920, undefined, 400],
+  [1920, 560, 560],
+  [1920, 900, 720],
+])("at %i px, kept %s, the column starts at 400 px or the width dragged", (wide, kept, width) => {
+  if (kept !== undefined) {
+    window.localStorage.setItem(COLUMN_KEY, JSON.stringify({ width: kept }));
+  }
+  setWindowWidth(wide);
+  expect(renderHook(() => useDocumentColumnWidth()).result.current.resizable.size).toBe(width);
+});

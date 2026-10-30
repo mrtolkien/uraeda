@@ -52,6 +52,8 @@ const kinds = stylex.create({
   // (see `Pane`). Its title and crumbs start at its panes' edge (`PageTitle`, `Crumbs`).
   reading: {
     "--page-column": "calc(var(--size-two-panes) + 2 * var(--page-inset))",
+    "--page-text-centre": "auto",
+    "--page-text-max": "var(--size-reading-pane)",
     "--pane-centre": "auto",
     "--pane-max": "var(--size-reading-pane)",
     "--pane-width": "100%",
