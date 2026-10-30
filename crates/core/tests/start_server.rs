@@ -102,6 +102,38 @@ fn a_file_added_to_the_dated_folder_is_kept() {
     assert_eq!(repo.read("specs/PRIORITIES.md"), PRIORITIES);
 }
 
+/// A refused start puts the proposal file back with its relative links as written, not as the move
+/// pointed them from the dated folder.
+#[test]
+fn a_refused_start_puts_back_the_links_it_pointed_at_the_dated_folder() {
+    let linked = "# Login banner\n\n## What\n\nA banner, as [the phone](../ui/phone.md) says.\n";
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write("specs/PRIORITIES.md", PRIORITIES);
+    repo.write("specs/ui/phone.md", "# Phone\n");
+    repo.write(PROPOSAL_FILE, linked);
+    repo.commit("chore: expand Login banner");
+    api::defer_commits(repo.path(), true);
+    repo.set_hook("echo 'lint: refused'\nexit 1");
+
+    // A change's dated folder is one level deeper than the proposal file's, so its links move.
+    let refused = api::start_feature(
+        repo.path(),
+        PROPOSAL_FILE,
+        Some("login-banner"),
+        Kind::Change,
+        &|_| {},
+    )
+    .unwrap_err();
+
+    assert_eq!(refused.code, "hook", "{}", refused.message);
+    assert_eq!(repo.read(PROPOSAL_FILE), linked);
+    assert!(!repo.exists(&format!(
+        "specs/changes/{}-login-banner",
+        uraeda_core::today::today()
+    )));
+}
+
 /// Review: a failed commit that moved `HEAD` is no refusal that committed nothing: the start's
 /// files stay written, for it to be finished by hand.
 #[test]

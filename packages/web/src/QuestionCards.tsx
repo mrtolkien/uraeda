@@ -72,7 +72,9 @@ function QuestionGroup({
 }) {
   const wide = !isNarrow(useWidthClass());
   const group = useRef<HTMLDivElement>(null);
-  const roomy = useAtLeast(group, "--size-round-split");
+  // Two columns once the group has a split card's width: narrower, the question would read under
+  // 50 characters a line.
+  const roomy = useAtLeast(group, "--size-split-card");
   return (
     <div ref={group} {...stylex.props(wide && styles.card)}>
       {!wide && <Band />}

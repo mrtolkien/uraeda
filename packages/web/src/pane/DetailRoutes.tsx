@@ -5,6 +5,7 @@ import { useEffectEvent, useLayoutEffect, useState } from "react";
 import { useInbox, useProposal } from "../data.ts";
 import { Home } from "../Home.tsx";
 import { InboxPage } from "../InboxPage.tsx";
+import { WithSpecs } from "../layout/Missing.tsx";
 import { PrioritiesPage } from "../PrioritiesPage.tsx";
 import { redirect, useRepoPath } from "../routes.tsx";
 import { DetailHost, PROPOSAL } from "./DetailOverlay.tsx";
@@ -53,9 +54,17 @@ export function PrioritiesRoute({
 }) {
   return (
     <>
-      {isHome ? <Home /> : <PrioritiesPage />}
+      {isHome ? (
+        <Home />
+      ) : (
+        <WithSpecs>
+          <PrioritiesPage />
+        </WithSpecs>
+      )}
       {proposalKey !== undefined && (
-        <ProposalDetail list={isHome ? "/" : "/priorities"} proposalKey={proposalKey} />
+        <WithSpecs fallback={null}>
+          <ProposalDetail list={isHome ? "/" : "/priorities"} proposalKey={proposalKey} />
+        </WithSpecs>
       )}
     </>
   );
@@ -94,11 +103,11 @@ function NoteAddress({ noteKey, onSelect }: { noteKey: string; onSelect: (key: s
 export function InboxRoute({ noteKey }: { noteKey?: string }) {
   const [select, setSelect] = useState<{ key: string }>();
   return (
-    <>
+    <WithSpecs>
       <InboxPage select={select} />
       {noteKey !== undefined && (
         <NoteAddress noteKey={noteKey} onSelect={(key) => setSelect({ key })} />
       )}
-    </>
+    </WithSpecs>
   );
 }

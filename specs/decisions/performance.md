@@ -16,8 +16,9 @@ shown, so nothing waits on git for what git already said. It is a target to keep
   since. Checked by the core's tests.
 - The browser MUST keep the data of the pages it has shown, and read the page of the selected row
   ahead, so a key reaches it as fast as a click. Checked by review.
-- A benchmark over the sandbox's projects MUST measure the target's pages and actions on demand, and
-  a development build MUST warn when an interaction passes 100 ms. Checked by the benchmark's run in
+- A benchmark over the sandbox's projects MUST measure the target's pages and actions on demand.
+  Checked by the benchmark's run in each feature's review.
+- A development build MUST warn when an interaction passes 100 ms. Checked by the benchmark's run in
   each feature's review.
 - Every navigation and every action SHOULD draw its result within 100 ms, and a reload within 1
   second, on a release build serving a repository the size of Uraeda's own. Checked by the
@@ -29,17 +30,11 @@ shown, so nothing waits on git for what git already said. It is a target to keep
 
 ## Why
 
-Every read rebuilt the whole workspace from every branch, about 95 ms on this repository even in a
-release build, and pages chained 2 to 4 reads
-([where the 10 seconds go](../2026-10-29-performance-pass/discovery-01.md#where-the-10-seconds-go)).
-The human chose 100 ms for every click and key, and 1 second for a reload
-([what 100 ms measures](../2026-10-29-performance-pass/clarifications-01.md#q2-what-should-no-page-over-100-ms-measure)).
-Reading pages ahead on hover does not help keys, so the human asked for a cache, on the server, with
-the browser keeping what it read
-([where values are cached](../2026-10-29-performance-pass/clarifications-01.md#q3-where-should-values-be-cached-ahead-of-time)).
-They wanted the target kept as a SHOULD, "not a _hard_ target"
-([a lasting rule](../2026-10-29-performance-pass/clarifications-01.md#q6-should-the-target-become-a-lasting-rule)).
-A pending bar after 100 ms was refused: pages "should simply ALL DRAW in 100ms".
+Rebuilding the workspace from every branch takes about 95 ms on this repository, and a page chains 2
+to 4 reads, so a page that asks git again cannot draw within 100 ms. Reading ahead on hover does not
+help keys: the server keeps what it read, and the browser what it showed. The target is "not a
+_hard_ target", yet pages "should simply ALL DRAW in 100ms", with no pending bar. History:
+[Performance pass](../2026-10-29-performance-pass/spec.md).
 
 ## Alternatives considered
 

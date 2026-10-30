@@ -5,7 +5,7 @@
 // the whole app: the settings' Fonts section and `Space u f` show and pick the same.
 import * as stylex from "@stylexjs/stylex";
 import { useSyncExternalStore } from "react";
-import { paneVars } from "../layout/pane.stylex.ts";
+import { measureOf, WIDTHS } from "./scale.ts";
 
 /** A part of the UI with a font of its own. */
 export type FontRole = "body" | "heading" | "reading" | "code" | "human";
@@ -140,18 +140,23 @@ const styles = stylex.create({
     reading: string,
     code: string,
     human: string,
-    measure: number,
+    measure: string,
   ) => ({
     "--font-family-body": body,
     "--font-family-code": code,
     "--font-family-heading": heading,
     "--font-family-human": human,
     "--font-family-reading": reading,
-    "--size-reading-measure": `calc(${measure} * var(--text-reading-size))`,
-    "--size-reading-pane":
-      "calc(var(--size-reading-measure) + 2 * var(--spacing-3) + 2 * var(--border-width))",
+    "--size-reading-measure": measure,
     fontFamily: "var(--font-family-body)",
-    [paneVars["--pane-prose"]]: "var(--size-reading-pane)",
+  }),
+  // The scale's widths made of the measure, made again over the picked font's (`scale.ts`): each
+  // passed in, as a style takes no value from outside its file but its arguments.
+  widths: (pane: string, bigText: string, splitCard: string, twoPanes: string) => ({
+    "--size-big-text": bigText,
+    "--size-reading-pane": pane,
+    "--size-split-card": splitCard,
+    "--size-two-panes": twoPanes,
   }),
   // The app's root, which only carries the fonts: no box of its own.
   root: { display: "contents" },
@@ -173,17 +178,26 @@ export const fontRoot = styles.root;
  * The style of the fonts picked, for the app's root, inside the theme, and for what draws outside
  * it, as a bar put in the page's body: only the theme's own tokens are there.
  */
-export function useFontStyle(): stylex.StyleXStyles {
+export function useFontStyle(): ReadonlyArray<stylex.StyleXStyles> {
   const fonts = useFonts();
   const family = (role: FontRole) => fontOf(role, fonts[role]).family;
-  return styles.picked(
-    family("body"),
-    family("heading"),
-    family("reading"),
-    family("code"),
-    family("human"),
-    fontOf("reading", fonts.reading).measure,
-  );
+  return [
+    styles.picked(
+      family("body"),
+      family("heading"),
+      family("reading"),
+      family("code"),
+      family("human"),
+      measureOf(fontOf("reading", fonts.reading).measure),
+    ),
+    // Custom properties alone, which StyleX's types read as no style at all.
+    styles.widths(
+      WIDTHS["--size-reading-pane"],
+      WIDTHS["--size-big-text"],
+      WIDTHS["--size-split-card"],
+      WIDTHS["--size-two-panes"],
+    ) as stylex.StyleXStyles,
+  ];
 }
 
 /** What re-reads the fonts picked, one for each component that shows them. */

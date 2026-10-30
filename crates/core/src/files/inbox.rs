@@ -93,23 +93,35 @@ pub fn is_slug(text: &str) -> bool {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
 }
 
-/// A `[<slug>] ` mark at the start of `text`, and the text after it, when some is left.
-fn slug_mark(text: &str) -> Option<(&str, &str)> {
-    let (slug, rest) = text.strip_prefix('[')?.split_once("] ")?;
-    (is_slug(slug) && !rest.trim().is_empty()).then_some((slug, rest))
+/// A `[<slug>] ` mark at the start of `text`, and the text after it, when some is left, or when
+/// the note's text `continues` on its next line.
+fn slug_mark(text: &str, continues: bool) -> Option<(&str, &str)> {
+    let inner = text.strip_prefix('[')?;
+    let (slug, rest) = match inner.split_once("] ") {
+        Some(split) => split,
+        None if continues => (inner.trim_end().strip_suffix(']')?, ""),
+        None => return None,
+    };
+    (is_slug(slug) && (continues || !rest.trim().is_empty())).then_some((slug, rest))
 }
 
 /// The marks at the start of a note's first line, `[agent]` then a slug, and the text after them.
-fn marks(first: &str) -> (bool, Option<String>, &str) {
+/// When the note's text `continues` on its next line, as a formatter wraps a long link there, the
+/// marks may end the first line.
+fn marks(first: &str, continues: bool) -> (bool, Option<String>, &str) {
     let mut rest = first;
     let agent = match first.strip_prefix("[agent] ") {
-        Some(after) if !after.trim().is_empty() => {
+        Some(after) if continues || !after.trim().is_empty() => {
             rest = after;
+            true
+        }
+        _ if continues && first.trim_end() == "[agent]" => {
+            rest = "";
             true
         }
         _ => false,
     };
-    let about = slug_mark(rest).map(|(slug, after)| {
+    let about = slug_mark(rest, continues).map(|(slug, after)| {
         rest = after;
         slug.to_string()
     });
@@ -119,7 +131,7 @@ fn marks(first: &str) -> (bool, Option<String>, &str) {
 /// A note's marks and the lines of its text, without them. `lines` are the text's lines.
 fn body<'a>(lines: &[&'a str], item: &Item) -> (bool, Option<String>, Vec<&'a str>) {
     let mut text = lines::item_text(lines, item);
-    let (agent, about, first) = marks(text[0]);
+    let (agent, about, first) = marks(text[0], text.len() > 1);
     text[0] = first;
     (agent, about, text)
 }
@@ -324,7 +336,7 @@ pub fn unmarked_lines(text: &str, id: &str) -> Option<(Vec<String>, usize)> {
     let item = find(&unix, id)?;
     let lines: Vec<&str> = unix.split('\n').collect();
     let (_, first) = item_marker(lines[item.line - 1])?;
-    let (_, _, rest) = marks(first);
+    let (_, _, rest) = marks(first, item.text_end > item.line);
     let mut unmarked = vec![format!("{} {rest}", item.marker.render())];
     unmarked.extend(lines[item.line..item.end].iter().map(|l| l.to_string()));
     Some((unmarked, item.text_end + 1 - item.line))
@@ -379,7 +391,7 @@ pub fn edit(text: &str, id: &str, new_text: &str) -> Option<String> {
         let item = find(text, id).ok_or(())?;
         let lines: Vec<&str> = text.split('\n').collect();
         let (_, first) = item_marker(lines[item.line - 1]).ok_or(())?;
-        let (agent, about, _) = marks(first);
+        let (agent, about, _) = marks(first, item.text_end > item.line);
         let marked = with_marks(agent, about.as_deref(), new_text);
         let line = format!("{} {marked}", item.marker.render());
         Ok::<_, ()>(lines::replace(text, &item, &[line]))

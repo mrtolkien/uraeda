@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
   type RefObject,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -106,10 +107,22 @@ function useKeepFocus(isOpen: boolean, ref: RefObject<HTMLElement | null>) {
   };
 }
 
+/** The open rail's close, the sidebar's or the side column's: one rail is open at a time. */
+let openRail: (() => void) | undefined;
+
+/** Closes the other rail open, if any, as the rail `close` closes opens: one Escape folds one. */
+function claim(close: () => void) {
+  if (openRail !== undefined && openRail !== close) {
+    openRail();
+  }
+  openRail = close;
+}
+
 /**
  * The rail's state, while `isRail`: whether it is open, the handlers its element, `ref`, takes, and
  * the logo's tap; Escape moves the focus to `logo`. `isHovered` follows the mouse over it at every
- * width, which shows the wide column's fold button.
+ * width, which shows the wide column's fold button. `wasEscaped` tells a logo drawn only while
+ * the rail is folded, which was not there to take the focus, to take it once drawn.
  */
 export function useRail(
   isRail: boolean,
@@ -151,6 +164,7 @@ export function useRail(
       if (!quiet.current && byKeyboard(event.target)) {
         if (!isOpen) {
           remember(event.target);
+          claim(close);
         }
         setFocused(true);
       }
@@ -168,7 +182,10 @@ export function useRail(
         // Once the mouse rests: a click on an icon on its way lands on that icon, not on the row
         // the opened rail draws there.
         clearTimeout(intent.current);
-        intent.current = setTimeout(() => setHovered(true), HOVER_MS);
+        intent.current = setTimeout(() => {
+          claim(close);
+          setHovered(true);
+        }, HOVER_MS);
       }
     },
     onPointerLeave: (event: PointerEvent) => {
@@ -184,10 +201,13 @@ export function useRail(
     if (isOpen) {
       close();
     } else {
+      claim(close);
       setTapped(true);
     }
   };
-  return { handlers, isHovered: hovered, isOpen, tap };
+  /** Whether Escape folded it from inside, until the focus leaves it: its logo may take the focus. */
+  const wasEscaped = useCallback(() => quiet.current, []);
+  return { handlers, isHovered: hovered, isOpen, tap, wasEscaped };
 }
 
 /** The rail's logo: a tap opens the rail over the page, which has no pointer to hover it with. */

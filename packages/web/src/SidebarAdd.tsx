@@ -1,5 +1,6 @@
 // The column's ＋ buttons, next to Priorities and Inbox, and the forms they open, drawn beside the
-// page, not in the column: its Note opens the inbox's form too, as the phone's sessions page does.
+// page, not in the column: its Note opens the inbox's form too, as the phone's sessions page does,
+// and so does the phone's bottom bar of the inbox and the priorities (`AddBar`).
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Spinner } from "@astryxdesign/core/Spinner";
@@ -8,9 +9,12 @@ import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AddNote, type NoteAdded } from "./AddNote.tsx";
 import { undoAsFile, usePickedImages } from "./NoteImage.tsx";
-import { readInbox, readPriorities } from "./data.ts";
+import { readInbox, readPriorities, useWorkspace } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { Overlay } from "./layout/Overlay.tsx";
+import { TopBarSlot } from "./layout/TopBarSlot.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { type Added, AddForm, titleOf } from "./QuickAdd.tsx";
 import { holding, notesRemoved, proposalRemoved } from "./optimisticLists.ts";
@@ -44,9 +48,15 @@ export function useOpenAddForm(): OpenForm {
   return useContext(OpenContext);
 }
 
-/** A ＋ of the shell: an icon alone beside its row, or, with `text`, a button that says it. */
+/**
+ * A ＋ of the shell: an icon alone beside its row, or, with `text`, a button that says it. None in a
+ * repository without `specs/`, which has no inbox nor priorities to add to.
+ */
 function Plus({ form, label, text }: { form: Form; label: string; text?: string }) {
   const open = useOpenAddForm();
+  if (useWorkspace()?.noSpecs) {
+    return null;
+  }
   return (
     <Button
       // Lucide's plus: the font has no "＋" to draw.
@@ -69,6 +79,29 @@ export function AddProposalButton({ text }: { text?: string }) {
 /** ＋ next to Inbox; "＋ Note", with `text`. */
 export function AddNoteButton({ text }: { text?: string }) {
   return <Plus form="note" label="Add a note to the inbox" {...(text ? { text } : {})} />;
+}
+
+/**
+ * On the phone, a list's bottom bar: Add alone, in the accent, a single button, which opens `form`,
+ * the inbox's or the priorities', as their ＋ does.
+ */
+export function AddBar({ form }: { form: "note" | "proposal" }) {
+  const open = useOpenAddForm();
+  if (!isNarrow(useWidthClass())) {
+    return null;
+  }
+  return (
+    <TopBarSlot>
+      <NavTiles label={form === "note" ? "The inbox's actions" : "The priorities' actions"}>
+        <NavTile
+          icon="uraeda:plus"
+          isTinted
+          label={form === "note" ? "Add a note to the inbox" : "Add a proposal"}
+          onPress={() => open(form)}
+        />
+      </NavTiles>
+    </TopBarSlot>
+  );
 }
 
 /**
@@ -244,6 +277,8 @@ function NoteOverlay({
  * places the focus itself, like a round's question, must keep.
  */
 export function SidebarAddForms({ children }: { children: ReactNode }) {
+  // A repository without `specs/` has no inbox nor priorities: a key opens no form there.
+  const noSpecs = useWorkspace()?.noSpecs;
   const [open, setOpen] = useState<Form>();
   const [place, setPlace] = useState<AddPlace>({});
   const [drawn, setDrawn] = useState<ReadonlyArray<Form>>([]);
@@ -251,6 +286,9 @@ export function SidebarAddForms({ children }: { children: ReactNode }) {
   const [images, picked] = usePickedImages();
   const close = () => setOpen(undefined);
   const openForm: OpenForm = (form, { images: dropped, ...where } = {}) => {
+    if (noSpecs) {
+      return;
+    }
     setDrawn((forms) => (forms.includes(form) ? forms : [...forms, form]));
     setPlace(where);
     setOpen(form);

@@ -53,7 +53,7 @@ const meta = {
   component: Actions,
   decorators: [
     (Story) => (
-      <Page isSnug>
+      <Page isSnug kind="session">
         <Story />
       </Page>
     ),

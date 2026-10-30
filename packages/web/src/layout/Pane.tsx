@@ -171,7 +171,7 @@ const styles = stylex.create({
     borderInlineStartWidth: "var(--pane-border)",
     // Room above for the half of the title over the border.
     marginBlockStart: spacingVars["--spacing-3"],
-    // As wide as a page that reads lets one pane be (`--pane-max`, see `Page`'s `isReading`), its
+    // As wide as a page that reads lets one pane be (`--pane-max`, see `Page`'s `reading`), its
     // prose about 80 characters a line, ending at its border, and centred in its room (`--pane-width`, `--pane-centre`):
     // alone, in the page; two side by side share the room, each up to it, in the page's middle.
     boxSizing: "border-box",

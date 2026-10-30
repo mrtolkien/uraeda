@@ -102,7 +102,7 @@ struct Texts {
     decisions: BTreeMap<String, String>,
 }
 
-fn lossy(bytes: Vec<u8>) -> String {
+pub(super) fn lossy(bytes: Vec<u8>) -> String {
     String::from_utf8(bytes)
         .unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned())
 }
@@ -145,7 +145,7 @@ fn tip_texts(git: &Git, tip: ObjectId) -> Texts {
 
 /// The checkout the default branch's files are read from: the default branch's, or this one when
 /// there is no default branch.
-fn checkout_of(git: &Git, default: Option<&str>) -> Option<PathBuf> {
+pub(super) fn checkout_of(git: &Git, default: Option<&str>) -> Option<PathBuf> {
     match default {
         Some(default) => default_checkout(git, default),
         None => Some(git.root().to_path_buf()),

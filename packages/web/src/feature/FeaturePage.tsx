@@ -1,6 +1,6 @@
 // The page of a feature or a change, top to bottom: where it is, what blocks it, what's next, its
-// sessions, its timeline, a done one's record, and its notes, folded; beside them, or after them on
-// the phone, its column of figures and links.
+// sessions, its timeline, a done one's record, and its notes, folded; beside them, its column of
+// figures and links, which the phone's bottom bar holds instead (`FeatureBar`).
 import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -15,7 +15,8 @@ import { useRestoreScroll } from "../routes.tsx";
 import { useSession } from "../sessionData.ts";
 import { type OpenKeys, useOpenKeys } from "../useOpenKeys.ts";
 import { FeatureMenu } from "./FeatureMenu.tsx";
-import { FeatureColumn, WithFeatureColumn } from "./FeatureColumn.tsx";
+import { FeatureBar } from "./FeatureBar.tsx";
+import { isDone, WithFeatureColumn } from "./FeatureColumn.tsx";
 import { nextOf, type Recommended } from "./next.ts";
 import { NextPane } from "./NextPane.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
@@ -175,7 +176,7 @@ function RecordPart({
   history: HistoryData;
   keys: OpenKeys;
 }) {
-  const done = history.current >= history.stages.length;
+  const done = isDone(history);
   const record = done ? feature.files.find((file) => file.kind === "record") : undefined;
   if (!record) {
     return null;
@@ -187,11 +188,55 @@ function RecordPart({
   );
 }
 
+/**
+ * The feature's name, with its line of facts and, while it is not done, its menu; why the server
+ * refused a drop shows under it until dismissed, and why its commit was refused once the page
+ * already showed it dropped.
+ */
+function FeatureTitle({ done, feature }: { done: boolean; feature: FeatureData }) {
+  const [refused, setRefused] = useState<string>();
+  return (
+    <VStack gap={2}>
+      <PageTitle
+        actions={
+          !done && (
+            <FeatureMenu
+              feature={feature}
+              item={{
+                branch: feature.branch ?? null,
+                folder: feature.folder,
+                kind: feature.kind === "change" ? "change" : "feature",
+                slug: feature.slug,
+              }}
+              onRefused={setRefused}
+            />
+          )
+        }
+        meta={{ text: headerLine(feature) }}
+      >
+        {feature.title}
+      </PageTitle>
+      {refused && (
+        <AnnouncedBanner
+          collapsible={false}
+          dismissLabel="Dismiss"
+          isDismissable
+          onDismiss={() => setRefused(undefined)}
+          status="error"
+          title={refused}
+        />
+      )}
+      <RefusedHere
+        what={`the ${feature.kind === "change" ? "change" : "feature"} is back, not dropped.`}
+        where={{ href: featurePage(feature.folder) }}
+      />
+    </VStack>
+  );
+}
+
 /** The page of a feature that exists, with its history read from git. */
 function FeatureBody({ feature }: { feature: FeatureData }) {
   const history = useHistory(feature.folder);
-  // Why the server refused a drop, shown under the name until dismissed.
-  const [refused, setRefused] = useState<string>();
   // The record's folds, which a figure of the column opens.
   const keys = useOpenKeys();
   // What "Next"'s button does, which `n` does too, once "Next" is drawn.
@@ -204,51 +249,17 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
   const inline = isNarrow(useWidthClass());
   if (!history) {
     return (
-      <Page>
+      <Page kind="rows">
         <Crumbs folder={feature.folder} />
       </Page>
     );
   }
-  const done = history.current >= history.stages.length;
+  const done = isDone(history);
   const page = (
-    <Page>
+    <Page kind="rows">
       <Crumbs folder={feature.folder} />
       <VStack gap={6}>
-        <VStack gap={2}>
-          <PageTitle
-            actions={
-              !done && (
-                <FeatureMenu
-                  feature={feature}
-                  item={{
-                    branch: feature.branch ?? null,
-                    folder: feature.folder,
-                    kind: feature.kind === "change" ? "change" : "feature",
-                    slug: feature.slug,
-                  }}
-                  onRefused={setRefused}
-                />
-              )
-            }
-            meta={{ text: headerLine(feature) }}
-          >
-            {feature.title}
-          </PageTitle>
-          {refused && (
-            <AnnouncedBanner
-              collapsible={false}
-              dismissLabel="Dismiss"
-              isDismissable
-              onDismiss={() => setRefused(undefined)}
-              status="error"
-              title={refused}
-            />
-          )}
-          <RefusedHere
-            what={`the ${feature.kind === "change" ? "change" : "feature"} is back, not dropped.`}
-            where={{ href: featurePage(feature.folder) }}
-          />
-        </VStack>
+        <FeatureTitle done={done} feature={feature} />
         <Blocking
           change={feature.kind === "change"}
           folder={feature.folder}
@@ -276,12 +287,23 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
         />
         <Timeline feature={feature} history={history} progress={feature.step.progress} />
         <RecordPart feature={feature} history={history} keys={keys} />
-        {inline && <FeatureColumn feature={feature} history={history} keys={keys} />}
         <Notes notes={feature.notes} />
       </VStack>
     </Page>
   );
-  return <WithFeatureColumn content={page} feature={feature} history={history} keys={keys} />;
+  return (
+    <>
+      <WithFeatureColumn content={page} feature={feature} history={history} keys={keys} />
+      {inline && (
+        <FeatureBar
+          feature={feature}
+          history={history}
+          keys={keys}
+          next={hasNext ? () => nextRun.current?.() : undefined}
+        />
+      )}
+    </>
+  );
 }
 
 /** A feature's or a change's page. */
@@ -291,7 +313,7 @@ export function FeaturePage({ folder }: { folder: string }) {
   useRestoreScroll(true);
   if (!feature || feature.missing) {
     return (
-      <Page>
+      <Page kind="rows">
         <Missing title={`No feature ${folder}.`} />
       </Page>
     );

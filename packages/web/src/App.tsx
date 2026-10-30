@@ -85,7 +85,7 @@ class ServerErrorBoundary extends Component<
       return this.props.children;
     }
     return (
-      <PageLayout>
+      <PageLayout kind="rows">
         <AnnouncedBanner
           endContent={
             <Button
@@ -307,7 +307,7 @@ function Moved({ path }: { path: string }) {
 function Nothing() {
   useRestoreScroll(true);
   return (
-    <PageLayout>
+    <PageLayout kind="rows">
       <Missing title="Nothing here." />
     </PageLayout>
   );
@@ -315,7 +315,7 @@ function Nothing() {
 
 function Loading() {
   return (
-    <PageLayout>
+    <PageLayout kind="rows">
       <Text color="secondary">Loading…</Text>
     </PageLayout>
   );

@@ -1,6 +1,6 @@
 // A proposal file's page, or a started proposal's, laid out as a terminal tool would: the title,
 // one line of what it is, its research effort, then the text in a pane, and, for a proposal file, a
-// Start pane beside it. Every action has a key, which the status line names: `i` edits, Escape
+// Start pane beside it, or under it; on the phone, in a sheet that the bottom bar's Start opens. Every action has a key, which the status line names: `i` edits, Escape
 // leaves the field, `r` sets the research effort, `f` and `c` pick a feature or a change, and `s`
 // goes to the slug, where Enter starts it, as Ctrl+Enter does in the text. A started proposal's `s`
 // saves.
@@ -12,7 +12,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useRef, useState } from "react";
 import { useProposalFile } from "./data.ts";
-import { ProposalStart, type StartKind } from "./ProposalStart.tsx";
+import { ProposalStart, START_SHEETS, StartBar, type StartKind } from "./ProposalStart.tsx";
 import { ProposalText } from "./ProposalText.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { useKeys } from "./keys/registry.tsx";
@@ -20,20 +20,28 @@ import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Missing } from "./layout/Missing.tsx";
 import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { useSheetTab } from "./layout/useSheetTab.ts";
 import { ConflictBanner } from "./pane/ProposalEditor.tsx";
 import { useProposalEditor } from "./pane/useProposalEditor.ts";
 import { currentEntry, useRestoreScroll } from "./routes.tsx";
 
 const styles = stylex.create({
-  // The text beside its Start, on a wide screen; the text alone, or stacked, elsewhere.
+  // The text beside its Start, on a wide screen, where both fit: the text wide enough for a
+  // formatted file's 100 columns, which then do not wrap again, and Start the rest; Start under it
+  // where they do not. A line longer than that, a paragraph typed without breaks, still wraps.
   columns: {
+    // Each pane at the row's start, not centred in its own room: under the text, Start keeps its
+    // edges.
+    "--pane-centre": "0",
     alignItems: "start",
-    display: "grid",
+    display: "flex",
+    flexWrap: "wrap",
     gap: spacingVars["--spacing-4"],
-    gridTemplateColumns: "minmax(0, 2fr) minmax(22rem, 1fr)",
   },
   stacked: { display: "flex", flexDirection: "column", gap: spacingVars["--spacing-4"] },
+  start: { flex: "1 1 22rem", minWidth: 0 },
+  text: { flex: "0 1 var(--size-code)", minWidth: 0 },
 });
 
 const SECTIONS: Record<string, string> = {
@@ -163,6 +171,28 @@ function useEditorKeys(
 }
 
 /**
+ * The research effort shown, and what sets it: the one picked shows at once, and the file's
+ * follows, going back to the file's once the file says the same, or the write was refused, as the
+ * page draws. A note file has none: it is not started, it moves to the proposals first.
+ */
+function useResearchEffort(
+  file: File | undefined,
+  editor: ReturnType<typeof useProposalEditor>,
+): [string | undefined, (to: string) => void] {
+  const [chosen, setChosen] = useState<string>();
+  const failed = editor.conflict !== undefined || editor.actions.message?.ok === false;
+  if (chosen !== undefined && (file?.discovery === chosen || failed)) {
+    setChosen(undefined);
+  }
+  const level = file?.kind === "note-file" ? undefined : (chosen ?? file?.discovery ?? undefined);
+  const setLevel = (to: string) => {
+    setChosen(to);
+    void editor.actions.setDiscovery(to);
+  };
+  return [level, setLevel];
+}
+
+/**
  * A proposal file, a started proposal, or a note file: edited as text, drawn by its preview, with
  * the template's guidance for each empty section; saved with Save or Ctrl+Enter over the version it
  * was read at, its unsaved text kept until then, committed, and, for a proposal file, started as a
@@ -174,11 +204,15 @@ export function EditorPage({ path }: { path: string }) {
   useRestoreScroll(true);
   const slug = useTextField(`${path}#slug`, file?.slug ?? "");
   const editor = useProposalEditor({ file, path, slug });
-  const isWide = useWidthClass() === "wide";
+  const width = useWidthClass();
+  const isWide = width === "wide";
   const box = useRef<HTMLDivElement>(null);
   const slugBox = useRef<HTMLDivElement>(null);
   const [kind, setKind] = useState<StartKind>("feature");
   const isFile = file?.kind === "proposal-file";
+  // On the phone, a proposal file's Start is a sheet.
+  const inSheet = isFile && isNarrow(width);
+  const sheet = useSheetTab(START_SHEETS, inSheet);
   const edit = () => {
     editor.setDrawn(false);
     focusSoon(() => box.current?.querySelector("textarea"));
@@ -199,66 +233,62 @@ export function EditorPage({ path }: { path: string }) {
     editor.saveText();
     editor.setDrawn(true);
   };
-  const focusSlug = () => focusSoon(() => slugBox.current?.querySelector("input"));
-  // The effort picked shows at once, and the file's follows: it goes back to the file's once the
-  // file says the same, or the write was refused.
-  const [chosen, setChosen] = useState<string>();
-  const failed = editor.conflict !== undefined || editor.actions.message?.ok === false;
-  useEffect(() => {
-    if (chosen !== undefined && (file?.discovery === chosen || failed)) {
-      setChosen(undefined);
+  const focusSlug = () => {
+    if (inSheet) {
+      sheet[1]("start");
     }
-  }, [chosen, file?.discovery, failed]);
-  // A note file has no research effort: it is not started, it moves to the proposals first.
-  const level = file?.kind === "note-file" ? undefined : (chosen ?? file?.discovery ?? undefined);
-  const setLevel = (to: string) => {
-    setChosen(to);
-    void editor.actions.setDiscovery(to);
+    focusSoon(() => slugBox.current?.querySelector("input"));
   };
+  const [level, setLevel] = useResearchEffort(file, editor);
   // Starts it as the kind picked, saved text first: its session opens as the start is planned.
   const startNow = () => void editor.actions.start(kind);
   useEditorKeys(file, { edit, editor, focusSlug, level, preview, setKind, setLevel, startNow });
   if (!file) {
     return (
-      <Page>
+      <Page kind="rows">
         <Missing title={`No file ${path}.`} />
       </Page>
     );
   }
   const message = editor.actions.message;
+  const start = (
+    <ProposalStart
+      actions={editor.actions}
+      kind={kind}
+      onKind={setKind}
+      slug={slug}
+      slugRef={slugBox}
+    />
+  );
+  const banner = message && (
+    <AnnouncedBanner
+      collapsible={false}
+      status={message.ok ? "success" : "error"}
+      title={message.text}
+    />
+  );
   return (
-    <Page isWriting>
+    <Page kind="code">
       <VStack gap={4}>
         <EditorHeading file={file} path={path} />
         <ConflictBanner editor={editor} />
         {level !== undefined && <ResearchEffort file={file} onChange={setLevel} value={level} />}
         <div {...stylex.props(isFile && isWide ? styles.columns : styles.stacked)}>
-          <ProposalText
-            boxRef={box}
-            editor={editor}
-            file={file}
-            onEdit={edit}
-            onSubmit={isFile ? startNow : editor.saveText}
-            path={path}
-          />
-          {isFile && (
-            <ProposalStart
-              actions={editor.actions}
-              kind={kind}
-              onKind={setKind}
-              slug={slug}
-              slugRef={slugBox}
+          <div {...stylex.props(isFile && isWide && styles.text)}>
+            <ProposalText
+              boxRef={box}
+              editor={editor}
+              file={file}
+              onEdit={edit}
+              onSubmit={isFile ? startNow : editor.saveText}
+              path={path}
             />
-          )}
+          </div>
+          {isFile && !inSheet && <div {...stylex.props(isWide && styles.start)}>{start}</div>}
         </div>
-        {message && (
-          <AnnouncedBanner
-            collapsible={false}
-            status={message.ok ? "success" : "error"}
-            title={message.text}
-          />
-        )}
+        {banner}
       </VStack>
+      {inSheet && <StartBar message={banner} onStart={focusSlug} sheet={sheet} start={start} />}
     </Page>
   );
 }

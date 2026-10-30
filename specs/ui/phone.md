@@ -26,21 +26,32 @@ not a desktop squeezed down, and not a lesser version.
 
 ## The bottom bar
 
-A page with a side column on wide screens, a round, a spec, a plan, a document, a data model, and a
-session, has a bottom bar on the phone (`layout/ColumnStatusLine.tsx`): one row of icon tiles in
-frosted glass, as tall as the top tabs.
+A page with a side column on wide screens, a round, a spec, a plan, a document, a data model, a
+session, and a feature, has a bottom bar on the phone (`layout/ColumnStatusLine.tsx`): one row of
+icon tiles in frosted glass, as tall as the top tabs. Its shape follows its count
+(`layout/NavBar.tsx`): one tile is a single square glass button at the bottom right, two are a
+button in each corner, and three or more the bar across the screen. A button sits inside the bar's
+row, so the page's end always shows above it.
 
 What goes in it, in this order:
 
 1. **The page's companions, as its side column has them on wide screens**: Outline, Notes, and
    Session on a round; Contents, Comments (while a review waits), and Session on a spec or a plan;
-   Activity, Changes, Sub-agents (while any run), and the plan's progress on a session. Each opens
-   its sheet; the open one's icon is in the accent. A session's bar starts with ↓, the jump to the
-   latest, dimmed at the end, so the other tiles never move; its Activity and Changes each open
-   their own sheet.
-2. **At its end, the one step that moves the human forward**: Next to the next blank question, or
-   Verdict to the review's end. An icon in the accent, never a filled block, even when it is the
-   step that finishes the page, like Submit once every question has an answer.
+   Activity, Changes, Sub-agents (while any run), and the plan's progress on a session; Produced and
+   Links (while it has one) on a feature, its wide column, then its Session once it has one, which
+   opens the session's page. Each opens its sheet; the open one's icon is in the accent. A session's
+   bar starts with ↓, the jump to the latest, dimmed at the end, so the other tiles never move; its
+   Activity and Changes each open their own sheet.
+2. **At its end, the one step that moves the human forward**: Next to the next blank question,
+   Verdict to the review's end, or a feature's next step, which its Next pane's button also does: "I
+   know it's duplication, but it's clearer". An icon in the accent, never a filled block, even when
+   it is the step that finishes the page, like Submit once every question has an answer.
+
+A page with one main action has a bar of it alone, in the accent: the draft editor's Start, which
+opens the Start pane as a sheet, the slug focused; the inbox's and the priorities' Add, which opens
+their add form, as the sidebar's ＋ does. The commit page has two, while changes wait: Discard on
+the left, which asks first, and Commit, a save icon, in the accent on the right; the page's own
+buttons leave it.
 
 What does not go in it: words, keys, counts written out (a tile's label says them to screen
 readers), a page's content, and anything the page already shows in reach.

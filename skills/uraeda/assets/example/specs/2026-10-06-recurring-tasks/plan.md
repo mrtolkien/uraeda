@@ -59,15 +59,15 @@ From [due dates](../decisions/due-dates.md):
 
 - Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type and the
   store's upgrade test.
-- Date arithmetic MUST go through `src/lib/dates.ts`. Checked by review.
-- Code MUST NOT convert a due date to a `Date`, except inside `src/lib/dates.ts` and to display it.
+- Date arithmetic MUST go through the app's date module. Checked by review.
+- Code MUST NOT convert a due date to a `Date`, except inside the date module and to display it.
   Checked by review.
 
 From [repeating tasks](../decisions/repeating-tasks.md):
 
 - A repeating task MUST be a single task, with its repeat rule stored on it. Checked by the
   `RepeatRule` field of the `Task` type.
-- Completing a repeating task MUST move its due date to the next occurrence, and MUST NOT create a
+- Completing a repeating task MUST move its due date to the next occurrence, in place of creating a
   new task. Checked by the completion tests of the task store.
 - Features MUST NOT rely on a history of completed occurrences: there is none. Checked by review.
 
@@ -76,34 +76,35 @@ From [task storage](../decisions/task-storage.md):
 - Data MUST be stored in IndexedDB, through `src/store/`. Checked by review.
 - Components MUST NOT call IndexedDB or the `idb` library directly. Checked by ESLint's
   `no-restricted-imports` and `no-restricted-globals` in `src/components/`.
-- A change to stored data MUST come with a versioned upgrade in `src/store/upgrades.ts`, tested on
-  data saved by the previous version. Checked by review, and by the upgrade's own test.
+- A change to stored data MUST come with a versioned upgrade, tested on data saved by the previous
+  version. Checked by review, and by the upgrade's own test.
 
 From [UI components](../decisions/ui-components.md):
 
 - Components MUST be written in the project, in `src/components/`. Checked by review.
-- Styles MUST use CSS modules, with the variables in `src/styles/theme.css`. Checked by Stylelint's
-  `color-no-hex` outside `theme.css`.
+- Styles MUST use CSS modules, with the theme's variables. Checked by Stylelint's `color-no-hex`
+  outside the theme.
 - Code MUST NOT add a UI component library (MUI, Chakra, shadcn/ui, ...) or a CSS framework. Checked
   by review of `package.json`.
 
 From [preview](../decisions/preview.md):
 
 - The preview MUST be the app's Storybook, at the repository's top level, run by
-  `npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`. This decision's
-  frontmatter MUST hold them as `preview-folder: .` and that `preview-command`. Checked by
-  `ura check`.
+  `npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`. Checked by review.
+- This decision's frontmatter MUST hold the preview's folder and command, as `preview-folder: .` and
+  that `preview-command`. Checked by `ura check`.
 - Storybook MUST use its Vite builder, through `@storybook/react-vite`. Checked by Uraeda's helper,
   which stops a webpack Storybook.
 - Mockups and named states MUST be stories, in `*.stories.tsx` files under `src/`, one export per
   state or variant. Checked by review.
 - Stories MUST get their tasks from the app's own store, on an in-memory IndexedDB the story fills,
   as the integration tests do. Checked by review.
-- Storybook's `main.ts` MUST be wrapped by `.storybook/uraeda-preview.js`, and its preview MUST load
-  `.storybook/uraeda-pick.js`, both copied unchanged from the Uraeda skill's `assets/storybook/`.
-  Checked by review.
-- Storybook's packages MUST be pinned to exact versions, upgraded together, and its telemetry MUST
-  be off. Checked by review of `package.json` and `main.ts`.
+- Storybook MUST load the Uraeda skill's helpers from its `assets/storybook/`, copied unchanged: its
+  `main.ts` wrapped by `uraeda-preview.js`, and its preview loading `uraeda-pick.js`. Checked by
+  review.
+- Storybook's packages MUST be pinned to exact versions, and upgraded together. Checked by review of
+  `package.json`.
+- Storybook's telemetry MUST be off. Checked by review of `main.ts`.
 
 From [code quality](../decisions/code-quality.md):
 
@@ -113,8 +114,10 @@ From [code quality](../decisions/code-quality.md):
   `max-depth`.
 - Source files MUST NOT be longer than 400 lines. Tests are exempt. Checked by ESLint's `max-lines`.
 - Code that broke a limit when this decision was approved MUST be marked where it stands, with an
-  `// eslint-disable-next-line <rule> -- <reason>` comment. A marker on code that no longer breaks
-  its limit MUST fail the lint. Checked by ESLint's `reportUnusedDisableDirectives: "error"`.
+  `// eslint-disable-next-line <rule> -- <reason>` comment. Checked by ESLint, which fails on
+  unmarked code over a limit.
+- A marker on code that no longer breaks its limit MUST fail the lint. Checked by ESLint's
+  `reportUnusedDisableDirectives: "error"`.
 - A new marker MUST NOT be added unless a human approves it as a constitution exception in the
   plan's complexity tracking. Checked by review.
 

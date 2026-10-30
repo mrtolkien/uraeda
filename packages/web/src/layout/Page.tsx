@@ -1,51 +1,28 @@
 import * as stylex from "@stylexjs/stylex";
 import { borderVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { createContext, type ReactNode, type RefObject, useCallback, useRef } from "react";
-import { paneVars } from "./pane.stylex.ts";
 import { useScreenCentre } from "./useScreenCentre.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
   page: {
     // One inset on the phone, from the screen's edges, the phone sidebar's own (the rail's, and its
-    // edge's width), so the panes at the page's edge sit as the sidebar's do; the reading column in the
-    // middle of a wide screen. Text wraps anywhere rather than scroll the page sideways.
+    // edge's width), so the panes at the page's edge sit as the sidebar's do; on wider screens, the
+    // page's kind gives it its column, from the theme's scale of widths, in the screen's middle.
+    // Text wraps anywhere rather than scroll the page sideways.
     // `--page-inset` is the inset at the sides, and `--page-bleed` takes it back, for what reaches
     // the screen's edges.
     "--page-bleed": `calc(-1 * (var(--size-rail-inset) + ${borderVars["--border-width"]}))`,
     "--page-inset": `calc(var(--size-rail-inset) + ${borderVars["--border-width"]})`,
     boxSizing: "border-box",
     marginInline: "auto",
-    maxWidth: "var(--size-page-max)",
+    // Its kind's column, its inset included: none on the phone.
+    maxWidth: "var(--page-column)",
     overflowWrap: "anywhere",
     paddingBlock: spacingVars["--spacing-4"],
     paddingInline: "var(--page-inset)",
     width: "100%",
   },
-  session: {
-    // A session's column on wide screens: about 115 characters a line, not the page's full width.
-    maxWidth: "var(--size-session-max)",
-  },
-  // A document's page on wide screens, a round's or a spec's: each of its panes a pane of prose
-  // wide at most, its prose about 80 characters a line and ending at its border, while two side by
-  // side share the page's width, each up to that (see `Pane`). A wide table scrolls in its pane,
-  // and a mockup's window grows past it (`PageColumn`).
-  reading: {
-    // Each pane as wide as its room up to that, centred in it: the page's middle.
-    "--pane-centre": "auto",
-    "--pane-max": paneVars["--pane-prose"],
-    "--pane-width": "100%",
-  },
-  // A draft's editor on wide screens: its panes hold the file's text in the UI's monospace font,
-  // not prose, up to 95 of its characters.
-  writing: { "--pane-max": paneVars["--pane-code"] },
-  // A round's page on wide screens: as wide as two of its panes side by side, as its Scope and
-  // Sources are, so that a question's card, its question beside its answers, takes both.
-  paired: {
-    maxWidth: `calc(2 * ${paneVars["--pane-prose"]} + ${spacingVars["--spacing-4"]} + 2 * var(--page-inset))`,
-  },
-  // The whole width of the window, for a page of columns.
-  full: { maxWidth: "none" },
   snug: {
     // On the phone, `--spacing-2` (9.6 px), for a page that is read as text from edge to edge: a
     // session.
@@ -67,6 +44,67 @@ const styles = stylex.create({
   },
 });
 
+/** Each kind's column on semi-wide and wide screens, its inset at each side included. */
+const kinds = stylex.create({
+  // A document's page, a round's or a spec's: two reading panes wide, so a split question card, a
+  // decision card, or a live window has room to grow past a pane; each of its panes a reading pane
+  // at most, its prose about 80 characters a line and ending at its border, centred in the page
+  // (see `Pane`). Its title and crumbs start at its panes' edge (`PageTitle`, `Crumbs`).
+  reading: {
+    "--page-column": "calc(var(--size-two-panes) + 2 * var(--page-inset))",
+    "--page-text-centre": "auto",
+    "--page-text-max": "var(--size-reading-pane)",
+    "--pane-centre": "auto",
+    "--pane-max": "var(--size-reading-pane)",
+    "--pane-width": "100%",
+  },
+  // A page of rows, as the inbox or a feature: its text column a reading pane, and what sits beside
+  // its text, as settings' controls (`beside`).
+  rows: {
+    "--page-column":
+      "calc(var(--size-reading-pane) + var(--page-beside, 0px) + 2 * var(--page-inset))",
+  },
+  // Two reading panes side by side and the gap between them, as the home and New.
+  panes: {
+    "--page-column": "calc(var(--size-two-panes) + 2 * var(--page-inset))",
+  },
+  // The whole width of the window, for a page of columns.
+  window: { "--page-column": "none" },
+  // A draft's editor: its panes hold the file's text in the UI's monospace font, not prose, up to
+  // the formatter's 100 columns of it, centred as a reading page's, and the page as wide as that
+  // pane and its Start beside it, 22rem, where the screen has the room.
+  code: {
+    "--pane-centre": "auto",
+    "--pane-max": "var(--size-code)",
+    "--pane-width": "100%",
+    maxWidth: `calc(var(--size-code) + 22rem + ${spacingVars["--spacing-4"]} + 2 * var(--page-inset))`,
+  },
+  // A session's column: 95 characters of the UI's font, not the window's width.
+  session: { "--page-column": "var(--size-session-max)" },
+});
+
+const besides = stylex.create({
+  // What sits beside a page of rows' text column: a theme token's width.
+  of: (width: string) => ({ "--page-beside": width }),
+});
+
+const text = stylex.create({
+  // What a page draws outside its panes, as its title, crumbs, and opening lines: from its panes'
+  // left edge, as wide as they are, on a reading page (`kinds.reading`); the page's width
+  // elsewhere.
+  column: {
+    marginInline: "var(--page-text-centre, 0)",
+    maxWidth: "var(--page-text-max, none)",
+    width: "100%",
+  },
+});
+
+/** The style of what a page draws outside its panes, from its panes' left edge (`text`). */
+export const pageText = text.column;
+
+/** What a page holds, which picks its width from the theme's scale (see `kinds`). */
+export type PageKind = keyof typeof kinds;
+
 /**
  * The page's column, for what may grow past it into the space beside it, as a story's embed does:
  * null outside a page.
@@ -74,38 +112,33 @@ const styles = stylex.create({
 export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>(null);
 
 /**
- * A page's content: its inset, and its column on wide screens, or with `isFull` the window's whole
- * width. On the phone, `isTight` gives it `--spacing-3`, the sessions' page's inset, and `isSnug`
- * `--spacing-2`, a session's.
+ * A page's content: its inset, and on semi-wide and wide screens its column, by its `kind`, in the
+ * screen's middle. On the phone, `isTight` gives it `--spacing-3`, the sessions' page's inset, and
+ * `isSnug` `--spacing-2`, a session's.
  */
 export function Page({
+  beside,
   children,
-  isFull = false,
-  isPaired = false,
-  isReading = false,
-  isSession = false,
   isSnug = false,
   isTight = false,
-  isWriting = false,
+  kind,
 }: {
+  /** A page of rows': the theme's width of what sits beside its text, as settings' controls. */
+  beside?: `--size-${string}`;
   children: ReactNode;
-  /** The window's whole width, not the page's column: a page of columns, the priorities'. */
-  isFull?: boolean;
-  /** A round's page on wide screens: as wide as two context panes side by side. */
-  isPaired?: boolean;
-  /** A document's page on wide screens, a round's or a spec's: each pane a pane of prose at most. */
-  isReading?: boolean;
-  /** A session's column on wide screens: a line of text, not the page's full width. */
-  isSession?: boolean;
   isSnug?: boolean;
   isTight?: boolean;
-  /** A draft's editor on wide screens: a reading page whose panes are 95 characters wide at most. */
-  isWriting?: boolean;
+  /**
+   * What it holds: `reading`, a document's panes of prose; `rows`, a page of rows; `panes`, two
+   * panes side by side; `window`, columns across the window; `code`, a draft's file; `session`, a
+   * session's transcript.
+   */
+  kind: PageKind;
 }) {
   const wide = !isNarrow(useWidthClass());
   const column = useRef<HTMLDivElement>(null);
   // On a wide screen, the column sits in the screen's middle where its margins leave room.
-  const centred = useScreenCentre(wide && !isFull);
+  const centred = useScreenCentre(wide && kind !== "window");
   const placed = useCallback(
     (element: HTMLDivElement | null) => {
       column.current = element;
@@ -122,11 +155,8 @@ export function Page({
           isTight && styles.tight,
           isSnug && styles.snug,
           wide && styles.wide,
-          isFull && styles.full,
-          wide && isSession && styles.session,
-          wide && (isReading || isWriting) && styles.reading,
-          wide && isWriting && styles.writing,
-          wide && isPaired && styles.paired,
+          wide && kinds[kind],
+          wide && beside !== undefined && besides.of(`var(${beside})`),
         )}
       >
         {children}

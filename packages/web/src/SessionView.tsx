@@ -238,7 +238,7 @@ function Framed({
     return <div {...stylex.props(styles.box)}>{children}</div>;
   }
   const page = (
-    <Page isSession isSnug>
+    <Page isSnug kind="session">
       {crumbs !== undefined && <Crumbs folder={crumbs} session />}
       {children}
     </Page>

@@ -13,6 +13,9 @@ use super::plan::Plan;
 /// top level.
 pub(super) type Written = BTreeMap<String, Vec<u8>>;
 
+/// The text a moved file held before the start changed it, by its path in the dated folder.
+pub(super) type Before = BTreeMap<String, String>;
+
 /// What the files under `folder`, from `root`, hold, symbolic links not followed.
 pub(super) fn written_in(root: &Path, folder: &str) -> Written {
     let mut files = Written::new();
@@ -35,8 +38,8 @@ pub(super) fn written_in(root: &Path, folder: &str) -> Written {
 
 impl Start<'_> {
     /// Puts back what the start wrote, each path only while it holds what the start left there:
-    /// each moved file at its path, never over a file there, with `proposal_before` as the
-    /// proposal's text when its nested lines were added; the files written in the dated folder
+    /// each moved file at its path, never over a file there, with its text in `before` when the
+    /// start changed it, its links or the proposal's nested lines; the files written in the dated folder
     /// gone, and the folder once empty; and `PRIORITIES.md` as it was read. The refused commit
     /// already took back what it staged. Returns the paths left as they are: changed since, or
     /// failing to be put back.
@@ -45,10 +48,9 @@ impl Start<'_> {
         plan: &Plan,
         moves: &[(String, String)],
         written: &Written,
-        proposal_before: Option<&str>,
+        before: &Before,
     ) -> Vec<String> {
         let root = self.root;
-        let proposal = format!("{}/proposal.md", plan.destination);
         let mut left = Vec::new();
         let unchanged = |path: &str| {
             written
@@ -58,10 +60,9 @@ impl Start<'_> {
         for (from, to) in moves.iter().rev() {
             let moved_back = unchanged(to)
                 && !fs::exists(root.join(from)).unwrap_or(true)
-                && match proposal_before {
-                    Some(text) if *to == proposal => fs::write(root.join(to), text).is_ok(),
-                    _ => true,
-                }
+                && before
+                    .get(to)
+                    .is_none_or(|text| fs::write(root.join(to), text).is_ok())
                 && root
                     .join(from)
                     .parent()

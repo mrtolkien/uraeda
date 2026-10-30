@@ -10,9 +10,10 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
+import { SET_UP_PROJECT } from "uraeda-server/round-messages";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
-import { usePriorities } from "./data.ts";
+import { usePriorities, useWorkspace } from "./data.ts";
 import { useTextField } from "./fields/useTextField.ts";
 import { useKeys } from "./keys/registry.tsx";
 import { KindCards } from "./KindCards.tsx";
@@ -166,7 +167,7 @@ function Search({
 
 /**
  * The composer's focus: `input` is its field, `box` what holds it, and `focusComposer` gives it the
- * focus; `wantsFocus` asks for it once the kind picked draws its composer.
+ * focus; `focusOnDraw` asks for it once the kind picked draws its composer.
  */
 function useComposerFocus(kind: NewKind | undefined) {
   const input = useRef<ChatComposerInputHandle>(null);
@@ -193,7 +194,10 @@ function useComposerFocus(kind: NewKind | undefined) {
       focusComposer();
     }
   }, [kind]);
-  return { box, focusComposer, input, wantsFocus };
+  const focusOnDraw = () => {
+    wantsFocus.current = true;
+  };
+  return { box, focusComposer, focusOnDraw, input };
 }
 
 /**
@@ -262,6 +266,59 @@ function useSources({
 }
 
 /**
+ * A proposal's Start opens the page with its line to insert: once, as soon as the priorities and
+ * the composer are there, and not again on a reload.
+ */
+function LineInsert({
+  insert,
+  kind,
+}: {
+  insert: (entry: Entry) => void;
+  kind: NewKind | undefined;
+}) {
+  const here = useRepoPath();
+  const priorities = usePriorities();
+  useEffect(() => {
+    const wanted = currentEntry().insert?.replace(/^line:/, "");
+    const line = priorities?.sections
+      .flatMap((section) => section.proposals)
+      .find((proposal) => proposal.id === wanted);
+    if (line === undefined || kind === undefined) {
+      return;
+    }
+    const { insert: _, ...rest } = currentEntry();
+    window.history.replaceState(rest, "");
+    insert(lineEntry(line, here));
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, when the line and the composer are there
+  }, [priorities, kind]);
+  return null;
+}
+
+/**
+ * Home's "Set up with the agent" opens a session with the setup's message, focused as an inserted
+ * entry is, unsent. The history entry keeps asking for it, so a reload, which empties the session's
+ * composer, fills it again; a composer that holds text keeps it.
+ */
+function useSetupMessage({
+  input,
+  kind,
+  session,
+}: {
+  input: React.RefObject<ChatComposerInputHandle | null>;
+  kind: NewKind | undefined;
+  session: ReturnType<typeof useDraft>;
+}) {
+  useEffect(() => {
+    if (currentEntry().insert !== "setup" || kind !== "session" || session.text.trim() !== "") {
+      return;
+    }
+    session.setText(SET_UP_PROJECT);
+    requestAnimationFrame(() => input.current?.focus());
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, when the session's composer is there
+  }, [kind]);
+}
+
+/**
  * The New page: the cards, the kind's composer, then the entries to start from. On the phone no
  * card is picked until one is, the address naming a kind: the flow there is New, pick, composer,
  * and the pick moves the focus to the composer.
@@ -284,30 +341,17 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
       run: () => searchField.current?.focus(),
     },
   ]);
-  const { box, focusComposer, input, wantsFocus } = useComposerFocus(kind);
+  // Without specs/, the setup's session alone: no priorities nor inbox to start from.
+  const hasSpecs = !useWorkspace()?.noSpecs;
+  const { box, focusComposer, focusOnDraw, input } = useComposerFocus(kind);
   const session = useDraft();
   // Kept as a new chat's text is: leaving the page does not ask.
   const change = useTextField("new-change", "", { drawn: false });
   const feature = useTextField("new-feature-proposal", "", { drawn: false });
   const { insert, sources } = useSources({ change, feature, input, kind, session });
-  // A proposal's Start opens the page with its line to insert: once, as soon as the priorities and
-  // the composer are there, and not again on a reload.
-  const priorities = usePriorities();
-  useEffect(() => {
-    const wanted = currentEntry().insert?.replace(/^line:/, "");
-    const line = priorities?.sections
-      .flatMap((section) => section.proposals)
-      .find((proposal) => proposal.id === wanted);
-    if (line === undefined || kind === undefined) {
-      return;
-    }
-    const { insert: _, ...rest } = currentEntry();
-    window.history.replaceState(rest, "");
-    insert(lineEntry(line, here));
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, when the line and the composer are there
-  }, [priorities, kind]);
+  useSetupMessage({ input, kind, session });
   return (
-    <Page>
+    <Page kind="panes">
       <VStack gap={4}>
         <PageTitle
           // Beside the title at every width, as on a desktop.
@@ -326,7 +370,7 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
               if (picked === kind) {
                 focusComposer();
               } else {
-                wantsFocus.current = true;
+                focusOnDraw();
               }
             }
             redirect(here(`/new?kind=${picked}`));
@@ -350,7 +394,8 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
             <FeatureComposer inputRef={input} sources={sources.feature} text={feature} />
           )}
         </div>
-        {kind !== undefined && <EntryLists onInsert={insert} search={search} />}
+        {hasSpecs && <LineInsert insert={insert} kind={kind} />}
+        {hasSpecs && kind !== undefined && <EntryLists onInsert={insert} search={search} />}
       </VStack>
     </Page>
   );

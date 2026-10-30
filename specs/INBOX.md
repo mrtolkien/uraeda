@@ -1,31 +1,40 @@
 # Inbox
 
-- Review ura check to be less annoying, it fails all the time for no good reason. Or at least remove
-  it from vp run ready
-- Formatted markdown files look like shit in the multi line editor since there are line jumps a bit
-  randomly...
-- `e` for expand, not p...
-- [amend-latest]
-  [Single-commands in sessions should also be ellipsed](notes/single-commands-in-sessions-should-also-be/note.md)
-- Adding a note was SUPER slow, not sure why. Like 1+ minute slow.
-- [decisions-needs] Need a bit more padding on mobile and slightly smaller text
-- [decisions-needs]
-  [New note on mobile has the keyboard hiding the note. Closing the keyboard and opening it again works.](notes/new-note-on-mobile-has-the-keyboard-hiding-the/note.md)
-- [decisions-needs] Floating questions should use the glass style when they overlay content
-- [decisions-needs]
-  [Decisions are not super readable, text is a bit too big. The pane should be a bit bigger to accomodate the title while prose stays in a centered column at the standard size.](notes/decisions-are-not-super-readable-text-is-a-bit-too/note.md)
+- [decisions-needs] Need a bit more left/right padding on mobile and slightly smaller text (same as
+  discord messages on mobile)
 - [decisions-needs]
   [The "replaced behaviour" block looks weird in the specs. Needs a review together with decisions changes.](notes/the-replaced-behaviour-block-looks-weird-in-the/note.md)
-- [performance-pass]
-  [The two columns here look out of place (clarifications), put them back one by one.](notes/the-two-columns-here-look-out-of-place/note.md)
 - [The home columns are not centered on a wide screen](notes/the-home-columns-are-not-centered-on-a-wide-screen/note.md)
+- [performance-pass] http://127.0.0.1:4310/r/uraeda/f/2026-10-29-performance-pass/spec.md -> the
+  mockups didn't work at all locally
+- [onboarding-readme]
+  [Couldn't preview an SVG or see it in the proposal. Should be pretty easy to show it.](notes/couldn-t-preview-an-svg-or-see-it-in-the-proposal/note.md)
+- "Proposal > Start" should not append, creates really weird beahviour
+- The proposal start flow sucks ass when it's from a single priorities row > after "new feature
+  start" it should be at the session page...
+- [panes-size] Remove the selector on the `+` button, it should open the new page which has more
+  context
+- [panes-size]
+  [We need a good way to show tables in our reading panes](notes/we-need-a-good-way-to-show-tables-in-our-reading/note.md)
 
 ## Bugfix
 
-- [agent] [help-keybindings] A proposal started from a priority links `specs/PRIORITIES.md` from its
-  own folder, a link `ura check` reports broken, so `vp run ready` fails on every such branch
-  (`NewEntries.tsx`'s `insertion`)
+- [agent] [review-inbox] A note whose marks end its first line, promoted to the priorities or a
+  proposal, leaves a `- ` line with a trailing space before its link (`inbox.rs`'s `unmarked_lines`)
+- [agent] [review-inbox] A start whose link rebase fails on the second file of a postponed folder
+  names neither the first, rebased, nor the files after it (`start/commits.rs`)
 
 ## To test
 
 - See if we can integrate Claude Design
+
+## Deferred fixes
+
+- [agent] [onboarding-readme] "Set up with the agent" keeps a session draft already on the New page,
+  so Send sends that text, not the setup message, with no hint (`NewPage.tsx` `useSetupMessage`)
+- [agent] [onboarding-readme] As the Setup pane closes, its title reads "Setup · 0" for 200 ms
+  (`home/Setup.tsx`)
+- [agent] [onboarding-readme] `fixtures/realistic/decisions/` lacks the documentation decision, so
+  the sandbox's and the screenshots' Decisions page does not show it
+- [agent] [onboarding-readme] `readme-screenshots.ts` waits for the realistic project's turns only
+  after the first page load starts them: a change in `serveUi`'s start callback breaks it

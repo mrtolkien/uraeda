@@ -36,7 +36,13 @@ export const STALE_WARNING =
 export const SANDBOX_TODAY = DATE.slice(0, 10);
 
 /** The sample projects' folders, by the name the server lists each one by. */
-export type Projects = { broken: string; empty: string; realistic: string; sample: string };
+export type Projects = {
+  bare: string;
+  broken: string;
+  empty: string;
+  realistic: string;
+  sample: string;
+};
 
 /** The sandbox's folders, and whether older builders built them. */
 export type Sandbox = { configDir: string; dataDir: string; projects: Projects; stale: boolean };
@@ -122,6 +128,7 @@ function paths(folder: string): Omit<Sandbox, "stale"> {
     configDir: join(folder, "config"),
     dataDir: join(folder, "data"),
     projects: {
+      bare: join(projects, "bare"),
       broken: join(projects, "broken"),
       empty: join(projects, "empty"),
       realistic: join(projects, "realistic"),
@@ -247,7 +254,13 @@ async function build(root: string, version: string, builders: Builders) {
       repairWorktrees(project, join(temporary, "projects"), join(folder, "projects"));
     }
     // "sample" last, the most recently opened.
-    for (const project of [projects.broken, projects.empty, projects.realistic, projects.sample]) {
+    for (const project of [
+      projects.bare,
+      projects.broken,
+      projects.empty,
+      projects.realistic,
+      projects.sample,
+    ]) {
       await addRepository(dataDir, project);
     }
     await builders.sessions(dataDir, projects.sample, projects.realistic);

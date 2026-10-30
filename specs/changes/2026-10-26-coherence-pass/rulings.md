@@ -1,9 +1,8 @@
 # Rulings: Coherence pass
 
 The low-impact choices made while building [the change](proposal.md), inside the limits of the
-[UI look](/specs/decisions/ui-look.md), [UI coherence](/specs/decisions/ui-coherence.md), and
-[UI components](/specs/decisions/ui-components.md) decisions. None binds future work: those are
-decisions.
+[UI look](/specs/decisions/ui-look.md) and [UI components](/specs/decisions/ui-components.md)
+decisions. None binds future work: those are decisions.
 
 ## R1: The story page's column test reads the session's column
 
@@ -71,7 +70,7 @@ decisions.
 - **Decision**: a feature's page, a draft's editor, and an unknown address show `Missing`, the error
   banner with a link out that a missing file and a missing session already showed, where they showed
   a plain paragraph.
-- **Rationale**: one kind of information, drawn one way, as the UI coherence decision asks.
+- **Rationale**: one kind of information, drawn one way, as the UI components decision asks.
 - **Alternatives considered**: the paragraph everywhere, which offers no way out.
 - **If wrong**: [`layout/Missing.tsx`](/packages/web/src/layout/Missing.tsx).
 - **Where**: [`layout/Missing.tsx`](/packages/web/src/layout/Missing.tsx)

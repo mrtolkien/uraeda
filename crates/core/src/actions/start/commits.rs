@@ -4,11 +4,17 @@
 use std::fs;
 
 use super::plan::Plan;
-use super::restore::{Written, written_in};
+use super::restore::{Before, Written, written_in};
 use super::{Source, Start, StartError, StartProgress, partial};
 use crate::actions::expand::with_nested;
 use crate::cache::WriteGuard;
+use crate::files::retarget;
 use crate::git::{Git, GitError, ObjectId};
+
+/// The folder of a file, from the top level.
+fn folder_of(file: &str) -> &str {
+    file.rsplit_once('/').map_or("", |(folder, _)| folder)
+}
 
 impl Start<'_> {
     /// What is left to do by hand once the proposal file is in the dated folder.
@@ -20,12 +26,13 @@ impl Start<'_> {
     }
 
     /// Moves the proposal file's files into the dated folder, on the default branch: each move,
-    /// from and to.
+    /// from and to, and the text before its links were pointed at the new folder of each moved
+    /// file they changed.
     pub(super) fn move_proposal(
         &self,
         proposal: &str,
         plan: &Plan,
-    ) -> Result<Vec<(String, String)>, StartError> {
+    ) -> Result<(Vec<(String, String)>, Before), StartError> {
         let left = || {
             let mut left = vec![plan.write_left.clone()];
             left.extend(self.left_after_write(plan));
@@ -65,29 +72,55 @@ impl Start<'_> {
         if plan.postponed {
             let _ = fs::remove_dir_all(root.join(proposal));
         }
-        Ok(moves)
+        // The moved text keeps its words, its relative links pointing at the same files from the
+        // dated folder, and at each other when they moved together.
+        let mut before = Before::new();
+        for (from, to) in moves.iter().filter(|(_, to)| to.ends_with(".md")) {
+            let rebased = fs::read_to_string(root.join(to)).and_then(|text| {
+                let moved = retarget::relocated(&text, folder_of(from), folder_of(to), &moves);
+                if moved == text {
+                    return Ok(());
+                }
+                fs::write(root.join(to), moved)?;
+                before.insert(to.clone(), text);
+                Ok(())
+            });
+            if let Err(error) = rebased {
+                let mut left = vec![format!(
+                    "point the relative links of {to} at its new folder"
+                )];
+                left.extend(self.left_after_write(plan));
+                let done: Vec<String> = moves
+                    .iter()
+                    .map(|(from, to)| format!("the move of {from} to {to}"))
+                    .collect();
+                return Err(partial(&done, left, error));
+            }
+        }
+        Ok((moves, before))
     }
 
     /// The start commit, on the default branch: the proposal, and the dated folder with the
     /// proposal file's removal. A hook's refusal puts back what the start wrote, `moves` included,
-    /// when the start asked for it. `held`, the write lock, is released once the files are staged,
-    /// before the hooks run, and taken again to take back the stage and put the files back.
+    /// with `before`'s texts, when the start asked for it. `held`, the write lock, is released once
+    /// the files are staged, before the hooks run, and taken again to take back the stage and put
+    /// the files back.
     pub(super) fn commit_start(
         &self,
         plan: &Plan,
         done: &str,
-        moves: &[(String, String)],
+        (moves, mut before): (&[(String, String)], Before),
         held: Option<WriteGuard>,
     ) -> Result<(), StartError> {
         let done = [done.to_string()];
         let proposal = format!("{}/proposal.md", plan.destination);
-        // The proposal's text before its nested lines, which a refused commit puts back.
-        let mut proposal_before = None;
+        // The proposal's text before its nested lines, which a refused commit puts back unless its
+        // text before its links moved is older.
         if !plan.nested.is_empty()
             && let Err(error) = fs::read_to_string(self.root.join(&proposal)).and_then(|text| {
                 let carried = with_nested(&text, &proposal, &plan.nested);
                 fs::write(self.root.join(&proposal), carried)?;
-                proposal_before = Some(text);
+                before.entry(proposal.clone()).or_insert(text);
                 Ok(())
             })
         {
@@ -146,7 +179,7 @@ impl Start<'_> {
                 message,
                 output,
             } if subcommand == "commit" && self.run.restore && self.head_is(head) => {
-                let left = self.put_back(plan, moves, &written, proposal_before.as_deref());
+                let left = self.put_back(plan, moves, &written, &before);
                 refused(message, output, &left)
             }
             error => Err(partial(&done, self.left_after_write(plan), error)),

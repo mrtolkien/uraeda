@@ -1,15 +1,15 @@
 # Components
 
-"Make those two the SAME component." The [UI coherence](../decisions/ui-coherence.md) decision holds
-the rule: a kind of information is drawn by one shared component everywhere. This guide names the
-component for each job, in `packages/web/src/`, so a new view reaches for it before drawing
+"Make those two the SAME component." The [UI components](../decisions/ui-components.md) decision
+holds the rule: a kind of information is drawn by one shared component everywhere. This guide names
+the component for each job, in `packages/web/src/`, so a new view reaches for it before drawing
 anything, and a change made to one is made once.
 
 ## The page and its parts
 
 | Job                                        | Component                                                                                    |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| A page's width, inset, and reading measure | `layout/Page.tsx`: `isReading`, `isPaired`, `isSession`, `isTight`, `isSnug`, `isFull`       |
+| A page's width, inset, and reading measure | `layout/Page.tsx`: `kind`, `beside`, `isTight`, `isSnug`; the scale in `theme/scale.ts`      |
 | A group of content with a title            | `layout/Pane.tsx`: the title in the border, its tone, its fold, its count `· N`, its actions |
 | A document's or a session's companions     | `layout/DocumentColumn.tsx`, over `layout/SideColumn.tsx`                                    |
 | The same companions on the phone           | `layout/ColumnStatusLine.tsx` with `layout/NavBar.tsx`'s tiles, each opening a sheet         |
@@ -51,13 +51,16 @@ Uraeda is not bound to Astryx: where no Astryx component fits the job, it draws 
 reason in a comment, as the [UI components](../decisions/ui-components.md) decision allows. These
 are its own:
 
-- `layout/NavBar.tsx`: the glass tile, an icon alone in the bottom bar, flat, stretched to share it;
-  and with its word under a big icon in the phone's row actions.
+- `layout/NavBar.tsx`: the glass tile, an icon alone in the bottom bar, flat, stretched to share it,
+  or a square glass button of its own when the bar has one or two; and with its word under a big
+  icon in the phone's row actions.
 - `lists/RowBar.tsx`: the wide row bar's action, drawn as the row's supporting text.
 - `shell/StatusLine.tsx`: a hint, and the "need you" count, each pressed as text of the line.
 - `keys/LeaderMenu.tsx`: a menu row, and the footer's back and close keys, drawn as the menu's text.
 - `lists/OutlineEditor.tsx`: the row's field, a `textarea` in the row's own font, with no frame,
   growing with its text.
+- `layout/Room.tsx`: a room that eases its height open and closed, so what is under it glides into
+  its place: the column's Unfold, and Home's Setup pane.
 
 ## Rules of thumb
 

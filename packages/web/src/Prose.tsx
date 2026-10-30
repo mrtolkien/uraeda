@@ -1,6 +1,6 @@
 // The one place reading text is drawn: its size, its line, its measure, its rhythm, and the
 // markdown that holds prose. A page draws text through these, so a change here changes every page
-// (the UI coherence decision). Nothing else reads `--text-reading-*`, `--prose-*`, or
+// (the UI components decision). Nothing else reads `--text-reading-*`, `--prose-*`, or
 // `--size-reading-measure`, but the theme's rule for markdown lists, which StyleX cannot reach.
 import { Markdown } from "@astryxdesign/core/Markdown";
 import {

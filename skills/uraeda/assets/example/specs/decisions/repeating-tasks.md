@@ -15,17 +15,16 @@ done.
 
 - A repeating task MUST be a single task, with its repeat rule stored on it. Checked by the
   `RepeatRule` field of the `Task` type.
-- Completing a repeating task MUST move its due date to the next occurrence, and MUST NOT create a
+- Completing a repeating task MUST move its due date to the next occurrence, in place of creating a
   new task. Checked by the completion tests of the task store.
 - Features MUST NOT rely on a history of completed occurrences: there is none. Checked by review.
 
 ## Why
 
-The human chose a single task whose date moves, "we're a todo app, not a calendar"
-([Q2](../2026-10-06-recurring-tasks/clarifications-01.md#q2-when-does-the-next-occurrence-appear)),
-with next dates counted from the previous due date
-([Q3](../2026-10-06-recurring-tasks/clarifications-01.md#q3-which-date-does-the-next-due-date-count-from)).
-See the [discovery](../2026-10-06-recurring-tasks/discovery-01.md#generating-occurrences).
+"We're a todo app, not a calendar": repetition organizes what comes next, and a list that grows with
+each completion buries it. Counting the next date from the previous due date keeps a weekly task on
+its weekday, however late it is completed. History:
+[Recurring tasks](../done/2026-10-06-recurring-tasks.md).
 
 ## Alternatives considered
 
@@ -41,5 +40,5 @@ See the [discovery](../2026-10-06-recurring-tasks/discovery-01.md#generating-occ
 
 ## Applies to
 
-- [The task store](/src/store/tasks.ts), and any feature that reads due dates or completion:
-  reminders, statistics, a calendar view
+- [The store](/src/store/), and any feature that reads due dates or completion: reminders,
+  statistics, a calendar view

@@ -85,7 +85,7 @@ export function SignInPage({
   return (
     <div {...stylex.props(styles.surface)}>
       <main>
-        <Page>
+        <Page kind="rows">
           <VStack gap={3} xstyle={styles.column}>
             <PageTitle
               description={

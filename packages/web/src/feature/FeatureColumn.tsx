@@ -1,7 +1,7 @@
 // The Home's column: what the feature produced, and its links, stacked. On wide and
 // semi-wide screens it sits at the window's right edge, in the width and fold of the documents'
-// column (`]` folds it to a rail of icons); on the phone, it follows the timeline in the page's one
-// column.
+// column (`]` folds it to a rail of icons); on the phone, the bottom bar's tiles open each pane's
+// rows in a sheet (`FeatureBar.tsx`).
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { ReactNode } from "react";
@@ -22,18 +22,23 @@ type HistoryData = NonNullable<ReturnType<typeof useHistory>>;
 type ColumnProps = { feature: FeatureData; history: HistoryData; keys: OpenKeys };
 
 /** Whether the feature is done: its history has passed its last stage. */
-function isDone(history: HistoryData): boolean {
+export function isDone(history: HistoryData): boolean {
   return history.current >= history.stages.length;
 }
 
-/** The two panes: "Produced so far" or "What it produced", and Links. */
-export function FeatureColumn({ feature, history, keys }: ColumnProps) {
+/** What a figure's jump opens first: the record's questions, folded, by their id. */
+export function openFigure(keys: OpenKeys) {
+  return (id: string) => id === "record-questions" && keys.onOpenChange(QUESTIONS_KEY, true);
+}
+
+/** The figures of the feature's "Produced so far" or "What it produced", kept up to date. */
+export function useFigureRows(feature: FeatureData, history: HistoryData) {
   const done = isDone(history);
   const agent = feature.agent ?? null;
   // Elapsed counts to now while the feature is live, and a running turn's time until it ends.
   // Every 30 s while it runs, as the feature page's record asks.
   const now = useNow(!done || agent?.runningSince != null ? 30_000 : null);
-  const rows = figureRows({
+  return figureRows({
     agent,
     change: feature.kind === "change",
     done,
@@ -42,13 +47,15 @@ export function FeatureColumn({ feature, history, keys }: ColumnProps) {
     pullRequest: done ? feature.pullRequest?.url : undefined,
     tokens: feature.tokens ?? null,
   });
+}
+
+/** The two panes: "Produced so far" or "What it produced", and Links. */
+export function FeatureColumn({ feature, history, keys }: ColumnProps) {
+  const done = isDone(history);
+  const rows = useFigureRows(feature, history);
   return (
     <VStack gap={4}>
-      <ProducedPane
-        done={done}
-        onOpen={(id) => id === "record-questions" && keys.onOpenChange(QUESTIONS_KEY, true)}
-        rows={rows}
-      />
+      <ProducedPane done={done} onOpen={openFigure(keys)} rows={rows} />
       <LinksPane feature={feature} />
     </VStack>
   );
@@ -66,8 +73,7 @@ function Rail() {
 
 /**
  * `content`, the page, with the column beside it on wide and semi-wide screens, in the documents'
- * width and fold; on the phone, the page alone, which draws `FeatureColumn` itself, after its
- * timeline.
+ * width and fold; on the phone, the page alone, its bar holding the column (`FeatureBar`).
  */
 export function WithFeatureColumn({ content, ...column }: ColumnProps & { content: ReactNode }) {
   const { isShown, resizable, setShown } = useDocumentColumnWidth();

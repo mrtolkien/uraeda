@@ -6,6 +6,7 @@
 use napi_derive::napi;
 use serde::Serialize;
 
+use crate::api::SetupItem;
 use crate::decisions::{Candidate, DecisionChange};
 use crate::files::document::{Document, Span};
 use crate::files::items::{Items, ReviewItems};
@@ -81,6 +82,9 @@ pub struct WorkspaceView {
     pub proposals: Vec<String>,
     /// The repository's path when it has no `specs/` folder: nothing else is read.
     pub no_specs: Option<String>,
+    /// What the project lacks to be set up, in the setup's order: every item while a required one
+    /// is not written, and none once it is set up.
+    pub setup: Vec<SetupItem>,
 }
 
 /// A workflow file: the version on disk, the version committed at its branch's tip when it
@@ -344,6 +348,7 @@ impl WorkspaceView {
             priorities_hash: String::new(),
             proposals: workspace.proposals.clone(),
             no_specs: None,
+            setup: Vec::new(),
         }
     }
 }

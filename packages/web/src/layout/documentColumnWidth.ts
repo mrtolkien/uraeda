@@ -1,8 +1,8 @@
 // The document's column's one width and fold, kept in the browser under `uraeda.documentColumn`
-// for every document page: a third of the window, between 400 and 600 px, until the human drags its
-// edge, then the width they chose, between 400 and 720 px. A kept width outside those, from a hand
-// edit or an older build, is clamped as it is drawn (plan, Review focus 6). The open tab never
-// changes it. A session's column shares that width and fold, but is narrower at semi-wide, so the
+// for every document page: 400 px, the least a column of rows takes, at every window, until the
+// human drags its edge, then the width they chose, between 400 and 720 px. A kept width outside
+// those, from a hand edit or an older build, is clamped as it is drawn (the session column's plan,
+// Review focus 6). The open tab never changes it. A session's column shares that width and fold, but is narrower at semi-wide, so the
 // chat keeps the weight (approval comment C2 of the session's spec, its ruling R9). The browser
 // keeps the width as dragged, so a session's 320 px draws the documents' column at 400 px, and its
 // fold keeps the 320 px (ruling R15).
@@ -16,8 +16,8 @@ export const COLUMN_KEY = "uraeda.documentColumn";
 /** The least and the most the column's edge drags to, in px. */
 export const LIMITS = { max: 720, min: 400 };
 
-/** The column's width before any drag: a third of the window, within its own limits, in px. */
-const AUTO = { max: 600, min: 400, share: 1 / 3 };
+/** The column's width before any drag: its least, 400 px, at every window, in px. */
+const AUTO = { max: LIMITS.min, min: LIMITS.min, share: 0 };
 
 /** The least and the most a session's column's edge drags to, in px. */
 const SESSION_LIMITS = { max: 720, min: 300 };
@@ -28,9 +28,6 @@ const SESSION_AUTO = { max: 360, min: 300, share: 0.3 };
 /** What the browser keeps of the column: the width dragged to, and whether it is folded. */
 type StoredDocumentColumn = StoredWidth;
 
-/** The column's width before any drag, for a window `windowWidth` px wide. */
-export const autoWidth = (windowWidth: number) => autoWidthOf(AUTO, windowWidth);
-
 /** A session's column's width at semi-wide before any drag, for a window `windowWidth` px wide. */
 export const sessionAutoWidth = (windowWidth: number) => autoWidthOf(SESSION_AUTO, windowWidth);
 
@@ -40,19 +37,33 @@ export const readDocumentColumn = (): StoredDocumentColumn => readStored(COLUMN_
 /** The drawn columns' ways to unfold, which `showDocumentColumn` calls. */
 const unfolds = new Set<() => void>();
 
+/** The railed columns' ways to open over the page, which `showDocumentColumn` calls too. */
+const opens = new Set<() => void>();
+
 /**
  * Unfolds the document's column, from outside it, as asking the agent does to open Session: each
- * column drawn shows, and keeps the fold. Without one drawn, nothing changes.
+ * column drawn shows, and keeps the fold; a column railed on a half screen opens over the page.
+ * Without one drawn, nothing changes.
  */
 export function showDocumentColumn() {
-  for (const unfold of unfolds) {
-    unfold();
+  for (const show of [...unfolds, ...opens]) {
+    show();
   }
 }
 
+/** Opens a railed column over the page when `showDocumentColumn` is called, while mounted. */
+export function useOpenOnShow(open: () => void) {
+  useEffect(() => {
+    opens.add(open);
+    return () => {
+      opens.delete(open);
+    };
+  }, [open]);
+}
+
 /**
- * The column's width, its resize, and its fold: the width follows the window until the human drags
- * the edge, which keeps the width they chose, for every document; the fold is kept too.
+ * The column's width, its resize, and its fold: 400 px until the human drags the edge, which keeps
+ * the width they chose, for every document; the fold is kept too.
  */
 export function useDocumentColumnWidth() {
   return useKeptColumn(AUTO, LIMITS);

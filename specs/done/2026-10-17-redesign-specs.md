@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-18
 pull-request: https://github.com/mrtolkien/uraeda/pull/33
+superseded-by: [2026-10-29-decisions-needs]
 ---
 
 # Record: Redesign and reword specs
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/33
 > The record of a merged feature, not instructions to follow. Started on 2026-10-17, finished on
 > 2026-10-18, in [its pull request](https://github.com/mrtolkien/uraeda/pull/33). Its full files are
 > in git: `git log -- specs/2026-10-17-redesign-specs/`.
+>
+> Superseded in part by [2026-10-29-decisions-needs](2026-10-29-decisions-needs.md).
 
 ## What and why
 
@@ -197,8 +200,9 @@ own rules, staying at 10.
   [settings](../decisions/settings.md), [sign-in](../decisions/sign-in.md),
   [stack](../decisions/stack.md), [toolchain](../decisions/toolchain.md),
   [TUI](../decisions/tui.md), [UI behaviour](../decisions/ui-behaviour.md),
-  [UI checks](../decisions/ui-checks.md), [UI components](../decisions/ui-components.md), and
-  [UI layout](../decisions/ui-layout.md): 18,728 words became about 9,400.
+  [UI checks, now in Testing](../decisions/testing.md),
+  [UI components](../decisions/ui-components.md), and [UI layout](../decisions/ui-layout.md): 18,728
+  words became about 9,400.
 - The stack decision folds in access-storybook's rule that Storybook's channel is forwarded only as
   a preview's.
 

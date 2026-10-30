@@ -274,8 +274,8 @@ to 4 round trips, then navigates ([`useNoteActions.ts`](/packages/web/src/useNot
 Other features in flight: the [amend-latest](/specs/done/2026-10-29-amend-latest.md) change will
 amend commits of workflow files only. That cuts commit noise, not hook time.
 [help-keybindings](/specs/done/2026-10-29-help-keybindings.md) and
-[decisions-needs](/specs/2026-10-29-decisions-needs/proposal.md) touch nothing here. All three hold
-only their proposal.
+[decisions-needs](/specs/done/2026-10-29-decisions-needs.md) touch nothing here. All three hold only
+their proposal.
 
 ### Rules and their owners
 

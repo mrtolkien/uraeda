@@ -176,7 +176,7 @@ export function SettingsView({
       </Pane>
     ));
   return (
-    <Page>
+    <Page beside="--size-setting-control" kind="rows">
       <RefusalsProvider>
         <VStack gap={6}>
           <div ref={bar} {...stylex.props(styles.bar, !wide && styles.barPhone)}>

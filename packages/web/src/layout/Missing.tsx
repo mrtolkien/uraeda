@@ -1,9 +1,12 @@
 // What a page shows when the thing its address names is not there: an error with the way out, the
-// same on every page (UI coherence); and a repository without a `specs/` folder.
+// same on every page (UI components); and a repository without a `specs/` folder.
 import { Banner } from "@astryxdesign/core/Banner";
 import { Link } from "@astryxdesign/core/Link";
+import type { ReactNode } from "react";
+import { useWorkspace } from "../data.ts";
 import { useRepoPath } from "../routes.tsx";
 import { AnnouncedBanner } from "./AnnouncedBanner.tsx";
+import { Page } from "./Page.tsx";
 
 /**
  * What a page cannot find, "No file spec.md in 2026-10-11-web-ui.", and a link out of it: to `to`,
@@ -33,9 +36,44 @@ export function Missing({
   );
 }
 
-/** A page of a repository without a `specs/` folder: the folder, and how to set Uraeda up. */
+/**
+ * A page of a repository without a `specs/` folder, other than Home: the folder, and a link to Home,
+ * whose Setup pane sets the project up.
+ */
 export function NoSpecs({ path }: { path: string }) {
+  const here = useRepoPath();
   return (
-    <Banner status="warning" title={`No specs/ folder in ${path}. Set Uraeda up with ura init.`} />
+    <Banner
+      collapsible={false}
+      description={
+        <Link hasUnderline href={here("/")}>
+          Open home
+        </Link>
+      }
+      status="warning"
+      title={`No specs/ folder in ${path}. Set the project up from Home.`}
+    />
   );
+}
+
+/**
+ * What reads `specs/`, the inbox's, the priorities', or the decisions' page, or a note's or a
+ * proposal's address: `children`, or in a repository without the folder, whose files the core
+ * cannot read, `fallback`, by default the warning that says to set the project up.
+ */
+export function WithSpecs({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
+  const workspace = useWorkspace();
+  if (!workspace) {
+    return null;
+  }
+  if (workspace.noSpecs) {
+    return fallback === undefined ? (
+      <Page kind="rows">
+        <NoSpecs path={workspace.noSpecs} />
+      </Page>
+    ) : (
+      fallback
+    );
+  }
+  return children;
 }

@@ -45,7 +45,13 @@ export const families = {
     tests: ["src/**/*.test.ts"],
   },
   binding: {
-    inputs: [...nativeInputs, "packages/server/src/{binding,fresh-binding,paths}.ts", policy],
+    inputs: [
+      ...nativeInputs,
+      "packages/server/src/{binding,fresh-binding,paths}.ts",
+      // The test setup's folders in memory.
+      "scripts/test-run.ts",
+      policy,
+    ],
     native: true,
     root: "packages/binding",
     tests: ["contracts.test.ts"],

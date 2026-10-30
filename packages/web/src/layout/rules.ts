@@ -1,6 +1,6 @@
 // The lines that set parts apart without a pane: a rule above or below a part, as between a
 // terminal's panes, and a bar down a part's side, as a quote or a callout draws it. A part's own
-// colour, or a row's divider that its last row drops, stays the part's (UI look, UI coherence).
+// colour, or a row's divider that its last row drops, stays the part's (UI look, UI components).
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 

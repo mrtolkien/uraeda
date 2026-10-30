@@ -168,7 +168,8 @@ The phone's version of the side column: one row of icon tiles in frosted glass, 
 as its side column has them, each opening a sheet, then at its end the one help that moves the human
 forward, Next or Verdict, in the accent. It is drawn by the pages with a side column, through
 `layout/ColumnStatusLine.tsx`, and slides away as the page scrolls down and back as it scrolls up.
-See [the phone](phone.md) for what goes in it.
+One or two tiles are glass buttons in the corners instead of a bar. See [the phone](phone.md) for
+what goes in it.
 
 ## Sheets
 

@@ -81,7 +81,7 @@ export function SessionsPage() {
   const [picked, setPicked] = useState<string>();
   useNewKey();
   return (
-    <Page isTight>
+    <Page isTight kind="rows">
       {/* The pointer takes the focus to its cards' links, as the keys do. */}
       <div
         onBlur={() => setPicked(undefined)}

@@ -58,40 +58,61 @@ const CHATS: Array<{ script: Array<AgentEvent>; text: string }> = [
   },
 ];
 
+/** Runs `work` on the sessions of `dataDir`'s `runner.sqlite`, then closes them, releasing the file. */
+async function withSessions(
+  dataDir: string,
+  work: (seeded: ReturnType<typeof fakeSessions>) => Promise<void>,
+): Promise<void> {
+  const seeded = fakeSessions({
+    adapter: sandboxAgent({ wait: async () => {} }),
+    cache: join(dataDir, "runner.sqlite"),
+  });
+  const { sessions } = seeded;
+  try {
+    await sessions.check();
+    await work(seeded);
+  } finally {
+    await sessions.closeAll();
+    sessions.close();
+    sessions.cache.db.close();
+  }
+}
+
 /**
  * Writes the sample project's sessions in `dataDir`'s `runner.sqlite`: a finished chat, and chats
  * that failed, were stopped, and were stopped by the usage limit; and with `realistic`, its leader
- * key's spec session as a live run left it (`liveSession.ts`). The turn at work is not one: the
- * sandbox starts it as it starts, with `atWork`. The cache is closed after, releasing the file.
+ * key's spec session (`seedRealisticSession`). The turn at work is not one: the sandbox starts it
+ * as it starts, with `atWork`.
  */
 export async function seedSessions(
   dataDir: string,
   sample: string,
   realistic?: string,
 ): Promise<void> {
-  const { adapter, sessions } = fakeSessions({
-    adapter: sandboxAgent({ wait: async () => {} }),
-    cache: join(dataDir, "runner.sqlite"),
-  });
-  try {
-    await sessions.check();
+  await withSessions(dataDir, async ({ adapter, sessions }) => {
     for (const { script, text } of CHATS) {
       const chat = await sessions.newChat(sample);
       adapter.script(script);
       const { turn } = await sessions.send(sample, chat.id, { text });
       await sessions.settled(turn);
     }
-    if (realistic !== undefined) {
-      // Under the repository's root as every session's, a path through a link resolved.
-      seedLiveSession(
-        sessions.cache,
-        await sessions.mainRoot(realistic),
-        REALISTIC_FOLDERS.reviewing,
-      );
-    }
-  } finally {
-    await sessions.closeAll();
-    sessions.close();
-    sessions.cache.db.close();
+  });
+  if (realistic !== undefined) {
+    await seedRealisticSession(dataDir, realistic);
   }
+}
+
+/**
+ * Writes the realistic project's session in `dataDir`'s `runner.sqlite`: its leader key's spec
+ * session as a live run left it (`liveSession.ts`). The cache is closed after, releasing the file.
+ */
+export async function seedRealisticSession(dataDir: string, realistic: string): Promise<void> {
+  await withSessions(dataDir, async ({ sessions }) => {
+    // Under the repository's root as every session's, a path through a link resolved.
+    seedLiveSession(
+      sessions.cache,
+      await sessions.mainRoot(realistic),
+      REALISTIC_FOLDERS.reviewing,
+    );
+  });
 }

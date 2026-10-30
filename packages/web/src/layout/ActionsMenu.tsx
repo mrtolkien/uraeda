@@ -1,5 +1,5 @@
 // The "…" that opens what can be done to a thing: a feature, a session, a card, a repository. Every
-// such menu is drawn here, its glyph, size, and place the same on every page (UI coherence), and
+// such menu is drawn here, its glyph, size, and place the same on every page (UI components), and
 // opens as a popover at every width, on the phone too: a menu is not a sheet.
 import type { DropdownMenuOption } from "@astryxdesign/core/DropdownMenu";
 import { Icon } from "@astryxdesign/core/Icon";

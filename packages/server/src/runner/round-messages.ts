@@ -1,6 +1,6 @@
 // The messages of the default branch's rounds, the inbox's triage (`references/inbox.md`) and the
-// decisions check (`references/decisions-check.md`): each starts a chat in the main
-// checkout. Free of Node's modules, so the UI imports them as they are. Also the one home of the
+// decisions check (`references/decisions-check.md`), and the project's setup: each starts a chat in
+// the main checkout. Free of Node's modules, so the UI imports them as they are. Also the one home of the
 // rounds' ids and file names, which the server and the UI share.
 
 /** The inbox's triage, among workflow files: the core's id for it, as it has no feature. */
@@ -33,3 +33,11 @@ export const RUN_DECISIONS_CHECK =
 /** The message that asks an agent to apply the human's answers to the decisions check. */
 export const APPLY_DECISIONS_CHECK =
   "/uraeda Apply my answers in specs/DECISIONS-CHECK.md, following references/decisions-check.md.";
+
+/**
+ * The message that starts the skill's setup (`references/projects.md`, "Setting up a project"),
+ * from Home's Setup pane: the agent writes what the project lacks, asks before writing the
+ * constitution, and overwrites nothing.
+ */
+export const SET_UP_PROJECT =
+  "/uraeda Set this project up for Uraeda: write what is missing, ask me before writing the constitution, never overwrite a file.";

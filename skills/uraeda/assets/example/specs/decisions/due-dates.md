@@ -14,17 +14,16 @@ saving time.
 
 - Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type and the
   store's upgrade test.
-- Date arithmetic MUST go through `src/lib/dates.ts`. Checked by review.
-- Code MUST NOT convert a due date to a `Date`, except inside `src/lib/dates.ts` and to display it.
+- Date arithmetic MUST go through the app's date module. Checked by review.
+- Code MUST NOT convert a due date to a `Date`, except inside the date module and to display it.
   Checked by review.
 
 ## Why
 
-Recurring tasks add date arithmetic, and reminders will add more. Due dates were timestamps at local
-midnight: adding 7 days across a daylight saving change gave 23:00 the day before, so weekly tasks
-drifted. See
-[Q4](../2026-10-06-recurring-tasks/clarifications-01.md#q4-how-should-the-app-store-due-dates) and
-the [discovery](../2026-10-06-recurring-tasks/discovery-01.md#date-handling).
+Repeating tasks add date arithmetic, and reminders will add more. A timestamp at local midnight
+drifts: adding 7 days across a daylight saving change gives 23:00 the day before, so weekly tasks
+move. A calendar day has no time to drift. History:
+[Recurring tasks](../done/2026-10-06-recurring-tasks.md).
 
 ## Alternatives considered
 
@@ -40,8 +39,8 @@ the [discovery](../2026-10-06-recurring-tasks/discovery-01.md#date-handling).
 
 ## Applies to
 
-- [Date helpers](/src/lib/dates.ts), [the task store](/src/store/tasks.ts), and any feature with
-  dates: recurring tasks, reminders, a calendar view
+- [Date helpers](/src/lib/), [the store](/src/store/), and any feature with dates: recurring tasks,
+  reminders, a calendar view
 
 ## Revisit when
 

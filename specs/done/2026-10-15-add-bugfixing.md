@@ -192,8 +192,9 @@ reuse the clarifications view, linked from the session's right column.
 
 ## Decisions
 
-- [UI checks](../decisions/ui-checks.md), changed: a UI test may guard the expected behaviour of a
-  change's proposal, and a change's screenshots, reviewed against its proposal, go in its folder.
+- [UI checks, now in Testing](../decisions/testing.md), changed: a UI test may guard the expected
+  behaviour of a change's proposal, and a change's screenshots, reviewed against its proposal, go in
+  its folder.
 - [Attachments](../decisions/attachments.md), changed: "a change's folder" where it said "a bug's".
 - [CLI](../decisions/cli.md), changed: commands act on "a feature, a change, a draft, or a workflow
   file", and default to the current branch's feature or change.

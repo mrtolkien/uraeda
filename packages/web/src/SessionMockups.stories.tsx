@@ -128,7 +128,7 @@ function Session({
   const [text, setText] = useState("");
   return (
     <div {...stylex.props(styles.surface)}>
-      <Page isSnug>
+      <Page isSnug kind="session">
         <VStack gap={3}>
           <VStack gap={1}>
             <Heading level={1}>Recurring tasks</Heading>

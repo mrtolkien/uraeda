@@ -2432,6 +2432,134 @@ fn a_must_after_a_should() {
     assert_eq!(ordered.warnings(), Vec::<String>::new());
 }
 
+/// Replaces the body of the decision's `heading` section, up to the next level-2 heading; the
+/// intent, for the title.
+fn with_section(example: &Example, heading: &str, body: &str) {
+    let text = example.read(DECISION);
+    let start = text.find(&format!("{heading}\n\n")).unwrap() + heading.len() + 2;
+    let end = text[start..]
+        .find("\n## ")
+        .map_or(text.len(), |at| start + at + 1);
+    example.write(
+        DECISION,
+        &format!("{}{body}\n{}", &text[..start], &text[end..]),
+    );
+}
+
+/// `count` words, each its own, as one sentence.
+fn words(count: usize) -> String {
+    let words: Vec<String> = (1..=count).map(|n| format!("word{n}")).collect();
+    format!("{}.\n", words.join(" "))
+}
+
+/// `count` items of a list.
+fn items(count: usize) -> String {
+    (1..=count).map(|n| format!("- Item {n}.\n")).collect()
+}
+
+/// US2 1, 2, 3, more 1, 2, SC-003, and the edge cases on keywords and links: each limit warns one
+/// past it, on the section to cut, and a decision at every limit warns nothing.
+#[test]
+fn each_decision_limit() {
+    type Break = fn(&Example);
+    let rows: Vec<(&str, Break, &str, String)> = vec![
+        (
+            "decision.intent",
+            |e| {
+                with_section(
+                    e,
+                    "# Task storage",
+                    "Tasks stay. They sync. They upgrade. They last.\n",
+                )
+            },
+            "# Task storage",
+            "4 sentences: keep the intent to at most 3".into(),
+        ),
+        (
+            "decision.why",
+            |e| {
+                with_section(
+                    e,
+                    "## Why",
+                    &format!("{}\n{}\n- {}", words(40), words(30), words(11)),
+                )
+            },
+            "## Why",
+            "81 words: keep the reason under 80".into(),
+        ),
+        (
+            "decision.alternatives",
+            |e| with_section(e, "## Alternatives considered", &items(4)),
+            "## Alternatives considered",
+            "4 alternatives: keep at most 3, the ones an agent could propose again".into(),
+        ),
+        (
+            "decision.consequences",
+            |e| with_section(e, "## Consequences", &items(5)),
+            "## Consequences",
+            "5 consequences: keep at most 4, the costs and what a later feature must do".into(),
+        ),
+        (
+            "decision.rules",
+            |e| with_rules(e, &format!("> ## A quoted heading\n\n{}", rules(11))),
+            "## Rules",
+            "11 rules: keep at most 10, or split the topic".into(),
+        ),
+        (
+            "decision.keywords",
+            |e| {
+                with_rules(
+                    e,
+                    "- Sessions MUST be random, and MUST end after 30 days. Checked by review.\n",
+                )
+            },
+            "- Sessions MUST be random, and MUST end after 30 days. Checked by review.",
+            "2 keywords: one rule holds one MUST, SHOULD, or MAY".into(),
+        ),
+    ];
+    for (rule, break_it, at, message) in rows {
+        let example = Example::new();
+        break_it(&example);
+        let line = line_in(&example.read(DECISION), at);
+
+        let problems = example.problems();
+
+        let found: Vec<&Problem> = problems.iter().filter(|p| p.rule == rule).collect();
+        assert_eq!(
+            summary(&found.into_iter().cloned().collect::<Vec<_>>()),
+            [format!("warning: {DECISION}:{line}: {message}")],
+            "{rule}"
+        );
+    }
+    let limits = Example::new();
+    with_section(
+        &limits,
+        "# Task storage",
+        "Tasks stay. They sync. They upgrade.\n",
+    );
+    let why = words(79).replace(".\n", "");
+    with_section(
+        &limits,
+        "## Why",
+        &format!("{why} [history](../2026-10-06-recurring-tasks/discovery-01.md#date-handling).\n"),
+    );
+    with_section(
+        &limits,
+        "## Alternatives considered",
+        &items(check::DECISION_ALTERNATIVES),
+    );
+    with_section(
+        &limits,
+        "## Consequences",
+        &items(check::DECISION_CONSEQUENCES),
+    );
+    with_rules(
+        &limits,
+        "- Code MUST NOT call `MAY` directly. Checked by a lint that refuses SHOULD.\n",
+    );
+    assert_eq!(limits.warnings(), Vec::<String>::new());
+}
+
 /// US1 3: the example spec and its data model report neither a problem nor a warning, the spec
 /// measured as if it waited too.
 #[test]
@@ -2463,51 +2591,49 @@ fn the_example_spec_is_at_most_2000_words() {
     assert!(words <= 2_000, "{words} words");
 }
 
-/// The 18 decisions the specs redesign rewrote, listed in its spec, now in its record.
-const REWRITTEN: [&str; 18] = [
-    "agents",
-    "attachments",
-    "cli",
-    "code-quality",
-    "distribution",
-    "git",
-    "notifications",
-    "preview",
-    "repositories",
-    "settings",
-    "sign-in",
-    "stack",
-    "toolchain",
-    "tui",
-    "ui-behaviour",
-    "ui-checks",
-    "ui-components",
-    "ui-layout",
-];
+/// The shape warnings of a decision the human approved as it stands, over this test: the UI layout
+/// decision's Why and alternatives, as the panes-size spec changed them, and the UI behaviour
+/// decision's 12 rules, as the performance pass's four rules on writes, one claim each, made them.
+/// Theirs to trim or keep.
+fn approved_over_its_shape(problem: &Problem) -> bool {
+    (problem.file.ends_with("specs/decisions/ui-layout.md")
+        && matches!(
+            problem.rule.as_str(),
+            "decision.why" | "decision.alternatives"
+        ))
+        || (problem.file.ends_with("specs/decisions/ui-behaviour.md")
+            && problem.rule == "decision.rules")
+}
 
-/// SC-002: no decision of the repository holds more than 10 rules, and the decisions the specs
-/// redesign rewrote hold at most 9,500 words together, their frontmatter aside.
+/// US3 1, SC-001, SC-002, SC-004: the repository's decisions warn nothing on their shape, hold at
+/// most 11,800 words together, their frontmatter aside, and each Why links one record at most. The
+/// limit was 11,000 until the documentation decision, approved with Onboarding + README pass, and
+/// 11,100 until the performance decision and UI behaviour's rules on writes, approved with the
+/// performance pass.
 #[test]
-fn every_decision_of_the_repository_holds_at_most_10_rules() {
+fn the_ledger_reads_alone() {
     let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let decisions = repository.join("specs/decisions");
 
     let problems = check::check(&repository, &decisions).unwrap();
 
-    let over: Vec<&Problem> = problems
+    let shape: Vec<&Problem> = problems
         .iter()
-        .filter(|p| p.rule == "decision.rules")
+        .filter(|p| p.rule.starts_with("decision.") && p.rule != "decision.unapproved")
+        .filter(|p| !approved_over_its_shape(p))
         .collect();
-    assert!(over.is_empty(), "{over:#?}");
-    let words: usize = REWRITTEN
-        .iter()
-        .map(|name| {
-            let text = repository_file(&format!("specs/decisions/{name}.md"));
-            let body = text.splitn(3, "---\n").nth(2).unwrap();
-            body.split_whitespace().count()
-        })
-        .sum();
-    assert!(words <= 9_500, "{words} words");
+    assert!(shape.is_empty(), "{shape:#?}");
+    let mut words = 0;
+    for entry in fs::read_dir(&decisions).unwrap() {
+        let text = fs::read_to_string(entry.unwrap().path()).unwrap();
+        let body = text.splitn(3, "---\n").nth(2).unwrap();
+        words += body.split_whitespace().count();
+        let why = body.split("\n## Why\n").nth(1).unwrap_or_default();
+        let why = why.split("\n## ").next().unwrap();
+        let records = why.matches("](../done/").count() + why.matches("](/specs/done/").count();
+        assert!(records <= 1, "{records} records linked from a Why:\n{why}");
+    }
+    assert!(words <= 11_800, "{words} words");
 }
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";

@@ -1,5 +1,5 @@
 /**
- * Screenshots of the UI's views for review, as the UI checks decision asks before handing a UI
+ * Screenshots of the UI's views for review, as the Testing decision asks before handing a UI
  * change over: each view at a phone's size (402 × 874, with a touch screen) and a desktop's
  * (1440 × 900), in light and dark, saved as `<view>-<phone|desktop>-<light|dark>.webp` in the
  * feature's `screenshots/` folder, re-encoded by the core as an attached image is.
@@ -21,8 +21,6 @@ import { type Browser, type Page, webkit } from "playwright";
 import { addRepository } from "uraeda-binding";
 import { addStoryFeature, STORIES_FILE, STORY_FEATURE } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "uraeda-server/testing";
-import { createServer, type PluginOption } from "vite-plus";
-import base, { uraedaServer } from "../vite.config.ts";
 import { listPullRequest, recordFeatureRuns } from "../samples/index.ts";
 import { takeChanges } from "./change-shots.ts";
 import { takeFeaturePage } from "./feature-shots.ts";
@@ -49,6 +47,8 @@ import {
   show,
   openRepositories,
   openSessionsTab,
+  openShots,
+  serveUi,
   type Each,
   type Shot,
   type Size,
@@ -60,7 +60,6 @@ import { AGENT, takeImplementation, takeSessions } from "./sessionShots.ts";
 import { takeSessionLook } from "./session-look-shots.ts";
 import { takeSessionNew } from "./session-new-shots.ts";
 
-const web = fileURLToPath(new URL("..", import.meta.url));
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const folder = process.argv[2];
 if (!folder) {
@@ -89,35 +88,13 @@ async function main() {
   // Listed now, as the server lists it when it starts: its pages are under `/r/<name>/`.
   const { repository: listed } = await addRepository(data, repo);
   const adapter = new FakeAdapter();
-  const server = await serve(adapter, 4390);
+  const server = await serveUi(adapter, 4390);
   const url = server.resolvedUrls?.local[0]?.replace(/\/$/, "") ?? "";
   let browser: Browser | undefined;
   try {
     mkdirSync(out, { recursive: true });
     browser = await webkit.launch();
-    const shots: Array<Shot> = [];
-    for (const size of ["phone", "desktop"] as const) {
-      for (const mode of ["light", "dark"] as const) {
-        const context = await browser.newContext({
-          baseURL: url,
-          colorScheme: mode,
-          viewport: size === "phone" ? { height: 874, width: 402 } : { height: 900, width: 1440 },
-          // A touch screen, as a phone has.
-          hasTouch: size === "phone",
-          reducedMotion: "reduce",
-          // The feature page's times, as its features' commits give them.
-          timezoneId: "UTC",
-        });
-        // The banner that asks to notify shows above every page until dismissed: its own shot
-        // names its tab "banner" to show it.
-        await context.addInitScript(() => {
-          if (window.name !== "banner") {
-            window.localStorage.setItem("uraeda.notifications", "dismissed");
-          }
-        });
-        shots.push({ context, mode, page: await context.newPage(), size });
-      }
-    }
+    const shots = await openShots(browser, url);
     const at = `/r/${encodeURIComponent(listed.name)}`;
     await take(shots, adapter, repo, at);
     await takeImages(shooter(shots, out, views), shots[0]!.page, adapter, repo, `${url}${at}`);
@@ -125,36 +102,11 @@ async function main() {
     await takeChanges(shooter(shots, out, views), shots[0]!.page, adapter, repo);
     await takeMergeChats(shooter(shots, out, views), shots[0]!.page, adapter);
     await takeStories(shooter(shots, out, views));
-    // `settings` names every view of the settings page. Its second server reads `env` with its
-    // first request, so `env` stays in the environment until it is closed.
-    const second: Serve = async (env) => {
-      const before = Object.fromEntries(Object.keys(env).map((name) => [name, process.env[name]]));
-      const restore = () => {
-        for (const [name, value] of Object.entries(before)) {
-          if (value === undefined) {
-            delete process.env[name];
-          } else {
-            process.env[name] = value;
-          }
-        }
-      };
-      Object.assign(process.env, env);
-      const started = await serve(new FakeAdapter(), 4395).catch((error: unknown) => {
-        restore();
-        throw error;
-      });
-      return {
-        close: async () => {
-          await started.close();
-          restore();
-        },
-        url: started.resolvedUrls?.local[0]?.replace(/\/$/, "") ?? "",
-      };
-    };
+    // `settings` names every view of the settings page.
     await takeSettings(
       shooter(shots, out, views.includes("settings") ? [] : views),
       config,
-      second,
+      serveSecond,
       at,
     );
     // `sign-in` names every view of signing in and out.
@@ -171,24 +123,33 @@ async function main() {
 }
 
 /**
- * The UI served by Vite with the server's routes in process, on `adapter`, without sign-in, on
- * `port` or the next one free, with the settings of the environment as it is now.
+ * The settings views' second server, on the fake agent. It reads `env` with its first request, so
+ * `env` stays in the environment until it is closed.
  */
-async function serve(adapter: FakeAdapter, port: number) {
-  const plugins = (base.plugins ?? []).filter(
-    (plugin: PluginOption) => !(plugin && "name" in plugin && plugin.name === "uraeda-server"),
-  );
-  const server = await createServer({
-    ...base,
-    configFile: false,
-    logLevel: "warn",
-    plugins: [...plugins, uraedaServer({ adapter, signIn: false })],
-    root: web,
-    server: { host: "127.0.0.1", port, strictPort: false },
+const serveSecond: Serve = async (env) => {
+  const before = Object.fromEntries(Object.keys(env).map((name) => [name, process.env[name]]));
+  const restore = () => {
+    for (const [name, value] of Object.entries(before)) {
+      if (value === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = value;
+      }
+    }
+  };
+  Object.assign(process.env, env);
+  const started = await serveUi(new FakeAdapter(), 4395).catch((error: unknown) => {
+    restore();
+    throw error;
   });
-  await server.listen();
-  return server;
-}
+  return {
+    close: async () => {
+      await started.close();
+      restore();
+    },
+    url: started.resolvedUrls?.local[0]?.replace(/\/$/, "") ?? "",
+  };
+};
 
 /** Home with the column beside it, or the phone's Sessions tab, which holds the column's panes. */
 async function sidebar(page: Page, size: Size) {

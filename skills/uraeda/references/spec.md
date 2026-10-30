@@ -83,7 +83,7 @@ A decision records a choice a human made that agents must follow across the code
 reliably make on their own. The ledger is the current state of what the human wants. It grows as the
 project grows, and decisions change when the human changes their mind.
 
-An answer becomes a decision only if it passes all four tests:
+An answer becomes a decision only if it passes all five tests:
 
 1. **An agent would not guess it.** A capable agent, reading the code and the constitution, could
    reasonably do something else. If any agent would do it anyway, it is noise.
@@ -95,7 +95,11 @@ An answer becomes a decision only if it passes all four tests:
 4. **Intent, not mechanism.** It states the human's goal or approach, not a value the code holds: a
    flag, a timeout, a file name, a size, a version, an exit code. The code, its configuration, and
    its checks hold those, and change them without the human. A rule keeps a value only when the
-   human chose that value, and its **Why** then links the answer.
+   human chose that value.
+5. **The human judges each line from their goals.** They can approve or refuse every line of the
+   decision without opening the code. Names of components, hooks, functions, CSS classes, and files
+   inside a folder, and lists of fields or keys, stay in the code, its comments and tests, or the
+   project's guides. A value stays when the human chose it and would check a plan against it.
 
 Examples:
 
@@ -103,8 +107,13 @@ Examples:
   not a decision.
 - An answer "agents never run with permissions skipped" is a boundary. It is a decision, and its
   rule is written without the flag's name.
-- An answer "a session lasts 30 days" is a value the human chose. The rule keeps the 30 days, and
-  the **Why** links the answer.
+- An answer "a session lasts 30 days" is a value the human chose, and one they would check a plan
+  against. The rule keeps the 30 days.
+- An answer allowing a stylesheet for one component's rows names the code. The rule reads "A raw
+  element or a plain style MAY stand in where the design system cannot do the job", and the
+  component is named in the code's comment.
+- An answer picking the base keymap's keys is a list the human approved once, not one they check a
+  plan against. The rule says the keys follow Vim's habits, and the keys go to the project's guide.
 
 Typical decisions: how the code is organized, dependencies, the technical approach to a problem, and
 visual direction. Others are cross-cutting conventions (errors, dates, logging), and transitions,
@@ -115,6 +124,10 @@ comment asking for it. The human approves every line of the ledger, so no decisi
 own judgment. A choice you think deserves one goes back to the human as a question in a new round,
 following [Discovery](discovery.md). A low-impact choice made inside the feature is not a decision.
 It is an assumption in the spec, or a ruling in `rulings.md` during the plan and the implementation.
+
+A decision is never edited to describe the code, unless the human asks. When the code and a decision
+disagree, the code changes, or the question goes to the human. A decision rewritten to match the
+code takes on the code's detail.
 
 ### New decision or change
 
@@ -129,7 +142,9 @@ First, look for an existing decision on the same topic.
 - **One exists**: edit it in place, on the feature's branch, as it should read after the change. Set
   `status: proposed` and empty `approved-by`. The default branch and every other branch keep the
   active text until this one merges. A change that reverses an earlier choice lists that choice
-  under **Alternatives considered**, with why it was abandoned, so no agent proposes it again.
+  under **Alternatives considered**, with why it was abandoned, so no agent proposes it again. Past
+  [the limit](writing.md#a-decision), the alternative an agent is least likely to propose again
+  goes: the record still says why it lost.
 - **To remove one**: delete its file on the branch. Its item in the spec names it without a link,
   since the file is gone.
 
@@ -139,34 +154,35 @@ approval step activates each listed decision: see [Approval](approval.md).
 
 ### Writing a decision
 
-Write for a reviewer who has not read the discovery, as [a decision](writing.md#a-decision) in
-Writing for the human says:
+Write for a reviewer who has not read the discovery, and for an agent that reads the decision alone,
+without the record of the feature that made it. [A decision](writing.md#a-decision) in Writing for
+the human gives the limits of each section, and how a **Why** reads.
 
 - **Title**: the topic.
 - **Icon**: in the frontmatter, the name of a [Lucide](https://lucide.dev/icons/) icon that shows
   the topic, like `git-branch`. The web UI draws it beside the title, and a default icon for a name
   it does not know. It is optional.
-- **Intent**: before `## Rules`, two or three plain sentences: the choice and what it protects.
-  Specifics appear only where they are hard constraints.
+- **Intent**: before `## Rules`: the choice and what it protects. Specifics appear only where they
+  are hard constraints.
 - **Rules**: MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY rules that a spec, a plan, or code can be
-  checked against. Each rule is the human's goal or approach, not a value the code holds (the fourth
-  test of [what is a decision](#what-is-a-decision)). Each rule is one sentence that stands on its
-  own, since plans copy it word for word. It ends with how it is checked: a lint, a test,
-  `ura check`, or "Checked by review." Rules come strongest first, at most 10. A check a tool could
-  run but does not yet becomes a line of the plan's test map, and a task. See
-  [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
-- **Why**: the problem and what the choice optimizes for, with links to the question and the
-  discovery topic. Once the feature is [finished](finish.md#rewrite-the-links), these links point to
-  its record, where the question keeps its anchor. The history and the investigation stay in that
-  record.
-- **Consequences**: what becomes easier, what becomes harder, the costs accepted.
-- **Applies to**: links to the code, folders, or kinds of features it governs, so agents find the
-  decisions relevant to what they touch.
+  checked against. Each rule is the human's goal or approach, judged from their goals (the fourth
+  and fifth tests of [what is a decision](#what-is-a-decision)). Each rule stands on its own, since
+  plans copy it word for word. It ends with how it is checked: a lint, a test, `ura check`, or
+  "Checked by review." A check a tool could run but does not yet becomes a line of the plan's test
+  map, and a task. See [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
+- **Why**: the reason, so an agent can apply a rule to a case it does not name, and a reader can
+  tell whether the decision still holds. The history and the investigation stay in the record. Until
+  the feature is [finished](finish.md#rewrite-the-links), its one link points to the feature's spec,
+  then to its record.
+- **Consequences**: the costs the human accepted, and what a later feature must do.
+- **Applies to**: the folders and the kinds of features it governs, so agents find the decisions
+  relevant to what they touch.
 
 Two sections are optional, at their place in the template. Leave them out unless they apply:
 
-- **Alternatives considered**: only the rejected options that were close calls, one line each. When
-  a change reverses an earlier choice, always list the earlier choice and why it was abandoned.
+- **Alternatives considered**: only the rejected options an agent could propose again, one line
+  each, with why they lose. When a change reverses an earlier choice, list the earlier choice and
+  why it was abandoned.
 - **Revisit when**: a condition or a date that ends a temporary decision. For example, "when the new
   solver matches the old one on the benchmark for 4 weeks".
 
@@ -488,23 +504,24 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
 6. **Linear reading**: nothing is referred to before it is introduced, the block names subjects, and
    each rule is stated once.
 7. **Decisions**: each one listed comes from an answer or a review comment, and a new one passes the
-   four tests. Each reads intent first, its rules strongest first, one sentence each, with how it is
-   checked.
+   five tests. Each reads alone, within [the limits](writing.md#a-decision): intent first, its rules
+   strongest first, one keyword each, with how it is checked.
 8. **Risks**: every unverified outside behaviour and every relaxed guard is in the block, a guard as
    what an attacker could do.
 
 ## Red flags
 
-| Thought                                                       | Reality                                                                                             |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| "I'll list the options, the human picks during review"        | The questions are over. Decide the design, and state what you settled as assumptions.               |
-| "The plan will figure out the behaviour"                      | The plan argues from the spec. A behaviour the spec leaves vague, a later agent decides alone.      |
-| "Next week is close enough for a scenario"                    | Scenarios carry exact values: the plan's tests copy them as written.                                |
-| "This answer could mean two things, I'll take the likely one" | Pick it only if the readings differ little, and say so in the block. Otherwise, ask in a new round. |
-| "This choice deserves a decision"                             | Only an answer or a review comment creates one. Ask the human in a new round.                       |
-| "The spec should list the components and tests"               | Those are the plan's. The spec keeps the units, the data model, and what users get.                 |
-| "The decision should say how we got here"                     | The decision states its intent and rules. The history stays in the feature's record.                |
-| "The decision should name the flag, the timeout, the file"    | Those are values the code holds. The rule states the intent, unless the human chose the value.      |
+| Thought                                                       | Reality                                                                                              |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| "I'll list the options, the human picks during review"        | The questions are over. Decide the design, and state what you settled as assumptions.                |
+| "The plan will figure out the behaviour"                      | The plan argues from the spec. A behaviour the spec leaves vague, a later agent decides alone.       |
+| "Next week is close enough for a scenario"                    | Scenarios carry exact values: the plan's tests copy them as written.                                 |
+| "This answer could mean two things, I'll take the likely one" | Pick it only if the readings differ little, and say so in the block. Otherwise, ask in a new round.  |
+| "This choice deserves a decision"                             | Only an answer or a review comment creates one. Ask the human in a new round.                        |
+| "The spec should list the components and tests"               | Those are the plan's. The spec keeps the units, the data model, and what users get.                  |
+| "The decision should say how we got here"                     | The decision states its intent and rules. The history stays in the feature's record.                 |
+| "The decision should name the flag, the timeout, the file"    | Those are values the code holds. The rule states the intent, unless the human chose the value.       |
+| "The decision should describe what the code does"             | The code changes to follow it: see [the bar](#what-is-a-decision). Names and lists stay in the code. |
 
 ## Revising
 

@@ -80,12 +80,15 @@ export function YourVerdict({
   comments,
   file,
   refusals,
+  targeted,
 }: {
   choices: ChoicesState;
   /** How many comments are pending. */
   comments: number;
   file: File;
   refusals: Refusals;
+  /** How many of them point at a part of the file, not general. */
+  targeted: number;
 }) {
   const images = use(ReviewImagesContext);
   return (
@@ -94,6 +97,7 @@ export function YourVerdict({
       comments={comments}
       file={file}
       refusals={{ ...refusals, hides: images?.hides, hold: images?.hold }}
+      targeted={targeted}
     />
   );
 }
@@ -147,7 +151,13 @@ export function YourReview({
       )}
       {general}
       {!isGeneralOpen && <GeneralComment file={file} onAdd={onGeneral} />}
-      <YourVerdict choices={choices} comments={comments.length} file={file} refusals={refusals} />
+      <YourVerdict
+        choices={choices}
+        comments={comments.length}
+        file={file}
+        refusals={refusals}
+        targeted={comments.filter((comment) => !comment.general).length}
+      />
     </>
   );
 }

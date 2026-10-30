@@ -1,7 +1,8 @@
 // The commit page, the one place the inbox's, the priorities', and the proposal and note files'
 // edits are committed: every form and list only edits and saves a file, and this page shows what a
-// commit would hold, as the core lists it, with Commit, and Discard, which asks first. The
-// sidebar's Commit button, the phone's tab, and `g c` lead here while something waits.
+// commit would hold, as the core lists it, with Commit, and Discard, which asks first: on the phone,
+// in the bottom bar's two corners. The sidebar's Commit button, the phone's tab, and `g c` lead here
+// while something waits.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -10,7 +11,7 @@ import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { markVars } from "./marks.stylex.ts";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { rereadChanges, usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
@@ -19,7 +20,10 @@ import { useKeys } from "./keys/registry.tsx";
 import { plural } from "./labels.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Page } from "./layout/Page.tsx";
+import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
+import { TopBarSlot } from "./layout/TopBarSlot.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Pane } from "./layout/Pane.tsx";
 import { closeUndoToasts } from "./layout/useUndoToast.ts";
 import { useLocalPath, useRestoreScroll } from "./routes.tsx";
@@ -67,6 +71,75 @@ function Changes({ lines }: { lines: ReadonlyArray<string> }) {
         })}
       </VStack>
     </Pane>
+  );
+}
+
+/**
+ * On the phone, the bottom bar: Discard in its left corner, and Commit, in the accent, in its
+ * right one. Like the Commit button, it blocks nothing: a second press while the commit has not
+ * answered yet does nothing, so one press makes one write.
+ */
+function CommitBar({
+  onCommit,
+  onDiscard,
+}: {
+  onCommit: () => Promise<unknown>;
+  onDiscard: () => void;
+}) {
+  const answering = useRef(false);
+  const commit = () => {
+    if (answering.current) {
+      return;
+    }
+    answering.current = true;
+    void onCommit().finally(() => {
+      answering.current = false;
+    });
+  };
+  return (
+    <TopBarSlot>
+      <NavTiles label="The commit's actions">
+        <NavTile icon="uraeda:trash" label="Discard" onPress={onDiscard} />
+        <NavTile icon="uraeda:save" isTinted label="Commit" onPress={commit} />
+      </NavTiles>
+    </TopBarSlot>
+  );
+}
+
+/**
+ * Commit and Discard while changes wait, in the phone's bottom bar or under the changes, or that
+ * nothing waits.
+ */
+function CommitButtons({
+  count,
+  onCommit,
+  onDiscard,
+}: {
+  count: number;
+  onCommit: () => Promise<unknown>;
+  onDiscard: () => void;
+}) {
+  const narrow = isNarrow(useWidthClass());
+  if (count === 0) {
+    return (
+      <Text color="secondary">
+        The inbox, the priorities, and the proposal and note files are all committed.
+      </Text>
+    );
+  }
+  return narrow ? (
+    <CommitBar onCommit={onCommit} onDiscard={onDiscard} />
+  ) : (
+    <HStack align="center" gap={2}>
+      <WriteButton
+        endContent={<Icon aria-hidden="true" icon="uraeda:enter" label="Enter" />}
+        label="Commit"
+        onClick={onCommit}
+        variant="primary"
+      />
+      {/* Not `clickAction`: its pending state closes the question this opens. */}
+      <Button label="Discard" onClick={onDiscard} variant="ghost" />
+    </HStack>
   );
 }
 
@@ -140,7 +213,7 @@ export function CommitPage() {
     return null;
   }
   return (
-    <Page>
+    <Page kind="rows">
       <VStack gap={4}>
         <PageTitle meta={{ text: count > 0 ? plural(count, "change") : "Nothing waits" }}>
           Commit
@@ -154,22 +227,7 @@ export function CommitPage() {
           />
         )}
         {count > 0 && <Changes lines={lines} />}
-        {count > 0 ? (
-          <HStack align="center" gap={2}>
-            <WriteButton
-              endContent={<Icon aria-hidden="true" icon="uraeda:enter" label="Enter" />}
-              label="Commit"
-              onClick={commit}
-              variant="primary"
-            />
-            {/* Not `clickAction`: its pending state closes the question this opens. */}
-            <Button label="Discard" onClick={() => void discard()} variant="ghost" />
-          </HStack>
-        ) : (
-          <Text color="secondary">
-            The inbox, the priorities, and the proposal and note files are all committed.
-          </Text>
-        )}
+        <CommitButtons count={count} onCommit={commit} onDiscard={() => void discard()} />
       </VStack>
     </Page>
   );

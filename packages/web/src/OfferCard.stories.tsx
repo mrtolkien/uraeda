@@ -20,7 +20,7 @@ const meta = {
   component: OfferCard,
   decorators: [
     (Story) => (
-      <Page isSnug>
+      <Page isSnug kind="session">
         <Story />
       </Page>
     ),

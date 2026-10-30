@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-26
 pull-request: https://github.com/mrtolkien/uraeda/pull/58
+superseded-by: [2026-10-30-panes-size]
 ---
 
 # Record: Session and New in the terminal look
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/58
 > The record of a merged feature, not instructions to follow. Started on 2026-10-25, finished on
 > 2026-10-26, in [its pull request](https://github.com/mrtolkien/uraeda/pull/58). Its full files are
 > in git: `git log -- specs/2026-10-25-session-new/`.
+>
+> Superseded in part by [2026-10-30-panes-size](2026-10-30-panes-size.md).
 
 ## What and why
 
@@ -194,9 +197,9 @@ small progress bar at the very bottom."
 ## Decisions
 
 None created or changed. The spec relied on [UI layout](../decisions/ui-layout.md),
-[UI coherence](../decisions/ui-coherence.md), [UI behaviour](../decisions/ui-behaviour.md),
-[UI look](../decisions/ui-look.md), [UI components](../decisions/ui-components.md), and
-[Preview](../decisions/preview.md).
+[UI coherence, now in UI components](../decisions/ui-components.md),
+[UI behaviour](../decisions/ui-behaviour.md), [UI look](../decisions/ui-look.md),
+[UI components](../decisions/ui-components.md), and [Preview](../decisions/preview.md).
 
 ## Changes after approval
 

@@ -1,16 +1,14 @@
 // The round's own parts, in titled panes: its block, titled by its first line, with the verdict as
 // its lead over its sentence; its context, a pane per part, Today folded; and the "Check these"
 // pane. Round-only parts, as the plan's Complexity tracking names them.
-import { Grid } from "@astryxdesign/core/Grid";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import type { Block, ContextPart, Document, RoundItems, VerdictKind } from "uraeda-binding";
 import { Blocks } from "./Blocks.tsx";
 import { type Folds, useHashFold } from "./Folds.tsx";
 import { Pane } from "./layout/Pane.tsx";
-import { useAtLeast } from "./layout/useWidthOf.ts";
 import { proseStyles } from "./Prose.tsx";
 import { PART_IDS } from "./roundPartIds.ts";
 import { plain, Spans } from "./Spans.tsx";
@@ -171,8 +169,8 @@ function ContextPane({
 }
 
 /**
- * The round's context, a pane per part, Today folded, Scope and Sources side by side when the
- * round is at least `--size-round-pair` wide; then `check`, the "Check these" pane.
+ * The round's context, a pane per part, one under the other, Today folded; then `check`, the
+ * "Check these" pane.
  */
 export function RoundContext({
   check,
@@ -183,34 +181,16 @@ export function RoundContext({
   document: Document;
   round: RoundItems;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isRoomy = useAtLeast(ref, "--size-round-pair");
   const parts = round.context;
   const folds = useTodayFold(
     document,
     parts.find((part) => anchorOf(document, part) === PART_IDS.today),
   );
-  const scope = parts.findIndex((part) => anchorOf(document, part) === "scope");
-  const sources = parts[scope + 1];
-  const isPaired = scope >= 0 && anchorOf(document, sources) === "sources";
-  const pane = (part: ContextPart) => (
-    <ContextPane document={document} folds={folds} key={part.heading ?? -1} part={part} />
-  );
   return (
-    <div ref={ref}>
-      {parts.map((part, index) => {
-        if (!isPaired || (index !== scope && index !== scope + 1)) {
-          return pane(part);
-        }
-        return (
-          index === scope && (
-            <Grid columns={isRoomy ? 2 : 1} gap={4} key="scope-sources">
-              {pane(part)}
-              {sources && pane(sources)}
-            </Grid>
-          )
-        );
-      })}
+    <div>
+      {parts.map((part) => (
+        <ContextPane document={document} folds={folds} key={part.heading ?? -1} part={part} />
+      ))}
       {check}
     </div>
   );

@@ -1,6 +1,7 @@
 // The phone's sheet of a document's column, kept in the address's `?tab=`, as the column's open tab
 // is on wide screens: a reload keeps it, Back closes it, and crossing to a wide screen opens its
-// tab. The questions, spec, and plan pages' status lines open their sheets through it (R22).
+// tab. The questions, spec, plan, feature, and draft editor pages' bottom bars open their sheets
+// through it (R22).
 import { useLayoutEffect } from "react";
 import { askedTabNow, tabAddress, useAskedTab } from "./DocumentColumn.tsx";
 import { openOverlayAt, overlayOf } from "./useBackCloses.ts";

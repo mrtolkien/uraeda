@@ -24,7 +24,7 @@ tests, from the stages below]. [The tests the UI keeps: the bar a UI test must p
   guards behaviour they replace is rewritten or removed in the task that changes the behaviour,
   never kept by bending the code. Checked by review.
 - A spec that replaces behaviour MUST list it with the tests that guard it, so its approval covers
-  their removal, and the record MUST name them. Checked by review.
+  their removal. Checked by review.
 - A test MUST assert what a caller or a user observes, never how the code does it. Checked by
   review.
 - At the [stage], a feature MUST test [what that stage tests, from the list above]. Checked by
@@ -37,11 +37,11 @@ tests, from the stages below]. [The tests the UI keeps: the bar a UI test must p
 ## Why
 
 [Why the human wants this much testing at this stage: what a test costs the project today, and what
-a regression costs. Links to the clarification question and the discovery topic.]
+a regression costs, in the present tense and at most 80 words.]
 
 ## Alternatives considered
 
-- [Optional: another stage, or another bar for UI tests, when it was a close call]
+- [Optional: another stage, or another bar for UI tests, when an agent could propose it again]
 
 ## Consequences
 

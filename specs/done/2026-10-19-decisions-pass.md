@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-19
 pull-request: https://github.com/mrtolkien/uraeda/pull/47
+superseded-by: [2026-10-29-decisions-needs]
 ---
 
 # Record: Decisions pass
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/47
 > The record of a merged feature, not instructions to follow. Started on 2026-10-19, finished on
 > 2026-10-19, in [its pull request](https://github.com/mrtolkien/uraeda/pull/47). Its full files are
 > in git: `git log -- specs/2026-10-19-decisions-pass/`.
+>
+> Superseded in part by [2026-10-29-decisions-needs](2026-10-29-decisions-needs.md).
 
 ## What and why
 
@@ -104,7 +107,7 @@ view we use for specs".
 
 ## Decisions
 
-- New: [UI coherence](../decisions/ui-coherence.md).
+- New: [UI coherence, now in UI components](../decisions/ui-components.md).
 - Changed, rewritten to the bar: every other decision of [the ledger](../decisions/), 21 in all.
 
 ## Changes after approval

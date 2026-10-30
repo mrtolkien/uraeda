@@ -246,8 +246,9 @@ pressed, as Helix does.
   menu after a short moment, keys work at every width with no hints on narrow screens, pages share
   one base keymap, and a key means one thing per page.
 - Relied on: [UI behaviour](../decisions/ui-behaviour.md), [UI layout](../decisions/ui-layout.md),
-  [UI coherence](../decisions/ui-coherence.md), [Settings](../decisions/settings.md),
-  [UI checks](../decisions/ui-checks.md), and [Preview](../decisions/preview.md).
+  [UI coherence, now in UI components](../decisions/ui-components.md),
+  [Settings](../decisions/settings.md), [UI checks, now in Testing](../decisions/testing.md), and
+  [Preview](../decisions/preview.md).
 
 ## Changes after approval
 

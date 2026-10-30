@@ -343,6 +343,7 @@ export function SessionColumn({ content, folder, session }: Of & { content: Reac
             </Section>
           )
         }
+        isBeside
         label="The session's column"
         panels={panels}
       />

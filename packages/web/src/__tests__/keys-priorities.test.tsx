@@ -178,7 +178,7 @@ test("the line the keys pick shows its own keys in a bar under it", async () => 
   await press("j", link);
 
   const row = within(rowOf("Next line 2"));
-  for (const action of ["⏎ edit", "m move", "⇥ indent", "p expand", "s start", "d delete"]) {
+  for (const action of ["⏎ edit", "m move", "⇥ indent", "e expand", "s start", "d delete"]) {
     expect(row.getByRole("button", { name: action }), action).toBeTruthy();
   }
   expect(within(rowOf("Next line 1")).queryByRole("button", { name: "m move" })).toBeNull();

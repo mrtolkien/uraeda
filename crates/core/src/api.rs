@@ -43,6 +43,7 @@ mod proposal_files;
 mod pulls;
 mod repository_list;
 mod reviews;
+mod setup;
 mod since;
 mod start;
 mod warm;
@@ -86,6 +87,8 @@ pub use repository_list::{
 pub use reviews::{
     add_comment, approve, edit_comment, remove_comment, request_changes, start_over,
 };
+use setup::setup_items;
+pub use setup::{SetupItem, read_setup};
 pub use start::{
     plan_start, promote_change, propose_slug, start_change, start_feature, start_kind,
 };
@@ -158,6 +161,7 @@ pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
                 priorities_hash: String::new(),
                 proposals: Vec::new(),
                 no_specs: Some(root),
+                setup: setup_items(&git, false),
             });
         }
         Err(error) => return Err(refused(error.to_string())),
@@ -166,6 +170,7 @@ pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
         let (priorities, _) = on_default(&git, workspace, edits::PATH);
         WorkspaceView {
             priorities_hash: hash(&priorities.unwrap_or_default()),
+            setup: setup_items(&git, true),
             ..WorkspaceView::new(workspace, |feature| checked(&git, &read, feature))
         }
     }))

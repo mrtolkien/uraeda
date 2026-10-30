@@ -13,7 +13,7 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, use, useRef, useState } from "react";
 import type { Ledger } from "uraeda-server/fate";
-import { useAgent, useLedger, useWorkspace } from "../data.ts";
+import { useAgent, useLedger } from "../data.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Pane } from "../layout/Pane.tsx";
@@ -37,7 +37,7 @@ import { jumpEntries, pickerItemOf } from "./jump.ts";
 import { useSplit } from "./useSplit.ts";
 import { proseStyles, READING_MEASURE } from "../Prose.tsx";
 import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts";
-import { NoSpecs } from "../layout/Missing.tsx";
+import { WithSpecs } from "../layout/Missing.tsx";
 import { Empty } from "../layout/Empty.tsx";
 
 /** The list's column, about 40 characters a line at least, 60 at most, with its pane's inset. */
@@ -281,7 +281,7 @@ function Reader({
     );
   }
   return (
-    <Page>
+    <Page kind="rows">
       <div {...stylex.props(!narrow && [styles.alone, proseStyles.measure])}>
         {narrow ? (
           <ReaderBar
@@ -328,20 +328,20 @@ function ReaderBar({
           onPress={() => onClose?.()}
         />
         {steps && (
-          <>
-            <NavTile
-              icon="chevronLeft"
-              isDisabled={steps.previous === undefined}
-              label="Previous"
-              onPress={() => steps.previous && navigateHere(steps.previous)}
-            />
-            <NavTile
-              icon="chevronRight"
-              isDisabled={steps.next === undefined}
-              label="Next"
-              onPress={() => steps.next && navigateHere(steps.next)}
-            />
-          </>
+          <NavTile
+            icon="chevronLeft"
+            isDisabled={steps.previous === undefined}
+            label="Previous"
+            onPress={() => steps.previous && navigateHere(steps.previous)}
+          />
+        )}
+        {steps && (
+          <NavTile
+            icon="chevronRight"
+            isDisabled={steps.next === undefined}
+            label="Next"
+            onPress={() => steps.next && navigateHere(steps.next)}
+          />
         )}
       </NavTiles>
     </TopBarSlot>
@@ -353,8 +353,17 @@ function ReaderBar({
  * line and the reader 60 (`useSplit`), on `open` or the constitution, the two centred together; narrower, the list,
  * or `open` alone with a way back, `onClose`.
  */
-export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: LedgerOpen }) {
-  const workspace = useWorkspace();
+export function DecisionsPage(props: { onClose?: () => void; open?: LedgerOpen }) {
+  // Without specs/, there is no ledger to read.
+  return (
+    <WithSpecs>
+      <Ledger {...props} />
+    </WithSpecs>
+  );
+}
+
+/** The decisions page of a repository with `specs/`. */
+function Ledger({ onClose, open }: { onClose?: () => void; open?: LedgerOpen }) {
   const ledger = useLedger();
   const room = useRef<HTMLDivElement>(null);
   const least = useRef<HTMLDivElement>(null);
@@ -362,15 +371,8 @@ export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: 
   const [sort, setSort] = useDecisionSort();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(ledger !== null && ledger !== undefined);
-  if (!workspace || !ledger) {
+  if (!ledger) {
     return null;
-  }
-  if (workspace.noSpecs) {
-    return (
-      <Page>
-        <NoSpecs path={workspace.noSpecs} />
-      </Page>
-    );
   }
   const decisions = sortDecisions(ledger.decisions, sort);
   const paths = itemPaths(ledger, decisions);
@@ -398,7 +400,13 @@ export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: 
         }
         detailKey={shownPath(ledger, open)}
         isSplit={isSplit}
-        list={isSplit ? <div {...stylex.props(styles.column)}>{list}</div> : <Page>{list}</Page>}
+        list={
+          isSplit ? (
+            <div {...stylex.props(styles.column)}>{list}</div>
+          ) : (
+            <Page kind="rows">{list}</Page>
+          )
+        }
         most={`calc(${LIST_MOST} + ${READER_MOST})`}
       />
     </div>

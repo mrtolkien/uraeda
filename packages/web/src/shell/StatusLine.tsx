@@ -21,7 +21,6 @@ import { useHints, usePress } from "../keys/registry.tsx";
 import { useHidesOnScroll } from "./useHidesOnScroll.ts";
 import { bareButtonStyles } from "../layout/bareButton.ts";
 import { barVars } from "../layout/bar.stylex.ts";
-import { glassStyles } from "../layout/glass.ts";
 import { ruleStyles } from "../layout/rules.ts";
 
 const styles = stylex.create({
@@ -80,10 +79,13 @@ const styles = stylex.create({
     pointerEvents: "none",
     transform: `translateY(calc(100% + ${barVars["--bar-hide-past-docked"]}))`,
   },
-  // The phone's bar: on glass, over the page scrolling under it, its controls its whole width.
+  // The phone's bar: its controls draw their own glass, a bar across it or a button in a corner
+  // (`NavBar.tsx`), over the page scrolling under it; the row itself takes no tap.
   // It slides out of the way as the page scrolls down, and back as it scrolls up.
   phoneLine: {
-    paddingInline: spacingVars["--spacing-1"],
+    backgroundColor: "transparent",
+    paddingInline: 0,
+    pointerEvents: "none",
     transform: "translateY(0)",
     transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
     transitionProperty: "transform",
@@ -215,13 +217,7 @@ function PhoneBar({ onAway, slot }: { onAway: (isAway: boolean) => void; slot: R
   return (
     <footer
       aria-label="Status line"
-      {...stylex.props(
-        styles.line,
-        glassStyles.surface,
-        glassStyles.docked,
-        styles.phoneLine,
-        isHidden && styles.phoneHidden,
-      )}
+      {...stylex.props(styles.line, styles.phoneLine, isHidden && styles.phoneHidden)}
     >
       <div {...stylex.props(styles.slot, styles.phoneSlot)}>{slot}</div>
     </footer>

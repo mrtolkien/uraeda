@@ -6,32 +6,32 @@ icon:
 
 # [Topic]
 
-[The intent: the choice and what it means for the project, in two or three plain sentences. The goal
-or approach, not a value the code holds.]
+[The intent: the choice and what it protects, in at most three plain sentences. The goal or
+approach, not a value the code holds.]
 
 ## Rules
 
-- [One sentence with MUST or MUST NOT: the strongest rules first.] Checked by [a lint, a test,
-  `ura check`, or review].
+- [One sentence with a single MUST or MUST NOT: the strongest rules first.] Checked by [a lint, a
+  test, `ura check`, or review].
 - [Then the rules with SHOULD or SHOULD NOT, then MAY, at most 10 in all.] Checked by [...].
 
 ## Why
 
-[The problem and what the choice optimizes for. Links to the clarification question and the
-discovery topic.]
+[The reason, in the present tense and at most 80 words: the problem, and what the choice protects.
+No history, and at most one link, to the feature's record.]
 
 ## Alternatives considered
 
-- [Optional: only the rejected options that were close calls, one line each. A change that reverses
-  an earlier choice always lists that choice, and why it was abandoned.]
+- [Optional: at most three options an agent could propose again, one line each with why they lose. A
+  change that reverses an earlier choice lists that choice, and why it was abandoned.]
 
 ## Consequences
 
-- [What becomes easier, what becomes harder, the costs accepted]
+- [At most four: the costs accepted, and what a later feature must do]
 
 ## Applies to
 
-- [Links to the code, folders, or kinds of features this decision governs]
+- [The folders and kinds of features this decision governs]
 
 ## Revisit when
 

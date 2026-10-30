@@ -87,7 +87,7 @@ export type WorkListProps = {
    * that move a nested row move it up or down among its siblings.
    */
   onOutline?: (row: WorkRow, edit: OutlineMove) => void;
-  /** What `p` calls for the selected row; returning `false` says it has nothing to promote. */
+  /** What `e` calls for the selected row; returning `false` says it has nothing to promote. */
   onPromote?: (row: WorkRow) => boolean | void;
   /** Hears the key of the row selected, as it changes: by the keys, the pointer, or a write. */
   onSelected?: (key: string | undefined) => void;

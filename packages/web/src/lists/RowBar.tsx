@@ -28,6 +28,7 @@ import { NavTile } from "../layout/NavBar.tsx";
 import { SCROLLED_PX } from "../shell/useHidesOnScroll.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useCoverStatusLine } from "../statusHints.tsx";
+import { useKeyboardInset } from "../layout/useKeyboardInset.ts";
 
 /**
  * One thing a row can do: its key as written, what it does, doing it, and its icon on the phone.
@@ -189,30 +190,6 @@ function reveal(anchor: Element, bar: HTMLElement, quiet: { current: number }) {
     quiet.current = performance.now() + REVEAL_MS;
   }
   scroller.scrollTo({ behavior: isInstant ? "instant" : "smooth", top });
-}
-
-/**
- * How much of the screen's bottom the phone's keyboard covers, in pixels: what the visual viewport
- * leaves out under it. None where the browser does not say.
- */
-function useKeyboardInset() {
-  const [inset, setInset] = useState(0);
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!viewport) {
-      return undefined;
-    }
-    const measure = () =>
-      setInset(Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop));
-    measure();
-    viewport.addEventListener("resize", measure);
-    viewport.addEventListener("scroll", measure);
-    return () => {
-      viewport.removeEventListener("resize", measure);
-      viewport.removeEventListener("scroll", measure);
-    };
-  }, []);
-  return inset;
 }
 
 /**

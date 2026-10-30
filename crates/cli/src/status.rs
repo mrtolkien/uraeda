@@ -2,20 +2,63 @@
 
 use std::process::ExitCode;
 
+use serde::Serialize;
+use uraeda_core::api::{SetupItem, read_setup};
 use uraeda_core::files::priorities::Section;
 use uraeda_core::steps::{PullRequest, StepName, WaitsOn};
 use uraeda_core::workspace::{Feature, LinkedProposal, Workspace, first_file, folder_branch};
 
 use crate::output::{self, Style};
 
+/// The JSON of `ura status`: the workspace, with the setup's items beside its fields.
+#[derive(Serialize)]
+struct Status<'a> {
+    #[serde(flatten)]
+    workspace: &'a Workspace,
+    setup: Vec<SetupItem>,
+}
+
 pub fn run(json: bool) -> Result<ExitCode, String> {
-    let (_, workspace) = output::workspace_with_pull_requests()?;
+    let (git, workspace) = output::workspace_with_pull_requests()?;
+    let setup = read_setup(git.root()).map_err(|error| error.to_string())?;
     if json {
-        output::print_json(&workspace);
+        output::print_json(&Status {
+            workspace: &workspace,
+            setup,
+        });
     } else {
-        print!("{}", render(&workspace));
+        print!("{}{}", render(&workspace), render_setup(&setup));
     }
     Ok(ExitCode::SUCCESS)
+}
+
+/// The required setup files not written yet, after a blank line, or nothing once the project is
+/// set up: the optional ones never show.
+fn render_setup(setup: &[SetupItem]) -> String {
+    let missing: Vec<&SetupItem> = setup
+        .iter()
+        .filter(|item| item.required && item.state != "written")
+        .collect();
+    if missing.is_empty() {
+        return String::new();
+    }
+    let count = match missing.len() {
+        1 => "1 file missing".to_string(),
+        n => format!("{n} files missing"),
+    };
+    let mut text = format!(
+        "\n{}\n",
+        output::style(Style::Bold, &format!("Setup: {count}"))
+    );
+    for item in missing {
+        let state = if item.state == "template" {
+            "still the template"
+        } else {
+            "missing"
+        };
+        text.push_str(&format!("  {}: {state}\n", item.name));
+    }
+    text
 }
 
 struct Row {

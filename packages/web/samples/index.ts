@@ -11,7 +11,7 @@ export {
   recordFeatureRuns,
 } from "./features.ts";
 export { FEATURE_PAGES, QUESTIONS_PAGES, ROUND_MOCKUPS, SPEC_PAGES } from "./folders.ts";
-export { buildProjects, SAMPLE_FOLDERS } from "./projects.ts";
+export { buildProjects, buildRealistic, SAMPLE_FOLDERS } from "./projects.ts";
 export { REALISTIC_FOLDERS } from "./realistic.ts";
 export { CHANGE_FOLDERS } from "./changes.ts";
 export { fakeGh, type FakePullRequest } from "./features.ts";

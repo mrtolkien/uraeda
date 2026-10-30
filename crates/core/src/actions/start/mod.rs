@@ -339,17 +339,20 @@ impl<'a> Start<'a> {
         held: Option<WriteGuard>,
     ) -> Result<Started, StartError> {
         let plan = self.plan(slug, today, true)?;
-        let (moves, done) = match self.source {
+        let ((moves, before), done) = match self.source {
             Source::Proposal(proposal) => {
-                let moves = self.move_proposal(proposal, &plan)?;
-                (moves, "the move of the proposal file".to_string())
+                let moved = self.move_proposal(proposal, &plan)?;
+                (moved, "the move of the proposal file".to_string())
             }
             Source::Text { typed, images } => {
                 self.write_text(typed, &plan, images)?;
-                (Vec::new(), format!("the proposal in {}", plan.destination))
+                (
+                    Default::default(),
+                    format!("the proposal in {}", plan.destination),
+                )
             }
         };
-        self.commit_start(&plan, &done, &moves, held)?;
+        self.commit_start(&plan, &done, (&moves, before), held)?;
         let done = vec![done, format!("the start commit on {}", self.default)];
         self.report(StartProgress::Branching);
         let lock = self.run.lock();

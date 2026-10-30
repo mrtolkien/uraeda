@@ -21,7 +21,7 @@ type BarKey = RowKey & {
 };
 
 /** The order of the bar's actions, by their keys. */
-const BAR_ORDER = ["m", "c", "Tab", "shift+Tab", "p", "s", "v", "d"];
+const BAR_ORDER = ["m", "c", "Tab", "shift+Tab", "p", "e", "s", "v", "d"];
 
 /**
  * A key of a list's own that acts on a row, shown in its bar: its key, its label, its icon on the
@@ -40,7 +40,7 @@ export type SectionPicker = Pick<BarAction, "icon" | "keys" | "label"> & {
   open: (row: WorkRow) => void;
 };
 
-/** A line of its own, not nested: what `p` and `s` act on, so only its bar shows them. */
+/** A line of its own, not nested: what `e` and `s` act on, so only its bar shows them. */
 const isLine = (row: WorkRow) => row.parent === undefined;
 
 /** What the row keys call, each given only where the list can do it (see `useRowKeys`). */
@@ -56,8 +56,8 @@ type RowHandlers = {
   /** A key that moves a line to the section a picker chose. */
   onPickSection?: SectionPicker | undefined;
   /**
-   * What `p` calls: it expands the proposal into a file; `false` says the row has nothing to
-   * promote.
+   * What `e` calls: it expands the proposal into a file; `false` says the row has nothing to
+   * expand.
    */
   onPromote?: ((row: WorkRow) => boolean | void) | undefined;
   /** What `s` calls: it starts from the line. */
@@ -140,15 +140,15 @@ function startKey(
   };
 }
 
-/** `p`: the proposal selected, and expanded into a file, by `onPromote`. */
+/** `e`: the proposal selected, and expanded into a file, by `onPromote`. */
 function promoteKey(
   rows: ReadonlyArray<WorkRow>,
   select: (key: string) => void,
   onPromote: (row: WorkRow) => boolean | void,
 ): BarKey {
   return {
-    bar: { icon: "uraeda:file-pen-line", isFor: isLine, keys: "p" },
-    keys: "p",
+    bar: { icon: "uraeda:file-pen-line", isFor: isLine, keys: "e" },
+    keys: "e",
     label: "expand",
     run: (at) => {
       const row = rows[at];

@@ -17,7 +17,7 @@ export function TriagePage() {
   useRestoreScroll(true);
   if (!file || file.missing) {
     return (
-      <Page>
+      <Page kind="rows">
         <Banner
           collapsible={false}
           endContent={<Button href={here("/inbox")} label="Open the inbox" />}
