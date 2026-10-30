@@ -138,6 +138,7 @@ export function strengthIcon(strength: Strength): `uraeda:strength-${Strength}` 
 /** A decision's icons, by the Lucide name its frontmatter's `icon` gives. */
 const DECISION_ICONS = {
   bell,
+  "book-open": bookOpen,
   bot,
   "calendar-clock": calendarClock,
   component,
