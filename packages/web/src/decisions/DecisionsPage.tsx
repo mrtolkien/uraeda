@@ -328,20 +328,20 @@ function ReaderBar({
           onPress={() => onClose?.()}
         />
         {steps && (
-          <>
-            <NavTile
-              icon="chevronLeft"
-              isDisabled={steps.previous === undefined}
-              label="Previous"
-              onPress={() => steps.previous && navigateHere(steps.previous)}
-            />
-            <NavTile
-              icon="chevronRight"
-              isDisabled={steps.next === undefined}
-              label="Next"
-              onPress={() => steps.next && navigateHere(steps.next)}
-            />
-          </>
+          <NavTile
+            icon="chevronLeft"
+            isDisabled={steps.previous === undefined}
+            label="Previous"
+            onPress={() => steps.previous && navigateHere(steps.previous)}
+          />
+        )}
+        {steps && (
+          <NavTile
+            icon="chevronRight"
+            isDisabled={steps.next === undefined}
+            label="Next"
+            onPress={() => steps.next && navigateHere(steps.next)}
+          />
         )}
       </NavTiles>
     </TopBarSlot>
