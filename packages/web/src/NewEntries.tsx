@@ -25,6 +25,8 @@ export type Entry = {
   linked?: string;
   /** The page of its own file, which a card with one opens. */
   linkedHref?: string;
+  /** A line's section of the priorities: `now`, `next`, `later`, or `blocked`. */
+  section?: string;
   text: string;
 };
 
@@ -32,7 +34,7 @@ export type Entry = {
  * An entry the composer was filled from: what a start takes out of its file, and its text, which
  * finds a line of Now again.
  */
-export type Source = Pick<Entry, "id" | "kind" | "linked" | "text"> & {
+export type Source = Pick<Entry, "id" | "kind" | "linked" | "section" | "text"> & {
   /** The text inserted, to tell whether the composer still holds what it was filled with. */
   inserted: string;
 };
@@ -57,11 +59,12 @@ export function insertion(entry: Entry): string {
 }
 
 /**
- * A proposal line of the priorities as an entry to start from: its nested items as lines, each
- * indented two spaces a level below the first.
+ * A proposal line of the priorities, in `section`, as an entry to start from: its nested items as
+ * lines, each indented two spaces a level below the first.
  */
 export function lineEntry(
   line: NonNullable<ReturnType<typeof usePriorities>>["sections"][number]["proposals"][number],
+  section: string,
   here: ReturnType<typeof useRepoPath>,
 ): Entry {
   return {
@@ -71,6 +74,7 @@ export function lineEntry(
     id: line.id,
     kind: "line",
     lines: line.children.map((child) => `${"  ".repeat(child.depth - 1)}${plain(child.spans)}`),
+    section,
     text: plain(line.spans),
   };
 }
@@ -142,7 +146,7 @@ function useEntries(search: string) {
       .filter((line) => !line.running && (line.file || !line.spans.some((span) => span.link)))
       .filter((line) => !isPending(line.key))
       .flatMap((line) => {
-        const entry = lineEntry(line, here);
+        const entry = lineEntry(line, section.section, here);
         if (!holds(needle, [entry.text, ...entry.lines])) {
           return [];
         }

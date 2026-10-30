@@ -1,6 +1,6 @@
 // The New page's start of a change, held: a start that answers late clears only the text it sent,
 // not what the human typed after. The slug is asked in a dialog once the text is sent, and is not
-// kept on the page.
+// kept on the page. The lines of the priorities it was filled from leave them.
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
@@ -10,6 +10,7 @@ import {
   fakeAgent,
   fixtureRepo,
   quiet,
+  read,
   renderPage,
   serverFetch,
   today,
@@ -64,4 +65,46 @@ test("a start that answers late clears only the text it sent", async () => {
   expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toBe(
     "Widen the sidebar",
   );
+});
+
+/** New change, filled from the cards of the priorities' lines with these texts, in order. */
+async function filledFrom(repo: string, texts: ReadonlyArray<string>) {
+  const fake = await fakeAgent({ installed: false });
+  await renderPage("/new?kind=change", repo, {
+    agent: fake,
+    fetch: serverFetch(repo, fake.sessions),
+  });
+  for (const text of texts) {
+    await click(await screen.findByRole("button", { name: new RegExp(`^${text}`) }));
+  }
+  await quiet();
+}
+
+/** Starts the change in the composer, under the slug the core proposes. */
+async function start() {
+  await click(await screen.findByRole("button", { name: "Start the change" }));
+  const dialog = await screen.findByRole("dialog", { name: "Name the change" });
+  await waitFor(() =>
+    expect(
+      (within(dialog).getByRole("textbox", { name: "Slug" }) as HTMLInputElement).value,
+    ).not.toBe(""),
+  );
+  await click(within(dialog).getByRole("button", { name: "Start the change" }));
+  await quiet();
+}
+
+/** The start replaces only a line of Now: a line of Next it starts from is taken out as before. */
+test("a change started from a line of Next takes it out of the priorities", async () => {
+  const repo = fixtureRepo();
+  await filledFrom(repo, ["Claude Code runner"]);
+  expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toContain(
+    "Claude Code runner (triggered manually)",
+  );
+
+  await start();
+
+  await waitFor(() =>
+    expect(read(repo)).not.toContain("\n- Claude Code runner (triggered manually)\n"),
+  );
+  expect(read(repo)).toContain("Git listener process");
 });
