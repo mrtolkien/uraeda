@@ -47,7 +47,7 @@ const leftovers = (root: string) =>
   readdirSync(root).filter((name) => name.startsWith(".sandbox") && name !== ".sandbox");
 
 /**
- * Builders as quick as can be, for the seed's own steps: four empty repositories, and no session.
+ * Builders as quick as can be, for the seed's own steps: five empty repositories, and no session.
  * `fail` throws in the step it names, after that step wrote part of its work. The sessions throw
  * when the projects beside them are another build's: a seed completing a folder it did not build.
  */
@@ -58,6 +58,7 @@ function quickBuilders(fail?: "projects" | "sessions"): Builders {
       mkdirSync(dir, { recursive: true });
       writeFileSync(join(dir, "built-by"), own);
       const paths = {
+        bare: join(dir, "bare"),
         broken: join(dir, "broken"),
         empty: join(dir, "empty"),
         realistic: join(dir, "realistic"),
@@ -125,11 +126,12 @@ test("the sample's worktrees work at their place after the rename", () => {
   expect(leftovers(root)).toEqual([]);
 });
 
-test("the sandbox lists its four projects, in its own data folder", async () => {
+test("the sandbox lists its five projects, in its own data folder", async () => {
   const rows = await readRepositories(built.dataDir);
 
   expect(rows.map((row) => row.path).sort()).toEqual(
     [
+      built.projects.bare,
       built.projects.broken,
       built.projects.empty,
       built.projects.realistic,
@@ -213,7 +215,7 @@ test("two seeds at once build one .sandbox, which both use", async () => {
   expect(second).toEqual(first);
   expect(existsSync(join(at, ".sandbox", "stamp"))).toBe(true);
   expect(leftovers(at)).toEqual([]);
-  expect((await readRepositories(first.dataDir)).length).toBe(4);
+  expect((await readRepositories(first.dataDir)).length).toBe(5);
 });
 
 test("two resets at once each rebuild .sandbox in turn, and it ends whole", async () => {
@@ -229,7 +231,7 @@ test("two resets at once each rebuild .sandbox in turn, and it ends whole", asyn
   expect(second).toEqual(before);
   expect(existsSync(join(at, ".sandbox", "stamp"))).toBe(true);
   expect(existsSync(join(first.dataDir, "runner.sqlite"))).toBe(true);
-  expect((await readRepositories(first.dataDir)).length).toBe(4);
+  expect((await readRepositories(first.dataDir)).length).toBe(5);
   expect(leftovers(at)).toEqual([]);
 });
 
@@ -240,7 +242,7 @@ test("a lock a killed seed left is taken over", async () => {
 
   const sandbox = await seed(at, { reset: false }, quickBuilders());
 
-  expect((await readRepositories(sandbox.dataDir)).length).toBe(4);
+  expect((await readRepositories(sandbox.dataDir)).length).toBe(5);
   expect(leftovers(at)).toEqual([]);
 });
 
@@ -252,7 +254,7 @@ test("a .sandbox deleted by hand is built again at the next start", async () => 
   const after = await seed(at, { reset: false }, quickBuilders());
 
   expect(after).toEqual(before);
-  expect((await readRepositories(after.dataDir)).length).toBe(4);
+  expect((await readRepositories(after.dataDir)).length).toBe(5);
 });
 
 test("the real data and config folders are untouched by a run", async () => {
@@ -297,7 +299,7 @@ test("the real data and config folders are untouched by a run", async () => {
       first<RepositoryRows>(results[0])
         .rows.map((row) => row.name)
         .sort(),
-    ).toEqual(["broken", "empty", "realistic", "sample"]);
+    ).toEqual(["bare", "broken", "empty", "realistic", "sample"]);
     const saved = await fateAt(served.url, "sample", [
       {
         input: { comment: "", folder: ROUND, letters: ["A"], previous: "", question: "Q2" },

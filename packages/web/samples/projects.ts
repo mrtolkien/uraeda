@@ -1,7 +1,8 @@
-// The four sample projects of the sandbox, each a repository in a folder of its own: "sample", a
+// The five sample projects of the sandbox, each a repository in a folder of its own: "sample", a
 // feature at every step, the spec, plan, and questions pages' features, and a change at each of its
 // states; "empty", a project just set up; "broken", whose features carry the problems
-// `ura check` reports; and "realistic", a full day's load (`realistic.ts`).
+// `ura check` reports; "realistic", a full day's load (`realistic.ts`); and "bare", a repository
+// not set up, without `specs/`.
 import { copyFileSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -99,17 +100,26 @@ function buildRealistic(repo: string) {
   addRealistic(repo);
 }
 
+/** The bare project: a repository with a README, and no `specs/`, as one is before its setup. */
+function buildBare(repo: string) {
+  initRepository(repo);
+  writeFileSync(join(repo, "README.md"), "# Bare\n\nA project not set up for Uraeda yet.\n");
+  commitAll(repo, "docs: readme");
+}
+
 /**
- * Builds the four sample projects in `dir`, each in the folder the server lists it by, with
+ * Builds the five sample projects in `dir`, each in the folder the server lists it by, with
  * every commit dated: returns their paths.
  */
 export function buildProjects(dir: string): {
+  bare: string;
   broken: string;
   empty: string;
   realistic: string;
   sample: string;
 } {
   const paths = {
+    bare: join(dir, "bare"),
     broken: join(dir, "broken"),
     empty: join(dir, "empty"),
     realistic: join(dir, "realistic"),
@@ -121,6 +131,7 @@ export function buildProjects(dir: string): {
     setUp(paths.empty);
     buildBroken(paths.broken);
     buildRealistic(paths.realistic);
+    buildBare(paths.bare);
   });
   return paths;
 }
