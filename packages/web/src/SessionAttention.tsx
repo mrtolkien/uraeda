@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import type { SessionStatus, StatusReason } from "uraeda-server/fate";
 import { useWorkspace } from "./data.ts";
 import { StatusText } from "./fields/StatusText.tsx";
@@ -48,10 +48,15 @@ type AttentionSession = {
   turns: ReadonlyArray<string>;
 };
 
+/** The banner's Dismiss, and why the server refused it, held by `Attention`. */
+type Dismissal = { error: string | undefined; onDismiss: (turn: string) => void };
+
 /**
  * Why a session that needs attention stopped, and what the human does next, its item named as a
  * feature or a change; nothing for any other session. A failed run's text starts with its latest
- * turn's reason, when it has one.
+ * turn's reason, when it has one. The dismissal is held here, not in the banner its idle status
+ * takes away at once: a refusal shows under the banner, or alone in its place while it is hidden,
+ * as long as the run it concerns is the latest or one still runs. Keyed by the session.
  */
 export function Attention({
   folder,
@@ -60,57 +65,73 @@ export function Attention({
   folder?: string | undefined;
   session: AttentionSession;
 }) {
+  const { dismiss, error } = useDismiss();
+  const [sent, setSent] = useState<string>();
   const reason = session.status === "attention" ? session.statusReason : undefined;
   const turn = session.turns.at(-1);
+  const refusal = turn === sent || session.status === "working" ? error : undefined;
+  const dismissal: Dismissal = {
+    error: refusal,
+    onDismiss: (dismissed) => {
+      setSent(dismissed);
+      void dismiss({ session: session.id, turn: dismissed });
+    },
+  };
   if (!reason || !ATTENTION[reason]) {
-    return null;
+    return refusal ? (
+      <StatusText role="alert" tone="error">
+        {refusal}
+      </StatusText>
+    ) : null;
   }
+  const banner = <AttentionBanner dismissal={dismissal} folder={folder} session={session} />;
   return reason === "failed" && turn !== undefined ? (
-    <Suspense fallback={<AttentionBanner folder={folder} session={session} />}>
-      <FailedBanner folder={folder} session={session} turn={turn} />
+    <Suspense fallback={banner}>
+      <FailedBanner dismissal={dismissal} folder={folder} session={session} turn={turn} />
     </Suspense>
   ) : (
-    <AttentionBanner folder={folder} session={session} />
+    banner
   );
 }
 
 /** A failed run's banner, its latest turn's reason first. */
 function FailedBanner({
-  folder,
-  session,
   turn,
+  ...banner
 }: {
+  dismissal: Dismissal;
   folder?: string | undefined;
   session: AttentionSession;
   turn: string;
 }) {
   const ended = useTurn(turn)?.reason ?? undefined;
-  return <AttentionBanner folder={folder} session={session} why={ended} />;
+  return <AttentionBanner {...banner} why={ended} />;
 }
 
 /** The banner, by why the session needs attention, `why` before its text; with its Dismiss. */
 function AttentionBanner({
+  dismissal,
   folder,
   session,
   why,
 }: {
+  dismissal: Dismissal;
   folder?: string | undefined;
   session: AttentionSession;
   why?: string | undefined;
 }) {
   const workspace = useWorkspace();
-  const { dismiss, error } = useDismiss();
   const item = workspace?.features.find((feature) => feature.folder === folder)?.kind ?? "feature";
   const turn = session.turns.at(-1);
   const reason = session.statusReason!;
   return (
     <RunBanner
-      error={error}
+      error={dismissal.error}
       item={item}
       reason={reason}
       why={why}
       {...(turn !== undefined && isDismissable({ reason, status: session.status })
-        ? { onDismiss: () => void dismiss({ session: session.id, turn }) }
+        ? { onDismiss: () => dismissal.onDismiss(turn) }
         : {})}
     />
   );
