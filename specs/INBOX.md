@@ -12,6 +12,8 @@
 - "Proposal > Start" should not append, creates really weird beahviour
 - The proposal start flow sucks ass when it's from a single priorities row > after "new feature
   start" it should be at the session page...
+- [panes-size] Remove the selector on the `+` button, it should open the new page which has more
+  context
 
 ## Bugfix
 
