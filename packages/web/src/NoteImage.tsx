@@ -11,7 +11,7 @@ import { rereadProposalFile } from "./attach/useEditorImages.ts";
 import type { AttachStatus } from "./attach/useAttach.ts";
 import { readInbox, rereadChanges } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
-import { holding, notesRemoved } from "./optimisticLists.ts";
+import { addUndone } from "./optimisticLists.ts";
 import { repoPath, useRepository } from "./routes.tsx";
 import { InboxView } from "./views.ts";
 import { RemovableThumbnail } from "./attach/RemovableThumbnail.tsx";
@@ -107,7 +107,7 @@ export async function undoAsFile(fate: Fate, note: InboxNote) {
   const now = await readInbox(fate, "cache-first").catch(() => undefined);
   const result = await fate.mutations.inbox.undoAsFile({
     input: { lines: [...note.lines] },
-    ...(now ? { optimistic: notesRemoved(now.categories, holding(note.lines)) } : {}),
+    ...(now ? { optimistic: addUndone(now.categories, note.lines) } : {}),
     view: InboxView,
   });
   rereadChanges(fate);

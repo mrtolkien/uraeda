@@ -17,7 +17,7 @@ import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { type Added, AddForm, titleOf } from "./QuickAdd.tsx";
-import { holding, notesRemoved, proposalRemoved } from "./optimisticLists.ts";
+import { addUndone, proposalRemoved } from "./optimisticLists.ts";
 import { useRoute } from "./routes.tsx";
 import { InboxView, PrioritiesView } from "./views.ts";
 
@@ -199,7 +199,7 @@ async function undoAdd(fate: ReturnType<typeof useFateClient>, note: InboxNote |
   const now = await readInbox(fate, "cache-first").catch(() => undefined);
   const result = await fate.mutations.inbox.undoAdd({
     input: { lines: [...note.lines] },
-    ...(now ? { optimistic: notesRemoved(now.categories, holding(note.lines)) } : {}),
+    ...(now ? { optimistic: addUndone(now.categories, note.lines) } : {}),
     view: InboxView,
   });
   return result.error ? refusal(result.error).message : undefined;

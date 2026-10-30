@@ -3,7 +3,7 @@
 // refusal. A committing call names its write with `writeHere`.
 import { useFateClient, useLiveView, useRequest, view } from "react-fate";
 import type { WriteQueue } from "uraeda-server/fate";
-import { useRefreshOnShow } from "../data.ts";
+import { useSharedRefreshOnShow } from "../readAhead.ts";
 import { localPath } from "../routeTable.ts";
 import type { StartStep } from "../session/StartSteps.tsx";
 import type { QueuedWrite } from "./CommitToast.tsx";
@@ -33,11 +33,13 @@ export type Write = QueuedWrite & {
   steps?: ReadonlyArray<StartStep>;
 };
 
+/** The one request every reader of the queue makes: the same object, so they share its read. */
+const REQUEST = { writeQueue: { id: WRITE_QUEUE_ID, view: WriteQueueView } };
+
 /** The writes of the repository's queue, in the order they were made, the running one first. */
 export function useWriteQueue(): ReadonlyArray<Write> {
-  const request = { writeQueue: { id: WRITE_QUEUE_ID, view: WriteQueueView } };
-  const { writeQueue } = useRequest(request);
-  useRefreshOnShow(request);
+  const { writeQueue } = useRequest(REQUEST);
+  useSharedRefreshOnShow(REQUEST);
   return (useLiveView(WriteQueueView, writeQueue)?.writes ?? []) as ReadonlyArray<Write>;
 }
 
@@ -47,14 +49,15 @@ const happenedAt = (write: Write, where: Where) =>
   (where.file === undefined || write.file === where.file) &&
   (where.href === undefined || write.href === where.href);
 
+/** Whether `write` was refused at `where`: messages not sent belong to their composer. */
+const refusedAt = (write: Write, where: Where) =>
+  write.state === "refused" && write.failure !== "unsent" && happenedAt(write, where);
+
 /**
- * The write a hook refused at `where`, the latest, until it is dismissed: messages not sent are no
- * write of a place, as their composer shows them.
+ * The write a hook refused at `where`, the latest, until it is dismissed.
  */
 export function useRefusal(where: Where): Write | undefined {
-  return useWriteQueue().findLast(
-    (write) => write.state === "refused" && write.failure !== "unsent" && happenedAt(write, where),
-  );
+  return useWriteQueue().findLast((write) => refusedAt(write, where));
 }
 
 /** Takes a refused write out of the queue's record, in every tab. */
@@ -72,15 +75,17 @@ export function writeHere(label: string): { href: string; label: string } {
 }
 
 /**
- * What a place calls as it writes again: the refusal of its last write, dealt with by the new one,
- * leaves the queue.
+ * What a place calls as it writes again: the refusals of its writes, dealt with by the new one,
+ * leave the queue, every one, not only the latest the place shows.
  */
 export function useClearRefusal(where: Where): () => void {
-  const refused = useRefusal(where);
+  const writes = useWriteQueue();
   const dismiss = useDismissWrite();
   return () => {
-    if (refused) {
-      void dismiss(refused.id);
+    for (const write of writes) {
+      if (refusedAt(write, where)) {
+        void dismiss(write.id);
+      }
     }
   };
 }

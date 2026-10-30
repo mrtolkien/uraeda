@@ -1211,3 +1211,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   page, which commits the default branch's lists only, and would need its own commit per branch.
 - **Where**: `packages/web/src/review/VerdictLeft.tsx`, `writes/RefusedHere.tsx`,
   `writes/CommitToast.tsx`, `spec/SpecPage.tsx`, `PlanPage.tsx`, final review.
+
+## R94: The selected row's page is read ahead once the selection rests 50 ms
+
+- **Decision**: `ReadAhead` reads the selected row's page 50 ms after the selection reached it, and
+  not if it moved on before. The write queue's readers share one read on the tab's return per
+  client, as the cards do (R24), through `useSharedRefreshOnShow`.
+- **Rationale**: a held j or k moves the selection about 30 times a second: each row read and kept
+  its page, hundreds in a long list, each kept for the session. A key that opens the page comes
+  after the selection rests, so the read still starts before it.
+- **If wrong**: a page opened within 50 ms of its row's selection waits for its read, as without a
+  read ahead.
+- **Where**: `packages/web/src/readAhead.ts`, `writes/useWriteQueue.ts`, `branchChanges.ts`, final
+  review.

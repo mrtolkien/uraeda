@@ -19,11 +19,27 @@ const NAMING = new Set(["click", "keydown"]);
 /** What an interaction's target is named by: the element a human means, which carries the name. */
 const NAMED = "a, button, input, select, summary, textarea, [aria-label], [role], [tabindex]";
 
+/** The longest name an interaction carries, in characters. */
+const NAME_LENGTH = 60;
+
 /** The path a route change left for, and when, until the frame that draws it. */
 let pending: { path: string; start: number } | undefined;
 
 /** The path of the page drawn last. */
 let drawn = window.location.pathname;
+
+/**
+ * The text of `element`, read up to a little past `NAME_LENGTH`: a container's whole text, on
+ * every timed click, would cost more than the click.
+ */
+function shortText(element: Element): string {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  let text = "";
+  for (let node = walker.nextNode(); node && text.length <= NAME_LENGTH; node = walker.nextNode()) {
+    text += node.nodeValue ?? "";
+  }
+  return text;
+}
 
 /** The accessible name of an event's target, shortened, or "" when it has none or is gone. */
 function accessibleName(target: Node | null): string {
@@ -42,10 +58,9 @@ function accessibleName(target: Node | null): string {
           .map((id) => document.getElementById(id)?.textContent ?? "")
           .join(" ")) ??
     element.getAttribute("title") ??
-    element.textContent ??
-    "";
+    shortText(element);
   const text = name.replaceAll(/\s+/g, " ").trim();
-  return text.length > 60 ? `${text.slice(0, 59)}…` : text;
+  return text.length > NAME_LENGTH ? `${text.slice(0, NAME_LENGTH - 1)}…` : text;
 }
 
 /** The interactions measured already, by id, the latest last: a later entry of one is not timed. */

@@ -102,9 +102,18 @@ export function notesRemoved(categories: Categories, gone: (note: Note) => boole
   );
 }
 
-/** Whether a note holds `lines` as written: what an Undo of an add finds it by. */
-export const holding = (lines: ReadonlyArray<string>) => (note: Note) =>
+/** Whether a note holds `lines` as written. */
+const holding = (lines: ReadonlyArray<string>) => (note: Note) =>
   note.lines.length === lines.length && note.lines.every((line, at) => line === lines[at]);
+
+/**
+ * The inbox without the one note holding `lines` as written, as an Undo of an add takes it out:
+ * as it was when two notes hold them, which the core refuses, never both gone.
+ */
+export function addUndone(categories: Categories, lines: ReadonlyArray<string>) {
+  const held = categories.flatMap((category) => category.notes).filter(holding(lines));
+  return notesRemoved(categories, (note) => held.length === 1 && note === held[0]);
+}
 
 /** The inbox with the image `path` gone from the note `id`'s images. */
 export function imageRemoved(categories: Categories, id: string, path: string) {

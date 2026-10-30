@@ -97,6 +97,38 @@ export function show(fate: Fate, request: PageRequest): () => void {
   };
 }
 
+/** The reads a tab's return started, by client and request, each shared until it ends. */
+const sharedReads = new WeakMap<object, Map<object, Promise<unknown>>>();
+
+/**
+ * `useRefreshOnShow` for a request many components make at once, the same object each time: the
+ * tab's return reads it again once per client, however many listen (R24).
+ */
+export function useSharedRefreshOnShow(request: PageRequest) {
+  const fate = useFateClient();
+  useEffect(() => {
+    const hide = show(fate, request);
+    const reads = sharedReads.get(fate) ?? new Map<object, Promise<unknown>>();
+    sharedReads.set(fate, reads);
+    const refresh = () => {
+      if (document.visibilityState === "visible" && !reads.has(request)) {
+        reads.set(
+          request,
+          fate
+            .request(request as never, { mode: "network-only" })
+            .catch(() => {})
+            .finally(() => reads.delete(request)),
+        );
+      }
+    };
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      hide();
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [fate, request]);
+}
+
 /**
  * Reads a page's request ahead of its page, from memory when the browser holds it already, and
  * keeps it: the page then draws without waiting.
@@ -118,14 +150,24 @@ export function readAlong(fate: Fate, requests: ReadonlyArray<PageRequest>) {
 }
 
 /**
- * Reads ahead `request`, the page of the row selected, each time the selection moves to another:
- * drawn by a list only for a row with a page, so a list without any needs no fate client.
+ * How long the selection rests on a row before its page is read ahead: a held j or k passes rows
+ * faster, and reads and keeps none of them.
+ */
+const RESTED_MS = 50;
+
+/**
+ * Reads ahead `request`, the page of the row selected, each time the selection moves to another
+ * and rests there: drawn by a list only for a row with a page, so a list without any needs no
+ * fate client.
  */
 export function ReadAhead({ request }: { request: PageRequest }) {
   const fate = useFateClient();
   const read = useEffectEvent(() => readAhead(fate, request));
   const key = keyOf(request);
-  useEffect(() => read(), [key]);
+  useEffect(() => {
+    const rested = setTimeout(read, RESTED_MS);
+    return () => clearTimeout(rested);
+  }, [key]);
   return null;
 }
 
