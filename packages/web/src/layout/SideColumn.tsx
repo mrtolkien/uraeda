@@ -20,7 +20,6 @@ import {
   type ReactNode,
   type RefObject,
   useCallback,
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -246,29 +245,31 @@ function Column({
  */
 function useRailFocus(
   isOpen: boolean,
+  wasEscaped: () => boolean,
   place: RefObject<HTMLElement | null>,
   button: RefObject<HTMLButtonElement | null>,
 ) {
-  // Set by Escape pressed inside the open column, until the focus goes back.
-  const escaped = useRef(false);
-  useEffect(() => {
-    const element = place.current;
-    const down = (event: KeyboardEvent) => {
-      escaped.current = event.key === "Escape";
-    };
-    element?.addEventListener("keydown", down, true);
-    return () => element?.removeEventListener("keydown", down, true);
-  }, [place]);
+  // Whether the button held the focus as the column opened, which removed it.
+  const onButton = useRef(false);
   useLayoutEffect(() => {
     const lost = document.activeElement === null || document.activeElement === document.body;
-    if (isOpen && lost) {
+    if (isOpen && lost && onButton.current) {
       place.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
     }
-    if (!isOpen && escaped.current && lost) {
+    if (!isOpen && lost && wasEscaped()) {
       button.current?.focus();
     }
-    escaped.current = false;
-  }, [button, isOpen, place]);
+    onButton.current = false;
+  }, [button, isOpen, place, wasEscaped]);
+  /** The button's own focus handlers. */
+  return {
+    onBlur: () => {
+      onButton.current = false;
+    },
+    onFocus: () => {
+      onButton.current = true;
+    },
+  };
 }
 
 /**
@@ -291,7 +292,7 @@ function RailedColumn({
   const button = useRef<HTMLButtonElement>(null);
   const railed = useRail(true, place, button);
   const { isOpen, tap } = railed;
-  useRailFocus(isOpen, place, button);
+  const buttonFocus = useRailFocus(isOpen, railed.wasEscaped, place, button);
   const open = useCallback(() => {
     if (!isOpen) {
       tap();
@@ -334,6 +335,7 @@ function RailedColumn({
                 label={`Show ${name}`}
                 onClick={tap}
                 ref={button}
+                {...buttonFocus}
                 variant="ghost"
               />
               {rail}

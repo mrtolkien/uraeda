@@ -120,7 +120,8 @@ function claim(close: () => void) {
 /**
  * The rail's state, while `isRail`: whether it is open, the handlers its element, `ref`, takes, and
  * the logo's tap; Escape moves the focus to `logo`. `isHovered` follows the mouse over it at every
- * width, which shows the wide column's fold button.
+ * width, which shows the wide column's fold button. `wasEscaped` tells a logo drawn only while
+ * the rail is folded, which was not there to take the focus, to take it once drawn.
  */
 export function useRail(
   isRail: boolean,
@@ -203,7 +204,9 @@ export function useRail(
       setTapped(true);
     }
   };
-  return { handlers, isHovered: hovered, isOpen, tap };
+  /** Whether Escape folded it from inside, until the focus leaves it: its logo may take the focus. */
+  const wasEscaped = () => quiet.current;
+  return { handlers, isHovered: hovered, isOpen, tap, wasEscaped };
 }
 
 /** The rail's logo: a tap opens the rail over the page, which has no pointer to hover it with. */
