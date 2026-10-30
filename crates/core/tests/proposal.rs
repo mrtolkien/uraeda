@@ -179,3 +179,19 @@ fn a_drafted_proposal_writes_its_line_and_its_file_in_one_call() {
     assert_eq!(now[2].0, "An idea");
     assert_eq!(file.proposal.as_ref().map(|p| p.id.as_str()), Some("now-2"));
 }
+
+/// A refused draft takes its line back out, and leaves the file in its way as it was.
+#[test]
+fn a_refused_draft_leaves_the_priorities_and_the_folder_as_they_were() {
+    let repo = TestRepo::new();
+    let priorities = "# Priorities\n\n## Now\n\n- An idea\n";
+    repo.write("specs/PRIORITIES.md", priorities);
+    repo.write("specs/proposals/performance-pass.md", "# Mine\n");
+    repo.commit("chore: specs");
+
+    let refused = api::draft_proposal(repo.path(), "now", "Performance pass", "Fast.");
+
+    assert_eq!(refused.unwrap_err().code, "refused");
+    assert_eq!(repo.read("specs/PRIORITIES.md"), priorities);
+    assert_eq!(repo.read("specs/proposals/performance-pass.md"), "# Mine\n");
+}
