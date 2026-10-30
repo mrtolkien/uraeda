@@ -18,7 +18,6 @@ import * as stylex from "@stylexjs/stylex";
 import {
   type MouseEvent,
   type ReactNode,
-  type RefObject,
   useCallback,
   useLayoutEffect,
   useRef,
@@ -26,8 +25,8 @@ import {
 } from "react";
 import { useKeys } from "../keys/registry.tsx";
 import { useRail } from "../shell/Rail.tsx";
+import { useRailFocus, useRailing } from "./columnRail.ts";
 import { useOpenOnShow } from "./documentColumnWidth.ts";
-import { useLengthIn } from "./useWidthOf.ts";
 import { isNarrow, useWidthClass } from "./useWidthClass.ts";
 
 const styles = stylex.create({
@@ -137,12 +136,6 @@ const EASE_MS = 200;
 /** The folded rail's width, the left sidebar's (R3). */
 const RAIL = "var(--size-rail)";
 
-/**
- * The least room a page takes beside the column on a half screen: a reading pane, and the wide
- * page's inset at each side (`Page.tsx`).
- */
-const PAGE_LEAST = "calc(var(--size-reading-pane) + 2 * var(--spacing-8))";
-
 /** What the column draws, beside its page or over it. */
 type ColumnParts = {
   children: ReactNode;
@@ -183,6 +176,7 @@ function Content({
  */
 function Column({
   children,
+  drawn,
   easing,
   header,
   isFilled,
@@ -193,6 +187,8 @@ function Column({
   rail,
   resizable,
 }: ColumnParts & {
+  /** Its width as drawn: the width dragged, or less, to leave its page a reading pane. */
+  drawn: number;
   easing: boolean;
   isShown: boolean;
   onPointer: (over: boolean) => void;
@@ -206,7 +202,7 @@ function Column({
         onClick={onUnfold}
         padding={0}
         role="complementary"
-        width={isShown ? resizable.size : RAIL}
+        width={isShown ? drawn : RAIL}
         xstyle={[styles.panel, easing && styles.easing, isShown && isFilled && styles.filledPanel]}
       >
         {isShown ? (
@@ -215,7 +211,7 @@ function Column({
             isFilled={isFilled}
             label={label}
             onPointer={onPointer}
-            width={resizable.size}
+            width={drawn}
           >
             {children}
           </Content>
@@ -236,40 +232,6 @@ function Column({
       )}
     </div>
   );
-}
-
-/**
- * Keeps the keyboard's focus as the railed column opens and closes, as its button goes with the
- * rail: opened from the button, the focus moves to the open tab; closed by Escape from inside it,
- * back to the button, which `useRail` keeps from opening it again.
- */
-function useRailFocus(
-  isOpen: boolean,
-  wasEscaped: () => boolean,
-  place: RefObject<HTMLElement | null>,
-  button: RefObject<HTMLButtonElement | null>,
-) {
-  // Whether the button held the focus as the column opened, which removed it.
-  const onButton = useRef(false);
-  useLayoutEffect(() => {
-    const lost = document.activeElement === null || document.activeElement === document.body;
-    if (isOpen && lost && onButton.current) {
-      place.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
-    }
-    if (!isOpen && lost && wasEscaped()) {
-      button.current?.focus();
-    }
-    onButton.current = false;
-  }, [button, isOpen, place, wasEscaped]);
-  /** The button's own focus handlers. */
-  return {
-    onBlur: () => {
-      onButton.current = false;
-    },
-    onFocus: () => {
-      onButton.current = true;
-    },
-  };
 }
 
 /**
@@ -397,13 +359,9 @@ function ColumnAt({
   rail,
   resizable,
 }: ColumnProps & { resizable: ReturnType<typeof useResizable> }) {
-  const widthClass = useWidthClass();
-  const wide = !isNarrow(widthClass);
-  // Railed on a half screen when the page beside the column would keep less than a reading pane.
+  const wide = !isNarrow(useWidthClass());
   const box = useRef<HTMLDivElement>(null);
-  const page = useLengthIn(box, PAGE_LEAST);
-  const railed =
-    widthClass === "semi" && !isBeside && page.width > 0 && page.width - resizable.size < page.px;
+  const { drawn, railed } = useRailing(box, isBeside, resizable.size);
   const beside = wide && !railed;
   const [pointer, setPointer] = useState(false);
   const [easing, setEasing] = useState(false);
@@ -463,6 +421,7 @@ function ColumnAt({
             </RailedColumn>
           ) : beside ? (
             <Column
+              drawn={drawn}
               easing={easing}
               header={header}
               isFilled={isFilled}
