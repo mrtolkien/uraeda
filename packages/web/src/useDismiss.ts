@@ -4,7 +4,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { useFateClient } from "react-fate";
 import type { SessionStatus, StatusReason } from "uraeda-server/fate";
-import { refusal } from "./errors.ts";
+import { guarded, refusal } from "./errors.ts";
 import { SessionView } from "./views.ts";
 
 /** The turns being dismissed, by their feature's folder, until the server's status follows. */
@@ -100,11 +100,14 @@ export function useDismiss() {
     if (folder !== undefined) {
       setDismissing(folder, turn);
     }
-    const result = await fate.mutations.session.dismiss({
-      input: { turn },
-      optimistic: { id: session, status: "idle", statusLabel: "Idle", statusReason: null },
-      view: SessionView,
-    });
+    // A lost connection rejects the call: it is shown as a refusal.
+    const result = await guarded(() =>
+      fate.mutations.session.dismiss({
+        input: { turn },
+        optimistic: { id: session, status: "idle", statusLabel: "Idle", statusReason: null },
+        view: SessionView,
+      }),
+    );
     // Refused, the feature's status is the server's again at once; accepted, the server's next
     // status replaces it, which no longer asks about the turn, or, at the latest, 10 seconds on.
     const forget = () => {
