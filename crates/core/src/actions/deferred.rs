@@ -103,57 +103,52 @@ fn deferring(key: &Path) -> bool {
 pub(super) fn record(git: &Git, place: &Place) {
     let key = git.main_root();
     if !deferring(&key) {
+        BEFORE.with_borrow_mut(|befores| befores.remove(&place.root));
         return;
     }
-    let before = files_under(&place.root, SPECS)
+    let before = held(&place.root);
+    BEFORE.with_borrow_mut(|befores| befores.insert(place.root.clone(), (key, before)));
+}
+
+/// What the files under the `specs/` of `root` hold.
+fn held(root: &Path) -> Before {
+    files_under(root, SPECS)
         .into_iter()
         .filter_map(|file| {
             let held = if file.ends_with(".md") {
-                Held::Markdown(fs::read(place.root.join(&file)).ok()?)
+                Held::Markdown(fs::read(root.join(&file)).ok()?)
             } else {
                 Held::Other
             };
             Some((file, held))
         })
-        .collect();
-    BEFORE.with_borrow_mut(|befores| befores.insert(place.root.clone(), (key, before)));
+        .collect()
 }
 
 /// Defers the commit of `change`, written in `place`, when its repository defers commits: returns
 /// it as committed, with no commit yet. `None` when the commit is to run now.
 pub(super) fn defer_commit(place: &Place, change: &Change, only: bool) -> Option<Committed> {
-    BEFORE.with_borrow_mut(|befores| {
-        let (key, before) = befores.get_mut(&place.root)?;
-        if !deferring(key) {
-            return None;
-        }
-        let written = written(&place.root, before, &change.paths);
-        // The next commit of this action starts from what this one wrote.
-        for file in &written {
-            match &file.after {
-                Some(bytes) if file.path.ends_with(".md") => {
-                    before.insert(file.path.clone(), Held::Markdown(bytes.clone()));
-                }
-                Some(_) => drop(before.insert(file.path.clone(), Held::Other)),
-                None => drop(before.remove(&file.path)),
-            }
-        }
-        let deferred = Deferred {
-            id: (IDS.fetch_add(1, Ordering::Relaxed) + 1).to_string(),
-            place: place.clone(),
-            change: change.clone(),
-            only,
-            written,
-        };
-        repositories(|repositories| {
-            repositories
-                .get_mut(key.as_path())
-                .map(|repository| repository.fresh.push(deferred))
-        })?;
-        Some(Committed {
-            change: change.clone(),
-            commit: String::new(),
-        })
+    // An action commits once: what its place held is used, and goes.
+    let (key, before) = BEFORE.with_borrow_mut(|befores| befores.remove(&place.root))?;
+    if !deferring(&key) {
+        return None;
+    }
+    let written = written(&place.root, &before, &change.paths);
+    let deferred = Deferred {
+        id: (IDS.fetch_add(1, Ordering::Relaxed) + 1).to_string(),
+        place: place.clone(),
+        change: change.clone(),
+        only,
+        written,
+    };
+    repositories(|repositories| {
+        repositories
+            .get_mut(key.as_path())
+            .map(|repository| repository.fresh.push(deferred))
+    })?;
+    Some(Committed {
+        change: change.clone(),
+        commit: String::new(),
     })
 }
 
@@ -332,4 +327,39 @@ fn files_under(root: &Path, path: &str) -> Vec<String> {
             )
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Undo deletes a file the write created, with the folders it leaves empty, and leaves an
+    /// image that was there before as the write left it.
+    #[test]
+    fn undo_deletes_what_the_write_created_and_leaves_images() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let write = |path: &str, bytes: &[u8]| {
+            let path = root.join(path);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, bytes).unwrap();
+        };
+        write("specs/README.md", b"# Specs\n");
+        write("specs/images/shot.png", b"before");
+        let before = held(root);
+
+        write("specs/new/deep/note.md", b"# Note\n");
+        write("specs/images/shot.png", b"after");
+        let paths = ["specs/new".to_string(), "specs/images".to_string()];
+        let written = written(root, &before, &paths);
+        let left = undo(root, &written);
+
+        assert!(left.is_empty(), "{left:?}");
+        assert!(!root.join("specs/new").exists());
+        assert!(root.join("specs/README.md").exists());
+        assert_eq!(
+            fs::read(root.join("specs/images/shot.png")).unwrap(),
+            b"after"
+        );
+    }
 }

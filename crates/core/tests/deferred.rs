@@ -77,17 +77,29 @@ fn a_refused_deferred_commit_puts_back_what_its_write_left_with_the_hooks_output
         )
     );
     assert!(api::take_deferred(repo.path()).is_empty());
-    repo.set_hook("echo 'a sentence of 31 words'\nexit 1");
+    // Git gives a hook's stdout to stderr: its lines come in the order the hook printed them.
+    repo.set_hook("echo 'a sentence of 31 words'\necho 'too long' >&2\nexit 1");
     let lines = Mutex::new(Vec::new());
     let refused = api::land(repo.path(), &deferred[0].id, |line| {
         lines.lock().unwrap().push(line.to_string());
     })
     .unwrap_err();
     assert_eq!(
-        (refused.code, refused.output.as_deref()),
-        ("hook", Some("a sentence of 31 words"))
+        (
+            refused.code,
+            refused.message.as_str(),
+            refused.output.as_deref()
+        ),
+        (
+            "hook",
+            "git commit failed: a sentence of 31 words",
+            Some("a sentence of 31 words\ntoo long")
+        )
     );
-    assert_eq!(lines.into_inner().unwrap(), ["a sentence of 31 words"]);
+    assert_eq!(
+        lines.into_inner().unwrap(),
+        ["a sentence of 31 words", "too long"]
+    );
     assert_eq!(repo.read(&in_worktree(ROUND)), saved);
     assert_eq!(repo.subjects(FOLDER)[0], "discovery(web-ui): round");
 
@@ -101,7 +113,10 @@ fn a_refused_deferred_commit_puts_back_what_its_write_left_with_the_hooks_output
     let refused = landed.unwrap_err();
     assert_eq!(
         refused.output.as_deref(),
-        Some(format!("a sentence of 31 words\n\nChanged since, left as it is: {ROUND}").as_str())
+        Some(
+            format!("a sentence of 31 words\ntoo long\n\nChanged since, left as it is: {ROUND}")
+                .as_str()
+        )
     );
     assert_eq!(repo.read(&in_worktree(ROUND)), later);
 }
@@ -113,13 +128,20 @@ fn a_deferred_commit_lands_with_its_hooks_output_streamed() {
     api::submit_answers(repo.path(), FOLDER, None, false).unwrap();
     repo.set_hook("echo checked\necho formatted >&2");
 
-    let (landed, lines) = land_one(&repo);
+    let deferred = api::take_deferred(repo.path());
+    let lines = Mutex::new(Vec::new());
+    let landed = api::land(repo.path(), &deferred[0].id, |line| {
+        lines.lock().unwrap().push(line.to_string());
+    });
 
     assert_eq!(
         landed.unwrap().subject,
         "discovery(web-ui): answer round 01"
     );
-    assert_eq!(lines, ["checked", "formatted"]);
+    assert_eq!(lines.into_inner().unwrap(), ["checked", "formatted"]);
+    // Landed once: a second land of it is refused.
+    let again = api::land(repo.path(), &deferred[0].id, |_| {}).unwrap_err();
+    assert_eq!(again.code, "refused");
     assert_eq!(
         repo.subjects(FOLDER)[0],
         "discovery(web-ui): answer round 01"
