@@ -22,19 +22,26 @@ import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useSheetTab } from "./layout/useSheetTab.ts";
+import { paneVars } from "./layout/pane.stylex.ts";
 import { ConflictBanner } from "./pane/ProposalEditor.tsx";
 import { useProposalEditor } from "./pane/useProposalEditor.ts";
 import { currentEntry, useRestoreScroll } from "./routes.tsx";
 
 const styles = stylex.create({
-  // The text beside its Start, on a wide screen; the text alone, or stacked, elsewhere.
+  // The text beside its Start, on a wide screen, where both fit: the text as wide as its file's
+  // lines, which do not wrap, and Start the rest; Start under it where they do not.
   columns: {
+    // Each pane at the row's start, not centred in its own room: under the text, Start keeps its
+    // edges.
+    "--pane-centre": "0",
     alignItems: "start",
-    display: "grid",
+    display: "flex",
+    flexWrap: "wrap",
     gap: spacingVars["--spacing-4"],
-    gridTemplateColumns: "minmax(0, 2fr) minmax(22rem, 1fr)",
   },
   stacked: { display: "flex", flexDirection: "column", gap: spacingVars["--spacing-4"] },
+  start: { flex: "1 1 22rem", minWidth: 0 },
+  text: { flex: `0 1 ${paneVars["--pane-code"]}`, minWidth: 0 },
 });
 
 const SECTIONS: Record<string, string> = {
@@ -267,15 +274,18 @@ export function EditorPage({ path }: { path: string }) {
         <ConflictBanner editor={editor} />
         {level !== undefined && <ResearchEffort file={file} onChange={setLevel} value={level} />}
         <div {...stylex.props(isFile && isWide ? styles.columns : styles.stacked)}>
-          <ProposalText
-            boxRef={box}
-            editor={editor}
-            file={file}
-            onEdit={edit}
-            onSubmit={isFile ? startNow : editor.saveText}
-            path={path}
-          />
-          {isFile && !inSheet && start}
+          <div {...stylex.props(isFile && isWide && styles.text)}>
+            <ProposalText
+              boxRef={box}
+              editor={editor}
+              file={file}
+              isUnwrapped={isWide}
+              onEdit={edit}
+              onSubmit={isFile ? startNow : editor.saveText}
+              path={path}
+            />
+          </div>
+          {isFile && !inSheet && <div {...stylex.props(isWide && styles.start)}>{start}</div>}
         </div>
         {banner}
       </VStack>

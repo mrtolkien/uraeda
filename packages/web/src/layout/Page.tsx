@@ -37,8 +37,12 @@ const styles = stylex.create({
     "--pane-width": "100%",
   },
   // A draft's editor on wide screens: its panes hold the file's text in the UI's monospace font,
-  // not prose, up to 95 of its characters.
-  writing: { "--pane-max": paneVars["--pane-code"] },
+  // not prose, up to the formatter's 100 columns of it.
+  // The page as wide as that pane and its Start beside it, 22rem, where the screen has the room.
+  writing: {
+    "--pane-max": paneVars["--pane-code"],
+    maxWidth: `calc(${paneVars["--pane-code"]} + 22rem + ${spacingVars["--spacing-4"]} + 2 * var(--page-inset))`,
+  },
   // A round's page on wide screens: as wide as two of its panes side by side, as its Scope and
   // Sources are, so that a question's card, its question beside its answers, takes both.
   paired: {
