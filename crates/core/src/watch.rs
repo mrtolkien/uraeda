@@ -124,14 +124,15 @@ fn snapshot(root: &Path) -> Snapshot {
         }
         let summary = serde_json::to_string(&(&feature.step, &feature.files, &feature.problems))
             .unwrap_or_default();
-        // A code commit moves the branch's tip without touching `specs/`, and a commit on the
-        // default branch may move the merge base its changes are counted from. A branch without a
-        // tip has no changes, so the default branch's commits do not report it.
+        // A code commit moves the branch's tip without touching `specs/`, a push only its remote
+        // tip, which the Push step reads, and a commit on the default branch may move the merge
+        // base its changes are counted from. A branch without a tip has no changes, so the default
+        // branch's commits do not report it.
         let tip = feature
             .branch
             .as_deref()
-            .and_then(|branch| git.tip(branch))
-            .map(|id| format!("{id}{default_tip}"))
+            .and_then(|branch| Some((git.tip(branch)?, git.remote_tip(branch))))
+            .map(|(id, remote)| format!("{id}{remote:?}{default_tip}"))
             .unwrap_or_default();
         features.insert(
             feature.folder.clone(),

@@ -156,6 +156,25 @@ fn a_code_commit_on_a_feature_branch_is_reported() {
     );
 }
 
+/// Review: a push moves only the branch's remote-tracking ref, which the Push step and the pull
+/// requests' refresh read.
+#[test]
+fn a_push_of_a_feature_branch_is_reported() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+
+    let remote = format!("refs/remotes/origin/{FOLDER}");
+    repo.git(&["update-ref", &remote, FOLDER]);
+
+    let reports = until_priorities(&repo, &receiver, "After the push");
+    assert!(
+        reports
+            .iter()
+            .any(|changes| changes.features.contains(&FOLDER.to_string())),
+        "{reports:?}"
+    );
+}
+
 /// US4.5: a feature's changes are counted from its merge base with the default branch, so a commit
 /// on the default branch, which may move that base, reports the feature too.
 #[test]
