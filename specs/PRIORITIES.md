@@ -7,9 +7,9 @@
 > Features for v1.0.0
 
 - [Feature state pass](/specs/2026-10-30-feature-state/proposal.md)
+- [Reading and layout pass](/specs/2026-10-30-reading-pass/proposal.md)
 
 - Empty inbox
-- [Reading and layout pass](proposals/reading-pass/proposal.md)
 - [Proposal start flow](proposals/proposal-start-flow.md)
 - [Mockup previews](proposals/mockup-previews/proposal.md)
 - See if we can integrate Claude Design
