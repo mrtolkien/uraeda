@@ -567,3 +567,66 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the editor names the feature, not the folder that takes its name.
 - **Where**: `crates/core/src/actions/start/plan.rs`, `crates/lsp/src/commands.rs`, review of
   task 11.
+
+## R49: The start's message is built in the server, for the first step of a committed proposal
+
+- **Decision**: `feature.start` answers with the workflow's message of the planned folder, built by
+  the server's `runMessage` as `readWorkflowMessage` builds it once the start landed: the step
+  `discovery` and its reference for a feature, `change` for a change, on the planned branch, at
+  `specs/<folder>/` or `specs/changes/<folder>/`. The start's test checks the plan's message against
+  the `WorkflowMessage` record read once the feature exists.
+- **Rationale**: the core's `PlannedView` holds the folder, branch, slug, and title, and no step: a
+  committed proposal with no other file is always the core's `discovery` or `change` step, and the
+  core's crates were not this task's to change.
+- **If wrong**: `PlannedView` carries the first step and its reference, and `startMessage` in
+  `fate/starts.ts` reads them.
+- **Where**: `packages/server/src/fate/starts.ts`, task 13.
+
+## R50: A change's start goes through the queue and answers once it landed
+
+- **Decision**: `change.start`, `change.fromNote`, `change.startProposal`, and a session's move to a
+  change run their start as a write of the queue, "Starting a change", with its steps, after the
+  writes queued before it, and answer once it landed, with the change and its first run as before.
+  Their first run is the start's last step. A refusal is the call's answer, and leaves the record.
+  Only `feature.start`, of a proposal file as a feature or as a change, answers once planned.
+- **Rationale**: the core plans only a proposal file's start: a typed change, from the composer or a
+  note, has no `planStart`, and its pages open on the change's session with its first run, which
+  needs the change made. Through the queue, its commit lands in order with the others; the page that
+  waits for it shows its refusal, so the toast need not keep it.
+- **If wrong**: a `planChange` in the core, and `change.start` answering like `feature.start`.
+- **Where**: `packages/server/src/fate/starts.ts` (`landedStart`), `change-starts.ts`,
+  `session-moves.ts`, task 13.
+
+## R51: A message sent during a start goes to a session made for it, removed if nothing starts
+
+- **Decision**: `session.send` to the folder of a start still in the queue, or to a session of that
+  folder, checks the message as a send would, makes the feature's session, answers with it, and
+  keeps the message in the runner's memory (`StartMessages`). Once the start lands, the kept
+  messages go to that session in order; on a refusal, or as the server stops, they are dropped, and
+  the session goes while it has no turn. The start's write holds the kept text in `queued`, which a
+  refusal leaves for the composer.
+- **Rationale**: `session.send` answers a `Session`, which the session page shows; the session made
+  at once is the one the start's first run goes to. A message is taken out of memory before it is
+  sent, so it is never sent twice.
+- **If wrong**: a server that stops abruptly, without `closeAll`, leaves an empty session of the
+  folder, which the next start of that slug reuses.
+- **Where**: `packages/server/src/runner/start-messages.ts`, `fate/starts.ts`, `fate/mutations.ts`
+  (`session.send`, which lives there, not in `fate/sessions.ts`), task 13.
+
+## R52: A start is planned one at a time, run in the calls' turn, and its steps take the mockups' words
+
+- **Decision**: `feature.start` plans one start at a time per repository, so a slug a start still in
+  the queue planned is refused, without waiting for the committing calls or the queued commits. The
+  queue runs the start in the committing calls' turn, `WriteQueue.inTurn`, waiting for no queued
+  write, after the writes queued before it; it holds the lists' keys and its feature's. Its steps
+  read as `StartSteps.stories.tsx` words them: "Commit the proposal on <default branch>, running
+  your hooks", "Make the branch <branch> and its worktree", "Start the agent with your message",
+  with their seconds counted each second while they run.
+- **Rationale**: the start refuses uncommitted files outside its own (R47): run while a call is
+  between its write and the take of its commit, it would see that call's file uncommitted. Planned
+  outside the turn, Start never waits for a call held on the core's lock. The mockups are the spec's
+  copy; the plan's labels paraphrased them.
+- **If wrong**: a call that wrote a file of the default branch's checkout under a feature's key,
+  after the start was queued and before it ran, has the start refused as uncommitted changes.
+- **Where**: `packages/server/src/fate/starts.ts`, `packages/server/src/writes/queue.ts`,
+  `packages/server/src/writes/start-steps.ts`, task 13.

@@ -9,6 +9,7 @@ import { callSiteError, refusable } from "./errors.ts";
 import { refusedOn } from "./list-mutations.ts";
 import { featureRecord, readWorkflowMessage } from "./sessions.ts";
 import { sources } from "./sources.ts";
+import { landedStart } from "./starts.ts";
 import { featureDataView } from "./views.ts";
 import { listCommit } from "./write-queue.ts";
 
@@ -62,6 +63,14 @@ async function firstRunSent(ctx: RepoContext, folder: string): Promise<boolean> 
   }
 }
 
+/** The started change's folder, once its first run was sent, or could not be: the start's last step. */
+const withFirstRun =
+  (ctx: RepoContext) =>
+  async ({ folder }: { folder: string }): Promise<{ folder: string; sent: boolean }> => ({
+    folder,
+    sent: await firstRunSent(ctx, folder),
+  });
+
 /**
  * Starts a change from a typed text and its images, then sends its first run. The core writes the
  * images into the change's folder: the workflow's message carries none.
@@ -71,10 +80,11 @@ async function startTypedChange(
   input: { images?: Array<ChatImage>; slug?: string; text: string },
 ): Promise<{ folder: string; sent: boolean }> {
   const bytes = await changeImages(ctx, input.images);
-  const { folder } = await refusable(() =>
-    ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug),
+  return landedStart(
+    ctx,
+    (onStep) => ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug, onStep),
+    withFirstRun(ctx),
   );
-  return { folder, sent: await firstRunSent(ctx, folder) };
 }
 
 /**
@@ -141,8 +151,10 @@ async function startFromNote(
   input: { hash: string; note: string; slug?: string },
 ): Promise<{ folder: string; sent: boolean }> {
   const { images, text } = await noteChange(ctx, input);
-  const { folder } = await refusable(() =>
-    ctx.binding.startChange(ctx.repo, text, images, input.slug),
+  const { folder } = await landedStart(
+    ctx,
+    (onStep) => ctx.binding.startChange(ctx.repo, text, images, input.slug, onStep),
+    async (started) => started,
   );
   try {
     await listCommit(ctx, undefined, () =>
@@ -164,10 +176,11 @@ async function startProposal(
   ctx: RepoContext,
   input: { proposal: string; slug?: string },
 ): Promise<{ folder: string; sent: boolean }> {
-  const { folder } = await refusable(() =>
-    ctx.binding.startFeature(ctx.repo, input.proposal, input.slug, "change"),
+  return landedStart(
+    ctx,
+    (onStep) => ctx.binding.startFeature(ctx.repo, input.proposal, input.slug, "change", onStep),
+    withFirstRun(ctx),
   );
-  return { folder, sent: await firstRunSent(ctx, folder) };
 }
 
 /** The started change, masked to the fields the client selected: no session when no run was sent. */

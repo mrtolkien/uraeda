@@ -29,6 +29,7 @@ import { readRecommended, recommendedDataView } from "./recommended.ts";
 import { readSettingsRecord, settingsDataView } from "./settings.ts";
 import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import { droppedDataView } from "./views-dropped.ts";
+import { startPlanDataView } from "./views-start-plan.ts";
 import {
   AGENT_ID,
   agentDataView,
@@ -478,6 +479,8 @@ export const sources = createSources<Context>([
   writeQueueSource,
   // A drop's result, read once, from its mutation: nothing to read again.
   fileSource(droppedDataView, { byIds: async () => [] }),
+  // A start's plan, read once, from `feature.start`: nothing to read again.
+  fileSource(startPlanDataView, { byIds: async () => [] }),
   fileSource(slugProposalDataView, {
     byIds: async ({ binding }, ids) =>
       ids.map((text) => ({ id: text, slug: binding.proposeSlug(text) })),

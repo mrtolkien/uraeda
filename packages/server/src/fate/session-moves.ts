@@ -6,6 +6,7 @@ import { callSiteError, refusable } from "./errors.ts";
 import { refusedOn } from "./list-mutations.ts";
 import { featureRecord, readSession, readWorkflowMessage } from "./sessions.ts";
 import { sources } from "./sources.ts";
+import { landedStart } from "./starts.ts";
 import { droppedDataView } from "./views-dropped.ts";
 import { featureDataView, sessionDataView } from "./views.ts";
 import { featureKeys, LISTS, type Queued, queued } from "./write-queue.ts";
@@ -87,7 +88,11 @@ async function sendRun(
 async function startChange(ctx: RepoContext, text: string, slug?: string) {
   return refusable(async () => {
     try {
-      return await ctx.binding.startChange(ctx.repo, text, [], slug);
+      return await landedStart(
+        ctx,
+        (onStep) => ctx.binding.startChange(ctx.repo, text, [], slug, onStep),
+        async (started) => started,
+      );
     } catch (error) {
       const message = (error as Error).message;
       const taken = TAKEN.map((pattern) => pattern.exec(message)).find((match) => match !== null);

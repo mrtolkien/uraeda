@@ -1076,9 +1076,16 @@ git commit -m "feat(performance-pass): commits land in a queue per repository, i
 
 **Files:**
 
-- Modify: `packages/server/src/fate/mutations.ts` (`feature.start`, moved to its own module),
-  `packages/server/src/fate/change-starts.ts`, `packages/server/src/runner/sessions.ts` (a message
-  queued for a start), `packages/server/src/fate/sessions.ts` (`session.send`)
+- Create: `packages/server/src/fate/starts.ts` (`feature.start`, moved out of `fate/mutations.ts`,
+  the start's plan and its write, `landedStart`, `keptForStart`),
+  `packages/server/src/fate/views-start-plan.ts`, `packages/server/src/writes/start-steps.ts`,
+  `packages/server/src/runner/start-messages.ts` (the messages queued for a start)
+- Modify: `packages/server/src/fate/mutations.ts` (`session.send`, R51),
+  `packages/server/src/fate/change-starts.ts`, `packages/server/src/fate/session-moves.ts`,
+  `packages/server/src/runner/sessions.ts`, `packages/server/src/runner/cache.ts`,
+  `packages/server/src/writes/queue.ts` (`add`, `update`, `inTurn`, `queued`),
+  `packages/server/src/fate.ts`, `packages/server/src/fate/sources.ts`,
+  `packages/web/.fate/client.generated.ts`
 - Test: `packages/server/src/__tests__/start-queue.test.ts`
 
 **Interfaces:**
@@ -1087,14 +1094,16 @@ git commit -m "feat(performance-pass): commits land in a queue per repository, i
 - Produces:
   - `feature.start` answers once planned with a `StartPlan` record:
     `{ id: folder, folder, title, message }`, `message` the workflow's message of the feature's
-    first step. The queue runs the start, its write's `steps` "Committing the proposal", "Making the
-    branch and its worktree", "Starting the agent", each with its seconds, the commit's with its
-    output.
+    first step (R49). The queue runs the start, its write's `steps` "Commit the proposal on main,
+    running your hooks", "Make the branch <branch> and its worktree", "Start the agent with your
+    message", as the mockups word them, each with its seconds, the commit's with its output (R52).
+  - The changes' starts go through the queue with the same steps, and answer once landed (R50).
   - `session.send` with the `folder` of a start still in the queue keeps the message, and sends it
-    once the start lands. The start's write holds `queued: string` meanwhile. On a refusal, the
-    message is dropped, and the refused write's `queued` holds its text for the composer.
+    once the start lands, to the session it answered with, made for it (R51). The start's write
+    holds `queued: string` meanwhile. On a refusal, the message is dropped, and the refused write's
+    `queued` holds its text for the composer.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/__tests__/start-queue.test.ts
@@ -1105,36 +1114,51 @@ test("a start answers once planned, then runs its steps", async () => {
   // the same slug is refused at once, "A feature named performance-pass exists already".
 });
 
+test("a start waiting behind another write holds its slug", async () => {
+  // A lists' commit held by its hook; the start waits behind it, its steps waiting; a second start
+  // of its slug is refused at once.
+});
+
 test("a message sent during a start waits, then starts the agent", async () => {
   // The start held by its hook; `session.send` to its folder answers at once; the fake agent has
-  // no turn. Released: the agent's turn starts with the text. Row: the hook refuses: no turn, and
-  // the refused write's `queued` is the text.
+  // no turn. Released: the agent's turn starts with the text.
+});
+
+test("a message sent during a refused start is dropped, and kept for the composer", async () => {
+  // The hook refuses: no turn, the refused write's `queued` is the text, the proposal at its path,
+  // the session made for the message gone.
+});
+
+test("a message sent during a start the server stopped in is never sent", async () => {
+  // The sessions close while the hook holds the start; released, the feature is made, and the
+  // agent gets nothing.
 });
 ```
 
 The break each catches: a start that waits for the commit; a second plan of a planned slug accepted;
 a message sent before the worktree exists, or lost on a refusal.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/start-queue.test.ts`
 - Expected: FAIL, `feature.start` waits for the hook.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-The planned slugs still in the queue count as taken for the next plan. The runner keeps the queued
-message in memory: a server that stops drops it, and sends nothing twice. `change.start` follows the
-same path.
+The planned slugs still in the queue count as taken for the next plan, one plan at a time, without
+the committing calls' turn; the start runs in that turn (R52). The runner keeps the queued message
+in memory: a server that stops drops it, and sends nothing twice. `change.start` goes through the
+queue too, and answers once landed: the core plans only a proposal file's start (R50).
 
 - [ ] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS. Deferred to ready: the whole suite.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server/src
+git add packages/server/src packages/web/.fate specs
 git commit -m "feat(performance-pass): a start answers once planned, and a message sent meanwhile waits for it"
 ```
 

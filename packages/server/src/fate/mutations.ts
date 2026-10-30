@@ -8,6 +8,7 @@ import type { ChatImage } from "../runner/images.ts";
 import { sentImages } from "./chat-images.ts";
 import { changeStarts, onSession } from "./change-starts.ts";
 import { draftMutations } from "./draft-mutations.ts";
+import { keptForStart, startMutations } from "./starts.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { previewDataView, restartPreview } from "./preview.ts";
 import { maskedSession, sessionMoves } from "./session-moves.ts";
@@ -35,20 +36,7 @@ const repositoryMutations = {
   ...changeStarts,
   ...inboxMutations,
   ...draftMutations,
-  "feature.start": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{ kind?: "change" | "feature"; proposal: string; slug?: string }>) => {
-      const started = await refusable(() =>
-        ctx.binding.startFeature(ctx.repo, input.proposal, input.slug, input.kind),
-      );
-      const feature = await ctx.binding.readFeature(ctx.repo, started.folder);
-      return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);
-    },
-    type: "Feature",
-  },
+  ...startMutations,
   "item.settings": {
     resolve: async ({
       ctx,
@@ -333,6 +321,26 @@ const repositoryMutations = {
         throw callSiteError(`refused: no trigger ${workflow.trigger}`);
       }
       const images = await sentImages(ctx, input.images, workflow !== undefined);
+      const message = {
+        text: input.text,
+        ...(images.length === 0 ? {} : { images }),
+        ...(workflow === undefined
+          ? {}
+          : {
+              workflow: {
+                trigger: workflow.trigger,
+                ...(workflow.file === undefined ? {} : { file: workflow.file }),
+                ...(workflow.fresh === undefined ? {} : { fresh: workflow.fresh }),
+                freshByDefault: ctx.settings.runs().buildInFreshSession.inForce,
+                ...(workflow.step === undefined ? {} : { step: workflow.step }),
+              },
+            }),
+      };
+      // A feature whose start is still in the queue keeps the message until the start lands.
+      const kept = await onSession(ctx, () => keptForStart(ctx, input, message));
+      if (kept !== undefined) {
+        return session(ctx, kept, select);
+      }
       const id = await onSession(ctx, async () => {
         if (input.session !== undefined) {
           return input.session;
@@ -350,23 +358,7 @@ const repositoryMutations = {
           : (await ctx.sessions.featureSession(ctx.repo, input.folder)).id;
       });
       // A run that starts fresh went to a new session: the one it went to answers.
-      const sent = await refusedOn(() =>
-        ctx.sessions.send(ctx.repo, id, {
-          text: input.text,
-          ...(images.length === 0 ? {} : { images }),
-          ...(workflow === undefined
-            ? {}
-            : {
-                workflow: {
-                  trigger: workflow.trigger,
-                  ...(workflow.file === undefined ? {} : { file: workflow.file }),
-                  ...(workflow.fresh === undefined ? {} : { fresh: workflow.fresh }),
-                  freshByDefault: ctx.settings.runs().buildInFreshSession.inForce,
-                  ...(workflow.step === undefined ? {} : { step: workflow.step }),
-                },
-              }),
-        }),
-      );
+      const sent = await refusedOn(() => ctx.sessions.send(ctx.repo, id, message));
       return session(ctx, sent.session, select);
     },
     type: "Session",

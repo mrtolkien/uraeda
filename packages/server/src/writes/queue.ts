@@ -23,12 +23,14 @@ export type QueuedWrite = WriteInput & {
   id: string;
   /** What git and the hooks printed: as it comes, then the refusal's whole message. */
   output?: string;
+  /** For a start, the messages sent while it runs, which its agent starts with once it lands. */
+  queued?: string;
   state: "running" | "waiting" | "refused";
   steps?: Array<StartStep>;
 };
 
 /** A write to queue: its name, and the feature and file it concerns. */
-export type NewWrite = Omit<QueuedWrite, "id" | "output" | "state">;
+export type NewWrite = Omit<QueuedWrite, "id" | "output" | "queued" | "state">;
 
 /** What a write's commits are landed with: each line git and the hooks print goes to `onOutput`. */
 export type Land = (onOutput: (line: string) => void) => Promise<unknown>;
@@ -106,6 +108,15 @@ export class WriteQueue {
    * of `keys` wait for it.
    */
   enqueue(write: NewWrite, land: Land, keys: Array<string> = []): Promise<unknown> {
+    return this.add(write, land, keys).landed;
+  }
+
+  /** `enqueue`, answering the write's id in the record too, which `update` takes. */
+  add(
+    write: NewWrite,
+    land: Land,
+    keys: Array<string> = [],
+  ): { id: string; landed: Promise<unknown> } {
     const entry: Entry = {
       keys,
       settled: Promise.resolve(),
@@ -119,7 +130,29 @@ export class WriteQueue {
     this.#tail = entry.settled;
     this.#entries.push(entry);
     this.#changed();
-    return landed;
+    return { id: entry.write.id, landed };
+  }
+
+  /** Changes a write still in the record: a start's steps, or the messages queued for it. */
+  update(id: string, change: Partial<Pick<QueuedWrite, "queued" | "steps">>): void {
+    const entry = this.#entries.find(({ write }) => write.id === id);
+    if (entry) {
+      Object.assign(entry.write, change);
+      this.#changed();
+    }
+  }
+
+  /**
+   * Runs `call` in the committing calls' turn, waiting for no queued write: a start's run, so no
+   * call is between its write and the take of its commits while the start checks the checkout.
+   */
+  async inTurn<T>(call: () => Promise<T>): Promise<T> {
+    const release = await this.#callTurn();
+    try {
+      return await call();
+    } finally {
+      release();
+    }
   }
 
   /** Removes a refused write from the record; a write still landing stays. */
@@ -170,14 +203,20 @@ export class WriteQueue {
   async #turn(keys: Array<string>): Promise<() => void> {
     for (;;) {
       await Promise.all(this.#pending(keys).map(({ settled }) => settled));
-      const before = this.#calls;
-      const turn = Promise.withResolvers<void>();
-      this.#calls = turn.promise;
-      await before;
+      const release = await this.#callTurn();
       if (this.#pending(keys).length === 0) {
-        return turn.resolve;
+        return release;
       }
-      turn.resolve();
+      release();
     }
+  }
+
+  /** Waits for the calls before, then holds the calls' turn until the returned release. */
+  async #callTurn(): Promise<() => void> {
+    const before = this.#calls;
+    const turn = Promise.withResolvers<void>();
+    this.#calls = turn.promise;
+    await before;
+    return turn.resolve;
   }
 }
