@@ -399,10 +399,13 @@ export class Sessions {
       throw refused(REFUSALS.stillRunning);
     }
     if (this.cache.dismiss(turn)) {
+      // Its state, failed or stopped, sends it at once, with the list, the feature, the workspace,
+      // and what needs the human, and never reaches `onTurnDone`, which takes done turns only.
       this.#options.onChange({
         folder: session.folder,
         repo: session.repo,
         session: session.id,
+        state: row.state,
         turn,
       });
     }
