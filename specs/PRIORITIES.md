@@ -12,7 +12,6 @@
 
 - Empty inbox
 
-- [Phone bottom bars on more pages](proposals/phone-bottom-bars.md)
 - Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
   - Easy to read human guide
   - Onboarding/docs in the UI

@@ -11,7 +11,7 @@ frosted glass, one for each companion the wide screen's side column has, each op
 the one action that moves the human forward (Next, Verdict) as an accent icon. Other pages have
 none. Which pages get one, and what goes in it, needs mockups to choose.
 
-Candidates:
+Places to add the bar:
 
 - The feature page: its Produced and Links column is drawn inline on the phone, and could become
   tiles, beside its Session and its next step.
@@ -27,3 +27,7 @@ the same place on every page. Pages without one hide those in their body or at t
 
 - How the bar looks and behaves: [the phone](../ui/phone.md) and [surfaces](../ui/surfaces.md).
 - No filled accent block on glass: the bar's main action is an accent icon.
+- If the bar is just one entry, it should show up like a single glassy button on the button right
+  and not take up a whole bar.
+- If it's two entries, two glassy buttons split left and right
+- Starting from three, the full bar!
