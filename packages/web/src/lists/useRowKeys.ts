@@ -4,6 +4,7 @@
 // The state they set is what `Card` reads: which card is edited.
 import { useState } from "react";
 import { deleteLine, useConfirm } from "../fields/Confirm.tsx";
+import { isPending } from "./outline.ts";
 import type { RowState, WorkRow } from "./Card.tsx";
 import type { BarAction } from "./RowBar.tsx";
 import type { RowKey } from "./useListKeys.ts";
@@ -128,7 +129,8 @@ function startKey(
     label: "start",
     run: (at) => {
       const row = rows[at];
-      if (row === undefined || row.isAdd === true) {
+      // A line not written yet has no id the core knows to start from.
+      if (row === undefined || row.isAdd === true || isPending(row.key)) {
         return false;
       }
       select(row.key);
