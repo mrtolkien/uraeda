@@ -3,6 +3,10 @@ import { FateRequestError } from "@nkzw/fate/server";
 /** The codes of the core's refusals, which start their messages. */
 const REFUSAL = /^(refused|conflict|hook): /;
 
+/** The reason of an error, its code taken off: for the server's log, or a refusal's record. */
+export const reasonOf = (error: unknown) =>
+  (error instanceof Error ? error.message : String(error)).replace(REFUSAL, "");
+
 /**
  * The binding's refusal as an error the client handles where it called: its message keeps the
  * core's code, `refused: `, `conflict: `, or `hook: ` with the hook's output after a blank line.

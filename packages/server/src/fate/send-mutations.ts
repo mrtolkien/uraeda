@@ -1,5 +1,5 @@
 // A message sent to a session, or to a feature, whose session is made with it: checked, sent, or
-// kept while the feature's start is still in the write queue.
+// kept while the feature's start, or its commits, are still in the write queue.
 import type { Trigger } from "../runner/events.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { REFUSALS } from "../runner/sessions.ts";
@@ -11,6 +11,7 @@ import { refusedOn } from "./list-mutations.ts";
 import { maskedSession as session } from "./session-moves.ts";
 import { TRIGGERS } from "./sessions.ts";
 import { keptForStart } from "./starts.ts";
+import { keptForCommits } from "./commit-messages.ts";
 
 /** The mutation sending a message. */
 export const sendMutations = {
@@ -59,8 +60,13 @@ export const sendMutations = {
               },
             }),
       };
-      // A feature whose start is still in the queue keeps the message until the start lands.
-      const kept = await onSession(ctx, () => keptForStart(ctx, input, message));
+      // A feature whose start, or whose commits, are still in the queue keeps the message until
+      // they land.
+      const kept = await onSession(
+        ctx,
+        async () =>
+          (await keptForStart(ctx, input, message)) ?? keptForCommits(ctx, input, message),
+      );
       if (kept !== undefined) {
         return session(ctx, kept, select);
       }

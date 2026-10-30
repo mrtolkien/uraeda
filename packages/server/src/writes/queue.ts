@@ -176,6 +176,16 @@ export class WriteQueue {
     return this.#pending(keys).length > 0;
   }
 
+  /**
+   * Resolves once the writes of `keys` queued now landed or were refused: with the id of the first
+   * refused, or undefined when every one landed.
+   */
+  async settled(keys: Array<string>): Promise<string | undefined> {
+    const pending = this.#pending(keys);
+    await Promise.all(pending.map(({ settled }) => settled));
+    return pending.find(({ write }) => write.state === "refused")?.write.id;
+  }
+
   /** Resolves once every write queued so far landed or was refused. */
   idle(): Promise<void> {
     return this.#tail;

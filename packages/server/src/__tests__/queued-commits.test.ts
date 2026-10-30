@@ -48,3 +48,56 @@ test("an approval still landing has the composer read the step it gives", async 
   expect(update).toHaveBeenCalledWith("Feature", FOLDER, expect.anything());
   expect(await approvalMessage(server)).toEqual(expected);
 });
+
+/** Sends the approval's workflow message to the feature, as the composer does. */
+const send = (server: Server, message: Record<string, string>) =>
+  mutate(
+    server.app,
+    "session.send",
+    { folder: FOLDER, text: message.text, workflow: { step: message.step, trigger: "approval" } },
+    ["id", "folder"],
+  );
+
+/** The writes of the repository's queue, as a client reads them. */
+async function writes(server: Server) {
+  const [queue] = await byId(server.app, "WriteQueue", ["write-queue"], ["id", "writes"]);
+  return queue.writes;
+}
+
+test("a message sent while an approval lands waits for it, then starts the agent", async () => {
+  const { hook, host, server } = await heldServer();
+  server.adapter.script([]);
+  await approve(server);
+  const message = await approvalMessage(server);
+
+  const sent = await send(server, message);
+
+  expect(sent.error).toBeUndefined();
+  expect(sent.data).toMatchObject({ folder: FOLDER });
+  expect(server.sessions.cache.turns(sent.data.id)).toEqual([]);
+  hook.release();
+  await host.queue.idle();
+  await vi.waitFor(() => expect(server.sessions.cache.turns(sent.data.id)).toHaveLength(1));
+  const [turn] = server.sessions.cache.turns(sent.data.id);
+  await server.sessions.settled(turn.id);
+  expect(turn).toMatchObject({ kind: "workflow", step: "plan", trigger: "approval" });
+  expect(server.adapter.sent).toEqual([expect.objectContaining({ text: message.text })]);
+});
+
+test("a message sent while an approval is refused is dropped, and kept for the composer", async () => {
+  const { hook, host, server } = await heldServer();
+  hook.refusing(true);
+  await approve(server);
+  const message = await approvalMessage(server);
+  const sent = await send(server, message);
+
+  hook.release();
+  await host.queue.idle();
+
+  await vi.waitFor(async () =>
+    expect(await writes(server)).toMatchObject([{ queued: message.text, state: "refused" }]),
+  );
+  expect(server.adapter.sent).toEqual([]);
+  // The session made for the message goes with it: nothing was started.
+  expect(server.sessions.cache.session(sent.data.id)).toBeUndefined();
+});

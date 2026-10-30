@@ -743,3 +743,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: no feature exists to send to, and the server would refuse the message.
 - **Where**: `packages/web/src/session/StartingSession.tsx`, `packages/web/src/Composer.tsx`,
   task 15.
+
+## R65: A message sent while a feature's commits are queued waits for them, and goes once they land
+
+- **Decision**: `session.send` to a feature, or to one of its sessions, whose commits are still in
+  the write queue checks the message as a send would, answers with the session it goes to, and keeps
+  it in memory (`fate/commit-messages.ts`). Once every commit of the feature queued before it, and
+  meanwhile, landed, the kept messages go in order, each taken before it is sent; if one is refused,
+  they are dropped, their text in the refused write's `queued`, as a refused start's, and a session
+  made for them goes while it has no turn. A start's own messages still go as R51 says. While the
+  commits are queued, the composer's message reads the step they will give (R63), and each landing
+  or refusal sends the feature's records and its workflow messages again.
+- **Rationale**: the agent must never start on an approval or answers written but not committed: its
+  run would read a step the branch does not have, and a hook's refusal would undo the file it
+  started from.
+- **If wrong**: a server that stops before the commits land drops the messages kept, which the human
+  sends again from the composer.
+- **Where**: `packages/server/src/fate/commit-messages.ts`, `fate/send-mutations.ts`,
+  `fate/workflow-step.ts`, review of the server.
