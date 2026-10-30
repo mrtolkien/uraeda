@@ -166,7 +166,15 @@ async function startPlanned(
       throw callSiteError(taken(kind, planned));
     }
     let id = "";
-    starts.open(root, folder, (text) => queue.update(id, { queued: text }));
+    // A message kept before the start's write is queued waits for its id.
+    let early: string | undefined;
+    starts.open(root, folder, (text) => {
+      if (id === "") {
+        early = text;
+      } else {
+        queue.update(id, { queued: text });
+      }
+    });
     const start = {
       branch,
       folder,
@@ -182,6 +190,9 @@ async function startPlanned(
       },
     );
     id = queued.id;
+    if (early !== undefined) {
+      queue.update(id, { queued: early });
+    }
     // A refusal stays in the record, with the messages kept for the composer.
     queued.landed.catch(() => {});
     return { folder, id: folder, message: startMessage(planned, kind), title };

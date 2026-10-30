@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { expect, test, vi } from "vite-plus/test";
-import { byId, type Data, git, mutate, testServer } from "./helpers.ts";
+import { binding, byId, type Data, git, mutate, testServer } from "./helpers.ts";
 
 type Server = Awaited<ReturnType<typeof testServer>>;
 
@@ -195,4 +195,46 @@ test("a message sent during a start the server stopped in is never sent", async 
   expect(server.adapter.sent).toEqual([]);
   const root = await server.sessions.mainRoot(server.repo);
   expect(server.sessions.cache.folderSessions(root, folder)).toEqual([]);
+});
+
+/**
+ * The core's binding, whose `readWorkspace` waits, once a start of `slug` is planned, until the test
+ * releases it: the start is planned, its write not queued yet.
+ */
+function heldBeforeQueued() {
+  const gate = { folder: "", planned: Promise.withResolvers<void>(), ...Promise.withResolvers() };
+  const using = {
+    ...binding,
+    planStart: async (...args: Parameters<typeof binding.planStart>) => {
+      const planned = await binding.planStart(...args);
+      gate.folder = planned.folder;
+      gate.planned.resolve();
+      return planned;
+    },
+    readWorkspace: async (repo: string) => {
+      if (gate.folder !== "") {
+        await gate.promise;
+      }
+      return binding.readWorkspace(repo);
+    },
+  } as typeof binding;
+  return { gate, using };
+}
+
+test("a message sent before the start's write is queued is kept for the composer", async () => {
+  const { gate, using } = heldBeforeQueued();
+  const server = await testServer(undefined, { binding: using });
+  const hook = heldHook(server.repo);
+  hook.refusing();
+  const planning = start(server, PROPOSAL);
+  await gate.planned.promise;
+
+  const sent = await send(server, gate.folder, "Go");
+  gate.resolve(undefined);
+  await planning;
+  hook.release();
+  await idle(server);
+
+  expect(sent.error).toBeUndefined();
+  expect(await writes(server)).toMatchObject([{ queued: "Go", state: "refused" }]);
 });
