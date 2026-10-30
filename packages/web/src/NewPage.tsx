@@ -256,6 +256,7 @@ function useSources({
       id: entry.id,
       inserted: added,
       kind: entry.kind,
+      text: entry.text,
     };
     setSources((all) => ({
       ...all,

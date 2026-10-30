@@ -514,9 +514,11 @@ export declare function settingsFile(dir: string): string
 
 /**
  * Starts a change typed as a text, with its images, in its own worktree: the first written line
- * is its title. Its steps go to `onStep` as `startFeature`'s do.
+ * is its title. Given `line`, the text of a line of **Now** it starts from, the start commit
+ * replaces that line by the change's link while **Now** holds it once. Its steps go to `onStep` as
+ * `startFeature`'s do.
  */
-export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null): Promise<StartedView>
+export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null, line?: string | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null): Promise<StartedView>
 
 /**
  * Starts a proposed feature, or a change with the kind `"change"`, in its own worktree, calling

@@ -84,3 +84,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a commit alone passed without the fix. Rewriting the index while `git commit` writes it races with
   the commit; a file beside it gives the same events.
 - **Where**: task 2.
+
+## R11: No CLI caller of `start_change` passes the line
+
+- **Decision**: the CLI never calls `api::start_change`: `ura` starts typed text through
+  `start::run_text`, which passes no line. The other callers of `startChange`, a session's move to a
+  change and a note's start, pass none. The composer's source keeps the line's text, which the New
+  change page sends as `line`.
+- **Rationale**: the plan named a CLI caller that does not exist; the start needs the text the
+  composer read, which its source did not keep.
+- **Where**: task 3.
