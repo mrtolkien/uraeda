@@ -148,7 +148,7 @@ impl Git {
     }
 
     /// Creates `branch` from `from`, checked out in a new worktree at `path`, whose index is then
-    /// refreshed in the background.
+    /// refreshed in the background when a server watches the repository.
     pub fn add_worktree_new(&self, path: &Path, branch: &str, from: &str) -> Result<(), GitError> {
         self.run("worktree", &["worktree", "prune"])?;
         let shown = path.to_string_lossy();
@@ -156,7 +156,11 @@ impl Git {
             "worktree",
             &["worktree", "add", "--quiet", "-b", branch, &shown, from],
         )?;
-        refresh::refresh_later(self.root.join(path));
+        // Only a server, which watches the repository, lives on to read it: a refresh in a process
+        // that exits, as `ura`'s, or beside direct calls, as the core's tests', only races them.
+        if crate::cache::watched(&self.root) {
+            refresh::refresh_later(self.root.join(path));
+        }
         Ok(())
     }
 

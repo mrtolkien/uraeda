@@ -84,7 +84,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   waiting for the next second inside the start, up to 1.2 s more for every start.
 - **If wrong**: the refresh takes the index's lock for about 185 ms, a second after the start; a
   `git add` or `git commit` in the new worktree at that moment fails on `index.lock`, and works when
-  run again.
+  run again. The refresh holds the repository's write lock, and runs only for a repository a server
+  watches: a refresh beside direct core calls, as the core's tests make, failed their git commands
+  on `index.lock`, and a process that exits, as `ura`'s, never lives to run it.
 - **Where**: task 1.
 
 ## R9: fate's check is of an optimistic field through a live update, and it passes on 1.12.1 too

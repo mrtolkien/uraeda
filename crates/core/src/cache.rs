@@ -210,6 +210,12 @@ pub fn cache_stats(repo: &Path) -> CacheStats {
         .unwrap_or_default()
 }
 
+/// Whether a watch of the repository holding `repo` runs: a server serves it.
+pub(crate) fn watched(repo: &Path) -> bool {
+    let key = key(repo);
+    repositories(|repositories| repositories.get(&key).is_some_and(|r| r.watches > 0))
+}
+
 /// Calls `hook` in each read of the repository holding `repo` that may keep what it read, between
 /// reading git and keeping it, while its watch runs. For the tests: a read held there races the
 /// changes made meanwhile.
