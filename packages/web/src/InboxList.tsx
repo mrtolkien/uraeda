@@ -6,6 +6,7 @@ import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { readInbox, rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { withFreshBase } from "./freshBase.ts";
 import { deleteNote } from "./fields/Confirm.tsx";
 import { useInboxImages } from "./InboxImages.tsx";
 import { type Inbox, panesOf, sectionId } from "./inboxPanes.ts";
@@ -19,6 +20,7 @@ import { navigate, useRepoPath } from "./routes.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import type { Placed } from "./useNoteActions.ts";
 import { InboxView } from "./views.ts";
+import { proposalFilePage } from "./readAhead.ts";
 
 /** How the list writes a change: it resolves with its refusal, if any. */
 type Run = (call: () => Promise<{ error?: unknown }>) => Promise<string | undefined>;
@@ -206,16 +208,14 @@ async function putBack(
   fate: ReturnType<typeof useFateClient>,
   { category, index, note }: Placed,
 ): Promise<string | undefined> {
-  const now = await readInbox(fate);
-  const result = await fate.mutations.inbox.insert({
-    input: {
-      hash: now.hash,
-      index,
-      lines: note.lines,
-      ...(category === undefined ? {} : { category }),
-    },
-    view: InboxView,
-  });
+  const result = await withFreshBase(
+    async (mode) => (await readInbox(fate, mode)).hash,
+    (hash) =>
+      fate.mutations.inbox.insert({
+        input: { hash, index, lines: note.lines, ...(category === undefined ? {} : { category }) },
+        view: InboxView,
+      }),
+  );
   rereadChanges(fate);
   return result.error ? refusal(result.error).message : undefined;
 }
@@ -310,6 +310,7 @@ function sectionsOf({
             // A note with a note file opens its file's page, as a proposal with a file does.
             editsInPlace: isWritten && note.file === undefined,
             href,
+            ...(note.file === undefined ? {} : { page: proposalFilePage(note.file) }),
             image: images.imagesOf(note),
             // The row is one link: a link of its text, like a note's file, would nest in it.
             label: <Spans spans={note.spans.map(({ link: _, ...span }) => span)} />,

@@ -567,22 +567,27 @@ git commit -m "feat(performance-pass): a subscription is sent a record only when
 
 **Files:**
 
-- Modify: `packages/web/src/clients.ts`, `packages/web/src/data.ts` (`readPriorities`, `readInbox`,
-  `rereadChanges`), their callers, and the shared list keyboard behaviour (where a list's selection
-  moves)
+- Modify: `packages/web/src/data.ts` (`useRefreshOnShow`, `readPriorities`, `readInbox`), the
+  callers that write over their hashes (`useStartFrom.ts`, `InboxList.tsx`, `useNoteActions.ts`,
+  `pane/useProposalActions.ts`), the shared list (`lists/WorkList.tsx`, where its selection moves,
+  and `lists/Card.tsx`'s `WorkRow`), and the lists that name a row's page (`PrioritiesList.tsx`,
+  `InboxList.tsx`, `home/HomeHub.tsx`, `NewEntries.tsx`)
 - Create: `packages/web/src/freshBase.ts`, `packages/web/src/readAhead.ts`
 - Test: `packages/web/src/__tests__/fresh-base.test.ts`
 
 **Interfaces:**
 
 - Produces:
-  - `withFreshBase<T>(read: (mode: "cache-first" | "network-only") => Promise<string>, write: (hash: string) => Promise<T>): Promise<T>`:
-    writes over the cached hash; on a `conflict:` refusal, reads `network-only` and writes once
-    more.
-  - `readAhead(fate: FateClient, request): void`: requests and retains a page's request, so the page
-    draws from memory.
+  - `withFreshBase<B, T>(read: (mode: "cache-first" | "network-only") => Promise<B>, write: (base: B) => Promise<T>): Promise<T>`:
+    writes over the cached base, a hash or the record it is in (R15); on a `conflict:` refusal,
+    answered or thrown, reads `network-only` and writes once more.
+  - `keep(fate, request): void`: retains a page's request for the session, 1,000 a client (R13).
+  - `readAhead(fate, request): void`: keeps and requests a page's request, so the page draws from
+    memory; `<ReadAhead request>` does it as the list's selection moves.
+  - `WorkRow.page`: the request of the page a row opens; `proposalFilePage(path)` names the
+    editor's.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // packages/web/src/__tests__/fresh-base.test.ts
@@ -594,31 +599,32 @@ test("a write refused as a conflict reads again and retries once", async () => {
 
 The break it catches: retrying forever; not retrying; retrying over the old hash.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/web/src/__tests__/fresh-base.test.ts`
 - Expected: FAIL, `withFreshBase` not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- `fateClients` sets `gcReleaseBufferSize` so every request of the session stays: ruling R5 sets the
-  number.
+- Every page's request stays for the session: fate's generated client takes no
+  `gcReleaseBufferSize`, so `useRefreshOnShow`, which each page's hook calls, retains it with
+  `keep`, 1,000 requests a client: ruling R13 sets the number.
 - The reads made before a write (`readPriorities`, `readInbox`, their hashes) read `cache-first`
-  through `withFreshBase`; the reads after a write go, as the write's answer and the live update
-  bring the record.
+  through `withFreshBase`; the reads after a write stay, as ruling R14 says.
 - As a list's selection moves, by key or by click, `readAhead` requests the selected row's page.
-  Each list with a pane names its row's page request where it names the row's link.
+  Each list with a pane names its row's page request, `page`, where it names the row's link: a
+  proposal or a note with a file names its editor's.
 - `useRefreshOnShow` stays, as the spec's assumption says.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS. Deferred to ready: the Storybook build, the whole web suite.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/web/src
+git add packages/web/src specs/2026-10-29-performance-pass
 git commit -m "feat(performance-pass): the browser keeps every page it read, and reads the selected row's ahead"
 ```
 

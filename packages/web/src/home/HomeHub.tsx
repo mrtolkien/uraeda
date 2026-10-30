@@ -30,6 +30,7 @@ import { inboxSummary, NOT_SORTED } from "./summary.ts";
 import { Usage } from "./Usage.tsx";
 import { plural } from "../labels.ts";
 import type { Feature, Row } from "../sidebar/cards.ts";
+import { proposalFilePage } from "../readAhead.ts";
 
 const styles = stylex.create({
   // The widgets' space: the column of the page's grid it sits in, however wide it grows.
@@ -128,6 +129,7 @@ function Lists({
       isFixed: true,
       rows: latest.map((note) => ({
         href: here(`/inbox/${note.key}`),
+        ...(note.file === undefined ? {} : { page: proposalFilePage(note.file) }),
         isFixed: true,
         key: note.key,
         lines: note.nestedSpans.map(plain),
@@ -146,6 +148,7 @@ function Lists({
       isFixed: true,
       rows: proposals.map((proposal) => ({
         href: here(`/priorities/${proposal.key}`),
+        ...(proposal.file ? { page: proposalFilePage(proposal.file.path) } : {}),
         ...lookOf(proposal),
         isFixed: true,
         key: proposal.key,

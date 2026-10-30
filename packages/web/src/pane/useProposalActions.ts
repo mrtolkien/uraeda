@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { readPrioritiesHash, useProposal } from "../data.ts";
+import { withFreshBase } from "../freshBase.ts";
 import { guarded, refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
 import { currentEntry, parseLocation, redirect, useRepoPath } from "../routes.tsx";
@@ -119,11 +120,14 @@ export function useProposalActions(
     toast(`Deleted "${text}"`, async () => {
       try {
         // Over the file as it is now: the proposal goes back to its place, or its section's end.
-        const now = await readPrioritiesHash(fate);
-        const restored = await fate.mutations.proposals.insert({
-          input: { ...at, hash: now, lines },
-          view: PrioritiesView,
-        });
+        const restored = await withFreshBase(
+          (mode) => readPrioritiesHash(fate, mode),
+          (now) =>
+            fate.mutations.proposals.insert({
+              input: { ...at, hash: now, lines },
+              view: PrioritiesView,
+            }),
+        );
         return restored.error ? failed : undefined;
       } catch {
         return failed;

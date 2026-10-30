@@ -7,6 +7,7 @@ import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { guarded, refusal } from "./errors.ts";
+import { withFreshBase } from "./freshBase.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { TITLES } from "./QuickAdd.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
@@ -80,11 +81,15 @@ function useMovesOut(
   const here = useRepoPath();
 
   const toProposal = async (section: string) => {
-    const result = await run(async () =>
-      fate.mutations.inbox.toProposal({
-        input: { ...input, prioritiesHash: await readPrioritiesHash(fate), section },
-        view: InboxView,
-      }),
+    const result = await run(() =>
+      withFreshBase(
+        (mode) => readPrioritiesHash(fate, mode),
+        (prioritiesHash) =>
+          fate.mutations.inbox.toProposal({
+            input: { ...input, prioritiesHash, section },
+            view: InboxView,
+          }),
+      ),
     );
     if (result.error) {
       return;
@@ -104,11 +109,15 @@ function useMovesOut(
   };
 
   const underProposal = async (line: UnderLine) => {
-    const result = await run(async () =>
-      fate.mutations.inbox.underProposal({
-        input: { ...input, prioritiesHash: await readPrioritiesHash(fate), proposal: line.id },
-        view: InboxView,
-      }),
+    const result = await run(() =>
+      withFreshBase(
+        (mode) => readPrioritiesHash(fate, mode),
+        (prioritiesHash) =>
+          fate.mutations.inbox.underProposal({
+            input: { ...input, prioritiesHash, proposal: line.id },
+            view: InboxView,
+          }),
+      ),
     );
     if (result.error) {
       return;
@@ -192,11 +201,15 @@ function useAddsIn(
   // the server sends as written. Its Undo deletes that file and unlinks the line again.
   const intoProposalLine = (line: UnderLine) =>
     landIn(
-      async () =>
-        fate.mutations.inbox.intoProposalLine({
-          input: { ...input, prioritiesHash: await readPrioritiesHash(fate), proposal: line.id },
-          view: ProposalFileView,
-        }),
+      () =>
+        withFreshBase(
+          (mode) => readPrioritiesHash(fate, mode),
+          (prioritiesHash) =>
+            fate.mutations.inbox.intoProposalLine({
+              input: { ...input, prioritiesHash, proposal: line.id },
+              view: ProposalFileView,
+            }),
+        ),
       "",
       line.text,
     );

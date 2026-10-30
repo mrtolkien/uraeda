@@ -5,6 +5,7 @@ import { useFateClient } from "react-fate";
 import { readProposalFile } from "./attach/useEditorImages.ts";
 import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { withFreshBase } from "./freshBase.ts";
 import { splitProposal } from "./pane/proposalText.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { ProposalFileView, InboxView, PrioritiesView } from "./views.ts";
@@ -35,11 +36,14 @@ function made(result: { error?: unknown; result?: unknown }, field: "path"): Mad
  * `INBOX.md`.
  */
 async function noteFile(fate: Fate, note: { id: string }): Promise<Made> {
-  const [inbox, prioritiesHash] = await Promise.all([readInbox(fate), readPrioritiesHash(fate)]);
-  const result = await fate.mutations.inbox.toProposalFile({
-    input: { hash: inbox.hash, note: note.id, prioritiesHash, section: NOW },
-    view: ProposalFileView,
-  });
+  const result = await withFreshBase(
+    (mode) => Promise.all([readInbox(fate, mode), readPrioritiesHash(fate, mode)]),
+    ([inbox, prioritiesHash]) =>
+      fate.mutations.inbox.toProposalFile({
+        input: { hash: inbox.hash, note: note.id, prioritiesHash, section: NOW },
+        view: ProposalFileView,
+      }),
+  );
   rereadChanges(fate);
   return made(result, "path");
 }
@@ -49,12 +53,15 @@ async function lineFile(fate: Fate, entry: StartLine): Promise<Made> {
   if (entry.file) {
     return { value: entry.file.path };
   }
-  const { hash } = await readPriorities(fate);
   return made(
-    await fate.mutations.proposals.expand({
-      input: { hash, proposal: entry.id },
-      view: ProposalFileView,
-    }),
+    await withFreshBase(
+      (mode) => readPrioritiesHash(fate, mode),
+      (hash) =>
+        fate.mutations.proposals.expand({
+          input: { hash, proposal: entry.id },
+          view: ProposalFileView,
+        }),
+    ),
     "path",
   );
 }
@@ -65,14 +72,20 @@ async function lineFile(fate: Fate, entry: StartLine): Promise<Made> {
  * it was.
  */
 async function titleFile(fate: Fate, title: string): Promise<Made> {
-  const { hash, sections } = await readPriorities(fate);
-  const now = sections.find((section) => section.section === NOW)?.proposals ?? [];
-  const first = now.findIndex((proposal) => !proposal.running);
-  const index = first === -1 ? now.length : first;
-  const inserted = await fate.mutations.proposals.insert({
-    input: { hash, index, lines: [`- ${title}`], section: NOW },
-    view: PrioritiesView,
-  });
+  // Where the title goes, in the priorities the insert is written over.
+  let index = 0;
+  const inserted = await withFreshBase(
+    (mode) => readPriorities(fate, mode),
+    ({ hash, sections }) => {
+      const now = sections.find((section) => section.section === NOW)?.proposals ?? [];
+      const first = now.findIndex((proposal) => !proposal.running);
+      index = first === -1 ? now.length : first;
+      return fate.mutations.proposals.insert({
+        input: { hash, index, lines: [`- ${title}`], section: NOW },
+        view: PrioritiesView,
+      });
+    },
+  );
   if (inserted.error || !inserted.result) {
     return made(inserted, "path");
   }
@@ -106,14 +119,20 @@ export async function takeOut(fate: Fate, taken: ReadonlyArray<Taken>) {
   for (const entry of taken) {
     try {
       if (entry.kind === "note") {
-        const { hash } = await readInbox(fate);
-        await fate.mutations.inbox.remove({ input: { hash, note: entry.id }, view: InboxView });
+        await withFreshBase(
+          async (mode) => (await readInbox(fate, mode)).hash,
+          (hash) =>
+            fate.mutations.inbox.remove({ input: { hash, note: entry.id }, view: InboxView }),
+        );
       } else {
-        const { hash } = await readPriorities(fate);
-        await fate.mutations.proposals.remove({
-          input: { hash, proposal: entry.id },
-          view: PrioritiesView,
-        });
+        await withFreshBase(
+          (mode) => readPrioritiesHash(fate, mode),
+          (hash) =>
+            fate.mutations.proposals.remove({
+              input: { hash, proposal: entry.id },
+              view: PrioritiesView,
+            }),
+        );
       }
     } catch {
       // Left in its file, for the human to take out.

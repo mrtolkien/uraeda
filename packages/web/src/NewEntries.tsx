@@ -8,6 +8,7 @@ import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
 import { titleOf } from "./QuickAdd.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { plain } from "./Spans.tsx";
+import { proposalFilePage } from "./readAhead.ts";
 
 /** What an entry is: a note of the inbox, or a proposal line of the priorities. */
 export type SourceKind = "line" | "note";
@@ -100,6 +101,7 @@ function useEntries(search: string) {
     byHref.set(href, entry);
     return {
       href,
+      ...(entry.linked === undefined ? {} : { page: proposalFilePage(entry.linked) }),
       // An entry with a file of its own reads as a link to it.
       ...(entry.linkedHref ? { icon: "uraeda:file-text" as const, isLinked: true } : {}),
       isFixed: true,

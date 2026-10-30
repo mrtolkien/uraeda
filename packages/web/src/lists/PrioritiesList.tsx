@@ -23,6 +23,7 @@ import {
   type WorkRow,
   type WorkSection,
 } from "./WorkList.tsx";
+import { proposalFilePage } from "../readAhead.ts";
 
 /** The priorities as the page reads them. */
 export type Priorities = NonNullable<ReturnType<typeof usePriorities>>;
@@ -194,6 +195,7 @@ function sectionsOf(
       // A proposal with a file, or running, opens its page; any other is edited in place.
       editsInPlace: isWritten && !proposal?.running && !proposal?.file,
       href,
+      ...(proposal?.file ? { page: proposalFilePage(proposal.file.path) } : {}),
       ...(proposal ? lookOf(proposal) : {}),
       text: plain(item.spans),
     };

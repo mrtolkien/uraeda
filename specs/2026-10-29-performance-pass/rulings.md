@@ -135,3 +135,43 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   for a record changed in the last 2 seconds. What each test checks, the update after a change, is
   unchanged. The plan named only `live.test.ts`.
 - **Where**: task 4.
+
+## R13: The browser keeps 1,000 requests a client, retained by the pages' hooks
+
+- **Decision**: every page's request is retained with fate's `retain` from `useRefreshOnShow`, which
+  each page's hook calls, and from the read ahead of a selected row's page: 1,000 requests a
+  repository's client, the one used longest ago let go first (`keep` in `readAhead.ts`).
+- **Rationale**: the client fate 1.13.0 generates from the server's types takes `fetch`, `headers`,
+  `liveRetryMs`, `liveUrl`, `onLiveError`, `persistence`, and `url`, and passes no
+  `gcReleaseBufferSize` to fate's `createClient`, whose default keeps 10 requests no page shows.
+  `retain` is fate's public way to keep a request's data. Uraeda's own `specs/` is 134 Markdown
+  files, 0.9 MB (R3): 1,000 requests cover every page of a session over a repository that size, a
+  few megabytes at most.
+- **Alternatives considered**: setting the field fate keeps the number in after creating the client,
+  which its types hide and a release may rename; making the client with `createClient`, which needs
+  the generated module's roots and mutations, not exported.
+- **If wrong**: the number is `KEPT_REQUESTS`. A page kept but not shown has no live subscription:
+  shown again, it draws what it held, and its new subscription brings what changed since only within
+  R4's 2 seconds, or at the next change or show of the tab.
+- **Where**: task 5.
+
+## R14: The reads after a write stay, and so do the reads that find what a write wrote
+
+- **Decision**: `rereadChanges` still reads the inbox and the priorities after a write, and the
+  reads that look for what a write left, the moved note's row (`movedInto`), a note's file
+  (`noteOfFile`, `addedAfterAll`), and the proposal a sidebar add's Undo takes out, still read the
+  server. Only the reads of a hash a write is made over read the browser's copy, through
+  `withFreshBase`.
+- **Rationale**: the live update sends both records only when one's text changed (`publish` in
+  `live.ts`), and a commit or a discard on the commit page changes the count of changes both carry
+  without that. `rereadChanges` runs after the write's answer and nothing waits for it, so it costs
+  the human no time. A read that finds a row by its text cannot tell a stale copy from a row gone:
+  no conflict says so.
+- **Where**: task 5.
+
+## R15: The fresh base is whatever a write is made over, not only a hash
+
+- **Decision**: `withFreshBase<B, T>(read: (mode) => Promise<B>, write: (base: B) => Promise<T>)`.
+- **Rationale**: a note made a proposal file is written over both files' hashes, and a title is
+  inserted at an index computed from the priorities its hash is of: a retry reads both again.
+- **Where**: task 5.
