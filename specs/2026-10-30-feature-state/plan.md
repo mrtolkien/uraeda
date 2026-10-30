@@ -345,7 +345,7 @@ and the binding, and make `messageStep` read `nextStep`. Run
   release binding (R13)
 - Expected: PASS, and the approval's step read under 100 ms.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/core crates/binding packages/binding packages/server specs/2026-10-30-feature-state/plan.md
@@ -565,7 +565,7 @@ A cache an older server made gains the column, empty, when the new server opens 
 ignores it. Once the tests pass, remove the `dismissedAt` check in `sessionStatus`, see the restart
 test fail, and restore it. Write what failed in the commit body.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
