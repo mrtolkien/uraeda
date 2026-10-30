@@ -1,17 +1,17 @@
 // The New page, behind the sidebar's "＋ New": three cards, in the URL, pick a session, a change, or
-// a feature, each drawn as what it starts. Under them, the kind's composer, and under it the same
-// list for all three: the inbox's notes and the priorities' proposals, which a card inserts into
-// the composer, with a link to its file, or, with a file of its own, opens. A session starts with
-// its first message; a change with Ctrl+Enter, which asks for its slug; a feature with Ctrl+Enter
-// too, which writes the proposal as a proposal file and opens it. The entries a start was filled
-// from leave their files. `/` searches the entries.
+// a feature, each drawn as what it starts. Under them, the kind's composer, over the one draft the
+// three share, and under it the same list for all three: the inbox's notes and the priorities'
+// proposals, which a card inserts into the composer, with a link to its file, or, with a file of
+// its own, opens. A session starts with its first message; a change with Ctrl+Enter, which asks
+// for its slug; a feature with Ctrl+Enter too, which asks for its slug and research effort, then
+// opens its session. The entries a start was filled from leave their files. `/` searches the
+// entries.
 import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { SET_UP_PROJECT } from "uraeda-server/round-messages";
-import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
 import { usePriorities, useWorkspace } from "./data.ts";
 import { useKeys } from "./keys/registry.tsx";
@@ -19,8 +19,9 @@ import { KindCards } from "./KindCards.tsx";
 import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { ChangeComposer, StartError } from "./NewChangePage.tsx";
+import { ChangeComposer } from "./NewChangePage.tsx";
 import { type Entry, EntryLists, lineEntry } from "./NewEntries.tsx";
+import { FeatureComposer } from "./NewFeatureComposer.tsx";
 import { type NewDraft, useNewDraft } from "./newDraft.ts";
 import { withInserted } from "./RecommendedMessage.tsx";
 import { currentEntry } from "./routeHistory.ts";
@@ -34,94 +35,8 @@ import {
   useEntryId,
   useSearch,
 } from "./routes.tsx";
-import { StartDialog } from "./StartDialog.tsx";
 import { composerDraft } from "./useDraft.ts";
-import { takeOut, useStartFrom } from "./useStartFrom.ts";
-
-/** A text's first line as a title: without a heading mark or the link an entry's insertion adds. */
-function titleOfText(text: string): string {
-  const first =
-    text
-      .split("\n")
-      .map((line) => line.replace(/^#+\s*/, "").trim())
-      .find(Boolean) ?? "";
-  // Without the link an entry's insertion adds, and cut at its first sentence.
-  const clean = first
-    .replace(/\s*\(\[[^\]]*\]\([^)]*\)\)\s*$/, "")
-    .replace(/([.!?])(\s.*)?$/, "$1")
-    .replace(/[.!?]$/, "");
-  return clean.length <= 70 ? clean : clean.slice(0, 70).replace(/\s+\S*$/, "");
-}
-
-/** What Ctrl+Enter holds in a feature's composer while its title is asked. */
-type Asking = { resolve: (started: boolean) => void; text: string };
-
-/**
- * Feature: the same composer as the others, "Write Proposal", for a text that is freeform: no shape
- * is put in it, and it takes no image. Ctrl+Enter writes it as a proposal file and opens the file's
- * page; a proposal not filled from an entry asks for its title first, as a change asks for its
- * slug.
- */
-function FeatureComposer({
-  draft,
-  inputRef,
-}: {
-  draft: NewDraft;
-  inputRef: React.RefObject<ChatComposerInputHandle | null>;
-}) {
-  const starts = useStartFrom();
-  const [asking, setAsking] = useState<Asking>();
-  const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
-  const { sources } = draft;
-  const write = async (body: string, title: string) => {
-    const opened = await starts.feature.fromText({ body, sources, title });
-    if (opened) {
-      draft.sent(body);
-    }
-    return opened;
-  };
-  const answer = (started: boolean) => {
-    asking?.resolve(started);
-    setAsking(undefined);
-  };
-  return (
-    <VStack gap={4}>
-      <Composer
-        hasAttach={false}
-        images={images}
-        inputRef={inputRef}
-        onChange={draft.setText}
-        onImagesChange={setImages}
-        // Filled from an entry, its own title is the proposal's; else the title is asked.
-        onSend={(sent) =>
-          sources.length > 0
-            ? write(sent, "")
-            : new Promise<boolean>((resolve) => setAsking({ resolve, text: sent }))
-        }
-        placeholder="Write Proposal"
-        sendLabel="Write the proposal"
-        value={draft.text}
-      />
-      <StartError message={starts.error} />
-      <StartDialog
-        initial={asking ? titleOfText(asking.text) : ""}
-        isOpen={asking !== undefined}
-        onCancel={() => answer(false)}
-        onConfirm={async (title) => {
-          // A refusal shows under the composer, as the dialog closes: the text stays.
-          answer(await write(asking?.text ?? "", title));
-          return undefined;
-        }}
-        question={{
-          confirm: "Write the proposal",
-          description: "It names the proposal's file and its line in Now.",
-          label: "Title",
-          title: "Title the proposal",
-        }}
-      />
-    </VStack>
-  );
-}
+import { takeOut } from "./takeOut.ts";
 
 /** The search of the entries, at the title's end: `/` brings the focus to it, Escape leaves it. */
 function Search({
@@ -217,8 +132,8 @@ function LineInsert({ kind, start }: { kind: NewKind | undefined; start: (entry:
 
 /**
  * Home's "Set up with the agent" opens a session with the setup's message, focused as an inserted
- * entry is, unsent. The history entry keeps asking for it, so a reload, which empties the session's
- * composer, fills it again. A composer that holds text keeps it, after the message, as a
+ * entry is, unsent. The history entry keeps asking for it, so a reload, which keeps the draft,
+ * leaves the message it holds already. A composer that holds text keeps it, after the message, as a
  * recommended message is inserted; each visit inserts it once, though the cards switch.
  */
 function useSetupMessage({

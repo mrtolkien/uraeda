@@ -13,12 +13,15 @@ import { StartPlanView } from "./views.ts";
 
 /**
  * A start this document planned, by its folder: what it starts as, its name, the workflow's message
- * its session's composer holds, and its proposal file. `seen` once its write showed in the queue.
+ * its session's composer holds, and its proposal file, when it starts from one. `seen` once its
+ * write showed in the queue; `landed`, called once its feature can be read, as the New page's
+ * text goes once its start landed.
  */
 export type PlannedStart = {
   kind: StartKind;
+  landed?: () => void;
   message: string;
-  proposal: string;
+  proposal?: string;
   seen: boolean;
   title: string;
 };
@@ -39,6 +42,12 @@ const subscribe = (listener: () => void) => {
   listeners.add(listener);
   return () => listeners.delete(listener);
 };
+
+/** Keeps the start of `folder` in `repo` this document planned, for its session page to draw. */
+export function remember(repo: string, folder: string, start: PlannedStart) {
+  planned.set(featureDraftKey(repo, folder), start);
+  changed();
+}
 
 /**
  * The start of `folder` this document planned, until its write left the queue; with what marks it
@@ -108,14 +117,13 @@ export function useStart({
       setRefused({ slug: typed, text });
       return false;
     }
-    planned.set(featureDraftKey(repo, plan.folder), {
+    remember(repo, plan.folder, {
       kind,
       message: plan.message ?? "",
       proposal: path,
       seen: false,
       title: plan.title ?? title,
     });
-    changed();
     slug.discard();
     handOver(plan.folder, "start");
     return true;

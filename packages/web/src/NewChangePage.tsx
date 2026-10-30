@@ -14,7 +14,7 @@ import type { NewDraft } from "./newDraft.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
 import { StartDialog } from "./StartDialog.tsx";
-import { takeOut } from "./useStartFrom.ts";
+import { takeOut } from "./takeOut.ts";
 import { FeatureView } from "./views.ts";
 
 /** How long typing must stop before the slug is proposed again, as the sidebar's search waits. */

@@ -44,3 +44,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the levels are the core's rule, as the editor reads them from the proposal file's
   view; a typed feature has no file yet, and the dialog reads no other record.
 - **Where**: task 2, `views-proposal-file.ts`.
+
+## R5: The start dialog's refusal reads as a sentence
+
+- **Decision**: the dialog adds a period to a refusal that ends without one, so a taken slug reads
+  "A feature named dark-mode exists already.", as the spec and its story write it.
+- **Rationale**: the core's refusals end without a period, and the server's tests match them as they
+  are; the dialog is where the text is read as a sentence. The change's dialog reads the same.
+- **Where**: task 4, `packages/web/src/StartDialog.tsx`.
+
+## R6: The keys test of the New page's composers stays as it was
+
+- **Decision**: "US3 5: on the New page, `i` focuses the composer of the kind picked" is kept
+  unchanged, rather than rewritten.
+- **Rationale**: the Feature card's box keeps its "Write Proposal" name, as the spec settled, so the
+  test still finds it, and still guards what it did: `i` focuses the picked card's composer.
+- **Where**: task 4, `packages/web/src/__tests__/keys-pages.test.tsx`.
+
+## R7: A refused typed start's session says where the text is
+
+- **Decision**: the session page of a refused typed feature start blocks its composer with "Nothing
+  started: your text is still on the New page.", where a proposal file's start says to start it
+  again from its file.
+- **Rationale**: a typed feature has no file, and the New page's composer keeps its text until the
+  start lands.
+- **Where**: task 4, `packages/web/src/session/StartingSession.tsx`.

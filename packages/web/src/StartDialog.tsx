@@ -18,6 +18,9 @@ export type Question = { confirm: string; description: string; label: string; ti
 /** A research effort to pick under the field: its levels, in order, and the one picked first. */
 export type Effort = { initial: string; levels: ReadonlyArray<string> };
 
+/** A refusal as a sentence under the field: the core's reasons end without a period. */
+const sentence = (text: string) => (/[.!?]$/.test(text) ? text : `${text}.`);
+
 /** A level as the control shows it: `medium` is Medium. */
 const levelLabel = (level: string) => level.charAt(0).toUpperCase() + level.slice(1);
 
@@ -99,7 +102,7 @@ function Ask({
       )}
       {error && (
         <StatusText role="alert" tone="error" type="supporting">
-          {error}
+          {sentence(error)}
         </StatusText>
       )}
       <HStack align="center" gap={2} justify="end">

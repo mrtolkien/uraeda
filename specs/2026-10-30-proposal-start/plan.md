@@ -185,7 +185,7 @@ clock set by `today`; `forgetUnsaved` stands for a reload.
 | Review focus: a Start into spaces                                | 3    | none: the replace's rule, checked in review                                               |
 | Review focus: an effort that is not a level                      | 1    | the core feature test, its refused row                                                    |
 | Review focus: a reload after an Undo                             | 3    | the replace test, its reload row                                                          |
-| Replaced: the Feature card writes a proposal file                | 4    | `keys-pages.test.tsx` "US3 5: … `i` focuses the composer", rewritten                      |
+| Replaced: the Feature card writes a proposal file                | 4    | `keys-pages.test.tsx` "US3 5: … `i` focuses the composer", unchanged (R6)                 |
 | Replaced: a typed proposal drafted in one call                   | 5    | `proposal.rs` and `cache.rs` draft tests, removed                                         |
 | Replaced: each card keeps its own text                           | 3    | `new-page.test.tsx` "a start that answers late…", rewritten on the shared text            |
 
@@ -460,7 +460,9 @@ restores the text and the sources the draft held before.
 - Modify: `packages/web/src/NewPage.tsx`, `useStart.ts` (`PlannedStart`, `planned`),
   `session/StartingSession.tsx` (`useLanded`)
 - Modify: `packages/web/src/useStartFrom.ts`, renamed `takeOut.ts`, the proposal writing removed
-- Test: `packages/web/src/__tests__/new-feature.test.tsx`; `keys-pages.test.tsx` rewritten
+- Modify: `packages/web/src/StartDialog.tsx` (a refusal as a sentence, R5), `data.ts`
+  (`useStartProposal`), `views.ts` (`SlugProposalView`)
+- Test: `packages/web/src/__tests__/new-feature.test.tsx`
 
 Start from: [Name the feature](/packages/web/src/StartDialog.stories.tsx#NameTheFeature),
 [Slug taken](/packages/web/src/StartDialog.stories.tsx#FeatureSlugTaken), and
@@ -475,7 +477,7 @@ Start from: [Name the feature](/packages/web/src/StartDialog.stories.tsx#NameThe
     a plan made outside the editor.
   - `takeOut(fate, taken)` and `Taken`, moved to `takeOut.ts`, unchanged.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 test("a feature typed in the Feature card starts into its session", async () => {
@@ -496,18 +498,18 @@ test("a feature typed in the Feature card starts into its session", async () => 
 });
 ```
 
-Rewrite "US3 5: on the New page, `i` focuses the composer of the kind picked" for one composer: `i`
-focuses the "Write Proposal" box on the Feature card, and the change's after `c`.
+"US3 5: on the New page, `i` focuses the composer of the kind picked" stays as it is: the Feature
+card's box keeps its "Write Proposal" name (ruling R6).
 
 The breaks it catches: the proposal file written and the editor opened; the message sent; the effort
 not passed; the text dropped before the start landed, or kept after.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/new-feature.test.tsx`
 - Expected: FAIL, no dialog named "Name the feature"
 
-- [ ] **Step 3: Implement the Feature card's start**
+- [x] **Step 3: Implement the Feature card's start**
 
 The composer takes images, sends with "Start the feature", and opens "Name the feature" with the
 slug the core proposes and the levels it gives, High picked. Enter calls `feature.startText` with
@@ -516,13 +518,13 @@ file, as the change's start finds it. A refusal shows under the field, the dialo
 planned, the plan is remembered with its message, its session opens with the message unsent, and its
 `landed` empties the draft, through `sent`, and takes the other sources out of their files.
 
-- [ ] **Step 4: Run the task's validation, and review the New page in the sandbox**
+- [x] **Step 4: Run the task's validation, and review the New page in the sandbox**
 
 - Run: `nix develop -c vp run fast`; then `vp run sandbox`, the New page and the dialog in both
   themes, at a phone's and a desktop's width.
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 `feat(proposal-start): the Feature card starts the feature into its session`
 

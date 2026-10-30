@@ -17,6 +17,9 @@ import { StartStepsView } from "./StartSteps.tsx";
 /** Why the composer of a refused start sends nothing: there is no feature to send to. */
 const NOT_STARTED = "Nothing started: start the proposal again from its file.";
 
+/** The same, for a feature typed on the New page, whose composer still holds its text. */
+const NOT_STARTED_TYPED = "Nothing started: your text is still on the New page.";
+
 /** The start of `folder` in the repository's write queue, landing, waiting, or refused. */
 export function useStartWrite(folder: string): Write | undefined {
   return useWriteQueue().findLast((write) => write.steps !== undefined && write.folder === folder);
@@ -53,6 +56,10 @@ function useLanded(
     } else if (start !== undefined) {
       void isReadable(fate, folder)
         .then((readable) => {
+          // Only a start that landed: one refused and dismissed leaves the text it was typed from.
+          if (readable) {
+            start.landed?.();
+          }
           if (readable || wasSeen) {
             forget();
           }
@@ -100,7 +107,9 @@ export function StartingSession({
     }
   }, [handOver, queued, refused]);
   const title = write?.label ?? (start ? `Starting the ${start.kind} ${start.title}` : folder);
-  const proposal = write?.href || (start ? `/edit/${start.proposal}` : "/");
+  const proposal =
+    write?.href ||
+    (start?.proposal === undefined ? "/new?kind=feature" : `/edit/${start.proposal}`);
   return (
     <SessionPane
       draft={draft}
@@ -118,7 +127,12 @@ export function StartingSession({
         </div>
       }
       title={start?.title ?? folder}
-      {...(refused === undefined ? {} : { blocked: NOT_STARTED })}
+      {...(refused === undefined
+        ? {}
+        : {
+            blocked:
+              start !== undefined && start.proposal === undefined ? NOT_STARTED_TYPED : NOT_STARTED,
+          })}
     />
   );
 }
