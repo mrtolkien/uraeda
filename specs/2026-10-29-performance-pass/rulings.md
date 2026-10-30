@@ -1224,3 +1224,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   read ahead.
 - **Where**: `packages/web/src/readAhead.ts`, `writes/useWriteQueue.ts`, `branchChanges.ts`, final
   review.
+
+## R95: The last benchmark run meets the reloads, Start, and outside commits, and misses ten rows by up to 103 ms
+
+- **Decision**: the plan's step 2 expected every criterion within its target, a stricter bar than
+  the [Performance](../decisions/performance.md) decision's SHOULD, which the human called "not a
+  _hard_ target". After the fixes of R79 to R86, the misses left are recorded here and in the pull
+  request, not chased further. The last run, on 2026-10-30, on the final code, same machine as R71:
+  - Within: SC-002, 20 of 20 reloads, 346 to 403 ms; SC-004, Start to its session with its message
+    50 ms, another page during the steps 38 ms; SC-005, 2 of 2, up to 633 ms.
+  - SC-001, 47 of 54 within, worst 189 ms: first visits of pages main merged the same day
+    (`2026-10-30-phone-bottom`, `panes-size`, `onboarding-readme` and their files) at 105 to 189 ms,
+    their drawing 61 to 84 ms of long tasks, or the `Feature` read of `onboarding-readme` at 114 ms
+    on the server.
+  - SC-003, 4 of 5 within: the New page's proposal to its editor, 142 ms, `proposals.draft` 81 ms on
+    the server.
+  - SC-006, 6 of 8 within: right after a start, the clone's decisions page at 203 ms and a feature
+    page at 126 ms, their reads slowed by the start's own work.
+- **Rationale**: the decision ranks the target as a SHOULD; the last rows each miss by 5 to 103 ms,
+  and further cuts are each a page's own drawing or a read during a start, with no single cause
+  left.
+- **If wrong**: the rows above are where to look next; `vp run performance` names each one's server
+  time and long tasks.
+- **Where**: task 16's step 2, and `vp run performance`.

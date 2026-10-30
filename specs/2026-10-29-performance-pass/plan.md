@@ -1309,14 +1309,16 @@ its message; SC-005 a commit made with `git` outside to its page; SC-006 reads a
 prints each time against 100 ms or 1 s, and exits non-zero past a target. How it times, and what it
 leaves out: [R73](rulings.md#r73-the-benchmark-times-from-the-press-to-the-frame-on-maints-offline).
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 - Run: `vp run performance`
-- Expected: every criterion within its target. A miss is fixed in the task that owns it, as a
-  finding, before the review.
-- Ran on 2026-10-30: SC-002, SC-004, and SC-005 within; SC-001, SC-003, and SC-006 missed on a few
-  pages and writes, each named with its server's share in
-  [R71](rulings.md#r71-the-benchmarks-first-run-misses-on-the-ledger-history-the-round-and-two-writes).
+- Expected: every criterion measured, against its target. A miss is a finding, fixed in the code
+  that owns it before the review; what still misses the decision's SHOULD after the fixes is named
+  in a ruling and the pull request (R95).
+- Ran on 2026-10-30: the first runs' misses are in
+  [R71](rulings.md#r71-the-benchmarks-first-run-misses-on-the-ledger-history-the-round-and-two-writes),
+  fixed by R79 to R86; the last run's, on the final code, in
+  [R95](rulings.md#r95-the-last-benchmark-run-meets-the-reloads-start-and-outside-commits-and-misses-ten-rows-by-up-to-103-ms).
 
 - [x] **Step 3: Commit**
 
