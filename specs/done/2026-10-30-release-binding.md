@@ -33,11 +33,19 @@ of `build`. Both write the same `.node` file: the stale-binding check of
 [`binding.ts`](/packages/server/src/binding.ts) compares times only, so either build counts as
 fresh, and the last one built is the one loaded.
 
+[`toolchain.test.ts`](/packages/server/src/__tests__/toolchain.test.ts) checks that `start` runs
+`build:release`, and that `build:release` is `build` plus `--release`, flag for flag: both write the
+committed `index.js` and `index.d.ts`, which a flag dropped from one script would rewrite on every
+`vp run start`.
+
 ## Gotchas
 
 - Switching between `vp run start` and `vp run dev` relinks the binding: cargo keeps both profiles
   in `target/`, so only the copy changes when the core did not.
 - A release build after a change to the core takes about a minute.
+- The release build uses the workspace's `release` profile as it is, tuned for the `ura` binary's
+  size (`opt-level = "z"`, `lto`, one codegen unit). A profile tuned for speed, `opt-level = 3`, is
+  likely faster, not measured: the performance pass's choice.
 
 ## Follow-ups
 
