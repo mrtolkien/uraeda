@@ -103,13 +103,16 @@ export const START_SHEETS = { start: "Start" } as const;
 
 /**
  * On the phone, the editor's bottom bar: Start alone, in the accent, a single button, which
- * `onStart` makes open `start`, the Start's sheet, `sheet` naming it open.
+ * `onStart` makes open `start`, the Start's sheet, `sheet` naming it open. `message`, what the
+ * start answered, as a refusal, shows in the sheet too, where the human pressed Start.
  */
 export function StartBar({
+  message,
   onStart,
   sheet,
   start,
 }: {
+  message: ReactNode;
   onStart: () => void;
   sheet: SheetState;
   start: ReactNode;
@@ -123,7 +126,19 @@ export function StartBar({
     <ColumnStatusLine
       buttons={buttons}
       sheet={sheet}
-      sheets={[{ height: "hug", key: "start", label: START_SHEETS.start, panel: start }]}
+      sheets={[
+        {
+          height: "hug",
+          key: "start",
+          label: START_SHEETS.start,
+          panel: (
+            <VStack gap={3}>
+              {start}
+              {message}
+            </VStack>
+          ),
+        },
+      ]}
     />
   );
 }
