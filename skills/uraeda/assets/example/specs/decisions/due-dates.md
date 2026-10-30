@@ -20,11 +20,10 @@ saving time.
 
 ## Why
 
-Recurring tasks add date arithmetic, and reminders will add more. Due dates were timestamps at local
-midnight: adding 7 days across a daylight saving change gave 23:00 the day before, so weekly tasks
-drifted. See
-[Q4](../2026-10-06-recurring-tasks/clarifications-01.md#q4-how-should-the-app-store-due-dates) and
-the [discovery](../2026-10-06-recurring-tasks/discovery-01.md#date-handling).
+Repeating tasks add date arithmetic, and reminders will add more. A timestamp at local midnight
+drifts: adding 7 days across a daylight saving change gives 23:00 the day before, so weekly tasks
+move. A calendar day has no time to drift. History:
+[Recurring tasks](../done/2026-10-06-recurring-tasks.md).
 
 ## Alternatives considered
 
