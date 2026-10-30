@@ -1,9 +1,10 @@
-// The shell's cards: a feature's or a change's, which opens its page, its status what it asks; and
-// a session's, which opens the session.
+// The shell's cards: a feature's or a change's, which opens its page, its status what it asks, with
+// Dismiss while a failed or stopped run asks; and a session's, which opens the session.
 import { Suspense, use } from "react";
 import { PickedCard } from "../layout/picked.ts";
 import { useCardChanges } from "../branchChanges.ts";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
+import { isDismissable, useDismiss, useRefusal } from "../useDismiss.ts";
 import { usePendingAction } from "../writes/store.ts";
 import { type Feature, type Row, sessionCard, toCard } from "./cards.ts";
 import { statusPath } from "./statusPath.ts";
@@ -29,13 +30,24 @@ export function FeatureCard({
   const here = useRepoPath();
   const to = `/f/${feature.folder}`;
   const isPicked = use(PickedCard) === here(to);
+  const { dismiss } = useDismiss();
+  // Kept outside the card, which moves between panes: gone once it no longer asks about the run.
+  const refused = useRefusal(feature.folder, feature.status);
+  const { session, turn } = feature.status;
+  const onDismiss =
+    isDismissable(feature.status) && session !== null && turn !== null
+      ? () => void dismiss({ folder: feature.folder, session, turn })
+      : undefined;
   const card = (item: CardItem) => (
     <ItemCard
       detail={detail}
+      dismissError={refused}
       href={here(to)}
       isPicked={isPicked}
       isSelected={selects(pathname, to)}
       item={item}
+      // Gone while another action runs: the card shows it until the status follows.
+      onDismiss={item.pending === undefined ? onDismiss : undefined}
       onOpen={() => navigate(here(to))}
       onStatus={() => navigate(here(statusPath(feature, item.status)))}
     />

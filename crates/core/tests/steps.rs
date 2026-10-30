@@ -161,22 +161,78 @@ fn snapshot(state: Option<PullRequestState>) -> PullRequests {
     snapshot_on("2026-10-10-x", state)
 }
 
-/// A snapshot of `gh` with pull request #31 on `branch`, or none.
+/// A snapshot of `gh` with pull request #31 on `branch`, or none, its head a commit no repository
+/// has.
 fn snapshot_on(branch: &str, state: Option<PullRequestState>) -> PullRequests {
-    let entry = state.map(|state| {
-        let view = PullRequestView {
-            number: 31,
-            url: "https://github.com/o/r/pull/31".to_string(),
-            state,
-        };
-        (branch.to_string(), view)
-    });
-    PullRequests::Known(entry.into_iter().collect())
+    let entry = state.map(|state| (branch.to_string(), pull_request(state, &"f".repeat(40))));
+    PullRequests::open(entry)
 }
 
-/// US1.1 to US1.5
+/// Pull request #31, at `head`.
+fn pull_request(state: PullRequestState, head: &str) -> PullRequestView {
+    PullRequestView {
+        number: 31,
+        url: "https://github.com/o/r/pull/31".to_string(),
+        state,
+        head: head.to_string(),
+    }
+}
+
+/// A repository without the test features' branch: their pull request's head decides nothing.
+fn no_branch() -> (TestRepo, Git) {
+    let repo = TestRepo::new();
+    let git = Git::discover(repo.path()).unwrap();
+    (repo, git)
+}
+
+/// The test features' branch, `parent` then `tip`, with `child` made on the tip and `sibling` on
+/// the parent, both kept by no branch, as a pull request's head pushed from elsewhere and fetched.
+struct Heads {
+    parent: String,
+    tip: String,
+    child: String,
+    sibling: String,
+}
+
+fn heads(repo: &TestRepo) -> Heads {
+    let head = || repo.git(&["rev-parse", "HEAD"]).trim().to_string();
+    repo.switch_new("2026-10-10-x");
+    repo.write("a.md", "a\n");
+    repo.commit("parent");
+    let parent = head();
+    repo.write("b.md", "b\n");
+    repo.commit("tip");
+    let tip = head();
+    repo.write("c.md", "c\n");
+    repo.commit("child");
+    let child = head();
+    repo.git(&["reset", "--quiet", "--hard", &parent]);
+    repo.write("d.md", "d\n");
+    repo.commit("sibling");
+    let sibling = head();
+    repo.git(&["reset", "--quiet", "--hard", &tip]);
+    repo.switch("main");
+    Heads {
+        parent,
+        tip,
+        child,
+        sibling,
+    }
+}
+
+/// US1.1 to US1.5; US5 1 and more 2, review focus 4: an open pull request is ready only when its
+/// head holds the branch's latest commit, or was never fetched (R2).
 #[test]
 fn pull_request_rows() {
+    let repo = TestRepo::new();
+    let heads = heads(&repo);
+    let git = Git::discover(repo.path()).unwrap();
+    let open = |head: &str| {
+        PullRequests::open([(
+            "2026-10-10-x".to_string(),
+            pull_request(PullRequestState::Open, head),
+        )])
+    };
     let rows = [
         (
             "no pull request",
@@ -198,7 +254,31 @@ fn pull_request_rows() {
         ),
         (
             "open #31",
-            snapshot(Some(PullRequestState::Open)),
+            open(&heads.tip),
+            StepName::PullRequest,
+            WaitsOn::Human,
+        ),
+        (
+            "open, the branch ahead",
+            open(&heads.parent),
+            StepName::Push,
+            WaitsOn::Agent,
+        ),
+        (
+            "open, the branch and its head apart",
+            open(&heads.sibling),
+            StepName::Push,
+            WaitsOn::Agent,
+        ),
+        (
+            "open, the branch behind",
+            open(&heads.child),
+            StepName::PullRequest,
+            WaitsOn::Human,
+        ),
+        (
+            "open, its head never fetched",
+            open(&"e".repeat(40)),
             StepName::PullRequest,
             WaitsOn::Human,
         ),
@@ -212,12 +292,12 @@ fn pull_request_rows() {
     for (name, pull_requests, expected, waits_on) in rows {
         let mut feature = feature(Kind::Feature, &finished());
 
-        pull_requests.apply(&mut feature);
+        pull_requests.apply(&mut feature, &git);
 
         assert_eq!(feature.step.name, expected, "{name}");
         assert_eq!(feature.step.waits_on, waits_on, "{name}");
         let known = match &pull_requests {
-            PullRequests::Known(map) => map.get("2026-10-10-x").cloned(),
+            PullRequests::Known { open, .. } => open.get("2026-10-10-x").cloned(),
             PullRequests::Unavailable => None,
         };
         assert_eq!(feature.pull_request, known, "{name}");
@@ -262,6 +342,7 @@ fn order_follows_the_workflow() {
         (agent(StepName::PullRequestChanges), 11),
         (agent(StepName::PullRequest), 12),
         (agent(StepName::PullRequestUnknown), 12),
+        (agent(StepName::Push), 12),
         (agent(StepName::Done), 13),
         (agent(StepName::None), 14),
     ];
@@ -411,9 +492,9 @@ fn at_plan(plan_text: String) -> Feature {
     )
 }
 
-fn progress(position: u32, total: u32, title: &str) -> Option<TaskProgress> {
+fn progress(done: u32, total: u32, title: &str) -> Option<TaskProgress> {
     Some(TaskProgress {
-        position,
+        done,
         total,
         title: title.to_string(),
     })
@@ -436,7 +517,7 @@ fn implementation_progress() {
             "11 tasks, the first 6 done",
             plan("auto-approved", 1, &eleven),
             "Task 7: Session column".to_string(),
-            progress(7, 11, "Session column"),
+            progress(6, 11, "Session column"),
         ),
         (
             "tasks numbered 1, 3, 3",
@@ -445,7 +526,7 @@ fn implementation_progress() {
                 "",
             ),
             "Task 3: Second".to_string(),
-            progress(2, 3, "Second"),
+            progress(1, 3, "Second"),
         ),
         (
             "tasks finished out of order",
@@ -461,13 +542,13 @@ fn implementation_progress() {
                 &[("One", 1, 1), ("Empty", 0, 0), ("Three", 0, 1)],
             ),
             "Task 3: Three".to_string(),
-            progress(3, 3, "Three"),
+            progress(2, 3, "Three"),
         ),
         (
             "a title with markup",
             plan("auto-approved", 1, &[(title, 0, 1)]),
             format!("Task 1: {title}"),
-            progress(1, 1, title),
+            progress(0, 1, title),
         ),
     ];
     for (name, plan_text, task, progress) in rows {
@@ -753,8 +834,9 @@ fn finishing_rows() {
             WaitsOn::Agent,
         ),
     ];
+    let (_repo, git) = no_branch();
     for (name, mut feature, pull_requests, expected, waits_on) in rows {
-        pull_requests.apply(&mut feature);
+        pull_requests.apply(&mut feature, &git);
 
         assert_eq!(feature.step.name, expected, "{name}");
         assert_eq!(feature.step.waits_on, waits_on, "{name}");
@@ -765,6 +847,40 @@ fn finishing_rows() {
             };
             assert_eq!(feature.step.reference.as_deref(), Some(reference), "{name}");
         }
+    }
+}
+
+/// Review: Push follows its item's reference, as its changes requested do: a change's agent pushes
+/// as `change` says, a feature's as `implementation` does.
+#[test]
+fn push_follows_its_items_reference() {
+    let rows = [
+        (
+            "feature",
+            feature(Kind::Feature, &finished()),
+            "implementation",
+        ),
+        (
+            "feature record",
+            finished_record(Kind::Feature),
+            "implementation",
+        ),
+        (
+            "change",
+            feature(Kind::Change, &[("proposal.md", proposal())]),
+            "change",
+        ),
+        ("change record", finished_record(Kind::Change), "change"),
+    ];
+    for (name, mut feature, reference) in rows {
+        feature.with_pull_request(PullRequest::Unpushed);
+
+        assert_eq!(feature.step.name, StepName::Push, "{name}");
+        assert_eq!(
+            feature.step.reference,
+            Some(format!("skills/uraeda/references/{reference}.md")),
+            "{name}"
+        );
     }
 }
 

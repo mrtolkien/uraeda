@@ -11,7 +11,7 @@ import { jumpEntries, pickerItemOf } from "../decisions/jump.ts";
 import { sessionIdPath } from "../routes.tsx";
 import { SESSION_LIST_ID } from "../sessionData.ts";
 import { InboxView, LedgerView, PrioritiesView, SessionListView, WorkspaceView } from "../views.ts";
-import { type Row, sessionCard, toCard } from "../sidebar/cards.ts";
+import { type Row, rowOf, sessionCard, toCard } from "../sidebar/cards.ts";
 import type { CardItem } from "../sidebar/ItemCard.tsx";
 import { KIND_ICONS } from "./kinds.ts";
 import type { IconName } from "./store.ts";
@@ -160,10 +160,7 @@ function featureItems(
   return (workspace?.features ?? []).map((feature) => {
     const isChange = feature.kind === "change";
     return {
-      card: toCard(
-        feature,
-        rows.find((row) => row.folder === feature.folder),
-      ),
+      card: toCard(feature, rowOf(feature, rows)),
       icon: KIND_ICONS[isChange ? "changes" : "features"],
       id: `/f/${encodeURIComponent(feature.folder)}`,
       kind: isChange ? "changes" : "features",

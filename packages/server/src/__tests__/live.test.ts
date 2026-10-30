@@ -439,6 +439,36 @@ test("SC-002: a session's status change reaches a subscribed SessionList", async
   expect(arrived, "no live update within 10 seconds").toBeDefined();
 }, 20_000);
 
+/**
+ * A live connection keeps one request context for its life: a feature's status read for one of its
+ * updates is never the one read for an earlier update.
+ */
+test("each live update of a feature reads its status anew", async () => {
+  const { adapter, app, name, sessions } = await testServer();
+  const stream = await connect(app, name, "c3");
+  expect(await stream.arrival("connected", 5000)).toBeDefined();
+  await subscribe(app, name, "c3", {
+    entityId: "2026-10-12-cli-tuis",
+    select: ["id", "status"],
+    type: "Feature",
+  });
+  const sent = await mutate(
+    app,
+    "session.send",
+    { folder: "2026-10-12-cli-tuis", text: "Plan it" },
+    ["id", "turns"],
+  );
+  const { turns } = sent.data as { turns: Array<string> };
+  expect(await stream.arrival('"Working"', 10_000)).toBeDefined();
+  const before = stream.mark();
+
+  adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
+
+  expect(await stream.arrival('"Needs attention"', 10_000, before)).toBeDefined();
+  await stream.close();
+  await sessions.settled(Number(turns[0]));
+}, 30_000);
+
 /** US6.2, SC-002: two repositories' views never mix. */
 test("a change in one repository sends no update to another", async () => {
   const { hosts, names } = await testHosts([fixtureRepo(), fixtureRepo()], { installed: false });

@@ -1,25 +1,8 @@
-// What home reads from the priorities and the inbox: a running entry's status, the inbox summed
-// up, and a section of the priorities as home lists it.
+// What home reads from the priorities and the inbox: the inbox summed up, and a section of the
+// priorities as home lists it.
 import type { Proposal } from "uraeda-server/fate";
 import type { useInbox } from "../data.ts";
-import { stepTitle } from "../labels.ts";
 import { byRunning, type Priorities } from "../lists/PrioritiesList.tsx";
-
-/**
- * A running entry's status in a word, as a badge shows it: what its gate asks of the human, its
- * agent working, or its step.
- */
-export function runningStatus(
-  running: NonNullable<Proposal["running"]>,
-  working: Array<string>,
-): { label: string; variant: "info" | "success" | "warning" } {
-  if (running.step.waitsOn === "human") {
-    return { label: stepTitle(running.step), variant: "warning" };
-  }
-  return working.includes(running.folder)
-    ? { label: "Working", variant: "success" }
-    : { label: stepTitle(running.step), variant: "info" };
-}
 
 /** The name of the notes without a category. */
 export const NOT_SORTED = "Not sorted";

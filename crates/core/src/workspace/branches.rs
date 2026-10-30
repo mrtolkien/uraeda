@@ -92,7 +92,10 @@ impl Reading<'_> {
             .and_then(|path| Git::open(path).ok().map(|git| (path, git)));
         let mut feature = match &opened {
             Some((path, worktree_git)) => {
-                let worktree_reader = Reader { git: worktree_git };
+                let worktree_reader = Reader {
+                    git: worktree_git,
+                    pending: self.reader.pending,
+                };
                 let mut feature = read_feature(
                     &worktree_reader,
                     kind,

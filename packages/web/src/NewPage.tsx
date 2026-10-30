@@ -229,10 +229,16 @@ function useSources({
     feature: feature.text,
     session: session.text,
   };
-  // A composer emptied no longer holds what it was filled from.
+  // A composer emptied no longer holds what it was filled from. Only once emptied: a line inserted
+  // as the page opens, its text not drawn yet, stays.
+  const before = useRef(texts);
   useEffect(() => {
+    const was = before.current;
+    before.current = texts;
     setSources((all) => {
-      const emptied = KINDS.filter((of) => texts[of].trim() === "" && all[of].length > 0);
+      const emptied = KINDS.filter(
+        (of) => texts[of].trim() === "" && was[of].trim() !== "" && all[of].length > 0,
+      );
       return emptied.length === 0
         ? all
         : { ...all, ...Object.fromEntries(emptied.map((of) => [of, []])) };
@@ -253,9 +259,11 @@ function useSources({
     }
     const source: Source = {
       ...(entry.linked === undefined ? {} : { linked: entry.linked }),
+      ...(entry.section === undefined ? {} : { section: entry.section }),
       id: entry.id,
       inserted: added,
       kind: entry.kind,
+      text: entry.text,
     };
     setSources((all) => ({
       ...all,
@@ -282,15 +290,16 @@ function LineInsert({
   const priorities = usePriorities();
   useEffect(() => {
     const wanted = currentEntry().insert?.replace(/^line:/, "");
-    const line = priorities?.sections
-      .flatMap((section) => section.proposals)
-      .find((proposal) => proposal.id === wanted);
-    if (line === undefined || kind === undefined) {
+    const section = priorities?.sections.find((each) =>
+      each.proposals.some((proposal) => proposal.id === wanted),
+    );
+    const line = section?.proposals.find((proposal) => proposal.id === wanted);
+    if (section === undefined || line === undefined || kind === undefined) {
       return;
     }
     const { insert: _, ...rest } = currentEntry();
     window.history.replaceState(rest, "");
-    insert(lineEntry(line, here));
+    insert(lineEntry(line, section.section, here));
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, when the line and the composer are there
   }, [priorities, kind]);
   return null;

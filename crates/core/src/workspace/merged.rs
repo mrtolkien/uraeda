@@ -1,14 +1,17 @@
 //! What the default branch merged, local or on `origin`: the records of `specs/done/` and the
 //! feature and change folders of each tip whose branch is gone. A started feature's folder is on
-//! the default branch from its start, and is its branch's while the branch is there.
+//! the default branch from its start, and is its branch's while the branch is there. Each is read
+//! as a feature done, with the branch and the worktree it left.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 
 use super::{
-    Kind, ReadFrom, Reader, folder_branch, folder_path, folder_slug, record_kind, record_path,
+    Feature, Kind, ReadFrom, Reader, Reading, Source, folder_branch, folder_path, folder_slug,
+    read_feature, record_kind, record_path,
 };
 use crate::git::{Branch, ObjectId};
+use crate::steps::Step;
 
 impl Reader<'_> {
     /// The records of `specs/done/`, by kind and folder, with their texts.
@@ -141,5 +144,53 @@ impl Merged {
             folders,
             keys,
         }
+    }
+}
+
+impl Reading<'_> {
+    /// The features merged into the default branch, read from it: the record first, local first,
+    /// with the branch and the worktree left behind.
+    pub(super) fn merged_features(&self, branches: &[Branch]) -> Vec<Feature> {
+        let local_branches: BTreeSet<&str> = branches
+            .iter()
+            .filter(|branch| branch.local.is_some())
+            .map(|branch| branch.name.as_str())
+            .collect();
+        let worktrees = self.git.worktrees().unwrap_or_default();
+        let mut features = Vec::new();
+        for (kind, folder) in &self.merged.keys {
+            let key = (*kind, folder.clone());
+            let record = self
+                .merged
+                .records
+                .iter()
+                .find_map(|records| records.get(&key));
+            let mut feature = match record {
+                Some(text) => Feature::from_record(*kind, folder, text.clone()),
+                None => {
+                    let Some((tip, _)) = self
+                        .merged
+                        .folders
+                        .iter()
+                        .find(|(_, folders)| folders.contains(&key))
+                    else {
+                        continue;
+                    };
+                    let from = ReadFrom::Commit(*tip);
+                    read_feature(&self.reader, *kind, folder, None, from, Some(*tip))
+                }
+            };
+            let branch = folder_branch(*kind, folder);
+            feature.source = Source::DefaultBranch;
+            feature.branch = None;
+            feature.step = Step::done();
+            feature.left_worktree = worktrees
+                .iter()
+                .find(|w| w.path != self.main_root && w.branch.as_deref() == Some(branch.as_str()))
+                .map(|w| self.shown(&w.path));
+            feature.left_branch = local_branches.contains(branch.as_str()).then_some(branch);
+            features.push(feature);
+        }
+        features
     }
 }

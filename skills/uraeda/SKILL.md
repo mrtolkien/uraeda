@@ -138,27 +138,29 @@ step. By hand:
    [Branches](references/conventions.md#branches)). In its spec folder, `NN` is the highest
    clarifications round. Go down this table and run the first row that matches.
 
-| State of the spec folder                                                                           | Step                                                         |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `proposal.md` is not committed, and the branch has no record in `specs/done/`                      | **Human gate**: the human writes it, then commits it         |
-| The record is in `specs/done/`, and no pull request is ready                                       | [Finish](references/finish.md)                               |
-| The record, and the pull request has changes requested                                             | [Implementation](references/implementation.md), comments     |
-| The record, and the pull request is ready for review                                               | **Human gate**: the review happens on the pull request       |
-| A file has `status: awaiting-human`                                                                | **Human gate**: stop                                         |
-| No `clarifications-01.md`                                                                          | [Discovery](references/discovery.md), round 01               |
-| `clarifications-NN.md` is `answered`, not resuming, and no `spec.md`, or its `clarifications` < NN | [Spec and decisions](references/spec.md)                     |
-| `spec.md` is `changes-requested`                                                                   | [Spec](references/spec.md), revision                         |
-| `spec.md` is `approved`, and a decision an item of its `## Decisions` names is `proposed`          | [Approval](references/approval.md)                           |
-| `spec.md` is `approved`, and there is no `plan.md`                                                 | [Plan](references/plan.md)                                   |
-| `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`                    | [Plan](references/plan.md), revision                         |
-| `plan.md` is `changes-requested`                                                                   | [Plan](references/plan.md), revision                         |
-| `plan.md` is `approved` or `auto-approved`, with unchecked steps                                   | [Implementation](references/implementation.md), next wave    |
-| Every step of `plan.md` is checked, and the pull request is a draft                                | [Finish](references/finish.md)                               |
-| Every step of `plan.md` is checked, and the branch has no pull request                             | [Implementation](references/implementation.md), final review |
-| The branch's pull request has changes requested                                                    | [Implementation](references/implementation.md), comments     |
-| The branch has an open pull request                                                                | **Human gate**: the review happens on the pull request       |
+| State of the spec folder                                                             | Step                                                         |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| `proposal.md` is not committed, and the branch has no record in `specs/done/`        | **Human gate**: the human writes it, then commits it         |
+| The record is in `specs/done/`, and no pull request is ready                         | [Finish](references/finish.md)                               |
+| The record, and the pull request has changes requested                               | [Implementation](references/implementation.md), comments     |
+| The record, and an open pull request lacks the branch's latest commits               | [Implementation](references/implementation.md#push), push    |
+| The record, and the pull request is ready for review                                 | **Human gate**: the review happens on the pull request       |
+| A file has `status: awaiting-human`                                                  | **Human gate**: stop                                         |
+| No `clarifications-01.md`                                                            | [Discovery](references/discovery.md), round 01               |
+| Round NN is `answered`, not resuming, and no `spec.md`, or its `clarifications` < NN | [Spec and decisions](references/spec.md)                     |
+| `spec.md` is `changes-requested`                                                     | [Spec](references/spec.md), revision                         |
+| `spec.md` is `approved`, and a decision it adds or changes is `proposed`             | [Approval](references/approval.md)                           |
+| `spec.md` is `approved`, and there is no `plan.md`                                   | [Plan](references/plan.md)                                   |
+| `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`      | [Plan](references/plan.md), revision                         |
+| `plan.md` is `changes-requested`                                                     | [Plan](references/plan.md), revision                         |
+| `plan.md` is `approved` or `auto-approved`, with unchecked steps                     | [Implementation](references/implementation.md), next wave    |
+| Every step of `plan.md` is checked, and the pull request is a draft                  | [Finish](references/finish.md)                               |
+| Every step of `plan.md` is checked, and the branch has no pull request               | [Implementation](references/implementation.md), final review |
+| The branch's pull request has changes requested                                      | [Implementation](references/implementation.md), comments     |
+| The branch has an open pull request that lacks its latest commits                    | [Implementation](references/implementation.md#push), push    |
+| The branch has an open pull request                                                  | **Human gate**: the review happens on the pull request       |
 
-For a change branch, see [Change](references/change.md). The last two rows are for pull requests
+For a change branch, see [Change](references/change.md). The last three rows are for pull requests
 opened before [Finish](references/finish.md) existed.
 
 3. **Run the step**, following its reference file, and commit. A message asking to address the pull

@@ -149,3 +149,31 @@ test("change.startProposal starts the proposal file as a change and sends its fi
   const [sent] = await sentRun(server, session);
   expect(sent.text).toMatch(new RegExp(`^/uraeda Continue the change specs/changes/${folder}/`));
 });
+
+/** US6.1: `change.start`'s `line` reaches the core, which replaces the line of Now by the link. */
+test("change.start from a line of Now replaces it by the change's link", async () => {
+  const server = await testServer();
+  const priorities = join(server.repo, "specs/PRIORITIES.md");
+  writeFileSync(
+    priorities,
+    readFileSync(priorities, "utf8").replace(
+      "- [Plan review](/specs/2026-10-13-plan-review/proposal.md)\n",
+      "- [Plan review](/specs/2026-10-13-plan-review/proposal.md)\n- Centre the x\n",
+    ),
+  );
+  git(server.repo, "commit", "--quiet", "--all", "-m", "chore: a line of Now");
+  server.adapter.script([]);
+
+  const started = await mutate(
+    server.app,
+    "change.start",
+    { line: "Centre the x", slug: "centre-x", text: "Centre the x" },
+    STARTED_FIELDS,
+  );
+  expect(started.error).toBeUndefined();
+  await server.hosts.get(server.name)!.queue.idle();
+
+  const after = readFileSync(priorities, "utf8");
+  expect(after).toContain("[Centre the x](/specs/changes/");
+  expect(after).not.toContain("- Centre the x\n");
+});

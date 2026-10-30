@@ -42,6 +42,37 @@ fn status_returns_an_error_when_the_object_directory_disappears() {
     assert!(matches!(git.staged_files(), Err(GitError::Read { .. })));
 }
 
+/// Review: a history git cannot walk, as with an object corrupted, says nothing of what a head holds,
+/// never that it lacks the commit.
+#[test]
+fn holds_says_nothing_when_the_history_cannot_be_read() {
+    let repo = TestRepo::new();
+    let head = || repo.git(&["rev-parse", "HEAD"]).trim().to_string();
+    let base = head();
+    repo.write("a.md", "a\n");
+    repo.commit("tip");
+    let tip = head();
+    repo.git(&["reset", "--quiet", "--hard", &base]);
+    repo.write("b.md", "b\n");
+    repo.commit("sibling");
+    let sibling = head();
+    let git = Git::discover(repo.path()).unwrap();
+    let tip_id = git.resolve(&tip).unwrap();
+    assert_eq!(git.holds(&sibling, tip_id), Some(false));
+    let object = repo
+        .path()
+        .join(".git/objects")
+        .join(&base[..2])
+        .join(&base[2..]);
+    std::fs::remove_file(&object).unwrap();
+    std::fs::write(&object, "not an object").unwrap();
+
+    assert_eq!(
+        Git::discover(repo.path()).unwrap().holds(&sibling, tip_id),
+        None
+    );
+}
+
 #[test]
 fn lists_local_and_remote_branches() {
     let repo = TestRepo::new();

@@ -1,4 +1,4 @@
-import type { FeatureView, StepView } from "uraeda-binding";
+import type { FeatureView, StepView, TaskProgress } from "uraeda-binding";
 
 const STEPS: Record<string, string> = {
   approval: "Approval",
@@ -13,6 +13,7 @@ const STEPS: Record<string, string> = {
   "pull-request": "Pull request ready",
   "pull-request-changes": "Changes requested",
   "pull-request-unknown": "Pull request state unknown",
+  push: "Push",
   spec: "Spec",
   "spec-revision": "Spec revision",
 };
@@ -31,6 +32,7 @@ const AGENT_NEXT: Record<string, string> = {
   plan: "The agent writes the plan",
   "plan-revision": "The agent revises the plan",
   "pull-request-changes": "The agent addresses the changes requested",
+  push: "The agent pushes the commits the pull request lacks",
   spec: "The agent writes the spec",
   "spec-revision": "The agent revises the spec",
 };
@@ -93,6 +95,16 @@ const FILE_STATUSES: Record<string, { label: string; variant: "error" | "success
 /** A workflow file's status badge, its words and its variant, or none for another status. */
 export function fileStatusBadge(status: string | undefined | null) {
   return FILE_STATUSES[status ?? ""];
+}
+
+/**
+ * A plan's progress, "4 of 9 tasks done · Undo restores the previous due date": the current task's
+ * title after the count while a task is left. Once every task is done, some only on their task
+ * branches, no task is current: the count alone.
+ */
+export function progressText(progress: Pick<TaskProgress, "done" | "title" | "total">) {
+  const count = `${progress.done} of ${progress.total} tasks done`;
+  return progress.done < progress.total ? `${count} · ${progress.title}` : count;
 }
 
 /** A count's noun, "note" for 1, "notes" for 2: `many` for a plural other than the noun and "s". */

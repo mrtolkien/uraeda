@@ -1,13 +1,15 @@
 import type { TurnRow } from "./cache.ts";
+import { SERVER_STOPPED } from "./session-state.ts";
 
 /** A session's status in the sidebar and its view. */
 export type SessionStatus = "working" | "needs-you" | "attention" | "unread" | "idle";
 
 /**
  * Why a session needs the human: an action to allow, a step that waits on them, or a latest turn
- * that failed, that they stopped, or that ran the workflow and ended before a human gate.
+ * that failed, that they stopped, that the server stopped, or that ran the workflow and ended
+ * before a human gate.
  */
-export type StatusReason = "blocked" | "step" | "failed" | "stopped" | "halted";
+export type StatusReason = "blocked" | "step" | "failed" | "stopped" | "interrupted" | "halted";
 
 /** The order of statuses within a sidebar group: what needs the human first. */
 export const STATUS_ORDER: Record<SessionStatus, number> = {
@@ -20,13 +22,14 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
 
 /**
  * A session's status, from the first rule that matches: a running or queued turn, a blocked action
- * not allowed or a step that waits on the human, a latest turn that failed, was stopped, or ended
- * while the step still waits on the agent, in its folder's latest session, a latest turn that
- * ended after the human last saw the session, and otherwise idle.
+ * not allowed or a step that waits on the human, a latest turn that failed or was stopped, until
+ * the human dismisses it, then idle, a latest turn that ended while the step still waits on the
+ * agent, in its folder's latest session, a latest turn that ended after the human last saw the
+ * session, and otherwise idle.
  */
 export function sessionStatus(input: {
   blocked: boolean;
-  latest?: Pick<TurnRow, "endedAt" | "kind" | "state">;
+  latest?: Pick<TurnRow, "dismissedAt" | "endedAt" | "kind" | "reason" | "state">;
   /**
    * Whether the session is its change's or feature's latest: an older one's run halted nothing, as
    * the folder's runs go to the latest.
@@ -51,7 +54,11 @@ export function sessionStatus(input: {
     return { label: "Needs you", reason: "step", status: "needs-you" };
   }
   if (latest?.state === "failed" || latest?.state === "stopped") {
-    return { label: "Needs attention", reason: latest.state, status: "attention" };
+    if (latest.dismissedAt !== null) {
+      return { label: "Idle", status: "idle" };
+    }
+    const reason = latest.reason === SERVER_STOPPED ? "interrupted" : latest.state;
+    return { label: "Needs attention", reason, status: "attention" };
   }
   const unseen =
     latest?.endedAt && (seenAt === null || Date.parse(latest.endedAt) > Date.parse(seenAt));

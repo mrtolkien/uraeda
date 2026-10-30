@@ -1,10 +1,12 @@
 // A session's, a change's, or a feature's card in the shell: every line about it, a row of its pane.
 // Its first line is its kind's icon, its whole name, wrapping when it must, and at the end its
-// background command and status. Under the name, a change's or a feature's step; then, while it
+// background command and status, then, for a run that asks until dismissed, its Dismiss. Under the
+// name, a change's or a feature's step; then, while it
 // has any, its task's progress and the lines its branch changed, with its pull request; then its
 // running sub-agents.
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
+import { IconButton } from "@astryxdesign/core/IconButton";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -19,6 +21,7 @@ import { CardRow } from "./CardRow.tsx";
 import { brighten } from "./brighten.ts";
 import { type StepKind, StepIcon } from "./StepIcon.tsx";
 import { DiffCount } from "../layout/DiffCount.tsx";
+import { StatusText } from "../fields/StatusText.tsx";
 import { pickedStyles } from "../layout/picked.ts";
 
 /** What the sidebar shows of a session, a change, or a feature. */
@@ -41,8 +44,8 @@ export type CardItem = {
   label: string;
   /** What a button just started for it, until the server's status arrives: "Committing…". */
   pending?: string;
-  /** Its current task, during the implementation. */
-  progress?: { position: number; title: string; total: number };
+  /** Its plan's tasks done, of its total, and its current task, during the implementation. */
+  progress?: { done: number; title: string; total: number };
   pullRequest?: { number: number; url: string };
   status: { label: string; status: SessionStatus };
   /** A change's or a feature's step; a session has none. */
@@ -125,6 +128,8 @@ const styles = stylex.create({
     marginBlock: "auto",
     top: 0,
   },
+  // Why its Dismiss was refused, under its name.
+  refused: { paddingInlineStart: spacingVars["--spacing-6"] },
   spacer: { flexGrow: 1 },
   subagent: {
     paddingBlockEnd: spacingVars["--spacing-1"],
@@ -145,9 +150,7 @@ export function cardName(item: CardItem) {
     item.kind,
     item.agent === undefined ? undefined : harnessMark(item.agent).name,
     item.pending ?? item.status.label,
-    item.progress
-      ? `Task ${item.progress.position} of ${item.progress.total}, ${item.progress.title}`
-      : undefined,
+    item.progress ? `${item.progress.done} of ${item.progress.total} tasks done` : undefined,
     item.hasBackgroundCommand ? "background command running" : undefined,
     item.pullRequest ? `pull request #${item.pullRequest.number}` : undefined,
     item.changes ? `${item.changes.added} lines added, ${item.changes.removed} removed` : undefined,
@@ -272,7 +275,7 @@ function Meta({
         </Text>
         {progress && (
           <Text color="secondary" hasTabularNumbers type="supporting">
-            {`${progress.position}/${progress.total}`}
+            {`${progress.done}/${progress.total}`}
           </Text>
         )}
         <span {...stylex.props(styles.spacer)} />
@@ -331,6 +334,30 @@ function RailMark({
   );
 }
 
+/** The card's Dismiss, after its link, at its first line's end, named by its card's `label`. */
+function Dismiss({ label, onDismiss }: { label: string; onDismiss: () => void }) {
+  return (
+    <IconButton
+      icon={<Icon icon="close" />}
+      label={`Dismiss ${label}'s run`}
+      onClick={onDismiss}
+      size="sm"
+      variant="ghost"
+    />
+  );
+}
+
+/** Why the server refused the card's Dismiss, under its name, gone in the closed rail. */
+function Refused({ error, isRail }: { error: string; isRail: boolean }) {
+  return (
+    <div {...stylex.props(styles.refused, isRail && styles.railGone)}>
+      <StatusText role="alert" tone="error" type="supporting">
+        {error}
+      </StatusText>
+    </div>
+  );
+}
+
 /**
  * A click on the card: on its pull request, opens it in a new tab; on its status, what the status
  * points to (`onStatus`); anywhere else, the item's page inside the app (`onOpen`).
@@ -353,15 +380,19 @@ function cardClick(onOpen: (() => void) | undefined, onStatus: (() => void) | un
 
 export function ItemCard({
   detail,
+  dismissError,
   href,
   isPicked = false,
   isSelected = false,
   item,
+  onDismiss,
   onOpen,
   onStatus,
 }: {
   /** More about it on a third line, as home's cards say: what it asks, how long it takes. */
   detail?: string | undefined;
+  /** Why the server refused its Dismiss, under it. */
+  dismissError?: string | undefined;
   href: string;
   /**
    * The keys or the pointer picked it: tinted as a list's selected row, the keyboard's ring around
@@ -370,6 +401,8 @@ export function ItemCard({
   isPicked?: boolean;
   isSelected?: boolean;
   item: CardItem;
+  /** Dismisses the run its status asks about, a failed or a stopped one: Dismiss ends its first line. */
+  onDismiss?: (() => void) | undefined;
   /** Opens the item's page inside the app, instead of loading `href`. */
   onOpen?: () => void;
   /** Opens what its status points to, on a click on the status: its session, or what it asks. */
@@ -402,6 +435,7 @@ export function ItemCard({
       <RailMark hasNext={hasNext} isMarkOnly={isMarkOnly} item={item} />
       <CardRow
         {...(isRail ? { rail: isMarkOnly ? "mark" : "card" } : {})}
+        {...(onDismiss ? { after: <Dismiss label={item.label} onDismiss={onDismiss} /> } : {})}
         endContent={<Status hasNext={hasNext} hasWork={hasWork} item={item} />}
         hasRing={!isPicked}
         href={href}
@@ -422,6 +456,7 @@ export function ItemCard({
         }
         {...(onOpen || onStatus ? { onClick: cardClick(onOpen, onStatus) } : {})}
       />
+      {dismissError && <Refused error={dismissError} isRail={isRail} />}
       {item.subagents?.map((subagent) => (
         <HStack
           align="center"

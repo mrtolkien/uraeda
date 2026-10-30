@@ -100,6 +100,7 @@ export function sessionRecord(id: string, overrides: Partial<SessionRecord> = {}
     status: "idle",
     statusLabel: "Idle",
     statusReason: null,
+    statusTurn: null,
     subagents: [],
     title: "A chat",
     turns: [],

@@ -5,7 +5,8 @@ delivers the branch as a pull request for the human to review.
 
 - **Runs when**: `plan.md` is `approved` or `auto-approved`, with unchecked steps; or every step is
   checked and the branch has no pull request; or its pull request has changes requested, or the
-  human's message asks to address its comments
+  human's message asks to address its comments; or its open pull request lacks the branch's latest
+  commits
 - **Writes**: code and tests, the step checkboxes of `plan.md`, `rulings.md`, and the draft pull
   request
 - **Ends at**: the [finish](finish.md) step; a human gate, the pull request, after its comments are
@@ -313,6 +314,27 @@ then one screenshot per new view, as [the finish step](finish.md#mark-the-pull-r
 If you cannot open a pull request, push the branch, and put the body in the last commit's message.
 When the human talks with you in the session, say the same in one or two sentences, with the pull
 request's link.
+
+## Push
+
+The push runs when the branch holds commits its pull request lacks, and the pull request is open,
+not a draft, with no changes requested: a commit made after the last push, by an agent or by hand.
+The human reviews the pull request's head, so until it holds the branch's latest commit, the pull
+request does not wait for their review. Uraeda names this step `push`.
+
+By hand, read the head with `gh pr view <branch> --json headRefOid`. The branch lacks nothing when
+`git merge-base --is-ancestor <branch> <head>` succeeds, or when the head is not in the repository:
+the branch is then most likely behind it.
+
+1. **Run the project's complete validation**, after the branch's last commit, as
+   [every push](#each-task) requires. A failure is fixed in a commit of its own, with the feature's
+   scope, before the push.
+2. **Push the branch** with `git push`, never `--force`. Only after a rebase, as
+   [the final review](#catch-up-with-the-default-branch) says, push with `--force-with-lease`. A
+   refused push means the remote branch has commits the local one lacks: run
+   `git pull --rebase origin <branch>`, the validation again, and push again, never forcing.
+3. **Leave the pull request as it is.** Once it holds the branch's latest commit, it waits for the
+   human's review again: a human gate.
 
 ## Comments on the pull request
 

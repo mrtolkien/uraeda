@@ -2,7 +2,8 @@
 // one action that does it. The page decides nothing: each row follows the step.
 import type { FeatureView, StepView, TaskProgress } from "uraeda-binding";
 import type { Trigger } from "uraeda-server/fate";
-import { agentNext, waiting } from "../labels.ts";
+import { agentNext, progressText, waiting } from "../labels.ts";
+import { sessionIdPath } from "../routeTable.ts";
 import { sessionPath } from "../sessions.ts";
 import { day } from "./times.ts";
 
@@ -78,24 +79,34 @@ function merged(feature: NextFeature, at?: string): Next {
   };
 }
 
-/** The link that opens the feature's session. */
-function openSession(folder: string): NextAction {
-  return { external: false, href: sessionPath(folder), kind: "link", label: "Open the session" };
+/** The link that opens a session: `session`, by its ID, else the feature's latest. */
+function openSession(folder: string, session?: string | null): NextAction {
+  const href = session ? sessionIdPath(session) : sessionPath(folder);
+  return { external: false, href, kind: "link", label: "Open the session" };
 }
+
+/** What "Next" reads of the feature's status: whether an agent works on it, and in which session. */
+type Working = { session?: string | null; working: boolean };
 
 /**
  * What "Next" says at a step the agent takes: nothing to press if it cannot run, "Open the
- * session" while it works, else the recommended message as the button, or why there is none.
+ * session" at work while it works, else the recommended message as the button, or why there is
+ * none.
  */
 function agentStep(
   feature: NextFeature,
-  { agent, recommended, working }: { agent: NextAgent; recommended: Recommended; working: boolean },
+  {
+    agent,
+    recommended,
+    session,
+    working,
+  }: Working & { agent: NextAgent; recommended: Recommended },
 ): Pick<Next, "action" | "line"> {
   if (agent && !agent.available) {
     return { line: `${agent.name} is not available on this machine` };
   }
   if (working) {
-    return { action: openSession(feature.folder) };
+    return { action: openSession(feature.folder, session) };
   }
   if (recommended && "name" in recommended) {
     return {
@@ -110,8 +121,10 @@ function agentStep(
 
 /**
  * "Next" for a feature at its step. `merged` is a done feature's merge time or day; `working`,
- * whether a turn of its session runs or waits to; `recommended`, the message the server
- * recommends, read once the page has it; `agent`, the machine's agent.
+ * whether its status is Working, a turn of one of its sessions running or waiting to, and
+ * `session`, that session; `recommended`, the message the server recommends, read once the page
+ * has it; `agent`, the machine's agent. While an agent works, even at a gate or an open pull
+ * request, "Next" is the agent's, and leads to the session at work.
  */
 export function nextOf(
   feature: NextFeature,
@@ -119,10 +132,12 @@ export function nextOf(
     agent,
     merged: at,
     recommended,
+    session,
     working,
-  }: { agent?: NextAgent; merged?: string; recommended?: Recommended; working: boolean },
+  }: Working & { agent?: NextAgent; merged?: string; recommended?: Recommended },
 ): Next {
   const { step } = feature;
+  const atWork = { action: openSession(feature.folder, session), title: "The agent is at work" };
   switch (step.name) {
     case "done":
       return merged(feature, at);
@@ -132,8 +147,11 @@ export function nextOf(
         title: "Nothing can go on",
       };
     case "pull-request-unknown":
-      return { title: "Pull request state unknown" };
+      return working ? atWork : { title: "Pull request state unknown" };
     case "pull-request": {
+      if (working) {
+        return atWork;
+      }
       const pull = feature.pullRequest;
       return {
         ...(pull ? { action: openPull(pull) } : {}),
@@ -145,16 +163,13 @@ export function nextOf(
     }
     default: {
       if (step.waitsOn === "human" && step.name !== "implementation") {
-        return gate(feature);
+        return working ? atWork : gate(feature);
       }
       const built = step.name === "implementation";
       const { progress } = step;
-      const taken = agentStep(feature, { agent, recommended, working });
+      const taken = agentStep(feature, { agent, recommended, session, working });
       // A build at work keeps its task; its line otherwise is the step's own.
-      const line =
-        built && working && progress
-          ? `Task ${progress.position} of ${progress.total}: ${progress.title}`
-          : taken.line;
+      const line = built && working && progress ? progressText(progress) : taken.line;
       return {
         ...(taken.action ? { action: taken.action } : {}),
         ...(line ? { line } : {}),

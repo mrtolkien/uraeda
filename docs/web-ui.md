@@ -91,9 +91,15 @@ agent", commit. They then open its session with the workflow's message in the co
 until you send it. A message sent while the agent works is steered into its turn. Stop ends the turn
 and keeps the session.
 
-The sidebar shows every session with what needs you, what works, and each new reply. Claude Code
-runs in `auto` permission mode, with your own settings, and with the server's copy of the skill as a
-plugin: see the [agents](../specs/decisions/agents.md) decision.
+The sidebar shows every session with what needs you, what works, and each new reply. A feature reads
+Working while any of its sessions runs, whatever its step. A run that failed or was stopped asks for
+you until you dismiss it, with Dismiss on its feature's or change's card, or on its session's
+banner. A pull request reads "PR ready" only once it holds its branch's latest commit. While its
+branch holds commits the pull request lacks, the feature reads "Push", in In progress, for the agent
+to push.
+
+Claude Code runs in `auto` permission mode, with your own settings, and with the server's copy of
+the skill as a plugin: see the [agents](../specs/decisions/agents.md) decision.
 
 ## The data folder
 

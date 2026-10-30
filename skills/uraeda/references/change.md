@@ -5,7 +5,8 @@ asks only what the human must decide. It makes the change with tests that fail f
 reviewed, and opens a pull request.
 
 - **Runs when**: a change branch, `change/YYYY-MM-DD-<slug>`, is at its `change` step, its pull
-  request has changes requested, or the human's message asks to address its pull request's comments
+  request has changes requested or lacks the branch's latest commits, or the human's message asks to
+  address its pull request's comments
 - **Writes**: the code and its tests, `rulings.md`, a round of questions when one is needed, and the
   draft pull request
 - **Ends at**: the [finish](finish.md) step; a human gate, a round of questions; or an offer to
@@ -85,12 +86,14 @@ and run the first row that matches.
 | `proposal.md` is not committed, and there is no record           | **Human gate**: the human writes it, then commits it                    |
 | The record is in `specs/done/`, and no pull request is ready     | [Finish](finish.md)                                                     |
 | The record, and the pull request has changes requested           | [The pull request](#the-pull-request), comments                         |
+| The record, and an open pull request lacks the latest commits    | [Implementation](implementation.md#push), push                          |
 | The record, and the pull request is ready for review             | **Human gate**: the review happens on the pull request                  |
 | A file has `status: awaiting-human`                              | **Human gate**: stop                                                    |
 | The branch has no pull request                                   | This file, from [Investigating](#investigating)                         |
 | The folder came back, and a round answered since is not made yet | [Making the change](#making-the-change), then [the review](#the-review) |
 | The branch's pull request is a draft                             | [Finish](finish.md)                                                     |
 | The branch's pull request has changes requested                  | [The pull request](#the-pull-request), comments                         |
+| The open pull request lacks the branch's latest commits          | [Implementation](implementation.md#push), push                          |
 | The branch has an open pull request                              | **Human gate**: the review happens on the pull request                  |
 
 Without `gh`, `ura` cannot see the pull request, and names `change` until the record exists: check
@@ -310,6 +313,9 @@ commit removes the change's proposal from `PRIORITIES.md`. The pull request's bo
 it is marked ready, as [the finish step](finish.md#mark-the-pull-request-ready) says: "Pull request
 to review, about 5 minutes.", the points needing attention, among them the points you settled
 without asking, then the record's text, with a screenshot of each new view.
+
+Commits the open pull request lacks are pushed as for a feature, as [Push](implementation.md#push)
+says.
 
 Comments on the pull request are handled as for a feature, as
 [implementation](implementation.md#comments-on-the-pull-request) and

@@ -3,7 +3,7 @@
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 import { useFeatureFollowed, useSessionFollowed, useTurnFollowed } from "./data.ts";
-import { stepLabel } from "./labels.ts";
+import { progressText, stepLabel } from "./labels.ts";
 import { currentEntry, updateEntry } from "./routes.tsx";
 
 /** A turn as the announcer compares it. */
@@ -81,7 +81,10 @@ function SessionTurns({
     .map((turn) => <TurnReport id={turn} key={turn} onSeen={seen} />);
 }
 
-/** Reports a feature's current task, as "Task 8 of 11: Jump to the latest", or `null`. */
+/**
+ * Reports a feature's progress and current task, as "7 of 11 tasks done · Jump to the latest", or
+ * `null`.
+ */
 function CurrentTask({
   folder,
   onSeen,
@@ -90,7 +93,7 @@ function CurrentTask({
   onSeen: (task: string | null) => void;
 }) {
   const progress = useFeatureFollowed(folder)?.step.progress ?? null;
-  const task = progress && `Task ${progress.position} of ${progress.total}: ${progress.title}`;
+  const task = progress && progressText(progress);
   const report = useEffectEvent(onSeen);
   useEffect(() => {
     report(task);
