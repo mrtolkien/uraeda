@@ -185,11 +185,50 @@ function RecordPart({
   );
 }
 
+/**
+ * The feature's name, with its line of facts and, while it is not done, its menu; why the server
+ * refused a drop shows under it until dismissed.
+ */
+function FeatureTitle({ done, feature }: { done: boolean; feature: FeatureData }) {
+  const [refused, setRefused] = useState<string>();
+  return (
+    <VStack gap={2}>
+      <PageTitle
+        actions={
+          !done && (
+            <FeatureMenu
+              feature={feature}
+              item={{
+                branch: feature.branch ?? null,
+                folder: feature.folder,
+                kind: feature.kind === "change" ? "change" : "feature",
+                slug: feature.slug,
+              }}
+              onRefused={setRefused}
+            />
+          )
+        }
+        meta={{ text: headerLine(feature) }}
+      >
+        {feature.title}
+      </PageTitle>
+      {refused && (
+        <AnnouncedBanner
+          collapsible={false}
+          dismissLabel="Dismiss"
+          isDismissable
+          onDismiss={() => setRefused(undefined)}
+          status="error"
+          title={refused}
+        />
+      )}
+    </VStack>
+  );
+}
+
 /** The page of a feature that exists, with its history read from git. */
 function FeatureBody({ feature }: { feature: FeatureData }) {
   const history = useHistory(feature.folder);
-  // Why the server refused a drop, shown under the name until dismissed.
-  const [refused, setRefused] = useState<string>();
   // The record's folds, which a figure of the column opens.
   const keys = useOpenKeys();
   // What "Next"'s button does, which `n` does too, once "Next" is drawn.
@@ -212,37 +251,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
     <Page>
       <Crumbs folder={feature.folder} />
       <VStack gap={6}>
-        <VStack gap={2}>
-          <PageTitle
-            actions={
-              !done && (
-                <FeatureMenu
-                  feature={feature}
-                  item={{
-                    branch: feature.branch ?? null,
-                    folder: feature.folder,
-                    kind: feature.kind === "change" ? "change" : "feature",
-                    slug: feature.slug,
-                  }}
-                  onRefused={setRefused}
-                />
-              )
-            }
-            meta={{ text: headerLine(feature) }}
-          >
-            {feature.title}
-          </PageTitle>
-          {refused && (
-            <AnnouncedBanner
-              collapsible={false}
-              dismissLabel="Dismiss"
-              isDismissable
-              onDismiss={() => setRefused(undefined)}
-              status="error"
-              title={refused}
-            />
-          )}
-        </VStack>
+        <FeatureTitle done={done} feature={feature} />
         <Blocking
           change={feature.kind === "change"}
           folder={feature.folder}
