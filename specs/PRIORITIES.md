@@ -6,10 +6,7 @@
 >
 > Features for v1.0.0
 
-- Review all panes sizes: feature panes are too large, some questions panes are too big, ... It
-  should be more coherent, based on clear rules
 - [Performance pass: the UI feels sluggish](/specs/2026-10-29-performance-pass/proposal.md)
-- [panes-size](/specs/2026-10-30-panes-size/proposal.md)
 
 - [Feature state pass](proposals/feature-state-pass/proposal.md)
 

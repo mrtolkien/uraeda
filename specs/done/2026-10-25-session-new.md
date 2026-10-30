@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-26
 pull-request: https://github.com/mrtolkien/uraeda/pull/58
+superseded-by: [2026-10-30-panes-size]
 ---
 
 # Record: Session and New in the terminal look
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/58
 > The record of a merged feature, not instructions to follow. Started on 2026-10-25, finished on
 > 2026-10-26, in [its pull request](https://github.com/mrtolkien/uraeda/pull/58). Its full files are
 > in git: `git log -- specs/2026-10-25-session-new/`.
+>
+> Superseded in part by [2026-10-30-panes-size](2026-10-30-panes-size.md).
 
 ## What and why
 

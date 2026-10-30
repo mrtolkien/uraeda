@@ -39,7 +39,7 @@ What reads best depends on the room a view has, not the device: half a desktop s
 can share a width. Three classes cover the shapes that read differently. On a phone, a dialog covers
 the screen and is hard to dismiss, while a short choice reads best beside its control. Lines much
 longer than 80 characters are hard to follow. Pages sized one by one drifted apart: one scale keeps
-every edge where the eye expects it. History: [Panes size](../2026-10-30-panes-size/spec.md).
+every edge where the eye expects it. History: [Panes size](../done/2026-10-30-panes-size.md).
 
 ## Alternatives considered
 
