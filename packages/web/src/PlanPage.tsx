@@ -59,7 +59,7 @@ function LeadPane({ drawing, run }: { drawing: Drawing; run: OpeningRun & { kind
       </Selectable>
     ) : undefined;
   return (
-    <Pane id={leadId(run.label)} isOpenOnPhone title={run.label}>
+    <Pane id={leadId(run.label)} isSnugOnPhone title={run.label}>
       <SelectionRoom selection={drawing.selection}>
         <Blocks {...drawing} ids={[run.block]} override={override} />
       </SelectionRoom>

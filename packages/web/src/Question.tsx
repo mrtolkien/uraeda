@@ -154,7 +154,7 @@ function useWithoutLeads(document: Document, question: QuestionItem) {
 
 /**
  * A question's example in a teal pane, its context, then its "Why it matters" in a peach pane,
- * each set apart from the context. On the phone, the panes keep only their titled top border.
+ * each set apart from the context. On the phone, the panes keep little room inside their border.
  */
 export function QuestionContext({
   document,
@@ -167,13 +167,13 @@ export function QuestionContext({
   return (
     <>
       {question.example !== undefined && (
-        <Pane isOpenOnPhone level={3} title="Example" tone="example" xstyle={[styles.example]}>
+        <Pane isSnugOnPhone level={3} title="Example" tone="example" xstyle={[styles.example]}>
           <Blocks document={panes} ids={[question.example]} />
         </Pane>
       )}
       <Blocks document={document} ids={question.context} />
       {question.why !== undefined && (
-        <Pane isOpenOnPhone level={3} title="Why it matters" tone="attention">
+        <Pane isSnugOnPhone level={3} title="Why it matters" tone="attention">
           <Blocks document={panes} ids={[question.why]} />
         </Pane>
       )}

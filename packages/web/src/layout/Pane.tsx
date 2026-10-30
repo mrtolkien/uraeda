@@ -127,30 +127,6 @@ const styles = stylex.create({
   nested: { maxWidth: "none" },
   new: { borderColor: colorVars["--color-border-green"] },
   newTitle: { color: colorVars["--color-text-green"] },
-  // On the phone, a round's pane keeps only its titled top border, so its text takes the screen's
-  // width: no side or bottom border, no inset, and no background of its own, so it shows no band
-  // over the page, whose surface its content then sits on. Its widths are the pane's own
-  // properties, which merge in the props: a longhand over the pane's shorthand would win or lose by
-  // the order of the stylesheet's rules.
-  openOnPhone: {
-    "--pane-surface": colorVars["--color-background-surface"],
-    "--table-bleed": "0px",
-    backgroundColor: "transparent",
-    borderBlockEndWidth: 0,
-    borderInlineEndWidth: 0,
-    borderInlineStartWidth: 0,
-    paddingInline: 0,
-  },
-  openOnPhoneActions: { backgroundColor: colorVars["--color-background-surface"] },
-  // Its title hides the border behind it with the page's surface, which a round on the phone is
-  // drawn on, and leaves a run of the border after it, so a title of several lines still shows
-  // the pane's top border.
-  openOnPhoneTitle: {
-    backgroundColor: colorVars["--color-background-surface"],
-    marginInlineStart: 0,
-    maxWidth: `calc(100% - ${spacingVars["--spacing-3"]} - var(--pane-actions-room, 0px))`,
-    paddingInlineStart: 0,
-  },
   pane: {
     // The border's width, which a live window triples: the title and the actions centre on it.
     "--pane-border": borderVars["--border-width"],
@@ -164,7 +140,7 @@ const styles = stylex.create({
     backgroundColor: colorVars["--color-background-body"],
     borderColor: colorVars["--color-border"],
     borderStyle: "solid",
-    // Each side's width, which `openOnPhone` sets to none but the top.
+    // Each side's width.
     borderBlockEndWidth: "var(--pane-border)",
     borderBlockStartWidth: "var(--pane-border)",
     borderInlineEndWidth: "var(--pane-border)",
@@ -200,6 +176,21 @@ const styles = stylex.create({
   under: (below: string) => ({
     marginBlockStart: below,
   }),
+  // On the phone, a reading page's pane keeps its whole border, past the page's inset to a little
+  // room from the screen's edges (`--pane-phone-margin`), with little room inside it
+  // (`--pane-phone-inset`), so its text has nearly the screen's width, about where the page's own
+  // text starts; its title, its actions, and a table's rows keep to that room.
+  snugOnPhone: {
+    "--pane-inset": paneVars["--pane-phone-inset"],
+    "--table-bleed": paneVars["--pane-phone-inset"],
+    marginInline: `calc(${paneVars["--pane-phone-margin"]} - var(--page-inset, 0px))`,
+    paddingInline: paneVars["--pane-phone-inset"],
+  },
+  snugOnPhoneActions: { insetInlineEnd: 0 },
+  snugOnPhoneTitle: {
+    marginInlineStart: 0,
+    paddingInlineStart: spacingVars["--spacing-1"],
+  },
   // A tinted pane, as a picked card: its background the accent's muted tint. Its title's band is
   // the page's above the border's middle and the tint's below it, so the title sits on both.
   tinted: {
@@ -224,7 +215,6 @@ const styles = stylex.create({
     marginBlockStart: "var(--pane-title-top)",
     marginInlineStart: `calc(${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]})`,
     maxWidth: `calc(100% - 2 * (${spacingVars["--spacing-3"]} - ${spacingVars["--spacing-1"]}) - var(--pane-actions-room, 0px))`,
-    // Each side's, which `openOnPhoneTitle` sets at the start.
     paddingInlineEnd: spacingVars["--spacing-2"],
     paddingInlineStart: spacingVars["--spacing-2"],
     position: "relative",
@@ -339,9 +329,9 @@ function PaneName({
  * A pane: a `section` named by its title, the title a heading at the caller's level, set in the
  * top border with its icon and its count. The accent colours its border and title while it is
  * active, else its tone does. `isGroup` makes it a group rather than a region, as the panes of a
- * navigation are, which a list of landmarks would repeat. `isOpenOnPhone` keeps only its titled top
- * border on narrow screens, as the round's panes do, unless it is inside another pane, whose
- * background its own would show as a band. With `fold`, its title is a button that opens
+ * navigation are, which a list of landmarks would repeat. `isSnugOnPhone` keeps little room inside its
+ * border on narrow screens, as a reading page's panes do, unless it is inside another pane, which
+ * already has the room. With `fold`, its title is a button that opens
  * and closes it, named by its title and its count, and folded, its content is not mounted.
  * `actions` sit in the top border at its end, as a live window's buttons do, the title wrapping
  * before them, or under them where they leave it too little room; `titleSuffix` follows
@@ -360,7 +350,7 @@ export function Pane({
   id,
   isActive = false,
   isGroup = false,
-  isOpenOnPhone = false,
+  isSnugOnPhone = false,
   isTinted = false,
   level = 2,
   tint,
@@ -378,7 +368,7 @@ export function Pane({
   id?: string;
   isActive?: boolean;
   isGroup?: boolean;
-  isOpenOnPhone?: boolean;
+  isSnugOnPhone?: boolean;
   isTinted?: boolean;
   level?: HeadingLevel;
   tint?: PaneTint;
@@ -396,7 +386,7 @@ export function Pane({
   const [border, ink] = looks(isActive, tone, isTinted, useClosedRail());
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
-  const isOpen = isOpenOnPhone && isNarrow(width) && !use(InPane);
+  const isSnug = isSnugOnPhone && isNarrow(width) && !use(InPane);
   // The fold button's name, as it reads: the title, its count, and a suffix of text.
   const counted = count === undefined ? title : `${title} · ${count}`;
   const label = typeof titleSuffix === "string" ? `${counted} ${titleSuffix}` : counted;
@@ -421,7 +411,7 @@ export function Pane({
       {...stylex.props(
         styles.pane,
         use(InPane) && styles.nested,
-        isOpen && styles.openOnPhone,
+        isSnug && styles.snugOnPhone,
         margin,
         border,
         isTinted && styles.tinted,
@@ -432,7 +422,7 @@ export function Pane({
         id={id === undefined ? undefined : `${id}-title`}
         level={level}
         tabIndex={id === undefined ? undefined : -1}
-        xstyle={[styles.title, isOpen && styles.openOnPhoneTitle, tint && TINTS[tint], ink, beside]}
+        xstyle={[styles.title, isSnug && styles.snugOnPhoneTitle, tint && TINTS[tint], ink, beside]}
       >
         <TitleWords fold={fold} label={label}>
           {name}
@@ -441,7 +431,7 @@ export function Pane({
       {actions !== undefined && (
         <div
           ref={actionsBox}
-          {...stylex.props(styles.actions, isOpen && styles.openOnPhoneActions)}
+          {...stylex.props(styles.actions, isSnug && styles.snugOnPhoneActions)}
         >
           {actions}
         </div>

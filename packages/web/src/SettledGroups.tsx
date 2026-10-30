@@ -81,7 +81,7 @@ function GroupPane({
       }
       icon={isHood ? "uraeda:wrench" : "uraeda:eye"}
       id={isHood ? PART_IDS.hood : PART_IDS.behaviour}
-      isOpenOnPhone
+      isSnugOnPhone
       level={3}
       title={heading ? plain(heading.spans) : ""}
     >
