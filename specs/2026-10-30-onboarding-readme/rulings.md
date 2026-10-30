@@ -70,13 +70,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R8: Without `specs/`, the pages the pane leads to read no priorities nor ledger
 
 - **Decision**: in a repository without `specs/`, the shell's Commit button and tab, the New page's
-  entry lists and its proposal insertion, and the inbox, priorities, and decisions are not read;
-  those three pages show the `NoSpecs` warning, through one guard, `WithSpecs`.
+  entry lists and its proposal insertion, the ＋ Note and ＋ Proposal buttons and their forms, a
+  note's or a proposal's address, and the inbox, priorities, and decisions pages read nothing; those
+  three pages show the `NoSpecs` warning, through one guard, `WithSpecs`.
 - **Rationale**: the core refuses those reads without `specs/`, and each failure replaced the whole
   page with "Could not reach the Uraeda server.", so `bare`'s Home, and the New page its button
   opens, never showed. The shell already skipped the inbox's count there the same way.
 - **Where**: task 4, `packages/web/src/shell/`, `packages/web/src/NewPage.tsx`,
-  `packages/web/src/layout/Missing.tsx`; the Inbox and Priorities pages from the final review
+  `packages/web/src/layout/Missing.tsx`, `packages/web/src/SidebarAdd.tsx`,
+  `packages/web/src/pane/DetailRoutes.tsx`; the pages, buttons, and addresses after the first one
+  from the final review
 
 ## R9: The Setup pane closes, its last items written
 

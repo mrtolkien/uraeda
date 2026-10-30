@@ -57,20 +57,22 @@ export function NoSpecs({ path }: { path: string }) {
 }
 
 /**
- * A page that reads `specs/`, the inbox's, the priorities', or the decisions': `children`, or in a
- * repository without the folder, whose files the core cannot read, the warning that says to set the
- * project up.
+ * What reads `specs/`, the inbox's, the priorities', or the decisions' page, or a note's or a
+ * proposal's address: `children`, or in a repository without the folder, whose files the core
+ * cannot read, `fallback`, by default the warning that says to set the project up.
  */
-export function WithSpecs({ children }: { children: ReactNode }) {
+export function WithSpecs({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   const workspace = useWorkspace();
   if (!workspace) {
     return null;
   }
   if (workspace.noSpecs) {
-    return (
+    return fallback === undefined ? (
       <Page>
         <NoSpecs path={workspace.noSpecs} />
       </Page>
+    ) : (
+      fallback
     );
   }
   return children;

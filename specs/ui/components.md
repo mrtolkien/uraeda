@@ -58,6 +58,8 @@ are its own:
 - `keys/LeaderMenu.tsx`: a menu row, and the footer's back and close keys, drawn as the menu's text.
 - `lists/OutlineEditor.tsx`: the row's field, a `textarea` in the row's own font, with no frame,
   growing with its text.
+- `layout/Room.tsx`: a room that eases its height open and closed, so what is under it glides into
+  its place: the column's Unfold, and Home's Setup pane.
 
 ## Rules of thumb
 

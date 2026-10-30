@@ -22,23 +22,17 @@
 - [agent] [review-inbox] A start whose link rebase fails on the second file of a postponed folder
   names neither the first, rebased, nor the files after it (`start/commits.rs`)
 
+## To test
+
+- See if we can integrate Claude Design
+
 ## Deferred fixes
 
 - [agent] [onboarding-readme] "Set up with the agent" keeps a session draft already on the New page,
   so Send sends that text, not the setup message, with no hint (`NewPage.tsx` `useSetupMessage`)
-- [agent] [onboarding-readme] Under reduced motion the Setup pane's room never fires
-  `transitionend`, so the closed pane stays mounted, hidden (`layout/Room.tsx`)
 - [agent] [onboarding-readme] As the Setup pane closes, its title reads "Setup · 0" for 200 ms
   (`home/Setup.tsx`)
-- [agent] [onboarding-readme] The README has 24 words left under its 1,000-word limit, and nothing
-  checks it
 - [agent] [onboarding-readme] `fixtures/realistic/decisions/` lacks the documentation decision, so
   the sandbox's and the screenshots' Decisions page does not show it
-- [agent] [onboarding-readme] `specs/ui/components.md` does not list `layout/Room.tsx`, now shared
-  by the column's Unfold and Home's Setup pane
 - [agent] [onboarding-readme] `readme-screenshots.ts` waits for the realistic project's turns only
   after the first page load starts them: a change in `serveUi`'s start callback breaks it
-
-## To test
-
-- See if we can integrate Claude Design

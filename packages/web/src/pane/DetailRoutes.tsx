@@ -62,7 +62,9 @@ export function PrioritiesRoute({
         </WithSpecs>
       )}
       {proposalKey !== undefined && (
-        <ProposalDetail list={isHome ? "/" : "/priorities"} proposalKey={proposalKey} />
+        <WithSpecs fallback={null}>
+          <ProposalDetail list={isHome ? "/" : "/priorities"} proposalKey={proposalKey} />
+        </WithSpecs>
       )}
     </>
   );
@@ -101,13 +103,11 @@ function NoteAddress({ noteKey, onSelect }: { noteKey: string; onSelect: (key: s
 export function InboxRoute({ noteKey }: { noteKey?: string }) {
   const [select, setSelect] = useState<{ key: string }>();
   return (
-    <>
-      <WithSpecs>
-        <InboxPage select={select} />
-      </WithSpecs>
+    <WithSpecs>
+      <InboxPage select={select} />
       {noteKey !== undefined && (
         <NoteAddress noteKey={noteKey} onSelect={(key) => setSelect({ key })} />
       )}
-    </>
+    </WithSpecs>
   );
 }

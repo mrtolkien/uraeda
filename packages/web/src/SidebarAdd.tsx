@@ -9,7 +9,7 @@ import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AddNote, type NoteAdded } from "./AddNote.tsx";
 import { undoAsFile, usePickedImages } from "./NoteImage.tsx";
-import { readPriorities } from "./data.ts";
+import { readPriorities, useWorkspace } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -47,9 +47,15 @@ export function useOpenAddForm(): OpenForm {
   return useContext(OpenContext);
 }
 
-/** A ＋ of the shell: an icon alone beside its row, or, with `text`, a button that says it. */
+/**
+ * A ＋ of the shell: an icon alone beside its row, or, with `text`, a button that says it. None in a
+ * repository without `specs/`, which has no inbox nor priorities to add to.
+ */
 function Plus({ form, label, text }: { form: Form; label: string; text?: string }) {
   const open = useOpenAddForm();
+  if (useWorkspace()?.noSpecs) {
+    return null;
+  }
   return (
     <Button
       // Lucide's plus: the font has no "＋" to draw.
@@ -267,6 +273,8 @@ function NoteOverlay({
  * places the focus itself, like a round's question, must keep.
  */
 export function SidebarAddForms({ children }: { children: ReactNode }) {
+  // A repository without `specs/` has no inbox nor priorities: a key opens no form there.
+  const noSpecs = useWorkspace()?.noSpecs;
   const [open, setOpen] = useState<Form>();
   const [place, setPlace] = useState<AddPlace>({});
   const [drawn, setDrawn] = useState<ReadonlyArray<Form>>([]);
@@ -274,6 +282,9 @@ export function SidebarAddForms({ children }: { children: ReactNode }) {
   const [images, picked] = usePickedImages();
   const close = () => setOpen(undefined);
   const openForm: OpenForm = (form, { images: dropped, ...where } = {}) => {
+    if (noSpecs) {
+      return;
+    }
     setDrawn((forms) => (forms.includes(form) ? forms : [...forms, form]));
     setPlace(where);
     setOpen(form);

@@ -487,7 +487,8 @@ git commit -m "feat(onboarding-readme): ura status lists the missing setup files
   `packages/web/src/Home.tsx`, `packages/web/src/layout/Missing.tsx` (`NoSpecs`),
   `packages/web/src/NewPage.tsx`, `packages/web/src/routeHistory.ts` (`Entry.insert`'s comment),
   and, for a repository without `specs/` (R8), `packages/web/src/shell/Tabs.tsx`,
-  `packages/web/src/shell/ColumnPanes.tsx`, `packages/web/src/decisions/DecisionsPage.tsx`
+  `packages/web/src/shell/ColumnPanes.tsx`, `packages/web/src/decisions/DecisionsPage.tsx`,
+  `packages/web/src/pane/DetailRoutes.tsx`, `packages/web/src/SidebarAdd.tsx`
 - Test: `packages/server/src/__tests__/server.test.ts` ("starting in a repository without specs/
   adds it, given: %s")
 
@@ -531,14 +532,15 @@ The New page, arriving with `insert: "setup"` on the session kind, sets the sess
 `SET_UP_PROJECT` while the draft is empty, and keeps `insert` in the entry, so a reload, which
 empties the in-memory draft, fills it again. Nothing is sent.
 
-`NoSpecs`, on the Decisions page only, reads "No specs/ folder in <path>. Set the project up from
-Home.", with a link "Open home".
+`NoSpecs` reads "No specs/ folder in <path>. Set the project up from Home.", with a link "Open
+home", on the Decisions, Inbox, and Priorities pages, through one guard, `WithSpecs`.
 
 Once the core gives no item, the pane closes in 200 ms rather than vanish, showing its required
 items written meanwhile, and its announcements sit beside it, so the last file written is still
 heard (R9). On the phone, an item's "about" line takes the full width under its icon and name.
-Without `specs/`, the shell's Commit, the Decisions page, and the New page read no priorities nor
-ledger, which the core cannot give there (R8).
+Without `specs/`, the shell's Commit, the ＋ Note and ＋ Proposal buttons and their forms, the
+Decisions, Inbox, and Priorities pages, a note's or a proposal's address, and the New page read no
+inbox, priorities, nor ledger, which the core cannot give there (R8).
 
 - [x] **Step 5: Review it in the sandbox**
 
