@@ -83,26 +83,32 @@ const KEPT = 3;
 
 /**
  * What a screen reader hears of the setup: "Testing decision written." as an item turns written
- * while the pane shows, never the states it found when it opened. Beside the pane, not in it, so it
- * is still heard as the pane closes.
+ * while the pane shows, or leaves the list as the `specs/` folder's does once it exists, never the
+ * states it found when it opened. Beside the pane, not in it, so it is still heard as the pane
+ * closes.
  */
 export function SetupAnnouncer({ items }: { items: ReadonlyArray<SetupItem> }) {
-  const seen = useRef<Map<string, string> | undefined>(undefined);
+  const seen = useRef<Map<string, SetupItem> | undefined>(undefined);
   const count = useRef(0);
   const [said, setSaid] = useState<ReadonlyArray<{ key: number; text: string }>>([]);
   useEffect(() => {
     const before = seen.current;
-    seen.current = new Map(items.map((item) => [item.key, item.state]));
+    seen.current = new Map(items.map((item) => [item.key, item]));
     if (before === undefined) {
       return;
     }
-    const written = items.filter(
-      (item) => item.state === "written" && before.get(item.key) !== "written",
+    const now = seen.current;
+    const left = [...before.values()].filter(
+      (item) => item.state !== "written" && !now.has(item.key),
     );
+    const turned = items.filter(
+      (item) => item.state === "written" && before.get(item.key)?.state !== "written",
+    );
+    const written = items.length > 0 ? [...left, ...turned] : turned;
     if (written.length > 0) {
-      setSaid((now) =>
+      setSaid((kept) =>
         [
-          ...now,
+          ...kept,
           ...written.map((item) => {
             count.current += 1;
             return { key: count.current, text: `${item.name} written.` };
