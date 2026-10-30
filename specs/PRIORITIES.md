@@ -8,15 +8,11 @@
 
 - [Performance pass: the UI feels sluggish](/specs/2026-10-29-performance-pass/proposal.md)
 - [Review the inbox and fix all small issues that can be fixed without extra feedba](/specs/changes/2026-10-30-review-inbox/proposal.md)
+- [Onboarding + README pass: claude setup, what to read and in which order, what to install, ...](/specs/2026-10-30-onboarding-readme/proposal.md)
 
 - [Feature state pass](proposals/feature-state-pass/proposal.md)
 
 - Empty inbox
-
-- Onboarding + README pass: claude setup, what to read and in which order, what to install, ...
-  - Easy to read human guide
-  - Onboarding/docs in the UI
-  - Setup with agent (checks project and creates relevant files)
 
 ## Next
 
