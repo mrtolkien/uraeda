@@ -14,6 +14,7 @@ const PAST_LAST_TASK = new Set([
   "pull-request",
   "pull-request-changes",
   "pull-request-unknown",
+  "push",
 ]);
 
 export type PullRequests = {

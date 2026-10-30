@@ -1335,7 +1335,10 @@ export interface NextStepView {
   task?: string
   /** Where the implementation is in the plan's tasks, for implementation. */
   progress?: TaskProgress
-  /** `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it. */
+  /**
+   * `open`, `unpushed`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends
+   * on it.
+   */
   pullRequest?: string
   /** Whether the plan waits for the human's review, for the steps before it is approved. */
   planReview?: boolean
@@ -1567,6 +1570,8 @@ export interface PullRequestView {
   /** Its address, like `https://github.com/o/r/pull/31`. */
   url: string
   state: PullRequestState
+  /** Its head commit's full hash, as `gh` reads it on GitHub: empty when read from a record. */
+  head: string
 }
 
 export interface QuestionItem {
