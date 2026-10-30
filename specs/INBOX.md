@@ -24,6 +24,8 @@
 - [performance-pass] Any targeted comments on a spec should gray out approval. Approval means the
   written spec is good and needs no changes. A general comment is ok (for example to give pointers
   for the implementation)
+- [onboarding-readme]
+  [Couldn't preview an SVG or see it in the proposal. Should be pretty easy to show it.](notes/couldn-t-preview-an-svg-or-see-it-in-the-proposal/note.md)
 
 ## Bugfix
 
