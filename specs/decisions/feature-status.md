@@ -32,7 +32,7 @@ The human spends their attention where the status points. A status that hides a 
 an old crash, or calls unfinished work ready wastes it, and copies of the rule in each view drifted
 apart. Commits keep the state recoverable from the repository. A write of the human's that is
 landing is no guess, and a refused commit puts it back. History:
-[Feature state pass](../2026-10-30-feature-state/spec.md).
+[Feature state pass](../done/2026-10-30-feature-state.md).
 
 ## Alternatives considered
 

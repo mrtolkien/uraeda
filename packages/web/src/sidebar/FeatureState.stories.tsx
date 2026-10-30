@@ -1,4 +1,4 @@
-// The states of the feature state pass (`specs/2026-10-30-feature-state/spec.md`): a feature's card
+// The states of the feature state pass (`specs/done/2026-10-30-feature-state.md`): a feature's card
 // in the states the spec adds or changes, and the session's banner of a run that asks for
 // attention, with its Dismiss. The cards are the real `ItemCard` over fixed items, in the phone
 // column's width, its Dismiss at the end of its first line; the banners, the real `RunBanner`.
