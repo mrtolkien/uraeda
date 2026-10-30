@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Panes size: the scale of widths, page by page</title>
+    <!--
+      A page's layout, drawn to scale at half size, as the preview decision allows for a layout no
+      component holds yet. Each frame is a window: its sidebar, its page, and its side column, with
+      every pane at the scale's width, and its width in pixels in its border. Text is placeholder
+      lines: the widths are what this page shows.
+    -->
+    <style>
+      :root {
+        --bg: #eff1f5;
+        --surface: #e6e9ef;
+        --text: #4c4f69;
+        --muted: #8c8fa1;
+        --border: #9ca0b0;
+        --lavender: #7287fd;
+        --accent: #8839ef;
+        --peach: #fe640b;
+        --sapphire: #209fb5;
+        --line: #bcc0cc;
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        color: var(--text);
+        background: #dce0e8;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 8px;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 40px 0 6px;
+      }
+      p.note {
+        margin: 0 0 12px;
+        max-width: 80ch;
+        font-size: 13px;
+        line-height: 1.4;
+      }
+      .holder {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: var(--bg);
+      }
+      .window {
+        position: absolute;
+        inset: 0 auto auto 0;
+        transform: scale(0.5);
+        transform-origin: 0 0;
+        background: var(--bg);
+        font-size: 15px;
+      }
+      .box {
+        position: absolute;
+        box-sizing: border-box;
+      }
+      .sidebar {
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+      }
+      .column {
+        background: var(--surface);
+        border-left: 1px solid var(--border);
+      }
+      .over {
+        box-shadow: -8px 0 24px rgb(0 0 0 / 0.18);
+      }
+      .pane {
+        border: 2px solid var(--border);
+        background: var(--bg);
+      }
+      .pane.next {
+        border-color: var(--peach);
+      }
+      .pane.card {
+        border-color: var(--accent);
+        background: #f3f0fb;
+      }
+      .pane.decision {
+        border-color: var(--sapphire);
+      }
+      .pane > .title {
+        position: absolute;
+        top: -11px;
+        left: 12px;
+        padding: 0 8px;
+        background: var(--bg);
+        color: var(--lavender);
+        font-weight: bold;
+        font-size: 17px;
+        white-space: nowrap;
+      }
+      .pane.next > .title {
+        color: var(--peach);
+      }
+      .pane > .size {
+        position: absolute;
+        bottom: -11px;
+        right: 12px;
+        padding: 0 8px;
+        background: var(--bg);
+        color: var(--accent);
+        font-size: 17px;
+      }
+      .lines {
+        position: absolute;
+        inset: 26px 16px 14px 16px;
+        background: repeating-linear-gradient(to bottom, var(--line) 0 9px, transparent 9px 26px);
+        opacity: 0.8;
+      }
+      .split {
+        position: absolute;
+        top: 22px;
+        bottom: 22px;
+        border-left: 2px dashed var(--accent);
+      }
+      .button {
+        background: var(--accent);
+        color: white;
+        text-align: center;
+        line-height: 38px;
+        font-size: 16px;
+      }
+      .head {
+        font-size: 30px;
+        font-weight: bold;
+      }
+      .crumbs {
+        font-size: 16px;
+        color: var(--muted);
+      }
+      .rail-icon {
+        background: var(--border);
+        width: 22px;
+        height: 22px;
+      }
+      .label {
+        color: var(--muted);
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Panes size: the scale of widths, page by page</h1>
+    <p class="note">
+      Each frame is a window at half size. The numbers in the panes' borders are their widths at the
+      default fonts. One reading pane is 692 px; a big-text pane 865 px; a split card about 1,080
+      px; two panes side by side 1,424 px; the side column 400 px until dragged.
+    </p>
+    <div id="frames"></div>
+    <script>
+      // Each frame: its anchor, its title, its note, the window's size, and its boxes, in the
+      // window's own pixels: [class, x, y, width, height, title, size label].
+      const SIDEBAR = 250;
+      const COLUMN = 400;
+      const PANE = 692;
+      // The page's middle, on the whole screen when the room allows it (`useScreenCentre`).
+      const centred = (windowWidth, width) => Math.round((windowWidth - width) / 2);
+      const wideRight = (windowWidth) => windowWidth - COLUMN;
+
+      const frames = [];
+
+      // The feature page at 1920 px: one reading pane, the side column 400 px.
+      {
+        const w = 1920;
+        const x = Math.min(centred(w, PANE), wideRight(w) - 60 - PANE);
+        frames.push({
+          id: "feature",
+          title: "Feature page, 1920 px window",
+          note: "Next, Sessions, and Timeline are one reading pane, 692 px, instead of 974 px. Next's button is the pane's width. The side column is 400 px instead of 600 px: Produced so far and Links keep their two rows.",
+          w,
+          h: 900,
+          boxes: [
+            ["sidebar", 0, 0, SIDEBAR, 900],
+            ["column", wideRight(w), 0, COLUMN, 900],
+            ["crumbs", x, 40, PANE, 24, "Home › Recurring tasks"],
+            ["head", x, 80, PANE, 40, "Recurring tasks"],
+            ["pane next", x, 160, PANE, 150, "Next", "692"],
+            ["button", x + 18, 250, PANE - 36, 38, "Review the spec"],
+            ["pane", x, 350, PANE, 110, "Sessions · 0", "692"],
+            ["pane", x, 500, PANE, 330, "Timeline", "692"],
+            ["pane", wideRight(w) + 18, 60, COLUMN - 36, 140, "Produced so far", "364"],
+            ["pane", wideRight(w) + 18, 240, COLUMN - 36, 80, "Links", "364"],
+          ],
+        });
+      }
+
+      // Pages of rows at 1920 px: the inbox, and settings, whose controls sit beside the text.
+      {
+        const w = 1920;
+        const x = centred(w, PANE);
+        const settings = PANE + 340;
+        const sx = centred(w, settings);
+        frames.push({
+          id: "rows",
+          title: "Pages of rows, 1920 px window: the inbox, then settings",
+          note: "The inbox's panes are one reading pane, 692 px, instead of 1,123 px. A setting's text keeps the same 692 px column; its control sits beside it, so the settings pane is wider by the control, as you allowed for tabs, insets, and controls.",
+          w,
+          h: 820,
+          boxes: [
+            ["sidebar", 0, 0, SIDEBAR, 820],
+            ["head", x, 40, PANE, 40, "Inbox 10"],
+            ["pane", x, 110, PANE, 150, "No category · 3", "692"],
+            ["pane", x, 300, PANE, 190, "UI · 5", "692"],
+            ["head", sx, 540, settings, 40, "Settings"],
+            ["pane", sx, 610, settings, 180, "Server", "692 + control"],
+            ["split", sx + PANE, 610, 0, 180],
+          ],
+        });
+      }
+
+      // The priorities as one list: the same text column as a page of rows.
+      {
+        const w = 1920;
+        const x = centred(w, PANE);
+        frames.push({
+          id: "priorities",
+          title: "Priorities as one list (v), 1920 px window",
+          note: "The list's text column is a reading pane's, as on every page of rows; its markers and selection bar sit in the list's room around it.",
+          w,
+          h: 520,
+          boxes: [
+            ["sidebar", 0, 0, SIDEBAR, 520],
+            ["head", x, 40, PANE, 40, "Priorities"],
+            ["pane", x, 110, PANE, 170, "Now", "692"],
+            ["pane", x, 320, PANE, 170, "Next", "692"],
+          ],
+        });
+      }
+
+      // The home at 1920 px: two reading panes side by side.
+      {
+        const w = 1920;
+        const two = 2 * PANE + 40;
+        // Centred on the screen, unless the sidebar is in the way: then in the room beside it.
+        const x = Math.max(centred(w, two), SIDEBAR + 48);
+        frames.push({
+          id: "home",
+          title: "Home and New, 1920 px window: two reading panes side by side",
+          note: "The home's columns are 692 px each instead of 552 px, the page two reading panes and their gap, 1,424 px, as a round's. New's three cards share the same width, about 450 px each.",
+          w,
+          h: 640,
+          boxes: [
+            ["sidebar", 0, 0, SIDEBAR, 640],
+            ["head", x, 40, two, 40, "sample"],
+            ["pane", x, 110, PANE, 200, "Sessions", "692"],
+            ["pane", x, 350, PANE, 240, "Inbox", "692"],
+            ["pane", x + PANE + 40, 110, PANE, 480, "Priorities now", "692"],
+          ],
+        });
+      }
+
+      // A round at 1920 px: context one pane, split cards at a measure for columns.
+      {
+        const w = 1920;
+        const card = 1080;
+        const x = centred(w, PANE);
+        const cx = centred(w, card);
+        frames.push({
+          id: "round",
+          title: "A round, 1920 px window",
+          note: "The context stays one reading pane, 692 px. A split card is about 1,080 px instead of 1,424 px: the question at about 50 characters a line, its options at about 60. The title and crumbs line up with the context's left edge.",
+          w,
+          h: 900,
+          boxes: [
+            ["sidebar", 0, 0, SIDEBAR, 900],
+            ["crumbs", x, 40, PANE, 24, "Home › Recurring tasks › clarifications-01.md"],
+            ["head", x, 80, PANE, 40, "Clarifications, round 01"],
+            ["pane", x, 150, PANE, 150, "Answered on 2026-10-08.", "692"],
+            ["pane", x, 330, PANE, 90, "Goal", "692"],
+            ["pane card", cx, 480, card, 380, "Q1", "1,080"],
+            ["split", cx + 480, 480, 0, 380],
+            ["label", cx + 30, 820, 400, 24, "question · 50 characters"],
+            ["label", cx + 510, 820, 520, 24, "options · 60 characters"],
+          ],
+        });
+      }
+
+      // A spec at 1920 px: panes one reading pane, decision cards the big-text width.
+      {
+        const w = 1920;
+        const big = 865;
+        const room = wideRight(w) - SIDEBAR;
+        const x = SIDEBAR + Math.round((room - PANE) / 2);
+        const bx = SIDEBAR + Math.round((room - big) / 2);
+        frames.push({
+          id: "spec",
+          title: "A spec, 1920 px window",
+          note: "Its panes are one reading pane. Its decision cards keep 865 px, now the scale's big-text width, for panes of large text. The side column is 400 px.",
+          w,
+          h: 760,
+          boxes: [
+            ["sidebar", 0, 0, SIDEBAR, 760],
+            ["column", wideRight(w), 0, COLUMN, 760],
+            ["head", x, 50, PANE, 40, "Spec: Recurring tasks"],
+            ["pane card", x, 130, PANE, 220, "Spec to review, about 25 minutes.", "692"],
+            ["pane decision", bx, 400, big, 150, "Repeating tasks", "865"],
+            ["pane", x, 590, PANE, 140, "US1 · Make a task repeat", "692"],
+          ],
+        });
+      }
+
+      // A spec at 1000 px: the side column folds to its rail, and opens over the page.
+      for (const open of [false, true]) {
+        const w = 1000;
+        const rail = 52;
+        const room = w - 2 * rail;
+        const x = rail + Math.round((room - PANE) / 2);
+        frames.push({
+          id: open ? "semi-open" : "semi",
+          title: open
+            ? "A spec, 1000 px window: the column opened over the page"
+            : "A spec, 1000 px window: the column as a rail",
+          note: open
+            ? "Hovering the rail, tapping it, or ] opens the column over the page, 400 px, without moving the page. It folds back when the pointer leaves, or on ] or Escape."
+            : "The page beside a 400 px column would keep 470 px, less than a reading pane: the column is a rail of its tabs' icons, and the spec reads at 692 px, about 80 characters a line, instead of 271 px.",
+          w,
+          h: 700,
+          boxes: [
+            ["sidebar", 0, 0, rail, 700],
+            ["column", w - rail, 0, rail, 700],
+            ["rail-icon", w - rail + 15, 30, 22, 22],
+            ["rail-icon", w - rail + 15, 70, 22, 22],
+            ["head", x, 40, PANE, 40, "Spec: Recurring tasks"],
+            ["pane card", x, 120, PANE, 240, "Spec to review, about 25 minutes.", "692"],
+            ["pane", x, 400, PANE, 260, "US1 · Make a task repeat", "692"],
+            ...(open ? [["column over", w - COLUMN, 0, COLUMN, 700, "Contents · Session"]] : []),
+          ],
+        });
+      }
+
+      const root = document.getElementById("frames");
+      for (const frame of frames) {
+        const heading = document.createElement("h2");
+        heading.id = frame.id;
+        heading.textContent = frame.title;
+        const note = document.createElement("p");
+        note.className = "note";
+        note.textContent = frame.note;
+        const holder = document.createElement("div");
+        holder.className = "holder";
+        holder.style.width = `${frame.w / 2}px`;
+        holder.style.height = `${frame.h / 2}px`;
+        const win = document.createElement("div");
+        win.className = "window";
+        win.style.width = `${frame.w}px`;
+        win.style.height = `${frame.h}px`;
+        for (const [kind, x, y, width, height, title, size] of frame.boxes) {
+          const box = document.createElement("div");
+          box.className = `box ${kind}`;
+          Object.assign(box.style, {
+            left: `${x}px`,
+            top: `${y}px`,
+            width: `${width}px`,
+            height: `${height}px`,
+          });
+          if (kind.startsWith("pane")) {
+            box.innerHTML = `<div class="lines"></div><div class="title"></div>`;
+            box.querySelector(".title").textContent = title;
+            if (size) {
+              const label = document.createElement("div");
+              label.className = "size";
+              label.textContent = `${size} px`;
+              box.append(label);
+            }
+          } else if (title) {
+            box.textContent = title;
+            if (kind.startsWith("column")) {
+              box.style.padding = "20px";
+              box.style.color = "var(--lavender)";
+              box.style.fontWeight = "bold";
+            }
+          }
+          win.append(box);
+        }
+        holder.append(win);
+        root.append(heading, note, holder);
+      }
+    </script>
+  </body>
+</html>
