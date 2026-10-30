@@ -29,8 +29,8 @@ realistic project. See the [spec's architecture](spec.md#architecture).
    as the spec's rule names dates. Task 1, a row of the setup test.
 3. **A project whose default branch is checked out in another worktree**, with `ura status` run in a
    feature's worktree: both read the default branch's files, so both list the same items. Task 1
-   reads through the ledger's `source`; no test of its own, since the ledger's tests own that
-   source.
+   finds the checkout through the ledger's `checkout_of`; no test of its own, since the ledger's
+   tests own that choice (R14).
 4. **The New page opened by "Set up with the agent", then reloaded**: the reload empties the
    session's composer, whose draft is kept in memory only, and the history entry fills it with the
    message again; a composer holding text keeps it. Task 4, reviewed in the sandbox.
@@ -266,7 +266,7 @@ testing decision asks at the `early` stage.
 | SC-006 (one command)                                       | 5    | its run from a clean checkout                                                          |
 | Review focus: a link in a rule                             | 1    | row `link_in_rule`                                                                     |
 | Review focus: dates still placeholders                     | 1    | row `dates_left`                                                                       |
-| Review focus: another worktree                             | 1    | none: the ledger's tests own `source`                                                  |
+| Review focus: another worktree                             | 1    | none: the ledger's tests own `checkout_of`                                             |
 | Review focus: reload of the New page                       | 4    | none: reviewed in the sandbox                                                          |
 | Contract: the workspace record carries `setup`             | 4    | the server's no-specs test, one added assertion                                        |
 
@@ -289,7 +289,7 @@ read.
 
 - Create: `crates/core/src/api/setup.rs`
 - Modify: `crates/core/src/api.rs` (`read_workspace`, the module list and re-exports),
-  `crates/core/src/api/ledger.rs` (`source` and `Texts` visible to `setup.rs`),
+  `crates/core/src/api/ledger.rs` (`checkout_of` and `lossy` visible to `setup.rs`),
   `crates/core/src/view.rs` (`WorkspaceView`)
 - Modify (generated): `packages/binding/index.d.ts`
 - Test: `crates/core/tests/setup.rs`
@@ -338,7 +338,8 @@ status that keeps the pane.
 - [x] **Step 3: Implement the check in `crates/core/src/api/setup.rs`**
 
 `setup_items(git: &Git, has_specs: bool) -> Vec<SetupItem>`, crate-private, reads the default
-branch's constitution and decisions through the ledger's `source`, and builds the five items, the
+branch's constitution, and looks its decisions up, where the ledger's `source` reads them: the
+checkout `checkout_of` finds, else the default branch's tip (R14). It builds the five items, the
 `specs` item only when `has_specs` is false. It returns an empty list when every required item is
 `written`. The module's doc links the skill's
 [setting up a project](/skills/uraeda/references/projects.md#setting-up-a-project), whose list it
@@ -527,8 +528,8 @@ without `specs/`, it is the page's only content, in place of `NoSpecs`. Its butt
 `useAgent()?.available === true`; `message` is `SET_UP_PROJECT`.
 
 The New page, arriving with `insert: "setup"` on the session kind, sets the session's draft to
-`SET_UP_PROJECT` once, replacing what it held, and drops `insert` from the entry as a proposal's
-Start does. Nothing is sent.
+`SET_UP_PROJECT` while the draft is empty, and keeps `insert` in the entry, so a reload, which
+empties the in-memory draft, fills it again. Nothing is sent.
 
 `NoSpecs`, on the Decisions page only, reads "No specs/ folder in <path>. Set the project up from
 Home.", with a link "Open home".

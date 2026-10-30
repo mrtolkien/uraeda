@@ -41,8 +41,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: "Set up with the agent" opens `/new?kind=session` with `insert: "setup"` in the
   history entry, as a proposal's Start passes `line:<id>`.
-- **Rationale**: the entry is how the New page already learns what to insert on arrival, once, and
-  not again on a reload.
+- **Rationale**: the entry is how the New page already learns what to insert on arrival. Unlike a
+  proposal's line, the setup's entry stays: the session's draft lives in memory only, so a reload
+  empties it, and the entry fills an empty composer again.
 - **Where**: task 4, `packages/web/src/NewPage.tsx`
 
 ## R6: The decisions' word limit rises to 11,100
@@ -69,15 +70,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R8: Without `specs/`, the pages the pane leads to read no priorities nor ledger
 
 - **Decision**: in a repository without `specs/`, the shell's Commit button and tab, the New page's
-  entry lists and its proposal insertion, and the Decisions page's ledger are not read; the
-  Decisions page shows its `NoSpecs` warning.
+  entry lists and its proposal insertion, and the inbox, priorities, and decisions are not read;
+  those three pages show the `NoSpecs` warning, through one guard, `WithSpecs`.
 - **Rationale**: the core refuses those reads without `specs/`, and each failure replaced the whole
   page with "Could not reach the Uraeda server.", so `bare`'s Home, and the New page its button
   opens, never showed. The shell already skipped the inbox's count there the same way.
-- **If wrong**: the Inbox and Priorities pages still fail without `specs/`; giving them a warning
-  too is the same small change.
 - **Where**: task 4, `packages/web/src/shell/`, `packages/web/src/NewPage.tsx`,
-  `packages/web/src/decisions/DecisionsPage.tsx`
+  `packages/web/src/layout/Missing.tsx`; the Inbox and Priorities pages from the final review
 
 ## R9: The Setup pane closes, its last items written
 
@@ -129,3 +128,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   in the README's first picture. The usage's reset times follow the clock, so a new run changes
   them.
 - **Where**: task 5, `packages/web/scripts/shots.ts`, `packages/web/scripts/readme-screenshots.ts`
+
+## R14: The setup check looks the decisions up rather than reading them
+
+- **Decision**: the check reads the constitution and looks up whether each setup decision exists, in
+  the checkout the ledger's `checkout_of` finds, else at the default branch's tip. It does not call
+  the ledger's `source`, which reads every decision's text.
+- **Rationale**: the workspace is read again after every watched change; reading some 27 decisions
+  each time, to test three names, costs the watcher. The choice of where to read stays the ledger's,
+  in `checkout_of`; only the tip's lookup is the check's own.
+- **If wrong**: a change to where the ledger reads the default branch must also change the tip's
+  lookup in `read_files`.
+- **Where**: `crates/core/src/api/setup.rs`, from the review of wave 1
