@@ -1,5 +1,6 @@
 // The column's ＋ buttons, next to Priorities and Inbox, and the forms they open, drawn beside the
-// page, not in the column: its Note opens the inbox's form too, as the phone's sessions page does.
+// page, not in the column: its Note opens the inbox's form too, as the phone's sessions page does,
+// and so does the phone's bottom bar of the inbox and the priorities (`AddBar`).
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Spinner } from "@astryxdesign/core/Spinner";
@@ -10,7 +11,10 @@ import { AddNote, type NoteAdded } from "./AddNote.tsx";
 import { undoAsFile, usePickedImages } from "./NoteImage.tsx";
 import { readPriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { Overlay } from "./layout/Overlay.tsx";
+import { TopBarSlot } from "./layout/TopBarSlot.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { type Added, AddForm, titleOf } from "./QuickAdd.tsx";
 import { useRoute } from "./routes.tsx";
@@ -68,6 +72,29 @@ export function AddProposalButton({ text }: { text?: string }) {
 /** ＋ next to Inbox; "＋ Note", with `text`. */
 export function AddNoteButton({ text }: { text?: string }) {
   return <Plus form="note" label="Add a note to the inbox" {...(text ? { text } : {})} />;
+}
+
+/**
+ * On the phone, a list's bottom bar: Add alone, in the accent, a single button, which opens `form`,
+ * the inbox's or the priorities', as their ＋ does.
+ */
+export function AddBar({ form }: { form: "note" | "proposal" }) {
+  const open = useOpenAddForm();
+  if (!isNarrow(useWidthClass())) {
+    return null;
+  }
+  return (
+    <TopBarSlot>
+      <NavTiles label={form === "note" ? "The inbox's actions" : "The priorities' actions"}>
+        <NavTile
+          icon="uraeda:plus"
+          isTinted
+          label={form === "note" ? "Add a note to the inbox" : "Add a proposal"}
+          onPress={() => open(form)}
+        />
+      </NavTiles>
+    </TopBarSlot>
+  );
 }
 
 /**
