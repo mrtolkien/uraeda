@@ -42,7 +42,10 @@ whatever font is picked. Lines are 1.4 high everywhere: "just do 1.4 everywhere"
   measure and the pane's own padding and border, so its text fills it and never stops short of the
   border: a pane's text and its border end together. A table inside it scrolls inside it; a live
   window, a mockup or a story, grows past it into the empty room beside it, up to its own size. The
-  proposal editor's panes hold monospace text and stay 95 of the UI's characters (`isWriting`).
+  proposal editor's panes hold monospace text, as wide as the formatter's 100 columns, whose lines
+  do not wrap again on a wide screen, so a formatted file reads as it is ("line jumps a bit
+  randomly"); Start sits beside it where the screen has the room, under it elsewhere, and the phone
+  wraps (`isWriting`).
 - **A single pane is centred** on a wide screen, at its maximum width; two panes side by side share
   the page's width, each up to its maximum. "A _single_ pane should not be too big, but for two
   panes they should be able to use the available space." "The single-panes should be CENTERED."
