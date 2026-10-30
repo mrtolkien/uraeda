@@ -10,7 +10,7 @@ const LIMIT: usize = 500;
 /// A listed file may only shrink, and leaves the list once it is at or under the limit.
 const LARGE: &[(&str, usize)] = &[
     ("crates/core/src/files/document.rs", 686),
-    ("crates/core/src/workspace.rs", 604),
+    ("crates/core/src/workspace.rs", 532),
 ];
 
 /// A file's length without its tests: its lines before the `#[cfg(test)]` line of its first test
