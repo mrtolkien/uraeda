@@ -216,7 +216,7 @@ fn finished_step(kind: Kind, pull_request: PullRequest) -> Step {
         PullRequest::NoPullRequest | PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, changes),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
-        PullRequest::Unpushed => Step::agent(StepName::Push, "implementation"),
+        PullRequest::Unpushed => Step::agent(StepName::Push, changes),
         PullRequest::Unknown => Step::agent(StepName::PullRequestUnknown, "finish"),
     };
     Step {
@@ -332,7 +332,7 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
         PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, reference),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
-        PullRequest::Unpushed => Step::agent(StepName::Push, "implementation"),
+        PullRequest::Unpushed => Step::agent(StepName::Push, reference),
         PullRequest::Unknown => Step::agent(StepName::PullRequestUnknown, reference),
     };
     Step {

@@ -850,6 +850,40 @@ fn finishing_rows() {
     }
 }
 
+/// Review: Push follows its item's reference, as its changes requested do: a change's agent pushes
+/// as `change` says, a feature's as `implementation` does.
+#[test]
+fn push_follows_its_items_reference() {
+    let rows = [
+        (
+            "feature",
+            feature(Kind::Feature, &finished()),
+            "implementation",
+        ),
+        (
+            "feature record",
+            finished_record(Kind::Feature),
+            "implementation",
+        ),
+        (
+            "change",
+            feature(Kind::Change, &[("proposal.md", proposal())]),
+            "change",
+        ),
+        ("change record", finished_record(Kind::Change), "change"),
+    ];
+    for (name, mut feature, reference) in rows {
+        feature.with_pull_request(PullRequest::Unpushed);
+
+        assert_eq!(feature.step.name, StepName::Push, "{name}");
+        assert_eq!(
+            feature.step.reference,
+            Some(format!("skills/uraeda/references/{reference}.md")),
+            "{name}"
+        );
+    }
+}
+
 /// US4.3
 #[test]
 fn a_new_round_after_a_revert_waits_on_the_human() {
