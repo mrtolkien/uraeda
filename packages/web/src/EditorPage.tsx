@@ -163,6 +163,28 @@ function useEditorKeys(
 }
 
 /**
+ * The research effort shown, and what sets it: the one picked shows at once, and the file's
+ * follows, going back to the file's once the file says the same, or the write was refused, as the
+ * page draws. A note file has none: it is not started, it moves to the proposals first.
+ */
+function useResearchEffort(
+  file: File | undefined,
+  editor: ReturnType<typeof useProposalEditor>,
+): [string | undefined, (to: string) => void] {
+  const [chosen, setChosen] = useState<string>();
+  const failed = editor.conflict !== undefined || editor.actions.message?.ok === false;
+  if (chosen !== undefined && (file?.discovery === chosen || failed)) {
+    setChosen(undefined);
+  }
+  const level = file?.kind === "note-file" ? undefined : (chosen ?? file?.discovery ?? undefined);
+  const setLevel = (to: string) => {
+    setChosen(to);
+    void editor.actions.setDiscovery(to);
+  };
+  return [level, setLevel];
+}
+
+/**
  * A proposal file, a started proposal, or a note file: edited as text, drawn by its preview, with
  * the template's guidance for each empty section; saved with Save or Ctrl+Enter over the version it
  * was read at, its unsaved text kept until then, committed, and, for a proposal file, started as a
@@ -200,21 +222,7 @@ export function EditorPage({ path }: { path: string }) {
     editor.setDrawn(true);
   };
   const focusSlug = () => focusSoon(() => slugBox.current?.querySelector("input"));
-  // The effort picked shows at once, and the file's follows: it goes back to the file's once the
-  // file says the same, or the write was refused.
-  const [chosen, setChosen] = useState<string>();
-  const failed = editor.conflict !== undefined || editor.actions.message?.ok === false;
-  useEffect(() => {
-    if (chosen !== undefined && (file?.discovery === chosen || failed)) {
-      setChosen(undefined);
-    }
-  }, [chosen, file?.discovery, failed]);
-  // A note file has no research effort: it is not started, it moves to the proposals first.
-  const level = file?.kind === "note-file" ? undefined : (chosen ?? file?.discovery ?? undefined);
-  const setLevel = (to: string) => {
-    setChosen(to);
-    void editor.actions.setDiscovery(to);
-  };
+  const [level, setLevel] = useResearchEffort(file, editor);
   // Starts it as the kind picked: the branch and worktree, then its session, saved text first.
   const startNow = () => void editor.actions.start(true, kind);
   useEditorKeys(file, { edit, editor, focusSlug, level, preview, setKind, setLevel, startNow });
