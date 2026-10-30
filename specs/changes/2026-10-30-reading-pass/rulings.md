@@ -14,3 +14,13 @@ decisions. None binds future work: those are decisions.
 - **Alternatives considered**: a 2 px page inset, the panes inside it: the page's own text then sat
   2 px from the edge.
 - **Where**: `packages/web/src/layout/Pane.tsx`, `snugOnPhone`
+
+## R2: The replaced behaviour sits in a pane titled Behaviours
+
+- **Decision**: the spec page's Replaced behaviour draws its list in one pane, titled "Behaviours",
+  under the section's heading, as How it is built draws Architecture.
+- **Rationale**: its list was the only part of the spec drawn bare, from the page's left edge rather
+  than its panes', at a reading pane's measure, so it read as stray text between centred panes.
+- **Alternatives considered**: a pane for each behaviour, its claim as the title: it parses the
+  item's bold lead, which the spec page otherwise draws as written.
+- **Where**: `packages/web/src/spec/SpecPage.tsx`
