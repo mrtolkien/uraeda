@@ -1,10 +1,10 @@
 # Inbox
 
-- Review ura check to be less annoying, it fails all the time for no good reason. Or at least remove
-  it from vp run ready
 - Formatted markdown files look like shit in the multi line editor since there are line jumps a bit
-  randomly...
-- `e` for expand, not p...
+  randomly -> we need to remove the single line jumps that are there just for formatting from the
+  multiline inputs in raw markdown, OR use a monospace font AND give the multi-line text edit enough
+  width to show all lines (no wrapping)
+- `e` for expand, not p, in priorities/inbox
 - [amend-latest]
   [Single-commands in sessions should also be ellipsed](notes/single-commands-in-sessions-should-also-be/note.md)
 - Adding a note was SUPER slow, not sure why. Like 1+ minute slow.
@@ -26,9 +26,11 @@
 
 ## Bugfix
 
-- [agent] [help-keybindings] A proposal started from a priority links `specs/PRIORITIES.md` from its
-  own folder, a link `ura check` reports broken, so `vp run ready` fails on every such branch
-  (`NewEntries.tsx`'s `insertion`)
+- Review ura check to be less annoying, it fails all the time for no good reason. Or at least remove
+  it from vp run ready
+  - [agent] [help-keybindings] A proposal started from a priority links `specs/PRIORITIES.md` from
+    its own folder, a link `ura check` reports broken, so `vp run ready` fails on every such branch
+    (`NewEntries.tsx`'s `insertion`)
 
 ## To test
 
