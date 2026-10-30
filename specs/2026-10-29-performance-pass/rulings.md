@@ -713,6 +713,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   branch until the refusal puts the files back.
 - **Where**: `crates/core/src/api/expected.rs`, `crates/binding/src/expected.rs`, review of the
   core.
+
 ## R57: The session of a starting feature draws from the queue's write and the plan the tab made
 
 - **Decision**: the session page of a folder draws the start's steps, in place of the feature's
@@ -822,3 +823,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a lists' call made during a start's hook still waits for the hook, a commit's time.
 - **Where**: `packages/server/src/writes/queue.ts` (`free`), `fate/starts.ts` (`queueStart`), review
   of the server.
+
+## R75: A message a refused commit returns goes back in its feature's session composer, once
+
+- **Decision**: a refused write of a feature, not a start, whose `queued` holds the messages kept
+  for it (R65), puts their text back in the composer of that feature's session, before what it
+  holds, once per refusal in the document, as R59 does for a start. Under it, "Not sent: the commit
+  it waited for was refused. Your message is back.", until the composer sends again or the refusal
+  is dismissed. A message sent to a session shows at the transcript's end only until the send
+  answers (R29): a kept one, which goes into no turn yet, shows nothing until it lands, so a
+  returned one never shows as sent.
+- **Rationale**: the server drops a kept message once a commit before it is refused; its text is
+  costly to lose, and the human sent it from that composer.
+- **If wrong**: a message kept while its commit lands shows nowhere for the hook's seconds.
+- **Where**: `packages/web/src/session/ReturnedMessages.tsx`, `packages/web/src/SessionView.tsx`,
+  review of the web UI.

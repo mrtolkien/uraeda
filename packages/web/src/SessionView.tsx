@@ -21,6 +21,7 @@ import { Crumbs } from "./Crumbs.tsx";
 import { MAIN_CHECKOUT } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import { composerDraft, type Draft, storyCommentsInto, takeBackInto } from "./useDraft.ts";
+import { useReturnedMessages } from "./session/ReturnedMessages.tsx";
 import type { SessionItem } from "./dropItem.ts";
 import { SessionHeader } from "./SessionHeader.tsx";
 import { OffersProvider, SessionEnd } from "./SessionOffers.tsx";
@@ -359,6 +360,7 @@ export function SessionPane({
   // The bottom bar's arrow is the session page's: a boxed session keeps its own.
   usePublishJump(isBoxed ? undefined : jump);
   const stretchHref = useStretchHref(isBoxed ? folder : undefined);
+  const returned = useReturnedMessages(starting === undefined ? folder : undefined, draft, handing);
   if (session === null) {
     return (
       <Framed isBoxed={isBoxed} isMissing>
@@ -395,17 +397,18 @@ export function SessionPane({
         )}
       >
         {jump && <JumpToLatest composer={composer} isBoxed={isBoxed} onJump={jump} />}
+        {returned.element}
         <Composer
           {...(folder === undefined ? {} : { folder })}
           {...composerDraft(draft)}
           {...(id === undefined ? { isNewSession } : { session: id })}
           working={session?.status === "working"}
           {...(session && id !== undefined ? sessionComposer(session, controls, item) : {})}
-          {...handing}
+          {...returned.handing}
           {...(blocked === undefined ? {} : { blocked })}
           onSent={(created) => {
             onSent?.(created);
-            handing.onSent?.(created);
+            returned.handing.onSent(created);
           }}
         />
       </div>

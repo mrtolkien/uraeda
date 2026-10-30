@@ -62,7 +62,7 @@ export function composerDraft({ images, run, setImages, setRun, setText, text }:
 }
 
 /** Puts a taken-back message's text and images back in the draft, before what it holds. */
-export function takeBackInto({ setImages, setText }: Draft) {
+export function takeBackInto({ setImages, setText }: Pick<Draft, "setImages" | "setText">) {
   return (back: string, images: ReadonlyArray<ChatImage>) => {
     if (back.trim()) {
       setText((now) => (now.trim() ? `${back}\n${now}` : back));
