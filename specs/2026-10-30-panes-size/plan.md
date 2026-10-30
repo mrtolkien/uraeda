@@ -208,7 +208,7 @@ The one new test renders the column's width hook in jsdom with `@testing-library
   column.
 - Produces: `PageTitle` and `Crumbs` start at the page's panes' left edge on a reading page.
 
-- [ ] **Step 1: Write the scale**
+- [x] **Step 1: Write the scale**
 
 `theme/scale.ts` exports `scaleTokens(measure: string)`, the tokens derived from the reading
 measure, for the theme's `localTokens` and for `fonts.ts`'s root style, which spreads it in place of
@@ -230,7 +230,7 @@ width (`OtherSettings.tsx`'s `32ch` field) and the row's gap. Drop `--size-page-
 and `--size-round-split`. `pane.stylex.ts`'s `--pane-prose` and `--pane-code` go, their readers
 using the theme's tokens; `fonts.ts` stops setting `--pane-prose`.
 
-- [ ] **Step 2: Give `Page` its kinds**
+- [x] **Step 2: Give `Page` its kinds**
 
 Each kind's column on semi-wide and wide screens, the page's `--page-inset` at each side; on the
 phone, every kind fills the screen as today, with no width of its own:
@@ -251,12 +251,12 @@ phone, every kind fills the screen as today, with no width of its own:
 `marginInline: var(--pane-centre, 0)`, as `Pane` does, so on a reading page they start at the panes'
 left edge. `Shell.tsx`'s refused Undos' banner takes the reading pane's width.
 
-- [ ] **Step 3: Give every caller its kind**
+- [x] **Step 3: Give every caller its kind**
 
 `kind` is required: `vp check` lists every caller left. The kind of each is in step 2; a page not
 named there is `rows`.
 
-- [ ] **Step 4: Rebuild the theme, and run the task's validation**
+- [x] **Step 4: Rebuild the theme, and run the task's validation**
 
 - Run: `vp run --filter uraeda-web theme`, then `vp check` and `vp test` in `packages/web`
 - Expected: PASS;
@@ -264,7 +264,7 @@ named there is `rows`.
   finds nothing outside `theme/built/` comments
 - Deferred to `vp run ready`: the Rust and server suites, untouched.
 
-- [ ] **Step 5: Review the pages in the sandbox**
+- [x] **Step 5: Review the pages in the sandbox**
 
 In `vp run sandbox`, at 1920, 1100, 1000, and 402 px, light and dark: the feature page, the inbox,
 settings, sessions, the home, New, a spec, a plan, a round, and the editor. Rows pages' panes are
@@ -273,7 +273,7 @@ its panes' edge; nothing changes width between 1,000 and 1,050 px; the phone unc
 larger reading size in Settings: a reading pane and the two-panes width grow with it (Review focus
 1).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-30-panes-size/plan.md

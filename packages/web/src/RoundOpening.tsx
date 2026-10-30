@@ -4,6 +4,7 @@ import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { Document, RoundItems } from "uraeda-binding";
 import { Crumbs } from "./Crumbs.tsx";
+import { pageText } from "./layout/Page.tsx";
 import { RoundBlock, RoundContext } from "./RoundParts.tsx";
 import { plain } from "./Spans.tsx";
 
@@ -35,7 +36,7 @@ export function RoundOpening({
     <>
       {crumbs && <Crumbs current={crumbs.name} folder={crumbs.folder} />}
       {title && (
-        <Heading level={1} xstyle={styles.title}>
+        <Heading level={1} xstyle={[pageText, styles.title]}>
           {plain(title.spans)}
         </Heading>
       )}

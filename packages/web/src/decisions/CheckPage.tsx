@@ -17,7 +17,7 @@ export function CheckPage() {
   useRestoreScroll(true);
   if (!file || file.missing) {
     return (
-      <Page>
+      <Page kind="rows">
         <Banner
           collapsible={false}
           endContent={<Button href={here("/decisions")} label="Open the decisions" />}

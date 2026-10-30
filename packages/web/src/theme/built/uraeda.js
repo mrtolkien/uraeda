@@ -239,8 +239,12 @@ export const uraedaTheme = {
     "--color-text-sapphire": "light-dark(#04699a, #74c7ec)",
     "--size-reading-measure": "calc(37.85 * var(--text-reading-size))",
     "--size-reading-pane": "calc(var(--size-reading-measure) + 2 * var(--spacing-3) + 2 * var(--border-width))",
-    "--size-page-max": "720px",
+    "--size-big-text": "calc(1.25 * var(--size-reading-pane))",
+    "--size-split-card": "calc(1.5 * var(--size-reading-measure) + var(--spacing-8) + 2 * var(--spacing-6) + 2 * var(--border-width))",
+    "--size-two-panes": "calc(2 * var(--size-reading-pane) + var(--spacing-4))",
+    "--size-code": "108ch",
     "--size-session-max": "95ch",
+    "--size-setting-control": "calc(32ch + var(--spacing-3))",
     "--size-pane-min": "400px",
     "--size-detail": "108ch",
     "--size-detail-height": "60dvh",
@@ -254,7 +258,6 @@ export const uraedaTheme = {
     "--size-composer-input": "154px",
     "--size-composer-input-narrow": "66px",
     "--size-round-accent": "4px",
-    "--size-round-split": "840px",
     "--size-settings-search": "240px",
     "--size-rail": "52px",
     "--size-rail-inset": "calc((var(--size-rail) - var(--size-element-md)) / 2)",
@@ -294,8 +297,12 @@ export const uraedaTheme = {
     "--color-text-sapphire": "uraeda",
     "--size-reading-measure": "uraeda",
     "--size-reading-pane": "uraeda",
-    "--size-page-max": "uraeda",
+    "--size-big-text": "uraeda",
+    "--size-split-card": "uraeda",
+    "--size-two-panes": "uraeda",
+    "--size-code": "uraeda",
     "--size-session-max": "uraeda",
+    "--size-setting-control": "uraeda",
     "--size-pane-min": "uraeda",
     "--size-detail": "uraeda",
     "--size-detail-height": "uraeda",
@@ -309,7 +316,6 @@ export const uraedaTheme = {
     "--size-composer-input": "uraeda",
     "--size-composer-input-narrow": "uraeda",
     "--size-round-accent": "uraeda",
-    "--size-round-split": "uraeda",
     "--size-settings-search": "uraeda",
     "--size-rail": "uraeda",
     "--size-rail-inset": "uraeda",
@@ -713,18 +719,6 @@ export const uraedaTheme = {
               "base": 16,
               "ratio": 1.1736
             }
-          }
-        }
-      },
-      {
-        "when": {
-          "width": {
-            "from": "lg"
-          }
-        },
-        "value": {
-          "localTokens": {
-            "--size-page-max": "1200px"
           }
         }
       },

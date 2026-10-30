@@ -22,7 +22,7 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
   useRestoreScroll(true);
   if (!file || file.missing) {
     return (
-      <Page>
+      <Page kind="rows">
         <VStack gap={3}>
           <Crumbs current={name} folder={folder} />
           <Missing

@@ -13,7 +13,6 @@ import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { CommentItem, DecisionChange } from "uraeda-binding";
 import { Pane, type PaneTone } from "../layout/Pane.tsx";
-import { paneVars } from "../layout/pane.stylex.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { PartSelection } from "../Selection.tsx";
 import { KindBadge } from "./ledger/KindBadge.tsx";
@@ -49,7 +48,7 @@ const styles = stylex.create({
     display: "inline-flex",
     flexWrap: "wrap",
   },
-  wide: { "--pane-max": `calc(1.25 * ${paneVars["--pane-prose"]})` },
+  wide: { "--pane-max": `calc(1.25 * var(--size-reading-pane))` },
 });
 
 export type DecisionCardProps = {

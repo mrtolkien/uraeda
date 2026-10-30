@@ -5,10 +5,12 @@
 // sheet.
 import { Code } from "@astryxdesign/core/Code";
 import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
 import { type ReactNode, useMemo, useState } from "react";
 import type { Block, CommentItem, Document } from "uraeda-binding";
 import type { useFile } from "../data.ts";
 import { type Fold, foldOf } from "../Folds.tsx";
+import { pageText } from "../layout/Page.tsx";
 import { AddingNote, CommentHost, type ReviewField } from "../ReviewCommentForm.tsx";
 import { usePlacedComments } from "../ReviewComments.tsx";
 import { placeOf, reviewEditKey, reviewKey } from "../reviewField.ts";
@@ -145,8 +147,9 @@ export function ReviewHost({
 
 /** What a review says before its file: that it changed under pending comments, and its version. */
 export function ReviewIntro({ file, review }: { file: File; review: Review }) {
+  // From the panes' left edge on a reading page, as its title is.
   return (
-    <>
+    <VStack gap={3} xstyle={pageText}>
       {file.reviewStale && review.comments.length > 0 && (
         <StaleBanner
           count={review.comments.length}
@@ -158,7 +161,7 @@ export function ReviewIntro({ file, review }: { file: File; review: Review }) {
         Tap a block to comment on it. Showing the version committed at <Code>{file.tip}</Code>
         {file.committed && ", which differs from the file on disk"}.
       </Text>
-    </>
+    </VStack>
   );
 }
 

@@ -84,7 +84,7 @@ export function Home() {
   // The pane at the same place with or without `specs/`, so its announcements carry on as the folder
   // appears, and its item leaves the list.
   return (
-    <Page>
+    <Page kind="panes">
       <VStack gap={0}>
         <SetupRoom items={workspace.setup} />
         {!workspace.noSpecs && (

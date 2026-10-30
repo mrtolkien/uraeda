@@ -32,7 +32,7 @@ export function UnknownRepository({ mostRecent, name }: { mostRecent?: string; n
   useRestoreScroll(true);
   return (
     <BareShell current={null}>
-      <Page>
+      <Page kind="rows">
         <VStack gap={3}>
           <PageTitle>No repository named “{name}”</PageTitle>
           <Paragraph>
@@ -79,7 +79,7 @@ export function MissingFolder({ name, path }: { name: string; path: string }) {
   };
   return (
     <BareShell current={name}>
-      <Page>
+      <Page kind="rows">
         <VStack gap={3}>
           <PageTitle>Folder not found</PageTitle>
           <Paragraph>
@@ -104,7 +104,7 @@ export function FirstRun() {
   useRestoreScroll(true);
   return (
     <div {...stylex.props(styles.surface)}>
-      <Page>
+      <Page kind="rows">
         <VStack gap={3}>
           <PageTitle description="Uraeda shows the specs and runs agents in git repositories on this machine.">
             Add your first repository

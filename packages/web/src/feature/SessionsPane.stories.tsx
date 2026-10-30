@@ -15,7 +15,7 @@ function FeatureSessionsPane({ folder }: { folder: string }) {
     return null;
   }
   return (
-    <Page>
+    <Page kind="rows">
       <SessionsPane folder={folder} progress={feature.step.progress} sessions={feature.sessions} />
     </Page>
   );

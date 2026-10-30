@@ -123,7 +123,7 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
   }
 
   return (
-    <Page isFull>
+    <Page kind="window">
       <VStack gap={2}>
         <PageTitle
           around={(heading) => (

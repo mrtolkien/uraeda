@@ -20,7 +20,7 @@ export function storyOf(search: string): StoryTarget | undefined {
 /** A checkout's story, by its folder, `main` for the main checkout, in a window named by its export. */
 export function StoryPage({ folder, story }: { folder: string; story: StoryTarget }) {
   return (
-    <Page>
+    <Page kind="panes">
       <Crumbs current="Story" folder={folder === MAIN_CHECKOUT ? undefined : folder} />
       <StoryEmbed
         folder={folder}
