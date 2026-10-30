@@ -14,6 +14,8 @@
   start" it should be at the session page...
 - [panes-size] Remove the selector on the `+` button, it should open the new page which has more
   context
+- [panes-size]
+  [We need a good way to show tables in our reading panes](notes/we-need-a-good-way-to-show-tables-in-our-reading/note.md)
 
 ## Bugfix
 
