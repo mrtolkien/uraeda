@@ -27,6 +27,7 @@ import {
   createKeyStore,
   type KeyStore,
   type Place,
+  type Placed,
   type StatusHint,
 } from "./store.ts";
 
@@ -213,6 +214,15 @@ export function useHints(): ReadonlyArray<StatusHint> {
         .map(({ keys, label, press }) => ({ keys, label, press })),
     [hints, isLayerShown],
   );
+}
+
+/**
+ * Reads every declared binding with its place, as a key comes or a click asks: what the key map
+ * lists, read once as it opens.
+ */
+export function useListed(): () => ReadonlyArray<Placed> {
+  const store = use(StoreContext)?.store;
+  return () => store?.listed() ?? NONE;
 }
 
 /**

@@ -8,8 +8,9 @@ use crate::git::{Git, GitError};
 use super::place::Place;
 use super::{ActionError, Change, Committed};
 
-/// Commits an action's files in the working tree it wrote in, running the hooks. A hook's refusal
-/// keeps the files written, and returns its whole output.
+/// Commits an action's files in the working tree it wrote in, running the hooks, or amends the
+/// latest commit with them, as [`amend`](super::amend) says. A hook's refusal keeps the files
+/// written, and returns its whole output.
 pub fn commit(place: &Place, change: &Change) -> Result<Committed, ActionError> {
     committed(place, change, Git::commit)
 }
@@ -20,27 +21,48 @@ pub fn commit_only(place: &Place, change: &Change) -> Result<Committed, ActionEr
     committed(place, change, Git::commit_only)
 }
 
+/// Commits `change` with `run`, and returns it with the message committed, an amend's. An amend
+/// that git or a hook refuses is tried again as a plain commit, so the files are committed whenever
+/// a plain commit would be.
 fn committed(
     place: &Place,
     change: &Change,
-    run: impl FnOnce(&Git, &[String], &str, Option<&str>) -> Result<(), GitError>,
+    run: impl Fn(&Git, &[String], &str, Option<&str>, bool) -> Result<(), GitError>,
 ) -> Result<Committed, ActionError> {
     let git = Git::open(&place.root)?;
-    match run(&git, &change.paths, &change.subject, change.body.as_deref()) {
-        Ok(()) => {}
-        Err(GitError::Command {
-            subcommand,
-            message,
-            output,
-        }) if subcommand == "commit" => return Err(ActionError::Hook { message, output }),
-        Err(error) => return Err(error.into()),
-    }
+    let amended = match super::amend::message(place, change) {
+        Some((subject, body)) => match run(&git, &change.paths, &subject, Some(&body), true) {
+            Ok(()) => Some((subject, Some(body))),
+            Err(GitError::Command { subcommand, .. }) if subcommand == "commit" => None,
+            Err(error) => return Err(error.into()),
+        },
+        None => None,
+    };
+    let (subject, body) = match amended {
+        Some(message) => message,
+        None => {
+            let message = (change.subject.clone(), change.body.clone());
+            match run(&git, &change.paths, &message.0, message.1.as_deref(), false) {
+                Ok(()) => message,
+                Err(GitError::Command {
+                    subcommand,
+                    message,
+                    output,
+                }) if subcommand == "commit" => return Err(ActionError::Hook { message, output }),
+                Err(error) => return Err(error.into()),
+            }
+        }
+    };
     let head = Git::open(&place.root)?
         .head()
         .map(|id| id.to_hex_with_len(7).to_string())
         .unwrap_or_default();
     Ok(Committed {
-        change: change.clone(),
+        change: Change {
+            paths: change.paths.clone(),
+            subject,
+            body,
+        },
         commit: head,
     })
 }

@@ -110,6 +110,7 @@ fn commits_in_a_worktree_run_the_main_checkouts_hook() {
             &["specs/2026-10-11-web-ui/proposal.md".to_string()],
             "chore(web-ui): edit the proposal",
             None,
+            false,
         )
         .unwrap();
 
@@ -175,7 +176,7 @@ fn a_refused_commit_keeps_the_hooks_whole_output() {
 
     let error = Git::discover(repo.path())
         .unwrap()
-        .commit(&["README.md".to_string()], "docs: change", None)
+        .commit(&["README.md".to_string()], "docs: change", None, false)
         .unwrap_err();
 
     let GitError::Command {

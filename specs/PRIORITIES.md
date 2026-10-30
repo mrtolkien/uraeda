@@ -6,17 +6,9 @@
 >
 > Features for v1.0.0
 
-- [Amend the latest commit if the commit touches only workflow files (proposals/not](/specs/changes/2026-10-29-amend-latest/proposal.md)
-- [Add ? in status, after leader. It should show all shortcuts of the page and be s](/specs/changes/2026-10-29-help-keybindings/proposal.md)
 - [Decisions needs to be understandable with no context. Often agents just read the decisions, they can't be expected to search for extra info in records.](/specs/2026-10-29-decisions-needs/proposal.md)
-- [Performance pass: the UI feels sluggish](/specs/2026-10-29-performance-pass/proposal.md)
 
-- Amend the latest commit if the commit touches only workflow files (proposals/notes)
-  - This will reduce noise in commits from small changes
-- Add `?` in status, after leader. It should show all shortcuts of the page and be searchable
-  - It'll be an overlay that uses the glassy look, but also darkens the rest of the page for
-    readability (modal-like)
-  - If it's too different from other views or the contrast is bad, tell me
+- [Performance pass: the UI feels sluggish](/specs/2026-10-29-performance-pass/proposal.md)
 
 - [Feature state pass](proposals/feature-state-pass/proposal.md)
 

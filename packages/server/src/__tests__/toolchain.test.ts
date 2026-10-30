@@ -630,6 +630,21 @@ test("ts:test invalidates on native binding changes", () => {
   expect(tracks("ts:test", "Cargo.lock")).toBe(true);
 });
 
+/** The `scripts` of a `package.json`, from the root. */
+function scripts(path: string): Record<string, string> {
+  return JSON.parse(readFileSync(join(ROOT, path), "utf8")).scripts;
+}
+
+test("vp run start builds the binding in release, with the debug build's flags", () => {
+  const binding = scripts("packages/binding/package.json");
+  expect(scripts("package.json").start).toMatch(/^vp run --filter uraeda-binding build:release /);
+  // The release build writes the same committed `index.js` and `index.d.ts` as the debug one.
+  expect(binding["build:release"].split(" ").filter((flag) => flag !== "--release")).toEqual(
+    binding.build.split(" "),
+  );
+  expect(binding["build:release"].split(" ")).toContain("--release");
+});
+
 test("cached checks track the dev shell and ignore generated reports", () => {
   for (const [name, { cache }] of Object.entries(readyTasks())) {
     if (typeof cache !== "object") {

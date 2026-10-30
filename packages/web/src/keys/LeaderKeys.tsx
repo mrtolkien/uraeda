@@ -3,7 +3,8 @@
 // the page or the form of its button, Find opens the key picker over a kind, Continue opens what
 // needs the human, `r` the repository menu, `u t` cycles the theme, and `u f` then a part's key
 // opens the picker of that part's font (`FontPicker`), or `d` restores the default fonts, once
-// confirmed. The entries of the UI group
+// confirmed. `?` and `Space ?` open the key map (`KeyMap`), of the keys that work where the focus was.
+// The entries of the UI group
 // that fold the navigation and the right column are declared by those columns (`u [`, `u ]`), as
 // a key belongs to the owner of its action.
 import { useState } from "react";
@@ -16,6 +17,7 @@ import { type FontRole, restoreDefaultFonts, ROLES } from "../theme/fonts.ts";
 import { FontPicker } from "./FontPicker.tsx";
 import { useContinue } from "./Continue.tsx";
 import { useKeyPicker } from "./KeyPicker.tsx";
+import { useKeyMap } from "./KeyMap.tsx";
 import {
   findBindings,
   goCommitBinding,
@@ -39,6 +41,7 @@ export function LeaderKeys() {
   const [fontRole, setFontRole] = useState<FontRole>();
   const confirm = useConfirm();
   const { binding: continuing, picker: continuePicker } = useContinue();
+  const { bindings: keyMapping, keyMap } = useKeyMap();
   const bindings: Array<Binding> = [
     ...placeBindings("space", navigateHere),
     ...placeBindings("g", navigateHere),
@@ -58,6 +61,7 @@ export function LeaderKeys() {
       label: "Switch repository…",
       run: openRepositoryMenu,
     },
+    ...keyMapping,
     // The same from the go keys, as `g h` goes home.
     {
       icon: "uraeda:layers",
@@ -118,6 +122,7 @@ export function LeaderKeys() {
       <RepositoryMenuHost current={current} />
       {continuePicker}
       <FontPicker onClose={() => setFontRole(undefined)} role={fontRole} />
+      {keyMap}
     </>
   );
 }

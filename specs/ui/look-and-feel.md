@@ -72,14 +72,19 @@ information".
 
 The look is a terminal's, with frosted glass for what floats over the page, as modern Linux desktops
 draw their panels with transparency and blur. The phone's floating bars, a row's actions and a
-page's bottom bar, the phone's sheets, and the leader menu on wide screens, are frosted glass
-(`layout/glass.ts`): square, in a warm amber tint of their own over the page's own colour, blurred,
-so the page under them shows its shapes and colours but none of its words, and the glass's text
-reads over any page ("the leader menu over text is hard to read"), with a bright rim on the edge
-that faces the page. The dark theme's glass lies over two thirds of the page's colour; the light
-theme's over less, with a darker, smoked tint, so it reads as glass over a white page and not as
-more of it ("the light theme pane don't look glassy enough"). A new floating surface uses those
-styles, never a second glass. Not the gradients of early 2010s mobile interfaces: "just a bit
-square… extremely blurred". Glass marks what floats over the page; it is not a background for panes.
-Nothing on glass is a filled block, not even the main action: an action stands out by its icon in
-the accent.
+page's bottom bar, the phone's sheets, and the leader menu and the key map on wide screens, are
+frosted glass (`layout/glass.ts`): square, in a warm amber tint of their own over the page's own
+colour, blurred, so the page under them shows its shapes and colours but none of its words, and the
+glass's text reads over any page ("the leader menu over text is hard to read"), with a bright rim on
+the edge that faces the page. The dark theme's glass lies over two thirds of the page's colour. The
+light theme's lies over 85% of it, with a faint tint: a darker, smoked tint over less of the page
+looked more like glass ("the light theme pane don't look glassy enough"), but its text fell under
+the theme's contrast, and to 2:1 over a dimmed page, so the human chose the lighter glass for every
+surface
+([the key map's round](/specs/done/2026-10-29-help-keybindings.md#q1-how-should-the-key-map-look-in-the-light-theme)).
+A glass that holds the focus on a wide screen, the key map, dims the page under it lightly
+(`--glass-dim`), not as Astryx's dialogs do, which turns the glass grey; the phone's sheets keep
+their dim. A new floating surface uses those styles, never a second glass. Not the gradients of
+early 2010s mobile interfaces: "just a bit square… extremely blurred". Glass marks what floats over
+the page; it is not a background for panes. Nothing on glass is a filled block, not even the main
+action: an action stands out by its icon in the accent.

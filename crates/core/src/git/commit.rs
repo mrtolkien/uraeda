@@ -40,12 +40,14 @@ impl Git {
     }
 
     /// Commits `paths` as they are in the working tree, running the hooks, which may reformat
-    /// them. Refuses when other files are staged, which the commit would carry along.
+    /// them, or amends the latest commit with them when `amend` is set. Refuses when other files
+    /// are staged, which the commit would carry along.
     pub fn commit(
         &self,
         paths: &[String],
         subject: &str,
         body: Option<&str>,
+        amend: bool,
     ) -> Result<(), GitError> {
         let staged = self.staged_files()?;
         let others = others_staged(&staged, paths);
@@ -58,24 +60,28 @@ impl Git {
             add.extend(addable.iter().copied());
             self.run("add", &add)?;
         }
-        self.commit_staged(&[], subject, body)
+        let extra: &[&str] = if amend { &["--amend"] } else { &[] };
+        self.commit_staged(extra, subject, body)
             // A refused commit takes back what it staged, so nothing it held blocks or rides along.
             .inspect_err(|_| drop(self.unstage(&addable)))
     }
 
-    /// Commits `paths` alone, files as they are in the working tree, running the hooks: other
-    /// staged files stay staged, out of the commit. A refused commit takes back what it staged.
+    /// Commits `paths` alone, files as they are in the working tree, running the hooks, or amends
+    /// the latest commit with them when `amend` is set: other staged files stay staged, out of the
+    /// commit. A refused commit takes back what it staged.
     pub fn commit_only(
         &self,
         paths: &[String],
         subject: &str,
         body: Option<&str>,
+        amend: bool,
     ) -> Result<(), GitError> {
         let paths: Vec<&str> = paths.iter().map(String::as_str).collect();
         let mut add = vec!["add", "--"];
         add.extend(&paths);
         self.run("add", &add)?;
-        let mut only = vec!["--only", "--"];
+        let mut only = if amend { vec!["--amend"] } else { Vec::new() };
+        only.extend(["--only", "--"]);
         only.extend(&paths);
         self.commit_staged(&only, subject, body)
             .inspect_err(|_| drop(self.unstage(&paths)))

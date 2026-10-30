@@ -1,6 +1,7 @@
 //! The human actions on workflow files: each checks every condition before writing anything, and
 //! returns the files it changed and the commit to make.
 
+pub mod amend;
 pub mod answer;
 pub mod attach;
 pub mod changes;
