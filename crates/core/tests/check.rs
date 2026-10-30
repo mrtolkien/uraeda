@@ -2591,6 +2591,16 @@ fn the_example_spec_is_at_most_2000_words() {
     assert!(words <= 2_000, "{words} words");
 }
 
+/// The shape warnings of a decision the human approved as it stands, over this test: the UI layout
+/// decision's Why and alternatives, as the panes-size spec changed them. Theirs to trim or keep.
+fn approved_over_its_shape(problem: &Problem) -> bool {
+    problem.file.ends_with("specs/decisions/ui-layout.md")
+        && matches!(
+            problem.rule.as_str(),
+            "decision.why" | "decision.alternatives"
+        )
+}
+
 /// US3 1, SC-001, SC-002, SC-004: the repository's decisions warn nothing on their shape, hold at
 /// most 11,100 words together, their frontmatter aside, and each Why links one record at most. The
 /// limit was 11,000 until the documentation decision, approved with Onboarding + README pass.
@@ -2604,6 +2614,7 @@ fn the_ledger_reads_alone() {
     let shape: Vec<&Problem> = problems
         .iter()
         .filter(|p| p.rule.starts_with("decision.") && p.rule != "decision.unapproved")
+        .filter(|p| !approved_over_its_shape(p))
         .collect();
     assert!(shape.is_empty(), "{shape:#?}");
     let mut words = 0;
