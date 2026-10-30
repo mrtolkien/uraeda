@@ -10,8 +10,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   project's setup fills, follow the same splits, and the example's plan quotes the new rules.
 - **Rationale**: each held two keywords, so `decision.keywords` would warn on the example and on
   every project set up from the templates. The plan copies decision rules word for word, so its
-  quotes change with them.
-- **Where**: task 1, `skills/uraeda/assets/`
+  quotes change with them. The example check's candidate Code quality, in `specs/decisions-check/`,
+  splits the same rule: `ura check` measures candidates like decisions.
+- **Where**: tasks 1 and 2, `skills/uraeda/assets/`
 
 ## R2: This feature's rounds keep their links to the removed decisions
 

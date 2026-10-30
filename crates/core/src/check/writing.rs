@@ -220,7 +220,7 @@ fn measured_text(spans: &[Span]) -> String {
 
 /// A text's sentences, as their words: a sentence ends at a word ending in `.`, `!`, or `?`,
 /// closing quotes and brackets aside.
-fn sentences(text: &str) -> Vec<Vec<&str>> {
+pub(super) fn sentences(text: &str) -> Vec<Vec<&str>> {
     let mut found = Vec::new();
     let mut current = Vec::new();
     for word in text.split_whitespace() {

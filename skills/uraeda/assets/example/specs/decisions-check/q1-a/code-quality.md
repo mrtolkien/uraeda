@@ -19,8 +19,8 @@ only go down.
   `max-depth`.
 - Source files MUST NOT be longer than 400 lines. Tests are exempt. Checked by ESLint's `max-lines`.
 - Code that broke a limit when this decision was approved MUST be marked where it stands, with its
-  reason, and a marker on code that no longer breaks its limit MUST fail the lint. Checked by
-  ESLint.
+  reason. Checked by ESLint, which fails on unmarked code over a limit.
+- A marker on code that no longer breaks its limit MUST fail the lint. Checked by ESLint.
 - A new marker MUST NOT be added unless a human approves it as a constitution exception in the
   plan's complexity tracking. Checked by review.
 
