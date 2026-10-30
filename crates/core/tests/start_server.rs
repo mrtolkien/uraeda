@@ -158,7 +158,7 @@ fn a_failed_commit_that_moved_head_puts_nothing_back() {
 }
 
 /// Review: a start's plan does not refuse what a queued write left uncommitted or staged: the
-/// start checks it in its turn.
+/// start commits its own files alone.
 #[test]
 fn a_start_is_planned_over_uncommitted_and_staged_files() {
     let repo = refusing("");

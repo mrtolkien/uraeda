@@ -243,6 +243,23 @@ fn commit_keeps_what_the_hook_reformats() {
     assert_eq!(repo.porcelain(), "");
 }
 
+/// A commit of its paths alone runs the hooks over a temporary index: what they reformat reaches
+/// the index too, so the tree stays clean.
+#[test]
+fn commit_only_keeps_what_the_hook_reformats() {
+    let repo = TestRepo::new();
+    repo.set_hook("for f in $(git diff --cached --name-only); do echo formatted >> \"$f\"; git add \"$f\"; done");
+    repo.write("a.md", "a\n");
+
+    Git::discover(repo.path())
+        .unwrap()
+        .commit_only(&["a.md".to_string()], "docs: a", None, false)
+        .unwrap();
+
+    assert_eq!(repo.git(&["show", "HEAD:a.md"]), "a\nformatted\n");
+    assert_eq!(repo.porcelain(), "");
+}
+
 #[test]
 fn commit_reports_a_failing_hook() {
     let repo = TestRepo::new();

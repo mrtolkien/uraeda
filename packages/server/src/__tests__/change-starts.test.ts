@@ -31,7 +31,7 @@ async function sentRun(server: Server, session: string) {
 /** US3 2, SC-004 */
 test("change.fromNote starts a change from a committed note, which leaves the inbox in its own commit", async () => {
   const server = await testServer();
-  // An unrelated edit in the main checkout: a typed start leaves it (R10).
+  // An unrelated edit in the main checkout: a start leaves it as it is.
   writeFileSync(join(server.repo, "specs/README.md"), "# Specs, edited\n");
   server.adapter.script([]);
 
