@@ -333,6 +333,8 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
+  // Answers with the priorities, where the note now ends its section: the page the move opens
+  // shows it from the move's own optimistic result, and the inbox follows by its live update.
   "inbox.toProposal": {
     resolve: async ({ ctx, input, select }: Resolver<ToProposalInput>) => {
       await refusable(() =>
@@ -344,9 +346,9 @@ export const inboxMutations = {
           input.prioritiesHash,
         ),
       );
-      return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select);
+      return priorities(ctx, await ctx.binding.readPriorities(ctx.repo), select);
     },
-    type: "Inbox",
+    type: "Priorities",
   },
   "inbox.toProposalFile": {
     resolve: async ({ ctx, input, select }: Resolver<ToProposalInput>) => {

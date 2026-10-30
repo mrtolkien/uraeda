@@ -148,7 +148,7 @@ test("US5 1: places a note in its category and answers the moved inbox", async (
   );
 });
 
-test("US2 1: moves a note to a section of the priorities", async () => {
+test("US2 1: moves a note to a section of the priorities, which the move answers", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
   const inbox = await readInbox(app);
@@ -163,11 +163,15 @@ test("US2 1: moves a note to a section of the priorities", async () => {
       prioritiesHash: priorities.hash,
       section: "next",
     },
-    INBOX,
+    ["id", "changes", "sections"],
   );
 
-  expect(result.data.count).toBe(9);
+  // The answer is the priorities, the note the last line of its section, for the page to open on.
+  expect(result.data.id).toBe("priorities");
   expect(result.data.changes).toBe(1);
+  const next = result.data.sections.find((one: { section: string }) => one.section === "next");
+  expect(next.proposals.at(-1).text).toBe("Draft to proposal on mobile went 404");
+  expect((await readInbox(app)).count).toBe(9);
   expect(read(repo, "specs/PRIORITIES.md")).toContain(
     "- [Git listener process](proposals/git-listener.md)\n- Draft to proposal on mobile went 404\n",
   );
@@ -544,19 +548,20 @@ test("an Undo of each move puts both files back in one call", async () => {
   const added = noteOf(inbox, "Make sure agents are resumable");
   const homed = noteOf(inbox, "We need a home icon");
 
-  const toNext = await mutate(
+  await mutate(
     app,
     "inbox.toProposal",
     { hash: inbox.hash, note: moved.id, prioritiesHash: priorities.hash, section: "next" },
-    INBOX,
+    ["id"],
   );
+  const toNext = await readInbox(app);
   await mutate(
     app,
     "inbox.intoProposal",
     {
       file: "specs/proposals/git-listener.md",
-      hash: toNext.data.hash,
-      note: noteOf(toNext.data, "Make sure agents are resumable").id,
+      hash: toNext.hash,
+      note: noteOf(toNext, "Make sure agents are resumable").id,
     },
     ["id", "path"],
   );

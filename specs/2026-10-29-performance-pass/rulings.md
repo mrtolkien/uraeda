@@ -307,8 +307,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   notes kept, whose notes the core places, `inbox.restoreCategory` and `inbox.restoreImage`, which
   write a file's text back, `session.allow`, `session.stop`, and `session.takeBack`, whose effects
   the runner decides or the transcript's pages hold, not the session's record. A move from the inbox
-  shows the note gone at once; the priorities show it in Now once the move answers, and the page
-  opens there then.
+  under a proposal shows the note gone at once; the priorities show it once the move answers, and
+  the page opens there then. A move to a level of the priorities answers with them instead (R37).
 - **Rationale**: fate's `optimistic` changes only the record the mutation answers, and the inbox's
   moves answer the inbox: the priorities are another record, which no public fate call writes to.
   The Stack decision keeps what the core computes, ids, keys, a note's lines, a hash, out of
@@ -416,3 +416,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the start's checks read that checkout's proposal file and priorities; without one,
   there is no file to plan from, and the start itself would create it next.
 - **Where**: task 11.
+## R37: A note moved to a level answers with the priorities, which open on it at once
+
+- **Decision**: `inbox.toProposal` answers with the `Priorities` record, not the `Inbox`. `p` to
+  Now, Next, or Later passes the priorities the browser holds with a line of the note's text, plain,
+  at the end of the level, under a temporary id and `pending:` key (R28), and opens the priorities
+  at once, before the answer. Once the move answers, its toast shows, and the page selects the line,
+  the last of its level in the answer: `selectOnArrival` names it in the history entry the page
+  opened on, which the list follows while it is still that entry. The inbox follows by its live
+  update and the read of both files for the commit tab. A refusal shows in the page, under the top
+  bar, as the inbox is left.
+- **Rationale**: the spec's US2 key scenario 2 has the priorities open with the note within 100 ms,
+  and fate's `optimistic` changes only the record the mutation answers. The core always writes the
+  moved note at the end of the level the input names, so the line's place is the input's, not
+  ordering logic copied from the core. The note's nested items, its lines, and its key are the
+  core's, so they come with the answer.
+- **Alternatives considered**: a move answering both records, which fate's mutations do not; writing
+  the priorities in fate's store by its internal `write`.
+- **If wrong**: a refused move shows its line in the priorities until the refusal, then takes it
+  back, the page already open there.
+- **Where**: review of the web UI's writes.

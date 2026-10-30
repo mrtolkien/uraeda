@@ -8,11 +8,11 @@ import type { InboxNote } from "uraeda-binding";
 import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { guarded, refusal } from "./errors.ts";
 import { withFreshBase } from "./freshBase.ts";
-import { useUndoToast } from "./layout/useUndoToast.ts";
-import { notePutBack, notesRemoved } from "./optimisticLists.ts";
+import { showPageError, useUndoToast } from "./layout/useUndoToast.ts";
+import { notePutBack, notesRemoved, proposalAdded } from "./optimisticLists.ts";
 import { TITLES } from "./QuickAdd.tsx";
-import { navigate, useRepoPath } from "./routes.tsx";
-import { InboxView, ProposalFileView } from "./views.ts";
+import { currentEntry, navigate, selectOnArrival, useRepoPath } from "./routes.tsx";
+import { InboxView, PrioritiesView, ProposalFileView } from "./views.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
 export type Placed = { category?: string; index: number; note: InboxNote };
@@ -46,16 +46,6 @@ async function undone(fate: Fate, call: Promise<{ error?: unknown }>) {
 }
 
 /**
- * The key of the proposal a move just wrote at the end of a section: the last of the note's text.
- * An Undo tells it by that key from a proposal of the same text the human writes later.
- */
-async function movedKey(fate: Fate, section: string, text: string) {
-  const now = await movedInto(fate);
-  const proposals = now?.sections.find((s) => s.section === section)?.proposals ?? [];
-  return proposals.findLast((proposal) => proposal.text === text)?.key;
-}
-
-/**
  * The priorities just after a note moved into them. The move is written by then: a read that fails
  * only loses the row to select, so it gives nothing rather than a rejection nothing would catch.
  */
@@ -67,8 +57,11 @@ async function movedInto(fate: Fate) {
   }
 }
 
-/** A note's change, run as `useNoteActions` runs it: its refusal shown, a conflict read again. */
-type Run = <R extends { error?: unknown }>(call: () => Promise<R>) => Promise<R>;
+/**
+ * A note's change, run as `useNoteActions` runs it: its refusal shown, a conflict read again. With
+ * `isAway`, for a change that left the inbox before it answered, the refusal shows in the page.
+ */
+type Run = <R extends { error?: unknown }>(call: () => Promise<R>, isAway?: boolean) => Promise<R>;
 
 /** A proposal's first words: a toast is no place for a whole line. */
 function shortened(text: string) {
@@ -95,24 +88,36 @@ function useMovesOut(
   const toast = useUndoToast();
   const here = useRepoPath();
 
+  // The priorities open at once, the note ending its section there as the core writes it, from the
+  // priorities the browser holds, and its row is selected once the move answers with them. The
+  // inbox follows by its live update.
   const toProposal = async (section: string) => {
-    const shown = await shownAs(fate, placed, true);
-    const result = await run(() =>
-      withFreshBase(
-        (mode) => readPrioritiesHash(fate, mode),
-        (prioritiesHash) =>
-          fate.mutations.inbox.toProposal({
-            input: { ...input, prioritiesHash, section },
-            ...shown,
-            view: InboxView,
-          }),
-      ),
+    const now = await readPriorities(fate, "cache-first").catch(() => undefined);
+    const moved = run(
+      () =>
+        withFreshBase(
+          (mode) => readPrioritiesHash(fate, mode),
+          (prioritiesHash) =>
+            fate.mutations.inbox.toProposal({
+              input: { ...input, prioritiesHash, section },
+              ...(now
+                ? { optimistic: proposalAdded(now.sections, section, placed.note.text) }
+                : {}),
+              view: PrioritiesView,
+            }),
+        ),
+      true,
     );
+    navigate(here("/priorities"));
+    const opened = currentEntry().id;
+    const result = await moved;
     if (result.error) {
       return;
     }
     left();
-    const proposalKey = await movedKey(fate, section, placed.note.text);
+    const proposalKey = result.result?.sections
+      .find((s) => s.section === section)
+      ?.proposals.at(-1)?.key;
     toast(`Moved to ${TITLES.get(section)}, not committed`, async () =>
       undone(
         fate,
@@ -123,7 +128,9 @@ function useMovesOut(
         }),
       ),
     );
-    navigate(here("/priorities"), proposalKey === undefined ? {} : { select: proposalKey });
+    if (proposalKey !== undefined) {
+      selectOnArrival(opened, proposalKey);
+    }
   };
 
   const underProposal = async (line: UnderLine) => {
@@ -256,14 +263,18 @@ export function useNoteActions(placed: Placed, hash: string) {
   const left = useLeave();
 
   /** Runs a change: its refusal shows, and a conflict reads both files again. */
-  const run: Run = async (call) => {
+  const run: Run = async (call, isAway = false) => {
     setMessage(undefined);
     // A read before the write, or the request itself, that fails shows as a refusal: the actions
     // run unawaited, from a key or a picker, where nothing would catch a rejection.
     const result = await guarded(call);
     if (result.error) {
       const failed = refusal(result.error);
-      setMessage(failed.message);
+      if (isAway) {
+        showPageError(failed.message);
+      } else {
+        setMessage(failed.message);
+      }
       if (failed.kind === "conflict") {
         rereadChanges(fate);
       }

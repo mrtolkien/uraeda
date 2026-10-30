@@ -162,10 +162,10 @@ const mutations = {
     FateAPI['mutations']['inbox.restoreImage']['output']
   >('Inbox'),
   'inbox.toProposal': mutation<
-    Inbox,
+    Priorities,
     FateAPI['mutations']['inbox.toProposal']['input'],
     FateAPI['mutations']['inbox.toProposal']['output']
-  >('Inbox'),
+  >('Priorities'),
   'inbox.toProposalFile': mutation<
     ProposalFile,
     FateAPI['mutations']['inbox.toProposalFile']['input'],

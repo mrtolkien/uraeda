@@ -902,8 +902,8 @@ git commit -m "feat(performance-pass): settings, names, and efforts show their r
 - [x] **Step 1: Give each call its optimistic result**
 
 As task 9. A row added or put back gets a temporary id and a `pending:` key the server's replace. A
-note moved to Now with `p` leaves the inbox at once; the priorities show it once the move answers,
-as fate's optimistic result changes only the inbox's record (R28).
+note moved to Now with `p` answers with the priorities, which open at once with it in Now, from the
+move's optimistic result (R37).
 
 - [x] **Step 2: Run the task's validation**
 
