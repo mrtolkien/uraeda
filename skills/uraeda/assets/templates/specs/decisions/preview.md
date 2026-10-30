@@ -41,7 +41,8 @@ mockups Storybook when Storybook does not support the stack.]
 
 ## Alternatives considered
 
-- [Optional: HTML mockups in each feature's `mockups/` folder, when declining was a close call]
+- [Optional: HTML mockups in each feature's `mockups/` folder, when an agent could propose them
+  again]
 
 ## Consequences
 

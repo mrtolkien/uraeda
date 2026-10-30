@@ -280,7 +280,8 @@ export const uraedaTheme = defineTheme({
     },
     // Astryx gap: a tool call's name and target are cut with an ellipsis at the row's edge, with no
     // prop to wrap them, and StyleX cannot reach them. The theme, which owns component overrides,
-    // wraps them, so a run's log shows a long path or command whole on the phone. The `:is(*)` key is how the theme appends a descendant selector.
+    // wraps them, so a run's log shows a long path or command whole on the phone. The `:is(*)` key
+    // is how the theme appends a descendant selector.
     // Important, as the shell's panes emit Astryx's atomic `white-space: nowrap` class outside any
     // layer, where it would win over the theme's layer, as `flex-shrink` below.
     "chat-tool-calls": {

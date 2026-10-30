@@ -171,8 +171,9 @@ the human gives the limits of each section, and how a **Why** reads.
   "Checked by review." A check a tool could run but does not yet becomes a line of the plan's test
   map, and a task. See [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
 - **Why**: the reason, so an agent can apply a rule to a case it does not name, and a reader can
-  tell whether the decision still holds. The history and the investigation stay in the record. Once
-  the feature is [finished](finish.md#rewrite-the-links), its one link points to the record.
+  tell whether the decision still holds. The history and the investigation stay in the record. Until
+  the feature is [finished](finish.md#rewrite-the-links), its one link points to the feature's spec,
+  then to its record.
 - **Consequences**: the costs the human accepted, and what a later feature must do.
 - **Applies to**: the folders and the kinds of features it governs, so agents find the decisions
   relevant to what they touch.
@@ -520,7 +521,7 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
 | "The spec should list the components and tests"               | Those are the plan's. The spec keeps the units, the data model, and what users get.                  |
 | "The decision should say how we got here"                     | The decision states its intent and rules. The history stays in the feature's record.                 |
 | "The decision should name the flag, the timeout, the file"    | Those are values the code holds. The rule states the intent, unless the human chose the value.       |
-| "The decision should describe what the code does"             | The code changes to follow the decision. Its names and lists stay in the code, its comments, guides. |
+| "The decision should describe what the code does"             | The code changes to follow it: see [the bar](#what-is-a-decision). Names and lists stay in the code. |
 
 ## Revising
 
