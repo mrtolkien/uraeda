@@ -13,7 +13,8 @@ use crate::view::{PlannedView, PromotedView, StartedView};
 use crate::workspace::Kind;
 
 /// What starting a feature from its proposal file, or a change with `Kind::Change`, would make:
-/// every check of the start made, without the write lock, nothing written. Read from the
+/// every check of the start made but those of uncommitted and staged files, which a queued write
+/// may have left and the start makes in its turn, without the write lock, nothing written. Read from the
 /// default branch's checkout, which is reached, as the start would, only when there is none.
 pub fn plan_start(
     repo: &Path,

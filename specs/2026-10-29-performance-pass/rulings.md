@@ -540,3 +540,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a start refused by a hook leaves a file someone changed meanwhile, and the human
   sorts it out from the refusal's list.
 - **Where**: `crates/core/src/actions/start/restore.rs`, review of task 11.
+
+## R47: A start's plan leaves the uncommitted and staged files to the start
+
+- **Decision**: `plan_start` makes every check of the start, the slug's, its folder's, and the
+  proposal file's, but not those of uncommitted or staged files outside the proposal file and
+  `PRIORITIES.md`: the start makes them in its turn, in the server's queue.
+- **Rationale**: a write queued before the start leaves its files written and not committed until
+  it lands; the plan, answered at once, would refuse a start that succeeds once the queue reaches
+  it.
+- **If wrong**: a start planned over someone's uncommitted work is refused in its turn, after the
+  plan's answer, with the same message.
+- **Where**: `crates/core/src/actions/start/plan.rs`, `crates/core/src/api/start.rs`, review of
+  task 11.

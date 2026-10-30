@@ -116,3 +116,17 @@ fn a_failed_commit_that_moved_head_puts_nothing_back() {
     );
     assert!(!repo.exists(PROPOSAL_FILE));
 }
+
+/// Review: a start's plan does not refuse what a queued write left uncommitted or staged: the
+/// start checks it in its turn.
+#[test]
+fn a_start_is_planned_over_uncommitted_and_staged_files() {
+    let repo = refusing("");
+    repo.write("specs/README.md", "# Specs, edited\n");
+    repo.write("specs/INBOX.md", "# Inbox\n");
+    repo.git(&["add", "--", "specs/INBOX.md"]);
+
+    let planned = api::plan_start(repo.path(), PROPOSAL_FILE, None, Kind::Feature).unwrap();
+
+    assert_eq!(planned.slug, "login-banner");
+}

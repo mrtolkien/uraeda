@@ -192,8 +192,14 @@ impl Plan {
 }
 
 impl Start<'_> {
-    /// Every check, before anything is written.
-    pub(super) fn plan(&self, slug: Option<&str>, today: Date) -> Result<Plan, StartError> {
+    /// Every check, before anything is written: those of the working tree's uncommitted and
+    /// staged files only when `clean` is set.
+    pub(super) fn plan(
+        &self,
+        slug: Option<&str>,
+        today: Date,
+        clean: bool,
+    ) -> Result<Plan, StartError> {
         let origin = match self.source {
             Source::Proposal(proposal) => Origin::Proposal(Proposed::read(self.root, proposal)?),
             Source::Text { typed, images } => Origin::Text(typed, images.len()),
@@ -218,6 +224,7 @@ impl Start<'_> {
         // Which of the proposal file's files are committed, read before any write of ours.
         let tracked = self.tracked(&files);
         match &origin {
+            _ if !clean => {}
             Origin::Proposal(_) => self.check_clean(&files)?,
             // A typed change commits its own folder with the proposal: the main checkout's edits
             // stay.
