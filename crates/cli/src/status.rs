@@ -201,7 +201,7 @@ fn render(workspace: &Workspace) -> String {
         .unwrap_or(0)
         + 2;
     let mut text = String::new();
-    if let Some(ago) = &workspace.fetched_ago {
+    if let Some(ago) = workspace.fetched_ago() {
         text.push_str(&format!("Remote branches fetched {ago}.\n\n"));
     }
     for (index, (title, rows)) in groups.iter().enumerate() {

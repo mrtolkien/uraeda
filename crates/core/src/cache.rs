@@ -8,6 +8,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock, PoisonError};
 
 #[cfg(feature = "napi")]
@@ -66,14 +67,21 @@ impl Read {
 
 type Hook = Arc<dyn Fn() + Send + Sync>;
 
+/// The last generation given to a repository: one counter for the process, so an entry made
+/// again never has a generation a read before it saw.
+static GENERATIONS: AtomicU64 = AtomicU64::new(0);
+
+fn next_generation() -> u64 {
+    GENERATIONS.fetch_add(1, Ordering::Relaxed) + 1
+}
+
 /// A repository's lock and cache.
-#[derive(Default)]
 struct Repository {
     /// Whether a write holds the repository's lock.
     writing: bool,
     /// The watches running: the cache is kept while there is one.
     watches: usize,
-    /// Moved by every change.
+    /// Moved by every change, to a generation no repository had.
     generation: u64,
     /// The reads kept, by the working tree read from, with the generation they were read at.
     kept: HashMap<PathBuf, (u64, Arc<Read>)>,
@@ -82,9 +90,22 @@ struct Repository {
     before_storing: Option<Hook>,
 }
 
+impl Default for Repository {
+    fn default() -> Repository {
+        Repository {
+            writing: false,
+            watches: 0,
+            generation: next_generation(),
+            kept: HashMap::new(),
+            stats: CacheStats::default(),
+            before_storing: None,
+        }
+    }
+}
+
 impl Repository {
     fn change(&mut self) {
-        self.generation += 1;
+        self.generation = next_generation();
         self.kept.clear();
     }
 
@@ -183,8 +204,9 @@ pub(crate) fn read(git: &Git) -> Result<Arc<Read>, WorkspaceError> {
 /// The reads of the repository holding `repo` since its watch started; none without a watch.
 pub fn cache_stats(repo: &Path) -> CacheStats {
     let canonical = std::fs::canonicalize(repo).unwrap_or_else(|_| repo.to_path_buf());
-    repositories(|repositories| repositories.get(&canonical).map(|r| r.stats))
-        .or_else(|| repositories(|repositories| repositories.get(&key(repo)).map(|r| r.stats)))
+    let stats = |key: &Path| repositories(|repositories| repositories.get(key).map(|r| r.stats));
+    stats(&canonical)
+        .or_else(|| stats(&key(repo)))
         .unwrap_or_default()
 }
 
@@ -251,7 +273,16 @@ pub(crate) struct WriteGuard {
 /// and an action reads, edits, and writes a file, which two calls at once would interleave.
 /// Writes to different repositories run at once.
 pub(crate) fn write_lock(repo: &Path) -> WriteGuard {
-    let key = key(repo);
+    lock(key(repo))
+}
+
+/// One write at a time in the folder `dir`, by its own path, as the server's data folder: a folder
+/// inside a repository, like a dotfiles one, locks and drops nothing of that repository's.
+pub(crate) fn folder_lock(dir: &Path) -> WriteGuard {
+    lock(std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf()))
+}
+
+fn lock(key: PathBuf) -> WriteGuard {
     let mut repositories = locked(&REPOSITORIES);
     loop {
         let repository = repositories

@@ -130,7 +130,7 @@ pub fn add(data_dir: &Path, folder: &Path, now: SystemTime) -> Result<Added, Lis
     let path = Git::discover(folder)
         .map_err(|_| ListError::NotARepository(folder.into()))?
         .main_root();
-    let _lock = crate::cache::write_lock(data_dir);
+    let _lock = crate::cache::folder_lock(data_dir);
     let mut entries = load(data_dir)?;
     let opened_at = today::rfc3339(now);
     let existed = match entries.iter_mut().find(|entry| entry.path == path) {
@@ -159,7 +159,7 @@ pub fn add(data_dir: &Path, folder: &Path, now: SystemTime) -> Result<Added, Lis
 
 /// Takes a repository off the list, leaving its folder as it is.
 pub fn remove(data_dir: &Path, name: &str) -> Result<(), ListError> {
-    let _lock = crate::cache::write_lock(data_dir);
+    let _lock = crate::cache::folder_lock(data_dir);
     let mut entries = load(data_dir)?;
     let before = entries.len();
     entries.retain(|entry| entry.name != name);
@@ -171,7 +171,7 @@ pub fn remove(data_dir: &Path, name: &str) -> Result<(), ListError> {
 
 /// Records that a repository was opened now.
 pub fn touch(data_dir: &Path, name: &str, now: SystemTime) -> Result<Repository, ListError> {
-    let _lock = crate::cache::write_lock(data_dir);
+    let _lock = crate::cache::folder_lock(data_dir);
     let mut entries = load(data_dir)?;
     let entry = entries
         .iter_mut()
@@ -200,7 +200,7 @@ pub fn set_item(
     {
         return Err(ListError::LabelTooLong);
     }
-    let _lock = crate::cache::write_lock(data_dir);
+    let _lock = crate::cache::folder_lock(data_dir);
     let mut entries = load(data_dir)?;
     let entry = entries
         .iter_mut()

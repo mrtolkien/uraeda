@@ -4,6 +4,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use serde::Serialize;
 
@@ -254,8 +255,9 @@ pub struct Workspace {
     #[serde(skip)]
     pub decisions_check: Option<String>,
     pub problems: Vec<Problem>,
+    /// When `origin` was last fetched: see `fetched_ago`.
     #[serde(skip)]
-    pub fetched_ago: Option<String>,
+    pub fetched: Option<SystemTime>,
 }
 
 /// A record's kind, from its frontmatter: a feature unless it says `change`.
@@ -420,6 +422,12 @@ impl Reading<'_> {
 }
 
 impl Workspace {
+    /// How long ago `origin` was last fetched, as of now: a workspace kept in memory says it
+    /// later than when it was read.
+    pub fn fetched_ago(&self) -> Option<String> {
+        self.fetched.map(today::ago)
+    }
+
     /// Reads the workspace of the repository `git` is open in.
     pub fn read(git: &Git) -> Result<Workspace, WorkspaceError> {
         Workspace::read_only(git, None)
@@ -500,7 +508,7 @@ impl Workspace {
             default_branch,
             current_branch,
             fetched_at: fetched.map(today::rfc3339),
-            fetched_ago: fetched.map(today::ago),
+            fetched,
             priorities: Vec::new(),
             features,
             proposals: default_reader.proposals(priorities_from),

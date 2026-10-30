@@ -156,3 +156,23 @@ fn a_changed_pull_request_shows_its_step_on_the_next_read() {
 
     assert_eq!(step(), "pull-request");
 }
+
+/// Review focus 6: once its last watch stops, a repository's reads read git again, and nothing
+/// kept before answers.
+#[test]
+fn a_watch_stopped_keeps_nothing() {
+    let repo = repo();
+    let (watcher, receiver) = watching(&repo);
+    round_text(&repo);
+    round_text(&repo);
+    assert_eq!(cache_stats(repo.path()).hits, 1);
+    drop(watcher);
+    drop(receiver);
+
+    let text = repo.read(IN_WORKTREE);
+    repo.write(IN_WORKTREE, &text.replace("**Answer:**\n", ANSWERED));
+
+    assert!(round_text(&repo).contains(ANSWERED));
+    round_text(&repo);
+    assert_eq!(cache_stats(repo.path()).hits, 0);
+}
