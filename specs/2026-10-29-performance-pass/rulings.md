@@ -65,3 +65,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: it drives the sandbox with Playwright, as the screenshot scripts there do;
   `benchmarks/` holds the workflow's agent benchmarks, a different thing.
 - **Where**: task 16.
+
+## R8: A new worktree's index is refreshed only once its files are a second old
+
+- **Decision**: after `git worktree add`, the core refreshes the new worktree's index in a thread of
+  its own, once the next whole second has begun, and the start answers without waiting for it.
+- **Rationale**: measured on a clone of Uraeda (2,751 files) with the release binding, medians of 5
+  reads of `readWorkspace`, over three runs: 34 to 36 ms before; 230 to 236 ms right after
+  `git worktree add` of a feature branch; 228 to 236 ms after `git update-index -q --refresh` run
+  right after the add; 46 to 50 ms after the same refresh in a later second; 45 to 49 ms once
+  `git status` had run. Git compares the files' times with the index's in whole seconds, so a file
+  written in the index's second stays racily clean through a refresh in that second, and gix
+  rehashes it on every read. The 12 ms left over the first read is the status every read runs of a
+  checked-out feature, which the read cache (task 3) removes. With the change, a start through the
+  binding took 344 ms, against 290 ms before, and the reads 2 seconds later 54 ms, against 256 to
+  796 ms before.
+- **Alternatives considered**: refreshing right after the add, which the measures show does nothing;
+  waiting for the next second inside the start, up to 1.2 s more for every start.
+- **If wrong**: the refresh takes the index's lock for about 185 ms, a second after the start; a
+  `git add` or `git commit` in the new worktree at that moment fails on `index.lock`, and works when
+  run again.
+- **Where**: task 1.

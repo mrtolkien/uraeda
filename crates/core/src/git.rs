@@ -11,6 +11,7 @@ mod commit;
 mod history;
 mod log;
 pub(crate) mod process;
+mod refresh;
 mod status;
 
 use process::Failure;
@@ -148,14 +149,17 @@ impl Git {
         }
     }
 
-    /// Creates `branch` from `from`, checked out in a new worktree at `path`.
+    /// Creates `branch` from `from`, checked out in a new worktree at `path`, whose index is then
+    /// refreshed in the background.
     pub fn add_worktree_new(&self, path: &Path, branch: &str, from: &str) -> Result<(), GitError> {
         self.run("worktree", &["worktree", "prune"])?;
-        let path = path.to_string_lossy();
+        let shown = path.to_string_lossy();
         self.run(
             "worktree",
-            &["worktree", "add", "--quiet", "-b", branch, &path, from],
-        )
+            &["worktree", "add", "--quiet", "-b", branch, &shown, from],
+        )?;
+        refresh::refresh_later(self.root.join(path));
+        Ok(())
     }
 
     /// Keeps `.worktrees/` out of `git status`, through `.git/info/exclude`, once.

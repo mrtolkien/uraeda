@@ -313,44 +313,51 @@ The tasks of a wave are built at the same time, then merged and reviewed while t
 
 **Files:**
 
+- Create: `crates/core/src/git/refresh.rs` (`refresh_later`)
 - Modify: `crates/core/src/git.rs` (`add_worktree_new`)
-- Modify: `specs/2026-10-29-performance-pass/rulings.md` (the check's result)
+- Modify: `specs/2026-10-29-performance-pass/rulings.md` (the check's result, R8)
 
 **Interfaces:**
 
-- Produces: `Git::add_worktree_new` leaves the new worktree's index refreshed, as `git status` would
-  leave it.
+- Produces: `Git::add_worktree_new` returns once the worktree is checked out, and refreshes its
+  index in a thread of its own a second later, as `git status` would leave it.
 
-- [ ] **Step 1: Measure the slow reads, before the change**
+- [x] **Step 1: Measure the slow reads, before the change**
 
 On a clone of this repository outside it (`git clone . /tmp/uraeda-check`), with a release build of
 the binding, time `readWorkspace` (median of 5) before and right after
-`git worktree add .worktrees/check-1 -b check-1`, then after
-`git -C .worktrees/check-1 update-index -q --refresh`. Keep the script outside the repository.
+`git worktree add .worktrees/check-a 2026-10-30-check-a`, a feature branch whose tip has
+`specs/2026-10-30-check-a/` (a branch without a feature folder is never read from its worktree).
+Then time it after `git -C .worktrees/check-a update-index -q --refresh` run right after the add,
+and after one run in a later second than the add. Keep the script outside the repository.
 
-- Expected: the read after `worktree add` is slower than before by about 10 ms in release, about 3 s
-  in debug, and back to the first time after the refresh.
+- Expected: the read after `worktree add` is slower by about 200 ms in release; a refresh in the
+  add's own second leaves it so, as its files stay racily clean; one in a later second brings it
+  back to the read after `git status` (see
+  [R8](rulings.md#r8-a-new-worktrees-index-is-refreshed-only-once-its-files-are-a-second-old)).
 
-- [ ] **Step 2: If the refresh does not end the slow reads, stop**
+- [x] **Step 2: If the refresh does not end the slow reads, stop**
 
-The spec marks this unverified. If the read after the refresh is still slower by over 5 ms in a
-release build, stop the build here and start a new round of questions with the measures: the stories
-relying on SC-006 need the human's choice.
+The spec marks this unverified. If the read after a later second's refresh is still slower than
+after `git status` by over 5 ms in a release build, stop the build here and start a new round of
+questions with the measures: the stories relying on SC-006 need the human's choice.
 
-- [ ] **Step 3: Implement the refresh**
+- [x] **Step 3: Implement the refresh**
 
-After `git worktree add`, run `git update-index -q --refresh` in the new worktree, through the same
-`run` as the other git writes. A failure of the refresh is ignored: it only costs speed.
+After `git worktree add`, `refresh::refresh_later` starts a thread that waits for the next whole
+second, and 50 ms more, then runs `git update-index -q --refresh` in the new worktree through the
+core's process module. The start does not wait for it, and a failure of the refresh is ignored: it
+only costs speed.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`, then `nix develop -c cargo nextest run -p uraeda-core`
 - Expected: PASS. Deferred to ready: the whole TypeScript suite.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates/core/src/git.rs specs/2026-10-29-performance-pass/rulings.md
+git add crates/core/src/git.rs crates/core/src/git/refresh.rs specs/2026-10-29-performance-pass/
 git commit -m "feat(performance-pass): a new worktree's index is refreshed, so reads stop rehashing it"
 ```
 
