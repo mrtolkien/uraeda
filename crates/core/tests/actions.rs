@@ -1988,10 +1988,9 @@ fn a_proposal_file_starts_over_uncommitted_changes_elsewhere() {
     );
 }
 
-/// A start during a merge on the main checkout, which git commits only whole, is refused before
-/// anything is written.
-#[test]
-fn a_start_during_a_merge_is_refused_before_any_write() {
+/// The proposal file's repository with `README.md` changed on `other` and twice on `main`, then
+/// `operation` run on `main`, which conflicts and stays in progress, its state file in `.git/`.
+fn conflicted(operation: &[&str], state: &str) -> TestRepo {
     let repo = proposal_file_repo();
     repo.write("README.md", "# Main\n");
     repo.commit("docs: main");
@@ -2001,14 +2000,25 @@ fn a_start_during_a_merge_is_refused_before_any_write() {
     repo.switch("main");
     repo.write("README.md", "# Main, again\n");
     repo.commit("docs: main again");
-    // Conflicted: git exits with an error, the merge left in progress.
+    // Conflicted: git exits with an error, the operation left in progress.
     let _ = without_user_git(
         std::process::Command::new("git")
-            .args(["merge", "--quiet", "other"])
+            .args(operation)
             .current_dir(repo.path()),
     )
     .output();
-    let (git, workspace) = opened(&repo);
+    assert!(
+        repo.exists(&format!(".git/{state}")),
+        "{operation:?} in progress"
+    );
+    repo
+}
+
+/// Starts the proposal file in `repo`, which an operation in progress refuses: the refusal, and
+/// that nothing was written and the operation is still in progress, its `state` file kept.
+fn refused_during(repo: &TestRepo, state: &str) -> String {
+    let before = repo.porcelain();
+    let (git, workspace) = opened(repo);
 
     let refused = start::run(
         &git,
@@ -2020,12 +2030,48 @@ fn a_start_during_a_merge_is_refused_before_any_write() {
         false,
     );
 
-    assert_eq!(
-        refused.err().map(|error| error.to_string()).as_deref(),
-        Some("cannot start: a merge is in progress on main: finish or abort it first")
-    );
     assert!(repo.exists(PROPOSAL_FILE));
-    assert_eq!(repo.porcelain(), "UU README.md\n");
+    assert!(repo.exists(&format!(".git/{state}")));
+    assert_eq!(repo.porcelain(), before);
+    refused
+        .err()
+        .map(|error| error.to_string())
+        .unwrap_or_default()
+}
+
+/// A start during a merge on the main checkout, where git refuses a commit of some files alone,
+/// is refused before anything is written.
+#[test]
+fn a_start_during_a_merge_is_refused_before_any_write() {
+    let repo = conflicted(&["merge", "--quiet", "other"], "MERGE_HEAD");
+
+    assert_eq!(
+        refused_during(&repo, "MERGE_HEAD"),
+        "cannot start: a merge is in progress on main: finish or abort it first"
+    );
+}
+
+/// A cherry-pick refuses a commit of some files alone too.
+#[test]
+fn a_start_during_a_cherry_pick_is_refused_before_any_write() {
+    let repo = conflicted(&["cherry-pick", "other"], "CHERRY_PICK_HEAD");
+
+    assert_eq!(
+        refused_during(&repo, "CHERRY_PICK_HEAD"),
+        "cannot start: a cherry-pick is in progress on main: finish or abort it first"
+    );
+}
+
+/// A revert allows a commit of some files alone, which would end it: the start is refused, and the
+/// revert stays in progress.
+#[test]
+fn a_start_during_a_revert_is_refused_and_the_revert_stays() {
+    let repo = conflicted(&["revert", "--no-edit", "HEAD~1"], "REVERT_HEAD");
+
+    assert_eq!(
+        refused_during(&repo, "REVERT_HEAD"),
+        "cannot start: a revert is in progress on main: finish or abort it first"
+    );
 }
 
 /// US1.2: the images are saved in the change's folder and committed with its proposal, on main.
