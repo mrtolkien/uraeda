@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 2
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Proposal start flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 15 minutes.
+> Approved on 2026-10-30.
 >
 > - You approve a New page with one composer for its three cards, whose Feature card starts the
 >   feature and opens its session, and a line's Start that replaces the draft, with an Undo.
