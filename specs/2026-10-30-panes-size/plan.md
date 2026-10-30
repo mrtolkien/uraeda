@@ -375,7 +375,8 @@ git commit -m "feat(panes-size): settings and the priorities' list keep a readin
 - Modify: `packages/web/src/layout/documentColumnWidth.ts`,
   `packages/web/src/layout/SideColumn.tsx`, `packages/web/src/layout/DocumentColumn.tsx` (the rail's
   picked tab), `packages/web/src/session/SessionColumn.tsx` (the column kept beside),
-  `packages/web/src/shell/Rail.tsx` (only if `useRail` needs a parameter for its button)
+  `packages/web/src/layout/useWidthOf.ts` (`useLengthIn`, the page's least room in px), and
+  `packages/web/src/shell/Rail.tsx`'s `useRail`, reused unchanged
 - Test: `packages/web/src/__tests__/document-column.test.ts`
 
 **Interfaces:**
@@ -383,9 +384,10 @@ git commit -m "feat(panes-size): settings and the priorities' list keep a readin
 - Consumes: `--size-reading-pane` (task 1), `useRail(isRail, ref, button)` from `shell/Rail.tsx`.
 - Produces: `useDocumentColumnWidth()` starts at 400 px at every window width; `SideColumn` takes
   `isBeside?: boolean`, which keeps the column beside the page at semi-wide (a session's);
-  `showDocumentColumn()` also opens a railed column over the page.
+  `showDocumentColumn()` also opens a railed column over the page, through `useOpenOnShow(open)` of
+  `documentColumnWidth.ts`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // packages/web/src/__tests__/document-column.test.ts
@@ -407,18 +409,18 @@ test.each([
 row catches: 1920 without a drag, a column that still takes a third of the window; 560, a kept width
 the new start overrides; 900, a kept width no longer clamped.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test src/__tests__/document-column.test.ts` in `packages/web`
 - Expected: FAIL at 1920 px without a drag, `expected 600 to be 400`
 
-- [ ] **Step 3: Start the column at 400 px**
+- [x] **Step 3: Start the column at 400 px**
 
 The documents' column starts at 400 px, the least of its drag, at every window width, then the width
 dragged, within 400 to 720 px. A session's column keeps its own start at semi-wide. Drop what only
 served the third of the window.
 
-- [ ] **Step 4: Fold the column to a rail on a half screen**
+- [x] **Step 4: Fold the column to a rail on a half screen**
 
 On a semi-wide window, unless `isBeside`, the column is a rail when the page beside it would keep
 less than a reading pane: the room of `SideColumn`'s own box, less the column's width, under
@@ -437,16 +439,16 @@ less than a reading pane: the room of `SideColumn`'s own box, less the column's 
 
 A wide window, and a semi-wide one with room for both, keep today's column, folded by `]` only.
 
-- [ ] **Step 5: Keep a session's column beside its page**
+- [x] **Step 5: Keep a session's column beside its page**
 
 `SessionColumn` passes `isBeside` (Review focus 5).
 
-- [ ] **Step 6: Run the task's validation**
+- [x] **Step 6: Run the task's validation**
 
 - Run: `vp check` and `vp test` in `packages/web`
 - Expected: PASS
 
-- [ ] **Step 7: Review in the sandbox**
+- [x] **Step 7: Review in the sandbox**
 
 At 1000 px: a spec, a plan, a round, and the feature page draw a 52 px rail and 692 px panes;
 hovering opens the column over the page at 400 px, the page still; `]` holds it until `]`, Escape,
@@ -454,7 +456,7 @@ or a click outside; `?tab=session` shows Session's icon picked. At 1260 px with 
 and at 1280 px with it open, the column beside the page. A session's page at 1000 px, its column
 beside it. Widen the window while the rail is open. Light and dark, and the phone.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-30-panes-size/plan.md

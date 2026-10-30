@@ -25,12 +25,12 @@ export function useWidthOf(ref: RefObject<HTMLElement | null>): number {
 }
 
 /**
- * The theme's size `token` in px, as it resolves inside `element`: a probe as wide as it, as a
- * token made of others, as `--size-split-card`, is a `calc()` its text alone does not give.
+ * A length of the theme's tokens in px, as it resolves inside `element`, as `var(--size-split-card)`:
+ * a probe as wide as it, as a token made of others is a `calc()` its text alone does not give.
  */
-function widthOfToken(element: HTMLElement, token: string): number {
+function pxOf(element: HTMLElement, length: string): number {
   const probe = document.createElement("div");
-  probe.style.cssText = `position: absolute; visibility: hidden; width: var(${token});`;
+  probe.style.cssText = `position: absolute; visibility: hidden; width: ${length};`;
   element.append(probe);
   const width = probe.getBoundingClientRect().width;
   probe.remove();
@@ -47,8 +47,25 @@ export function useAtLeast(ref: RefObject<HTMLElement | null>, token: `--size-${
   useLayoutEffect(() => {
     const element = ref.current;
     if (element) {
-      setLeast(widthOfToken(element, token) || Number.POSITIVE_INFINITY);
+      setLeast(pxOf(element, `var(${token})`) || Number.POSITIVE_INFINITY);
     }
   }, [ref, token, width]);
   return width >= least;
+}
+
+/**
+ * A length of the theme's tokens in px, `length`, as it resolves inside the element, as a page's
+ * least room, `calc(var(--size-reading-pane) + …)`: read again whenever the element's width
+ * changes, 0 until it is drawn. The element's width too.
+ */
+export function useLengthIn(ref: RefObject<HTMLElement | null>, length: string) {
+  const width = useWidthOf(ref);
+  const [px, setPx] = useState(0);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element) {
+      setPx(pxOf(element, length));
+    }
+  }, [ref, length, width]);
+  return { px, width };
 }
