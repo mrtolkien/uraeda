@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Reading and layout pass
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 2 questions, about 10 minutes.
+> Answered on 2026-10-30.
 >
 > - Verdict: worth building as proposed: four of your five items are built, and the last waits on
 >   where the home is centred.
@@ -103,7 +103,7 @@ side column opens.
   - [pro] nothing changes.
   - [con] the home keeps looking off-centre beside the sidebar.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Should a pane keep its whole border on the phone?
 
@@ -129,7 +129,7 @@ Why it matters: the decision binds every pane on the phone, in later features to
   - [pro] the most room for the text on a phone.
   - [con] a question's example runs into its context again.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
