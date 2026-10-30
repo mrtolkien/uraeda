@@ -85,8 +85,8 @@ Root causes and approaches, by item:
 - **Serving SVG reads the attachments decision's rule as covering attachments**:
   [attachments](/specs/decisions/attachments.md) says "The core MUST refuse image types that can
   carry code, such as SVG". The encoder still refuses one, but the core's image read now returns
-  one, so the rule read literally is contradicted: left for the human to arbitrate on the pull
-  request.
+  one, so the rule read literally was contradicted. The human ruled on the pull request: an SVG
+  committed to the repository may show, and the decision's rule now says so.
 - **The performance pass's own failure was not seen**: its worktree was gone. A worktree without a
   built binding gives exactly "nothing shows", and the performance pass's stories render once the
   binding is built, from a copy of its branch's last commit.

@@ -21,11 +21,13 @@ received it.
   tests.
 - The core MUST turn every attached image into one small WebP, whatever tool received it. Checked by
   the core's tests.
-- The core MUST refuse image types that can carry code, such as SVG. Checked by the core's tests.
+- The core MUST refuse to attach image types that can carry code, such as SVG. An SVG already
+  committed to the repository MAY be read and shown, as the human committed it. Checked by the
+  core's tests.
 - TypeScript code and editor plugins MUST pass an image's bytes to the core, never encode or write
   it themselves. Checked by review.
-- The server MUST serve attached images so that a browser cannot run them as a page. Checked by the
-  server's tests.
+- The server MUST serve attached images, and committed SVGs, so that a browser cannot run them as a
+  page. Checked by the server's tests.
 
 ## Why
 
