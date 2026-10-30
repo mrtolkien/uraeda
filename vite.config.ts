@@ -178,20 +178,20 @@ export default {
             { forbid: [{ message: "style with StyleX's stylex.props", propName: "style" }] },
           ],
           "react/forbid-elements": ["error", { forbid: forbiddenElements }],
-          // The UI coherence decision: prose is drawn by `Prose.tsx`, whatever the page.
+          // The UI components decision: prose is drawn by `Prose.tsx`, whatever the page.
           "no-restricted-imports": [
             "error",
             {
               paths: [
                 {
-                  message: "draw markdown with ProseMarkdown (UI coherence decision)",
+                  message: "draw markdown with ProseMarkdown (UI components decision)",
                   name: "@astryxdesign/core/Markdown",
                 },
               ],
               patterns: [
                 {
                   group: ["@astryxdesign/core/Markdown/*"],
-                  message: "draw markdown with ProseMarkdown (UI coherence decision)",
+                  message: "draw markdown with ProseMarkdown (UI components decision)",
                 },
               ],
             },

@@ -1,4 +1,4 @@
-// A page's title, the one level-1 heading of the page, drawn the same on every page (UI coherence):
+// A page's title, the one level-1 heading of the page, drawn the same on every page (UI components):
 // what sits above it, such as a file's status, the title with its count, what acts on the page
 // beside it, and a line that says what the page is for under it.
 import { Badge } from "@astryxdesign/core/Badge";

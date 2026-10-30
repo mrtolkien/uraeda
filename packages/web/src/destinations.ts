@@ -1,5 +1,5 @@
 // The app's places, each named once, with its icon and path: the navigation column, the phone's
-// tabs, and the leader menu all read them, so a place is drawn the same everywhere (UI coherence)
+// tabs, and the leader menu all read them, so a place is drawn the same everywhere (UI components)
 // and a new one is added here.
 import type { ComponentProps } from "react";
 import type { Icon } from "@astryxdesign/core/Icon";

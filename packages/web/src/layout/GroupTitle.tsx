@@ -1,6 +1,6 @@
 // The title of a group inside a pane or a column, such as a list's "Decisions · 12": smaller than a
 // pane's, its count in secondary text, its actions at its end. Every such title is drawn here, so a
-// group reads the same on every page (UI coherence).
+// group reads the same on every page (UI components).
 import { Heading, type HeadingLevel } from "@astryxdesign/core/Heading";
 import { HStack } from "@astryxdesign/core/HStack";
 import { colorVars, fontWeightVars } from "@astryxdesign/core/theme/tokens.stylex";

@@ -1,5 +1,5 @@
 /**
- * Screenshots of the UI's views for review, as the UI checks decision asks before handing a UI
+ * Screenshots of the UI's views for review, as the Testing decision asks before handing a UI
  * change over: each view at a phone's size (402 × 874, with a touch screen) and a desktop's
  * (1440 × 900), in light and dark, saved as `<view>-<phone|desktop>-<light|dark>.webp` in the
  * feature's `screenshots/` folder, re-encoded by the core as an attached image is.

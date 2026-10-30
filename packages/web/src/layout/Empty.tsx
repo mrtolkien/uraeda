@@ -1,5 +1,5 @@
 // What a list, a pane, or a page shows while it holds nothing: one line in secondary text, the same
-// on every page (UI coherence), such as "No call yet." or "The inbox is empty.".
+// on every page (UI components), such as "No call yet." or "The inbox is empty.".
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";

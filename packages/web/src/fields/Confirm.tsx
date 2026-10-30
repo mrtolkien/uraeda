@@ -175,7 +175,7 @@ function Question({
           </Text>
         )}
       </VStack>
-      {/* Wrapping, so a long label stays whole rather than cut (the UI checks decision). */}
+      {/* Wrapping, so a long label stays whole rather than cut. */}
       <HStack gap={2} justify="end" wrap="wrap">
         <Button
           // The focus opens on the cancel button, in every browser: Firefox would put it on the

@@ -2,11 +2,10 @@
 
 How Uraeda's web UI should read, behave, and be put together. The [decisions](../decisions/) hold
 the binding rules, [UI look](../decisions/ui-look.md), [UI layout](../decisions/ui-layout.md),
-[UI behaviour](../decisions/ui-behaviour.md), [UI coherence](../decisions/ui-coherence.md),
-[UI components](../decisions/ui-components.md), and [Keyboard](../decisions/keyboard.md). These
-guides say what those rules aim at, and how a view meets them, from what the human asked for while
-going over every view by hand. Read them before designing or changing a view, and say in a spec when
-a view departs from them, and why.
+[UI behaviour](../decisions/ui-behaviour.md), [UI components](../decisions/ui-components.md), and
+[Keyboard](../decisions/keyboard.md). These guides say what those rules aim at, and how a view meets
+them, from what the human asked for while going over every view by hand. Read them before designing
+or changing a view, and say in a spec when a view departs from them, and why.
 
 ## In one paragraph
 

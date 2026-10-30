@@ -1,7 +1,7 @@
 // What an action did, next to what it concerns (UI behaviour): an error in red, kept until it is
 // dealt with, a warning in yellow, or a save done in green, each the theme's text colour of its hue,
 // which reads at 4.5:1 (UI look). Every status of the UI is drawn here, so an error reads the same
-// on every page (UI coherence). Astryx's `Text` has no error colour: `color="error"` draws primary.
+// on every page (UI components). Astryx's `Text` has no error colour: `color="error"` draws primary.
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";

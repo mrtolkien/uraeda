@@ -309,26 +309,28 @@ git commit -m "docs(decisions-needs): a decision reads alone, judged from the hu
 
 - Modify: `specs/ui/README.md`, `specs/ui/components.md`, the nine records of `specs/done/` that
   link `ui-checks.md` or `ui-coherence.md`, `specs/changes/2026-10-26-coherence-pass/rulings.md`,
-  `vite.config.ts`, and the code comments of `packages/web/` that name the two decisions
+  `vite.config.ts`, and the code comments and test titles of `packages/web/` that name the two
+  decisions. A comment citing UI checks' old "no text cut", which no decision holds any more, keeps
+  its reason and drops the citation.
 
 **Interfaces:**
 
 - Produces: no link nor comment in the repository naming UI checks or UI coherence as a decision,
   outside `fixtures/`, stories' sample data, the changelog, and this feature's rounds.
 
-- [ ] **Step 1: Point each link and comment to the decision that took the rule**
+- [x] **Step 1: Point each link and comment to the decision that took the rule**
 
 UI checks becomes [Testing](/specs/decisions/testing.md), UI coherence becomes
 [UI components](/specs/decisions/ui-components.md). A list naming both a removed decision and its
 heir keeps the heir once.
 
-- [ ] **Step 2: Run the task's validation**
+- [x] **Step 2: Run the task's validation**
 
 - Run: `ura check specs`, and `vp check`
 - Expected: no problem but the five links of this feature's discovery and questions to the removed
   files. The spec keeps its rounds as written, and the record replaces them at the finish.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add specs/ui specs/done specs/changes vite.config.ts packages/web

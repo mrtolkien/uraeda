@@ -331,7 +331,7 @@ function cardIconOf(name: string) {
 
 // Break: the New group's note, or any picker row, drawn with an icon of its own. A feature's and a
 // session's rows draw their card's icon, a feature's step or a session's agent, as the sidebar does.
-test("a kind has one icon in the New group, the Find group, and the picker's rows (UI coherence)", async () => {
+test("a kind has one icon in the New group, the Find group, and the picker's rows (UI components)", async () => {
   // A repository with a row of every kind: a change, and a session besides the fixture's.
   const repo = fixtureRepo();
   addChange(repo, "2026-10-16-centred-x", { "proposal.md": "# Centre the x\n\nIt sits low.\n" });

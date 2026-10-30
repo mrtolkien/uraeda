@@ -1,5 +1,5 @@
 // The box a comment is written in, under the part it is on, on wide screens: a pane titled
-// "Comment", as a spec's lines and a round's settled points draw it (UI coherence). On the phone,
+// "Comment", as a spec's lines and a round's settled points draw it (UI components). On the phone,
 // the form shows in a sheet instead.
 import type { ReactNode } from "react";
 import { Pane } from "./Pane.tsx";
