@@ -73,8 +73,11 @@ test("d on a note with a note file asks, naming the file, and yes deletes both, 
 
   await click(await screen.findByRole("button", { name: /Undo/ }));
 
-  await waitFor(() => expect(read(repo, PATH)).toBe(INBOX));
-  expect(readFileSync(join(repo, FILE), "utf8")).toBe(NOTE_FILE);
+  // Undo's one write puts back the inbox and the note file, one after the other.
+  await waitFor(() => {
+    expect(read(repo, PATH)).toBe(INBOX);
+    expect(existsSync(join(repo, FILE)) && readFileSync(join(repo, FILE), "utf8")).toBe(NOTE_FILE);
+  });
 });
 
 test("d on a note with a note file, answered no, keeps the note and its note file", async () => {
