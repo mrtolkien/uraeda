@@ -25,7 +25,8 @@ the same place on every page. Pages without one hide those in their body or at t
 
 ## Notes
 
-- How the bar looks and behaves: [the phone](../ui/phone.md) and [surfaces](../ui/surfaces.md).
+- How the bar looks and behaves: [the phone](../../ui/phone.md) and
+  [surfaces](../../ui/surfaces.md).
 - No filled accent block on glass: the bar's main action is an accent icon.
 - If the bar is just one entry, it should show up like a single glassy button on the button right
   and not take up a whole bar.
