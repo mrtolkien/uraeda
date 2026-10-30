@@ -66,6 +66,16 @@ function joinOld(repo: string, key: string) {
   }
 }
 
+/**
+ * The source a start replaces in Now by its link, in its commit: the first line of Now without a
+ * file of its own. A line of another section, or one linking a file, is taken out as a note is.
+ */
+export function nowLine(sources: ReadonlyArray<Source>): Source | undefined {
+  return sources.find(
+    (source) => source.kind === "line" && source.section === "now" && source.linked === undefined,
+  );
+}
+
 /** A source as the draft keeps it, for an entry put in its text as `inserted`. */
 function sourceOf(entry: Entry, inserted: string): Source {
   return {

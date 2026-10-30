@@ -1,7 +1,7 @@
 // What a start from the New page takes out of the files its entries are in: a note leaves
 // `INBOX.md`, a proposal line `PRIORITIES.md`.
 import { useFateClient } from "react-fate";
-import type { Priorities } from "uraeda-server/fate";
+import type { Inbox, Priorities } from "uraeda-server/fate";
 import { readInbox, readPriorities, rereadChanges } from "./data.ts";
 import { withFreshBase } from "./freshBase.ts";
 import { startable } from "./NewEntries.tsx";
@@ -33,8 +33,19 @@ function lineByText(priorities: Pick<Priorities, "sections">, { id, text }: Take
 }
 
 /**
+ * The ID of the note of `inbox` whose text is `text`, the one of `id` when several are: a note's ID
+ * is its place, which a note removed above it since the composer was filled moves.
+ */
+function noteByText(inbox: Pick<Inbox, "categories">, { id, text }: Taken) {
+  const found = inbox.categories
+    .flatMap((category) => category.notes)
+    .filter((note) => plain(note.spans) === text);
+  return (found.find((note) => note.id === id) ?? found[0])?.id;
+}
+
+/**
  * Takes the entries out of their file, as a start from them does: a note leaves `INBOX.md`, a
- * proposal `PRIORITIES.md`, found by its text in the priorities read after the start: none left
+ * proposal `PRIORITIES.md`, each found by its text in the file read after the start: none left
  * with it, it stays. A refused removal leaves the entry where it is: the start already happened. A
  * change's start replaces the first line of Now it was filled from itself, in its commit: that line
  * is not one of `taken`.
@@ -44,9 +55,13 @@ export async function takeOut(fate: Fate, taken: ReadonlyArray<Taken>) {
     try {
       if (entry.kind === "note") {
         await withFreshBase(
-          async (mode) => (await readInbox(fate, mode)).hash,
-          (hash) =>
-            fate.mutations.inbox.remove({ input: { hash, note: entry.id }, view: InboxView }),
+          (mode) => readInbox(fate, mode),
+          async (inbox) => {
+            const note = noteByText(inbox, entry);
+            return note === undefined
+              ? undefined
+              : fate.mutations.inbox.remove({ input: { hash: inbox.hash, note }, view: InboxView });
+          },
         );
       } else {
         await withFreshBase(

@@ -150,14 +150,16 @@ impl TextStart<'_> {
 }
 
 /// What starting a typed text would make, as [`plan_start`] says for a proposal file: its images
-/// are not read, nothing written.
+/// are checked and encoded, as the start does, nothing written.
 pub fn plan_text_start(
     repo: &Path,
     typed: &TextStart<'_>,
     slug: Option<&str>,
 ) -> Result<PlannedView> {
-    let text = typed.core(&[]);
-    // Refused before the default branch's checkout is reached, which may make its worktree.
+    // Refused before the default branch's checkout is reached, which may make its worktree: the
+    // text, and images the start could not read.
+    let encoded = typed.encoded()?;
+    let text = typed.core(&encoded);
     text.check().map_err(refusal)?;
     let (git, workspace) = open(repo)?;
     let default = workspace

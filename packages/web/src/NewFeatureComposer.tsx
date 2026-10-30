@@ -11,7 +11,7 @@ import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
 import { useStartProposal } from "./data.ts";
 import { refusal } from "./errors.ts";
-import type { NewDraft } from "./newDraft.ts";
+import { type NewDraft, nowLine } from "./newDraft.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { StartDialog } from "./StartDialog.tsx";
@@ -40,10 +40,7 @@ function useFeatureStart(draft: NewDraft) {
     discovery: string | undefined,
   ): Promise<string | undefined> => {
     const { sources } = draft;
-    // The start replaces a line of Now only, as a change's does.
-    const line = sources.find(
-      (source) => source.kind === "line" && source.section === "now" && source.linked === undefined,
-    );
+    const line = nowLine(sources);
     const result = await fate.mutations.feature.startText({
       input: {
         ...(discovery === undefined ? {} : { discovery }),
@@ -59,9 +56,15 @@ function useFeatureStart(draft: NewDraft) {
       return result.error ? refusal(result.error).message : "The feature did not start.";
     }
     const others = sources.filter((source) => source !== line);
+    // Once: a source taken out twice would take out the note that moved into its place.
+    let landed = false;
     remember(repo, plan.folder, {
       kind: "feature",
       landed: () => {
+        if (landed) {
+          return;
+        }
+        landed = true;
         draft.sent(text);
         void takeOut(fate, others);
       },

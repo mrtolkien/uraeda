@@ -187,7 +187,7 @@ clock set by `today`; `forgetUnsaved` stands for a reload.
 | Review focus: a reload after an Undo                             | 3    | the replace test, its reload row                                                          |
 | Replaced: the Feature card writes a proposal file                | 4    | `keys-pages.test.tsx` "US3 5: … `i` focuses the composer", unchanged (R6)                 |
 | Replaced: a typed proposal drafted in one call                   | 5    | `proposal.rs` and `cache.rs` draft tests, removed                                         |
-| Replaced: each card keeps its own text                           | 3    | `new-page.test.tsx` "a start that answers late…", rewritten on the shared text            |
+| Replaced: each card keeps its own text                           | 3    | `new-page.test.tsx` "a start that answers late…", unchanged: it reads the shared draft    |
 
 ## Waves
 

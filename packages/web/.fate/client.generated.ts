@@ -246,11 +246,6 @@ const mutations = {
     FateAPI['mutations']['proposals.add']['input'],
     FateAPI['mutations']['proposals.add']['output']
   >('Priorities'),
-  'proposals.draft': mutation<
-    ProposalFile,
-    FateAPI['mutations']['proposals.draft']['input'],
-    FateAPI['mutations']['proposals.draft']['output']
-  >('ProposalFile'),
   'proposals.drop': mutation<
     Priorities,
     FateAPI['mutations']['proposals.drop']['input'],

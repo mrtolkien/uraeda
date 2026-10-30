@@ -10,7 +10,7 @@ import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
 import { useSlugProposal } from "./data.ts";
 import { refusal } from "./errors.ts";
-import type { NewDraft } from "./newDraft.ts";
+import { type NewDraft, nowLine } from "./newDraft.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
 import { StartDialog } from "./StartDialog.tsx";
@@ -60,11 +60,7 @@ function useStart({ sent: clear, sources }: NewDraft) {
     images: ReadonlyArray<DraftImage>,
     slug: string,
   ): Promise<Started> => {
-    // The start replaces a line of Now only. A line of another section, or linking a file of its
-    // own, is no line the start finds: it is taken out as before.
-    const line = sources.find(
-      (source) => source.kind === "line" && source.section === "now" && source.linked === undefined,
-    );
+    const line = nowLine(sources);
     const result = await fate.mutations.change.start({
       input: {
         images: images.flatMap((image) => (image.image ? [image.image] : [])),

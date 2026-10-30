@@ -36,7 +36,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   keeps the text until a start lands. The session page already reads when the start landed
   (`useLanded`), and the human is on it once the start is planned.
 - **If wrong**: a human who leaves the session page before the commit lands finds the text still in
-  the composer. Nothing is lost; a second start of it is refused as its slug is taken.
+  the composer, and the notes and lines it was filled from still in their files, until they open
+  that session page again. Nothing is lost; a second start of it is refused as its slug is taken.
+  The landing runs once: a note taken out twice would take out the one that moved into its place.
 - **Where**: task 4, `useStart.ts` and `session/StartingSession.tsx`.
 
 ## R4: The research effort's levels come with the slug's proposal
@@ -71,3 +73,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: a typed feature has no file, and the New page's composer keeps its text until the
   start lands.
 - **Where**: task 4, `packages/web/src/session/StartingSession.tsx`.
+
+## R8: An inbox note's move to a proposal file stays
+
+- **Decision**: `inbox.toProposalFile`, the binding's `noteToProposalFile`, and the core's
+  `note_to_proposal_file` stay, though the New page, their only caller in the web UI, no longer
+  writes a proposal file.
+- **Rationale**: the core's tests of that move guard stored formats, a note file's images included,
+  and the spec's replaced behaviour does not list them: removing them is the human's to approve.
+- **If wrong**: an unused path stays until a later change drops it with its tests.
+- **Where**: `crates/core/src/api/inbox_edits.rs`, `packages/server/src/fate/inbox-mutations.ts`.
+
+## R9: A feature's record says it is not missing
+
+- **Decision**: the server's feature record sends `missing: false`, where it left the field out.
+- **Rationale**: the browser merges a record into the one it read before, so a session page that
+  read the folder missing before its start landed kept `missing: true`, and never saw the feature
+  land. Found by the test of a start whose commit is held.
+- **Where**: `packages/server/src/fate/sessions.ts` (`featureRecord`).

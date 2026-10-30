@@ -410,6 +410,9 @@ export async function featureRecord(
     ...feature,
     agent: agentTime(turns),
     ...itemLooks(ctx)(feature.folder),
+    // Said, not left out: a client that read the folder missing before its start landed keeps the
+    // fields a record leaves out.
+    missing: false,
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
     session: sessions[0]?.id ?? null,
     status: await featureStatusOf(ctx, feature),

@@ -320,6 +320,9 @@ function proposalStart(
   };
 }
 
+/** Where a typed feature's refused start sends the human: the New page's Feature card. */
+export const TYPED_START_HREF = "/new?kind=feature";
+
 /** What `feature.startText` starts: a typed text, its images, its line of Now, and its effort. */
 type TypedFeature = Queued<{
   discovery?: string;
@@ -330,8 +333,9 @@ type TypedFeature = Queued<{
 }>;
 
 /**
- * A typed feature's start, as `feature.startText` plans and runs it: its images read before it is
- * planned, so an image gone refuses it before anything is queued.
+ * A typed feature's start, as `feature.startText` plans and runs it: its images read, then checked
+ * by the plan, so an image gone or of a type the core cannot read refuses it in the dialog, before
+ * anything is queued.
  */
 async function typedStart(ctx: RepoContext, input: TypedFeature): Promise<Plannable> {
   const images = await changeImages(ctx, input.images);
@@ -342,10 +346,11 @@ async function typedStart(ctx: RepoContext, input: TypedFeature): Promise<Planna
     slug: input.slug,
   };
   return {
-    // No file to open: the session page of a refused start sends the human back to the New page.
-    href: "",
+    // No file to open: the session page of a refused start sends the human back to the New page,
+    // whose composer still holds the text.
+    href: TYPED_START_HREF,
     kind: "feature",
-    plan: () => ctx.binding.planTextStart(ctx.repo, input.text, options),
+    plan: () => ctx.binding.planTextStart(ctx.repo, input.text, images, options),
     run: (planned, onStep) =>
       ctx.binding.startText(ctx.repo, input.text, images, { ...options, day: planned.day }, onStep),
     write: input.write,

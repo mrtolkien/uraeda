@@ -89,18 +89,20 @@ pub struct TextStartOptions {
 }
 
 /// What starting a feature typed as a text, or a change with the kind `"change"`, would make:
-/// every check of the start made, its images not read, nothing written.
+/// every check of the start made, its images' included, nothing written.
 #[napi(ts_return_type = "Promise<PlannedView>")]
 pub fn plan_text_start(
     repo: String,
     text: String,
+    images: Vec<Buffer>,
     options: TextStartOptions,
 ) -> AsyncTask<Job<PlannedView>> {
+    let images: Vec<Vec<u8>> = images.iter().map(|image| image.to_vec()).collect();
     job(move || {
         let kind = api::start_kind(options.kind.as_deref())?;
         let typed = api::TextStart {
             text: &text,
-            images: &[],
+            images: &images,
             line: options.line.as_deref(),
             kind,
             discovery: options.discovery.as_deref(),

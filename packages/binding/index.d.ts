@@ -320,9 +320,9 @@ export declare function planStart(repo: string, proposal: string, slug?: string 
 
 /**
  * What starting a feature typed as a text, or a change with the kind `"change"`, would make:
- * every check of the start made, its images not read, nothing written.
+ * every check of the start made, its images' included, nothing written.
  */
-export declare function planTextStart(repo: string, text: string, options: TextStartOptions): Promise<PlannedView>
+export declare function planTextStart(repo: string, text: string, images: Array<Buffer>, options: TextStartOptions): Promise<PlannedView>
 
 /**
  * The preview of the checkout at `checkout`, from its own active preview decision: `null`

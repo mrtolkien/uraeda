@@ -298,3 +298,26 @@ test("a line filled into the composer is still its source after a reload", async
   );
   expect(read(repo)).not.toContain("- Alpha\n");
 });
+
+/**
+ * A note's ID is its place in the inbox: one removed above it since the composer was filled moves
+ * it, and the start takes out the note it was filled from, found by its text, never the one now in
+ * its place.
+ */
+test("a change started from a note takes it out by its text, once a note above it went", async () => {
+  const repo = fixtureRepo();
+  await filledFrom(repo, ["Icons are blurry on retina screens"]);
+  const inbox = join(repo, "specs/INBOX.md");
+  writeFileSync(
+    inbox,
+    read(repo, "specs/INBOX.md").replace("- Draft to proposal on mobile went 404\n", ""),
+  );
+  git(repo, "commit", "--quiet", "--all", "-m", "chore: a note above it goes");
+
+  await start();
+
+  await waitFor(() =>
+    expect(read(repo, "specs/INBOX.md")).not.toContain("Icons are blurry on retina screens"),
+  );
+  expect(read(repo, "specs/INBOX.md")).toContain("Opening a session with 2,000 messages takes 4 s");
+});
