@@ -365,3 +365,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   on git's language and runs the hooks first.
 - **If wrong**: a deferred commit whose files someone committed reports `HEAD` as its own commit.
 - **Where**: `crates/core/src/actions/deferred.rs`, review fix.
+
+## R35: A streamed commit reads stdout and stderr apart, and names a failure by stderr first
+
+- **Decision**: `run_streaming` reads the process's stdout and stderr from a pipe each, on a thread
+  each, and gives `on_line` each line as it comes, merged in that order. A failure's message is
+  stderr's first line that is not blank, then stdout's, as `run` names it; its output is all the
+  lines, merged. A read error stops the process and fails the command.
+- **Rationale**: one pipe for both kept the order as printed, but lost which stream a line came
+  from, so a failure streamed was named by another line than the same failure within the call. A
+  hook's lines keep their order: git gives a hook's stdout to its stderr.
+- **Alternatives considered**: one merged pipe with the message from its first line, which named a
+  failure by git's stdout when it printed first.
+- **If wrong**: a line git prints to stdout can show before or after a line of stderr printed just
+  before or after it.
+- **Where**: `crates/core/src/git/process.rs`, review fix.
