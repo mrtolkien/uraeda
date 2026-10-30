@@ -19,6 +19,10 @@
 - [performance-pass]
   [The two columns here look out of place (clarifications), put them back one by one.](notes/the-two-columns-here-look-out-of-place/note.md)
 - [The home columns are not centered on a wide screen](notes/the-home-columns-are-not-centered-on-a-wide-screen/note.md)
+- [performance-pass] http://127.0.0.1:4310/r/uraeda/f/2026-10-29-performance-pass/spec.md -> the
+  mockups didn't work
+- [performance-pass] Any comments on a spec should stop approval. Approval means the written spec is
+  good.
 
 ## Bugfix
 
