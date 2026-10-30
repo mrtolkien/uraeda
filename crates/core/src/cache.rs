@@ -212,6 +212,20 @@ pub(crate) fn read(git: &Git) -> Result<Arc<Read>, WorkspaceError> {
     Ok(read)
 }
 
+/// The workspace of the working tree `git` opened that a read since the last change kept, while
+/// its watch runs, without reading git: for a write that holds its repository's lock and has
+/// written nothing yet, whose reads [`read`] never answers from memory.
+pub(crate) fn kept_read(git: &Git) -> Option<Arc<Read>> {
+    let key = git.main_root();
+    repositories(|repositories| {
+        let repository = repositories.get_mut(&key).filter(|r| r.watches > 0)?;
+        let (generation, read) = repository.kept.get(git.root())?;
+        let read = (*generation == repository.generation).then(|| Arc::clone(read))?;
+        repository.stats.hits = repository.stats.hits.saturating_add(1);
+        Some(read)
+    })
+}
+
 /// The value named `name` of the working tree `git` opened, from memory when a read since the last
 /// change kept it, else computed by `read` and kept, as [`read`] keeps a workspace. `name` names
 /// what `read` reads, its arguments included: two reads of one name are the same read.

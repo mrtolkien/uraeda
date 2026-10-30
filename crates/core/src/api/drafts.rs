@@ -25,9 +25,11 @@ pub fn draft_proposal(
     let section = section(section_id)?;
     let _lock = write_lock(repo);
     let (place, workspace) = reach_default_from(repo)?;
-    let read = workspace.join_priorities(edits::read(&place));
+    // Neither the priorities read nor the line inserted count the commit bar's changes: the
+    // file's view counts them once.
+    let read = workspace.join_priorities(edits::read_uncounted(&place));
     let index = first_not_started(&read, section_id);
-    edits::insert(&place, section, index, &[format!("- {title}")], &read.hash)?;
+    edits::insert_uncounted(&place, section, index, &[format!("- {title}")], &read.hash)?;
     let id = format!("{}-{}", section.id(), index + 1);
     let expanded = match expand::create(&place, &id) {
         Ok(expanded) => expanded,
@@ -65,7 +67,7 @@ fn take_back(place: &Place, id: &str, file: Option<&str>) {
             let _ = std::fs::remove_dir(folder);
         }
     }
-    let _ = edits::remove(place, id, &edits::read(place).hash);
+    let _ = edits::remove(place, id, &edits::read_uncounted(place).hash);
 }
 
 /// The index of the first proposal of the section `id` that has not started, or its end.

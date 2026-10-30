@@ -967,3 +967,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   date, read again after any change; keeping it by the tip walked from would remove it.
 - **Where**: `crates/core/src/api/history.rs`, `crates/core/src/history.rs` (`recorded_tip`),
   `crates/core/src/history/figures.rs` (`produced`), `crates/core/tests/cache.rs`.
+
+## R81: A draft reads the workspace once from memory and once after it wrote, and counts once
+
+- **Decision**: `draft_proposal` keeps its one call, its lock, and its rollback, and reads less: its
+  first read of the workspace, before it writes anything, takes the read kept since the last change
+  when there is one (`cache::kept_read`), as a read just before the lock would; neither its read of
+  the priorities nor its line's insert runs `git status` to count the commit bar's changes; and its
+  file's view, `read_proposal_file`, counts them from the workspace it read instead of reading the
+  priorities, and the workspace, again. The priorities' other edits, which read the workspace first
+  the same way (`reach_default_from`), take the kept read too. On the clone of this repository, a
+  release binding, measured with the core directly while a watch ran: 136 to 147 ms before; 80 to 91
+  ms without the counts and the second read; 52 to 58 ms with the kept first read.
+- **Rationale**: the Performance decision's reads from memory; `proposals.draft` took 143 to 148 ms
+  on the server (R71), three full reads of the workspace and three `git status` under the lock.
+- **If wrong**: a change made outside in the milliseconds before the watcher's event reaches the
+  core joins the line as it was, as any read from memory shows it; the file's text and the
+  priorities' hash are read from disk, so no edit is lost.
+- **Where**: `crates/core/src/api/drafts.rs`, `crates/core/src/api/default_branch.rs`,
+  `crates/core/src/api/proposal_files.rs`, `crates/core/src/actions/priorities.rs`,
+  `crates/core/src/cache.rs` (`kept_read`), `crates/core/tests/cache.rs`.

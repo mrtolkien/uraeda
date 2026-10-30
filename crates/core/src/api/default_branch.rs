@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use super::{Result, open, refused, write_lock};
 use crate::actions::place;
+use crate::cache;
 use crate::git::Git;
 use crate::workspace::Workspace;
 
@@ -80,18 +81,28 @@ pub fn on_default_branch(repo: &Path, path: &str, text: &str) -> Result<()> {
 }
 
 pub(super) fn reach_default(repo: &Path) -> Result<place::Place> {
-    Ok(reach_default_from(repo)?.0)
+    let (git, workspace) = open(repo)?;
+    Ok(reach(&git, workspace)?.0)
 }
 
 /// The checkout holding the default branch, as [`reach_default`] reaches it, with the workspace
-/// read on the way.
+/// read on the way, for a write that has written nothing yet: from memory when a read since the
+/// last change kept it, as a read just before the write's lock would have answered.
 pub(super) fn reach_default_from(repo: &Path) -> Result<(place::Place, Arc<Workspace>)> {
-    let (git, workspace) = open(repo)?;
+    let git = Git::discover(repo)?;
+    let workspace = match cache::kept_read(&git) {
+        Some(read) => Arc::clone(&read.workspace),
+        None => open(repo)?.1,
+    };
+    reach(&git, workspace)
+}
+
+fn reach(git: &Git, workspace: Arc<Workspace>) -> Result<(place::Place, Arc<Workspace>)> {
     let default = workspace
         .default_branch
         .as_deref()
         .ok_or_else(|| refused("no default branch: commit on main first"))?;
-    Ok((place::reach(&git, default)?, workspace))
+    Ok((place::reach(git, default)?, workspace))
 }
 
 /// The checkout holding the default branch, where proposal files and the priorities are written:

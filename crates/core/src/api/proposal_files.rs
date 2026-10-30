@@ -3,10 +3,10 @@
 
 use std::path::Path;
 
+use super::proposal_edits::change_count;
 use super::start::linked_path;
 use super::{
-    ApiError, Result, feature_of, on_default, open, plain, reach_default, read_priorities, refused,
-    write_lock,
+    ApiError, Result, feature_of, on_default, open, plain, reach_default, refused, write_lock,
 };
 use crate::actions::{expand, place, priorities as edits, text};
 use crate::files::document::{self, hash};
@@ -36,12 +36,12 @@ pub fn read_proposal_file(repo: &Path, path: &str) -> Result<ProposalFileView> {
         .priorities
         .into_iter()
         .find(|proposal| proposal.file.as_deref() == Some(path));
-    let priorities = read_priorities(repo)?;
     let committed = committed.as_deref() == Some(text.as_str());
     let dir = path.rsplit_once('/').map_or("specs", |(dir, _)| dir);
     Ok(ProposalFileView {
         proposal,
-        priority_changes: priorities.changes,
+        // From the workspace read above: the priorities themselves are not needed.
+        priority_changes: change_count(&git, &workspace),
         ..text_view(path, text, dir, committed, None)
     })
 }
