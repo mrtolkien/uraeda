@@ -3,14 +3,16 @@ import { join } from "node:path";
 import type { Repository, WatchHandle } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { REPOSITORIES_ID } from "./fate/views-repositories.ts";
+import { WRITE_QUEUE_ID } from "./fate/write-queue.ts";
 import { createFate, type FateServer, live as globalLive, type LiveBus } from "./fate.ts";
 import { publish } from "./live.ts";
 import { type PullRequests, startPullRequests } from "./pulls.ts";
 import type { Sessions } from "./runner/sessions.ts";
+import { WriteQueue } from "./writes/queue.ts";
 
 /**
  * A listed repository, as the server serves it: its own fate server and live bus, so its views
- * receive its updates only.
+ * receive its updates only, and its write queue, which lands the commits its writes defer.
  */
 export type Host = {
   fate: FateServer;
@@ -18,6 +20,7 @@ export type Host = {
   missing: boolean;
   name: string;
   path: string;
+  queue: WriteQueue;
 };
 
 /**
@@ -214,10 +217,22 @@ export class Hosts {
   }
 
   #start({ missing, name, path }: Repository): void {
+    const { binding, sessions } = this.#options;
     const { fateServer, live } = createFate();
-    const entry: Entry = { host: { fate: fateServer, live, missing, name, path } };
+    const queue = new WriteQueue(
+      {
+        land: (id, onOutput) => binding.land(path, id, onOutput),
+        takeDeferred: () => binding.takeDeferred(path),
+      },
+      () =>
+        live.update("WriteQueue", WRITE_QUEUE_ID, {
+          eventId: `write-queue:${Date.now()}:${announced++}`,
+        }),
+    );
+    const entry: Entry = { host: { fate: fateServer, live, missing, name, path, queue } };
     if (!missing) {
-      const { binding, sessions } = this.#options;
+      // The core defers this repository's commits for the queue from now on.
+      binding.deferCommits(path, true);
       entry.pulls = startPullRequests(path, binding, (features) =>
         publish(
           {
@@ -248,8 +263,21 @@ export class Hosts {
     this.#entries.set(name, entry);
   }
 
+  /**
+   * Turns off the deferral of a host's commits: those not landed are forgotten, their files left
+   * written, and a write made since commits within its call.
+   */
+  #undefer({ missing, path }: Host): void {
+    if (!missing) {
+      this.#options.binding.deferCommits(path, false);
+    }
+  }
+
   #stop(name: string): void {
     const entry = this.#entries.get(name);
+    if (entry) {
+      this.#undefer(entry.host);
+    }
     entry?.watch?.close();
     entry?.pulls?.stop();
     this.#entries.delete(name);
@@ -263,7 +291,8 @@ export class Hosts {
     this.#closed = true;
     clearTimeout(this.#timer);
     this.#watch?.close();
-    for (const { pulls, watch } of this.#entries.values()) {
+    for (const { host, pulls, watch } of this.#entries.values()) {
+      this.#undefer(host);
       watch?.close();
       pulls?.stop();
     }

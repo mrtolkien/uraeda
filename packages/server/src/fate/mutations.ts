@@ -17,6 +17,14 @@ import { settingsMutations } from "./settings-mutations.ts";
 import { sources } from "./sources.ts";
 import { priorities, proposalFile } from "./masked.ts";
 import { featureDataView } from "./views.ts";
+import {
+  LISTS,
+  listCommit,
+  type Queued,
+  queued,
+  writeQueue,
+  writeQueueDataView,
+} from "./write-queue.ts";
 
 /** A session, masked to the fields the client selected. */
 const session = maskedSession;
@@ -79,8 +87,12 @@ const repositoryMutations = {
     type: "Preview",
   },
   "priorities.commit": {
-    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
-      priorities(ctx, await refusable(() => ctx.binding.commitPriorities(ctx.repo)), select),
+    resolve: async ({ ctx, input, select }: Resolver<Queued<object>>) =>
+      priorities(
+        ctx,
+        await listCommit(ctx, input.write, () => ctx.binding.commitPriorities(ctx.repo)),
+        select,
+      ),
     type: "Priorities",
   },
   "priorities.discard": {
@@ -231,10 +243,16 @@ const repositoryMutations = {
     type: "Priorities",
   },
   "proposals.undoCommitted": {
-    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; lines: Array<string> }>) =>
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<Queued<{ hash: string; lines: Array<string> }>>) =>
       priorities(
         ctx,
-        await refusable(() => ctx.binding.undoCommittedProposal(ctx.repo, input.lines, input.hash)),
+        await listCommit(ctx, input.write, () =>
+          ctx.binding.undoCommittedProposal(ctx.repo, input.lines, input.hash),
+        ),
         select,
       ),
     type: "Priorities",
@@ -368,9 +386,12 @@ const repositoryMutations = {
     type: "Session",
   },
   "text.commit": {
-    resolve: async ({ ctx, input, select }: Resolver<{ path: string }>) => {
+    resolve: async ({ ctx, input, select }: Resolver<Queued<{ path: string }>>) => {
       await writable(ctx, input);
-      await refusable(() => ctx.binding.commitText(ctx.repo, input.path));
+      // A proposal file's commit takes the priorities and the inbox along when they changed.
+      await queued(ctx, [LISTS], input.write, { file: input.path }, () =>
+        ctx.binding.commitText(ctx.repo, input.path),
+      );
       return proposalFile(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
     },
     type: "ProposalFile",
@@ -403,6 +424,13 @@ const repositoryMutations = {
       return proposalFile(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
     },
     type: "ProposalFile",
+  },
+  "writes.dismiss": {
+    resolve: async ({ ctx, input, select }: Resolver<{ id: string }>) => {
+      ctx.hosts.byPath(ctx.repo)?.queue.dismiss(input.id);
+      return sources.masked(writeQueueDataView, ctx, writeQueue(ctx), select);
+    },
+    type: "WriteQueue",
   },
 };
 

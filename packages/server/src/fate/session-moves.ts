@@ -8,6 +8,7 @@ import { featureRecord, readSession, readWorkflowMessage } from "./sessions.ts";
 import { sources } from "./sources.ts";
 import { droppedDataView } from "./views-dropped.ts";
 import { featureDataView, sessionDataView } from "./views.ts";
+import { featureKeys, LISTS, type Queued, queued } from "./write-queue.ts";
 
 /**
  * The core's refusals of a taken name: a record, a branch, or a folder, whose `--slug` hint is the
@@ -155,9 +156,13 @@ async function toChange(
  */
 export const sessionMoves = {
   "feature.drop": {
-    resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
+    resolve: async ({ ctx, input, select }: Resolver<Queued<{ folder: string }>>) => {
       const dropped = await moving(ctx, { folder: input.folder }, async () => {
-        const left = await refusable(() => ctx.binding.dropItem(ctx.repo, input.folder));
+        // A drop takes the proposal's line out of the priorities too.
+        const keys = [...featureKeys(input.folder), LISTS];
+        const left = await queued(ctx, keys, input.write, { folder: input.folder }, () =>
+          ctx.binding.dropItem(ctx.repo, input.folder),
+        );
         await ctx.sessions.archiveFolder(ctx.repo, input.folder);
         return left;
       });

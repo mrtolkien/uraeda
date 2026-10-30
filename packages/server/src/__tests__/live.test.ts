@@ -22,6 +22,7 @@ import {
   testServer,
 } from "./helpers.ts";
 import { commitArrival, connect, statusArrival, subscribe } from "./live-stream.ts";
+import { WriteQueue } from "../writes/queue.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -210,7 +211,8 @@ function published(bus: LiveBus) {
 /** A host of the repository at `path`, with its own bus, outside any list. */
 function hostAt(path: string, name = "repo"): Host {
   const { fateServer, live } = createFate();
-  return { fate: fateServer, live, missing: false, name, path };
+  const queue = new WriteQueue({ land: async () => {}, takeDeferred: () => [] }, () => {});
+  return { fate: fateServer, live, missing: false, name, path, queue };
 }
 
 /** Hosts holding `listed`, as the session publisher reads them. */

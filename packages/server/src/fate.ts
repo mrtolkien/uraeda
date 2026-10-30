@@ -1,5 +1,5 @@
 // The fate server module: fate's Vite plugin reads its exports to type the UI's client.
-import { createFateServer, createLiveEventBus, type Entity } from "@nkzw/fate/server";
+import { createFateServer, createLiveEventBus, type Entity, list } from "@nkzw/fate/server";
 import type { Context as HonoContext } from "hono";
 import type { Context } from "./fate/context.ts";
 import { mutations } from "./fate/mutations.ts";
@@ -33,6 +33,7 @@ import { droppedDataView } from "./fate/views-dropped.ts";
 import { historyDataView } from "./fate/views-history.ts";
 import { ledgerDataView } from "./fate/views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-repositories.ts";
+import { writeQueueDataView } from "./fate/write-queue.ts";
 
 export {
   agentDataView,
@@ -64,6 +65,7 @@ export {
   turnLogDataView,
   workflowMessageDataView,
   workspaceDataView,
+  writeQueueDataView,
 };
 export {
   AGENT_ID,
@@ -77,6 +79,7 @@ export { SETTINGS_ID } from "./fate/settings.ts";
 export { LEDGER_ID } from "./fate/views-ledger.ts";
 export { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
 export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
+export { WRITE_QUEUE_ID } from "./fate/write-queue.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;
@@ -110,6 +113,9 @@ export type Preview = Entity<typeof previewDataView, "Preview">;
 export type StoryHref = Entity<typeof storyHrefDataView, "StoryHref">;
 export type Settings = Entity<typeof settingsDataView, "Settings">;
 export type NeedsYouList = Entity<typeof needsYouListDataView, "NeedsYouList">;
+export type WriteQueue = Entity<typeof writeQueueDataView, "WriteQueue">;
+/** A write of the queue, and a step of a start's. */
+export type { QueuedWrite, StartStep } from "./writes/queue.ts";
 export { NEEDS_YOU_ID } from "./fate/needs-you.ts";
 /** What started a workflow turn, for `session.send`'s `workflow`. */
 export type { Trigger } from "./runner/events.ts";
@@ -126,7 +132,8 @@ export type { ChatImage } from "./runner/images.ts";
  */
 export type FateVariables = { device?: Device; fate: Context };
 
-export const Root = Views;
+/** The roots: the views' and the write queue's, which lives in its own module. */
+export const Root = { ...Views, writeQueues: list(writeQueueDataView) };
 
 /** A live bus: the updates one fate server sends to the views subscribed to it. */
 export type LiveBus = ReturnType<typeof createLiveEventBus>;

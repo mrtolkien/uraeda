@@ -464,3 +464,45 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   TypeScript.
 - **If wrong**: a note added to an empty category shows once the add answers.
 - **Where**: review of the web UI's writes.
+## R41: A committing call waits for the queued commits of its keys, named before it runs
+
+- **Decision**: each committing mutation names keys before its core call: `feature:<folder>` for a
+  feature's file (answers, verdicts, retries), `lists` for the default branch's lists, their rounds,
+  their commit bar, Undo of a committed add, and a proposal file's commit, and both for a drop. A
+  call waits until no commit of the same keys is still queued, then runs in the queue's turn, one
+  call at a time, and takes its deferred commits before the next call runs. A refused commit no
+  longer holds its keys. The removal of a note `change.fromNote` commits goes through the queue too,
+  under `lists`.
+- **Rationale**: a commit's paths are known only once its call ran, and the core counts a file whose
+  commit has not landed as changed: a second write to it would not defer its commit, or would commit
+  the first one's file with its own. The lists amend each other's commits and take each other's
+  files along, so they share one key. Every call that defers must take its commits, or the next
+  call's take would hand them out as its own.
+- **Alternatives considered**: waiting for every queued commit, which serializes writes of different
+  features behind a slow hook; matching paths, which a call knows only after it wrote.
+- **If wrong**: a write to a list waits for the lists' commits queued before it, a hook's time each.
+- **Where**: `packages/server/src/writes/queue.ts`, `packages/server/src/fate/write-queue.ts`,
+  task 12.
+
+## R42: The queue's order is checked over a core the test settles, and its record through the server
+
+- **Decision**: "writes land in order" checks the refusal, the record a second read gets, and the
+  commits' order through the server with a real hook; its rows of landings held at once and of a
+  write waiting for its key's commit run the queue over a core whose landings the test resolves.
+  `writes.dismiss` lives in `fate/mutations.ts`, next to the other repository mutations.
+- **Rationale**: the core's `land` holds the repository's write lock while the hook runs, so a
+  second write through the server waits in the core until the first commit lands: two landings at
+  once, or a write run before its key's commit landed, would be serialized by the core's lock by
+  chance, and the breaks would pass. `fate/write-queue.ts` is imported by the sources the mutation
+  masks its answer with: the mutation there would import them back.
+- **Where**: `packages/server/src/__tests__/write-queue.test.ts`, task 12.
+
+## R43: A commit's answer may still count its changes as waiting
+
+- **Decision**: through the server, a commit answers with what its files hold before the commit
+  lands: the commit bar's answer can still count the changes it commits, until the queue lands them
+  and the watcher sends the lists again. "US2 7: the commit bar commits the inbox's changes" now
+  waits for the queue before it reads the count and the log.
+- **Rationale**: the count is git's, of files not committed yet; the spec has the toast say what is
+  still landing, and the optimistic results of the web UI draw the commit bar's state.
+- **Where**: `packages/server/src/__tests__/inbox.test.ts`, task 12.

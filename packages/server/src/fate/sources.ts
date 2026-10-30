@@ -83,6 +83,7 @@ import {
   repositoriesDataView,
   type RepositoriesRecord,
 } from "./views-repositories.ts";
+import { writeQueueSource } from "./write-queue.ts";
 
 /** The inbox as it is sent: the client's cache keeps a field an answer leaves out. */
 export function sentInbox(inbox: Inbox): InboxRecord {
@@ -474,6 +475,7 @@ export const sources = createSources<Context>([
         ? [{ hints: await binding.proposalHints(), id: PROPOSAL_HINTS_ID }]
         : [],
   }),
+  writeQueueSource,
   // A drop's result, read once, from its mutation: nothing to read again.
   fileSource(droppedDataView, { byIds: async () => [] }),
   fileSource(slugProposalDataView, {

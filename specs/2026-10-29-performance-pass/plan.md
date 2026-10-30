@@ -998,10 +998,14 @@ git commit -m "feat(performance-pass): a start is planned at once, runs its step
 **Files:**
 
 - Create: `packages/server/src/writes/queue.ts`, `packages/server/src/fate/write-queue.ts` (its
-  view, `writes.dismiss`)
+  view, its source, `queued`)
 - Modify: `packages/server/src/repositories.ts` (each host's queue, deferral on), the committing
-  mutations listed in **Code read** but the starts, `packages/server/src/fate.ts` (exports)
-- Test: `packages/server/src/__tests__/write-queue.test.ts`
+  mutations listed in **Code read** but the starts, and `change.fromNote`'s removal of its note
+  (`fate/change-starts.ts`), `packages/server/src/fate/mutations.ts` (`writes.dismiss`, see R42),
+  `packages/server/src/fate/sources.ts` (the source), `packages/server/src/fate.ts` (exports, the
+  root), `packages/web/.fate/client.generated.ts`
+- Test: `packages/server/src/__tests__/write-queue.test.ts`; `inbox.test.ts` waits for the queue
+  (R43)
 
 **Interfaces:**
 
@@ -1013,10 +1017,11 @@ git commit -m "feat(performance-pass): a start is planned at once, runs its step
   - Committing mutations take `write: { label: string; href: string }` in their input, and answer
     with what their files now hold, before the commit lands.
   - `writes.dismiss({ id })`.
-  - `Host.queue: WriteQueue`, with `enqueue(write, land: (onOutput) => Promise<unknown>)`, which
-    task 13 uses for the start.
+  - `Host.queue: WriteQueue`, with `enqueue(write, land: (onOutput) => Promise<unknown>, keys?)`,
+    which task 13 uses for the start, and `idle()`, which resolves once every write queued landed or
+    was refused.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/__tests__/write-queue.test.ts
@@ -1028,38 +1033,39 @@ test("a commit answers with its written files, then lands in the queue", async (
 
 test("writes land in order, and a refused one does not stop the next", async () => {
   // Three commits; the hook refuses the first. The record shows it refused with the hook's output,
-  // the next two land in order. Rows: a second client reads the same record; two writes on the
-  // same file: the second one's files wait for the first's commit.
+  // the next two land in order. Rows: a second client reads the same record; over a core the test
+  // settles (R42), the landings run one at a time, and a write of the same key as a queued commit
+  // waits for it.
 });
 ```
 
 The break each catches: a mutation that waits for the hook; writes landing out of order; a refusal
 that stops the queue; two commits mixing one file's writes.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/server/src/__tests__/write-queue.test.ts`
 - Expected: FAIL, no `WriteQueue` record.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Each host turns deferral on, and owns one queue. A committing mutation runs its core call, takes its
 deferred commits, and enqueues them, all under the queue's own lock, so two calls' deferred commits
 never mix; it answers at once. A call whose paths overlap a commit still queued waits for it before
-writing. The queue lands one commit at a time, in order, with `land`. A refusal stays in the record
-until `writes.dismiss`. A landed write leaves the record.
+writing: the keys each call names are in R41. The queue lands one commit at a time, in order, with
+`land`. A refusal stays in the record until `writes.dismiss`. A landed write leaves the record.
 
-- [ ] **Step 4: Make the breaks**
+- [x] **Step 4: Make the breaks**
 
 Run two lands at once, and see the order test fail; drop the overlap's wait, and see its row fail.
 Restore both, and report in the commit's body.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS. Deferred to ready: the whole suite.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src

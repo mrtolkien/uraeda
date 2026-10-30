@@ -10,6 +10,7 @@ import { refusedOn } from "./list-mutations.ts";
 import { featureRecord, readWorkflowMessage } from "./sessions.ts";
 import { sources } from "./sources.ts";
 import { featureDataView } from "./views.ts";
+import { listCommit } from "./write-queue.ts";
 
 /**
  * Runs a call of the session manager that answers at once, after reading the repository's main
@@ -144,7 +145,9 @@ async function startFromNote(
     ctx.binding.startChange(ctx.repo, text, images, input.slug),
   );
   try {
-    await ctx.binding.removeNoteAndCommit(ctx.repo, input.note, input.hash);
+    await listCommit(ctx, undefined, () =>
+      ctx.binding.removeNoteAndCommit(ctx.repo, input.note, input.hash),
+    );
   } catch (error) {
     process.stderr.write(
       `uraeda: ${folder} started, but its note stayed in the inbox: ${reasonOf(error)}\n`,

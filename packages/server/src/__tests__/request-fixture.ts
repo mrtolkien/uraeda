@@ -33,6 +33,7 @@ import {
   turnLogDataView,
   workflowMessageDataView,
   workspaceDataView,
+  writeQueueDataView,
 } from "../fate.ts";
 import { callSiteError } from "../fate/errors.ts";
 import { mutations } from "../fate/mutations.ts";
@@ -116,6 +117,7 @@ const dataViews = [
   turnLogDataView,
   workflowMessageDataView,
   workspaceDataView,
+  writeQueueDataView,
 ] as unknown as Array<DataView<Answer>>;
 const viewOf = new Map(dataViews.map((view) => [view.typeName, view]));
 for (const root of Object.values(Root)) {
