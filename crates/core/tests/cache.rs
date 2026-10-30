@@ -3,7 +3,7 @@ mod common;
 use std::sync::{Mutex, mpsc};
 use std::time::Duration;
 
-use common::repo::TestRepo;
+use common::repo::{TestRepo, run_git};
 use common::texts::{clarifications, proposal, record};
 use uraeda_core::api;
 use uraeda_core::cache::{before_storing, cache_stats};
@@ -261,4 +261,74 @@ fn a_ledger_read_racing_a_change_never_keeps_the_old_ledger() {
 
     reader.join().unwrap();
     assert_eq!(git_decision(&repo).0, "Git, edited");
+}
+
+/// The lines the feature's branch changed outside its folder, as its history counts them.
+fn added_lines(repo: &TestRepo) -> Option<u32> {
+    api::read_history(repo.path(), FOLDER)
+        .unwrap()
+        .lines
+        .map(|lines| lines.added)
+}
+
+/// A feature's history is kept, and a commit on its branch shows on the next read.
+#[test]
+fn a_commit_on_a_branch_shows_in_its_history_once_the_watcher_saw_it() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+    assert_eq!(added_lines(&repo), Some(0));
+    let before = cache_stats(repo.path()).hits;
+    added_lines(&repo);
+    assert_eq!(cache_stats(repo.path()).hits, before + 1);
+
+    let worktree = repo.path().join(".worktrees/2026-10-11-web-ui");
+    repo.write(
+        ".worktrees/2026-10-11-web-ui/src/main.rs",
+        "one\ntwo\nthree\n",
+    );
+    run_git(&worktree, &["add", "--all"]);
+    run_git(
+        &worktree,
+        &[
+            "commit",
+            "--quiet",
+            "--no-verify",
+            "--message",
+            "feat(web-ui): main",
+        ],
+    );
+    next(&receiver);
+
+    assert_eq!(added_lines(&repo), Some(3));
+}
+
+/// A commit on the default branch moves the base a live feature's lines are counted from.
+#[test]
+fn a_commit_on_the_default_branch_shows_in_a_live_history() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+    let worktree = repo.path().join(".worktrees/2026-10-11-web-ui");
+    repo.write(
+        ".worktrees/2026-10-11-web-ui/src/main.rs",
+        "one\ntwo\nthree\n",
+    );
+    run_git(&worktree, &["add", "--all"]);
+    run_git(
+        &worktree,
+        &[
+            "commit",
+            "--quiet",
+            "--no-verify",
+            "--message",
+            "feat(web-ui): main",
+        ],
+    );
+    next(&receiver);
+    assert_eq!(added_lines(&repo), Some(3));
+
+    // The same change merged into the default branch: the branch adds nothing it lacks.
+    repo.git(&["merge", "--quiet", "--no-edit", FOLDER]);
+    next(&receiver);
+
+    assert_eq!(added_lines(&repo), Some(0));
 }

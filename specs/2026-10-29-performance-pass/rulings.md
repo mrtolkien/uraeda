@@ -946,3 +946,24 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `crates/core/src/cache.rs` (`kept`), `crates/core/src/api/ledger.rs`,
   `crates/core/src/api/ledger/dates.rs`, `crates/core/src/git/log.rs` (`last_changes`),
   `crates/core/tests/cache.rs`.
+
+## R80: A feature's history is kept, its diffs' figures by their commits, and no tip without its record is walked
+
+- **Decision**: `read_history` answers from the core's read cache, by the name `history <folder>`,
+  as the ledger is (R79). What a history's diffs produced, its lines and its decisions, is kept for
+  the process by the feature's folder, path, kind, finish, and the commits of its diffs, which never
+  change: a done item's, whose merge diff of 636 files took 60 ms and its seven decisions'
+  comparison 33 ms in `2026-10-28-proposal-naming`, is read once; a live one's again when its branch
+  or the default branch moves. A done item's walk for the commit that added its record skips a
+  default branch's tip that has no record: `2026-10-29-decisions-needs`, finished on `origin/main`
+  but not on the clone's default branch, walked the whole first-parent line twice, 140 ms, to find
+  nothing. On the clone of this repository, a release binding, measured with the core directly
+  (`decisions-needs`, `proposal-naming`, `performance-pass`): 157 to 167, 93 to 102, and 28 ms
+  before; 19 to 20, 27 to 31 (214 on the process's first read), and 24 to 27 ms on a first read,
+  under 1.2 ms from memory.
+- **Rationale**: the Performance decision's reads from memory; the `History` read missed SC-001 on
+  these two features (R71).
+- **If wrong**: the 20 to 30 ms left on a first read is the walk of the commits since the folder's
+  date, read again after any change; keeping it by the tip walked from would remove it.
+- **Where**: `crates/core/src/api/history.rs`, `crates/core/src/history.rs` (`recorded_tip`),
+  `crates/core/src/history/figures.rs` (`produced`), `crates/core/tests/cache.rs`.

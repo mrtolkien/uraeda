@@ -206,12 +206,15 @@ fn since(folder: &str) -> i64 {
 
 /// The default branch's tip that holds a done item's record, local first, then `origin`'s, as the
 /// workspace reads it, and where its walk starts: the first-parent commit that brought the record.
-/// The walk then skips every later commit, and stays as fast for an old item as for a new one.
+/// The walk then skips every later commit, and stays as fast for an old item as for a new one. A
+/// tip without the record, as when another branch has it, is not walked: its whole first-parent
+/// line would be.
 fn recorded_tip(git: &Git, branch: &str, folder: &str) -> Option<(ObjectId, ObjectId)> {
     let path = record_path(folder);
     let tips = [git.tip(branch), git.remote_tip(branch)];
     tips.into_iter()
         .flatten()
+        .filter(|tip| git.entry_id(*tip, &path).is_some())
         .find_map(|tip| Some((tip, git.first_parent_addition(tip, &path).ok().flatten()?)))
         .or_else(|| git.tip(branch).map(|tip| (tip, tip)))
 }

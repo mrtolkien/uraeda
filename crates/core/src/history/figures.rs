@@ -2,6 +2,7 @@
 //! files, and the decisions a done one changed, read from its runs of commits or its merge (R1).
 
 use std::collections::{BTreeMap, HashMap};
+use std::sync::{Mutex, PoisonError};
 
 use super::{LinesView, Stage, scope_type, typed_scope};
 use crate::changes::outside;
@@ -133,14 +134,53 @@ pub(crate) fn total(stages: &[Stage], starts: &[Option<i64>]) -> Option<u32> {
     u32::try_from(seconds).ok()
 }
 
+type Produced = (LinesView, Vec<DecisionChange>);
+
+/// What `produced` read, by the feature's files it leaves out and the commits of its diffs: commits
+/// never change, so nothing kept here is stale, and a feature read again after a change reads git
+/// again only when its diffs moved, as a done one's never do. Emptied once it holds `KEEP`.
+static PRODUCED: Mutex<Option<HashMap<String, Produced>>> = Mutex::new(None);
+const KEEP: usize = 256;
+
 /// The lines a feature's diffs, oldest first, changed outside its own files, summed file by file,
-/// and, for a done item, the decisions they changed.
+/// and, for a done item, the decisions they changed. Read once for the same files and diffs.
 pub(crate) fn produced(
     git: &Git,
     feature: &Feature,
     diffs: &[Diff],
     done: bool,
-) -> Result<(LinesView, Vec<DecisionChange>), GitError> {
+) -> Result<Produced, GitError> {
+    let key = format!(
+        "{}\0{}\0{:?}\0{}\0{done}\0{diffs:?}",
+        feature.folder,
+        feature.path,
+        feature.kind,
+        feature.is_finished()
+    );
+    let kept = PRODUCED
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .as_ref()
+        .and_then(|map| map.get(&key).cloned());
+    if let Some(kept) = kept {
+        return Ok(kept);
+    }
+    let read = read_produced(git, feature, diffs, done)?;
+    let mut produced = PRODUCED.lock().unwrap_or_else(PoisonError::into_inner);
+    let map = produced.get_or_insert_with(HashMap::new);
+    if map.len() >= KEEP {
+        map.clear();
+    }
+    map.insert(key, read.clone());
+    Ok(read)
+}
+
+fn read_produced(
+    git: &Git,
+    feature: &Feature,
+    diffs: &[Diff],
+    done: bool,
+) -> Result<Produced, GitError> {
     let mut files: BTreeMap<String, (u32, u32)> = BTreeMap::new();
     let ranges: Vec<_> = diffs
         .iter()
