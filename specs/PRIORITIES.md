@@ -8,7 +8,6 @@
 
 - [Proposal start flow](/specs/2026-10-30-proposal-start/proposal.md)
 - [Mockup previews](/specs/changes/2026-10-30-mockup-previews/proposal.md)
-- [Commits shouldn't all fail on "changes to INBOX.md", it makes no sense](/specs/changes/2026-10-30-commits-shouldn/proposal.md)
 
 - Empty inbox
 
