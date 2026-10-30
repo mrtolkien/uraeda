@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Performance pass
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 6 questions, about 20 minutes.
+> Answered on 2026-10-30.
 >
 > - Verdict: worth building, with changes: most of the slowness is a debug build and reads with no
 >   cache, not missing optimism. Commits cannot be optimistic under an active decision.
@@ -114,7 +114,7 @@ Why it matters: it is the largest gain of the whole pass, and it can reach you d
   - [pro] what you try in development matches what you run.
   - [con] every core change in a worktree rebuilds for about a minute.
 
-**Answer:**
+**Answer:** A: Ok, issue a PR for that before the spec, I guess it's mostly trivial.
 
 ## Q2: What should "no page over 100 ms" measure?
 
@@ -145,7 +145,7 @@ Why it matters: it decides what the pass must build, and what a later check hold
   - [pro] nothing ever lags.
   - [con] needs the data kept on disk in the browser, and the app cached by a service worker.
 
-**Answer:**
+**Answer:** A: Prefetch doesn't work well with keyboard navigation. Need a cache.
 
 ## Q3: Where should values be cached ahead of time?
 
@@ -175,7 +175,7 @@ reloads fast, at the cost of a stale first frame.
   - [pro] the smallest change.
   - [con] every click still waits for its round trip, likely just over 100 ms with the page's work.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: How should a commit show while it runs?
 
@@ -207,7 +207,14 @@ Why it matters: it changes an active decision, and decides whether optimism reac
   - [pro] nothing ever waits.
   - [con] removes the decision's rule; you may act on an approval a hook then refuses.
 
-**Answer:**
+**Answer:** C: I want the UI to feel instant, but we don't have to "lie" to the user:
+
+- We should navigate to the right page on commits (for example for starting features, to the session
+  page pre-filled)
+- The ongoing commits can be a bottom right toast while running (glassy)
+
+We can change the active decision too. And also commits shouldn't really fail coming from us, we
+just commit text and notes outside of the implementation step.
 
 ## Q5: How should a draft become a feature?
 
@@ -239,7 +246,11 @@ D can come on top of A, B, or C.
   - [pro] a draft typed in one go becomes a feature in one action.
   - [con] the proposal is committed without a look at it in the editor.
 
-**Answer:**
+**Answer:** A: We should be able to queue the message in the composer so the session starts when all
+the previous steps are done
+
+I want to be able to fully start a feature, session in included, and go continue working, without
+waiting at any point after finishing writing the proposal.
 
 ## Q6: Should the target become a lasting rule?
 
@@ -264,7 +275,7 @@ Why it matters: a decision makes every later feature keep the target, and says h
   - [pro] nothing to maintain.
   - [con] the target drifts unseen.
 
-**Answer:**
+**Answer:** A: It's not a _hard_ target, but it's a SHOULD, for sure
 
 ## Settled without the human
 
@@ -299,3 +310,6 @@ Why it matters: a decision makes every later feature keep the target, and says h
   take the new bounds. See [discovery](discovery-01.md#likely-changes).
 
 **Notes:**
+
+- **A page not drawn after 100 ms shows the thin top bar**: I don't agree: pages should simply ALL
+  DRAW in 100ms.
