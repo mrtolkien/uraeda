@@ -862,3 +862,64 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   message predicted before the commits landed; the human's own words are never overwritten.
 - **Where**: `packages/web/src/data.ts` (`useWorkflowMessage`), `packages/web/src/useDraft.ts`,
   review of the web UI.
+## R71: The benchmark's first run misses on the Ledger, History, the round, and two writes
+
+- **Decision**: the first runs of `vp run performance`, on 2026-10-30, on an AMD Ryzen 9 5950X (16
+  cores), 31 GB, Linux 7.3 (CachyOS), headless Chromium 1243 at 1440 × 900, a release binding, other
+  worktrees' builds running beside it, are recorded as the pass's findings. Four runs agree within
+  about 20 ms but where noted. Within target: SC-002 (20 reloads, 345 to 440 ms, one of 1,343 ms in
+  one run of four), SC-004 (Start to its session with its message 50 to 78 ms; another page while
+  the steps run 38 to 42 ms), SC-005 (270 to 465 ms). Missed, each with what took the time:
+  - SC-001 and SC-006, the clone's decisions page: 189 to 320 ms, the `Ledger` read alone 118 to 246
+    ms on the server (20 ms on the realistic project); the slowest right after a start made its
+    worktree.
+  - SC-001, the clone's feature pages of `2026-10-29-decisions-needs` and
+    `2026-10-28-proposal-naming`: 136 to 204 ms, their `History` read 96 to 166 ms on the server;
+    the other features' `History` takes 30 to 45 ms.
+  - SC-001, the realistic project's round page, `clarifications-01.md`: 184 to 242 ms, its one read
+    4 ms on the server and 110 to 151 ms of long tasks in the browser, its drawing.
+  - SC-001, the realistic project's `spec.md` from its feature: 122 to 132 ms in three runs of four,
+    5 to 7 reads of 15 to 19 ms in all on the server and no long task: reads one after another.
+  - SC-003, an approval's "Approved": 134 ms in every run, with or without a hook, its toast at 66
+    to 68 ms and `review.approve` 50 to 55 ms on the server: the verdict draws from the server's
+    answer, not at once.
+  - SC-003, the New page's proposal to its editor (US4 1): 243 to 260 ms, three requests,
+    `proposals.draft` 143 to 148 ms on the server.
+- **Rationale**: the plan's step 2 fixes a miss in the task that owns it, as a finding before the
+  review; this records what was measured, so the fix starts from it.
+- **If wrong**: a run on a quieter machine may pass the rows within 30 ms of the target; the rows of
+  the server's reads above 100 ms miss on any machine.
+- **Where**: `vp run performance`, task 16; the reads named above, in the core and the server.
+
+## R72: The benchmark replaces no other feature's bound: `live.bench.ts` and `smoke.ts --timed` stay
+
+- **Decision**: `live.bench.ts` keeps US6.5's 2 seconds for a commit's live update and its run-ui
+  SC-002 second for a status change, and `smoke.ts --timed` keeps `START_MS`, run-ui's SC-002, 2
+  seconds from a start to the repository's first page. SC-005's second is checked end to end by
+  `vp run performance`, from the file's write to the page drawing it.
+- **Rationale**: each bound is another feature's criterion, measuring something this spec does not:
+  the live stream without a browser, and a cold start of the installed package, which no reload of
+  SC-002 includes. This spec's targets are stricter only end to end, in a browser, where the
+  benchmark measures them, and the spec's replaced behaviour names none of them.
+- **If wrong**: a live update between 1 and 2 seconds passes `vp run bench` and fails only the
+  benchmark, which the review runs.
+- **Where**: task 16.
+
+## R73: The benchmark times from the press to the frame, on `main.ts`, offline
+
+- **Decision**: `vp run performance` serves the release build with `main.ts`, signed in with the
+  access key it prints, a `gh` that lists nothing and a `claude` that fails first on its PATH, and
+  git's global config isolated, as the tests run. A page's time runs from the `pointerdown` or
+  `keydown` the browser stamps to the end of the app's `navigate <path>` timing, after the frame
+  that draws it; a write's, to the first frame its result shows in; a reload's, from the
+  navigation's start to the first frame drawing the page without "Loading…" anywhere; SC-005's, from
+  the file's write by the clock to the frame. Each row names the `/fate` requests answered
+  meanwhile, their `Server-Timing` total and slowest, and the page's long tasks. The approval runs
+  with a pre-commit hook of a second, so its toast shows while the commit lands. The lists' `j` `k`
+  `Enter` open only the rows that open a page: an Add row, or one edited in place, is skipped.
+- **Rationale**: the human's wait starts at the press, and the spec measures it on a release build;
+  a fake agent would need the sandbox's Vite server, not `main.ts`, and a real `claude` would spend
+  the human's tokens. A commit without hooks may land before its toast draws.
+- **If wrong**: Send is never pressed, so SC-004's "send it and open another page" is timed only as
+  the other page, opened while the steps run; Claude Code shows as not available on the session.
+- **Where**: `packages/web/scripts/performance*.ts`, task 16.

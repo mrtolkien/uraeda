@@ -1288,30 +1288,37 @@ git commit -m "feat(performance-pass): Start opens the session at once, its step
 
 **Files:**
 
-- Create: `packages/web/scripts/performance.ts`, and its task, `vp run performance`
-- Modify: `packages/server/src/__tests__/live.bench.ts` and `smoke.ts --timed`'s bounds where the
-  new targets change them
+- Create: `packages/web/scripts/performance.ts`, and its task, `vp run performance`, in
+  `vite.tasks.ts`; its modules beside it: `performance-setup.ts` (the build, the seed, the server),
+  `performance-probe.ts` (the timings in the page), `performance-pages.ts`, `performance-writes.ts`,
+  and `performance-report.ts` (the table)
+- Keep: `packages/server/src/__tests__/live.bench.ts` and `smoke.ts --timed`'s bounds, which this
+  spec's targets do not replace (R72)
 
 **Interfaces:**
 
 - Consumes: `Server-Timing` from task 4, the user timings from task 6.
 
-- [ ] **Step 1: Write the benchmark**
+- [x] **Step 1: Write the benchmark**
 
 It builds the binding in release and the web UI, seeds a sandbox in a temporary folder, serves it
 with `main.ts`, and drives Chromium with Playwright over the `realistic` project, then over a clone
 of this repository (69 features). It measures each criterion: SC-001 pages by click and by `j`, `k`,
 `Enter`; SC-002 reloads; SC-003 each write's result from its press; SC-004 Start to the session with
 its message; SC-005 a commit made with `git` outside to its page; SC-006 reads after a start. It
-prints each time against 100 ms or 1 s, and exits non-zero past a target.
+prints each time against 100 ms or 1 s, and exits non-zero past a target. How it times, and what it
+leaves out: [R73](rulings.md#r73-the-benchmark-times-from-the-press-to-the-frame-on-maints-offline).
 
 - [ ] **Step 2: Run it**
 
 - Run: `vp run performance`
 - Expected: every criterion within its target. A miss is fixed in the task that owns it, as a
   finding, before the review.
+- Ran on 2026-10-30: SC-002, SC-004, and SC-005 within; SC-001, SC-003, and SC-006 missed on a few
+  pages and writes, each named with its server's share in
+  [R71](rulings.md#r71-the-benchmarks-first-run-misses-on-the-ledger-history-the-round-and-two-writes).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/web/scripts/performance.ts vite.tasks.ts packages/server/src/__tests__
