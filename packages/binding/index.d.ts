@@ -212,6 +212,13 @@ export declare function encodeImage(bytes: Buffer, name: string): Promise<Encode
  */
 export declare function expandProposal(repo: string, id: string, previous: string): Promise<ProposalFileView>
 
+/**
+ * The step the feature or change of `folder` will have once its uncommitted workflow files are
+ * committed, read from its files on disk: a prediction for the composer's message only, while its
+ * commits are queued, never the branch's step, which `nextStep` reads from its latest commit.
+ */
+export declare function expectedStep(repo: string, folder: string): Promise<NextView>
+
 /** The bytes of an image file, with the MIME type detected from its first bytes. */
 export interface ImageFile {
   bytes: Buffer

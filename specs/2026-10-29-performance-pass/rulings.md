@@ -669,9 +669,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: `start_feature` and `start_change` take the repository's write lock to reach the
   default branch, move and write the start's files, and stage them; release it while `git commit`
-  and its hooks run; and take it again to unstage and put back the files on a refusal (R46's
-  guarded put back), and to create the branch and its worktree. Any other core write, a save
-  included, runs while a start's hook runs.
+  and its hooks run; and take it again to unstage and put back the files on a refusal (R46's guarded
+  put back), and to create the branch and its worktree. Any other core write, a save included, runs
+  while a start's hook runs.
 - **Rationale**: as R45 for landings: a call waiting on the lock holds a libuv thread, and four of
   them stall every binding call. A save made during the hook changes the working tree, not the
   snapshot staged; the put back leaves any path that no longer holds what the start left, and names
@@ -692,3 +692,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an image changed uncommitted then deleted by a refused write comes back as `HEAD`
   has it, not with its uncommitted bytes; one never committed stays deleted.
 - **Where**: `crates/core/src/actions/deferred.rs`, review of the core.
+
+## R63: The composer's message reads the expected step, a prediction; the branch's step stays the tip's
+
+- **Decision**: `api::expected_step(repo, folder)`, `expectedStep` in the binding, gives the step a
+  feature or a change will have once its uncommitted workflow files are committed: its step computed
+  from its files as they are on disk, the pull request's state applied as `next_step` applies it. It
+  is for the composer's message only, while the folder's commits wait in the queue. `next_step`, and
+  every other read of a branch's step, still reads the branch's latest commit alone.
+- **Rationale**: the Git decision says a branch's step MUST be read only from its latest commit; a
+  spec approved and its commit queued would otherwise have the composer prompt for the approval gate
+  the human just passed.
+- **If wrong**: a write whose commit a hook refuses leaves the composer's message ahead of the
+  branch until the refusal puts the files back.
+- **Where**: `crates/core/src/api/expected.rs`, `crates/binding/src/expected.rs`, review of the
+  core.

@@ -30,6 +30,7 @@ mod drafts;
 mod drop;
 mod drop_at;
 mod error;
+mod expected;
 mod files;
 mod history;
 mod image_edits;
@@ -58,6 +59,7 @@ pub use drop::{DroppedView, drop_item};
 pub use drop_at::DropAt;
 pub use error::ApiError;
 use error::refused;
+pub use expected::expected_step;
 pub use files::{attach_image, encode_image, read_image, read_raw};
 pub use history::read_history;
 pub use image_edits::{remove_note_image, restore_note_image};
@@ -369,6 +371,8 @@ fn reach(repo: &Path, folder: &str) -> Result<(Git, Feature, place::Place)> {
 
 /// A feature's next step, as `ura next` gives it, with the latest pull requests the repository's
 /// refresh read from `gh`.
+/// Read from the branch's latest commit alone: [`expected_step`] predicts the step its uncommitted
+/// files will give, for the composer's message.
 pub fn next_step(repo: &Path, folder: &str) -> Result<NextView> {
     let (git, workspace) = open(repo)?;
     let feature = find(&workspace, folder)?;
