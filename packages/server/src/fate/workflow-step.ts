@@ -23,7 +23,7 @@ export function readMessages(repo: string, folder: string): Array<string> {
 
 /**
  * The step the workflow message of `folder` reads: while its commits are still queued, the step
- * they will give, which the core expects from its files on disk (R63); otherwise the branch's,
+ * they will give, which the core expects from its files on disk; otherwise the branch's,
  * read from its latest commit. Undefined when the core reads none.
  */
 export function messageStep(ctx: RepoContext, folder: string): Promise<NextView | undefined> {

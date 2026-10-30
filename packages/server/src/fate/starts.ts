@@ -36,7 +36,7 @@ type QueuedStart<R> = {
 /**
  * The workflow's message of a planned start's first step, as `readWorkflowMessage` reads it once
  * the start landed: a committed proposal and nothing else is the core's `discovery` step for a
- * feature, and its `change` step for a change (R49).
+ * feature, and its `change` step for a change.
  */
 export function startMessage(planned: PlannedView, kind: Kind): string {
   const step = kind === "change" ? "change" : "discovery";
@@ -49,7 +49,7 @@ export function startMessage(planned: PlannedView, kind: Kind): string {
   });
 }
 
-/** The core's refusal of a taken slug, in a feature's words or a change's (R32). */
+/** The core's refusal of a taken slug, in a feature's words or a change's. */
 const taken = (kind: Kind, { folder, slug }: PlannedView) =>
   kind === "feature"
     ? `refused: A feature named ${slug} exists already`
@@ -111,7 +111,7 @@ async function queueStart<R>(
       try {
         const started = await queue.inTurn(() =>
           start.run((step) => {
-            // Its commit landed: the lists' calls no longer wait for the start (R69).
+            // Its commit landed: the lists' calls no longer wait for the start.
             if (step.step === "branching") {
               queue.free(id, [LISTS]);
             }
@@ -226,8 +226,8 @@ const CHANGE_START: WriteInput = { href: "", label: "Starting a change" };
 
 /**
  * Runs a start the core cannot plan, a typed change's, through the queue, then `then`, and
- * answers with its result once it landed (R50): a refusal is the call's, and leaves the record.
- * Its `slug`, when named, is taken while it is in the queue (R91). Without a host, at once.
+ * answers with its result once it landed: a refusal is the call's, and leaves the record.
+ * Its `slug`, when named, is taken while it is in the queue. Without a host, at once.
  */
 export async function landedStart<R>(
   ctx: RepoContext,

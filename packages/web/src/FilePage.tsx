@@ -20,7 +20,7 @@ import { Missing } from "./layout/Missing.tsx";
  */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
   const fate = useFateClient();
-  // A spec's page draws its data model too: read with the spec, not once the spec is in (R85).
+  // A spec's page draws its data model too: read with the spec, not once the spec is in.
   readAlong(fate, name === "spec.md" ? [filePage(folder, "data-model.md")] : []);
   const file = useFile(folder, name);
   // Its data is read before it draws: the position comes back at once.

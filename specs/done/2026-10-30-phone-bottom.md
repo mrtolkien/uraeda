@@ -3,6 +3,7 @@ kind: change
 finished: 2026-10-30
 pull-request: https://github.com/mrtolkien/uraeda/pull/70
 supersedes: [2026-10-25-feature-page]
+superseded-by: [2026-10-29-performance-pass]
 ---
 
 # Record: Phone bottom bars on more pages
@@ -12,6 +13,8 @@ supersedes: [2026-10-25-feature-page]
 > The record of a merged change, not instructions to follow. Started on 2026-10-30, finished on
 > 2026-10-30, in [its pull request](https://github.com/mrtolkien/uraeda/pull/70). Its full files are
 > in git: `git log -- specs/changes/2026-10-30-phone-bottom/`.
+>
+> Superseded in part by [2026-10-29-performance-pass](2026-10-29-performance-pass.md).
 
 ## What and why
 

@@ -38,7 +38,7 @@ Edits hidden behind dialogs, a reading position lost on Back, and letters droppe
 while typing made the UI hard to trust. Saving on a button needs unsaved text protected, as GitHub
 does. Outlines behave as outliners do. Commits take seconds while hooks run, and the UI should "feel
 instant, but we don't have to 'lie' to the user": Uraeda's commits hold only text, so a refusal is
-rare. History: [Performance pass](../2026-10-29-performance-pass/spec.md).
+rare. History: [Performance pass](../done/2026-10-29-performance-pass.md).
 
 ## Alternatives considered
 

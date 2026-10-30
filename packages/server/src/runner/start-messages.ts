@@ -23,7 +23,7 @@ const keyOf = (root: string, folder: string) => `${root}\0${folder}`;
 export class StartMessages {
   #cache: SessionCache;
   #waiting = new Map<string, Waiting>();
-  /** What drops the messages kept for features' commits as the server stops (R65). */
+  /** What drops the messages kept for features' commits as the server stops. */
   #stops = new Set<() => void>();
 
   constructor(cache: SessionCache) {

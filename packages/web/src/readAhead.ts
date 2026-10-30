@@ -13,13 +13,13 @@ export type PageRequest = Parameters<typeof useRequest>[0];
 
 /**
  * How many requests each client keeps, the one used longest ago let go first: every page of a
- * session over a repository the size of Uraeda's own (R13).
+ * session over a repository the size of Uraeda's own.
  */
 const KEPT_REQUESTS = 1000;
 
 /**
  * How long a page's data stays current without a live subscription: a new subscription is sent
- * the records changed in the server's last 2 seconds (R4), so a page off screen for longer may
+ * the records changed in the server's last 2 seconds, so a page off screen for longer may
  * have missed a change.
  */
 const REPLAYED_MS = 2000;
@@ -83,7 +83,7 @@ export function keep(fate: Fate, request: PageRequest): Kept {
 
 /**
  * Keeps the request of a page shown, drawn from memory at once, and reads it again from the
- * server behind when what memory holds may have missed a change (R17). Returns what to call as the
+ * server behind when what memory holds may have missed a change. Returns what to call as the
  * page leaves the screen: its live subscription kept it current until then.
  */
 export function show(fate: Fate, request: PageRequest): () => void {
@@ -102,7 +102,7 @@ const sharedReads = new WeakMap<object, Map<object, Promise<unknown>>>();
 
 /**
  * `useRefreshOnShow` for a request many components make at once, the same object each time: the
- * tab's return reads it again once per client, however many listen (R24).
+ * tab's return reads it again once per client, however many listen.
  */
 export function useSharedRefreshOnShow(request: PageRequest) {
   const fate = useFateClient();
@@ -141,7 +141,7 @@ export function readAhead(fate: Fate, request: PageRequest) {
 /**
  * Reads `requests` together, as a page draws, before the first of them suspends it: each is sent
  * once, a read under way or held by the browser not again, so a page drawn again sends nothing. A
- * page whose parts each read their own record would read them one after another (R85).
+ * page whose parts each read their own record would read them one after another.
  */
 export function readAlong(fate: Fate, requests: ReadonlyArray<PageRequest>) {
   for (const request of requests) {

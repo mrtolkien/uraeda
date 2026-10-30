@@ -1,6 +1,6 @@
 // How a long page mounts its parts: those its first frame shows at once, then the others one at a
 // time, each in a transition of its own after the commit before it, so the page draws within its
-// first frame and no task of its drawing is long (R84).
+// first frame and no task of its drawing is long.
 import { startTransition, useEffect, useState } from "react";
 
 /**

@@ -116,7 +116,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
  * other settled points, then `children`, its end. `onAsk` asks the agent about a question, or sends
  * a point's comment to it. Its questions mount one at a time after the first frame, which draws its
  * opening, and its end once they are all in; those up to the question it opens at, all of them
- * when it opens at a place of its own, mount at once (R84).
+ * when it opens at a place of its own, mount at once.
  */
 function RoundBody({
   children,

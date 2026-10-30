@@ -1,4 +1,4 @@
-// R84: a round's questions mount one at a time after its first frame, and a round reopened at a
+// A round's questions mount one at a time after its first frame, and a round reopened at a
 // question mounts every question up to it at once, so it opens there.
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { useLayoutEffect } from "react";

@@ -33,7 +33,7 @@ const leaveDialog = () => screen.queryByRole("dialog", { name: LEAVE });
 /** The round, with Q3's comment typed and not saved. */
 async function roundWithUnsavedComment() {
   const page = await renderPage(PAGE);
-  // Its questions mount in steps after its first frame (R84): Q3's too, once drawn.
+  // Its questions mount in steps after its first frame: Q3's too, once drawn.
   await type(await waitFor(() => q3Comment()), "Neither, keep it simple");
   return page;
 }
@@ -42,7 +42,7 @@ async function roundWithUnsavedComment() {
 async function roundOpenedFromFeature(repo = fixtureRepo()) {
   const page = await renderPage(FEATURE, repo);
   await act(async () => navigate(atRepo(PAGE)));
-  // Its questions mount in steps after its first frame (R84): Q3's too, once drawn.
+  // Its questions mount in steps after its first frame: Q3's too, once drawn.
   await waitFor(() => q3Comment());
   return page;
 }

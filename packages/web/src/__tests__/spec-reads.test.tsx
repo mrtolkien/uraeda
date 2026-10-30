@@ -1,4 +1,4 @@
-// R85: a spec's page asks for its data model with the spec, not once the spec is in, and mounts its
+// A spec's page asks for its data model with the spec, not once the spec is in, and mounts its
 // parts below the opening in steps, all of them once drawn.
 import { screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";

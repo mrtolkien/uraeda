@@ -1,6 +1,6 @@
 // The messages sent to a session and not in its transcript yet: each shows at the transcript's end
 // at once, as the human's message the agent has not read, until the transcript can draw the
-// server's own. Its turn, its place, and its ID are the server's: none is made up here (R29).
+// server's own. Its turn, its place, and its ID are the server's: none is made up here.
 import { useSyncExternalStore } from "react";
 import type { useFateClient } from "react-fate";
 import type { ChatImage } from "uraeda-server/fate";

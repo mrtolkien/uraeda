@@ -1,7 +1,7 @@
 // A git write refused, shown where it happened, with its output, and Dismiss, which takes it out of
 // the toast too: a hook's refusal says what is back as it was; any other failure, that the change is
 // still written, not committed, with Try again where the place offers it, or that the commit page
-// lists it, but for a feature's file, which the commit page never lists (R93). The toast's Open
+// lists it, but for a feature's file, which the commit page never lists. The toast's Open
 // comes here.
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Link } from "@astryxdesign/core/Link";

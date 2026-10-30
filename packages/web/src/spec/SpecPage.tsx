@@ -400,7 +400,7 @@ function ReadSpec({ file, session }: { file: File; session: PageSession | undefi
 
 /**
  * Sends the reads of the stories the spec page embeds as it first draws, together, which each
- * story's embed would send only once the parts before it are in (R85).
+ * story's embed would send only once the parts before it are in.
  */
 function useStoryReads(file: File) {
   const fate = useFateClient();

@@ -1,5 +1,5 @@
 // A page kept in memory and shown again: drawn from memory, and read again from the server behind
-// only when it was off screen longer than the live bus replays a change (R4, R17).
+// only when it was off screen longer than the live bus replays a change.
 import { expect, test, vi } from "vite-plus/test";
 import { type PageRequest, readAhead, show } from "../readAhead.ts";
 import { FeatureView } from "../views.ts";

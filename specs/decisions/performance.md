@@ -34,7 +34,7 @@ Rebuilding the workspace from every branch takes about 95 ms on this repository,
 to 4 reads, so a page that asks git again cannot draw within 100 ms. Reading ahead on hover does not
 help keys: the server keeps what it read, and the browser what it showed. The target is "not a
 _hard_ target", yet pages "should simply ALL DRAW in 100ms", with no pending bar. History:
-[Performance pass](../2026-10-29-performance-pass/spec.md).
+[Performance pass](../done/2026-10-29-performance-pass.md).
 
 ## Alternatives considered
 

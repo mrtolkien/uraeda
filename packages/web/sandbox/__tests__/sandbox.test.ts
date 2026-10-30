@@ -209,7 +209,7 @@ test("the round waiting, answered and submitted, moves its feature to the spec s
     expect(submitted.results[0]?.ok).toBe(true);
 
     // The answers' commit lands behind the call, in the write queue: the step is the branch's
-    // latest commit's (R43).
+    // latest commit's.
     await landed(served);
     expect(await stepOf(served, ROUND)).toBe("spec");
     await waitAtWork(served);

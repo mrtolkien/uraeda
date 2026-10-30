@@ -1,4 +1,4 @@
-// US3 1, R83: an approval reads Approved at its press, before the server answers, and a refusal
+// US3 1: an approval reads Approved at its press, before the server answers, and a refusal
 // takes it back, the review shown again with its refusal.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

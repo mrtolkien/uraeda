@@ -1,6 +1,6 @@
 // What an approval shows at once, as fate's `optimistic` result: the file's status, approved, and
 // its block's record as the core writes it, "Approved on <today>.", its callout a note. fate shows
-// it until the server answers, and takes it back on a refusal (R83).
+// it until the server answers, and takes it back on a refusal.
 import type { useFateClient } from "react-fate";
 import type { Block, Span } from "uraeda-binding";
 import type { useFile } from "../data.ts";

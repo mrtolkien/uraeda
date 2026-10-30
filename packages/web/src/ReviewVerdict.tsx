@@ -107,7 +107,7 @@ export type ChoicesState = [Choices, Dispatch<SetStateAction<Choices>>];
 /**
  * What a review's page keeps for its life, past the review: an approval shows the file read, not
  * reviewed, at once, and a refusal brings the review back with its refusal shown and its choices
- * as set (R83). A spec's risk tier and plan review are set by the end's form, and either verdict,
+ * as set. A spec's risk tier and plan review are set by the end's form, and either verdict,
  * the end's or the phone's Review sheet's, commits them.
  */
 export function useVerdictState(file: File) {
@@ -150,7 +150,7 @@ function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusals) {
               ...(isSpec ? approveChoices(spec, choices) : {}),
               write: writeHere(`Approving ${subject}`),
             },
-            // Approved at once, as the core writes it: a refusal takes it back (R83).
+            // Approved at once, as the core writes it: a refusal takes it back.
             optimistic: approvedFile(file),
             view: FileView,
           })

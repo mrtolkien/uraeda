@@ -1,5 +1,5 @@
 // The write queue's own mutation: a refused write taken out of the record. It is apart from
-// `write-queue.ts`, which the sources the mutation masks its answer with import (R42).
+// `write-queue.ts`, which the sources the mutation masks its answer with import.
 import type { Resolver } from "./context.ts";
 import { sources } from "./sources.ts";
 import { writeQueue, writeQueueDataView } from "./write-queue.ts";

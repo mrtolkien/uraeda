@@ -255,7 +255,7 @@ export function useAgent() {
 
 /**
  * The workflow's message for a feature and a trigger, or why there is none: live, as the server
- * sends it again once the feature's queued commits land or are refused (R65).
+ * sends it again once the feature's queued commits land or are refused.
  */
 export function useWorkflowMessage(folder: string, trigger: Trigger, file?: string) {
   const id = [folder, trigger, ...(file === undefined ? [] : [file])].join(":");

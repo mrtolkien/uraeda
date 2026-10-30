@@ -1,4 +1,4 @@
-// A page's parts below its first screen, mounted in steps after its first frame (R85).
+// A page's parts below its first screen, mounted in steps after its first frame.
 import { type ReactNode, useState } from "react";
 import { currentEntry } from "../routes.tsx";
 import { useMountedSteps } from "./useMountedSteps.ts";

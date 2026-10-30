@@ -6,8 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Performance pass: the UI feels sluggish](/specs/2026-10-29-performance-pass/proposal.md)
-
 - [Feature state pass](proposals/feature-state-pass/proposal.md)
 
 - Empty inbox

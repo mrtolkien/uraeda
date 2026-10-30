@@ -1,6 +1,6 @@
 /**
  * `vp run performance [--no-build]`: the benchmark of the performance decision, run on demand and
- * never by `ready` (R7). It builds the binding in release and the web UI, as `vp run start` does,
+ * never by `ready`. It builds the binding in release and the web UI, as `vp run start` does,
  * unless `--no-build`; seeds the sandbox's projects into a temporary folder, with a clone of this
  * checkout, Uraeda's own 69 features; serves them with `main.ts`; and drives Chromium with
  * Playwright, at a desktop's size, over the realistic project, then over the clone.

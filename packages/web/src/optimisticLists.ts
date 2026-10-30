@@ -1,8 +1,8 @@
 // What a write of the inbox or the priorities shows at once, as fate's `optimistic` result: the
 // whole JSON field it changes, as the write asks for it, which fate shows until the server answers
-// and takes back on a refusal (R9). A row added gets a temporary id, and a key the outliners take for
+// and takes back on a refusal. A row added gets a temporary id, and a key the outliners take for
 // a row not written yet, until the answer's replace them; what only the core computes, as an id,
-// a key, a note's lines, or a hash, is left to the answer (R28).
+// a key, a note's lines, or a hash, is left to the answer.
 import type { Inbox, Priorities, Proposal } from "uraeda-server/fate";
 import { INBOX_ID, PRIORITIES_ID } from "./data.ts";
 import { spansOf } from "./lists/outline.ts";

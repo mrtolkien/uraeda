@@ -1,7 +1,7 @@
 // The messages sent to a feature while its commits were queued, which the server kept until they
-// landed (R65): when one of those commits is refused, the server drops them, their text in the
+// landed: when one of those commits is refused, the server drops them, their text in the
 // refused write's `queued`, and the composer of the feature's session takes it back, once. A kept
-// message whose send was refused once they landed comes back the same, in an `unsent` write (R89).
+// message whose send was refused once they landed comes back the same, in an `unsent` write.
 import { type ReactNode, Suspense, useEffect, useState } from "react";
 import { type Draft, takeBackInto } from "../useDraft.ts";
 import { useWriteQueue } from "../writes/useWriteQueue.ts";
@@ -58,7 +58,7 @@ type Handed = { notice?: string; onSent?: (session: string) => void };
  * document, put in `draft` before what it holds. Gives what to draw, which reads the queue under a
  * `Suspense` of its own, so the page never waits for it; and `handing`, the page's `given` hand-over
  * to the composer, with a notice that says why, unless the page gives one, until the composer sends
- * again or the refusal is dismissed. A start's messages go back in its steps' own composer (R59):
+ * again or the refusal is dismissed. A start's messages go back in its steps' own composer:
  * its page gives no folder.
  */
 export function useReturnedMessages<H extends Handed>(
