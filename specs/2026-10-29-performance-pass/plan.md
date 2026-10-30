@@ -365,7 +365,10 @@ git commit -m "feat(performance-pass): a new worktree's index is refreshed, so r
 
 **Files:**
 
-- Modify: `pnpm-workspace.yaml` (fate's catalog entry), `pnpm-lock.yaml`
+- Modify: `packages/server/package.json` and `packages/web/package.json` (fate's pins),
+  `pnpm-workspace.yaml` (its release-age exclusion), `pnpm-lock.yaml`, and
+  `packages/web/src/__tests__/helpers.tsx` (live streams passed on, `repositoryName`)
+- Create: `packages/web/src/__tests__/live-source.ts`, an EventSource over the test's `fetch`
 - Test: `packages/web/src/__tests__/optimistic.test.tsx`
 
 **Interfaces:**
@@ -373,7 +376,7 @@ git commit -m "feat(performance-pass): a new worktree's index is refreshed, so r
 - Produces: fate at its latest 1.x release, at least 1.12.2, whose `optimistic` results later tasks
   use.
 
-- [ ] **Step 1: Write the failing test, through the real fate client**
+- [x] **Step 1: Write the failing test, through the real fate client**
 
 ```ts
 // packages/web/src/__tests__/optimistic.test.tsx
@@ -384,33 +387,36 @@ test("an optimistic insert survives a live refresh, and rolls back on refusal", 
 });
 ```
 
-The break it catches: an optimistic insertion that disappears during a background refresh, the bug
-1.12.2 fixed; a rollback that leaves the note.
+The break it catches: an optimistic insertion that disappears during a live update or a refresh; a
+rollback that leaves the note. The note is an optimistic `categories` of the Inbox record: the app's
+lists are JSON fields, never fate's list connections, which 1.12.2's fix concerns (R9).
 
-- [ ] **Step 2: Run it to check it fails on 1.12.1**
+- [x] **Step 2: Run it on 1.12.1**
 
 - Run: `vp test packages/web/src/__tests__/optimistic.test.tsx`
-- Expected: FAIL, the inserted note gone after the live update.
+- Expected: PASS, as the bug fixed in 1.12.2 cannot reach a field (R9). Breaking fate's installed
+  code, a live update written over the optimistic layer, or a rollback that keeps it, fails it.
 
-- [ ] **Step 3: Upgrade fate**
+- [x] **Step 3: Upgrade fate**
 
-Raise `@nkzw/fate` and `react-fate` to their latest release, run `vp install`, and fix what the
-upgrade changes in the types.
+Raise `@nkzw/fate` and `react-fate` to their latest release, 1.13.0, run `vp install`, and fix what
+the upgrade changes in the types: nothing.
 
-- [ ] **Step 4: If the test still fails, stop**
+- [x] **Step 4: If the test still fails, stop**
 
 The spec marks this unverified. A failure means optimistic results cannot be trusted under live
 updates: stop and start a new round of questions.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS. Deferred to ready: the Storybook build and the whole suite.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add pnpm-workspace.yaml pnpm-lock.yaml packages/web/src/__tests__/optimistic.test.tsx
+git add pnpm-workspace.yaml pnpm-lock.yaml packages/server/package.json packages/web/package.json \
+  packages/web/src/__tests__ specs/2026-10-29-performance-pass
 git commit -m "chore(performance-pass): upgrade fate, whose optimistic inserts survive live refreshes"
 ```
 

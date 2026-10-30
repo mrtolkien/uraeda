@@ -252,8 +252,8 @@ importers:
         specifier: 2.1.4
         version: 2.1.4(hono@4.13.13)
       '@nkzw/fate':
-        specifier: 1.12.1
-        version: 1.12.1(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)
+        specifier: 1.13.0
+        version: 1.13.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)
       hono:
         specifier: 4.13.13
         version: 4.13.13
@@ -316,8 +316,8 @@ importers:
         specifier: 5.3.0
         version: 5.3.0
       '@nkzw/fate':
-        specifier: 1.12.1
-        version: 1.12.1(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)
+        specifier: 1.13.0
+        version: 1.13.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)
       '@stylexjs/stylex':
         specifier: 0.19.1
         version: 0.19.1
@@ -331,8 +331,8 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
       react-fate:
-        specifier: 1.12.1
-        version: 1.12.1(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
+        specifier: 1.13.0
+        version: 1.13.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
       uraeda-server:
         specifier: workspace:*
         version: link:../server
@@ -1535,8 +1535,8 @@ packages:
     peerDependencies:
       eslint: '>= 9'
 
-  '@nkzw/fate@1.12.1':
-    resolution: {integrity: sha512-EAd2nE1Ls7YwDwN2ndNf4cGxoMpET1mGu9Um0TkmFl+CLQ/M0iNLkyUYU9PKvxoomTVHDP7w9rOyMQmQtHPIXQ==}
+  '@nkzw/fate@1.13.0':
+    resolution: {integrity: sha512-90j6dR6PzydKxwWMui0jkVjynRNTg2rm7dMXTQsNb8e1e25jYo5a+jL+YbWZYNp3mRbU5DSLP8BicR0SlCFupA==}
     hasBin: true
     peerDependencies:
       '@trpc/client': ^11.6.0
@@ -3910,8 +3910,8 @@ packages:
     peerDependencies:
       react: ^19.3.0
 
-  react-fate@1.12.1:
-    resolution: {integrity: sha512-sLet1DCa3/gZ+QBHJzyAXntqTlf75EnlwmutGKhGq9z5g8pOnoTulZ75Ca32FAuha6vH1KmayEyn+me3MMpEHA==}
+  react-fate@1.13.0:
+    resolution: {integrity: sha512-2BkUhG7z9J01TOr3XbO6jpXF9T+z47pkEpWweHOtvYRwPvtQrr0cicksnSA0tKC2dS3oT3zKoI9dPvqmKmyTpg==}
     hasBin: true
     peerDependencies:
       react: ^19.2.0
@@ -5345,7 +5345,7 @@ snapshots:
     dependencies:
       eslint: 10.12.0(jiti@2.7.0)(supports-color@7.2.0)
 
-  '@nkzw/fate@1.12.1(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)':
+  '@nkzw/fate@1.13.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)':
     dependencies:
       '@trpc/client': 11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3)
       superjson: 2.2.6
@@ -7251,9 +7251,9 @@ snapshots:
       react: 19.3.0
       scheduler: 0.28.0
 
-  react-fate@1.12.1(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3):
+  react-fate@1.13.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3):
     dependencies:
-      '@nkzw/fate': 1.12.1(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)
+      '@nkzw/fate': 1.13.0(@trpc/client@11.19.0(@trpc/server@11.19.0(typescript@6.0.3))(typescript@6.0.3))(@types/node@24.19.1)(esbuild@0.28.2)(jiti@2.7.0)(typescript@6.0.3)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
     transitivePeerDependencies:

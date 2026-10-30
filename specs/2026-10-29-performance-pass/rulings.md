@@ -86,3 +86,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `git add` or `git commit` in the new worktree at that moment fails on `index.lock`, and works when
   run again.
 - **Where**: task 1.
+
+## R9: fate's check is of an optimistic field through a live update, and it passes on 1.12.1 too
+
+- **Decision**: fate goes to 1.13.0, pinned in the server's and the web's `package.json`, where it
+  was, not in the catalog. The test holds `inbox.add` at the browser with an optimistic
+  `categories`, lets the server's watcher send the inbox's live update and a refresh on show, then
+  releases the add, which the server refuses for its stale hash. It passes on 1.12.1 and 1.13.0: it
+  fails when fate writes a live update over the optimistic layer, and when its rollback keeps the
+  layer (both checked by breaking fate's installed code).
+- **Rationale**: 1.12.2's fix is for fate's list connections (`insert.into`), and every list of
+  Uraeda's records, the inbox's notes included, is a JSON field: the bug cannot reach the app, and
+  the optimistic results tasks 9 and 10 give are field values, the case checked. While the add
+  waits, its whole `categories` stays shown, so a note from elsewhere shows once it settles.
+- **Alternatives considered**: a fate list to reproduce the 1.12.2 bug, which no page reads.
+- **Where**: task 2.
+
+## R10: The Performance decision's check names its times
+
+- **Decision**: the rule "Every navigation and every action SHOULD draw its result within 100 ms,
+  and a reload within 1 second" is now "Checked by the benchmark, against 100 ms and 1 second."
+- **Rationale**: the ledger's test, `no_decision_names_a_mechanism_its_checks_do_not`, requires a
+  rule's check to name the times its rule names, and failed on the approved text. Wording only: the
+  rule is unchanged. The edit needs the human's approval again, with the pull request.
+- **Where**: `specs/decisions/performance.md`, before task 1.

@@ -223,6 +223,15 @@ afterEach(async () => {
 /** The name of each server's repository, as its list holds it. */
 const names = new WeakMap<typeof globalThis.fetch, Promise<string | undefined>>();
 
+/** The name of the repository a `serverFetch`'s list holds. */
+export async function repositoryName(fetch: typeof globalThis.fetch): Promise<string> {
+  const name = await names.get(fetch);
+  if (name === undefined) {
+    throw new Error("The server's list holds no repository");
+  }
+  return name;
+}
+
 /** The requests started by the page, which refresh and teardown wait for. */
 const pending = new Set<Promise<Response>>();
 
@@ -356,6 +365,10 @@ function fetchOn(
     const response = await app.request(request);
     if (jar) {
       keep(jar, response);
+    }
+    // A live stream never ends: it is passed on as it comes, for `liveSource` to read.
+    if (response.headers.get("content-type")?.startsWith("text/event-stream")) {
+      return response;
     }
     const text = await response.text();
     answers.push(typeof init?.body === "string" ? init.body : url);
