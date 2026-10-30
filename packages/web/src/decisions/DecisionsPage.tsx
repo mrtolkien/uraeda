@@ -13,7 +13,7 @@ import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, use, useRef, useState } from "react";
 import type { Ledger } from "uraeda-server/fate";
-import { useAgent, useLedger, useWorkspace } from "../data.ts";
+import { useAgent, useLedger } from "../data.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
 import { Pane } from "../layout/Pane.tsx";
@@ -37,7 +37,7 @@ import { jumpEntries, pickerItemOf } from "./jump.ts";
 import { useSplit } from "./useSplit.ts";
 import { proseStyles, READING_MEASURE } from "../Prose.tsx";
 import { type DecisionSort, type LedgerDecision, sortDecisions, useDecisionSort } from "./model.ts";
-import { NoSpecs } from "../layout/Missing.tsx";
+import { WithSpecs } from "../layout/Missing.tsx";
 import { Empty } from "../layout/Empty.tsx";
 
 /** The list's column, about 40 characters a line at least, 60 at most, with its pane's inset. */
@@ -354,19 +354,12 @@ function ReaderBar({
  * or `open` alone with a way back, `onClose`.
  */
 export function DecisionsPage(props: { onClose?: () => void; open?: LedgerOpen }) {
-  const workspace = useWorkspace();
-  if (!workspace) {
-    return null;
-  }
   // Without specs/, there is no ledger to read.
-  if (workspace.noSpecs) {
-    return (
-      <Page>
-        <NoSpecs path={workspace.noSpecs} />
-      </Page>
-    );
-  }
-  return <Ledger {...props} />;
+  return (
+    <WithSpecs>
+      <Ledger {...props} />
+    </WithSpecs>
+  );
 }
 
 /** The decisions page of a repository with `specs/`. */
