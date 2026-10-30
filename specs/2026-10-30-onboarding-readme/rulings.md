@@ -55,3 +55,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   approved text, which needs the human's approval again.
 - **If wrong**: trim the decisions in a decisions check, and set the limit back.
 - **Where**: `crates/core/tests/check.rs`
+
+## R7: `ura status --json` lists four setup items after `ura init`
+
+- **Decision**: the status test expects four items in `setup` after `ura init`, not five.
+- **Rationale**: `read_setup` lists the `specs/` folder's item only without `specs/`, and
+  `ura status` fails there before reading it, as `no_specs_folder` asserts. The plan's five counted
+  that item.
+- **If wrong**: `ura status` would list the `specs/` folder as written, which the spec's states do
+  not name.
+- **Where**: task 3, `crates/cli/tests/status.rs`
