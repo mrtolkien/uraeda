@@ -4,6 +4,7 @@
 use std::fs;
 
 use super::plan::Plan;
+use super::restore::{Written, written_in};
 use super::{Source, Start, StartError, StartProgress, partial};
 use crate::actions::expand::with_nested;
 use crate::git::GitError;
@@ -108,6 +109,12 @@ impl Start<'_> {
             paths.push(proposal.to_string());
         }
         paths.sort();
+        // What the start left in the dated folder, which a refused commit removes only unchanged.
+        let written = if self.run.restore {
+            written_in(self.root, &plan.destination)
+        } else {
+            Written::new()
+        };
         self.report(StartProgress::Committing);
         let on_output = |line: &str| self.report(StartProgress::Output(line.to_string()));
         let streamed = self.run.on_step.map(|_| &on_output as &dyn Fn(&str));
@@ -120,13 +127,17 @@ impl Start<'_> {
                 subcommand,
                 message,
                 output,
-            }) if subcommand == "commit"
-                && self.run.restore
-                && self
-                    .put_back(plan, moves, proposal_before.as_deref())
-                    .is_ok() =>
-            {
-                Err(StartError::Hook { message, output })
+            }) if subcommand == "commit" && self.run.restore => {
+                let left = self.put_back(plan, moves, &written, proposal_before.as_deref());
+                if left.is_empty() {
+                    return Err(StartError::Hook { message, output });
+                }
+                let left = left
+                    .iter()
+                    .map(|path| format!("check {path}: changed during the commit, left as it is"))
+                    .collect();
+                let done = ["the start's other files put back as they were".to_string()];
+                Err(partial(&done, left, format!("git commit failed: {message}")))
             }
             // Written, so a failed commit stays here: switching back could carry the staged files
             // away.

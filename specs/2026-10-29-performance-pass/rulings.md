@@ -525,3 +525,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   save made after it.
 - **Where**: `crates/core/src/actions/deferred.rs`, `crates/core/src/actions/commit.rs`, review of
   task 12.
+
+## R46: A refused start puts back only what still holds what the start left
+
+- **Decision**: a hook's refusal of the start commit, in a repository the server defers commits
+  for, puts each path back only while it holds what the start left there: a moved file, its bytes
+  compared, returns to its old path only when no file is there; the proposal's text before its
+  nested lines is written only over the carried text; a file the start wrote in the dated folder is
+  removed only unchanged, and the folder only once empty; `PRIORITIES.md` gets its text back only
+  while it holds the start's. Any path left so is named in a `Partial` refusal, "check <path>:
+  changed during the commit, left as it is", the rest put back.
+- **Rationale**: the hook runs while other writes, saves included, go on: a put back without a
+  check would write over them, as deferred commits' undo never does.
+- **If wrong**: a start refused by a hook leaves a file someone changed meanwhile, and the human
+  sorts it out from the refusal's list.
+- **Where**: `crates/core/src/actions/start/restore.rs`, review of task 11.
