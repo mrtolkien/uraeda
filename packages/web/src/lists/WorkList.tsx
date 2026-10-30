@@ -28,15 +28,15 @@ export type { WorkRow };
 export type { Tone, WorkLayout, WorkSection } from "./workSection.ts";
 
 const styles = stylex.create({
-  // The table of a list whose lines are long, centred in the page: 80 characters a line at most, the
-  // measure of prose, with room for the bullet and the pane's sides. Its panes read its width (see
-  // `wide` in `SectionBody`).
+  // The table of a list whose lines are long, centred in the page: a page of rows' text column, a
+  // reading pane, grown by its rows' markers' room, the list's gutter. Its panes read its width
+  // (see `wide` in `SectionBody`).
   roomyStack: {
+    "--list-line-max": `calc(var(--size-reading-pane) + ${listVars["--list-gutter"]})`,
     containerName: "list",
     containerType: "inline-size",
     marginInline: "auto",
-    // A page of rows' text column, its rows' markers and the selection inside its panes.
-    maxWidth: "var(--size-reading-pane)",
+    maxWidth: "var(--list-line-max)",
     width: "100%",
   },
   // The panes of the row, side by side, whose row scrolls sideways. It runs to both edges of the

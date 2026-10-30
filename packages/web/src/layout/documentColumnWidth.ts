@@ -1,7 +1,7 @@
 // The document's column's one width and fold, kept in the browser under `uraeda.documentColumn`
 // for every document page: 400 px, the least a column of rows takes, at every window, until the
-// human drags its edge, then the width they chose, between 400 and 720 px. A kept width outside those, from a hand
-// edit or an older build, is clamped as it is drawn (plan, Review focus 6). The open tab never
+// human drags its edge, then the width they chose, between 400 and 720 px. A kept width outside
+// those, from a hand edit or an older build, is clamped as it is drawn (plan, Review focus 6). The open tab never
 // changes it. A session's column shares that width and fold, but is narrower at semi-wide, so the
 // chat keeps the weight (approval comment C2 of the session's spec, its ruling R9). The browser
 // keeps the width as dragged, so a session's 320 px draws the documents' column at 400 px, and its
