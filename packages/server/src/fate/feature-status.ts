@@ -3,7 +3,7 @@
 import type { FeatureView } from "uraeda-binding";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
 import type { RepoContext } from "./context.ts";
-import { statusOf, turnsOf, workspaceOf } from "./sessions.ts";
+import { statusOf, turnsOf, workspaceOf } from "./session-reads.ts";
 
 /** A feature's status, which every view and the notifier read. */
 export type FeatureStatus = {
