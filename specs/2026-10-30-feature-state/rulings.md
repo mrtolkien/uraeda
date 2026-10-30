@@ -94,3 +94,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the plan named a CLI caller that does not exist; the start needs the text the
   composer read, which its source did not keep.
 - **Where**: task 3.
+
+## R12: A feature's status is read asynchronously
+
+- **Decision**: `featureStatusOf(ctx, feature)` answers a `Promise<FeatureStatus>`. A feature with
+  problems and no running session reads "Needs you" with no reason, as the sidebar's card did.
+- **Rationale**: the feature's sessions are keyed by the repository's main checkout, which the
+  runner reads asynchronously; the plan's interface named a synchronous function.
+- **Where**: task 6.
