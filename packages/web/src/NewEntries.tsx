@@ -79,6 +79,16 @@ export function lineEntry(
   };
 }
 
+/**
+ * Whether a line of the priorities can be started: not running, and linking no file but its
+ * proposal file. The others have started.
+ */
+export function startable(
+  line: NonNullable<ReturnType<typeof usePriorities>>["sections"][number]["proposals"][number],
+): boolean {
+  return !line.running && (Boolean(line.file) || !line.spans.some((span) => span.link));
+}
+
 /** What is in the composer, then `added`, a paragraph under it: just `added` in an empty one. */
 export function withAdded(text: string, added: string): string {
   return text.trim() === "" ? added : `${text.trimEnd()}\n\n${added}`;
@@ -142,8 +152,7 @@ function useEntries(search: string) {
   );
   const lines = (priorities?.sections ?? []).flatMap((section) =>
     section.proposals
-      // Not running, and linking no file but its proposal file: those have started.
-      .filter((line) => !line.running && (line.file || !line.spans.some((span) => span.link)))
+      .filter(startable)
       .filter((line) => !isPending(line.key))
       .flatMap((line) => {
         const entry = lineEntry(line, section.section, here);

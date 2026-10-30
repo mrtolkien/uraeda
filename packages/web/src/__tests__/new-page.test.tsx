@@ -1,6 +1,8 @@
 // The New page's start of a change, held: a start that answers late clears only the text it sent,
 // not what the human typed after. The slug is asked in a dialog once the text is sent, and is not
 // kept on the page. The lines of the priorities it was filled from leave them.
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
@@ -9,6 +11,7 @@ import {
   click,
   fakeAgent,
   fixtureRepo,
+  git,
   quiet,
   read,
   renderPage,
@@ -107,4 +110,30 @@ test("a change started from a line of Next takes it out of the priorities", asyn
     expect(read(repo)).not.toContain("\n- Claude Code runner (triggered manually)\n"),
   );
   expect(read(repo)).toContain("Git listener process");
+});
+
+/**
+ * The start moves its line up, as the change's link, under Now's started lines, which moves the
+ * lines it passes down: another line of Now it was filled from is taken out by its text, never by
+ * the position it had, which the link now holds.
+ */
+test("a change started from two lines of Now takes the second out by its text", async () => {
+  const repo = fixtureRepo();
+  const priorities = join(repo, "specs/PRIORITIES.md");
+  writeFileSync(
+    priorities,
+    read(repo).replace(
+      "- [Plan review](/specs/2026-10-13-plan-review/proposal.md)\n",
+      "- [Plan review](/specs/2026-10-13-plan-review/proposal.md)\n- Alpha\n- Beta\n",
+    ),
+  );
+  git(repo, "commit", "--quiet", "--all", "-m", "chore: two lines of Now");
+  await filledFrom(repo, ["Beta", "Alpha"]);
+
+  await start();
+
+  await waitFor(() => expect(read(repo)).not.toContain("- Alpha"));
+  expect(read(repo)).toContain("- [Beta](/specs/changes/2026-10-16-beta/proposal.md)");
+  expect(read(repo)).toContain("- [Plan review](/specs/2026-10-13-plan-review/proposal.md)");
+  expect(read(repo)).not.toContain("- Beta\n");
 });
