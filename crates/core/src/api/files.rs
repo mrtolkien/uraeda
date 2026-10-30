@@ -86,8 +86,8 @@ pub fn encode_image(bytes: &[u8], name: &str) -> Result<Encoded> {
     images::encode(bytes, name).map_err(|error| refused(error.to_string()))
 }
 
-/// The bytes and the MIME type of a PNG, JPEG, GIF, or WebP file under `specs/`: a proposal file's
-/// or a note file's from the default branch's checkout, else read as [`read_raw`] reads it.
+/// The bytes and the MIME type of a PNG, JPEG, GIF, WebP, or SVG file under `specs/`: a proposal
+/// file's or a note file's from the default branch's checkout, else read as [`read_raw`] reads it.
 /// Anything else is no such file.
 pub fn read_image(repo: &Path, path: &str) -> Result<(Vec<u8>, &'static str)> {
     let missing = || refused(format!("{path}: no such file"));
@@ -107,7 +107,9 @@ pub fn read_image(repo: &Path, path: &str) -> Result<(Vec<u8>, &'static str)> {
         raw_bytes(&git, &workspace, path)
     };
     let bytes = bytes.ok_or_else(missing)?;
-    let mime = images::mime(&bytes).ok_or_else(missing)?;
+    let mime = images::mime(&bytes)
+        .or_else(|| images::is_svg(path, &bytes).then_some("image/svg+xml"))
+        .ok_or_else(missing)?;
     Ok((bytes, mime))
 }
 

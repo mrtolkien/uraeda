@@ -147,6 +147,41 @@ pub fn mime(bytes: &[u8]) -> Option<&'static str> {
     })
 }
 
+/// Whether a committed file is an SVG drawing, which is shown but never attached: named `.svg`, and
+/// its text's first element `<svg`, after a byte order mark, an XML declaration, comments, and a
+/// doctype.
+pub fn is_svg(path: &str, bytes: &[u8]) -> bool {
+    if !path.to_ascii_lowercase().ends_with(".svg") {
+        return false;
+    }
+    let Ok(text) = std::str::from_utf8(bytes) else {
+        return false;
+    };
+    let mut rest = text.trim_start_matches('\u{feff}');
+    loop {
+        rest = rest.trim_start();
+        let skipped = [
+            ("<?", "?>"),
+            ("<!--", "-->"),
+            ("<!DOCTYPE", ">"),
+            ("<!doctype", ">"),
+        ]
+        .iter()
+        .find(|(open, _)| rest.starts_with(open))
+        .and_then(|(open, close)| rest[open.len()..].split_once(close).map(|(_, after)| after));
+        match skipped {
+            Some(after) => rest = after,
+            None => break,
+        }
+    }
+    rest.strip_prefix("<svg").is_some_and(|after| {
+        after
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_whitespace() || c == '>' || c == '/')
+    })
+}
+
 /// The accepted type of the bytes, from their signature.
 fn detect(bytes: &[u8]) -> Option<ImageFormat> {
     if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {

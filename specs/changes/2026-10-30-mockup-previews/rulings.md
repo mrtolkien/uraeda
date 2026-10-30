@@ -17,3 +17,19 @@ decisions. None binds future work: those are decisions.
 - **If wrong**: a worktree without a seeded `target/` may take more than 2 minutes to build; its
   embed then fails once, and Try again finds the build in cargo's cache.
 - **Where**: `packages/server/src/binding.ts`, `packages/web/.storybook/main.ts`
+
+## R2: A committed SVG under `specs/` is served as an image, and still never attached
+
+- **Decision**: the image route serves an SVG file under `specs/`, such as a prototype in a
+  feature's `mockups/`, as `image/svg+xml`, with
+  `default-src 'none'; style-src 'unsafe-inline'; sandbox`. The core reads it as a drawing only when
+  it is named `.svg` and its first element is `<svg`. Attaching an SVG is still refused.
+- **Rationale**: the [attachments](../../decisions/attachments.md) decision refuses SVG as an
+  attached image, since it can carry code. A drawn `<img>` never runs an SVG's scripts, and opened
+  alone in a tab, the policy runs none and loads nothing, while its own styles still draw it, as the
+  dot banners' `<style>` and dark mode need.
+- **Alternatives considered**: images anywhere in the repository, not only under `specs/`: the
+  route's test pins `specs/`, and prototypes and attachments all live there.
+- **If wrong**: drop the `or_else` in `read_image`: SVGs show as "Image missing" again.
+- **Where**: `crates/core/src/images.rs`, `crates/core/src/api/files.rs`,
+  `packages/server/src/files.ts`

@@ -17,10 +17,14 @@ const types: Record<string, string> = {
 
 /**
  * The headers of an image: its detected type, never sniffed, nothing it could load or run, and no
- * page of another site may embed it.
+ * page of another site may embed it. An SVG opened alone is a page: its own styles draw it, in a
+ * sandbox where no script runs.
  */
 const imageHeaders = (type: string) => ({
-  "content-security-policy": "default-src 'none'",
+  "content-security-policy":
+    type === "image/svg+xml"
+      ? "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+      : "default-src 'none'",
   "content-type": type,
   "cross-origin-resource-policy": "same-origin",
   "x-content-type-options": "nosniff",

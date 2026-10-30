@@ -561,3 +561,28 @@ fn the_screenshot_corpus_shrinks_to_2400_kib() {
     assert_eq!(count, 94);
     assert!(after <= 2400 * 1024, "{} KiB", after / 1024);
 }
+
+#[test]
+fn an_svg_file_is_a_drawing_after_its_declaration_comments_and_doctype() {
+    let drawing = read("drawing.svg");
+    let declared = b"\xEF\xBB\xBF<?xml version=\"1.0\"?>\n<!-- a banner -->\n<!DOCTYPE svg>\n<svg\n viewBox=\"0 0 1 1\"/>";
+
+    assert!(images::is_svg("specs/x/mockups/drawing.svg", &drawing));
+    assert!(images::is_svg("specs/x/mockups/BANNER.SVG", declared));
+}
+
+#[test]
+fn an_svg_name_on_another_file_is_no_drawing() {
+    for (path, bytes) in [
+        (
+            "specs/x/mockups/page.svg",
+            &b"<html><script></script></html>"[..],
+        ),
+        ("specs/x/mockups/svgs.svg", b"<svgs></svgs>"),
+        ("specs/x/mockups/empty.svg", b""),
+        ("specs/x/mockups/binary.svg", b"\xFF\xFE<svg/>"),
+        ("specs/x/mockups/drawing.png", b"<svg/>"),
+    ] {
+        assert!(!images::is_svg(path, bytes), "{path}");
+    }
+}
