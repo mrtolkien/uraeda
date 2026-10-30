@@ -66,13 +66,19 @@ async function main() {
     await working;
     const each = shooter(shots, out, []);
     await each("home", ({ page }) => open(page, "/", "Overview"));
-    await each("questions", ({ page }) =>
-      open(
+    // Q3, a question in the middle of the round, rather than the round's context at its top.
+    await each("questions", async ({ page }) => {
+      await open(
         page,
         `/f/${REALISTIC_FOLDERS.asking}/clarifications-01.md`,
         "How much of the proposal should this feature build?",
-      ),
-    );
+      );
+      await page
+        .locator("section", { hasText: "What should Space do when the focus is on a button?" })
+        .last()
+        .evaluate((element) => element.scrollIntoView({ block: "start" }));
+      await settle(page);
+    });
     await each("spec", ({ page }) =>
       open(page, `/f/${REALISTIC_FOLDERS.reviewing}/spec.md`, "Open the leader menu with Space"),
     );

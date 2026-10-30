@@ -18,12 +18,11 @@
 >
 > Goals once I'm happy with the core feature set
 
+- [Worker lifecycle](proposals/worker-lifecycle.md): runs survive server restarts, usage limits, and
+  their own background work, and go on to the next human gate without a "Continue"
 - Review the UI guidelines properly
 
 - Vim in text edit mode
-
-- [Worker lifecycle](proposals/worker-lifecycle.md): runs survive server restarts, usage limits, and
-  their own background work, and go on to the next human gate without a "Continue"
 
 - Basic git UI in the web ui (pull, see diffs, ...)
   - Pretty much web lazygit?
