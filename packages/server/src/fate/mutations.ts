@@ -7,6 +7,7 @@ import { inboxMutations } from "./inbox-mutations.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { sentImages } from "./chat-images.ts";
 import { changeStarts, onSession } from "./change-starts.ts";
+import { draftMutations } from "./draft-mutations.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { previewDataView, restartPreview } from "./preview.ts";
 import { maskedSession, sessionMoves } from "./session-moves.ts";
@@ -25,6 +26,7 @@ const repositoryMutations = {
   ...sessionMoves,
   ...changeStarts,
   ...inboxMutations,
+  ...draftMutations,
   "feature.start": {
     resolve: async ({
       ctx,

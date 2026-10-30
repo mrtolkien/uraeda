@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use common::repo::TestRepo;
 use common::texts::{proposal, record};
-use uraeda_core::changes::{BranchChanges, ChangedFile, branch_changes};
+use uraeda_core::changes::{BranchChanges, ChangedFile, all_branch_changes, branch_changes};
 
 const FOLDER: &str = "2026-10-14-session-view";
 const CHANGE: &str = "2026-10-13-x";
@@ -389,6 +389,28 @@ fn branch_changes_lists_the_files_changed_outside_the_feature() {
                     "{name}: {error}"
                 );
             }
+        }
+    }
+}
+
+/// The sidebar's one read: every feature with changes lists what its own read finds, and a feature
+/// without any, or whose diff failed, is left out.
+#[test]
+fn every_features_changes_are_each_ones_own() {
+    for (name, setup, expected) in cases().into_iter().chain(own_files_cases()) {
+        let repo = repo();
+        let folder = setup(&repo);
+        let all = all_branch_changes(repo.path()).unwrap();
+        let found = all.iter().find(|feature| feature.folder == folder);
+        match expected {
+            Expected::Changes(expected) => {
+                assert_eq!(
+                    found.map(|feature| &feature.changes),
+                    Some(&expected),
+                    "{name}"
+                );
+            }
+            _ => assert_eq!(found, None, "{name}"),
         }
     }
 }

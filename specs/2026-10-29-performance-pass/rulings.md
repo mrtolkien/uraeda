@@ -215,3 +215,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: task 4 built `Server-Timing` as the time of each response, which is what the spec
   asks of it, and no code reads `cacheStats` there. The plan's text said otherwise.
 - **Where**: review of task 3.
+
+## R22: The draft writes the composer's text too
+
+- **Decision**: `api::draft_proposal(repo, section, title, body)` takes the composer's text and
+  writes it under the file's heading, after a blank line, in the same call. A blank `body` writes
+  nothing more. The web UI's `proposals.draft` sends it, so the New page's `Ctrl+Enter` is one
+  request whatever the composer holds.
+- **Rationale**: the New page's feature composer always holds text, its title asked apart: without
+  the text, the draft would still need the browser's read of the file and its save, two more calls,
+  and US4 1 asks for one request. The core reads the file it just wrote, so no hash can be stale.
+- **Alternatives considered**: the plan's `draft_proposal(repo, section, title)`, followed by the
+  browser's `text.save`, two requests in sequence.
+- **Where**: task 8.
+
+## R23: Every feature's changes are listed by folder, and the cards' record carries only counts
+
+- **Decision**: `changes::all_branch_changes(repo) -> Result<Vec<FeatureChanges>>`, each
+  `FeatureChanges { folder, changes: BranchChanges }`, leaves out a feature without a branch,
+  merged, or whose diff failed. The server's `AllBranchChanges` record sends each feature's folder,
+  count, and lines added and removed, without the files, and `failed` when the read as a whole
+  failed.
+- **Rationale**: a `Vec<BranchChanges>`, as the plan named it, says not whose changes each is. A
+  card shows only the lines added and removed: up to 50 files per feature would be sent for nothing.
+  A card without its counts loses nothing it needs, and the feature's own page reads its changes and
+  says when they failed.
+- **Where**: task 8.
+
+## R24: The cards' record is read again once when the tab comes back
+
+- **Decision**: `useCardChanges` (`branchChanges.ts`) keeps the one request as `useRefreshOnShow`
+  does, through `show`, but its read on the tab's return is shared by every card, not one per card.
+- **Rationale**: every card calls the hook; `useRefreshOnShow`'s listener per card would send the
+  same request once per card, which the one record exists to avoid.
+- **Where**: task 8.

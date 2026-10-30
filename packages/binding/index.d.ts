@@ -52,6 +52,12 @@ export declare function addRepository(dataDir: string, folder: string): Promise<
 /** Adds a comment on the settled point starting with `subject`, at the end of the notes. */
 export declare function addSettledComment(repo: string, folder: string, subject: string, text: string): Promise<FileView>
 
+/**
+ * Every feature's branch changes outside its folder, by its folder: a feature without any is left
+ * out.
+ */
+export declare function allBranchChanges(repo: string): Promise<Array<FeatureChanges>>
+
 /** Approves a spec or a plan, and commits it. */
 export declare function approve(repo: string, folder: string, file: string, summary?: string | undefined | null, riskTier?: string | undefined | null, planReview?: boolean | undefined | null): Promise<FileView>
 
@@ -143,6 +149,12 @@ export declare function discardChanges(repo: string): Promise<void>
 
 /** Restores the committed priorities. */
 export declare function discardPriorities(repo: string): Promise<Priorities>
+
+/**
+ * Writes `title` as the first proposal of a section that has not started, expands it into a
+ * proposal file, and writes `body` under its heading: the file, for its editor.
+ */
+export declare function draftProposal(repo: string, section: string, title: string, body: string): Promise<ProposalFileView>
 
 /**
  * Drops a started feature or change: its proposal leaves the priorities, its worktree is removed
@@ -953,6 +965,12 @@ export interface EdgeCase {
   importance: string
   /** Its row's block. */
   row: number
+}
+
+/** A feature's branch changes, by its folder: what the sidebar's cards show, for every feature. */
+export interface FeatureChanges {
+  folder: string
+  changes: BranchChanges
 }
 
 export interface FeatureView {

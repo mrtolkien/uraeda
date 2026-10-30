@@ -4,6 +4,7 @@
 import { createFateServer, type FateRequestError } from "@nkzw/fate/server";
 import {
   agentDataView,
+  allBranchChangesDataView,
   branchChangesDataView,
   branchDecisionDataView,
   proposalFileDataView,
@@ -87,6 +88,7 @@ export function refused(message: string): FateRequestError {
 /** Every type the server's roots read: a root without its view here fails at once. */
 const dataViews = [
   agentDataView,
+  allBranchChangesDataView,
   branchChangesDataView,
   branchDecisionDataView,
   proposalFileDataView,

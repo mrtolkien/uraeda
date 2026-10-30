@@ -99,7 +99,7 @@ test("fate's responses carry the server's time", async () => {
 /**
  * A feature's step changed through git, as a commit of its answers: its session's status reads
  * the step, so the sidebar's list and the session are sent with the feature, and a commit may
- * change its branch's files.
+ * change its branch's files, which the cards' record of every feature's changes reads too.
  */
 test("a feature's change through git is published to its session, its branch's changes, and the list", async () => {
   const repo = fixtureRepo();
@@ -133,6 +133,7 @@ test("a feature's change through git is published to its session, its branch's c
       "RecommendedMessage 2026-10-12-cli-tuis",
       "Feature 2026-10-11-web-ui",
       "BranchChanges 2026-10-11-web-ui",
+      "AllBranchChanges all-branch-changes",
       "SessionList all",
       `Session ${session.id}`,
     ]),

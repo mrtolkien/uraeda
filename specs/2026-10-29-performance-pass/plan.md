@@ -785,46 +785,52 @@ git commit -m "feat(performance-pass): the core writes at once and defers the co
 
 - Consumes: `write_lock(repo)` and `open` from task 3.
 - Produces:
-  - `api::draft_proposal(repo: &Path, section: &str, title: &str) -> Result<ProposalFileView>`:
-    inserts the title's line in the priorities' section, expands it into its file, and returns the
-    file, as the 4 to 5 calls of `useStartFrom` did.
-  - `changes::all_branch_changes(repo: &Path) -> Result<Vec<BranchChanges>>`, and the server's
-    `AllBranchChanges` record, id `all-branch-changes`, live-updated with each feature's changes.
+  - `api::draft_proposal(repo: &Path, section: &str, title: &str, body: &str) -> Result<ProposalFileView>`
+    (in `api/drafts.rs`): inserts the title's line in the priorities' section, before its first
+    proposal not started, expands it into its file, writes `body` under its heading, and returns the
+    file, as the 4 to 5 calls of `useStartFrom` did (R22).
+  - `changes::all_branch_changes(repo: &Path) -> Result<Vec<FeatureChanges>>`, each
+    `FeatureChanges { folder, changes }`, and the server's `AllBranchChanges` record, id
+    `all-branch-changes`, each feature's folder, count, and lines, live-updated with each feature's
+    changes (R23). The web UI reads it through `useCardChanges` in `branchChanges.ts` (R24).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```rust
 // crates/core/tests/proposal.rs
 #[test]
 fn a_drafted_proposal_writes_its_line_and_its_file_in_one_call() {
-    // `draft_proposal(repo, "Now", "Performance pass")`: the priorities' Now lists a line linking
-    // the returned path, and the file's title is "Performance pass".
+    // `draft_proposal(repo, "now", "Performance pass", body)`: the priorities' Now lists a line
+    // linking the returned path, after the started proposal and before the one not started, and
+    // the file's title is "Performance pass", its text ending with `body`.
 }
 ```
 
 The break it catches: a draft that writes the file but not the line, or links another path.
+`crates/core/tests/branch_changes.rs`'s "every feature's changes are each one's own" checks
+`all_branch_changes` against `branch_changes` over every case of that file.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test proposal`
 - Expected: FAIL, `draft_proposal` not found.
 
-- [ ] **Step 3: Implement the core, the binding, and the server**
+- [x] **Step 3: Implement the core, the binding, and the server**
 
 `draft_proposal` reuses the existing insert and expand functions under one write lock.
 `all_branch_changes` computes each feature's `BranchChanges` from one workspace read.
 
-- [ ] **Step 4: Use them in the web UI**
+- [x] **Step 4: Use them in the web UI**
 
 `useStartFrom` calls `proposals.draft` once, then opens the editor. The sidebar's cards read
 `AllBranchChanges` once, through one hook, instead of a request per card.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `vp run fast`, then `nix develop -c cargo nextest run -p uraeda-core`
 - Expected: PASS. Deferred to ready: the whole suite.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates packages

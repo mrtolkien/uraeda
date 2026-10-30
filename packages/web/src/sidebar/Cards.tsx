@@ -2,7 +2,7 @@
 // a session's, which opens the session.
 import { Suspense, use } from "react";
 import { PickedCard } from "../layout/picked.ts";
-import { useBranchChanges } from "../data.ts";
+import { useCardChanges } from "../branchChanges.ts";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
 import { usePendingAction } from "../writes/store.ts";
 import { type Feature, type Row, sessionCard, toCard } from "./cards.ts";
@@ -51,7 +51,10 @@ export function FeatureCard({
   );
 }
 
-/** The card with its branch's lines added and removed, when it changed any. */
+/**
+ * The card with its branch's lines added and removed, when it changed any, from the one record of
+ * every feature's changes.
+ */
 function WithChanges({
   folder,
   item,
@@ -61,7 +64,7 @@ function WithChanges({
   item: CardItem;
   render: (item: CardItem) => React.ReactNode;
 }) {
-  const changes = useBranchChanges(folder)?.changes;
+  const changes = useCardChanges(folder);
   return render(
     changes && (changes.added > 0 || changes.removed > 0)
       ? { ...item, changes: { added: changes.added, removed: changes.removed } }

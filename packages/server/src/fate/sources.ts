@@ -67,7 +67,14 @@ import {
   DEFAULT_ROUND_FILES,
   DEFAULT_ROUND_IDS,
 } from "../runner/round-messages.ts";
-import { type BranchChangesRecord, branchChangesDataView, sentChanges } from "./views-branch.ts";
+import {
+  ALL_BRANCH_CHANGES_ID,
+  allBranchChanges,
+  allBranchChangesDataView,
+  type BranchChangesRecord,
+  branchChangesDataView,
+  sentChanges,
+} from "./views-branch.ts";
 import { historyDataView, sentHistory } from "./views-history.ts";
 import { LEDGER_ID, ledgerDataView, sentLedger } from "./views-ledger.ts";
 import {
@@ -325,6 +332,13 @@ export const sources = createSources<Context>([
     branchChangesDataView,
     repository({
       byIds: async (ctx, ids) => Promise.all(ids.map((id) => branchChanges(ctx, id))),
+    }),
+  ),
+  fileSource(
+    allBranchChangesDataView,
+    repository({
+      byIds: async ({ binding, repo }, ids) =>
+        ids.includes(ALL_BRANCH_CHANGES_ID) ? [await allBranchChanges(binding, repo)] : [],
     }),
   ),
   fileSource(

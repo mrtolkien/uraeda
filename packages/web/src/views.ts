@@ -3,6 +3,7 @@
 import { view } from "react-fate";
 import type {
   Agent,
+  AllBranchChanges,
   BranchChanges,
   BranchDecision,
   ProposalFile,
@@ -144,6 +145,13 @@ export const DroppedView = view<Dropped>()({
 export const BranchChangesView = view<BranchChanges>()({
   changes: { added: true, count: true, files: true, removed: true },
   failed: true,
+  id: true,
+});
+
+/** Every feature's count of changed files and lines, for the sidebar's cards, in one record. */
+export const AllBranchChangesView = view<AllBranchChanges>()({
+  failed: true,
+  features: true,
   id: true,
 });
 

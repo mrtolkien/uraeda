@@ -8,8 +8,8 @@ use napi_derive::napi;
 use serde::Serialize;
 
 use crate::api::{self, ApiError};
-use crate::git::Range;
-use crate::workspace::{Feature, folder_path, record_path};
+use crate::git::{Git, Range};
+use crate::workspace::{Feature, Workspace, folder_path, record_path};
 
 /// The most files listed; the counts and totals still cover every file.
 const LISTED: usize = 50;
@@ -39,11 +39,47 @@ pub struct BranchChanges {
     pub removed: u32,
 }
 
+/// A feature's branch changes, by its folder: what the sidebar's cards show, for every feature.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FeatureChanges {
+    pub folder: String,
+    pub changes: BranchChanges,
+}
+
 /// The files a feature's branch changed outside its folder: `None` when the feature has no
 /// branch, is merged, or the default branch is unknown.
 pub fn branch_changes(repo: &Path, folder: &str) -> Result<Option<BranchChanges>, ApiError> {
     let (git, workspace) = api::open(repo)?;
     let feature = api::find(&workspace, folder)?;
+    changes_of(&git, &workspace, feature)
+}
+
+/// Every feature's branch changes, from one read of the workspace, as [`branch_changes`] reads
+/// each: a feature without any is left out, and so is one whose diff failed, which its own page
+/// reads again and reports.
+pub fn all_branch_changes(repo: &Path) -> Result<Vec<FeatureChanges>, ApiError> {
+    let (git, workspace) = api::open(repo)?;
+    Ok(workspace
+        .features
+        .iter()
+        .filter_map(|feature| {
+            let changes = changes_of(&git, &workspace, feature).ok().flatten()?;
+            Some(FeatureChanges {
+                folder: feature.folder.clone(),
+                changes,
+            })
+        })
+        .collect())
+}
+
+/// A feature's branch changes, in a workspace read from `git`.
+fn changes_of(
+    git: &Git,
+    workspace: &Workspace,
+    feature: &Feature,
+) -> Result<Option<BranchChanges>, ApiError> {
     let (Some(branch), Some(default)) = (&feature.branch, &workspace.default_branch) else {
         return Ok(None);
     };

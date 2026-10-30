@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { readProposalFile } from "./attach/useEditorImages.ts";
-import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
+import { readInbox, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { withFreshBase } from "./freshBase.ts";
 import { splitProposal } from "./pane/proposalText.ts";
@@ -67,44 +67,21 @@ async function lineFile(fate: Fate, entry: StartLine): Promise<Made> {
 }
 
 /**
- * Writes the title as the first of Now's proposals that has not started, then expands it into a
- * file: the started ones stay above it. An expand refused takes the proposal back out, so Now is as
+ * Drafts the title as the first of Now's proposals that has not started, its file, and `body`
+ * under its heading, in one request: the started ones stay above it. A refused draft leaves Now as
  * it was.
  */
-async function titleFile(fate: Fate, title: string): Promise<Made> {
-  // Where the title goes, in the priorities the insert is written over.
-  let index = 0;
-  const inserted = await withFreshBase(
-    (mode) => readPriorities(fate, mode),
-    ({ hash, sections }) => {
-      const now = sections.find((section) => section.section === NOW)?.proposals ?? [];
-      const first = now.findIndex((proposal) => !proposal.running);
-      index = first === -1 ? now.length : first;
-      return fate.mutations.proposals.insert({
-        input: { hash, index, lines: [`- ${title}`], section: NOW },
-        view: PrioritiesView,
-      });
-    },
-  );
-  if (inserted.error || !inserted.result) {
-    return made(inserted, "path");
-  }
-  const proposal = `${NOW}-${index + 1}`;
-  const expanded = made(
-    await fate.mutations.proposals.expand({
-      input: { hash: inserted.result.hash, proposal },
+async function titleFile(fate: Fate, title: string, body: string): Promise<Made> {
+  const drafted = made(
+    await fate.mutations.proposals.draft({
+      input: { body, section: NOW, title },
       view: ProposalFileView,
     }),
     "path",
   );
-  if ("error" in expanded) {
-    // The refusal shown is the expand's: a proposal left behind is in the commit page's changes.
-    await fate.mutations.proposals.remove({
-      input: { hash: inserted.result.hash, proposal },
-      view: PrioritiesView,
-    });
-  }
-  return expanded;
+  // The count of changes the priorities and the inbox carry: the draft's line is one.
+  rereadChanges(fate);
+  return drafted;
 }
 
 /** An entry the New page's composer was filled from: its kind, id, and own file, if it has one. */
@@ -176,16 +153,18 @@ async function proposalWritten(
   }: { body: string; sources: ReadonlyArray<Taken & { inserted: string }>; title: string },
 ): Promise<Made> {
   const [first, ...rest] = sources;
-  const written = first
-    ? first.kind === "note"
+  if (!first) {
+    return titleFile(fate, title, body);
+  }
+  const written =
+    first.kind === "note"
       ? await noteFile(fate, { id: first.id })
-      : await lineFile(fate, { file: first.linked ? { path: first.linked } : null, id: first.id })
-    : await titleFile(fate, title);
+      : await lineFile(fate, { file: first.linked ? { path: first.linked } : null, id: first.id });
   if ("error" in written) {
     return written;
   }
   // Its own text stays when the composer holds only what it was filled with.
-  const kept = first !== undefined && body.trim() === first.inserted.trim();
+  const kept = body.trim() === first.inserted.trim();
   const refused = kept ? undefined : await writeBody(fate, written.value, body);
   await takeOut(fate, rest);
   return refused === undefined ? written : { error: refused };

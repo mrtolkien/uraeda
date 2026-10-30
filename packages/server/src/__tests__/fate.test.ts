@@ -366,6 +366,18 @@ test("a feature's branch changes, and none for a feature without a branch", asyn
   expect(onMain).toHaveProperty("changes", null);
 });
 
+test("every feature's branch changes come in one record, without a feature that has none", async () => {
+  const repo = fixtureRepo();
+  commitOnBranch(repo, CLI, { "src/cli.rs": "fn main() {}\n" });
+  const { app } = await testApp(repo);
+
+  const [all] = await byId(app, "AllBranchChanges", ["all-branch-changes"], ["features", "failed"]);
+  expect(all.failed).toBe(false);
+  const folders = all.features.map((feature: { folder: string }) => feature.folder);
+  expect(all.features).toContainEqual({ added: 1, count: 1, folder: CLI, removed: 0 });
+  expect(folders).not.toContain("2026-10-10-cli-core");
+});
+
 test("a binary file is sent with null lines, not without them", async () => {
   const repo = fixtureRepo();
   commitOnBranch(repo, CLI, { "logo.png": "\0PNG\0" });

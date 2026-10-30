@@ -28,7 +28,7 @@ import { needsYouListDataView } from "./fate/needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
 import { recommendedDataView } from "./fate/recommended.ts";
 import { settingsDataView } from "./fate/settings.ts";
-import { branchChangesDataView } from "./fate/views-branch.ts";
+import { allBranchChangesDataView, branchChangesDataView } from "./fate/views-branch.ts";
 import { droppedDataView } from "./fate/views-dropped.ts";
 import { historyDataView } from "./fate/views-history.ts";
 import { ledgerDataView } from "./fate/views-ledger.ts";
@@ -36,6 +36,7 @@ import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-re
 
 export {
   agentDataView,
+  allBranchChangesDataView,
   branchChangesDataView,
   branchDecisionDataView,
   proposalFileDataView,
@@ -74,12 +75,14 @@ export {
 } from "./fate/views.ts";
 export { SETTINGS_ID } from "./fate/settings.ts";
 export { LEDGER_ID } from "./fate/views-ledger.ts";
+export { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
 export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;
 export type Feature = Entity<typeof featureDataView, "Feature">;
 export type BranchChanges = Entity<typeof branchChangesDataView, "BranchChanges">;
+export type AllBranchChanges = Entity<typeof allBranchChangesDataView, "AllBranchChanges">;
 export type History = Entity<typeof historyDataView, "History">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type BranchDecision = Entity<typeof branchDecisionDataView, "BranchDecision">;
