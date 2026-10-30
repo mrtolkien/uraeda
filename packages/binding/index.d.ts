@@ -129,6 +129,13 @@ export declare function configDir(custom?: string | undefined | null): string
 export declare function dataDir(custom?: string | undefined | null): string
 
 /**
+ * Turns deferral of commits on or off for the repository at `repo`. Turned off, the commits not
+ * landed are forgotten, their files left written. It reads no workflow file, so it returns at
+ * once.
+ */
+export declare function deferCommits(repo: string, on: boolean): void
+
+/**
  * Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of proposal
  * files, keeping any text the human typed.
  */
@@ -210,6 +217,12 @@ export declare function insertNote(repo: string, index: number, lines: Array<str
  * section, or at its end: Undo of a removal.
  */
 export declare function insertProposal(repo: string, section: string, index: number, lines: Array<string>, previous: string): Promise<Priorities>
+
+/**
+ * Lands the deferred commit `id` with the hooks, calling `onOutput` with each line git and its
+ * hooks print. A hook's refusal puts back what the write left, and rejects with `hook: `.
+ */
+export declare function land(repo: string, id: string, onOutput: (line: string) => void): Promise<CommitView>
 
 /** The main checkout's path, from any of the repository's working trees. */
 export declare function mainRoot(repo: string): Promise<string>
@@ -510,6 +523,12 @@ export declare function submitAnswers(repo: string, folder: string, name?: strin
  * hash `previous`.
  */
 export declare function submitRound(repo: string, id: string, previous: string): Promise<FileView>
+
+/**
+ * The commits the writes to the repository at `repo` deferred since the last call, each handed
+ * out once. It reads no workflow file, so it returns at once.
+ */
+export declare function takeDeferred(repo: string): Array<Deferred>
 
 /**
  * Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
@@ -887,6 +906,13 @@ export interface DecisionChange {
 export interface DecisionTarget {
   name: string
   removed: boolean
+}
+
+/** A commit deferred by a write, waiting to land. */
+export interface Deferred {
+  id: string
+  subject: string
+  paths: Array<string>
 }
 
 /** The tree of one workflow file. */

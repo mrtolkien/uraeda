@@ -3,7 +3,10 @@
 
 use std::path::Path;
 
-use super::{Git, GitError, read_error};
+use super::{Git, GitError, process, read_error};
+
+/// Called with each line `git commit` and its hooks print, as they print it.
+pub type OnOutput<'a> = Option<&'a dyn Fn(&str)>;
 
 impl Git {
     /// The configured `core.hooksPath`, made absolute from the main working tree when it is
@@ -49,6 +52,18 @@ impl Git {
         body: Option<&str>,
         amend: bool,
     ) -> Result<(), GitError> {
+        self.commit_streaming(paths, subject, body, amend, None)
+    }
+
+    /// Commits `paths` as [`Git::commit`] does, `on_output` given git's output as it comes.
+    pub fn commit_streaming(
+        &self,
+        paths: &[String],
+        subject: &str,
+        body: Option<&str>,
+        amend: bool,
+        on_output: OnOutput,
+    ) -> Result<(), GitError> {
         let staged = self.staged_files()?;
         let others = others_staged(&staged, paths);
         if !others.is_empty() {
@@ -61,7 +76,7 @@ impl Git {
             self.run("add", &add)?;
         }
         let extra: &[&str] = if amend { &["--amend"] } else { &[] };
-        self.commit_staged(extra, subject, body)
+        self.commit_staged(extra, subject, body, on_output)
             // A refused commit takes back what it staged, so nothing it held blocks or rides along.
             .inspect_err(|_| drop(self.unstage(&addable)))
     }
@@ -76,6 +91,19 @@ impl Git {
         body: Option<&str>,
         amend: bool,
     ) -> Result<(), GitError> {
+        self.commit_only_streaming(paths, subject, body, amend, None)
+    }
+
+    /// Commits `paths` alone as [`Git::commit_only`] does, `on_output` given git's output as it
+    /// comes.
+    pub fn commit_only_streaming(
+        &self,
+        paths: &[String],
+        subject: &str,
+        body: Option<&str>,
+        amend: bool,
+        on_output: OnOutput,
+    ) -> Result<(), GitError> {
         let paths: Vec<&str> = paths.iter().map(String::as_str).collect();
         let mut add = vec!["add", "--"];
         add.extend(&paths);
@@ -83,16 +111,18 @@ impl Git {
         let mut only = if amend { vec!["--amend"] } else { Vec::new() };
         only.extend(["--only", "--"]);
         only.extend(&paths);
-        self.commit_staged(&only, subject, body)
+        self.commit_staged(&only, subject, body, on_output)
             .inspect_err(|_| drop(self.unstage(&paths)))
     }
 
-    /// Runs `git commit` with the hooks, `extra` after its message.
+    /// Runs `git commit` with the hooks, `extra` after its message, its output streamed to
+    /// `on_output` when one is given.
     fn commit_staged(
         &self,
         extra: &[&str],
         subject: &str,
         body: Option<&str>,
+        on_output: OnOutput,
     ) -> Result<(), GitError> {
         let hooks = self
             .hooks_override()
@@ -106,7 +136,12 @@ impl Git {
             commit.extend(["--message", body]);
         }
         commit.extend(extra);
-        self.run("commit", &commit)
+        match on_output {
+            Some(on_line) => process::run_streaming("git", &commit, &self.root, on_line)
+                .map(drop)
+                .map_err(|failure| failure.into_git("commit")),
+            None => self.run("commit", &commit),
+        }
     }
 
     /// Resets the index entries of `paths`, files or folders, to `HEAD`, the working tree kept.

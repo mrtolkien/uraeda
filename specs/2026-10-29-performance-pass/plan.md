@@ -702,7 +702,7 @@ git commit -m "feat(performance-pass): pages load as chunks, and development war
   - Binding: `deferCommits(repo, on)`, `takeDeferred(repo): Array<Deferred>`,
     `land(repo, id, onOutput: (line: string) => void): Promise<CommitView>`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/deferred.rs
@@ -725,12 +725,12 @@ fn a_deferred_commit_never_landed_leaves_its_files_written_uncommitted() {
 The break each catches: an undo that puts back the committed version and loses saved answers; an
 undo that overwrites a later write; a deferral that reverts or commits on drop.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test deferred`
 - Expected: FAIL, `defer_commits` not found.
 
-- [ ] **Step 3: Implement deferral**
+- [x] **Step 3: Implement deferral**
 
 With deferral on for the repository, `place::reach` records, for the place it reaches, the list of
 files under its `specs/` and the bytes of each Markdown file: the write's "before". `commit` and
@@ -741,28 +741,28 @@ amend included. On a hook's refusal, each path of the change that still holds it
 existed but was not Markdown, such as an image. A path that changed since is left, and the refusal
 says which. Deferred commits live in memory only.
 
-- [ ] **Step 4: Stream git's output**
+- [x] **Step 4: Stream git's output**
 
 `run_streaming` reads git's merged output line by line and calls `on_line`, returning what `run`
 returns. `land` uses it for `git commit`.
 
-- [ ] **Step 5: Expose it in the binding**
+- [x] **Step 5: Expose it in the binding**
 
 A `ThreadsafeFunction` for `onOutput`, as `watch` does. New functions in `deferred.rs`, not in
 `lib.rs` beyond its module line.
 
-- [ ] **Step 6: Make the breaks**
+- [x] **Step 6: Make the breaks**
 
 Make undo restore the committed version, and see the first test fail on the saved answers; make it
 skip the "after" check, and see its second case fail. Restore both. Report what failed in the
 commit's body.
 
-- [ ] **Step 7: Run the task's validation**
+- [x] **Step 7: Run the task's validation**
 
 - Run: `vp run fast`, then `nix develop -c cargo nextest run -p uraeda-core`
 - Expected: PASS, the refusal tests of `actions.rs` unchanged. Deferred to ready: the server suite.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add crates/core crates/binding packages/binding/index.d.ts

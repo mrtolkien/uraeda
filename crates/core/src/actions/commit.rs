@@ -10,15 +10,42 @@ use super::{ActionError, Change, Committed};
 
 /// Commits an action's files in the working tree it wrote in, running the hooks, or amends the
 /// latest commit with them, as [`amend`](super::amend) says. A hook's refusal keeps the files
-/// written, and returns its whole output.
+/// written, and returns its whole output. In a repository that defers its commits, returns at
+/// once, the commit left to [`land`](super::deferred::land).
 pub fn commit(place: &Place, change: &Change) -> Result<Committed, ActionError> {
+    if let Some(deferred) = super::deferred::defer_commit(place, change, false) {
+        return Ok(deferred);
+    }
     committed(place, change, Git::commit)
 }
 
 /// Commits an action's files alone, as [`commit`] does, leaving other staged files staged and
 /// out of the commit.
 pub fn commit_only(place: &Place, change: &Change) -> Result<Committed, ActionError> {
+    if let Some(deferred) = super::deferred::defer_commit(place, change, true) {
+        return Ok(deferred);
+    }
     committed(place, change, Git::commit_only)
+}
+
+/// Runs a deferred commit, alone when `only` is set, as [`commit`] or [`commit_only`] would have,
+/// `on_output` given git's output as it comes.
+pub(super) fn run(
+    place: &Place,
+    change: &Change,
+    only: bool,
+    on_output: &dyn Fn(&str),
+) -> Result<Committed, ActionError> {
+    let output = Some(on_output);
+    if only {
+        committed(place, change, |git, paths, subject, body, amend| {
+            git.commit_only_streaming(paths, subject, body, amend, output)
+        })
+    } else {
+        committed(place, change, |git, paths, subject, body, amend| {
+            git.commit_streaming(paths, subject, body, amend, output)
+        })
+    }
 }
 
 /// Commits `change` with `run`, and returns it with the message committed, an amend's. An amend

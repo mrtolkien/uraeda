@@ -14,10 +14,8 @@ pub(crate) mod process;
 mod refresh;
 mod status;
 
-use process::Failure;
-
 pub use amend::Latest;
-pub use commit::others_staged;
+pub use commit::{OnOutput, others_staged};
 pub use history::{CommitInfo, Range};
 
 pub use gix::ObjectId;
@@ -484,15 +482,7 @@ impl Git {
 /// Runs `git` in `root`, and returns its stdout: `Git::output` for a thread, which cannot share a
 /// `Git`.
 fn output_in(root: &Path, subcommand: &str, args: &[&str]) -> Result<String, GitError> {
-    let command = |message: String, output: String| GitError::Command {
-        subcommand: subcommand.to_string(),
-        message,
-        output,
-    };
-    match process::run("git", args, root) {
-        Ok(stdout) => Ok(String::from_utf8_lossy(&stdout).into_owned()),
-        Err(Failure::NotFound) => Err(GitError::GitNotFound),
-        Err(Failure::Start(error)) => Err(command(error.clone(), error)),
-        Err(Failure::Exit { message, output }) => Err(command(message, output)),
-    }
+    process::run("git", args, root)
+        .map(|stdout| String::from_utf8_lossy(&stdout).into_owned())
+        .map_err(|failure| failure.into_git(subcommand))
 }
