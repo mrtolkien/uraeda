@@ -67,12 +67,20 @@ const ASKS: Record<string, string> = {
 
 const REFUSED = "The agent was refused an action";
 
+/** What a run that needs attention tells, by why: one halted before a gate, by default. */
+const ATTENTION: Partial<Record<StatusReason, string>> = {
+  failed: "The run failed",
+  interrupted: "The server stopped the run",
+  stopped: "You stopped the run",
+};
+const HALTED = "The run stopped before a gate";
+
 function messageOf(feature: FeatureView, reason: NeedsYouReason, why: StatusReason | null) {
   switch (reason) {
     case "blocked":
       return REFUSED;
     case "attention":
-      return why === "failed" ? "The run failed" : "The run stopped before a gate";
+      return (why && ATTENTION[why]) ?? HALTED;
     case "pull-request":
       return `Pull request #${feature.pullRequest?.number ?? ""} is ready for review`;
     case "step": {

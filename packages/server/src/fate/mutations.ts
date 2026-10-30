@@ -265,6 +265,14 @@ const repositoryMutations = {
     },
     type: "Session",
   },
+  "session.dismiss": {
+    resolve: async ({ ctx, input, select }: Resolver<{ turn: string }>) => {
+      const turn = Number(input.turn);
+      await onSession(ctx, () => ctx.sessions.dismiss(ctx.repo, turn));
+      return session(ctx, ctx.sessions.cache.turn(turn)!.sessionId, select);
+    },
+    type: "Session",
+  },
   "session.newChat": {
     resolve: async ({ ctx, select }: Resolver<Record<string, never>>) =>
       session(ctx, (await refusedOn(() => ctx.sessions.newChat(ctx.repo))).id, select),

@@ -143,6 +143,8 @@ export const migrations: Array<Migration> = [
   // A change or a feature holds several sessions: its folder is no longer unique.
   `DROP INDEX one_session_per_feature;
   CREATE INDEX sessions_by_folder ON sessions (repo, folder) WHERE folder IS NOT NULL;`,
+  // When the human dismissed a failed or stopped turn, null while it still asks for them.
+  "ALTER TABLE turns ADD COLUMN dismissed_at TEXT;",
 ];
 
 /**

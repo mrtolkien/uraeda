@@ -530,7 +530,7 @@ git commit -m "fix(feature-state): a line of Now started as a change leaves Now"
   - Notification messages: failed "The run failed", stopped "You stopped the run", interrupted "The
     server stopped the run", halted "The run stopped before a gate".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `status.test.ts`, rewrite the rows of a failed and a stopped latest turn: not dismissed, they
 read `attention` with reasons `failed`, `stopped`, and `interrupted` for the server's stop.
@@ -552,13 +552,13 @@ The break each test catches:
 - Rows: a dismissal ignored, or a stop by the server read as the human's.
 - Restart: the dismissal kept in memory only, or a migration that drops the column's values.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner/__tests__/status.test.ts packages/server/src/__tests__/dismissed.test.ts`
 - Expected: FAIL, `interrupted` is not a reason, and `session.dismiss` is not a mutation.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 A cache an older server made gains the column, empty, when the new server opens it; an older server
 ignores it. Once the tests pass, remove the `dismissedAt` check in `sessionStatus`, see the restart
@@ -569,7 +569,7 @@ test fail, and restore it. Write what failed in the commit body.
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-10-30-feature-state/plan.md
