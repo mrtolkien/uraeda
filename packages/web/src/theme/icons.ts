@@ -69,6 +69,7 @@ import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
 import { badgeCheck, hourglass, keyboard, lightbulb, map, scale, shield } from "./lucideParts.ts";
 import { filePenLine, gitCompare, listChecks, users } from "./sessionIcons.ts";
 import { arrowRightLeft, brain, indent, outdent, trash } from "./activityIcons.ts";
+import { play } from "./barIcons.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
 // Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The README's
@@ -225,6 +226,7 @@ export const uraedaIcons = {
   "uraeda:panel-right": panelRight,
   "uraeda:pencil": pencil,
   "uraeda:pick": pick,
+  "uraeda:play": play,
   "uraeda:plug": plug,
   "uraeda:plus": plus,
   "uraeda:rows-3": rows3,

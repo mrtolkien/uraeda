@@ -1,14 +1,17 @@
 // A proposal file's Start, the editor page's second pane: what to start it as, a feature or a
 // change, the slug that names its folder and branch, and the button. `f` and `c` pick the kind, `s`
 // brings the focus to the slug, where Enter starts: no key starts anything without the slug in
-// view.
+// view. On the phone, the same in a sheet, which the bottom bar's one button opens (`StartBar`).
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
+import { ColumnStatusLine } from "./layout/ColumnStatusLine.tsx";
+import { NavTile, NavTiles } from "./layout/NavBar.tsx";
+import type { SheetState } from "./layout/useSheetTab.ts";
 import type { useTextField } from "./fields/useTextField.ts";
 import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
@@ -48,43 +51,79 @@ export function ProposalStart({
   // Always the same: the branch and worktree are made, and the session opens with the workflow's
   // message in its composer, unsent.
   const run = () => actions.start(true, kind);
-  return (
-    <Pane icon={isFeature ? "uraeda:file-text" : "uraeda:wrench"} title="Start">
-      <VStack gap={3} xstyle={styles.body}>
-        <SegmentedControl label="Start as" onChange={onKind} value={kind}>
-          <SegmentedControlItem label="Feature" value="feature" />
-          <SegmentedControlItem label="Change" value="change" />
-        </SegmentedControl>
-        <div ref={slugRef}>
-          <SlugField
-            description="Names its folder and its branch."
-            field={slug}
-            onEnter={() => {
-              if (slug.text.trim()) {
-                void run();
-              }
-            }}
-          />
-        </div>
-        <HStack align="center" gap={2} wrap="wrap">
-          <WriteButton
-            // Its key, as the New page's send shows Enter: the phone has no such key.
-            endContent={
-              !narrow && (
-                <>
-                  Ctrl+
-                  <Icon aria-hidden="true" icon="uraeda:enter" label="Enter" />
-                </>
-              )
+  const body = (
+    <VStack gap={3} xstyle={styles.body}>
+      <SegmentedControl label="Start as" onChange={onKind} value={kind}>
+        <SegmentedControlItem label="Feature" value="feature" />
+        <SegmentedControlItem label="Change" value="change" />
+      </SegmentedControl>
+      <div ref={slugRef}>
+        <SlugField
+          description="Names its folder and its branch."
+          field={slug}
+          onEnter={() => {
+            if (slug.text.trim()) {
+              void run();
             }
-            isDisabled={!slug.text.trim()}
-            label={isFeature ? "Start feature" : "Start change"}
-            onClick={run}
-            runningLabel={isFeature ? "Starting the feature…" : "Starting the change…"}
-            variant="primary"
-          />
-        </HStack>
-      </VStack>
+          }}
+        />
+      </div>
+      <HStack align="center" gap={2} wrap="wrap">
+        <WriteButton
+          // Its key, as the New page's send shows Enter: the phone has no such key.
+          endContent={
+            !narrow && (
+              <>
+                Ctrl+
+                <Icon aria-hidden="true" icon="uraeda:enter" label="Enter" />
+              </>
+            )
+          }
+          isDisabled={!slug.text.trim()}
+          label={isFeature ? "Start feature" : "Start change"}
+          onClick={run}
+          runningLabel={isFeature ? "Starting the feature…" : "Starting the change…"}
+          variant="primary"
+        />
+      </HStack>
+    </VStack>
+  );
+  // On the phone, the sheet's own title names it.
+  return narrow ? (
+    body
+  ) : (
+    <Pane icon={isFeature ? "uraeda:file-text" : "uraeda:wrench"} title="Start">
+      {body}
     </Pane>
+  );
+}
+
+/** The phone's sheet of the Start, by its key in the address: `?tab=start`. */
+export const START_SHEETS = { start: "Start" } as const;
+
+/**
+ * On the phone, the editor's bottom bar: Start alone, in the accent, a single button, which
+ * `onStart` makes open `start`, the Start's sheet, `sheet` naming it open.
+ */
+export function StartBar({
+  onStart,
+  sheet,
+  start,
+}: {
+  onStart: () => void;
+  sheet: SheetState;
+  start: ReactNode;
+}) {
+  const buttons = (
+    <NavTiles label="The proposal's start">
+      <NavTile icon="uraeda:play" isTinted label="Start" onPress={onStart} />
+    </NavTiles>
+  );
+  return (
+    <ColumnStatusLine
+      buttons={buttons}
+      sheet={sheet}
+      sheets={[{ height: "hug", key: "start", label: START_SHEETS.start, panel: start }]}
+    />
   );
 }

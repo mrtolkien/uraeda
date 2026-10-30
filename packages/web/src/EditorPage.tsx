@@ -1,6 +1,6 @@
 // A proposal file's page, or a started proposal's, laid out as a terminal tool would: the title,
 // one line of what it is, its research effort, then the text in a pane, and, for a proposal file, a
-// Start pane beside it. Every action has a key, which the status line names: `i` edits, Escape
+// Start pane beside it, or under it; on the phone, in a sheet that the bottom bar's Start opens. Every action has a key, which the status line names: `i` edits, Escape
 // leaves the field, `r` sets the research effort, `f` and `c` pick a feature or a change, and `s`
 // goes to the slug, where Enter starts it, as Ctrl+Enter does in the text. A started proposal's `s`
 // saves.
@@ -12,7 +12,7 @@ import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useRef, useState } from "react";
 import { useProposalFile } from "./data.ts";
-import { ProposalStart, type StartKind } from "./ProposalStart.tsx";
+import { ProposalStart, START_SHEETS, StartBar, type StartKind } from "./ProposalStart.tsx";
 import { ProposalText } from "./ProposalText.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { useKeys } from "./keys/registry.tsx";
@@ -20,7 +20,8 @@ import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Missing } from "./layout/Missing.tsx";
 import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
-import { useWidthClass } from "./layout/useWidthClass.ts";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { useSheetTab } from "./layout/useSheetTab.ts";
 import { ConflictBanner } from "./pane/ProposalEditor.tsx";
 import { useProposalEditor } from "./pane/useProposalEditor.ts";
 import { currentEntry, useRestoreScroll } from "./routes.tsx";
@@ -196,11 +197,15 @@ export function EditorPage({ path }: { path: string }) {
   useRestoreScroll(true);
   const slug = useTextField(`${path}#slug`, file?.slug ?? "");
   const editor = useProposalEditor({ file, path, slug });
-  const isWide = useWidthClass() === "wide";
+  const width = useWidthClass();
+  const isWide = width === "wide";
   const box = useRef<HTMLDivElement>(null);
   const slugBox = useRef<HTMLDivElement>(null);
   const [kind, setKind] = useState<StartKind>("feature");
   const isFile = file?.kind === "proposal-file";
+  // On the phone, a proposal file's Start is a sheet.
+  const inSheet = isFile && isNarrow(width);
+  const sheet = useSheetTab(START_SHEETS, inSheet);
   const edit = () => {
     editor.setDrawn(false);
     focusSoon(() => box.current?.querySelector("textarea"));
@@ -221,7 +226,12 @@ export function EditorPage({ path }: { path: string }) {
     editor.saveText();
     editor.setDrawn(true);
   };
-  const focusSlug = () => focusSoon(() => slugBox.current?.querySelector("input"));
+  const focusSlug = () => {
+    if (inSheet) {
+      sheet[1]("start");
+    }
+    focusSoon(() => slugBox.current?.querySelector("input"));
+  };
   const [level, setLevel] = useResearchEffort(file, editor);
   // Starts it as the kind picked: the branch and worktree, then its session, saved text first.
   const startNow = () => void editor.actions.start(true, kind);
@@ -234,6 +244,15 @@ export function EditorPage({ path }: { path: string }) {
     );
   }
   const message = editor.actions.message;
+  const start = (
+    <ProposalStart
+      actions={editor.actions}
+      kind={kind}
+      onKind={setKind}
+      slug={slug}
+      slugRef={slugBox}
+    />
+  );
   return (
     <Page isWriting>
       <VStack gap={4}>
@@ -249,15 +268,7 @@ export function EditorPage({ path }: { path: string }) {
             onSubmit={isFile ? startNow : editor.saveText}
             path={path}
           />
-          {isFile && (
-            <ProposalStart
-              actions={editor.actions}
-              kind={kind}
-              onKind={setKind}
-              slug={slug}
-              slugRef={slugBox}
-            />
-          )}
+          {isFile && !inSheet && start}
         </div>
         {message && (
           <AnnouncedBanner
@@ -267,6 +278,7 @@ export function EditorPage({ path }: { path: string }) {
           />
         )}
       </VStack>
+      {inSheet && <StartBar onStart={focusSlug} sheet={sheet} start={start} />}
     </Page>
   );
 }
