@@ -840,29 +840,29 @@ git commit -m "feat(feature-state): progress counts the tasks done on their task
   Implementation, push", linking the push section this task writes in
   [Implementation](/skills/uraeda/references/implementation.md).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 A row of `crates/cli/tests/next.rs`: a feature whose open pull request's head is the parent of the
 branch's tip prints the Push step and the implementation's reference.
 
 - Break: `ura next` still printing the human gate.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-cli --test next`
 - Expected: FAIL, unless task 5's step already prints it. Then the row guards it, and passes.
 
-- [ ] **Step 3: Write the skill and the docs**
+- [x] **Step 3: Write the skill and the docs**
 
 Follow the [writing rules](/skills/uraeda/references/writing.md). Read the example before changing a
 template.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS, `specs:check` included.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills docs crates/cli/tests/next.rs specs/2026-10-30-feature-state/plan.md

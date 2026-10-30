@@ -26,6 +26,10 @@ the current branch's feature, or the only one waiting for that action.
 | `ura lsp`                                                                              | Serves workflow files to editors: diagnostics, completion, outline, actions                                               |
 | `ura add [folder]`                                                                     | Adds the repository holding a folder to the web UI's list                                                                 |
 
+`ura next` and `ura status` read the open pull requests with `gh`. One that lacks the branch's
+latest commit names [the push](implementation.md#push), and waits on the human only once it holds
+it. A head the repository never fetched counts as holding it: the branch is likely behind it.
+
 `ura check` prints each problem as `<file>:<line>: <message>`, then each warning as
 `warning: <file>:<line>: <message>`. Warnings measure the limits of
 [Writing for the human](writing.md): `block.count`, `block.items`, `writing.sentence`, and
