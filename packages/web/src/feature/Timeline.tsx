@@ -66,21 +66,23 @@ const styles = stylex.create({
 /** The stage's mark: passed, current, or ahead; the list says which is current. */
 const MARKS = { current: "◉", done: "✓", todo: "○" } as const;
 
-/** "Tasks 1–6", or "Task 8" for one: a run of the plan's tasks, by position. */
-function tasksOf(from: number, to: number): string {
-  return from === to ? `Task ${from}` : `Tasks ${from}–${to}`;
+/** "6 tasks", or "1 task": a count of the plan's tasks. */
+function tasks(count: number): string {
+  return count === 1 ? "1 task" : `${count} tasks`;
 }
 
-/** Build's tasks: the done ones grouped, the current one by number and title, the rest grouped. */
+/**
+ * Build's tasks: those done, on the feature's branch or on their task branch, then the current one
+ * by its title, then those left.
+ */
 function Tasks({ progress }: { progress: TaskProgress }) {
-  const { position, title, total } = progress;
+  const { done, title, total } = progress;
+  const left = total - done - 1;
   return (
     <div {...stylex.props(styles.tasks)}>
-      {position > 1 && <Text color="secondary">✓ {tasksOf(1, position - 1)}</Text>}
-      <Text>
-        ◉ {position} {title}
-      </Text>
-      {position < total && <Text color="secondary">○ {tasksOf(position + 1, total)}</Text>}
+      {done > 0 && <Text color="secondary">✓ {tasks(done)} done</Text>}
+      <Text>◉ {title}</Text>
+      {left > 0 && <Text color="secondary">○ {tasks(left)} left</Text>}
     </div>
   );
 }

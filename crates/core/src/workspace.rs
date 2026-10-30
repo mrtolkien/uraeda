@@ -1,7 +1,7 @@
 //! The whole `specs/` folder across branches: the priorities from the default branch, each feature
 //! and change from its own branch, and the current branch from the working tree.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -21,6 +21,7 @@ mod problem;
 mod read;
 mod reader;
 mod record;
+mod tasks;
 
 use merged::Merged;
 use read::read_feature;
@@ -172,6 +173,9 @@ pub struct Feature {
     pub proposal_committed: bool,
     #[serde(skip)]
     pub decisions_pending: bool,
+    /// The tasks, by number and title, with every box checked on a task branch of its branch.
+    #[serde(skip)]
+    pub task_branch_done: BTreeSet<(u32, String)>,
     #[serde(skip)]
     texts: BTreeMap<String, String>,
     /// The same feature read from its latest commit, when its files were read from disk: its step
@@ -370,6 +374,7 @@ impl Workspace {
         };
         let mut features = reading.working_tree_features(current_branch.as_deref());
         reading.add_branch_features(&branches, &mut features);
+        reading.add_task_branches(&branches, &mut features);
         let mut features: Vec<Feature> = features.into_values().collect();
         features.extend(reading.merged_features(&branches));
         let pull_requests = crate::pulls::latest(&reading.main_root);
@@ -479,6 +484,7 @@ impl Feature {
             path,
             proposal_committed: texts.contains_key(first_file(kind)),
             decisions_pending: false,
+            task_branch_done: BTreeSet::new(),
             texts,
             at_tip: None,
         };

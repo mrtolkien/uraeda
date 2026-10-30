@@ -35,8 +35,8 @@ export async function takeSessions(each: Each, first: Page, adapter: FakeAdapter
   await takeWorking(each, first, adapter);
 }
 
-/** The feature at Task 7 of 11: its sidebar row, or on the phone, the session column's line. */
-const PROGRESS = /7\/11 · Session column|[Tt]ask 7 of 11/;
+/** The feature with 6 of 11 tasks done: its sidebar row, or on the phone, the session column's line. */
+const PROGRESS = /6\/11|6 of 11 tasks done/;
 
 /** The session's page at its feature's implementation, its column shown. */
 async function implementation(page: Page) {
@@ -46,7 +46,7 @@ async function implementation(page: Page) {
   }
   await show(page, `${AGENT}/session`, PROGRESS);
   if (page.viewportSize()!.width >= 768) {
-    await page.getByRole("link", { name: /task 7 of 11/ }).waitFor();
+    await page.getByRole("link", { name: /6 of 11 tasks done/ }).waitFor();
     await settle(page);
   }
 }
@@ -122,7 +122,7 @@ export async function takeImplementation(each: Each, adapter: FakeAdapter, repo:
     await implementation(page);
     if (size === "phone") {
       await openSessionsTab(page);
-      await page.getByRole("link", { name: /^cli-tuis, .*Task 7 of 11, Session column/ }).waitFor();
+      await page.getByRole("link", { name: /^cli-tuis, .*6 of 11 tasks done/ }).waitFor();
     }
     await settle(page);
   });

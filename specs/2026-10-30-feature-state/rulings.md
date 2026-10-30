@@ -117,3 +117,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the performance decision measures "on a release build". The dev binding, built
   without optimizations, is the one the tests run on.
 - **Where**: task 1, step 5.
+
+## R14: The readers of progress name the count, not a task's place
+
+- **Decision**: the texts that named the current task's place, "Task 7 of 11: Session column", name
+  the count, "6 of 11 tasks done · Session column": the session's row, the Next line, and the
+  announcer. The Timeline counts the tasks done and left around the current one, and the plan's
+  progress at the session column's foot links the task by the number `Step::task` gives.
+- **Rationale**: `done` is no place (R3). Read as one, the texts would name the wrong task during a
+  wave, and the plan's link would open the task at index `done`, not the current one. Task 9 reworks
+  the views; these keep them true until then.
+- **Where**: task 7.

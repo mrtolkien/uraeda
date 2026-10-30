@@ -278,7 +278,7 @@ test("a feature at its implementation sends its progress, and null once every bo
   const { app } = await testApp(repo);
 
   const [feature] = await byId(app, "Feature", [CLI], ["id", "step"]);
-  expect(feature.step.progress).toEqual({ position: 7, title: "Session column", total: 11 });
+  expect(feature.step.progress).toEqual({ done: 6, title: "Session column", total: 11 });
 
   addPlan(
     repo,
@@ -304,7 +304,7 @@ test("the workspace's features send their progress, null when they have none", a
     workspace.features.map((f: { folder: string; step: unknown }) => [f.folder, f.step]),
   );
   expect(steps[CLI]).toHaveProperty("progress", {
-    position: 7,
+    done: 6,
     title: "Session column",
     total: 11,
   });

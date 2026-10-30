@@ -1331,7 +1331,7 @@ export interface NextStepView {
   reference?: string
   /** The file waiting for the human, at a gate. */
   file?: string
-  /** The first unchecked task, for implementation. */
+  /** The task `progress` names, as `Task N: title`, for implementation. */
   task?: string
   /** Where the implementation is in the plan's tasks, for implementation. */
   progress?: TaskProgress
@@ -1992,7 +1992,7 @@ export interface StepView {
   file?: string
   /** That file's kind, `clarifications`, `spec`, `plan`, ...: what the gate asks of the human. */
   fileKind?: string
-  /** The first unchecked task, for implementation. */
+  /** The task `progress` names, as `Task N: title`, for implementation. */
   task?: string
   /** Where the implementation is in the plan's tasks, for implementation. */
   progress?: TaskProgress
@@ -2054,13 +2054,16 @@ export interface TaskItem {
   total: number
 }
 
-/** The plan's progress during the implementation: the first task with an unchecked step. */
+/** The plan's progress during the implementation: the tasks done, and the first task left. */
 export interface TaskProgress {
-  /** Its position among the plan's tasks, from 1, whatever its `## Task N` number. */
-  position: number
+  /** The tasks whose boxes are all checked, at the branch's tip or on their task branch. */
+  done: number
   /** The number of tasks in the plan. */
   total: number
-  /** Its title, as written after `## Task N:`. */
+  /**
+   * The first task done nowhere, else the first left unchecked at the tip: its title, as written
+   * after `## Task N:`.
+   */
   title: string
 }
 

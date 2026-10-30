@@ -41,8 +41,8 @@ export type CardItem = {
   label: string;
   /** What a button just started for it, until the server's status arrives: "Committing…". */
   pending?: string;
-  /** Its current task, during the implementation. */
-  progress?: { position: number; title: string; total: number };
+  /** Its plan's tasks done, of its total, and its current task, during the implementation. */
+  progress?: { done: number; title: string; total: number };
   pullRequest?: { number: number; url: string };
   status: { label: string; status: SessionStatus };
   /** A change's or a feature's step; a session has none. */
@@ -145,9 +145,7 @@ export function cardName(item: CardItem) {
     item.kind,
     item.agent === undefined ? undefined : harnessMark(item.agent).name,
     item.pending ?? item.status.label,
-    item.progress
-      ? `Task ${item.progress.position} of ${item.progress.total}, ${item.progress.title}`
-      : undefined,
+    item.progress ? `${item.progress.done} of ${item.progress.total} tasks done` : undefined,
     item.hasBackgroundCommand ? "background command running" : undefined,
     item.pullRequest ? `pull request #${item.pullRequest.number}` : undefined,
     item.changes ? `${item.changes.added} lines added, ${item.changes.removed} removed` : undefined,
@@ -272,7 +270,7 @@ function Meta({
         </Text>
         {progress && (
           <Text color="secondary" hasTabularNumbers type="supporting">
-            {`${progress.position}/${progress.total}`}
+            {`${progress.done}/${progress.total}`}
           </Text>
         )}
         <span {...stylex.props(styles.spacer)} />

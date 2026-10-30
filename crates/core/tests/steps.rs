@@ -492,9 +492,9 @@ fn at_plan(plan_text: String) -> Feature {
     )
 }
 
-fn progress(position: u32, total: u32, title: &str) -> Option<TaskProgress> {
+fn progress(done: u32, total: u32, title: &str) -> Option<TaskProgress> {
     Some(TaskProgress {
-        position,
+        done,
         total,
         title: title.to_string(),
     })
@@ -517,7 +517,7 @@ fn implementation_progress() {
             "11 tasks, the first 6 done",
             plan("auto-approved", 1, &eleven),
             "Task 7: Session column".to_string(),
-            progress(7, 11, "Session column"),
+            progress(6, 11, "Session column"),
         ),
         (
             "tasks numbered 1, 3, 3",
@@ -526,7 +526,7 @@ fn implementation_progress() {
                 "",
             ),
             "Task 3: Second".to_string(),
-            progress(2, 3, "Second"),
+            progress(1, 3, "Second"),
         ),
         (
             "tasks finished out of order",
@@ -542,13 +542,13 @@ fn implementation_progress() {
                 &[("One", 1, 1), ("Empty", 0, 0), ("Three", 0, 1)],
             ),
             "Task 3: Three".to_string(),
-            progress(3, 3, "Three"),
+            progress(2, 3, "Three"),
         ),
         (
             "a title with markup",
             plan("auto-approved", 1, &[(title, 0, 1)]),
             format!("Task 1: {title}"),
-            progress(1, 1, title),
+            progress(0, 1, title),
         ),
     ];
     for (name, plan_text, task, progress) in rows {

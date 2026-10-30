@@ -71,6 +71,7 @@ impl Feature {
             path: "specs/done".to_string(),
             proposal_committed: true,
             decisions_pending: false,
+            task_branch_done: Default::default(),
             texts: BTreeMap::from([(name, text)]),
             at_tip: None,
         };

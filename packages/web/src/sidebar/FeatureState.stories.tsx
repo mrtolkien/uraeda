@@ -100,7 +100,7 @@ export const ProgressInAWave: Story = {
         ...PANES,
         folder: "2026-10-30-feature-state",
         label: "Feature state",
-        progress: { position: 14, title: "The watcher re-watches a worktree", total: 20 },
+        progress: { done: 14, title: "The watcher re-watches a worktree", total: 20 },
         step: { kind: "implementation", label: "Implementing" },
         title: "Feature state pass",
       },

@@ -101,9 +101,9 @@ function Row({
       ))}
       {latest && working && progress && (
         <ProgressBar
-          label={`Task ${progress.position} of ${progress.total}: ${progress.title}`}
+          label={`${progress.done} of ${progress.total} tasks done · ${progress.title}`}
           max={progress.total}
-          value={progress.position}
+          value={progress.done}
         />
       )}
       {latest && last !== undefined && <LastRun id={last} />}

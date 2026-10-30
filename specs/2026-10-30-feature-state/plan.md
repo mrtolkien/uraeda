@@ -758,12 +758,16 @@ git commit -m "feat(feature-state): one feature status on the server"
 **Files:**
 
 - Modify: `crates/core/src/steps.rs` (`TaskProgress`, `feature_step`)
-- Modify: `crates/core/src/workspace/branches.rs` or a new `workspace/tasks.rs` (the task branches'
-  plans), and `crates/core/src/workspace.rs` (the `Feature` field only; it may not grow, so the read
-  goes in the module)
+- Create: `crates/core/src/workspace/tasks.rs` (the task branches' plans)
+- Modify: `crates/core/src/workspace.rs` (the `Feature` field and the call only), after a `refactor`
+  commit moves `merged_features` into `workspace/merged.rs`: `workspace.rs` falls under 500 lines
+  and leaves `LARGE` in `crates/cli/tests/structure.rs`
+- Modify: `crates/core/src/view.rs`, `view/feature.rs` (the docs of `task`), and
+  `packages/server/src/__tests__/fate.test.ts` (the progress sent)
 - Modify: the readers of `progress.position`: `packages/web/src/sidebar/ItemCard.tsx`,
   `SessionAnnouncer.tsx`, `feature/next.ts`, `feature/SessionsPane.tsx`, `feature/Timeline.tsx`,
-  `session/PlanProgress.tsx`, `sidebar/FeatureState.stories.tsx`, and their tests
+  `session/PlanProgress.tsx`, `sidebar/FeatureState.stories.tsx`, and their tests, and
+  `packages/web/scripts/sessionShots.ts`: each names the count, not a place (ruling R14)
 - Test: `crates/core/tests/steps.rs`, `crates/core/tests/workspace.rs`
 
 **Interfaces:**
@@ -778,7 +782,7 @@ git commit -m "feat(feature-state): one feature status on the server"
     the task branches, read with the feature in the workspace read.
   - The card's progress reads `${done}/${total}`, named `${done} of ${total} tasks done`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Rewrite `implementation_progress`'s rows from positions to counts: "11 tasks, the first 6 done"
 gives `done: 6` with the title "Session column"; "tasks finished out of order" gives `done: 1` with
@@ -791,26 +795,27 @@ The break each test catches:
 - Task branches ignored, so the wave reads 12.
 - A half-done branch counted, or a task counted twice when both its branch and the tip hold it.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test steps --test workspace`
 - Expected: FAIL, `TaskProgress` has no field `done`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The task branches' plans are read from their tips through the core's git module, and kept with the
-workspace read in the core's cache. A branch moving already drops it, as it watches `refs/`. Rebuild
-the binding.
+workspace read in the core's cache. A branch moving already drops it, as it watches `refs/`. The
+watcher's fingerprint of a feature hashes its step, progress included, so a task branch's checked
+boxes report the feature, which the server republishes. Rebuild the binding.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates packages/binding packages/web specs/2026-10-30-feature-state/plan.md
+git add crates packages/binding packages/server packages/web specs/2026-10-30-feature-state
 git commit -m "feat(feature-state): progress counts the tasks done on their task branches"
 ```
 

@@ -153,7 +153,7 @@ export function nextOf(
       // A build at work keeps its task; its line otherwise is the step's own.
       const line =
         built && working && progress
-          ? `Task ${progress.position} of ${progress.total}: ${progress.title}`
+          ? `${progress.done} of ${progress.total} tasks done · ${progress.title}`
           : taken.line;
       return {
         ...(taken.action ? { action: taken.action } : {}),

@@ -213,7 +213,7 @@ pub struct NextStepView {
     pub reference: Option<String>,
     /// The file waiting for the human, at a gate.
     pub file: Option<String>,
-    /// The first unchecked task, for implementation.
+    /// The task `progress` names, as `Task N: title`, for implementation.
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
     pub progress: Option<TaskProgress>,

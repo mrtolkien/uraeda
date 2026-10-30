@@ -41,7 +41,7 @@ test("a working agent offers Open the session", () => {
 });
 
 test("a build with the agent working keeps its task line", () => {
-  const progress = { position: 5, title: "Undo restores the previous due date", total: 9 };
+  const progress = { done: 4, title: "Undo restores the previous due date", total: 9 };
 
   const next = nextOf(at("implementation", { progress }), {
     agent: AVAILABLE,
@@ -50,7 +50,7 @@ test("a build with the agent working keeps its task line", () => {
   });
 
   expect(next.title).toBe("The agent is building");
-  expect(next.line).toBe("Task 5 of 9: Undo restores the previous due date");
+  expect(next.line).toBe("4 of 9 tasks done · Undo restores the previous due date");
   expect(next.action?.label).toBe("Open the session");
 });
 
