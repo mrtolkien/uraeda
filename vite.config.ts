@@ -214,6 +214,11 @@ export default {
         rules: { "no-restricted-imports": "off" },
       },
       {
+        // The Performance decision's development warning, in the console, past 100 ms.
+        files: ["packages/web/src/slow.ts"],
+        rules: { "no-console": "off" },
+      },
+      {
         // The code quality decision exempts tests from the file length limit.
         files: ["**/__tests__/**", "**/*.test.ts", "**/*.test.tsx"],
         rules: { "max-lines": "off" },

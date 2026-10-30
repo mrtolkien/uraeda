@@ -18,11 +18,16 @@ import { ServerFetch } from "../attach/ServerFetch.tsx";
 import { fateClients } from "../clients.ts";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { forgetNotes } from "../offers.ts";
+import { loadPages } from "../pages.ts";
 import { forgetUndoToasts } from "../layout/useUndoToast.ts";
 import { forgetSignedOut } from "../sign-in/signedOut.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
+
+// Each page is a chunk of its own, loaded once drawn: loaded here, the tests' waits do not count
+// the time their modules take to compile.
+await loadPages();
 
 export { fixture, fixtureRepo, git };
 

@@ -18,22 +18,12 @@ import { FateClient } from "react-fate";
 import type { FateClient as Client } from "./clients.ts";
 import { MAIN_CHECKOUT, usePreview, useRepositories } from "./data.ts";
 import { useDropGuard } from "./attach/useImageDrop.ts";
-import { CheckPage } from "./decisions/CheckPage.tsx";
-import { DecisionsPage, type LedgerOpen } from "./decisions/DecisionsPage.tsx";
-import { FeaturePage } from "./feature/FeaturePage.tsx";
 import { ConfirmHost } from "./fields/Confirm.tsx";
 import { LeaveGuard } from "./fields/LeaveGuard.tsx";
 import { pruneUnsaved } from "./fields/unsaved.ts";
-import { CommitPage } from "./CommitPage.tsx";
-import { EditorPage } from "./EditorPage.tsx";
-import { FilePage } from "./FilePage.tsx";
-import { MockupPage } from "./MockupPage.tsx";
-import { BranchDecisionPage } from "./decisions/BranchDecision.tsx";
-import { NewPage } from "./NewPage.tsx";
 import { Page as PageLayout } from "./layout/Page.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { ListPaneContext, useListPane } from "./lists/listPane.ts";
-import { InboxRoute, PrioritiesRoute } from "./pane/DetailRoutes.tsx";
 import { RouterAnchor } from "./links.tsx";
 import {
   currentEntry,
@@ -51,16 +41,33 @@ import {
 } from "./routes.tsx";
 import { ListClientContext, useOpenRepository } from "./RepositoryMenu.tsx";
 import { FirstRun, MissingFolder, UnknownRepository } from "./RepositoryPages.tsx";
-import { SessionPage } from "./SessionPage.tsx";
-import { SettingsPage } from "./settings/SettingsPage.tsx";
-import { StoryPage, storyOf } from "./StoryPage.tsx";
-import { TriagePage } from "./TriagePage.tsx";
 import { Shell } from "./Shell.tsx";
-import { SessionsPage } from "./shell/SessionsPage.tsx";
 import { SignInPage } from "./sign-in/SignInPage.tsx";
 import { useSignedOut } from "./sign-in/signedOut.ts";
 import { ThemeModeProvider } from "./theme.tsx";
 import { Missing } from "./layout/Missing.tsx";
+import type { LedgerOpen } from "./decisions/DecisionsPage.tsx";
+import {
+  BranchDecisionPage,
+  CheckPage,
+  CommitPage,
+  DecisionsPage,
+  EditorPage,
+  FeaturePage,
+  FilePage,
+  InboxRoute,
+  MockupPage,
+  NewPage,
+  PrioritiesRoute,
+  SessionPage,
+  SessionsPage,
+  SettingsPage,
+  StoryPage,
+  TriagePage,
+  usePreloadPages,
+} from "./pages.ts";
+import { useNavigationTiming } from "./slow.ts";
+import { storyOf } from "./stories.tsx";
 
 /** Shows that the server could not be reached, with a way to try again. */
 class ServerErrorBoundary extends Component<
@@ -123,6 +130,7 @@ function pageKey(route: Route, pathname: string, entryId: string | undefined) {
 
 /** The page of the route, and the Storybook of its feature started. */
 function Page({ route }: { route: Route }) {
+  usePreloadPages();
   return (
     <>
       <RoutePage route={route} />
@@ -383,6 +391,7 @@ export function App({
   onSignedIn?: () => void;
 }) {
   const { pathname, repo, route } = useRoute();
+  useNavigationTiming(pathname);
   // A step behind, as the route is.
   const entryId = useDeferredValue(useEntryId());
   const [attempt, setAttempt] = useState(0);

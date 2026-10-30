@@ -632,7 +632,11 @@ git commit -m "feat(performance-pass): the browser keeps every page it read, and
 
 **Files:**
 
-- Modify: `packages/web/src/App.tsx` (the pages' imports), `packages/web/src/routes.tsx`
+- Modify: `packages/web/src/App.tsx` (the pages' imports, the navigation's timing),
+  `packages/web/src/main.tsx` (starts the timings), `packages/web/src/stories.tsx` (`storyOf`, moved
+  from `StoryPage.tsx` so the page's chunk stays its own), `packages/web/src/__tests__/helpers.tsx`
+  (loads the pages before a test draws one), `packages/web/tsconfig.json` (`import.meta.env`'s
+  types), `vite.config.ts` (`no-console` off in `slow.ts`)
 - Create: `packages/web/src/pages.ts` (the lazy pages and their preload), `packages/web/src/slow.ts`
   (the development warning and the user timings)
 
@@ -642,24 +646,26 @@ git commit -m "feat(performance-pass): the browser keeps every page it read, and
   draws it, and `interaction <name>` for each click or key, which task 16 reads; in a development
   build, `console.warn("[uraeda] <name> took <ms> ms")` past 100 ms.
 
-- [ ] **Step 1: Split the pages**
+- [x] **Step 1: Split the pages**
 
 Each page a `lazy` import in `pages.ts`; once the first page has drawn, every page's chunk is
 fetched, idle, so no navigation waits on one. No new Suspense fallback shows a loading state: the
 route's existing deferral keeps the old page until the new one draws.
 
-- [ ] **Step 2: Warn past 100 ms, in development only**
+- [x] **Step 2: Warn past 100 ms, in development only**
 
 `slow.ts` observes the browser's event timing entries (`PerformanceObserver`, type `event`,
-`durationThreshold` 100), and warns with the interaction's name, its target's accessible name and
-its type ("click on Performance pass"), and its time. It runs only when `import.meta.env.DEV`.
+`durationThreshold` 16, the smallest the browser takes, so each click and key gets its user timing:
+R16), and in development only (`import.meta.env.DEV`) warns past 100 ms with the interaction's name,
+its target's accessible name and its type ("click on Performance pass"), and its time. A lint
+override turns `no-console` off in `slow.ts` alone, for the Performance decision's warning.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `vp run fast`, then `vp run --filter uraeda-web build`
 - Expected: PASS, and the build lists one chunk per page. Deferred to ready: Storybook, the suite.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web/src

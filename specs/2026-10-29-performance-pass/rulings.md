@@ -175,3 +175,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: a note made a proposal file is written over both files' hashes, and a title is
   inserted at an index computed from the priorities its hash is of: a retry reads both again.
 - **Where**: task 5.
+
+## R16: The interactions' timings start at 16 ms, and the warning at 100 ms
+
+- **Decision**: `slow.ts` observes event timing with `durationThreshold` 16, not 100. Every click
+  and key the browser times gets its `interaction <name>` user timing, in every build; the console
+  warns only in development, and only past 100 ms.
+- **Rationale**: the plan's interface gives task 16's benchmark an `interaction <name>` timing for
+  each click or key, which a threshold of 100 would drop for every interaction under it. 16 ms is
+  the smallest threshold the browser takes: an interaction quicker than it gets no timing, and is
+  well within the target.
+- **Alternatives considered**: two observers, one at 100 for the warning: the same entries twice.
+- **If wrong**: the benchmark reads only the slow interactions, by filtering the timings over 100
+  ms.
+- **Where**: task 6.
