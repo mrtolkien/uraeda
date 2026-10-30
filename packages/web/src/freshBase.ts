@@ -20,22 +20,34 @@ function conflicted(outcome: unknown) {
 
 /**
  * Writes over `read`'s base, a hash or the record it is in, as the browser holds it. A conflict,
- * answered or thrown, reads the base from the server and writes once more over it: a second
- * conflict is the caller's to show.
+ * answered or thrown, reads the base from the server and writes once more over it, when `retries`
+ * takes the base read: otherwise, as when another writer changed what the write was typed over,
+ * the conflict is the answer. A second conflict is the caller's to show.
  */
 export async function withFreshBase<B, T>(
   read: (mode: BaseMode) => Promise<B>,
   write: (base: B) => Promise<T>,
+  retries: (fresh: B) => boolean = () => true,
 ): Promise<T> {
+  let refused: { outcome: T } | { thrown: unknown };
   try {
     const outcome = await write(await read("cache-first"));
     if (!conflicted(outcome)) {
       return outcome;
     }
+    refused = { outcome };
   } catch (error) {
     if (!isConflict(error)) {
       throw error;
     }
+    refused = { thrown: error };
   }
-  return write(await read("network-only"));
+  const fresh = await read("network-only");
+  if (retries(fresh)) {
+    return write(fresh);
+  }
+  if ("thrown" in refused) {
+    throw refused.thrown;
+  }
+  return refused.outcome;
 }

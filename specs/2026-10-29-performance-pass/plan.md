@@ -841,32 +841,46 @@ git commit -m "feat(performance-pass): a proposal is drafted in one request, and
 
 **Files:**
 
-- Modify: the web UI's calls of `answers.*`, `defaultRound.*` but its submit, `review.comment`,
-  `review.edit`, `review.remove`, `settled.*`, `text.save`, `text.discovery`, `notes.save`,
-  `item.settings`, `repositories.*`, and the settings page's mutations
+- Modify: the web UI's calls of `text.discovery`, `item.settings`, `repositories.remove` from the
+  menu, and the settings page's switches and host list; the editor's `text.save`
+  ([`useProposalEditor.ts`](/packages/web/src/pane/useProposalEditor.ts)) and
+  [`freshBase.ts`](/packages/web/src/freshBase.ts)
+- Create: [`settings/optimistic.ts`](/packages/web/src/settings/optimistic.ts)
+- Test: [`fresh-base.test.ts`](/packages/web/src/__tests__/fresh-base.test.ts)
 
 **Interfaces:**
 
 - Consumes: fate's `optimistic`, checked by task 2.
 - Produces: each of these calls passes `optimistic` with the record's fields it changes. A field
-  only the core computes, like a path or a step, is left to the server's answer.
+  only the core computes, like a path or a step, is left to the server's answer. The writes whose
+  call site draws its own result, typed in a field or kept in the page's state, pass none (R26), nor
+  do `repositories.add` and `repositories.open` (R27).
+- Produces: `withFreshBase(read, write, retries?)`: a conflict writes again only over a fresh base
+  `retries` takes. The editor's save retries once only when the file still holds the text it was
+  typed over (R25).
 
-- [ ] **Step 1: Give each call its optimistic result**
+- [x] **Step 1: Give each call its optimistic result**
 
-For each call, the fields the write changes, from the input: an answer picked, a comment's text and
-place, a text saved, a setting's value. A refusal is fate's rollback, and the existing error at the
-call site says why where it happened.
+For each call, the fields the write changes, from the input: a discovery effort, a feature's name, a
+repository removed, a setting's value or a host name. A refusal is fate's rollback, and the existing
+error at the call site says why where it happened.
 
-- [ ] **Step 2: Run the task's validation**
+- [x] **Step 2: Retry the editor's save over a stale hash**
+
+Add the rows of `fresh-base.test.ts` for a fresh base the caller turns down; see them fail; give
+`withFreshBase` its `retries`; the editor's `text.save` retries when the file read again holds the
+text the save was typed over.
+
+- [x] **Step 3: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS. Deferred to ready: the whole web suite, Storybook.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
-git add packages/web/src
-git commit -m "feat(performance-pass): answers, comments, texts, and settings show their result at once"
+git add packages/web/src specs/2026-10-29-performance-pass
+git commit -m "feat(performance-pass): settings, names, and efforts show their result at once, and a stale save retries"
 ```
 
 ## Task 10: Optimistic results for the lists' and sessions' writes

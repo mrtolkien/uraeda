@@ -92,6 +92,7 @@ export function useEditorActions({ field, file, path, save, setConflict, slug, w
     const wrote = await save.write(async (previous) => {
       const result = await fate.mutations.text.discovery({
         input: { hash: previous, level, path },
+        optimistic: { discovery: level, id: path },
         view: ProposalFileView,
       });
       if (result.error) {

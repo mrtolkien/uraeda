@@ -249,3 +249,45 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: every card calls the hook; `useRefreshOnShow`'s listener per card would send the
   same request once per card, which the one record exists to avoid.
 - **Where**: task 8.
+## R25: The editor's save retries a conflict only over the text it was typed over
+
+- **Decision**: on a `conflict:` refusal, the editor's `text.save` reads the file again and writes
+  once more over its new hash only when the file still holds the text the save was typed over, its
+  frontmatter and the field's base: a stale hash the browser held, not another writer. When the text
+  differs, the conflict shows as before, with "Copy my text" and "Load the new version".
+  `withFreshBase` takes the check as its third argument, `retries`.
+- **Rationale**: the spec's US2 more 1 says the browser "retries once". A retry over another tab's
+  or an agent's change would overwrite their uncommitted text, which the
+  [Git decision](../decisions/git.md) forbids: "Tools MUST NOT lose the user's work".
+- **If wrong**: a retry over any change is `withFreshBase` without its third argument, in
+  `useProposalEditor.ts`. The human settles it on the pull request.
+- **Where**: task 9, from a review finding.
+
+## R26: A write whose call site draws its own result passes no optimistic result
+
+- **Decision**: the answers (`answer.save`, `defaultRound.answer`), the round's notes (`notes.save`,
+  `defaultRound.notes`), the review's and the settled comments' adds, edits and removals,
+  `text.save`, and the settings page's port and host name edits pass no `optimistic`. Each already
+  shows its result at once: the letters picked in `useAnswer`'s state, the text in its field, the
+  comment being added in `useReviewActions`'s `adding`.
+- **Rationale**: a field of the unsaved store drops its unsaved text once the record holds that text
+  (`useTextField`); an optimistic text would drop it while the write is sent, and a refusal's
+  rollback would then lose what the human typed, which the Git decision forbids. `useAnswer` takes a
+  record change as the file's answer (`useSave`'s `settle`), so a rollback would count a refused
+  answer as saved. A removal renumbers the comments after it, which only the core does: shown before
+  the server answers, the comments keep their old numbers, and a Commit sent then wrote a kept edit
+  to no comment (`round.test.tsx`'s "Commit writes the edit of a comment renumbered by a removal
+  into that comment" failed, and `review.test.tsx`'s "an edit of a review comment follows it" too).
+- **If wrong**: each such call needs its field to keep its unsaved text until the write's answer,
+  and a removal its renumbering, before it takes an optimistic result.
+- **Where**: task 9.
+
+## R27: Adding a repository and opening one pass no optimistic result
+
+- **Decision**: `repositories.add` and `repositories.open` pass no `optimistic`, and neither does
+  removing the current repository or a missing one's page.
+- **Rationale**: an added row's name and path are the core's, read from the folder. Opening is sent
+  on each switch, and moves the row first in a menu that is closed by then. Removing the current
+  repository, or the missing one shown, would draw the unknown repository's page until the removal
+  is done and the page moves on.
+- **Where**: task 9.

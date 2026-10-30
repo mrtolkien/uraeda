@@ -9,6 +9,7 @@ import { OnListClient } from "../RepositoryMenu.tsx";
 import { useRestoreScroll } from "../routes.tsx";
 import { SettingsRecordView } from "../views.ts";
 import { categoryOf } from "./categories.ts";
+import { optimisticSettings } from "./optimistic.ts";
 import { cutsOff } from "./hosts.ts";
 import type { ServerActions } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
@@ -44,8 +45,10 @@ function OnSettings({ category }: { category?: string }) {
   useRestoreScroll(true);
   const view = SettingsRecordView;
   const { settings: change } = fate.mutations;
+  const shown = optimisticSettings(settings);
   const actions: ServerActions = {
-    addHost: (name) => run(() => change.addHost({ input: { name }, view })),
+    addHost: (name) =>
+      run(() => change.addHost({ input: { name }, optimistic: shown.addHost(name), view })),
     editHost: (from, to) => run(() => change.editHost({ input: { from, to }, view })),
     removeHost: async (name) => {
       if (
@@ -54,13 +57,32 @@ function OnSettings({ category }: { category?: string }) {
       ) {
         return undefined;
       }
-      return run(() => change.removeHost({ input: { name }, view }));
+      return run(() =>
+        change.removeHost({ input: { name }, optimistic: shown.removeHost(name), view }),
+      );
     },
     setBuildInFreshSession: (fresh) =>
-      run(() => change.setBuildInFreshSession({ input: { fresh }, view })),
-    setOpenBrowser: (open) => run(() => change.setOpenBrowser({ input: { open }, view })),
+      run(() =>
+        change.setBuildInFreshSession({
+          input: { fresh },
+          optimistic: shown.setBuildInFreshSession(fresh),
+          view,
+        }),
+      ),
+    setOpenBrowser: (open) =>
+      run(() =>
+        change.setOpenBrowser({ input: { open }, optimistic: shown.setOpenBrowser(open), view }),
+      ),
+    // The port and a host name's edit are typed in a field, which shows them as typed until saved.
     setPort: (port) => run(() => change.setPort({ input: { port }, view })),
-    setSingleKeyShortcuts: (on) => run(() => change.setSingleKeyShortcuts({ input: { on }, view })),
+    setSingleKeyShortcuts: (on) =>
+      run(() =>
+        change.setSingleKeyShortcuts({
+          input: { on },
+          optimistic: shown.setSingleKeyShortcuts(on),
+          view,
+        }),
+      ),
   };
   return (
     <SettingsView

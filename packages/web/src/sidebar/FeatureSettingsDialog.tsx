@@ -34,6 +34,8 @@ function Settings({ feature, onClose }: { feature: Feature; onClose: () => void 
           setError(undefined);
           const result = await fate.mutations.item.settings({
             input: { folder: feature.folder, label },
+            // An empty name gives the feature back its title.
+            optimistic: { id: feature.folder, label: label || null },
             view: FeatureView,
           });
           if (result.error) {

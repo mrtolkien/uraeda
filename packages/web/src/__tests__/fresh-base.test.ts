@@ -1,5 +1,6 @@
 // A write over the hash the browser holds: a refusal for a stale hash reads the file again and writes
-// once more over it, and a second refusal is the one the caller gets.
+// once more over it, when the caller takes what it read, and a second refusal is the one the caller
+// gets.
 import { expect, test } from "vite-plus/test";
 import { withFreshBase } from "../freshBase.ts";
 
@@ -68,4 +69,32 @@ test("a conflict thrown by the write reads again and retries once", async () => 
   );
   expect(result).toBe("written");
   expect(over).toEqual(["a", "b"]);
+});
+
+test.each([
+  {
+    expected: { result: "written over b" },
+    over: ["a", "b"],
+    text: "Typed over",
+    what: "the file still holds the text the write was typed over: a stale hash, written again",
+  },
+  {
+    expected: { error: CONFLICT },
+    over: ["a"],
+    text: "Changed elsewhere",
+    what: "another writer changed the text: the conflict is the answer, nothing written again",
+  },
+])("a conflict retries only over a base the caller takes: $what", async (row) => {
+  const over: Array<string> = [];
+  const result = await withFreshBase(
+    async (mode) =>
+      mode === "cache-first" ? { hash: "a", text: "Typed over" } : { hash: "b", text: row.text },
+    async (base): Promise<Result> => {
+      over.push(base.hash);
+      return base.hash === "a" ? { error: CONFLICT } : { result: "written over b" };
+    },
+    (fresh) => fresh.text === "Typed over",
+  );
+  expect(result).toEqual(row.expected);
+  expect(over).toEqual(row.over);
 });
