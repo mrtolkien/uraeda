@@ -1931,6 +1931,63 @@ fn a_typed_text_starts_over_uncommitted_changes_elsewhere() {
     assert_eq!(repo.porcelain(), " M README.md\n?? src/\n");
 }
 
+/// A typed text starts over files staged elsewhere: its commit leaves them staged, out of it.
+#[test]
+fn a_typed_text_starts_over_files_staged_elsewhere() {
+    let repo = proposal_file_repo();
+    repo.write("README.md", "# Staged\n");
+    repo.git(&["add", "README.md"]);
+
+    start_text(&repo, TYPED, &[], Some("centred-x")).unwrap();
+
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            "specs/PRIORITIES.md",
+            "specs/changes/2026-10-16-centred-x/proposal.md"
+        ]
+    );
+    assert_eq!(repo.porcelain(), "M  README.md\n");
+}
+
+/// A proposal file starts over the main checkout's other edits, uncommitted or staged, like an
+/// inbox's: its commit takes its own files, and leaves the others as they were.
+#[test]
+fn a_proposal_file_starts_over_uncommitted_changes_elsewhere() {
+    let repo = proposal_file_repo();
+    repo.write("specs/INBOX.md", "# Inbox\n");
+    repo.commit("chore: add the inbox");
+    repo.write("specs/INBOX.md", "# Inbox\n\n- A note\n");
+    repo.write("README.md", "# Staged\n");
+    repo.git(&["add", "README.md"]);
+    repo.write("src/auth/guard.ts", "export {};\n");
+    let (git, workspace) = opened(&repo);
+
+    start::run(
+        &git,
+        &workspace,
+        PROPOSAL_FILE,
+        Some("centred-x"),
+        Kind::Change,
+        change_day(),
+        false,
+    )
+    .unwrap();
+
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            "specs/PRIORITIES.md".to_string(),
+            format!("specs/changes/{CHANGE_FOLDER}/proposal.md"),
+            PROPOSAL_FILE.to_string()
+        ]
+    );
+    assert_eq!(
+        repo.porcelain(),
+        "M  README.md\n M specs/INBOX.md\n?? src/\n"
+    );
+}
+
 /// US1.2: the images are saved in the change's folder and committed with its proposal, on main.
 #[test]
 fn a_typed_text_brings_its_images() {

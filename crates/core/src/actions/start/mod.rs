@@ -156,9 +156,7 @@ pub fn run_with(
 }
 
 /// What starting the feature or the change written in a proposal file would make, from the
-/// working tree at `root`, on the default branch: every check of [`run`] made but those of the
-/// uncommitted and staged files, which a write queued before the start may have left and the start
-/// makes in its turn, nothing written.
+/// working tree at `root`, on the default branch: every check of [`run`] made, nothing written.
 pub fn plan(
     git: &Git,
     root: &Path,
@@ -185,7 +183,7 @@ pub fn plan(
         default,
         run: &run,
     };
-    let plan = start.plan(slug, today, false)?;
+    let plan = start.plan(slug, today)?;
     Ok(Planned {
         folder: plan.folder,
         branch: plan.branch,
@@ -338,7 +336,7 @@ impl<'a> Start<'a> {
         today: Date,
         held: Option<WriteGuard>,
     ) -> Result<Started, StartError> {
-        let plan = self.plan(slug, today, true)?;
+        let plan = self.plan(slug, today)?;
         let ((moves, before), done) = match self.source {
             Source::Proposal(proposal) => {
                 let moved = self.move_proposal(proposal, &plan)?;

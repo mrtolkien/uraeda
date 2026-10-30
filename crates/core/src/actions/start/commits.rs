@@ -145,10 +145,15 @@ impl Start<'_> {
         }
         // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
         let mut paths = vec!["specs/PRIORITIES.md".to_string(), plan.destination.clone()];
-        if let Source::Proposal(proposal) = self.source
-            && !plan.tracked.is_empty()
-        {
-            paths.push(proposal.to_string());
+        if let Source::Proposal(proposal) = self.source {
+            // A proposal file staged but never committed leaves the index with its move, which the
+            // commit, of committed files alone, would not take.
+            self.at
+                .unstage(&[proposal])
+                .map_err(|error| partial(&done, self.left_after_write(plan), error))?;
+            if !plan.tracked.is_empty() {
+                paths.push(proposal.to_string());
+            }
         }
         paths.sort();
         // What the start left in the dated folder, which a refused commit removes only unchanged.
@@ -158,11 +163,12 @@ impl Start<'_> {
             Written::new()
         };
         let head = self.at.head();
-        // Written, so a failed staging stays here: switching back could carry the staged files
-        // away.
+        // Alone: the main checkout's other changes, uncommitted or staged, stay as they are, out
+        // of the commit. Written, so a failed staging stays here: switching back could carry the
+        // staged files away.
         let stage = self
             .at
-            .stage(&paths, false)
+            .stage(&paths, true)
             .map_err(|error| partial(&done, self.left_after_write(plan), error))?;
         // Other writes, saves included, run while the hooks do: they change the working tree, not
         // the snapshot staged, and the put back below leaves any path they changed.

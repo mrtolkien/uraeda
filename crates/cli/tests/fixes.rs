@@ -65,6 +65,7 @@ fn staged_files_refuse_before_anything_is_written() {
     assert!(repo.read(FILE).contains("status: awaiting-human"));
 }
 
+/// A proposal file staged but never committed starts once, and leaves nothing staged behind.
 #[test]
 fn a_staged_proposal_file_does_not_start_twice() {
     let repo = TestRepo::new();
@@ -78,12 +79,12 @@ fn a_staged_proposal_file_does_not_start_twice() {
     );
     repo.git(&["add", "specs/proposals/tags.md"]);
 
-    let refused = ura(&repo, &["start", "tags"]);
-    repo.git(&["reset", "--quiet"]);
     let output = ura(&repo, &["start", "tags"]);
+    let again = ura(&repo, &["start", "tags"]);
 
-    assert_eq!(refused.code, 1, "{}", refused.stdout);
     assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(again.code, 1, "{}", again.stdout);
+    assert_eq!(repo.porcelain(), "");
     let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
     assert_eq!(
         priorities.matches("2026-10-11-tags/proposal.md").count(),

@@ -140,10 +140,10 @@ async function noteChange(ctx: RepoContext, input: { hash: string; note: string 
 
 /**
  * Starts a change from an inbox note, as from a typed text with the note file's images, which
- * refuses only staged files (R10), then takes the note out of the inbox, its note file with it,
- * committing `INBOX.md` alone when it had no other change, and sends the change's first run. A
- * refused start leaves the note in the inbox; a note that cannot leave it once the change started
- * is logged, and stays.
+ * leaves the main checkout's other changes as they are, then takes the note out of the inbox, its
+ * note file with it, committing `INBOX.md` alone when it had no other change, and sends the
+ * change's first run. A refused start leaves the note in the inbox; a note that cannot leave it
+ * once the change started is logged, and stays.
  */
 async function startFromNote(
   ctx: RepoContext,

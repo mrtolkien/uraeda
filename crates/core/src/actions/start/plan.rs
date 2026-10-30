@@ -192,14 +192,9 @@ impl Plan {
 }
 
 impl Start<'_> {
-    /// Every check, before anything is written: those of the working tree's uncommitted and
-    /// staged files only when `clean` is set.
-    pub(super) fn plan(
-        &self,
-        slug: Option<&str>,
-        today: Date,
-        clean: bool,
-    ) -> Result<Plan, StartError> {
+    /// Every check, before anything is written. The working tree's other changes, uncommitted or
+    /// staged, are not checked: the start commits its own files alone, and leaves them as they are.
+    pub(super) fn plan(&self, slug: Option<&str>, today: Date) -> Result<Plan, StartError> {
         let origin = match self.source {
             Source::Proposal(proposal) => Origin::Proposal(Proposed::read(self.root, proposal)?),
             Source::Text { typed, images } => Origin::Text(typed, images.len()),
@@ -223,13 +218,6 @@ impl Start<'_> {
         };
         // Which of the proposal file's files are committed, read before any write of ours.
         let tracked = self.tracked(&files);
-        match &origin {
-            _ if !clean => {}
-            Origin::Proposal(_) => self.check_clean(&files)?,
-            // A typed change commits its own folder with the proposal: the main checkout's edits
-            // stay.
-            Origin::Text(..) => check_staged(&self.at)?,
-        }
         let destination = folder_path(self.kind, &folder);
         let target = format!("/{destination}/proposal.md");
         // Only a missing file is no priorities: one the start cannot read refuses it.
@@ -330,12 +318,6 @@ impl Start<'_> {
             .cloned()
             .collect()
     }
-
-    /// Refuses uncommitted changes outside the proposal file and `PRIORITIES.md`, and staged files
-    /// the start commit would carry.
-    fn check_clean(&self, files: &[String]) -> Result<(), StartError> {
-        check_clean(&self.at, files)
-    }
 }
 
 /// Refuses a dated folder that a record, a branch, or a folder already holds, as one of `kinds`,
@@ -367,32 +349,6 @@ pub(crate) fn check_free(
         .any(|feature| feature.folder == folder && kinds.contains(&feature.kind));
     if taken {
         return Err(StartError::Refused(format!("{folder} exists: {hint}")));
-    }
-    Ok(())
-}
-
-/// Refuses uncommitted changes in the working tree of `at` outside `files` and `PRIORITIES.md`,
-/// and staged files a commit would carry.
-pub(crate) fn check_clean(at: &Git, files: &[String]) -> Result<(), StartError> {
-    let others: Vec<String> = at
-        .changed_files()?
-        .into_iter()
-        .filter(|file| file != "specs/PRIORITIES.md" && !files.contains(file))
-        .collect();
-    if !others.is_empty() {
-        return Err(StartError::Refused(format!(
-            "cannot start: uncommitted changes in {}",
-            others.join(", ")
-        )));
-    }
-    check_staged(at)
-}
-
-/// Refuses staged files other than `PRIORITIES.md`, which a start commit would carry.
-fn check_staged(at: &Git) -> Result<(), StartError> {
-    let staged = crate::git::others_staged(&at.staged_files()?, &["specs/PRIORITIES.md".into()]);
-    if !staged.is_empty() {
-        return Err(GitError::OtherStagedFiles(staged).into());
     }
     Ok(())
 }

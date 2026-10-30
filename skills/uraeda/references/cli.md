@@ -46,8 +46,9 @@ change and makes it a feature in place, as [Upgrading](change.md#upgrading) says
 
 - An answer or a note with a line starting with `#`, `**Answer:**`, or `**Notes:**`. A review
   comment with a line starting with `#`. They would read as a new heading or answer.
-- A commit while other files are staged, since it would carry them. The exception is `ura note`'s,
-  which commits `INBOX.md` alone.
+- A commit while other files are staged, since it would carry them. The exceptions are `ura note`'s,
+  which commits `INBOX.md` alone, and `ura start`'s, which commits its own files alone: the other
+  changes, uncommitted or staged, stay as they are.
 - With `--switch`, a branch switch over uncommitted changes.
 - A start whose folder or branch name is taken: choose another slug with `--slug`. With `--feature`,
   rename or remove that branch or folder first.
