@@ -2372,6 +2372,7 @@ fn a_taken_slug_is_refused_by_its_name() {
 
 /// A start whose link rebase fails on a postponed folder's second file names the first file's
 /// links as done, and the second's and the third's as left.
+#[cfg(unix)]
 #[test]
 fn a_start_whose_link_rebase_fails_names_the_files_before_and_after() {
     use std::os::unix::fs::PermissionsExt;
@@ -2387,6 +2388,14 @@ fn a_start_whose_link_rebase_fails_names_the_files_before_and_after() {
     repo.commit("chore: postpone Login banner");
     let locked = repo.path().join(PROPOSAL_FOLDER).join("proposal.md");
     std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o444)).unwrap();
+    if std::fs::OpenOptions::new()
+        .append(true)
+        .open(&locked)
+        .is_ok()
+    {
+        // Root writes anyway.
+        return;
+    }
     let (git, workspace) = opened(&repo);
 
     let failed = start::run(

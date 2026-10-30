@@ -7,6 +7,7 @@ import { expect, test } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
 import {
   atRepo,
+  click,
   fakeAgent,
   fixtureRepo,
   renderPage,
@@ -30,4 +31,26 @@ test("the setup's message comes before a draft already in the composer", async (
 
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
   await waitFor(() => expect(box.textContent).toBe(`${SET_UP_PROJECT}\nOld draft`));
+});
+
+test("an empty composer gets the setup's message alone, once though the cards switch", async () => {
+  const fake = await fakeAgent();
+  const repo = fixtureRepo();
+  await renderPage("/priorities", repo, {
+    agent: fake,
+    fetch: serverFetch(repo, fake.sessions),
+  });
+
+  await act(async () => navigate(atRepo("/new?kind=session"), { insert: "setup" }));
+  const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  await waitFor(() => expect(box.textContent).toBe(SET_UP_PROJECT));
+
+  await click(screen.getByRole("radio", { name: /Change/ }));
+  await click(screen.getByRole("radio", { name: /Session/ }));
+
+  await waitFor(() =>
+    expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toBe(
+      SET_UP_PROJECT,
+    ),
+  );
 });

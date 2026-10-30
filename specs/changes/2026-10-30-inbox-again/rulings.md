@@ -38,6 +38,8 @@ of [the proposal](proposal.md) and the decisions. None binds future work: those 
   what was typed, once per visit.
 - **Rationale**: it is how a recommended message is inserted (`withInserted`), and replacing the
   draft would lose what you typed.
+- **If wrong**: Home's button always opens a fresh New page with an empty draft, so today only a
+  navigation to the New page while it is open reaches the draft case. The fix costs one ref.
 - **Where**: `packages/web/src/NewPage.tsx`, `useSetupMessage`
 
 ## R5: New drops its Proposal and Note items
