@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { Repository, WatchHandle } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { REPOSITORIES_ID } from "./fate/views-repositories.ts";
-import { WRITE_QUEUE_ID } from "./fate/write-queue.ts";
+import { keyFolders, WRITE_QUEUE_ID } from "./fate/write-queue.ts";
 import { createFate, type FateServer, live as globalLive, type LiveBus } from "./fate.ts";
 import { publish } from "./live.ts";
 import { type PullRequests, startPullRequests } from "./pulls.ts";
@@ -32,6 +32,17 @@ const FILE = "repositories.json";
 export const LIST_QUIET_MS = 100;
 
 let announced = 0;
+
+/** The core's changes, none. */
+const NO_CHANGES = {
+  branchDecisions: [],
+  decisions: false,
+  features: [],
+  files: [],
+  inbox: false,
+  priorities: false,
+  workspace: false,
+};
 
 /**
  * The hosts' binding, data folder, and session manager, and `stopped`, told of each host closed as
@@ -228,6 +239,14 @@ export class Hosts {
         live.update("WriteQueue", WRITE_QUEUE_ID, {
           eventId: `write-queue:${Date.now()}:${announced++}`,
         }),
+      // A feature's step moves as its commit lands, or back as it is refused: its records, and the
+      // composer's message, read it again.
+      (keys) => {
+        const features = keyFolders(keys);
+        if (features.length > 0) {
+          publish({ ...NO_CHANGES, features }, entry.host, sessions);
+        }
+      },
     );
     const entry: Entry = { host: { fate: fateServer, live, missing, name, path, queue } };
     if (!missing) {

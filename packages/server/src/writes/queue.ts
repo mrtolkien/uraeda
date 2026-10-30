@@ -59,6 +59,7 @@ const refusal = (error: unknown) =>
 export class WriteQueue {
   #core: QueueCore;
   #changed: () => void;
+  #settled: (keys: Array<string>) => void;
   #entries: Array<Entry> = [];
   /** The committing calls' turn: each one's write and take, one at a time. */
   #calls: Promise<void> = Promise.resolve();
@@ -66,9 +67,15 @@ export class WriteQueue {
   #tail: Promise<void> = Promise.resolve();
   #next = 0;
 
-  constructor(core: QueueCore, changed: () => void) {
+  /** `settled` is told of the keys of each write that landed or was refused. */
+  constructor(
+    core: QueueCore,
+    changed: () => void,
+    settled: (keys: Array<string>) => void = () => {},
+  ) {
     this.#core = core;
     this.#changed = changed;
+    this.#settled = settled;
   }
 
   /** The writes landing, waiting, or refused, in the order they were made. */
@@ -164,6 +171,11 @@ export class WriteQueue {
     }
   }
 
+  /** Whether a write of `keys` is still queued, landing or waiting: a refused one is not. */
+  waits(keys: Array<string>): boolean {
+    return this.#pending(keys).length > 0;
+  }
+
   /** Resolves once every write queued so far landed or was refused. */
   idle(): Promise<void> {
     return this.#tail;
@@ -186,6 +198,7 @@ export class WriteQueue {
       throw error;
     } finally {
       this.#changed();
+      this.#settled(entry.keys);
     }
   }
 

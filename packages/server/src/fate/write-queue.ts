@@ -55,8 +55,15 @@ export const listCommit = <T>(
   call: () => Promise<T>,
 ) => queued(ctx, [LISTS], write, {}, call);
 
+/** The start of a feature's key. */
+const FEATURE = "feature:";
+
 /** The keys of a feature's files, whose commits wait for each other. */
-export const featureKeys = (folder: string) => [`feature:${folder}`];
+export const featureKeys = (folder: string) => [`${FEATURE}${folder}`];
+
+/** The folders of the features whose files `keys` name. */
+export const keyFolders = (keys: Array<string>) =>
+  keys.flatMap((key) => (key.startsWith(FEATURE) ? [key.slice(FEATURE.length)] : []));
 
 /**
  * The key of the default branch's lists, the inbox, the priorities, their rounds, and the
