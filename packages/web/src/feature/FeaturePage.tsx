@@ -1,6 +1,6 @@
 // The page of a feature or a change, top to bottom: where it is, what blocks it, what's next, its
-// sessions, its timeline, a done one's record, and its notes, folded; beside them, or after them on
-// the phone, its column of figures and links.
+// sessions, its timeline, a done one's record, and its notes, folded; beside them, its column of
+// figures and links, which the phone's bottom bar holds instead (`FeatureBar`).
 import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -15,7 +15,8 @@ import { useRestoreScroll } from "../routes.tsx";
 import { useSession } from "../sessionData.ts";
 import { type OpenKeys, useOpenKeys } from "../useOpenKeys.ts";
 import { FeatureMenu } from "./FeatureMenu.tsx";
-import { FeatureColumn, WithFeatureColumn } from "./FeatureColumn.tsx";
+import { FeatureBar } from "./FeatureBar.tsx";
+import { WithFeatureColumn } from "./FeatureColumn.tsx";
 import { nextOf, type Recommended } from "./next.ts";
 import { NextPane } from "./NextPane.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
@@ -279,12 +280,23 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
         />
         <Timeline feature={feature} history={history} progress={feature.step.progress} />
         <RecordPart feature={feature} history={history} keys={keys} />
-        {inline && <FeatureColumn feature={feature} history={history} keys={keys} />}
         <Notes notes={feature.notes} />
       </VStack>
     </Page>
   );
-  return <WithFeatureColumn content={page} feature={feature} history={history} keys={keys} />;
+  return (
+    <>
+      <WithFeatureColumn content={page} feature={feature} history={history} keys={keys} />
+      {inline && (
+        <FeatureBar
+          feature={feature}
+          history={history}
+          keys={keys}
+          next={hasNext ? () => nextRun.current?.() : undefined}
+        />
+      )}
+    </>
+  );
 }
 
 /** A feature's or a change's page. */
