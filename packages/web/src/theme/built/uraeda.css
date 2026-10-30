@@ -319,7 +319,6 @@
     --size-composer-input-narrow: 66px;
     --size-round-accent: 4px;
     --size-round-split: 840px;
-    --size-round-pair: 820px;
     --size-settings-search: 240px;
     --size-rail: 52px;
     --size-rail-inset: calc((var(--size-rail) - var(--size-element-md)) / 2);
