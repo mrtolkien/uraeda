@@ -380,6 +380,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a line git prints to stdout can show before or after a line of stderr printed just
   before or after it.
 - **Where**: `crates/core/src/git/process.rs`, review fix.
+
 ## R31: A start puts back its proposal on a hook's refusal only where commits are deferred
 
 - **Decision**: `api::start_feature` and `api::start_change` restore the moved proposal file, the
@@ -416,6 +417,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the start's checks read that checkout's proposal file and priorities; without one,
   there is no file to plan from, and the start itself would create it next.
 - **Where**: task 11.
+
 ## R37: A note moved to a level answers with the priorities, which open on it at once
 
 - **Decision**: `inbox.toProposal` answers with the `Priorities` record, not the `Inbox`. `p` to
