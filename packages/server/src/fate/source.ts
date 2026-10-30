@@ -29,15 +29,22 @@ export function fileSource<Context, Item extends AnyRecord>(
   };
 }
 
+/**
+ * A copy of the plain context `ctx`, for one read. What a read keeps by its context, like the
+ * workspace it read, lasts that read only: a live connection keeps one context for its whole life,
+ * and each of its updates must read anew.
+ */
+const scoped = <Context>(ctx: Context): Context => ({ ...ctx });
+
 /** fate's sources for every type: the definition of each view's type, and their executors. */
 export function createSources<Context>(entries: Array<Entry<Context>>) {
   const byType = new Map(entries.map((entry) => [entry.definition.view.typeName, entry]));
   const registry: SourceRegistry<Context> = new Map();
   for (const { definition, readers } of entries) {
     registry.set(definition, {
-      byIds: ({ ctx, ids }) => readers.byIds(ctx, ids.map(String)),
+      byIds: ({ ctx, ids }) => readers.byIds(scoped(ctx), ids.map(String)),
       connection: async ({ ctx, cursor, take }) => {
-        const items = (await readers.list?.(ctx)) ?? [];
+        const items = (await readers.list?.(scoped(ctx))) ?? [];
         const start = cursor ? items.findIndex((item) => item.id === cursor) + 1 : 0;
         return cursor && start === 0 ? [] : items.slice(start, start + take);
       },

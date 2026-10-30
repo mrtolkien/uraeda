@@ -282,7 +282,7 @@ export function SpecOpening({
       icon="uraeda:badge-check"
       id={GROUPS.approve.id}
       isActive
-      isOpenOnPhone
+      isSnugOnPhone
       title={title || GROUPS.approve.title}
     >
       <VStack gap={3}>

@@ -2,7 +2,7 @@
 import { createContext, type ReactNode, use } from "react";
 import type { PaneTone } from "./Pane.tsx";
 
-/** Whether inside a pane: a pane there keeps its borders on the phone too. */
+/** Whether inside a pane: a pane there keeps its own room on the phone, not the snug one. */
 export const InPane = createContext(false);
 
 /** The tone of the pane around, which the closed rail's card frames take (`ItemCard`). */

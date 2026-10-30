@@ -182,7 +182,7 @@ function SessionLog({
           </OffersProvider>
         </StoriesProvider>
       </div>
-      <Attention folder={crumbs} session={session} />
+      <Attention folder={crumbs} key={session.id} session={session} />
       {error && <StatusText tone="error">{error}</StatusText>}
     </VStack>
   );

@@ -1,4 +1,4 @@
-// A feature whose commits are still queued: the composer's message reads the step they will give,
+// A feature whose commits are still queued: its step is the one they give, wherever it is read,
 // and what is sent to the feature waits for them to land.
 import { expect, test, vi } from "vite-plus/test";
 import { REFUSALS } from "../runner/sessions.ts";
@@ -31,22 +31,47 @@ async function approvalMessage(server: Server) {
 const approve = (server: Server) =>
   mutate(server.app, "review.approve", { file: "spec.md", folder: FOLDER }, ["id", "status"]);
 
-test("an approval still landing has the composer read the step it gives", async () => {
+/** The feature's step, as the workspace's record sends it. */
+async function workspaceStep(server: Server, folder: string) {
+  const [workspace] = await byId(server.app, "Workspace", ["workspace"], ["id", "features"]);
+  return workspace.features.find((feature: { folder: string }) => feature.folder === folder)?.step
+    .name;
+}
+
+test("an approval still landing moves the feature's step at once", async () => {
   const { hook, host, server } = await heldServer();
-  expect(await approvalMessage(server)).toMatchObject({ refusal: REFUSALS.human, text: "" });
+  expect(await workspaceStep(server, FOLDER)).toBe("human-gate");
   const update = vi.spyOn(host.live, "update");
 
   expect((await approve(server)).error).toBeUndefined();
 
+  // Queued, not landed: the feature is sent again at once, at the step the approval gives.
+  expect(update).toHaveBeenCalledWith("Feature", FOLDER, expect.anything());
+  expect(await workspaceStep(server, FOLDER)).toBe("plan");
   const expected = await approvalMessage(server);
   expect(expected).toMatchObject({ refusal: null, step: "plan" });
   expect(expected.text).toContain("references/plan.md");
+  update.mockClear();
   hook.release();
   await host.queue.idle();
-  // The landing sends the message again, which now reads the branch's step, the same.
+  // The landing sends the feature and the message again, at the same step: no flicker back.
   expect(update).toHaveBeenCalledWith("WorkflowMessage", `${FOLDER}:approval`, expect.anything());
   expect(update).toHaveBeenCalledWith("Feature", FOLDER, expect.anything());
+  expect(await workspaceStep(server, FOLDER)).toBe("plan");
   expect(await approvalMessage(server)).toEqual(expected);
+});
+
+test("a refused approval moves the feature's step back to the gate", async () => {
+  const { hook, host, server } = await heldServer();
+  hook.refusing(true);
+  await approve(server);
+  expect(await workspaceStep(server, FOLDER)).toBe("plan");
+
+  hook.release();
+  await host.queue.idle();
+
+  expect(await workspaceStep(server, FOLDER)).toBe("human-gate");
+  expect(await approvalMessage(server)).toMatchObject({ refusal: REFUSALS.human });
 });
 
 /** Sends the approval's workflow message to the feature, as the composer does. */

@@ -2,11 +2,24 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { chatImages } from "../attach.ts";
+import type { RepoContext } from "../fate/context.ts";
+import { featureStatusOf } from "../fate/feature-status.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
-import { OUTPUT_LIMIT } from "../runner/session-state.ts";
+import { OUTPUT_LIMIT, SERVER_STOPPED } from "../runner/session-state.ts";
 import { ChatImages } from "../runner/images.ts";
-import { addChange, byId, byIdAt, type Data, fixture, git, mutate, testServer } from "./helpers.ts";
+import {
+  addChange,
+  binding,
+  byId,
+  byIdAt,
+  commitOnBranch,
+  type Data,
+  fixture,
+  git,
+  mutate,
+  testServer,
+} from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
@@ -1362,8 +1375,8 @@ async function folderSession(server: Server, folder: string) {
 }
 
 /**
- * Adds a turn to a session that ends done, or as `state`, or still runs, with its token counts when
- * given.
+ * Adds a turn to a session that ends done, or as `state` with its `reason`, or still runs, with its
+ * token counts when given.
  */
 function doneTurn(
   server: Server,
@@ -1371,12 +1384,14 @@ function doneTurn(
   {
     denied = false,
     kind = "chat",
+    reason,
     state = "done",
     tokens,
   }: {
     denied?: boolean;
     kind?: "chat" | "workflow";
-    state?: "done" | "failed" | "running";
+    reason?: string;
+    state?: "done" | "failed" | "running" | "stopped";
     tokens?: Parameters<Server["sessions"]["cache"]["addTurnTokens"]>[1];
   } = {},
 ) {
@@ -1402,7 +1417,7 @@ function doneTurn(
     cache.addTurnTokens(turn, tokens);
   }
   if (state !== "running") {
-    cache.endTurn(turn, { state });
+    cache.endTurn(turn, { state, ...(reason === undefined ? {} : { reason }) });
   }
   return turn;
 }
@@ -1470,21 +1485,6 @@ test("a feature's session is never done, however read", async () => {
   expect(await rowOf(server, session.id)).toMatchObject({ done: false });
 });
 
-test("a feature's status is its latest session's, raised by an older one blocked", async () => {
-  const server = await testServer();
-  const older = await folderSession(server, AGENT);
-  doneTurn(server, older.id, { denied: true });
-  const latest = await folderSession(server, AGENT);
-  doneTurn(server, latest.id);
-  await mutate(server.app, "session.seen", { session: latest.id }, ["id"]);
-
-  const [needsYou] = await byIdAt(server.app, null, "NeedsYouList", ["all"], ["rows"]);
-
-  expect(
-    (needsYou!.rows as Array<Record<string, string>>).find((row) => row.folder === AGENT),
-  ).toMatchObject({ reason: "blocked" });
-});
-
 /** The feature's row in what needs the human, if any. */
 async function needsYouRow(server: Server, folder: string) {
   const [needsYou] = await byIdAt(server.app, null, "NeedsYouList", ["all"], ["rows"]);
@@ -1505,16 +1505,156 @@ test("an older session's halted run does not hold its feature", async () => {
   expect(await rowOf(server, latest.id)).toMatchObject({ status: "working" });
 });
 
-test("an older session's failed run does not hold its feature", async () => {
+/** The feature's status, as its `Feature` record and its workspace's feature carry it. */
+async function statusesOf(server: Server, folder: string) {
+  const [feature] = await byId(server.app, "Feature", [folder], ["id", "status"]);
+  const [workspace] = await byId(server.app, "Workspace", ["workspace"], ["features"]);
+  const listed = (workspace!.features as Array<{ folder: string; status: Data }>).find(
+    (each) => each.folder === folder,
+  );
+  expect(listed?.status).toEqual(feature!.status);
+  return feature!.status as Record<string, Data>;
+}
+
+/** US1.1, and its edge case of two sessions running after a crash. */
+test("a running session makes its feature Working everywhere, then it follows its latest", async () => {
   const server = await testServer();
   const older = await folderSession(server, AGENT);
-  doneTurn(server, older.id, { state: "failed" });
+  const running = doneTurn(server, older.id, { state: "running" });
+  const latest = await folderSession(server, AGENT);
+  const stopped = doneTurn(server, latest.id, { reason: SERVER_STOPPED, state: "stopped" });
+
+  // The latest session was stopped by the server; the older one still runs: Working, from it.
+  expect(await statusesOf(server, AGENT)).toEqual({
+    label: "Working",
+    reason: null,
+    session: older.id,
+    status: "working",
+    turn: String(running),
+  });
+  expect(await needsYouRow(server, AGENT)).toBeUndefined();
+
+  // Its run ends: the feature follows its latest session, which asks until dismissed.
+  server.sessions.cache.endTurn(running, { state: "done" });
+
+  expect(await statusesOf(server, AGENT)).toMatchObject({
+    reason: "interrupted",
+    session: latest.id,
+    status: "attention",
+    turn: String(stopped),
+  });
+  expect(await needsYouRow(server, AGENT)).toMatchObject({ reason: "attention" });
+});
+
+/** US1 more 1: the replaced rules raised the feature to an older session's blocked or failed run. */
+test("an older session's blocked or failed run does not hold its feature", async () => {
+  const server = await testServer();
+  doneTurn(server, (await folderSession(server, AGENT)).id, { denied: true });
+  doneTurn(server, (await folderSession(server, AGENT)).id, { state: "failed" });
   const latest = await folderSession(server, AGENT);
   doneTurn(server, latest.id);
   await mutate(server.app, "session.seen", { session: latest.id }, ["id"]);
 
+  expect(await statusesOf(server, AGENT)).toMatchObject({ session: latest.id, status: "idle" });
   expect(await needsYouRow(server, AGENT)).toBeUndefined();
   expect(await rowOf(server, latest.id)).toMatchObject({ status: "idle" });
+});
+
+/** US1.2 and US1.3: a run on a feature at a gate reads Working, then notifies the gate again (R5). */
+test("a run at a gate reads Working, and its end notifies the gate under a new key", async () => {
+  const server = await testServer();
+  const session = await folderSession(server, HUMAN);
+  const first = doneTurn(server, session.id);
+  await mutate(server.app, "session.seen", { session: session.id }, ["id"]);
+  expect(await statusesOf(server, HUMAN)).toMatchObject({
+    status: "needs-you",
+    turn: String(first),
+  });
+  const before = await needsYouRow(server, HUMAN);
+  expect(before?.key).toMatch(new RegExp(`:${first}$`));
+
+  const run = doneTurn(server, session.id, { state: "running" });
+
+  expect(await statusesOf(server, HUMAN)).toMatchObject({ status: "working", turn: String(run) });
+  expect(await needsYouRow(server, HUMAN)).toBeUndefined();
+
+  server.sessions.cache.endTurn(run, { state: "done" });
+
+  expect(await statusesOf(server, HUMAN)).toMatchObject({ status: "needs-you", turn: String(run) });
+  const after = await needsYouRow(server, HUMAN);
+  expect(after).toMatchObject({ reason: before!.reason });
+  expect(after!.key).toMatch(new RegExp(`:${run}$`));
+});
+
+test("a feature at a gate without a session needs the human, following no session", async () => {
+  const server = await testServer();
+
+  expect(await statusesOf(server, HUMAN)).toEqual({
+    label: "Needs you",
+    reason: "step",
+    session: null,
+    status: "needs-you",
+    turn: null,
+  });
+  expect(await needsYouRow(server, HUMAN)).toMatchObject({
+    message: "Questions to answer",
+    reason: "step",
+  });
+});
+
+/**
+ * A feature with problems reads "Needs you" with no reason, with or without a session (R12). Its
+ * step is `none`, which the notifier skips, as it did before.
+ */
+test("a feature with problems needs the human, and the notifier skips it", async () => {
+  const server = await testServer();
+  commitOnBranch(server.repo, AGENT, {
+    [`specs/${AGENT}/clarifications-09.md`]: "No frontmatter.\n",
+  });
+
+  expect(await statusesOf(server, AGENT)).toEqual({
+    label: "Needs you",
+    reason: null,
+    session: null,
+    status: "needs-you",
+    turn: null,
+  });
+  expect(await needsYouRow(server, AGENT)).toBeUndefined();
+
+  const session = await folderSession(server, AGENT);
+  const turn = doneTurn(server, session.id);
+
+  expect(await statusesOf(server, AGENT)).toEqual({
+    label: "Needs you",
+    reason: null,
+    session: session.id,
+    status: "needs-you",
+    turn: String(turn),
+  });
+  expect(await needsYouRow(server, AGENT)).toBeUndefined();
+});
+
+/** Review: a status read the turns of every session, their denials twice, and their sub-agents. */
+test("a feature's status is read once per request, stopping at a running session", async () => {
+  const server = await testServer();
+  doneTurn(server, (await folderSession(server, AGENT)).id, { denied: true });
+  const running = await folderSession(server, AGENT);
+  doneTurn(server, running.id, { state: "running" });
+  await folderSession(server, AGENT);
+  const ctx = { binding, repo: server.repo, sessions: server.sessions } as unknown as RepoContext;
+  const feature = (await binding.readFeature(server.repo, AGENT))!;
+  const { cache } = server.sessions;
+  const reads = [
+    vi.spyOn(cache, "turns"),
+    vi.spyOn(cache, "itemsOf"),
+    vi.spyOn(cache, "subagentsOf"),
+  ];
+
+  const status = await featureStatusOf(ctx, feature);
+
+  expect(status).toMatchObject({ session: running.id, status: "working" });
+  expect(await featureStatusOf(ctx, feature)).toBe(status);
+  expect(reads.map((read) => read.mock.calls.length)).toEqual([2, 0, 0]);
 });
 
 test("a feature lists its sessions, latest first", async () => {

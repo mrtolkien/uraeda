@@ -25,7 +25,6 @@ use uraeda_core::watch::{self, Changes};
 pub mod cache;
 pub mod deferred;
 pub mod drafts;
-pub mod expected;
 pub mod file_writes;
 pub mod history;
 pub mod inbox_categories;

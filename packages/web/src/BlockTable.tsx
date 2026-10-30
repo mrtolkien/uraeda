@@ -96,6 +96,24 @@ function RowNode({
   );
 }
 
+/** Each column's longest text, in characters, from 8 to 60: what its width is made from. */
+function columnWeights(block: Block, context: BlockContext): Array<number> {
+  const rows = context.children.get(block.id) ?? [];
+  const cellsOf = (row: Block) => context.children.get(row.id) ?? [];
+  const count = Math.max(0, ...rows.map((row) => cellsOf(row).length));
+  return Array.from({ length: count }, (_, index) =>
+    Math.min(60, Math.max(8, ...rows.map((row) => plain(cellsOf(row)[index]?.spans ?? []).length))),
+  );
+}
+
+/** A column's width, in px, from its weight. */
+const columnWidth = (weight: number) => weight * 8 + 32;
+
+/** The width a table's columns take side by side, in px: below it, the table scrolls. */
+export function tableWidth(block: Block, context: BlockContext): number {
+  return columnWeights(block, context).reduce((sum, weight) => sum + columnWidth(weight), 0);
+}
+
 /**
  * A table's columns: each is as wide as the longest text of its cells, from 8 to 60 characters, so a
  * column of short names is narrow and one of sentences wraps past 60; the table scrolls only when
@@ -104,7 +122,7 @@ function RowNode({
 function tableColumns(weights: ReadonlyArray<number>): Array<TableColumn<Record<string, unknown>>> {
   return weights.map((weight, index) => ({
     key: `c${index}`,
-    width: pixel(weight * 8 + 32),
+    width: pixel(columnWidth(weight)),
   }));
 }
 
@@ -115,11 +133,7 @@ function tableColumns(weights: ReadonlyArray<number>): Array<TableColumn<Record<
  */
 export function TableNode({ block, context }: { block: Block; context: BlockContext }) {
   const rows = context.children.get(block.id) ?? [];
-  const cellsOf = (row: Block) => context.children.get(row.id) ?? [];
-  const count = Math.max(0, ...rows.map((row) => cellsOf(row).length));
-  const weights = Array.from({ length: count }, (_, index) =>
-    Math.min(60, Math.max(8, ...rows.map((row) => plain(cellsOf(row)[index]?.spans ?? []).length))),
-  );
+  const weights = columnWeights(block, context);
   const key = weights.join(",");
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for `weights`.
   const columns = useMemo(() => tableColumns(weights), [key]);

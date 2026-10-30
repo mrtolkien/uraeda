@@ -213,11 +213,12 @@ pub struct NextStepView {
     pub reference: Option<String>,
     /// The file waiting for the human, at a gate.
     pub file: Option<String>,
-    /// The first unchecked task, for implementation.
+    /// The task `progress` names, as `Task N: title`, for implementation.
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
     pub progress: Option<TaskProgress>,
-    /// `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it.
+    /// `open`, `unpushed`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends
+    /// on it.
     pub pull_request: Option<String>,
     /// Whether the plan waits for the human's review, for the steps before it is approved.
     pub plan_review: Option<bool>,

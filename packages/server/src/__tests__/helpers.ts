@@ -77,11 +77,16 @@ const names = new WeakMap<App, string>();
 
 /**
  * Hosts on a temporary data folder holding the repositories, added through the binding in order,
- * with a fake session manager whose changes reach them. Closed after the test.
+ * with a fake session manager whose changes reach them, its cache in memory or in the file
+ * `cache`. Closed after the test.
  */
 export async function testHosts(
   repos: Array<string>,
-  { binding: using = binding, installed = true }: { binding?: Binding; installed?: boolean } = {},
+  {
+    binding: using = binding,
+    cache,
+    installed = true,
+  }: { binding?: Binding; cache?: string; installed?: boolean } = {},
 ) {
   const dataDir = temporaryFolder("uraeda-data");
   const added = [];
@@ -92,6 +97,7 @@ export async function testHosts(
   const opening: { hosts?: Hosts } = {};
   const { adapter, sessions } = fakeSessions({
     binding: using,
+    ...(cache === undefined ? {} : { cache }),
     hosts: () => opening.hosts,
     installed,
   });
@@ -248,13 +254,21 @@ export async function testApp<SignedIn extends boolean = false>(
 
 /**
  * The server's app with sessions on the fake adapter, checked once. `binding` replaces the core's,
- * as to hold a call.
+ * as to hold a call, and `cache` is the file of the runner's cache, kept across servers.
  */
 export async function testServer(
   repo = fixtureRepo(),
-  { binding: using = binding, installed = true }: { binding?: Binding; installed?: boolean } = {},
+  {
+    binding: using = binding,
+    cache,
+    installed = true,
+  }: { binding?: Binding; cache?: string; installed?: boolean } = {},
 ) {
-  const opened = await testHosts([repo], { binding: using, installed });
+  const opened = await testHosts([repo], {
+    binding: using,
+    ...(cache === undefined ? {} : { cache }),
+    installed,
+  });
   await opened.sessions.check();
   const { configDir, settings } = await appSettings();
   return {

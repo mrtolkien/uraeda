@@ -1,12 +1,26 @@
+mod common;
+
 use std::collections::BTreeMap;
 
+use common::repo::TestRepo;
+use common::texts::{clarifications, plan, proposal, record, spec};
+use uraeda_core::git::Git;
 use uraeda_core::pulls::{self, PullRequestState, PullRequestView, PullRequests};
+use uraeda_core::steps::StepName;
+use uraeda_core::workspace::{Feature, Kind};
 
-/// A row of `gh pr list --json headRefName,number,url,isDraft,reviewDecision`.
+/// A row of `gh pr list --json headRefName,headRefOid,number,url,isDraft,reviewDecision`, its head
+/// the number's digit repeated.
 fn row(branch: &str, number: u32, draft: bool, decision: &str) -> String {
+    let head = head(number);
     format!(
-        r#"{{"headRefName":"{branch}","number":{number},"url":"https://github.com/o/r/pull/{number}","isDraft":{draft},"reviewDecision":"{decision}"}}"#
+        r#"{{"headRefName":"{branch}","headRefOid":"{head}","number":{number},"url":"https://github.com/o/r/pull/{number}","isDraft":{draft},"reviewDecision":"{decision}"}}"#
     )
+}
+
+/// The head of pull request `number`, in the rows: its last digit, 40 times.
+fn head(number: u32) -> String {
+    (number % 10).to_string().repeat(40)
 }
 
 fn view(number: u32, state: PullRequestState) -> PullRequestView {
@@ -14,6 +28,7 @@ fn view(number: u32, state: PullRequestState) -> PullRequestView {
         number,
         url: format!("https://github.com/o/r/pull/{number}"),
         state,
+        head: head(number),
     }
 }
 
@@ -72,11 +87,193 @@ fn a_failed_fetch_keeps_the_last_snapshot_for_ten_minutes() {
     let root = std::path::PathBuf::from("/tmp/uraeda-pulls-settle-test");
     let start = std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_000_000);
     let minutes = |n: u64| start + std::time::Duration::from_secs(60 * n);
-    let known = PullRequests::Known([("b".to_string(), view(31, PullRequestState::Open))].into());
+    let known = PullRequests::open([("b".to_string(), view(31, PullRequestState::Open))]);
 
     assert!(pulls::settle(&root, known.clone(), start));
     assert!(!pulls::settle(&root, PullRequests::Unavailable, minutes(9)));
     assert_eq!(pulls::latest(&root), known);
     assert!(pulls::settle(&root, PullRequests::Unavailable, minutes(11)));
     assert_eq!(pulls::latest(&root), PullRequests::Unavailable);
+}
+
+/// Review: a failed call for the merged pull requests keeps the open ones, with the merged ones
+/// last known, or none; a failed call for the open ones gives nothing.
+#[test]
+fn a_failed_merged_call_keeps_the_open_pull_requests() {
+    let open = || {
+        Some(BTreeMap::from([(
+            "b".to_string(),
+            view(31, PullRequestState::Open),
+        )]))
+    };
+    let last = merged(&head(7));
+    let PullRequests::Known { merged: before, .. } = &last else {
+        unreachable!()
+    };
+    let rows = [
+        ("last known", &last, before.clone()),
+        ("none known", &PullRequests::Unavailable, BTreeMap::new()),
+    ];
+    for (name, last, merged) in rows {
+        let expected = PullRequests::Known {
+            open: open().unwrap(),
+            merged,
+        };
+
+        assert_eq!(pulls::known(open(), None, last), expected, "{name}");
+    }
+    assert_eq!(
+        pulls::known(None, Some(BTreeMap::new()), &last),
+        PullRequests::Unavailable
+    );
+}
+
+/// The head of the merged pull request #75 of the test feature's branch.
+fn merged(head: &str) -> PullRequests {
+    let json = format!(
+        r#"[{{"headRefName":"2026-10-10-x","headRefOid":"{head}","number":75,"url":"https://github.com/o/r/pull/75"}}]"#
+    );
+    PullRequests::Known {
+        open: BTreeMap::new(),
+        merged: pulls::parse_merged(json.as_bytes()).unwrap(),
+    }
+}
+
+/// The test feature's branch, `parent` then `tip`: the two commits' hashes.
+fn branch(repo: &TestRepo) -> (String, String) {
+    branch_named(repo, "2026-10-10-x")
+}
+
+/// A branch of `name`, `parent` then `tip`: the two commits' hashes.
+fn branch_named(repo: &TestRepo, name: &str) -> (String, String) {
+    let head = || repo.git(&["rev-parse", "HEAD"]).trim().to_string();
+    repo.switch_new(name);
+    repo.write("a.md", "a\n");
+    repo.commit("feat: the work");
+    let parent = head();
+    repo.write("b.md", "b\n");
+    repo.commit("feat: more work");
+    let tip = head();
+    repo.switch("main");
+    (parent, tip)
+}
+
+/// US5 more 1: a pull request merged on GitHub whose head is the branch's latest commit makes its
+/// feature done, without a fetch; one whose head lacks it leaves the feature's step as it is. A head
+/// never fetched counts as merged when the branch has nothing unpushed (R2).
+#[test]
+fn a_merged_pull_request_holding_the_tip_makes_the_feature_done() {
+    let repo = TestRepo::new();
+    let (parent, tip) = branch(&repo);
+    let git = Git::discover(repo.path()).unwrap();
+    let rows = [
+        ("its head is the tip", tip.clone(), None, StepName::Done),
+        (
+            "commits after its head",
+            parent.clone(),
+            None,
+            StepName::Finish,
+        ),
+        (
+            "its head never fetched, never pushed",
+            head(7),
+            None,
+            StepName::Finish,
+        ),
+        (
+            "its head never fetched, all pushed",
+            head(7),
+            Some(&tip),
+            StepName::Done,
+        ),
+        (
+            "its head never fetched, commits unpushed",
+            head(7),
+            Some(&parent),
+            StepName::Finish,
+        ),
+    ];
+    for (name, head, pushed, expected) in rows {
+        let remote = "refs/remotes/origin/2026-10-10-x";
+        match pushed {
+            Some(commit) => repo.git(&["update-ref", remote, commit]),
+            None => repo.git(&["update-ref", "-d", remote]),
+        };
+        let mut feature =
+            Feature::from_record(Kind::Feature, "2026-10-10-x", record("feature", "X"));
+
+        merged(&head).apply(&mut feature, &git);
+
+        assert_eq!(feature.step.name, expected, "{name}");
+    }
+}
+
+/// Review: an open pull request wins over a merged one of the same branch; a feature still being
+/// built is not done by a merged pull request holding its tip; a change's branch ahead of its pull
+/// request reaches Push, as a feature's does.
+#[test]
+fn an_open_pull_request_and_the_implementation_keep_their_steps() {
+    let repo = TestRepo::new();
+    let (_, tip) = branch(&repo);
+    let (change_parent, _) = branch_named(&repo, "change/2026-10-10-x");
+    let git = Git::discover(repo.path()).unwrap();
+    let open_on = |branch: &str, head: &str| {
+        let mut view = view(31, PullRequestState::Open);
+        view.head = head.to_string();
+        BTreeMap::from([(branch.to_string(), view)])
+    };
+    let PullRequests::Known {
+        merged: merged_tip, ..
+    } = merged(&tip)
+    else {
+        unreachable!()
+    };
+    let texts = |files: Vec<(&str, String)>| {
+        files
+            .into_iter()
+            .map(|(name, text)| (name.to_string(), text))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let answered = clarifications("answered", "Answered on 2026-10-08.", &["A"]);
+    let building = texts(vec![
+        ("proposal.md", proposal()),
+        ("clarifications-01.md", answered),
+        ("spec.md", spec("approved", 1, 1)),
+        ("plan.md", plan("approved", 1, &[("One", 0, 2)])),
+    ]);
+    let rows = [
+        (
+            "open and merged",
+            Feature::from_record(Kind::Feature, "2026-10-10-x", record("feature", "X")),
+            PullRequests::Known {
+                open: open_on("2026-10-10-x", &tip),
+                merged: merged_tip.clone(),
+            },
+            StepName::PullRequest,
+        ),
+        (
+            "still being built",
+            Feature::from_texts(Kind::Feature, "2026-10-10-x", building),
+            merged(&tip),
+            StepName::Implementation,
+        ),
+        (
+            "a change ahead of its pull request",
+            Feature::from_texts(
+                Kind::Change,
+                "2026-10-10-x",
+                texts(vec![("proposal.md", proposal())]),
+            ),
+            PullRequests::Known {
+                open: open_on("change/2026-10-10-x", &change_parent),
+                merged: BTreeMap::new(),
+            },
+            StepName::Push,
+        ),
+    ];
+    for (name, mut feature, pull_requests, expected) in rows {
+        pull_requests.apply(&mut feature, &git);
+
+        assert_eq!(feature.step.name, expected, "{name}");
+    }
 }

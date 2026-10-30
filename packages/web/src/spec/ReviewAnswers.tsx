@@ -103,7 +103,7 @@ export function ReviewAnswers({
   );
   const rest = partOf(items, "Your review")?.blocks.filter((id) => !lists.has(id)) ?? [];
   return (
-    <Pane id={groupId(items, GROUPS.answers)} title={GROUPS.answers.title}>
+    <Pane id={groupId(items, GROUPS.answers)} isSnugOnPhone title={GROUPS.answers.title}>
       <VStack gap={3}>
         {items.answers.map(({ block, number, summary, verdict }) => {
           const item = document.blocks[block];

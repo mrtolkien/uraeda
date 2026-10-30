@@ -120,12 +120,14 @@ fn steps_run<'a>(
 /// `on_step` as [`start_feature`] does, and a hook's refusal of its commit, when the server defers
 /// commits, leaves nothing written.
 /// Each image is checked and encoded as `image-1`, `image-2`, and so on, before the write lock is
-/// taken.
+/// taken. `line`, the text of a line of **Now** the change starts from, as it was read, is replaced
+/// by the change's link in the start commit, while **Now** holds it once, without a link.
 pub fn start_change(
     repo: &Path,
     text: &str,
     images: &[Vec<u8>],
     slug: Option<&str>,
+    line: Option<&str>,
     on_step: &dyn Fn(StartProgress),
 ) -> Result<StartedView> {
     let encoded = images
@@ -138,7 +140,7 @@ pub fn start_change(
     let (git, workspace) = open(repo)?;
     let run = steps_run(repo, today::today(), on_step, &lock);
     view(start::run_text_with(
-        &git, &workspace, text, &encoded, slug, &run,
+        &git, &workspace, text, &encoded, slug, line, &run,
     ))
 }
 

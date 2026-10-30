@@ -10,6 +10,7 @@ import { transaction } from "./migrations.ts";
 import { Processes } from "./processes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
+import { takeBack } from "./take-back.ts";
 import { StartMessages } from "./start-messages.ts";
 import {
   type Live,
@@ -17,6 +18,8 @@ import {
   commandCount,
   ofDropped,
   refused,
+  SERVER_STOPPED,
+  TAKEN_BACK,
   type SessionChange,
   type SessionContext,
 } from "./session-state.ts";
@@ -30,13 +33,11 @@ export {
   OUTPUT_LIMIT,
   REFUSALS,
   RESUMED,
+  SERVER_STOPPED,
   type SessionChange,
   TERMINATE_AFTER_MS,
   WATCHDOG_MS,
 } from "./session-state.ts";
-
-/** Why a turn stopped as the server stopped. */
-const SERVER_STOPPED = "Stopped: the server stopped while it ran.";
 
 const now = () => new Date().toISOString();
 
@@ -149,10 +150,7 @@ export class Sessions {
       .map((live) => live.folder as string);
   }
 
-  /**
-   * Whether any session of the repository, a feature's or a chat, has a turn running, starting, or
-   * queued.
-   */
+  /** Whether any session of the repository, a chat's too, has a turn running, starting, or queued. */
   busy(repo: string): boolean {
     return this.#busy(repo).length > 0;
   }
@@ -325,36 +323,10 @@ export class Sessions {
   takeBack(repo: string, session: string, message: string): void {
     const live = this.#context.live.of(this.#ownNow(repo, session));
     try {
-      this.#takeBack(live, message);
+      takeBack(this.#context, live, message);
     } finally {
       this.#context.live.prune(live);
     }
-  }
-
-  #takeBack(live: Live, message: string) {
-    const { turns } = this.#context;
-    const sent = live.messages.get(message);
-    // A message no longer kept belongs to a turn that ended with nothing left to read.
-    if (!sent) {
-      throw refused(REFUSALS.read);
-    }
-    if (sent.item.state === "taken-back") {
-      return;
-    }
-    if (sent.item.state === "read" || live.turn?.first === message) {
-      throw refused(REFUSALS.read);
-    }
-    const queued = live.queue.findIndex((turn) => turn.message.id === message);
-    if (queued >= 0) {
-      live.queue.splice(queued, 1);
-      turns.mark(live, sent, "taken-back");
-      turns.end(live, sent.turn, { reason: "Taken back.", state: "stopped" });
-      return;
-    }
-    if (!this.adapter.capabilities.takeBack) {
-      throw new Error(`${this.adapter.name} cannot take a message back`);
-    }
-    live.proc?.agent.takeBack(message);
   }
 
   /** Stops the running turn, which keeps the session, and the turns queued after it. */
@@ -409,6 +381,36 @@ export class Sessions {
     }
     this.cache.updateSession(row.id, { archivedAt: archived ? now() : null });
     this.#options.onChange({ folder: row.folder, repo: row.repo, session: row.id });
+  }
+
+  /**
+   * Dismisses a failed or stopped turn of the repository's: it no longer asks for the human. Refused
+   * while the turn runs or waits, and for a message taken back, which the status skips (`latestOf`);
+   * a turn dismissed already, or done, is left as it is.
+   */
+  dismiss(repo: string, turn: number): void {
+    const row = this.cache.turn(turn);
+    if (!row) {
+      throw new Error(`no turn ${turn}`);
+    }
+    const session = this.#ownNow(repo, row.sessionId);
+    if (row.state === "running" || row.state === "queued") {
+      throw refused(REFUSALS.stillRunning);
+    }
+    if (row.state === "stopped" && row.reason === TAKEN_BACK) {
+      throw refused(REFUSALS.takenBack);
+    }
+    if (this.cache.dismiss(turn)) {
+      // Its state, failed or stopped, sends it at once, with the list, the feature, the workspace,
+      // and what needs the human, and never reaches `onTurnDone`, which takes done turns only.
+      this.#options.onChange({
+        folder: session.folder,
+        repo: session.repo,
+        session: session.id,
+        state: row.state,
+        turn,
+      });
+    }
   }
 
   /** Records that the human saw the session. */

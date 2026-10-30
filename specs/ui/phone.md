@@ -7,10 +7,14 @@ not a desktop squeezed down, and not a lesser version.
 
 - **One column of content**, with small insets, the sidebar's own, so text has the screen's width:
   "We want less margins on phones for max readability". A round, a spec, a plan, a document, and the
-  data model share that inset, 7.8 px. A document's panes, a round's, a spec's, keep only their
-  titled top border on the phone (`Pane`'s `isOpenOnPhone`), their text reaching the insets; a pane
-  inside another keeps its borders. What is meant to reach the screen's edges, like a question's
-  options or a band between questions, takes the inset back with `--page-bleed`.
+  data model share that inset, 7.8 px. Their panes stay whole panes, every border drawn: "We should
+  actually still have full panes on mobile, just with less padding on both sides". A pane reaches
+  past the page's inset to 2 px from the screen's edges, with 3 px inside its border (`Pane`'s
+  `isSnugOnPhone`), so its text starts about where the page's own text does; a pane inside another
+  keeps its own room. What is meant to reach the screen's edges, like a question's options or a band
+  between questions, takes the inset back with `--page-bleed`.
+- **Prose a step smaller**, 16 px rather than 19, as a chat app's messages on a phone: "slightly
+  smaller text (same as discord messages on mobile)".
 - **Text of more than one line takes the full width**, always, but in extremely rare cases: "On
   mobile, multi-line text should ALWAYS take up the full width". A row's icon, number, count, or
   date goes on a line of its own above the text, never in a column beside it that squeezes it.

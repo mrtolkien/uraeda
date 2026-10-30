@@ -8,8 +8,8 @@ const styles = stylex.create({
   page: {
     // One inset on the phone, from the screen's edges, the phone sidebar's own (the rail's, and its
     // edge's width), so the panes at the page's edge sit as the sidebar's do; on wider screens, the
-    // page's kind gives it its column, from the theme's scale of widths, in the screen's middle.
-    // Text wraps anywhere rather than scroll the page sideways.
+    // page's kind gives it its column, from the theme's scale of widths, in the middle of the room
+    // right of the sidebar. Text wraps anywhere rather than scroll the page sideways.
     // `--page-inset` is the inset at the sides, and `--page-bleed` takes it back, for what reaches
     // the screen's edges.
     "--page-bleed": `calc(-1 * (var(--size-rail-inset) + ${borderVars["--border-width"]}))`,
@@ -113,8 +113,8 @@ export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>
 
 /**
  * A page's content: its inset, and on semi-wide and wide screens its column, by its `kind`, in the
- * screen's middle. On the phone, `isTight` gives it `--spacing-3`, the sessions' page's inset, and
- * `isSnug` `--spacing-2`, a session's.
+ * middle of the room right of the sidebar. On the phone, `isTight` gives it `--spacing-3`, the
+ * sessions' page's inset, and `isSnug` `--spacing-2`, a session's.
  */
 export function Page({
   beside,
@@ -137,7 +137,7 @@ export function Page({
 }) {
   const wide = !isNarrow(useWidthClass());
   const column = useRef<HTMLDivElement>(null);
-  // On a wide screen, the column sits in the screen's middle where its margins leave room.
+  // On a wide screen, the column sits in the room's middle where its margins leave room.
   const centred = useScreenCentre(wide && kind !== "window");
   const placed = useCallback(
     (element: HTMLDivElement | null) => {

@@ -60,6 +60,7 @@ export function BuiltParts({ items, ...props }: BuiltPartsProps) {
         count={drawing.count?.(items)}
         icon={drawing.icon}
         id={part.anchor}
+        isSnugOnPhone
         key={part.anchor}
         level={3}
         title={part.title}

@@ -80,7 +80,7 @@ const failureOf = (error: unknown): WriteFailure =>
 export class WriteQueue {
   #core: QueueCore;
   #changed: () => void;
-  #settled: (keys: Array<string>) => void;
+  #moved: (keys: Array<string>) => void;
   #entries: Array<Entry> = [];
   /** The committing calls' turn: each one's write and take, one at a time. */
   #calls: Promise<void> = Promise.resolve();
@@ -88,15 +88,18 @@ export class WriteQueue {
   #tail: Promise<void> = Promise.resolve();
   #next = 0;
 
-  /** `settled` is told of the keys of each write that landed or was refused. */
+  /**
+   * `moved` is told of the keys of each write as it is queued, its files written, then again once
+   * it landed or was refused.
+   */
   constructor(
     core: QueueCore,
     changed: () => void,
-    settled: (keys: Array<string>) => void = () => {},
+    moved: (keys: Array<string>) => void = () => {},
   ) {
     this.#core = core;
     this.#changed = changed;
-    this.#settled = settled;
+    this.#moved = moved;
   }
 
   /** The writes landing, waiting, or refused, in the order they were made. */
@@ -167,6 +170,7 @@ export class WriteQueue {
     this.#tail = entry.settled;
     this.#entries.push(entry);
     this.#changed();
+    this.#moved(keys);
     return { id: entry.write.id, landed };
   }
 
@@ -280,7 +284,7 @@ export class WriteQueue {
     } finally {
       output.cancel();
       this.#changed();
-      this.#settled(entry.keys);
+      this.#moved(entry.keys);
     }
   }
 

@@ -1,14 +1,17 @@
 // Merge chats US1 1: the Sessions list keeps each card in the order it started, the oldest first,
-// so rows never jump as agents work; a session that became a change keeps its start.
+// so rows never jump as agents work; a session that became a change keeps its start. A card's
+// status is the server's, and a gate's label drops "ready" while an agent works on it. Home splits
+// the features by that status, never by their step.
 import { expect, test } from "vite-plus/test";
+import { homeFeatures } from "../home/features.ts";
 import {
   byStart,
   byStatus,
   type Feature,
-  featureStatus,
   type Row,
   startOf,
   type Status,
+  toCard,
 } from "../sidebar/cards.ts";
 
 /** A feature or a change in its folder. */
@@ -51,43 +54,58 @@ test.each<[string, Array<Row>, string]>([
   expect(startOf(feature("2026-10-18-flaky-tests"), rows)).toBe(start);
 });
 
-/** A feature that waits on `waitsOn`, with or without problems. */
-const waiting = (waitsOn: "agent" | "human", problems: Array<string> = []) =>
-  ({ problems, step: { waitsOn } }) as unknown as Feature;
+/** A feature at `step`, with the status the server gave it, its gate's file `kind`. */
+const at = (step: string, status: Status, kind?: string) =>
+  ({
+    files: kind ? [{ kind, name: `${kind}.md` }] : [],
+    folder: "2026-10-30-panes-size",
+    problems: [],
+    slug: "panes-size",
+    status: { ...status, reason: null, session: null, turn: null },
+    step: { file: kind ? `${kind}.md` : null, name: step, waitsOn: kind ? "human" : "agent" },
+    title: "Panes size",
+  }) as unknown as Feature;
 
-/** A session's row with its status, as the sessions' list reads it. */
-const row = (status: Status["status"], statusLabel: string) => ({ status, statusLabel }) as Row;
-
+const WORKING: Status = { label: "Working", status: "working" };
 const NEEDS_YOU: Status = { label: "Needs you", status: "needs-you" };
 
-test.each<[string, Feature, Row | undefined, Status]>([
-  ["waiting on the human, without a session: Needs you", waiting("human"), undefined, NEEDS_YOU],
+test.each<[string, Feature, Status, string]>([
+  ["a spec at rest", at("human-gate", NEEDS_YOU, "spec"), NEEDS_YOU, "Spec ready"],
+  ["a spec an agent works on", at("human-gate", WORKING, "spec"), WORKING, "Spec"],
+  ["a plan an agent works on", at("human-gate", WORKING, "plan"), WORKING, "Plan"],
   [
-    "waiting on the agent, without a session: Idle",
-    waiting("agent"),
-    undefined,
+    "questions an agent works on",
+    at("human-gate", WORKING, "clarifications"),
+    WORKING,
+    "Questions",
+  ],
+  ["a pull request at rest", at("pull-request", NEEDS_YOU), NEEDS_YOU, "PR ready"],
+  ["a pull request an agent works on", at("pull-request", WORKING), WORKING, "PR"],
+  [
+    "commits to push",
+    at("push", { label: "Idle", status: "idle" }),
     { label: "Idle", status: "idle" },
+    "Push",
   ],
+])("a card: %s", (_, feature, status, label) => {
+  const card = toCard(feature, undefined);
+
+  expect(card.status).toEqual(status);
+  expect(card.step?.label).toBe(label);
+});
+
+test.each<[string, Feature, "agents" | "human"]>([
+  ["a gate an agent works on is in progress", at("human-gate", WORKING, "spec"), "agents"],
   [
-    "a session's status, while the step waits on the agent",
-    waiting("agent"),
-    row("attention", "Needs attention"),
-    { label: "Needs attention", status: "attention" },
+    "a failed run at an agent's step needs you",
+    at("implementation", { label: "Needs attention", status: "attention" }),
+    "human",
   ],
-  [
-    "a working turn shows Working, though the step waits on the human",
-    waiting("human"),
-    row("working", "Working"),
-    { label: "Working", status: "working" },
-  ],
-  [
-    "a problem: Needs you, whatever its session",
-    waiting("agent", ["x"]),
-    row("working", "Working"),
-    NEEDS_YOU,
-  ],
-])("a feature's status: %s", (_, feature, session, status) => {
-  expect(featureStatus(feature, session)).toEqual(status);
+])("home: %s", (_, feature, pane) => {
+  const panes = homeFeatures([feature], []);
+
+  expect(panes.agents.length + panes.human.length).toBe(1);
+  expect(panes[pane]).toEqual([feature]);
 });
 
 /** An item of the sidebar: a name, its start, and its status. */

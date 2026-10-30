@@ -15,8 +15,8 @@ outside it: the human picks one for each role.
 
 - The UI MUST look like a terminal tool: square corners, and content grouped in bordered panes whose
   title sits in their top border. Checked by review.
-- On the phone, a pane MUST keep only its titled top border, so its text has the screen's width.
-  Checked by review.
+- On the phone, a pane MUST keep its whole border, with little room inside it and around it, so its
+  text has nearly the screen's width. Checked by review.
 - Text MUST be set for readability first, in the font picked for its role: a monospace font by
   default, and a proportional one where it reads better, such as long prose. Checked by review.
 - Text MUST be set at the reading size the human chose, once, in the theme. Checked by review.
@@ -37,13 +37,16 @@ outside it: the human picks one for each role.
 
 The UI looked vanilla and unfinished, and of five directions mocked up over the same views, the
 terminal one read best. Catppuccin's Mocha and Latte give a dark and a light mode, with more schemes
-to come. A pane's side borders take the room a phone's narrow lines need. Fonts are bundled because
-the server listens on its own machine and often runs offline. History:
+to come. On a phone, a pane's whole border sets its text apart, and a few pixels of room keep the
+narrow lines wide
+([the question](../done/2026-10-30-reading-pass.md#q2-should-a-pane-keep-its-whole-border-on-the-phone)).
+Fonts are bundled because the server listens on its own machine and often runs offline. History:
 [Layout and look](../done/2026-10-20-layout-look.md).
 
 ## Alternatives considered
 
-- Bordered panes on the phone too: their borders and padding left too little room for the text.
+- Only a pane's titled top border on the phone: a question's example ran into its context, and the
+  wide screens' room inside a full pane left too little for the text.
 - Material Design Icons: complete, but heavier than the monospace text.
 - Neutral glyphs for every harness: no trademark question, but slower to recognise.
 

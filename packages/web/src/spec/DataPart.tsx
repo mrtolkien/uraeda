@@ -127,6 +127,7 @@ export function DataPart({ document, level = 3, model, prefix = "data-" }: DataP
         <Pane
           icon="uraeda:database"
           id={`${prefix}${section.anchor}`}
+          isSnugOnPhone
           key={section.heading}
           level={level}
           title={section.title}

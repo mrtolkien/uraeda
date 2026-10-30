@@ -227,7 +227,7 @@ export function HomeHub() {
     return null;
   }
   const rows = sessionList?.rows ?? [];
-  const { agents, human, invalid } = homeFeatures(workspace.features);
+  const { agents, human, invalid } = homeFeatures(workspace.features, rows);
   const parts = coreParts({ agents, human, invalid, picked, rows });
   // Two columns from semi-wide, split so that they end as near each other as they can; the
   // reading order on the phone.

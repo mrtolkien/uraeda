@@ -631,6 +631,8 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
   expect(cache.turns(session.id)).toEqual([
     {
       allowed: null,
+      // A cache an older server made gains the column, empty.
+      dismissedAt: null,
       endedAt: "2026-10-12T10:05:00.000Z",
       id: first,
       kind: "workflow",

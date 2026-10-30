@@ -211,16 +211,21 @@ pub fn run_text(
     switch: bool,
 ) -> Result<Started, StartError> {
     let run = Run::plain(today, switch);
-    run_text_with(git, workspace, text, images, slug, &run)
+    run_text_with(git, workspace, text, images, slug, None, &run)
 }
 
-/// Starts a change typed as a text, as [`run_text`] does, the way `run` says.
+/// Starts a change typed as a text, as [`run_text`] does, the way `run` says. `line` is the text
+/// of a line of **Now** the change starts from, as it was read: the one line of **Now** with that
+/// text and no link is replaced by the change's link, its nested lines going into the proposal
+/// unless the text holds them. When no line, or several, have that text, the link is added and
+/// the lines stay.
 pub fn run_text_with(
     git: &Git,
     workspace: &Workspace,
     text: &str,
     images: &[Encoded],
     slug: Option<&str>,
+    line: Option<&str>,
     run: &Run<'_>,
 ) -> Result<Started, StartError> {
     let typed = Typed::read(text).ok_or_else(|| {
@@ -229,6 +234,7 @@ pub fn run_text_with(
     let source = Source::Text {
         typed: &typed,
         images,
+        line,
     };
     begin(git, workspace, source, Kind::Change, slug, run)
 }
@@ -269,10 +275,12 @@ fn begin(
 enum Source<'a> {
     /// A proposal file or postponed folder, from the top level.
     Proposal(&'a str),
-    /// A change typed as a text, read, with its encoded images.
+    /// A change typed as a text, read, with its encoded images, and the text of the line of
+    /// **Now** it starts from, if any.
     Text {
         typed: &'a Typed,
         images: &'a [Encoded],
+        line: Option<&'a str>,
     },
 }
 
@@ -342,7 +350,7 @@ impl<'a> Start<'a> {
                 let moved = self.move_proposal(proposal, &plan)?;
                 (moved, "the move of the proposal file".to_string())
             }
-            Source::Text { typed, images } => {
+            Source::Text { typed, images, .. } => {
                 self.write_text(typed, &plan, images)?;
                 (
                     Default::default(),

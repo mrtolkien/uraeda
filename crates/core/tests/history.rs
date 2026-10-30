@@ -3,13 +3,16 @@
 
 mod common;
 
-use std::time::{Duration, Instant};
+use std::collections::BTreeMap;
+use std::time::{Duration, Instant, SystemTime};
 
 use common::repo::TestRepo;
 use common::texts::{clarifications, decision, plan, proposal, record, spec};
 use uraeda_core::api;
 use uraeda_core::decisions::DecisionChange;
+use uraeda_core::git::Git;
 use uraeda_core::history::{HistoryView, LinesView};
+use uraeda_core::pulls::{self, PullRequests};
 
 const FOLDER: &str = "2026-10-17-clarifications";
 const SLUG: &str = "clarifications";
@@ -473,6 +476,38 @@ fn a_feature_merged_on_origin_only_is_read_from_there() {
 
     assert!(history.found);
     assert_eq!(start(&history, "merged"), Some("2026-10-17T22:09:00Z"));
+    assert_eq!(history.lines, figures(1, 0, 1));
+}
+
+/// Review: a feature merged on GitHub, the merge never fetched, is done by its pull request while
+/// the default branch has no record of it: its stages are read from its branch.
+#[test]
+fn a_feature_merged_but_never_fetched_is_read_from_its_branch() {
+    let repo = repo();
+    repo.switch_new(FOLDER);
+    merged_by_rebase(&repo);
+    let tip = repo.git(&["rev-parse", "HEAD"]).trim().to_string();
+    repo.switch("main");
+    let json = format!(
+        r#"[{{"headRefName":"{FOLDER}","headRefOid":"{tip}","number":3,"url":"https://github.com/o/r/pull/3"}}]"#
+    );
+    let merged = PullRequests::Known {
+        open: BTreeMap::new(),
+        merged: pulls::parse_merged(json.as_bytes()).unwrap(),
+    };
+    let root = Git::discover(repo.path()).unwrap().main_root();
+    pulls::settle(&root, merged, SystemTime::now());
+
+    let history = api::read_history(repo.path(), FOLDER).unwrap();
+
+    assert!(history.found);
+    assert_eq!(start(&history, "proposal"), Some("2026-10-17T10:52:00Z"));
+    assert_eq!(
+        start(&history, "pull-request"),
+        Some("2026-10-17T22:03:00Z")
+    );
+    assert_eq!(start(&history, "merged"), None);
+    assert_eq!(history.current, 7);
     assert_eq!(history.lines, figures(1, 0, 1));
 }
 
