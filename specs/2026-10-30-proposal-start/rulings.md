@@ -15,7 +15,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   merge after it. A later change to the start on that branch is merged in again. Until then,
   `ura check` warns `decision.unapproved` on Feature state's own decisions, `feature-status.md` and
   `git.md`, which that branch's approval covers, not this one's.
-- **Where**: the branch's merge commit, before the plan.
+- **Catching up**: the final review merges `main` in rather than rebasing on it, so Feature state's
+  commits are not replayed as this branch's own.
+- **Where**: the branch's merge commits, before the plan and at the final review.
 
 ## R2: The draft's sources keep their section
 
