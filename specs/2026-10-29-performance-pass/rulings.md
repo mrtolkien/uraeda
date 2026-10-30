@@ -493,11 +493,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   commits' order through the server with a real hook; its rows of landings held at once and of a
   write waiting for its key's commit run the queue over a core whose landings the test resolves.
   `writes.dismiss` lives in `fate/writes-mutations.ts`, apart from the queue's record.
-- **Rationale**: the core's `land` holds the repository's write lock while the hook runs, so a
-  second write through the server waits in the core until the first commit lands: two landings at
-  once, or a write run before its key's commit landed, would be serialized by the core's lock by
-  chance, and the breaks would pass. `fate/write-queue.ts` is imported by the sources the mutation
-  masks its answer with: the mutation there would import them back.
+- **Rationale**: when this was ruled, the core's `land` held the repository's write lock while the
+  hook ran, so a second write through the server waited in the core until the first commit landed:
+  two landings at once, or a write run before its key's commit landed, were serialized by the core's
+  lock by chance, and the breaks passed. Since R45, `land` lets the lock go while the hook runs, so
+  the real core no longer hides them: a second landing would now fail on `index.lock`, or a write
+  would commit another's file. The rows stay over the settled core all the same: they check the
+  exact order of the queue's calls and landings, which with a real hook only shows as a failure
+  whose timing the test does not control, and they run in milliseconds. The row through the server
+  keeps the real core and hook, for the record, the refusal, and the commits' order.
+  `fate/write-queue.ts` is imported by the sources the mutation masks its answer with: the mutation
+  there would import them back.
 - **Where**: `packages/server/src/__tests__/write-queue.test.ts`, task 12.
 
 ## R43: A commit's answer may still count its changes as waiting
