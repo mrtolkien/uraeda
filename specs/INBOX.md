@@ -6,6 +6,9 @@
 
 ## Bugfix
 
+- In a failed change (because inbox had uncommitted change: why the fuck does it block btw),
+  clicking "go to proposal" didn't work.
+
 ## To test
 
 ## Deferred fixes
