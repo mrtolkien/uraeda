@@ -31,12 +31,12 @@ interactions with existing behaviour. Each gets a test in the task that owns the
 2. **A queued approval whose commit lands.** The step read from the commit is the one the deferred
    write gave, so the card does not flicker back to the gate between the two reads. Task 1.
 3. **Dismiss sent for a turn that is still running, or for another repository's turn.** It is
-   refused, and nothing changes. Task 5.
+   refused, and nothing changes. Task 4.
 4. **A pull request's head the local repository has never fetched.** The step reads "PR ready", not
-   Push: nothing proves the branch holds commits the pull request lacks (ruling R2). Task 6.
+   Push: nothing proves the branch holds commits the pull request lacks (ruling R2). Task 5.
 5. **A notification for the same gate after each run.** Its key carries the turn the status follows,
    so a run that ends at the gate notifies once, and a page reload notifies nothing seen before.
-   Task 7.
+   Task 6.
 6. **A running session of a feature that left the sidebar**, such as a merged one. It shows as a
    session card until its run ends. Task 9.
 
