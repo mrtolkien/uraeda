@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use crate::actions::expand::listed;
 use crate::actions::place;
 use crate::check::change_holds;
+use crate::files::lines;
 use crate::files::markdown::Document;
 use crate::files::priorities::{self, Proposal, Section};
 use crate::git::{Git, GitError};
@@ -414,9 +415,9 @@ fn typed_write_left(destination: &str, images: usize) -> String {
 }
 
 /// `PRIORITIES.md` with a typed change's link to `target` on top of **Now**, in place of the line
-/// of **Now** it starts from, `line`, when **Now** holds it once, without a link: a line changed
-/// since it was read stays. Then the lines nested under the line, which the change's proposal
-/// takes, but for those the typed text holds already.
+/// of **Now** it starts from, `line`, its plain text, when **Now** holds it once, without a link,
+/// the spaces of both collapsed: a line changed since it was read stays. Then the lines nested
+/// under the line, which the change's proposal takes, but those the typed text holds already.
 fn started_line(
     priorities_text: &str,
     typed: &Typed,
@@ -425,9 +426,11 @@ fn started_line(
 ) -> (String, Vec<String>) {
     let name = &typed.title;
     let found: Vec<Proposal> = line.map_or_else(Vec::new, |line| {
+        let line = lines::one_line(line);
         priorities::parse(priorities_text)
             .into_iter()
-            .filter(|p| p.section == Section::Now && p.link.is_none() && p.text == line)
+            .filter(|p| p.section == Section::Now && p.link.is_none())
+            .filter(|p| lines::one_line(&p.text) == line)
             .collect()
     });
     let moved = match found.as_slice() {
@@ -435,14 +438,14 @@ fn started_line(
             .map(|edited| (edited, found.nested(priorities_text))),
         _ => None,
     };
-    let Some((edited, nested)) = moved else {
+    let Some((edited, mut nested)) = moved else {
         return (
             priorities::add_started(priorities_text, name, target),
             Vec::new(),
         );
     };
-    let held = nested.iter().all(|line| typed.holds(line));
-    (edited, if held { Vec::new() } else { nested })
+    nested.retain(|line| !typed.holds(line));
+    (edited, nested)
 }
 
 /// The feature's name, `PRIORITIES.md` with its proposal moved to the top of **Now** as a link

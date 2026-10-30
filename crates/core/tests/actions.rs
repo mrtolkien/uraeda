@@ -2204,6 +2204,33 @@ fn a_start_from_a_line_keeps_a_nested_line_the_text_holds() {
     );
 }
 
+/// The line sent is the web's plain text of a line of **Now** written in markdown, its spaces as
+/// written: it is found again, and of its nested lines, the proposal takes those the text does not
+/// hold, each apart.
+#[test]
+fn a_start_from_a_markdown_line_finds_it_and_takes_the_nested_lines_not_typed() {
+    let repo = proposal_file_repo();
+    repo.write(
+        "specs/PRIORITIES.md",
+        "# Priorities\n\n## Now\n\n- Fix the `ura`  CLI's **help**\n  - with `--help`\n  \
+         - and examples\n\n## Next\n\n## Later\n\n## Blocked\n",
+    );
+    repo.commit("chore: add a line to Now");
+    let line = "Fix the ura  CLI's help";
+
+    start_line(&repo, &format!("{line}\n- with --help\n"), line);
+
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(!priorities.contains("**help**"), "{priorities}");
+    assert!(
+        priorities.contains("- [Fix the ura  CLI's help](/specs/changes/2026-10-16-amend/"),
+        "{priorities}"
+    );
+    let proposal = repo.git(&["show", "main:specs/changes/2026-10-16-amend/proposal.md"]);
+    assert_eq!(proposal.matches("--help").count(), 1, "{proposal}");
+    assert!(proposal.contains("- and examples"), "{proposal}");
+}
+
 /// A title typed as a heading loses its marks: the proposal has one heading.
 #[test]
 fn a_title_typed_as_a_heading_drops_its_marks() {
