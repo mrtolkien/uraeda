@@ -2,6 +2,7 @@ import { homedir } from "node:os";
 import type { Inbox, Priorities } from "uraeda-binding";
 import { homePath, suggest } from "../folders.ts";
 import { NEEDS_YOU_ID, needsYouList, needsYouListDataView } from "./needs-you.ts";
+import { featureStatusOf, IDLE } from "./feature-status.ts";
 import { itemLooks } from "./items.ts";
 import { type Context, inRepository, type RepoContext, unlockedList } from "./context.ts";
 import {
@@ -131,11 +132,14 @@ async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
   return {
     id: WORKSPACE_ID,
     ...read,
-    features: read.features.map((feature) => ({
-      ...feature,
-      ...looks(feature.folder),
-      step: sentStep(feature.step),
-    })),
+    features: await Promise.all(
+      read.features.map(async (feature) => ({
+        ...feature,
+        ...looks(feature.folder),
+        status: await featureStatusOf(ctx, feature),
+        step: sentStep(feature.step),
+      })),
+    ),
     preview: root !== undefined && (await hasPreview(ctx, root)),
     running: await working(ctx),
   };
@@ -229,6 +233,7 @@ function missingFeature(folder: string): FeatureRecord {
     sessions: [],
     slug: "",
     source: "",
+    status: IDLE,
     step: { implemented: false, name: "none", order: 14, progress: null, waitsOn: "nobody" },
     title: "",
     tokens: null,

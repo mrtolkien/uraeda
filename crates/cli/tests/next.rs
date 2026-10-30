@@ -149,7 +149,7 @@ fn gh_runs_in_the_repository() {
     std::fs::write(
         &gh,
         format!(
-            "#!/bin/sh\n[ \"$(pwd -P)\" = \"{}\" ] || exit 1\necho '[{{\"headRefName\":\"2026-10-10-cli-core\",\"number\":31,\"url\":\"https://github.com/o/r/pull/31\",\"isDraft\":true,\"reviewDecision\":\"\"}}]'\n",
+            "#!/bin/sh\n[ \"$(pwd -P)\" = \"{}\" ] || exit 1\necho '[{{\"headRefName\":\"2026-10-10-cli-core\",\"headRefOid\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"number\":31,\"url\":\"https://github.com/o/r/pull/31\",\"isDraft\":true,\"reviewDecision\":\"\"}}]'\n",
             std::fs::canonicalize(repo.path()).unwrap().display()
         ),
     )

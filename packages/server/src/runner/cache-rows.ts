@@ -28,6 +28,8 @@ export type SessionRow = {
 export type TurnRow = {
   /** Allow turns: the allow rule. */
   allowed: string | null;
+  /** When the human dismissed its failure or its stop, null while it still asks for them. */
+  dismissedAt: string | null;
   endedAt: string | null;
   id: number;
   kind: TurnKind;
@@ -63,6 +65,7 @@ export const toSession = (row: Row): SessionRow => ({
 
 export const toTurn = (row: Row): TurnRow => ({
   allowed: row.allowed as string | null,
+  dismissedAt: row.dismissed_at as string | null,
   endedAt: row.ended_at as string | null,
   id: Number(row.id),
   kind: row.kind as TurnKind,

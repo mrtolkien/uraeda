@@ -2,7 +2,6 @@
 //! and change from its own branch, and the current branch from the working tree.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -20,10 +19,12 @@ mod merged;
 mod paths;
 mod problem;
 mod read;
+mod reader;
 mod record;
 
 use merged::Merged;
 use read::read_feature;
+use reader::Reader;
 use record::record_kind;
 
 pub use links::{Linked, LinkedFile, RunningFeature, resolve};
@@ -269,79 +270,6 @@ enum ReadFrom {
     Disk,
 }
 
-struct Reader<'a> {
-    git: &'a Git,
-}
-
-impl Reader<'_> {
-    fn read(&self, from: ReadFrom, path: &str) -> Option<String> {
-        let bytes = match from {
-            ReadFrom::Commit(commit) => self.git.read_file(commit, path).ok()??,
-            ReadFrom::Disk => fs::read(self.git.root().join(path)).ok()?,
-        };
-        String::from_utf8(bytes).ok()
-    }
-
-    /// The files directly inside a folder.
-    fn files(&self, from: ReadFrom, dir: &str) -> Vec<String> {
-        match from {
-            ReadFrom::Commit(commit) => self
-                .git
-                .list_files(commit, dir)
-                .unwrap_or_default()
-                .into_iter()
-                .filter_map(|path| {
-                    let name = path.strip_prefix(dir)?.strip_prefix('/')?;
-                    (!name.contains('/')).then(|| name.to_string())
-                })
-                .collect(),
-            ReadFrom::Disk => {
-                let mut names: Vec<String> = fs::read_dir(self.git.root().join(dir))
-                    .into_iter()
-                    .flatten()
-                    .flatten()
-                    .filter(|entry| entry.file_type().is_ok_and(|t| t.is_file()))
-                    .filter_map(|entry| entry.file_name().into_string().ok())
-                    .collect();
-                names.sort();
-                names
-            }
-        }
-    }
-
-    /// The proposal files and postponed folders of `specs/proposals/`, with a proposal.
-    fn proposals(&self, from: ReadFrom) -> Vec<String> {
-        let dir = "specs/proposals";
-        let paths: Vec<String> = match from {
-            ReadFrom::Commit(commit) => self.git.list_files(commit, dir).unwrap_or_default(),
-            ReadFrom::Disk => fs::read_dir(self.git.root().join(dir))
-                .into_iter()
-                .flatten()
-                .flatten()
-                .filter_map(|entry| {
-                    let name = entry.file_name().into_string().ok()?;
-                    let is_dir = entry.file_type().is_ok_and(|t| t.is_dir());
-                    let file = if is_dir { "/proposal.md" } else { "" };
-                    Some(format!("{dir}/{name}{file}"))
-                })
-                .filter(|path| self.git.root().join(path).is_file())
-                .collect(),
-        };
-        let mut proposals = BTreeSet::new();
-        for path in paths {
-            let Some(rest) = path.strip_prefix(dir).and_then(|r| r.strip_prefix('/')) else {
-                continue;
-            };
-            match rest.split_once('/') {
-                Some((folder, "proposal.md")) => proposals.insert(format!("{dir}/{folder}")),
-                None if rest.ends_with(".md") => proposals.insert(path.clone()),
-                _ => false,
-            };
-        }
-        proposals.into_iter().collect()
-    }
-}
-
 /// A workspace being read: the repository, and what reading each feature shares.
 struct Reading<'a> {
     git: &'a Git,
@@ -430,6 +358,8 @@ impl Workspace {
     }
 
     fn read_only(git: &Git, only: Option<&str>) -> Result<Workspace, WorkspaceError> {
+        // The writes still landing, taken before any tip: see `deferred::pending`.
+        let pending = &crate::actions::deferred::pending(&git.main_root());
         let root = git.root();
         let default_branch = git.default_branch();
         let current_branch = git.current_branch();
@@ -459,7 +389,7 @@ impl Workspace {
             .and_then(|path| Git::open(path).ok());
         let default_reader = default_worktree
             .as_ref()
-            .map_or(Reader { git }, |git| Reader { git });
+            .map_or(Reader { git, pending }, |git| Reader { git, pending });
         let priorities_from = match default_tip {
             Some(tip) if !on_default && default_worktree.is_none() => ReadFrom::Commit(tip),
             _ => ReadFrom::Disk,
@@ -468,7 +398,7 @@ impl Workspace {
             .read(priorities_from, "specs/PRIORITIES.md")
             .unwrap_or_default();
 
-        let reader = Reader { git };
+        let reader = Reader { git, pending };
         let remote_default_tip = default_branch.as_deref().and_then(|b| git.remote_tip(b));
         let tips: Vec<ObjectId> = [default_tip, remote_default_tip]
             .into_iter()
@@ -491,7 +421,7 @@ impl Workspace {
         let pull_requests = crate::pulls::latest(&reading.main_root);
         features
             .iter_mut()
-            .for_each(|feature| pull_requests.apply(feature));
+            .for_each(|feature| pull_requests.apply(feature, git));
 
         let fetched = git.fetched_at();
         let mut workspace = Workspace {

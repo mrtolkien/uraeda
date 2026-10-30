@@ -514,6 +514,7 @@ fn a_finished_items_view_carries_its_pull_request() {
             number: 31,
             url: "https://github.com/o/r/pull/31".to_string(),
             state: PullRequestState::Open,
+            head: String::new(),
         })
     );
 
@@ -543,12 +544,13 @@ fn the_workspace_reads_the_latest_pull_requests() {
         number: 31,
         url: "https://github.com/o/r/pull/31".to_string(),
         state: PullRequestState::Draft,
+        head: repo.git(&["rev-parse", FOLDER]).trim().to_string(),
     };
     let root = Git::discover(repo.path()).unwrap().main_root();
 
     let changed = pulls::remember(
         &root,
-        PullRequests::Known([(FOLDER.to_string(), proposal_file.clone())].into()),
+        PullRequests::open([(FOLDER.to_string(), proposal_file.clone())]),
     );
 
     assert!(changed);
@@ -687,11 +689,12 @@ fn a_pull_request_keeps_the_commits_step() {
         number: 32,
         url: "https://github.com/o/r/pull/32".to_string(),
         state: PullRequestState::Open,
+        head: repo.git(&["rev-parse", FOLDER]).trim().to_string(),
     };
 
     pulls::remember(
         &git.main_root(),
-        PullRequests::Known([(FOLDER.to_string(), open)].into()),
+        PullRequests::open([(FOLDER.to_string(), open)]),
     );
 
     let feature = feature(&repo, FOLDER);

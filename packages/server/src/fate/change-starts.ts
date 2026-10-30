@@ -71,16 +71,18 @@ const withFirstRun =
 
 /**
  * Starts a change from a typed text and its images, then sends its first run. The core writes the
- * images into the change's folder: the workflow's message carries none.
+ * images into the change's folder: the workflow's message carries none. `line`, the text of a line
+ * of Now the text was filled from, is replaced by the change's link in the start commit.
  */
 async function startTypedChange(
   ctx: RepoContext,
-  input: { images?: Array<ChatImage>; slug?: string; text: string },
+  input: { images?: Array<ChatImage>; line?: string; slug?: string; text: string },
 ): Promise<{ folder: string; sent: boolean }> {
   const bytes = await changeImages(ctx, input.images);
   return landedStart(
     ctx,
-    (onStep) => ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug, onStep),
+    (onStep) =>
+      ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug, input.line, onStep),
     withFirstRun(ctx),
     input.slug,
   );
@@ -152,7 +154,7 @@ async function startFromNote(
   const { images, text } = await noteChange(ctx, input);
   const { folder } = await landedStart(
     ctx,
-    (onStep) => ctx.binding.startChange(ctx.repo, text, images, input.slug, onStep),
+    (onStep) => ctx.binding.startChange(ctx.repo, text, images, input.slug, undefined, onStep),
     async (started) => started,
     input.slug,
   );
@@ -210,7 +212,7 @@ export const changeStarts = {
       ctx,
       input,
       select,
-    }: Resolver<{ images?: Array<ChatImage>; slug?: string; text: string }>) =>
+    }: Resolver<{ images?: Array<ChatImage>; line?: string; slug?: string; text: string }>) =>
       started(ctx, await startTypedChange(ctx, input), select),
     type: "Feature",
   },

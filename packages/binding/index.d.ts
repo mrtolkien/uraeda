@@ -212,13 +212,6 @@ export declare function encodeImage(bytes: Buffer, name: string): Promise<Encode
  */
 export declare function expandProposal(repo: string, id: string, previous: string): Promise<ProposalFileView>
 
-/**
- * The step the feature or change of `folder` will have once its uncommitted workflow files are
- * committed, read from its files on disk: a prediction for the composer's message only, while its
- * commits are queued, never the branch's step, which `nextStep` reads from its latest commit.
- */
-export declare function expectedStep(repo: string, folder: string): Promise<NextView>
-
 /** The bytes of an image file, with the MIME type detected from its first bytes. */
 export interface ImageFile {
   bytes: Buffer
@@ -521,9 +514,11 @@ export declare function settingsFile(dir: string): string
 
 /**
  * Starts a change typed as a text, with its images, in its own worktree: the first written line
- * is its title. Its steps go to `onStep` as `startFeature`'s do.
+ * is its title. Given `line`, the text of a line of **Now** it starts from, the start commit
+ * replaces that line by the change's link while **Now** holds it once. Its steps go to `onStep` as
+ * `startFeature`'s do.
  */
-export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null): Promise<StartedView>
+export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null, line?: string | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null): Promise<StartedView>
 
 /**
  * Starts a proposed feature, or a change with the kind `"change"`, in its own worktree, calling
@@ -1340,7 +1335,10 @@ export interface NextStepView {
   task?: string
   /** Where the implementation is in the plan's tasks, for implementation. */
   progress?: TaskProgress
-  /** `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it. */
+  /**
+   * `open`, `unpushed`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends
+   * on it.
+   */
   pullRequest?: string
   /** Whether the plan waits for the human's review, for the steps before it is approved. */
   planReview?: boolean
@@ -1572,6 +1570,8 @@ export interface PullRequestView {
   /** Its address, like `https://github.com/o/r/pull/31`. */
   url: string
   state: PullRequestState
+  /** Its head commit's full hash, as `gh` reads it on GitHub: empty when read from a record. */
+  head: string
 }
 
 export interface QuestionItem {

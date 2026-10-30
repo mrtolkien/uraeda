@@ -239,5 +239,6 @@ fn recorded_pull_request(feature: &Feature) -> Option<PullRequestView> {
         number,
         url: url.to_string(),
         state: PullRequestState::Open,
+        head: String::new(),
     })
 }

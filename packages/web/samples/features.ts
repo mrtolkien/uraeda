@@ -137,15 +137,23 @@ export function addSpecPages(repo: string) {
 /** A pull request as `gh pr list --json` lists it. */
 export type FakePullRequest = {
   headRefName: string;
+  headRefOid: string;
   isDraft: boolean;
   number: number;
   reviewDecision: "" | "CHANGES_REQUESTED";
   url: string;
 };
 
+/**
+ * The head of every pull request the fake `gh` lists: a commit no sample has, as one pushed from
+ * elsewhere and never fetched, which the core reads as holding the branch's work.
+ */
+export const NEVER_FETCHED = "0".repeat(40);
+
 /** The pull request `gh` lists for `FEATURE_PAGES.pullRequest`. */
 const PULL_REQUEST: FakePullRequest = {
   headRefName: FEATURE_PAGES.pullRequest,
+  headRefOid: NEVER_FETCHED,
   isDraft: false,
   number: 31,
   reviewDecision: "",

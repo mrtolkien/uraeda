@@ -1,12 +1,13 @@
 //! Watching a repository for changes to its workflow files and branches: after 200 ms without
-//! file events, the workspace is read again, and the features, files, priorities, inbox, and
-//! decisions that changed are reported. The server and the TUI share it.
+//! file events, or 1 second after the first one, the workspace is read again, and the features,
+//! files, priorities, inbox, and decisions that changed are reported. Each read watches the folders
+//! that appeared, and again those deleted and re-created since. The server and the TUI share it.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex, Weak};
-use std::time::Duration;
+use std::time::{Duration, Instant, SystemTime};
 
 #[cfg(feature = "napi")]
 use napi_derive::napi;
@@ -19,6 +20,10 @@ use crate::git::Git;
 
 /// How long the file events must stop before the workspace is read again.
 pub const QUIET: Duration = Duration::from_millis(200);
+
+/// How long after its first file event a burst ends, even while the events go on: git's commands
+/// may write the index more often than `QUIET`.
+pub const LONGEST: Duration = Duration::from_secs(1);
 
 /// What changed since the last report.
 #[cfg_attr(feature = "napi", napi(object))]
@@ -212,10 +217,27 @@ fn compare(before: &Snapshot, after: &Snapshot) -> Changes {
     }
 }
 
-type Shared = Arc<Mutex<(RecommendedWatcher, BTreeSet<(PathBuf, bool)>)>>;
+/// What tells a folder from another one later created at its path: its inode where there is one,
+/// and its creation time where the file system keeps it, since an inode may be reused.
+type Identity = (u64, u64, Option<SystemTime>);
 
-/// Watches more folders: those of `wanted` that exist and are not watched yet. Returns whether it
-/// watches one more.
+fn identity(folder: &Path) -> Option<Identity> {
+    let metadata = std::fs::metadata(folder).ok()?;
+    #[cfg(unix)]
+    let inode = {
+        use std::os::unix::fs::MetadataExt as _;
+        (metadata.dev(), metadata.ino())
+    };
+    #[cfg(not(unix))]
+    let inode = (0, 0);
+    Some((inode.0, inode.1, metadata.created().ok()))
+}
+
+type Shared = Arc<Mutex<(RecommendedWatcher, BTreeMap<(PathBuf, bool), Identity>)>>;
+
+/// Watches more folders: those of `wanted` that exist and are not watched yet. A watched folder
+/// that is gone, or was re-created, is forgotten, and watched again once it exists: its watch went
+/// with the folder it was. Returns whether it watches one more.
 fn watch_folders(shared: &Shared, wanted: &BTreeSet<(PathBuf, bool)>) -> bool {
     let Ok(mut guard) = shared.lock() else {
         return false;
@@ -223,16 +245,26 @@ fn watch_folders(shared: &Shared, wanted: &BTreeSet<(PathBuf, bool)>) -> bool {
     let mut more = false;
     let (watcher, watched) = &mut *guard;
     for (folder, recursive) in wanted {
-        if watched.contains(&(folder.clone(), *recursive)) || !folder.exists() {
-            continue;
+        let key = (folder.clone(), *recursive);
+        let now = identity(folder);
+        if let Some(was) = watched.get(&key) {
+            if now.as_ref() == Some(was) {
+                continue;
+            }
+            // The watch may be gone with its folder already: that is no error.
+            let _ = watcher.unwatch(folder);
+            watched.remove(&key);
         }
+        let Some(now) = now else {
+            continue;
+        };
         let mode = if *recursive {
             RecursiveMode::Recursive
         } else {
             RecursiveMode::NonRecursive
         };
         if watcher.watch(folder, mode).is_ok() {
-            watched.insert((folder.clone(), *recursive));
+            watched.insert(key, now);
             more = true;
         }
     }
@@ -274,7 +306,7 @@ pub fn watch(
         }
     })
     .map_err(|error| WatchError(error.to_string()))?;
-    let shared: Shared = Arc::new(Mutex::new((watcher, BTreeSet::new())));
+    let shared: Shared = Arc::new(Mutex::new((watcher, BTreeMap::new())));
     let mut last = snapshot(&root);
     if last.folders.is_empty() {
         return Err(WatchError(format!(
@@ -291,10 +323,16 @@ pub fn watch(
     let key = kept.key().to_path_buf();
     let weak: Weak<Mutex<_>> = Arc::downgrade(&shared);
     std::thread::spawn(move || {
-        // Each burst of events ends after QUIET without one; the channel closes with the watcher.
+        // Each burst of events ends after QUIET without one, or LONGEST after its first; the
+        // channel closes with the watcher.
         while receiver.recv().is_ok() {
+            let end = Instant::now() + LONGEST;
             loop {
-                match receiver.recv_timeout(QUIET) {
+                let left = end.saturating_duration_since(Instant::now());
+                if left.is_zero() {
+                    break;
+                }
+                match receiver.recv_timeout(QUIET.min(left)) {
                     Ok(()) => continue,
                     Err(RecvTimeoutError::Timeout) => break,
                     Err(RecvTimeoutError::Disconnected) => return,
