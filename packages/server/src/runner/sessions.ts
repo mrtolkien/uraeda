@@ -10,6 +10,7 @@ import { transaction } from "./migrations.ts";
 import { Processes } from "./processes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
+import { takeBack } from "./take-back.ts";
 import { StartMessages } from "./start-messages.ts";
 import {
   type Live,
@@ -325,36 +326,10 @@ export class Sessions {
   takeBack(repo: string, session: string, message: string): void {
     const live = this.#context.live.of(this.#ownNow(repo, session));
     try {
-      this.#takeBack(live, message);
+      takeBack(this.#context, live, message);
     } finally {
       this.#context.live.prune(live);
     }
-  }
-
-  #takeBack(live: Live, message: string) {
-    const { turns } = this.#context;
-    const sent = live.messages.get(message);
-    // A message no longer kept belongs to a turn that ended with nothing left to read.
-    if (!sent) {
-      throw refused(REFUSALS.read);
-    }
-    if (sent.item.state === "taken-back") {
-      return;
-    }
-    if (sent.item.state === "read" || live.turn?.first === message) {
-      throw refused(REFUSALS.read);
-    }
-    const queued = live.queue.findIndex((turn) => turn.message.id === message);
-    if (queued >= 0) {
-      live.queue.splice(queued, 1);
-      turns.mark(live, sent, "taken-back");
-      turns.end(live, sent.turn, { reason: "Taken back.", state: "stopped" });
-      return;
-    }
-    if (!this.adapter.capabilities.takeBack) {
-      throw new Error(`${this.adapter.name} cannot take a message back`);
-    }
-    live.proc?.agent.takeBack(message);
   }
 
   /** Stops the running turn, which keeps the session, and the turns queued after it. */
