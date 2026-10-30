@@ -183,6 +183,8 @@ git commit -m "docs(decisions-needs): the example's decisions hold one keyword p
 - Modify: `crates/core/src/check/decision.rs`, `crates/core/src/check/mod.rs` (its `pub use`),
   `crates/core/src/check/writing.rs` (`sentences`, made `pub(super)`),
   `crates/core/src/decisions/strength.rs`
+- Modify: `skills/uraeda/assets/example/specs/decisions-check/q1-a/code-quality.md`, the example
+  check's candidate, whose marker rule holds two keywords (ruling R1)
 - Test: `crates/core/tests/check.rs`
 
 **Interfaces:**
@@ -194,7 +196,7 @@ git commit -m "docs(decisions-needs): the example's decisions hold one keyword p
   `check` beside `DECISION_RULES`; `decisions::keywords(text: &str) -> usize`, the number of
   keywords in a text, read as `strength` reads the first.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `each_decision_limit`, a table over `Example`'s Task storage decision, each row a break and the
 warning it gives, asserted with `summary(...).contains`, and the problem's rule and severity:
@@ -223,14 +225,14 @@ The break each test catches:
   or in the check, link targets counted as words, a warning raised as a problem.
 - `the_ledger_reads_alone`: a decision edited past a limit, or its Why regrown with links.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c cargo nextest run -p uraeda-core -E 'test(each_decision_limit) | test(the_ledger_reads_alone)'`
 - Expected: FAIL, the intent row: `warning: specs/decisions/task-storage.md:7: 4 sentences: ...` not
   in the problems.
 
-- [ ] **Step 3: Implement the five warnings in `decision.rs`**
+- [x] **Step 3: Implement the five warnings in `decision.rs`**
 
 `check_decision` reads each section once. The intent is the top-level paragraphs between the title
 and the first level-2 heading; the Why, every paragraph and item under `## Why`; the alternatives
@@ -240,16 +242,16 @@ images left out and links kept as their text; sentences and words are counted wi
 out, with `decisions::keywords`, which shares `strength`'s reading of a word. Each warning names the
 count, the limit, and what to cut, as the messages above.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core`, then
   `nix develop -c cargo clippy --all-targets`
 - Expected: PASS, no clippy warning.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add crates/core
+git add crates/core skills/uraeda/assets
 git commit -m "feat(decisions-needs): ura check warns where a decision regrows"
 ```
 

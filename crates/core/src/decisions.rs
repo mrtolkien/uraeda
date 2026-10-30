@@ -10,4 +10,4 @@ pub use crate::compare::Run;
 pub use branch::{BranchSides, branch_changes, branch_decision};
 pub use candidates::{Candidate, links_folder, option_folder};
 pub use change::{DecisionChange, PartChange, SectionChange, compare};
-pub use strength::{Strength, strength};
+pub use strength::{Strength, keywords, strength};

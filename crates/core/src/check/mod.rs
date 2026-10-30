@@ -13,7 +13,10 @@ mod unapproved;
 mod values;
 mod writing;
 
-pub use decision::DECISION_RULES;
+pub use decision::{
+    DECISION_ALTERNATIVES, DECISION_CONSEQUENCES, DECISION_INTENT_SENTENCES, DECISION_RULES,
+    DECISION_WHY_WORDS,
+};
 pub(crate) use names::change_holds;
 pub use spec::{SPEC_WORDS, reviewed_words};
 pub use values::{Action, Choice, Field, FieldKind, allowed_values};

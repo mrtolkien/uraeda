@@ -1,27 +1,110 @@
-//! A decision's shape, as warnings: how many rules it holds, and their order by strength.
+//! A decision's shape, as warnings: how long its sections run, how many rules it holds, how many
+//! keywords each rule holds, and their order by strength.
 
 use super::File;
-use crate::decisions::{Strength, strength};
-use crate::files::document::{BlockKind, Document, parse, plain};
+use super::writing::{is_word, sentences};
+use crate::decisions::{Strength, keywords, strength};
+use crate::files::document::{Block, BlockKind, Document, Span, parse, plain};
 use crate::workspace::Problem;
 
 /// The most rules a decision holds before `decision.rules` warns.
 pub const DECISION_RULES: usize = 10;
 
-/// Warns on a decision of more than `DECISION_RULES` rules (`decision.rules`), on its `## Rules`
-/// heading, and on its first rule stronger than the one before it (`decision.order`). A rule is a
-/// top-level item of `## Rules`' lists; one without a keyword is not ordered.
+/// The most sentences of its intent before `decision.intent` warns.
+pub const DECISION_INTENT_SENTENCES: usize = 3;
+
+/// The most words of its Why before `decision.why` warns.
+pub const DECISION_WHY_WORDS: usize = 80;
+
+/// The most alternatives it lists before `decision.alternatives` warns.
+pub const DECISION_ALTERNATIVES: usize = 3;
+
+/// The most consequences it lists before `decision.consequences` warns.
+pub const DECISION_CONSEQUENCES: usize = 4;
+
+/// Warns where a decision drifts from the limits of the writing reference: an intent past
+/// `DECISION_INTENT_SENTENCES` sentences, on the title (`decision.intent`); a Why past
+/// `DECISION_WHY_WORDS` words (`decision.why`); more than `DECISION_ALTERNATIVES` alternatives
+/// (`decision.alternatives`) or `DECISION_CONSEQUENCES` consequences (`decision.consequences`), on
+/// their headings; and the rules, as `check_rules` says. A section it lacks measures nothing.
 pub(super) fn check_decision(file: &File<'_>, problems: &mut Vec<Problem>) {
     let document = parse(file.text, "");
-    let Some(heading) = document.blocks.iter().find(|b| {
-        b.parent.is_none()
-            && b.kind == BlockKind::Heading
-            && b.level == Some(2)
-            && plain(&b.spans).trim() == "Rules"
-    }) else {
-        return;
+    let mut warn = |block: &Block, rule: &str, message: String| {
+        problems.push(file.warning(Some(block.start_line as usize), rule, message));
     };
-    let rules = rules(&document, heading.id);
+    if let Some(title) = top_heading(&document, 1, None) {
+        let intent: usize = section(&document, title)
+            .filter(|b| b.parent.is_none() && b.kind == BlockKind::Paragraph)
+            .map(|b| sentences(&counted_text(&b.spans)).len())
+            .sum();
+        if intent > DECISION_INTENT_SENTENCES {
+            warn(
+                title,
+                "decision.intent",
+                format!(
+                    "{intent} sentences: keep the intent to at most {DECISION_INTENT_SENTENCES}"
+                ),
+            );
+        }
+    }
+    if let Some(why) = top_heading(&document, 2, Some("Why")) {
+        let words: usize = section(&document, why)
+            .filter(|b| matches!(b.kind, BlockKind::Paragraph | BlockKind::Item))
+            .map(|b| {
+                counted_text(&b.spans)
+                    .split_whitespace()
+                    .filter(|w| is_word(w))
+                    .count()
+            })
+            .sum();
+        if words > DECISION_WHY_WORDS {
+            warn(
+                why,
+                "decision.why",
+                format!("{words} words: keep the reason under {DECISION_WHY_WORDS}"),
+            );
+        }
+    }
+    let listed = [
+        (
+            "Alternatives considered",
+            DECISION_ALTERNATIVES,
+            "decision.alternatives",
+            "alternatives",
+            "the ones an agent could propose again",
+        ),
+        (
+            "Consequences",
+            DECISION_CONSEQUENCES,
+            "decision.consequences",
+            "consequences",
+            "the costs and what a later feature must do",
+        ),
+    ];
+    for (name, limit, rule, noun, keep) in listed {
+        if let Some(heading) = top_heading(&document, 2, Some(name)) {
+            let count = items(&document, heading).len();
+            if count > limit {
+                warn(
+                    heading,
+                    rule,
+                    format!("{count} {noun}: keep at most {limit}, {keep}"),
+                );
+            }
+        }
+    }
+    if let Some(heading) = top_heading(&document, 2, Some("Rules")) {
+        check_rules(file, &document, heading, problems);
+    }
+}
+
+/// Warns on a decision of more than `DECISION_RULES` rules (`decision.rules`), on its `## Rules`
+/// heading; on each rule holding more than one keyword before its check, outside code
+/// (`decision.keywords`); and on its first rule stronger than the one before it
+/// (`decision.order`). A rule is a top-level item of `## Rules`' lists; one without a keyword is
+/// not ordered.
+fn check_rules(file: &File<'_>, document: &Document, heading: &Block, problems: &mut Vec<Problem>) {
+    let rules = items(document, heading);
     if rules.len() > DECISION_RULES {
         problems.push(file.warning(
             Some(heading.start_line as usize),
@@ -32,14 +115,26 @@ pub(super) fn check_decision(file: &File<'_>, problems: &mut Vec<Problem>) {
             ),
         ));
     }
+    for rule in &rules {
+        let text = counted_text(&rule.spans);
+        let own = text.split("Checked by").next().unwrap_or_default();
+        let count = keywords(own);
+        if count > 1 {
+            problems.push(file.warning(
+                Some(rule.start_line as usize),
+                "decision.keywords",
+                format!("{count} keywords: one rule holds one MUST, SHOULD, or MAY"),
+            ));
+        }
+    }
     let mut before: Option<Strength> = None;
-    for (line, found) in rules {
-        let Some(found) = found else {
+    for rule in rules {
+        let Some(found) = strength(&plain(&rule.spans)) else {
             continue;
         };
         if let Some(weaker) = before.filter(|b| b.rank() > found.rank()) {
             problems.push(file.warning(
-                Some(line),
+                Some(rule.start_line as usize),
                 "decision.order",
                 format!(
                     "a {} rule after a {} one: put the strongest first",
@@ -53,18 +148,47 @@ pub(super) fn check_decision(file: &File<'_>, problems: &mut Vec<Problem>) {
     }
 }
 
-/// The rules after the heading `heading`, up to the next level-1 or level-2 heading: each
-/// top-level item of its lists, with its line and its strength.
-fn rules(document: &Document, heading: u32) -> Vec<(usize, Option<Strength>)> {
+/// The first top-level heading of `level`, named `name` when one is given.
+fn top_heading<'a>(document: &'a Document, level: u32, name: Option<&str>) -> Option<&'a Block> {
+    document.blocks.iter().find(|b| {
+        b.parent.is_none()
+            && b.kind == BlockKind::Heading
+            && b.level == Some(level)
+            && name.is_none_or(|name| plain(&b.spans).trim() == name)
+    })
+}
+
+/// The blocks after a heading, nested ones included, up to the next level-1 or level-2 heading.
+fn section<'a>(document: &'a Document, heading: &Block) -> impl Iterator<Item = &'a Block> {
+    let id = heading.id;
     document
         .blocks
         .iter()
-        .filter(|b| b.parent.is_none() && b.id > heading)
+        .filter(move |b| b.id > id)
         .take_while(|b| b.kind != BlockKind::Heading || b.level.unwrap_or(1) > 2)
-        .filter(|b| b.kind == BlockKind::List)
+}
+
+/// The top-level items of a section's top-level lists.
+fn items<'a>(document: &'a Document, heading: &Block) -> Vec<&'a Block> {
+    section(document, heading)
+        .filter(|b| b.parent.is_none() && b.kind == BlockKind::List)
         .flat_map(|list| document.children(list.id))
         .filter(|item| item.kind == BlockKind::Item)
-        .map(|item| (item.start_line as usize, strength(&plain(&item.spans))))
+        .collect()
+}
+
+/// The text of spans as a decision's limits count it: a link counts by its text, and inline code
+/// and images count for nothing.
+fn counted_text(spans: &[Span]) -> String {
+    spans
+        .iter()
+        .map(|span| {
+            if span.code || span.image.is_some() {
+                " "
+            } else {
+                span.text.as_str()
+            }
+        })
         .collect()
 }
 
