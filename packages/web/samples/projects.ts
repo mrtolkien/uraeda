@@ -69,6 +69,13 @@ function buildSample(repo: string) {
   addSpecPages(repo);
   // The questions page's features, from the spec's rounds, as Storybook's fixture has them.
   addQuestionsPages(repo);
+  // Uraeda's own code-quality and testing decisions, on `main`: the project is set up, and its Home
+  // shows no Setup pane.
+  git(repo, "switch", "--quiet", "main");
+  for (const name of ["code-quality.md", "testing.md"]) {
+    copyFileSync(fixture(`realistic/decisions/${name}`), join(repo, "specs/decisions", name));
+  }
+  commitAll(repo, "docs: code-quality and testing decisions");
 }
 
 /**

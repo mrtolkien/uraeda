@@ -87,3 +87,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the UI guides ask that moving content glide, never jump; and with R2's empty list,
   the last file written would otherwise go unannounced, the pane gone with it.
 - **Where**: task 4, `packages/web/src/Home.tsx`, `packages/web/src/home/Setup.tsx`
+
+## R10: The sandbox's sample project gets a code-quality and a testing decision
+
+- **Decision**: `sample` commits Uraeda's own `code-quality.md` and `testing.md` on its `main`, so
+  it is set up. `fixtures/repo`, which many tests share, stays as it is.
+- **Rationale**: `sample` is the project the sandbox opens for every review; a Setup pane first on
+  its Home would push every other pane down. `empty` and `bare` show the pane.
+- **Alternatives considered**: the two decisions in `fixtures/repo`: every test reading its ledger
+  would change.
+- **Where**: `packages/web/samples/projects.ts`, from the review of wave 1
