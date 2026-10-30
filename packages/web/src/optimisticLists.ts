@@ -32,29 +32,21 @@ function prioritiesWith(sections: Sections) {
 }
 
 /**
- * The notes of `category`, at `index` there, or at its end, given `note`, in a category not shown
- * yet when it held none: the notes without one first, the others in the order of `names`.
- * `undefined` for a category the file does not have, which the core would make.
+ * The notes of `category`, at `index` there, or at its end, given `note`. `undefined` for a
+ * category not shown, as one without notes yet: where it goes among the others is the core's.
  */
 function placed(
   categories: Categories,
-  names: ReadonlyArray<string>,
   category: string | undefined,
   note: Note,
   index = Number.MAX_SAFE_INTEGER,
 ): Categories | undefined {
   const at = categories.findIndex((one) => one.name === category);
-  if (at !== -1) {
-    const one = categories[at]!;
-    return categories.toSpliced(at, 1, { ...one, notes: one.notes.toSpliced(index, 0, note) });
-  }
-  if (category !== undefined && !names.includes(category)) {
+  if (at === -1) {
     return undefined;
   }
-  const order = (name: string | undefined) => (name === undefined ? -1 : names.indexOf(name));
-  const before = categories.findIndex((one) => order(one.name) > order(category));
-  const fresh = { ...(category === undefined ? {} : { name: category }), notes: [note] };
-  return categories.toSpliced(before === -1 ? categories.length : before, 0, fresh);
+  const one = categories[at]!;
+  return categories.toSpliced(at, 1, { ...one, notes: one.notes.toSpliced(index, 0, note) });
 }
 
 /** A note not written yet, with `text`, about the feature or change `about`. */
@@ -75,22 +67,28 @@ function noteOf(text: string, about?: string): Note {
   };
 }
 
-/** The inbox with a note added at the end of `category`, or of the notes without one. */
+/**
+ * The inbox with a note added at the end of `category`, or of the notes without one; `undefined`
+ * when they show no notes yet.
+ */
 export function noteAdded(
-  inbox: Pick<Inbox, "categories" | "names">,
+  inbox: Pick<Inbox, "categories">,
   { about, category, text }: { about?: string; category?: string; text: string },
 ) {
-  const categories = placed(inbox.categories, inbox.names, category, noteOf(text, about));
+  const categories = placed(inbox.categories, category, noteOf(text, about));
   return categories && inboxWith(categories);
 }
 
-/** The inbox with `note` back at `index` of `category`, as an Undo writes its lines back. */
+/**
+ * The inbox with `note` back at `index` of `category`, as an Undo writes its lines back; `undefined`
+ * when they show no notes now.
+ */
 export function notePutBack(
-  inbox: Pick<Inbox, "categories" | "names">,
+  inbox: Pick<Inbox, "categories">,
   { category, index, note }: { category?: string; index: number; note: Note },
 ) {
   const back = { ...note, ...temporary() };
-  const categories = placed(inbox.categories, inbox.names, category, back, index);
+  const categories = placed(inbox.categories, category, back, index);
   return categories && inboxWith(categories);
 }
 

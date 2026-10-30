@@ -450,3 +450,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a setting a flag or a variable gives for the run shows its saved value in its
   switch, as the browser's already did, with the run's value in its note.
 - **Where**: review of the web UI's writes.
+
+## R39: An optimistic row goes only where its input names, among the rows shown
+
+- **Decision**: an optimistic result of the inbox or the priorities removes rows, or puts a row at
+  the place its input names among the rows shown: the end of a category, or the index an Undo writes
+  it back to. A note added to, or put back in, a category that shows no notes, or the notes without
+  one when none show, has no optimistic result: the answer draws it.
+- **Rationale**: where a category not shown goes among the others, the notes without one first, then
+  the order of `names`, is the core's layout of the file, which the Stack decision keeps out of
+  TypeScript.
+- **If wrong**: a note added to an empty category shows once the add answers.
+- **Where**: review of the web UI's writes.
