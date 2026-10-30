@@ -207,3 +207,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: `stale-while-revalidate` on every page hook, for the reasons above.
 - **If wrong**: the window is `REPLAYED_MS`, which must not exceed the server's `LIVE_REPLAY_MS`.
 - **Where**: review of tasks 4 and 5.
+
+## R18: The cache's counts serve the core's tests, not the server's timing
+
+- **Decision**: Task 3's interface says `cache_stats` serves the core's tests, and the binding's
+  `cacheStats` lets the benchmark read it; the server's `Server-Timing` sends only `app;dur=<ms>`.
+- **Rationale**: task 4 built `Server-Timing` as the time of each response, which is what the spec
+  asks of it, and no code reads `cacheStats` there. The plan's text said otherwise.
+- **Where**: review of task 3.

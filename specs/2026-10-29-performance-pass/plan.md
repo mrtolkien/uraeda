@@ -443,9 +443,9 @@ git commit -m "chore(performance-pass): upgrade fate, whose optimistic inserts s
   - `pub(crate) fn open(repo: &Path) -> Result<(Git, Arc<Workspace>)>`: callers keep using
     `&workspace`.
   - `pub fn cache_stats(repo: &Path) -> CacheStats { reads: u32, hits: u32 }`, `#[napi(object)]`:
-    the reads of git and the answers from memory since the watch started, for the tests and the
-    server's `Server-Timing` (`u32`, a number in TypeScript: see ruling R11). The binding's
-    `cacheStats(repo)` returns it at once.
+    the reads of git and the answers from memory since the watch started, for the core's tests
+    (`u32`, a number in TypeScript: see ruling R11). The binding's `cacheStats(repo)` returns it at
+    once, for the benchmark to read if it needs; the server's `Server-Timing` does not use it (R18).
   - `watch::watch` enables the cache of its repository while the returned `Watcher` lives.
 
 - [x] **Step 1: Write the failing tests**
