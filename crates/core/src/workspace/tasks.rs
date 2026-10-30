@@ -57,7 +57,8 @@ impl Reading<'_> {
 }
 
 impl Feature {
-    /// Sets the tasks done on its task branches, and its step with them, from its latest commit.
+    /// Sets the tasks done on its task branches, and its step with them, from its latest commit
+    /// with the writes still landing on top: `at_tip` holds both (`read_feature`).
     fn with_task_branch_done(&mut self, done: BTreeSet<(u32, String)>) {
         if let Some(at_tip) = self.at_tip.as_deref_mut() {
             at_tip.task_branch_done = done.clone();

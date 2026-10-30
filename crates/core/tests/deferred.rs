@@ -372,3 +372,35 @@ fn turning_deferral_off_drops_the_reads_kept_with_its_writes() {
 
     assert_eq!(step_of(&repo), "human-gate");
 }
+
+/// A feature whose plan waits for review, and whose task 1 is done on its task branch already,
+/// with deferral on.
+fn plan_with_task_branch() -> TestRepo {
+    let repo = spec_to_review(&spec("approved", 1, 1));
+    let path = "specs/2026-10-11-web-ui/plan.md";
+    repo.switch(FOLDER);
+    repo.write(
+        path,
+        &plan("awaiting-human", 1, &[("One", 0, 1), ("Two", 0, 1)]),
+    );
+    repo.commit("plan(web-ui): plan");
+    repo.switch_new(&format!("{FOLDER}-task-1"));
+    repo.write(path, &plan("approved", 1, &[("One", 1, 1), ("Two", 0, 1)]));
+    repo.commit("feat(web-ui): task 1");
+    repo.switch("main");
+    repo
+}
+
+/// A write still landing moves the step of a feature with task branches: the step is read from the
+/// tip with the write on top, and the tasks done on them.
+#[test]
+fn a_deferred_approval_moves_the_step_of_a_feature_with_task_branches() {
+    let repo = plan_with_task_branch();
+    assert_eq!(step_of(&repo), "human-gate");
+
+    api::approve(repo.path(), FOLDER, "plan.md", None, None, None).unwrap();
+
+    let step = api::next_step(repo.path(), FOLDER).unwrap().step;
+    assert_eq!(step.name, "implementation");
+    assert_eq!(step.progress.map(|progress| progress.done), Some(1));
+}
