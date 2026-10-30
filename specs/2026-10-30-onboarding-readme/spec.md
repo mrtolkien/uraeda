@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Onboarding + README pass
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-10-30: 5 comments in spec-review.md.
 >
 > - You approve a short README opening with the dot banner, the user reference moved to `docs/`, and
 >   building Uraeda moved to `CONTRIBUTING.md`. Home gets a Setup pane with "Set up with the agent",
