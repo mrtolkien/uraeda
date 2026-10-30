@@ -12,6 +12,13 @@
 - [decisions-needs]
   [New note on mobile has the keyboard hiding the note. Closing the keyboard and opening it again works.](notes/new-note-on-mobile-has-the-keyboard-hiding-the/note.md)
 - [decisions-needs] Floating questions should use the glass style when they overlay content
+- [decisions-needs]
+  [Decisions are not super readable, text is a bit too big. The pane should be a bit bigger to accomodate the title while prose stays in a centered column at the standard size.](notes/decisions-are-not-super-readable-text-is-a-bit-too/note.md)
+- [decisions-needs]
+  [The "replaced behaviour" block looks weird in the specs. Needs a review together with decisions changes.](notes/the-replaced-behaviour-block-looks-weird-in-the/note.md)
+- [performance-pass]
+  [The two columns here look out of place (clarifications), put them back one by one.](notes/the-two-columns-here-look-out-of-place/note.md)
+- [The home columns are not centered on a wide screen](notes/the-home-columns-are-not-centered-on-a-wide-screen/note.md)
 
 ## Bugfix
 
