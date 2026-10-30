@@ -181,6 +181,7 @@ fn another_slug() {
     assert!(repo.exists(".worktrees/2026-10-11-listener/specs/2026-10-11-listener/proposal.md"));
 }
 
+/// Uncommitted changes elsewhere stay as they were, out of the start's commit.
 #[test]
 fn uncommitted_changes_elsewhere() {
     let repo = repo_with_a_proposal_file();
@@ -188,12 +189,12 @@ fn uncommitted_changes_elsewhere() {
 
     let output = ura(&repo, &["start", PROPOSAL_FILE]);
 
+    assert_eq!(output.code, 0, "{}", output.stderr);
     assert_eq!(
-        output.stderr,
-        "ura: cannot start: uncommitted changes in README.md\n"
+        repo.changed_in("main"),
+        [PROPOSAL, "specs/PRIORITIES.md", PROPOSAL_FILE]
     );
-    assert_eq!(output.code, 1);
-    assert_eq!(repo.subjects("main")[0], "draft");
+    assert_eq!(repo.porcelain(), " M README.md\n");
 }
 
 #[test]

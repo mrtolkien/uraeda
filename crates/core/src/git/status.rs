@@ -86,6 +86,21 @@ impl Git {
             .collect())
     }
 
+    /// The operation in progress here that a commit of some files alone cannot run over, as its
+    /// name in a sentence: a merge or a cherry-pick, where git refuses one, a revert, which one
+    /// would end, or applying patches, which it would leave half applied. A rebase or a bisect
+    /// detaches `HEAD`, so this checkout is on no branch to commit to.
+    pub fn operation_in_progress(&self) -> Option<&'static str> {
+        use gix::state::InProgress;
+        match self.repo.state()? {
+            InProgress::Merge => Some("a merge"),
+            InProgress::CherryPick | InProgress::CherryPickSequence => Some("a cherry-pick"),
+            InProgress::Revert | InProgress::RevertSequence => Some("a revert"),
+            InProgress::ApplyMailbox | InProgress::ApplyMailboxRebase => Some("applying patches"),
+            InProgress::Rebase | InProgress::RebaseInteractive | InProgress::Bisect => None,
+        }
+    }
+
     /// Whether the file at `path` is as `HEAD` has it in both the index and the working tree, a
     /// missing file as `HEAD` has none: a change staged then undone on disk is still a change,
     /// and so is a file git ignores.

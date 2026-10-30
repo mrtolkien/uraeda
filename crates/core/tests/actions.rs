@@ -1,6 +1,6 @@
 mod common;
 
-use common::repo::{TestRepo, run_git};
+use common::repo::{TestRepo, run_git, without_user_git};
 use common::texts::{self, proposal, spec};
 use uraeda_core::actions::place::{self, Place};
 use uraeda_core::actions::review::{self, DecisionTarget, Tier};
@@ -1929,6 +1929,149 @@ fn a_typed_text_starts_over_uncommitted_changes_elsewhere() {
         "chore(centred-x): start Centre the x in failure circles"
     );
     assert_eq!(repo.porcelain(), " M README.md\n?? src/\n");
+}
+
+/// A typed text starts over files staged elsewhere: its commit leaves them staged, out of it.
+#[test]
+fn a_typed_text_starts_over_files_staged_elsewhere() {
+    let repo = proposal_file_repo();
+    repo.write("README.md", "# Staged\n");
+    repo.git(&["add", "README.md"]);
+
+    start_text(&repo, TYPED, &[], Some("centred-x")).unwrap();
+
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            "specs/PRIORITIES.md",
+            "specs/changes/2026-10-16-centred-x/proposal.md"
+        ]
+    );
+    assert_eq!(repo.porcelain(), "M  README.md\n");
+}
+
+/// A proposal file starts over the main checkout's other edits, uncommitted or staged, like an
+/// inbox's: its commit takes its own files, and leaves the others as they were.
+#[test]
+fn a_proposal_file_starts_over_uncommitted_changes_elsewhere() {
+    let repo = proposal_file_repo();
+    repo.write("specs/INBOX.md", "# Inbox\n");
+    repo.commit("chore: add the inbox");
+    repo.write("specs/INBOX.md", "# Inbox\n\n- A note\n");
+    repo.write("README.md", "# Staged\n");
+    repo.git(&["add", "README.md"]);
+    repo.write("src/auth/guard.ts", "export {};\n");
+    let (git, workspace) = opened(&repo);
+
+    start::run(
+        &git,
+        &workspace,
+        PROPOSAL_FILE,
+        Some("centred-x"),
+        Kind::Change,
+        change_day(),
+        false,
+    )
+    .unwrap();
+
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            "specs/PRIORITIES.md".to_string(),
+            format!("specs/changes/{CHANGE_FOLDER}/proposal.md"),
+            PROPOSAL_FILE.to_string()
+        ]
+    );
+    assert_eq!(
+        repo.porcelain(),
+        "M  README.md\n M specs/INBOX.md\n?? src/\n"
+    );
+}
+
+/// The proposal file's repository with `README.md` changed on `other` and twice on `main`, then
+/// `operation` run on `main`, which conflicts and stays in progress, its state file in `.git/`.
+fn conflicted(operation: &[&str], state: &str) -> TestRepo {
+    let repo = proposal_file_repo();
+    repo.write("README.md", "# Main\n");
+    repo.commit("docs: main");
+    repo.switch_new("other");
+    repo.write("README.md", "# Other\n");
+    repo.commit("docs: other");
+    repo.switch("main");
+    repo.write("README.md", "# Main, again\n");
+    repo.commit("docs: main again");
+    // Conflicted: git exits with an error, the operation left in progress.
+    let _ = without_user_git(
+        std::process::Command::new("git")
+            .args(operation)
+            .current_dir(repo.path()),
+    )
+    .output();
+    assert!(
+        repo.exists(&format!(".git/{state}")),
+        "{operation:?} in progress"
+    );
+    repo
+}
+
+/// Starts the proposal file in `repo`, which an operation in progress refuses: the refusal, and
+/// that nothing was written and the operation is still in progress, its `state` file kept.
+fn refused_during(repo: &TestRepo, state: &str) -> String {
+    let before = repo.porcelain();
+    let (git, workspace) = opened(repo);
+
+    let refused = start::run(
+        &git,
+        &workspace,
+        PROPOSAL_FILE,
+        Some("centred-x"),
+        Kind::Change,
+        change_day(),
+        false,
+    );
+
+    assert!(repo.exists(PROPOSAL_FILE));
+    assert!(repo.exists(&format!(".git/{state}")));
+    assert_eq!(repo.porcelain(), before);
+    refused
+        .err()
+        .map(|error| error.to_string())
+        .unwrap_or_default()
+}
+
+/// A start during a merge on the main checkout, where git refuses a commit of some files alone,
+/// is refused before anything is written.
+#[test]
+fn a_start_during_a_merge_is_refused_before_any_write() {
+    let repo = conflicted(&["merge", "--quiet", "other"], "MERGE_HEAD");
+
+    assert_eq!(
+        refused_during(&repo, "MERGE_HEAD"),
+        "cannot start: a merge is in progress on main: finish or abort it first"
+    );
+}
+
+/// A cherry-pick refuses a commit of some files alone too.
+#[test]
+fn a_start_during_a_cherry_pick_is_refused_before_any_write() {
+    let repo = conflicted(&["cherry-pick", "other"], "CHERRY_PICK_HEAD");
+
+    assert_eq!(
+        refused_during(&repo, "CHERRY_PICK_HEAD"),
+        "cannot start: a cherry-pick is in progress on main: finish or abort it first"
+    );
+}
+
+/// A revert allows a commit of some files alone, which would end it: the start is refused, and the
+/// revert stays in progress.
+#[test]
+fn a_start_during_a_revert_is_refused_and_the_revert_stays() {
+    let repo = conflicted(&["revert", "--no-edit", "HEAD~1"], "REVERT_HEAD");
+
+    assert_eq!(
+        refused_during(&repo, "REVERT_HEAD"),
+        "cannot start: a revert is in progress on main: finish or abort it first"
+    );
 }
 
 /// US1.2: the images are saved in the change's folder and committed with its proposal, on main.

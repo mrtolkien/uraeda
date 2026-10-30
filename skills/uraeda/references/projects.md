@@ -117,8 +117,9 @@ Do these only when a human asks.
      the other started proposals, then a blank line, unless the human says otherwise, as a link to
      the `proposal.md` from the repository root,
      `[Name](/specs/YYYY-MM-DD-feature-slug/proposal.md)`, and commit with
-     `chore(<slug>): start <feature name>`. The link resolves on the default branch, which holds the
-     proposal from the start. Proposals match branches through that link. Started proposals are
+     `chore(<slug>): start <feature name>`. Commit these files alone: other changes in the checkout,
+     uncommitted or staged, stay as they are. The link resolves on the default branch, which holds
+     the proposal from the start. Proposals match branches through that link. Started proposals are
      those linking a dated folder's `proposal.md`, a feature's or a change's. Proposals started
      lower in **Now** stay where they are, and no blank line is left at the end of **Now**.
      `PRIORITIES.md` lives on the default branch: feature branches only remove their own proposal,
