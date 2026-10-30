@@ -6,7 +6,9 @@ use std::time::Duration;
 use common::repo::TestRepo;
 use common::texts::{clarifications, decision, plan, proposal, spec};
 use uraeda_core::api;
+use uraeda_core::cache::cache_stats;
 use uraeda_core::view::CommitView;
+use uraeda_core::watch::watch;
 
 const FOLDER: &str = "2026-10-11-web-ui";
 const ROUND: &str = "specs/2026-10-11-web-ui/clarifications-01.md";
@@ -304,4 +306,44 @@ fn a_save_returns_while_a_deferred_commit_waits_on_its_hook() {
         repo.read("specs/INBOX.md")
             .contains("Saved during the hook")
     );
+}
+
+/// A landing that panics, as when what its output streams to does, leaves its write pending no
+/// more: the step goes back to the gate.
+#[test]
+fn a_landing_that_panics_is_pending_no_more() {
+    let repo = spec_to_review(&spec("awaiting-human", 1, 1));
+    repo.set_hook("echo refused\nexit 1");
+    api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap();
+    assert_eq!(step_of(&repo), "plan");
+    let deferred = api::take_deferred(repo.path());
+
+    let landing = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        api::land(repo.path(), &deferred[0].id, |_| {
+            panic!("its output went nowhere")
+        })
+    }));
+
+    assert!(landing.is_err(), "the landing did not panic");
+    assert_eq!(step_of(&repo), "human-gate");
+}
+
+/// Turning deferral off reads the step again: a read kept while the approval was pending no
+/// longer answers.
+#[test]
+fn turning_deferral_off_drops_the_reads_kept_with_its_writes() {
+    let repo = spec_to_review(&spec("awaiting-human", 1, 1));
+    let _watcher = watch(repo.path(), |_| {}).unwrap();
+    api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap();
+    assert_eq!(step_of(&repo), "plan");
+    let hits = cache_stats(repo.path()).hits;
+    assert_eq!(step_of(&repo), "plan");
+    assert!(
+        cache_stats(repo.path()).hits > hits,
+        "the read was not kept"
+    );
+
+    api::defer_commits(repo.path(), false);
+
+    assert_eq!(step_of(&repo), "human-gate");
 }
