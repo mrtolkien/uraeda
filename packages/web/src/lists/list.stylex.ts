@@ -20,9 +20,6 @@ export const listVars = stylex.defineVars({
   // the priorities'.
   "--list-column-least": "400px",
   "--list-column-roomy": "500px",
-  // The widest of a list whose lines are long: 80 characters a line, the measure of prose, with
-  // room for the bullet and the pane's sides.
-  "--list-line-max": "calc(80ch + 4rem)",
   // On the phone, the room under an outline's last row for the bar floating at the screen's
   // bottom, which a row scrolls clear of.
   "--list-bar-room": "6rem",

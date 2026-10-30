@@ -23,6 +23,13 @@ const styles = stylex.create({
     flexGrow: 1,
     minWidth: 0,
   },
+  // On wider screens, the text keeps to a page of rows' text column, a reading pane less the pane's
+  // and the row's room, and the control sits beside it, at the row's end (`Page`'s `beside`).
+  column: {
+    "--setting-text":
+      "calc(var(--size-reading-pane) - 3 * var(--spacing-3) - 2 * var(--border-width))",
+    maxWidth: "var(--setting-text)",
+  },
   control: {
     flexShrink: 0,
     maxWidth: "100%",
@@ -75,7 +82,7 @@ export function SettingRow({
 }) {
   const narrow = isNarrow(useWidthClass());
   const text = (
-    <HStack align="start" gap={3} xstyle={styles.body}>
+    <HStack align="start" gap={3} xstyle={[styles.body, !narrow && styles.column]}>
       <Text xstyle={styles.icon}>
         <Icon icon={icon} size="sm" />
       </Text>
@@ -98,7 +105,7 @@ export function SettingRow({
     );
   }
   return (
-    <HStack align="center" as="li" gap={4} xstyle={styles.row}>
+    <HStack align="center" as="li" gap={4} justify="between" xstyle={styles.row}>
       {text}
       {control}
     </HStack>

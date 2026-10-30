@@ -332,35 +332,36 @@ git commit -m "feat(panes-size): question and decision cards at the scale's widt
 **Files:**
 
 - Modify: `packages/web/src/settings/SettingsView.tsx` (its `Page`'s `beside`),
-  `packages/web/src/settings/SettingRow.tsx`, `packages/web/src/lists/list.stylex.ts`
+  `packages/web/src/settings/SettingRow.tsx`, `packages/web/src/lists/list.stylex.ts`,
+  `packages/web/src/lists/WorkList.tsx` (the list's width, a reading pane)
 
 **Interfaces:**
 
 - Consumes: `Page`'s `kind="rows"` and `beside`, `--size-setting-control`, `--size-reading-pane`
   (task 1).
 
-- [ ] **Step 1: Settings' controls beside their text**
+- [x] **Step 1: Settings' controls beside their text**
 
 Settings is a page of rows with `beside="--size-setting-control"`. On semi-wide and wide screens, a
 row's text keeps to the text column, a reading pane less the pane's room, and its control sits at
 the row's end beside it; on the phone, the control under the text, as today.
 
-- [ ] **Step 2: The priorities' single list at the text column**
+- [x] **Step 2: The priorities' single list at the text column**
 
-`--list-line-max` is the reading pane and the room of the list's markers and selection bar, which
-today's `4rem` holds: the list's text column is 692 px at the default fonts.
+The single list is a reading pane wide, its rows' markers and selection inside its panes, in place
+of `--list-line-max`: the list's text column is 692 px at the default fonts.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `vp check` and `vp test` in `packages/web`
 - Expected: PASS
 
-- [ ] **Step 4: Review in the sandbox**
+- [x] **Step 4: Review in the sandbox**
 
 At 1920 px: settings' text wraps at 692 px, each control beside it, the title at the pane's edge;
 the priorities in one list (`v`), its text column 692 px. The phone unchanged.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-30-panes-size/plan.md
