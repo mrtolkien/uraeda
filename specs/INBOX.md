@@ -16,6 +16,9 @@
   context
 - [panes-size]
   [We need a good way to show tables in our reading panes](notes/we-need-a-good-way-to-show-tables-in-our-reading/note.md)
+- If there's nothing in progress, the "nothing in progress" in the sidebar looks weird
+- [feature-state]
+  [Example doesn’t have good enough separation with the rest on mobile. We need full panes again.](notes/example-doesn-t-have-good-enough-separation-with/note.md)
 
 ## Bugfix
 
