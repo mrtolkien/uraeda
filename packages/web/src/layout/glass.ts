@@ -1,5 +1,5 @@
-// The frosted glass under what floats over the page: the phone's row actions and bottom bar, and
-// the leader menu.
+// The frosted glass under what floats over the page: the phone's row actions and bottom bar, the
+// leader menu, and a question's header stuck over its card.
 import * as stylex from "@stylexjs/stylex";
 import { glassVars } from "./glass.stylex.ts";
 
@@ -20,6 +20,12 @@ export const glassStyles = stylex.create({
   floating: {
     boxShadow:
       "inset 0 0 0 1px rgb(255 226 190 / 0.4), inset 0 1px 1px rgb(255 248 236 / 0.75), inset 0 -1px 2px rgb(255 190 130 / 0.18), 0 10px 30px rgb(0 0 0 / 0.28)",
+  },
+  // A header stuck at the top of the page: the rim on its bottom edge alone, its shadow cast down
+  // the page.
+  dockedTop: {
+    boxShadow:
+      "inset 0 -1px 0 rgb(255 226 190 / 0.4), inset 0 -2px 1px -1px rgb(255 248 236 / 0.5), 0 6px 24px rgb(0 0 0 / 0.24)",
   },
   // A bar on the screen's bottom edge: the rim on its top edge alone, its shadow cast up the page.
   docked: {

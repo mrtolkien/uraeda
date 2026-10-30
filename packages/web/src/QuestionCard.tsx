@@ -1,11 +1,13 @@
 import { Card } from "@astryxdesign/core/Card";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { useContext } from "react";
+import { type ReactNode, useContext, useRef } from "react";
 import type { Document, QuestionItem } from "uraeda-binding";
+import { glassStyles } from "./layout/glass.ts";
 import { paneVars } from "./layout/pane.stylex.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useScrollMargin } from "./layout/scrollMargin.ts";
+import { useStuck } from "./layout/useStuck.ts";
 import {
   holdsVariants,
   holdsWide,
@@ -88,6 +90,41 @@ const styles = stylex.create({
     maxWidth: "none",
   },
 });
+
+/**
+ * A question's header, sticking at the top of the window while its card is on screen: over its
+ * card's colour, or frosted glass once stuck over its card's text, which scrolls under it, as what
+ * floats over the page.
+ */
+function StickyHead({
+  children,
+  text,
+  wide,
+}: {
+  children: ReactNode;
+  text: false | stylex.StyleXStyles;
+  wide: boolean;
+}) {
+  const place = useRef<HTMLDivElement>(null);
+  const sticky = useRef<HTMLDivElement>(null);
+  const isStuck = useStuck(place, sticky);
+  return (
+    <>
+      <div aria-hidden ref={place} />
+      <div
+        ref={sticky}
+        {...stylex.props(
+          styles.stickyHead,
+          !wide && styles.stickyHeadPhone,
+          isStuck && [glassStyles.surface, glassStyles.dockedTop],
+          text,
+        )}
+      >
+        {children}
+      </div>
+    </>
+  );
+}
 
 /**
  * A question as a card: on a wide screen, an Astryx card, of two columns once `roomy`, none of
@@ -183,9 +220,9 @@ export function QuestionCard({
             )}
           >
             <div {...stylex.props(split ? styles.stretch : styles.contents)}>
-              <div {...stylex.props(styles.stickyHead, !wide && styles.stickyHeadPhone, text)}>
+              <StickyHead text={text} wide={wide}>
                 {head}
-              </div>
+              </StickyHead>
               <div {...stylex.props(text || styles.contents)}>{context}</div>
             </div>
             {answering}
