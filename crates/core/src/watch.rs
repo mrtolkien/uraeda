@@ -237,13 +237,22 @@ type Shared = Arc<Mutex<(RecommendedWatcher, BTreeMap<(PathBuf, bool), Identity>
 
 /// Watches more folders: those of `wanted` that exist and are not watched yet. A watched folder
 /// that is gone, or was re-created, is forgotten, and watched again once it exists: its watch went
-/// with the folder it was. Returns whether it watches one more.
+/// with the folder it was. One no longer wanted is unwatched and forgotten, first, as its path may
+/// be wanted again in the other mode. Returns whether it watches one more.
 fn watch_folders(shared: &Shared, wanted: &BTreeSet<(PathBuf, bool)>) -> bool {
     let Ok(mut guard) = shared.lock() else {
         return false;
     };
     let mut more = false;
     let (watcher, watched) = &mut *guard;
+    watched.retain(|key, _| {
+        let keep = wanted.contains(key);
+        if !keep {
+            // The watch may be gone with its folder already: that is no error.
+            let _ = watcher.unwatch(&key.0);
+        }
+        keep
+    });
     for (folder, recursive) in wanted {
         let key = (folder.clone(), *recursive);
         let now = identity(folder);
@@ -357,4 +366,28 @@ pub fn watch(
         _shared: shared,
         _kept: kept,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A folder no longer wanted is unwatched and forgotten; the others stay watched.
+    #[test]
+    fn a_folder_no_longer_wanted_is_forgotten() {
+        let dir = tempfile::tempdir().unwrap();
+        let (kept, gone) = (dir.path().join("kept"), dir.path().join("gone"));
+        std::fs::create_dir_all(&kept).unwrap();
+        std::fs::create_dir_all(&gone).unwrap();
+        let watcher = notify::recommended_watcher(|_: notify::Result<notify::Event>| {}).unwrap();
+        let shared: Shared = Arc::new(Mutex::new((watcher, BTreeMap::new())));
+        let both = BTreeSet::from([(kept.clone(), true), (gone, false)]);
+        assert!(watch_folders(&shared, &both));
+
+        let one = BTreeSet::from([(kept.clone(), true)]);
+        assert!(!watch_folders(&shared, &one));
+
+        let watched: Vec<_> = shared.lock().unwrap().1.keys().cloned().collect();
+        assert_eq!(watched, [(kept, true)]);
+    }
 }
