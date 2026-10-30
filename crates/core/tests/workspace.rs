@@ -836,6 +836,11 @@ fn progress_counts_the_tasks_done_on_their_task_branches() {
     let counted = step.progress.unwrap();
     assert_eq!((counted.done, counted.total), (14, 20));
     assert_eq!(counted.title, "Task title 13");
+    // Checked out, the feature is read from its disk, and its step from its latest commit.
+    repo.switch(FOLDER);
+    let counted = progress(&repo).progress.unwrap();
+    assert_eq!((counted.done, counted.total), (14, 20));
+    repo.switch("main");
 
     repo.add_on_branch(
         FOLDER,
