@@ -271,7 +271,9 @@ impl Move<'_> {
             let _ = fs::rename(root.join(&new), root.join(&old));
             return Err(error.into());
         }
-        at.commit(&paths, subject, None, false).map_err(|error| {
+        // Alone: files staged in the main checkout stay staged, out of the commit, as a start
+        // leaves them.
+        at.commit_only(&paths, subject, None, false).map_err(|error| {
             restore();
             if self.on_default {
                 if let Some(text) = &written {

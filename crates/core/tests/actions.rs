@@ -1,6 +1,6 @@
 mod common;
 
-use common::repo::{TestRepo, run_git};
+use common::repo::{TestRepo, run_git, without_user_git};
 use common::texts::{self, proposal, spec};
 use uraeda_core::actions::place::{self, Place};
 use uraeda_core::actions::review::{self, DecisionTarget, Tier};
@@ -1986,6 +1986,46 @@ fn a_proposal_file_starts_over_uncommitted_changes_elsewhere() {
         repo.porcelain(),
         "M  README.md\n M specs/INBOX.md\n?? src/\n"
     );
+}
+
+/// A start during a merge on the main checkout, which git commits only whole, is refused before
+/// anything is written.
+#[test]
+fn a_start_during_a_merge_is_refused_before_any_write() {
+    let repo = proposal_file_repo();
+    repo.write("README.md", "# Main\n");
+    repo.commit("docs: main");
+    repo.switch_new("other");
+    repo.write("README.md", "# Other\n");
+    repo.commit("docs: other");
+    repo.switch("main");
+    repo.write("README.md", "# Main, again\n");
+    repo.commit("docs: main again");
+    // Conflicted: git exits with an error, the merge left in progress.
+    let _ = without_user_git(
+        std::process::Command::new("git")
+            .args(["merge", "--quiet", "other"])
+            .current_dir(repo.path()),
+    )
+    .output();
+    let (git, workspace) = opened(&repo);
+
+    let refused = start::run(
+        &git,
+        &workspace,
+        PROPOSAL_FILE,
+        Some("centred-x"),
+        Kind::Change,
+        change_day(),
+        false,
+    );
+
+    assert_eq!(
+        refused.err().map(|error| error.to_string()).as_deref(),
+        Some("cannot start: a merge is in progress on main: finish or abort it first")
+    );
+    assert!(repo.exists(PROPOSAL_FILE));
+    assert_eq!(repo.porcelain(), "UU README.md\n");
 }
 
 /// US1.2: the images are saved in the change's folder and committed with its proposal, on main.

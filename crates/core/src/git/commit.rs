@@ -120,11 +120,15 @@ impl Git {
         on_output: OnOutput,
     ) -> Result<(), GitError> {
         let mut extra = if amend { vec!["--amend"] } else { Vec::new() };
-        if stage.only {
-            extra.extend(["--only", "--"]);
-            extra.extend(stage.added.iter().map(String::as_str));
+        if !stage.only {
+            return self.commit_staged(&extra, subject, body, on_output);
         }
-        self.commit_staged(&extra, subject, body, on_output)
+        extra.extend(["--only", "--"]);
+        extra.extend(stage.added.iter().map(String::as_str));
+        self.commit_staged(&extra, subject, body, on_output)?;
+        // The hooks ran over a temporary index: what they reformatted is committed, and in the
+        // working tree, but not in this index, which takes it from the commit.
+        self.unstage_stage(stage)
     }
 
     /// Takes back what `stage` staged, the working tree kept.

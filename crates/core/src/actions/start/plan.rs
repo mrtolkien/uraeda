@@ -195,6 +195,13 @@ impl Start<'_> {
     /// Every check, before anything is written. The working tree's other changes, uncommitted or
     /// staged, are not checked: the start commits its own files alone, and leaves them as they are.
     pub(super) fn plan(&self, slug: Option<&str>, today: Date) -> Result<Plan, StartError> {
+        // The start commits its files alone, which git refuses during these.
+        if let Some(operation) = self.at.operation_in_progress() {
+            return Err(StartError::Refused(format!(
+                "cannot start: {operation} is in progress on {}: finish or abort it first",
+                self.default
+            )));
+        }
         let origin = match self.source {
             Source::Proposal(proposal) => Origin::Proposal(Proposed::read(self.root, proposal)?),
             Source::Text { typed, images } => Origin::Text(typed, images.len()),

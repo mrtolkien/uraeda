@@ -348,6 +348,26 @@ fn uncommitted_changes_in_the_main_checkout_stay() {
     );
 }
 
+/// A file staged in the main checkout stays staged, out of the move's commit, as a start leaves it.
+#[test]
+fn files_staged_in_the_main_checkout_stay() {
+    let repo = started(Kind::Change);
+    repo.write("README.md", "# Staged\n");
+    repo.git(&["add", "README.md"]);
+
+    promote(&repo).unwrap();
+
+    assert_eq!(repo.porcelain().trim(), "M  README.md");
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            format!("specs/{FOLDER}/proposal.md"),
+            "specs/PRIORITIES.md".to_string(),
+            format!("specs/changes/{FOLDER}/proposal.md"),
+        ]
+    );
+}
+
 #[test]
 fn a_feature_is_not_promoted() {
     let repo = started(Kind::Feature);
