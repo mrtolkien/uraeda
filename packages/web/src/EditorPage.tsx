@@ -253,6 +253,13 @@ export function EditorPage({ path }: { path: string }) {
       slugRef={slugBox}
     />
   );
+  const banner = message && (
+    <AnnouncedBanner
+      collapsible={false}
+      status={message.ok ? "success" : "error"}
+      title={message.text}
+    />
+  );
   return (
     <Page isWriting>
       <VStack gap={4}>
@@ -270,15 +277,9 @@ export function EditorPage({ path }: { path: string }) {
           />
           {isFile && !inSheet && start}
         </div>
-        {message && (
-          <AnnouncedBanner
-            collapsible={false}
-            status={message.ok ? "success" : "error"}
-            title={message.text}
-          />
-        )}
+        {banner}
       </VStack>
-      {inSheet && <StartBar onStart={focusSlug} sheet={sheet} start={start} />}
+      {inSheet && <StartBar message={banner} onStart={focusSlug} sheet={sheet} start={start} />}
     </Page>
   );
 }
