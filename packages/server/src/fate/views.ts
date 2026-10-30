@@ -73,7 +73,7 @@ export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
   id: string;
   /** Whether the main checkout has an active preview decision. */
   preview: boolean;
-  /** The folders whose session has a turn running or queued. */
+  /** Where writes are refused while a turn runs or waits; not a status, which `status` holds. */
   running: Array<string>;
 };
 

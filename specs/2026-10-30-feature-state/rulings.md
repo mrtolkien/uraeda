@@ -42,6 +42,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   status follows.
 - **Rationale**: the notifier fires once per key. Without the turn, a pull request ready before a
   run would never notify again after it, against the spec's US1 scenario 3.
+- **If wrong**: an older session's run that ends at a gate, as after a crash left two running, does
+  not notify again: once it ends, the status follows the latest session, and the key returns to that
+  session's turn, the one it named before the run.
 - **Where**: task 6.
 
 ## R6: A run halted before a gate keeps clearing on its own
@@ -98,7 +101,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 ## R12: A feature's status is read asynchronously
 
 - **Decision**: `featureStatusOf(ctx, feature)` answers a `Promise<FeatureStatus>`. A feature with
-  problems and no running session reads "Needs you" with no reason, as the sidebar's card did.
+  problems and no running session reads "Needs you" with no reason, as the sidebar's card did. Its
+  step is `none`, which the notifier skips, as before: it never notifies.
 - **Rationale**: the feature's sessions are keyed by the repository's main checkout, which the
   runner reads asynchronously; the plan's interface named a synchronous function.
 - **Where**: task 6.

@@ -6,7 +6,17 @@ import type { AgentEvent } from "../runner/events.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
 import { OUTPUT_LIMIT, SERVER_STOPPED } from "../runner/session-state.ts";
 import { ChatImages } from "../runner/images.ts";
-import { addChange, byId, byIdAt, type Data, fixture, git, mutate, testServer } from "./helpers.ts";
+import {
+  addChange,
+  byId,
+  byIdAt,
+  commitOnBranch,
+  type Data,
+  fixture,
+  git,
+  mutate,
+  testServer,
+} from "./helpers.ts";
 
 /** Waits on an agent, at step `plan`. */
 const AGENT = "2026-10-12-cli-tuis";
@@ -1558,7 +1568,7 @@ test("a run at a gate reads Working, and its end notifies the gate under a new k
     turn: String(first),
   });
   const before = await needsYouRow(server, HUMAN);
-  expect(before?.key).toContain(`:${first}`);
+  expect(before?.key).toMatch(new RegExp(`:${first}$`));
 
   const run = doneTurn(server, session.id, { state: "running" });
 
@@ -1570,7 +1580,55 @@ test("a run at a gate reads Working, and its end notifies the gate under a new k
   expect(await statusesOf(server, HUMAN)).toMatchObject({ status: "needs-you", turn: String(run) });
   const after = await needsYouRow(server, HUMAN);
   expect(after).toMatchObject({ reason: before!.reason });
-  expect(after!.key).not.toBe(before!.key);
+  expect(after!.key).toMatch(new RegExp(`:${run}$`));
+});
+
+test("a feature at a gate without a session needs the human, following no session", async () => {
+  const server = await testServer();
+
+  expect(await statusesOf(server, HUMAN)).toEqual({
+    label: "Needs you",
+    reason: "step",
+    session: null,
+    status: "needs-you",
+    turn: null,
+  });
+  expect(await needsYouRow(server, HUMAN)).toMatchObject({
+    message: "Questions to answer",
+    reason: "step",
+  });
+});
+
+/**
+ * A feature with problems reads "Needs you" with no reason, with or without a session (R12). Its
+ * step is `none`, which the notifier skips, as it did before.
+ */
+test("a feature with problems needs the human, and the notifier skips it", async () => {
+  const server = await testServer();
+  commitOnBranch(server.repo, AGENT, {
+    [`specs/${AGENT}/clarifications-09.md`]: "No frontmatter.\n",
+  });
+
+  expect(await statusesOf(server, AGENT)).toEqual({
+    label: "Needs you",
+    reason: null,
+    session: null,
+    status: "needs-you",
+    turn: null,
+  });
+  expect(await needsYouRow(server, AGENT)).toBeUndefined();
+
+  const session = await folderSession(server, AGENT);
+  const turn = doneTurn(server, session.id);
+
+  expect(await statusesOf(server, AGENT)).toEqual({
+    label: "Needs you",
+    reason: null,
+    session: session.id,
+    status: "needs-you",
+    turn: String(turn),
+  });
+  expect(await needsYouRow(server, AGENT)).toBeUndefined();
 });
 
 test("a feature lists its sessions, latest first", async () => {
