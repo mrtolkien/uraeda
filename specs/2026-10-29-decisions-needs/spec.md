@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Decisions understandable with no context
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review again, about 5 minutes.
+> Approved on 2026-10-30.
 >
 > - You approve a fifth test for decisions, a short self-contained Why, capped alternatives and
 >   consequences, five new `ura check` warnings, and the whole ledger rewritten to them.
