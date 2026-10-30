@@ -150,6 +150,9 @@ export declare function discardChanges(repo: string): Promise<void>
 /** Restores the committed priorities. */
 export declare function discardPriorities(repo: string): Promise<Priorities>
 
+/** The research efforts a feature's proposal may ask for, from the least research to the most. */
+export declare function discoveryLevels(): Array<string>
+
 /**
  * Writes `title` as the first proposal of a section that has not started, expands it into a
  * proposal file, and writes `body` under its heading: the file, for its editor.
@@ -320,6 +323,12 @@ export declare function placeNote(repo: string, id: string, index: number, previ
  * of the start made, nothing written, without waiting for the repository's other writes.
  */
 export declare function planStart(repo: string, proposal: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null): Promise<PlannedView>
+
+/**
+ * What starting a feature typed as a text, or a change with the kind `"change"`, would make:
+ * every check of the start made, its images not read, nothing written.
+ */
+export declare function planTextStart(repo: string, text: string, options: TextStartOptions): Promise<PlannedView>
 
 /**
  * The preview of the checkout at `checkout`, from its own active preview decision: `null`
@@ -513,10 +522,8 @@ export declare function setSingleKeyShortcuts(dir: string, on: boolean): Promise
 export declare function settingsFile(dir: string): string
 
 /**
- * Starts a change typed as a text, with its images, in its own worktree: the first written line
- * is its title. Given `line`, the text of a line of **Now** it starts from, the start commit
- * replaces that line by the change's link while **Now** holds it once. Its steps go to `onStep` as
- * `startFeature`'s do.
+ * Starts a change typed as a text, with its images, in its own worktree, as `startText` does with
+ * the kind `"change"`.
  */
 export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null, line?: string | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null): Promise<StartedView>
 
@@ -530,6 +537,15 @@ export declare function startFeature(repo: string, proposal: string, slug?: stri
 
 /** Deletes the pending review of a file. */
 export declare function startOver(repo: string, folder: string, file: string): Promise<FileView>
+
+/**
+ * Starts a feature typed as a text, or a change with the kind `"change"`, with its images, in its
+ * own worktree: the first written line is its title, and a feature's proposal holds its research
+ * effort. Given `line`, the start commit replaces that line of **Now** by its link while **Now**
+ * holds it once. Its steps go to `onStep` as `startFeature`'s do; given `day`, its plan's, it
+ * runs on that day.
+ */
+export declare function startText(repo: string, text: string, images: Array<Buffer>, options: TextStartOptions, onStep?: ((step: StartStepView) => void) | undefined | null): Promise<StartedView>
 
 /**
  * The story an agent's link names, read from the repository's top level: `null` for any other
@@ -554,6 +570,18 @@ export declare function submitRound(repo: string, id: string, previous: string):
  * out once. It reads no workflow file, so it returns at once.
  */
 export declare function takeDeferred(repo: string): Array<Deferred>
+
+/**
+ * A typed start's options: its kind, a feature when none is given, its slug, the text of the line
+ * of **Now** it starts from, a feature's research effort, and its plan's day.
+ */
+export interface TextStartOptions {
+  day?: string
+  discovery?: string
+  kind?: "feature" | "change"
+  line?: string
+  slug?: string
+}
 
 /**
  * Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is

@@ -1,4 +1,4 @@
-//! A change typed as a text: its title, its proposal, and the writes of its proposal and images.
+//! A feature or a change typed as a text: its title, its proposal, and the writes of its proposal and images.
 
 use std::fs;
 
@@ -60,9 +60,9 @@ impl Typed {
         crate::slug::propose(&self.title)
     }
 
-    /// The proposal: the title as its heading, the body, then a link to each image, by its file
-    /// name in the change's `images/` folder.
-    fn proposal(&self, images: &[String]) -> String {
+    /// The proposal: a feature's research effort in its frontmatter, the title as its heading, the
+    /// body, then a link to each image, by its file name in the folder's `images/`.
+    fn proposal(&self, images: &[String], discovery: Option<&str>) -> String {
         let mut parts = vec![format!("# {}", self.title)];
         if !self.body.is_empty() {
             parts.push(self.body.clone());
@@ -70,7 +70,11 @@ impl Typed {
         for (index, image) in images.iter().enumerate() {
             parts.push(format!("![Image {}](images/{image})", index + 1));
         }
-        parts.join("\n\n") + "\n"
+        let text = parts.join("\n\n") + "\n";
+        // The level was checked as the text was read.
+        discovery
+            .and_then(|level| crate::files::proposal::set_discovery(&text, level).ok())
+            .unwrap_or(text)
     }
 }
 
@@ -132,13 +136,14 @@ fn trim_ends(text: &str) -> &str {
 }
 
 impl Start<'_> {
-    /// Writes a typed change's images, `image-1`, `image-2`, and so on, in its folder's `images/`,
-    /// then its proposal linking them, on the default branch.
+    /// Writes a typed start's images, `image-1`, `image-2`, and so on, in its folder's `images/`,
+    /// then its proposal linking them, a feature's research effort first, on the default branch.
     pub(super) fn write_text(
         &self,
         typed: &Typed,
         plan: &Plan,
         images: &[Encoded],
+        discovery: Option<&str>,
     ) -> Result<(), StartError> {
         let left = || {
             vec![
@@ -168,7 +173,12 @@ impl Start<'_> {
         }
         let folder = self.root.join(&plan.destination);
         fs::create_dir_all(&folder)
-            .and_then(|()| fs::write(folder.join("proposal.md"), typed.proposal(&names)))
+            .and_then(|()| {
+                fs::write(
+                    folder.join("proposal.md"),
+                    typed.proposal(&names, discovery),
+                )
+            })
             .map_err(|error| partial(&[], left(), error))
     }
 }

@@ -9,6 +9,7 @@ use crate::actions::start::{self, Run, StartError, StartProgress, Started};
 use crate::actions::{deferred, place, promote};
 use crate::cache::{self, WriteGuard};
 use crate::git::Git;
+use crate::images::Encoded;
 use crate::today;
 use crate::view::{PlannedView, PromotedView, StartedView};
 use crate::workspace::Kind;
@@ -116,32 +117,93 @@ fn steps_run<'a>(
     }
 }
 
-/// Starts a change typed as a text, with its images, in its own worktree, its steps given to
-/// `on_step` as [`start_feature`] does, and a hook's refusal of its commit, when the server defers
-/// commits, leaves nothing written.
-/// Each image is checked and encoded as `image-1`, `image-2`, and so on, before the write lock is
-/// taken. `line`, the text of a line of **Now** the change starts from, as it was read, is replaced
-/// by the change's link in the start commit, while **Now** holds it once, without a link.
-pub fn start_change(
+/// A feature or a change typed as a text, as the server starts it: its images' bytes, the text
+/// of the line of **Now** it starts from, as it was read, and for a feature its research effort.
+pub struct TextStart<'a> {
+    pub text: &'a str,
+    pub images: &'a [Vec<u8>],
+    pub line: Option<&'a str>,
+    pub kind: Kind,
+    pub discovery: Option<&'a str>,
+}
+
+impl TextStart<'_> {
+    /// Its images, each checked and encoded as `image-1`, `image-2`, and so on.
+    fn encoded(&self) -> Result<Vec<Encoded>> {
+        self.images
+            .iter()
+            .enumerate()
+            .map(|(index, bytes)| encode_image(bytes, &format!("image-{}", index + 1)))
+            .collect()
+    }
+}
+
+/// What starting a typed text would make, as [`plan_start`] says for a proposal file: its images
+/// are not read, nothing written.
+pub fn plan_text_start(
     repo: &Path,
-    text: &str,
-    images: &[Vec<u8>],
+    typed: &TextStart<'_>,
     slug: Option<&str>,
-    line: Option<&str>,
+) -> Result<PlannedView> {
+    let (git, workspace) = open(repo)?;
+    let default = workspace
+        .default_branch
+        .clone()
+        .ok_or_else(|| refused("no default branch: commit on main first"))?;
+    let root = match default_checkout(&git, &default) {
+        Some(root) => root,
+        None => place::reach(&git, &default)?.root,
+    };
+    let today = today::today();
+    let text = start::Text {
+        text: typed.text,
+        images: &[],
+        line: typed.line,
+        kind: typed.kind,
+        discovery: typed.discovery,
+    };
+    match start::plan_text(&git, &root, &workspace, &text, slug, today) {
+        Ok(planned) => Ok(PlannedView {
+            folder: planned.folder,
+            branch: planned.branch,
+            slug: planned.slug,
+            day: today.to_string(),
+            title: planned.title,
+        }),
+        Err(error) => Err(refusal(error)),
+    }
+}
+
+/// Starts a feature or a change typed as a text, with its images, in its own worktree, its steps
+/// given to `on_step` as [`start_feature`] does, and a hook's refusal of its commit, when the
+/// server defers commits, leaves nothing written. Given `day`, its plan's, it runs on that day.
+/// The images are checked and encoded before the write lock is taken. The line of **Now** it
+/// starts from is replaced by its link in the start commit, while **Now** holds it once, without a
+/// link.
+pub fn start_text(
+    repo: &Path,
+    typed: &TextStart<'_>,
+    slug: Option<&str>,
+    day: Option<&str>,
     on_step: &dyn Fn(StartProgress),
 ) -> Result<StartedView> {
-    let encoded = images
-        .iter()
-        .enumerate()
-        .map(|(index, bytes)| encode_image(bytes, &format!("image-{}", index + 1)))
-        .collect::<Result<Vec<_>>>()?;
+    let day = match day {
+        Some(day) => today::Date::parse(day).ok_or_else(|| refused(format!("not a day: {day}")))?,
+        None => today::today(),
+    };
+    let encoded = typed.encoded()?;
     let held = Cell::new(Some(write_lock(repo)));
     let lock = || held.take().unwrap_or_else(|| write_lock(repo));
     let (git, workspace) = open(repo)?;
-    let run = steps_run(repo, today::today(), on_step, &lock);
-    view(start::run_text_with(
-        &git, &workspace, text, &encoded, slug, line, &run,
-    ))
+    let run = steps_run(repo, day, on_step, &lock);
+    let text = start::Text {
+        text: typed.text,
+        images: &encoded,
+        line: typed.line,
+        kind: typed.kind,
+        discovery: typed.discovery,
+    };
+    view(start::run_text_with(&git, &workspace, &text, slug, &run))
 }
 
 /// Makes the change in `folder` a feature, in place, in its worktree: its open pull requests are
@@ -171,7 +233,7 @@ pub fn start_kind(name: Option<&str>) -> Result<Kind> {
     }
 }
 
-/// The slug proposed for a change typed as `text`, from the title `start_change` reads in it: empty
+/// The slug proposed for a text typed to start, from the title `start_text` reads in it: empty
 /// when it has none.
 pub fn propose_slug(text: &str) -> String {
     start::propose_slug(text)

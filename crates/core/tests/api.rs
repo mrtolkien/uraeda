@@ -414,14 +414,15 @@ fn a_change_with_an_image_of_the_wrong_type_writes_nothing() {
         repo.subjects("main"),
     );
 
-    let started = api::start_change(
-        repo.path(),
-        "Fix the crash",
-        &[still, drawing],
-        Some("crash"),
-        None,
-        &|_| {},
-    );
+    let images = [still, drawing];
+    let typed = api::TextStart {
+        text: "Fix the crash",
+        images: &images,
+        line: None,
+        kind: Kind::Change,
+        discovery: None,
+    };
+    let started = api::start_text(repo.path(), &typed, Some("crash"), None, &|_| {});
 
     let Err(refused) = started else {
         panic!("the start was not refused")
@@ -453,7 +454,7 @@ fn a_start_is_of_a_feature_or_a_change() {
     );
 }
 
-/// R1, R14: the slug a typed change is offered, from the title `start_change` reads in its text.
+/// R1, R14: the slug a typed change is offered, from the title `start_text` reads in its text.
 #[test]
 fn a_typed_text_proposes_the_slug_of_its_title() {
     let long = format!("Crash {} dialog", "on the ".repeat(20));

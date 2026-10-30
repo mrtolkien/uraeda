@@ -171,6 +171,19 @@ pub fn plan(
 ) -> Result<Planned, StartError> {
     let proposal = target::proposal_to_start(proposal_arg);
     let source = Source::Proposal(proposal.as_deref().unwrap_or(proposal_arg));
+    planned(git, root, workspace, source, kind, slug, today)
+}
+
+/// What starting `source` as `kind` would make, as [`plan`] says.
+fn planned(
+    git: &Git,
+    root: &Path,
+    workspace: &Workspace,
+    source: Source<'_>,
+    kind: Kind,
+    slug: Option<&str>,
+    today: Date,
+) -> Result<Planned, StartError> {
     let default = workspace
         .default_branch
         .as_deref()
@@ -214,32 +227,98 @@ pub fn run_text(
     switch: bool,
 ) -> Result<Started, StartError> {
     let run = Run::plain(today, switch);
-    run_text_with(git, workspace, text, images, slug, None, &run)
+    let text = Text {
+        text,
+        images,
+        line: None,
+        kind: Kind::Change,
+        discovery: None,
+    };
+    run_text_with(git, workspace, &text, slug, &run)
 }
 
-/// Starts a change typed as a text, as [`run_text`] does, the way `run` says. `line` is the text
-/// of a line of **Now** the change starts from, as it was read: the one line of **Now** with that
-/// text and no link is replaced by the change's link, its nested lines going into the proposal
-/// unless the text holds them. When no line, or several, have that text, the link is added and
-/// the lines stay.
+/// A text typed to start as a feature or a change: its encoded images, the text of the line of
+/// **Now** it starts from, if any, and for a feature its research effort, `high` when none is
+/// given.
+pub struct Text<'a> {
+    pub text: &'a str,
+    pub images: &'a [Encoded],
+    pub line: Option<&'a str>,
+    pub kind: Kind,
+    pub discovery: Option<&'a str>,
+}
+
+impl<'a> Text<'a> {
+    /// The text read as a proposal, and the research effort its proposal's frontmatter holds:
+    /// refused for an empty text, a level that is not one, or an effort given to a change.
+    fn read(&self) -> Result<(Typed, Option<&'a str>), StartError> {
+        let name = match self.kind {
+            Kind::Feature => "feature",
+            Kind::Change => "change",
+        };
+        let typed = Typed::read(self.text).ok_or_else(|| {
+            StartError::Refused(format!(
+                "a {name} needs a text: its first line is its title"
+            ))
+        })?;
+        let discovery = match (self.kind, self.discovery) {
+            (Kind::Change, None) => None,
+            (Kind::Change, Some(_)) => {
+                return Err(StartError::Refused(
+                    "a change has no research effort: only a feature's discovery has one".into(),
+                ));
+            }
+            (Kind::Feature, level) => {
+                let level = level.unwrap_or(crate::files::proposal::DEFAULT_DISCOVERY);
+                // The level's check is the one a proposal's write makes.
+                crate::files::proposal::set_discovery("", level).map_err(StartError::Refused)?;
+                Some(level)
+            }
+        };
+        Ok((typed, discovery))
+    }
+}
+
+/// Starts a feature or a change typed as a text, as [`run_text`] does for a change, the way `run`
+/// says. Given the text of a line of **Now** it starts from, as it was read, the one line of
+/// **Now** with that text and no link is replaced by the started folder's link, its nested lines
+/// going into the proposal unless the text holds them. When no line, or several, have that text,
+/// the link is added and the lines stay.
 pub fn run_text_with(
     git: &Git,
     workspace: &Workspace,
-    text: &str,
-    images: &[Encoded],
+    text: &Text<'_>,
     slug: Option<&str>,
-    line: Option<&str>,
     run: &Run<'_>,
 ) -> Result<Started, StartError> {
-    let typed = Typed::read(text).ok_or_else(|| {
-        StartError::Refused("a change needs a text: its first line is its title".into())
-    })?;
+    let (typed, discovery) = text.read()?;
     let source = Source::Text {
         typed: &typed,
-        images,
-        line,
+        images: text.images,
+        line: text.line,
+        discovery,
     };
-    begin(git, workspace, source, Kind::Change, slug, run)
+    begin(git, workspace, source, text.kind, slug, run)
+}
+
+/// What starting a feature or a change typed as a text would make, from the working tree at
+/// `root`, on the default branch, as [`plan`] says for a proposal file: nothing written.
+pub fn plan_text(
+    git: &Git,
+    root: &Path,
+    workspace: &Workspace,
+    text: &Text<'_>,
+    slug: Option<&str>,
+    today: Date,
+) -> Result<Planned, StartError> {
+    let (typed, discovery) = text.read()?;
+    let source = Source::Text {
+        typed: &typed,
+        images: text.images,
+        line: text.line,
+        discovery,
+    };
+    planned(git, root, workspace, source, text.kind, slug, today)
 }
 
 /// Reaches the default branch, starts there, and switches back when the start is refused before
@@ -278,12 +357,13 @@ fn begin(
 enum Source<'a> {
     /// A proposal file or postponed folder, from the top level.
     Proposal(&'a str),
-    /// A change typed as a text, read, with its encoded images, and the text of the line of
-    /// **Now** it starts from, if any.
+    /// A feature or a change typed as a text, read, with its encoded images, the text of the line
+    /// of **Now** it starts from, if any, and a feature's research effort.
     Text {
         typed: &'a Typed,
         images: &'a [Encoded],
         line: Option<&'a str>,
+        discovery: Option<&'a str>,
     },
 }
 
@@ -353,8 +433,13 @@ impl<'a> Start<'a> {
                 let moved = self.move_proposal(proposal, &plan)?;
                 (moved, "the move of the proposal file".to_string())
             }
-            Source::Text { typed, images, .. } => {
-                self.write_text(typed, &plan, images)?;
+            Source::Text {
+                typed,
+                images,
+                discovery,
+                ..
+            } => {
+                self.write_text(typed, &plan, images, discovery)?;
                 (
                     Default::default(),
                     format!("the proposal in {}", plan.destination),

@@ -2143,7 +2143,14 @@ fn now_line_repo() -> TestRepo {
 fn start_line(repo: &TestRepo, text: &str, line: &str) -> start::Started {
     let (git, workspace) = opened(repo);
     let run = start::Run::plain(change_day(), false);
-    start::run_text_with(&git, &workspace, text, &[], Some("amend"), Some(line), &run).unwrap()
+    let typed = start::Text {
+        text,
+        images: &[],
+        line: Some(line),
+        kind: Kind::Change,
+        discovery: None,
+    };
+    start::run_text_with(&git, &workspace, &typed, Some("amend"), &run).unwrap()
 }
 
 /// US6.1: a change started from a line of **Now** replaces it by its link, in the start commit, its
@@ -2547,5 +2554,90 @@ fn a_start_whose_link_rebase_fails_names_the_files_before_and_after() {
             format!("point the relative links of {folder}/spec.md at its new folder"),
         ],
         "{left:?}"
+    );
+}
+
+/// Starts `text` as a feature, from the line `line` of **Now** when given, on the change's day.
+fn start_feature_text(
+    repo: &TestRepo,
+    text: &str,
+    images: &[uraeda_core::images::Encoded],
+    slug: &str,
+    (line, discovery): (Option<&str>, Option<&str>),
+) -> Result<start::Started, start::StartError> {
+    let (git, workspace) = opened(repo);
+    let run = start::Run::plain(change_day(), false);
+    let typed = start::Text {
+        text,
+        images,
+        line,
+        kind: Kind::Feature,
+        discovery,
+    };
+    start::run_text_with(&git, &workspace, &typed, Some(slug), &run)
+}
+
+/// US1.2: a typed feature's proposal holds its research effort, its title, and its image, in
+/// the feature's folder, in one commit.
+#[test]
+fn a_typed_text_starts_a_feature_with_its_research_effort() {
+    let repo = proposal_file_repo();
+    let text = "Dark mode: follow the system theme";
+
+    let started = start_feature_text(&repo, text, &[image()], "dark-mode", (None, Some("low")));
+
+    let started = started.unwrap();
+    assert_eq!(started.branch, "2026-10-16-dark-mode");
+    let folder = "specs/2026-10-16-dark-mode";
+    assert_eq!(
+        repo.git(&["show", &format!("main:{folder}/proposal.md")]),
+        format!("---\ndiscovery: low\n---\n\n# {text}\n\n![Image 1](images/image-1.webp)\n")
+    );
+    assert_eq!(
+        repo.changed_in("main"),
+        [
+            format!("{folder}/images/image-1.webp"),
+            format!("{folder}/proposal.md"),
+            "specs/PRIORITIES.md".to_string(),
+        ]
+    );
+    // Without an effort, High.
+    start_feature_text(&repo, "Kanban board", &[], "kanban", (None, None)).unwrap();
+    let kanban = repo.git(&["show", "main:specs/2026-10-16-kanban/proposal.md"]);
+    assert!(
+        kanban.starts_with("---\ndiscovery: high\n---\n"),
+        "{kanban}"
+    );
+    // An effort that is not a level is refused, before anything is written.
+    let refused = start_feature_text(&repo, "Board", &[], "board", (None, Some("huge")));
+    assert_eq!(
+        refused.err().map(|error| error.to_string()),
+        Some("discovery \"huge\" is not one of low, medium, high".to_string())
+    );
+    assert!(!repo.path().join("specs/2026-10-16-board").exists());
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// US1.3: a feature started from a line of **Now** replaces it by its link, in the start commit,
+/// its nested line going into the proposal.
+#[test]
+fn a_feature_started_from_a_line_of_now_replaces_it_by_its_link() {
+    let repo = now_line_repo();
+
+    start_feature_text(&repo, NOW_LINE, &[], "amend", (Some(NOW_LINE), None)).unwrap();
+
+    let title = "Amend the latest commit if the commit touches only workflow files…";
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(
+        priorities.contains(&format!(
+            "- [{title}](/specs/2026-10-16-amend/proposal.md)\n\n- Faster search\n\n## Next"
+        )),
+        "{priorities}"
+    );
+    assert_eq!(
+        repo.git(&["show", "main:specs/2026-10-16-amend/proposal.md"]),
+        format!(
+            "---\ndiscovery: high\n---\n\n# {title}\n\n{NOW_LINE}\n\n- only when nothing was pushed\n"
+        )
     );
 }

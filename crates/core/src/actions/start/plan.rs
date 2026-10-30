@@ -208,6 +208,7 @@ impl Start<'_> {
                 typed,
                 images,
                 line,
+                ..
             } => Origin::Text(typed, images.len(), line),
         };
         if let Origin::Proposal(proposed) = &origin

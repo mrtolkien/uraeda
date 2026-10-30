@@ -236,9 +236,9 @@ Move `started_line` and `typed_write_left` to `start/line.rs`, unchanged. Run
 `nix develop -c cargo nextest run -p uraeda-core --test actions`: PASS before and after. Commit:
 `refactor(proposal-start): move a typed start's line of Now to a module of its own`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
-In `actions.rs`, a `start_feature_text(repo, text, images, slug, line, discovery)` helper beside
+In `actions.rs`, a `start_feature_text(repo, text, images, slug, (line, discovery))` helper beside
 `start_text`, on the change's day:
 
 ```rust
@@ -247,15 +247,15 @@ In `actions.rs`, a `start_feature_text(repo, text, images, slug, line, discovery
 fn a_typed_text_starts_a_feature_with_its_research_effort() {
     let repo = proposal_file_repo();
 
-    let started = start_feature_text(&repo, "Dark mode: follow the system theme", &[image], Some("dark-mode"), None, Some("low")).unwrap();
+    let started = start_feature_text(&repo, "Dark mode: follow the system theme", &[image()], "dark-mode", (None, Some("low"))).unwrap();
 
     assert_eq!(started.branch, "2026-10-16-dark-mode");
     assert_eq!(in_feature(&repo, "proposal.md"),
         "---\ndiscovery: low\n---\n\n# Dark mode: follow the system theme\n\n![Image 1](images/image-1.webp)\n");
     assert_eq!(repo.changed_in("2026-10-16-dark-mode"), [priorities, proposal, image]);
     // Without an effort, High; an effort that is not a level is refused, nothing written.
-    ... Some("kanban"), None, None → "discovery: high"
-    ... Some("board"), None, Some("huge") → Err, message "discovery \"huge\" is not one of low, medium, high", no folder
+    ... "kanban", (None, None) → "discovery: high"
+    ... "board", (None, Some("huge")) → Err, message "discovery \"huge\" is not one of low, medium, high", no folder
 }
 ```
 
@@ -269,13 +269,13 @@ fn a_feature_started_from_a_line_of_now_replaces_it_by_its_link() { … now_line
 The breaks they catch: a feature started as a change's folder; the effort missing or not written
 first; the image outside the feature's folder; a line of **Now** left beside the link.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run:
   `nix develop -c cargo nextest run -p uraeda-core --test actions typed_text_starts_a_feature feature_started_from_a_line`
 - Expected: FAIL to compile, `cannot find struct Text in module start`
 
-- [ ] **Step 4: Implement the typed start for both kinds**
+- [x] **Step 4: Implement the typed start for both kinds**
 
 `run_text_with` and `plan_text` read the text with `Typed::read`, refusing an empty one as "a {kind}
 needs a text: its first line is its title", `feature` or `change`. A feature's proposal is
@@ -286,12 +286,12 @@ change gets no `discovery`, and refuses one. `plan_text` is `plan`'s checks for 
 does before the write lock; `plan_text_start` reaches the default checkout as `plan_start` does, and
 `start_text` runs on `day` when given, as `start_planned` does.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run --filter uraeda-binding build`, then `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 `feat(proposal-start): the core starts a typed feature with its research effort`
 

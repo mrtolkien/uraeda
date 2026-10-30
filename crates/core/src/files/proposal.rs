@@ -7,7 +7,7 @@ use crate::workspace::FileKind;
 use super::{frontmatter, markdown};
 
 /// The effort discovery puts in when the proposal names none, or a value that is not one.
-const DEFAULT_DISCOVERY: &str = "high";
+pub(crate) const DEFAULT_DISCOVERY: &str = "high";
 
 /// The discovery efforts a proposal may ask for, from the least research to the most.
 pub fn discovery_levels() -> &'static [&'static str] {

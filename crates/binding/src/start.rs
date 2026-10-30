@@ -76,10 +76,77 @@ pub fn start_feature(
     })
 }
 
-/// Starts a change typed as a text, with its images, in its own worktree: the first written line
-/// is its title. Given `line`, the text of a line of **Now** it starts from, the start commit
-/// replaces that line by the change's link while **Now** holds it once. Its steps go to `onStep` as
-/// `startFeature`'s do.
+/// A typed start's options: its kind, a feature when none is given, its slug, the text of the line
+/// of **Now** it starts from, a feature's research effort, and its plan's day.
+#[napi(object)]
+pub struct TextStartOptions {
+    pub day: Option<String>,
+    pub discovery: Option<String>,
+    #[napi(ts_type = "\"feature\" | \"change\"")]
+    pub kind: Option<String>,
+    pub line: Option<String>,
+    pub slug: Option<String>,
+}
+
+/// What starting a feature typed as a text, or a change with the kind `"change"`, would make:
+/// every check of the start made, its images not read, nothing written.
+#[napi(ts_return_type = "Promise<PlannedView>")]
+pub fn plan_text_start(
+    repo: String,
+    text: String,
+    options: TextStartOptions,
+) -> AsyncTask<Job<PlannedView>> {
+    job(move || {
+        let kind = api::start_kind(options.kind.as_deref())?;
+        let typed = api::TextStart {
+            text: &text,
+            images: &[],
+            line: options.line.as_deref(),
+            kind,
+            discovery: options.discovery.as_deref(),
+        };
+        api::plan_text_start(Path::new(&repo), &typed, options.slug.as_deref())
+    })
+}
+
+/// Starts a feature typed as a text, or a change with the kind `"change"`, with its images, in its
+/// own worktree: the first written line is its title, and a feature's proposal holds its research
+/// effort. Given `line`, the start commit replaces that line of **Now** by its link while **Now**
+/// holds it once. Its steps go to `onStep` as `startFeature`'s do; given `day`, its plan's, it
+/// runs on that day.
+#[napi(
+    ts_args_type = "repo: string, text: string, images: Array<Buffer>, options: TextStartOptions, onStep?: ((step: StartStepView) => void) | undefined | null",
+    ts_return_type = "Promise<StartedView>"
+)]
+pub fn start_text(
+    repo: String,
+    text: String,
+    images: Vec<Buffer>,
+    options: TextStartOptions,
+    on_step: Option<OnStep>,
+) -> AsyncTask<Job<StartedView>> {
+    let images: Vec<Vec<u8>> = images.iter().map(|image| image.to_vec()).collect();
+    job(move || {
+        let kind = api::start_kind(options.kind.as_deref())?;
+        let typed = api::TextStart {
+            text: &text,
+            images: &images,
+            line: options.line.as_deref(),
+            kind,
+            discovery: options.discovery.as_deref(),
+        };
+        api::start_text(
+            Path::new(&repo),
+            &typed,
+            options.slug.as_deref(),
+            options.day.as_deref(),
+            &|step| report(on_step.as_ref(), step),
+        )
+    })
+}
+
+/// Starts a change typed as a text, with its images, in its own worktree, as `startText` does with
+/// the kind `"change"`.
 #[napi(
     ts_args_type = "repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null, line?: string | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null",
     ts_return_type = "Promise<StartedView>"
@@ -92,15 +159,21 @@ pub fn start_change(
     line: Option<String>,
     on_step: Option<OnStep>,
 ) -> AsyncTask<Job<StartedView>> {
-    let images: Vec<Vec<u8>> = images.iter().map(|image| image.to_vec()).collect();
-    job(move || {
-        api::start_change(
-            Path::new(&repo),
-            &text,
-            &images,
-            slug.as_deref(),
-            line.as_deref(),
-            &|step| report(on_step.as_ref(), step),
-        )
-    })
+    let options = TextStartOptions {
+        day: None,
+        discovery: None,
+        kind: Some("change".into()),
+        line,
+        slug,
+    };
+    start_text(repo, text, images, options, on_step)
+}
+
+/// The research efforts a feature's proposal may ask for, from the least research to the most.
+#[napi]
+pub fn discovery_levels() -> Vec<String> {
+    uraeda_core::files::proposal::discovery_levels()
+        .iter()
+        .map(ToString::to_string)
+        .collect()
 }
