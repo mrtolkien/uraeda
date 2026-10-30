@@ -149,7 +149,7 @@ step. By hand:
 | No `clarifications-01.md`                                                            | [Discovery](references/discovery.md), round 01               |
 | Round NN is `answered`, not resuming, and no `spec.md`, or its `clarifications` < NN | [Spec and decisions](references/spec.md)                     |
 | `spec.md` is `changes-requested`                                                     | [Spec](references/spec.md), revision                         |
-| `spec.md` is `approved`, and a decision its `## Decisions` names is `proposed`       | [Approval](references/approval.md)                           |
+| `spec.md` is `approved`, and a decision it adds or changes is `proposed`             | [Approval](references/approval.md)                           |
 | `spec.md` is `approved`, and there is no `plan.md`                                   | [Plan](references/plan.md)                                   |
 | `spec.md` is `approved`, and the plan's `spec-revision` < the spec's `revision`      | [Plan](references/plan.md), revision                         |
 | `plan.md` is `changes-requested`                                                     | [Plan](references/plan.md), revision                         |

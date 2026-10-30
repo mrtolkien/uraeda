@@ -23,8 +23,9 @@ ura clean --all                            # the worktrees and branches of merge
 ura upgrade                                # the latest release, then your skill
 ```
 
-`ura next` and `ura status` read your pull requests with `gh`. An open pull request waits on you
-only once it holds its branch's latest commit. Until then, the step is `push`, for an agent.
+`ura next` and `ura status` read your pull requests with `gh`. An open pull request, not a draft and
+with no changes requested, waits on you only once it holds its branch's latest commit. Until then,
+the step is `push`, for an agent.
 
 Every command works without a terminal, and the read commands print JSON with `--json`.
 `ura <command> --help` lists a command's options.
