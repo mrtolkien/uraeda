@@ -250,3 +250,33 @@ fn a_removal_beside_other_changes_is_not_committed() {
     );
     assert!(!repo.exists("specs/2026-10-20-login-redirect"));
 }
+
+/// Review: a deferred drop refused by a hook brings the folder it deleted back, its images
+/// included, which only `HEAD` holds.
+#[test]
+fn a_refused_drop_brings_back_the_folders_images() {
+    let repo = started(Kind::Change);
+    let folder = "specs/changes/2026-10-20-login-redirect";
+    let image = format!("{folder}/images/shot.png");
+    let bytes = [0x89, b'P', b'N', b'G', 0, 1, 2, 3];
+    std::fs::create_dir_all(repo.path().join(folder).join("images")).unwrap();
+    std::fs::write(repo.path().join(&image), bytes).unwrap();
+    repo.commit("chore: a screenshot");
+    let proposal = repo.read(&format!("{folder}/proposal.md"));
+    api::defer_commits(repo.path(), true);
+
+    let dropped = api::drop_item(repo.path(), CHANGE).unwrap();
+    assert!(dropped.committed);
+    assert!(!repo.exists(folder));
+    repo.set_hook("echo refused\nexit 1");
+    let deferred = api::take_deferred(repo.path());
+    let refused = api::land(repo.path(), &deferred[0].id, |_| {}).unwrap_err();
+
+    assert_eq!(
+        (refused.code, refused.output.as_deref()),
+        ("hook", Some("refused"))
+    );
+    assert_eq!(repo.read(&format!("{folder}/proposal.md")), proposal);
+    assert_eq!(std::fs::read(repo.path().join(&image)).unwrap(), bytes);
+    assert_eq!(repo.porcelain(), "");
+}

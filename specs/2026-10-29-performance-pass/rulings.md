@@ -680,3 +680,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   uncommitted.
 - **Where**: `crates/core/src/actions/start/commits.rs`, `crates/core/src/api/start.rs`, review of
   the core.
+
+## R62: Undo brings back a file the write deleted from `HEAD`, whatever its kind
+
+- **Decision**: a refused deferred commit's undo brings back each file of its change that the write
+  deleted and that is still absent: a Markdown file with the bytes it held before the write, any
+  other file, an image included, with its blob at `HEAD`, when `HEAD` tracks it. A file the write
+  changed but did not delete, other than Markdown, is still left as the write left it.
+- **Rationale**: the before-record keeps only Markdown bytes; a drop of a folder with images,
+  refused by a hook, brought back its Markdown and lost its images, which only `HEAD` holds.
+- **If wrong**: an image changed uncommitted then deleted by a refused write comes back as `HEAD`
+  has it, not with its uncommitted bytes; one never committed stays deleted.
+- **Where**: `crates/core/src/actions/deferred.rs`, review of the core.
