@@ -63,6 +63,10 @@ export async function keptForCommits(
   if (!folder || (!folders.has(folder) && !queue.waits(featureKeys(folder)))) {
     return undefined;
   }
+  // A feature moving, or dropped, takes no message, as sending refuses it.
+  if (ctx.sessions.moving(root, folder)) {
+    throw new Error(`refused: ${REFUSALS.agentWorking}`);
+  }
   if (!ctx.sessions.status().available) {
     throw new Error(`refused: ${REFUSALS.unavailable(adapter.name)}`);
   }

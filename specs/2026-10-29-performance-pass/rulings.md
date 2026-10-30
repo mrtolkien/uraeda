@@ -772,3 +772,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: only a hook's refusal is undone by the core; the record showed every failure as
   one, whose copy says the write was undone, while the files of the others stay written.
 - **Where**: `packages/server/src/writes/queue.ts`, review of the server.
+
+## R67: A change made a feature commits through the queue, and answers once it landed
+
+- **Decision**: `feature.promote` runs `promoteChange` as a write of the queue, "Making the change
+  <folder> a feature" unless the call names it, after the writes queued before it, in the committing
+  calls' turn, holding the lists' key and the change's: it answers once landed, as a change's start
+  (R50), and a refusal is the call's, which leaves the record. A message sent to the change
+  meanwhile is refused, as during any move.
+- **Rationale**: the core commits the move within the call, on the default branch and the change's
+  branch: run beside a landing, its `git commit` raced the landing's `index.lock`, and its commit of
+  `PRIORITIES.md` could take a queued lists' write along.
+- **Where**: `packages/server/src/fate/session-moves.ts`, `fate/write-queue.ts` (`landed`), review
+  of the server.

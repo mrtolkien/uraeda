@@ -425,6 +425,11 @@ export class Sessions {
     return this.#context.live.get(session)?.messages.size ?? 0;
   }
 
+  /** Whether a move or a drop holds the folder of `root`'s main checkout: it takes no message. */
+  moving(root: string, folder: string): boolean {
+    return this.#context.live.holds({ folder, repo: root });
+  }
+
   /** Whether this server keeps the session in memory: while it has a process, a turn, or a call. */
   held(session: string): boolean {
     return this.#context.live.has(session);

@@ -9,7 +9,7 @@ import { sources } from "./sources.ts";
 import { landedStart } from "./starts.ts";
 import { droppedDataView } from "./views-dropped.ts";
 import { featureDataView, sessionDataView } from "./views.ts";
-import { featureKeys, LISTS, type Queued, queued } from "./write-queue.ts";
+import { featureKeys, LISTS, landed, type Queued, queued } from "./write-queue.ts";
 
 /**
  * The core's refusals of a taken name: a record, a branch, or a folder, whose `--slug` hint is the
@@ -182,9 +182,17 @@ export const sessionMoves = {
     type: "Dropped",
   },
   "feature.promote": {
-    resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
+    resolve: async ({ ctx, input, select }: Resolver<Queued<{ folder: string }>>) => {
+      // Its commits, on the default branch and the change's, go through the queue: they never run
+      // while another commit lands, and the priorities' wait for them.
+      const write = {
+        folder: input.folder,
+        ...(input.write ?? { href: "", label: `Making the change ${input.folder} a feature` }),
+      };
       const { folder } = await moving(ctx, { folder: input.folder }, () =>
-        refusable(() => ctx.binding.promoteChange(ctx.repo, input.folder)),
+        landed(ctx, [...featureKeys(input.folder), LISTS], write, () =>
+          ctx.binding.promoteChange(ctx.repo, input.folder),
+        ),
       );
       await sendRun(ctx, folder, { trigger: "manual" });
       return maskedFeature(ctx, folder, select);

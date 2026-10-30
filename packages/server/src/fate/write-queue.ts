@@ -48,6 +48,31 @@ export function queued<T>(
   return queue ? queue.commit(keys, { ...at, ...write }, refused) : refused();
 }
 
+/**
+ * Runs `call`, a core call that commits within it, as a write of the repository's queue, after the
+ * writes queued before it, in the committing calls' turn, the calls of `keys` waiting for it: its
+ * commit never runs while another lands. It answers once it landed; a refusal is the call's, and
+ * leaves the record. Without a host, at once.
+ */
+export async function landed<T>(
+  ctx: RepoContext,
+  keys: Array<string>,
+  write: NewWrite,
+  call: () => Promise<T>,
+): Promise<T> {
+  const queue = ctx.hosts.byPath(ctx.repo)?.queue;
+  if (!queue) {
+    return refusable(call);
+  }
+  const added = queue.add(write, () => queue.inTurn(call), keys);
+  try {
+    return (await refusable(() => added.landed)) as T;
+  } catch (error) {
+    queue.dismiss(added.id);
+    throw error;
+  }
+}
+
 /** Runs a committing call of the default branch's lists through the write queue, as `queued`. */
 export const listCommit = <T>(
   ctx: RepoContext,

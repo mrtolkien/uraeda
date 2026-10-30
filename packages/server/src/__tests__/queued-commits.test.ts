@@ -101,3 +101,44 @@ test("a message sent while an approval is refused is dropped, and kept for the c
   // The session made for the message goes with it: nothing was started.
   expect(server.sessions.cache.session(sent.data.id)).toBeUndefined();
 });
+
+/** Adds a proposal to the priorities, then commits them: the commit queued, the hook holding it. */
+async function commitPriorities(server: Server, text: string) {
+  const [read] = await byId(server.app, "Priorities", ["priorities"], ["id", "hash"]);
+  await mutate(server.app, "proposals.add", { hash: read.hash, section: "next", text }, ["id"]);
+  await mutate(server.app, "priorities.commit", {}, ["id"]);
+}
+
+test("a change made a feature commits in the queue, after the commits before it", async () => {
+  const server = await testServer();
+  server.adapter.script([]);
+  const change = await mutate(server.app, "change.start", { slug: "login", text: "# Login\n" }, [
+    "id",
+    "folder",
+  ]);
+  const folder = change.data.folder as string;
+  const host = server.hosts.get(server.name)!;
+  await host.queue.idle();
+  const hook = heldHook(server.repo);
+  await commitPriorities(server, "Kanban board");
+
+  server.adapter.script([]);
+  const promoting = mutate(server.app, "feature.promote", { folder }, ["id", "folder", "kind"]);
+
+  // The promotion waits behind the priorities' commit, which its hook holds.
+  const waiting = await vi.waitFor(async () => {
+    const [, promotion] = await writes(server);
+    expect(promotion).toMatchObject({ folder, state: "waiting" });
+    return promotion;
+  });
+  expect(waiting.label).toContain(folder);
+  hook.release();
+  await vi.waitFor(async () => expect(await writes(server)).toMatchObject([{ state: "running" }]));
+  // Its commits, on the default branch and the change's, each run the hook.
+  const releasing = setInterval(hook.release, 50);
+  const promoted = await promoting;
+  clearInterval(releasing);
+  expect(promoted.error).toBeUndefined();
+  expect(promoted.data).toMatchObject({ folder, kind: "feature" });
+  expect(await writes(server)).toEqual([]);
+});
