@@ -39,8 +39,6 @@ const styles = stylex.create({
   },
   // On the phone, the pane keeps only its titled top border: its text takes the page's width.
   open: { maxWidth: "none", paddingInline: 0 },
-  // A spec's card, a quarter wider than a pane of prose, so its title, pills, and fields' change
-  // keep to fewer lines, while its text keeps the reading measure.
   suffix: {
     // The pills and the fields' change after the title, wrapping as the title does.
     alignItems: "center",
@@ -48,7 +46,9 @@ const styles = stylex.create({
     display: "inline-flex",
     flexWrap: "wrap",
   },
-  wide: { "--pane-max": `calc(1.25 * var(--size-reading-pane))` },
+  // A spec's card, the scale's big text, a quarter wider than a pane of prose, so its title, pills,
+  // and fields' change keep to fewer lines, while its text keeps the reading measure.
+  wide: { "--pane-max": "var(--size-big-text)" },
 });
 
 export type DecisionCardProps = {

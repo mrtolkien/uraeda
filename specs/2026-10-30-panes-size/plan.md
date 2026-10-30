@@ -194,7 +194,10 @@ The one new test renders the column's width hook in jsdom with `@testing-library
   `packages/web/src/theme/built/uraeda.css`, `packages/web/src/theme/built/uraeda.js` (rebuilt)
 - Modify: `packages/web/src/layout/Page.tsx`, `packages/web/src/layout/pane.stylex.ts`,
   `packages/web/src/layout/Pane.tsx` (its width comment), `packages/web/src/layout/PageTitle.tsx`,
-  `packages/web/src/Crumbs.tsx`, `packages/web/src/Shell.tsx` (`errors`)
+  `packages/web/src/Crumbs.tsx`, `packages/web/src/Shell.tsx` (`errors`), and what a reading page
+  draws outside its panes: `packages/web/src/RoundOpening.tsx` (the round's title),
+  `packages/web/src/review/useReview.tsx` (`ReviewIntro`), `packages/web/src/PlanPage.tsx` (the
+  plan's opening blocks)
 - Modify: every caller of `Page`, by `rg '<Page\b' packages/web/src`
 
 **Interfaces:**
@@ -285,14 +288,15 @@ git commit -m "feat(panes-size): one scale of widths for every page"
 **Files:**
 
 - Modify: `packages/web/src/QuestionCard.tsx`, `packages/web/src/QuestionCards.tsx`,
-  `packages/web/src/spec/DecisionCard.tsx`
+  `packages/web/src/spec/DecisionCard.tsx`, `packages/web/src/layout/useWidthOf.ts` (`useAtLeast`
+  reads a token made of others)
 
 **Interfaces:**
 
 - Consumes: `--size-reading-pane`, `--size-split-card`, `--size-big-text` (task 1), and the reading
   page's `--pane-max` and `--pane-centre`.
 
-- [ ] **Step 1: Size the question card**
+- [x] **Step 1: Size the question card**
 
 A split card is `--size-split-card` wide at most, centred in the page; a card of one column a
 reading pane, as today; a card holding a live window keeps the page's whole column, its text a
@@ -300,23 +304,23 @@ reading pane less the card's padding, as today. A card splits once its group is 
 `--size-split-card` wide (`useAtLeast(group, "--size-split-card")`), so a card with less room than
 its split width keeps one column. Every split card of a round is the same width, whatever it holds.
 
-- [ ] **Step 2: Size the decision card**
+- [x] **Step 2: Size the decision card**
 
 A spec's decision card's `--pane-max` is `var(--size-big-text)`, centred, its text still at the
 reading measure.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `vp check` and `vp test` in `packages/web`
 - Expected: PASS
 
-- [ ] **Step 4: Review in the sandbox**
+- [x] **Step 4: Review in the sandbox**
 
 A round at 1920 px: context 692 px, split cards about 1,080 px, all the same width, centred; a card
 with a mockup takes the whole column, its text 692 px. At 1100 px, one column. A spec at 1920 px:
 decision cards 865 px. Light and dark, and the phone.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/2026-10-30-panes-size/plan.md

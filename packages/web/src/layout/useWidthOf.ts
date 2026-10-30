@@ -25,7 +25,20 @@ export function useWidthOf(ref: RefObject<HTMLElement | null>): number {
 }
 
 /**
- * Whether an element is at least as wide as the theme's size `token`, as `--size-round-split`. The
+ * The theme's size `token` in px, as it resolves inside `element`: a probe as wide as it, as a
+ * token made of others, as `--size-split-card`, is a `calc()` its text alone does not give.
+ */
+function widthOfToken(element: HTMLElement, token: string): number {
+  const probe = document.createElement("div");
+  probe.style.cssText = `position: absolute; visibility: hidden; width: var(${token});`;
+  element.append(probe);
+  const width = probe.getBoundingClientRect().width;
+  probe.remove();
+  return width;
+}
+
+/**
+ * Whether an element is at least as wide as the theme's size `token`, as `--size-split-card`. The
  * token is read again whenever the element's width changes, not only once on mount.
  */
 export function useAtLeast(ref: RefObject<HTMLElement | null>, token: `--size-${string}`) {
@@ -34,8 +47,7 @@ export function useAtLeast(ref: RefObject<HTMLElement | null>, token: `--size-${
   useLayoutEffect(() => {
     const element = ref.current;
     if (element) {
-      const value = getComputedStyle(element).getPropertyValue(token);
-      setLeast(Number.parseFloat(value) || Number.POSITIVE_INFINITY);
+      setLeast(widthOfToken(element, token) || Number.POSITIVE_INFINITY);
     }
   }, [ref, token, width]);
   return width >= least;
