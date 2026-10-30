@@ -38,8 +38,8 @@ type Started = { ok: true } | { message: string; ok: false };
 /**
  * Starts the change from the composer's text and images, under the slug asked: its session opens,
  * where its agent works, or, when no run was sent, with the workflow's message unsent (R12). A
- * refusal is shown in the dialog, and the text stays. The first line of the priorities the composer
- * was filled from is replaced by the change's link in the start commit; the other entries
+ * refusal is shown in the dialog, and the text stays. The first line of Now the composer was
+ * filled from is replaced by the change's link in the start commit; the other entries
  * leave their files once it started. A change started once the human left the page opens nothing: its
  * text still goes, since it started, but only while it is the one sent: a newer text, typed while it
  * started, stays (R19).
@@ -59,8 +59,11 @@ function useStart(text: ReturnType<typeof useTextField>, sources: ReadonlyArray<
     images: ReadonlyArray<DraftImage>,
     slug: string,
   ): Promise<Started> => {
-    // A line linking a file of its own is no line the start finds: it is taken out as before.
-    const line = sources.find((source) => source.kind === "line" && source.linked === undefined);
+    // The start replaces a line of Now only. A line of another section, or linking a file of its
+    // own, is no line the start finds: it is taken out as before.
+    const line = sources.find(
+      (source) => source.kind === "line" && source.section === "now" && source.linked === undefined,
+    );
     const result = await fate.mutations.change.start({
       input: {
         images: images.flatMap((image) => (image.image ? [image.image] : [])),
