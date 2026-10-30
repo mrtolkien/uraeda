@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Onboarding + README pass
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 6 questions, about 20 minutes.
+> Answered on 2026-10-30.
 >
 > - Verdict: worth building, with changes: only the web UI's sessions rely on Claude Code, and "not
 >   ready" needs a definition the proposal leaves open.
@@ -112,7 +112,7 @@ pages or from scratch.
   - [pro] one file, and GitHub's outline still finds every heading.
   - [con] the file stays long, and folded sections hide what a search lands on.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Which banner opens the README?
 
@@ -147,7 +147,7 @@ app.
   - [pro] a small moment of life on the first screen.
   - [con] plays again at each page load.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: How does the README tell a Claude Code user to get the workflow?
 
@@ -170,7 +170,7 @@ would update.
   - [pro] the install Claude Code users expect, with updates from Claude Code.
   - [con] a second channel in the distribution decision, and a version to keep in step.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Which files must a project have to count as set up?
 
@@ -202,7 +202,7 @@ the human writes a "no" for it.
   - [con] machine items mix with project items, and the skill check reads folders outside the
     project.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Where does Home show what is missing?
 
@@ -226,7 +226,7 @@ Why it matters: it decides how visible the setup is, and what Home's layout make
   - [pro] room to explain each file.
   - [con] a whole page for three lines, one more place to find.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Does `ura status` show the same missing items?
 
@@ -245,7 +245,7 @@ Why it matters: a CLI user would otherwise never learn the project is half set u
   - [pro] nothing changes in the CLI.
   - [con] the CLI says nothing about an unwritten constitution.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
