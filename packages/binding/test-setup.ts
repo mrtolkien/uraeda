@@ -1,13 +1,14 @@
 import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll } from "vite-plus/test";
+import { temporaryParent } from "../../scripts/test-run.ts";
 
 // Each test file owns its temporary files, including those made by git and child processes.
 // Cleaning this directory also covers new tests without making every test remember a teardown.
 // Its settings too: a folder inside it, so no test reads the developer's `~/.config/uraeda`.
+// In memory, as `scripts/test-run.ts` makes its runs' folders, when `vp test` is run without it.
 const previous = { TMPDIR: process.env.TMPDIR, URAEDA_CONFIG_DIR: process.env.URAEDA_CONFIG_DIR };
-const directory = mkdtempSync(join(tmpdir(), "uraeda-test-"));
+const directory = mkdtempSync(join(temporaryParent(), "uraeda-test-"));
 process.env.TMPDIR = directory;
 process.env.URAEDA_CONFIG_DIR = join(directory, "config");
 

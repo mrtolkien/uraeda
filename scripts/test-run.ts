@@ -5,6 +5,7 @@
  * The command runs with a temporary folder of its own, `TMPDIR`, removed when it ends, passed or
  * failed: a test that forgets its folders, or a run killed before its cleanup, leaves nothing in
  * the machine's. A run killed with this script too leaves its folder, which the next run removes.
+ * The folder is made in memory where the machine has it (see `temporaryParent`).
  *
  * With `--lock`, at most `--slots` runs of that name execute at once on the machine, across every
  * checkout: the others wait, and say so. Several worktrees running heavy tests at once slowed
@@ -12,6 +13,8 @@
  */
 import { spawn } from "node:child_process";
 import {
+  accessSync,
+  constants as fsConstants,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -68,6 +71,24 @@ export function sweep(parent: string): Array<string> {
     }
     return true;
   });
+}
+
+/**
+ * Where tests make their temporary folders: `TMPDIR` when set, otherwise `memory`, `/dev/shm`, when
+ * the machine has it. A `/tmp` on disk shares the filesystem's locks with every other program:
+ * the thousands of repositories tests make and remove, from several worktrees at once, stalled the
+ * whole desktop on them.
+ */
+export function temporaryParent(env = process.env, memory = "/dev/shm"): string {
+  if (!env.TMPDIR) {
+    try {
+      accessSync(memory, fsConstants.W_OK);
+      return memory;
+    } catch {
+      // No such folder, as on macOS: the system's own.
+    }
+  }
+  return env.TMPDIR || tmpdir();
 }
 
 /** A new run folder in `parent`, named after this process. */
@@ -215,7 +236,7 @@ function parse(args: Array<string>) {
 async function main() {
   const { command, lock, slots } = parse(process.argv.slice(2));
   const release = lock ? await acquire(lockFolder(), lock, slots) : () => {};
-  const parent = tmpdir();
+  const parent = temporaryParent();
   sweep(parent);
   const folder = runFolder(parent);
   const child = spawn(command[0]!, command.slice(1), {

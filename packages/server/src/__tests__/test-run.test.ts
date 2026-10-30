@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vite-plus/test";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { acquire, alive, sweep } from "../../../../scripts/test-run.ts";
+import { acquire, alive, sweep, temporaryParent } from "../../../../scripts/test-run.ts";
 
 const SCRIPT = fileURLToPath(new URL("../../../../scripts/test-run.ts", import.meta.url));
 
@@ -37,6 +37,15 @@ test.each([
   expect(exited).toBe(Number(code));
   expect(stdout.startsWith(join(parent, "uraeda-run-"))).toBe(true);
   expect(readdirSync(parent)).toEqual([]);
+});
+
+test("runs make their folders in memory, unless TMPDIR names another folder", () => {
+  const memory = temporaryFolder("uraeda-memory");
+
+  expect(temporaryParent({}, memory)).toBe(memory);
+  expect(temporaryParent({ TMPDIR: "/elsewhere" }, memory)).toBe("/elsewhere");
+  expect(temporaryParent({ TMPDIR: "/elsewhere" }, join(memory, "missing"))).toBe("/elsewhere");
+  expect(temporaryParent({}, join(memory, "missing"))).not.toBe(join(memory, "missing"));
 });
 
 test("a run folder whose script ended is removed, another run's is kept", () => {
