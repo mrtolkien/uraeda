@@ -96,4 +96,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   its Home would push every other pane down. `empty` and `bare` show the pane.
 - **Alternatives considered**: the two decisions in `fixtures/repo`: every test reading its ledger
   would change.
+- **If wrong**: the two decisions keep the links of Uraeda's own, which lead nowhere in `sample`, as
+  the realistic project's do; a check of the decisions' links over `sample` would report them.
 - **Where**: `packages/web/samples/projects.ts`, from the review of wave 1
+
+## R11: Any bracketed aside left in a written rule reads as the template
+
+- **Decision**: the constitution stays "still the template" while a heading, a rule, or a date holds
+  a bracketed span that is not a link, a reference, a wikilink, a footnote, a task box, or a
+  callout. A written aside like `[RFC 9110]` counts too.
+- **Rationale**: the spec's rule is a bracketed placeholder, "like `[Project]` or `[YYYY-MM-DD]`":
+  only the template's own spans would miss a placeholder the human typed, and an aside is rare in a
+  rule. Raised by the review of wave 2.
+- **If wrong**: the pane stays until the aside is written as a link; matching the template's own
+  spans instead is a change in `embedded.rs` alone.
+- **Where**: `crates/core/src/embedded.rs`
+
+## R12: The count of required items left is computed by each tool
+
+- **Decision**: `ura status` and the Setup pane each count the items that are required and not
+  written, from the core's list; the core adds no count.
+- **Rationale**: the rule of what is set up stays in the core (R2); counting its list's required,
+  unwritten items is drawing it. Raised by the review of wave 2.
+- **Where**: `crates/cli/src/status.rs`, `packages/web/src/home/Setup.tsx`

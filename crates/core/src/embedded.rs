@@ -26,7 +26,7 @@ pub fn is_placeholder(paragraph: &str) -> bool {
 /// `# [Project] Constitution`: a bracketed span that is not a link (`[…](…)`, `[…][…]`, or a
 /// shortcut reference to one of `labels`, the document's `[label]: …` definitions), an image, a
 /// wikilink, a footnote, a callout (`[!…]`), or inside a code span.
-pub fn has_placeholder_span(line: &str, labels: &[String]) -> bool {
+pub(crate) fn has_placeholder_span(line: &str, labels: &[String]) -> bool {
     let bytes = line.as_bytes();
     let mut at = 0;
     let mut code = false;
@@ -81,7 +81,7 @@ fn is_placeholder_span(line: &str, open: usize, close: usize, labels: &[String])
 }
 
 /// The labels of a document's reference definitions, `[label]: url`, each on a line of its own.
-pub fn reference_labels(text: &str) -> Vec<String> {
+pub(crate) fn reference_labels(text: &str) -> Vec<String> {
     text.lines()
         .filter_map(|line| {
             let rest = line.trim_start().strip_prefix('[')?;
