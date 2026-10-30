@@ -127,8 +127,10 @@ impl Git {
         extra.extend(stage.added.iter().map(String::as_str));
         self.commit_staged(&extra, subject, body, on_output)?;
         // The hooks ran over a temporary index: what they reformatted is committed, and in the
-        // working tree, but not in this index, which takes it from the commit.
-        self.unstage_stage(stage)
+        // working tree, but not in this index, which takes it from the commit. Best effort: the
+        // commit landed, and a caller reading an error would undo its files.
+        drop(self.unstage_stage(stage));
+        Ok(())
     }
 
     /// Takes back what `stage` staged, the working tree kept.

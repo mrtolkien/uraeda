@@ -34,7 +34,8 @@ decisions. None binds future work: those are decisions.
 ## R3: A commit of its files alone takes what the hooks reformatted into the index
 
 - **Decision**: after a commit of its paths alone, `Git::commit_stage` resets those paths in the
-  index to the new commit.
+  index to the new commit, as a best effort: a failed reset never fails the commit, which landed,
+  since its callers undo their files on an error.
 - **Rationale**: `git commit --only` runs the hooks over a temporary index. A hook that reformats
   and stages files, like this repository's `vp staged`, commits the formatted text, but the real
   index keeps the text from before the hooks, so every start left `specs/PRIORITIES.md` as `MM`,
@@ -54,11 +55,13 @@ decisions. None binds future work: those are decisions.
 
 ## R5: A start during a merge on the default branch is refused before any write
 
-- **Decision**: a start is refused, before writing anything, while a merge, a rebase, a cherry-pick,
-  a revert, or applying patches is in progress on the default branch's checkout.
-- **Rationale**: git refuses a commit of some files alone during these. Before this change, the
-  check of uncommitted changes refused such a start up front. Without it, the start moved the
-  proposal and then failed at its commit, leaving steps to do by hand, as the review found. New core
-  test `a_start_during_a_merge_is_refused_before_any_write`.
+- **Decision**: a start is refused, before writing anything, while a merge or a cherry-pick is in
+  progress on the default branch's checkout. A rebase or a revert is not refused: git commits some
+  files alone during them, checked by hand. A rebase detaches the default branch, so a start already
+  fails earlier, reaching it, as before this change.
+- **Rationale**: git refuses a commit of some files alone during a merge or a cherry-pick. Before
+  this change, the check of uncommitted changes refused such a start up front. Without it, the start
+  moved the proposal and then failed at its commit, leaving steps to do by hand, as the review
+  found. New core test `a_start_during_a_merge_is_refused_before_any_write`.
 - **Where**: `Start::plan` in `crates/core/src/actions/start/plan.rs`, `Git::operation_in_progress`
   in `crates/core/src/git/status.rs`

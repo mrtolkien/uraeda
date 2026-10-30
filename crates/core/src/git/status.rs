@@ -86,17 +86,14 @@ impl Git {
             .collect())
     }
 
-    /// The operation in progress here that git commits only whole, as its name in a sentence: a
-    /// merge, a rebase, a cherry-pick, a revert, or applying patches.
+    /// The operation in progress here during which git refuses a commit of some files alone, as
+    /// its name in a sentence: a merge or a cherry-pick. A rebase or a revert allows one.
     pub fn operation_in_progress(&self) -> Option<&'static str> {
         use gix::state::InProgress;
         match self.repo.state()? {
             InProgress::Merge => Some("a merge"),
-            InProgress::Rebase | InProgress::RebaseInteractive => Some("a rebase"),
             InProgress::CherryPick | InProgress::CherryPickSequence => Some("a cherry-pick"),
-            InProgress::Revert | InProgress::RevertSequence => Some("a revert"),
-            InProgress::ApplyMailbox | InProgress::ApplyMailboxRebase => Some("applying patches"),
-            InProgress::Bisect => None,
+            _ => None,
         }
     }
 
