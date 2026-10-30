@@ -35,16 +35,18 @@ binds future work: those are decisions.
 - **If wrong**: the same rule in `crates/core/src/actions/review.rs` and the skill, as a feature.
 - **Where**: `packages/web/src/ReviewVerdict.tsx`
 
-## R4: The editor keeps the file's lines rather than joining them
+## R4: The editor gives the formatter's lines room rather than joining them
 
-- **Decision**: of the note's two ways, the editor shows a formatted file's lines as they are, 100
-  columns wide on a wide screen, rather than joining the formatter's line breaks in the field.
-- **Rationale**: joining them rewrites your file at each save, and the formatter wraps it back, a
-  fight on every commit; it would also join breaks a project without a formatter meant. 100 columns
-  is oxfmt's width, and wider than Prettier's 80.
-- **Alternatives considered**: reading each project's formatter width, which the editor does not
-  know without running its tools.
-- **Where**: `packages/web/src/EditorPage.tsx`, `packages/web/src/ProposalText.tsx`
+- **Decision**: of the note's two ways, the editor's field is wide enough on a wide screen for a
+  formatted file's 100 columns, which then keep their lines, and it still wraps softly: a paragraph
+  typed without line breaks, or a note expanded on one line, wraps at the field's edge.
+- **Rationale**: joining the formatter's breaks rewrites your file at each save, and the formatter
+  wraps it back, a fight on every commit; it would also join breaks a project without a formatter
+  meant. Turning wrapping off, tried first, made every unformatted paragraph one line scrolling
+  sideways, worse than the line jumps. 100 columns is oxfmt's width, and wider than Prettier's 80.
+- **If wrong**: on a wide screen narrower than the pane, about 1300 px with the sidebar open, a
+  100-column line still wraps once at the field's edge.
+- **Where**: `packages/web/src/EditorPage.tsx`, `packages/web/src/layout/pane.stylex.ts`
 
 ## R5: A started proposal's links are rebased
 

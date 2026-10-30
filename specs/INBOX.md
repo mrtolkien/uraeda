@@ -12,6 +12,11 @@
 
 ## Bugfix
 
+- [agent] [review-inbox] A note whose marks end its first line, promoted to the priorities or a
+  proposal, leaves a `- ` line with a trailing space before its link (`inbox.rs`'s `unmarked_lines`)
+- [agent] [review-inbox] A start whose link rebase fails on the second file of a postponed folder
+  names neither the first, rebased, nor the files after it (`start/commits.rs`)
+
 ## To test
 
 - See if we can integrate Claude Design

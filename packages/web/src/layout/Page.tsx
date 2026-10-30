@@ -103,7 +103,10 @@ export function Page({
   isSession?: boolean;
   isSnug?: boolean;
   isTight?: boolean;
-  /** A draft's editor on wide screens: a reading page whose panes are 95 characters wide at most. */
+  /**
+   * A draft's editor on wide screens: a reading page whose panes hold a formatted file's 100
+   * columns, and wide enough for its Start beside them where the screen has the room.
+   */
   isWriting?: boolean;
 }) {
   const wide = !isNarrow(useWidthClass());

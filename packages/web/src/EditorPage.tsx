@@ -28,8 +28,9 @@ import { useProposalEditor } from "./pane/useProposalEditor.ts";
 import { currentEntry, useRestoreScroll } from "./routes.tsx";
 
 const styles = stylex.create({
-  // The text beside its Start, on a wide screen, where both fit: the text as wide as its file's
-  // lines, which do not wrap, and Start the rest; Start under it where they do not.
+  // The text beside its Start, on a wide screen, where both fit: the text wide enough for a
+  // formatted file's 100 columns, which then do not wrap again, and Start the rest; Start under it
+  // where they do not. A line longer than that, a paragraph typed without breaks, still wraps.
   columns: {
     // Each pane at the row's start, not centred in its own room: under the text, Start keeps its
     // edges.
@@ -279,7 +280,6 @@ export function EditorPage({ path }: { path: string }) {
               boxRef={box}
               editor={editor}
               file={file}
-              isUnwrapped={isWide}
               onEdit={edit}
               onSubmit={isFile ? startNow : editor.saveText}
               path={path}

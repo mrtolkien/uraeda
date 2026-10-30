@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, expect, test } from "vite-plus/test";
+import { liftOf } from "../layout/Sheet.tsx";
 import { useKeyboardInset } from "../layout/useKeyboardInset.ts";
 
 /** A visual viewport the test moves, as a phone's keyboard does as it opens. */
@@ -30,4 +31,15 @@ test("the inset is how much of the screen's bottom the keyboard covers", () => {
     viewport.dispatchEvent(new Event("scroll"));
   });
   expect(result.current).toBe(200);
+});
+
+/**
+ * A short sheet lifts by the keyboard, but a tall one, a capped sheet with a field, keeps its top,
+ * its title and Close, on the screen: it lifts by what room is left above it.
+ */
+test("a sheet lifts by the keyboard, never past the screen's top", () => {
+  expect(liftOf(300, 400, 844)).toBe(300);
+  expect(liftOf(380, 523, 844)).toBe(844 - 523 - 16);
+  expect(liftOf(380, 900, 844)).toBe(0);
+  expect(liftOf(0, 400, 844)).toBe(0);
 });

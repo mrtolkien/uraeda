@@ -82,7 +82,6 @@ export function ProposalText({
   boxRef,
   editor,
   file,
-  isUnwrapped,
   onEdit,
   onSubmit,
   path,
@@ -90,11 +89,6 @@ export function ProposalText({
   boxRef: RefObject<HTMLDivElement | null>;
   editor: ProposalEditorState;
   file: File;
-  /**
-   * Whether the text keeps its file's lines, which a formatter wraps at its own width, rather than
-   * wrapping them again at the field's: on a wide screen, whose pane holds 100 columns.
-   */
-  isUnwrapped: boolean;
   onEdit: () => void;
   onSubmit: () => void;
   path: string;
@@ -145,7 +139,6 @@ export function ProposalText({
                   }}
                   onSubmit={onSubmit}
                   value={field.text}
-                  wrap={isUnwrapped ? "off" : "soft"}
                   {...images.fieldProps}
                 />
               </DropHint>
