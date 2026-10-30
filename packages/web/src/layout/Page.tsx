@@ -77,7 +77,7 @@ const kinds = stylex.create({
     "--pane-width": "100%",
     maxWidth: `calc(var(--size-code) + 22rem + ${spacingVars["--spacing-4"]} + 2 * var(--page-inset))`,
   },
-  // A session's column: about 115 characters a line, not the window's width.
+  // A session's column: 95 characters of the UI's font, not the window's width.
   session: { "--page-column": "var(--size-session-max)" },
 });
 
@@ -91,8 +91,8 @@ const text = stylex.create({
   // left edge, as wide as they are, on a reading page (`kinds.reading`); the page's width
   // elsewhere.
   column: {
-    marginInline: "var(--pane-centre, 0)",
-    maxWidth: "var(--pane-max, none)",
+    marginInline: "var(--page-text-centre, 0)",
+    maxWidth: "var(--page-text-max, none)",
     width: "100%",
   },
 });

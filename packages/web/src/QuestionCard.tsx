@@ -37,18 +37,23 @@ const styles = stylex.create({
     // A table keeps to the card: it scrolls rather than reach past it.
     "--table-reach": "0px",
   },
-  // A card of one column, on a wide screen: a pane's width, centred, as the page's single panes; a
-  // split one takes the page's, two context panes' wide.
+  // A card of one column, on a wide screen: a pane's width, centred, as the page's single panes.
   single: {
     marginInline: "var(--pane-centre, 0)",
     maxWidth: "var(--pane-max, none)",
   },
+  // A split card: the scale's split card, its question at about 50 characters a line and its
+  // options at about 60, centred under the round's context, whatever it holds.
   split: {
     // The title and context on the left, the options and comment on the right, 5 to 6.
     alignItems: "start",
     columnGap: spacingVars["--spacing-8"],
     display: "grid",
     gridTemplateColumns: "minmax(0, 5fr) minmax(0, 6fr)",
+  },
+  splitCard: {
+    marginInline: "var(--pane-centre, 0)",
+    maxWidth: "var(--size-split-card)",
   },
   // The left column of a split card, as tall as the card: its header sticks for the whole card.
   stickyHead: {
@@ -169,6 +174,7 @@ export function QuestionCard({
     !holdsVariants(stories, document, question) &&
     !holdsWide(stories, document, question);
   const windowed = wide && holdsWindow(stories, document, question);
+  const width = wide && (split ? styles.splitCard : styles.single);
   const text = windowed && styles.text;
   const comments =
     stories && !readOnly
@@ -202,10 +208,7 @@ export function QuestionCard({
   // card; split, the left column is as tall as the card.
   return (
     <StoryContext value={comments}>
-      <section
-        id={question.id}
-        {...stylex.props(margin, wide && !split && styles.single, windowed && styles.windowed)}
-      >
+      <section id={question.id} {...stylex.props(margin, width, windowed && styles.windowed)}>
         <Card
           padding={wide ? 6 : 0}
           variant={wide ? "default" : "transparent"}

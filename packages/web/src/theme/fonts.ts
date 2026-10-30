@@ -5,7 +5,7 @@
 // the whole app: the settings' Fonts section and `Space u f` show and pick the same.
 import * as stylex from "@stylexjs/stylex";
 import { useSyncExternalStore } from "react";
-import { WIDTHS } from "./scale.ts";
+import { measureOf, WIDTHS } from "./scale.ts";
 
 /** A part of the UI with a font of its own. */
 export type FontRole = "body" | "heading" | "reading" | "code" | "human";
@@ -140,14 +140,14 @@ const styles = stylex.create({
     reading: string,
     code: string,
     human: string,
-    measure: number,
+    measure: string,
   ) => ({
     "--font-family-body": body,
     "--font-family-code": code,
     "--font-family-heading": heading,
     "--font-family-human": human,
     "--font-family-reading": reading,
-    "--size-reading-measure": `calc(${measure} * var(--text-reading-size))`,
+    "--size-reading-measure": measure,
     fontFamily: "var(--font-family-body)",
   }),
   // The scale's widths made of the measure, made again over the picked font's (`scale.ts`): each
@@ -188,7 +188,7 @@ export function useFontStyle(): ReadonlyArray<stylex.StyleXStyles> {
       family("reading"),
       family("code"),
       family("human"),
-      fontOf("reading", fonts.reading).measure,
+      measureOf(fontOf("reading", fonts.reading).measure),
     ),
     // Custom properties alone, which StyleX's types read as no style at all.
     styles.widths(

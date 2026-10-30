@@ -51,3 +51,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   measures, and the spec says "measured in the sandbox". The round's "the plan adds a check of each
   page's width" predates it in spirit and is read through it.
 - **Where**: task 5.
+
+## R6: What a reading page draws outside its panes starts at their edge
+
+- **Decision**: a style of `Page.tsx`, `pageText`, puts a reading page's title, crumbs, review line,
+  and a plan's opening blocks at its panes' left edge, a reading pane wide, from variables only the
+  `reading` kind sets (`--page-text-max`, `--page-text-centre`).
+- **Rationale**: the spec puts the title and crumbs at the panes' edge; the review line and a plan's
+  Important callout sat at the page's edge too, 140 px left of everything under them. Variables of
+  their own keep the editor's title, whose page sets `--pane-max` for its panes, where it was.
+- **If wrong**: a wide table in a plan's opening scrolls at 692 px rather than at the page's width.
+- **Where**: task 1, `layout/Page.tsx`, and the files it lists.
+
+## R7: A token made of others is measured, not parsed
+
+- **Decision**: `useAtLeast` resolves its token with a hidden probe as wide as it, in place of
+  parsing the token's text.
+- **Rationale**: `--size-split-card` is a `calc()` of other tokens: its computed text is the
+  unevaluated `calc()`, which parsed as no width, so no card ever split. Found by the review of
+  wave 1.
+- **Where**: task 2, `layout/useWidthOf.ts`.
+
+## R8: A branch's decision page keeps a reading pane
+
+- **Decision**: a branch's decision, on its own page, is a page of rows: its card, which a spec
+  draws at the big-text width, is a reading pane there.
+- **Rationale**: the spec's big-text width is for a spec's decision cards (US5), and the page of a
+  decision is a page of rows (US1).
+- **Where**: task 1, `decisions/BranchDecision.tsx`.
