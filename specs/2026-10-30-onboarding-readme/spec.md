@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 2
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Onboarding + README pass
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 10 minutes.
+> Approved on 2026-10-30.
 >
 > - You approve the same feature as before, with screenshots under the README's banner, a quick
 >   install in the README, and the full install in `INSTALL.md`.
