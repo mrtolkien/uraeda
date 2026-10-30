@@ -3,10 +3,11 @@ import { mkdirSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { type Row, type SessionRow, type TurnRow, toSession, toTurn } from "./cache-rows.ts";
+import { addTurnTokens, agentSessionTokens } from "./cache-tokens.ts";
 import { type EditedFile, editedFiles, type SubagentRow, subagentsOf } from "./cache-work.ts";
 import type { Item, TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
 import { migrate, transaction } from "./migrations.ts";
-import { CLEARED, FRESH, REPLACED, refused } from "./session-state.ts";
+import { refused } from "./session-state.ts";
 
 export type { SessionRow, TurnRow } from "./cache-rows.ts";
 export type { EditedFile, SubagentRow } from "./cache-work.ts";
@@ -353,35 +354,12 @@ export class SessionCache {
 
   /** Adds the counts to the turn's own, a null count read as 0. */
   addTurnTokens(id: number, counts: TokenCounts): void {
-    this.db
-      .prepare(
-        `UPDATE turns SET input_tokens = COALESCE(input_tokens, 0) + ?,
-           cache_write_tokens = COALESCE(cache_write_tokens, 0) + ?,
-           cache_read_tokens = COALESCE(cache_read_tokens, 0) + ?,
-           output_tokens = COALESCE(output_tokens, 0) + ?
-         WHERE id = ?`,
-      )
-      .run(counts.input, counts.cacheWrite, counts.cacheRead, counts.output, id);
+    addTurnTokens(this.db, id, counts);
   }
 
-  /**
-   * The tokens of the session's current agent session: the sum of its turns since the latest that
-   * started a new one, saying so in a `system` item, that turn included, or of all its turns.
-   */
+  /** The tokens of the session's current agent session: see `agentSessionTokens`. */
   agentSessionTokens(sessionId: string): TokenCounts {
-    const row = this.db
-      .prepare(
-        `SELECT COALESCE(SUM(input_tokens), 0) AS input,
-           COALESCE(SUM(cache_write_tokens), 0) AS cacheWrite,
-           COALESCE(SUM(cache_read_tokens), 0) AS cacheRead,
-           COALESCE(SUM(output_tokens), 0) AS output
-         FROM turns WHERE session_id = ?1 AND id >= COALESCE(
-           (SELECT MAX(i.turn_id) FROM items i JOIN turns t ON t.id = i.turn_id
-            WHERE t.session_id = ?1 AND i.kind = 'system'
-              AND json_extract(i.data, '$.text') IN (?2, ?3, ?4)), 0)`,
-      )
-      .get(sessionId, FRESH, REPLACED, CLEARED) as TokenCounts;
-    return { ...row };
+    return agentSessionTokens(this.db, sessionId);
   }
 
   turn(id: number): TurnRow | undefined {
