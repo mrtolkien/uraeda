@@ -6,7 +6,8 @@ import type { FeatureView } from "uraeda-binding";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
 import type { Context, RepoContext } from "./context.ts";
 import { itemLooks } from "./items.ts";
-import { chatStatuses, featureStatuses } from "./sessions.ts";
+import { featureStatuses } from "./feature-status.ts";
+import { chatStatuses } from "./sessions.ts";
 
 /** Why an item needs the human, in the order a notification picks it. */
 export type NeedsYouReason = "blocked" | "attention" | "step" | "pull-request";
@@ -133,20 +134,26 @@ async function rowsOf(ctx: RepoContext, name: string): Promise<Array<NeedsYouRow
 
 async function featureRowsOf(ctx: RepoContext, name: string): Promise<Array<NeedsYouRow>> {
   const looks = itemLooks(ctx);
-  return (await featureStatuses(ctx)).flatMap(({ feature, status, statusReason }) => {
-    const reason = needsYouReason({ status, statusReason, step: feature.step.name });
+  return (await featureStatuses(ctx)).flatMap(({ feature, status }) => {
+    const reason = needsYouReason({
+      status: status.status,
+      statusReason: status.reason,
+      step: feature.step.name,
+    });
     if (!reason) {
       return [];
     }
     const id = `${name}/${feature.folder}`;
+    // The turn the status follows: a run that ends at the same gate notifies again (R5).
+    const ask = `${reason}:${feature.step.name}:${feature.step.file ?? ""}:${status.reason ?? ""}`;
     return [
       {
         folder: feature.folder,
         href: hrefOf(name, feature, reason),
         id,
-        key: `${id}:${reason}:${feature.step.name}:${feature.step.file ?? ""}:${statusReason ?? ""}`,
+        key: `${id}:${ask}:${status.turn ?? ""}`,
         label: looks(feature.folder).label ?? feature.slug,
-        message: messageOf(feature, reason, statusReason),
+        message: messageOf(feature, reason, status.reason),
         reason,
         repository: name,
         title: feature.title,

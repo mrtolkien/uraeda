@@ -126,6 +126,8 @@ export type { Trigger } from "./runner/events.ts";
 export type { Item } from "./runner/events.ts";
 export type { Capabilities } from "./runner/adapter.ts";
 export type { SessionStatus, StatusReason } from "./runner/status.ts";
+/** A feature's status, as each `Workspace` feature and `Feature` record carries it. */
+export type { FeatureStatus } from "./fate/feature-status.ts";
 /** A chat image, as `POST /attach` answers it and `session.send` takes it. */
 export type { ChatImage } from "./runner/images.ts";
 

@@ -13,6 +13,7 @@ import type { Context, RepoContext } from "./context.ts";
 import { callSiteError } from "./errors.ts";
 import { checkoutDir, hasPreview } from "./preview.ts";
 import { agentTime } from "./agentTime.ts";
+import { featureStatusOf } from "./feature-status.ts";
 import { featureTokens } from "./tokens.ts";
 import { messageStep, readMessage } from "./workflow-step.ts";
 import {
@@ -61,7 +62,7 @@ export function agentRecord({ sessions }: Context): AgentRecord {
 /** The workspaces read during one request, by their path: a list reads it once. */
 const workspaces = new WeakMap<RepoContext, Map<string, Promise<WorkspaceView>>>();
 
-function workspaceOf(ctx: RepoContext, path: string): Promise<WorkspaceView> {
+export function workspaceOf(ctx: RepoContext, path: string): Promise<WorkspaceView> {
   let read = workspaces.get(ctx);
   if (!read) {
     read = new Map();
@@ -91,7 +92,7 @@ async function ownTurn(ctx: RepoContext, id: string): Promise<TurnRow | undefine
 }
 
 /** What a session's status and its sidebar row read of its turns. */
-function turnsOf(cache: SessionCache, session: string) {
+export function turnsOf(cache: SessionCache, session: string) {
   const turns = cache.turns(session);
   const latest = turns.at(-1);
   const running = turns.filter((turn) => turn.state === "running").at(-1);
@@ -110,7 +111,7 @@ function turnsOf(cache: SessionCache, session: string) {
  * The session's status, from its turns, when it was seen, its feature's step, and whether it is its
  * feature's `latestSession`.
  */
-function statusOf(
+export function statusOf(
   row: SessionRow,
   read: ReturnType<typeof turnsOf>,
   feature?: FeatureView,
@@ -278,36 +279,6 @@ async function rows(
 }
 
 /**
- * Each feature in flight of the server's repository, with its status: its latest session's, which
- * its runs go to, from the same rules as the sidebar's, raised to an older session's when that one
- * works or is blocked; without a session, whether its step waits on the human.
- */
-export async function featureStatuses(ctx: RepoContext) {
-  const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
-  const { cache } = ctx.sessions;
-  return (await workspaceOf(ctx, ctx.repo)).features
-    .filter((feature) => feature.step.name !== "done" && feature.step.name !== "none")
-    .map((feature) => {
-      const [latest, ...older] =
-        root === undefined ? [] : cache.folderSessions(root, feature.folder);
-      const status =
-        latest === undefined
-          ? feature.step.waitsOn === "human"
-            ? { status: "needs-you" as const, statusReason: "step" as const }
-            : { status: "idle" as const, statusReason: null }
-          : older
-              .map((row) => statusOf(row, turnsOf(cache, row.id), feature, false))
-              .filter((each) => each.status === "working" || each.statusReason === "blocked")
-              .reduce(
-                (urgent, each) =>
-                  STATUS_ORDER[each.status] < STATUS_ORDER[urgent.status] ? each : urgent,
-                statusOf(latest, turnsOf(cache, latest.id), feature),
-              );
-      return { feature, status: status.status, statusReason: status.statusReason };
-    });
-}
-
-/**
  * Each chat of the server's repository that is not archived, with its title and its status, from
  * the same rules as the sidebar's.
  */
@@ -437,6 +408,7 @@ export async function featureRecord(
     ...itemLooks(ctx)(feature.folder),
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
     session: sessions[0]?.id ?? null,
+    status: await featureStatusOf(ctx, feature),
     // An archived session, of a dropped change, leaves the lists.
     sessions: sessions.filter((row) => row.archivedAt === null).map((row) => row.id),
     step: sentStep(feature.step),

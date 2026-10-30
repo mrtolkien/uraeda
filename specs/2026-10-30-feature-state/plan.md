@@ -680,7 +680,7 @@ export type FeatureStatus = {
   turn: string | null;
 };
 /** The rules of the Feature status decision, from the feature's step and its sessions. */
-export function featureStatusOf(ctx: RepoContext, feature: FeatureView): FeatureStatus;
+export function featureStatusOf(ctx: RepoContext, feature: FeatureView): Promise<FeatureStatus>;
 /** Each feature in flight, with its status: the notifier's list. */
 export function featureStatuses(
   ctx: RepoContext,
@@ -690,28 +690,38 @@ export function featureStatuses(
 The rules, in order: a session running or queued, the latest started first, gives "Working". A
 feature with problems gives "Needs you". The latest session's own status comes next, which already
 reads its step. Without a session, the step gives "Needs you" when it waits on the human, else
-"Idle". Each workspace feature and each `Feature` record carries `status`. A notification's key
-carries `status.turn`.
+"Idle". Each workspace feature and each `Feature` record carries `status`, a missing feature `IDLE`.
+A notification's key carries `status.turn`. `featureStatusOf` reads the repository's main checkout,
+so it answers a promise (R12).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 // packages/server/src/__tests__/sessions.test.ts, replacing "a feature's status is its latest
 // session's, raised by an older one blocked" and "an older session's failed run does not hold its
-// feature"
+// feature". `statusesOf` reads the `Feature` record's status, and checks the workspace's equals it.
 test("a running session makes its feature Working everywhere, then it follows its latest", async () => {
   const server = await testServer();
   const older = await folderSession(server, AGENT);
-  doneTurn(server, older.id, { state: "failed" });
+  const running = doneTurn(server, older.id, { state: "running" });
   const latest = await folderSession(server, AGENT);
-  doneTurn(server, latest.id, { state: "running" });
-  // older, stopped by the server; an even older one running: Working, from it
-  expect(await featureStatus(server, AGENT)).toMatchObject({ status: "working" });
-  expect(await workspaceStatus(server, AGENT)).toMatchObject({ status: "working" });
+  const stopped = doneTurn(server, latest.id, { reason: SERVER_STOPPED, state: "stopped" });
+  // The latest session was stopped by the server; the older one still runs: Working, from it.
+  expect(await statusesOf(server, AGENT)).toEqual({
+    label: "Working", reason: null, session: older.id, status: "working", turn: String(running),
+  });
   expect(await needsYouRow(server, AGENT)).toBeUndefined();
-  // the run ends at a gate: needs you, with one row whose key names the run's turn
-  // the latest session idle, the older failed: idle, from the latest
+  // Its run ends: the feature follows its latest session, which asks until dismissed.
+  server.sessions.cache.endTurn(running, { state: "done" });
+  expect(await statusesOf(server, AGENT)).toMatchObject({
+    reason: "interrupted", session: latest.id, status: "attention", turn: String(stopped),
+  });
+  expect(await needsYouRow(server, AGENT)).toMatchObject({ reason: "attention" });
 });
+test("an older session's blocked or failed run does not hold its feature", ...);
+// US1.2 and US1.3, on the fixture's feature at its questions: needs you under the first turn's
+// key, Working with no row while a run runs, then needs you under a new key once it ends.
+test("a run at a gate reads Working, and its end notifies the gate under a new key", ...);
 ```
 
 The break each test catches:
@@ -720,22 +730,22 @@ The break each test catches:
 - The notifier and the views reading different rules.
 - The same notification key before and after a run, so it never fires again.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/__tests__/sessions.test.ts`
 - Expected: FAIL, the `Feature` record has no `status`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `fate/sessions.ts` must end under 500 lines. Once the test passes, rank the latest session above a
 running older one, see it fail, and restore it. Write what failed in the commit body.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-10-30-feature-state/plan.md

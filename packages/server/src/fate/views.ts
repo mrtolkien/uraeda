@@ -26,6 +26,7 @@ import type {
   UsageLimit,
 } from "../runner/events.ts";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
+import type { FeatureStatus } from "./feature-status.ts";
 import type { ItemLook } from "./items.ts";
 import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
@@ -65,8 +66,10 @@ export function sentStep(step: StepView): StepRecord {
 }
 
 export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
-  /** Its features, each step sent as `sentStep` sends it, with its name (R2). */
-  features: Array<Omit<FeatureView, "step"> & ItemLook & { step: StepRecord }>;
+  /** Its features, each step sent as `sentStep` sends it, with its name (R2) and its status. */
+  features: Array<
+    Omit<FeatureView, "step"> & ItemLook & { status: FeatureStatus; step: StepRecord }
+  >;
   id: string;
   /** Whether the main checkout has an active preview decision. */
   preview: boolean;
@@ -91,6 +94,7 @@ export type FeatureRecord = Omit<Record_<FeatureView>, "step"> &
     session: string | null;
     /** Its sessions' IDs, the latest started first. */
     sessions: Array<string>;
+    status: FeatureStatus;
     step: StepRecord;
     /** Its sessions' tokens, summed, null when no turn has counts. */
     tokens: FeatureTokens | null;
@@ -326,6 +330,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   sessions: true,
   slug: true,
   source: true,
+  status: true,
   step: true,
   title: true,
   tokens: true,
