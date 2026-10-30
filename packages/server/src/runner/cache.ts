@@ -352,6 +352,20 @@ export class SessionCache {
     });
   }
 
+  /**
+   * Dismisses a failed or stopped turn, so it no longer asks for the human: false for a turn in any
+   * other state, or dismissed already.
+   */
+  dismiss(turn: number): boolean {
+    const { changes } = this.db
+      .prepare(
+        `UPDATE turns SET dismissed_at = ? WHERE id = ? AND state IN ('failed', 'stopped')
+           AND dismissed_at IS NULL`,
+      )
+      .run(now(), turn);
+    return Number(changes) > 0;
+  }
+
   /** Adds the counts to the turn's own, a null count read as 0. */
   addTurnTokens(id: number, counts: TokenCounts): void {
     addTurnTokens(this.db, id, counts);

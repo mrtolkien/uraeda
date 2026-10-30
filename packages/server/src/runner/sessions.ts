@@ -18,6 +18,7 @@ import {
   commandCount,
   ofDropped,
   refused,
+  SERVER_STOPPED,
   type SessionChange,
   type SessionContext,
 } from "./session-state.ts";
@@ -31,13 +32,11 @@ export {
   OUTPUT_LIMIT,
   REFUSALS,
   RESUMED,
+  SERVER_STOPPED,
   type SessionChange,
   TERMINATE_AFTER_MS,
   WATCHDOG_MS,
 } from "./session-state.ts";
-
-/** Why a turn stopped as the server stopped. */
-const SERVER_STOPPED = "Stopped: the server stopped while it ran.";
 
 const now = () => new Date().toISOString();
 
@@ -384,6 +383,29 @@ export class Sessions {
     }
     this.cache.updateSession(row.id, { archivedAt: archived ? now() : null });
     this.#options.onChange({ folder: row.folder, repo: row.repo, session: row.id });
+  }
+
+  /**
+   * Dismisses a failed or stopped turn of the repository's: it no longer asks for the human. Refused
+   * while the turn runs or waits; a turn dismissed already, or done, is left as it is.
+   */
+  dismiss(repo: string, turn: number): void {
+    const row = this.cache.turn(turn);
+    if (!row) {
+      throw new Error(`no turn ${turn}`);
+    }
+    const session = this.#ownNow(repo, row.sessionId);
+    if (row.state === "running" || row.state === "queued") {
+      throw refused(REFUSALS.stillRunning);
+    }
+    if (this.cache.dismiss(turn)) {
+      this.#options.onChange({
+        folder: session.folder,
+        repo: session.repo,
+        session: session.id,
+        turn,
+      });
+    }
   }
 
   /** Records that the human saw the session. */

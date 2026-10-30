@@ -346,6 +346,11 @@ const mutations = {
     FateAPI['mutations']['session.archive']['input'],
     FateAPI['mutations']['session.archive']['output']
   >('Session'),
+  'session.dismiss': mutation<
+    Session,
+    FateAPI['mutations']['session.dismiss']['input'],
+    FateAPI['mutations']['session.dismiss']['output']
+  >('Session'),
   'session.new': mutation<
     Session,
     FateAPI['mutations']['session.new']['input'],
