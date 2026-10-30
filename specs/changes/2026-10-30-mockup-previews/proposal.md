@@ -8,6 +8,7 @@ discovery: low # low, medium, or high: how far the agent researches before askin
 
 - http://127.0.0.1:4310/r/uraeda/f/2026-10-29-performance-pass/spec.md -> the mockups didn't work at
   all locally
+- Also we should be able to embed SVG/PNG files in sessions and pages (specs, questions, ...)
 
 ## Notes
 
