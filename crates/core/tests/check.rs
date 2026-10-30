@@ -2592,7 +2592,8 @@ fn the_example_spec_is_at_most_2000_words() {
 }
 
 /// US3 1, SC-001, SC-002, SC-004: the repository's decisions warn nothing on their shape, hold at
-/// most 11,000 words together, their frontmatter aside, and each Why links one record at most.
+/// most 11,100 words together, their frontmatter aside, and each Why links one record at most. The
+/// limit was 11,000 until the documentation decision, approved with Onboarding + README pass.
 #[test]
 fn the_ledger_reads_alone() {
     let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -2615,7 +2616,7 @@ fn the_ledger_reads_alone() {
         let records = why.matches("](../done/").count() + why.matches("](/specs/done/").count();
         assert!(records <= 1, "{records} records linked from a Why:\n{why}");
     }
-    assert!(words <= 11_000, "{words} words");
+    assert!(words <= 11_100, "{words} words");
 }
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
