@@ -13,7 +13,9 @@ const MARGIN: Duration = Duration::from_millis(50);
 /// Git compares the files' times with the index's in whole seconds: a file written in the second
 /// the index was written is racily clean, and stays so through a refresh in that same second. gix
 /// then rehashes every such file on each read, and never writes the index back. A refresh in a later
-/// second writes them clean. A failure only costs speed, so it is ignored.
+/// second writes them clean. A failure only costs speed, so it is ignored, as is a thread that
+/// cannot start. A worktree removed meanwhile is not refreshed: in its folder, or a parent of it,
+/// git would find the main checkout and lock its index.
 pub(super) fn refresh_later(path: PathBuf) {
     let since_second = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -21,8 +23,10 @@ pub(super) fn refresh_later(path: PathBuf) {
             Duration::from_nanos(now.subsec_nanos().into())
         });
     let wait = Duration::from_secs(1).saturating_sub(since_second) + MARGIN;
-    thread::spawn(move || {
+    let _ = thread::Builder::new().spawn(move || {
         thread::sleep(wait);
-        let _ = super::output_in(&path, "update-index", &["update-index", "-q", "--refresh"]);
+        if path.join(".git").is_file() {
+            let _ = super::output_in(&path, "update-index", &["update-index", "-q", "--refresh"]);
+        }
     });
 }
