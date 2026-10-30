@@ -249,6 +249,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: every card calls the hook; `useRefreshOnShow`'s listener per card would send the
   same request once per card, which the one record exists to avoid.
 - **Where**: task 8.
+
 ## R25: The editor's save retries a conflict only over the text it was typed over
 
 - **Decision**: on a `conflict:` refusal, the editor's `text.save` reads the file again and writes
@@ -291,6 +292,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   repository, or the missing one shown, would draw the unknown repository's page until the removal
   is done and the page moves on.
 - **Where**: task 9.
+
 ## R28: Optimistic results cover the write's own record, from what the browser holds
 
 - **Decision**: a list's or a session's write passes fate's `optimistic` with the fields of the
