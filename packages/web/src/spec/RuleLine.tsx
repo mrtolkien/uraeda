@@ -6,7 +6,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, spacingVars, typeScaleVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { Run } from "uraeda-binding";
 import { Paragraph } from "../layout/Paragraph.tsx";
@@ -27,10 +27,12 @@ const styles = stylex.create({
     marginBlockStart: spacingVars["--spacing-0-5"],
   },
   intent: {
-    // A decision's intent, the first thing read: its largest text after its title, as the
-    // spec's lead is.
-    fontSize: typeScaleVars["--text-heading-3-size"],
-    lineHeight: typeScaleVars["--text-heading-3-leading"],
+    // A decision's intent, the first thing read: prose, in the reading font and size its rules
+    // have, heavier than them.
+    fontFamily: "var(--font-family-reading)",
+    fontSize: "var(--text-reading-size)",
+    fontWeight: fontWeightVars["--font-weight-medium"],
+    lineHeight: "var(--text-reading-line)",
   },
   removed: {
     // Removed words: a red tint and a strike, so the change does not rest on colour alone.

@@ -13,6 +13,7 @@ import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import type { CommentItem, DecisionChange } from "uraeda-binding";
 import { Pane, type PaneTone } from "../layout/Pane.tsx";
+import { paneVars } from "../layout/pane.stylex.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import type { PartSelection } from "../Selection.tsx";
 import { KindBadge } from "./ledger/KindBadge.tsx";
@@ -20,11 +21,16 @@ import { Ledger } from "./ledger/Section.tsx";
 
 const styles = stylex.create({
   body: {
-    // A pane's text, at the reading size, as wide as the pane of prose it is in.
+    // A pane's text, at the reading size, a column of prose at the reading measure, centred in
+    // the pane, however wide the pane.
+    boxSizing: "border-box",
     fontSize: "var(--text-reading-size)",
     lineHeight: "var(--text-reading-line)",
+    marginInline: "auto",
+    maxWidth: `calc(var(--size-reading-measure) + 2 * ${spacingVars["--spacing-2"]})`,
     paddingBlockEnd: spacingVars["--spacing-2"],
     paddingInline: spacingVars["--spacing-2"],
+    width: "100%",
   },
   link: {
     // The link to the decision's page, a control's height under a touch pointer, as a crumb's is.
@@ -33,7 +39,9 @@ const styles = stylex.create({
     minHeight: sizeVars["--size-element-md"],
   },
   // On the phone, the pane keeps only its titled top border: its text takes the page's width.
-  open: { paddingInline: 0 },
+  open: { maxWidth: "none", paddingInline: 0 },
+  // A spec's card, a quarter wider than a pane of prose, so its title, pills, and fields' change
+  // keep to fewer lines, while its text keeps the reading measure.
   suffix: {
     // The pills and the fields' change after the title, wrapping as the title does.
     alignItems: "center",
@@ -41,6 +49,7 @@ const styles = stylex.create({
     display: "inline-flex",
     flexWrap: "wrap",
   },
+  wide: { "--pane-max": `calc(1.25 * ${paneVars["--pane-prose"]})` },
 });
 
 export type DecisionCardProps = {
@@ -68,6 +77,8 @@ export type DecisionCardProps = {
   title: string;
   /** Whether the spec's `## Decisions` leaves it out. */
   unlisted?: boolean;
+  /** Whether it is wider than a pane of prose, as in a spec's Decisions. */
+  wide?: boolean;
 };
 
 /** Each kind's pane tone. */
@@ -123,10 +134,10 @@ function ChangeBody({
  * A decision's pane: its title and pills, what the spec says of it, its ledger, its page's link.
  */
 export function DecisionCard(props: DecisionCardProps) {
-  const { change, crumbs, href, id, kind, note, title, unlisted = false } = props;
+  const { change, crumbs, href, id, kind, note, title, unlisted = false, wide = false } = props;
   const fields = fieldsOf(change);
   const isOpen = isNarrow(useWidthClass());
-  return (
+  const pane = (
     <Pane
       id={id}
       // On the phone, its titled top border alone, as every pane's (R13).
@@ -153,4 +164,5 @@ export function DecisionCard(props: DecisionCardProps) {
       </VStack>
     </Pane>
   );
+  return wide ? <div {...stylex.props(styles.wide)}>{pane}</div> : pane;
 }

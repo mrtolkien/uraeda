@@ -156,6 +156,7 @@ export function DecisionCards({
             parts={selection?.parts}
             title={title}
             unlisted={!item}
+            wide
           />
         );
       })}
