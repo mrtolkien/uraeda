@@ -44,3 +44,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the entry is how the New page already learns what to insert on arrival, once, and
   not again on a reload.
 - **Where**: task 4, `packages/web/src/NewPage.tsx`
+
+## R6: The decisions' word limit rises to 11,100
+
+- **Decision**: the core's test `the_ledger_reads_alone` allows 11,100 words of decisions, up from
+  11,000.
+- **Rationale**: the approved documentation decision brings them to 11,065. A test gives way to an
+  approved decision; the limit is an older feature's success criterion, not a rule of a decision.
+- **Alternatives considered**: trimming the documentation decision, or another one: it would change
+  approved text, which needs the human's approval again.
+- **If wrong**: trim the decisions in a decisions check, and set the limit back.
+- **Where**: `crates/core/tests/check.rs`
