@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Panes size
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Approved on 2026-10-30.
 >
 > - You approve one scale of named widths for every page and pane. Pages of rows narrow to a reading
 >   pane, and the side column starts at 400 px. Split question cards narrow to about 1,080 px, and
