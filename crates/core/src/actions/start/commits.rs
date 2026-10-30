@@ -138,7 +138,11 @@ impl Start<'_> {
                     .map(|path| format!("check {path}: changed during the commit, left as it is"))
                     .collect();
                 let done = ["the start's other files put back as they were".to_string()];
-                Err(partial(&done, left, format!("git commit failed: {message}")))
+                Err(partial(
+                    &done,
+                    left,
+                    format!("git commit failed: {message}"),
+                ))
             }
             // Written, so a failed commit stays here: switching back could carry the staged files
             // away.

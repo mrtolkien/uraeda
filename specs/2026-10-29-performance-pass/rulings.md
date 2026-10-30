@@ -515,28 +515,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   again to unstage on a refusal, to stage again when an amend is refused, and to put back the
   write's files; dropping it last moves the cache's generation. Any other core write, a save
   included, runs while a hook runs.
-- **Rationale**: the spec has no write block the human, and a call waiting on the lock holds a
-  libuv thread. Staging and committing apart is safe: the server's queue lands one commit at a time,
-  and starts in the same turns; a deferring write never touches the index, only the working tree;
-  a save made during the hook changes the working tree, not the snapshot staged, which `--only`
-  takes when `git commit` starts; and undo puts back only a file still holding what the write left,
-  so a file saved meanwhile is left and named.
-- **If wrong**: a save made while a hook runs is not in the commit, and stays uncommitted, as a
-  save made after it.
+- **Rationale**: the spec has no write block the human, and a call waiting on the lock holds a libuv
+  thread. Staging and committing apart is safe: the server's queue lands one commit at a time, and
+  starts in the same turns; a deferring write never touches the index, only the working tree; a save
+  made during the hook changes the working tree, not the snapshot staged, which `--only` takes when
+  `git commit` starts; and undo puts back only a file still holding what the write left, so a file
+  saved meanwhile is left and named.
+- **If wrong**: a save made while a hook runs is not in the commit, and stays uncommitted, as a save
+  made after it.
 - **Where**: `crates/core/src/actions/deferred.rs`, `crates/core/src/actions/commit.rs`, review of
   task 12.
 
 ## R46: A refused start puts back only what still holds what the start left
 
-- **Decision**: a hook's refusal of the start commit, in a repository the server defers commits
-  for, puts each path back only while it holds what the start left there: a moved file, its bytes
+- **Decision**: a hook's refusal of the start commit, in a repository the server defers commits for,
+  puts each path back only while it holds what the start left there: a moved file, its bytes
   compared, returns to its old path only when no file is there; the proposal's text before its
   nested lines is written only over the carried text; a file the start wrote in the dated folder is
   removed only unchanged, and the folder only once empty; `PRIORITIES.md` gets its text back only
   while it holds the start's. Any path left so is named in a `Partial` refusal, "check <path>:
   changed during the commit, left as it is", the rest put back.
-- **Rationale**: the hook runs while other writes, saves included, go on: a put back without a
-  check would write over them, as deferred commits' undo never does.
+- **Rationale**: the hook runs while other writes, saves included, go on: a put back without a check
+  would write over them, as deferred commits' undo never does.
 - **If wrong**: a start refused by a hook leaves a file someone changed meanwhile, and the human
   sorts it out from the refusal's list.
 - **Where**: `crates/core/src/actions/start/restore.rs`, review of task 11.
@@ -546,9 +546,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: `plan_start` makes every check of the start, the slug's, its folder's, and the
   proposal file's, but not those of uncommitted or staged files outside the proposal file and
   `PRIORITIES.md`: the start makes them in its turn, in the server's queue.
-- **Rationale**: a write queued before the start leaves its files written and not committed until
-  it lands; the plan, answered at once, would refuse a start that succeeds once the queue reaches
-  it.
+- **Rationale**: a write queued before the start leaves its files written and not committed until it
+  lands; the plan, answered at once, would refuse a start that succeeds once the queue reaches it.
 - **If wrong**: a start planned over someone's uncommitted work is refused in its turn, after the
   plan's answer, with the same message.
 - **Where**: `crates/core/src/actions/start/plan.rs`, `crates/core/src/api/start.rs`, review of
@@ -566,5 +565,5 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   editor has no `--slug` to choose another with: the feature's name fits it better than a hint at a
   flag it cannot pass.
 - **If wrong**: the editor names the feature, not the folder that takes its name.
-- **Where**: `crates/core/src/actions/start/plan.rs`, `crates/lsp/src/commands.rs`, review of task
-  11.
+- **Where**: `crates/core/src/actions/start/plan.rs`, `crates/lsp/src/commands.rs`, review of
+  task 11.

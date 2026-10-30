@@ -110,7 +110,11 @@ fn a_failed_commit_that_moved_head_puts_nothing_back() {
     let refused = start(&repo);
 
     assert_eq!(refused.code, "refused", "{}", refused.message);
-    assert!(refused.message.contains("Left: commit"), "{}", refused.message);
+    assert!(
+        refused.message.contains("Left: commit"),
+        "{}",
+        refused.message
+    );
     assert_eq!(
         repo.read(&format!("{}/proposal.md", destination())),
         PROPOSAL
@@ -163,6 +167,9 @@ fn a_folder_where_the_worktree_goes_is_a_taken_slug() {
     let refused = start(&repo);
 
     let taken = "A feature named login-banner exists already";
-    assert_eq!(planned.err().map(|error| error.message).as_deref(), Some(taken));
+    assert_eq!(
+        planned.err().map(|error| error.message).as_deref(),
+        Some(taken)
+    );
     assert_eq!(refused.message, taken);
 }

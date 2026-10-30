@@ -229,5 +229,8 @@ fn a_save_returns_while_a_deferred_commit_waits_on_its_hook() {
         landing.join().unwrap().unwrap().subject,
         "discovery(web-ui): answer round 01"
     );
-    assert!(repo.read("specs/INBOX.md").contains("Saved during the hook"));
+    assert!(
+        repo.read("specs/INBOX.md")
+            .contains("Saved during the hook")
+    );
 }
