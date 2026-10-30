@@ -5,6 +5,7 @@
 
 use std::path::Path;
 
+use crate::cache::WriteGuard;
 use crate::git::{Git, GitError};
 use crate::images::Encoded;
 use crate::target;
@@ -89,17 +90,28 @@ pub struct Run<'a> {
     /// Whether a hook's refusal of the start commit puts back everything the start wrote, as
     /// [`StartError::Hook`], rather than leaving it to commit by hand, as [`StartError::Partial`].
     pub restore: bool,
+    /// Takes the repository's write lock, when the start runs beside other writes: it is held to
+    /// write and stage the start's files, to put them back on a refusal, and to create the branch,
+    /// never while the start commit's hooks run.
+    pub(crate) lock: Option<&'a dyn Fn() -> WriteGuard>,
 }
 
 impl Run<'_> {
-    /// A start as `ura` runs it: no step reported, and a refused commit's files left written.
+    /// A start as `ura` runs it: no step reported, a refused commit's files left written, and no
+    /// write lock.
     pub fn plain(today: Date, switch: bool) -> Run<'static> {
         Run {
             today,
             switch,
             on_step: None,
             restore: false,
+            lock: None,
         }
+    }
+
+    /// The repository's write lock, held until dropped, when the start takes one.
+    fn lock(&self) -> Option<WriteGuard> {
+        self.lock.map(|lock| lock())
     }
 }
 
@@ -237,6 +249,8 @@ fn begin(
         .default_branch
         .clone()
         .ok_or_else(|| StartError::Refused("no default branch: commit on main first".into()))?;
+    // Held until the start commit runs, which releases it while its hooks run.
+    let held = run.lock();
     let previous = git.current_branch();
     let place = if run.switch {
         place::reach_switching(git, &default)?
@@ -244,8 +258,9 @@ fn begin(
         place::reach(git, &default)?
     };
     let result = Start::open(git, &place, workspace, source, kind, &default, run)
-        .and_then(|start| start.run(slug, run.today));
+        .and_then(|start| start.run(slug, run.today, held));
     if matches!(&result, Err(error) if !matches!(error, StartError::Partial { .. })) {
+        let _lock = run.lock();
         place::switch_back(git, &place, previous.as_deref());
     }
     result
@@ -315,7 +330,14 @@ impl<'a> Start<'a> {
         }
     }
 
-    fn run(&self, slug: Option<&str>, today: Date) -> Result<Started, StartError> {
+    /// Runs the start, `held` the write lock taken before it, if any: released once its files
+    /// are staged, and taken again to create the branch.
+    fn run(
+        &self,
+        slug: Option<&str>,
+        today: Date,
+        held: Option<WriteGuard>,
+    ) -> Result<Started, StartError> {
         let plan = self.plan(slug, today, true)?;
         let (moves, done) = match self.source {
             Source::Proposal(proposal) => {
@@ -327,10 +349,12 @@ impl<'a> Start<'a> {
                 (Vec::new(), format!("the proposal in {}", plan.destination))
             }
         };
-        self.commit_start(&plan, &done, &moves)?;
+        self.commit_start(&plan, &done, &moves, held)?;
         let done = vec![done, format!("the start commit on {}", self.default)];
         self.report(StartProgress::Branching);
+        let lock = self.run.lock();
         self.create_branch(&plan, &done)?;
+        drop(lock);
         self.report(StartProgress::Done);
         Ok(Started {
             default_branch: self.default.to_string(),

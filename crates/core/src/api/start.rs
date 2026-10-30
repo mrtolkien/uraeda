@@ -1,12 +1,13 @@
 //! Starting a feature or change from its proposal file, a change typed as a text, the slug proposed
 //! for it, and the paths a proposal file or a note file may have.
 
+use std::cell::Cell;
 use std::path::Path;
 
 use super::{ApiError, Result, default_checkout, encode_image, open, plain, refused, write_lock};
 use crate::actions::start::{self, Run, StartError, StartProgress, Started};
 use crate::actions::{deferred, place, promote};
-use crate::cache;
+use crate::cache::{self, WriteGuard};
 use crate::git::Git;
 use crate::today;
 use crate::view::{PlannedView, PromotedView, StartedView};
@@ -48,7 +49,8 @@ pub fn plan_start(
 /// each step given to `on_step` as it is reached, the commit's output streamed. In a repository
 /// the server defers commits for, a hook's refusal of the start commit puts the proposal file and
 /// the priorities back as they were, nothing committed, as a `hook` error with the hook's output;
-/// elsewhere, as through `ura`, the files stay written, for the start to be finished by hand.
+/// elsewhere, as through `ura`, the files stay written, for the start to be finished by hand. The
+/// repository's write lock is released while the start commit's hooks run.
 pub fn start_feature(
     repo: &Path,
     proposal: &str,
@@ -57,22 +59,31 @@ pub fn start_feature(
     on_step: &dyn Fn(StartProgress),
 ) -> Result<StartedView> {
     proposal_path(proposal)?;
-    let _lock = write_lock(repo);
+    let held = Cell::new(Some(write_lock(repo)));
+    let lock = || held.take().unwrap_or_else(|| write_lock(repo));
     let (git, workspace) = open(repo)?;
-    let run = steps_run(repo, on_step);
+    let run = steps_run(repo, on_step, &lock);
     view(start::run_with(
         &git, &workspace, proposal, slug, kind, &run,
     ))
 }
 
 /// A start with its steps reported, whose commit refused by a hook puts back what it wrote when
-/// the server defers the commits of the repository holding `repo`.
-fn steps_run<'a>(repo: &Path, on_step: &'a dyn Fn(StartProgress)) -> Run<'a> {
+/// the server defers the commits of the repository holding `repo`. `lock` hands out the write lock
+/// taken before the start first, then takes it again: the start holds it to write, stage, put
+/// back, and create its branch, never while its commit's hooks run, so any other write, a save
+/// included, runs meanwhile.
+fn steps_run<'a>(
+    repo: &Path,
+    on_step: &'a dyn Fn(StartProgress),
+    lock: &'a dyn Fn() -> WriteGuard,
+) -> Run<'a> {
     Run {
         today: today::today(),
         switch: false,
         on_step: Some(on_step),
         restore: deferred::deferring(&cache::key(repo)),
+        lock: Some(lock),
     }
 }
 
@@ -93,9 +104,10 @@ pub fn start_change(
         .enumerate()
         .map(|(index, bytes)| encode_image(bytes, &format!("image-{}", index + 1)))
         .collect::<Result<Vec<_>>>()?;
-    let _lock = write_lock(repo);
+    let held = Cell::new(Some(write_lock(repo)));
+    let lock = || held.take().unwrap_or_else(|| write_lock(repo));
     let (git, workspace) = open(repo)?;
-    let run = steps_run(repo, on_step);
+    let run = steps_run(repo, on_step, &lock);
     view(start::run_text_with(
         &git, &workspace, text, &encoded, slug, &run,
     ))

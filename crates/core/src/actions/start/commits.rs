@@ -7,6 +7,7 @@ use super::plan::Plan;
 use super::restore::{Written, written_in};
 use super::{Source, Start, StartError, StartProgress, partial};
 use crate::actions::expand::with_nested;
+use crate::cache::WriteGuard;
 use crate::git::{Git, GitError, ObjectId};
 
 impl Start<'_> {
@@ -69,12 +70,14 @@ impl Start<'_> {
 
     /// The start commit, on the default branch: the proposal, and the dated folder with the
     /// proposal file's removal. A hook's refusal puts back what the start wrote, `moves` included,
-    /// when the start asked for it.
+    /// when the start asked for it. `held`, the write lock, is released once the files are staged,
+    /// before the hooks run, and taken again to take back the stage and put the files back.
     pub(super) fn commit_start(
         &self,
         plan: &Plan,
         done: &str,
         moves: &[(String, String)],
+        held: Option<WriteGuard>,
     ) -> Result<(), StartError> {
         let done = [done.to_string()];
         let proposal = format!("{}/proposal.md", plan.destination);
@@ -116,37 +119,37 @@ impl Start<'_> {
             Written::new()
         };
         let head = self.at.head();
+        // Written, so a failed staging stays here: switching back could carry the staged files
+        // away.
+        let stage = self
+            .at
+            .stage(&paths, false)
+            .map_err(|error| partial(&done, self.left_after_write(plan), error))?;
+        // Other writes, saves included, run while the hooks do: they change the working tree, not
+        // the snapshot staged, and the put back below leaves any path they changed.
+        drop(held);
         self.report(StartProgress::Committing);
         let on_output = |line: &str| self.report(StartProgress::Output(line.to_string()));
         let streamed = self.run.on_step.map(|_| &on_output as &dyn Fn(&str));
-        match self
+        let Err(error) = self
             .at
-            .commit_streaming(&paths, &plan.start_subject, None, false, streamed)
-        {
-            Ok(()) => Ok(()),
-            Err(GitError::Command {
+            .commit_stage(&stage, &plan.start_subject, None, false, streamed)
+        else {
+            return Ok(());
+        };
+        let _lock = self.run.lock();
+        // A refused commit takes back what it staged, so nothing it held blocks or rides along.
+        drop(self.at.unstage_stage(&stage));
+        match error {
+            GitError::Command {
                 subcommand,
                 message,
                 output,
-            }) if subcommand == "commit" && self.run.restore && self.head_is(head) => {
+            } if subcommand == "commit" && self.run.restore && self.head_is(head) => {
                 let left = self.put_back(plan, moves, &written, proposal_before.as_deref());
-                if left.is_empty() {
-                    return Err(StartError::Hook { message, output });
-                }
-                let left = left
-                    .iter()
-                    .map(|path| format!("check {path}: changed during the commit, left as it is"))
-                    .collect();
-                let done = ["the start's other files put back as they were".to_string()];
-                Err(partial(
-                    &done,
-                    left,
-                    format!("git commit failed: {message}"),
-                ))
+                refused(message, output, &left)
             }
-            // Written, so a failed commit stays here: switching back could carry the staged files
-            // away.
-            Err(error) => Err(partial(&done, self.left_after_write(plan), error)),
+            error => Err(partial(&done, self.left_after_write(plan), error)),
         }
     }
 
@@ -169,4 +172,22 @@ impl Start<'_> {
         };
         created.map_err(|error| partial(done, vec![plan.branch_left(self.run.switch)], error))
     }
+}
+
+/// A start commit refused by a hook, its files put back but `left`, those changed during the
+/// commit.
+fn refused(message: String, output: String, left: &[String]) -> Result<(), StartError> {
+    if left.is_empty() {
+        return Err(StartError::Hook { message, output });
+    }
+    let left = left
+        .iter()
+        .map(|path| format!("check {path}: changed during the commit, left as it is"))
+        .collect();
+    let done = ["the start's other files put back as they were".to_string()];
+    Err(partial(
+        &done,
+        left,
+        format!("git commit failed: {message}"),
+    ))
 }

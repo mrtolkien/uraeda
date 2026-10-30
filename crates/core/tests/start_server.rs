@@ -4,6 +4,9 @@
 
 mod common;
 
+use std::sync::mpsc;
+use std::time::Duration;
+
 use common::repo::TestRepo;
 use uraeda_core::api::{self, ApiError};
 use uraeda_core::workspace::Kind;
@@ -172,4 +175,52 @@ fn a_folder_where_the_worktree_goes_is_a_taken_slug() {
         Some(taken)
     );
     assert_eq!(refused.message, taken);
+}
+
+/// Review: a start holds the repository's write lock to write and stage its files, never while
+/// its commit's hooks run: a save meanwhile returns before the hook ends.
+#[test]
+fn a_save_returns_while_a_start_waits_on_its_hook() {
+    let repo = refusing("");
+    let release = repo.path().join("release");
+    let started = repo.path().join("started");
+    repo.set_hook(&format!(
+        "touch '{}'\nwhile [ ! -f '{}' ]; do sleep 0.05; done",
+        started.display(),
+        release.display()
+    ));
+    let path = repo.path().to_path_buf();
+    let starting = std::thread::spawn(move || {
+        api::start_feature(
+            &path,
+            PROPOSAL_FILE,
+            Some("login-banner"),
+            Kind::Feature,
+            &|_| {},
+        )
+    });
+    while !started.exists() {
+        std::thread::sleep(Duration::from_millis(20));
+    }
+
+    let (saved, saving) = mpsc::channel();
+    let path = repo.path().to_path_buf();
+    std::thread::spawn(move || {
+        let added = api::add_note_at(&path, None, None, "Saved during the hook");
+        let _ = saved.send(added.is_ok());
+    });
+    let returned = saving.recv_timeout(Duration::from_secs(10));
+    std::fs::write(&release, "").unwrap();
+
+    assert_eq!(returned, Ok(true), "the save waited for the hook");
+    let started = starting.join().unwrap().unwrap();
+    assert_eq!(
+        started.branch,
+        format!("{}-login-banner", uraeda_core::today::today())
+    );
+    assert!(repo.exists(&format!(".worktrees/{}", started.folder)));
+    assert!(
+        repo.read("specs/INBOX.md")
+            .contains("Saved during the hook")
+    );
 }

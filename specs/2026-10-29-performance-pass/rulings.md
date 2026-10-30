@@ -664,3 +664,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and 15 make the start answer at once, its steps shown on the session.
 - **If wrong**: until task 15, Start shows nothing for the seconds its commit takes.
 - **Where**: task 14.
+
+## R61: A start holds the write lock to write, stage, put back, and branch, never while its hooks run
+
+- **Decision**: `start_feature` and `start_change` take the repository's write lock to reach the
+  default branch, move and write the start's files, and stage them; release it while `git commit`
+  and its hooks run; and take it again to unstage and put back the files on a refusal (R46's
+  guarded put back), and to create the branch and its worktree. Any other core write, a save
+  included, runs while a start's hook runs.
+- **Rationale**: as R45 for landings: a call waiting on the lock holds a libuv thread, and four of
+  them stall every binding call. A save made during the hook changes the working tree, not the
+  snapshot staged; the put back leaves any path that no longer holds what the start left, and names
+  it.
+- **If wrong**: a save made while a start's hook runs is not in the start commit, and stays
+  uncommitted.
+- **Where**: `crates/core/src/actions/start/commits.rs`, `crates/core/src/api/start.rs`, review of
+  the core.
