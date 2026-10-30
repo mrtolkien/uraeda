@@ -9,7 +9,7 @@ anything, and a change made to one is made once.
 
 | Job                                        | Component                                                                                    |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| A page's width, inset, and reading measure | `layout/Page.tsx`: `isReading`, `isPaired`, `isSession`, `isTight`, `isSnug`, `isFull`       |
+| A page's width, inset, and reading measure | `layout/Page.tsx`: `kind`, `beside`, `isTight`, `isSnug`; the scale in `theme/scale.ts`      |
 | A group of content with a title            | `layout/Pane.tsx`: the title in the border, its tone, its fold, its count `· N`, its actions |
 | A document's or a session's companions     | `layout/DocumentColumn.tsx`, over `layout/SideColumn.tsx`                                    |
 | The same companions on the phone           | `layout/ColumnStatusLine.tsx` with `layout/NavBar.tsx`'s tiles, each opening a sheet         |

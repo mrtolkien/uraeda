@@ -37,21 +37,50 @@ whatever font is picked. Lines are 1.4 high everywhere: "just do 1.4 everywhere"
 - **Prose's measure is about 80 characters**: `--size-reading-measure`, 60 of the reading font's
   "0", which hold about 80 of its letters and spaces. It is set in the reading size, not in `ch`,
   since `ch` would be measured in the font of whatever element reads it.
-- **A pane of prose is as wide as its prose**: a reading page's pane (`Page`'s `isReading`: the
-  round, the spec, the plan, a document, the data model) is at most `--size-reading-pane`, the
-  measure and the pane's own padding and border, so its text fills it and never stops short of the
-  border: a pane's text and its border end together. A table inside it scrolls inside it; a live
-  window, a mockup or a story, grows past it into the empty room beside it, up to its own size. The
-  proposal editor's panes hold monospace text, as wide as the formatter's 100 columns on a wide
-  screen, so a formatted file's lines do not wrap again ("line jumps a bit randomly"), while a
-  paragraph typed without breaks still wraps; Start sits beside it where the screen has the room,
-  under it elsewhere (`isWriting`).
+- **A pane of prose is as wide as its prose**: a reading page's pane (`Page`'s `reading` kind: the
+  round, the spec, the plan, a document, the data model) is at most a reading pane, the measure and
+  the pane's own padding and border, so its text fills it and never stops short of the border: a
+  pane's text and its border end together. A table inside it scrolls inside it; a live window, a
+  mockup or a story, grows past it into the empty room beside it, up to its own size. The proposal
+  editor's panes hold monospace text, as wide as the formatter's 100 columns on a wide screen, so a
+  formatted file's lines do not wrap again ("line jumps a bit randomly"), while a paragraph typed
+  without breaks still wraps; Start sits beside it where the screen has the room, under it elsewhere
+  (`Page`'s `code` kind).
 - **A single pane is centred** on a wide screen, at its maximum width; two panes side by side share
   the page's width, each up to its maximum. "A _single_ pane should not be too big, but for two
   panes they should be able to use the available space." "The single-panes should be CENTERED."
-- A question's card, split into the question and its answers, is as wide as two panes and the gap
-  between them; a card of one column is as wide as one pane.
 - Columns of rows are **400 px at least**, 500 px for the priorities' cards. "400 IS THE MINIMUM."
+
+## The scale of widths
+
+Every page and pane takes one width of a short scale, picked by what it holds, never a number of its
+own ([UI layout](../decisions/ui-layout.md)). On semi-wide and wide screens, at the default fonts;
+each width made of the measure follows the reading font and size picked:
+
+| Width        | Token                    | At default fonts          | Holds                                                               |
+| ------------ | ------------------------ | ------------------------- | ------------------------------------------------------------------- |
+| Reading pane | `--size-reading-pane`    | 692 px                    | prose at about 80 characters, and the text column of a page of rows |
+| Big text     | `--size-big-text`        | 865 px                    | a pane of large text: a spec's decision cards                       |
+| Split card   | `--size-split-card`      | about 1,080 px            | a question card's two columns, about 50 and 60 characters a line    |
+| Two panes    | `--size-two-panes`       | 1,424 px                  | two reading panes and their gap: the home, New, a reading page      |
+| Whole window | none                     | the window                | the priorities' columns                                             |
+| Code         | `--size-code`            | 108 characters            | the proposal editor's formatted file                                |
+| Session      | `--size-session-max`     | 95 characters             | a session's page                                                    |
+| Side column  | `documentColumnWidth.ts` | 400 px, dragged to 720 px | a page's companions                                                 |
+
+- **A page's text column is a reading pane.** A pane may grow past it only by what sits beside its
+  text: a control, a tab, an inset, a row's marker. "When there's tabs, insets, or similar info,
+  it's ok to get a larger pane as long as the _text_ colums take 692px." Settings' controls sit
+  beside their text (`--size-setting-control`, `Page`'s `beside`).
+- **A page's kind picks its width** (`Page`'s `kind`): `reading`, `rows`, `panes`, `window`, `code`,
+  or `session`. A page changes width only at the three width classes, never at 1,024 px.
+- **A page's title and crumbs start at its panes' left edge**, as does what a reading page draws
+  outside its panes, as its review line (`pageText`).
+- A question's card, split into the question and its answers, is a split card wide, centred under
+  the round's context; with less room, it keeps one column. A card of one column is a reading pane.
+- The scale's widths are theme tokens (`theme/scale.ts`), declared again on the fonts' root, so they
+  follow the fonts picked. A view that needs a width the scale lacks adds it to the scale, with the
+  human's approval.
 
 These widths are tokens of the theme, of `Page`, or of `Prose`'s styles, never numbers in a view: a
 page does not set the reading size, line, or measure itself, which the lint test of `Prose.tsx`

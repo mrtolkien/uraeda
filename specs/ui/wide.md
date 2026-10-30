@@ -11,28 +11,28 @@ page and its companions side by side.
   name too once the rail opens over the page. A click or a tap unfolds the sidebar, as `[` does. Its
   room opens and closes as the sidebar's width eases, so the rows under it glide, never jump.
 - **The page** in the middle, centred on the screen, not on the room between the sidebars, as far as
-  that room allows: "They should be center of _the whole screen_ when it's possible". A document
-  page centres its panes, each as wide as about 80 characters of prose, two side by side sharing the
-  room; a round widens to two panes, so a question's card can hold the question beside its answers.
-  The round's context stays one pane wide, its parts one under the other: "put them back one by
-  one".
+  that room allows: "They should be center of _the whole screen_ when it's possible". Each page
+  takes its width from [the scale](reading.md#the-scale-of-widths): a document centres its panes,
+  each a reading pane; a page of rows keeps a reading pane's text column; a round's split question
+  card holds the question beside its answers, at a split card's width. The round's context stays one
+  pane wide, its parts one under the other: "put them back one by one".
 - **The decisions page** puts its list and its reader side by side only where the list shows about
   40 characters a line and the reader 60 (`decisions/useSplit.ts`); narrower, the list is the page
   and what is open is a page of its own, at the reading measure. The reader grows first, to 80
   characters, then the list, to 60, and the two are centred on the screen together. The constitution
   is one page, at `/decisions/constitution`.
-- **The side column** on the right, for a document's or a session's companions, foldable with `]`,
-  resizable, its tab in the address.
+- **The side column** on the right, for a document's or a session's companions, 400 px until
+  dragged, foldable with `]`, resizable, its tab in the address.
 - **The status line** at the bottom: `Space menu`, `[ ] fold`, then the page's hints in the order
   they are used, each one clickable, and the counts of what needs the human and what runs.
 
 ## Pages of columns
 
 The priorities are a page of columns, one per section, each 500 px at least, taking the window's
-whole width, or, at the human's choice with `v`, one centred list, as wide as 80 of the UI's
-characters and its room. The switch is the human's, not a breakpoint's: "Instead of doing the switch
-ourself it should simply be up to the user." Moving the selection across columns glides the view
-sideways to it.
+whole width, or, at the human's choice with `v`, one centred list, its text column a reading pane,
+as on every page of rows. The switch is the human's, not a breakpoint's: "Instead of doing the
+switch ourself it should simply be up to the user." Moving the selection across columns glides the
+view sideways to it.
 
 ## Layers
 

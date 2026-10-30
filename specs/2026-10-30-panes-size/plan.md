@@ -475,7 +475,7 @@ git commit -m "feat(panes-size): a 400 px side column, a rail on a half screen"
 
 - Consumes: what tasks 1 to 4 built.
 
-- [ ] **Step 1: State the scale in the guides**
+- [x] **Step 1: State the scale in the guides**
 
 `reading.md`'s Line length holds the scale's table, by name, with what each width holds and its
 theme token; the rule that a page's text column is a reading pane, and what may grow past it; the
@@ -484,18 +484,18 @@ numbers: the side column at 400 px, a rail on a half screen when the page would 
 reading pane; a split card at its own width; no 1,200 px column. Quote nothing the human did not
 say.
 
-- [ ] **Step 2: Measure the success criteria in the sandbox**
+- [x] **Step 2: Measure the success criteria in the sandbox**
 
 In Chromium, the sidebar open: every page of rows' text column at 1920 and 1100 px (SC-001); a
 spec's prose characters a line at 1000 px (SC-002); every page's pane widths at 1,000 and 1,050 px
 (SC-003). Keep the table for the pull request's body.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `vp check` at the root, and `ura check`
 - Expected: PASS, and no new warning
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add specs/ui specs/2026-10-30-panes-size/plan.md
