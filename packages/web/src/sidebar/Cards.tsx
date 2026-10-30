@@ -1,6 +1,6 @@
 // The shell's cards: a feature's or a change's, which opens its page, its status what it asks, with
 // Dismiss while a failed or stopped run asks; and a session's, which opens the session.
-import { Suspense, use } from "react";
+import { Suspense, use, useState } from "react";
 import { PickedCard } from "../layout/picked.ts";
 import { useCardChanges } from "../branchChanges.ts";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
@@ -31,15 +31,20 @@ export function FeatureCard({
   const to = `/f/${feature.folder}`;
   const isPicked = use(PickedCard) === here(to);
   const { dismiss, error } = useDismiss();
+  const [sent, setSent] = useState<string>();
   const { session, turn } = feature.status;
-  const onDismiss =
-    isDismissable(feature.status) && session !== null && turn !== null
-      ? () => void dismiss({ folder: feature.folder, session, turn })
-      : undefined;
+  const dismissable = isDismissable(feature.status) && session !== null && turn !== null;
+  const onDismiss = dismissable
+    ? () => {
+        setSent(turn);
+        void dismiss({ folder: feature.folder, session, turn });
+      }
+    : undefined;
   const card = (item: CardItem) => (
     <ItemCard
       detail={detail}
-      dismissError={error}
+      // A refusal concerns the run it was refused for: gone once the card no longer asks about it.
+      dismissError={dismissable && turn === sent ? error : undefined}
       href={here(to)}
       isPicked={isPicked}
       isSelected={selects(pathname, to)}
