@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use crate::actions::default_round::DefaultRound;
 use crate::files::{frontmatter, markdown, priorities};
-use crate::git::{Branch, Git, GitError, ObjectId};
+use crate::git::{Git, GitError, ObjectId};
 use crate::steps::{self, PullRequest, Step};
 use crate::today;
 
@@ -21,6 +21,7 @@ mod problem;
 mod read;
 mod reader;
 mod record;
+mod tasks;
 
 use merged::Merged;
 use read::read_feature;
@@ -172,6 +173,9 @@ pub struct Feature {
     pub proposal_committed: bool,
     #[serde(skip)]
     pub decisions_pending: bool,
+    /// The tasks, by number and title, with every box checked on a task branch of its branch.
+    #[serde(skip)]
+    pub task_branch_done: BTreeSet<(u32, String)>,
     #[serde(skip)]
     texts: BTreeMap<String, String>,
     /// The same feature read from its latest commit, when its files were read from disk: its step
@@ -292,52 +296,6 @@ impl Reading<'_> {
             Err(_) => path.to_string_lossy().into_owned(),
         }
     }
-
-    /// The features merged into the default branch, read from it: the record first, local first,
-    /// with the branch and the worktree left behind.
-    fn merged_features(&self, branches: &[Branch]) -> Vec<Feature> {
-        let local_branches: BTreeSet<&str> = branches
-            .iter()
-            .filter(|branch| branch.local.is_some())
-            .map(|branch| branch.name.as_str())
-            .collect();
-        let worktrees = self.git.worktrees().unwrap_or_default();
-        let mut features = Vec::new();
-        for (kind, folder) in &self.merged.keys {
-            let key = (*kind, folder.clone());
-            let record = self
-                .merged
-                .records
-                .iter()
-                .find_map(|records| records.get(&key));
-            let mut feature = match record {
-                Some(text) => Feature::from_record(*kind, folder, text.clone()),
-                None => {
-                    let Some((tip, _)) = self
-                        .merged
-                        .folders
-                        .iter()
-                        .find(|(_, folders)| folders.contains(&key))
-                    else {
-                        continue;
-                    };
-                    let from = ReadFrom::Commit(*tip);
-                    read_feature(&self.reader, *kind, folder, None, from, Some(*tip))
-                }
-            };
-            let branch = folder_branch(*kind, folder);
-            feature.source = Source::DefaultBranch;
-            feature.branch = None;
-            feature.step = Step::done();
-            feature.left_worktree = worktrees
-                .iter()
-                .find(|w| w.path != self.main_root && w.branch.as_deref() == Some(branch.as_str()))
-                .map(|w| self.shown(&w.path));
-            feature.left_branch = local_branches.contains(branch.as_str()).then_some(branch);
-            features.push(feature);
-        }
-        features
-    }
 }
 
 impl Workspace {
@@ -416,6 +374,7 @@ impl Workspace {
         };
         let mut features = reading.working_tree_features(current_branch.as_deref());
         reading.add_branch_features(&branches, &mut features);
+        reading.add_task_branches(&branches, &mut features);
         let mut features: Vec<Feature> = features.into_values().collect();
         features.extend(reading.merged_features(&branches));
         let pull_requests = crate::pulls::latest(&reading.main_root);
@@ -525,6 +484,7 @@ impl Feature {
             path,
             proposal_committed: texts.contains_key(first_file(kind)),
             decisions_pending: false,
+            task_branch_done: BTreeSet::new(),
             texts,
             at_tip: None,
         };

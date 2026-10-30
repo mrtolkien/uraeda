@@ -49,14 +49,21 @@ function room(own: DOMRect, from: Element, page: Element, outer: Element, inset:
 }
 
 /**
+ * How it grows: `frame`, the room around its `width`, its stage's inset by default; with `isPastOnly`,
+ * none at all while `width` fits its box, as a table that fits its pane.
+ */
+export type OutgrowShape = { frame?: number; isPastOnly?: boolean };
+
+/**
  * How many px the embed grows past each side of its box, on a wide screen: up to `width`, the
- * desktop's by default, with its stage's inset, into the empty space beside it within its page's
- * container, more on the side with more room. None outside a page, or on a narrow screen.
+ * desktop's by default, with its `shape`'s frame around it, into the empty space beside it within
+ * its page's container, more on the side with more room. None outside a page, or on a narrow screen.
  */
 export function useOutgrow(
   embed: RefObject<HTMLElement | null>,
   wide: boolean,
   width?: number,
+  { frame = 2 * GAP + 2, isPastOnly = false }: OutgrowShape = {},
 ): Outgrow {
   const column = useContext(PageColumn);
   const [grow, setGrow] = useState<Outgrow>({ end: 0, start: 0 });
@@ -81,15 +88,9 @@ export function useOutgrow(
         box.width - px(style.paddingLeft) - px(style.paddingRight),
         figure.height,
       );
-      const want = wide
-        ? Math.max(
-            0,
-            (width ?? px(getComputedStyle(own).getPropertyValue("--size-story-desktop"))) +
-              2 * GAP +
-              2 -
-              natural.width,
-          )
-        : 0;
+      const size = width ?? px(getComputedStyle(own).getPropertyValue("--size-story-desktop"));
+      const fits = isPastOnly && size <= natural.width;
+      const want = wide && !fits ? Math.max(0, size + frame - natural.width) : 0;
       const free = room(natural, parent, page, outer, px(getComputedStyle(page).paddingLeft));
       // A side with less room than the gap does not grow: a few px would only lay the embed's
       // border over its pane's.
@@ -112,7 +113,7 @@ export function useOutgrow(
     }
     observer.observe(outer);
     return () => observer.disconnect();
-  }, [column, embed, wide, width]);
+  }, [column, embed, frame, isPastOnly, wide, width]);
   return grow;
 }
 

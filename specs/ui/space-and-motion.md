@@ -27,7 +27,9 @@ view:
 - **No void.** Empty space with no job is cut: "the home layout should be SMART: minimize empty
   vertical space", and "pretty big at the bottom for no good reason" is the complaint to avoid.
 - **The phone's insets are the sidebar's**, small, so the text has the screen's width; what reaches
-  the screen's edges takes the page's inset back with `--page-bleed`, never a fixed number.
+  the screen's edges takes the page's inset back with `--page-bleed`, never a fixed number. A
+  reading page's panes are smaller still: 2 px from the screen's edges and 3 px inside their border
+  (`--pane-phone-margin`, `--pane-phone-inset`).
 
 ## Motion
 

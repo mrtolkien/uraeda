@@ -24,7 +24,7 @@ pub struct StepView {
     pub file: Option<String>,
     /// That file's kind, `clarifications`, `spec`, `plan`, ...: what the gate asks of the human.
     pub file_kind: Option<String>,
-    /// The first unchecked task, for implementation.
+    /// The task `progress` names, as `Task N: title`, for implementation.
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
     pub progress: Option<TaskProgress>,

@@ -761,3 +761,95 @@ fn a_folder_read_alone_is_the_workspaces() {
         assert_eq!(format!("{:?}", alone.features[0]), format!("{feature:?}"));
     }
 }
+
+/// A plan of 20 tasks of two steps each, with every box of the tasks `checked`, but task 16 with
+/// one of its two only; task `renamed` under another title, and with a task 21 when `extra`.
+fn wave_plan(checked: &[usize], renamed: Option<usize>, extra: bool) -> String {
+    let titles: Vec<String> = (1..=20)
+        .map(|n| match renamed {
+            Some(r) if r == n => format!("Renamed {n}"),
+            _ => format!("Task title {n}"),
+        })
+        .collect();
+    let mut tasks: Vec<(&str, usize, usize)> = titles
+        .iter()
+        .enumerate()
+        .map(|(index, title)| {
+            (
+                title.as_str(),
+                usize::from(checked.contains(&(index + 1))) * 2,
+                2,
+            )
+        })
+        .collect();
+    if checked.contains(&16) {
+        tasks[15].1 = 1;
+    }
+    if extra {
+        tasks.push(("Task title 21", 2, 2));
+    }
+    plan("approved", 1, &tasks)
+}
+
+/// US4: tasks 13 to 16 built at once, 14 and 15 done on their task branches, 16 half done, a task
+/// branch for a task the plan lacks, one for a task renamed, and one for a task the feature's
+/// branch has merged: 14 of 20 done, then 15 once task 13 is merged.
+#[test]
+fn progress_counts_the_tasks_done_on_their_task_branches() {
+    let repo = repo();
+    let folder = "specs/2026-10-11-web-ui";
+    let path = format!("{folder}/plan.md");
+    let merged: Vec<usize> = (1..=12).collect();
+    repo.switch(FOLDER);
+    repo.write(
+        &format!("{folder}/clarifications-01.md"),
+        &clarifications("answered", "1 question, about 3 minutes.", &["A"]),
+    );
+    repo.write(&format!("{folder}/spec.md"), &spec("approved", 1, 1));
+    repo.write(&path, &wave_plan(&merged, None, false));
+    repo.commit("feat(web-ui): tasks 1 to 12");
+    let task_branch = |n: usize, plan_text: String| {
+        repo.switch_new(&format!("{FOLDER}-task-{n}"));
+        repo.write(&path, &plan_text);
+        repo.commit(&format!("feat(web-ui): task {n}"));
+        repo.switch(FOLDER);
+    };
+    // Task 12's branch, merged and not deleted, holds a task the tip holds too.
+    repo.branch(&format!("{FOLDER}-task-12"));
+    for n in [14, 15, 16] {
+        task_branch(
+            n,
+            wave_plan(&[merged.as_slice(), &[n]].concat(), None, false),
+        );
+    }
+    task_branch(
+        17,
+        wave_plan(&[merged.as_slice(), &[17]].concat(), Some(17), false),
+    );
+    task_branch(21, wave_plan(&merged, None, true));
+    repo.switch("main");
+
+    let progress = |repo: &TestRepo| feature(repo, FOLDER).step;
+    let step = progress(&repo);
+    assert_eq!(step.name, StepName::Implementation);
+    assert_eq!(step.task.as_deref(), Some("Task 13: Task title 13"));
+    let counted = step.progress.unwrap();
+    assert_eq!((counted.done, counted.total), (14, 20));
+    assert_eq!(counted.title, "Task title 13");
+    // Checked out, the feature is read from its disk, and its step from its latest commit.
+    repo.switch(FOLDER);
+    let counted = progress(&repo).progress.unwrap();
+    assert_eq!((counted.done, counted.total), (14, 20));
+    repo.switch("main");
+
+    repo.add_on_branch(
+        FOLDER,
+        &path,
+        &wave_plan(&[merged.as_slice(), &[13]].concat(), None, false),
+    );
+
+    let step = progress(&repo);
+    assert_eq!(step.task.as_deref(), Some("Task 16: Task title 16"));
+    let counted = step.progress.unwrap();
+    assert_eq!((counted.done, counted.total), (15, 20));
+}

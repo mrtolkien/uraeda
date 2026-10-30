@@ -63,7 +63,7 @@ export function DocumentPage({ file }: { file: File }) {
           </PageTitle>
         )}
         {sections.length === 0 ? (
-          <Pane id="document" isOpenOnPhone title={file.name}>
+          <Pane id="document" isSnugOnPhone title={file.name}>
             <SelectionRoom selection={selection}>{body}</SelectionRoom>
           </Pane>
         ) : (

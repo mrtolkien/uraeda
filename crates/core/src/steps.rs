@@ -4,6 +4,7 @@
 use napi_derive::napi;
 use serde::Serialize;
 
+use crate::files::items::TaskItem;
 use crate::files::plan;
 use crate::workspace::{Feature, FileKind, Kind, first_file};
 
@@ -93,7 +94,7 @@ pub struct Step {
     pub reference: Option<String>,
     /// The file waiting for the human, at a gate.
     pub file: Option<String>,
-    /// The first unchecked task, for implementation.
+    /// The task `progress` names, as `Task N: title`, for implementation.
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
     pub progress: Option<TaskProgress>,
@@ -107,16 +108,17 @@ pub struct Step {
     pub plan_review: Option<bool>,
 }
 
-/// The plan's progress during the implementation: the first task with an unchecked step.
+/// The plan's progress during the implementation: the tasks done, and the first task left.
 #[cfg_attr(feature = "napi", napi(object))]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskProgress {
-    /// Its position among the plan's tasks, from 1, whatever its `## Task N` number.
-    pub position: u32,
+    /// The tasks whose boxes are all checked, at the branch's tip or on their task branch.
+    pub done: u32,
     /// The number of tasks in the plan.
     pub total: u32,
-    /// Its title, as written after `## Task N:`.
+    /// The first task done nowhere, else the first left unchecked at the tip: its title, as written
+    /// after `## Task N:`.
     pub title: String,
 }
 
@@ -216,7 +218,7 @@ fn finished_step(kind: Kind, pull_request: PullRequest) -> Step {
         PullRequest::NoPullRequest | PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, changes),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
-        PullRequest::Unpushed => Step::agent(StepName::Push, "implementation"),
+        PullRequest::Unpushed => Step::agent(StepName::Push, changes),
         PullRequest::Unknown => Step::agent(StepName::PullRequestUnknown, "finish"),
     };
     Step {
@@ -297,22 +299,26 @@ fn feature_step(feature: &Feature, pull_request: PullRequest) -> Step {
         _ => return Step::none(),
     }
     let tasks = plan::tasks(plan_text, &feature.path);
-    if let Some((index, task)) = tasks
-        .iter()
-        .enumerate()
-        .find(|(_, task)| task.done < task.total)
-    {
-        return Step {
-            task: Some(format!("Task {}: {}", task.number, task.title)),
-            progress: Some(TaskProgress {
-                position: index as u32 + 1,
-                total: tasks.len() as u32,
-                title: task.title.clone(),
-            }),
-            ..Step::agent(StepName::Implementation, "implementation")
-        };
+    let Some(unchecked) = tasks.iter().find(|task| task.done < task.total) else {
+        return after_the_last_step(pull_request, StepName::FinalReview, "implementation");
+    };
+    // Done at the tip, or on its task branch before it is merged.
+    let done = |task: &&TaskItem| {
+        task.done >= task.total
+            || feature
+                .task_branch_done
+                .contains(&(task.number, task.title.clone()))
+    };
+    let current = tasks.iter().find(|task| !done(task)).unwrap_or(unchecked);
+    Step {
+        task: Some(format!("Task {}: {}", current.number, current.title)),
+        progress: Some(TaskProgress {
+            done: tasks.iter().filter(done).count() as u32,
+            total: tasks.len() as u32,
+            title: current.title.clone(),
+        }),
+        ..Step::agent(StepName::Implementation, "implementation")
     }
-    after_the_last_step(pull_request, StepName::FinalReview, "implementation")
 }
 
 /// Whether a feature is being built: its spec is approved, and its approved plan has an unchecked
@@ -332,7 +338,7 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
         PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, reference),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
-        PullRequest::Unpushed => Step::agent(StepName::Push, "implementation"),
+        PullRequest::Unpushed => Step::agent(StepName::Push, reference),
         PullRequest::Unknown => Step::agent(StepName::PullRequestUnknown, reference),
     };
     Step {

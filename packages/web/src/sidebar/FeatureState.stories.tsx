@@ -1,22 +1,18 @@
-// Mockups of the feature state pass (`specs/2026-10-30-feature-state/spec.md`): a feature's card in
-// the states the spec adds or changes, and the session's banner of a run that asks for attention,
-// with its Dismiss. The cards are the real `ItemCard` over fixed items, in the phone column's width;
-// the card's Dismiss is drawn beside it, where the build puts it at the end of the card's first line.
-import { Banner } from "@astryxdesign/core/Banner";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
+// The states of the feature state pass (`specs/done/2026-10-30-feature-state.md`): a feature's card
+// in the states the spec adds or changes, and the session's banner of a run that asks for
+// attention, with its Dismiss. The cards are the real `ItemCard` over fixed items, in the phone
+// column's width, its Dismiss at the end of its first line; the banners, the real `RunBanner`.
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import * as stylex from "@stylexjs/stylex";
+import { RunBanner } from "../SessionAttention.tsx";
 import { columnVars } from "../shell/column.stylex.ts";
 import { type CardItem, ItemCard } from "./ItemCard.tsx";
 
 const styles = stylex.create({
   column: { maxWidth: columnVars["--column-phone-max"], padding: spacingVars["--spacing-3"] },
-  grow: { flexGrow: 1, minWidth: 0 },
 });
 
 const open = () => {};
@@ -33,7 +29,10 @@ const PANES: CardItem = {
   title: "Panes size",
 };
 
-/** A pane's title, then its cards, as the sidebar draws them. */
+/**
+ * A pane's title, then its cards, as the sidebar draws them, each with Dismiss while a failed or
+ * stopped run asks.
+ */
 function Pane({ cards, title }: { cards: Array<CardItem>; title: string }) {
   return (
     <VStack gap={1} xstyle={styles.column}>
@@ -41,7 +40,14 @@ function Pane({ cards, title }: { cards: Array<CardItem>; title: string }) {
         {title}
       </Text>
       {cards.map((item) => (
-        <ItemCard href="#" item={item} key={item.label} onOpen={open} onStatus={open} />
+        <ItemCard
+          href="#"
+          item={item}
+          key={item.label}
+          onDismiss={item.status.status === "attention" ? open : undefined}
+          onOpen={open}
+          onStatus={open}
+        />
       ))}
     </VStack>
   );
@@ -100,7 +106,7 @@ export const ProgressInAWave: Story = {
         ...PANES,
         folder: "2026-10-30-feature-state",
         label: "Feature state",
-        progress: { position: 14, title: "The watcher re-watches a worktree", total: 20 },
+        progress: { done: 14, title: "The watcher re-watches a worktree", total: 20 },
         step: { kind: "implementation", label: "Implementing" },
         title: "Feature state pass",
       },
@@ -111,33 +117,20 @@ export const ProgressInAWave: Story = {
 
 /** A run the server stopped, on the feature's latest session: it asks for you until dismissed. */
 export const NeedsAttention: Story = {
-  args: { cards: [], title: "Needs you" },
-  render: () => (
-    <VStack gap={1} xstyle={styles.column}>
-      <Text color="secondary" type="supporting">
-        Needs you
-      </Text>
-      <HStack align="center" gap={1}>
-        <div {...stylex.props(styles.grow)}>
-          <ItemCard
-            href="#"
-            item={{
-              folder: "2026-10-26-leader-key",
-              harness: "claude",
-              kind: "feature",
-              label: "Leader key",
-              status: { label: "Needs attention", status: "attention" },
-              step: { kind: "implementation", label: "Implementing" },
-              title: "Leader key",
-            }}
-            onOpen={open}
-            onStatus={open}
-          />
-        </div>
-        <IconButton icon={<Icon icon="close" />} label="Dismiss" size="sm" variant="ghost" />
-      </HStack>
-    </VStack>
-  ),
+  args: {
+    cards: [
+      {
+        folder: "2026-10-26-leader-key",
+        harness: "claude",
+        kind: "feature",
+        label: "Leader key",
+        status: { label: "Needs attention", status: "attention" },
+        step: { kind: "implementation", label: "Implementing" },
+        title: "Leader key",
+      },
+    ],
+    title: "Needs you",
+  },
 };
 
 /** Each banner of a run that asks for attention, on its session's page, each with its Dismiss. */
@@ -145,29 +138,12 @@ export const SessionBanners: Story = {
   args: { cards: [], title: "" },
   render: () => (
     <VStack gap={3} xstyle={styles.column}>
-      <Banner
-        collapsible={false}
-        description="It was running when the server stopped. Tell the agent how to go on, or dismiss this."
-        dismissLabel="Dismiss"
-        isDismissable
-        status="warning"
-        title="The server stopped the agent."
-      />
-      <Banner
-        collapsible={false}
-        description="Tell the agent how to go on when you are ready, or dismiss this."
-        dismissLabel="Dismiss"
-        isDismissable
-        status="warning"
-        title="You stopped the agent."
-      />
-      <Banner
-        collapsible={false}
-        description="You've hit your session limit · resets 1:20am (Asia/Tokyo). Read how it ended, then tell the agent how to go on, or dismiss this."
-        dismissLabel="Dismiss"
-        isDismissable
-        status="error"
-        title="The agent's run failed."
+      <RunBanner onDismiss={open} reason="interrupted" />
+      <RunBanner onDismiss={open} reason="stopped" />
+      <RunBanner
+        onDismiss={open}
+        reason="failed"
+        why="You've hit your session limit · resets 1:20am (Asia/Tokyo)"
       />
     </VStack>
   ),

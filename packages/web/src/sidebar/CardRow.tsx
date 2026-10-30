@@ -1,8 +1,8 @@
 // A card's row in the shell's panes, our own (an Astryx gap, plan's Complexity tracking):
 // `SideNavItem` takes its label as a string on one line, cut by an ellipsis, where the card's name
 // must read whole. Its link holds the kind's icon, the name, wrapping onto a second line when it
-// must, the step under it, and the status at its end. It is drawn from the styles Astryx shares
-// for nav rows.
+// must, the step under it, and the status at its end; after the link, a button of its own at the
+// first line's end, such as Dismiss. It is drawn from the styles Astryx shares for nav rows.
 import { navItemStyles } from "@astryxdesign/core/NavItem/navItemStyles.stylex";
 import { Text } from "@astryxdesign/core/Text";
 import { fontWeightVars, sizeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
@@ -90,7 +90,45 @@ const railStyles = stylex.create({
  */
 export type RailLook = "card" | "mark" | "row";
 
+/** The row's second line, like a feature's step, after a space for what reads the link's text. */
+function Sub({ sub }: { sub: ReactNode }) {
+  return (
+    <>
+      {/* A space between the two lines' words, for what reads the link's text. */}{" "}
+      {typeof sub === "string" ? (
+        <Text color="secondary" type="supporting">
+          {sub}
+        </Text>
+      ) : (
+        sub
+      )}
+    </>
+  );
+}
+
+/**
+ * Where the pointer is over a row whose end, or what follows its link, is a button, when
+ * `isSplit`: the card and the button are two surfaces, and only the one under it brightens.
+ * `isCardLit` while it is over the card; `pointer`, the row's handlers.
+ */
+function useSplitHover(isSplit: boolean) {
+  const [over, setOver] = useState<"button" | "card" | "none">("none");
+  const pointer = isSplit
+    ? {
+        onPointerLeave: () => setOver("none"),
+        onPointerMove: (event: PointerEvent) =>
+          setOver(
+            (event.target as Element).closest("[data-card-status], [data-card-after]")
+              ? "button"
+              : "card",
+          ),
+      }
+    : {};
+  return { isCardLit: isSplit && over === "card", pointer };
+}
+
 export function CardRow({
+  after,
   endContent,
   hasRing = true,
   href,
@@ -104,6 +142,8 @@ export function CardRow({
   rail,
   sub,
 }: {
+  /** A button after the link, at the first line's end, like a run's Dismiss: no link holds one. */
+  after?: ReactNode;
   /** Passive content at the link's end, like its status. */
   endContent: ReactNode;
   /** Its own focus ring, which a card picked whole drops for its own (`ItemCard`). */
@@ -125,10 +165,8 @@ export function CardRow({
   /** Its second line, like a feature's step, which `name` reads after the name. */
   sub?: ReactNode;
 }) {
-  // Where the pointer is over a row whose end is a button: the card and the button are two
-  // surfaces, and only the one under it brightens.
-  const [over, setOver] = useState<"button" | "card" | "none">("none");
-  const isCardLit = isEndTall && over === "card";
+  const isSplit = isEndTall || after !== undefined;
+  const { isCardLit, pointer } = useSplitHover(isSplit);
   // What the closed rail hides after the icon, and the icon itself under a card's mark alone.
   const railRest = rail === "row" ? railStyles.gone : rail && railStyles.hidden;
   const railIcon = rail === "mark" && railStyles.hidden;
@@ -136,20 +174,14 @@ export function CardRow({
   const isFramed = rail === "card" || rail === "mark";
   return (
     <div
-      {...(isEndTall
-        ? {
-            onPointerLeave: () => setOver("none"),
-            onPointerMove: (event: PointerEvent) =>
-              setOver((event.target as Element).closest("[data-card-status]") ? "button" : "card"),
-          }
-        : {})}
+      {...pointer}
       {...stylex.props(
         navItemStyles.item,
         interactionOverlayStyles.backgroundColor,
         navItemStyles.sm,
         isSelected && (isFramed ? railStyles.selected : navItemStyles.selected),
         styles.row,
-        isEndTall ? styles.pointer : brighten,
+        isSplit ? styles.pointer : brighten,
         hasRing && focusOutlineStyles.focusWithinFirstChild,
       )}
     >
@@ -168,24 +200,26 @@ export function CardRow({
         <span {...stylex.props(styles.icon, isCardLit && styles.lit, railIcon)}>{icon}</span>
         <span {...stylex.props(styles.text, isCardLit && styles.lit, railRest)}>
           <span {...stylex.props(styles.name)}>{label}</span>
-          {sub !== undefined && (
-            <>
-              {/* A space between the two lines' words, for what reads the link's text. */}{" "}
-              {typeof sub === "string" ? (
-                <Text color="secondary" type="supporting">
-                  {sub}
-                </Text>
-              ) : (
-                sub
-              )}
-            </>
-          )}
+          {sub !== undefined && <Sub sub={sub} />}
         </span>
         {/* A space before its end too: its visible text, as the name reads it, never runs together. */}{" "}
-        <span {...stylex.props(styles.end, isEndTall && styles.endTall, railRest)}>
+        <span
+          {...stylex.props(
+            styles.end,
+            isEndTall && styles.endTall,
+            // Passive, it is the card's: lit with it.
+            isCardLit && !isEndTall && styles.lit,
+            railRest,
+          )}
+        >
           {endContent}
         </span>
       </RouterAnchor>
+      {after !== undefined && (
+        <span data-card-after {...stylex.props(styles.end, railRest)}>
+          {after}
+        </span>
+      )}
     </div>
   );
 }

@@ -33,7 +33,7 @@ const styles = stylex.create({
     gridTemplateColumns: "minmax(0, 1fr) minmax(var(--size-pane-min), 40%)",
   },
   // Columns of their own, `columns`, the room's width up to `most`: the two together are put in
-  // the screen's middle (`useScreenCentre`).
+  // the middle of the room right of the sidebar (`useScreenCentre`).
   sized: (columns: string, most: string) => ({
     gridTemplateColumns: columns,
     maxWidth: most,

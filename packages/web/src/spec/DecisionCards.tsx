@@ -115,7 +115,7 @@ function Rest({
   }
   const shown = ids.filter((id) => !saysRelied(document.blocks[id]));
   return (
-    <Pane count={rows} level={3} title={RELIED}>
+    <Pane count={rows} isSnugOnPhone level={3} title={RELIED}>
       <Blocks document={document} ids={shown} selection={selection} />
     </Pane>
   );

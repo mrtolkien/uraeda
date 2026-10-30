@@ -12,7 +12,6 @@ import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useRestoreScroll } from "../routes.tsx";
-import { useSession } from "../sessionData.ts";
 import { type OpenKeys, useOpenKeys } from "../useOpenKeys.ts";
 import { FeatureMenu } from "./FeatureMenu.tsx";
 import { FeatureBar } from "./FeatureBar.tsx";
@@ -84,53 +83,34 @@ function NextKey({ hasNext, run }: { hasNext: boolean; run: RefObject<(() => voi
   return null;
 }
 
-/** "Next": the one action of the feature's step. */
+/**
+ * "Next": the one action of the feature's step, the agent's while its status is Working, whatever
+ * the step, leading to the session at work.
+ */
 function NextStep({
   feature,
   history,
   onRun,
-  working = false,
 }: {
   feature: FeatureData;
   history: HistoryData;
   onRun: OnNextRun;
-  working?: boolean;
 }) {
   const merge = history.stages.find((stage) => stage.name === "merged")?.started;
   const agent = useAgent();
   const recommended = recommendedOf(useRecommendedMessage(feature.folder));
+  const working = feature.status.status === "working";
   const next = nextOf(feature, {
     agent: agent ? { available: agent.available, name: agent.name } : undefined,
     merged: merge ?? history.finished ?? undefined,
     recommended,
+    session: feature.status.session,
     working,
   });
-  // A human gate is peach; the agent's turn, a build, or a merge is the active pane.
-  const tone = feature.step.waitsOn === "human" ? "attention" : "active";
+  // A human gate is peach, unless an agent works on it; the agent's turn, a build, or a merge is
+  // the active pane.
+  const tone = feature.step.waitsOn === "human" && !working ? "attention" : "active";
   return <NextPane folder={feature.folder} next={next} onRun={onRun} tone={tone} />;
-}
-
-/** "Next", once the feature's latest session is read, which its runs go to. */
-function WithSession({
-  feature,
-  history,
-  id,
-  onRun,
-}: {
-  feature: FeatureData;
-  history: HistoryData;
-  id: string;
-  onRun: OnNextRun;
-}) {
-  const session = useSession(id);
-  return (
-    <NextStep
-      feature={feature}
-      history={history}
-      onRun={onRun}
-      working={session?.status === "working"}
-    />
-  );
 }
 
 /** What a finished feature left behind: its worktree, its branch, or both. */
@@ -267,16 +247,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
         />
         <LeftBanner feature={feature} />
         <Suspense fallback={null}>
-          {feature.session ? (
-            <WithSession
-              feature={feature}
-              history={history}
-              id={feature.session}
-              onRun={onNextRun}
-            />
-          ) : (
-            <NextStep feature={feature} history={history} onRun={onNextRun} />
-          )}
+          <NextStep feature={feature} history={history} onRun={onNextRun} />
         </Suspense>
         {/* Before the sessions' keys, as "Next" comes before them, though "Next" draws later. */}
         <NextKey hasNext={hasNext} run={nextRun} />

@@ -51,6 +51,8 @@ export const REFUSALS = {
   otherWorking: (kind: string) => `Another session of this ${kind} is working`,
   /** A dismiss of a turn that runs or waits: only a failed or stopped run is dismissed. */
   stillRunning: "The run is still going.",
+  /** A dismiss of a queued message taken back: it never ran, and the session's status skips it. */
+  takenBack: "This message was taken back: it never ran.",
   /** A message, a run, or a new session of a dropped change or feature: its sessions are archived. */
   dropped: "This change or feature was dropped: its branch stays.",
 };

@@ -199,7 +199,7 @@ export function SinceReviewPane({
   };
   const places = model.places.toSorted((a, b) => rank(a) - rank(b) || a.block - b.block);
   return (
-    <Pane icon="uraeda:history" id="since" title={titleOf(model)} tone="attention">
+    <Pane icon="uraeda:history" id="since" isSnugOnPhone title={titleOf(model)} tone="attention">
       <VStack gap={3}>
         <Lead model={model} />
         {places.length > 0 && (

@@ -189,8 +189,8 @@ export function NotesRead({
   const { field, save } = notes;
   const written = field.text.trim() !== "";
   return (
-    // A pane of the round, as its other parts: on the phone, its titled top border alone.
-    <Pane icon="uraeda:pencil" isOpenOnPhone title="Notes">
+    // A pane of the round, as its other parts: on the phone, little room inside its border.
+    <Pane icon="uraeda:pencil" isSnugOnPhone title="Notes">
       <VStack gap={2}>
         {!fieldShown && <NotesRestored notes={notes} />}
         {written ? (

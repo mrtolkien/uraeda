@@ -8,7 +8,7 @@ use common::repo::{TestRepo, run_git, without_user_git};
 use common::texts::{clarifications, proposal};
 use uraeda_core::actions::place;
 use uraeda_core::git::Git;
-use uraeda_core::watch::{Changes, Watcher, watch};
+use uraeda_core::watch::{Changes, LONGEST, Watcher, watch};
 
 const FOLDER: &str = "2026-10-11-web-ui";
 
@@ -153,6 +153,25 @@ fn a_code_commit_on_a_feature_branch_is_reported() {
     assert!(
         changes.features.contains(&FOLDER.to_string()),
         "{changes:?}"
+    );
+}
+
+/// Review: a push moves only the branch's remote-tracking ref, which the Push step and the pull
+/// requests' refresh read.
+#[test]
+fn a_push_of_a_feature_branch_is_reported() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+
+    let remote = format!("refs/remotes/origin/{FOLDER}");
+    repo.git(&["update-ref", &remote, FOLDER]);
+
+    let reports = until_priorities(&repo, &receiver, "After the push");
+    assert!(
+        reports
+            .iter()
+            .any(|changes| changes.features.contains(&FOLDER.to_string())),
+        "{reports:?}"
     );
 }
 
@@ -553,6 +572,8 @@ fn reports_feature(receiver: &mpsc::Receiver<Changes>, deadline: Instant) -> Opt
 
 /// US3.3: a worktree deleted and re-created at its path is a new folder, watched again. An
 /// uncommitted answer shows only through the worktree's own watch, a commit through git's too.
+/// It times SC-003's second, the exception the testing decision makes for a spec's success
+/// criteria.
 #[test]
 fn a_worktree_re_created_at_its_path_is_watched_again() {
     let repo = repo();
@@ -580,7 +601,9 @@ fn a_worktree_re_created_at_its_path_is_watched_again() {
 }
 
 /// US3, more scenario 2: git's commands writing the worktree's folder in `.git` every 100 ms keep
-/// a burst of events going, and a commit made meanwhile still shows within a second.
+/// a burst of events going, and a commit made meanwhile still shows within a second: `LONGEST`
+/// after the burst's first event, with a margin for the read. It times SC-003's second, the
+/// exception the testing decision makes for a spec's success criteria.
 #[test]
 fn a_burst_under_steady_writes_reports_within_a_second() {
     let repo = repo();
@@ -595,7 +618,8 @@ fn a_burst_under_steady_writes_reports_within_a_second() {
             std::thread::sleep(Duration::from_millis(100));
         }
     });
-    std::thread::sleep(Duration::from_secs(1));
+    // 300 ms into the burst: a watcher waiting for quiet would report after the writes end.
+    std::thread::sleep(Duration::from_millis(300));
     answer(&place.root, true);
     let committed = Instant::now();
 
@@ -604,7 +628,7 @@ fn a_burst_under_steady_writes_reports_within_a_second() {
     writes.join().unwrap();
     assert!(changes.is_some(), "no report while the writes went on");
     assert!(
-        waited < Duration::from_millis(1500),
+        waited < LONGEST + Duration::from_millis(200),
         "reported {waited:?} after the commit"
     );
 }

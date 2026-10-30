@@ -37,6 +37,7 @@ export function SpecHistory({ document, items }: { document: Document; items: Sp
       }}
       icon="uraeda:history"
       id={groupId(items, GROUPS.history)}
+      isSnugOnPhone
       title={GROUPS.history.title}
     >
       <Blocks document={document} ids={part.blocks} />

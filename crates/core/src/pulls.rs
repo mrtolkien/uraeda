@@ -80,15 +80,16 @@ impl PullRequests {
     }
 
     /// Whether `branch`'s latest merged pull request holds its latest commit, with no open one:
-    /// its work is merged, even before a fetch brings the merge.
+    /// its work is merged, even before a fetch brings the merge. A head the repository does not
+    /// have holds it when the local branch is at its remote tip, nothing left unpushed (R2).
     fn merged(&self, branch: &str, git: &Git) -> bool {
         let PullRequests::Known { open, merged } = self else {
             return false;
         };
         !open.contains_key(branch)
-            && merged
-                .get(branch)
-                .is_some_and(|head| holds_tip(git, branch, head) == Some(true))
+            && merged.get(branch).is_some_and(|head| {
+                holds_tip(git, branch, head).unwrap_or_else(|| pushed(git, branch))
+            })
     }
 
     /// Gives a feature or a change its branch's open pull request, and recomputes its step when
@@ -117,6 +118,12 @@ impl PullRequests {
 /// the repository lacks `head`.
 fn holds_tip(git: &Git, branch: &str, head: &str) -> Option<bool> {
     git.holds(head, git.tip(branch)?)
+}
+
+/// Whether the local `branch` is at its remote tip: nothing on it is left unpushed.
+fn pushed(git: &Git, branch: &str) -> bool {
+    let local = git.resolve(&format!("refs/heads/{branch}"));
+    local.is_some() && local == git.remote_tip(branch)
 }
 
 /// The open pull requests of
@@ -172,7 +179,8 @@ pub fn parse_merged(json: &[u8]) -> Option<BTreeMap<String, String>> {
 }
 
 /// Asks `gh` for the open and the merged pull requests of the repository at `root`. `gh` runs
-/// there, since it finds the repository from its current folder.
+/// there, since it finds the repository from its current folder. The merged ones are the latest
+/// 200: an older merge's branch is long gone.
 pub fn fetch(root: &Path) -> PullRequests {
     let list = |state: &str, fields: &str| {
         let args = [
@@ -187,10 +195,24 @@ pub fn fetch(root: &Path) -> PullRequests {
     .and_then(|stdout| parse(&stdout));
     let merged = list("merged", "headRefName,headRefOid,number,url")
         .and_then(|stdout| parse_merged(&stdout));
-    match (open, merged) {
-        (Some(open), Some(merged)) => PullRequests::Known { open, merged },
-        _ => PullRequests::Unavailable,
-    }
+    known(open, merged, &latest(root))
+}
+
+/// The snapshot of a fetch's open and merged pull requests, each `None` when its call failed. The
+/// open ones decide the steps: without the merged ones, it keeps those of `last`, or none.
+pub fn known(
+    open: Option<BTreeMap<String, PullRequestView>>,
+    merged: Option<BTreeMap<String, String>>,
+    last: &PullRequests,
+) -> PullRequests {
+    let Some(open) = open else {
+        return PullRequests::Unavailable;
+    };
+    let merged = merged.unwrap_or_else(|| match last {
+        PullRequests::Known { merged, .. } => merged.clone(),
+        PullRequests::Unavailable => BTreeMap::new(),
+    });
+    PullRequests::Known { open, merged }
 }
 
 /// How long a failed `gh` keeps the last pull requests it read.

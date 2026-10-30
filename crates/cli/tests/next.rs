@@ -143,26 +143,12 @@ fn gh_runs_in_the_repository() {
             ("plan.md", plan("approved", 1, &[("One", 2, 2)])),
         ],
     );
-    let bin = repo.parent().join("bin");
-    std::fs::create_dir(&bin).unwrap();
-    let gh = bin.join("gh");
-    std::fs::write(
-        &gh,
-        format!(
-            "#!/bin/sh\n[ \"$(pwd -P)\" = \"{}\" ] || exit 1\necho '[{{\"headRefName\":\"2026-10-10-cli-core\",\"headRefOid\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"number\":31,\"url\":\"https://github.com/o/r/pull/31\",\"isDraft\":true,\"reviewDecision\":\"\"}}]'\n",
+    let path = fake_gh(
+        &repo,
+        &format!(
+            "[ \"$(pwd -P)\" = \"{}\" ] || exit 1\necho '[{{\"headRefName\":\"2026-10-10-cli-core\",\"headRefOid\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"number\":31,\"url\":\"https://github.com/o/r/pull/31\",\"isDraft\":true,\"reviewDecision\":\"\"}}]'",
             std::fs::canonicalize(repo.path()).unwrap().display()
         ),
-    )
-    .unwrap();
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&gh, std::fs::Permissions::from_mode(0o755)).unwrap();
-    }
-    let path = format!(
-        "{}:{}",
-        bin.display(),
-        std::env::var("PATH").unwrap_or_default()
     );
 
     let output = ura_in(
@@ -174,6 +160,61 @@ fn gh_runs_in_the_repository() {
     let json: serde_json::Value = serde_json::from_str(&output.stdout).unwrap();
     assert_eq!(json["step"]["name"], "finish", "{}", output.stdout);
     assert_eq!(json["step"]["pull-request"], "draft", "{}", output.stdout);
+}
+
+/// US5.1: an open pull request whose head lacks the branch's latest commit names the push, not the
+/// human's review.
+#[test]
+fn push_when_the_pull_request_lacks_the_latest_commit() {
+    let repo = TestRepo::new();
+    specs(&repo, PRIORITIES);
+    feature(
+        &repo,
+        "2026-10-10-cli-core",
+        &[
+            ("proposal.md", proposal()),
+            ("clarifications-01.md", answered()),
+            ("spec.md", spec("approved", 1, 1)),
+            ("plan.md", plan("approved", 1, &[("One", 2, 2)])),
+        ],
+    );
+    let head = repo.git(&["rev-parse", "2026-10-10-cli-core"]);
+    repo.switch("2026-10-10-cli-core");
+    repo.write("src/fix.rs", "// a fix after the review\n");
+    repo.commit("fix: after the review");
+    repo.switch("main");
+    let path = fake_gh(
+        &repo,
+        &format!(
+            "[ \"$4\" = open ] || {{ echo '[]'; exit 0; }}\necho '[{{\"headRefName\":\"2026-10-10-cli-core\",\"headRefOid\":\"{}\",\"number\":31,\"url\":\"https://github.com/o/r/pull/31\",\"isDraft\":false,\"reviewDecision\":\"\"}}]'",
+            head.trim()
+        ),
+    );
+
+    let output = ura_in(repo.path(), &["next", "cli-core"], &[("PATH", &path)]);
+
+    assert_eq!(
+        output.stdout,
+        "2026-10-10-cli-core: push\n  branch     2026-10-10-cli-core\n  follow     skills/uraeda/references/implementation.md\n"
+    );
+}
+
+/// A `gh` in a new folder, running `script` after its shebang, and the `PATH` that finds it first.
+fn fake_gh(repo: &TestRepo, script: &str) -> String {
+    let bin = repo.parent().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let gh = bin.join("gh");
+    std::fs::write(&gh, format!("#!/bin/sh\n{script}\n")).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&gh, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    format!(
+        "{}:{}",
+        bin.display(),
+        std::env::var("PATH").unwrap_or_default()
+    )
 }
 
 #[test]

@@ -2161,6 +2161,18 @@ fn a_start_from_a_line_of_now_replaces_it_by_its_link() {
 
     start_line(&repo, NOW_LINE, NOW_LINE);
 
+    // The start commit itself holds the change: the commit before it still has the line.
+    assert_eq!(
+        repo.subjects("main")[..2],
+        [
+            "chore(amend): start Amend the latest commit if the commit touches only workflow files…",
+            "chore: add a line to Now"
+        ]
+    );
+    assert!(
+        repo.git(&["show", "main~1:specs/PRIORITIES.md"])
+            .contains(NOW_LINE)
+    );
     let title = "Amend the latest commit if the commit touches only workflow files…";
     assert_eq!(
         repo.git(&["show", "main:specs/PRIORITIES.md"]),
@@ -2236,6 +2248,51 @@ fn a_start_from_a_markdown_line_finds_it_and_takes_the_nested_lines_not_typed() 
     let proposal = repo.git(&["show", "main:specs/changes/2026-10-16-amend/proposal.md"]);
     assert_eq!(proposal.matches("--help").count(), 1, "{proposal}");
     assert!(proposal.contains("- and examples"), "{proposal}");
+}
+
+/// A start from a line of **Now** whose commit a hook refuses, for a start that puts back what it
+/// wrote, as the server's, leaves `PRIORITIES.md` as it was, the line in it.
+#[test]
+fn a_refused_start_from_a_line_puts_the_priorities_back() {
+    let repo = now_line_repo();
+    let before = repo.read("specs/PRIORITIES.md");
+    repo.set_hook("exit 1");
+    let (git, workspace) = opened(&repo);
+    let mut run = start::Run::plain(change_day(), false);
+    run.restore = true;
+
+    let typed = start::Text {
+        text: NOW_LINE,
+        images: &[],
+        line: Some(NOW_LINE),
+        kind: Kind::Change,
+        discovery: None,
+    };
+
+    let refused = start::run_text_with(&git, &workspace, &typed, Some("amend"), &run);
+
+    assert!(
+        matches!(refused, Err(start::StartError::Hook { .. })),
+        "the start was not refused by its hook"
+    );
+    assert_eq!(repo.read("specs/PRIORITIES.md"), before);
+}
+
+/// A line whose 80th character is a space is cut after the word before it, which it keeps whole.
+#[test]
+fn a_title_whose_80th_character_is_a_space_keeps_its_last_word() {
+    let kept = format!("{}last", "word ".repeat(15));
+    let line = format!("{kept} and more after it");
+    assert_eq!(
+        (kept.chars().count(), line.chars().nth(79)),
+        (79, Some(' '))
+    );
+    let repo = proposal_file_repo();
+
+    start_text(&repo, &line, &[], Some("centred-x")).unwrap();
+
+    let proposal = in_change(&repo, &format!("specs/changes/{CHANGE_FOLDER}/proposal.md"));
+    assert!(proposal.starts_with(&format!("# {kept}…\n")), "{proposal}");
 }
 
 /// A title typed as a heading loses its marks: the proposal has one heading.

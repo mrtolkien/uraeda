@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-30
 pull-request: https://github.com/mrtolkien/uraeda/pull/74
+superseded-by: [2026-10-30-feature-state, 2026-10-30-proposal-start]
 supersedes:
   [
     2026-10-11-web-ui,
@@ -9,7 +10,6 @@ supersedes:
     2026-10-16-redesign-priorities,
     2026-10-30-phone-bottom,
   ]
-superseded-by: [2026-10-30-proposal-start]
 ---
 
 # Record: Performance pass
@@ -19,6 +19,8 @@ superseded-by: [2026-10-30-proposal-start]
 > The record of a merged feature, not instructions to follow. Started on 2026-10-29, finished on
 > 2026-10-30, in [its pull request](https://github.com/mrtolkien/uraeda/pull/74). Its full files are
 > in git: `git log -- specs/2026-10-29-performance-pass/`.
+>
+> Superseded in part by [2026-10-30-feature-state](2026-10-30-feature-state.md).
 >
 > Superseded in part by [2026-10-30-proposal-start](2026-10-30-proposal-start.md).
 
