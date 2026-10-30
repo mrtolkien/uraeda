@@ -1,14 +1,14 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: git-branch
 ---
 
 # Git
 
 Uraeda's tools read git fast, in process, and write it exactly as the user would, through their own
-hooks, signing, and credentials. The workflow's state is what is committed, on every branch at once.
-Tools never lose the user's work.
+hooks, signing, and credentials. The workflow's state is what is committed, on every branch at once,
+as [Feature status](feature-status.md) reads it. Tools never lose the user's work.
 
 ## Rules
 
@@ -23,7 +23,6 @@ Tools never lose the user's work.
   branch. Checked by the core's tests.
 - An agent's inbox notes MUST be written in its own worktree, never on the default branch. Checked
   by the CLI's tests.
-- A branch's step SHOULD be read from its latest commit. Checked by the core's workspace tests.
 - Tools SHOULD keep their worktrees out of the user's `git status`, without editing a tracked file.
   Checked by the core's tests.
 
@@ -38,14 +37,11 @@ lost commit cannot come back. History: [CLI core](../done/2026-10-10-cli-core.md
 
 - The system `git` for everything: a process, and text to parse, for every read.
 - Switching the user's checkout to write: abandoned when the web UI had to write on every branch.
-- Reading a checked-out branch from its disk: it showed branches outside the workflow, and gates not
-  committed yet.
 
 ## Consequences
 
 - Hooks, signing, and credentials behave as by hand, and `git` must be on the PATH.
 - gix breaks its API at minor releases, so upgrades are deliberate.
-- The web UI moves when a commit lands, not when a file is saved.
 
 ## Applies to
 
