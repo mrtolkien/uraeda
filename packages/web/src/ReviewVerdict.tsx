@@ -59,6 +59,9 @@ export function useRefusals() {
   return { continued, continues, error, message, run, setMessage };
 }
 
+/** Why a spec's Approve is held back. */
+const HELD = "A comment on a part of the spec asks for changes";
+
 /**
  * The verdict's buttons, Request changes and Approve, each committing, then opening the session
  * with the workflow's message, unsent, when the agent works on this machine; `onVerdict` resolves to
@@ -67,10 +70,12 @@ export function useRefusals() {
 function Verdicts({
   comments,
   file,
+  holdsApproval,
   onVerdict,
 }: {
   comments: number;
   file: File;
+  holdsApproval: boolean;
   onVerdict: (approve: boolean, next: boolean) => Promise<boolean>;
 }) {
   return (
@@ -85,9 +90,10 @@ function Verdicts({
       />
       <CommitActions
         folder={file.folder}
-        isDisabled={file.committed != null}
+        isDisabled={holdsApproval || file.committed != null}
         label="Approve"
         onCommit={(next) => onVerdict(true, next)}
+        tooltip={holdsApproval ? HELD : undefined}
       />
     </>
   );
@@ -177,14 +183,20 @@ export function ReviewVerdict({
   comments,
   file,
   refusals,
+  targeted,
 }: {
   choices: ChoicesState;
   /** How many comments are pending. */
   comments: number;
   file: File;
   refusals: Refusals;
+  /** How many of them point at a part of the file, not general. */
+  targeted: number;
 }) {
   const { error, hides, hold, message } = refusals;
+  // Approving a spec says it needs no change: a comment on a part of it asks for one. A general
+  // comment, pointers for the plan, does not, and a plan is approved with its comments.
+  const holdsApproval = file.kind === "spec" && targeted > 0;
   const spec = (file.committed ?? file.current).items.spec;
   const { retry, verdict } = useVerdict(file, choices, refusals);
   return (
@@ -197,6 +209,7 @@ export function ReviewVerdict({
         <Verdicts
           comments={comments}
           file={file}
+          holdsApproval={holdsApproval}
           onVerdict={async (approve, next) => (hold?.() ? false : verdict(approve, next))}
         />
       </div>
@@ -206,6 +219,11 @@ export function ReviewVerdict({
       {comments === 0 && (
         <Text color="secondary" type="supporting">
           Request changes: Add a comment first
+        </Text>
+      )}
+      {holdsApproval && (
+        <Text color="secondary" type="supporting">
+          Approve: {HELD}
         </Text>
       )}
     </>
