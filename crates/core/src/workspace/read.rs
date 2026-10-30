@@ -7,7 +7,6 @@ use super::{
     Feature, FileKind, Kind, Problem, ReadFrom, Reader, Severity, Source, first_file,
     folder_branch, folder_path, record_kind, record_path,
 };
-use crate::actions::deferred;
 use crate::files::{document, frontmatter, spec};
 use crate::git::ObjectId;
 use crate::steps::{self, PullRequest, Step};
@@ -142,15 +141,14 @@ fn with_pending(
     if at_tip.is_finished() {
         return at_tip;
     }
-    let key = reader.git.main_root();
     let root = reader.git.root();
-    let pending = deferred::pending(&key, root, &at_tip.path);
+    let pending = reader.pending.files(root, &at_tip.path);
     if pending.is_empty() {
         return at_tip;
     }
     let mut texts = at_tip.texts.clone();
     overlay(&mut texts, pending);
-    let decisions = deferred::pending(&key, root, DECISIONS);
+    let decisions = reader.pending.files(root, DECISIONS);
     let mut queued = Feature::from_texts(kind, folder, texts);
     queued.branch = at_tip.branch.clone();
     queued.source = at_tip.source;

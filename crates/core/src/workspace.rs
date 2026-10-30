@@ -358,6 +358,8 @@ impl Workspace {
     }
 
     fn read_only(git: &Git, only: Option<&str>) -> Result<Workspace, WorkspaceError> {
+        // The writes still landing, taken before any tip: see `deferred::pending`.
+        let pending = &crate::actions::deferred::pending(&git.main_root());
         let root = git.root();
         let default_branch = git.default_branch();
         let current_branch = git.current_branch();
@@ -387,7 +389,7 @@ impl Workspace {
             .and_then(|path| Git::open(path).ok());
         let default_reader = default_worktree
             .as_ref()
-            .map_or(Reader { git }, |git| Reader { git });
+            .map_or(Reader { git, pending }, |git| Reader { git, pending });
         let priorities_from = match default_tip {
             Some(tip) if !on_default && default_worktree.is_none() => ReadFrom::Commit(tip),
             _ => ReadFrom::Disk,
@@ -396,7 +398,7 @@ impl Workspace {
             .read(priorities_from, "specs/PRIORITIES.md")
             .unwrap_or_default();
 
-        let reader = Reader { git };
+        let reader = Reader { git, pending };
         let remote_default_tip = default_branch.as_deref().and_then(|b| git.remote_tip(b));
         let tips: Vec<ObjectId> = [default_tip, remote_default_tip]
             .into_iter()

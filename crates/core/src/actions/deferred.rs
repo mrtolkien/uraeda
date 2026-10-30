@@ -218,12 +218,15 @@ pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed,
     result
 }
 
-/// The files directly in the folder `folder_path` of the working tree at `root` that the deferred
-/// commits of the repository `key`, not landed yet, wrote: by name, with their text after the
-/// write, `None` when the write deleted the file or left it not UTF-8. A later write of a file
-/// wins. What a hand edit wrote since is not read: only the write's own bytes.
-pub fn pending(key: &Path, root: &Path, folder_path: &str) -> BTreeMap<String, Option<String>> {
-    let mut deferred: Vec<(u64, PathBuf, Vec<Written>)> = repositories(|repositories| {
+/// The writes of a repository's deferred commits not landed yet, as [`pending`] took them.
+#[derive(Default)]
+pub struct Pending(Vec<(u64, PathBuf, Vec<Written>)>);
+
+/// The writes of the deferred commits of the repository `key` not landed yet, at once: a read
+/// takes them before it reads a branch's tip, so a commit landing meanwhile is in them, or in the
+/// tip it reads, or both, never neither.
+pub fn pending(key: &Path) -> Pending {
+    let mut deferred: Vec<_> = repositories(|repositories| {
         let Some(repository) = repositories.get(key) else {
             return Vec::new();
         };
@@ -232,36 +235,53 @@ pub fn pending(key: &Path, root: &Path, folder_path: &str) -> BTreeMap<String, O
             .iter()
             .chain(repository.taken.values())
             .chain(repository.landing.values())
-            .filter(|deferred| {
-                deferred
-                    .written
-                    .iter()
-                    .any(|file| in_folder(&file.path, folder_path).is_some())
-            })
             .map(|deferred| {
                 let id = deferred.id.parse().unwrap_or(0);
                 (id, deferred.place.root.clone(), deferred.written.clone())
             })
             .collect()
     });
-    if deferred.is_empty() {
-        return BTreeMap::new();
-    }
     deferred.sort_by_key(|(id, _, _)| *id);
-    let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
-    let mut files = BTreeMap::new();
-    for (_, place, written) in deferred {
-        if fs::canonicalize(&place).unwrap_or(place) != root {
-            continue;
+    Pending(deferred)
+}
+
+impl Pending {
+    /// The files directly in the folder `folder_path` of the working tree at `root` that the
+    /// writes wrote: by name, with their text after the write, `None` when the write deleted the
+    /// file or left it not UTF-8. A later write of a file wins. What a hand edit wrote since is
+    /// not read: only the write's own bytes.
+    pub fn files(&self, root: &Path, folder_path: &str) -> BTreeMap<String, Option<String>> {
+        let mut files = BTreeMap::new();
+        let in_it = |written: &[Written]| {
+            written
+                .iter()
+                .any(|file| in_folder(&file.path, folder_path).is_some())
+        };
+        let mut writes = self
+            .0
+            .iter()
+            .filter(|(_, _, written)| in_it(written))
+            .peekable();
+        if writes.peek().is_none() {
+            return files;
         }
-        for file in written {
-            if let Some(name) = in_folder(&file.path, folder_path) {
-                let text = file.after.and_then(|bytes| String::from_utf8(bytes).ok());
-                files.insert(name.to_string(), text);
+        let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+        for (_, place, written) in writes {
+            if fs::canonicalize(place).unwrap_or_else(|_| place.clone()) != root {
+                continue;
+            }
+            for file in written {
+                if let Some(name) = in_folder(&file.path, folder_path) {
+                    let text = file
+                        .after
+                        .clone()
+                        .and_then(|bytes| String::from_utf8(bytes).ok());
+                    files.insert(name.to_string(), text);
+                }
             }
         }
+        files
     }
-    files
 }
 
 /// The name of `path` when it is a file directly in the folder `folder_path`.
