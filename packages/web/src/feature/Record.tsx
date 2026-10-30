@@ -115,6 +115,7 @@ function Questions({
         onOpenChange: (isOpen) => keys.onOpenChange(QUESTIONS_KEY, isOpen),
       }}
       id="record-questions"
+      isSnugOnPhone
       title="Questions"
       titleSuffix={`in ${plural(rounds, "round")}`}
     >

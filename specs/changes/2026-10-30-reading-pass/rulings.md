@@ -39,3 +39,23 @@ decisions. None binds future work: those are decisions.
 - **If wrong**: a table drawn past its pane looks out of place: drop the growth in `TableBlock`, and
   it scrolls inside again.
 - **Where**: `packages/web/src/Blocks.tsx`, `TableBlock`
+
+## R4: The UI look decision's phone rule stays as approved
+
+- **Decision**: the rule reads as approved in round 01, for every pane on the phone, though only a
+  reading page's panes take the 2 px and 3 px room; a home card or a session's pane keeps its own.
+- **Rationale**: the human approved this wording, and the rule it replaced was as wide: it too held
+  only for the panes that opted in. Narrowing it is a change of an active decision, for a round.
+- **If wrong**: a review against the rule would ask for the room on every page: scope the rule to
+  reading pages, with the human's approval.
+- **Where**: `specs/decisions/ui-look.md`
+
+## R5: Small review findings left as they are
+
+- **Decision**: three points stay. The answered round keeps "stays proposed until you approve it",
+  as it read when asked: the decision commit records the approval. A question's options set
+  `--pane-phone-reach` to `0%`, as `calc(2px - 0)` is not valid CSS and the token lint refuses a raw
+  `0px`. A table's frame reads its holder's room when drawn and when the width class changes, not
+  when it moves from a card to a pane, which no view does.
+- **Rationale**: none changes what a user sees.
+- **Where**: `clarifications-01.md`, `packages/web/src/Question.tsx`, `packages/web/src/Blocks.tsx`
