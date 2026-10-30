@@ -15,8 +15,16 @@ Feature state pass
   session
   - If a session is running, it should always be visible in the sidebar/card/feature page
   - Generally we need better handling of "corner cases" of feature state/session state
+- A session is always marked as "warning" if it was stopped by an error (server crash), and there's
+  no way to remove that status.
 
 ## Why
+
+Right now when I do some manual changes to files it's often all fucked up.
+
+Or an agent is working on task 16 but it still show task 13 in the UI.
+
+Overall it's all very faulty, laggy, and sometimes just wrong.
 
 ## Notes
 

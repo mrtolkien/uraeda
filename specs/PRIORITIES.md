@@ -6,7 +6,7 @@
 >
 > Features for v1.0.0
 
-- [Feature state pass](proposals/feature-state-pass/proposal.md)
+- [Feature state pass](/specs/2026-10-30-feature-state/proposal.md)
 
 - Empty inbox
 
