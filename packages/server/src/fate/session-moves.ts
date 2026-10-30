@@ -91,7 +91,7 @@ async function startChange(ctx: RepoContext, text: string, slug?: string) {
     try {
       return await landedStart(
         ctx,
-        (onStep) => ctx.binding.startChange(ctx.repo, text, [], slug, onStep),
+        (onStep) => ctx.binding.startChange(ctx.repo, text, [], slug, undefined, onStep),
         async (started) => started,
         slug,
       );

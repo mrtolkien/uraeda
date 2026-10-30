@@ -134,11 +134,14 @@ Do these only when a human asks.
   `change/YYYY-MM-DD-<slug>`, and the worktree `.worktrees/YYYY-MM-DD-<slug>/`. In the web UI,
   Change on the New page starts one from a typed request, an inbox note, or a proposal line, with no
   proposal file: a note's text is its request, and the note leaves `INBOX.md` in a commit of its
-  own. A session's offer starts one too: see [Change](change.md#starting-a-change). With `ura`,
-  `ura start <proposal> --slug <slug> --change` starts a proposal file as a change, and refuses a
-  postponed folder holding files a change's folder has no place for, like a feature's `spec.md`:
-  start that one as a feature. By hand, the steps above, with the proposal linked to
-  `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the [change](change.md) step.
+  own. A line of **Now** started as a change is replaced by the change's link in the start commit,
+  as a feature's proposal is. Its nested lines go into the change's proposal. A line changed since
+  it was read stays, and the link is added above it. A session's offer starts one too: see
+  [Change](change.md#starting-a-change). With `ura`, `ura start <proposal> --slug <slug> --change`
+  starts a proposal file as a change, and refuses a postponed folder holding files a change's folder
+  has no place for, like a feature's `spec.md`: start that one as a feature. By hand, the steps
+  above, with the proposal linked to `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the
+  [change](change.md) step.
 - **Start a change as a feature**: on the human's yes, a started change becomes a feature in place.
   It keeps its code, its worktree, and its sessions. With `ura`, `ura start <change> --feature`. By
   hand, as [Upgrading](change.md#upgrading) says.

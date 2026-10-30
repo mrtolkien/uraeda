@@ -89,7 +89,8 @@ export type Taken = { id: string; kind: "line" | "note"; linked?: string | undef
 /**
  * Takes the entries out of their file, as a start from them does: a note leaves `INBOX.md`, a
  * proposal `PRIORITIES.md`. A refused removal leaves the entry where it is: the start already
- * happened.
+ * happened. A change's start replaces the first line of Now it was filled from itself, in its
+ * commit: that line is not one of `taken`.
  */
 export async function takeOut(fate: Fate, taken: ReadonlyArray<Taken>) {
   for (const entry of taken) {

@@ -28,8 +28,11 @@ export type Entry = {
   text: string;
 };
 
-/** An entry the composer was filled from: what a start takes out of its file. */
-export type Source = Pick<Entry, "id" | "kind" | "linked"> & {
+/**
+ * An entry the composer was filled from: what a start takes out of its file, and its text, which
+ * finds a line of Now again.
+ */
+export type Source = Pick<Entry, "id" | "kind" | "linked" | "text"> & {
   /** The text inserted, to tell whether the composer still holds what it was filled with. */
   inserted: string;
 };

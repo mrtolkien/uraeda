@@ -8,7 +8,7 @@ use crate::actions::expand::listed;
 use crate::actions::place;
 use crate::check::change_holds;
 use crate::files::markdown::Document;
-use crate::files::priorities::{self, Proposal};
+use crate::files::priorities::{self, Proposal, Section};
 use crate::git::{Git, GitError};
 use crate::target::proposal_name;
 use crate::today::Date;
@@ -125,10 +125,11 @@ impl<'a> Proposed<'a> {
     }
 }
 
-/// What a start starts from, read: a proposal file, or a typed change and its number of images.
+/// What a start starts from, read: a proposal file, or a typed change, its number of images, and
+/// the text of the line of **Now** it starts from, if any.
 enum Origin<'a> {
     Proposal(Proposed<'a>),
-    Text(&'a Typed, usize),
+    Text(&'a Typed, usize, Option<&'a str>),
 }
 
 /// Everything a start writes, settled before anything is written.
@@ -202,7 +203,11 @@ impl Start<'_> {
     ) -> Result<Plan, StartError> {
         let origin = match self.source {
             Source::Proposal(proposal) => Origin::Proposal(Proposed::read(self.root, proposal)?),
-            Source::Text { typed, images } => Origin::Text(typed, images.len()),
+            Source::Text {
+                typed,
+                images,
+                line,
+            } => Origin::Text(typed, images.len(), line),
         };
         if let Origin::Proposal(proposed) = &origin
             && self.kind == Kind::Change
@@ -212,7 +217,7 @@ impl Start<'_> {
         let slug = slug.map_or_else(
             || match &origin {
                 Origin::Proposal(proposed) => crate::slug::short(proposal_name(proposed.proposal)),
-                Origin::Text(typed, _) => typed.proposed_slug(),
+                Origin::Text(typed, ..) => typed.proposed_slug(),
             },
             str::to_string,
         );
@@ -250,11 +255,11 @@ impl Start<'_> {
                 let write_left = format!("move {} to {destination}", proposed.proposal);
                 (name, priorities, nested, write_left)
             }
-            Origin::Text(typed, images) => {
+            Origin::Text(typed, images, line) => {
                 let name = typed.title.clone();
-                let priorities = priorities::add_started(&priorities_text, &name, &target);
+                let (priorities, nested) = started_line(&priorities_text, typed, *line, &target);
                 let write_left = typed_write_left(&destination, *images);
-                (name, priorities, Vec::new(), write_left)
+                (name, priorities, nested, write_left)
             }
         };
         let postponed = matches!(&origin, Origin::Proposal(proposed) if proposed.postponed);
@@ -406,6 +411,38 @@ fn typed_write_left(destination: &str, images: usize) -> String {
     } else {
         format!("{proposal}, and its images in {destination}/images/")
     }
+}
+
+/// `PRIORITIES.md` with a typed change's link to `target` on top of **Now**, in place of the line
+/// of **Now** it starts from, `line`, when **Now** holds it once, without a link: a line changed
+/// since it was read stays. Then the lines nested under the line, which the change's proposal
+/// takes, but for those the typed text holds already.
+fn started_line(
+    priorities_text: &str,
+    typed: &Typed,
+    line: Option<&str>,
+    target: &str,
+) -> (String, Vec<String>) {
+    let name = &typed.title;
+    let found: Vec<Proposal> = line.map_or_else(Vec::new, |line| {
+        priorities::parse(priorities_text)
+            .into_iter()
+            .filter(|p| p.section == Section::Now && p.link.is_none() && p.text == line)
+            .collect()
+    });
+    let moved = match found.as_slice() {
+        [found] => priorities::move_to_started(priorities_text, found.line, name, target)
+            .map(|edited| (edited, found.nested(priorities_text))),
+        _ => None,
+    };
+    let Some((edited, nested)) = moved else {
+        return (
+            priorities::add_started(priorities_text, name, target),
+            Vec::new(),
+        );
+    };
+    let held = nested.iter().all(|line| typed.holds(line));
+    (edited, if held { Vec::new() } else { nested })
 }
 
 /// The feature's name, `PRIORITIES.md` with its proposal moved to the top of **Now** as a link

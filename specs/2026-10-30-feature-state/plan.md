@@ -418,11 +418,14 @@ git commit -m "fix(feature-state): watch a re-created worktree, and report a bur
 
 - Modify: `crates/core/src/actions/start/typed.rs` (`Typed::read`'s title)
 - Modify: `crates/core/src/actions/start/plan.rs` (`plan`, the typed origin)
-- Modify: `crates/core/src/actions/start/mod.rs` (`Source::Text` gains the line)
-- Modify: `crates/core/src/api/start.rs` (`start_change`), `crates/binding/src/start.rs`, and the
-  CLI's caller of `start_change`, which passes `None`
-- Modify: `packages/server/src/fate/change-starts.ts` (`change.start` takes `line`)
-- Modify: `packages/web/src/NewChangePage.tsx` and `packages/web/src/useStartFrom.ts`
+- Modify: `crates/core/src/actions/start/mod.rs` (`Source::Text` and `run_text_with` gain the line;
+  `run_text`, `ura`'s, passes `None`)
+- Modify: `crates/core/src/api/start.rs` (`start_change`), `crates/binding/src/start.rs`, and
+  `crates/core/tests/api.rs`, whose call passes `None`
+- Modify: `packages/server/src/fate/change-starts.ts` (`change.start` takes `line`; a note's start
+  passes none), and `packages/server/src/fate/session-moves.ts`, which passes none
+- Modify: `packages/web/src/NewChangePage.tsx`, `packages/web/src/useStartFrom.ts`, and
+  `packages/web/src/NewEntries.tsx` with `NewPage.tsx` (a composer's source keeps its text)
 - Modify: `skills/uraeda/references/projects.md` (a change's start from a line)
 - Test: `crates/core/tests/actions.rs`
 
@@ -440,7 +443,7 @@ git commit -m "fix(feature-state): watch a re-created worktree, and report a bur
   - The title of a typed start: as `Typed::read` cut it, now at its last whole word, with "…", so
     that it holds at most 80 characters.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/actions.rs
@@ -465,12 +468,12 @@ The break each test catches:
 - Line: a start that finds the line by a position, or leaves it and adds a link.
 - Title: a cut mid-word, or a title of 81 characters with the "…".
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test actions`
 - Expected: FAIL, the line stays in **Now**, and the title ends "be s".
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `plan`, a typed origin with a line found once uses `priorities::move_to_started`, as
 `moved_proposal` does, and its nested lines go into the proposal's body, unless the typed text
@@ -479,12 +482,12 @@ it out of `takeOut`: the start commits its removal. Notes and other sources keep
 `projects.md`, say that a change started from a line of **Now** replaces the line with its link, as
 a feature's start does. Rebuild the binding.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding packages/server packages/web skills/uraeda/references/projects.md specs/2026-10-30-feature-state/plan.md

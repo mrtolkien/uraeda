@@ -419,6 +419,7 @@ fn a_change_with_an_image_of_the_wrong_type_writes_nothing() {
         "Fix the crash",
         &[still, drawing],
         Some("crash"),
+        None,
         &|_| {},
     );
 

@@ -8,12 +8,12 @@ use crate::images::Encoded;
 use super::plan::Plan;
 use super::{Start, StartError, partial};
 
-/// The longest title, in characters: a longer first line is cut there.
+/// The longest title, in characters, "…" included: a longer first line is cut under it.
 const TITLE_LIMIT: usize = 80;
 
 /// A typed text, read as a proposal.
 pub(super) struct Typed {
-    /// The first written line, trimmed, without heading marks, and cut at 80 characters.
+    /// The first written line, trimmed, without heading marks, and cut under 80 characters.
     pub(super) title: String,
     /// The text under the title: the whole first line, unmarked, when it was cut, then the rest as
     /// typed.
@@ -34,14 +34,20 @@ impl Typed {
         })?;
         let first = unmarked(line);
         let rest = trim_ends(&text[offset + line.len()..]);
-        let title: String = first.chars().take(TITLE_LIMIT).collect();
-        let title = title.trim_end().to_string();
-        let body = match (title.len() < first.len(), rest.is_empty()) {
+        let title = cut(first);
+        let body = match (title != first, rest.is_empty()) {
             (true, true) => first.to_string(),
             (true, false) => format!("{first}\n\n{rest}"),
             (false, _) => rest.to_string(),
         };
         Some(Typed { title, body })
+    }
+
+    /// Whether the text under the title holds `line`, a line of a list: its words, without its
+    /// marker or its indent.
+    pub(super) fn holds(&self, line: &str) -> bool {
+        let words = unlisted(line);
+        words.is_empty() || self.body.lines().any(|typed| unlisted(typed) == words)
     }
 
     /// The slug proposed for it: the short slug of its title's words.
@@ -60,6 +66,39 @@ impl Typed {
             parts.push(format!("![Image {}](images/{image})", index + 1));
         }
         parts.join("\n\n") + "\n"
+    }
+}
+
+/// A line cut at its last whole word, with "…", to hold at most [`TITLE_LIMIT`] characters, or at
+/// the limit's last character when its words are longer: whole when it fits.
+fn cut(line: &str) -> String {
+    if line.chars().count() <= TITLE_LIMIT {
+        return line.to_string();
+    }
+    // The characters before "…", and whether the next one starts a word of its own.
+    let kept: String = line.chars().take(TITLE_LIMIT - 1).collect();
+    let whole = line[kept.len()..].starts_with(char::is_whitespace);
+    let words = match kept.rfind(char::is_whitespace) {
+        Some(_) if whole => kept.as_str(),
+        Some(end) => &kept[..end],
+        None => kept.as_str(),
+    };
+    format!("{}…", words.trim_end())
+}
+
+/// A line of a list trimmed, without its marker: `- [x] Item` and `1. Item` are `[x] Item` and
+/// `Item`.
+fn unlisted(line: &str) -> &str {
+    let line = line.trim();
+    let digits = line.trim_start_matches(|c: char| c.is_ascii_digit());
+    let rest = if digits.len() < line.len() {
+        digits.strip_prefix(['.', ')'])
+    } else {
+        line.strip_prefix(['-', '*', '+'])
+    };
+    match rest {
+        Some(rest) if rest.is_empty() || rest.starts_with(char::is_whitespace) => rest.trim(),
+        _ => line,
     }
 }
 

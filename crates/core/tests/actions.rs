@@ -2094,18 +2094,113 @@ fn a_typed_text_with_a_blank_first_line_takes_its_first_written_line() {
     );
 }
 
-/// The spec's assumption: a first line over 80 characters is cut for the title, and kept whole.
+/// US6.2: a first line over 80 characters is cut for the title at its last whole word, with "…",
+/// and kept whole; a first 80 characters without a space are cut at 79.
 #[test]
 fn a_long_first_line_is_cut_for_the_title_and_kept_whole() {
+    let unbroken = "x".repeat(100);
+    let rows = [
+        (
+            "Add ? in status, after leader. It should show all shortcuts of the page and be searchable",
+            "Add ? in status, after leader. It should show all shortcuts of the page and be…"
+                .to_string(),
+        ),
+        (unbroken.as_str(), format!("{}…", "x".repeat(79))),
+    ];
+    for (line, title) in rows {
+        let repo = proposal_file_repo();
+
+        start_text(&repo, &format!("{line}\n\nMore."), &[], Some("centred-x")).unwrap();
+
+        assert!(title.chars().count() <= 80, "{title}");
+        assert_eq!(
+            in_change(&repo, &format!("specs/changes/{CHANGE_FOLDER}/proposal.md")),
+            format!("# {title}\n\n{line}\n\nMore.\n")
+        );
+    }
+}
+
+/// A line of **Now**, with a nested line, for a change to start from.
+const NOW_LINE: &str =
+    "Amend the latest commit if the commit touches only workflow files (proposals/notes)";
+
+/// The proposal file repository, with [`NOW_LINE`] in **Now**, under a started feature's link.
+fn now_line_repo() -> TestRepo {
     let repo = proposal_file_repo();
-    let line = format!("{} tail", "word ".repeat(16).trim_end());
+    repo.write(
+        "specs/PRIORITIES.md",
+        &format!(
+            "# Priorities\n\n## Now\n\n- [Leader key](/specs/2026-10-01-leader-key/proposal.md)\n\n\
+             - Faster search\n- {NOW_LINE}\n  - only when nothing was pushed\n\n## Next\n\n\
+             - [Login banner](proposals/login-banner.md)\n\n## Later\n\n## Blocked\n"
+        ),
+    );
+    repo.commit("chore: add a line to Now");
+    repo
+}
 
-    start_text(&repo, &format!("{line}\n\nMore."), &[], Some("centred-x")).unwrap();
+/// Starts `text` as a change from the line `line` of **Now**, on the change's day, as `amend`.
+fn start_line(repo: &TestRepo, text: &str, line: &str) -> start::Started {
+    let (git, workspace) = opened(repo);
+    let run = start::Run::plain(change_day(), false);
+    start::run_text_with(&git, &workspace, text, &[], Some("amend"), Some(line), &run).unwrap()
+}
 
-    let title: String = line.chars().take(80).collect();
+/// US6.1: a change started from a line of **Now** replaces it by its link, in the start commit, its
+/// nested line going into the proposal.
+#[test]
+fn a_start_from_a_line_of_now_replaces_it_by_its_link() {
+    let repo = now_line_repo();
+
+    start_line(&repo, NOW_LINE, NOW_LINE);
+
+    let title = "Amend the latest commit if the commit touches only workflow files…";
     assert_eq!(
-        in_change(&repo, &format!("specs/changes/{CHANGE_FOLDER}/proposal.md")),
-        format!("# {}\n\n{line}\n\nMore.\n", title.trim_end())
+        repo.git(&["show", "main:specs/PRIORITIES.md"]),
+        format!(
+            "# Priorities\n\n## Now\n\n- [Leader key](/specs/2026-10-01-leader-key/proposal.md)\n\
+             - [{title}](/specs/changes/2026-10-16-amend/proposal.md)\n\n- Faster search\n\n\
+             ## Next\n\n- [Login banner](proposals/login-banner.md)\n\n## Later\n\n## Blocked\n"
+        )
+    );
+    assert_eq!(
+        repo.git(&["show", "main:specs/changes/2026-10-16-amend/proposal.md"]),
+        format!("# {title}\n\n{NOW_LINE}\n\n- only when nothing was pushed\n")
+    );
+}
+
+/// US6 more 1: a line changed before the start stays, and the link is added, as for typed text.
+#[test]
+fn a_start_from_a_changed_line_adds_its_link_and_leaves_the_line() {
+    let repo = now_line_repo();
+
+    start_line(&repo, "Amend the commit", "Amend the commit");
+
+    let priorities = repo.git(&["show", "main:specs/PRIORITIES.md"]);
+    assert!(
+        priorities.contains(&format!(
+            "- [Amend the commit](/specs/changes/2026-10-16-amend/proposal.md)\n\n\
+             - Faster search\n- {NOW_LINE}\n  - only when nothing was pushed\n"
+        )),
+        "{priorities}"
+    );
+}
+
+/// A composer's text that holds the line's nested line already does not take it twice.
+#[test]
+fn a_start_from_a_line_keeps_a_nested_line_the_text_holds() {
+    let repo = now_line_repo();
+    let text = format!(
+        "{NOW_LINE}\n- only when nothing was pushed\nFrom [PRIORITIES.md](/specs/PRIORITIES.md)"
+    );
+
+    start_line(&repo, &text, NOW_LINE);
+
+    let proposal = repo.git(&["show", "main:specs/changes/2026-10-16-amend/proposal.md"]);
+    assert_eq!(
+        proposal.matches("only when nothing was pushed").count(),
+        1,
+        "{proposal}"
     );
 }
 

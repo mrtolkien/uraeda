@@ -77,9 +77,11 @@ pub fn start_feature(
 }
 
 /// Starts a change typed as a text, with its images, in its own worktree: the first written line
-/// is its title. Its steps go to `onStep` as `startFeature`'s do.
+/// is its title. Given `line`, the text of a line of **Now** it starts from, the start commit
+/// replaces that line by the change's link while **Now** holds it once. Its steps go to `onStep` as
+/// `startFeature`'s do.
 #[napi(
-    ts_args_type = "repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null",
+    ts_args_type = "repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null, line?: string | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null",
     ts_return_type = "Promise<StartedView>"
 )]
 pub fn start_change(
@@ -87,12 +89,18 @@ pub fn start_change(
     text: String,
     images: Vec<Buffer>,
     slug: Option<String>,
+    line: Option<String>,
     on_step: Option<OnStep>,
 ) -> AsyncTask<Job<StartedView>> {
     let images: Vec<Vec<u8>> = images.iter().map(|image| image.to_vec()).collect();
     job(move || {
-        api::start_change(Path::new(&repo), &text, &images, slug.as_deref(), &|step| {
-            report(on_step.as_ref(), step);
-        })
+        api::start_change(
+            Path::new(&repo),
+            &text,
+            &images,
+            slug.as_deref(),
+            line.as_deref(),
+            &|step| report(on_step.as_ref(), step),
+        )
     })
 }
