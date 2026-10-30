@@ -176,3 +176,89 @@ fn a_watch_stopped_keeps_nothing() {
     round_text(&repo);
     assert_eq!(cache_stats(repo.path()).hits, 0);
 }
+
+const DECISION: &str = "specs/decisions/git.md";
+
+fn decision_text(title: &str) -> String {
+    format!("---\nstatus: active\n---\n\n# {title}\n\nGit is the store.\n")
+}
+
+/// The ledger's decision `git`: its title and the date of its last change.
+fn git_decision(repo: &TestRepo) -> (String, Option<String>) {
+    let ledger = api::read_ledger(repo.path()).unwrap();
+    let decision = ledger
+        .decisions
+        .into_iter()
+        .find(|decision| decision.name == "git")
+        .unwrap();
+    (decision.title, decision.changed)
+}
+
+/// A repository with the decision `git`, committed on 2026-10-12.
+fn ledger_repo() -> TestRepo {
+    let repo = repo();
+    repo.write(DECISION, &decision_text("Git"));
+    repo.commit_at("decision: git", "2026-10-12T12:00:00+00:00");
+    repo
+}
+
+/// The ledger is kept, and a decision edited outside Uraeda shows on the next read.
+#[test]
+fn an_edited_decision_shows_on_the_next_ledger_read_once_the_watcher_saw_it() {
+    let repo = ledger_repo();
+    let (_watcher, receiver) = watching(&repo);
+    git_decision(&repo);
+    let before = cache_stats(repo.path()).hits;
+    git_decision(&repo);
+    assert_eq!(cache_stats(repo.path()).hits, before + 1);
+
+    repo.write(DECISION, &decision_text("Git, edited"));
+    next(&receiver);
+
+    assert_eq!(git_decision(&repo).0, "Git, edited");
+}
+
+/// A commit on the default branch moves a decision's date, read from the commits since the last
+/// read; a reset to an older commit moves it back.
+#[test]
+fn a_decisions_commit_shows_its_date_on_the_next_ledger_read() {
+    let repo = ledger_repo();
+    let (_watcher, receiver) = watching(&repo);
+    assert_eq!(git_decision(&repo).1.as_deref(), Some("2026-10-12"));
+
+    repo.write(DECISION, &decision_text("Git, again"));
+    repo.commit_at("decision: git again", "2026-10-14T12:00:00+00:00");
+    next(&receiver);
+    assert_eq!(git_decision(&repo).1.as_deref(), Some("2026-10-14"));
+
+    repo.git(&["reset", "--quiet", "--hard", "HEAD~1"]);
+    next(&receiver);
+    assert_eq!(git_decision(&repo).1.as_deref(), Some("2026-10-12"));
+}
+
+/// A ledger read that runs while a decision changes never keeps what it read before the change.
+#[test]
+fn a_ledger_read_racing_a_change_never_keeps_the_old_ledger() {
+    let repo = ledger_repo();
+    let (_watcher, receiver) = watching(&repo);
+    let (held, is_held) = mpsc::channel();
+    let (release, released) = mpsc::channel::<()>();
+    let once = Mutex::new(Some((held, released)));
+    before_storing(repo.path(), move || {
+        let first = once.lock().unwrap().take();
+        if let Some((held, released)) = first {
+            held.send(()).unwrap();
+            released.recv().unwrap();
+        }
+    });
+    let root = repo.path().to_path_buf();
+    let reader = std::thread::spawn(move || api::read_ledger(&root).unwrap());
+    is_held.recv().unwrap();
+
+    repo.write(DECISION, &decision_text("Git, edited"));
+    next(&receiver);
+    release.send(()).unwrap();
+
+    reader.join().unwrap();
+    assert_eq!(git_decision(&repo).0, "Git, edited");
+}

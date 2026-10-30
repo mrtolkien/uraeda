@@ -4,8 +4,11 @@
 //! was read from, until the next change: every file event the watcher sees, and every write's end,
 //! moves the repository's generation, which drops what was kept. A read stores what it read only
 //! when the generation did not move while it read, so a read that raced a change never keeps what
-//! it saw before it. Without a watch nothing is kept, and every read reads git.
+//! it saw before it. Without a watch nothing is kept, and every read reads git. The reads that do
+//! not read the workspace, like the ledger and a feature's history, are kept the same way, by their
+//! name, with [`kept`].
 
+use std::any::Any;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -67,6 +70,9 @@ impl Read {
 
 type Hook = Arc<dyn Fn() + Send + Sync>;
 
+/// A value another read computed, kept by [`kept`].
+type Value = Arc<dyn Any + Send + Sync>;
+
 /// The last generation given to a repository: one counter for the process, so an entry made
 /// again never has a generation a read before it saw.
 static GENERATIONS: AtomicU64 = AtomicU64::new(0);
@@ -85,6 +91,9 @@ struct Repository {
     generation: u64,
     /// The reads kept, by the working tree read from, with the generation they were read at.
     kept: HashMap<PathBuf, (u64, Arc<Read>)>,
+    /// The values of the other reads kept, by the working tree read from and their name, with the
+    /// generation they were read at.
+    values: HashMap<(PathBuf, String), (u64, Value)>,
     stats: CacheStats,
     /// Called by a read between reading git and storing what it read, for the tests.
     before_storing: Option<Hook>,
@@ -97,6 +106,7 @@ impl Default for Repository {
             watches: 0,
             generation: next_generation(),
             kept: HashMap::new(),
+            values: HashMap::new(),
             stats: CacheStats::default(),
             before_storing: None,
         }
@@ -107,6 +117,7 @@ impl Repository {
     fn change(&mut self) {
         self.generation = next_generation();
         self.kept.clear();
+        self.values.clear();
     }
 
     fn unused(&self) -> bool {
@@ -199,6 +210,56 @@ pub(crate) fn read(git: &Git) -> Result<Arc<Read>, WorkspaceError> {
         }
     });
     Ok(read)
+}
+
+/// The value named `name` of the working tree `git` opened, from memory when a read since the last
+/// change kept it, else computed by `read` and kept, as [`read`] keeps a workspace. `name` names
+/// what `read` reads, its arguments included: two reads of one name are the same read.
+pub(crate) fn kept<T, E>(git: &Git, name: &str, read: impl FnOnce() -> Result<T, E>) -> Result<T, E>
+where
+    T: Clone + Send + Sync + 'static,
+{
+    let key = git.main_root();
+    let slot = (git.root().to_path_buf(), name.to_string());
+    let lookup = repositories(|repositories| {
+        let repository = repositories
+            .get_mut(&key)
+            .filter(|r| r.watches > 0 && !r.writing)?;
+        let found = repository
+            .values
+            .get(&slot)
+            .filter(|(generation, _)| *generation == repository.generation)
+            .and_then(|(_, value)| value.downcast_ref::<T>().cloned());
+        if let Some(value) = found {
+            repository.stats.hits = repository.stats.hits.saturating_add(1);
+            return Some(Ok(value));
+        }
+        repository.stats.reads = repository.stats.reads.saturating_add(1);
+        Some(Err((
+            repository.generation,
+            repository.before_storing.clone(),
+        )))
+    });
+    let (generation, hook) = match lookup {
+        Some(Ok(value)) => return Ok(value),
+        Some(Err(missed)) => missed,
+        None => return read(),
+    };
+    let value = read()?;
+    if let Some(hook) = hook {
+        hook();
+    }
+    repositories(|repositories| {
+        if let Some(repository) = repositories.get_mut(&key)
+            && repository.watches > 0
+            && !repository.writing
+            && repository.generation == generation
+        {
+            let kept: Value = Arc::new(value.clone());
+            repository.values.insert(slot, (generation, kept));
+        }
+    });
+    Ok(value)
 }
 
 /// The reads of the repository holding `repo` since its watch started; none without a watch.

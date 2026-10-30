@@ -862,6 +862,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   message predicted before the commits landed; the human's own words are never overwritten.
 - **Where**: `packages/web/src/data.ts` (`useWorkflowMessage`), `packages/web/src/useDraft.ts`,
   review of the web UI.
+
 ## R71: The benchmark's first run misses on the Ledger, History, the round, and two writes
 
 - **Decision**: the first runs of `vp run performance`, on 2026-10-30, on an AMD Ryzen 9 5950X (16
@@ -923,3 +924,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: Send is never pressed, so SC-004's "send it and open another page" is timed only as
   the other page, opened while the steps run; Claude Code shows as not available on the session.
 - **Where**: `packages/web/scripts/performance*.ts`, task 16.
+
+## R79: The ledger is kept like the workspace, and its dates read only the commits since
+
+- **Decision**: `read_ledger` answers from the core's read cache, kept per working tree by the name
+  `ledger` until the watcher's next event or a write's end, as the workspace is (`cache::kept`).
+  Each decision's date, the slowest part, about 100 ms of `git log --name-only` over the default
+  branch's 3,229 commits, is kept for the process by the default branch's tip it was read at: a tip
+  that moved on from it reads `git log <old>..<new>` alone, and any other tip, like a reset, reads
+  the whole history again. The dates are read with `--full-history`, each the latest of its commits'
+  dates, so the dates of a range merged over those of its start are the dates read whole. On the
+  clone of this repository, a release binding, measured with the core directly: 117 to 139 ms
+  before; 25 ms on the first read once watched, 3 to 4 ms from memory, 28 ms on the first read after
+  a commit on the default branch.
+- **Rationale**: the Performance decision: "The server MUST answer reads from what it already read,
+  reading git again only for what changed since." The ledger read missed SC-001 and SC-006 (R71).
+- **If wrong**: a decision whose link points outside `specs/` keeps its link's problem until the
+  next event, as a feature's checked problems do: the watcher sees only `specs/` and git's
+  references. A decision changed only by a side branch a merge discarded now shows that branch's
+  date, as `--full-history` counts it.
+- **Where**: `crates/core/src/cache.rs` (`kept`), `crates/core/src/api/ledger.rs`,
+  `crates/core/src/api/ledger/dates.rs`, `crates/core/src/git/log.rs` (`last_changes`),
+  `crates/core/tests/cache.rs`.
