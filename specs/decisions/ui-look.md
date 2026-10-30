@@ -39,7 +39,7 @@ The UI looked vanilla and unfinished, and of five directions mocked up over the 
 terminal one read best. Catppuccin's Mocha and Latte give a dark and a light mode, with more schemes
 to come. On a phone, a pane's whole border sets its text apart, and a few pixels of room keep the
 narrow lines wide
-([the question](../changes/2026-10-30-reading-pass/clarifications-01.md#q2-should-a-pane-keep-its-whole-border-on-the-phone)).
+([the question](../done/2026-10-30-reading-pass.md#q2-should-a-pane-keep-its-whole-border-on-the-phone)).
 Fonts are bundled because the server listens on its own machine and often runs offline. History:
 [Layout and look](../done/2026-10-20-layout-look.md).
 
