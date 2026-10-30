@@ -1,6 +1,9 @@
 // Uraeda's own Storybook: the stories of `packages/web/src`, fed by Uraeda's real server over a fresh
 // copy of the fixture repository, on the fake agent (see `specs/decisions/preview.md`). The skill's
 // helper wraps the config, so Uraeda serves it under its own address when it runs it.
+// First: a binding missing, as in a new worktree, or older than the Rust core, is built before the
+// fixture's server below loads it.
+import "uraeda-server/fresh-binding";
 import type { StorybookConfig } from "@storybook/react-vite";
 import type { Plugin, PluginOption } from "vite-plus";
 import uraedaPreview from "../../../skills/uraeda/assets/storybook/uraeda-preview.js";

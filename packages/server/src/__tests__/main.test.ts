@@ -5,6 +5,7 @@ import {
   readdirSync,
   readFileSync,
   realpathSync,
+  rmSync,
   statSync,
   utimesSync,
   writeFileSync,
@@ -510,6 +511,19 @@ test("rebuilds a binding older than the Rust core, as vp dev and the tests do be
   freshBinding(root, (at) => {
     built.push(at);
     utimesSync(join(at, "packages/binding/uraeda-binding.linux-x64-gnu.node"), 300, 300);
+  });
+
+  expect(built).toEqual([root]);
+});
+
+test("builds a checkout's missing binding, as in a new worktree whose Storybook loads it", () => {
+  const root = checkout(100, 200);
+  rmSync(join(root, "packages/binding/uraeda-binding.linux-x64-gnu.node"));
+  const built: Array<string> = [];
+
+  freshBinding(root, (at) => {
+    built.push(at);
+    writeFileSync(join(at, "packages/binding/uraeda-binding.linux-x64-gnu.node"), "");
   });
 
   expect(built).toEqual([root]);

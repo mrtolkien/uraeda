@@ -30,21 +30,38 @@ function latest(path: string): number {
   return Math.max(stat.mtimeMs, ...readdirSync(path).map((name) => latest(join(path, name))));
 }
 
+/** The checkout's built bindings, and the paths of what they are built from that exist. */
+function built(root: string): { bindings: Array<string>; sources: Array<string> } {
+  const folder = join(root, "packages/binding");
+  const bindings = existsSync(folder)
+    ? readdirSync(folder)
+        .filter((name) => name.endsWith(".node"))
+        .map((name) => join(folder, name))
+    : [];
+  const sources = SOURCES.map((source) => join(root, source)).filter((path) => existsSync(path));
+  return { bindings, sources };
+}
+
 /**
  * Whether the checkout's built binding is older than what it is built from, as after a pull that
  * changed the core. Outside a checkout of the repository, with no Rust to compare to, it never is.
  */
 function stale(root: string): boolean {
-  const folder = join(root, "packages/binding");
-  const built = existsSync(folder)
-    ? readdirSync(folder).filter((name) => name.endsWith(".node"))
-    : [];
-  const sources = SOURCES.map((source) => join(root, source)).filter((path) => existsSync(path));
-  if (built.length === 0 || sources.length === 0) {
+  const { bindings, sources } = built(root);
+  if (bindings.length === 0 || sources.length === 0) {
     return false;
   }
-  const binding = Math.min(...built.map((name) => statSync(join(folder, name)).mtimeMs));
+  const binding = Math.min(...bindings.map((path) => statSync(path).mtimeMs));
   return Math.max(...sources.map(latest)) > binding;
+}
+
+/**
+ * Whether the checkout has the Rust a binding is built from, and no binding built, as a new
+ * worktree after its install.
+ */
+function missing(root: string): boolean {
+  const { bindings, sources } = built(root);
+  return bindings.length === 0 && sources.length > 0;
 }
 
 /**
@@ -60,20 +77,29 @@ export function checkBinding(root: string): void {
 }
 
 /**
- * Rebuilds the checkout's binding when it is older than the Rust core, before anything loads it:
- * `vp dev` and the tests then run the core as it is, instead of refusing to. `vp run binding:touch`
- * takes the build from Vite Task's cache, or from cargo, then marks it built now. Node cannot
- * reload a binding it loaded, so this runs first, in the configs of the packages that load it.
+ * Builds the checkout's binding when it is missing, as in a new worktree, or older than the Rust
+ * core, before anything loads it: `vp dev`, the tests, and Storybook then run the core as it is,
+ * instead of failing to load it or refusing to. `vp run binding:touch` takes the build from Vite
+ * Task's cache, or from cargo, then marks it built now. Node cannot reload a binding it loaded, so
+ * this runs first, in the configs that load it.
  */
 export function freshBinding(
   root: string | null,
   build: (root: string) => void = (root) =>
     execFileSync("vp", ["run", "binding:touch"], { cwd: root, stdio: "inherit" }),
 ): void {
-  if (root === null || !stale(root)) {
+  if (root === null) {
     return;
   }
-  process.stderr.write("[uraeda] The native binding is older than the Rust core: rebuilding it…\n");
+  if (missing(root)) {
+    process.stderr.write("[uraeda] The native binding is not built: building it…\n");
+  } else if (stale(root)) {
+    process.stderr.write(
+      "[uraeda] The native binding is older than the Rust core: rebuilding it…\n",
+    );
+  } else {
+    return;
+  }
   build(root);
   checkBinding(root);
 }
