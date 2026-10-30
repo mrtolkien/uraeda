@@ -179,10 +179,15 @@ function TableBlock({ block, context }: { block: Block; context: BlockContext })
   const grows = inPane && wide;
   // Its holder's room at each side, which its rows' lines run through (`--table-bleed`).
   const [bleed, setBleed] = useState(0);
-  // Its columns' width, and on each side once it grows, its border and the same room inside it.
-  const grow = useOutgrow(ref, grows, tableWidth(block, context), 2 + 2 * bleed);
+  // Its columns' width, and on each side once it grows, its border and the same room inside it:
+  // none while it fits.
+  const grow = useOutgrow(ref, grows, tableWidth(block, context), {
+    frame: 2 + 2 * bleed,
+    isPastOnly: true,
+  });
   const grown = grow.start > 0 || grow.end > 0;
-  // The room to the screen's edge, measured once drawn, before it shows, and as the window resizes.
+  // The room to the screen's edge, and its holder's room, measured once drawn, before it shows, as
+  // the window resizes, and again as the width class changes the holder's room.
   const [room, setRoom] = useState<number>();
   useLayoutEffect(() => {
     const element = ref.current;
@@ -195,7 +200,7 @@ function TableBlock({ block, context }: { block: Block; context: BlockContext })
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, []);
+  }, [wide]);
   // The table itself, drawn again only for its own changes, not as the window resizes.
   const table = useMemo(() => <TableNode block={block} context={context} />, [block, context]);
   return (

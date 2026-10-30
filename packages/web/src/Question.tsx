@@ -19,6 +19,8 @@ const styles = stylex.create({
   example: { marginBlockEnd: spacingVars["--spacing-3"] },
   // On the phone, the options' borders run at the screen's edges: the page's inset taken back.
   optionsPhone: {
+    // A pane in an option, as a decisions check's candidate, is at the screen's edges already.
+    "--pane-phone-reach": "0%",
     marginInline: "var(--page-bleed)",
   },
   // Room above the first option for the half of its letter over its border.

@@ -1,11 +1,9 @@
 // A page's column centred on the room right of the sidebar, as if the side column at the right were
-// closed: the home and every page sit in the middle of the room beside the sidebar, and a side
-// column opening at the right leaves the page where it was, as far as the room beside it allows.
-// Its start margin takes
-// the room that middle asks for, as far as the room beside it allows, so a page with no room to
-// spare stays where it was. It follows the room as it changes, frame by frame while a column eases
-// open or closed. A margin, not a transform: a transform would hold the page's fixed parts, as a
-// list's bar, to the page.
+// closed: the home and every page sit in the middle of what shows beside the sidebar, and a side
+// column opening leaves the page where it was. Its start margin takes the room that middle asks for,
+// as far as the room beside it allows, so a page with no room to spare stays at its start. It
+// follows the room as it changes, frame by frame while a column eases open or closed. A margin, not
+// a transform: a transform would hold the page's fixed parts, as a list's bar, to the page.
 import { useCallback } from "react";
 
 /**
