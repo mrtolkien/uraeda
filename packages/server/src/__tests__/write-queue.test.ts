@@ -3,8 +3,9 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { WriteQueue } from "../writes/queue.ts";
+import { StartProgress, startSteps } from "../writes/start-steps.ts";
 import { byId, fixtureRepo, git, mutate, testApp } from "./helpers.ts";
 
 const FOLDER = "2026-10-06-recurring-tasks";
@@ -177,4 +178,50 @@ test("a refused write says whether a hook refused it, undone, or it failed, its 
     "restarted failed",
     "locked failed",
   ]);
+});
+
+test("a write's streamed output is sent at most once each 100 ms, and its end at once", async () => {
+  vi.useFakeTimers();
+  let sent = 0;
+  const queue = new WriteQueue({ land: async () => {}, takeDeferred: () => [] }, () => sent++);
+  const hold = Promise.withResolvers<void>();
+  let print: ((line: string) => void) | undefined;
+  const landed = queue.enqueue({ href: "", label: "Approving" }, async (onOutput) => {
+    print = onOutput;
+    await hold.promise;
+  });
+  await vi.advanceTimersByTimeAsync(0);
+  const before = sent;
+
+  for (let line = 0; line < 50; line++) {
+    print?.(`line ${line}`);
+  }
+  expect(sent - before).toBe(1);
+  await vi.advanceTimersByTimeAsync(100);
+  expect(sent - before).toBe(2);
+  expect(queue.writes()[0].output).toMatch(/line 49$/);
+  print?.("last");
+  hold.resolve();
+  await landed;
+  expect(sent - before).toBe(3);
+  await vi.advanceTimersByTimeAsync(500);
+  expect(sent - before).toBe(3);
+
+  // Row: a start's steps, the same: their output at most once each 100 ms, a new step at once.
+  const published: Array<string> = [];
+  const progress = new StartProgress(startSteps("main"), (steps) =>
+    published.push(steps.map(({ output, state }) => `${state} ${output ?? ""}`).join(", ")),
+  );
+  progress.to(0);
+  for (let line = 0; line < 50; line++) {
+    progress.step({ line: `line ${line}`, step: "output" }, () => {});
+  }
+  // The step's start was sent just now: its output waits.
+  expect(published).toHaveLength(1);
+  progress.to(1);
+  const moved = published.length;
+  expect(published.at(-1)).toMatch(/^done line 0\n.*line 49, running/s);
+  await vi.advanceTimersByTimeAsync(500);
+  expect(published).toHaveLength(moved);
+  vi.useRealTimers();
 });

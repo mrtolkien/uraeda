@@ -2,6 +2,7 @@
 // with its seconds, and the commit's with what git and the hooks print.
 import type { StartStepView } from "uraeda-binding";
 import type { StartStep } from "./queue.ts";
+import { Throttle } from "./throttle.ts";
 
 /** How often a running step's seconds are counted again. */
 const TICK_MS = 1000;
@@ -29,7 +30,8 @@ export const STEP = { agent: 2, branch: 1, commit: 0 } as const;
  */
 export class StartProgress {
   #steps: Array<StartStep>;
-  #publish: (steps: Array<StartStep>) => void;
+  /** Publishes the steps: a line of output at most once each 100 ms, any other change at once. */
+  #publish: Throttle;
   #at = -1;
   #since = 0;
   #timer?: ReturnType<typeof setInterval>;
@@ -37,7 +39,7 @@ export class StartProgress {
 
   constructor(steps: Array<StartStep>, publish: (steps: Array<StartStep>) => void) {
     this.#steps = steps.map((step) => ({ ...step }));
-    this.#publish = publish;
+    this.#publish = new Throttle(() => publish(this.#steps.map((each) => ({ ...each }))));
   }
 
   /** Moves on with the core's step: the commit, a line of its output, or the branch. */
@@ -53,7 +55,7 @@ export class StartProgress {
       const commit = this.#steps[STEP.commit];
       commit.output = commit.output === undefined ? line : `${commit.output}\n${line}`;
       onOutput(line);
-      this.#changed();
+      this.#publish.soon();
     }
   }
 
@@ -116,6 +118,6 @@ export class StartProgress {
   }
 
   #changed(): void {
-    this.#publish(this.#steps.map((step) => ({ ...step })));
+    this.#publish.now();
   }
 }

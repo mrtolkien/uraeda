@@ -3,6 +3,7 @@
 // the commits it took, with the hooks, and keeps the record the toast and the start's steps read.
 import type { Deferred } from "uraeda-binding";
 import { reasonOf } from "../reason.ts";
+import { Throttle } from "./throttle.ts";
 
 /** What the web UI names a write with: its running text, and the page it opens. */
 export type WriteInput = { href: string; label: string };
@@ -212,11 +213,13 @@ export class WriteQueue {
   async #land(entry: Entry, land: Land): Promise<unknown> {
     entry.write.state = "running";
     this.#changed();
+    // The output streams at most once each 100 ms; the end goes at once.
+    const output = new Throttle(() => this.#changed());
     try {
       const landed = await land((line) => {
         entry.write.output =
           entry.write.output === undefined ? line : `${entry.write.output}\n${line}`;
-        this.#changed();
+        output.soon();
       });
       this.#entries.splice(this.#entries.indexOf(entry), 1);
       return landed;
@@ -226,6 +229,7 @@ export class WriteQueue {
       entry.write.output = reasonOf(error);
       throw error;
     } finally {
+      output.cancel();
       this.#changed();
       this.#settled(entry.keys);
     }
