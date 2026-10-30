@@ -6,7 +6,8 @@ import { CommitActions } from "./CommitActions.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { StatusText } from "./fields/StatusText.tsx";
-import { approveChoices, type Choices, ReviewChoices } from "./ReviewChoices.tsx";
+import { approvedFile } from "./review/approved.ts";
+import { approveChoices, type Choices, initialChoices, ReviewChoices } from "./ReviewChoices.tsx";
 import { HookRefusal } from "./RoundSubmit.tsx";
 import { handOver } from "./sessions.ts";
 import { FileView } from "./views.ts";
@@ -98,6 +99,23 @@ function Verdicts({
 export type ChoicesState = [Choices, Dispatch<SetStateAction<Choices>>];
 
 /**
+ * What a review's page keeps for its life, past the review: an approval shows the file read, not
+ * reviewed, at once, and a refusal brings the review back with its refusal shown and its choices
+ * as set (R83). A spec's risk tier and plan review are set by the end's form, and either verdict,
+ * the end's or the phone's Review sheet's, commits them.
+ */
+export function useVerdictState(file: File) {
+  const refusals = useRefusals();
+  const choices: ChoicesState = useState(() =>
+    initialChoices((file.committed ?? file.current).items.spec),
+  );
+  return { choices, refusals };
+}
+
+/** What a review's page keeps for its life: see `useVerdictState`. */
+export type VerdictState = ReturnType<typeof useVerdictState>;
+
+/**
  * A review's verdict, wherever its buttons are: `verdict(approve, next)` commits it with the
  * `choices` set at the page's end, then hands the feature over to the agent when `next`; `retry` commits again after a hook's refusal. Resolves to whether it was done.
  */
@@ -126,6 +144,8 @@ function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusals) {
               ...(isSpec ? approveChoices(spec, choices) : {}),
               write: writeHere(`Approving ${subject}`),
             },
+            // Approved at once, as the core writes it: a refusal takes it back (R83).
+            optimistic: approvedFile(file),
             view: FileView,
           })
         : fate.mutations.review.requestChanges({

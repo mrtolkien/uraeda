@@ -52,6 +52,7 @@ import { SinceReviewPane, sinceFolds, sinceModel } from "./SinceReview.tsx";
 import { SpecOpening } from "./SpecOpening.tsx";
 import { StoryCard } from "./StoryCard.tsx";
 import { fileStatusBadge } from "../labels.ts";
+import { useVerdictState, type VerdictState } from "../ReviewVerdict.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
 
 const styles = stylex.create({
@@ -339,9 +340,17 @@ function SpecLayout({
 /**
  * A spec waiting for your review: its parts take comments, and its verdict is at the page's end.
  */
-function WaitingSpec({ file, session }: { file: File; session: PageSession | undefined }) {
+function WaitingSpec({
+  file,
+  kept,
+  session,
+}: {
+  file: File;
+  kept: VerdictState;
+  session: PageSession | undefined;
+}) {
   const wide = !isNarrow(useWidthClass());
-  const review = useReview(file, wide, session?.ask);
+  const review = useReview(file, wide, kept, session?.ask);
   return (
     <ReviewHost file={file} review={review}>
       <StoriesProvider
@@ -379,12 +388,14 @@ function ReadSpec({ file, session }: { file: File; session: PageSession | undefi
 
 /**
  * A feature's `spec.md`, waiting for your review or not, its session's draft kept whatever its
- * status: a verdict or a live update leaves what is typed in Session.
+ * status: a verdict or a live update leaves what is typed in Session. The review's refusals and
+ * choices are kept too, for an approval taken back.
  */
 export function SpecPage({ file }: { file: File }) {
   const session = usePageSession(file);
+  const kept = useVerdictState(file);
   return file.status === "awaiting-human" ? (
-    <WaitingSpec file={file} session={session} />
+    <WaitingSpec file={file} kept={kept} session={session} />
   ) : (
     <ReadSpec file={file} session={session} />
   );

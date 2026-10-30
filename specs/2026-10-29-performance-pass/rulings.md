@@ -1010,3 +1010,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `vp dev` serves the routes in Vite's process, whose pool is sized before the server loads.
 - **Where**: `crates/core/src/api/warm.rs`, `crates/core/src/watch.rs`,
   `packages/server/src/threadpool.ts`, `packages/server/src/main.ts`.
+## R83: An approval reads Approved at its press, the review's refusals kept by its page
+
+- **Decision**: `review.approve` passes fate's `optimistic` result, `approvedFile` in
+  `review/approved.ts`: the file's status, approved, and its block as the core's `record_block`
+  writes it, the first top-level `[!IMPORTANT]` callout turned a note, its first paragraph "Approved
+  on <today>.", by the browser's clock, and a spec's time gone with it. The page then draws the file
+  read, not reviewed; a refusal takes it back. The review's refusals and its choices, a spec's risk
+  tier and plan review, are kept by the spec's and the plan's page (`useVerdictState`), not by the
+  review, so the review drawn again after a refusal shows why, its choices as set. Request changes
+  still draws from the server's answer: no criterion times it.
+- **Rationale**: R71 measured "Approved" at 133 to 140 ms, `review.approve` 50 to 55 ms on the
+  server and the page's drawing after it. Measured with the benchmark's approval, a hook of a second
+  running, on the realistic project, release build: "Approved" at 92 to 96 ms. The review is drawn
+  by a component the read page replaces, so its state went with it, and a refusal's message with it
+  (`approve-at-once.test.tsx` fails so).
+- **If wrong**: the toast now draws at 114 to 117 ms, from 67 to 69: the page drawn read at the
+  press, then again with the server's answer, 52 to 57 ms of long tasks, keeps the main thread as
+  the queue's live update comes. Drawing the read page in a transition (`useDeferredValue` of the
+  status) did not move it (96 and 117 ms). What would: a review and a read spec drawn by the same
+  components, so the answer redraws only what changed, or a spec page lighter to draw.
+- **Where**: `packages/web/src/review/approved.ts`, `packages/web/src/ReviewVerdict.tsx`,
+  `packages/web/src/review/useReview.tsx`, `packages/web/src/spec/SpecPage.tsx`,
+  `packages/web/src/PlanPage.tsx`, the benchmark's findings (R71).
