@@ -15,7 +15,8 @@ const MARGIN: Duration = Duration::from_millis(50);
 /// then rehashes every such file on each read, and never writes the index back. A refresh in a later
 /// second writes them clean. A failure only costs speed, so it is ignored, as is a thread that
 /// cannot start. A worktree removed meanwhile is not refreshed: in its folder, or a parent of it,
-/// git would find the main checkout and lock its index.
+/// git would find the main checkout and lock its index. The refresh holds the repository's write
+/// lock, as the core's writes do, so none of them meets its `index.lock`.
 pub(super) fn refresh_later(path: PathBuf) {
     let since_second = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -25,6 +26,7 @@ pub(super) fn refresh_later(path: PathBuf) {
     let wait = Duration::from_secs(1).saturating_sub(since_second) + MARGIN;
     let _ = thread::Builder::new().spawn(move || {
         thread::sleep(wait);
+        let _lock = crate::cache::write_lock(&path);
         if path.join(".git").is_file() {
             let _ = super::output_in(&path, "update-index", &["update-index", "-q", "--refresh"]);
         }
