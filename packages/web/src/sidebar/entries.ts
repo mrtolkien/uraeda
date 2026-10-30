@@ -23,21 +23,19 @@ export type Entry =
   | { feature: Feature; kind: "feature"; row: Row | undefined; start: string; status: Status }
   | { kind: "session"; row: Row; start: string; status: Status };
 
-/** The features a search shows: those whose session it found, or whose name, slug, or title holds it. */
-function matching(
-  features: Array<Feature>,
-  rows: Array<Row>,
-  found: Map<string, Row> | undefined,
-  query: string,
-) {
+/**
+ * The features a search shows: those with any session it found, or whose name, slug, or title
+ * holds it.
+ */
+function matching(features: Array<Feature>, found: Map<string, Row> | undefined, query: string) {
   if (!found) {
     return features;
   }
   const needle = query.toLowerCase();
+  const folders = new Set([...found.values()].map((row) => row.folder));
   return features.filter((feature) => {
-    const row = rowOf(feature, rows);
     return (
-      (row && found.has(row.id)) ||
+      folders.has(feature.folder) ||
       [feature.title, feature.slug, feature.label ?? ""].some((text) =>
         text.toLowerCase().includes(needle),
       )
@@ -62,7 +60,7 @@ export function entriesOf(
   const all = [...rows, ...[...(found?.values() ?? [])].filter((row) => !bySession.has(row.id))];
   const flying = (data.workspace?.features ?? []).filter(inFlight);
   const folders = new Set(flying.map((feature) => feature.folder));
-  const features = matching(flying, all, found, query);
+  const features = matching(flying, found, query);
   const sessions = all.filter(
     (row) => isSessionCard(row, folders) && (!found || found.has(row.id)),
   );

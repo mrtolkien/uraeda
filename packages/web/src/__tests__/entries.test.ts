@@ -81,6 +81,13 @@ test("a search keeps the feature whose session it found", () => {
   expect(shown([working, CACHE_CHAT], [working], "wal")).toEqual([CLI]);
 });
 
+test("a search keeps the feature whose older session it found, not the one its status follows", () => {
+  const older = session("cli-older", CLI, { startedAt: "2026-10-18" });
+  const latest = session("cli-latest", CLI);
+
+  expect(shown([latest, older], [older], "wal")).toEqual([CLI]);
+});
+
 test.each([
   ["a title, in any case", "CLI TUI", [CLI]],
   ["a slug", "cli-tui", [CLI]],
