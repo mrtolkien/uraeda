@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Feature state pass
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Approved on 2026-10-30.
 >
 > - You approve one status for each feature, the same in every view: working while any of its
 >   sessions runs, a warning until you dismiss it, and a step that moves as soon as you act.
