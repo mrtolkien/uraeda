@@ -4,9 +4,11 @@ use std::sync::{Mutex, mpsc};
 use std::time::Duration;
 
 use common::repo::TestRepo;
-use common::texts::{clarifications, proposal};
+use common::texts::{clarifications, proposal, record};
 use uraeda_core::api;
 use uraeda_core::cache::{before_storing, cache_stats};
+use uraeda_core::git::Git;
+use uraeda_core::pulls::{self, PullRequestState, PullRequestView, PullRequests};
 use uraeda_core::watch::{Changes, Watcher, watch};
 
 const FOLDER: &str = "2026-10-11-web-ui";
@@ -117,4 +119,40 @@ fn without_a_watch_every_read_reads_git() {
 
     assert!(round_text(&repo).contains(ANSWERED));
     assert_eq!(cache_stats(repo.path()).hits, 0);
+}
+
+/// A refresh of the pull requests that changes a finished feature's pull request changes its step
+/// on the next read, from memory before it.
+#[test]
+fn a_changed_pull_request_shows_its_step_on_the_next_read() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write("specs/PRIORITIES.md", "# Priorities\n\n## Now\n\n## Next\n");
+    repo.commit("chore: specs");
+    repo.switch_new(FOLDER);
+    repo.write(
+        &format!("specs/done/{FOLDER}.md"),
+        &record("feature", "Web UI"),
+    );
+    repo.commit("finish: web ui");
+    repo.switch("main");
+    let root = Git::discover(repo.path()).unwrap().main_root();
+    let draft = |state| {
+        let view = PullRequestView {
+            number: 31,
+            url: "https://github.com/o/r/pull/31".to_string(),
+            state,
+        };
+        PullRequests::Known([(FOLDER.to_string(), view)].into())
+    };
+    pulls::remember(&root, draft(PullRequestState::Draft));
+    let (_watcher, _receiver) = watching(&repo);
+    let step = || api::read_feature(repo.path(), FOLDER).unwrap().step.name;
+    assert_eq!(step(), "finish");
+    assert_eq!(step(), "finish");
+    assert_eq!(cache_stats(repo.path()).hits, 1);
+
+    assert!(pulls::remember(&root, draft(PullRequestState::Open)));
+
+    assert_eq!(step(), "pull-request");
 }

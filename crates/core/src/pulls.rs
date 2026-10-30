@@ -10,6 +10,7 @@ use std::time::{Duration, SystemTime};
 use napi_derive::napi;
 use serde::Serialize;
 
+use crate::cache;
 use crate::git::process;
 use crate::steps::PullRequest;
 use crate::workspace::Feature;
@@ -145,8 +146,18 @@ pub fn remember(root: &Path, snapshot: PullRequests) -> bool {
 
 /// Keeps a fetched snapshot as the latest, at `now`: an `Unavailable` one keeps the last known
 /// pull requests for 10 minutes after they were read, so a failure of `gh` for a moment changes no
-/// step. Says whether the latest changed.
+/// step. Says whether the latest changed: when it did, the workspace reads kept in memory, which
+/// applied the one before, are read again.
 pub fn settle(root: &Path, fetched: PullRequests, now: SystemTime) -> bool {
+    let changed = keep(root, fetched, now);
+    if changed {
+        cache::invalidate(root);
+    }
+    changed
+}
+
+/// Keeps a fetched snapshot as the latest, as `settle` says.
+fn keep(root: &Path, fetched: PullRequests, now: SystemTime) -> bool {
     let mut snapshots = snapshots()
         .lock()
         .unwrap_or_else(|poison| poison.into_inner());
