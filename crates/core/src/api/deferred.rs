@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use super::{Result, write_lock};
+use super::Result;
 use crate::actions::deferred;
 use crate::cache;
 use crate::view::CommitView;
@@ -37,11 +37,10 @@ pub fn take_deferred(repo: &Path) -> Vec<DeferredView> {
         .collect()
 }
 
-/// Lands the deferred commit `id`, running the hooks under the repository's write lock, with
+/// Lands the deferred commit `id`, running the hooks without the repository's write lock, with
 /// `on_output` called with each line git and its hooks print. A hook's refusal puts back what the
 /// write left, and returns the `hook` error with the whole output.
 pub fn land(repo: &Path, id: &str, on_output: impl Fn(&str)) -> Result<CommitView> {
-    let _lock = write_lock(repo);
     let committed = deferred::land(&cache::key(repo), id, &on_output)?;
     Ok(CommitView {
         subject: committed.change.subject,

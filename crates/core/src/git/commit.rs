@@ -5,6 +5,13 @@ use std::path::Path;
 
 use super::{Git, GitError, process, read_error};
 
+/// What a commit staged, for [`Git::commit_stage`]: the paths `git add` took, and whether they
+/// are committed alone.
+pub struct Stage {
+    added: Vec<String>,
+    only: bool,
+}
+
 /// Called with each line `git commit` and its hooks print, as they print it.
 pub type OnOutput<'a> = Option<&'a dyn Fn(&str)>;
 
@@ -64,21 +71,66 @@ impl Git {
         amend: bool,
         on_output: OnOutput,
     ) -> Result<(), GitError> {
+        let staged = self.stage(paths, false)?;
+        self.commit_stage(&staged, subject, body, amend, on_output)
+            // A refused commit takes back what it staged, so nothing it held blocks or rides along.
+            .inspect_err(|_| drop(self.unstage_stage(&staged)))
+    }
+
+    /// Stages `paths` for a commit, alone when `only` is set: other staged files then stay staged,
+    /// out of the commit. Without `only`, refuses when other files are staged, which the commit
+    /// would carry along.
+    pub fn stage(&self, paths: &[String], only: bool) -> Result<Stage, GitError> {
+        if only {
+            let mut add = vec!["add", "--"];
+            add.extend(paths.iter().map(String::as_str));
+            self.run("add", &add)?;
+            return Ok(Stage {
+                added: paths.to_vec(),
+                only: true,
+            });
+        }
         let staged = self.staged_files()?;
         let others = others_staged(&staged, paths);
         if !others.is_empty() {
             return Err(GitError::OtherStagedFiles(others));
         }
-        let addable = self.addable(paths, &staged)?;
-        if !addable.is_empty() {
+        let added: Vec<String> = self
+            .addable(paths, &staged)?
+            .into_iter()
+            .map(str::to_string)
+            .collect();
+        if !added.is_empty() {
             let mut add = vec!["add", "--all", "--"];
-            add.extend(addable.iter().copied());
+            add.extend(added.iter().map(String::as_str));
             self.run("add", &add)?;
         }
-        let extra: &[&str] = if amend { &["--amend"] } else { &[] };
-        self.commit_staged(extra, subject, body, on_output)
-            // A refused commit takes back what it staged, so nothing it held blocks or rides along.
-            .inspect_err(|_| drop(self.unstage(&addable)))
+        Ok(Stage { added, only: false })
+    }
+
+    /// Runs `git commit` with the hooks over what `stage` staged, or amends the latest commit with
+    /// it when `amend` is set. A refused commit leaves it staged: [`Git::unstage_stage`] takes it
+    /// back.
+    pub fn commit_stage(
+        &self,
+        stage: &Stage,
+        subject: &str,
+        body: Option<&str>,
+        amend: bool,
+        on_output: OnOutput,
+    ) -> Result<(), GitError> {
+        let mut extra = if amend { vec!["--amend"] } else { Vec::new() };
+        if stage.only {
+            extra.extend(["--only", "--"]);
+            extra.extend(stage.added.iter().map(String::as_str));
+        }
+        self.commit_staged(&extra, subject, body, on_output)
+    }
+
+    /// Takes back what `stage` staged, the working tree kept.
+    pub fn unstage_stage(&self, stage: &Stage) -> Result<(), GitError> {
+        let paths: Vec<&str> = stage.added.iter().map(String::as_str).collect();
+        self.unstage(&paths)
     }
 
     /// Commits `paths` alone, files as they are in the working tree, running the hooks, or amends
@@ -104,15 +156,9 @@ impl Git {
         amend: bool,
         on_output: OnOutput,
     ) -> Result<(), GitError> {
-        let paths: Vec<&str> = paths.iter().map(String::as_str).collect();
-        let mut add = vec!["add", "--"];
-        add.extend(&paths);
-        self.run("add", &add)?;
-        let mut only = if amend { vec!["--amend"] } else { Vec::new() };
-        only.extend(["--only", "--"]);
-        only.extend(&paths);
-        self.commit_staged(&only, subject, body, on_output)
-            .inspect_err(|_| drop(self.unstage(&paths)))
+        let staged = self.stage(paths, true)?;
+        self.commit_stage(&staged, subject, body, amend, on_output)
+            .inspect_err(|_| drop(self.unstage_stage(&staged)))
     }
 
     /// Runs `git commit` with the hooks, `extra` after its message, its output streamed to

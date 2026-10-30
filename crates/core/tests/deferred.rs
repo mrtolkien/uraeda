@@ -1,6 +1,7 @@
 mod common;
 
-use std::sync::Mutex;
+use std::sync::{Mutex, mpsc};
+use std::time::Duration;
 
 use common::repo::TestRepo;
 use common::texts::{clarifications, proposal, spec};
@@ -190,4 +191,43 @@ fn a_deferred_commit_whose_files_were_committed_meanwhile_lands_without_undoing_
     assert!(lines.is_empty(), "{lines:?}");
     assert_eq!(repo.read(&in_worktree(ROUND)), submitted);
     assert_eq!(repo.subjects(FOLDER)[0], "answers by hand");
+}
+
+/// Review: a landing holds the repository's write lock only to stage and to put back, never while
+/// its hooks run: a save meanwhile returns before the hook ends.
+#[test]
+fn a_save_returns_while_a_deferred_commit_waits_on_its_hook() {
+    let repo = deferring();
+    save_answers(&repo);
+    api::submit_answers(repo.path(), FOLDER, None, false).unwrap();
+    let release = repo.path().join("release");
+    let started = repo.path().join("started");
+    repo.set_hook(&format!(
+        "touch '{}'\nwhile [ ! -f '{}' ]; do sleep 0.05; done",
+        started.display(),
+        release.display()
+    ));
+    let deferred = api::take_deferred(repo.path());
+    let path = repo.path().to_path_buf();
+    let id = deferred[0].id.clone();
+    let landing = std::thread::spawn(move || api::land(&path, &id, |_| {}));
+    while !started.exists() {
+        std::thread::sleep(Duration::from_millis(20));
+    }
+
+    let (saved, saving) = mpsc::channel();
+    let path = repo.path().to_path_buf();
+    std::thread::spawn(move || {
+        let added = api::add_note_at(&path, None, None, "Saved during the hook");
+        let _ = saved.send(added.is_ok());
+    });
+    let returned = saving.recv_timeout(Duration::from_secs(10));
+    std::fs::write(&release, "").unwrap();
+
+    assert_eq!(returned, Ok(true), "the save waited for the hook");
+    assert_eq!(
+        landing.join().unwrap().unwrap().subject,
+        "discovery(web-ui): answer round 01"
+    );
+    assert!(repo.read("specs/INBOX.md").contains("Saved during the hook"));
 }

@@ -15,7 +15,7 @@ mod refresh;
 mod status;
 
 pub use amend::Latest;
-pub use commit::{OnOutput, others_staged};
+pub use commit::{OnOutput, Stage, others_staged};
 pub use history::{CommitInfo, Range};
 
 pub use gix::ObjectId;

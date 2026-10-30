@@ -5,13 +5,14 @@
 //! leaves its files written, uncommitted. `ura` never turns deferral on, so it commits within the
 //! call.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
+use crate::cache;
 use crate::git::Git;
 
 use super::place::Place;
@@ -180,8 +181,12 @@ pub fn take(key: &Path) -> Vec<Taken> {
 /// `on_output` given each line git and its hooks print. When its files are committed already, it
 /// lands as `HEAD`, with no commit. On a hook's refusal, each file still
 /// holding what the write left gets back what it held before; the others are named after the
-/// hook's output. Called under the repository's write lock.
+/// hook's output. Takes the repository's write lock to check and stage the change, and to put back
+/// or move the cache's generation once git is done, never while `git commit` and its hooks run:
+/// the server lands one commit at a time, a deferring write never touches the index, and a save
+/// meanwhile changes the working tree, not what is staged.
 pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed, ActionError> {
+    let held = cache::write_lock(key);
     let deferred = repositories(|repositories| {
         let repository = repositories.get_mut(key)?;
         if let Some(deferred) = repository.taken.remove(id) {
@@ -196,7 +201,18 @@ pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed,
     if let Some(head) = already_committed(&deferred.place, &deferred.change)? {
         return Ok(head);
     }
-    let landed = super::commit::run(&deferred.place, &deferred.change, deferred.only, on_output);
+    // The lock held since the check, handed to the first staging, then taken again each time.
+    let held = Cell::new(Some(held));
+    let lock = || held.take().unwrap_or_else(|| cache::write_lock(key));
+    let landed = super::commit::run(
+        &deferred.place,
+        &deferred.change,
+        deferred.only,
+        on_output,
+        &lock,
+    );
+    // Dropped once the commit's files are put back, it moves the cache's generation.
+    let _lock = lock();
     match landed {
         Err(ActionError::Hook { message, output }) => {
             let left = undo(&deferred.place.root, &deferred.written);

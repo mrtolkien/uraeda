@@ -507,3 +507,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the count is git's, of files not committed yet; the spec has the toast say what is
   still landing, and the optimistic results of the web UI draw the commit bar's state.
 - **Where**: `packages/server/src/__tests__/inbox.test.ts`, task 12.
+
+## R45: A landing holds the write lock to stage and to put back, never while its hooks run
+
+- **Decision**: `land` takes the repository's write lock for the "already committed" check and the
+  staging of the change's paths, releases it while `git commit` and its hooks run, and takes it
+  again to unstage on a refusal, to stage again when an amend is refused, and to put back the
+  write's files; dropping it last moves the cache's generation. Any other core write, a save
+  included, runs while a hook runs.
+- **Rationale**: the spec has no write block the human, and a call waiting on the lock holds a
+  libuv thread. Staging and committing apart is safe: the server's queue lands one commit at a time,
+  and starts in the same turns; a deferring write never touches the index, only the working tree;
+  a save made during the hook changes the working tree, not the snapshot staged, which `--only`
+  takes when `git commit` starts; and undo puts back only a file still holding what the write left,
+  so a file saved meanwhile is left and named.
+- **If wrong**: a save made while a hook runs is not in the commit, and stays uncommitted, as a
+  save made after it.
+- **Where**: `crates/core/src/actions/deferred.rs`, `crates/core/src/actions/commit.rs`, review of
+  task 12.

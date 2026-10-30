@@ -1,6 +1,7 @@
 //! The commit that ends a committing action, shared by `ura` and the server, and the commit of an
 //! add alone, for "Add and commit".
 
+use crate::cache::WriteGuard;
 use crate::files::inbox::Inbox;
 use crate::files::priorities::Priorities;
 use crate::git::{Git, GitError};
@@ -29,23 +30,27 @@ pub fn commit_only(place: &Place, change: &Change) -> Result<Committed, ActionEr
 }
 
 /// Runs a deferred commit, alone when `only` is set, as [`commit`] or [`commit_only`] would have,
-/// `on_output` given git's output as it comes.
+/// `on_output` given git's output as it comes. The repository's write lock, which `lock` takes, is
+/// held to stage the change's paths and to take them back on a refusal, never while `git commit`
+/// and its hooks run.
 pub(super) fn run(
     place: &Place,
     change: &Change,
     only: bool,
     on_output: &dyn Fn(&str),
+    lock: &dyn Fn() -> WriteGuard,
 ) -> Result<Committed, ActionError> {
-    let output = Some(on_output);
-    if only {
-        committed(place, change, |git, paths, subject, body, amend| {
-            git.commit_only_streaming(paths, subject, body, amend, output)
-        })
-    } else {
-        committed(place, change, |git, paths, subject, body, amend| {
-            git.commit_streaming(paths, subject, body, amend, output)
-        })
-    }
+    committed(place, change, |git, paths, subject, body, amend| {
+        let stage = {
+            let _lock = lock();
+            git.stage(paths, only)?
+        };
+        git.commit_stage(&stage, subject, body, amend, Some(on_output))
+            .inspect_err(|_| {
+                let _lock = lock();
+                drop(git.unstage_stage(&stage));
+            })
+    })
 }
 
 /// Commits `change` with `run`, and returns it with the message committed, an amend's. An amend
