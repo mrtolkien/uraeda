@@ -3,7 +3,7 @@
 import { readWorkspace, refreshPullRequests } from "uraeda-binding";
 import { git, temporaryFolder } from "uraeda-binding/test-utils";
 import { beforeAll, expect, test } from "vite-plus/test";
-import { homeFeatures } from "../../src/home/features.ts";
+import { withProblems } from "../../src/home/features.ts";
 import {
   fakeGh,
   FEATURE_STEPS,
@@ -78,7 +78,7 @@ test("each folder is at the step SAMPLE_FOLDERS names it for", async () => {
 
 test("each of broken's features shows on Home with a problem ura check reports", async () => {
   const { features } = await readWorkspace(projects.broken);
-  const invalid = homeFeatures(features).invalid.map(({ folder }) => folder);
+  const invalid = withProblems(features).map(({ folder }) => folder);
 
   expect(features.length).toBeGreaterThan(0);
   for (const { folder, step, title } of features) {

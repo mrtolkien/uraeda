@@ -1,18 +1,19 @@
 // The session manager's records, read from its cache: the agent, sessions, their turns and item
 // pages, the sidebar's list and search, and the workflow's message.
-import type { FeatureView, WorkspaceView } from "uraeda-binding";
+import type { FeatureView } from "uraeda-binding";
 import type { SessionCache, SessionRow, TurnRow } from "../runner/cache.ts";
 import { TURN_PAGE } from "../limits.ts";
-import { coveredDenials } from "../runner/allow.ts";
 import type { Trigger } from "../runner/events.ts";
 import { commentsReference, runMessage } from "../runner/message.ts";
 import { REFUSALS } from "../runner/sessions.ts";
-import { sessionDone, sessionStatus, STATUS_ORDER } from "../runner/status.ts";
+import { sessionDone, STATUS_ORDER } from "../runner/status.ts";
 import { itemLooks } from "./items.ts";
 import type { Context, RepoContext } from "./context.ts";
 import { callSiteError } from "./errors.ts";
 import { checkoutDir, hasPreview } from "./preview.ts";
 import { agentTime } from "./agentTime.ts";
+import { featureStatusOf } from "./feature-status.ts";
+import { statusOf, turnsOf, workspaceOf } from "./session-reads.ts";
 import { featureTokens } from "./tokens.ts";
 import { messageStep, readMessage } from "./workflow-step.ts";
 import {
@@ -25,7 +26,6 @@ import {
   type SessionRowRecord,
   type SessionSearchRecord,
   sentStep,
-  type SubagentRecord,
   type TurnLogRecord,
   type TurnRecord,
   type WorkflowMessageRecord,
@@ -58,23 +58,6 @@ export function agentRecord({ sessions }: Context): AgentRecord {
   return { id: AGENT_ID, kind, name, ...sessions.status(), capabilities: { ...capabilities } };
 }
 
-/** The workspaces read during one request, by their path: a list reads it once. */
-const workspaces = new WeakMap<RepoContext, Map<string, Promise<WorkspaceView>>>();
-
-function workspaceOf(ctx: RepoContext, path: string): Promise<WorkspaceView> {
-  let read = workspaces.get(ctx);
-  if (!read) {
-    read = new Map();
-    workspaces.set(ctx, read);
-  }
-  let workspace = read.get(path);
-  if (!workspace) {
-    workspace = ctx.binding.readWorkspace(path);
-    read.set(path, workspace);
-  }
-  return workspace;
-}
-
 /** The session of this ID, when it is one of the server's repository: the cache holds them all. */
 async function ownSession(ctx: RepoContext, id: string): Promise<SessionRow | undefined> {
   const row = ctx.sessions.cache.session(id);
@@ -88,45 +71,6 @@ async function ownSession(ctx: RepoContext, id: string): Promise<SessionRow | un
 async function ownTurn(ctx: RepoContext, id: string): Promise<TurnRow | undefined> {
   const turn = /^\d+$/.test(id) ? ctx.sessions.cache.turn(Number(id)) : undefined;
   return turn && (await ownSession(ctx, turn.sessionId)) ? turn : undefined;
-}
-
-/** What a session's status and its sidebar row read of its turns. */
-function turnsOf(cache: SessionCache, session: string) {
-  const turns = cache.turns(session);
-  const latest = turns.at(-1);
-  const running = turns.filter((turn) => turn.state === "running").at(-1);
-  const subagents: Array<SubagentRecord> = running ? cache.subagentsOf(running.id) : [];
-  return {
-    allowable: latest ? coveredDenials(cache, latest.id).length : 0,
-    blocked: latest ? cache.itemsOf(latest.id, "denial").some((denial) => !denial.allowed) : false,
-    latest,
-    queued: turns.some((turn) => turn.state === "queued"),
-    subagents,
-    turns,
-  };
-}
-
-/**
- * The session's status, from its turns, when it was seen, its feature's step, and whether it is its
- * feature's `latestSession`.
- */
-function statusOf(
-  row: SessionRow,
-  read: ReturnType<typeof turnsOf>,
-  feature?: FeatureView,
-  latestSession = true,
-) {
-  const status = sessionStatus({
-    ...(read.latest === undefined ? {} : { latest: read.latest }),
-    blocked: read.blocked,
-    latestSession,
-    queued: read.queued,
-    seenAt: row.seenAt,
-    ...(feature ? { stepName: feature.step.name } : {}),
-    waitsOnAgent: feature?.step.waitsOn === "agent",
-    waitsOnHuman: feature?.step.waitsOn === "human",
-  });
-  return { status: status.status, statusLabel: status.label, statusReason: status.reason ?? null };
 }
 
 /** Whether the session is its change's or feature's latest, which its runs go to; a chat is. */
@@ -185,6 +129,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     backgroundCommands: ctx.sessions.backgroundCommands(row.id),
     edited: ctx.sessions.cache.editedFiles(row.id),
     place: await placeOf(ctx, row, feature),
+    statusTurn: read.latest ? String(read.latest.id) : null,
     subagents: read.subagents,
     turns: read.turns.map((turn) => String(turn.id)),
     unseen: unseen(row, read),
@@ -275,36 +220,6 @@ async function rows(
       };
     })
     .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
-}
-
-/**
- * Each feature in flight of the server's repository, with its status: its latest session's, which
- * its runs go to, from the same rules as the sidebar's, raised to an older session's when that one
- * works or is blocked; without a session, whether its step waits on the human.
- */
-export async function featureStatuses(ctx: RepoContext) {
-  const root = await ctx.sessions.mainRoot(ctx.repo).catch(() => undefined);
-  const { cache } = ctx.sessions;
-  return (await workspaceOf(ctx, ctx.repo)).features
-    .filter((feature) => feature.step.name !== "done" && feature.step.name !== "none")
-    .map((feature) => {
-      const [latest, ...older] =
-        root === undefined ? [] : cache.folderSessions(root, feature.folder);
-      const status =
-        latest === undefined
-          ? feature.step.waitsOn === "human"
-            ? { status: "needs-you" as const, statusReason: "step" as const }
-            : { status: "idle" as const, statusReason: null }
-          : older
-              .map((row) => statusOf(row, turnsOf(cache, row.id), feature, false))
-              .filter((each) => each.status === "working" || each.statusReason === "blocked")
-              .reduce(
-                (urgent, each) =>
-                  STATUS_ORDER[each.status] < STATUS_ORDER[urgent.status] ? each : urgent,
-                statusOf(latest, turnsOf(cache, latest.id), feature),
-              );
-      return { feature, status: status.status, statusReason: status.statusReason };
-    });
 }
 
 /**
@@ -437,6 +352,7 @@ export async function featureRecord(
     ...itemLooks(ctx)(feature.folder),
     preview: checkout !== undefined && (await hasPreview(ctx, checkout)),
     session: sessions[0]?.id ?? null,
+    status: await featureStatusOf(ctx, feature),
     // An archived session, of a dropped change, leaves the lists.
     sessions: sessions.filter((row) => row.archivedAt === null).map((row) => row.id),
     step: sentStep(feature.step),

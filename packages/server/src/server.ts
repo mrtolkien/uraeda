@@ -18,7 +18,7 @@ import { oldGroupsFolder, removeOldRunFiles } from "./run-folder.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import { SessionCache } from "./runner/cache.ts";
 import { imagesInUse } from "./runner/image-uses.ts";
-import type { Sessions } from "./runner/sessions.ts";
+import { SERVER_STOPPED, type Sessions } from "./runner/sessions.ts";
 import type { SignInOptions } from "./sign-in/check.ts";
 import { FrameSecret } from "./sign-in/frames.ts";
 import { browserAddress, linkPages, OneTimeLinks } from "./sign-in/links.ts";
@@ -47,7 +47,7 @@ export async function startSessions(options: {
   hosts: HostsOf;
 }): Promise<{ sessions: Sessions; stop: () => Promise<void> }> {
   const cache = SessionCache.open(join(options.dataDir, "runner.sqlite"));
-  cache.interrupted("Stopped: the server stopped while it ran.");
+  cache.interrupted(SERVER_STOPPED);
   // Every repository shares the data folder: an image a composer holds, not sent yet, is kept for
   // a day (R5). A cleanup that fails never stops the server (R40).
   try {

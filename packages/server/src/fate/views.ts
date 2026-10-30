@@ -26,6 +26,7 @@ import type {
   UsageLimit,
 } from "../runner/events.ts";
 import type { SessionStatus, StatusReason } from "../runner/status.ts";
+import type { FeatureStatus } from "./feature-status.ts";
 import type { ItemLook } from "./items.ts";
 import { needsYouListDataView } from "./needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./preview.ts";
@@ -65,12 +66,14 @@ export function sentStep(step: StepView): StepRecord {
 }
 
 export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
-  /** Its features, each step sent as `sentStep` sends it, with its name (R2). */
-  features: Array<Omit<FeatureView, "step"> & ItemLook & { step: StepRecord }>;
+  /** Its features, each step sent as `sentStep` sends it, with its name (R2) and its status. */
+  features: Array<
+    Omit<FeatureView, "step"> & ItemLook & { status: FeatureStatus; step: StepRecord }
+  >;
   id: string;
   /** Whether the main checkout has an active preview decision. */
   preview: boolean;
-  /** The folders whose session has a turn running or queued. */
+  /** Where writes are refused while a turn runs or waits; not a status, which `status` holds. */
   running: Array<string>;
 };
 
@@ -82,15 +85,13 @@ export type FeatureRecord = Omit<Record_<FeatureView>, "step"> &
     agent: FeatureAgent | null;
     id: string;
     missing?: boolean;
-    /**
-     * Whether its worktree, or the main checkout for a feature without one, has an active preview
-     * decision (R7).
-     */
+    /** Whether its worktree, or else the main checkout, has an active preview decision (R7). */
     preview: boolean;
     /** Its latest session's ID, the one its runs go to, null before its first message. */
     session: string | null;
     /** Its sessions' IDs, the latest started first. */
     sessions: Array<string>;
+    status: FeatureStatus;
     step: StepRecord;
     /** Its sessions' tokens, summed, null when no turn has counts. */
     tokens: FeatureTokens | null;
@@ -205,6 +206,8 @@ export type SessionRecord = {
    * stopped, or ended before a human gate.
    */
   statusReason: StatusReason | null;
+  /** The turn its status follows, its latest not taken back, which Dismiss sends: null before. */
+  statusTurn: string | null;
   /** The sub-agents of its running turn that have not ended. */
   subagents: Array<SubagentRecord>;
   /** A chat's title, "New session" before its first message, or its feature's title. */
@@ -326,6 +329,7 @@ export const featureDataView = dataView<FeatureRecord>("Feature")({
   sessions: true,
   slug: true,
   source: true,
+  status: true,
   step: true,
   title: true,
   tokens: true,
@@ -408,6 +412,7 @@ export const sessionDataView = dataView<SessionRecord>("Session")({
   status: true,
   statusLabel: true,
   statusReason: true,
+  statusTurn: true,
   subagents: true,
   title: true,
   turns: true,

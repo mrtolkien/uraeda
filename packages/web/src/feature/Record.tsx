@@ -55,7 +55,7 @@ function RecordSection({ anchor, document }: { anchor: string; document: Documen
     return null;
   }
   return (
-    <Pane id={anchor} isOpenOnPhone title={title}>
+    <Pane id={anchor} isSnugOnPhone title={title}>
       <Blocks document={document} ids={body} />
     </Pane>
   );
@@ -68,7 +68,7 @@ function Decisions({ decisions }: { decisions: ReadonlyArray<DecisionChange> }) 
     return null;
   }
   return (
-    <Pane count={decisions.length} id="record-decisions" isOpenOnPhone title="Decisions">
+    <Pane count={decisions.length} id="record-decisions" isSnugOnPhone title="Decisions">
       <VStack gap={4} xstyle={styles.layer}>
         {decisions.map((change) => (
           <DecisionCard
@@ -115,6 +115,7 @@ function Questions({
         onOpenChange: (isOpen) => keys.onOpenChange(QUESTIONS_KEY, isOpen),
       }}
       id="record-questions"
+      isSnugOnPhone
       title="Questions"
       titleSuffix={`in ${plural(rounds, "round")}`}
     >

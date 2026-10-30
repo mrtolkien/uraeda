@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-15
 pull-request: https://github.com/mrtolkien/uraeda/pull/19
+superseded-by: [2026-10-30-feature-state]
 ---
 
 # Record: Add a bugfixing/low impact change flow
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/19
 > The record of a merged feature, not instructions to follow. Started on 2026-10-15, finished on
 > 2026-10-15, in [its pull request](https://github.com/mrtolkien/uraeda/pull/19). Its full files are
 > in git: `git log -- specs/2026-10-15-add-bugfixing/`.
+>
+> Superseded in part by [2026-10-30-feature-state](2026-10-30-feature-state.md).
 
 ## What and why
 

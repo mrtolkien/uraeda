@@ -2,7 +2,7 @@
 kind: feature
 finished: 2026-10-25
 pull-request: https://github.com/mrtolkien/uraeda/pull/56
-superseded-by: [2026-10-30-panes-size]
+superseded-by: [2026-10-30-panes-size, 2026-10-30-reading-pass]
 ---
 
 # Record: Questions page in the terminal look
@@ -14,6 +14,8 @@ superseded-by: [2026-10-30-panes-size]
 > in git: `git log -- specs/2026-10-24-questions-page/`.
 >
 > Superseded in part by [2026-10-30-panes-size](2026-10-30-panes-size.md).
+>
+> Superseded in part by [2026-10-30-reading-pass](2026-10-30-reading-pass.md).
 
 ## What and why
 

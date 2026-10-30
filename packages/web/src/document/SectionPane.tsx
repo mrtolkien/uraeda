@@ -12,7 +12,7 @@ import { type Selection, SelectionRoom } from "../Selection.tsx";
 export type Drawing = { document: Document; folds?: Folds; selection?: Selection };
 
 /**
- * A section in a pane titled by its heading, its anchor as id, open on the phone as the spec's parts
+ * A section in a pane titled by its heading, its anchor as id, snug on the phone as the spec's parts
  * are; a task's titled "Task N · <title>", with its steps checked out of its total, so a link to
  * the heading lands on its pane. The heading is the title alone, never written again above the
  * section's text ("Remove stuttering").
@@ -26,7 +26,7 @@ export function SectionPane({ drawing, section }: { drawing: Drawing; section: P
   );
   if (!task) {
     return (
-      <Pane id={sectionId(heading)} isOpenOnPhone title={heading.heading ?? ""}>
+      <Pane id={sectionId(heading)} isSnugOnPhone title={heading.heading ?? ""}>
         {blocks}
       </Pane>
     );
@@ -40,7 +40,7 @@ export function SectionPane({ drawing, section }: { drawing: Drawing; section: P
   return (
     <Pane
       id={sectionId(heading)}
-      isOpenOnPhone
+      isSnugOnPhone
       title={`Task ${task.number} · ${task.title}`}
       titleSuffix={badge}
     >

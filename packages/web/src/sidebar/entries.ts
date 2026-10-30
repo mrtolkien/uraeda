@@ -1,14 +1,16 @@
-// The shell's entries: the features and changes in flight, each with its most urgent session's row,
-// and the sessions without a workflow, which its panes split into Needs you, Sessions, and In
-// progress; and the counts the column's rows and the phone's tabs show.
+// The shell's entries: the features and changes in flight, each with the row of the session its
+// status follows, and the sessions without a workflow or at work on what left the flight, which its
+// panes split into Needs you, Sessions, and In progress; and the counts the column's rows and the
+// phone's tabs show.
 import type { useNavigation } from "../sessionData.ts";
 import {
   byStatus,
   type Feature,
-  featureStatus,
   inFlight,
+  isSessionCard,
   needsYou,
   type Row,
+  rowOf,
   startOf,
   type Status,
 } from "./cards.ts";
@@ -21,21 +23,19 @@ export type Entry =
   | { feature: Feature; kind: "feature"; row: Row | undefined; start: string; status: Status }
   | { kind: "session"; row: Row; start: string; status: Status };
 
-/** The features a search shows: those whose session it found, or whose name, slug, or title holds it. */
-function matching(
-  features: Array<Feature>,
-  byFolder: Map<string, Row>,
-  found: Map<string, Row> | undefined,
-  query: string,
-) {
+/**
+ * The features a search shows: those with any session it found, or whose name, slug, or title
+ * holds it.
+ */
+function matching(features: Array<Feature>, found: Map<string, Row> | undefined, query: string) {
   if (!found) {
     return features;
   }
   const needle = query.toLowerCase();
+  const folders = new Set([...found.values()].map((row) => row.folder));
   return features.filter((feature) => {
-    const row = byFolder.get(feature.folder);
     return (
-      (row && found.has(row.id)) ||
+      folders.has(feature.folder) ||
       [feature.title, feature.slug, feature.label ?? ""].some((text) =>
         text.toLowerCase().includes(needle),
       )
@@ -44,8 +44,9 @@ function matching(
 }
 
 /**
- * The entries: the features and changes in flight, each with its most urgent session's row, and the
- * sessions without a workflow. Outside a search, an archived session is left out, and a session read
+ * The entries: the features and changes in flight, each with its status, the server's, and the row
+ * of the session it follows, and the sessions without a workflow, or at work on a feature or a
+ * change no longer in flight. Outside a search, an archived session is left out, and a session read
  * to its end is done, in the Done pane, unless it is `kept`, open since before; a search lists every
  * session it finds.
  */
@@ -57,31 +58,20 @@ export function entriesOf(
   const bySession = new Map(rows.map((row) => [row.id, row]));
   // A session found that the list leaves out, past its last row, shows as the search read it.
   const all = [...rows, ...[...(found?.values() ?? [])].filter((row) => !bySession.has(row.id))];
-  // The rows come what needs the human first: a folder's first is its most urgent.
-  const byFolder = new Map<string, Row>();
-  for (const row of all) {
-    if (row.folder && !byFolder.has(row.folder)) {
-      byFolder.set(row.folder, row);
-    }
-  }
-  const features = matching(
-    (data.workspace?.features ?? []).filter(inFlight),
-    byFolder,
-    found,
-    query,
+  const flying = (data.workspace?.features ?? []).filter(inFlight);
+  const folders = new Set(flying.map((feature) => feature.folder));
+  const features = matching(flying, found, query);
+  const sessions = all.filter(
+    (row) => isSessionCard(row, folders) && (!found || found.has(row.id)),
   );
-  const sessions = all.filter((row) => row.folder === null && (!found || found.has(row.id)));
   return [
-    ...features.map((feature) => {
-      const row = byFolder.get(feature.folder);
-      return {
-        feature,
-        kind: "feature" as const,
-        row,
-        start: startOf(feature, all),
-        status: featureStatus(feature, row),
-      };
-    }),
+    ...features.map((feature) => ({
+      feature,
+      kind: "feature" as const,
+      row: rowOf(feature, all),
+      start: startOf(feature, all),
+      status: feature.status,
+    })),
     ...sessions
       .filter((row) => found || (!row.archived && (!row.done || row.id === kept)))
       .map((row) => ({

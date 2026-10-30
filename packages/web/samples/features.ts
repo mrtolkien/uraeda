@@ -53,10 +53,9 @@ function roundMockupFile(name: string): string {
 }
 
 /**
- * Adds a round page's mockup feature, its round in the clarifications redesign's format with its
- * Q1 answered `answer`, and the SVG prototypes its options show, on its own branch, from `main`,
- * without a worktree. Answered B, its Q1 asks
- * its follow-up.
+ * Adds a round page's mockup feature, its round in the clarifications redesign's format with its Q1
+ * answered `answer`, and the SVG prototypes its options show, on its own branch, from `main`,
+ * without a worktree. Answered B, its Q1 asks its follow-up.
  */
 export function addRoundMockup(repo: string, folder: string, answer: string) {
   git(repo, "branch", folder, "main");
@@ -140,15 +139,23 @@ export function addSpecPages(repo: string) {
 /** A pull request as `gh pr list --json` lists it. */
 export type FakePullRequest = {
   headRefName: string;
+  headRefOid: string;
   isDraft: boolean;
   number: number;
   reviewDecision: "" | "CHANGES_REQUESTED";
   url: string;
 };
 
+/**
+ * The head of every pull request the fake `gh` lists: a commit no sample has, as one pushed from
+ * elsewhere and never fetched, which the core reads as holding the branch's work.
+ */
+export const NEVER_FETCHED = "0".repeat(40);
+
 /** The pull request `gh` lists for `FEATURE_PAGES.pullRequest`. */
 const PULL_REQUEST: FakePullRequest = {
   headRefName: FEATURE_PAGES.pullRequest,
+  headRefOid: NEVER_FETCHED,
   isDraft: false,
   number: 31,
   reviewDecision: "",

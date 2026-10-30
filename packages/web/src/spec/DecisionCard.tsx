@@ -37,8 +37,8 @@ const styles = stylex.create({
     display: "inline-flex",
     minHeight: sizeVars["--size-element-md"],
   },
-  // On the phone, the pane keeps only its titled top border: its text takes the page's width.
-  open: { maxWidth: "none", paddingInline: 0 },
+  // On the phone, no room of its own inside the pane's: its text takes the pane's width.
+  phone: { maxWidth: "none", paddingInline: 0 },
   suffix: {
     // The pills and the fields' change after the title, wrapping as the title does.
     alignItems: "center",
@@ -135,12 +135,12 @@ function ChangeBody({
 export function DecisionCard(props: DecisionCardProps) {
   const { change, crumbs, href, id, kind, note, title, unlisted = false, wide = false } = props;
   const fields = fieldsOf(change);
-  const isOpen = isNarrow(useWidthClass());
+  const isPhone = isNarrow(useWidthClass());
   const pane = (
     <Pane
       id={id}
-      // On the phone, its titled top border alone, as every pane's (R13).
-      isOpenOnPhone
+      // On the phone, little room inside its border, as every reading pane's.
+      isSnugOnPhone
       level={crumbs.length === 0 ? 2 : 3}
       title={title}
       titleSuffix={
@@ -152,7 +152,7 @@ export function DecisionCard(props: DecisionCardProps) {
       }
       tone={TONES[kind]}
     >
-      <VStack gap={3} xstyle={[styles.body, isOpen && styles.open]}>
+      <VStack gap={3} xstyle={[styles.body, isPhone && styles.phone]}>
         {note}
         {change && <ChangeBody {...props} change={change} />}
         {href && (

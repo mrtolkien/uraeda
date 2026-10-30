@@ -51,9 +51,9 @@ two notes the human added while the change ran, and one agent's note.
   page, without the menu of Session, Proposal, and Note. A proposal stays at `Space n p` and the
   Priorities' ＋, a note at the Inbox's ＋ and the column's Note.
 - **The inbox's notes that need the human are in Now**:
-  [Reading and layout pass](/specs/changes/2026-10-30-reading-pass/proposal.md), the phone's margins
-  and text size, the Replaced behaviour block, tables in reading panes, and the home columns'
-  centring; [Proposal start flow](/specs/2026-10-30-proposal-start/proposal.md), its two notes;
+  [Reading and layout pass](/specs/done/2026-10-30-reading-pass.md), the phone's margins and text
+  size, the Replaced behaviour block, tables in reading panes, and the home columns' centring;
+  [Proposal start flow](/specs/2026-10-30-proposal-start/proposal.md), its two notes;
   [Mockup previews](/specs/done/2026-10-30-mockup-previews.md), the performance pass's stories that
   did not draw and SVG images in proposals; and the line "See if we can integrate Claude Design".
 

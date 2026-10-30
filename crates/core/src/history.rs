@@ -93,13 +93,16 @@ pub(crate) fn read(
     feature: &Feature,
 ) -> Result<HistoryView, GitError> {
     let done = feature.step.name == StepName::Done;
+    // A done item that keeps its branch was merged on GitHub, the merge never fetched: the default
+    // branch has no record of it, so it is read from its branch, as a live one.
+    let on_branch = !done || feature.branch.is_some();
     let recorded = default_branch
-        .filter(|_| done)
+        .filter(|_| !on_branch)
         .and_then(|branch| recorded_tip(git, branch, &feature.folder));
-    let tip = if done {
-        recorded.map(|(_, start)| start)
-    } else {
+    let tip = if on_branch {
         feature.branch.as_deref().and_then(|branch| git.tip(branch))
+    } else {
+        recorded.map(|(_, start)| start)
     };
     let commits = match tip {
         Some(tip) => git.history(tip, since(&feature.folder))?,
@@ -140,7 +143,7 @@ pub(crate) fn read(
             .skip(current as usize + 1)
             .for_each(|start| *start = None);
     }
-    let diffs = if done {
+    let diffs = if !on_branch {
         let merge = match recorded.filter(|_| found) {
             Some((tip, start)) => {
                 let since = since(&feature.folder);

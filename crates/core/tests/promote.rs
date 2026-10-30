@@ -264,10 +264,11 @@ fn a_change_with_a_pull_request_is_refused() {
         number,
         url: format!("https://github.com/o/r/pull/{number}"),
         state: PullRequestState::Open,
+        head: String::new(),
     };
     pulls::remember(
         &root,
-        PullRequests::Known([(CHANGE_BRANCH.to_string(), pull(7))].into()),
+        PullRequests::open([(CHANGE_BRANCH.to_string(), pull(7))]),
     );
 
     let refused = promote(&repo);
@@ -288,11 +289,9 @@ fn another_branchs_pull_request_does_not_refuse() {
         number: 8,
         url: "https://github.com/o/r/pull/8".to_string(),
         state: PullRequestState::Open,
+        head: String::new(),
     };
-    pulls::remember(
-        &root,
-        PullRequests::Known([("main".to_string(), pull)].into()),
-    );
+    pulls::remember(&root, PullRequests::open([("main".to_string(), pull)]));
 
     assert!(promote(&repo).is_ok());
 }

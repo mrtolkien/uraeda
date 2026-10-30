@@ -40,12 +40,11 @@ whatever font is picked. Lines are 1.4 high everywhere: "just do 1.4 everywhere"
 - **A pane of prose is as wide as its prose**: a reading page's pane (`Page`'s `reading` kind: the
   round, the spec, the plan, a document, the data model) is at most a reading pane, the measure and
   the pane's own padding and border, so its text fills it and never stops short of the border: a
-  pane's text and its border end together. A table inside it scrolls inside it; a live window, a
-  mockup or a story, grows past it into the empty room beside it, up to its own size. The proposal
-  editor's panes hold monospace text, as wide as the formatter's 100 columns on a wide screen, so a
-  formatted file's lines do not wrap again ("line jumps a bit randomly"), while a paragraph typed
-  without breaks still wraps; Start sits beside it where the screen has the room, under it elsewhere
-  (`Page`'s `code` kind).
+  pane's text and its border end together. A table or a live window, a mockup or a story, grows past
+  it into the empty room beside it, up to its own size. The proposal editor's panes hold monospace
+  text, as wide as the formatter's 100 columns on a wide screen, so a formatted file's lines do not
+  wrap again ("line jumps a bit randomly"), while a paragraph typed without breaks still wraps;
+  Start sits beside it where the screen has the room, under it elsewhere (`Page`'s `code` kind).
 - **A single pane is centred** on a wide screen, at its maximum width; two panes side by side share
   the page's width, each up to its maximum. "A _single_ pane should not be too big, but for two
   panes they should be able to use the available space." "The single-panes should be CENTERED."
@@ -134,9 +133,11 @@ secondary colour, its text a list room in. Astryx's markdown lists take it from 
 
 ## Tables
 
-- A table stays inside what holds it, a pane or a card: it scrolls sideways inside it rather than
-  reach past its border. Its row lines run to the holder's border, and its first column's text lines
-  up with the holder's text.
+- A table wider than its pane grows past it into the empty room beside it, on semi-wide and wide
+  screens, as a live window does, with its own border over the pane's: "We need a good way to show
+  tables in our reading panes". It scrolls sideways only past that room, and on the phone, where
+  there is none, inside its pane. Its row lines run to its border, or to the pane's while it fits,
+  and its first column's text keeps the pane's room from them.
 - A table has room above and below it, as a block among others, never touching the text.
 - No empty row between rows: a row's comments get a row of their own only when there are some.
 - A question whose context, example, or options hold a table, a mockup, or a story keeps one column,

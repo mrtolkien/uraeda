@@ -10,7 +10,15 @@ import {
   STORY_FEATURE,
 } from "uraeda-binding/test-utils";
 import { CHANGE_FOLDERS } from "./changes.ts";
-import { type FakePullRequest, at, proposal, recurring, slugOf, spec } from "./features.ts";
+import {
+  type FakePullRequest,
+  NEVER_FETCHED,
+  at,
+  proposal,
+  recurring,
+  slugOf,
+  spec,
+} from "./features.ts";
 import { FEATURE_PAGES } from "./folders.ts";
 
 /** The steps a feature is at, a gate named by the file it waits on: each has a sample feature. */
@@ -172,7 +180,7 @@ function pullRequest(
   reviewDecision: FakePullRequest["reviewDecision"],
 ): FakePullRequest {
   const url = `https://github.com/mrtolkien/uraeda/pull/${number}`;
-  return { headRefName, isDraft, number, reviewDecision, url };
+  return { headRefName, headRefOid: NEVER_FETCHED, isDraft, number, reviewDecision, url };
 }
 
 /**

@@ -21,6 +21,12 @@ export const TERMINATE_AFTER_MS = 10_000;
 export const OUTPUT_LIMIT = 4000;
 export { MAX_IMAGES } from "../limits.ts";
 
+/** Why a turn stopped as the server stopped, or as the next start found it left running. */
+export const SERVER_STOPPED = "Stopped: the server stopped while it ran.";
+
+/** Why a queued turn stopped as the human took its message back: it never asks for them. */
+export const TAKEN_BACK = "Taken back.";
+
 export const REFUSALS = {
   /** A write on a feature, or a session another server holds, while its agent works. */
   working: "An agent is working on this feature. Stop it first, or wait for it.",
@@ -43,6 +49,10 @@ export const REFUSALS = {
   agentWorking: "The agent is working",
   /** A message to a session of a change or a feature while another of its sessions works. */
   otherWorking: (kind: string) => `Another session of this ${kind} is working`,
+  /** A dismiss of a turn that runs or waits: only a failed or stopped run is dismissed. */
+  stillRunning: "The run is still going.",
+  /** A dismiss of a queued message taken back: it never ran, and the session's status skips it. */
+  takenBack: "This message was taken back: it never ran.",
   /** A message, a run, or a new session of a dropped change or feature: its sessions are archived. */
   dropped: "This change or feature was dropped: its branch stays.",
 };

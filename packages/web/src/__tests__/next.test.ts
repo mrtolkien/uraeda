@@ -16,6 +16,7 @@ function at(name: string, extra: Partial<NextFeature["step"]> = {}): NextFeature
   } as NextFeature;
 }
 
+const PULL = { number: 75, url: "https://github.com/mrtolkien/uraeda/pull/75" };
 const RECOMMENDED = { name: "Continue, write the plan", trigger: "manual" } as const;
 
 test("an idle agent at a step offers the recommended message as its button", () => {
@@ -41,7 +42,7 @@ test("a working agent offers Open the session", () => {
 });
 
 test("a build with the agent working keeps its task line", () => {
-  const progress = { position: 5, title: "Undo restores the previous due date", total: 9 };
+  const progress = { done: 4, title: "Undo restores the previous due date", total: 9 };
 
   const next = nextOf(at("implementation", { progress }), {
     agent: AVAILABLE,
@@ -50,8 +51,20 @@ test("a build with the agent working keeps its task line", () => {
   });
 
   expect(next.title).toBe("The agent is building");
-  expect(next.line).toBe("Task 5 of 9: Undo restores the previous due date");
+  expect(next.line).toBe("4 of 9 tasks done · Undo restores the previous due date");
   expect(next.action?.label).toBe("Open the session");
+});
+
+test("a build with every task done, some on their task branches, names no current task", () => {
+  const progress = { done: 9, title: "Undo restores the previous due date", total: 9 };
+
+  const next = nextOf(at("implementation", { progress }), {
+    agent: AVAILABLE,
+    recommended: RECOMMENDED,
+    working: true,
+  });
+
+  expect(next.line).toBe("9 of 9 tasks done");
 });
 
 test("an idle agent with only a reason says it and offers Open the session", () => {
@@ -85,4 +98,19 @@ test("a human gate keeps its link, whatever the agent", () => {
 
   expect(next.title).toBe("You review the spec");
   expect(next.action?.kind).toBe("link");
+});
+
+test.each([
+  ["a gate", at("human-gate", { file: "spec.md", fileKind: "spec", waitsOn: "human" })],
+  ["an open pull request", { ...at("pull-request", { waitsOn: "human" }), pullRequest: PULL }],
+])("an agent at work on %s leads to its session, not the human's review", (_, feature) => {
+  const next = nextOf(feature, { session: "s-older", working: true });
+
+  expect(next.title).toBe("The agent is at work");
+  expect(next.action).toEqual({
+    external: false,
+    href: "/sessions/s-older",
+    kind: "link",
+    label: "Open the session",
+  });
 });

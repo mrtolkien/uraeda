@@ -2606,10 +2606,11 @@ fn approved_over_its_shape(problem: &Problem) -> bool {
 }
 
 /// US3 1, SC-001, SC-002, SC-004: the repository's decisions warn nothing on their shape, hold at
-/// most 11,800 words together, their frontmatter aside, and each Why links one record at most. The
-/// limit was 11,000 until the documentation decision, approved with Onboarding + README pass, and
+/// most 12,100 words together, their frontmatter aside, and each Why links one record at most. The
+/// limit was 11,000 until the documentation decision, approved with Onboarding + README pass,
 /// 11,100 until the performance decision and UI behaviour's rules on writes, approved with the
-/// performance pass.
+/// performance pass, and 11,800 until the feature status decision, approved with the feature state
+/// pass.
 #[test]
 fn the_ledger_reads_alone() {
     let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -2633,7 +2634,7 @@ fn the_ledger_reads_alone() {
         let records = why.matches("](../done/").count() + why.matches("](/specs/done/").count();
         assert!(records <= 1, "{records} records linked from a Why:\n{why}");
     }
-    assert!(words <= 11_800, "{words} words");
+    assert!(words <= 12_100, "{words} words");
 }
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
