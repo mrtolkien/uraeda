@@ -230,7 +230,7 @@ clock set by `today`; `forgetUnsaved` stands for a reload.
   - `discoveryLevels(): Array<string>`, the core's levels, in order.
   - `startChange` keeps its signature, over `api::start_text`.
 
-- [ ] **Step 1: Move the line replacement out of `plan.rs`**
+- [x] **Step 1: Move the line replacement out of `plan.rs`**
 
 Move `started_line` and `typed_write_left` to `start/line.rs`, unchanged. Run
 `nix develop -c cargo nextest run -p uraeda-core --test actions`: PASS before and after. Commit:

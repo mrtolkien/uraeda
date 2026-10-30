@@ -15,6 +15,7 @@ use crate::workspace::{Kind, Workspace};
 use super::place;
 
 mod commits;
+mod line;
 mod plan;
 mod restore;
 mod typed;
