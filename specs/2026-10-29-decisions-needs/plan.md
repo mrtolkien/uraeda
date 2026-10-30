@@ -144,33 +144,35 @@ The tasks of a wave are built at the same time, then merged and reviewed while t
 **Files:**
 
 - Modify: `skills/uraeda/assets/example/specs/decisions/code-quality.md`, `preview.md`,
-  `repeating-tasks.md`, `testing.md`, `due-dates.md`
+  `repeating-tasks.md`, `testing.md`, `due-dates.md`; the decisions it quotes in
+  `skills/uraeda/assets/example/specs/2026-10-06-recurring-tasks/plan.md`; the setup templates
+  `skills/uraeda/assets/templates/specs/decisions/preview.md` and `testing.md` (ruling R1)
 
 **Interfaces:**
 
 - Produces: an example whose decisions hold one keyword per rule, and one link in each Why.
 
-- [ ] **Step 1: Split each rule holding two keywords into rules of one**
+- [x] **Step 1: Split each rule holding two keywords into rules of one**
 
 Code quality's marker rule, Preview's command, wrapper, and version rules, Repeating tasks' move
 rule, and Testing's replaced-behaviour rule each become rules of one keyword, strongest first, at
 most 10 per decision. Preview's first rule keeps its command in code: the
 [preview tests](/crates/core/tests/check.rs) read it.
 
-- [ ] **Step 2: Rewrite Due dates' and Repeating tasks' Why**
+- [x] **Step 2: Rewrite Due dates' and Repeating tasks' Why**
 
 The reason in the present tense, no "the human chose", the human's words quoted only where they are
 the reason, and one link to the feature's record at most.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core -E 'test(the_example) | test(preview)'`
 - Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
-git add skills/uraeda/assets/example/specs/decisions
+git add skills/uraeda/assets
 git commit -m "docs(decisions-needs): the example's decisions hold one keyword per rule"
 ```
 

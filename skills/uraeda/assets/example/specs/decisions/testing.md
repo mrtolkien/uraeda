@@ -16,7 +16,7 @@ logic, and the main scenario of each user story, through the real app.
   guards behaviour they replace is rewritten or removed in the task that changes the behaviour,
   never kept by bending the code. Checked by review.
 - A spec that replaces behaviour MUST list it with the tests that guard it, so its approval covers
-  their removal, and the record MUST name them. Checked by review.
+  their removal. Checked by review.
 - A test MUST assert what a caller or a user observes, never how the code does it. Checked by
   review.
 - A feature MUST test the data it stores, its date and repeat logic, the main scenario of each of
