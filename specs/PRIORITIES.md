@@ -6,8 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Decisions needs to be understandable with no context. Often agents just read the decisions, they can't be expected to search for extra info in records.](/specs/2026-10-29-decisions-needs/proposal.md)
-
 - [Performance pass: the UI feels sluggish](/specs/2026-10-29-performance-pass/proposal.md)
 
 - [Feature state pass](proposals/feature-state-pass/proposal.md)
