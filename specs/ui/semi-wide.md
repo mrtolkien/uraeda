@@ -16,8 +16,7 @@ over them, clipped to the rail, then grows.
   here it stays, and the page reads in the room it leaves.
 - The status line shows the page's hints, and the counts when they fit; where they do not, the
   counts go first, then the hints past the line's end.
-- Panes side by side, like a round's Scope and Sources, stack when the round is narrower than the
-  pair's width, and a question's card keeps one column below its split width.
+- A question's card keeps one column below its split width.
 - What sits in two places on wide screens may share a line here: the sessions page's Usage and Done
   side by side, each half as wide, Done greyed.
 

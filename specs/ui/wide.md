@@ -14,6 +14,8 @@ page and its companions side by side.
   that room allows: "They should be center of _the whole screen_ when it's possible". A document
   page centres its panes, each as wide as about 80 characters of prose, two side by side sharing the
   room; a round widens to two panes, so a question's card can hold the question beside its answers.
+  The round's context stays one pane wide, its parts one under the other: "put them back one by
+  one".
 - **The decisions page** puts its list and its reader side by side only where the list shows about
   40 characters a line and the reader 60 (`decisions/useSplit.ts`); narrower, the list is the page
   and what is open is a page of its own, at the reading measure. The reader grows first, to 80

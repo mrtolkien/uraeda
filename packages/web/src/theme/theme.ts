@@ -379,8 +379,6 @@ export const uraedaTheme = defineTheme({
     "--size-round-accent": "4px",
     // A question card at least this wide puts its options beside its title and context.
     "--size-round-split": "840px",
-    // The round's context at least this wide sets Scope and Sources side by side.
-    "--size-round-pair": "820px",
     // The settings page's search field, at the end of its heading row on wide screens.
     "--size-settings-search": "240px",
     // The shell's rail: its icons' column, folded, and on semi-wide screens.
