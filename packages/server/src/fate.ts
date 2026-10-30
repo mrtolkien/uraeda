@@ -138,11 +138,12 @@ const recordKey = (type: string, id: string | number) => `${type}\u0000${id}`;
  * Live updates: the core's watcher marks what changed, and fate sends it to the views. A view reads
  * its data, then subscribes, a few milliseconds apart: a subscription to a record updated in the
  * last 2 seconds is sent it once, so a change made between the two is not missed until the next
- * one. A record that has not changed is not resolved again. `now` is the bus's clock, in ms.
+ * one. A record that has not changed is not resolved again. `now` is the bus's clock, in ms. Each
+ * update forgets the times past the window, so a record updated once is not remembered forever.
  */
 export function liveBus(now: () => number = Date.now): LiveBus {
   const bus = createLiveEventBus();
-  /** When each record, by its key, was last updated. */
+  /** When each record, by its key, was last updated, the latest last. */
   const updated = new Map<string, number>();
   /** Whether the record changed within the replay window; a record's older time is forgotten. */
   const recent = (type: string, id: string | number) => {
@@ -167,7 +168,16 @@ export function liveBus(now: () => number = Date.now): LiveBus {
       return stop;
     },
     update(type, id, options) {
-      updated.set(recordKey(type, id), now());
+      const at = now();
+      // The times stay in the order they were set, the oldest first: those past the window go.
+      for (const [key, time] of updated) {
+        if (at - time <= LIVE_REPLAY_MS) {
+          break;
+        }
+        updated.delete(key);
+      }
+      updated.delete(recordKey(type, id));
+      updated.set(recordKey(type, id), at);
       bus.update(type, id, options);
     },
   };
