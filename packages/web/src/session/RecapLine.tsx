@@ -14,6 +14,7 @@ import {
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type MouseEvent, type ReactNode, Suspense } from "react";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { useNow } from "../useNow.ts";
 import { redirect, usePathname } from "../routes.tsx";
 import { useTurnLog } from "../sessionData.ts";
@@ -62,16 +63,27 @@ const styles = stylex.create({
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
+  // On the phone, up to three lines, as a list's row: its text takes the width, wrapping.
+  wordsPhone: {
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 3,
+    whiteSpace: "normal",
+  },
 });
 
 /**
- * A line's words, its time first, "**2 min** · read 3 files", on one line cut with an ellipsis.
- * `isHidden` hides them from screen readers.
+ * A line's words, its time first, "**2 min** · read 3 files", on one line cut with an ellipsis,
+ * three on the phone. `isHidden` hides them from screen readers.
  */
 function Words({ isHidden = false, text }: { isHidden?: boolean; text: string }) {
   const [time = "", ...rest] = text.split(" · ");
+  const phone = isNarrow(useWidthClass());
   return (
-    <span aria-hidden={isHidden || undefined} {...stylex.props(styles.words)}>
+    <span
+      aria-hidden={isHidden || undefined}
+      {...stylex.props(styles.words, phone && styles.wordsPhone)}
+    >
       <span {...stylex.props(styles.time)}>{time}</span>
       {rest.map((part) => ` · ${part}`).join("")}
     </span>
