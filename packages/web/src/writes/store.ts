@@ -1,19 +1,14 @@
-// The git writes in flight, for the whole page: the one running, which blocks every other button
-// that writes, and what each item's card shows that a button just started for it, "Committing…",
-// until the server's status for the item changes, 10 seconds after the write ended, or the write
-// fails. One write runs at a time, as the server takes one at a time.
+// What each item's card shows for an action started for it that is no git write, "Starting the
+// agent…" or "Stopping…", until the server's status for the item changes, 10 seconds pass, or the
+// action fails. Git writes show in the toast instead (`CommitToast.tsx`), and never block anything.
 import { useEffect, useSyncExternalStore } from "react";
-
-/** A write: what its button reads while it runs, and the item it writes to, if any. */
-export type Write = { folder?: string; label: string };
 
 /** What a card shows for its item, and the server's status when it started, once a card drew it. */
 type Pending = { label: string; status?: string; timer?: ReturnType<typeof setTimeout> };
 
-/** How long a card shows an action, once its write ended, if the server's status stays the same. */
+/** How long a card shows an action, if the server's status stays the same. */
 export const PENDING_MS = 10_000;
 
-let running: Write | undefined;
 const pending = new Map<string, Pending>();
 const listeners = new Set<() => void>();
 
@@ -41,68 +36,14 @@ export function clearPending(folder: string) {
   changed();
 }
 
-/** Shows an action on a card, until the server's status for its item changes. */
-function showPending(folder: string, label: string) {
-  clearTimeout(pending.get(folder)?.timer);
-  pending.set(folder, { label });
-  changed();
-}
-
-/** Stops showing a card's action in a while, if nothing did sooner. */
-function expireLater(folder: string) {
-  const entry = pending.get(folder);
-  if (entry) {
-    clearTimeout(entry.timer);
-    entry.timer = setTimeout(() => clearPending(folder), PENDING_MS);
-  }
-}
-
 /**
  * Marks an action that is no git write on its item's card: "Starting the agent…", or "Stopping…",
  * until the server's status for it changes, or 10 seconds pass.
  */
 export function markPending(folder: string, label: string) {
-  showPending(folder, label);
-  expireLater(folder);
-}
-
-/**
- * Runs a write: the other writing buttons are blocked while it runs, and the item's card shows its
- * label. A write that throws or resolves to `false` failed: the card shows the server's status
- * again.
- */
-export async function runWrite<T>(write: Write, action: () => Promise<T>): Promise<T> {
-  running = write;
-  if (write.folder !== undefined) {
-    showPending(write.folder, write.label);
-  }
+  clearTimeout(pending.get(folder)?.timer);
+  pending.set(folder, { label, timer: setTimeout(() => clearPending(folder), PENDING_MS) });
   changed();
-  let failed = true;
-  try {
-    const result = await action();
-    failed = result === false;
-    return result;
-  } finally {
-    // Another write started meanwhile, from a page that does not block, keeps its place.
-    if (running === write) {
-      running = undefined;
-    }
-    if (write.folder !== undefined) {
-      if (failed) {
-        clearPending(write.folder);
-      } else {
-        // The status a card saw while it ran stays the one it started from.
-        expireLater(write.folder);
-      }
-    }
-    changed();
-  }
-}
-
-/** The write running, if any, and the function that runs one. */
-export function useWrites() {
-  const write = useSyncExternalStore(subscribe, () => running);
-  return { run: runWrite, running: write };
 }
 
 /** Notes the server's status a card first drew an action with: the one it started from. */

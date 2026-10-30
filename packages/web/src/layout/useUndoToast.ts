@@ -94,8 +94,8 @@ export function useUndoErrors(): [ReadonlyArray<UndoError>, (id: number) => void
  * Confirms a change the human cannot see on screen, for 5 seconds, with one Undo that reverts it.
  * `undo` resolves with nothing once reverted, or with the error to show instead: in the page,
  * under the top bar, until dismissed, as a toast must not be the only place an error shows. With
- * `commits`, Undo commits its revert: a git write, which reads "Undoing…" until it ends, the toast
- * open, and waits while another write runs.
+ * `commits`, Undo commits its revert: a git write, the toast open until its call answers, its
+ * commit landing behind it, as every git write's.
  */
 export function useUndoToast(): (
   message: string,
@@ -135,7 +135,6 @@ export function useUndoToast(): (
                 endContent: key,
                 label: "Undo",
                 onClick: () => revert().finally(close),
-                runningLabel: "Undoing…",
                 variant: "ghost",
               })
             : createElement(Button, {

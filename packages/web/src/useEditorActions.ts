@@ -8,6 +8,7 @@ import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import type { useSave } from "./useSave.ts";
 import { ProposalFileView, FeatureView } from "./views.ts";
+import { useClearRefusal, writeHere } from "./writes/useWriteQueue.ts";
 
 type File = NonNullable<ReturnType<typeof useProposalFile>>;
 
@@ -32,6 +33,7 @@ export function useEditorActions({ field, file, path, save, setConflict, slug, w
   const fate = useFateClient();
   const here = useRepoPath();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
+  const clearRefusal = useClearRefusal({ file: path });
   /** Saves the text typed, after the saves before it; resolves with whether the text is saved. */
   const saveTyped = () => {
     const unsaved = field.unsavedNow();
@@ -44,7 +46,11 @@ export function useEditorActions({ field, file, path, save, setConflict, slug, w
       setMessage({ ok: false, text: "Your text is not saved: nothing was committed." });
       return false;
     }
-    const result = await fate.mutations.text.commit({ input: { path }, view: ProposalFileView });
+    clearRefusal();
+    const result = await fate.mutations.text.commit({
+      input: { path, write: writeHere(`Committing the proposal of ${file?.title ?? path}`) },
+      view: ProposalFileView,
+    });
     if (result.error) {
       setMessage({ ok: false, text: refusal(result.error).message });
       return false;

@@ -53,7 +53,9 @@ A press shows its effect at once.
   be instant?"); the leader menu opens without delay when clicked.
 - **The one delay is deliberate**: the leader menu waits a moment after `Space`, so a quick key
   sequence never flashes it.
-- **A slow git write shows what it does**, at once, as the
-  [UI behaviour](../decisions/ui-behaviour.md) decision asks: its button reads what it does with a
-  spinner (`writes/WriteButton.tsx`), the card of what it writes to says the same, a thin bar runs
-  at the page's top, and every other write waits until it ends.
+- **A git write never waits on its commit.** Its result shows at once, as the
+  [UI behaviour](../decisions/ui-behaviour.md) decision asks, and its commit lands behind it, in
+  order, one after another, while the commit toast says what is still landing
+  ([surfaces](surfaces.md#the-commit-toast)). Nothing is blocked meanwhile, and no bar runs at the
+  page's top. Only an action that is no git write, as "Starting the agent…" or "Stopping…", shows on
+  its item's card until the server's status for it changes.

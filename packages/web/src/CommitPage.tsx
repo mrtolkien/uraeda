@@ -22,8 +22,10 @@ import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { closeUndoToasts } from "./layout/useUndoToast.ts";
-import { useRestoreScroll } from "./routes.tsx";
+import { useLocalPath, useRestoreScroll } from "./routes.tsx";
 import { PrioritiesView } from "./views.ts";
+import { RefusedHere } from "./writes/RefusedHere.tsx";
+import { useClearRefusal, useRefusal, writeHere } from "./writes/useWriteQueue.ts";
 import { WriteButton } from "./writes/WriteButton.tsx";
 
 const styles = stylex.create({
@@ -70,13 +72,17 @@ function Changes({ lines }: { lines: ReadonlyArray<string> }) {
 
 /**
  * What waits for a commit, one change to a line, and what the commit and the discard do. Both
- * write on the default branch; a hook's refusal shows here, and the changes stay.
+ * write on the default branch; a hook's refusal shows here, and the changes stay. The commit lands
+ * behind the page, in the toast: its refusal, once it comes, replaces the page's "Committed.".
  */
 export function CommitPage() {
   const fate = useFateClient();
   const confirm = useConfirm();
   const priorities = usePriorities();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
+  const here = { href: useLocalPath() };
+  const refused = useRefusal(here) !== undefined;
+  const clearRefusal = useClearRefusal(here);
   useRestoreScroll(true);
 
   /** Runs a write: the counts everywhere read again, and a refusal shows. */
@@ -95,8 +101,17 @@ export function CommitPage() {
   };
   const lines = priorities?.changeLines ?? [];
   const count = priorities?.changes ?? 0;
-  const commit = () =>
-    run(() => fate.mutations.changes.commit({ input: {}, view: PrioritiesView }), "Committed.");
+  const commit = () => {
+    clearRefusal();
+    return run(
+      () =>
+        fate.mutations.changes.commit({
+          input: { write: writeHere(`Committing ${plural(count, "change")}`) },
+          view: PrioritiesView,
+        }),
+      "Committed.",
+    );
+  };
   const discard = async () => {
     if (count > 0 && (await confirm(discardChanges(count)))) {
       await run(
@@ -130,7 +145,8 @@ export function CommitPage() {
         <PageTitle meta={{ text: count > 0 ? plural(count, "change") : "Nothing waits" }}>
           Commit
         </PageTitle>
-        {message && (
+        <RefusedHere what="the changes wait, not committed." where={here} />
+        {message && !(message.ok && refused) && (
           <AnnouncedBanner
             collapsible={false}
             status={message.ok ? "success" : "error"}

@@ -20,13 +20,17 @@ import {
   type Hashes,
   isDefaultRound,
   type RoundTarget,
+  roundName,
   useRoundWrites,
 } from "./roundTarget.ts";
-import { navigateHere } from "./routes.tsx";
+import { navigateHere, useLocalPath } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import { useSaveSettled } from "./settledWrites.ts";
 import { plural } from "./labels.ts";
 import { Foldable } from "./layout/Foldable.tsx";
+import { useFeatureTitle } from "./writes/labels.ts";
+import { RefusedHere } from "./writes/RefusedHere.tsx";
+import { useClearRefusal, type Where, writeHere } from "./writes/useWriteQueue.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 type Notes = ReturnType<typeof useRoundNotes>;
@@ -56,6 +60,15 @@ export function HookRefusal({
 }
 
 /**
+ * Where a round's submit happens, for its refusal: a feature's round file, or the page of a
+ * default-branch round, which names no feature.
+ */
+function useRoundPlace(file: File, target: RoundTarget): Where {
+  const href = useLocalPath();
+  return isDefaultRound(target) ? { href } : { file: file.name, folder: file.folder };
+}
+
+/**
  * A round's submit: what is still being typed is saved first, the notes, every save in `pending`,
  * then the settled points' comments, and nothing is submitted unless it all is. `next` hands the
  * feature over to the agent once the round is committed; a hook's refusal is tried again with
@@ -70,6 +83,10 @@ export function useRoundSubmit(
 ) {
   const saveSettled = useSaveSettled(file);
   const writes = useRoundWrites(target, hashes);
+  const clearRefusal = useClearRefusal(useRoundPlace(file, target));
+  const title = useFeatureTitle(file.folder);
+  const named = (doing: string) =>
+    writeHere(`${doing} ${isDefaultRound(target) ? roundName(target) : title}`);
   const [error, setError] = useState<Refusal>();
   // Whether the last commit asked to start the agent, for its Try again.
   const continues = useRef(false);
@@ -88,7 +105,8 @@ export function useRoundSubmit(
       });
       return false;
     }
-    const result = await writes.submit(file.name, resumes);
+    clearRefusal();
+    const result = await writes.submit(file.name, named("Committing the answers of"), resumes);
     if (result.error) {
       setError(refusal(result.error));
       return false;
@@ -101,7 +119,7 @@ export function useRoundSubmit(
     return true;
   };
   const retry = async () => {
-    const result = await writes.retry(file.name);
+    const result = await writes.retry(file.name, named("Committing again the answers of"));
     setError(result.error ? refusal(result.error) : undefined);
     if (result.error) {
       return;
@@ -177,6 +195,9 @@ export function RoundEnd({
 }) {
   const { error, retry, submit } = submitting;
   const margin = useScrollMargin();
+  const place = useRoundPlace(file, target);
+  // A hook's refusal as the queue landed the commit: the round is back as it was, answers kept.
+  const undone = <RefusedHere what="your answers are saved, not submitted." where={place} />;
   const refused = error?.kind === "hook" && (
     <HookRefusal error={error} onRetry={retry} what="Your answers are saved, not committed." />
   );
@@ -185,6 +206,7 @@ export function RoundEnd({
     // The refused round reads as answered: its refusal stays, with Try again.
     return (
       <>
+        {undone}
         {refused}
         {unsaved && (
           <RestoreNotice
@@ -206,6 +228,7 @@ export function RoundEnd({
     <VStack gap={3} id={PART_IDS.notes} ref={end} xstyle={margin}>
       <NotesRead fieldShown={notesShown} notes={notes} onEdit={onEditNotes} />
       {blank.length > 0 && <QuestionsLeft blank={blank} />}
+      {undone}
       {refused || (error && <StatusText tone="error">{error.message}</StatusText>)}
       <div ref={submitRow}>
         {isDefaultRound(target) ? (
@@ -218,7 +241,6 @@ export function RoundEnd({
           />
         ) : (
           <CommitActions
-            folder={file.folder}
             isDisabled={blank.length > 0}
             label="Commit"
             onCommit={submit}

@@ -25,6 +25,8 @@ import { Timeline } from "./Timeline.tsx";
 import { day } from "./times.ts";
 import { Missing } from "../layout/Missing.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
+import { featurePage } from "../dropItem.ts";
+import { RefusedHere } from "../writes/RefusedHere.tsx";
 
 type FeatureData = NonNullable<ReturnType<typeof useFeature>>;
 type HistoryData = NonNullable<ReturnType<typeof useHistory>>;
@@ -242,6 +244,10 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
               title={refused}
             />
           )}
+          <RefusedHere
+            what={`the ${feature.kind === "change" ? "change" : "feature"} is back, not dropped.`}
+            where={{ href: featurePage(feature.folder) }}
+          />
         </VStack>
         <Blocking
           change={feature.kind === "change"}

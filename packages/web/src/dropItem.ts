@@ -6,7 +6,6 @@ import { refusal } from "./errors.ts";
 import { useConfirm } from "./fields/Confirm.tsx";
 import type { MoveNote } from "./offers.ts";
 import { DroppedView } from "./views.ts";
-import { runWrite } from "./writes/store.ts";
 
 /** The change or the feature a session belongs to, as its page reads it. */
 export type SessionItem = {
@@ -43,6 +42,9 @@ export type Dropped =
   | { kind: "refused"; message: string }
   | { committed: boolean; kind: "dropped"; notes: Array<MoveNote> };
 
+/** A feature's page: where a drop's refusal shows, wherever it was dropped from. */
+export const featurePage = (folder: string) => `/f/${folder}`;
+
 /**
  * Drops the item once confirmed: its entry leaves **Now**, its worktree is removed unless it holds
  * uncommitted changes, and its sessions are archived. The notes say what stayed, with the branch
@@ -56,9 +58,13 @@ export function useDropItem(): (item: SessionItem) => Promise<Dropped> {
     if (!(await confirm(dropQuestion(item, branch)))) {
       return { kind: "cancelled" };
     }
-    const result = await runWrite({ folder: item.folder, label: "Dropping…" }, () =>
-      fate.mutations.feature.drop({ input: { folder: item.folder }, view: DroppedView }),
-    );
+    const result = await fate.mutations.feature.drop({
+      input: {
+        folder: item.folder,
+        write: { href: featurePage(item.folder), label: `Dropping the ${item.kind} ${item.slug}` },
+      },
+      view: DroppedView,
+    });
     if (result.error) {
       return { kind: "refused", message: refusal(result.error).message };
     }

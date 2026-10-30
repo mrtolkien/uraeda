@@ -1180,13 +1180,14 @@ git commit -m "feat(performance-pass): a start answers once planned, and a messa
 - Consumes: the `WriteQueue` record and `writes.dismiss` from task 12.
 - Produces:
   - `useWriteQueue(): ReadonlyArray<QueuedWrite>`, and
-    `useRefusal(where: { folder: string; file?: string }): QueuedWrite | undefined`, the refused
-    write of that place.
+    `useRefusal(where: { folder?: string; file?: string; href?: string }): QueuedWrite | undefined`,
+    the refused write of that place (R54), drawn there by `writes/RefusedHere.tsx`; Open hides it
+    from the tab's toast only (R53).
   - `WriteButton` runs its action and takes the human where it leads at once; it never blocks
     another, and shows no running state. `markPending` stays for the actions that are not git
     writes, such as "Starting the agent…".
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 // packages/web/src/__tests__/commit-toast.test.tsx
@@ -1199,12 +1200,12 @@ test("a refused commit shows its output on its file and in the toast", async () 
 
 The break it catches: a refusal shown only in the toast; a toast that loses a refusal.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/web/src/__tests__/commit-toast.test.tsx`
 - Expected: FAIL, no toast.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Mount `CommitToastView` once, fed by `useWriteQueue`, where the leader menu rises; on the phone,
 over the bottom bar, across the screen's width. Each committing call passes
@@ -1212,12 +1213,12 @@ over the bottom bar, across the screen's width. Each committing call passes
 store, the thin bar, and the card's action for git writes, with the five tests the spec lists.
 Rewrite the guides' paragraphs on git writes to the toast and the queue.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS. Deferred to ready: the suite, Storybook.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src specs/ui

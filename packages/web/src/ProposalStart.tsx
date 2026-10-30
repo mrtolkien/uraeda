@@ -80,7 +80,6 @@ export function ProposalStart({
             isDisabled={!slug.text.trim()}
             label={isFeature ? "Start feature" : "Start change"}
             onClick={run}
-            runningLabel={isFeature ? "Starting the feature…" : "Starting the change…"}
             variant="primary"
           />
         </HStack>

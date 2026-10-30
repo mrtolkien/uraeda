@@ -9,7 +9,6 @@ import { withFreshBase } from "./freshBase.ts";
 import { splitProposal } from "./pane/proposalText.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { ProposalFileView, InboxView, PrioritiesView } from "./views.ts";
-import { runWrite } from "./writes/store.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
 
@@ -199,10 +198,7 @@ export function useStartFrom() {
     error,
     feature: {
       fromText: (input: Parameters<typeof proposalWritten>[1]) =>
-        run(
-          () => runWrite({ label: "Writing the proposal…" }, () => proposalWritten(fate, input)),
-          edit,
-        ),
+        run(() => proposalWritten(fate, input), edit),
     },
   };
 }

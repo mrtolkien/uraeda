@@ -17,6 +17,7 @@ asking the human for something it should not.
 | Find which key does what, here                     | The key map, `?`                            | A help page, a list in the leader menu |
 | Confirm what cannot be undone                      | The shared confirmation                     | A second, page-made dialog             |
 | Take back what was just done                       | The undo toast, or `u`                      | A confirmation before each write       |
+| See a commit still landing                         | The commit toast                            | A spinner on its button, a top bar     |
 | Answer one short question at a decision point      | A dialog with one field                     | A page                                 |
 | Read or work in something for a while              | A page                                      | An overlay                             |
 | Keep a document's companions at hand               | The side column (wide), sheets (the phone)  | A popover                              |
@@ -94,8 +95,28 @@ A write the human may regret, but that needs no question first, like a note prom
 inbox or an empty category deleted, shows a toast with Undo for 5 seconds
 (`layout/useUndoToast.ts`); `u` presses the newest one's Undo. A note of the inbox deleted with `d`
 gets one too, after its question: Undo puts back the note and the note file that went with it.
-Committing clears them. A toast is for this, and for a confirmation from another page, never for an
-error, which stays next to what it concerns.
+Committing clears them. A toast is for this, for a confirmation from another page, and for the git
+writes still landing, never for an error alone, which stays next to what it concerns.
+
+## The commit toast
+
+A git write shows its result at once and takes the human where it leads: the files are written when
+its call answers, and its commit lands behind it, with the hooks, in the server's queue of the
+repository. The commit toast (`writes/CommitToast.tsx`) lists what is still landing, the running
+write first, then the ones waiting their turn, each named as its button would say it ("Approving the
+spec of Performance pass"). Nothing waits for it and no button is blocked: "we don't have to 'lie'
+to the user", and the toast is the truth of what is not in git yet. Every tab shows the same toast,
+and a reload brings it back, as it reads the server's queue.
+
+It sits where the leader menu rises, at the bottom right over the status line, in the same frosted
+glass, square; the open menu covers it. On the phone, it sits over the bottom bar, across the
+screen's width, and follows the bar down as it slides away.
+
+A write a hook refused is undone where it happened: the page shows what it showed before, and the
+hook's output in a banner at that place (`writes/RefusedHere.tsx`), the verdict's place of a review,
+a round's end, the editor's Commit. The toast keeps it too, with Open, which goes to that place, and
+Dismiss, which takes it out of every tab. Writing at that place again deals with it. The queue goes
+on past a refusal: the next writes land, or are refused, each alone.
 
 ## Pages
 

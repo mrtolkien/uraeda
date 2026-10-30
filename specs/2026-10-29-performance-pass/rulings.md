@@ -630,3 +630,34 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   after the start was queued and before it ran, has the start refused as uncommitted changes.
 - **Where**: `packages/server/src/fate/starts.ts`, `packages/server/src/writes/queue.ts`,
   `packages/server/src/writes/start-steps.ts`, task 13.
+## R53: Open hides a refusal from the tab's toast; the record keeps it until dismissed
+
+- **Decision**: the toast's Open goes to where the refused write happened, `#write:refused`, and
+  hides it from this tab's toast only. The queue's record keeps it, so that place still shows the
+  hook's output, until Dismiss, in the toast or at the place, or a new write made there.
+- **Rationale**: the spec says a refusal stays in the toast "until opened or dismissed", and that
+  Open shows the hook's output at the verdict: both read the one record, so dismissing it on Open
+  would take the output off the page it opens.
+- **If wrong**: another tab's toast, or a reload, still lists an opened refusal until it is
+  dismissed.
+- **Where**: `packages/web/src/writes/CommitToast.tsx`, task 14.
+
+## R54: A refusal's place is its feature and file, or the page it was made on
+
+- **Decision**: `useRefusal` takes `{ folder?, file?, href? }`, every field given matching. A
+  feature's file (a verdict, a round) matches by folder and file; a proposal's commit by its path; a
+  default-branch round and the commit page, which the server names by no file, by their page; a drop
+  by the feature's page, `/f/<folder>`, wherever it was dropped from.
+- **Rationale**: the server names the lists' commits with no folder nor file (R41), so their only
+  place is the page the write was made on, which R6's `href` carries.
+- **Where**: `packages/web/src/writes/useWriteQueue.ts`, task 14.
+
+## R55: Writes outside the queue lost their running state with the blocking store
+
+- **Decision**: the starts that do not go through the queue yet (`feature.start`, `change.start`,
+  `session.toChange`, `feature.promote`, the New page's draft) now run without "Starting…" on their
+  button or card, and block nothing. A button ignores its own second press until its call answers.
+- **Rationale**: the spec removes the store, its bar, and the card's action for git writes; tasks 13
+  and 15 make the start answer at once, its steps shown on the session.
+- **If wrong**: until task 15, Start shows nothing for the seconds its commit takes.
+- **Where**: task 14.

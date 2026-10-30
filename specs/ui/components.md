@@ -23,26 +23,27 @@ anything, and a change made to one is made once.
 
 ## Things the human acts on
 
-| Job                                        | Component                                                                                       |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| A list of rows: the priorities, the inbox  | `lists/WorkList.tsx` and `lists/Card.tsx`, their keys from `useListKeys` and `useRowKeys`       |
-| Rows nested under a row                    | `lists/Card.tsx`, through `lists/outlineRows.tsx`; edited in place by `lists/OutlineEditor.tsx` |
-| A row's depth, parent, and children        | `lists/nesting.ts`, the one walk of an outline's rows                                           |
-| A row's actions                            | `lists/RowBar.tsx`: under the row, or floating on the phone in `NavBar`'s tiles                 |
-| A feature's or a session's card            | `sidebar/ItemCard.tsx` and `CardRow.tsx`: the sidebar, home, and the sessions page              |
-| A row's whole text                         | `pane/DetailOverlay.tsx`                                                                        |
-| Choosing one of many                       | `keys/KeyPicker.tsx`, its rows drawn with the card's icon and state                             |
-| A dialog, or the phone's sheet             | `layout/Overlay.tsx`, its sheet `layout/Sheet.tsx`, shared by the pickers                       |
-| A confirmation                             | `fields/Confirm.tsx`'s `useConfirm`, answered by `y` and `n`, and more answers with their keys  |
-| An undo                                    | `layout/useUndoToast.ts`                                                                        |
-| A button that writes to git                | `writes/WriteButton.tsx`: it reads what it does while it runs, and blocks every other write     |
-| A one-line field edited in place           | `EditableLine.tsx`'s `LineField`                                                                |
-| A field of several lines                   | `fields/TextField.tsx`, its height by its `kind`, with `useTextField`'s unsaved store           |
-| A comment                                  | `CommentForm.tsx`                                                                               |
-| A message to the agent                     | `Composer.tsx`                                                                                  |
-| An agent's session: its messages and calls | `SessionView.tsx`, `Transcript.tsx`, `session/ActivityPanel.tsx`, `session/PlanProgress.tsx`    |
-| A menu of actions, as a last resort        | `layout/ActionsMenu.tsx`                                                                        |
-| A key and what it does                     | the registry's `useKeys`, which the status line and the leader menu read                        |
+| Job                                        | Component                                                                                          |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| A list of rows: the priorities, the inbox  | `lists/WorkList.tsx` and `lists/Card.tsx`, their keys from `useListKeys` and `useRowKeys`          |
+| Rows nested under a row                    | `lists/Card.tsx`, through `lists/outlineRows.tsx`; edited in place by `lists/OutlineEditor.tsx`    |
+| A row's depth, parent, and children        | `lists/nesting.ts`, the one walk of an outline's rows                                              |
+| A row's actions                            | `lists/RowBar.tsx`: under the row, or floating on the phone in `NavBar`'s tiles                    |
+| A feature's or a session's card            | `sidebar/ItemCard.tsx` and `CardRow.tsx`: the sidebar, home, and the sessions page                 |
+| A row's whole text                         | `pane/DetailOverlay.tsx`                                                                           |
+| Choosing one of many                       | `keys/KeyPicker.tsx`, its rows drawn with the card's icon and state                                |
+| A dialog, or the phone's sheet             | `layout/Overlay.tsx`, its sheet `layout/Sheet.tsx`, shared by the pickers                          |
+| A confirmation                             | `fields/Confirm.tsx`'s `useConfirm`, answered by `y` and `n`, and more answers with their keys     |
+| An undo                                    | `layout/useUndoToast.ts`                                                                           |
+| A button that writes to git                | `writes/WriteButton.tsx`: it shows its result at once, never blocks, and names its write           |
+| A git write still landing, or refused      | `writes/CommitToast.tsx`, fed by `writes/useWriteQueue.ts`; its refusal on the page, `RefusedHere` |
+| A one-line field edited in place           | `EditableLine.tsx`'s `LineField`                                                                   |
+| A field of several lines                   | `fields/TextField.tsx`, its height by its `kind`, with `useTextField`'s unsaved store              |
+| A comment                                  | `CommentForm.tsx`                                                                                  |
+| A message to the agent                     | `Composer.tsx`                                                                                     |
+| An agent's session: its messages and calls | `SessionView.tsx`, `Transcript.tsx`, `session/ActivityPanel.tsx`, `session/PlanProgress.tsx`       |
+| A menu of actions, as a last resort        | `layout/ActionsMenu.tsx`                                                                           |
+| A key and what it does                     | the registry's `useKeys`, which the status line and the leader menu read                           |
 
 ## Where Astryx has none
 

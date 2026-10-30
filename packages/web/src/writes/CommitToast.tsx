@@ -1,7 +1,8 @@
 // The git writes in flight, at the window's bottom right, on the leader menu's frosted glass: the
 // one running, with what it does, then the ones waiting their turn. The page already shows each
 // write's result: the toast says only that it is still landing in git. A write a hook refused stays
-// until it is opened or dismissed, its hook's output under it, as its page also shows.
+// until it is opened or dismissed, its hook's output under it, as its page also shows. On the phone,
+// it spans the screen's width over the bottom bar.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -10,7 +11,11 @@ import { Text } from "@astryxdesign/core/Text";
 import { spacingVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
+import { useState } from "react";
 import { glassStyles } from "../layout/glass.ts";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { navigateHere } from "../routes.tsx";
+import { REFUSED_ID, useDismissWrite, useWriteQueue } from "./useWriteQueue.ts";
 
 /** A git write as the toast lists it: what it does, and where it is in the queue. */
 export type QueuedWrite = {
@@ -24,14 +29,21 @@ export type QueuedWrite = {
 
 const styles = stylex.create({
   // Where the leader menu rises, over the status line: the menu, when open, covers it.
+  // The phone's bar may slide away: the toast follows it down, as the session's composer does.
   place: {
-    insetBlockEnd: `calc(var(--size-status-line, 0px) + ${spacingVars["--spacing-2"]})`,
+    insetBlockEnd: `calc(var(--status-line-offset, var(--size-status-line, 0px)) + ${spacingVars["--spacing-2"]})`,
     insetInlineEnd: spacingVars["--spacing-3"],
     maxWidth: `calc(100vw - 2 * ${spacingVars["--spacing-3"]})`,
     padding: spacingVars["--spacing-3"],
     position: "fixed",
     width: "var(--size-commit-toast, 26rem)",
     zIndex: 2,
+  },
+  // On the phone, across the screen's width, as the leader menu's sheet.
+  across: {
+    insetInline: spacingVars["--spacing-2"],
+    maxWidth: "none",
+    width: "auto",
   },
   // The hook's output, in the code's font, a few lines high before it scrolls.
   output: {
@@ -91,10 +103,13 @@ function Row({
  * running one first. Nothing when there are none.
  */
 export function CommitToastView({
+  isNarrow = false,
   onDismiss,
   onOpen,
   writes,
 }: {
+  /** Whether the screen is a phone's: the toast spans its width. */
+  isNarrow?: boolean;
   onDismiss: (id: string) => void;
   onOpen: (id: string) => void;
   writes: ReadonlyArray<QueuedWrite>;
@@ -104,9 +119,16 @@ export function CommitToastView({
   }
   return (
     <div
+      aria-label="Git writes"
       aria-live="polite"
       role="status"
-      {...stylex.props(glassStyles.surface, glassStyles.floating, styles.square, styles.place)}
+      {...stylex.props(
+        glassStyles.surface,
+        glassStyles.floating,
+        styles.square,
+        styles.place,
+        isNarrow && styles.across,
+      )}
     >
       <VStack gap={2}>
         {writes.map((write) => (
@@ -119,5 +141,34 @@ export function CommitToastView({
         ))}
       </VStack>
     </div>
+  );
+}
+
+/**
+ * The toast of the repository's write queue, the same in every tab. Open goes to where a refused
+ * write happened, its refusal shown there, and leaves this tab's toast; Dismiss takes it out of the
+ * queue, everywhere.
+ */
+export function CommitToast() {
+  const writes = useWriteQueue();
+  const dismiss = useDismissWrite();
+  const narrow = isNarrow(useWidthClass());
+  const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
+  const open = (id: string) => {
+    const write = writes.find((each) => each.id === id);
+    if (write) {
+      setOpened((before) => new Set(before).add(id));
+      // A write named by no page, as a start's, opens home.
+      const page = write.href || "/";
+      navigateHere(page.includes("#") ? page : `${page}#${REFUSED_ID}`);
+    }
+  };
+  return (
+    <CommitToastView
+      isNarrow={narrow}
+      onDismiss={(id) => void dismiss(id)}
+      onOpen={open}
+      writes={writes.filter((write) => !opened.has(write.id))}
+    />
   );
 }

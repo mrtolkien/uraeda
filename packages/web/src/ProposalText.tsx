@@ -21,6 +21,7 @@ import { TextField } from "./fields/TextField.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import type { ProposalEditorState } from "./pane/useProposalEditor.ts";
 import { StoriesProvider } from "./stories.tsx";
+import { RefusedHere } from "./writes/RefusedHere.tsx";
 
 const styles = stylex.create({
   // Room under the last row, which the pane's border would otherwise touch.
@@ -153,10 +154,11 @@ export function ProposalText({
             {/* A proposal file's Ctrl+Enter starts it, so it does not save. */}
             {field.dirty && !isFile && <SaveKeys />}
           </HStack>
-          {!isFile && (
-            <CommitActions folder={file.folder} label="Commit" onCommit={editor.actions.commit} />
-          )}
+          {!isFile && <CommitActions label="Commit" onCommit={editor.actions.commit} />}
         </HStack>
+        {!isFile && (
+          <RefusedHere what="your text is saved, not committed." where={{ file: path }} />
+        )}
       </VStack>
     </Pane>
   );
