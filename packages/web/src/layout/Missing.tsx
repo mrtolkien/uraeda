@@ -68,7 +68,7 @@ export function WithSpecs({ children, fallback }: { children: ReactNode; fallbac
   }
   if (workspace.noSpecs) {
     return fallback === undefined ? (
-      <Page>
+      <Page kind="rows">
         <NoSpecs path={workspace.noSpecs} />
       </Page>
     ) : (
