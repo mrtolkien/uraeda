@@ -1785,6 +1785,37 @@ fn a_proposal_file_starts_as_a_change() {
     );
 }
 
+/// A started proposal's relative links point at the same files from its dated folder, its words
+/// unchanged: a link to a UI guide written in `specs/proposals/` still finds the guide.
+#[test]
+fn a_started_proposals_relative_links_still_find_their_files() {
+    let repo = proposal_file_repo();
+    repo.write("specs/ui/phone.md", "# Phone\n");
+    repo.write(
+        PROPOSAL_FILE,
+        "# Login banner\n\n## What\n\nA banner, as [the phone](../ui/phone.md) and [the list](/specs/PRIORITIES.md) say.\n",
+    );
+    repo.commit("chore: link the phone guide");
+    let (git, workspace) = opened(&repo);
+
+    start::run(
+        &git,
+        &workspace,
+        PROPOSAL_FILE,
+        Some("centred-x"),
+        Kind::Change,
+        change_day(),
+        false,
+    )
+    .unwrap();
+
+    let proposal = format!("specs/changes/{CHANGE_FOLDER}/proposal.md");
+    assert_eq!(
+        in_change(&repo, &proposal),
+        "# Login banner\n\n## What\n\nA banner, as [the phone](../../ui/phone.md) and [the list](/specs/PRIORITIES.md) say.\n"
+    );
+}
+
 /// A started feature's folder is on main from the start: it is its branch's, waiting on discovery,
 /// not merged.
 #[test]

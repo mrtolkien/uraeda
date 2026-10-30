@@ -98,10 +98,11 @@ Do these only when a human asks.
   `specs/proposals/`, or its name, whatever it holds: the proposal is freeform. Without `--slug`, it
   takes the first two words of the proposal file's name that name something.
   1. On the default branch, create `specs/YYYY-MM-DD-feature-slug/`, and move the proposal file into
-     it as `proposal.md`, unchanged: the proposal is the human's words, never rewritten. When the
-     proposal is a folder, a feature postponed earlier or a proposal with images, move all its files
-     into it, unchanged. A proposal with no file is expanded first, as **Expand** says: the human
-     writes its file, and asks for the start once it is ready.
+     it as `proposal.md`, its words unchanged: the proposal is the human's words, never rewritten.
+     Only its relative links change, to point at the same files from the new folder, as **Expand**
+     does. When the proposal is a folder, a feature postponed earlier or a proposal with images,
+     move all its files into it, the same way. A proposal with no file is expanded first, as
+     **Expand** says: the human writes its file, and asks for the start once it is ready.
   2. In the same commit, move the feature's proposal in `PRIORITIES.md` to the top of **Now**, after
      the other started proposals, then a blank line, unless the human says otherwise, as a link to
      the `proposal.md` from the repository root,
