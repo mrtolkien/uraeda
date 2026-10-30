@@ -430,7 +430,7 @@ git commit -m "feat(onboarding-readme): a sample project without specs/"
 - Consumes: `uraeda_core::api::read_setup(repo: &Path) -> Result<Vec<SetupItem>>` (task 1).
 - Produces: `ura status --json` has a top-level `setup` array of `{ key, name, state, required }`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `setup_lists_what_the_project_lacks`, two rows:
 
@@ -438,18 +438,18 @@ git commit -m "feat(onboarding-readme): a sample project without specs/"
   decision), then `ura status`. Its stdout ends with the spec's four lines, exactly; and
   `ura status --json` has
   `setup[0] == { key: "constitution", name: "Constitution", state: "template", required: true }` and
-  five items.
+  four items: the `specs/` folder's is listed only without `specs/`, where `ura status` fails.
 - Set up: `specs()`, then a written constitution and `code-quality.md` and `testing.md` committed.
   Its stdout does not contain `Setup:`, and its JSON's `setup` is empty.
 
 The break each catches: a status that never prints the check, or prints the optional preview.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-cli --test status setup_lists`
 - Expected: FAIL, stdout does not end with `Setup: 3 files missing`
 
-- [ ] **Step 3: Print the items**
+- [x] **Step 3: Print the items**
 
 `run` reads `read_setup` from the current folder. The text ends, after the groups and a blank line,
 with `Setup: <n> files missing` (`1 file missing` for one), then one line per required item not
@@ -462,12 +462,12 @@ constitution has no placeholder left, and its code-quality and testing decisions
 their status; the preview decision is optional; `ura status` and the web UI's Home list what is
 missing. `cli.md`'s `ura status` entry says it ends with the missing setup files.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-cli`, then `nix develop -c vp run fast`
 - Expected: PASS, `no_specs_folder` included
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/cli skills/uraeda/references/projects.md skills/uraeda/references/cli.md

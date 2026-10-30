@@ -390,3 +390,58 @@ fn a_finished_branch_without_gh_has_its_pull_request_unknown() {
         [WEB_UI, "agent", "pull-request-unknown"]
     );
 }
+
+/// US5.1: a project just set up by `ura init` ends its status with the required files it lacks,
+/// never the optional preview decision, and a set-up project prints no setup at all. Catches a
+/// status that never prints the setup, or prints the preview decision.
+#[test]
+fn setup_lists_what_the_project_lacks() {
+    let after_init = TestRepo::new();
+    let init = ura(&after_init, &["init"]);
+    assert_eq!(init.code, 0, "{}", init.stderr);
+
+    let output = ura(&after_init, &["status"]);
+
+    let lines: Vec<&str> = output.stdout.lines().collect();
+    assert_eq!(
+        lines[lines.len().saturating_sub(5)..],
+        [
+            "",
+            "Setup: 3 files missing",
+            "  Constitution: still the template",
+            "  Code-quality decision: missing",
+            "  Testing decision: missing",
+        ],
+        "{}",
+        output.stdout
+    );
+    let json: serde_json::Value =
+        serde_json::from_str(&ura(&after_init, &["status", "--json"]).stdout).unwrap();
+    assert_eq!(json["version"], 1);
+    assert_eq!(
+        json["setup"][0],
+        serde_json::json!({
+            "key": "constitution",
+            "name": "Constitution",
+            "state": "template",
+            "required": true,
+        })
+    );
+    assert_eq!(json["setup"].as_array().unwrap().len(), 4, "{json}");
+
+    let set_up = repo_with_priorities();
+    set_up.write(
+        "specs/CONSTITUTION.md",
+        "# Todo constitution\n\n- Keep it small.\n",
+    );
+    set_up.write("specs/decisions/code-quality.md", "# Code quality\n");
+    set_up.write("specs/decisions/testing.md", "# Testing\n");
+    set_up.commit("docs: setup");
+
+    let output = ura(&set_up, &["status"]);
+
+    assert!(!output.stdout.contains("Setup:"), "{}", output.stdout);
+    let json: serde_json::Value =
+        serde_json::from_str(&ura(&set_up, &["status", "--json"]).stdout).unwrap();
+    assert_eq!(json["setup"], serde_json::json!([]));
+}
