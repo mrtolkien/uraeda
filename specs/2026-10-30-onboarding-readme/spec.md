@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,19 +8,21 @@ plan-review: false
 
 # Spec: Onboarding + README pass
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-10-30: 5 comments in spec-review.md.
+> Spec to review, about 10 minutes.
 >
-> - You approve a short README opening with the dot banner, the user reference moved to `docs/`, and
->   building Uraeda moved to `CONTRIBUTING.md`. Home gets a Setup pane with "Set up with the agent",
->   and `ura status` lists the same missing files.
-> - New decision, documentation: the README stays a short page for newcomers, the reference lives in
->   `docs/`, and the workflow's rules in the skill alone.
-> - A project without `specs/` gets the Setup pane in place of today's "run ura init" warning.
-> - A decision counts as done once its file exists, even while it is still `proposed`.
-> - The build waits for the performance pass to merge, since both change how the composer is
->   pre-filled.
+> - You approve the same feature as before, with screenshots under the README's banner, a quick
+>   install in the README, and the full install in `INSTALL.md`.
+> - New since your review: screenshots of Home, a round of questions, and a spec, from the sandbox's
+>   realistic project, refreshed by one command.
+> - The documentation decision changed: the README keeps a quick install, and documentation may
+>   repeat the skill's rules, the one place where duplication is fine.
+> - `AGENTS.md` says the README holds no workflow rules: that line is rewritten to follow your
+>   review.
+> - 12 WebP screenshots are committed, about 400 KB, and each refresh adds their weight to git's
+>   history.
+> - The build no longer waits for the performance pass.
 > - Risk tier `medium`, for the new field in the workspace's data and in `ura status --json`. The
 >   plan does not wait for your review.
 
@@ -30,11 +32,24 @@ a web UI. Its reference moves to pages of its own. The web UI tells when a proje
 its setup needs, and a button opens a session that writes them with the agent. The research is in
 [discovery](discovery-01.md), and your answers in [clarifications](clarifications-01.md).
 
+## Your review
+
+- **C1** (screenshots from the realistic sandbox): done. Home, a round of questions, and a spec, at
+  1440 px and at a phone's width, in both themes, refreshed by `vp run readme:screenshots`. The
+  decision stays as it was on this point.
+- **C2** (documentation may repeat): done. The rule keeping the workflow's rules out of the
+  documentation goes. Documentation may now repeat the skill's rules or another page's facts.
+- **C3** (a quick install in the README): done. The README keeps a few install commands, and every
+  other way to install moves to `INSTALL.md`, at the root.
+- **C4** (screenshots below the banner): done. They come right after the banner, before the tagline.
+- **C5** (do not wait for the performance pass): done. The build starts at once. The performance
+  pass's branch adapts the composer's pre-fill when it merges after this one.
+
 ## Decisions
 
-- **New: [Documentation](../decisions/documentation.md)**. The README holds only what a newcomer
-  needs, reference for users lives in `docs/`, building Uraeda in `CONTRIBUTING.md`, and the
-  workflow's rules in the skill alone.
+- **New: [Documentation](../decisions/documentation.md)**. The README holds what a newcomer needs, a
+  quick install included. The full install lives in `INSTALL.md`, reference for users in `docs/`,
+  and building Uraeda in `CONTRIBUTING.md`. Documentation may repeat what helps its reader.
 
 Relied on:
 
@@ -62,14 +77,23 @@ feature goes through it, and know what to install, in which order, to start.
 The README reads, in order:
 
 1. **The banner**: the dot tree and "URAEDA" in dots, as you picked, in a light and a dark file.
-2. **A tagline**, then **what Uraeda is**: a workflow for coding agents, shipped as a skill; a CLI,
+2. **Screenshots** of the web UI, described below.
+3. **A tagline**, then **what Uraeda is**: a workflow for coding agents, shipped as a skill; a CLI,
    `ura`, that checks and moves it; a web UI that drives it, sessions included.
-3. **What it looks like**: the todo app's recurring tasks feature, from the proposal to the pull
+4. **What it looks like**: the todo app's recurring tasks feature, from the proposal to the pull
    request, with one question and its answer, as today.
-4. **Getting started**: install the skill, `ura`, Claude Code, then the web UI. Then add the
-   repository, set it up with the agent, and write a first proposal.
-5. **Learn more**: the skill, the example, the pages of `docs/`, and `CONTRIBUTING.md`.
-6. **Inspirations**, **Project status**, and **License**, short.
+5. **Getting started**: a quick install of a few commands, the skill, `ura`, Claude Code, and the
+   web UI, with a link to `INSTALL.md` for every other way. Then add the repository, set it up with
+   the agent, and write a first proposal.
+6. **Learn more**: the skill, the example, `INSTALL.md`, the pages of `docs/`, and
+   `CONTRIBUTING.md`.
+7. **Inspirations**, **Project status**, and **License**, short.
+
+The screenshots show three pages of the sandbox's realistic project: Home, a round of questions, and
+a spec. Each is taken at a desktop's 1440 × 900 and a phone's 402 × 874, in the light and the dark
+theme, as WebP files in `docs/images/screenshots/`. The README shows them in a table, one row per
+page, the desktop's beside the phone's, each switching theme with GitHub's. One command,
+`vp run readme:screenshots`, builds the realistic project afresh and takes all 12 again.
 
 Key scenarios:
 
@@ -80,6 +104,9 @@ Key scenarios:
    need a local, signed-in Claude Code, for now.
 3. **Given** a visitor without Claude Code, **When** they read getting started, **Then** it names
    Claude Code's paid plan and links its install page.
+4. **Given** a change to Home's look, **When** a contributor runs `vp run readme:screenshots`,
+   **Then** the 12 screenshots are taken again from a fresh realistic project, and only their files
+   change.
 
 More scenarios:
 
@@ -91,17 +118,19 @@ More scenarios:
 ### US2: A user finds the reference they need (P2)
 
 A user who wants a setting, a flag, or how to reach Uraeda from their phone follows the README's
-links to a page of `docs/`. A contributor finds how to build and test Uraeda in `CONTRIBUTING.md`.
+links to `INSTALL.md` or a page of `docs/`. A contributor finds how to build and test Uraeda in
+`CONTRIBUTING.md`.
 
-Every fact of today's README outside the four parts of US1 moves, unchanged unless it is wrong:
+Every fact of today's README that US1 does not keep moves, unchanged unless it is wrong. A page may
+repeat what its reader needs, such as a rule of the skill:
 
-| Page                   | What it holds, from today's README                                                                       |
-| ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| `docs/install.md`      | `ura`'s installers, `ura install` and upgrade, Tab completion, the web UI's npm package and `devEngines` |
-| `docs/web-ui.md`       | Starting it and its flags, sign-in, settings, proxies, sessions with Claude Code, the data folder        |
-| `docs/cli.md`          | The `ura` commands, and `ura lsp` for editors                                                            |
-| `docs/specs-folder.md` | The `specs/` folder's layout, changes, and the inbox                                                     |
-| `CONTRIBUTING.md`      | Building the tools, the `vp` commands, `.env`, releasing, and the bundled fonts' licenses                |
+| Page                   | What it holds, from today's README                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `INSTALL.md`           | `ura`'s installers, `ura install` and upgrade, Tab completion, the web UI's npm package and `devEngines`            |
+| `docs/web-ui.md`       | Starting it and its flags, sign-in, settings, proxies, sessions with Claude Code, the data folder                   |
+| `docs/cli.md`          | The `ura` commands, and `ura lsp` for editors                                                                       |
+| `docs/specs-folder.md` | The `specs/` folder's layout, changes, and the inbox                                                                |
+| `CONTRIBUTING.md`      | Building the tools, the `vp` commands, `.env`, releasing, the screenshots' command, and the bundled fonts' licenses |
 
 Key scenarios:
 
@@ -230,8 +259,11 @@ docs advise for pre-filled prompts
 - **The Setup pane**, on Home, draws the items and the button, first among Home's panes, or alone
   without `specs/`. It is the [mockups'](/packages/web/src/home/Setup.tsx) component.
 - **`ura status`** prints the check's items after its list, and in `--json`.
-- **The README, the pages of `docs/`, and `CONTRIBUTING.md`**, with the banner's light and dark SVG
-  files under `docs/images/`.
+- **The README, `INSTALL.md`, the pages of `docs/`, and `CONTRIBUTING.md`**, with the banner's light
+  and dark SVG files under `docs/images/`.
+- **The screenshots' command**, `vp run readme:screenshots`, builds the realistic sample project in
+  a fresh folder, serves the UI over it on the fake agent, and takes the README's 12 screenshots. It
+  reuses the [screenshot scripts](/packages/web/scripts/shots.ts)' sizes, themes, and WebP encoding.
 - **The sandbox** gains a sample project without `specs/`.
 
 Tradeoffs:
@@ -241,31 +273,36 @@ Tradeoffs:
 - The button opens the New page rather than starting the session, so setting up takes one more
   press, Send.
 - A flag or a setting now has its words in two places, the code's help and its page of `docs/`.
+- The screenshots are committed images: each refresh adds about 400 KB to git's history.
+- The screenshots age with the UI until someone runs the command again.
 
 ## Edge cases
 
-| Importance | Situation                                            | What happens                                                                   |
-| ---------- | ---------------------------------------------------- | ------------------------------------------------------------------------------ |
-| High       | `CONSTITUTION.md` exists and is written              | The message forbids overwriting, and the skill's setup keeps it as it is       |
-| High       | A constitution half written, one placeholder left    | "Constitution · still the template"                                            |
-| Normal     | A decision file exists but is `proposed`             | It counts as written                                                           |
-| Normal     | `specs/` exists without `decisions/`                 | The three decisions read "missing", with no error                              |
-| Normal     | A file lands while Home is open                      | Its item turns written, announced as a polite status; the pane goes when done  |
-| Normal     | Claude Code is installed but signed out              | The button shows; the session's reply fails as any session's does today        |
-| Normal     | The human edits the message before sending           | Their text is sent, as in any composer                                         |
-| Niche      | A preview decision saying the project has no preview | It counts as written; the item is optional anyway                              |
-| Niche      | A visitor reads the README on npm or crates.io       | Not shown there: the npm package has its own README, and no crate is published |
+| Importance | Situation                                               | What happens                                                                   |
+| ---------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| High       | `CONSTITUTION.md` exists and is written                 | The message forbids overwriting, and the skill's setup keeps it as it is       |
+| High       | A constitution half written, one placeholder left       | "Constitution · still the template"                                            |
+| Normal     | A decision file exists but is `proposed`                | It counts as written                                                           |
+| Normal     | `specs/` exists without `decisions/`                    | The three decisions read "missing", with no error                              |
+| Normal     | A file lands while Home is open                         | Its item turns written, announced as a polite status; the pane goes when done  |
+| Normal     | Claude Code is installed but signed out                 | The button shows; the session's reply fails as any session's does today        |
+| Normal     | The human edits the message before sending              | Their text is sent, as in any composer                                         |
+| Normal     | The UI changes, and the screenshots are not taken again | The README shows the older look until `vp run readme:screenshots` runs         |
+| Niche      | A preview decision saying the project has no preview    | It counts as written; the item is optional anyway                              |
+| Niche      | A visitor reads the README on npm or crates.io          | Not shown there: the npm package has its own README, and no crate is published |
 
 ## Success criteria
 
 - **SC-001** (short README): the README holds at most 1,000 words, banner to license.
-- **SC-002** (nothing lost): every fact of today's README is in the README, a page of `docs/`, or
-  `CONTRIBUTING.md`, and every link resolves.
+- **SC-002** (nothing lost): every fact of today's README is in the README, `INSTALL.md`, a page of
+  `docs/`, or `CONTRIBUTING.md`, and every link resolves.
 - **SC-003** (two presses): from Home after `ura init`, a sent setup message takes two presses: "Set
   up with the agent", then Send.
 - **SC-004** (one answer): `ura status` and Home list the same items for every sample project.
 - **SC-005** (the check's cases): the core's check gives the right states for a missing `specs/`,
   the template, a half-written constitution, a written one, and each decision present or absent.
+- **SC-006** (one command): `vp run readme:screenshots` takes all 12 screenshots in one run, with
+  nothing to set up by hand.
 
 ## Assumptions
 
@@ -284,7 +321,13 @@ while writing this spec:
   colours. The other two prototypes are deleted at approval.
 - **`docs/` holds two internal notes today**, the CI reliability notes and a testing review. They
   stay where they are; the README links only the user pages.
-- **`AGENTS.md`** says where the README's reference went, so agents follow the new decision.
+- **`AGENTS.md`** says where the README's reference went, and loses its line saying the README holds
+  no workflow rules, so agents follow the new decision.
+- **The README's screenshots are documentation**, committed under `docs/images/`. The
+  [testing](../decisions/testing.md) decision's rule against committed screenshots is about a pull
+  request's screenshots of a view, which stay out of the repository.
+- **The build starts now**, replacing the settled point that it waits for the performance pass, as
+  you asked in your review.
 - **The npm package's README** keeps its few lines, with its links checked.
 
 ## Constitution check
@@ -297,3 +340,21 @@ while writing this spec:
 
 **Medium**: no stored data changes, but the workspace's data and `ura status --json` gain a field
 that tools read.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-10-30: 5 comments in spec-review.md.
+>
+> - You approve a short README opening with the dot banner, the user reference moved to `docs/`, and
+>   building Uraeda moved to `CONTRIBUTING.md`. Home gets a Setup pane with "Set up with the agent",
+>   and `ura status` lists the same missing files.
+> - New decision, documentation: the README stays a short page for newcomers, the reference lives in
+>   `docs/`, and the workflow's rules in the skill alone.
+> - A project without `specs/` gets the Setup pane in place of today's "run ura init" warning.
+> - A decision counts as done once its file exists, even while it is still `proposed`.
+> - The build waits for the performance pass to merge, since both change how the composer is
+>   pre-filled.
+> - Risk tier `medium`, for the new field in the workspace's data and in `ura status --json`. The
+>   plan does not wait for your review.
