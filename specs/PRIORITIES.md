@@ -7,6 +7,7 @@
 > Features for v1.0.0
 
 - [Feature state pass](/specs/2026-10-30-feature-state/proposal.md)
+- [Run a new inbox cleanup: anything that’s simple and requires no decision from me](/specs/changes/2026-10-30-inbox-again/proposal.md)
 
 - Empty inbox
 
