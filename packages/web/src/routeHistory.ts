@@ -19,7 +19,10 @@ type Entry = {
   focus?: "text";
   from?: string;
   id?: string;
-  /** What the New page's composer is filled from on arrival: a proposal's id, `line:next-2`. */
+  /**
+   * What the New page's composer is filled from on arrival: a proposal's id, `line:next-2`, or
+   * `setup`, the message that sets the project up.
+   */
   insert?: string;
   open?: Array<string>;
   opener?: number;

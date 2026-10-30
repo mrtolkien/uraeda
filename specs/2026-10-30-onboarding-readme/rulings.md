@@ -65,3 +65,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `ura status` would list the `specs/` folder as written, which the spec's states do
   not name.
 - **Where**: task 3, `crates/cli/tests/status.rs`
+
+## R8: Without `specs/`, the pages the pane leads to read no priorities nor ledger
+
+- **Decision**: in a repository without `specs/`, the shell's Commit button and tab, the New page's
+  entry lists and its proposal insertion, and the Decisions page's ledger are not read; the
+  Decisions page shows its `NoSpecs` warning.
+- **Rationale**: the core refuses those reads without `specs/`, and each failure replaced the whole
+  page with "Could not reach the Uraeda server.", so `bare`'s Home, and the New page its button
+  opens, never showed. The shell already skipped the inbox's count there the same way.
+- **If wrong**: the Inbox and Priorities pages still fail without `specs/`; giving them a warning
+  too is the same small change.
+- **Where**: task 4, `packages/web/src/shell/`, `packages/web/src/NewPage.tsx`,
+  `packages/web/src/decisions/DecisionsPage.tsx`
+
+## R9: The Setup pane closes, its last items written
+
+- **Decision**: once the core gives no item, Home's pane closes over 200 ms, as the column's Unfold
+  does, drawing its last items with each required one written; its status announcements sit beside
+  it, not in it.
+- **Rationale**: the UI guides ask that moving content glide, never jump; and with R2's empty list,
+  the last file written would otherwise go unannounced, the pane gone with it.
+- **Where**: task 4, `packages/web/src/Home.tsx`, `packages/web/src/home/Setup.tsx`

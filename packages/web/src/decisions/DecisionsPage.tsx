@@ -353,8 +353,24 @@ function ReaderBar({
  * line and the reader 60 (`useSplit`), on `open` or the constitution, the two centred together; narrower, the list,
  * or `open` alone with a way back, `onClose`.
  */
-export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: LedgerOpen }) {
+export function DecisionsPage(props: { onClose?: () => void; open?: LedgerOpen }) {
   const workspace = useWorkspace();
+  if (!workspace) {
+    return null;
+  }
+  // Without specs/, there is no ledger to read.
+  if (workspace.noSpecs) {
+    return (
+      <Page>
+        <NoSpecs path={workspace.noSpecs} />
+      </Page>
+    );
+  }
+  return <Ledger {...props} />;
+}
+
+/** The decisions page of a repository with `specs/`. */
+function Ledger({ onClose, open }: { onClose?: () => void; open?: LedgerOpen }) {
   const ledger = useLedger();
   const room = useRef<HTMLDivElement>(null);
   const least = useRef<HTMLDivElement>(null);
@@ -362,15 +378,8 @@ export function DecisionsPage({ onClose, open }: { onClose?: () => void; open?: 
   const [sort, setSort] = useDecisionSort();
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(ledger !== null && ledger !== undefined);
-  if (!workspace || !ledger) {
+  if (!ledger) {
     return null;
-  }
-  if (workspace.noSpecs) {
-    return (
-      <Page>
-        <NoSpecs path={workspace.noSpecs} />
-      </Page>
-    );
   }
   const decisions = sortDecisions(ledger.decisions, sort);
   const paths = itemPaths(ledger, decisions);

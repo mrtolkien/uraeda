@@ -6,48 +6,119 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { VStack } from "@astryxdesign/core/VStack";
+import { useEffect, useRef, useState } from "react";
+import type { SetupItem } from "uraeda-binding";
 import { Pane } from "../layout/Pane.tsx";
+import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { MessageToCopy } from "../StartChat.tsx";
 
-/** A file of the setup: `missing`, `template` when it is there but unwritten, `written`. */
-export type SetupItem = {
-  /** What it is for, in a few words. */
-  about: string;
-  /** Whether the project counts as set up without it, like the preview decision. */
-  isOptional?: boolean;
-  name: string;
-  state: "missing" | "template" | "written";
-};
-
-/** Each state's words, after the item's name. */
-const STATE: Record<SetupItem["state"], string> = {
+/** Each state's words, after the item's name: the core's `missing`, `template`, or `written`. */
+const STATE: Record<string, string> = {
   missing: "missing",
   template: "still the template",
   written: "written",
 };
 
+/** What each item of the setup is for, in a few words, by the core's key. */
+const ABOUT: Record<string, string> = {
+  "code-quality": "The limits your linters hold",
+  constitution: "Your project's principles, written with you",
+  preview: "For a project with a UI: mockups as live stories",
+  specs: "Where Uraeda keeps the workflow's files",
+  testing: "What your tests cover at this stage",
+};
+
 /** Where Claude Code's install is explained. */
 const CLAUDE_CODE_SETUP = "https://code.claude.com/docs/en/setup";
 
-/** One file of the setup: a check once written, its name, its state, and what it is for. */
+/**
+ * One file of the setup: a check once written, its name, its state, and what it is for. On the
+ * phone, what it is for takes the full width under the head line, not a column beside the icon.
+ */
 function SetupRow({ item }: { item: SetupItem }) {
   const isDone = item.state === "written";
+  const narrow = isNarrow(useWidthClass());
+  const head = (
+    <Text weight={isDone ? undefined : "semibold"}>
+      {item.name}
+      <Text color="secondary" type="supporting">
+        {` · ${item.required ? (STATE[item.state] ?? item.state) : "optional"}`}
+      </Text>
+    </Text>
+  );
+  const about = ABOUT[item.key] !== undefined && (
+    <Text color="secondary" type="supporting">
+      {ABOUT[item.key]}
+    </Text>
+  );
+  const icon = (
+    <Icon color={isDone ? "success" : "secondary"} icon={isDone ? "check" : "uraeda:list"} />
+  );
+  if (narrow) {
+    return (
+      <VStack gap={0}>
+        <HStack align="start" gap={2}>
+          {icon}
+          {head}
+        </HStack>
+        {about}
+      </VStack>
+    );
+  }
   return (
     <HStack align="start" gap={2}>
-      <Icon color={isDone ? "success" : "secondary"} icon={isDone ? "check" : "uraeda:list"} />
+      {icon}
       <VStack gap={0}>
-        <Text weight={isDone ? undefined : "semibold"}>
-          {item.name}
-          <Text color="secondary" type="supporting">
-            {` · ${item.isOptional ? "optional" : STATE[item.state]}`}
-          </Text>
-        </Text>
-        <Text color="secondary" type="supporting">
-          {item.about}
-        </Text>
+        {head}
+        {about}
       </VStack>
     </HStack>
+  );
+}
+
+/** How many announcements the region keeps: one draw can make more than one. */
+const KEPT = 3;
+
+/**
+ * What a screen reader hears of the setup: "Testing decision written." as an item turns written
+ * while the pane shows, never the states it found when it opened. Beside the pane, not in it, so it
+ * is still heard as the pane closes.
+ */
+export function SetupAnnouncer({ items }: { items: ReadonlyArray<SetupItem> }) {
+  const seen = useRef<Map<string, string> | undefined>(undefined);
+  const count = useRef(0);
+  const [said, setSaid] = useState<ReadonlyArray<{ key: number; text: string }>>([]);
+  useEffect(() => {
+    const before = seen.current;
+    seen.current = new Map(items.map((item) => [item.key, item.state]));
+    if (before === undefined) {
+      return;
+    }
+    const written = items.filter(
+      (item) => item.state === "written" && before.get(item.key) !== "written",
+    );
+    if (written.length > 0) {
+      setSaid((now) =>
+        [
+          ...now,
+          ...written.map((item) => {
+            count.current += 1;
+            return { key: count.current, text: `${item.name} written.` };
+          }),
+        ].slice(-KEPT),
+      );
+    }
+  }, [items]);
+  // A new node for each announcement, so the same words said again are heard again. Not atomic,
+  // unlike `status`'s default: only the new node is read, not those kept.
+  return (
+    <VisuallyHidden aria-atomic="false" aria-label="Setup updates" as="div" role="status">
+      {said.map(({ key, text }) => (
+        <p key={key}>{text}</p>
+      ))}
+    </VisuallyHidden>
   );
 }
 
@@ -66,12 +137,12 @@ export function SetupPane({
   message: string;
   onSetUp: () => void;
 }) {
-  const left = items.filter((item) => !item.isOptional && item.state !== "written").length;
+  const left = items.filter((item) => item.required && item.state !== "written").length;
   return (
     <Pane count={left} icon="wrench" title="Setup" tone="attention">
       <VStack align="start" gap={3}>
         {items.map((item) => (
-          <SetupRow item={item} key={item.name} />
+          <SetupRow item={item} key={item.key} />
         ))}
         {hasAgent ? (
           <Button label="Set up with the agent" onClick={onSetUp} variant="primary" />

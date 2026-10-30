@@ -1,31 +1,32 @@
 // Mockups of Home's Setup pane, first on Home while a project lacks a file its setup needs: after
 // `ura init`, in a repository without `specs/`, with one file left, and without the agent.
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type SetupItem, SetupPane } from "./Setup.tsx";
-
-/** The message "Set up with the agent" puts in a new session's composer. */
-const MESSAGE =
-  "/uraeda Set this project up for Uraeda: write what is missing, ask me before writing the constitution, never overwrite a file.";
+import type { SetupItem } from "uraeda-binding";
+import { SET_UP_PROJECT } from "uraeda-server/round-messages";
+import { SetupPane } from "./Setup.tsx";
 
 const CONSTITUTION: SetupItem = {
-  about: "Your project's principles, written with you",
+  key: "constitution",
   name: "Constitution",
+  required: true,
   state: "template",
 };
 const CODE_QUALITY: SetupItem = {
-  about: "The limits your linters hold",
+  key: "code-quality",
   name: "Code-quality decision",
+  required: true,
   state: "missing",
 };
 const TESTING: SetupItem = {
-  about: "What your tests cover at this stage",
+  key: "testing",
   name: "Testing decision",
+  required: true,
   state: "missing",
 };
 const PREVIEW: SetupItem = {
-  about: "For a project with a UI: mockups as live stories",
-  isOptional: true,
+  key: "preview",
   name: "Preview decision",
+  required: false,
   state: "missing",
 };
 
@@ -33,7 +34,7 @@ const meta = {
   args: {
     hasAgent: true,
     items: [CONSTITUTION, CODE_QUALITY, TESTING, PREVIEW],
-    message: MESSAGE,
+    message: SET_UP_PROJECT,
     onSetUp: () => {},
   },
   component: SetupPane,
@@ -51,7 +52,7 @@ export const AfterInit: Story = {};
 export const NoSpecs: Story = {
   args: {
     items: [
-      { about: "Where Uraeda keeps the workflow's files", name: "specs/ folder", state: "missing" },
+      { key: "specs", name: "specs/ folder", required: true, state: "missing" },
       { ...CONSTITUTION, state: "missing" },
       CODE_QUALITY,
       TESTING,

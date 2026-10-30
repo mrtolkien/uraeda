@@ -301,6 +301,7 @@ export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
   proposals: true,
   root: true,
   running: true,
+  setup: true,
 });
 
 export const featureDataView = dataView<FeatureRecord>("Feature")({
