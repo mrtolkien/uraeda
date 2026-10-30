@@ -50,8 +50,9 @@ Uraeda is not bound to Astryx: where no Astryx component fits the job, it draws 
 reason in a comment, as the [UI components](../decisions/ui-components.md) decision allows. These
 are its own:
 
-- `layout/NavBar.tsx`: the glass tile, an icon alone in the bottom bar, flat, stretched to share it;
-  and with its word under a big icon in the phone's row actions.
+- `layout/NavBar.tsx`: the glass tile, an icon alone in the bottom bar, flat, stretched to share it,
+  or a square glass button of its own when the bar has one or two; and with its word under a big
+  icon in the phone's row actions.
 - `lists/RowBar.tsx`: the wide row bar's action, drawn as the row's supporting text.
 - `shell/StatusLine.tsx`: a hint, and the "need you" count, each pressed as text of the line.
 - `keys/LeaderMenu.tsx`: a menu row, and the footer's back and close keys, drawn as the menu's text.

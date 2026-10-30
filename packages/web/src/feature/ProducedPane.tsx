@@ -104,7 +104,10 @@ function Figure({ row }: { row: FigureRow }) {
  * same history entry. The browser's own jump would push an entry without the page's state, whose
  * position and open items Back could not restore.
  */
-function jumpInPage(open: ((id: string) => void) | undefined) {
+function jumpInPage(
+  open: ((id: string) => void) | undefined,
+  before: ((go: () => void) => void) | undefined,
+) {
   return (event: MouseEvent) => {
     const link = (event.target as Element).closest?.("a");
     const href = link?.getAttribute("href");
@@ -123,21 +126,56 @@ function jumpInPage(open: ((id: string) => void) | undefined) {
     }
     event.preventDefault();
     event.stopPropagation();
-    open?.(target.id);
-    scrollBelowBar(target);
-    const focus = document.getElementById(`${target.id}-title`) ?? target;
-    if (!focus.hasAttribute("tabindex")) {
-      focus.setAttribute("tabindex", "-1");
+    const go = () => {
+      open?.(target.id);
+      scrollBelowBar(target);
+      const focus = document.getElementById(`${target.id}-title`) ?? target;
+      if (!focus.hasAttribute("tabindex")) {
+        focus.setAttribute("tabindex", "-1");
+      }
+      focus.focus({ preventScroll: true });
+    };
+    if (before) {
+      before(go);
+    } else {
+      go();
     }
-    focus.focus({ preventScroll: true });
   };
 }
 
+/** The pane's title: "Produced so far" while the feature runs, "What it produced" once done. */
+export function producedTitle(done: boolean) {
+  return done ? "What it produced" : "Produced so far";
+}
+
 /**
- * The pane of `rows`: "Produced so far" while the feature runs, "What it produced" once done. With
- * no rows, a done item says its commits could not be traced. `onOpen` opens a detail of the page by
- * its id, when it is folded, as its figure leads to it.
+ * The figures of `rows`, without a pane, as the phone's sheet shows them. With no rows, a done
+ * item says its commits could not be traced. `onOpen` opens a detail of the page by its id, when
+ * it is folded, as its figure leads to it; `beforeJump` runs the jump itself, as once the sheet
+ * holding the figures closed.
  */
+export function ProducedRows({
+  beforeJump,
+  onOpen,
+  rows,
+}: {
+  beforeJump?: (go: () => void) => void;
+  onOpen?: (id: string) => void;
+  rows: ReadonlyArray<FigureRow>;
+}) {
+  return (
+    <div onClickCapture={jumpInPage(onOpen, beforeJump)}>
+      <VStack gap={2}>
+        {rows.length === 0 && <Empty>No figures: its commits could not be traced</Empty>}
+        {rows.map((row) => (
+          <Figure key={row.label} row={row} />
+        ))}
+      </VStack>
+    </div>
+  );
+}
+
+/** The pane of `rows`, titled by `producedTitle`, holding `ProducedRows`. */
 export function ProducedPane({
   done,
   onOpen,
@@ -148,15 +186,8 @@ export function ProducedPane({
   rows: ReadonlyArray<FigureRow>;
 }) {
   return (
-    <Pane title={done ? "What it produced" : "Produced so far"}>
-      <div onClickCapture={jumpInPage(onOpen)}>
-        <VStack gap={2}>
-          {rows.length === 0 && <Empty>No figures: its commits could not be traced</Empty>}
-          {rows.map((row) => (
-            <Figure key={row.label} row={row} />
-          ))}
-        </VStack>
-      </div>
+    <Pane title={producedTitle(done)}>
+      <ProducedRows onOpen={onOpen} rows={rows} />
     </Pane>
   );
 }
