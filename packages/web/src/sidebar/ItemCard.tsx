@@ -334,12 +334,12 @@ function RailMark({
   );
 }
 
-/** The card's Dismiss, after its link, at its first line's end. */
-function Dismiss({ onDismiss }: { onDismiss: () => void }) {
+/** The card's Dismiss, after its link, at its first line's end, named by its card's `label`. */
+function Dismiss({ label, onDismiss }: { label: string; onDismiss: () => void }) {
   return (
     <IconButton
       icon={<Icon icon="close" />}
-      label="Dismiss"
+      label={`Dismiss ${label}'s run`}
       onClick={onDismiss}
       size="sm"
       variant="ghost"
@@ -435,7 +435,7 @@ export function ItemCard({
       <RailMark hasNext={hasNext} isMarkOnly={isMarkOnly} item={item} />
       <CardRow
         {...(isRail ? { rail: isMarkOnly ? "mark" : "card" } : {})}
-        {...(onDismiss ? { after: <Dismiss onDismiss={onDismiss} /> } : {})}
+        {...(onDismiss ? { after: <Dismiss label={item.label} onDismiss={onDismiss} /> } : {})}
         endContent={<Status hasNext={hasNext} hasWork={hasWork} item={item} />}
         hasRing={!isPicked}
         href={href}
