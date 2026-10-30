@@ -1,7 +1,9 @@
 // @vitest-environment node
 // The sidebar's entries and its search: a search lists the features whose session it found or
 // whose title, slug, or name holds the text in any case, and every session it found, archived
-// ones too; without one, an archived or finished session leaves the list, unless it is kept.
+// ones too; without one, an archived or finished session leaves the list, unless it is kept. A
+// feature's card follows the session its status names; a running session of a feature no longer in
+// flight is a card of its own (the feature state spec's SC-004).
 import { expect, test } from "vite-plus/test";
 import type { Feature, Row } from "../sidebar/cards.ts";
 import { type Data, entriesOf } from "../sidebar/entries.ts";
@@ -9,14 +11,23 @@ import { type Data, entriesOf } from "../sidebar/entries.ts";
 const CLI = "2026-10-12-cli-tuis";
 const WEB = "2026-10-11-web-ui";
 
-/** A feature in flight, at its plan. */
-const feature = (folder: string, title: string) =>
+/** A feature at its plan, or at `step`, needing the human, unless `status` says otherwise. */
+const feature = (
+  folder: string,
+  title: string,
+  { session = null, status = "needs-you", step = "plan" } = {} as {
+    session?: string | null;
+    status?: Feature["status"]["status"];
+    step?: string;
+  },
+) =>
   ({
     folder,
     label: null,
     problems: [],
     slug: folder.slice(11),
-    step: { name: "plan", waitsOn: "human" },
+    status: { label: status, reason: null, session, status, turn: null },
+    step: { name: step, waitsOn: "human" },
     title,
   }) as unknown as Feature;
 
@@ -40,10 +51,10 @@ const CACHE_CHAT = session("cache-chat", null);
 const CI_CHAT = session("ci-chat", null);
 
 /** The navigation's data: the features, and the sessions' rows. */
-const data = (rows: Array<Row>): Data =>
+const data = (rows: Array<Row>, features = [CLI_FEATURE, WEB_FEATURE]): Data =>
   ({
     sessionList: { rows },
-    workspace: { features: [CLI_FEATURE, WEB_FEATURE] },
+    workspace: { features },
   }) as unknown as Data;
 
 /** The ids of the entries a search shows, a feature by its folder. */
@@ -95,4 +106,25 @@ test("a session read to its end is done, unless it is the one kept", () => {
 
 test("a session found that the list leaves out shows as the search read it", () => {
   expect(shown([], [CACHE_CHAT], "wal")).toEqual(["cache-chat"]);
+});
+
+test("a feature's card has the row of the session its status follows, not its folder's first", () => {
+  const latest = session("latest", CLI);
+  const running = session("running", CLI, { status: "working", statusLabel: "Working" });
+  const working = feature(CLI, "CLI TUIs", { session: "running", status: "working" });
+
+  const [entry] = entriesOf(data([latest, running], [working]), { found: undefined, query: "" });
+
+  expect(entry).toMatchObject({ kind: "feature", row: { id: "running" }, status: working.status });
+});
+
+test("a running session of a merged feature is a card of its own until its run ends", () => {
+  const merged = feature(WEB, "Web UI for the workflow files", { status: "idle", step: "done" });
+  const running = session("web-session", WEB, { status: "working", statusLabel: "Working" });
+  const ended = session("web-session", WEB);
+
+  expect(entriesOf(data([running], [merged]), { found: undefined, query: "" })).toMatchObject([
+    { kind: "session", row: { id: "web-session" } },
+  ]);
+  expect(entriesOf(data([ended], [merged]), { found: undefined, query: "" })).toEqual([]);
 });

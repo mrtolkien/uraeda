@@ -885,12 +885,18 @@ git commit -m "docs(feature-state): the Push step, in the skill and the docs"
 - Modify: `packages/web/src/feature/next.ts`, `packages/web/src/feature/FeaturePage.tsx` (working
   from the status, at any step; the running session's link)
 - Modify: `packages/web/src/sidebar/ItemCard.tsx` (Dismiss at the end of the first line, for a
-  failed, stopped, or interrupted status)
+  failed, stopped, or interrupted status), `packages/web/src/sidebar/CardRow.tsx` (a button after
+  the link, R15), `packages/web/src/sidebar/Cards.tsx` (the card's Dismiss)
+- Create: `packages/web/src/useDismiss.ts` (`session.dismiss`, shared by the card and the banner)
+- Modify: `packages/web/src/sidebar/statusPath.ts`, `packages/web/src/keys/pickerSources.ts` (the
+  row of `status.session`), `packages/web/src/views.ts` (`FeatureView` reads `status`),
+  `packages/web/samples/__tests__/projects.test.ts` (home's problems, `withProblems`)
 - Modify: `packages/web/src/SessionAttention.tsx` (the banners' texts, `interrupted`, Dismiss)
 - Modify: `packages/web/src/labels.ts` (`push`)
 - Modify: `packages/web/src/sidebar/FeatureState.stories.tsx` (the card's own Dismiss)
-- Test: `packages/web/src/__tests__/entries.test.ts`, `cards.test.ts` (their rows follow the new
-  fields)
+- Test: `packages/web/src/__tests__/entries.test.ts`, `cards.test.ts`, `next.test.ts` (their rows
+  follow the new fields; rows for the session's card of a merged feature, the gate labels while
+  working, and "Next" at a gate or a pull request while working)
 
 **Interfaces:**
 
@@ -898,7 +904,7 @@ git commit -m "docs(feature-state): the Push step, in the skill and the docs"
   `session.dismiss` and `"interrupted"`; Task 5's `push` step; Task 7's `progress.done`.
 - Produces: nothing other tasks read.
 
-- [ ] **Step 1: Make the views read the status**
+- [x] **Step 1: Make the views read the status**
 
 The card's status, pane, and order come from `feature.status`. Home's Needs you lists the features
 whose status needs the human, and In progress the others, problems apart. The feature page's "Next"
@@ -906,25 +912,25 @@ says the agent works, with a link to `status.session`, whenever the status is Wo
 gate or an open pull request. Dismiss on the card and the banner calls `session.dismiss` with
 `status.turn`, or the session's latest turn; a refusal shows next to it.
 
-- [ ] **Step 2: Run the web's tests and fix the rows that read the old fields**
+- [x] **Step 2: Run the web's tests and fix the rows that read the old fields**
 
 - Run: `nix develop -c vp test packages/web`
 - Expected: PASS, after `entries.test.ts` and `cards.test.ts` build their features with `status`.
   Rows that asserted the old first-row pick are replaced behaviour, listed in the spec.
 
-- [ ] **Step 3: Review the views in the sandbox**
+- [x] **Step 3: Review the views in the sandbox**
 
 Run `vp run sandbox`. Check every story's state on the real app, in both themes, at a phone's and a
 desktop's width. Check a running session on a merged feature, a stopped run and its Dismiss in two
 tabs, a pull request with an agent at work, and progress in a wave. Check SC-004 in each sample
 project: no running session is missing from the sidebar.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server/package.json packages/web specs/2026-10-30-feature-state/plan.md

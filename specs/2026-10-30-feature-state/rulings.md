@@ -128,3 +128,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   wave, and the plan's link would open the task at index `done`, not the current one. Task 9 reworks
   the views; these keep them true until then.
 - **Where**: task 7.
+
+## R15: Dismiss sits after the card's link, and a chat's card has none
+
+- **Decision**: the card's Dismiss is a button of `CardRow`, after its link, at the end of its first
+  line: a link cannot hold a button. A session's card without a workflow has no Dismiss: its failed
+  or stopped run is dismissed on its session's banner. A feature's card dismisses `status.turn`; the
+  banner, the session's latest turn.
+- **Rationale**: the sessions' list rows carry no status reason and no turn, and adding them changes
+  `fate/views.ts`, at its 500 lines. US2 names a feature's card; the banner covers every session.
+- **Where**: task 9.

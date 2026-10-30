@@ -1,7 +1,8 @@
 // From the server's features and sessions to the sidebar's cards: which section each goes in, in
-// which order, and what its card shows. The core decides each step and its order; this only draws
-// them.
+// which order, and what its card shows. The core decides each step and its order, and the server
+// each feature's status (`fate/feature-status.ts`); this only draws them.
 import type { SessionStatus } from "uraeda-server/fate";
+import { STATUS_ORDER } from "uraeda-server/status";
 import type { useNavigation } from "../sessionData.ts";
 import { stepLabel, waiting } from "../labels.ts";
 import type { CardItem } from "./ItemCard.tsx";
@@ -15,21 +16,15 @@ export type Feature = NonNullable<Data["workspace"]>["features"][number];
 /** A status and its label. */
 export type Status = { label: string; status: SessionStatus };
 
-/** The order of statuses within a section: what needs the human first. */
-export const STATUS_ORDER: Record<SessionStatus, number> = {
-  attention: 1,
-  idle: 4,
-  "needs-you": 0,
-  unread: 2,
-  working: 3,
-};
-
-/** What a gate asks, by the kind of file it waits on, in the card's name. */
-const GATES: Record<string, { kind: StepKind; label: string }> = {
+/**
+ * What a gate asks, by the kind of file it waits on, in the card's name; `working`, while an agent
+ * works on it, which is not ready for the human.
+ */
+const GATES: Record<string, { kind: StepKind; label: string; working?: string }> = {
   clarifications: { kind: "questions", label: "Questions" },
-  plan: { kind: "plan", label: "Plan ready" },
+  plan: { kind: "plan", label: "Plan ready", working: "Plan" },
   proposal: { kind: "proposal", label: "Write proposal" },
-  spec: { kind: "spec", label: "Spec ready" },
+  spec: { kind: "spec", label: "Spec ready", working: "Spec" },
 };
 
 /** Each step's short label on a card, by the core's step name. */
@@ -46,6 +41,7 @@ const SHORT: Record<string, string> = {
   "pull-request": "PR ready",
   "pull-request-changes": "PR changes",
   "pull-request-unknown": "PR unknown",
+  push: "Push",
   spec: "Writing spec",
   "spec-revision": "Revising spec",
 };
@@ -65,6 +61,7 @@ const KINDS: Record<string, StepKind> = {
   "pull-request": "pull-request",
   "pull-request-changes": "pull-request",
   "pull-request-unknown": "pull-request",
+  push: "pull-request",
   spec: "spec",
   "spec-revision": "spec",
 };
@@ -80,48 +77,61 @@ export function stepKindOf(step: { fileKind?: string | null; name: string }): St
   return KINDS[step.name] ?? "problem";
 }
 
+/** Each step's short label while an agent works on it, where it differs: not ready for the human. */
+const WORKING: Record<string, string> = { "pull-request": "PR" };
+
 /**
  * A feature's step, as its card draws it: a problem whatever its step, then a gate by what it
- * asks, else by the step's name. Its notes stay off the card, on its page.
+ * asks, else by the step's name. A gate's label drops "ready" while an agent works on it. Its notes
+ * stay off the card, on its page.
  */
 export function stepOf(feature: Feature): NonNullable<CardItem["step"]> {
   if (feature.problems.length > 0) {
     return { kind: "problem", label: "Problem" };
   }
+  const working = feature.status.status === "working";
   if (feature.step.name === "human-gate") {
     const kind = feature.files.find((file) => file.name === feature.step.file)?.kind;
-    return (kind ? GATES[kind] : undefined) ?? { kind: "proposal", label: waiting(feature).title };
+    const gate = kind ? GATES[kind] : undefined;
+    if (!gate) {
+      return { kind: "proposal", label: waiting(feature).title };
+    }
+    return { kind: gate.kind, label: (working && gate.working) || gate.label };
   }
+  const { name } = feature.step;
   return {
-    kind: KINDS[feature.step.name] ?? "problem",
-    label: SHORT[feature.step.name] ?? stepLabel(feature.step.name),
+    kind: KINDS[name] ?? "problem",
+    label: (working && WORKING[name]) || (SHORT[name] ?? stepLabel(name)),
   };
-}
-
-/** The status of a feature that waits on the human. */
-const NEEDS_YOU: Status = { label: "Needs you", status: "needs-you" };
-
-/**
- * A feature's status: "Needs you" while it has a problem, whatever its session; else its session's,
- * or, without a session, "Needs you" while its step waits on the human, and idle otherwise.
- */
-export function featureStatus(feature: Feature, row: Row | undefined): Status {
-  if (feature.problems.length > 0) {
-    return NEEDS_YOU;
-  }
-  if (row) {
-    return { label: row.statusLabel, status: row.status };
-  }
-  return feature.step.waitsOn === "human" ? NEEDS_YOU : { label: "Idle", status: "idle" };
 }
 
 /** Whether a status asks something of the human: the sidebar's "Needs you". */
 export const needsYou = (status: Status) =>
   status.status === "needs-you" || status.status === "attention";
 
-/** A feature's card, from its session's row when it has one. */
+/**
+ * The row of the session a feature's status follows, the one at work on it or its latest, else
+ * its folder's first.
+ */
+export function rowOf(feature: Feature, rows: ReadonlyArray<Row>): Row | undefined {
+  const { session } = feature.status;
+  return (
+    (session === null ? undefined : rows.find((row) => row.id === session)) ??
+    rows.find((row) => row.folder === feature.folder)
+  );
+}
+
+/**
+ * Whether a session shows as a card of its own: one without a workflow, or one at work on a feature
+ * or a change no longer in flight, such as a merged one, until its run ends, so no running session
+ * is missing. `flying` holds the folders in flight.
+ */
+export const isSessionCard = (row: Row, flying: ReadonlySet<string>) =>
+  row.folder === null || (row.status === "working" && !flying.has(row.folder));
+
+/** A feature's card, its status the server's, the session it follows from `row`. */
 export function toCard(feature: Feature, row: Row | undefined): CardItem {
-  const { label, pullRequest, step } = feature;
+  const { label, pullRequest, status, step } = feature;
   return {
     folder: feature.folder,
     ...((row?.backgroundCommands ?? 0) > 0 ? { hasBackgroundCommand: true } : {}),
@@ -130,7 +140,7 @@ export function toCard(feature: Feature, row: Row | undefined): CardItem {
     label: label ?? feature.slug,
     ...(step.progress ? { progress: step.progress } : {}),
     ...(pullRequest ? { pullRequest: { number: pullRequest.number, url: pullRequest.url } } : {}),
-    status: featureStatus(feature, row),
+    status: { label: status.label, status: status.status },
     step: stepOf(feature),
     ...(row && row.subagents.length > 0 ? { subagents: row.subagents } : {}),
     title: feature.title,

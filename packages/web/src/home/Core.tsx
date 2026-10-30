@@ -1,5 +1,6 @@
 // Home's core, above the "Overview" line: the problems that stop the workflow, when there are any,
-// what waits on the human, what agents work on, and the sessions without a workflow, when one runs.
+// what needs the human, what is in progress, and the sessions without a workflow, or at work on
+// what left the flight, when one runs.
 // Each is a pane of the sidebar's own cards; `coreParts` gives each its node and its height, for
 // the layout.
 import type { Icon } from "@astryxdesign/core/Icon";
@@ -10,7 +11,7 @@ import { waiting } from "../labels.ts";
 import { Empty } from "../layout/Empty.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { pickedStyles } from "../layout/picked.ts";
-import { byStatus, type Feature, type Row } from "../sidebar/cards.ts";
+import { byStatus, type Feature, isSessionCard, type Row, rowOf } from "../sidebar/cards.ts";
 import { FeatureCard, SessionCard } from "../sidebar/Cards.tsx";
 
 const styles = stylex.create({
@@ -74,9 +75,9 @@ function part(
 }
 
 /**
- * The core's panes in their reading order: the problems, when there are any, what waits on the
- * human, what is in progress, and the sessions without a workflow, when one runs. The card whose
- * key is `picked` is drawn picked.
+ * The core's panes in their reading order: the problems, when there are any, what needs the human,
+ * what is in progress, and the sessions without a workflow, or at work on a feature or a change no
+ * longer in flight, when one runs. The card whose key is `picked` is drawn picked.
  */
 export function coreParts({
   agents,
@@ -91,15 +92,15 @@ export function coreParts({
   picked?: string | undefined;
   rows: Array<Row>;
 }): Array<CorePart> {
-  const rowOf = (feature: Feature) => rows.find((row) => row.folder === feature.folder);
   const feature = (f: Feature, detail?: string): CoreCard => ({
     detail,
     key: `f:${f.folder}`,
-    node: <FeatureCard detail={detail} feature={f} pathname="" row={rowOf(f)} />,
+    node: <FeatureCard detail={detail} feature={f} pathname="" row={rowOf(f, rows)} />,
   });
+  const flying = new Set([...agents, ...human, ...invalid].map((f) => f.folder));
   const sessions = byStatus(
     rows
-      .filter((row) => row.folder === null && !row.archived && !row.done)
+      .filter((row) => isSessionCard(row, flying) && !row.archived && !row.done)
       .map((row) => ({
         row,
         start: row.startedAt,

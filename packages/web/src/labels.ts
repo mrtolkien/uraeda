@@ -13,6 +13,7 @@ const STEPS: Record<string, string> = {
   "pull-request": "Pull request ready",
   "pull-request-changes": "Changes requested",
   "pull-request-unknown": "Pull request state unknown",
+  push: "Push",
   spec: "Spec",
   "spec-revision": "Spec revision",
 };
@@ -31,6 +32,7 @@ const AGENT_NEXT: Record<string, string> = {
   plan: "The agent writes the plan",
   "plan-revision": "The agent revises the plan",
   "pull-request-changes": "The agent addresses the changes requested",
+  push: "The agent pushes the commits the pull request lacks",
   spec: "The agent writes the spec",
   "spec-revision": "The agent revises the spec",
 };

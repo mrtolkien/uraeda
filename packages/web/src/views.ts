@@ -119,6 +119,7 @@ export const FeatureView = view<Feature>()({
   sessions: true,
   slug: true,
   source: true,
+  status: { label: true, reason: true, session: true, status: true, turn: true },
   step: {
     file: true,
     fileKind: true,

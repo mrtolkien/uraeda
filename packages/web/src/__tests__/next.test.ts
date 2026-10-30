@@ -16,6 +16,7 @@ function at(name: string, extra: Partial<NextFeature["step"]> = {}): NextFeature
   } as NextFeature;
 }
 
+const PULL = { number: 75, url: "https://github.com/mrtolkien/uraeda/pull/75" };
 const RECOMMENDED = { name: "Continue, write the plan", trigger: "manual" } as const;
 
 test("an idle agent at a step offers the recommended message as its button", () => {
@@ -85,4 +86,19 @@ test("a human gate keeps its link, whatever the agent", () => {
 
   expect(next.title).toBe("You review the spec");
   expect(next.action?.kind).toBe("link");
+});
+
+test.each([
+  ["a gate", at("human-gate", { file: "spec.md", fileKind: "spec", waitsOn: "human" })],
+  ["an open pull request", { ...at("pull-request", { waitsOn: "human" }), pullRequest: PULL }],
+])("an agent at work on %s leads to its session, not the human's review", (_, feature) => {
+  const next = nextOf(feature, { session: "s-older", working: true });
+
+  expect(next.title).toBe("The agent is at work");
+  expect(next.action).toEqual({
+    external: false,
+    href: "/sessions/s-older",
+    kind: "link",
+    label: "Open the session",
+  });
 });
