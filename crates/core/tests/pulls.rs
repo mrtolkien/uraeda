@@ -96,6 +96,38 @@ fn a_failed_fetch_keeps_the_last_snapshot_for_ten_minutes() {
     assert_eq!(pulls::latest(&root), PullRequests::Unavailable);
 }
 
+/// Review: a failed call for the merged pull requests keeps the open ones, with the merged ones
+/// last known, or none; a failed call for the open ones gives nothing.
+#[test]
+fn a_failed_merged_call_keeps_the_open_pull_requests() {
+    let open = || {
+        Some(BTreeMap::from([(
+            "b".to_string(),
+            view(31, PullRequestState::Open),
+        )]))
+    };
+    let last = merged(&head(7));
+    let PullRequests::Known { merged: before, .. } = &last else {
+        unreachable!()
+    };
+    let rows = [
+        ("last known", &last, before.clone()),
+        ("none known", &PullRequests::Unavailable, BTreeMap::new()),
+    ];
+    for (name, last, merged) in rows {
+        let expected = PullRequests::Known {
+            open: open().unwrap(),
+            merged,
+        };
+
+        assert_eq!(pulls::known(open(), None, last), expected, "{name}");
+    }
+    assert_eq!(
+        pulls::known(None, Some(BTreeMap::new()), &last),
+        PullRequests::Unavailable
+    );
+}
+
 /// The head of the merged pull request #75 of the test feature's branch.
 fn merged(head: &str) -> PullRequests {
     let json = format!(

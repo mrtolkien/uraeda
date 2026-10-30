@@ -179,7 +179,8 @@ pub fn parse_merged(json: &[u8]) -> Option<BTreeMap<String, String>> {
 }
 
 /// Asks `gh` for the open and the merged pull requests of the repository at `root`. `gh` runs
-/// there, since it finds the repository from its current folder.
+/// there, since it finds the repository from its current folder. The merged ones are the latest
+/// 200: an older merge's branch is long gone.
 pub fn fetch(root: &Path) -> PullRequests {
     let list = |state: &str, fields: &str| {
         let args = [
@@ -194,10 +195,24 @@ pub fn fetch(root: &Path) -> PullRequests {
     .and_then(|stdout| parse(&stdout));
     let merged = list("merged", "headRefName,headRefOid,number,url")
         .and_then(|stdout| parse_merged(&stdout));
-    match (open, merged) {
-        (Some(open), Some(merged)) => PullRequests::Known { open, merged },
-        _ => PullRequests::Unavailable,
-    }
+    known(open, merged, &latest(root))
+}
+
+/// The snapshot of a fetch's open and merged pull requests, each `None` when its call failed. The
+/// open ones decide the steps: without the merged ones, it keeps those of `last`, or none.
+pub fn known(
+    open: Option<BTreeMap<String, PullRequestView>>,
+    merged: Option<BTreeMap<String, String>>,
+    last: &PullRequests,
+) -> PullRequests {
+    let Some(open) = open else {
+        return PullRequests::Unavailable;
+    };
+    let merged = merged.unwrap_or_else(|| match last {
+        PullRequests::Known { merged, .. } => merged.clone(),
+        PullRequests::Unavailable => BTreeMap::new(),
+    });
+    PullRequests::Known { open, merged }
 }
 
 /// How long a failed `gh` keeps the last pull requests it read.
