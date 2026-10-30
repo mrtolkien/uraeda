@@ -76,11 +76,12 @@ impl Git {
         numstat_in(&self.root, base, tip, range)
     }
 
-    /// `numstat` of each of `diffs`, `(base, tip, range)`, their processes run at once.
+    /// `numstat` of each of `diffs`, `(base, tip, range)`, their processes run at once, each with
+    /// its own result.
     pub fn numstats(
         &self,
         diffs: &[(ObjectId, ObjectId, Range)],
-    ) -> Result<Vec<Vec<ChangedFile>>, GitError> {
+    ) -> Vec<Result<Vec<ChangedFile>, GitError>> {
         let root = self.root.as_path();
         std::thread::scope(|scope| {
             let reads: Vec<_> = diffs

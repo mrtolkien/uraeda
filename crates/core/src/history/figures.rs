@@ -146,8 +146,8 @@ pub(crate) fn produced(
         .iter()
         .map(|diff| (diff.base, diff.tip, diff.range))
         .collect();
-    for changed in git.numstats(&ranges)? {
-        for file in changed
+    for changed in git.numstats(&ranges) {
+        for file in changed?
             .into_iter()
             .filter(|file| outside(feature, &file.path))
         {
