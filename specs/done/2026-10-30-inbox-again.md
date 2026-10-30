@@ -2,6 +2,7 @@
 kind: change
 finished: 2026-10-30
 pull-request: https://github.com/mrtolkien/uraeda/pull/75
+superseded-by: [2026-10-30-mockup-previews]
 ---
 
 # Record: Run a new inbox cleanup: anything that’s simple and requires no decision from me
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/75
 > The record of a merged change, not instructions to follow. Started on 2026-10-30, finished on
 > 2026-10-30, in [its pull request](https://github.com/mrtolkien/uraeda/pull/75). Its full files are
 > in git: `git log -- specs/changes/2026-10-30-inbox-again/`.
+>
+> Superseded in part by [2026-10-30-mockup-previews](2026-10-30-mockup-previews.md).
 
 ## What and why
 
@@ -51,9 +54,8 @@ two notes the human added while the change ran, and one agent's note.
   [Reading and layout pass](/specs/changes/2026-10-30-reading-pass/proposal.md), the phone's margins
   and text size, the Replaced behaviour block, tables in reading panes, and the home columns'
   centring; [Proposal start flow](/specs/2026-10-30-proposal-start/proposal.md), its two notes;
-  [Mockup previews](/specs/changes/2026-10-30-mockup-previews/proposal.md), the performance pass's
-  stories that did not draw and SVG images in proposals; and the line "See if we can integrate
-  Claude Design".
+  [Mockup previews](/specs/done/2026-10-30-mockup-previews.md), the performance pass's stories that
+  did not draw and SVG images in proposals; and the line "See if we can integrate Claude Design".
 
 ## Design
 
