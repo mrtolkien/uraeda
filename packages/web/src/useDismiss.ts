@@ -7,20 +7,26 @@ import type { SessionStatus, StatusReason } from "uraeda-server/fate";
 import { guarded, refusal } from "./errors.ts";
 import { SessionView } from "./views.ts";
 
-/** The turns being dismissed, by their feature's folder, until the server's status follows. */
-const dismissing = new Map<string, string>();
-const listeners = new Set<() => void>();
-/** Moves with each change of `dismissing`, for its readers to draw again. */
-let version = 0;
+/** A feature's dismissal: the turn it dismisses, and, once the server refused it, why. */
+type Dismissal = { refused?: string; turn: string };
 
-/** Sets or clears the turn being dismissed of `folder`'s feature, and tells the readers. */
-function setDismissing(folder: string, turn: string | undefined) {
-  if (turn === undefined) {
-    dismissing.delete(folder);
+/**
+ * The features' dismissals, by their folder: pending until the server's status follows, or
+ * refused. Kept here, not in a card, which moves between panes as its status changes. Replaced
+ * whole on each change: its readers draw from the value they are given, which memoized code tracks.
+ */
+let dismissals: ReadonlyMap<string, Dismissal> = new Map();
+const listeners = new Set<() => void>();
+
+/** Sets or clears the dismissal of `folder`'s feature, and tells the readers. */
+function setDismissal(folder: string, dismissal: Dismissal | undefined) {
+  const next = new Map(dismissals);
+  if (dismissal === undefined) {
+    next.delete(folder);
   } else {
-    dismissing.set(folder, turn);
+    next.set(folder, dismissal);
   }
-  version += 1;
+  dismissals = next;
   for (const listener of listeners) {
     listener();
   }
@@ -50,17 +56,30 @@ type Status = {
 export function useDismissed<
   Feature extends { folder: string; status: Status; step: { waitsOn?: string | null } },
 >(features: Array<Feature>): Array<Feature> {
-  useSyncExternalStore(subscribe, () => version);
-  if (dismissing.size === 0) {
+  const shown = useSyncExternalStore(subscribe, () => dismissals);
+  if (shown.size === 0) {
     return features;
   }
-  return features.map((feature) =>
-    feature.status.status === "attention" &&
-    feature.status.turn !== null &&
-    dismissing.get(feature.folder) === feature.status.turn
+  return features.map((feature) => {
+    const dismissal = shown.get(feature.folder);
+    return feature.status.status === "attention" &&
+      dismissal?.refused === undefined &&
+      dismissal?.turn === feature.status.turn
       ? { ...feature, status: dismissedStatus(feature) }
-      : feature,
-  );
+      : feature;
+  });
+}
+
+/**
+ * Why the server refused the dismissal of `folder`'s feature, while its status still asks about
+ * the turn it was refused for; else `undefined`.
+ */
+export function useRefusal(
+  folder: string,
+  status: { reason?: StatusReason | null; status: SessionStatus; turn: string | null },
+): string | undefined {
+  const dismissal = useSyncExternalStore(subscribe, () => dismissals).get(folder);
+  return dismissal?.turn === status.turn && isDismissable(status) ? dismissal.refused : undefined;
 }
 
 /** The status a feature's dismissed run leads to: "Needs you" at a step on the human, else "Idle". */
@@ -97,8 +116,9 @@ export function useDismiss() {
     turn: string;
   }) => {
     setError(undefined);
+    const pending: Dismissal = { turn };
     if (folder !== undefined) {
-      setDismissing(folder, turn);
+      setDismissal(folder, pending);
     }
     // A lost connection rejects the call: it is shown as a refusal.
     const result = await guarded(() =>
@@ -108,18 +128,21 @@ export function useDismiss() {
         view: SessionView,
       }),
     );
-    // Refused, the feature's status is the server's again at once; accepted, the server's next
-    // status replaces it, which no longer asks about the turn, or, at the latest, 10 seconds on.
-    const forget = () => {
-      if (folder !== undefined && dismissing.get(folder) === turn) {
-        setDismissing(folder, undefined);
-      }
-    };
-    if (result.error) {
-      forget();
-      setError(refusal(result.error).message);
+    // Refused, the feature's status is the server's again at once, with why; accepted, the
+    // server's next status replaces it, which no longer asks about the turn, or, at the latest,
+    // 10 seconds on.
+    const message = result.error ? refusal(result.error).message : undefined;
+    setError(message);
+    if (folder === undefined || dismissals.get(folder) !== pending) {
+      return;
+    }
+    if (message !== undefined) {
+      setDismissal(folder, { refused: message, turn });
     } else {
-      setTimeout(forget, 10_000);
+      setTimeout(
+        () => dismissals.get(folder) === pending && setDismissal(folder, undefined),
+        10_000,
+      );
     }
   };
   return { dismiss, error };

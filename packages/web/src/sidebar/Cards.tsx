@@ -1,10 +1,10 @@
 // The shell's cards: a feature's or a change's, which opens its page, its status what it asks, with
 // Dismiss while a failed or stopped run asks; and a session's, which opens the session.
-import { Suspense, use, useState } from "react";
+import { Suspense, use } from "react";
 import { PickedCard } from "../layout/picked.ts";
 import { useCardChanges } from "../branchChanges.ts";
 import { navigate, sessionIdPath, useRepoPath } from "../routes.tsx";
-import { isDismissable, useDismiss } from "../useDismiss.ts";
+import { isDismissable, useDismiss, useRefusal } from "../useDismiss.ts";
 import { usePendingAction } from "../writes/store.ts";
 import { type Feature, type Row, sessionCard, toCard } from "./cards.ts";
 import { statusPath } from "./statusPath.ts";
@@ -30,21 +30,18 @@ export function FeatureCard({
   const here = useRepoPath();
   const to = `/f/${feature.folder}`;
   const isPicked = use(PickedCard) === here(to);
-  const { dismiss, error } = useDismiss();
-  const [sent, setSent] = useState<string>();
+  const { dismiss } = useDismiss();
+  // Kept outside the card, which moves between panes: gone once it no longer asks about the run.
+  const refused = useRefusal(feature.folder, feature.status);
   const { session, turn } = feature.status;
-  const dismissable = isDismissable(feature.status) && session !== null && turn !== null;
-  const onDismiss = dismissable
-    ? () => {
-        setSent(turn);
-        void dismiss({ folder: feature.folder, session, turn });
-      }
-    : undefined;
+  const onDismiss =
+    isDismissable(feature.status) && session !== null && turn !== null
+      ? () => void dismiss({ folder: feature.folder, session, turn })
+      : undefined;
   const card = (item: CardItem) => (
     <ItemCard
       detail={detail}
-      // A refusal concerns the run it was refused for: gone once the card no longer asks about it.
-      dismissError={dismissable && turn === sent ? error : undefined}
+      dismissError={refused}
       href={here(to)}
       isPicked={isPicked}
       isSelected={selects(pathname, to)}
