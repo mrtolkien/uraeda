@@ -7,7 +7,6 @@
 > Features for v1.0.0
 
 - [Performance pass: the UI feels sluggish](/specs/2026-10-29-performance-pass/proposal.md)
-- [panes-size](/specs/2026-10-30-panes-size/proposal.md)
 
 - [Feature state pass](proposals/feature-state-pass/proposal.md)
 
