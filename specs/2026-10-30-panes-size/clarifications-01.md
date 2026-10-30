@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Panes size
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 8 questions, about 20 minutes.
+> Answered on 2026-10-30.
 >
 > - Verdict: worth building, with changes: the feature page and the round are only the visible
 >   cases. No page outside the documents has a width rule, and documents beside the side column read
@@ -105,7 +105,7 @@ Why it matters: it decides whether every later view picks a width from a list, o
   - [pro] no pane is wider than what it holds.
   - [con] panes of one page end at different edges, and change width as their content changes.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: How wide is a page of rows, such as the inbox, settings, or the feature page?
 
@@ -134,7 +134,10 @@ page keeps the same edge.
   - [pro] nothing changes.
   - [con] the feature page stays as the proposal describes it.
 
-**Answer:**
+**Answer:** A: The same as priorities? Which is also a page of rows
+
+Also when there's tabs, insets, or similar info, it's ok to get a larger pane as long as the _text_
+colums take 692px
 
 ## Q3: How wide is a page with panes side by side, such as the home or New?
 
@@ -153,7 +156,7 @@ Why it matters: it decides whether the home's panes match the documents' panes.
   - [pro] the home stays as it is.
   - [con] a width of its own, outside the scale.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: How wide is the side column before you drag it?
 
@@ -175,7 +178,7 @@ Why it matters: it sets how much room the page keeps beside its companions, on e
   - [pro] a session in the column has more room on a wide window.
   - [con] the feature page's two rows of figures keep 600 px.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: What happens to the side column on a half screen, when the page beside it gets too narrow?
 
@@ -204,7 +207,7 @@ a guide you set.
   - [pro] nothing changes.
   - [con] prose at 25 characters a line.
 
-**Answer:**
+**Answer:** A: Hover should also work
 
 ## Q6: How wide is a round's question card, split into the question and its options?
 
@@ -233,7 +236,7 @@ Why it matters: it sets how a round reads, and changes the "two panes" width you
   - [pro] nothing changes.
   - [con] the cards stay as the proposal describes them.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: How wide is a spec's decision card?
 
@@ -251,7 +254,8 @@ Why it matters: it decides whether a spec has one edge or two.
   - [pro] the decisions stand apart from the rest.
   - [con] a width outside any scale.
 
-**Answer:**
+**Answer:** B: Why would it be outside a scale? They can be their own width scale, for "big text"
+panes?
 
 ## Q8: Where do the width rules live?
 
@@ -271,7 +275,7 @@ Why it matters: it decides whether a later view can pick its own width without a
   - [pro] no decision changes.
   - [con] nothing binds a later view to the scale.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
