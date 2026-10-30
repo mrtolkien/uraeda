@@ -31,9 +31,9 @@ realistic project. See the [spec's architecture](spec.md#architecture).
    feature's worktree: both read the default branch's files, so both list the same items. Task 1
    reads through the ledger's `source`; no test of its own, since the ledger's tests own that
    source.
-4. **The New page opened by "Set up with the agent", then reloaded**: the message is inserted once,
-   and the reload keeps the composer's draft without inserting it again, as a proposal's Start does.
-   Task 4, reviewed in the sandbox.
+4. **The New page opened by "Set up with the agent", then reloaded**: the reload empties the
+   session's composer, whose draft is kept in memory only, and the history entry fills it with the
+   message again; a composer holding text keeps it. Task 4, reviewed in the sandbox.
 
 ## Global constraints
 
