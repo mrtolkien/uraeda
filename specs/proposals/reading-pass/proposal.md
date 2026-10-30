@@ -8,6 +8,8 @@ discovery: medium # low, medium, or high: how far the agent researches before as
 
 - Need a bit more left/right padding on mobile and slightly smaller text (same as discord messages
   on mobile)
+- We should actually still have full panes on mobile, just with less padding on both sides (maybe
+  2px padding out of the pane and 3px in, something small).
 
 ## Notes
 
@@ -22,3 +24,7 @@ discovery: medium # low, medium, or high: how far the agent researches before as
 ### The home columns are not centered on a wide screen
 
 ![pasted image](images/pasted-20261030-095141.webp)
+
+### Example doesn’t have good enough separation with the rest on mobile
+
+![pasted image](images/pasted-20261030-203512.webp)
