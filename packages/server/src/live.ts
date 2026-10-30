@@ -8,6 +8,8 @@ import { DEFAULT_ROUND_IDS } from "./runner/round-messages.ts";
 import { type LiveBus, live as globalLive } from "./fate.ts";
 import { NEEDS_YOU_ID } from "./fate/needs-you.ts";
 import { LEDGER_ID } from "./fate/views-ledger.ts";
+import { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
+import { readMessages } from "./fate/workflow-step.ts";
 import { Previews } from "./preview/runner.ts";
 import type { Host, Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
@@ -35,8 +37,9 @@ export type HostsOf = () => Pick<Hosts, "byPath" | "all"> | undefined;
 /**
  * Sends a repository's live updates, on its host's bus, for each change the core's watcher
  * reports. A feature's change may change its step, which its sessions' statuses read, its
- * branch's changes, and its history, and a feature that goes leaves the sidebar: the list and the
- * features' sessions go too. A change of the inbox sends its triage and the decisions check too, and
+ * branch's changes and the cards' record of every feature's, its history, and its workflow
+ * messages read, whose step its queued commits move as they land, and a feature that
+ * goes leaves the sidebar: the list and the features' sessions go too. A change of the inbox sends its triage and the decisions check too, and
  * one of the constitution or a decision, the ledger; a decision a branch changed sends its page, and its spec's file.
  */
 export function publish(changes: Changes, host: Pick<Host, "path" | "live">, sessions?: Sessions) {
@@ -49,6 +52,13 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
     live.update("BranchChanges", folder, { eventId: eventId(`changes:${folder}`) });
     live.update("History", folder, { eventId: eventId(`history:${folder}`) });
     live.update("RecommendedMessage", folder, { eventId: eventId(`recommended:${folder}`) });
+    for (const id of readMessages(host.path, folder)) {
+      live.update("WorkflowMessage", id, { eventId: eventId(`workflow:${id}`) });
+    }
+  }
+  // The cards' one record of every feature's changes goes with each feature's own.
+  if (changes.features.length > 0) {
+    live.update("AllBranchChanges", ALL_BRANCH_CHANGES_ID, { eventId: eventId("all-changes") });
   }
   for (const file of changes.files) {
     live.update("WorkflowFile", file, { eventId: eventId(`file:${file}`) });

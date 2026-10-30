@@ -31,7 +31,9 @@ function SingleKeys({
           setRefused(undefined);
           setRefused(await actions.setSingleKeyShortcuts(on));
         }}
-        value={values.keyboard.singleKeyShortcuts.inForce}
+        value={
+          values.keyboard.singleKeyShortcuts.saved ?? values.keyboard.singleKeyShortcuts.inForce
+        }
       />
     </SettingRow>
   );

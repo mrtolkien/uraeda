@@ -148,7 +148,7 @@ test("US5 1: places a note in its category and answers the moved inbox", async (
   );
 });
 
-test("US2 1: moves a note to a section of the priorities", async () => {
+test("US2 1: moves a note to a section of the priorities, which the move answers", async () => {
   const repo = fixtureRepo();
   const { app } = await testApp(repo);
   const inbox = await readInbox(app);
@@ -163,11 +163,15 @@ test("US2 1: moves a note to a section of the priorities", async () => {
       prioritiesHash: priorities.hash,
       section: "next",
     },
-    INBOX,
+    ["id", "changes", "sections"],
   );
 
-  expect(result.data.count).toBe(9);
+  // The answer is the priorities, the note the last line of its section, for the page to open on.
+  expect(result.data.id).toBe("priorities");
   expect(result.data.changes).toBe(1);
+  const next = result.data.sections.find((one: { section: string }) => one.section === "next");
+  expect(next.proposals.at(-1).text).toBe("Draft to proposal on mobile went 404");
+  expect((await readInbox(app)).count).toBe(9);
   expect(read(repo, "specs/PRIORITIES.md")).toContain(
     "- [Git listener process](proposals/git-listener.md)\n- Draft to proposal on mobile went 404\n",
   );
@@ -411,13 +415,15 @@ test("US6: an image the core refuses adds nothing", async () => {
 
 test("US2 7: the commit bar commits the inbox's changes", async () => {
   const repo = fixtureRepo();
-  const { app } = await testApp(repo);
+  const { app, hosts, name } = await testApp(repo);
   const { hash } = await readInbox(app);
   await mutate(app, "inbox.add", { hash, text: "A note to commit" }, ["id"]);
 
   const committed = await mutate(app, "changes.commit", {}, ["id", "changes"]);
 
-  expect(committed.data).toEqual({ changes: 0, id: "priorities" });
+  // The commit answers once its files are written, and lands in the write queue behind it.
+  expect(committed.data.id).toBe("priorities");
+  await hosts.get(name)!.queue.idle();
   expect((await readInbox(app)).changes).toBe(0);
   expect(git(repo, "log", "-1", "--format=%s").trim()).toBe(
     'chore: add "A note to commit" to the inbox',
@@ -463,7 +469,7 @@ test("US4 2: reads the triage as a round of questions", async () => {
 
 test("US4 2 and 3: answers the triage, then submits it", async () => {
   const repo = triageRepo();
-  const { app } = await testApp(repo);
+  const { app, hosts, name } = await testApp(repo);
 
   const [opened] = await byId(app, "WorkflowFile", ["inbox-triage"], FILE);
   // Each save is based on the hash the last one wrote: the page saw all of the triage.
@@ -507,6 +513,8 @@ test("US4 2 and 3: answers the triage, then submits it", async () => {
   expect(noted.ok).toBe(true);
   expect(submitted.data.status).toBe("answered");
   expect(read(repo, "specs/INBOX-TRIAGE.md")).toContain("**Answer:** A\n");
+  // The submit's commit lands in the write queue, after its answer.
+  await hosts.get(name)!.queue.idle();
   expect(git(repo, "log", "-1", "--format=%s").trim()).toBe("chore: answer the inbox triage");
 });
 
@@ -544,19 +552,20 @@ test("an Undo of each move puts both files back in one call", async () => {
   const added = noteOf(inbox, "Make sure agents are resumable");
   const homed = noteOf(inbox, "We need a home icon");
 
-  const toNext = await mutate(
+  await mutate(
     app,
     "inbox.toProposal",
     { hash: inbox.hash, note: moved.id, prioritiesHash: priorities.hash, section: "next" },
-    INBOX,
+    ["id"],
   );
+  const toNext = await readInbox(app);
   await mutate(
     app,
     "inbox.intoProposal",
     {
       file: "specs/proposals/git-listener.md",
-      hash: toNext.data.hash,
-      note: noteOf(toNext.data, "Make sure agents are resumable").id,
+      hash: toNext.hash,
+      note: noteOf(toNext, "Make sure agents are resumable").id,
     },
     ["id", "path"],
   );

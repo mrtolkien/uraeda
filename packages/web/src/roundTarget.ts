@@ -17,6 +17,14 @@ export function defaultRoundHome(target: RoundTarget): string {
   return "round" in target && target.round === DECISIONS_CHECK_ID ? "/decisions" : "/inbox";
 }
 
+/** A default-branch round's name in a write's: the triage's or the decisions check's answers. */
+export function roundName(target: { round: string }): string {
+  return target.round === DECISIONS_CHECK_ID ? "the decisions check" : "the inbox's triage";
+}
+
+/** A git write's name for the toast, and the page it is made on. */
+type WriteName = { href: string; label: string };
+
 /** Whether the target is a round on the default branch. */
 export function isDefaultRound(target: RoundTarget): target is { round: string } {
   return "round" in target;
@@ -151,28 +159,32 @@ export function useRoundWrites(target: RoundTarget, hashes: Hashes) {
             }),
           )
         : fate.mutations.notes.save({ input: { ...input, folder: target.folder }, view: FileView }),
-    /** Commits the round again after a hook refused it: `name` in a feature's folder. */
-    retry: (name: string) =>
+    /**
+     * Commits the round again after a hook refused it and left it written: `name` in a feature's
+     * folder, the commit named `write` in the toast.
+     */
+    retry: (name: string, write: WriteName) =>
       isDefaultRound(target)
-        ? fate.mutations.defaultRound.retry({ input: { id: target.round }, view: FileView })
+        ? fate.mutations.defaultRound.retry({ input: { id: target.round, write }, view: FileView })
         : fate.mutations.commit.retry({
-            input: { file: name, folder: target.folder },
+            input: { file: name, folder: target.folder, write },
             view: FileView,
           }),
     /**
      * Submits the round, `name` in a feature's folder, or a default-branch round over the hash
-     * kept. `resumes` answers it to continue the implementation.
+     * kept, its commit named `write` in the toast. `resumes` answers it to continue the
+     * implementation.
      */
-    submit: (name: string, resumes = false) =>
+    submit: (name: string, write: WriteName, resumes = false) =>
       isDefaultRound(target)
         ? hashes.serial((previous) =>
             fate.mutations.defaultRound.submit({
-              input: { id: target.round, previous },
+              input: { id: target.round, previous, write },
               view: FileView,
             }),
           )
         : fate.mutations.answers.submit({
-            input: { file: name, folder: target.folder, ...(resumes ? { resumes } : {}) },
+            input: { file: name, folder: target.folder, write, ...(resumes ? { resumes } : {}) },
             view: FileView,
           }),
   };

@@ -2,7 +2,7 @@ import { mkdirSync, readdirSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Changes } from "uraeda-binding";
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import { createFate, type LiveBus, live } from "../fate.ts";
+import { createFate, LIVE_REPLAY_MS, type LiveBus, live, liveBus } from "../fate.ts";
 import { publish, SESSION_UPDATE_MS, sessionPublisher } from "../live.ts";
 import type { Host } from "../repositories.ts";
 import { chatImages } from "../attach.ts";
@@ -15,12 +15,14 @@ import {
   fixtureRepo,
   git,
   mutate,
+  port,
   testApp,
   testDataDir,
   testHosts,
   testServer,
 } from "./helpers.ts";
 import { commitArrival, connect, statusArrival, subscribe } from "./live-stream.ts";
+import { WriteQueue } from "../writes/queue.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -36,13 +38,39 @@ test("a commit on a branch is sent to a live subscription", async () => {
 }, 20_000);
 
 /**
- * A view reads its data, then subscribes: a change made between the two is sent at once, as the
- * subscription sends the data as it is when it starts, with no change made since.
+ * A view reads its data, then subscribes: a change made between the two is sent once it starts.
+ * With nothing changed, the view has the data it read, and the record is not resolved again.
  */
-test("a subscription is sent its entity's data once it starts", async () => {
-  const { app, name } = await testApp();
+test("a subscription made with nothing changed gets no update", async () => {
+  let now = 10_000;
+  const bus = liveBus(() => now);
+  const sent: Array<string> = [];
+  /** Subscribes, waits for what it is sent at once, and ends the subscription. */
+  const listen = async (name: string) => {
+    const stop = bus.listen!("Workspace", "workspace", () => sent.push(name), {});
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    stop();
+  };
+
+  await listen("unchanged");
+  expect(sent, "an update with nothing changed").toEqual([]);
+
+  bus.update("Workspace", "workspace", {});
+  now += 50;
+  await listen("changed 50 ms before");
+  expect(sent).toEqual(["changed 50 ms before"]);
+
+  now += LIVE_REPLAY_MS;
+  await listen("changed long before");
+  expect(sent, "a change older than the read replayed").toEqual(["changed 50 ms before"]);
+});
+
+/** The same, through the endpoint: a change published just before a subscription is sent to it. */
+test("a change published just before a subscription is sent to it", async () => {
+  const { app, hosts, name } = await testApp();
   const stream = await connect(app, name, "c3");
   expect(await stream.arrival("connected", 5000)).toBeDefined();
+  hosts.get(name)!.live.update("Feature", "2026-10-12-cli-tuis", {});
   await subscribe(app, name, "c3", {
     entityId: "2026-10-12-cli-tuis",
     select: ["id", "files"],
@@ -55,10 +83,24 @@ test("a subscription is sent its entity's data once it starts", async () => {
   expect(arrived, "no data within 5 seconds of subscribing").toBeDefined();
 });
 
+/** Each fate response says how long the server took, for the browser's timings. */
+test("fate's responses carry the server's time", async () => {
+  const { app, name } = await testApp();
+
+  for (const base of ["", `/r/${name}`]) {
+    const response = await app.request(`http://127.0.0.1:${port}${base}/fate`, {
+      body: JSON.stringify({ operations: [], version: 1 }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    });
+    expect(response.headers.get("server-timing"), base).toMatch(/^app;dur=\d+(\.\d+)?$/);
+  }
+});
+
 /**
  * A feature's step changed through git, as a commit of its answers: its session's status reads
  * the step, so the sidebar's list and the session are sent with the feature, and a commit may
- * change its branch's files.
+ * change its branch's files, which the cards' record of every feature's changes reads too.
  */
 test("a feature's change through git is published to its session, its branch's changes, and the list", async () => {
   const repo = fixtureRepo();
@@ -92,6 +134,7 @@ test("a feature's change through git is published to its session, its branch's c
       "RecommendedMessage 2026-10-12-cli-tuis",
       "Feature 2026-10-11-web-ui",
       "BranchChanges 2026-10-11-web-ui",
+      "AllBranchChanges all-branch-changes",
       "SessionList all",
       `Session ${session.id}`,
     ]),
@@ -168,7 +211,8 @@ function published(bus: LiveBus) {
 /** A host of the repository at `path`, with its own bus, outside any list. */
 function hostAt(path: string, name = "repo"): Host {
   const { fateServer, live } = createFate();
-  return { fate: fateServer, live, missing: false, name, path };
+  const queue = new WriteQueue({ land: async () => {}, takeDeferred: () => [] }, () => {});
+  return { fate: fateServer, live, missing: false, name, path, queue };
 }
 
 /** Hosts holding `listed`, as the session publisher reads them. */

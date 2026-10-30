@@ -126,6 +126,16 @@ export function useMockupAt(block: Block): MockupEmbed | undefined {
     : undefined;
 }
 
+/** The story an address names, `?story=<path>#<export>`, or undefined. */
+export function storyOf(search: string): StoryTarget | undefined {
+  const story = new URLSearchParams(search).get("story");
+  const at = story?.lastIndexOf("#") ?? -1;
+  if (!story || at < 0) {
+    return undefined;
+  }
+  return { export: story.slice(at + 1), path: story.slice(0, at) };
+}
+
 /**
  * The story page's address, within its repository: `/f/<folder>/storybook`, `/storybook` for the
  * main checkout, at a story when given, which the page finds by its file and export (R2).

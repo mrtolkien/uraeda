@@ -11,12 +11,11 @@ mod commit;
 mod history;
 mod log;
 pub(crate) mod process;
+mod refresh;
 mod status;
 
-use process::Failure;
-
 pub use amend::Latest;
-pub use commit::others_staged;
+pub use commit::{OnOutput, Stage, others_staged};
 pub use history::{CommitInfo, Range};
 
 pub use gix::ObjectId;
@@ -148,14 +147,21 @@ impl Git {
         }
     }
 
-    /// Creates `branch` from `from`, checked out in a new worktree at `path`.
+    /// Creates `branch` from `from`, checked out in a new worktree at `path`, whose index is then
+    /// refreshed in the background when a server watches the repository.
     pub fn add_worktree_new(&self, path: &Path, branch: &str, from: &str) -> Result<(), GitError> {
         self.run("worktree", &["worktree", "prune"])?;
-        let path = path.to_string_lossy();
+        let shown = path.to_string_lossy();
         self.run(
             "worktree",
-            &["worktree", "add", "--quiet", "-b", branch, &path, from],
-        )
+            &["worktree", "add", "--quiet", "-b", branch, &shown, from],
+        )?;
+        // Only a server, which watches the repository, lives on to read it: a refresh in a process
+        // that exits, as `ura`'s, or beside direct calls, as the core's tests', only races them.
+        if crate::cache::watched(&self.root) {
+            refresh::refresh_later(self.root.join(path));
+        }
+        Ok(())
     }
 
     /// Keeps `.worktrees/` out of `git status`, through `.git/info/exclude`, once.
@@ -480,15 +486,7 @@ impl Git {
 /// Runs `git` in `root`, and returns its stdout: `Git::output` for a thread, which cannot share a
 /// `Git`.
 fn output_in(root: &Path, subcommand: &str, args: &[&str]) -> Result<String, GitError> {
-    let command = |message: String, output: String| GitError::Command {
-        subcommand: subcommand.to_string(),
-        message,
-        output,
-    };
-    match process::run("git", args, root) {
-        Ok(stdout) => Ok(String::from_utf8_lossy(&stdout).into_owned()),
-        Err(Failure::NotFound) => Err(GitError::GitNotFound),
-        Err(Failure::Start(error)) => Err(command(error.clone(), error)),
-        Err(Failure::Exit { message, output }) => Err(command(message, output)),
-    }
+    process::run("git", args, root)
+        .map(|stdout| String::from_utf8_lossy(&stdout).into_owned())
+        .map_err(|failure| failure.into_git(subcommand))
 }

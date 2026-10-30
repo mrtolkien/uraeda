@@ -47,6 +47,13 @@ async function promoting(note: string) {
   return repo;
 }
 
+/** The row of a list showing `text`. */
+const rowOf = (text: string) =>
+  screen
+    .getAllByRole("button", { name: new RegExp(text) })
+    .find((one) => one.closest("[data-row-link]") !== null)
+    ?.closest("[data-row]");
+
 /** The titles of the picker's items. */
 const offered = () => screen.getAllByRole("option").map((option) => option.textContent ?? "");
 
@@ -226,4 +233,19 @@ test("a note added to a proposal whose editor was open before shows in its edito
   );
   const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
   await waitFor(() => expect(field.value).toContain("Loose note"));
+});
+
+test("a note moved to Now opens the priorities at once, and its row is selected once written", async () => {
+  const repo = await promoting("Loose note");
+
+  const now = screen.getAllByRole("option").find((option) => option.textContent === "Now");
+  await act(async () => {
+    fireEvent.click(now!);
+  });
+
+  // The page opened without waiting for the move: its row is selected once the move answers.
+  expect(window.location.pathname).toBe(atRepo("/priorities"));
+  await waitFor(() => expect(rowOf("Loose note")?.getAttribute("aria-current")).toBe("true"));
+  expect(read(repo).split("## Next")[0]).toContain("- Loose note\n");
+  await screen.findByText(/Moved to Now/);
 });

@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import { readProposalFile } from "./attach/useEditorImages.ts";
-import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
+import { readInbox, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { withFreshBase } from "./freshBase.ts";
 import { splitProposal } from "./pane/proposalText.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { ProposalFileView, InboxView, PrioritiesView } from "./views.ts";
-import { runWrite } from "./writes/store.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
 
@@ -35,11 +35,14 @@ function made(result: { error?: unknown; result?: unknown }, field: "path"): Mad
  * `INBOX.md`.
  */
 async function noteFile(fate: Fate, note: { id: string }): Promise<Made> {
-  const [inbox, prioritiesHash] = await Promise.all([readInbox(fate), readPrioritiesHash(fate)]);
-  const result = await fate.mutations.inbox.toProposalFile({
-    input: { hash: inbox.hash, note: note.id, prioritiesHash, section: NOW },
-    view: ProposalFileView,
-  });
+  const result = await withFreshBase(
+    (mode) => Promise.all([readInbox(fate, mode), readPrioritiesHash(fate, mode)]),
+    ([inbox, prioritiesHash]) =>
+      fate.mutations.inbox.toProposalFile({
+        input: { hash: inbox.hash, note: note.id, prioritiesHash, section: NOW },
+        view: ProposalFileView,
+      }),
+  );
   rereadChanges(fate);
   return made(result, "path");
 }
@@ -49,49 +52,35 @@ async function lineFile(fate: Fate, entry: StartLine): Promise<Made> {
   if (entry.file) {
     return { value: entry.file.path };
   }
-  const { hash } = await readPriorities(fate);
   return made(
-    await fate.mutations.proposals.expand({
-      input: { hash, proposal: entry.id },
-      view: ProposalFileView,
-    }),
+    await withFreshBase(
+      (mode) => readPrioritiesHash(fate, mode),
+      (hash) =>
+        fate.mutations.proposals.expand({
+          input: { hash, proposal: entry.id },
+          view: ProposalFileView,
+        }),
+    ),
     "path",
   );
 }
 
 /**
- * Writes the title as the first of Now's proposals that has not started, then expands it into a
- * file: the started ones stay above it. An expand refused takes the proposal back out, so Now is as
+ * Drafts the title as the first of Now's proposals that has not started, its file, and `body`
+ * under its heading, in one request: the started ones stay above it. A refused draft leaves Now as
  * it was.
  */
-async function titleFile(fate: Fate, title: string): Promise<Made> {
-  const { hash, sections } = await readPriorities(fate);
-  const now = sections.find((section) => section.section === NOW)?.proposals ?? [];
-  const first = now.findIndex((proposal) => !proposal.running);
-  const index = first === -1 ? now.length : first;
-  const inserted = await fate.mutations.proposals.insert({
-    input: { hash, index, lines: [`- ${title}`], section: NOW },
-    view: PrioritiesView,
-  });
-  if (inserted.error || !inserted.result) {
-    return made(inserted, "path");
-  }
-  const proposal = `${NOW}-${index + 1}`;
-  const expanded = made(
-    await fate.mutations.proposals.expand({
-      input: { hash: inserted.result.hash, proposal },
+async function titleFile(fate: Fate, title: string, body: string): Promise<Made> {
+  const drafted = made(
+    await fate.mutations.proposals.draft({
+      input: { body, section: NOW, title },
       view: ProposalFileView,
     }),
     "path",
   );
-  if ("error" in expanded) {
-    // The refusal shown is the expand's: a proposal left behind is in the commit page's changes.
-    await fate.mutations.proposals.remove({
-      input: { hash: inserted.result.hash, proposal },
-      view: PrioritiesView,
-    });
-  }
-  return expanded;
+  // The count of changes the priorities and the inbox carry: the draft's line is one.
+  rereadChanges(fate);
+  return drafted;
 }
 
 /** An entry the New page's composer was filled from: its kind, id, and own file, if it has one. */
@@ -106,14 +95,20 @@ export async function takeOut(fate: Fate, taken: ReadonlyArray<Taken>) {
   for (const entry of taken) {
     try {
       if (entry.kind === "note") {
-        const { hash } = await readInbox(fate);
-        await fate.mutations.inbox.remove({ input: { hash, note: entry.id }, view: InboxView });
+        await withFreshBase(
+          async (mode) => (await readInbox(fate, mode)).hash,
+          (hash) =>
+            fate.mutations.inbox.remove({ input: { hash, note: entry.id }, view: InboxView }),
+        );
       } else {
-        const { hash } = await readPriorities(fate);
-        await fate.mutations.proposals.remove({
-          input: { hash, proposal: entry.id },
-          view: PrioritiesView,
-        });
+        await withFreshBase(
+          (mode) => readPrioritiesHash(fate, mode),
+          (hash) =>
+            fate.mutations.proposals.remove({
+              input: { hash, proposal: entry.id },
+              view: PrioritiesView,
+            }),
+        );
       }
     } catch {
       // Left in its file, for the human to take out.
@@ -157,16 +152,18 @@ async function proposalWritten(
   }: { body: string; sources: ReadonlyArray<Taken & { inserted: string }>; title: string },
 ): Promise<Made> {
   const [first, ...rest] = sources;
-  const written = first
-    ? first.kind === "note"
+  if (!first) {
+    return titleFile(fate, title, body);
+  }
+  const written =
+    first.kind === "note"
       ? await noteFile(fate, { id: first.id })
-      : await lineFile(fate, { file: first.linked ? { path: first.linked } : null, id: first.id })
-    : await titleFile(fate, title);
+      : await lineFile(fate, { file: first.linked ? { path: first.linked } : null, id: first.id });
   if ("error" in written) {
     return written;
   }
   // Its own text stays when the composer holds only what it was filled with.
-  const kept = first !== undefined && body.trim() === first.inserted.trim();
+  const kept = body.trim() === first.inserted.trim();
   const refused = kept ? undefined : await writeBody(fate, written.value, body);
   await takeOut(fate, rest);
   return refused === undefined ? written : { error: refused };
@@ -201,10 +198,7 @@ export function useStartFrom() {
     error,
     feature: {
       fromText: (input: Parameters<typeof proposalWritten>[1]) =>
-        run(
-          () => runWrite({ label: "Writing the proposal…" }, () => proposalWritten(fate, input)),
-          edit,
-        ),
+        run(() => proposalWritten(fate, input), edit),
     },
   };
 }

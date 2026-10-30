@@ -144,6 +144,15 @@ export class SessionCache {
     return toSession(inserted);
   }
 
+  /** Removes a session while it has no turn, as the one made for a start that never landed. */
+  removeEmptySession(id: string): void {
+    this.db
+      .prepare(
+        "DELETE FROM sessions WHERE id = ?1 AND NOT EXISTS (SELECT 1 FROM turns WHERE session_id = ?1)",
+      )
+      .run(id);
+  }
+
   session(id: string): SessionRow | undefined {
     const row = this.db.prepare("SELECT * FROM sessions WHERE id = ?").get(id) as Row | undefined;
     return row ? toSession(row) : undefined;

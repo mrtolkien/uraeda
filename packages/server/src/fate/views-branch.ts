@@ -2,6 +2,7 @@
 // "Changes" list.
 import { dataView } from "@nkzw/fate/server";
 import type { BranchChanges, ChangedFile } from "uraeda-binding";
+import type { Binding } from "./context.ts";
 
 /** A file changed on a feature's branch, its lines null for a binary file. */
 export type ChangedFileRecord = Omit<ChangedFile, "added" | "removed"> & {
@@ -38,5 +39,51 @@ export function sentChanges(changes: BranchChanges | null): BranchChangesRecord[
 export const branchChangesDataView = dataView<BranchChangesRecord>("BranchChanges")({
   changes: true,
   failed: true,
+  id: true,
+});
+
+/** The id of the one record of every feature's branch changes. */
+export const ALL_BRANCH_CHANGES_ID = "all-branch-changes";
+
+/** A feature's count of changed files and of lines added and removed, as a card shows them. */
+export type FeatureChangesRecord = Omit<BranchChanges, "files"> & { folder: string };
+
+/**
+ * Every feature's branch changes, without their files, read in one request for the sidebar's
+ * cards: a feature without any is left out. `failed` when they could not be read.
+ */
+export type AllBranchChangesRecord = {
+  failed: boolean;
+  features: Array<FeatureChangesRecord>;
+  id: string;
+};
+
+/**
+ * Every feature's branch changes in `repo`. A repository without `specs/` has none; one whose
+ * changes cannot be read is answered as failed, and logged with the error's first line.
+ */
+export async function allBranchChanges(
+  binding: Pick<Binding, "allBranchChanges">,
+  repo: string,
+): Promise<AllBranchChangesRecord> {
+  const id = ALL_BRANCH_CHANGES_ID;
+  try {
+    const features = (await binding.allBranchChanges(repo)).map(
+      ({ changes: { added, count, removed }, folder }) => ({ added, count, folder, removed }),
+    );
+    return { failed: false, features, id };
+  } catch (error) {
+    const [line] = (error instanceof Error ? error.message : String(error)).split("\n");
+    if (/^(refused: )?no specs\/ folder /.test(line ?? "")) {
+      return { failed: false, features: [], id };
+    }
+    process.stderr.write(`uraeda-server: the branches' changes could not be read: ${line}\n`);
+    return { failed: true, features: [], id };
+  }
+}
+
+export const allBranchChangesDataView = dataView<AllBranchChangesRecord>("AllBranchChanges")({
+  failed: true,
+  features: true,
   id: true,
 });

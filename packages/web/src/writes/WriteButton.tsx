@@ -1,49 +1,48 @@
-// A button that writes to git: once clicked, it reads what it does, with a spinner, until the
-// write ends, and every other one is blocked meanwhile; the item it writes to shows the same on its
-// card. Its action resolves to `false` when it failed, which shows the card's status again.
-import type { ReactNode } from "react";
-import { useOwnWrite } from "./useOwnWrite.ts";
-import { type Variant, WriteButtonView } from "./WriteFeedback.tsx";
+// A button that writes to git: its action answers once the files are written, and the page shows its
+// result at once, while the commit lands behind it, in the toast (`CommitToast.tsx`). It never
+// blocks another button and shows no running state; a second press while its own action has not
+// answered yet does nothing, so one press makes one write.
+import { Button } from "@astryxdesign/core/Button";
+import { type ReactNode, useRef } from "react";
+
+/** A button's variant, as Astryx names it. */
+type Variant = "primary" | "secondary" | "destructive" | "ghost";
 
 export function WriteButton({
   endContent,
-  folder,
   isDisabled = false,
   label,
   onClick,
-  runningLabel = "Committing…",
   tooltip,
   variant,
 }: {
-  /** What shows after its label, but while it runs: its key. */
+  /** What shows after its label: its key. */
   endContent?: ReactNode;
-  /** The feature or change it writes to, whose card shows `runningLabel`. */
-  folder?: string | undefined;
   isDisabled?: boolean | undefined;
   label: string;
   onClick: () => Promise<unknown>;
-  runningLabel?: string;
+  /** Why it is disabled, as a question left blank. */
   tooltip?: string | undefined;
   variant?: Variant | undefined;
 }) {
-  const { start, state } = useOwnWrite({
-    label: runningLabel,
-    ...(folder === undefined ? {} : { folder }),
-  });
+  const answering = useRef(false);
   const click = () => {
-    if (!isDisabled) {
-      start(onClick);
+    if (isDisabled || answering.current) {
+      return;
     }
+    answering.current = true;
+    void onClick().finally(() => {
+      answering.current = false;
+    });
   };
   return (
-    <WriteButtonView
+    <Button
       endContent={endContent}
       isDisabled={isDisabled}
       label={label}
       onClick={click}
-      runningLabel={runningLabel}
-      state={state}
-      tooltip={tooltip}
+      // Astryx keeps a disabled button with a tooltip focusable, through `aria-disabled`.
+      {...(tooltip === undefined ? {} : { tooltip })}
       variant={variant}
     />
   );

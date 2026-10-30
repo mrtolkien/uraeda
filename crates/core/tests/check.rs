@@ -2592,18 +2592,24 @@ fn the_example_spec_is_at_most_2000_words() {
 }
 
 /// The shape warnings of a decision the human approved as it stands, over this test: the UI layout
-/// decision's Why and alternatives, as the panes-size spec changed them. Theirs to trim or keep.
+/// decision's Why and alternatives, as the panes-size spec changed them, and the UI behaviour
+/// decision's 12 rules, as the performance pass's four rules on writes, one claim each, made them.
+/// Theirs to trim or keep.
 fn approved_over_its_shape(problem: &Problem) -> bool {
-    problem.file.ends_with("specs/decisions/ui-layout.md")
+    (problem.file.ends_with("specs/decisions/ui-layout.md")
         && matches!(
             problem.rule.as_str(),
             "decision.why" | "decision.alternatives"
-        )
+        ))
+        || (problem.file.ends_with("specs/decisions/ui-behaviour.md")
+            && problem.rule == "decision.rules")
 }
 
 /// US3 1, SC-001, SC-002, SC-004: the repository's decisions warn nothing on their shape, hold at
-/// most 11,100 words together, their frontmatter aside, and each Why links one record at most. The
-/// limit was 11,000 until the documentation decision, approved with Onboarding + README pass.
+/// most 11,800 words together, their frontmatter aside, and each Why links one record at most. The
+/// limit was 11,000 until the documentation decision, approved with Onboarding + README pass, and
+/// 11,100 until the performance decision and UI behaviour's rules on writes, approved with the
+/// performance pass.
 #[test]
 fn the_ledger_reads_alone() {
     let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -2627,7 +2633,7 @@ fn the_ledger_reads_alone() {
         let records = why.matches("](../done/").count() + why.matches("](/specs/done/").count();
         assert!(records <= 1, "{records} records linked from a Why:\n{why}");
     }
-    assert!(words <= 11_100, "{words} words");
+    assert!(words <= 11_800, "{words} words");
 }
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";

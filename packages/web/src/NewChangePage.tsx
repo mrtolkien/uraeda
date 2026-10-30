@@ -18,7 +18,6 @@ import { StartDialog } from "./StartDialog.tsx";
 import { takeOut } from "./useStartFrom.ts";
 import { useDraft } from "./useDraft.ts";
 import { FeatureView } from "./views.ts";
-import { runWrite, useWrites } from "./writes/store.ts";
 
 /** How long typing must stop before the slug is proposed again, as the sidebar's search waits. */
 const PROPOSAL_DELAY = 200;
@@ -137,9 +136,6 @@ export function ChangeComposer({
 }) {
   const { images, setImages } = useDraft();
   const start = useStart(text, sources);
-  // Another page's write still running blocks this one, as every writing button is blocked.
-  const { running } = useWrites();
-  const [starting, setStarting] = useState(false);
   const [asking, setAsking] = useState<Asking>();
   const answer = (sent: boolean) => {
     asking?.resolve(sent);
@@ -149,11 +145,7 @@ export function ChangeComposer({
     if (!asking) {
       return undefined;
     }
-    setStarting(true);
-    // Its branch and worktree are written: the other writes wait, as for a commit.
-    const result = await runWrite({ label: "Starting the change…" }, () =>
-      start(asking.text, asking.images, slug),
-    ).finally(() => setStarting(false));
+    const result = await start(asking.text, asking.images, slug);
     if (!result.ok) {
       return result.message;
     }
@@ -172,7 +164,6 @@ export function ChangeComposer({
           new Promise<boolean>((resolve) => setAsking({ images: sentImages, resolve, text: sent }))
         }
         sendLabel="Start the change"
-        sendWaits={running && !starting ? "Another change is being saved to git" : undefined}
         value={text.text}
       />
       {asking && (

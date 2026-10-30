@@ -386,7 +386,14 @@ fn a_feature_starts_from_a_proposal_file_only() {
         "specs/README.md",
     ] {
         assert!(
-            api::start_feature(repo.path(), proposal_file, Some("victim"), Kind::Feature).is_err(),
+            api::start_feature(
+                repo.path(),
+                proposal_file,
+                Some("victim"),
+                Kind::Feature,
+                &|_| {}
+            )
+            .is_err(),
             "{proposal_file}"
         );
     }
@@ -412,6 +419,7 @@ fn a_change_with_an_image_of_the_wrong_type_writes_nothing() {
         "Fix the crash",
         &[still, drawing],
         Some("crash"),
+        &|_| {},
     );
 
     let Err(refused) = started else {

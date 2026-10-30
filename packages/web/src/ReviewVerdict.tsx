@@ -6,10 +6,14 @@ import { CommitActions } from "./CommitActions.tsx";
 import type { useFile } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { StatusText } from "./fields/StatusText.tsx";
-import { approveChoices, type Choices, ReviewChoices } from "./ReviewChoices.tsx";
+import { approvedFile } from "./review/approved.ts";
+import { approveChoices, type Choices, initialChoices, ReviewChoices } from "./ReviewChoices.tsx";
 import { HookRefusal } from "./RoundSubmit.tsx";
 import { handOver } from "./sessions.ts";
 import { FileView } from "./views.ts";
+import { kindName, useFeatureTitle } from "./writes/labels.ts";
+import { RefusedHere } from "./writes/RefusedHere.tsx";
+import { useClearRefusal, writeHere } from "./writes/useWriteQueue.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -81,7 +85,6 @@ function Verdicts({
   return (
     <>
       <CommitActions
-        folder={file.folder}
         isDisabled={comments === 0 || file.committed != null}
         label="Request changes"
         onCommit={(next) => onVerdict(false, next)}
@@ -89,7 +92,6 @@ function Verdicts({
         variant="destructive"
       />
       <CommitActions
-        folder={file.folder}
         isDisabled={holdsApproval || file.committed != null}
         label="Approve"
         onCommit={(next) => onVerdict(true, next)}
@@ -103,6 +105,23 @@ function Verdicts({
 export type ChoicesState = [Choices, Dispatch<SetStateAction<Choices>>];
 
 /**
+ * What a review's page keeps for its life, past the review: an approval shows the file read, not
+ * reviewed, at once, and a refusal brings the review back with its refusal shown and its choices
+ * as set. A spec's risk tier and plan review are set by the end's form, and either verdict,
+ * the end's or the phone's Review sheet's, commits them.
+ */
+export function useVerdictState(file: File) {
+  const refusals = useRefusals();
+  const choices: ChoicesState = useState(() =>
+    initialChoices((file.committed ?? file.current).items.spec),
+  );
+  return { choices, refusals };
+}
+
+/** What a review's page keeps for its life: see `useVerdictState`. */
+export type VerdictState = ReturnType<typeof useVerdictState>;
+
+/**
  * A review's verdict, wherever its buttons are: `verdict(approve, next)` commits it with the
  * `choices` set at the page's end, then hands the feature over to the agent when `next`; `retry` commits again after a hook's refusal. Resolves to whether it was done.
  */
@@ -111,6 +130,8 @@ function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusals) {
   const spec = (file.committed ?? file.current).items.spec;
   const isSpec = file.kind === "spec";
   const where = { file: file.name, folder: file.folder };
+  const clearRefusal = useClearRefusal(where);
+  const subject = `the ${kindName(file.kind)} of ${useFeatureTitle(file.folder)}`;
 
   /** Hands the feature over to the agent, once the verdict is committed. */
   const proceed = (trigger: "approval" | "changes") => handOver(file.folder, trigger, file.name);
@@ -120,13 +141,23 @@ function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusals) {
     const input = where;
     const trigger = approve ? "approval" : "changes";
     refusals.continues(next ? trigger : undefined);
+    clearRefusal();
     const done = await refusals.run(() =>
       approve
         ? fate.mutations.review.approve({
-            input: { ...input, ...(isSpec ? approveChoices(spec, choices) : {}) },
+            input: {
+              ...input,
+              ...(isSpec ? approveChoices(spec, choices) : {}),
+              write: writeHere(`Approving ${subject}`),
+            },
+            // Approved at once, as the core writes it: a refusal takes it back.
+            optimistic: approvedFile(file),
             view: FileView,
           })
-        : fate.mutations.review.requestChanges({ input, view: FileView }),
+        : fate.mutations.review.requestChanges({
+            input: { ...input, write: writeHere(`Requesting changes to ${subject}`) },
+            view: FileView,
+          }),
     );
     if (done && next) {
       proceed(trigger);
@@ -135,7 +166,10 @@ function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusals) {
   };
   const retry = async () => {
     const done = await refusals.run(() =>
-      fate.mutations.commit.retry({ input: where, view: FileView }),
+      fate.mutations.commit.retry({
+        input: { ...where, write: writeHere(`Committing the review of ${subject}`) },
+        view: FileView,
+      }),
     );
     const trigger = refusals.continued();
     if (done && trigger) {
@@ -146,8 +180,9 @@ function useVerdict(file: File, [choices]: ChoicesState, refusals: Refusals) {
 }
 
 /**
- * What holds a verdict back, wherever its buttons are: a hook's refusal of its commit, with Try
- * again, `retry`, and changes to the file not committed.
+ * What holds a verdict back, wherever its buttons are: a hook's refusal of its commit as the queue
+ * landed it, the verdict undone; one that left the review written, with Try again, `retry`; and
+ * changes to the file not committed.
  */
 function VerdictNotices({
   error,
@@ -160,6 +195,11 @@ function VerdictNotices({
 }) {
   return (
     <>
+      <RefusedHere
+        onRetry={retry}
+        what={`the ${kindName(file.kind)} awaits your verdict again.`}
+        where={{ file: file.name, folder: file.folder }}
+      />
       {error && (
         <HookRefusal error={error} onRetry={retry} what="Your review is saved, not committed." />
       )}

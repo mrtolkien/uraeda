@@ -5,12 +5,14 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
-import { readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
+import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { guarded, refusal } from "./errors.ts";
-import { useUndoToast } from "./layout/useUndoToast.ts";
+import { withFreshBase } from "./freshBase.ts";
+import { showPageError, useUndoToast } from "./layout/useUndoToast.ts";
+import { notePutBack, notesRemoved, proposalAdded } from "./optimisticLists.ts";
 import { TITLES } from "./QuickAdd.tsx";
-import { navigate, useRepoPath } from "./routes.tsx";
-import { InboxView, ProposalFileView } from "./views.ts";
+import { currentEntry, navigate, selectOnArrival, useRepoPath } from "./routes.tsx";
+import { InboxView, PrioritiesView, ProposalFileView } from "./views.ts";
 
 /** A note, and its place: its category, none for the notes before the first, and its index in it. */
 export type Placed = { category?: string; index: number; note: InboxNote };
@@ -22,21 +24,25 @@ function at({ category, index, note }: Placed) {
   return { index, lines: note.lines, ...(category === undefined ? {} : { category }) };
 }
 
+/**
+ * The inbox as a move of `placed` leaves it, `gone`, or as its Undo does, its note back: fate's
+ * optimistic result, from the inbox the browser holds, if it holds it.
+ */
+async function shownAs(fate: Fate, placed: Placed, gone: boolean) {
+  const now = await readInbox(fate, "cache-first").catch(() => undefined);
+  const shown = now
+    ? gone
+      ? notesRemoved(now.categories, (note) => note.id === placed.note.id)
+      : notePutBack(now, placed)
+    : undefined;
+  return shown ? { optimistic: shown } : {};
+}
+
 /** An Undo's write: its refusal, if any, once both files are read again for the commit tab. */
 async function undone(fate: Fate, call: Promise<{ error?: unknown }>) {
   const result = await call;
   rereadChanges(fate);
   return result.error ? refusal(result.error).message : undefined;
-}
-
-/**
- * The key of the proposal a move just wrote at the end of a section: the last of the note's text.
- * An Undo tells it by that key from a proposal of the same text the human writes later.
- */
-async function movedKey(fate: Fate, section: string, text: string) {
-  const now = await movedInto(fate);
-  const proposals = now?.sections.find((s) => s.section === section)?.proposals ?? [];
-  return proposals.findLast((proposal) => proposal.text === text)?.key;
 }
 
 /**
@@ -51,8 +57,11 @@ async function movedInto(fate: Fate) {
   }
 }
 
-/** A note's change, run as `useNoteActions` runs it: its refusal shown, a conflict read again. */
-type Run = <R extends { error?: unknown }>(call: () => Promise<R>) => Promise<R>;
+/**
+ * A note's change, run as `useNoteActions` runs it: its refusal shown, a conflict read again. With
+ * `isAway`, for a change that left the inbox before it answered, the refusal shows in the page.
+ */
+type Run = <R extends { error?: unknown }>(call: () => Promise<R>, isAway?: boolean) => Promise<R>;
 
 /** A proposal's first words: a toast is no place for a whole line. */
 function shortened(text: string) {
@@ -79,36 +88,63 @@ function useMovesOut(
   const toast = useUndoToast();
   const here = useRepoPath();
 
+  // The priorities open at once, the note ending its section there as the core writes it, from the
+  // priorities the browser holds, and its row is selected once the move answers with them. The
+  // inbox follows by its live update.
   const toProposal = async (section: string) => {
-    const result = await run(async () =>
-      fate.mutations.inbox.toProposal({
-        input: { ...input, prioritiesHash: await readPrioritiesHash(fate), section },
-        view: InboxView,
-      }),
+    const now = await readPriorities(fate, "cache-first").catch(() => undefined);
+    const moved = run(
+      () =>
+        withFreshBase(
+          (mode) => readPrioritiesHash(fate, mode),
+          (prioritiesHash) =>
+            fate.mutations.inbox.toProposal({
+              input: { ...input, prioritiesHash, section },
+              ...(now
+                ? { optimistic: proposalAdded(now.sections, section, placed.note.text) }
+                : {}),
+              view: PrioritiesView,
+            }),
+        ),
+      true,
     );
+    navigate(here("/priorities"));
+    const opened = currentEntry().id;
+    const result = await moved;
     if (result.error) {
       return;
     }
     left();
-    const proposalKey = await movedKey(fate, section, placed.note.text);
-    toast(`Moved to ${TITLES.get(section)}, not committed`, () =>
+    const proposalKey = result.result?.sections
+      .find((s) => s.section === section)
+      ?.proposals.at(-1)?.key;
+    toast(`Moved to ${TITLES.get(section)}, not committed`, async () =>
       undone(
         fate,
         fate.mutations.inbox.undoToProposal({
           input: { ...at(placed), section, ...(proposalKey === undefined ? {} : { proposalKey }) },
+          ...(await shownAs(fate, placed, false)),
           view: InboxView,
         }),
       ),
     );
-    navigate(here("/priorities"), proposalKey === undefined ? {} : { select: proposalKey });
+    if (proposalKey !== undefined) {
+      selectOnArrival(opened, proposalKey);
+    }
   };
 
   const underProposal = async (line: UnderLine) => {
-    const result = await run(async () =>
-      fate.mutations.inbox.underProposal({
-        input: { ...input, prioritiesHash: await readPrioritiesHash(fate), proposal: line.id },
-        view: InboxView,
-      }),
+    const shown = await shownAs(fate, placed, true);
+    const result = await run(() =>
+      withFreshBase(
+        (mode) => readPrioritiesHash(fate, mode),
+        (prioritiesHash) =>
+          fate.mutations.inbox.underProposal({
+            input: { ...input, prioritiesHash, proposal: line.id },
+            ...shown,
+            view: InboxView,
+          }),
+      ),
     );
     if (result.error) {
       return;
@@ -120,11 +156,12 @@ function useMovesOut(
       now?.sections.flatMap((s) => s.proposals).find((proposal) => proposal.key === line.key)
         ?.children ?? [];
     const moved = children.findLast((child) => child.depth === 1)?.key;
-    toast(`Moved under "${shortened(line.text)}", not committed`, () =>
+    toast(`Moved under "${shortened(line.text)}", not committed`, async () =>
       undone(
         fate,
         fate.mutations.inbox.undoUnderProposal({
           input: { ...at(placed), proposalKey: line.key },
+          ...(await shownAs(fate, placed, false)),
           view: InboxView,
         }),
       ),
@@ -164,11 +201,12 @@ function useAddsIn(
       return;
     }
     const path = (result.result as { path?: string } | undefined)?.path ?? file;
-    toast(`Added to ${shortened(title)}, not committed`, () =>
+    toast(`Added to ${shortened(title)}, not committed`, async () =>
       undone(
         fate,
         fate.mutations.inbox.undoIntoProposal({
           input: { ...at(placed), file: path },
+          ...(await shownAs(fate, placed, false)),
           view: InboxView,
         }),
       ),
@@ -192,11 +230,15 @@ function useAddsIn(
   // the server sends as written. Its Undo deletes that file and unlinks the line again.
   const intoProposalLine = (line: UnderLine) =>
     landIn(
-      async () =>
-        fate.mutations.inbox.intoProposalLine({
-          input: { ...input, prioritiesHash: await readPrioritiesHash(fate), proposal: line.id },
-          view: ProposalFileView,
-        }),
+      () =>
+        withFreshBase(
+          (mode) => readPrioritiesHash(fate, mode),
+          (prioritiesHash) =>
+            fate.mutations.inbox.intoProposalLine({
+              input: { ...input, prioritiesHash, proposal: line.id },
+              view: ProposalFileView,
+            }),
+        ),
       "",
       line.text,
     );
@@ -221,14 +263,18 @@ export function useNoteActions(placed: Placed, hash: string) {
   const left = useLeave();
 
   /** Runs a change: its refusal shows, and a conflict reads both files again. */
-  const run: Run = async (call) => {
+  const run: Run = async (call, isAway = false) => {
     setMessage(undefined);
     // A read before the write, or the request itself, that fails shows as a refusal: the actions
     // run unawaited, from a key or a picker, where nothing would catch a rejection.
     const result = await guarded(call);
     if (result.error) {
       const failed = refusal(result.error);
-      setMessage(failed.message);
+      if (isAway) {
+        showPageError(failed.message);
+      } else {
+        setMessage(failed.message);
+      }
       if (failed.kind === "conflict") {
         rereadChanges(fate);
       }

@@ -33,7 +33,7 @@ import { recommendedDataView } from "./recommended.ts";
 import { settingsDataView } from "./settings.ts";
 import type { FeatureAgent } from "./agentTime.ts";
 import type { FeatureTokens } from "./tokens.ts";
-import { branchChangesDataView } from "./views-branch.ts";
+import { allBranchChangesDataView, branchChangesDataView } from "./views-branch.ts";
 import {
   type ProposalFileRecord,
   proposalFileDataView,
@@ -464,6 +464,7 @@ export const PROPOSAL_HINTS_ID = "proposal";
 /** The roots: one list per type, so every type is read by id. */
 export const Root = {
   agents: list(agentDataView),
+  allBranchChangesList: list(allBranchChangesDataView),
   branchChangesList: list(branchChangesDataView),
   branchDecisions: list(branchDecisionDataView),
   droppedItems: list(droppedDataView),

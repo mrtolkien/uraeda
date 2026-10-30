@@ -1,7 +1,5 @@
 import { FateRequestError } from "@nkzw/fate/server";
-
-/** The codes of the core's refusals, which start their messages. */
-const REFUSAL = /^(refused|conflict|hook): /;
+import { REFUSAL_CODE as REFUSAL } from "../reason.ts";
 
 /**
  * The binding's refusal as an error the client handles where it called: its message keeps the

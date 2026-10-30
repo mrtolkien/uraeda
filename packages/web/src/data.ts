@@ -31,6 +31,8 @@ import {
   WorkflowMessageView,
   WorkspaceView,
 } from "./views.ts";
+import type { BaseMode } from "./freshBase.ts";
+import { filePage, proposalFilePage, show, storyRead } from "./readAhead.ts";
 
 /** The ids of the records there is one of, as the server names them. */
 export const WORKSPACE_ID = "workspace";
@@ -43,17 +45,24 @@ const REPOSITORIES_ID = "repositories";
 const SETTINGS_ID = "settings";
 const NEEDS_YOU_ID = "all";
 
-/** Reads a request again from the server when the page comes back to the foreground. */
+/**
+ * Reads a request again from the server when the page comes back to the foreground, and keeps its
+ * data for the session, read again behind when shown again after missing a change (see `show`).
+ */
 export function useRefreshOnShow(request: Parameters<typeof useRequest>[0]) {
   const fate = useFateClient();
   useEffect(() => {
+    const hide = show(fate, request);
     const refresh = () => {
       if (document.visibilityState === "visible") {
         void fate.request(request as never, { mode: "network-only" }).catch(() => {});
       }
     };
     document.addEventListener("visibilitychange", refresh);
-    return () => document.removeEventListener("visibilitychange", refresh);
+    return () => {
+      hide();
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [fate, request]);
 }
 
@@ -96,7 +105,7 @@ export function useBranchDecision(folder: string, name: string) {
 }
 
 export function useFile(folder: string, name: string) {
-  const request = { workflowFile: { id: `${folder}/${name}`, view: FileView } };
+  const request = filePage(folder, name);
   const { workflowFile } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(FileView, workflowFile);
@@ -122,14 +131,16 @@ export function usePriorities() {
 
 /**
  * The priorities as they are now on disk, read outside a component: for a change made after
- * others, like an Undo.
+ * others, like an Undo. With `cache-first`, as the browser holds them, for a write over their hash
+ * (see `withFreshBase`).
  */
 export async function readPriorities(
   fate: ReturnType<typeof useFateClient>,
+  mode: BaseMode = "network-only",
 ): Promise<Pick<Priorities, "hash" | "sections">> {
   const { priorities } = await fate.request(
     { priorities: { id: PRIORITIES_ID, view: PrioritiesView } },
-    { mode: "network-only" },
+    { mode },
   );
   const { data } = await fate.readView(PrioritiesView, priorities);
   // fate types the request's root as any entity: the view gives the priorities' fields.
@@ -137,8 +148,11 @@ export async function readPriorities(
 }
 
 /** The hash of the priorities as they are now on disk: see `readPriorities`. */
-export async function readPrioritiesHash(fate: ReturnType<typeof useFateClient>): Promise<string> {
-  return (await readPriorities(fate)).hash;
+export async function readPrioritiesHash(
+  fate: ReturnType<typeof useFateClient>,
+  mode: BaseMode = "network-only",
+): Promise<string> {
+  return (await readPriorities(fate, mode)).hash;
 }
 
 /** `INBOX.md`'s notes, by category, as the default branch has them. */
@@ -160,14 +174,12 @@ export function useLedger() {
 /** The inbox as it is now on disk, read outside a component: for an Undo, as `readPriorities`. */
 export async function readInbox(
   fate: ReturnType<typeof useFateClient>,
-): Promise<Pick<Inbox, "categories" | "hash">> {
-  const { inbox } = await fate.request(
-    { inbox: { id: INBOX_ID, view: InboxView } },
-    { mode: "network-only" },
-  );
+  mode: BaseMode = "network-only",
+): Promise<Pick<Inbox, "categories" | "hash" | "names">> {
+  const { inbox } = await fate.request({ inbox: { id: INBOX_ID, view: InboxView } }, { mode });
   const { data } = await fate.readView(InboxView, inbox);
   // fate types the request's root as any entity: the view gives the inbox's fields.
-  return data as unknown as Pick<Inbox, "categories" | "hash">;
+  return data as unknown as Pick<Inbox, "categories" | "hash" | "names">;
 }
 
 /**
@@ -227,7 +239,7 @@ export function useProposalFileTexts(
 
 /** A proposal file, or a started proposal, by its path, for its editor. */
 export function useProposalFile(path: string) {
-  const request = { proposalFile: { id: path, view: ProposalFileView } };
+  const request = proposalFilePage(path);
   const { proposalFile } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(ProposalFileView, proposalFile);
@@ -241,13 +253,16 @@ export function useAgent() {
   return useLiveView(AgentView, agent);
 }
 
-/** The workflow's message for a feature and a trigger, or why there is none. */
+/**
+ * The workflow's message for a feature and a trigger, or why there is none: live, as the server
+ * sends it again once the feature's queued commits land or are refused.
+ */
 export function useWorkflowMessage(folder: string, trigger: Trigger, file?: string) {
   const id = [folder, trigger, ...(file === undefined ? [] : [file])].join(":");
   const request = { workflowMessage: { id, view: WorkflowMessageView } };
   const { workflowMessage } = useRequest(request);
   useRefreshOnShow(request);
-  return useView(WorkflowMessageView, workflowMessage);
+  return useLiveView(WorkflowMessageView, workflowMessage);
 }
 
 /** The one workflow message the server recommends for a feature now, or why none, by its folder. */
@@ -405,7 +420,7 @@ export function useStillViewed(request: Parameters<typeof useRequest>[0]) {
  * cached record shows; it is read again while it is drawn.
  */
 export function useStory(folder: string, story: StoryTarget) {
-  const request = { story: { id: `${folder}:${story.path}#${story.export}`, view: StoryView } };
+  const request = storyRead(folder, story);
   const { story: record } = useRequest(request, { mode: "stale-while-revalidate" });
   useRefreshOnShow(request);
   useStillViewed(request);

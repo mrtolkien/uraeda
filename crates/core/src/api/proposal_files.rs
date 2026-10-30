@@ -3,10 +3,10 @@
 
 use std::path::Path;
 
+use super::proposal_edits::change_count;
 use super::start::linked_path;
 use super::{
-    ApiError, Result, feature_of, on_default, open, plain, reach_default, read_priorities, refused,
-    write_lock,
+    ApiError, Result, feature_of, on_default, open, plain, reach_default, refused, write_lock,
 };
 use crate::actions::{expand, place, priorities as edits, text};
 use crate::files::document::{self, hash};
@@ -36,12 +36,12 @@ pub fn read_proposal_file(repo: &Path, path: &str) -> Result<ProposalFileView> {
         .priorities
         .into_iter()
         .find(|proposal| proposal.file.as_deref() == Some(path));
-    let priorities = read_priorities(repo)?;
     let committed = committed.as_deref() == Some(text.as_str());
     let dir = path.rsplit_once('/').map_or("specs", |(dir, _)| dir);
     Ok(ProposalFileView {
         proposal,
-        priority_changes: priorities.changes,
+        // From the workspace read above: the priorities themselves are not needed.
+        priority_changes: change_count(&git, &workspace),
         ..text_view(path, text, dir, committed, None)
     })
 }
@@ -91,7 +91,7 @@ fn text_view(
 /// Expands a proposal into a file by its id, like `next-2`, over the priorities read at
 /// `previous`: an id names another proposal once proposals are added or moved.
 pub fn expand_proposal(repo: &Path, id: &str, previous: &str) -> Result<ProposalFileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     if edits::read(&place).hash != previous {
         return Err(ApiError {
@@ -125,7 +125,7 @@ pub(super) fn text_place(repo: &Path, path: &str) -> Result<place::Place> {
 /// Saves a proposal file, a note file, or a proposal as typed, over the version read at `previous`.
 /// Returns the new hash.
 pub fn save_text(repo: &Path, path: &str, content: &str, previous: &str) -> Result<String> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = text_place(repo, path)?;
     Ok(text::save(&place, path, content, previous)?)
 }
@@ -138,7 +138,7 @@ pub fn set_discovery(
     previous: &str,
 ) -> Result<ProposalFileView> {
     {
-        let _lock = write_lock();
+        let _lock = write_lock(repo);
         let place = text_place(repo, path)?;
         let text = std::fs::read_to_string(place.root.join(path))
             .map_err(|_| refused(format!("{path}: no such file")))?;
@@ -151,7 +151,7 @@ pub fn set_discovery(
 /// Commits a proposal file or a note file, with the priorities and the inbox when they changed, or
 /// a proposal.
 pub fn commit_text(repo: &Path, path: &str) -> Result<CommitView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = text_place(repo, path)?;
     let committed = text::commit(&place, path)?;
     Ok(CommitView {

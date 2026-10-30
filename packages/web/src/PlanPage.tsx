@@ -26,6 +26,8 @@ import { Paragraph } from "./layout/Paragraph.tsx";
 import { StoriesProvider } from "./stories.tsx";
 import { fileStatusBadge } from "./labels.ts";
 import { PageTitle } from "./layout/PageTitle.tsx";
+import { useVerdictState, type VerdictState } from "./ReviewVerdict.tsx";
+import { VerdictLeft } from "./review/VerdictLeft.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -173,9 +175,17 @@ function planEntries(
  * comment on, pending comments show under their blocks, and the end of the page holds the verdict.
  * The comment field is drawn apart from the plan, by `CommentHost`, so typing renders it alone.
  */
-function ReviewedPlan({ file, session }: { file: File; session: PageSession | undefined }) {
+function ReviewedPlan({
+  file,
+  kept,
+  session,
+}: {
+  file: File;
+  kept: VerdictState;
+  session: PageSession | undefined;
+}) {
   const wide = !isNarrow(useWidthClass());
-  const review = useReview(file, wide, session?.ask);
+  const review = useReview(file, wide, kept, session?.ask);
   const { comments, folds, selection, storyComments, tree, version } = review;
   const page = (
     <Page kind="reading">
@@ -214,12 +224,14 @@ function ReviewedPlan({ file, session }: { file: File; session: PageSession | un
 /**
  * A plan, in panes in its file's order, its column of Contents, and Session where the agent can be
  * asked, beside it: waiting for review, with the review's selection, comments, and verdict;
- * otherwise read as it is now. Its session's draft is kept whatever its status.
+ * otherwise read as it is now. Its session's draft is kept whatever its status, and so are its
+ * review's refusals, for an approval taken back.
  */
 export function PlanPage({ file }: { file: File }) {
   const session = usePageSession(file);
+  const kept = useVerdictState(file);
   return file.status === "awaiting-human" ? (
-    <ReviewedPlan file={file} session={session} />
+    <ReviewedPlan file={file} kept={kept} session={session} />
   ) : (
     <ReadPlan file={file} session={session} />
   );
@@ -240,6 +252,7 @@ function ReadPlan({ file, session }: { file: File; session: PageSession | undefi
             <PlanParts
               drawing={{ document: file.current.document }}
               file={file}
+              intro={<VerdictLeft file={file} />}
               items={file.current.items.plan}
             />
           </Page>

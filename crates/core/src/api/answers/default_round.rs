@@ -120,7 +120,7 @@ pub fn save_round_answer(
     previous: &str,
     base: &str,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     default_round::ensure_unchanged(&place, round, base)?;
     let saved = answer::save(&place, round.path(), question, letters, comment, previous)?;
@@ -136,7 +136,7 @@ pub fn save_round_notes(
     previous: &str,
     base: &str,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     default_round::ensure_unchanged(&place, round, base)?;
     let saved = answer::save_notes(&place, round.path(), notes, previous)?;
@@ -146,7 +146,7 @@ pub fn save_round_notes(
 /// Submits the round, every question answered, and commits it with the round's own subject.
 /// Refused when it changed since it was read with the hash `previous`.
 pub fn submit_round(repo: &Path, round: DefaultRound, previous: &str) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     default_round::submit(&place, round, previous, today::today())?;
     committed(&place, round)
@@ -154,7 +154,7 @@ pub fn submit_round(repo: &Path, round: DefaultRound, previous: &str) -> Result<
 
 /// Commits the answered round again, after a hook refused its submit.
 pub fn retry_round(repo: &Path, round: DefaultRound) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     default_round::retry(&place, round)?;
     committed(&place, round)

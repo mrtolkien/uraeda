@@ -29,6 +29,7 @@ import { readRecommended, recommendedDataView } from "./recommended.ts";
 import { readSettingsRecord, settingsDataView } from "./settings.ts";
 import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
 import { droppedDataView } from "./views-dropped.ts";
+import { startPlanDataView } from "./views-start-plan.ts";
 import {
   AGENT_ID,
   agentDataView,
@@ -62,12 +63,20 @@ import {
   WORKSPACE_ID,
   workspaceDataView,
 } from "./views.ts";
+import { sentProposalFile } from "./views-proposal-file.ts";
 import {
   DECISIONS_CHECK_ID,
   DEFAULT_ROUND_FILES,
   DEFAULT_ROUND_IDS,
 } from "../runner/round-messages.ts";
-import { type BranchChangesRecord, branchChangesDataView, sentChanges } from "./views-branch.ts";
+import {
+  ALL_BRANCH_CHANGES_ID,
+  allBranchChanges,
+  allBranchChangesDataView,
+  type BranchChangesRecord,
+  branchChangesDataView,
+  sentChanges,
+} from "./views-branch.ts";
 import { historyDataView, sentHistory } from "./views-history.ts";
 import { LEDGER_ID, ledgerDataView, sentLedger } from "./views-ledger.ts";
 import {
@@ -76,6 +85,7 @@ import {
   repositoriesDataView,
   type RepositoriesRecord,
 } from "./views-repositories.ts";
+import { writeQueueSource } from "./write-queue.ts";
 
 /** The inbox as it is sent: the client's cache keeps a field an answer leaves out. */
 export function sentInbox(inbox: Inbox): InboxRecord {
@@ -328,6 +338,13 @@ export const sources = createSources<Context>([
     }),
   ),
   fileSource(
+    allBranchChangesDataView,
+    repository({
+      byIds: async ({ binding, repo }, ids) =>
+        ids.includes(ALL_BRANCH_CHANGES_ID) ? [await allBranchChanges(binding, repo)] : [],
+    }),
+  ),
+  fileSource(
     historyDataView,
     repository({
       byIds: ({ binding, repo }, ids) =>
@@ -370,7 +387,7 @@ export const sources = createSources<Context>([
     proposalFileDataView,
     repository({
       byIds: ({ binding, repo }, ids) =>
-        each(ids, async (id) => ({ id, ...(await binding.readText(repo, id)) })),
+        each(ids, async (id) => sentProposalFile({ id, ...(await binding.readText(repo, id)) })),
     }),
   ),
   fileSource(agentDataView, {
@@ -460,8 +477,11 @@ export const sources = createSources<Context>([
         ? [{ hints: await binding.proposalHints(), id: PROPOSAL_HINTS_ID }]
         : [],
   }),
+  writeQueueSource,
   // A drop's result, read once, from its mutation: nothing to read again.
   fileSource(droppedDataView, { byIds: async () => [] }),
+  // A start's plan, read once, from `feature.start`: nothing to read again.
+  fileSource(startPlanDataView, { byIds: async () => [] }),
   fileSource(slugProposalDataView, {
     byIds: async ({ binding }, ids) =>
       ids.map((text) => ({ id: text, slug: binding.proposeSlug(text) })),

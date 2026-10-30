@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import type { Proposal } from "uraeda-server/fate";
 import { type ProposalFileText, usePriorities } from "./data.ts";
 import { KeyPicker } from "./keys/KeyPicker.tsx";
+import { isPending } from "./lists/outline.ts";
 import type { PickerItem } from "./keys/pickerSources.ts";
 import { TITLES } from "./QuickAdd.tsx";
 import { plain } from "./Spans.tsx";
@@ -170,7 +171,10 @@ export function PromotePicker({
     }
   }, [actions.message, onRefused]);
   const sections = priorities?.sections ?? [];
-  const proposals = sections.flatMap((section) => section.proposals);
+  // A proposal not written yet has no id the core knows: it is offered once written.
+  const proposals = sections
+    .flatMap((section) => section.proposals)
+    .filter((proposal) => !isPending(proposal.key));
   const textOf = (path: string) => files?.find((file) => file.path === path)?.text;
   const linked = new Set(
     proposals.flatMap((proposal) => (proposal.file ? [proposal.file.path] : [])),

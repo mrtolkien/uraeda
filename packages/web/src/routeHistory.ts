@@ -73,6 +73,32 @@ export function updateEntry(values: Entry) {
   window.history.replaceState({ ...entry(), ...values }, "");
 }
 
+/**
+ * Names `key` the row the entry `id` selects, for a page opened before the write that placed it
+ * answered: the page, still on that entry, selects it then, and Back to it does too. Nothing once
+ * the human left the entry.
+ */
+export function selectOnArrival(id: string | undefined, key: string) {
+  if (id === undefined || entry().id !== id) {
+    return;
+  }
+  window.history.replaceState({ ...entry(), select: key }, "");
+  for (const listener of arrivals) {
+    listener();
+  }
+}
+
+/** Who hears `selectOnArrival` name a row: the lists that select it. */
+const arrivals = new Set<() => void>();
+
+/** Calls `onChange` each time a row is named for the page to select; returns the unsubscribe. */
+export function subscribeArrival(onChange: () => void) {
+  arrivals.add(onChange);
+  return () => {
+    arrivals.delete(onChange);
+  };
+}
+
 /** Saves the page's scroll position in the current history entry. */
 function saveScroll() {
   window.history.replaceState({ ...entry(), scroll: window.scrollY }, "");

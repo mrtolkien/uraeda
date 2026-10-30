@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-16
 pull-request: https://github.com/mrtolkien/uraeda/pull/25
+superseded-by: [2026-10-29-performance-pass]
 ---
 
 # Record: Redesign sidebars and global interface
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/25
 > The record of a merged feature, not instructions to follow. Started on 2026-10-16, finished on
 > 2026-10-16, in [its pull request](https://github.com/mrtolkien/uraeda/pull/25). Its full files are
 > in git: `git log -- specs/2026-10-16-redesign-interface/`.
+>
+> Superseded in part by [2026-10-29-performance-pass](2026-10-29-performance-pass.md).
 
 ## What and why
 

@@ -2,6 +2,7 @@
 // note, or a proposal file.
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { reasonOf } from "../reason.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { changeImages } from "./chat-images.ts";
 import type { RepoContext, Resolver } from "./context.ts";
@@ -9,7 +10,9 @@ import { callSiteError, refusable } from "./errors.ts";
 import { refusedOn } from "./list-mutations.ts";
 import { featureRecord, readWorkflowMessage } from "./sessions.ts";
 import { sources } from "./sources.ts";
+import { landedStart } from "./starts.ts";
 import { featureDataView } from "./views.ts";
+import { listCommit } from "./write-queue.ts";
 
 /**
  * Runs a call of the session manager that answers at once, after reading the repository's main
@@ -43,9 +46,6 @@ async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | 
   return sent.session;
 }
 
-/** The reason of a call's refusal, without its code, for the server's log. */
-const reasonOf = (error: unknown) => (error as Error).message.replace(/^refused: /, "");
-
 /**
  * Sends the started change's first run: whether one was sent. Once the change exists, a run that
  * could not be sent is logged, not refused (R12): the change's page offers it unsent.
@@ -61,6 +61,14 @@ async function firstRunSent(ctx: RepoContext, folder: string): Promise<boolean> 
   }
 }
 
+/** The started change's folder, once its first run was sent, or could not be: the start's last step. */
+const withFirstRun =
+  (ctx: RepoContext) =>
+  async ({ folder }: { folder: string }): Promise<{ folder: string; sent: boolean }> => ({
+    folder,
+    sent: await firstRunSent(ctx, folder),
+  });
+
 /**
  * Starts a change from a typed text and its images, then sends its first run. The core writes the
  * images into the change's folder: the workflow's message carries none.
@@ -70,10 +78,12 @@ async function startTypedChange(
   input: { images?: Array<ChatImage>; slug?: string; text: string },
 ): Promise<{ folder: string; sent: boolean }> {
   const bytes = await changeImages(ctx, input.images);
-  const { folder } = await refusable(() =>
-    ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug),
+  return landedStart(
+    ctx,
+    (onStep) => ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug, onStep),
+    withFirstRun(ctx),
+    input.slug,
   );
-  return { folder, sent: await firstRunSent(ctx, folder) };
 }
 
 /**
@@ -140,11 +150,16 @@ async function startFromNote(
   input: { hash: string; note: string; slug?: string },
 ): Promise<{ folder: string; sent: boolean }> {
   const { images, text } = await noteChange(ctx, input);
-  const { folder } = await refusable(() =>
-    ctx.binding.startChange(ctx.repo, text, images, input.slug),
+  const { folder } = await landedStart(
+    ctx,
+    (onStep) => ctx.binding.startChange(ctx.repo, text, images, input.slug, onStep),
+    async (started) => started,
+    input.slug,
   );
   try {
-    await ctx.binding.removeNoteAndCommit(ctx.repo, input.note, input.hash);
+    await listCommit(ctx, undefined, () =>
+      ctx.binding.removeNoteAndCommit(ctx.repo, input.note, input.hash),
+    );
   } catch (error) {
     process.stderr.write(
       `uraeda: ${folder} started, but its note stayed in the inbox: ${reasonOf(error)}\n`,
@@ -161,10 +176,12 @@ async function startProposal(
   ctx: RepoContext,
   input: { proposal: string; slug?: string },
 ): Promise<{ folder: string; sent: boolean }> {
-  const { folder } = await refusable(() =>
-    ctx.binding.startFeature(ctx.repo, input.proposal, input.slug, "change"),
+  return landedStart(
+    ctx,
+    (onStep) => ctx.binding.startFeature(ctx.repo, input.proposal, input.slug, "change", onStep),
+    withFirstRun(ctx),
+    input.slug,
   );
-  return { folder, sent: await firstRunSent(ctx, folder) };
 }
 
 /** The started change, masked to the fields the client selected: no session when no run was sent. */

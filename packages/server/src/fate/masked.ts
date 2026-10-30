@@ -9,6 +9,7 @@ import {
   proposalFileDataView,
   type ProposalFileRecord,
 } from "./views.ts";
+import { sentProposalFile } from "./views-proposal-file.ts";
 
 /** The priorities. */
 export const priorities = (ctx: Context, record: Priorities, select: Array<string>) =>
@@ -19,7 +20,13 @@ export const proposalFile = (
   ctx: Context,
   record: Omit<ProposalFileRecord, "id">,
   select: Array<string>,
-) => sources.masked(proposalFileDataView, ctx, { id: record.path, ...record }, select);
+) =>
+  sources.masked(
+    proposalFileDataView,
+    ctx,
+    sentProposalFile({ id: record.path, ...record }),
+    select,
+  );
 
 /**
  * The inbox, with what the answer's mutation adds to it: `removed`, the file as it was, for a

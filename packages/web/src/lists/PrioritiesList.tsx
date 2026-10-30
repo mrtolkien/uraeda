@@ -3,18 +3,19 @@
 // as columns, each with its context, its colour, and its Add row. Blocked shows only when it has
 // proposals. Each proposal draws its nested items as rows of their own, at any depth, edited in
 // place. The file keeps the started proposals at the top of Now; on screen they show apart.
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useFateClient } from "react-fate";
 import type { Proposal } from "uraeda-server/fate";
-import type { usePriorities } from "../data.ts";
+import { readPrioritiesHash, type usePriorities } from "../data.ts";
 import { stepKindOf } from "../sidebar/cards.ts";
 import { STEP_ICONS } from "../sidebar/StepIcon.tsx";
 import { titleOf, TITLES } from "../QuickAdd.tsx";
 import { refusal } from "../errors.ts";
-import { currentEntry, navigate, useHash, useLocalPath, useRepoPath } from "../routes.tsx";
+import { navigate, useHash, useLocalPath, useRepoPath } from "../routes.tsx";
 import { plain } from "../Spans.tsx";
 import { ProposalFileView, PrioritiesView } from "../views.ts";
 import { fileIndex } from "./cardMoves.ts";
+import { useArrival } from "./useArrival.ts";
 import { type Outline, type OutlineItem, useOutline } from "./useOutline.tsx";
 import {
   type Tone,
@@ -23,6 +24,7 @@ import {
   type WorkRow,
   type WorkSection,
 } from "./WorkList.tsx";
+import { proposalFilePage } from "../readAhead.ts";
 
 /** The priorities as the page reads them. */
 export type Priorities = NonNullable<ReturnType<typeof usePriorities>>;
@@ -142,6 +144,7 @@ function usePrioritiesOutline(
             view: PrioritiesView,
           }),
         ),
+      held: () => readPrioritiesHash(fate, "cache-first"),
       read: outlineOf,
     },
     onMoveRefused,
@@ -194,6 +197,7 @@ function sectionsOf(
       // A proposal with a file, or running, opens its page; any other is edited in place.
       editsInPlace: isWritten && !proposal?.running && !proposal?.file,
       href,
+      ...(proposal?.file ? { page: proposalFilePage(proposal.file.path) } : {}),
       ...(proposal ? lookOf(proposal) : {}),
       text: plain(item.spans),
     };
@@ -335,35 +339,6 @@ function useProposalKeys(
 }
 
 /**
- * The page opens on the row its arrival names, as a note just moved there, with the keyboard's
- * focus on it, once: `arrival` is that row, if any, and `isArriving` holds for the page's first
- * render.
- */
-function useArrival() {
-  const [arrival] = useState(() => currentEntry().select);
-  // That row in the middle of the screen, once drawn: the page just opened, nothing moves.
-  useEffect(() => {
-    if (arrival === undefined) {
-      return undefined;
-    }
-    const frame = requestAnimationFrame(() =>
-      document
-        .querySelector(`[data-row-key="${CSS.escape(arrival)}"]`)
-        ?.scrollIntoView({ block: "center" }),
-    );
-    return () => cancelAnimationFrame(frame);
-  }, [arrival]);
-  // The first committed render's, and the frame after it: the list's focus is put on the row then,
-  // and a later render of the page moves it no more.
-  const [isArriving, setArriving] = useState(true);
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setArriving(false));
-    return () => cancelAnimationFrame(frame);
-  }, []);
-  return { arrival, isArriving };
-}
-
-/**
  * The priorities' sections, with "Ongoing" first, and each section's Add row. `select` is the key
  * of a row to select, for a mockup; otherwise the row whose overlay is open is. `isFocused` puts the
  * keyboard's focus on it. `run` writes a change and resolves with its refusal, if any; a refused
@@ -414,7 +389,7 @@ export function PrioritiesList({
       );
     });
 
-  const { arrival, isArriving } = useArrival();
+  const { arrival, follow, isArriving } = useArrival(outline.follow);
   // Else on the highest row of Now.
   const firstNow = all.find((section) => section.id === "now")?.rows[0]?.key;
   const selected =
@@ -423,7 +398,7 @@ export function PrioritiesList({
 
   return (
     <WorkList
-      follow={outline.follow}
+      follow={follow}
       initial={arrival ?? firstNow}
       isFocused={isFocused || isArriving}
       isLayoutChosen

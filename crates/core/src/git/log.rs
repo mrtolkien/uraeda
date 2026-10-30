@@ -50,8 +50,10 @@ impl Git {
             .unwrap_or(0)
     }
 
-    /// The date of the last commit of `revision` touching each file under `dir`, as `YYYY-MM-DD`,
-    /// by path from the top level, from one `git log`: a file no commit touched has none.
+    /// The date of the last commit of `revision`, a commit or a range, touching each file under
+    /// `dir`, as `YYYY-MM-DD`, by path from the top level, from one `git log`: the latest of its
+    /// commits' dates, each commit read, so that the dates of a range merged over those of its
+    /// start are the dates of its end. A file no commit touched has none.
     pub fn last_changes(
         &self,
         revision: &str,
@@ -65,6 +67,7 @@ impl Git {
                 "log",
                 "--format=%x01%cs",
                 "--name-only",
+                "--full-history",
                 revision,
                 "--",
                 dir,
@@ -76,9 +79,10 @@ impl Git {
             if let Some(committed) = line.strip_prefix('\u{1}') {
                 date = committed;
             } else if !line.is_empty() {
-                dates
-                    .entry(line.to_string())
-                    .or_insert_with(|| date.to_string());
+                let latest = dates.entry(line.to_string()).or_insert_with(String::new);
+                if date > latest.as_str() {
+                    *latest = date.to_string();
+                }
             }
         }
         Ok(dates)

@@ -1,5 +1,5 @@
 // The fate server module: fate's Vite plugin reads its exports to type the UI's client.
-import { createFateServer, createLiveEventBus, type Entity } from "@nkzw/fate/server";
+import { createFateServer, createLiveEventBus, type Entity, list } from "@nkzw/fate/server";
 import type { Context as HonoContext } from "hono";
 import type { Context } from "./fate/context.ts";
 import { mutations } from "./fate/mutations.ts";
@@ -28,14 +28,17 @@ import { needsYouListDataView } from "./fate/needs-you.ts";
 import { previewDataView, storyDataView, storyHrefDataView } from "./fate/preview.ts";
 import { recommendedDataView } from "./fate/recommended.ts";
 import { settingsDataView } from "./fate/settings.ts";
-import { branchChangesDataView } from "./fate/views-branch.ts";
+import { allBranchChangesDataView, branchChangesDataView } from "./fate/views-branch.ts";
 import { droppedDataView } from "./fate/views-dropped.ts";
+import { startPlanDataView } from "./fate/views-start-plan.ts";
 import { historyDataView } from "./fate/views-history.ts";
 import { ledgerDataView } from "./fate/views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-repositories.ts";
+import { writeQueueDataView } from "./fate/write-queue.ts";
 
 export {
   agentDataView,
+  allBranchChangesDataView,
   branchChangesDataView,
   branchDecisionDataView,
   proposalFileDataView,
@@ -57,12 +60,14 @@ export {
   sessionSearchDataView,
   settingsDataView,
   slugProposalDataView,
+  startPlanDataView,
   storyDataView,
   storyHrefDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
   workspaceDataView,
+  writeQueueDataView,
 };
 export {
   AGENT_ID,
@@ -74,12 +79,15 @@ export {
 } from "./fate/views.ts";
 export { SETTINGS_ID } from "./fate/settings.ts";
 export { LEDGER_ID } from "./fate/views-ledger.ts";
+export { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
 export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
+export { WRITE_QUEUE_ID } from "./fate/write-queue.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;
 export type Feature = Entity<typeof featureDataView, "Feature">;
 export type BranchChanges = Entity<typeof branchChangesDataView, "BranchChanges">;
+export type AllBranchChanges = Entity<typeof allBranchChangesDataView, "AllBranchChanges">;
 export type History = Entity<typeof historyDataView, "History">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type BranchDecision = Entity<typeof branchDecisionDataView, "BranchDecision">;
@@ -89,6 +97,7 @@ export type Proposal = Priorities["sections"][number]["proposals"][number];
 export type Inbox = Entity<typeof inboxDataView, "Inbox">;
 export type ProposalFile = Entity<typeof proposalFileDataView, "ProposalFile">;
 export type Dropped = Entity<typeof droppedDataView, "Dropped">;
+export type StartPlan = Entity<typeof startPlanDataView, "StartPlan">;
 export type Ledger = Entity<typeof ledgerDataView, "Ledger">;
 export type ProposalHints = Entity<typeof proposalHintsDataView, "ProposalHints">;
 export type Agent = Entity<typeof agentDataView, "Agent">;
@@ -107,6 +116,9 @@ export type Preview = Entity<typeof previewDataView, "Preview">;
 export type StoryHref = Entity<typeof storyHrefDataView, "StoryHref">;
 export type Settings = Entity<typeof settingsDataView, "Settings">;
 export type NeedsYouList = Entity<typeof needsYouListDataView, "NeedsYouList">;
+export type WriteQueue = Entity<typeof writeQueueDataView, "WriteQueue">;
+/** A write of the queue, and a step of a start's. */
+export type { QueuedWrite, StartStep, WriteFailure } from "./writes/queue.ts";
 export { NEEDS_YOU_ID } from "./fate/needs-you.ts";
 /** What started a workflow turn, for `session.send`'s `workflow`. */
 export type { Trigger } from "./runner/events.ts";
@@ -123,28 +135,63 @@ export type { ChatImage } from "./runner/images.ts";
  */
 export type FateVariables = { device?: Device; fate: Context };
 
-export const Root = Views;
+/** The roots: the views' and the write queue's, which lives in its own module. */
+export const Root = { ...Views, writeQueues: list(writeQueueDataView) };
 
 /** A live bus: the updates one fate server sends to the views subscribed to it. */
 export type LiveBus = ReturnType<typeof createLiveEventBus>;
 
+/** How long after a record's update a new subscription to it is still sent it. */
+export const LIVE_REPLAY_MS = 2000;
+
+/** A record's key in the live bus's times: its type and ID. */
+const recordKey = (type: string, id: string | number) => `${type}\u0000${id}`;
+
 /**
  * Live updates: the core's watcher marks what changed, and fate sends it to the views. A view reads
- * its data, then subscribes: each subscription is sent the current data once, so a change made
- * between the two is not missed until the next one.
+ * its data, then subscribes, a few milliseconds apart: a subscription to a record updated in the
+ * last 2 seconds is sent it once, so a change made between the two is not missed until the next
+ * one. A record that has not changed is not resolved again. `now` is the bus's clock, in ms. Each
+ * update forgets the times past the window, so a record updated once is not remembered forever.
  */
-function liveBus(): LiveBus {
+export function liveBus(now: () => number = Date.now): LiveBus {
   const bus = createLiveEventBus();
+  /** When each record, by its key, was last updated, the latest last. */
+  const updated = new Map<string, number>();
+  /** Whether the record changed within the replay window; a record's older time is forgotten. */
+  const recent = (type: string, id: string | number) => {
+    const at = updated.get(recordKey(type, id));
+    if (at !== undefined && now() - at > LIVE_REPLAY_MS) {
+      updated.delete(recordKey(type, id));
+      return false;
+    }
+    return at !== undefined;
+  };
   return {
     ...bus,
     listen(type, id, handler, options) {
       const stop = bus.listen!(type, id, handler, options);
-      setTimeout(() => {
-        if (!options?.signal?.aborted) {
-          handler({ id, type: "update" });
-        }
-      });
+      if (recent(type, id)) {
+        setTimeout(() => {
+          if (!options?.signal?.aborted) {
+            handler({ id, type: "update" });
+          }
+        });
+      }
       return stop;
+    },
+    update(type, id, options) {
+      const at = now();
+      // The times stay in the order they were set, the oldest first: those past the window go.
+      for (const [key, time] of updated) {
+        if (at - time <= LIVE_REPLAY_MS) {
+          break;
+        }
+        updated.delete(key);
+      }
+      updated.delete(recordKey(type, id));
+      updated.set(recordKey(type, id), at);
+      bus.update(type, id, options);
     },
   };
 }

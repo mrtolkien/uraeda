@@ -1,0 +1,121 @@
+// The messages sent to a feature while its commits are still in the write queue: kept in memory,
+// sent once they land, in order, exactly once, and dropped if one is refused, their text kept in the
+// refused write for the composer, as a send's refusal returns them (`kept-sends.ts`). The agent
+// never starts on a file written but not committed yet.
+import { ofDropped } from "../runner/session-state.ts";
+import { REFUSALS } from "../runner/sessions.ts";
+import { checkSend, type SendInput } from "../runner/send-input.ts";
+import type { WriteQueue } from "../writes/queue.ts";
+import type { RepoContext } from "./context.ts";
+import { type Kept, removeMade, returnUnsent, sendKept } from "./kept-sends.ts";
+import { featureKeys } from "./write-queue.ts";
+
+/** The messages kept, by queue and folder, in the order they were sent. */
+const waiting = new WeakMap<WriteQueue, Map<string, Array<Kept>>>();
+
+/** Where a message goes: a session, or a feature, in its latest session or a new one. */
+type To = { folder?: string; newSession?: boolean; session?: string };
+
+/** The session a message kept for `folder` goes to, and whether it was made for it. */
+async function sessionFor(
+  ctx: RepoContext,
+  folder: string,
+  to: To,
+): Promise<{ made: boolean; session: string }> {
+  if (to.session !== undefined) {
+    // A dropped change's or feature's session takes no message, as sending refuses it.
+    const row = ctx.sessions.cache.session(to.session);
+    if (row && ofDropped(row)) {
+      throw new Error(`refused: ${REFUSALS.dropped}`);
+    }
+    return { made: false, session: to.session };
+  }
+  if (to.newSession === true) {
+    return { made: true, session: (await ctx.sessions.newSession(ctx.repo, folder)).id };
+  }
+  const root = await ctx.sessions.mainRoot(ctx.repo);
+  const made = ctx.sessions.cache.folderSessions(root, folder).length === 0;
+  return { made, session: (await ctx.sessions.featureSession(ctx.repo, folder)).id };
+}
+
+/**
+ * Keeps a message sent to a feature, or to one of its sessions, while the feature's commits are
+ * still queued, checked as sending it would be: the session it goes to once they land, or undefined
+ * when none of its commits is queued, and it goes at once.
+ */
+export async function keptForCommits(
+  ctx: RepoContext,
+  to: To,
+  input: SendInput,
+): Promise<string | undefined> {
+  const queue = ctx.hosts.byPath(ctx.repo)?.queue;
+  if (!queue) {
+    return undefined;
+  }
+  const root = await ctx.sessions.mainRoot(ctx.repo);
+  const { adapter, cache } = ctx.sessions;
+  const row = to.session === undefined ? undefined : cache.session(to.session);
+  const folder = to.session === undefined ? to.folder : row?.repo === root ? row.folder : null;
+  const folders = waiting.get(queue) ?? new Map<string, Array<Kept>>();
+  waiting.set(queue, folders);
+  if (!folder || (!folders.has(folder) && !queue.waits(featureKeys(folder)))) {
+    return undefined;
+  }
+  // A feature moving, or dropped, takes no message, as sending refuses it.
+  if (ctx.sessions.moving(root, folder)) {
+    throw new Error(`refused: ${REFUSALS.agentWorking}`);
+  }
+  if (!ctx.sessions.status().available) {
+    throw new Error(`refused: ${REFUSALS.unavailable(adapter.name)}`);
+  }
+  checkSend(input, adapter.capabilities);
+  const { made, session } = await sessionFor(ctx, folder, to);
+  const kept = folders.get(folder);
+  if (kept) {
+    kept.push({ input, made, session });
+  } else {
+    const fresh = [{ input, made, session }];
+    folders.set(folder, fresh);
+    // The server's stop drops them, and the sessions made for them, as it drops a start's.
+    const forget = ctx.sessions.starts.onStop(() => {
+      folders.delete(folder);
+      removeMade(ctx, fresh.splice(0));
+    });
+    void sendOnceLanded(ctx, queue, folder, folders).finally(forget);
+  }
+  return session;
+}
+
+/**
+ * Waits for the queued commits of `folder`, those queued meanwhile too, then sends its kept
+ * messages in order (`sendKept`). A refused commit drops them, its write keeping their text, and
+ * the sessions made for them go while they have no turn.
+ */
+async function sendOnceLanded(
+  ctx: RepoContext,
+  queue: WriteQueue,
+  folder: string,
+  folders: Map<string, Array<Kept>>,
+): Promise<void> {
+  const keys = featureKeys(folder);
+  let refused: string | undefined;
+  while (refused === undefined && queue.waits(keys)) {
+    refused = await queue.settled(keys);
+  }
+  const kept = folders.get(folder) ?? [];
+  if (refused !== undefined) {
+    folders.delete(folder);
+    // A call that answered with the refusal may have dismissed its write already.
+    if (!queue.update(refused, { queued: kept.map(({ input }) => input.text).join("\n\n") })) {
+      returnUnsent(ctx, folder, kept, "The commit it waited for was refused.");
+      return;
+    }
+    removeMade(ctx, kept);
+    return;
+  }
+  try {
+    await sendKept(ctx, folder, kept);
+  } finally {
+    folders.delete(folder);
+  }
+}

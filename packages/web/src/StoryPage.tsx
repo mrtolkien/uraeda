@@ -7,16 +7,6 @@ import { MAIN_CHECKOUT } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
 import { StoryEmbed } from "./StoryEmbed.tsx";
 
-/** The story an address names, `?story=<path>#<export>`, or undefined. */
-export function storyOf(search: string): StoryTarget | undefined {
-  const story = new URLSearchParams(search).get("story");
-  const at = story?.lastIndexOf("#") ?? -1;
-  if (!story || at < 0) {
-    return undefined;
-  }
-  return { export: story.slice(at + 1), path: story.slice(0, at) };
-}
-
 /** A checkout's story, by its folder, `main` for the main checkout, in a window named by its export. */
 export function StoryPage({ folder, story }: { folder: string; story: StoryTarget }) {
   return (

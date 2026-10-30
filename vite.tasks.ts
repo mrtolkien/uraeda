@@ -168,6 +168,13 @@ export const tasks = {
     cache: false,
     command: "xdg-open coverage/rust/html/index.html && xdg-open coverage/typescript/index.html",
   },
+  // The performance decision's benchmark, on demand: a release build over the sandbox's
+  // projects and a clone of this checkout, driven in Chromium. Its times vary with the machine, so it
+  // is never cached, and no group of `ready` runs it. It builds the release itself.
+  performance: {
+    cache: false,
+    command: `${isolatedGit} node packages/web/scripts/performance.ts`,
+  },
   ready: {
     command: "true",
     dependsOn: ["ready:rust", "ready:typescript", "ready:ts-test"],

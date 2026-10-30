@@ -240,8 +240,8 @@ export function EditorPage({ path }: { path: string }) {
     focusSoon(() => slugBox.current?.querySelector("input"));
   };
   const [level, setLevel] = useResearchEffort(file, editor);
-  // Starts it as the kind picked: the branch and worktree, then its session, saved text first.
-  const startNow = () => void editor.actions.start(true, kind);
+  // Starts it as the kind picked, saved text first: its session opens as the start is planned.
+  const startNow = () => void editor.actions.start(kind);
   useEditorKeys(file, { edit, editor, focusSlug, level, preview, setKind, setLevel, startNow });
   if (!file) {
     return (

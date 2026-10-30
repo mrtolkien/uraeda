@@ -14,16 +14,18 @@ const DESCRIPTION = "Two words at most: it names the folder and the branch.";
  * the file's path, `<file path>#slug`, over the slug the file's name gives, kept as typed until the
  * feature starts. Escape leaves the field, its text kept; the restored notice discards. `restoreNotice:
  * false` leaves out the editor's notice of a restored slug, for a page whose text comes back
- * as a new chat's does, like "New change". `description` words the help under it, and `onEnter`
- * runs on Enter.
+ * as a new chat's does, like "New change". `description` words the help under it, `error` why the
+ * slug started nothing, and `onEnter` runs on Enter.
  */
 export function SlugField({
   description = DESCRIPTION,
+  error,
   field,
   onEnter,
   restoreNotice = true,
 }: {
   description?: string;
+  error?: string;
   field: ReturnType<typeof useTextField>;
   onEnter?: () => void;
   restoreNotice?: boolean;
@@ -45,6 +47,7 @@ export function SlugField({
           }
         }}
         value={field.text}
+        {...(error === undefined ? {} : { status: { message: error, type: "error" as const } })}
         {...(onEnter ? { onEnter } : {})}
       />
     </>

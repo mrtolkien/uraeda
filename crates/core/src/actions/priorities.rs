@@ -31,6 +31,11 @@ pub fn read(place: &Place) -> Priorities {
     counted(place, &text(place))
 }
 
+/// The priorities, without counting the commit bar's changes: no `git status`.
+pub(crate) fn read_uncounted(place: &Place) -> Priorities {
+    priorities::read(&text(place), None)
+}
+
 /// Applies an edit over the version read at `previous`, and returns the priorities as it wrote
 /// them: a change made elsewhere right after is not taken for this one, and the next edit over
 /// this version is refused.
@@ -40,13 +45,24 @@ fn apply(
     edit: impl FnOnce(&str) -> Option<String>,
     refused: &str,
 ) -> Result<Priorities, ActionError> {
+    let edited = write(place, previous, edit, refused)?;
+    Ok(counted(place, &edited))
+}
+
+/// Writes an edit over the version read at `previous`, as [`apply`], and returns the text written.
+fn write(
+    place: &Place,
+    previous: &str,
+    edit: impl FnOnce(&str) -> Option<String>,
+    refused: &str,
+) -> Result<String, ActionError> {
     let current = text(place);
     if hash(&current) != previous {
         return Err(ActionError::Refused(format!("PRIORITIES.md {STALE}")));
     }
     let edited = edit(&current).ok_or_else(|| ActionError::Refused(refused.to_string()))?;
     fs::write(place.root.join(PATH), &edited)?;
-    Ok(counted(place, &edited))
+    Ok(edited)
 }
 
 /// Adds a line at the end of a section.
@@ -131,6 +147,23 @@ pub fn insert(
         |text| priorities::insert_proposal(text, section, index, lines),
         "a proposal needs some text",
     )
+}
+
+/// Inserts a proposal's lines as [`insert`] does, without counting the commit bar's changes.
+pub(crate) fn insert_uncounted(
+    place: &Place,
+    section: Section,
+    index: usize,
+    lines: &[String],
+    previous: &str,
+) -> Result<(), ActionError> {
+    write(
+        place,
+        previous,
+        |text| priorities::insert_proposal(text, section, index, lines),
+        "a proposal needs some text",
+    )
+    .map(drop)
 }
 
 /// Moves a proposal before the proposal at `index` of `section`, or to its end.

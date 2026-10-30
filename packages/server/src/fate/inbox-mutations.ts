@@ -10,6 +10,7 @@ import { refusable } from "./errors.ts";
 import { inbox, priorities, proposalFile } from "./masked.ts";
 import { sources } from "./sources.ts";
 import { fileDataView, type FileRecord, sentFile } from "./views.ts";
+import { listCommit, type Queued } from "./write-queue.ts";
 
 /** A note's edit: the note's id, `note-3`, and the inbox's hash as read. */
 type NoteInput = { hash: string; note: string };
@@ -34,8 +35,8 @@ type UnderProposalInput = NoteInput & { prioritiesHash: string; proposal: string
 
 export const inboxMutations = {
   "changes.commit": {
-    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) => {
-      await refusable(() => ctx.binding.commitChanges(ctx.repo));
+    resolve: async ({ ctx, input, select }: Resolver<Queued<object>>) => {
+      await listCommit(ctx, input.write, () => ctx.binding.commitChanges(ctx.repo));
       return priorities(ctx, await ctx.binding.readPriorities(ctx.repo), select);
     },
     type: "Priorities",
@@ -97,15 +98,21 @@ export const inboxMutations = {
     type: "WorkflowFile",
   },
   "defaultRound.retry": {
-    resolve: async ({ ctx, input, select }: Resolver<{ id: string }>) =>
-      defaultRound(ctx, await refusable(() => ctx.binding.retryRound(ctx.repo, input.id)), select),
+    resolve: async ({ ctx, input, select }: Resolver<Queued<{ id: string }>>) =>
+      defaultRound(
+        ctx,
+        await listCommit(ctx, input.write, () => ctx.binding.retryRound(ctx.repo, input.id)),
+        select,
+      ),
     type: "WorkflowFile",
   },
   "defaultRound.submit": {
-    resolve: async ({ ctx, input, select }: Resolver<{ id: string; previous: string }>) =>
+    resolve: async ({ ctx, input, select }: Resolver<Queued<{ id: string; previous: string }>>) =>
       defaultRound(
         ctx,
-        await refusable(() => ctx.binding.submitRound(ctx.repo, input.id, input.previous)),
+        await listCommit(ctx, input.write, () =>
+          ctx.binding.submitRound(ctx.repo, input.id, input.previous),
+        ),
         select,
       ),
     type: "WorkflowFile",
@@ -333,6 +340,8 @@ export const inboxMutations = {
       ),
     type: "Inbox",
   },
+  // Answers with the priorities, where the note now ends its section: the page the move opens
+  // shows it from the move's own optimistic result, and the inbox follows by its live update.
   "inbox.toProposal": {
     resolve: async ({ ctx, input, select }: Resolver<ToProposalInput>) => {
       await refusable(() =>
@@ -344,9 +353,9 @@ export const inboxMutations = {
           input.prioritiesHash,
         ),
       );
-      return inbox(ctx, await ctx.binding.readInbox(ctx.repo), select);
+      return priorities(ctx, await ctx.binding.readPriorities(ctx.repo), select);
     },
-    type: "Inbox",
+    type: "Priorities",
   },
   "inbox.toProposalFile": {
     resolve: async ({ ctx, input, select }: Resolver<ToProposalInput>) => {
@@ -400,10 +409,16 @@ export const inboxMutations = {
     type: "Inbox",
   },
   "inbox.undoCommitted": {
-    resolve: async ({ ctx, input, select }: Resolver<{ hash: string; lines: Array<string> }>) =>
+    resolve: async ({
+      ctx,
+      input,
+      select,
+    }: Resolver<Queued<{ hash: string; lines: Array<string> }>>) =>
       inbox(
         ctx,
-        await refusable(() => ctx.binding.undoCommittedNote(ctx.repo, input.lines, input.hash)),
+        await listCommit(ctx, input.write, () =>
+          ctx.binding.undoCommittedNote(ctx.repo, input.lines, input.hash),
+        ),
         select,
       ),
     type: "Inbox",

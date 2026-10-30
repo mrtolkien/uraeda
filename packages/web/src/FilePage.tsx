@@ -1,9 +1,11 @@
 import { VStack } from "@astryxdesign/core/VStack";
+import { useFateClient } from "react-fate";
 import { Crumbs } from "./Crumbs.tsx";
 import { DocumentPage } from "./DocumentPage.tsx";
 import { useFile } from "./data.ts";
 import { Page } from "./layout/Page.tsx";
 import { PlanPage } from "./PlanPage.tsx";
+import { filePage, readAlong } from "./readAhead.ts";
 import { RoundPage } from "./RoundPage.tsx";
 import { DataModelPage } from "./spec/DataModelPage.tsx";
 import { SpecPage } from "./spec/SpecPage.tsx";
@@ -17,6 +19,9 @@ import { Missing } from "./layout/Missing.tsx";
  * story links embedded.
  */
 export function FilePage({ folder, name }: { folder: string; name: string }) {
+  const fate = useFateClient();
+  // A spec's page draws its data model too: read with the spec, not once the spec is in.
+  readAlong(fate, name === "spec.md" ? [filePage(folder, "data-model.md")] : []);
   const file = useFile(folder, name);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);

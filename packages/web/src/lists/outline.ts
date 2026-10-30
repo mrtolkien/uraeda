@@ -80,6 +80,11 @@ export type OutlineWrites<Data, Source> = {
     kind: string,
     text?: string,
   ) => Promise<string | undefined>;
+  /**
+   * The list's version as the browser holds it now, a write's answer in it as soon as it resolves:
+   * the next write waits for it to be drawn, and for nothing when it is the version drawn.
+   */
+  held: () => Promise<string>;
   /** The list as the outliner reads it. */
   read: (data: Data) => Outline<Source>;
 };
@@ -94,7 +99,7 @@ export const isPending = (key: string) => key.startsWith("pending:");
 export const spotOfRow = (row: WorkRow) => row.spot as Spot | undefined;
 
 /** Text as spans, plain: what a row added or edited shows until the file has it. */
-const spansOf = (text: string): Array<Span> => [
+export const spansOf = (text: string): Array<Span> => [
   { code: false, emphasis: false, strike: false, strong: false, text },
 ];
 

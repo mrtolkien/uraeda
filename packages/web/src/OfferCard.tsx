@@ -14,7 +14,8 @@ import { keepsEnd } from "./following.ts";
 import { useSettled } from "./NewChangePage.tsx";
 import { addNote, type OfferKind, proposalTitle, returnFocus, useAsks } from "./offers.ts";
 import { FeatureView } from "./views.ts";
-import { runWrite } from "./writes/store.ts";
+import { useFeatureTitle } from "./writes/labels.ts";
+import { writeHere } from "./writes/useWriteQueue.ts";
 import { Pane } from "./layout/Pane.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { StatusText } from "./fields/StatusText.tsx";
@@ -168,12 +169,10 @@ function ChangeCard({ heading, latest, onClose, proposal: given, session }: Card
     setError(undefined);
     const text = proposal.trim();
     const slug = typed?.trim();
-    const result = await runWrite({ label: "Starting the change…" }, () =>
-      fate.mutations.session.toChange({
-        input: { session: session.id, text, ...(slug ? { slug } : {}) },
-        view: FeatureView,
-      }),
-    );
+    const result = await fate.mutations.session.toChange({
+      input: { session: session.id, text, ...(slug ? { slug } : {}) },
+      view: FeatureView,
+    });
     if (result.error) {
       setError(refusal(result.error).message);
       return;
@@ -214,12 +213,16 @@ function ChangeCard({ heading, latest, onClose, proposal: given, session }: Card
 function FeatureCard({ heading, latest, onClose, reason, session }: CardProps) {
   const fate = useFateClient();
   const [error, setError] = useState<string>();
+  const folder = session.folder ?? "";
+  const title = useFeatureTitle(folder);
   const promote = async () => {
     setError(undefined);
-    const folder = session.folder ?? "";
-    const result = await runWrite({ folder, label: "Making it a feature…" }, () =>
-      fate.mutations.feature.promote({ input: { folder }, view: FeatureView }),
-    );
+    // The toast names the move while its commit lands: the call answers once it landed.
+    const write = writeHere(`Making the change ${title} a feature`);
+    const result = await fate.mutations.feature.promote({
+      input: { folder, write },
+      view: FeatureView,
+    });
     if (result.error) {
       setError(refusal(result.error).message);
       return;

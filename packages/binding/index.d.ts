@@ -52,6 +52,12 @@ export declare function addRepository(dataDir: string, folder: string): Promise<
 /** Adds a comment on the settled point starting with `subject`, at the end of the notes. */
 export declare function addSettledComment(repo: string, folder: string, subject: string, text: string): Promise<FileView>
 
+/**
+ * Every feature's branch changes outside its folder, by its folder: a feature without any is left
+ * out.
+ */
+export declare function allBranchChanges(repo: string): Promise<Array<FeatureChanges>>
+
 /** Approves a spec or a plan, and commits it. */
 export declare function approve(repo: string, folder: string, file: string, summary?: string | undefined | null, riskTier?: string | undefined | null, planReview?: boolean | undefined | null): Promise<FileView>
 
@@ -73,6 +79,12 @@ export declare function attachNoteImages(repo: string, id: string, previous: str
  * or `null` when it has no branch, is merged, or the default branch is unknown.
  */
 export declare function branchChanges(repo: string, folder: string): Promise<BranchChanges | null>
+
+/**
+ * The reads of git and the answers from memory for the repository at `repo` since its watch
+ * started; both 0 without a watch. It reads no workflow file, so it returns at once.
+ */
+export declare function cacheStats(repo: string): CacheStats
 
 /**
  * A deleted category's answer: the inbox, and the file as it was, which `restoreCategory` writes
@@ -123,6 +135,13 @@ export declare function configDir(custom?: string | undefined | null): string
 export declare function dataDir(custom?: string | undefined | null): string
 
 /**
+ * Turns deferral of commits on or off for the repository at `repo`. Turned off, the commits not
+ * landed are forgotten, their files left written. It reads no workflow file, so it returns at
+ * once.
+ */
+export declare function deferCommits(repo: string, on: boolean): void
+
+/**
  * Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of proposal
  * files, keeping any text the human typed.
  */
@@ -130,6 +149,12 @@ export declare function discardChanges(repo: string): Promise<void>
 
 /** Restores the committed priorities. */
 export declare function discardPriorities(repo: string): Promise<Priorities>
+
+/**
+ * Writes `title` as the first proposal of a section that has not started, expands it into a
+ * proposal file, and writes `body` under its heading: the file, for its editor.
+ */
+export declare function draftProposal(repo: string, section: string, title: string, body: string): Promise<ProposalFileView>
 
 /**
  * Drops a started feature or change: its proposal leaves the priorities, its worktree is removed
@@ -187,6 +212,13 @@ export declare function encodeImage(bytes: Buffer, name: string): Promise<Encode
  */
 export declare function expandProposal(repo: string, id: string, previous: string): Promise<ProposalFileView>
 
+/**
+ * The step the feature or change of `folder` will have once its uncommitted workflow files are
+ * committed, read from its files on disk: a prediction for the composer's message only, while its
+ * commits are queued, never the branch's step, which `nextStep` reads from its latest commit.
+ */
+export declare function expectedStep(repo: string, folder: string): Promise<NextView>
+
 /** The bytes of an image file, with the MIME type detected from its first bytes. */
 export interface ImageFile {
   bytes: Buffer
@@ -204,6 +236,12 @@ export declare function insertNote(repo: string, index: number, lines: Array<str
  * section, or at its end: Undo of a removal.
  */
 export declare function insertProposal(repo: string, section: string, index: number, lines: Array<string>, previous: string): Promise<Priorities>
+
+/**
+ * Lands the deferred commit `id` with the hooks, calling `onOutput` with each line git and its
+ * hooks print. A hook's refusal puts back what the write left, and rejects with `hook: `.
+ */
+export declare function land(repo: string, id: string, onOutput: (line: string) => void): Promise<CommitView>
 
 /** The main checkout's path, from any of the repository's working trees. */
 export declare function mainRoot(repo: string): Promise<string>
@@ -283,6 +321,12 @@ export declare function pathFolder(path: string): string | null
  * end, `index` counting the category's notes once the note has left it.
  */
 export declare function placeNote(repo: string, id: string, index: number, previous: string, category?: string | undefined | null): Promise<Inbox>
+
+/**
+ * What starting a proposed feature, or a change with the kind `"change"`, would make: every check
+ * of the start made, nothing written, without waiting for the repository's other writes.
+ */
+export declare function planStart(repo: string, proposal: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null): Promise<PlannedView>
 
 /**
  * The preview of the checkout at `checkout`, from its own active preview decision: `null`
@@ -477,12 +521,17 @@ export declare function settingsFile(dir: string): string
 
 /**
  * Starts a change typed as a text, with its images, in its own worktree: the first written line
- * is its title.
+ * is its title. Its steps go to `onStep` as `startFeature`'s do.
  */
-export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null): Promise<StartedView>
+export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null): Promise<StartedView>
 
-/** Starts a proposed feature, or a change with the kind `"change"`, in its own worktree. */
-export declare function startFeature(repo: string, proposal: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null): Promise<StartedView>
+/**
+ * Starts a proposed feature, or a change with the kind `"change"`, in its own worktree, calling
+ * `onStep` with each step, the commit's output line by line. With deferral on, a hook's refusal of
+ * its commit puts the proposal file and the priorities back, and rejects with `hook: `. Given
+ * `day`, its plan's, it runs on that day, making the folder its plan answered with.
+ */
+export declare function startFeature(repo: string, proposal: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null, day?: string | undefined | null): Promise<StartedView>
 
 /** Deletes the pending review of a file. */
 export declare function startOver(repo: string, folder: string, file: string): Promise<FileView>
@@ -504,6 +553,12 @@ export declare function submitAnswers(repo: string, folder: string, name?: strin
  * hash `previous`.
  */
 export declare function submitRound(repo: string, id: string, previous: string): Promise<FileView>
+
+/**
+ * The commits the writes to the repository at `repo` deferred since the last call, each handed
+ * out once. It reads no workflow file, so it returns at once.
+ */
+export declare function takeDeferred(repo: string): Array<Deferred>
 
 /**
  * Takes back a committed add: the note, `lines` as written, leaves the inbox, and the removal is
@@ -652,6 +707,14 @@ export interface BranchDecision {
   change: DecisionChange
   /** The branch's version of the file. */
   document: Document
+}
+
+/** The reads of a watched repository since its watch started. */
+export interface CacheStats {
+  /** The reads of git. */
+  reads: number
+  /** The answers from memory. */
+  hits: number
 }
 
 export type CalloutKind = 'note' | 'tip' | 'important' | 'warning' | 'caution' | 'question'
@@ -875,6 +938,13 @@ export interface DecisionTarget {
   removed: boolean
 }
 
+/** A commit deferred by a write, waiting to land. */
+export interface Deferred {
+  id: string
+  subject: string
+  paths: Array<string>
+}
+
 /** The tree of one workflow file. */
 export interface Document {
   blocks: Array<Block>
@@ -913,6 +983,12 @@ export interface EdgeCase {
   importance: string
   /** Its row's block. */
   row: number
+}
+
+/** A feature's branch changes, by its folder: what the sidebar's cards show, for every feature. */
+export interface FeatureChanges {
+  folder: string
+  changes: BranchChanges
 }
 
 export interface FeatureView {
@@ -1315,6 +1391,17 @@ export interface PlanLead {
    * says: empty for a label alone.
    */
   text: Array<Span>
+}
+
+/** A start planned: what it would make, every check made, nothing written. */
+export interface PlannedView {
+  folder: string
+  branch: string
+  slug: string
+  /** The day its folder is dated with, `YYYY-MM-DD`, which its start runs on. */
+  day: string
+  /** The feature's or the change's name, its line in the priorities. */
+  title: string
 }
 
 /** A checkout's preview, from its active preview decision. */
@@ -1880,6 +1967,15 @@ export interface StartedView {
   folder: string
   branch: string
   worktree?: string
+}
+
+/**
+ * A step of a start under way: `committing`, `output` with the `line` the commit or its hooks
+ * printed, `branching`, or `done`.
+ */
+export interface StartStepView {
+  step: string
+  line?: string
 }
 
 export interface StepItem {

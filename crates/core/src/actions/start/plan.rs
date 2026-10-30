@@ -144,10 +144,16 @@ pub(super) struct Plan {
     pub(super) folder: String,
     /// The folder for a feature, `change/<folder>` for a change.
     pub(super) branch: String,
+    pub(super) slug: String,
+    /// The feature's or the change's name, its line in the priorities.
+    pub(super) name: String,
     /// Where the branch's worktree goes, unless `switch`.
     pub(super) worktree: PathBuf,
     /// `PRIORITIES.md` with the proposal moved to **Now**.
     pub(super) priorities: String,
+    /// `PRIORITIES.md` as it was read, `None` when there was none: what a refused commit puts
+    /// back.
+    pub(super) priorities_before: Option<String>,
     /// The lines nested under the proposal in `PRIORITIES.md`, which its move to **Now** takes
     /// out: the proposal file takes them.
     pub(super) nested: Vec<String>,
@@ -186,8 +192,14 @@ impl Plan {
 }
 
 impl Start<'_> {
-    /// Every check, before anything is written.
-    pub(super) fn plan(&self, slug: Option<&str>, today: Date) -> Result<Plan, StartError> {
+    /// Every check, before anything is written: those of the working tree's uncommitted and
+    /// staged files only when `clean` is set.
+    pub(super) fn plan(
+        &self,
+        slug: Option<&str>,
+        today: Date,
+        clean: bool,
+    ) -> Result<Plan, StartError> {
         let origin = match self.source {
             Source::Proposal(proposal) => Origin::Proposal(Proposed::read(self.root, proposal)?),
             Source::Text { typed, images } => Origin::Text(typed, images.len()),
@@ -212,6 +224,7 @@ impl Start<'_> {
         // Which of the proposal file's files are committed, read before any write of ours.
         let tracked = self.tracked(&files);
         match &origin {
+            _ if !clean => {}
             Origin::Proposal(_) => self.check_clean(&files)?,
             // A typed change commits its own folder with the proposal: the main checkout's edits
             // stay.
@@ -219,8 +232,17 @@ impl Start<'_> {
         }
         let destination = folder_path(self.kind, &folder);
         let target = format!("/{destination}/proposal.md");
-        let priorities_text =
-            fs::read_to_string(self.root.join("specs/PRIORITIES.md")).unwrap_or_default();
+        // Only a missing file is no priorities: one the start cannot read refuses it.
+        let priorities_before = match fs::read_to_string(self.root.join("specs/PRIORITIES.md")) {
+            Ok(text) => Some(text),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+            Err(error) => {
+                return Err(StartError::Refused(format!(
+                    "cannot read specs/PRIORITIES.md: {error}"
+                )));
+            }
+        };
+        let priorities_text = priorities_before.clone().unwrap_or_default();
         let (name, priorities, nested, write_left) = match &origin {
             Origin::Proposal(proposed) => {
                 let (name, priorities, nested) =
@@ -245,23 +267,30 @@ impl Start<'_> {
             files,
             tracked,
             start_subject: format!("chore({slug}): start {name}"),
+            name,
+            slug,
             write_left,
             destination,
             branch: folder_branch(self.kind, &folder),
             folder,
             worktree,
             priorities,
+            priorities_before,
             nested,
         })
     }
 
-    /// The dated folder for a slug, and where its worktree goes: refused when the folder is taken,
-    /// or when its worktree's folder exists.
+    /// The dated folder for a slug, and where its worktree goes: refused as taken when the folder
+    /// is, or when its worktree's folder exists.
     fn claim(&self, slug: &str, today: Date) -> Result<(String, PathBuf), StartError> {
         let folder = self.free_folder(slug, today)?;
         let worktree = place::worktree_path(self.git, &folder);
-        if !self.switch && worktree.exists() {
-            return Err(GitError::WorktreeExists(format!(".worktrees/{folder}")).into());
+        if !self.run.switch && worktree.exists() {
+            return Err(StartError::Taken {
+                slug: slug.to_string(),
+                kind: self.kind,
+                message: GitError::WorktreeExists(format!(".worktrees/{folder}")).to_string(),
+            });
         }
         Ok((folder, worktree))
     }
@@ -277,7 +306,16 @@ impl Start<'_> {
         let folder = format!("{today}-{slug}");
         let kinds = [Kind::Feature, Kind::Change];
         let hint = "choose another slug with --slug";
-        check_free(self.root, &self.at, self.workspace, &folder, &kinds, hint)?;
+        check_free(self.root, &self.at, self.workspace, &folder, &kinds, hint).map_err(
+            |error| match error {
+                StartError::Refused(message) => StartError::Taken {
+                    slug: slug.to_string(),
+                    kind: self.kind,
+                    message,
+                },
+                error => error,
+            },
+        )?;
         Ok(folder)
     }
 

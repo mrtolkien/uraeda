@@ -10,6 +10,7 @@ import { transaction } from "./migrations.ts";
 import { Processes } from "./processes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
+import { StartMessages } from "./start-messages.ts";
 import {
   type Live,
   REFUSALS,
@@ -62,6 +63,8 @@ export class Sessions {
   /** Each repository's main checkout, by the path it was given as. */
   #roots = new Map<string, string>();
   #context: SessionContext;
+  /** The messages sent to features whose start is still in the write queue. */
+  readonly starts: StartMessages;
 
   constructor(options: {
     adapter: Adapter;
@@ -70,6 +73,7 @@ export class Sessions {
     onChange: (change: SessionChange) => void;
   }) {
     this.#options = options;
+    this.starts = new StartMessages(options.cache);
     // Each part reaches the others through the context, filled once they are all made.
     const context = {
       adapter: options.adapter,
@@ -421,6 +425,11 @@ export class Sessions {
     return this.#context.live.get(session)?.messages.size ?? 0;
   }
 
+  /** Whether a move or a drop holds the folder of `root`'s main checkout: it takes no message. */
+  moving(root: string, folder: string): boolean {
+    return this.#context.live.holds({ folder, repo: root });
+  }
+
   /** Whether this server keeps the session in memory: while it has a process, a turn, or a call. */
   held(session: string): boolean {
     return this.#context.live.has(session);
@@ -435,6 +444,7 @@ export class Sessions {
   async closeAll(): Promise<void> {
     const { processes, turns } = this.#context;
     const procs: Array<Promise<void>> = [];
+    this.starts.dropAll();
     for (const live of this.#context.live.values()) {
       for (const queued of live.queue.splice(0)) {
         turns.end(live, queued.id, { reason: SERVER_STOPPED, state: "stopped" });

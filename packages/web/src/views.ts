@@ -3,6 +3,7 @@
 import { view } from "react-fate";
 import type {
   Agent,
+  AllBranchChanges,
   BranchChanges,
   BranchDecision,
   ProposalFile,
@@ -22,6 +23,7 @@ import type {
   SessionList,
   Settings,
   SlugProposal,
+  StartPlan,
   Story,
   StoryHref,
   Turn,
@@ -134,6 +136,14 @@ export const FeatureView = view<Feature>()({
 });
 
 /** A change or a feature dropped: its branch, which stays, and the worktree left, with why. */
+/** A feature's start, as planned: the session opens on its folder with its message. */
+export const StartPlanView = view<StartPlan>()({
+  folder: true,
+  id: true,
+  message: true,
+  title: true,
+});
+
 export const DroppedView = view<Dropped>()({
   branch: true,
   committed: true,
@@ -145,6 +155,13 @@ export const DroppedView = view<Dropped>()({
 export const BranchChangesView = view<BranchChanges>()({
   changes: { added: true, count: true, files: true, removed: true },
   failed: true,
+  id: true,
+});
+
+/** Every feature's count of changed files and lines, for the sidebar's cards, in one record. */
+export const AllBranchChangesView = view<AllBranchChanges>()({
+  failed: true,
+  features: true,
   id: true,
 });
 

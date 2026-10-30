@@ -31,8 +31,15 @@ pub fn worktree_path(git: &Git, branch: &str) -> PathBuf {
 }
 
 /// Reaches a branch: this working tree when it has it, another one that has it, or a worktree
-/// created for it at `.worktrees/<branch>/`.
+/// created for it at `.worktrees/<branch>/`. In a repository that defers its commits, records what
+/// the place's `specs/` holds, for the undo of a refused commit.
 pub fn reach(git: &Git, branch: &str) -> Result<Place, PlaceError> {
+    let place = reached(git, branch)?;
+    super::deferred::record(git, &place);
+    Ok(place)
+}
+
+fn reached(git: &Git, branch: &str) -> Result<Place, PlaceError> {
     if git.current_branch().as_deref() == Some(branch) {
         return Ok(Place {
             root: git.root().to_path_buf(),

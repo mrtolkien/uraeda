@@ -4,6 +4,7 @@
 import { createFateServer, type FateRequestError } from "@nkzw/fate/server";
 import {
   agentDataView,
+  allBranchChangesDataView,
   branchChangesDataView,
   branchDecisionDataView,
   proposalFileDataView,
@@ -26,12 +27,14 @@ import {
   sessionSearchDataView,
   settingsDataView,
   slugProposalDataView,
+  startPlanDataView,
   storyDataView,
   storyHrefDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
   workspaceDataView,
+  writeQueueDataView,
 } from "../fate.ts";
 import { callSiteError } from "../fate/errors.ts";
 import { mutations } from "../fate/mutations.ts";
@@ -87,6 +90,7 @@ export function refused(message: string): FateRequestError {
 /** Every type the server's roots read: a root without its view here fails at once. */
 const dataViews = [
   agentDataView,
+  allBranchChangesDataView,
   branchChangesDataView,
   branchDecisionDataView,
   proposalFileDataView,
@@ -108,12 +112,14 @@ const dataViews = [
   sessionSearchDataView,
   settingsDataView,
   slugProposalDataView,
+  startPlanDataView,
   storyDataView,
   storyHrefDataView,
   turnDataView,
   turnLogDataView,
   workflowMessageDataView,
   workspaceDataView,
+  writeQueueDataView,
 ] as unknown as Array<DataView<Answer>>;
 const viewOf = new Map(dataViews.map((view) => [view.typeName, view]));
 for (const root of Object.values(Root)) {

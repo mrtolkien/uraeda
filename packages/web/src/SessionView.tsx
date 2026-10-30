@@ -21,6 +21,7 @@ import { Crumbs } from "./Crumbs.tsx";
 import { MAIN_CHECKOUT } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import { composerDraft, type Draft, storyCommentsInto, takeBackInto } from "./useDraft.ts";
+import { useReturnedMessages } from "./session/ReturnedMessages.tsx";
 import type { SessionItem } from "./dropItem.ts";
 import { SessionHeader } from "./SessionHeader.tsx";
 import { OffersProvider, SessionEnd } from "./SessionOffers.tsx";
@@ -139,7 +140,11 @@ function SessionLog({
   const unseen = session?.unseen === true;
   useEffect(() => {
     if (unseen) {
-      void fate.mutations.session.seen({ input: { session: id }, view: SessionView });
+      void fate.mutations.session.seen({
+        input: { session: id },
+        optimistic: { id, unseen: false },
+        view: SessionView,
+      });
     }
   }, [fate, id, unseen]);
   if (!session) {
@@ -213,7 +218,8 @@ function useStretchHref(boxedIn: string | undefined) {
 
 /**
  * What a session's pane is drawn in: a page, with its crumbs and the session's column, or,
- * `isBoxed`, the box it is in alone. A session that does not exist has no column.
+ * `isBoxed`, the box it is in alone. A session that does not exist has no column, nor one whose
+ * feature is still starting: `isMissing`.
  */
 function Framed({
   children,
@@ -240,12 +246,15 @@ function Framed({
   return isMissing ? page : <SessionColumn content={page} folder={crumbs} session={session} />;
 }
 
-/** A session before its first message creates it: its title over an empty transcript. */
-function Unstarted({ title }: { title: string }) {
+/**
+ * A session before its first message creates it: its title over an empty transcript, or over
+ * `children`, what is drawn where the transcript will be.
+ */
+function Unstarted({ children, title }: { children?: ReactNode; title: string }) {
   return (
     <VStack gap={3}>
       <SessionHeader title={title} />
-      <Transcript session={{ id: "", turns: [] }} />
+      {children ?? <Transcript session={{ id: "", turns: [] }} />}
     </VStack>
   );
 }
@@ -317,6 +326,7 @@ export function SessionPane({
   isNewSession = false,
   item,
   onSent,
+  starting,
   title,
 }: {
   /** Why nothing can be sent to it, which disables the composer. */
@@ -329,15 +339,14 @@ export function SessionPane({
   id?: string;
   /** Drawn in the box that scrolls it, not as a page. */
   isBoxed?: boolean;
-  /**
-   * A new session of the feature in `folder`, which its first message creates: until then there
-   * is none, and leaving makes none.
-   */
+  /** A new session of the feature in `folder`, made by its first message: leaving makes none. */
   isNewSession?: boolean;
   /** The change or the feature the session belongs to, once read. */
   item?: SessionItem;
   /** Called with the session a message created, before it exists. */
   onSent?: (session: string) => void;
+  /** Its feature's start, drawn where the transcript will be, in a page without a column. */
+  starting?: ReactNode;
   /** The title before the session exists. */
   title?: string;
 }) {
@@ -351,6 +360,7 @@ export function SessionPane({
   // The bottom bar's arrow is the session page's: a boxed session keeps its own.
   usePublishJump(isBoxed ? undefined : jump);
   const stretchHref = useStretchHref(isBoxed ? folder : undefined);
+  const returned = useReturnedMessages(starting === undefined ? folder : undefined, draft, handing);
   if (session === null) {
     return (
       <Framed isBoxed={isBoxed} isMissing>
@@ -359,9 +369,9 @@ export function SessionPane({
     );
   }
   return (
-    <Framed crumbs={crumbs} isBoxed={isBoxed} session={id}>
+    <Framed crumbs={crumbs} isBoxed={isBoxed} isMissing={starting !== undefined} session={id}>
       {id === undefined ? (
-        <Unstarted title={title ?? ""} />
+        <Unstarted title={title ?? ""}>{starting}</Unstarted>
       ) : (
         // Read once the first message created the session: its title stays, and the composer, as
         // it is read. The transcript waits for it: a page shows one log.
@@ -387,17 +397,18 @@ export function SessionPane({
         )}
       >
         {jump && <JumpToLatest composer={composer} isBoxed={isBoxed} onJump={jump} />}
+        {returned.element}
         <Composer
           {...(folder === undefined ? {} : { folder })}
           {...composerDraft(draft)}
           {...(id === undefined ? { isNewSession } : { session: id })}
           working={session?.status === "working"}
           {...(session && id !== undefined ? sessionComposer(session, controls, item) : {})}
-          {...handing}
+          {...returned.handing}
           {...(blocked === undefined ? {} : { blocked })}
           onSent={(created) => {
             onSent?.(created);
-            handing.onSent?.(created);
+            returned.handing.onSent(created);
           }}
         />
       </div>

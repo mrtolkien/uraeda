@@ -17,6 +17,7 @@ export {
   currentEntry,
   navigate,
   redirect,
+  selectOnArrival,
   setLeaveGuard,
   updateEntry,
   useRestorePaneScroll,

@@ -4,9 +4,12 @@
 use std::fs;
 
 use super::plan::Plan;
-use super::{Source, Start, StartError, partial};
+use super::restore::{Before, Written, written_in};
+use super::{Source, Start, StartError, StartProgress, partial};
 use crate::actions::expand::with_nested;
+use crate::cache::WriteGuard;
 use crate::files::retarget;
+use crate::git::{Git, GitError, ObjectId};
 
 /// The folder of a file, from the top level.
 fn folder_of(file: &str) -> &str {
@@ -18,17 +21,18 @@ impl Start<'_> {
     fn left_after_write(&self, plan: &Plan) -> Vec<String> {
         vec![
             plan.commit_left(self.default),
-            plan.branch_left(self.switch),
+            plan.branch_left(self.run.switch),
         ]
     }
 
     /// Moves the proposal file's files into the dated folder, on the default branch: each move,
-    /// from and to.
+    /// from and to, and the text before its links were pointed at the new folder of each moved
+    /// file they changed.
     pub(super) fn move_proposal(
         &self,
         proposal: &str,
         plan: &Plan,
-    ) -> Result<Vec<(String, String)>, StartError> {
+    ) -> Result<(Vec<(String, String)>, Before), StartError> {
         let left = || {
             let mut left = vec![plan.write_left.clone()];
             left.extend(self.left_after_write(plan));
@@ -70,13 +74,16 @@ impl Start<'_> {
         }
         // The moved text keeps its words, its relative links pointing at the same files from the
         // dated folder, and at each other when they moved together.
+        let mut before = Before::new();
         for (from, to) in moves.iter().filter(|(_, to)| to.ends_with(".md")) {
             let rebased = fs::read_to_string(root.join(to)).and_then(|text| {
                 let moved = retarget::relocated(&text, folder_of(from), folder_of(to), &moves);
                 if moved == text {
                     return Ok(());
                 }
-                fs::write(root.join(to), moved)
+                fs::write(root.join(to), moved)?;
+                before.insert(to.clone(), text);
+                Ok(())
             });
             if let Err(error) = rebased {
                 let mut left = vec![format!(
@@ -90,18 +97,31 @@ impl Start<'_> {
                 return Err(partial(&done, left, error));
             }
         }
-        Ok(moves)
+        Ok((moves, before))
     }
 
     /// The start commit, on the default branch: the proposal, and the dated folder with the
-    /// proposal file's removal.
-    pub(super) fn commit_start(&self, plan: &Plan, done: &str) -> Result<(), StartError> {
+    /// proposal file's removal. A hook's refusal puts back what the start wrote, `moves` included,
+    /// with `before`'s texts, when the start asked for it. `held`, the write lock, is released once
+    /// the files are staged, before the hooks run, and taken again to take back the stage and put
+    /// the files back.
+    pub(super) fn commit_start(
+        &self,
+        plan: &Plan,
+        done: &str,
+        (moves, mut before): (&[(String, String)], Before),
+        held: Option<WriteGuard>,
+    ) -> Result<(), StartError> {
         let done = [done.to_string()];
         let proposal = format!("{}/proposal.md", plan.destination);
+        // The proposal's text before its nested lines, which a refused commit puts back unless its
+        // text before its links moved is older.
         if !plan.nested.is_empty()
             && let Err(error) = fs::read_to_string(self.root.join(&proposal)).and_then(|text| {
                 let carried = with_nested(&text, &proposal, &plan.nested);
-                fs::write(self.root.join(&proposal), carried)
+                fs::write(self.root.join(&proposal), carried)?;
+                before.entry(proposal.clone()).or_insert(text);
+                Ok(())
             })
         {
             let mut left = vec![
@@ -125,17 +145,57 @@ impl Start<'_> {
             paths.push(proposal.to_string());
         }
         paths.sort();
-        // Written, so a failed commit stays here: switching back could carry the staged files away.
-        if let Err(error) = self.at.commit(&paths, &plan.start_subject, None, false) {
-            return Err(partial(&done, self.left_after_write(plan), error));
+        // What the start left in the dated folder, which a refused commit removes only unchanged.
+        let written = if self.run.restore {
+            written_in(self.root, &plan.destination)
+        } else {
+            Written::new()
+        };
+        let head = self.at.head();
+        // Written, so a failed staging stays here: switching back could carry the staged files
+        // away.
+        let stage = self
+            .at
+            .stage(&paths, false)
+            .map_err(|error| partial(&done, self.left_after_write(plan), error))?;
+        // Other writes, saves included, run while the hooks do: they change the working tree, not
+        // the snapshot staged, and the put back below leaves any path they changed.
+        drop(held);
+        self.report(StartProgress::Committing);
+        let on_output = |line: &str| self.report(StartProgress::Output(line.to_string()));
+        let streamed = self.run.on_step.map(|_| &on_output as &dyn Fn(&str));
+        let Err(error) = self
+            .at
+            .commit_stage(&stage, &plan.start_subject, None, false, streamed)
+        else {
+            return Ok(());
+        };
+        let _lock = self.run.lock();
+        // A refused commit takes back what it staged, so nothing it held blocks or rides along.
+        drop(self.at.unstage_stage(&stage));
+        match error {
+            GitError::Command {
+                subcommand,
+                message,
+                output,
+            } if subcommand == "commit" && self.run.restore && self.head_is(head) => {
+                let left = self.put_back(plan, moves, &written, &before);
+                refused(message, output, &left)
+            }
+            error => Err(partial(&done, self.left_after_write(plan), error)),
         }
-        Ok(())
+    }
+
+    /// Whether `HEAD` is still `head`: a failed commit that moved it committed something, so its
+    /// files are not put back.
+    fn head_is(&self, head: Option<ObjectId>) -> bool {
+        Git::open(self.root).is_ok_and(|git| git.head() == head)
     }
 
     /// The feature's or the change's branch, from the start commit, switched to or in its new
     /// worktree.
     pub(super) fn create_branch(&self, plan: &Plan, done: &[String]) -> Result<(), StartError> {
-        let created = if self.switch {
+        let created = if self.run.switch {
             self.at.switch_new(&plan.branch, self.default)
         } else {
             self.git.exclude_worktrees().and_then(|()| {
@@ -143,6 +203,24 @@ impl Start<'_> {
                     .add_worktree_new(&plan.worktree, &plan.branch, self.default)
             })
         };
-        created.map_err(|error| partial(done, vec![plan.branch_left(self.switch)], error))
+        created.map_err(|error| partial(done, vec![plan.branch_left(self.run.switch)], error))
     }
+}
+
+/// A start commit refused by a hook, its files put back but `left`, those changed during the
+/// commit.
+fn refused(message: String, output: String, left: &[String]) -> Result<(), StartError> {
+    if left.is_empty() {
+        return Err(StartError::Hook { message, output });
+    }
+    let left = left
+        .iter()
+        .map(|path| format!("check {path}: changed during the commit, left as it is"))
+        .collect();
+    let done = ["the start's other files put back as they were".to_string()];
+    Err(partial(
+        &done,
+        left,
+        format!("git commit failed: {message}"),
+    ))
 }

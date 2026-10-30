@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useFateClient, useLiveView, view, type ViewRef } from "react-fate";
 import type { WorkflowFile } from "uraeda-server/fate";
 import { INBOX_ID, LEDGER_ID, PRIORITIES_ID, useWorkspace, WORKSPACE_ID } from "../data.ts";
+import { isPending } from "../lists/outline.ts";
 import { jumpEntries, pickerItemOf } from "../decisions/jump.ts";
 import { sessionIdPath } from "../routes.tsx";
 import { SESSION_LIST_ID } from "../sessionData.ts";
@@ -261,25 +262,30 @@ export function usePickerItems(kind: PickerKind | "all", isEnabled: boolean): Pi
     ...features.filter((item) => item.kind === "changes" && is("changes")),
     ...(is("sessions") ? sessionItems(sessionList?.rows ?? [], workspace) : []),
     ...(ledger ? jumpEntries(ledger, ledger.decisions).map(pickerItemOf) : []),
+    // A row not written yet has no page: it is offered once written.
     ...(inbox?.categories ?? []).flatMap((category) =>
-      category.notes.map((note): PickerItem => ({
-        icon: KIND_ICONS.notes,
-        id: `/inbox/${encodeURIComponent(note.key)}`,
-        kind: "notes",
-        path: `/inbox/${encodeURIComponent(note.key)}`,
-        preview: note.text,
-        title: note.text,
-      })),
+      category.notes
+        .filter((note) => !isPending(note.key))
+        .map((note): PickerItem => ({
+          icon: KIND_ICONS.notes,
+          id: `/inbox/${encodeURIComponent(note.key)}`,
+          kind: "notes",
+          path: `/inbox/${encodeURIComponent(note.key)}`,
+          preview: note.text,
+          title: note.text,
+        })),
     ),
     ...(priorities?.sections ?? []).flatMap((section) =>
-      section.proposals.map((proposal): PickerItem => ({
-        icon: KIND_ICONS.priorities,
-        id: `/priorities/${encodeURIComponent(proposal.key)}`,
-        kind: "priorities",
-        path: `/priorities/${encodeURIComponent(proposal.key)}`,
-        preview: proposal.lines.join("\n"),
-        title: proposal.text,
-      })),
+      section.proposals
+        .filter((proposal) => !isPending(proposal.key))
+        .map((proposal): PickerItem => ({
+          icon: KIND_ICONS.priorities,
+          id: `/priorities/${encodeURIComponent(proposal.key)}`,
+          kind: "priorities",
+          path: `/priorities/${encodeURIComponent(proposal.key)}`,
+          preview: proposal.lines.join("\n"),
+          title: proposal.text,
+        })),
     ),
   ];
   return {

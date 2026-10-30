@@ -9,11 +9,14 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useMemo } from "react";
+import { useFateClient } from "react-fate";
 import type { DataModelItems, DecisionChange, Document } from "uraeda-binding";
 import { Blocks } from "../Blocks.tsx";
 import { Crumbs } from "../Crumbs.tsx";
-import { useFile } from "../data.ts";
+import { useFile, usePreviewOn } from "../data.ts";
+import { readAlong, storyRead } from "../readAhead.ts";
 import { type Folds, useHashFold } from "../Folds.tsx";
+import { MountedSteps } from "../layout/MountedSteps.tsx";
 import { Page } from "../layout/Page.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { scrollMarginStyles } from "../layout/scrollMargin.ts";
@@ -52,7 +55,9 @@ import { SinceReviewPane, sinceFolds, sinceModel } from "./SinceReview.tsx";
 import { SpecOpening } from "./SpecOpening.tsx";
 import { StoryCard } from "./StoryCard.tsx";
 import { fileStatusBadge } from "../labels.ts";
+import { useVerdictState, type VerdictState } from "../ReviewVerdict.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
+import { VerdictLeft } from "../review/VerdictLeft.tsx";
 
 const styles = stylex.create({
   // What a group's heading counts, after its title, in the secondary colour.
@@ -145,7 +150,7 @@ function SpecTitle({
  * The groups after the answers: the decisions, the stories, the replaced behaviour, the data, and
  * how it is built.
  */
-function Groups({
+function groups({
   changes,
   data,
   items,
@@ -155,86 +160,89 @@ function Groups({
   data: { model: DataModelItems; version: File["current"] } | undefined;
   items: SpecItems;
   part: PartProps;
-}) {
+}): Array<ReactNode> {
   const decisions = partOf(items, "Decisions");
   const hasBuilt = BUILT_PARTS.some((title) => partOf(items, title));
   const stories = partOf(items, "User stories");
   const replaced = partOf(items, "Replaced behaviour");
   const intro = storiesIntro(items);
-  return (
-    <>
-      {(decisions || changes.length > 0) && (
-        <Group
-          detail={decisionCounts(items, changes)}
-          icon="uraeda:scale"
-          id={groupId(items, GROUPS.decisions)}
-          title={GROUPS.decisions.title}
-          wide={part.wide}
+  return [
+    (decisions || changes.length > 0) && (
+      <Group
+        detail={decisionCounts(items, changes)}
+        icon="uraeda:scale"
+        id={groupId(items, GROUPS.decisions)}
+        key="decisions"
+        title={GROUPS.decisions.title}
+        wide={part.wide}
+      >
+        <DecisionCards {...part} changes={changes} items={items.decisions} part={decisions} />
+      </Group>
+    ),
+    stories && (
+      <Group
+        detail={String(items.stories.length)}
+        icon="uraeda:map"
+        id={groupId(items, GROUPS.stories)}
+        key="stories"
+        title={GROUPS.stories.title}
+        wide={part.wide}
+      >
+        {intro.length > 0 && (
+          <Blocks document={part.document} ids={intro} selection={part.selection} />
+        )}
+        {items.stories.map((story) => (
+          <StoryCard {...part} key={story.id} story={story} />
+        ))}
+      </Group>
+    ),
+    replaced && (
+      <Group
+        icon="uraeda:arrow-right-left"
+        id={groupId(items, GROUPS.replaced)}
+        key="replaced"
+        title={GROUPS.replaced.title}
+        wide={part.wide}
+      >
+        <Blocks document={part.document} ids={replaced.blocks} selection={part.selection} />
+      </Group>
+    ),
+    data && (
+      <Group
+        detail={`data-model.md · ${data.model.sections.length}`}
+        icon="uraeda:database"
+        id={GROUPS.data.id}
+        key="data"
+        title={GROUPS.data.title}
+        wide={part.wide}
+      >
+        {/* Its own embeds: a block id is an index in its own document, not in the spec's. */}
+        <StoriesProvider
+          folder={part.folder}
+          mockups={data.version.mockups}
+          stories={data.version.stories}
         >
-          <DecisionCards {...part} changes={changes} items={items.decisions} part={decisions} />
-        </Group>
-      )}
-      {stories && (
-        <Group
-          detail={String(items.stories.length)}
-          icon="uraeda:map"
-          id={groupId(items, GROUPS.stories)}
-          title={GROUPS.stories.title}
-          wide={part.wide}
-        >
-          {intro.length > 0 && (
-            <Blocks document={part.document} ids={intro} selection={part.selection} />
-          )}
-          {items.stories.map((story) => (
-            <StoryCard {...part} key={story.id} story={story} />
-          ))}
-        </Group>
-      )}
-      {replaced && (
-        <Group
-          icon="uraeda:arrow-right-left"
-          id={groupId(items, GROUPS.replaced)}
-          title={GROUPS.replaced.title}
-          wide={part.wide}
-        >
-          <Blocks document={part.document} ids={replaced.blocks} selection={part.selection} />
-        </Group>
-      )}
-      {data && (
-        <Group
-          detail={`data-model.md · ${data.model.sections.length}`}
-          icon="uraeda:database"
-          id={GROUPS.data.id}
-          title={GROUPS.data.title}
-          wide={part.wide}
-        >
-          {/* Its own embeds: a block id is an index in its own document, not in the spec's. */}
-          <StoriesProvider
-            folder={part.folder}
-            mockups={data.version.mockups}
-            stories={data.version.stories}
-          >
-            <DataPart document={data.version.document} model={data.model} />
-          </StoriesProvider>
-        </Group>
-      )}
-      {hasBuilt && (
-        <Group
-          icon="uraeda:layers"
-          id={GROUPS.built.id}
-          title={GROUPS.built.title}
-          wide={part.wide}
-        >
-          <BuiltParts {...part} items={items} />
-        </Group>
-      )}
-      {otherParts(items).map((other) => (
-        <Group id={other.anchor} key={other.heading} title={other.title} wide={part.wide}>
-          <Blocks document={part.document} ids={other.blocks} selection={part.selection} />
-        </Group>
-      ))}
-    </>
-  );
+          <DataPart document={data.version.document} model={data.model} />
+        </StoriesProvider>
+      </Group>
+    ),
+    hasBuilt && (
+      <Group
+        icon="uraeda:layers"
+        id={GROUPS.built.id}
+        key="built"
+        title={GROUPS.built.title}
+        wide={part.wide}
+      >
+        <BuiltParts {...part} items={items} />
+      </Group>
+    ),
+    ...otherParts(items).map((other) => (
+      <Group id={other.anchor} key={other.heading} title={other.title} wide={part.wide}>
+        <Blocks document={part.document} ids={other.blocks} selection={part.selection} />
+      </Group>
+    )),
+  ];
 }
 
 /**
@@ -305,22 +313,27 @@ function SpecLayout({
         <VStack gap={wide ? 8 : 4} xstyle={styles.layer}>
           <VStack gap={3}>
             <SpecTitle document={document} file={file} items={items} />
-            {review && <ReviewIntro file={file} review={review} />}
+            {review ? <ReviewIntro file={file} review={review} /> : <VerdictLeft file={file} />}
           </VStack>
           <SpecOpening document={document} items={items} selection={part.selection} />
-          {since && <SinceReviewPane entries={entries} model={since} />}
-          {partOf(items, "Your review") && (
-            <ReviewAnswers
-              comments={answeredComments(file)}
-              document={document}
-              items={items}
-              selection={part.selection}
-              wide={wide}
-            />
-          )}
-          <Groups changes={changes} data={data} items={items} part={part} />
-          <SpecHistory document={document} items={items} />
-          {review && <ReviewEnd file={file} review={review} />}
+          <MountedSteps
+            parts={[
+              since && <SinceReviewPane entries={entries} key="since" model={since} />,
+              partOf(items, "Your review") && (
+                <ReviewAnswers
+                  comments={answeredComments(file)}
+                  document={document}
+                  items={items}
+                  key="answers"
+                  selection={part.selection}
+                  wide={wide}
+                />
+              ),
+              ...groups({ changes, data, items, part }),
+              <SpecHistory document={document} items={items} key="history" />,
+              review && <ReviewEnd file={file} key="end" review={review} />,
+            ]}
+          />
         </VStack>
       </Page>
     </SinceMarks>
@@ -339,9 +352,17 @@ function SpecLayout({
 /**
  * A spec waiting for your review: its parts take comments, and its verdict is at the page's end.
  */
-function WaitingSpec({ file, session }: { file: File; session: PageSession | undefined }) {
+function WaitingSpec({
+  file,
+  kept,
+  session,
+}: {
+  file: File;
+  kept: VerdictState;
+  session: PageSession | undefined;
+}) {
   const wide = !isNarrow(useWidthClass());
-  const review = useReview(file, wide, session?.ask);
+  const review = useReview(file, wide, kept, session?.ask);
   return (
     <ReviewHost file={file} review={review}>
       <StoriesProvider
@@ -378,13 +399,29 @@ function ReadSpec({ file, session }: { file: File; session: PageSession | undefi
 }
 
 /**
+ * Sends the reads of the stories the spec page embeds as it first draws, together, which each
+ * story's embed would send only once the parts before it are in.
+ */
+function useStoryReads(file: File) {
+  const fate = useFateClient();
+  const preview = usePreviewOn(file.folder);
+  // As the page draws it: the committed version while it waits for a review.
+  const version =
+    file.status === "awaiting-human" ? (file.committed ?? file.current) : file.current;
+  readAlong(fate, preview ? version.stories.map((story) => storyRead(file.folder, story)) : []);
+}
+
+/**
  * A feature's `spec.md`, waiting for your review or not, its session's draft kept whatever its
- * status: a verdict or a live update leaves what is typed in Session.
+ * status: a verdict or a live update leaves what is typed in Session. The review's refusals and
+ * choices are kept too, for an approval taken back.
  */
 export function SpecPage({ file }: { file: File }) {
+  useStoryReads(file);
   const session = usePageSession(file);
+  const kept = useVerdictState(file);
   return file.status === "awaiting-human" ? (
-    <WaitingSpec file={file} session={session} />
+    <WaitingSpec file={file} kept={kept} session={session} />
   ) : (
     <ReadSpec file={file} session={session} />
   );

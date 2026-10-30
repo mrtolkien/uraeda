@@ -9,7 +9,7 @@ import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AddNote, type NoteAdded } from "./AddNote.tsx";
 import { undoAsFile, usePickedImages } from "./NoteImage.tsx";
-import { readPriorities, useWorkspace } from "./data.ts";
+import { readInbox, readPriorities, useWorkspace } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { Overlay } from "./layout/Overlay.tsx";
@@ -17,6 +17,7 @@ import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { type Added, AddForm, titleOf } from "./QuickAdd.tsx";
+import { addUndone, proposalRemoved } from "./optimisticLists.ts";
 import { useRoute } from "./routes.tsx";
 import { InboxView, PrioritiesView } from "./views.ts";
 
@@ -168,6 +169,7 @@ function ProposalOverlay({
       }
       const result = await fate.mutations.proposals.remove({
         input: { hash: now.hash, proposal: found.id },
+        optimistic: proposalRemoved(now.sections, found.id),
         view: PrioritiesView,
       });
       return result.error ? refusal(result.error).message : undefined;
@@ -194,8 +196,10 @@ async function undoAdd(fate: ReturnType<typeof useFateClient>, note: InboxNote |
   if (!note) {
     return "Could not undo: the note is no longer in INBOX.md.";
   }
+  const now = await readInbox(fate, "cache-first").catch(() => undefined);
   const result = await fate.mutations.inbox.undoAdd({
     input: { lines: [...note.lines] },
+    ...(now ? { optimistic: addUndone(now.categories, note.lines) } : {}),
     view: InboxView,
   });
   return result.error ? refusal(result.error).message : undefined;

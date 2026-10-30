@@ -1,15 +1,33 @@
 /** The mutations that change a workflow file of a feature, each returning the file. */
 import { refusable } from "./errors.ts";
-import type { Context, Resolver } from "./context.ts";
+import type { Context, RepoContext, Resolver } from "./context.ts";
 import { writable } from "./sessions.ts";
 import { sources } from "./sources.ts";
 import { fileDataView, sentFile, type FileRecord } from "./views.ts";
+import { featureKeys, type Queued, queued } from "./write-queue.ts";
 
 /** The file a mutation changed, masked to the fields the client selected. */
 const file = (ctx: Context, record: FileRecord, select: Array<string>) =>
   sources.masked(fileDataView, ctx, sentFile(record), select);
 
 type FileInput = { file: string; folder: string };
+
+/**
+ * Runs a committing call on a feature's file through the write queue: it answers once the file is
+ * written, before its commit lands.
+ */
+const committing = <T>(
+  ctx: RepoContext,
+  input: Queued<{ file?: string; folder: string }>,
+  call: () => Promise<T>,
+) =>
+  queued(
+    ctx,
+    featureKeys(input.folder),
+    input.write,
+    { file: input.file, folder: input.folder },
+    call,
+  );
 
 /** The mutations of a feature's workflow files: answers, notes, and reviews. */
 export const fileMutations = {
@@ -48,11 +66,11 @@ export const fileMutations = {
       ctx,
       input,
       select,
-    }: Resolver<{ file?: string; folder: string; resumes?: boolean }>) => {
+    }: Resolver<Queued<{ file?: string; folder: string; resumes?: boolean }>>) => {
       await writable(ctx, input);
       return file(
         ctx,
-        await refusable(() =>
+        await committing(ctx, input, () =>
           ctx.binding.submitAnswers(ctx.repo, input.folder, input.file, input.resumes),
         ),
         select,
@@ -61,9 +79,11 @@ export const fileMutations = {
     type: "WorkflowFile",
   },
   "commit.retry": {
-    resolve: async ({ ctx, input, select }: Resolver<FileInput>) => {
+    resolve: async ({ ctx, input, select }: Resolver<Queued<FileInput>>) => {
       await writable(ctx, input);
-      await refusable(() => ctx.binding.retryCommit(ctx.repo, input.folder, input.file));
+      await committing(ctx, input, () =>
+        ctx.binding.retryCommit(ctx.repo, input.folder, input.file),
+      );
       return file(ctx, await ctx.binding.readFile(ctx.repo, input.folder, input.file), select);
     },
     type: "WorkflowFile",
@@ -90,11 +110,11 @@ export const fileMutations = {
       ctx,
       input,
       select,
-    }: Resolver<FileInput & { planReview?: boolean; summary?: string; tier?: string }>) => {
+    }: Resolver<Queued<FileInput & { planReview?: boolean; summary?: string; tier?: string }>>) => {
       await writable(ctx, input);
       return file(
         ctx,
-        await refusable(() =>
+        await committing(ctx, input, () =>
           ctx.binding.approve(
             ctx.repo,
             input.folder,
@@ -172,11 +192,11 @@ export const fileMutations = {
     type: "WorkflowFile",
   },
   "review.requestChanges": {
-    resolve: async ({ ctx, input, select }: Resolver<FileInput & { summary?: string }>) => {
+    resolve: async ({ ctx, input, select }: Resolver<Queued<FileInput & { summary?: string }>>) => {
       await writable(ctx, input);
       return file(
         ctx,
-        await refusable(() =>
+        await committing(ctx, input, () =>
           ctx.binding.requestChanges(ctx.repo, input.folder, input.file, input.summary),
         ),
         select,

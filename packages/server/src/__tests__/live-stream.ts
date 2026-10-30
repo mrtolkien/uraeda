@@ -96,8 +96,7 @@ export async function commitArrival() {
     select: ["id", "files"],
     type: "Feature",
   });
-  // The subscription is sent the feature as it is first: the commit's update comes after it.
-  expect(await stream.arrival('"kind":"next"', 5000)).toBeDefined();
+  // Nothing changed before the subscription, so it is sent nothing until the commit.
   const before = stream.mark();
 
   git(repo, "switch", "--quiet", "2026-10-12-cli-tuis");

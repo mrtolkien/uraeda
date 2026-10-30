@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use super::{Result, default_checkout};
+use crate::cache;
 use crate::check;
 use crate::decisions::{PartChange, compare};
 use crate::files::document::{self, BlockKind, Document, hash};
@@ -15,6 +16,8 @@ use crate::files::frontmatter;
 use crate::git::{Git, ObjectId};
 use crate::view::ProblemView;
 use crate::workspace::Problem;
+
+mod dates;
 
 const CONSTITUTION: &str = "specs/CONSTITUTION.md";
 const DECISIONS: &str = "specs/decisions";
@@ -209,23 +212,36 @@ pub(crate) fn ledger_hash(git: &Git) -> String {
     hash(&format!("{on_disk:?}{committed:?}"))
 }
 
-/// The constitution and the decisions of the default branch.
+/// Reads the dates of the decisions of the default branch, kept for the process, ahead of the
+/// ledger's first read.
+pub(crate) fn warm_dates(git: &Git) {
+    if let Some(default) = git.default_branch() {
+        dates::last_changes(git, &default, DECISIONS);
+    }
+}
+
+/// The constitution and the decisions of the default branch, from memory when a read since the
+/// last change kept them.
 pub fn read_ledger(repo: &Path) -> Result<Ledger> {
     let git = Git::discover(repo)?;
+    cache::kept(&git, "ledger", || ledger(&git))
+}
+
+fn ledger(git: &Git) -> Result<Ledger> {
     let default = git.default_branch();
-    let (texts, root, tip) = source(&git, default.as_deref());
+    let (texts, root, tip) = source(git, default.as_deref());
     let mut found = check::check_folder_texts(
         &root,
         &root.join(DECISIONS),
         &texts.decisions,
-        tip.map(|tip| (&git, tip)),
+        tip.map(|tip| (git, tip)),
     );
     for problems in found.values_mut() {
         problems.sort_by_key(|problem| problem.line);
     }
     let dates = default
         .as_deref()
-        .and_then(|default| git.last_changes(default, DECISIONS).ok())
+        .map(|default| dates::last_changes(git, default, DECISIONS))
         .unwrap_or_default();
     let decisions = texts
         .decisions

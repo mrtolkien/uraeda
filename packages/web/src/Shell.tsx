@@ -1,14 +1,14 @@
 // The shell around every page of a repository: on semi-wide and wide screens, the column beside the
 // page (`shell/Column.tsx`); on the phone, the bar of tabs above it (`shell/Tabs.tsx`); at every
-// width, the status line at the bottom of the window (`shell/StatusLine.tsx`). The page
-// keeps its place in the tree as the window crosses a width, so its text, focus, and scroll stay.
-// The shell's frame is our own (plan, Complexity tracking): Astryx's `AppShell` draws its own
-// navigation for the phone.
+// width, the status line at the bottom of the window (`shell/StatusLine.tsx`), and the toast of the
+// git writes still landing over it (`writes/CommitToast.tsx`). The page keeps its place in the tree
+// as the window crosses a width, so its text, focus, and scroll stay. The shell's frame is our own
+// (plan, Complexity tracking): Astryx's `AppShell` draws its own navigation for the phone.
 import { LayoutContent } from "@astryxdesign/core/Layout";
 import { VStack } from "@astryxdesign/core/VStack";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, Suspense, useState } from "react";
 import { LeaderMenuHost } from "./keys/LeaderMenuHost.tsx";
 import { KeyPickerHost } from "./keys/KeyPickerHost.tsx";
 import { LeaderKeys } from "./keys/LeaderKeys.tsx";
@@ -29,8 +29,7 @@ import { RenameSessionHost } from "./sidebar/RenameSession.tsx";
 import { SingleKeysSetting } from "./settings/SingleKeysSetting.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
 import { StatusLineCoverProvider } from "./statusHints.tsx";
-import { useWrites } from "./writes/store.ts";
-import { WriteProgress } from "./writes/WriteFeedback.tsx";
+import { CommitToast } from "./writes/CommitToast.tsx";
 import { ruleStyles } from "./layout/rules.ts";
 
 const styles = stylex.create({
@@ -96,11 +95,6 @@ const styles = stylex.create({
     "--size-status-line": spacingVars["--spacing-12"],
   },
 });
-
-/** The thin bar at the top of the page, while a git write runs. */
-function Writing() {
-  return <WriteProgress isRunning={useWrites().running !== undefined} />;
-}
 
 /** The errors of refused Undos, each until dismissed. */
 function UndoErrors() {
@@ -229,7 +223,10 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
                 }
               >
                 <LeaderMenuHost />
-                <Writing />
+                {/* The queue's first read never holds the page back. */}
+                <Suspense fallback={null}>
+                  <CommitToast />
+                </Suspense>
                 <ScrollKeys />
                 <UndoKey />
                 <LeaderKeys />

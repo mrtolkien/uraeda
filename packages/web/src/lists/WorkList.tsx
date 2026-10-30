@@ -11,6 +11,7 @@ import { listVars } from "./list.stylex.ts";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { type ReactNode, type UIEvent, useState } from "react";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { ReadAhead } from "../readAhead.ts";
 import { RowStateContext, type WorkRow } from "./Card.tsx";
 import { useColumnGlide } from "./columnGlide.ts";
 import { deleteAheadOf, useGone } from "./deleteAhead.ts";
@@ -159,6 +160,8 @@ export function WorkList(props: WorkListProps) {
     ahead,
     props.isLayoutChosen ?? false,
   );
+  // The selected row's page is read before it is opened, by a key or a click.
+  const page = rows.find((row) => row.key === selected)?.page;
   const deleteAhead = props.onDelete && deleteAheadOf(props.onDelete, placed, pick, setGone);
   const commands = useRowCommands(props, {
     deleteAhead,
@@ -225,6 +228,7 @@ export function WorkList(props: WorkListProps) {
         onBarAway: () => setBarred(undefined),
       }}
     >
+      {page && <ReadAhead request={page} />}
       <div ref={ref} {...stylex.props(isPhone && props.onOutline !== undefined && styles.underBar)}>
         <DragDropProvider {...drag.provider}>
           <Panes {...{ asColumns, below, drawn, inRow, isRoomy, onScroll }} />

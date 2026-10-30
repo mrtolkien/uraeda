@@ -171,16 +171,25 @@ function RepositoryRow({
 }
 
 /**
- * A repository's removal from the list, which calls `onRemovedCurrent` once the current one is
- * gone: `refused` is why the last removal could not be done.
+ * A repository's removal from the list, `list`, which calls `onRemovedCurrent` once the current one
+ * is gone: `refused` is why the last removal could not be done. Another than the current one leaves
+ * the list at once; the current one's page stays until the removal is done.
  */
-function useRemove(current: string | null, onRemovedCurrent: () => void) {
+function useRemove(
+  current: string | null,
+  onRemovedCurrent: () => void,
+  list: ReturnType<typeof useRepositories>,
+) {
   const fate = useFateClient();
   const [refused, setRefused] = useState<string>();
   const remove = async (name: string) => {
     setRefused(undefined);
     const { error } = await fate.mutations.repositories.remove({
       input: { name },
+      optimistic:
+        list && name !== current
+          ? { id: list.id, rows: list.rows.filter((row) => row.name !== name) }
+          : undefined,
       view: RepositoriesView,
     });
     if (error) {
@@ -208,7 +217,7 @@ function Menu({
 }) {
   const list = useRepositories();
   const [filter, setFilter] = useState("");
-  const { refused, remove } = useRemove(current, onRemovedCurrent);
+  const { refused, remove } = useRemove(current, onRemovedCurrent, list);
   const needle = filter.trim().toLowerCase();
   const rows = (list?.rows ?? []).filter(
     (row) => row.name.toLowerCase().includes(needle) || row.home.toLowerCase().includes(needle),

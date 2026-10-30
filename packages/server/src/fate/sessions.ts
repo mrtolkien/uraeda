@@ -14,6 +14,7 @@ import { callSiteError } from "./errors.ts";
 import { checkoutDir, hasPreview } from "./preview.ts";
 import { agentTime } from "./agentTime.ts";
 import { featureTokens } from "./tokens.ts";
+import { messageStep, readMessage } from "./workflow-step.ts";
 import {
   AGENT_ID,
   type AgentRecord,
@@ -369,7 +370,8 @@ export async function sessionSearch(ctx: RepoContext, query: string): Promise<Se
 
 /**
  * The workflow's message for `<folder>:<trigger>[:<file>]`: empty, with the refusal, when the
- * feature has no branch, or does not wait on the agent.
+ * feature has no branch, or does not wait on the agent. While the feature's commits are queued, it
+ * reads the step they will give.
  */
 export async function readWorkflowMessage(
   ctx: RepoContext,
@@ -379,7 +381,8 @@ export async function readWorkflowMessage(
   if (!folder || !TRIGGERS.includes(trigger as Trigger)) {
     return undefined;
   }
-  const next = await ctx.binding.nextStep(ctx.repo, folder).catch(() => undefined);
+  readMessage(ctx.repo, folder, id);
+  const next = await messageStep(ctx, folder);
   if (!next) {
     return undefined;
   }

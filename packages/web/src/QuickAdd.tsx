@@ -9,6 +9,7 @@ import { refusal } from "./errors.ts";
 import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
 import { showPageError } from "./layout/useUndoToast.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
+import { proposalAdded } from "./optimisticLists.ts";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import { PrioritiesAddedView } from "./views.ts";
@@ -127,6 +128,7 @@ export function AddForm({
     onCancel();
     const result = await fate.mutations.proposals.add({
       input: { hash: priorities?.hash ?? "", section, text },
+      ...(priorities ? { optimistic: proposalAdded(priorities.sections, section, text) } : {}),
       view: PrioritiesAddedView,
     });
     if (result.error) {

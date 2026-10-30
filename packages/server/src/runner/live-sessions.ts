@@ -79,6 +79,11 @@ export class LiveSessions {
     return () => this.#moving.delete(key);
   }
 
+  /** Whether a move or a drop holds the change or the feature. */
+  holds(target: { folder: string; repo: string }): boolean {
+    return this.#moving.has(this.#key(target));
+  }
+
   /** Whether a move or a drop holds the session, or its change or feature. */
   moving(live: Live): boolean {
     return (

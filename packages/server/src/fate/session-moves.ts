@@ -1,3 +1,4 @@
+import { reasonOf } from "../reason.ts";
 import type { Trigger } from "../runner/events.ts";
 import { editedFiles, movedOpening } from "../runner/moves.ts";
 import { REFUSALS } from "../runner/sessions.ts";
@@ -6,8 +7,10 @@ import { callSiteError, refusable } from "./errors.ts";
 import { refusedOn } from "./list-mutations.ts";
 import { featureRecord, readSession, readWorkflowMessage } from "./sessions.ts";
 import { sources } from "./sources.ts";
+import { landedStart } from "./starts.ts";
 import { droppedDataView } from "./views-dropped.ts";
 import { featureDataView, sessionDataView } from "./views.ts";
+import { featureKeys, LISTS, landed, type Queued, queued } from "./write-queue.ts";
 
 /**
  * The core's refusals of a taken name: a record, a branch, or a folder, whose `--slug` hint is the
@@ -77,7 +80,7 @@ async function sendRun(
       },
     });
   } catch (error) {
-    const reason = (error as Error).message.replace(/^refused: /, "");
+    const reason = reasonOf(error);
     process.stderr.write(`uraeda: ${folder} moved, but its run was not sent: ${reason}\n`);
   }
 }
@@ -86,7 +89,12 @@ async function sendRun(
 async function startChange(ctx: RepoContext, text: string, slug?: string) {
   return refusable(async () => {
     try {
-      return await ctx.binding.startChange(ctx.repo, text, [], slug);
+      return await landedStart(
+        ctx,
+        (onStep) => ctx.binding.startChange(ctx.repo, text, [], slug, onStep),
+        async (started) => started,
+        slug,
+      );
     } catch (error) {
       const message = (error as Error).message;
       const taken = TAKEN.map((pattern) => pattern.exec(message)).find((match) => match !== null);
@@ -132,7 +140,7 @@ async function toChange(
     try {
       await ctx.sessions.attach(ctx.repo, row.id, started.folder);
     } catch (error) {
-      const reason = (error as Error).message.replace(/^refused: /, "");
+      const reason = reasonOf(error);
       throw callSiteError(
         `refused: The change ${started.folder} started, but this session could not move to it: ${reason}`,
       );
@@ -150,17 +158,47 @@ async function toChange(
 }
 
 /**
+ * Drops the change or the feature, holding it until its commit landed or was refused: its sessions
+ * are archived once it landed, and a refused drop's comes back with them. It answers once its files
+ * are written.
+ */
+async function drop(ctx: RepoContext, input: Queued<{ folder: string }>) {
+  const { folder } = input;
+  const release = await refusedOn(() => ctx.sessions.hold(ctx.repo, { folder }));
+  let landing = Promise.resolve(false);
+  try {
+    // A drop takes the proposal's line out of the priorities too.
+    const keys = [...featureKeys(folder), LISTS];
+    return await queued(
+      ctx,
+      keys,
+      input.write,
+      { folder },
+      () => ctx.binding.dropItem(ctx.repo, folder),
+      (landed) => {
+        landing = landed;
+      },
+    );
+  } finally {
+    void landing
+      .then((landed) => (landed ? ctx.sessions.archiveFolder(ctx.repo, folder) : undefined))
+      .catch((error: unknown) =>
+        process.stderr.write(
+          `uraeda: ${folder} dropped, but its sessions stay: ${reasonOf(error)}\n`,
+        ),
+      )
+      .finally(release);
+  }
+}
+
+/**
  * The moves a human makes from a session: a session becoming a change, a change becoming a feature
  * in place, a new session of a change or a feature, and dropping one.
  */
 export const sessionMoves = {
   "feature.drop": {
-    resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
-      const dropped = await moving(ctx, { folder: input.folder }, async () => {
-        const left = await refusable(() => ctx.binding.dropItem(ctx.repo, input.folder));
-        await ctx.sessions.archiveFolder(ctx.repo, input.folder);
-        return left;
-      });
+    resolve: async ({ ctx, input, select }: Resolver<Queued<{ folder: string }>>) => {
+      const dropped = await drop(ctx, input);
       const record = {
         branch: dropped.branch,
         committed: dropped.committed,
@@ -172,9 +210,17 @@ export const sessionMoves = {
     type: "Dropped",
   },
   "feature.promote": {
-    resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
+    resolve: async ({ ctx, input, select }: Resolver<Queued<{ folder: string }>>) => {
+      // Its commits, on the default branch and the change's, go through the queue: they never run
+      // while another commit lands, and the priorities' wait for them.
+      const write = {
+        folder: input.folder,
+        ...(input.write ?? { href: "", label: `Making the change ${input.folder} a feature` }),
+      };
       const { folder } = await moving(ctx, { folder: input.folder }, () =>
-        refusable(() => ctx.binding.promoteChange(ctx.repo, input.folder)),
+        landed(ctx, [...featureKeys(input.folder), LISTS], write, () =>
+          ctx.binding.promoteChange(ctx.repo, input.folder),
+        ),
       );
       await sendRun(ctx, folder, { trigger: "manual" });
       return maskedFeature(ctx, folder, select);

@@ -32,7 +32,7 @@ function BuildFresh({
           setRefused(undefined);
           setRefused(await actions.setBuildInFreshSession(fresh));
         }}
-        value={values.runs.buildInFreshSession.inForce}
+        value={values.runs.buildInFreshSession.saved ?? values.runs.buildInFreshSession.inForce}
       />
     </SettingRow>
   );

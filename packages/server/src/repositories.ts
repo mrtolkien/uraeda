@@ -3,14 +3,16 @@ import { join } from "node:path";
 import type { Repository, WatchHandle } from "uraeda-binding";
 import type { Binding } from "./fate/context.ts";
 import { REPOSITORIES_ID } from "./fate/views-repositories.ts";
+import { keyFolders, WRITE_QUEUE_ID } from "./fate/write-queue.ts";
 import { createFate, type FateServer, live as globalLive, type LiveBus } from "./fate.ts";
 import { publish } from "./live.ts";
 import { type PullRequests, startPullRequests } from "./pulls.ts";
 import type { Sessions } from "./runner/sessions.ts";
+import { WriteQueue } from "./writes/queue.ts";
 
 /**
  * A listed repository, as the server serves it: its own fate server and live bus, so its views
- * receive its updates only.
+ * receive its updates only, and its write queue, which lands the commits its writes defer.
  */
 export type Host = {
   fate: FateServer;
@@ -18,6 +20,7 @@ export type Host = {
   missing: boolean;
   name: string;
   path: string;
+  queue: WriteQueue;
 };
 
 /**
@@ -29,6 +32,17 @@ const FILE = "repositories.json";
 export const LIST_QUIET_MS = 100;
 
 let announced = 0;
+
+/** The core's changes, none. */
+const NO_CHANGES = {
+  branchDecisions: [],
+  decisions: false,
+  features: [],
+  files: [],
+  inbox: false,
+  priorities: false,
+  workspace: false,
+};
 
 /**
  * The hosts' binding, data folder, and session manager, and `stopped`, told of each host closed as
@@ -214,10 +228,30 @@ export class Hosts {
   }
 
   #start({ missing, name, path }: Repository): void {
+    const { binding, sessions } = this.#options;
     const { fateServer, live } = createFate();
-    const entry: Entry = { host: { fate: fateServer, live, missing, name, path } };
+    const queue = new WriteQueue(
+      {
+        land: (id, onOutput) => binding.land(path, id, onOutput),
+        takeDeferred: () => binding.takeDeferred(path),
+      },
+      () =>
+        live.update("WriteQueue", WRITE_QUEUE_ID, {
+          eventId: `write-queue:${Date.now()}:${announced++}`,
+        }),
+      // A feature's step moves as its commit lands, or back as it is refused: its records, and the
+      // composer's message, read it again.
+      (keys) => {
+        const features = keyFolders(keys);
+        if (features.length > 0) {
+          publish({ ...NO_CHANGES, features }, entry.host, sessions);
+        }
+      },
+    );
+    const entry: Entry = { host: { fate: fateServer, live, missing, name, path, queue } };
     if (!missing) {
-      const { binding, sessions } = this.#options;
+      // The core defers this repository's commits for the queue from now on.
+      binding.deferCommits(path, true);
       entry.pulls = startPullRequests(path, binding, (features) =>
         publish(
           {
@@ -248,8 +282,21 @@ export class Hosts {
     this.#entries.set(name, entry);
   }
 
+  /**
+   * Turns off the deferral of a host's commits: those not landed are forgotten, their files left
+   * written, and a write made since commits within its call.
+   */
+  #undefer({ missing, path }: Host): void {
+    if (!missing) {
+      this.#options.binding.deferCommits(path, false);
+    }
+  }
+
   #stop(name: string): void {
     const entry = this.#entries.get(name);
+    if (entry) {
+      this.#undefer(entry.host);
+    }
     entry?.watch?.close();
     entry?.pulls?.stop();
     this.#entries.delete(name);
@@ -263,7 +310,8 @@ export class Hosts {
     this.#closed = true;
     clearTimeout(this.#timer);
     this.#watch?.close();
-    for (const { pulls, watch } of this.#entries.values()) {
+    for (const { host, pulls, watch } of this.#entries.values()) {
+      this.#undefer(host);
       watch?.close();
       pulls?.stop();
     }

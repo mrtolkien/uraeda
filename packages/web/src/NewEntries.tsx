@@ -4,10 +4,12 @@
 // inserts its text in the composer, with a link to the file it is in; a card with a file of its
 // own, a proposal file or a note file, opens that file's page instead.
 import { useInbox, usePriorities } from "./data.ts";
+import { isPending } from "./lists/outline.ts";
 import { WorkList, type WorkRow, type WorkSection } from "./lists/WorkList.tsx";
 import { titleOf } from "./QuickAdd.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { plain } from "./Spans.tsx";
+import { proposalFilePage } from "./readAhead.ts";
 
 /** What an entry is: a note of the inbox, or a proposal line of the priorities. */
 export type SourceKind = "line" | "note";
@@ -100,6 +102,7 @@ function useEntries(search: string) {
     byHref.set(href, entry);
     return {
       href,
+      ...(entry.linked === undefined ? {} : { page: proposalFilePage(entry.linked) }),
       // An entry with a file of its own reads as a link to it.
       ...(entry.linkedHref ? { icon: "uraeda:file-text" as const, isLinked: true } : {}),
       isFixed: true,
@@ -109,8 +112,12 @@ function useEntries(search: string) {
       text: entry.text,
     };
   };
+  // A row not written yet has no page and no id the core knows: it is offered once written.
   const notes = (inbox?.categories ?? []).flatMap((category) =>
     category.notes.flatMap((note) => {
+      if (isPending(note.key)) {
+        return [];
+      }
       const entry: Entry = {
         ...(note.file === undefined ? {} : { linked: note.file }),
         ...(note.file === undefined ? {} : { linkedHref: here(`/edit/${note.file}`) }),
@@ -130,6 +137,7 @@ function useEntries(search: string) {
     section.proposals
       // Not running, and linking no file but its proposal file: those have started.
       .filter((line) => !line.running && (line.file || !line.spans.some((span) => span.link)))
+      .filter((line) => !isPending(line.key))
       .flatMap((line) => {
         const entry = lineEntry(line, here);
         if (!holds(needle, [entry.text, ...entry.lines])) {

@@ -7,6 +7,7 @@ import { useFateClient } from "react-fate";
 import { readProposalFile, useEditorImages, useMovedText } from "../attach/useEditorImages.ts";
 import type { useProposalFile } from "../data.ts";
 import { refusal } from "../errors.ts";
+import { withFreshBase } from "../freshBase.ts";
 import { readUnsaved, unsavedKey, writeUnsaved } from "../fields/unsaved.ts";
 import { useTextField } from "../fields/useTextField.ts";
 import { useRepositoryPath } from "../routes.tsx";
@@ -39,10 +40,22 @@ export function useProposalEditor({
   const [drawn, setDrawn] = useState(false);
   const [conflict, setConflict] = useState<string>();
   const save = useSave<string>(async (value, previous) => {
-    const result = await fate.mutations.text.save({
-      input: { hash: previous, path, text: `${frontmatter.head()}${value}` },
-      view: ProposalFileView,
-    });
+    const text = `${frontmatter.head()}${value}`;
+    // The file as the page shows it, the text typed over: a conflict over it is a stale hash, read
+    // again and written over once. A text another writer changed keeps the conflict.
+    const over = `${frontmatter.head()}${field.unsavedNow()?.base ?? body}`;
+    const result = await withFreshBase(
+      async (mode) =>
+        mode === "cache-first"
+          ? { hash: previous, text: over }
+          : await readProposalFile(fate, path).catch(() => undefined),
+      (base) =>
+        fate.mutations.text.save({
+          input: { hash: base?.hash ?? previous, path, text },
+          view: ProposalFileView,
+        }),
+      (fresh) => fresh?.text === over,
+    );
     if (result.error) {
       const failed = refusal(result.error);
       if (failed.kind === "conflict") {

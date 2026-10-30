@@ -18,10 +18,14 @@ use uraeda_core::files::priorities::Priorities;
 use uraeda_core::files::stories::{self, StoryTarget};
 use uraeda_core::view::{
     AddedView, AttachedView, CommitView, FeatureView, FileView, NextView, ProposalFileView,
-    ProposalHint, RepositoryView, StartedView, WorkspaceView,
+    ProposalHint, RepositoryView, WorkspaceView,
 };
 use uraeda_core::watch::{self, Changes};
 
+pub mod cache;
+pub mod deferred;
+pub mod drafts;
+pub mod expected;
 pub mod file_writes;
 pub mod history;
 pub mod inbox_categories;
@@ -30,6 +34,7 @@ pub mod moves;
 pub mod note_images;
 pub mod proposal_writes;
 pub mod settings;
+pub mod start;
 
 /// A core operation, run off the main thread.
 pub struct Job<T: Send + 'static> {
@@ -227,36 +232,6 @@ pub fn commit_text(repo: String, path: String) -> AsyncTask<Job<CommitView>> {
 #[napi(ts_return_type = "Promise<Array<ProposalHint>>")]
 pub fn proposal_hints() -> AsyncTask<Job<Vec<ProposalHint>>> {
     job(api::proposal_hints)
-}
-
-/// Starts a proposed feature, or a change with the kind `"change"`, in its own worktree.
-#[napi(
-    ts_args_type = "repo: string, proposal: string, slug?: string | undefined | null, kind?: \"feature\" | \"change\" | undefined | null",
-    ts_return_type = "Promise<StartedView>"
-)]
-pub fn start_feature(
-    repo: String,
-    proposal: String,
-    slug: Option<String>,
-    kind: Option<String>,
-) -> AsyncTask<Job<StartedView>> {
-    job(move || {
-        let kind = api::start_kind(kind.as_deref())?;
-        api::start_feature(Path::new(&repo), &proposal, slug.as_deref(), kind)
-    })
-}
-
-/// Starts a change typed as a text, with its images, in its own worktree: the first written line
-/// is its title.
-#[napi(ts_return_type = "Promise<StartedView>")]
-pub fn start_change(
-    repo: String,
-    text: String,
-    images: Vec<Buffer>,
-    slug: Option<String>,
-) -> AsyncTask<Job<StartedView>> {
-    let images: Vec<Vec<u8>> = images.iter().map(|image| image.to_vec()).collect();
-    job(move || api::start_change(Path::new(&repo), &text, &images, slug.as_deref()))
 }
 
 /// The slug proposed for a change typed as this text, from the title its start reads in it: empty

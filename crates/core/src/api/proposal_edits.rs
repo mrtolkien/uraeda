@@ -70,7 +70,7 @@ pub fn add_proposal(
     line: &str,
     previous: &str,
 ) -> Result<Priorities> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (place, workspace) = reach_default_from(repo)?;
     Ok(workspace.join_priorities(edits::add(&place, section(section_id)?, line, previous)?))
 }
@@ -83,7 +83,7 @@ pub fn add_proposal_and_commit(
     line: &str,
     previous: &str,
 ) -> Result<(Priorities, Added)> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (place, workspace) = reach_default_from(repo)?;
     let (priorities, added) = edits::add_and_commit(&place, section(section_id)?, line, previous)?;
     Ok((workspace.join_priorities(priorities), added))
@@ -97,7 +97,7 @@ pub fn undo_committed_proposal(
     lines: &[String],
     previous: &str,
 ) -> Result<Priorities> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (place, workspace) = reach_default_from(repo)?;
     Ok(workspace.join_priorities(edits::undo_committed(&place, lines, previous)?))
 }
@@ -111,7 +111,7 @@ pub fn insert_proposal(
     lines: &[String],
     previous: &str,
 ) -> Result<Priorities> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (place, workspace) = reach_default_from(repo)?;
     Ok(workspace.join_priorities(edits::insert(
         &place,
@@ -130,7 +130,7 @@ pub fn move_proposal(
     index: u32,
     previous: &str,
 ) -> Result<Priorities> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (place, workspace) = reach_default_from(repo)?;
     Ok(workspace.join_priorities(edits::move_proposal(
         &place,
@@ -143,14 +143,14 @@ pub fn move_proposal(
 
 /// Replaces a line's text.
 pub fn edit_proposal(repo: &Path, id: &str, line: &str, previous: &str) -> Result<Priorities> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (place, workspace) = reach_default_from(repo)?;
     Ok(workspace.join_priorities(edits::edit(&place, id, line, previous)?))
 }
 
 /// Removes a line and its nested lines.
 pub fn remove_proposal(repo: &Path, id: &str, previous: &str) -> Result<Priorities> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (place, workspace) = reach_default_from(repo)?;
     Ok(workspace.join_priorities(edits::remove(&place, id, previous)?))
 }
@@ -158,7 +158,7 @@ pub fn remove_proposal(repo: &Path, id: &str, previous: &str) -> Result<Prioriti
 /// Commits the commit bar's changes, the priorities' and the inbox's, as
 /// [`commit_changes`](super::commit_changes) does.
 pub fn commit_priorities(repo: &Path) -> Result<Priorities> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     changes::commit(&place)?;
     joined(repo, edits::read(&place))
@@ -167,7 +167,7 @@ pub fn commit_priorities(repo: &Path) -> Result<Priorities> {
 /// Restores the committed priorities and inbox, and takes the notes back out of proposal files, as
 /// [`discard_changes`](super::discard_changes) does.
 pub fn discard_priorities(repo: &Path) -> Result<Priorities> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     changes::discard(&place)?;
     // A discard deletes the proposal files never committed: the workspace is read after it.

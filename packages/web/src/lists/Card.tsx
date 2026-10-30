@@ -28,6 +28,7 @@ import {
 } from "react";
 import type { ConfirmOptions } from "../fields/Confirm.tsx";
 import { pickedStyles } from "../layout/picked.ts";
+import type { PageRequest } from "../readAhead.ts";
 import { type BarAction, RowBar } from "./RowBar.tsx";
 
 /** What a card's editor tells the list: that it closed. */
@@ -77,6 +78,8 @@ export interface WorkRow {
   lines: ReadonlyArray<string>;
   /** Its marks, as small text after its own. */
   marks?: ReactNode;
+  /** The request of the page `href` opens, read ahead while the row is selected (`ReadAhead`). */
+  page?: PageRequest;
   /** A nested row's line: the key of the row it is drawn in. */
   parent?: string;
   /** Where its list places it, as the list knows it: the priorities' place in the file. */

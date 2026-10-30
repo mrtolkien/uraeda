@@ -26,6 +26,8 @@ import { Timeline } from "./Timeline.tsx";
 import { day } from "./times.ts";
 import { Missing } from "../layout/Missing.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
+import { featurePage } from "../dropItem.ts";
+import { RefusedHere } from "../writes/RefusedHere.tsx";
 
 type FeatureData = NonNullable<ReturnType<typeof useFeature>>;
 type HistoryData = NonNullable<ReturnType<typeof useHistory>>;
@@ -188,7 +190,8 @@ function RecordPart({
 
 /**
  * The feature's name, with its line of facts and, while it is not done, its menu; why the server
- * refused a drop shows under it until dismissed.
+ * refused a drop shows under it until dismissed, and why its commit was refused once the page
+ * already showed it dropped.
  */
 function FeatureTitle({ done, feature }: { done: boolean; feature: FeatureData }) {
   const [refused, setRefused] = useState<string>();
@@ -223,6 +226,10 @@ function FeatureTitle({ done, feature }: { done: boolean; feature: FeatureData }
           title={refused}
         />
       )}
+      <RefusedHere
+        what={`the ${feature.kind === "change" ? "change" : "feature"} is back, not dropped.`}
+        where={{ href: featurePage(feature.folder) }}
+      />
     </VStack>
   );
 }

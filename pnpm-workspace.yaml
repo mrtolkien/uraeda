@@ -16,6 +16,8 @@ minimumReleaseAgeExclude:
   - "@astryxdesign/core@0.7.3"
   - "@astryxdesign/cli@0.7.3"
   - "@astryxdesign/theme-neutral@0.7.3"
+  - "@nkzw/fate@1.13.0"
+  - react-fate@1.13.0
 overrides:
   vite@*: "catalog:"
 peerDependencyRules:

@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { afterAll, beforeAll, expect, test } from "vite-plus/test";
+import { afterAll, beforeAll, expect, test, vi } from "vite-plus/test";
 import { fakeGh, SAMPLE_FOLDERS, samplePullRequests } from "../../samples/index.ts";
 import { type Sandbox, sandboxEnv, seed } from "../seed.ts";
 import {
@@ -150,6 +150,19 @@ type RoundFile = {
   current: { items: { clarifications: { questions: Array<{ answer?: string; id: string }> } } };
 };
 
+/** Waits until the write queue of "sample" has no write left, landing or refused. */
+async function landed(served: Served): Promise<void> {
+  await vi.waitFor(
+    async () => {
+      const read = await fateAt(served.url, "sample", [
+        { ids: ["write-queue"], kind: "byId", select: ["id", "writes"], type: "WriteQueue" },
+      ]);
+      expect(first<{ writes: Array<unknown> }>(read.results[0]).writes).toEqual([]);
+    },
+    { interval: 50, timeout: 30_000 },
+  );
+}
+
 /** The step of the feature in `folder` of "sample", as Home reads it. */
 async function stepOf(served: Served, folder: string): Promise<string | undefined> {
   const home = await fateAt(served.url, "sample", [
@@ -195,6 +208,9 @@ test("the round waiting, answered and submitted, moves its feature to the spec s
     ]);
     expect(submitted.results[0]?.ok).toBe(true);
 
+    // The answers' commit lands behind the call, in the write queue: the step is the branch's
+    // latest commit's.
+    await landed(served);
     expect(await stepOf(served, ROUND)).toBe("spec");
     await waitAtWork(served);
   } finally {

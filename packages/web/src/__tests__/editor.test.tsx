@@ -1,8 +1,8 @@
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { click, git, renderPage, today, type } from "./helpers.tsx";
+import { click, fixtureRepo, git, renderPage, today, type } from "./helpers.tsx";
 
 today("2026-10-12");
 
@@ -40,16 +40,45 @@ test("Start stops when the text could not be saved", async () => {
   expect(git(repo, "branch", "--list", STARTED).trim()).toBe("");
 });
 
-/** US2 4: the text typed is saved first, and the feature starts from it. */
-test("Start saves the text typed, then starts the feature from it (US2 4)", async () => {
-  const { repo } = await renderPage("/edit/specs/proposals/git-listener.md");
+/**
+ * A pre-commit hook in `repo` that holds every commit until `release` is called: the start's write
+ * stays in the queue meanwhile.
+ */
+function heldCommits(repo: string) {
+  const gate = join(repo, ".git/released");
+  const hook = join(repo, ".git/hooks/pre-commit");
+  mkdirSync(dirname(hook), { recursive: true });
+  writeFileSync(hook, `#!/bin/sh\nwhile [ ! -f "${gate}" ]; do sleep 0.05; done\n`, {
+    mode: 0o755,
+  });
+  return () => writeFileSync(gate, "");
+}
+
+/**
+ * US4 2: the text typed is saved first, then the start is planned, and its session opens with the
+ * plan's message in the composer before the start's commit lands; the feature starts from the text.
+ */
+test("Start saves the text typed, then opens the session at once (US4 2)", async () => {
+  const repo = fixtureRepo();
+  const release = heldCommits(repo);
+  await renderPage("/edit/specs/proposals/git-listener.md", repo);
   const typed = "# Git listener process\n\n## What\n\nStarted as typed.\n";
   await type(await edit(), typed);
   await type(screen.getByRole("textbox", { name: "Slug" }), "git-listener");
 
   await click(startButton());
 
-  await waitFor(() => expect(git(repo, "branch", "--list", STARTED).trim()).not.toBe(""));
+  await waitFor(() => expect(window.location.pathname).toMatch(`/f/${STARTED}/session`));
+  const composer = await screen.findByRole("textbox", { name: /^Message/ });
+  await waitFor(() => expect(composer.textContent).toContain(`specs/${STARTED}/`));
+  expect(screen.getByText("Starting the feature Git listener process")).toBeTruthy();
+  // The commit still waits on its hook: the page did not wait for it.
+  expect(git(repo, "branch", "--list", STARTED).trim()).toBe("");
+
+  release();
+  await waitFor(() => expect(git(repo, "branch", "--list", STARTED).trim()).not.toBe(""), {
+    timeout: 10_000,
+  });
   expect(git(repo, "show", `${STARTED}:specs/${STARTED}/proposal.md`)).toContain(
     "Started as typed.",
   );
