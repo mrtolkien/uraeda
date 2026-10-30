@@ -6,6 +6,7 @@ import { TURN_PAGE } from "../limits.ts";
 import { coveredDenials } from "../runner/allow.ts";
 import type { Trigger } from "../runner/events.ts";
 import { commentsReference, runMessage } from "../runner/message.ts";
+import { TAKEN_BACK } from "../runner/session-state.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import { sessionDone, sessionStatus, STATUS_ORDER } from "../runner/status.ts";
 import { itemLooks } from "./items.ts";
@@ -91,10 +92,13 @@ async function ownTurn(ctx: RepoContext, id: string): Promise<TurnRow | undefine
   return turn && (await ownSession(ctx, turn.sessionId)) ? turn : undefined;
 }
 
-/** What a session's status and its sidebar row read of its turns. */
+/**
+ * What a session's status and its sidebar row read of its turns. Its `latest` is the latest turn
+ * not taken back: a queued message taken back ran nothing, and never asks for the human.
+ */
 export function turnsOf(cache: SessionCache, session: string) {
   const turns = cache.turns(session);
-  const latest = turns.at(-1);
+  const latest = turns.findLast((turn) => turn.state !== "stopped" || turn.reason !== TAKEN_BACK);
   const running = turns.filter((turn) => turn.state === "running").at(-1);
   const subagents: Array<SubagentRecord> = running ? cache.subagentsOf(running.id) : [];
   return {
