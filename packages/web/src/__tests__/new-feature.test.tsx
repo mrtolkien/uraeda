@@ -1,9 +1,9 @@
 // The New page's start of a feature: the Feature card's text, named in one dialog with its slug and
 // its research effort, starts the feature and opens its session, the discovery's message unsent.
 // The text stays in the composer until the start lands.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { unsavedKey } from "../fields/unsaved.ts";
 import { navigate } from "../routes.tsx";
@@ -12,6 +12,7 @@ import {
   atRepo,
   click,
   fakeAgent,
+  fixture,
   fixtureRepo,
   git,
   quiet,
@@ -80,6 +81,14 @@ test("a feature typed in the Feature card starts into its session", async () => 
   const held = await screen.findByRole("textbox", { name: "Write Proposal" });
   await quiet();
   expect(held.textContent).toBe(TEXT);
+  // Row: an image pasted meanwhile is the human's newer draft: the landing leaves it.
+  const png = new File([readFileSync(fixture("images/phone.png"))], "later.png", {
+    type: "image/png",
+  });
+  await act(async () => {
+    fireEvent.paste(held, { clipboardData: { files: [png], getData: () => "" } });
+  });
+  await screen.findByRole("button", { name: /^Remove/ });
   hook.release();
   // The start lands, its commit on main.
   await waitFor(
@@ -104,6 +113,7 @@ test("a feature typed in the Feature card starts into its session", async () => 
   await act(async () => navigate(atRepo("/new?kind=feature")));
   const box = await screen.findByRole("textbox", { name: "Write Proposal" });
   await waitFor(() => expect(box.textContent).toBe(""));
+  expect(screen.getByRole("button", { name: /^Remove/ })).toBeTruthy();
   // Row: a second start of the slug is refused in the dialog, which stays open, the text kept.
   await type(box, TEXT);
   const again = await sendFeature();

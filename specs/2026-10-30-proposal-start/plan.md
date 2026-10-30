@@ -223,7 +223,8 @@ clock set by `today`; `forgetUnsaved` stands for a reload.
   - `api::start_text(repo: &Path, start: &TextStart<'_>, slug: Option<&str>, day: Option<&str>, on_step: &dyn Fn(StartProgress)) -> Result<StartedView>`,
     in place of `api::start_change`.
 - Produces, in the binding:
-  - `planTextStart(repo: string, text: string, options: TextStartOptions): Promise<PlannedView>`
+  - `planTextStart(repo: string, text: string, images: Array<Buffer>, options: TextStartOptions): Promise<PlannedView>`,
+    the images checked as the start checks them
   - `startText(repo: string, text: string, images: Array<Buffer>, options: TextStartOptions, onStep?: (step: StartStepView) => void): Promise<StartedView>`
   - `TextStartOptions = { day?: string; discovery?: string; kind?: "feature" | "change"; line?: string; slug?: string }`,
     a feature when no kind is given.

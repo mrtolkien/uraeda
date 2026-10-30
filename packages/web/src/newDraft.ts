@@ -13,6 +13,7 @@ import {
 } from "./fields/unsaved.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
 import { type Entry, insertion, type Source, withAdded } from "./NewEntries.tsx";
+import type { DraftImage } from "./attach/chatImages.ts";
 import { useRepositoryPath } from "./routes.tsx";
 import { useDraft } from "./useDraft.ts";
 
@@ -98,8 +99,8 @@ function sourceOf(entry: Entry, inserted: string): Source {
  * - `start`: replaces the draft with the entry alone, without its link or images, as a line's
  *   Start; a draft that held more than spaces, or images, comes back with the "Draft replaced"
  *   toast's Undo, its sources and images with it.
- * - `sent(text)`: empties the draft, its images too, while it still holds `text`: a newer draft
- *   stays whole. Whether it went.
+ * - `sent(text, images)`: empties the draft, and takes out the images sent, while it still holds
+ *   `text`: a newer draft stays whole, and an image added since stays. Whether it went.
  * - `unsavedNow()`: the text as the store holds it when called.
  */
 export function useNewDraft() {
@@ -139,12 +140,13 @@ export function useNewDraft() {
     }
   };
   // Whether the draft still held `text`, and went with its images: a newer draft stays whole.
-  const sent = (text: string) => {
+  const sent = (text: string, images: ReadonlyArray<DraftImage>) => {
     if (held(key).text.trim() !== text.trim()) {
       return false;
     }
     dropUnsaved(key);
-    kept.setImages([]);
+    // Only the images sent: one added since, while a start was landing, stays.
+    kept.setImages((now) => now.filter((image) => !images.includes(image)));
     return true;
   };
   return {

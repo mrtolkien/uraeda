@@ -79,7 +79,7 @@ function useStart({ sent: clear, sources }: NewDraft) {
       };
     }
     // The store's text now, not this page's: the human may have come back and typed another.
-    const cleared = clear(sent);
+    const cleared = clear(sent, images);
     void takeOut(
       fate,
       sources.filter((source) => source !== line),

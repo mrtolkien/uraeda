@@ -65,7 +65,7 @@ function useFeatureStart(draft: NewDraft) {
           return;
         }
         landed = true;
-        draft.sent(text);
+        draft.sent(text, images);
         void takeOut(fate, others);
       },
       message: plan.message ?? "",
