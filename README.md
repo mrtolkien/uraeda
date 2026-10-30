@@ -20,8 +20,7 @@
   </tr>
 </table>
 
-**An asynchronous, git-driven development workflow for coding agents.** 裏枝, _uraeda_: the back
-branch.
+**An asynchronous, git-driven development workflow for coding agents.**
 
 You write a short proposal. An agent investigates it in depth, comes back with the questions only
 you can answer, then with a complete spec to approve. Then it plans, implements, and opens a pull
@@ -99,18 +98,17 @@ tasks feature through the whole workflow:
 
 ## Getting started
 
-Install `ura`, the skill, Claude Code, and the web UI. [INSTALL.md](INSTALL.md) has every other way.
+Install `ura`, the skill, and the web UI. [INSTALL.md](INSTALL.md) has every other way.
+
+> [!WARNING] At the moment, only Claude Code is supported by the Web UI
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/mrtolkien/uraeda/releases/latest/download/uraeda-cli-installer.sh | sh
 ura install                                     # the skill, for your user
-curl -fsSL https://claude.ai/install.sh | bash  # Claude Code, for the web UI's sessions
 npx @uraeda/ui                                  # the web UI, in your repository
 ```
 
-Without `ura`, install the skill with `npx skills add mrtolkien/uraeda`. Claude Code needs a paid
-plan, Pro, Max, Team, Enterprise, or Console: see its
-[setup page](https://code.claude.com/docs/en/setup).
+Without `ura`, install the skill with `npx skills add mrtolkien/uraeda`
 
 Then:
 
