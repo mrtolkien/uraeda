@@ -1122,3 +1122,23 @@ fn a_stale_hash_refuses_the_place() {
     );
     assert_eq!(repo.read(INBOX), changed);
 }
+
+/// A note whose marks end its first line moves with its text on the proposal's line, not on a
+/// line of its own under a bare `- `.
+#[test]
+fn a_note_whose_marks_end_its_first_line_moves_as_one_line() {
+    let repo = fixture_repo();
+    let inbox = repo.read(INBOX);
+    repo.write(
+        INBOX,
+        &format!("{inbox}- [agent] [run-ui]\n  The cards jump when a run starts\n"),
+    );
+    let place = main_place(&repo);
+
+    to_proposal(&place, "The cards jump when a run starts", Section::Now);
+
+    assert!(repo.read(PRIORITIES).contains(
+        "- [Plan review](/specs/2026-10-13-plan-review/proposal.md)\n\
+         - The cards jump when a run starts\n\n## Next"
+    ));
+}

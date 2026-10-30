@@ -132,7 +132,11 @@ fn marks(first: &str, continues: bool) -> (bool, Option<String>, &str) {
 fn body<'a>(lines: &[&'a str], item: &Item) -> (bool, Option<String>, Vec<&'a str>) {
     let mut text = lines::item_text(lines, item);
     let (agent, about, first) = marks(text[0], text.len() > 1);
-    text[0] = first;
+    // Marks alone on the first line: the text starts on the next one.
+    match first.trim().is_empty() && text.len() > 1 {
+        true => drop(text.remove(0)),
+        false => text[0] = first,
+    }
     (agent, about, text)
 }
 
@@ -337,9 +341,14 @@ pub fn unmarked_lines(text: &str, id: &str) -> Option<(Vec<String>, usize)> {
     let lines: Vec<&str> = unix.split('\n').collect();
     let (_, first) = item_marker(lines[item.line - 1])?;
     let (_, _, rest) = marks(first, item.text_end > item.line);
+    // Marks alone on the first line: the next line of the text takes their place.
+    let (rest, from) = match rest.trim().is_empty() && item.text_end > item.line {
+        true => (lines[item.line].trim_start(), item.line + 1),
+        false => (rest, item.line),
+    };
     let mut unmarked = vec![format!("{} {rest}", item.marker.render())];
-    unmarked.extend(lines[item.line..item.end].iter().map(|l| l.to_string()));
-    Some((unmarked, item.text_end + 1 - item.line))
+    unmarked.extend(lines[from..item.end].iter().map(|l| l.to_string()));
+    Some((unmarked, item.text_end + 1 - from))
 }
 
 /// What a file made from a note holds, a note file or a proposal file: the markdown of its text
