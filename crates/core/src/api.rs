@@ -26,7 +26,6 @@ mod category_edits;
 mod decision;
 mod default_branch;
 mod deferred;
-mod drafts;
 mod drop;
 mod drop_at;
 mod error;
@@ -55,7 +54,6 @@ pub(crate) use default_branch::default_checkout;
 pub use default_branch::{default_root, on_default_branch};
 use default_branch::{on_default, reach_default, reach_default_from};
 pub use deferred::{DeferredView, defer_commits, land, take_deferred};
-pub use drafts::draft_proposal;
 pub use drop::{DroppedView, drop_item};
 pub use drop_at::DropAt;
 pub use error::ApiError;
@@ -88,8 +86,8 @@ pub use reviews::{
 use setup::setup_items;
 pub use setup::{SetupItem, read_setup};
 pub use start::{
-    plan_start, promote_change, propose_slug, start_change, start_feature, start_kind,
-    start_planned,
+    TextStart, plan_start, plan_text_start, promote_change, propose_slug, start_feature,
+    start_kind, start_planned, start_text,
 };
 pub(crate) use warm::warm;
 

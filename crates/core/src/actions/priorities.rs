@@ -31,11 +31,6 @@ pub fn read(place: &Place) -> Priorities {
     counted(place, &text(place))
 }
 
-/// The priorities, without counting the commit bar's changes: no `git status`.
-pub(crate) fn read_uncounted(place: &Place) -> Priorities {
-    priorities::read(&text(place), None)
-}
-
 /// Applies an edit over the version read at `previous`, and returns the priorities as it wrote
 /// them: a change made elsewhere right after is not taken for this one, and the next edit over
 /// this version is refused.
@@ -147,23 +142,6 @@ pub fn insert(
         |text| priorities::insert_proposal(text, section, index, lines),
         "a proposal needs some text",
     )
-}
-
-/// Inserts a proposal's lines as [`insert`] does, without counting the commit bar's changes.
-pub(crate) fn insert_uncounted(
-    place: &Place,
-    section: Section,
-    index: usize,
-    lines: &[String],
-    previous: &str,
-) -> Result<(), ActionError> {
-    write(
-        place,
-        previous,
-        |text| priorities::insert_proposal(text, section, index, lines),
-        "a proposal needs some text",
-    )
-    .map(drop)
 }
 
 /// Moves a proposal before the proposal at `index` of `section`, or to its end.

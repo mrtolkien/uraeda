@@ -332,3 +332,35 @@ test("the lists' calls wait for a start's commit, not for its agent", async () =
   await idle(server);
   expect(await writes(server)).toEqual([]);
 });
+
+test("a typed feature answers once planned with its discovery's message, then lands in one commit", async () => {
+  const { hook, server } = await startServer();
+  const text = "Dark mode: follow the system theme";
+  const typed = (slug: string) =>
+    mutate(server.app, "feature.startText", { discovery: "low", slug, text }, PLAN_FIELDS);
+
+  const planned = await typed("dark-mode");
+
+  expect(planned.error).toBeUndefined();
+  const folder = planned.data.folder as string;
+  expect(folder).toMatch(/^\d{4}-\d{2}-\d{2}-dark-mode$/);
+  expect(planned.data).toMatchObject({ id: folder, title: text });
+  expect(planned.data.message).toContain(`specs/${folder}/ on branch ${folder}`);
+  await startWrite(server, (write) => write.steps[0].output !== undefined);
+  // Row: the same slug again is refused at once, while the first start still waits in the queue.
+  const again = await typed("dark-mode");
+  expect(again.error?.message).toBe("refused: A feature named dark-mode exists already");
+
+  hook.release();
+  await idle(server);
+  expect(await writes(server)).toEqual([]);
+  expect(git(server.repo, "log", "-1", "--format=%s", "main").trim()).toBe(
+    `chore(dark-mode): start ${text}`,
+  );
+  expect(git(server.repo, "show", `main:specs/${folder}/proposal.md`)).toBe(
+    `---\ndiscovery: low\n---\n\n# ${text}\n`,
+  );
+  // Row: the start dialog's research efforts are the core's.
+  const [proposal] = await byId(server.app, "SlugProposal", [text], ["id", "discoveryLevels"]);
+  expect(proposal.discoveryLevels).toEqual(["low", "medium", "high"]);
+});

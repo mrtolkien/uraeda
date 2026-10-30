@@ -432,6 +432,7 @@ export const FolderSuggestionsView = view<FolderSuggestions>()({
 
 /** The slug the core proposes for a typed change's whole text, its id (R14). */
 export const SlugProposalView = view<SlugProposal>()({
+  discoveryLevels: true,
   id: true,
   slug: true,
 });

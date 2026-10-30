@@ -49,3 +49,7 @@
 - [agent] [mockup-previews] A clicked link to an SVG in `mockups/` opens it through the mockup
   route, whose policy lets its scripts run in an opaque origin, while the image route runs none:
   `pathLink` in `packages/web/src/links.tsx` could send it to the image route
+- [agent] [proposal-start] The New page's feature start lacks web tests of a start filled from an
+  inbox note, of a hook refusing its commit, and of one with an image; `/new?kind=feature` is named
+  twice, in `fate/starts.ts` and `session/StartingSession.tsx`; and `data.ts` and `views.ts` still
+  call the slug proposal a typed change's

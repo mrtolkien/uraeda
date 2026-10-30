@@ -716,7 +716,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addAllowedHost, addCategory, addComment, addNote, addNoteWithImages, addProposal, addRepository, addSettledComment, allBranchChanges, approve, attachImage, attachNoteImages, branchChanges, cacheStats, checkedPort, checkoutCommit, commitChanges, commitPriorities, commitText, configDir, dataDir, deferCommits, discardChanges, discardPriorities, draftProposal, dropItem, dropNote, dropProposal, editAllowedHost, editComment, editNote, editProposal, editSettledComment, encodeImage, expandProposal, insertNote, insertProposal, land, mainRoot, moveNoteToCategory, moveProposal, nextStep, noteIntoProposal, noteIntoProposalLine, noteToProposal, noteToProposalFile, noteUnderProposal, openRepository, outlineNote, outlineProposal, pathFolder, placeNote, planStart, preview, promoteChange, proposalHints, proposeSlug, readDecision, readFeature, readFile, readHistory, readImage, readInbox, readLedger, readPriorities, readProposalFile, readRaw, readRepositories, readRound, readSettings, readText, readWorkspace, refreshPullRequests, removeAllowedHost, removeCategory, removeComment, removeNote, removeNoteAndCommit, removeNoteImage, removeProposal, removeRepository, removeSettledComment, renameCategory, requestChanges, restoreCategory, restoreNoteImage, retryCommit, retryRound, saveAnswer, saveNotes, saveRoundAnswer, saveRoundNotes, saveText, setBuildInFreshSession, setDiscovery, setItemSettings, setOpenBrowser, setPort, setSingleKeyShortcuts, settingsFile, startChange, startFeature, startOver, storyLink, submitAnswers, submitRound, takeDeferred, undoCommittedNote, undoCommittedProposal, undoNoteAdd, undoNoteAsFile, undoNoteCategory, undoNoteIntoProposal, undoNoteToProposal, undoNoteUnderProposal, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState, RowChangeKind, SettledKind, VerdictKind } = nativeBinding
+const { WatchHandle, addAllowedHost, addCategory, addComment, addNote, addNoteWithImages, addProposal, addRepository, addSettledComment, allBranchChanges, approve, attachImage, attachNoteImages, branchChanges, cacheStats, checkedPort, checkoutCommit, commitChanges, commitPriorities, commitText, configDir, dataDir, deferCommits, discardChanges, discardPriorities, discoveryLevels, dropItem, dropNote, dropProposal, editAllowedHost, editComment, editNote, editProposal, editSettledComment, encodeImage, expandProposal, insertNote, insertProposal, land, mainRoot, moveNoteToCategory, moveProposal, nextStep, noteIntoProposal, noteIntoProposalLine, noteToProposal, noteToProposalFile, noteUnderProposal, openRepository, outlineNote, outlineProposal, pathFolder, placeNote, planStart, planTextStart, preview, promoteChange, proposalHints, proposeSlug, readDecision, readFeature, readFile, readHistory, readImage, readInbox, readLedger, readPriorities, readProposalFile, readRaw, readRepositories, readRound, readSettings, readText, readWorkspace, refreshPullRequests, removeAllowedHost, removeCategory, removeComment, removeNote, removeNoteAndCommit, removeNoteImage, removeProposal, removeRepository, removeSettledComment, renameCategory, requestChanges, restoreCategory, restoreNoteImage, retryCommit, retryRound, saveAnswer, saveNotes, saveRoundAnswer, saveRoundNotes, saveText, setBuildInFreshSession, setDiscovery, setItemSettings, setOpenBrowser, setPort, setSingleKeyShortcuts, settingsFile, startChange, startFeature, startOver, startText, storyLink, submitAnswers, submitRound, takeDeferred, undoCommittedNote, undoCommittedProposal, undoNoteAdd, undoNoteAsFile, undoNoteCategory, undoNoteIntoProposal, undoNoteToProposal, undoNoteUnderProposal, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState, RowChangeKind, SettledKind, VerdictKind } = nativeBinding
 export { WatchHandle }
 export { addAllowedHost }
 export { addCategory }
@@ -742,7 +742,7 @@ export { dataDir }
 export { deferCommits }
 export { discardChanges }
 export { discardPriorities }
-export { draftProposal }
+export { discoveryLevels }
 export { dropItem }
 export { dropNote }
 export { dropProposal }
@@ -771,6 +771,7 @@ export { outlineProposal }
 export { pathFolder }
 export { placeNote }
 export { planStart }
+export { planTextStart }
 export { preview }
 export { promoteChange }
 export { proposalHints }
@@ -821,6 +822,7 @@ export { settingsFile }
 export { startChange }
 export { startFeature }
 export { startOver }
+export { startText }
 export { storyLink }
 export { submitAnswers }
 export { submitRound }

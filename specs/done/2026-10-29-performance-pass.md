@@ -2,7 +2,7 @@
 kind: feature
 finished: 2026-10-30
 pull-request: https://github.com/mrtolkien/uraeda/pull/74
-superseded-by: [2026-10-30-feature-state]
+superseded-by: [2026-10-30-feature-state, 2026-10-30-proposal-start]
 supersedes:
   [
     2026-10-11-web-ui,
@@ -21,6 +21,8 @@ supersedes:
 > in git: `git log -- specs/2026-10-29-performance-pass/`.
 >
 > Superseded in part by [2026-10-30-feature-state](2026-10-30-feature-state.md).
+>
+> Superseded in part by [2026-10-30-proposal-start](2026-10-30-proposal-start.md).
 
 ## What and why
 

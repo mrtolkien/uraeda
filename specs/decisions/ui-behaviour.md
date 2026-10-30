@@ -17,7 +17,6 @@ progress until it lands, without the human waiting.
   a short form. Checked by review.
 - Text MUST save only on an explicit action, except an outline's row, which also saves as its field
   is left. Checked by review.
-- Unsaved text MUST NOT be dropped without asking. Checked by review.
 - Unsaved text MUST be marked as unsaved, outside an outline's rows. Checked by review.
 - Status MUST show next to what it concerns, with an error staying there until dealt with, never
   only in a toast. Checked by review.
@@ -30,6 +29,7 @@ progress until it lands, without the human waiting.
 - Back and reload MUST keep the human's place and what they were reading. Checked by review.
 - A view of something that grows, such as a session's log, MUST keep typing smooth at thousands of
   items, by mounting a bounded number of rows and nothing folded. Checked by review.
+- Unsaved text SHOULD NOT be dropped without asking. Checked by review.
 - Lists whose rows open a pane SHOULD share one keyboard behaviour. Checked by review.
 
 ## Why

@@ -81,6 +81,11 @@ const mutations = {
     FateAPI['mutations']['feature.start']['input'],
     FateAPI['mutations']['feature.start']['output']
   >('StartPlan'),
+  'feature.startText': mutation<
+    StartPlan,
+    FateAPI['mutations']['feature.startText']['input'],
+    FateAPI['mutations']['feature.startText']['output']
+  >('StartPlan'),
   'inbox.add': mutation<
     Inbox,
     FateAPI['mutations']['inbox.add']['input'],
@@ -241,11 +246,6 @@ const mutations = {
     FateAPI['mutations']['proposals.add']['input'],
     FateAPI['mutations']['proposals.add']['output']
   >('Priorities'),
-  'proposals.draft': mutation<
-    ProposalFile,
-    FateAPI['mutations']['proposals.draft']['input'],
-    FateAPI['mutations']['proposals.draft']['output']
-  >('ProposalFile'),
   'proposals.drop': mutation<
     Priorities,
     FateAPI['mutations']['proposals.drop']['input'],

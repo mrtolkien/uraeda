@@ -1,34 +1,28 @@
 // The New page, behind the sidebar's "＋ New": three cards, in the URL, pick a session, a change, or
-// a feature, each drawn as what it starts. Under them, the kind's composer, and under it the same
-// list for all three: the inbox's notes and the priorities' proposals, which a card inserts into
-// the composer, with a link to its file, or, with a file of its own, opens. A session starts with
-// its first message; a change with Ctrl+Enter, which asks for its slug; a feature with Ctrl+Enter
-// too, which writes the proposal as a proposal file and opens it. The entries a start was filled
-// from leave their files. `/` searches the entries.
+// a feature, each drawn as what it starts. Under them, the kind's composer, over the one draft the
+// three share, and under it the same list for all three: the inbox's notes and the priorities'
+// proposals, which a card inserts into the composer, with a link to its file, or, with a file of
+// its own, opens. A session starts with its first message; a change with Ctrl+Enter, which asks
+// for its slug; a feature with Ctrl+Enter too, which asks for its slug and research effort, then
+// opens its session. The entries a start was filled from leave their files. `/` searches the
+// entries.
 import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { SET_UP_PROJECT } from "uraeda-server/round-messages";
-import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
 import { usePriorities, useWorkspace } from "./data.ts";
-import { useTextField } from "./fields/useTextField.ts";
 import { useKeys } from "./keys/registry.tsx";
 import { KindCards } from "./KindCards.tsx";
 import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { ChangeComposer, StartError } from "./NewChangePage.tsx";
-import {
-  type Entry,
-  EntryLists,
-  insertion,
-  lineEntry,
-  type Source,
-  withAdded,
-} from "./NewEntries.tsx";
+import { ChangeComposer } from "./NewChangePage.tsx";
+import { type Entry, EntryLists, lineEntry } from "./NewEntries.tsx";
+import { FeatureComposer } from "./NewFeatureComposer.tsx";
+import { type NewDraft, useNewDraft } from "./newDraft.ts";
 import { withInserted } from "./RecommendedMessage.tsx";
 import { currentEntry } from "./routeHistory.ts";
 import {
@@ -41,98 +35,8 @@ import {
   useEntryId,
   useSearch,
 } from "./routes.tsx";
-import { StartDialog } from "./StartDialog.tsx";
-import { composerDraft, useDraft } from "./useDraft.ts";
-import { takeOut, useStartFrom } from "./useStartFrom.ts";
-
-/** The kinds, to go through them. */
-const KINDS: ReadonlyArray<NewKind> = ["session", "change", "feature"];
-
-/** A text's first line as a title: without a heading mark or the link an entry's insertion adds. */
-function titleOfText(text: string): string {
-  const first =
-    text
-      .split("\n")
-      .map((line) => line.replace(/^#+\s*/, "").trim())
-      .find(Boolean) ?? "";
-  // Without the link an entry's insertion adds, and cut at its first sentence.
-  const clean = first
-    .replace(/\s*\(\[[^\]]*\]\([^)]*\)\)\s*$/, "")
-    .replace(/([.!?])(\s.*)?$/, "$1")
-    .replace(/[.!?]$/, "");
-  return clean.length <= 70 ? clean : clean.slice(0, 70).replace(/\s+\S*$/, "");
-}
-
-/** What Ctrl+Enter holds in a feature's composer while its title is asked. */
-type Asking = { resolve: (started: boolean) => void; text: string };
-
-/**
- * Feature: the same composer as the others, "Write Proposal", for a text that is freeform: no shape
- * is put in it, and it takes no image. Ctrl+Enter writes it as a proposal file and opens the file's
- * page; a proposal not filled from an entry asks for its title first, as a change asks for its
- * slug.
- */
-function FeatureComposer({
-  inputRef,
-  sources,
-  text,
-}: {
-  inputRef: React.RefObject<ChatComposerInputHandle | null>;
-  sources: ReadonlyArray<Source>;
-  text: ReturnType<typeof useTextField>;
-}) {
-  const starts = useStartFrom();
-  const [asking, setAsking] = useState<Asking>();
-  const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
-  const write = async (body: string, title: string) => {
-    const opened = await starts.feature.fromText({ body, sources, title });
-    if (opened && text.unsavedNow()?.text.trim() === body) {
-      text.discard();
-    }
-    return opened;
-  };
-  const answer = (started: boolean) => {
-    asking?.resolve(started);
-    setAsking(undefined);
-  };
-  return (
-    <VStack gap={4}>
-      <Composer
-        hasAttach={false}
-        images={images}
-        inputRef={inputRef}
-        onChange={text.change}
-        onImagesChange={setImages}
-        // Filled from an entry, its own title is the proposal's; else the title is asked.
-        onSend={(sent) =>
-          sources.length > 0
-            ? write(sent, "")
-            : new Promise<boolean>((resolve) => setAsking({ resolve, text: sent }))
-        }
-        placeholder="Write Proposal"
-        sendLabel="Write the proposal"
-        value={text.text}
-      />
-      <StartError message={starts.error} />
-      <StartDialog
-        initial={asking ? titleOfText(asking.text) : ""}
-        isOpen={asking !== undefined}
-        onCancel={() => answer(false)}
-        onConfirm={async (title) => {
-          // A refusal shows under the composer, as the dialog closes: the text stays.
-          answer(await write(asking?.text ?? "", title));
-          return undefined;
-        }}
-        question={{
-          confirm: "Write the proposal",
-          description: "It names the proposal's file and its line in Now.",
-          label: "Title",
-          title: "Title the proposal",
-        }}
-      />
-    </VStack>
-  );
-}
+import { composerDraft } from "./useDraft.ts";
+import { takeOut } from "./takeOut.ts";
 
 /** The search of the entries, at the title's end: `/` brings the focus to it, Escape leaves it. */
 function Search({
@@ -203,89 +107,10 @@ function useComposerFocus(kind: NewKind | undefined) {
 }
 
 /**
- * What each kind's composer was filled from, and `insert`, which puts an entry into the picked
- * kind's composer, keeps it as one of them, and gives the field the focus.
+ * A proposal's Start opens the page with its line to put in the composer, in place of what it
+ * held: once, as soon as the priorities and the composer are there, and not again on a reload.
  */
-function useSources({
-  change,
-  feature,
-  input,
-  kind,
-  session,
-}: {
-  change: ReturnType<typeof useTextField>;
-  feature: ReturnType<typeof useTextField>;
-  input: React.RefObject<ChatComposerInputHandle | null>;
-  kind: NewKind | undefined;
-  session: ReturnType<typeof useDraft>;
-}) {
-  const [sources, setSources] = useState<Record<NewKind, ReadonlyArray<Source>>>({
-    change: [],
-    feature: [],
-    session: [],
-  });
-  const texts: Record<NewKind, string> = {
-    change: change.text,
-    feature: feature.text,
-    session: session.text,
-  };
-  // A composer emptied no longer holds what it was filled from. Only once emptied: a line inserted
-  // as the page opens, its text not drawn yet, stays.
-  const before = useRef(texts);
-  useEffect(() => {
-    const was = before.current;
-    before.current = texts;
-    setSources((all) => {
-      const emptied = KINDS.filter(
-        (of) => texts[of].trim() === "" && was[of].trim() !== "" && all[of].length > 0,
-      );
-      return emptied.length === 0
-        ? all
-        : { ...all, ...Object.fromEntries(emptied.map((of) => [of, []])) };
-    });
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- `texts` is these three
-  }, [change.text, feature.text, session.text]);
-  const insert = (entry: Entry) => {
-    if (kind === undefined) {
-      return;
-    }
-    const added = insertion(entry);
-    if (kind === "session") {
-      session.setText((text) => withAdded(text, added));
-    } else if (kind === "change") {
-      change.change(withAdded(change.text, added));
-    } else {
-      feature.change(withAdded(feature.text, added));
-    }
-    const source: Source = {
-      ...(entry.linked === undefined ? {} : { linked: entry.linked }),
-      ...(entry.section === undefined ? {} : { section: entry.section }),
-      id: entry.id,
-      inserted: added,
-      kind: entry.kind,
-      text: entry.text,
-    };
-    setSources((all) => ({
-      ...all,
-      [kind]: [...all[kind].filter((s) => !(s.kind === source.kind && s.id === source.id)), source],
-    }));
-    // The field takes the focus once the text is in: `Escape` goes back to the list's keys.
-    requestAnimationFrame(() => input.current?.focus());
-  };
-  return { insert, sources };
-}
-
-/**
- * A proposal's Start opens the page with its line to insert: once, as soon as the priorities and
- * the composer are there, and not again on a reload.
- */
-function LineInsert({
-  insert,
-  kind,
-}: {
-  insert: (entry: Entry) => void;
-  kind: NewKind | undefined;
-}) {
+function LineInsert({ kind, start }: { kind: NewKind | undefined; start: (entry: Entry) => void }) {
   const here = useRepoPath();
   const priorities = usePriorities();
   useEffect(() => {
@@ -299,7 +124,7 @@ function LineInsert({
     }
     const { insert: _, ...rest } = currentEntry();
     window.history.replaceState(rest, "");
-    insert(lineEntry(line, section.section, here));
+    start(lineEntry(line, section.section, here));
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, when the line and the composer are there
   }, [priorities, kind]);
   return null;
@@ -307,18 +132,18 @@ function LineInsert({
 
 /**
  * Home's "Set up with the agent" opens a session with the setup's message, focused as an inserted
- * entry is, unsent. The history entry keeps asking for it, so a reload, which empties the session's
- * composer, fills it again. A composer that holds text keeps it, after the message, as a
+ * entry is, unsent. The history entry keeps asking for it, so a reload, which keeps the draft,
+ * leaves the message it holds already. A composer that holds text keeps it, after the message, as a
  * recommended message is inserted; each visit inserts it once, though the cards switch.
  */
 function useSetupMessage({
+  draft,
   input,
   kind,
-  session,
 }: {
+  draft: NewDraft;
   input: React.RefObject<ChatComposerInputHandle | null>;
   kind: NewKind | undefined;
-  session: ReturnType<typeof useDraft>;
 }) {
   const visit = useEntryId();
   const inserted = useRef(new Set<string | undefined>());
@@ -327,7 +152,10 @@ function useSetupMessage({
       return;
     }
     inserted.current.add(visit);
-    session.setText((typed) => withInserted(SET_UP_PROJECT, typed));
+    // A reload keeps the draft: a message it holds already is not inserted twice.
+    draft.setText((typed) =>
+      typed.startsWith(SET_UP_PROJECT.trimEnd()) ? typed : withInserted(SET_UP_PROJECT, typed),
+    );
     requestAnimationFrame(() => input.current?.focus());
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once a visit, when the session's composer is there
   }, [kind, visit]);
@@ -359,12 +187,21 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
   // Without specs/, the setup's session alone: no priorities nor inbox to start from.
   const hasSpecs = !useWorkspace()?.noSpecs;
   const { box, focusComposer, focusOnDraw, input } = useComposerFocus(kind);
-  const session = useDraft();
   // Kept as a new chat's text is: leaving the page does not ask.
-  const change = useTextField("new-change", "", { drawn: false });
-  const feature = useTextField("new-feature-proposal", "", { drawn: false });
-  const { insert, sources } = useSources({ change, feature, input, kind, session });
-  useSetupMessage({ input, kind, session });
+  const draft = useNewDraft();
+  // The field takes the focus once an entry's text is in: `Escape` goes back to the list's keys.
+  const focusSoon = () => requestAnimationFrame(() => input.current?.focus());
+  const insert = (entry: Entry) => {
+    if (kind !== undefined) {
+      draft.insert(entry);
+      focusSoon();
+    }
+  };
+  const start = (entry: Entry) => {
+    draft.start(entry);
+    focusSoon();
+  };
+  useSetupMessage({ draft, input, kind });
   return (
     <Page kind="panes">
       <VStack gap={4}>
@@ -394,22 +231,20 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
         <div ref={box}>
           {kind === "session" && (
             <Composer
-              {...composerDraft(session)}
+              {...composerDraft(draft.kept)}
               inputRef={input}
+              onChange={draft.setText}
               onSent={(id) => {
-                void takeOut(fate, sources.session);
+                void takeOut(fate, draft.sources);
                 navigate(here(sessionIdPath(id)), { created: true });
               }}
+              value={draft.text}
             />
           )}
-          {kind === "change" && (
-            <ChangeComposer inputRef={input} sources={sources.change} text={change} />
-          )}
-          {kind === "feature" && (
-            <FeatureComposer inputRef={input} sources={sources.feature} text={feature} />
-          )}
+          {kind === "change" && <ChangeComposer draft={draft} inputRef={input} />}
+          {kind === "feature" && <FeatureComposer draft={draft} inputRef={input} />}
         </div>
-        {hasSpecs && <LineInsert insert={insert} kind={kind} />}
+        {hasSpecs && <LineInsert kind={kind} start={start} />}
         {hasSpecs && kind !== undefined && <EntryLists onInsert={insert} search={search} />}
       </VStack>
     </Page>
