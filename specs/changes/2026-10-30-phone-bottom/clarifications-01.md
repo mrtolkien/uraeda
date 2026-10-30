@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Phone bottom bars on more pages
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 4 questions, about 15 minutes, with one page of mockups.
+> Answered on 2026-10-30.
 >
 > - Verdict: worth building as proposed: every page named has a clear bar. The bar's code already
 >   draws tiles and sheets; only the one- and two-entry shapes are new.
@@ -103,7 +103,7 @@ step's button keeps a written label.
   - [pro] nothing changes.
   - [con] the column's panes stay at the page's end.
 
-**Answer:**
+**Answer:** A: Keep the big inline step button too. I know it's duplication, but it's clearer imo
 
 ## Q2: What does the draft editor's Start do?
 
@@ -125,7 +125,7 @@ Why it matters: it decides whether the Start pane stays in the editor's body on 
   - [pro] the body stays as it is.
   - [con] the jump passes the whole text, and the button stays drawn over the pane it jumped to.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Do the inbox and the priorities get an Add button?
 
@@ -149,7 +149,7 @@ actions also float there, and cover the button while they show.
   - [pro] nothing changes.
   - [con] adding stays behind the sidebar's toggle or the New tab.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: What goes in the commit page's bar?
 
@@ -173,7 +173,8 @@ Keeping it out leaves two copies of Commit.
   - [pro] nothing changes.
   - [con] Commit stays under a long list.
 
-**Answer:**
+**Answer:** A: Not a fan of your "commit" icon though, it's not very clear. A save icon would work
+better.
 
 ## Settled without the human
 
@@ -193,3 +194,6 @@ Keeping it out leaves two copies of Commit.
   and the new ones, follows them alike.
 
 **Notes:**
+
+- **The single and the two buttons**: Also the buttons need to appear if we scroll to the bottom of
+  the page, with the full content properly visible above the bottom bar.
