@@ -75,7 +75,7 @@ function Changes({ lines }: { lines: ReadonlyArray<string> }) {
 
 /**
  * On the phone, the bottom bar: Discard in its left corner, and Commit, in the accent, in its
- * right one, blocked while a write runs, as the Commit button is.
+ * right one, both blocked while a git write runs.
  */
 function CommitBar({
   onCommit,
@@ -88,7 +88,12 @@ function CommitBar({
   return (
     <TopBarSlot>
       <NavTiles label="The commit's actions">
-        <NavTile icon="uraeda:trash" label="Discard" onPress={onDiscard} />
+        <NavTile
+          icon="uraeda:trash"
+          isDisabled={state !== "idle"}
+          label="Discard"
+          onPress={onDiscard}
+        />
         <NavTile
           icon="uraeda:save"
           isDisabled={state !== "idle"}

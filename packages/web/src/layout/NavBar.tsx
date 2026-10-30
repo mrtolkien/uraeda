@@ -40,7 +40,7 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-1"],
   },
   // A tile alone or one of two: a glass button of its own, square, a finger wide, at the bottom
-  // of the bar's row, its top where the bar's would be, so the page's end shows above it.
+  // of the bar's row and inside it, so the page's end shows above it.
   floating: {
     flexBasis: "auto",
     flexGrow: 0,

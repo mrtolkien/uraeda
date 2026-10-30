@@ -30,8 +30,8 @@ A page with a side column on wide screens, a round, a spec, a plan, a document, 
 session, and a feature, has a bottom bar on the phone (`layout/ColumnStatusLine.tsx`): one row of
 icon tiles in frosted glass, as tall as the top tabs. Its shape follows its count
 (`layout/NavBar.tsx`): one tile is a single square glass button at the bottom right, two are a
-button in each corner, and three or more the bar across the screen. A button's top is where the
-bar's would be, so the page's end always shows above it.
+button in each corner, and three or more the bar across the screen. A button sits inside the bar's
+row, so the page's end always shows above it.
 
 What goes in it, in this order:
 

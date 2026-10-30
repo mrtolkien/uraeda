@@ -16,7 +16,7 @@ import { useSession } from "../sessionData.ts";
 import { type OpenKeys, useOpenKeys } from "../useOpenKeys.ts";
 import { FeatureMenu } from "./FeatureMenu.tsx";
 import { FeatureBar } from "./FeatureBar.tsx";
-import { WithFeatureColumn } from "./FeatureColumn.tsx";
+import { isDone, WithFeatureColumn } from "./FeatureColumn.tsx";
 import { nextOf, type Recommended } from "./next.ts";
 import { NextPane } from "./NextPane.tsx";
 import { Blocking, Notes } from "./Notes.tsx";
@@ -174,7 +174,7 @@ function RecordPart({
   history: HistoryData;
   keys: OpenKeys;
 }) {
-  const done = history.current >= history.stages.length;
+  const done = isDone(history);
   const record = done ? feature.files.find((file) => file.kind === "record") : undefined;
   if (!record) {
     return null;
@@ -247,7 +247,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
       </Page>
     );
   }
-  const done = history.current >= history.stages.length;
+  const done = isDone(history);
   const page = (
     <Page>
       <Crumbs folder={feature.folder} />
