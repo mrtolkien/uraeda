@@ -1,7 +1,8 @@
 // The commit page, the one place the inbox's, the priorities', and the proposal and note files'
 // edits are committed: every form and list only edits and saves a file, and this page shows what a
-// commit would hold, as the core lists it, with Commit, and Discard, which asks first. The
-// sidebar's Commit button, the phone's tab, and `g c` lead here while something waits.
+// commit would hold, as the core lists it, with Commit, and Discard, which asks first: on the phone,
+// in the bottom bar's two corners. The sidebar's Commit button, the phone's tab, and `g c` lead here
+// while something waits.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -19,11 +20,15 @@ import { useKeys } from "./keys/registry.tsx";
 import { plural } from "./labels.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Page } from "./layout/Page.tsx";
+import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
+import { TopBarSlot } from "./layout/TopBarSlot.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Pane } from "./layout/Pane.tsx";
 import { closeUndoToasts } from "./layout/useUndoToast.ts";
 import { useRestoreScroll } from "./routes.tsx";
 import { PrioritiesView } from "./views.ts";
+import { useOwnWrite } from "./writes/useOwnWrite.ts";
 import { WriteButton } from "./writes/WriteButton.tsx";
 
 const styles = stylex.create({
@@ -69,6 +74,34 @@ function Changes({ lines }: { lines: ReadonlyArray<string> }) {
 }
 
 /**
+ * On the phone, the bottom bar: Discard in its left corner, and Commit, in the accent, in its
+ * right one, blocked while a write runs, as the Commit button is.
+ */
+function CommitBar({
+  onCommit,
+  onDiscard,
+}: {
+  onCommit: () => Promise<unknown>;
+  onDiscard: () => void;
+}) {
+  const { start, state } = useOwnWrite({ label: "Committing…" });
+  return (
+    <TopBarSlot>
+      <NavTiles label="The commit's actions">
+        <NavTile icon="uraeda:trash" label="Discard" onPress={onDiscard} />
+        <NavTile
+          icon="uraeda:save"
+          isDisabled={state !== "idle"}
+          isTinted
+          label="Commit"
+          onPress={() => start(onCommit)}
+        />
+      </NavTiles>
+    </TopBarSlot>
+  );
+}
+
+/**
  * What waits for a commit, one change to a line, and what the commit and the discard do. Both
  * write on the default branch; a hook's refusal shows here, and the changes stay.
  */
@@ -93,6 +126,7 @@ export function CommitPage() {
     setMessage({ ok: true, text: done });
     return true;
   };
+  const narrow = isNarrow(useWidthClass());
   const lines = priorities?.changeLines ?? [];
   const count = priorities?.changes ?? 0;
   const commit = () =>
@@ -138,17 +172,20 @@ export function CommitPage() {
           />
         )}
         {count > 0 && <Changes lines={lines} />}
+        {count > 0 && narrow && <CommitBar onCommit={commit} onDiscard={() => void discard()} />}
         {count > 0 ? (
-          <HStack align="center" gap={2}>
-            <WriteButton
-              endContent={<Icon aria-hidden="true" icon="uraeda:enter" label="Enter" />}
-              label="Commit"
-              onClick={commit}
-              variant="primary"
-            />
-            {/* Not `clickAction`: its pending state closes the question this opens. */}
-            <Button label="Discard" onClick={() => void discard()} variant="ghost" />
-          </HStack>
+          !narrow && (
+            <HStack align="center" gap={2}>
+              <WriteButton
+                endContent={<Icon aria-hidden="true" icon="uraeda:enter" label="Enter" />}
+                label="Commit"
+                onClick={commit}
+                variant="primary"
+              />
+              {/* Not `clickAction`: its pending state closes the question this opens. */}
+              <Button label="Discard" onClick={() => void discard()} variant="ghost" />
+            </HStack>
+          )
         ) : (
           <Text color="secondary">
             The inbox, the priorities, and the proposal and note files are all committed.
