@@ -78,6 +78,8 @@ pub fn defer(key: &Path, on: bool) {
             repositories.remove(key);
         }
     });
+    // Its writes pending, or forgotten, change the steps read: what was kept is read again.
+    cache::invalidate(key);
 }
 
 /// Whether the repository `key` defers its commits: the server's, whose refused commits leave
@@ -172,19 +174,10 @@ pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed,
     .ok_or_else(|| {
         ActionError::Refused(format!("no deferred commit {id}: it landed or was dropped"))
     })?;
-    // Called under the write lock, so a read sees its files pending or in `HEAD`, never neither.
-    let settled = || {
-        repositories(|repositories| {
-            repositories
-                .get_mut(key)
-                .map(|repository| repository.landing.remove(id))
-        });
-    };
-    let committed = already_committed(&deferred.place, &deferred.change);
-    if !matches!(committed, Ok(None)) {
-        settled();
-    }
-    if let Some(head) = committed? {
+    // Dropped under the write lock, so a read sees its files pending or in `HEAD`, never neither,
+    // and on a panic too.
+    let settled = Settled { key, id };
+    if let Some(head) = already_committed(&deferred.place, &deferred.change)? {
         return Ok(head);
     }
     // The lock held since the check, handed to the first staging, then taken again each time.
@@ -214,8 +207,24 @@ pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed,
         }
         landed => landed,
     };
-    settled();
+    drop(settled);
     result
+}
+
+/// Takes a commit out of its repository's landing map as it drops.
+struct Settled<'a> {
+    key: &'a Path,
+    id: &'a str,
+}
+
+impl Drop for Settled<'_> {
+    fn drop(&mut self) {
+        repositories(|repositories| {
+            repositories
+                .get_mut(self.key)
+                .map(|repository| repository.landing.remove(self.id))
+        });
+    }
 }
 
 /// The writes of a repository's deferred commits not landed yet, as [`pending`] took them.
@@ -248,8 +257,8 @@ pub fn pending(key: &Path) -> Pending {
 impl Pending {
     /// The files directly in the folder `folder_path` of the working tree at `root` that the
     /// writes wrote: by name, with their text after the write, `None` when the write deleted the
-    /// file or left it not UTF-8. A later write of a file wins. What a hand edit wrote since is
-    /// not read: only the write's own bytes.
+    /// file. A file the write left not UTF-8 is left out, the tip's text read. A later write of a
+    /// file wins. What a hand edit wrote since is not read: only the write's own bytes.
     pub fn files(&self, root: &Path, folder_path: &str) -> BTreeMap<String, Option<String>> {
         let mut files = BTreeMap::new();
         let in_it = |written: &[Written]| {
@@ -271,13 +280,14 @@ impl Pending {
                 continue;
             }
             for file in written {
-                if let Some(name) = in_folder(&file.path, folder_path) {
-                    let text = file
-                        .after
-                        .clone()
-                        .and_then(|bytes| String::from_utf8(bytes).ok());
-                    files.insert(name.to_string(), text);
-                }
+                let Some(name) = in_folder(&file.path, folder_path) else {
+                    continue;
+                };
+                match file.after.clone().map(String::from_utf8) {
+                    Some(Ok(text)) => files.insert(name.to_string(), Some(text)),
+                    None => files.insert(name.to_string(), None),
+                    Some(Err(_)) => None,
+                };
             }
         }
         files
@@ -308,4 +318,30 @@ fn already_committed(place: &Place, change: &Change) -> Result<Option<Committed>
         change: change.clone(),
         commit,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A write that left a file not UTF-8 is not read: the tip's text stays, rather than the file
+    /// read as deleted.
+    #[test]
+    fn a_write_left_not_utf8_is_not_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let folder = root.join("specs/feature");
+        fs::create_dir_all(&folder).unwrap();
+        fs::write(folder.join("spec.md"), b"\xff\xfe").unwrap();
+        fs::write(folder.join("plan.md"), "# Plan\n").unwrap();
+        let paths = ["specs/feature".to_string()];
+        let written = written(root, &Before::new(), &paths);
+
+        let files = Pending(vec![(1, root.to_path_buf(), written)]).files(root, "specs/feature");
+
+        assert_eq!(
+            files,
+            BTreeMap::from([("plan.md".to_string(), Some("# Plan\n".to_string()))])
+        );
+    }
 }
