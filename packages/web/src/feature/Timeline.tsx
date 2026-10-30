@@ -73,7 +73,8 @@ function tasks(count: number): string {
 
 /**
  * Build's tasks: those done, on the feature's branch or on their task branch, then the current one
- * by its title, then those left.
+ * by its title, then those left. Once every task is done, some only on their task branches, none is
+ * current.
  */
 function Tasks({ progress }: { progress: TaskProgress }) {
   const { done, title, total } = progress;
@@ -81,7 +82,7 @@ function Tasks({ progress }: { progress: TaskProgress }) {
   return (
     <div {...stylex.props(styles.tasks)}>
       {done > 0 && <Text color="secondary">✓ {tasks(done)} done</Text>}
-      <Text>◉ {title}</Text>
+      {done < total && <Text>◉ {title}</Text>}
       {left > 0 && <Text color="secondary">○ {tasks(left)} left</Text>}
     </div>
   );

@@ -56,10 +56,11 @@ type PlanTask = {
   href: string;
   /** "Implementation · 2 of 7 tasks done". */
   label: string;
-  /** The current task's number, from its step: `Task 3: …` gives 3. */
+  /** The current task's number, from its step: `Task 3: …` gives 3; none once all are done. */
   number: number | undefined;
   /** "Implementation". */
   step: string;
+  /** The current task's title, or "" once all are done. */
   title: string;
   total: number;
 };
@@ -73,7 +74,9 @@ function usePlanTask(folder: string): PlanTask | undefined {
   }
   const step = stepLabel(feature.step.name);
   const count = `${progress.done} of ${progress.total} tasks done`;
-  const number = /^Task (\d+):/.exec(feature.step.task ?? "")?.[1];
+  // Once every task is done, some only on their task branches, none is current: the plan's top.
+  const current = progress.done < progress.total;
+  const number = current ? /^Task (\d+):/.exec(feature.step.task ?? "")?.[1] : undefined;
   return {
     count,
     done: progress.done,
@@ -81,7 +84,7 @@ function usePlanTask(folder: string): PlanTask | undefined {
     label: `${step} · ${count}`,
     number: number === undefined ? undefined : Number(number),
     step,
-    title: progress.title,
+    title: current ? progress.title : "",
     total: progress.total,
   };
 }
@@ -150,9 +153,11 @@ function Bar({ anchor, task }: { anchor: string; task: PlanTask }) {
           {`${task.step} · `}
           <span {...stylex.props(styles.count)}>{task.count}</span>
         </Text>
-        <Text color="secondary" type="supporting" xstyle={styles.title}>
-          {task.title}
-        </Text>
+        {task.title && (
+          <Text color="secondary" type="supporting" xstyle={styles.title}>
+            {task.title}
+          </Text>
+        )}
       </span>
       {/* The link says the same in words: the bar is drawn for the eye only. */}
       <div aria-hidden>

@@ -13,7 +13,7 @@ import * as stylex from "@stylexjs/stylex";
 import { Suspense, useState } from "react";
 import type { TaskProgress } from "uraeda-binding";
 import { useAgent } from "../data.ts";
-import { stepLabel } from "../labels.ts";
+import { progressText, stepLabel } from "../labels.ts";
 import { Pane } from "../layout/Pane.tsx";
 import { KeyPicker } from "../keys/KeyPicker.tsx";
 import type { PickerItem } from "../keys/pickerSources.ts";
@@ -100,11 +100,7 @@ function Row({
         </HStack>
       ))}
       {latest && working && progress && (
-        <ProgressBar
-          label={`${progress.done} of ${progress.total} tasks done · ${progress.title}`}
-          max={progress.total}
-          value={progress.done}
-        />
+        <ProgressBar label={progressText(progress)} max={progress.total} value={progress.done} />
       )}
       {latest && last !== undefined && <LastRun id={last} />}
     </VStack>

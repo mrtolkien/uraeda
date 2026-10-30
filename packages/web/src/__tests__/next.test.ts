@@ -55,6 +55,18 @@ test("a build with the agent working keeps its task line", () => {
   expect(next.action?.label).toBe("Open the session");
 });
 
+test("a build with every task done, some on their task branches, names no current task", () => {
+  const progress = { done: 9, title: "Undo restores the previous due date", total: 9 };
+
+  const next = nextOf(at("implementation", { progress }), {
+    agent: AVAILABLE,
+    recommended: RECOMMENDED,
+    working: true,
+  });
+
+  expect(next.line).toBe("9 of 9 tasks done");
+});
+
 test("an idle agent with only a reason says it and offers Open the session", () => {
   const next = nextOf(at("plan"), {
     agent: AVAILABLE,

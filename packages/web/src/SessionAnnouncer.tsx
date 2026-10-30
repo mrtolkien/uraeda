@@ -3,7 +3,7 @@
 import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import { Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 import { useFeatureFollowed, useSessionFollowed, useTurnFollowed } from "./data.ts";
-import { stepLabel } from "./labels.ts";
+import { progressText, stepLabel } from "./labels.ts";
 import { currentEntry, updateEntry } from "./routes.tsx";
 
 /** A turn as the announcer compares it. */
@@ -93,7 +93,7 @@ function CurrentTask({
   onSeen: (task: string | null) => void;
 }) {
   const progress = useFeatureFollowed(folder)?.step.progress ?? null;
-  const task = progress && `${progress.done} of ${progress.total} tasks done · ${progress.title}`;
+  const task = progress && progressText(progress);
   const report = useEffectEvent(onSeen);
   useEffect(() => {
     report(task);

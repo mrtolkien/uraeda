@@ -2,7 +2,7 @@
 // one action that does it. The page decides nothing: each row follows the step.
 import type { FeatureView, StepView, TaskProgress } from "uraeda-binding";
 import type { Trigger } from "uraeda-server/fate";
-import { agentNext, waiting } from "../labels.ts";
+import { agentNext, progressText, waiting } from "../labels.ts";
 import { sessionIdPath } from "../routeTable.ts";
 import { sessionPath } from "../sessions.ts";
 import { day } from "./times.ts";
@@ -169,10 +169,7 @@ export function nextOf(
       const { progress } = step;
       const taken = agentStep(feature, { agent, recommended, session, working });
       // A build at work keeps its task; its line otherwise is the step's own.
-      const line =
-        built && working && progress
-          ? `${progress.done} of ${progress.total} tasks done · ${progress.title}`
-          : taken.line;
+      const line = built && working && progress ? progressText(progress) : taken.line;
       return {
         ...(taken.action ? { action: taken.action } : {}),
         ...(line ? { line } : {}),
