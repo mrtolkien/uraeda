@@ -63,6 +63,12 @@ async function main() {
     const shots = await openShots(browser, url);
     setPrefix(`/r/${encodeURIComponent(listed.name)}`);
     await show(shots[0]!.page, "/", "Overview");
+    // Shot without its turns, Home would show no session at work and no usage: say so instead.
+    if (working === undefined) {
+      throw new Error(
+        "The server did not start with the first page: the project's turns never ran.",
+      );
+    }
     await working;
     const each = shooter(shots, out, []);
     await each("home", ({ page }) => open(page, "/", "Overview"));
