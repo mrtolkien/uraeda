@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Proposal start flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 4 questions, about 15 minutes.
+> Answered on 2026-10-30.
 >
 > - Verdict: worth building as proposed: the core already starts a change from a typed text, and a
 >   feature can start the same way.
@@ -111,7 +111,7 @@ dialog, code, and tests.
   - [pro] both paths, chosen openly.
   - [con] two buttons for one action, against [the UI guide](/specs/ui/flows.md#one-primary-action).
 
-**Answer:**
+**Answer:** A
 
 ## Q2: Does the feature's discovery start running as soon as the feature starts?
 
@@ -138,7 +138,7 @@ question relies on.
   - [pro] fewest steps, the same as the Change card.
   - [con] a wrong research effort or slip in the text costs a stopped run and a fix by hand.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Where do you pick the research effort of a feature started from the New page?
 
@@ -166,7 +166,7 @@ Why it matters: the effort sets how long and how deep every discovery round of t
   - [pro] visible while writing.
   - [con] a control on the page for one card of three.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: What happens to a text the composer already holds when you press Start on a line?
 
@@ -194,7 +194,7 @@ Why it matters: it decides whether a forgotten draft can be lost, or block the S
   - [pro] no draft lost by surprise.
   - [con] one more step on every Start with a draft, the path this feature shortens.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
