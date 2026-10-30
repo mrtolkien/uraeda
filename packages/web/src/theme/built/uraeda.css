@@ -840,6 +840,14 @@
   }
 }
 
+@media (width < 768px) {
+  @scope ([data-astryx-theme="uraeda"]) to ([data-astryx-theme]) {
+    :scope {
+    --text-reading-size: 16px;
+  }
+  }
+}
+
 @media (pointer: coarse) {
   @scope ([data-astryx-theme="uraeda"]) to ([data-astryx-theme]) {
     :scope {

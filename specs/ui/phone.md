@@ -13,6 +13,8 @@ not a desktop squeezed down, and not a lesser version.
   `isSnugOnPhone`), so its text starts about where the page's own text does; a pane inside another
   keeps its own room. What is meant to reach the screen's edges, like a question's options or a band
   between questions, takes the inset back with `--page-bleed`.
+- **Prose a step smaller**, 16 px rather than 19, as a chat app's messages on a phone: "slightly
+  smaller text (same as discord messages on mobile)".
 - **Text of more than one line takes the full width**, always, but in extremely rare cases: "On
   mobile, multi-line text should ALWAYS take up the full width". A row's icon, number, count, or
   date goes on a line of its own above the text, never in a column beside it that squeezes it.

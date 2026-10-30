@@ -724,6 +724,18 @@ export const uraedaTheme = {
       },
       {
         "when": {
+          "width": {
+            "below": "md"
+          }
+        },
+        "value": {
+          "localTokens": {
+            "--text-reading-size": "16px"
+          }
+        }
+      },
+      {
+        "when": {
           "pointer": "coarse"
         },
         "value": {

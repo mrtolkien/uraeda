@@ -171,6 +171,12 @@ const ON: [string, string] = ["#ffffff", MOCHA.crust];
 export const uraedaTheme = defineTheme({
   adaptations: {
     rules: [
+      // On the phone, prose a step smaller, as a chat app's messages on a phone: 16 px, where the
+      // reading size's 19 px left too few words a line on a narrow screen.
+      {
+        value: { localTokens: { "--text-reading-size": "16px" } },
+        when: { width: { below: "md" } },
+      },
       // Last, so a wide touch screen keeps 44 px controls. Its type scale and sizes undo the neutral
       // theme's rule for touch screens under 1024 px, 16 px text on a re-derived scale: text is 120%
       // on every screen.
