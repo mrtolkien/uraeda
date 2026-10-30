@@ -97,3 +97,22 @@ fn a_file_added_to_the_dated_folder_is_kept() {
     assert_eq!(repo.read(PROPOSAL_FILE), PROPOSAL);
     assert_eq!(repo.read("specs/PRIORITIES.md"), PRIORITIES);
 }
+
+/// Review: a failed commit that moved `HEAD` is no refusal that committed nothing: the start's
+/// files stay written, for it to be finished by hand.
+#[test]
+fn a_failed_commit_that_moved_head_puts_nothing_back() {
+    let repo = refusing(
+        "git update-ref HEAD \"$(git commit-tree 'HEAD^{tree}' -p HEAD -m 'chore: meanwhile')\"",
+    );
+
+    let refused = start(&repo);
+
+    assert_eq!(refused.code, "refused", "{}", refused.message);
+    assert!(refused.message.contains("Left: commit"), "{}", refused.message);
+    assert_eq!(
+        repo.read(&format!("{}/proposal.md", destination())),
+        PROPOSAL
+    );
+    assert!(!repo.exists(PROPOSAL_FILE));
+}

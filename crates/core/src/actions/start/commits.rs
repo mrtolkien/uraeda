@@ -7,7 +7,7 @@ use super::plan::Plan;
 use super::restore::{Written, written_in};
 use super::{Source, Start, StartError, StartProgress, partial};
 use crate::actions::expand::with_nested;
-use crate::git::GitError;
+use crate::git::{Git, GitError, ObjectId};
 
 impl Start<'_> {
     /// What is left to do by hand once the proposal file is in the dated folder.
@@ -115,6 +115,7 @@ impl Start<'_> {
         } else {
             Written::new()
         };
+        let head = self.at.head();
         self.report(StartProgress::Committing);
         let on_output = |line: &str| self.report(StartProgress::Output(line.to_string()));
         let streamed = self.run.on_step.map(|_| &on_output as &dyn Fn(&str));
@@ -127,7 +128,7 @@ impl Start<'_> {
                 subcommand,
                 message,
                 output,
-            }) if subcommand == "commit" && self.run.restore => {
+            }) if subcommand == "commit" && self.run.restore && self.head_is(head) => {
                 let left = self.put_back(plan, moves, &written, proposal_before.as_deref());
                 if left.is_empty() {
                     return Err(StartError::Hook { message, output });
@@ -143,6 +144,12 @@ impl Start<'_> {
             // away.
             Err(error) => Err(partial(&done, self.left_after_write(plan), error)),
         }
+    }
+
+    /// Whether `HEAD` is still `head`: a failed commit that moved it committed something, so its
+    /// files are not put back.
+    fn head_is(&self, head: Option<ObjectId>) -> bool {
+        Git::open(self.root).is_ok_and(|git| git.head() == head)
     }
 
     /// The feature's or the change's branch, from the start commit, switched to or in its new
