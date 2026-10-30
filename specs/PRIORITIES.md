@@ -6,7 +6,6 @@
 >
 > Features for v1.0.0
 
-- [Proposal start flow](/specs/2026-10-30-proposal-start/proposal.md)
 - [Mockup previews](/specs/changes/2026-10-30-mockup-previews/proposal.md)
 
 - Empty inbox

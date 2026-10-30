@@ -1,8 +1,5 @@
 mod common;
 
-use common::repo::TestRepo;
-use common::texts::proposal as feature_proposal;
-use uraeda_core::api;
 use uraeda_core::files::items::{TierChoice, items};
 use uraeda_core::files::{document, frontmatter, proposal, spec};
 
@@ -130,68 +127,4 @@ fn the_what_section_holds_its_subsections() {
     );
     let after_why = proposal_file.replace("Eyes.\n", "Eyes.\n\n- Night too\n");
     assert_eq!(proposal::without_item(&after_why, "Night too\n"), None);
-}
-
-/// US4 1: the New page's title, its line, its file, and its text, written in one call. A started
-/// proposal stays above the new line, and one not started goes below it.
-#[test]
-fn a_drafted_proposal_writes_its_line_and_its_file_in_one_call() {
-    let repo = TestRepo::new();
-    repo.write("specs/README.md", "# Specs\n");
-    repo.write(
-        "specs/PRIORITIES.md",
-        "# Priorities\n\n## Now\n\n- [Web UI](/specs/2026-10-11-web-ui/proposal.md)\n- An idea\n",
-    );
-    repo.commit("chore: specs");
-    repo.switch_new("2026-10-11-web-ui");
-    repo.write("specs/2026-10-11-web-ui/proposal.md", &feature_proposal());
-    repo.commit("discovery(web-ui): web UI");
-    repo.switch("main");
-
-    let file = api::draft_proposal(
-        repo.path(),
-        "now",
-        "Performance pass",
-        "Every page within 100 ms.",
-    )
-    .unwrap();
-
-    assert_eq!(file.title, "Performance pass");
-    assert!(
-        file.text.trim_end().ends_with("Every page within 100 ms."),
-        "{}",
-        file.text
-    );
-    assert_eq!(repo.read(&file.path), file.text);
-    let read = api::read_priorities(repo.path()).unwrap();
-    let now: Vec<_> = read.sections[0]
-        .proposals
-        .iter()
-        .map(|proposal| {
-            (
-                proposal.text.as_str(),
-                proposal.file.as_ref().map(|f| &f.path),
-            )
-        })
-        .collect();
-    assert_eq!(now[1].1, Some(&file.path));
-    assert!(now[1].0.contains("Performance pass"), "{}", now[1].0);
-    assert_eq!(now[2].0, "An idea");
-    assert_eq!(file.proposal.as_ref().map(|p| p.id.as_str()), Some("now-2"));
-}
-
-/// A refused draft takes its line back out, and leaves the file in its way as it was.
-#[test]
-fn a_refused_draft_leaves_the_priorities_and_the_folder_as_they_were() {
-    let repo = TestRepo::new();
-    let priorities = "# Priorities\n\n## Now\n\n- An idea\n";
-    repo.write("specs/PRIORITIES.md", priorities);
-    repo.write("specs/proposals/performance-pass.md", "# Mine\n");
-    repo.commit("chore: specs");
-
-    let refused = api::draft_proposal(repo.path(), "now", "Performance pass", "Fast.");
-
-    assert_eq!(refused.unwrap_err().code, "refused");
-    assert_eq!(repo.read("specs/PRIORITIES.md"), priorities);
-    assert_eq!(repo.read("specs/proposals/performance-pass.md"), "# Mine\n");
 }

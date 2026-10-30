@@ -289,8 +289,14 @@ export function useProposalHints() {
  * empty for a text with no title. Read once per text.
  */
 export function useSlugProposal(text: string) {
+  return useStartProposal(text).slug;
+}
+
+/** What a start's dialog proposes for `text`: the core's slug, and a feature's research efforts. */
+export function useStartProposal(text: string) {
   const { slugProposal } = useRequest({ slugProposal: { id: text, view: SlugProposalView } });
-  return useView(SlugProposalView, slugProposal)?.slug ?? "";
+  const proposal = useView(SlugProposalView, slugProposal);
+  return { levels: proposal?.discoveryLevels ?? [], slug: proposal?.slug ?? "" };
 }
 
 /**

@@ -2,7 +2,7 @@
 // feature cannot be read yet, so the page draws from the queue's record and from the plan this
 // document made, the steps where the transcript will be and the plan's message in the composer. A
 // message sent meanwhile waits for the steps; a refusal puts it back (US4).
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useFateClient } from "react-fate";
 import { useHandOver } from "../HandOver.tsx";
 import { navigateHere, redirect, useRepoPath, useRepositoryPath, useSearch } from "../routes.tsx";
@@ -16,6 +16,12 @@ import { StartStepsView } from "./StartSteps.tsx";
 
 /** Why the composer of a refused start sends nothing: there is no feature to send to. */
 const NOT_STARTED = "Nothing started: start the proposal again from its file.";
+
+/** The same, for a feature typed on the New page, whose composer still holds its text. */
+const NOT_STARTED_TYPED = "Nothing started: your text is still on the New page.";
+
+/** The page a typed feature's start opens once refused, as the server's write names it. */
+const NEW_FEATURE = "/new?kind=feature";
 
 /** The start of `folder` in the repository's write queue, landing, waiting, or refused. */
 export function useStartWrite(folder: string): Write | undefined {
@@ -47,12 +53,22 @@ function useLanded(
   const { forget, seen, start } = planned;
   const isQueued = write !== undefined;
   const wasSeen = start?.seen === true;
+  // One read at a time: the effect runs again on each render while the first read is on its way.
+  const reading = useRef(false);
   useEffect(() => {
     if (isQueued) {
       seen();
-    } else if (start !== undefined) {
+    } else if (start !== undefined && !reading.current) {
+      reading.current = true;
       void isReadable(fate, folder)
+        .finally(() => {
+          reading.current = false;
+        })
         .then((readable) => {
+          // Only a start that landed: one refused and dismissed leaves the text it was typed from.
+          if (readable) {
+            start.landed?.();
+          }
           if (readable || wasSeen) {
             forget();
           }
@@ -100,7 +116,8 @@ export function StartingSession({
     }
   }, [handOver, queued, refused]);
   const title = write?.label ?? (start ? `Starting the ${start.kind} ${start.title}` : folder);
-  const proposal = write?.href || (start ? `/edit/${start.proposal}` : "/");
+  const proposal =
+    write?.href || (start?.proposal === undefined ? NEW_FEATURE : `/edit/${start.proposal}`);
   return (
     <SessionPane
       draft={draft}
@@ -118,7 +135,15 @@ export function StartingSession({
         </div>
       }
       title={start?.title ?? folder}
-      {...(refused === undefined ? {} : { blocked: NOT_STARTED })}
+      {...(refused === undefined
+        ? {}
+        : {
+            blocked:
+              // Read from the plan, or once a reload forgot it, from the write.
+              (start !== undefined && start.proposal === undefined) || refused.href === NEW_FEATURE
+                ? NOT_STARTED_TYPED
+                : NOT_STARTED,
+          })}
     />
   );
 }

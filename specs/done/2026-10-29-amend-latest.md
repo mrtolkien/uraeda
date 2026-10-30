@@ -2,6 +2,7 @@
 kind: change
 finished: 2026-10-29
 pull-request: https://github.com/mrtolkien/uraeda/pull/66
+superseded-by: [2026-10-30-proposal-start]
 ---
 
 # Record: Amend the latest commit
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/66
 > The record of a merged change, not instructions to follow. Started on 2026-10-29, finished on
 > 2026-10-29, in [its pull request](https://github.com/mrtolkien/uraeda/pull/66). Its full files are
 > in git: `git log -- specs/changes/2026-10-29-amend-latest/`.
+>
+> Superseded in part by [2026-10-30-proposal-start](2026-10-30-proposal-start.md).
 
 ## What and why
 

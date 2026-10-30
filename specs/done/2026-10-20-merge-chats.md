@@ -2,7 +2,7 @@
 kind: feature
 finished: 2026-10-21
 pull-request: https://github.com/mrtolkien/uraeda/pull/53
-superseded-by: [2026-10-30-commits-shouldn]
+superseded-by: [2026-10-30-commits-shouldn, 2026-10-30-proposal-start]
 ---
 
 # Record: Merge chats and changes
@@ -14,6 +14,8 @@ superseded-by: [2026-10-30-commits-shouldn]
 > in git: `git log -- specs/2026-10-20-merge-chats/`.
 >
 > Superseded in part by [2026-10-30-commits-shouldn](2026-10-30-commits-shouldn.md).
+>
+> Superseded in part by [2026-10-30-proposal-start](2026-10-30-proposal-start.md).
 
 ## What and why
 

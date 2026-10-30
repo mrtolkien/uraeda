@@ -489,6 +489,10 @@ export const sources = createSources<Context>([
   fileSource(startPlanDataView, { byIds: async () => [] }),
   fileSource(slugProposalDataView, {
     byIds: async ({ binding }, ids) =>
-      ids.map((text) => ({ id: text, slug: binding.proposeSlug(text) })),
+      ids.map((text) => ({
+        discoveryLevels: binding.discoveryLevels(),
+        id: text,
+        slug: binding.proposeSlug(text),
+      })),
   }),
 ]);

@@ -103,7 +103,10 @@ Do these only when a human asks.
   renamed. If a folder or branch with that name exists, choose another slug. With `ura`,
   `ura start <proposal> --slug <slug>` runs these steps for a proposal file or folder of
   `specs/proposals/`, or its name, whatever it holds: the proposal is freeform. Without `--slug`, it
-  takes the first two words of the proposal file's name that name something.
+  takes the first two words of the proposal file's name that name something. In the web UI, Feature
+  on the New page starts one from a typed text, with no proposal file: its first line is the title,
+  its research effort goes in the proposal's `discovery` field, and a line of **Now** it was filled
+  from is replaced by its link in the start commit, as a change's is.
   1. On the default branch, create `specs/YYYY-MM-DD-feature-slug/`, and move the proposal file into
      it as `proposal.md`, its words unchanged: the proposal is the human's words, never rewritten.
      Only its relative links change, to point at the same files from the new folder, as **Expand**
