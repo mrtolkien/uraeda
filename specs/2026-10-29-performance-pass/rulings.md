@@ -785,3 +785,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `PRIORITIES.md` could take a queued lists' write along.
 - **Where**: `packages/server/src/fate/session-moves.ts`, `fate/write-queue.ts` (`landed`), review
   of the server.
+
+## R68: A drop archives its sessions once its commit landed, and holds its folder until then
+
+- **Decision**: `feature.drop` answers once its files are written, as before, and holds the change
+  or the feature until its commit landed or was refused: its sessions are archived once it landed,
+  and a refused drop's change or feature, which the core puts back, images included (R62), comes
+  back with its sessions. While it is held, a message to it is refused as during any move; once
+  landed, as a dropped one's. The tests of a dropped change wait for the landing, as R43's do.
+- **Rationale**: archived at once, a refused drop's feature came back with no session in the
+  sidebar; its sessions' turns hold its worktree, so none may start while the drop lands.
+- **If wrong**: a new session made while the drop lands is archived with the others once it lands.
+- **Where**: `packages/server/src/fate/session-moves.ts`, `writes/queue.ts` (`commit`'s `onQueued`),
+  `__tests__/session-moves.test.ts`, review of the server.

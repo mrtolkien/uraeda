@@ -318,6 +318,20 @@ test("a new session of a feature reaches a subscribed feature", async () => {
   expect(arrived, "no update of the feature within 5 seconds").toBeDefined();
 });
 
+/**
+ * Waits until the drop of `folder` landed, and its sessions are archived: a drop answers once its
+ * files are written, and archives them once its commit landed.
+ */
+async function dropLanded(server: Server, folder: string) {
+  await server.hosts.get(server.name)!.queue.idle();
+  const root = await server.sessions.mainRoot(server.repo);
+  await vi.waitFor(() =>
+    expect(
+      server.sessions.cache.folderSessions(root, folder).every((row) => row.archivedAt !== null),
+    ).toBe(true),
+  );
+}
+
 /** US2 more 4: a dropped change's sessions are archived, and its branch stays. */
 test("drop archives the sessions", async () => {
   const server = await testServer();
@@ -340,6 +354,7 @@ test("drop archives the sessions", async () => {
     id: folder,
     worktreeLeft: null,
   });
+  await dropLanded(server, folder);
   const { cache } = server.sessions;
   expect(cache.session(chat)?.archivedAt).not.toBeNull();
   expect(cache.session(created.data.id as string)?.archivedAt).not.toBeNull();
@@ -356,6 +371,7 @@ test.each([
   const chat = await chatThatEdited(server);
   const folder = (await toChange(server, chat)).data.folder as string;
   await mutate(server.app, "feature.drop", { folder }, ["id"]);
+  await dropLanded(server, folder);
   const opens = server.adapter.opens.length;
 
   const refused =

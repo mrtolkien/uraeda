@@ -142,3 +142,38 @@ test("a change made a feature commits in the queue, after the commits before it"
   expect(promoted.data).toMatchObject({ folder, kind: "feature" });
   expect(await writes(server)).toEqual([]);
 });
+
+test.each([
+  ["lands", false],
+  ["is refused", true],
+])("a drop's sessions are archived once it lands, not if it %s", async (_name, refusing) => {
+  const server = await testServer();
+  server.adapter.script([]);
+  const change = await mutate(server.app, "change.start", { slug: "login", text: "# Login\n" }, [
+    "id",
+    "folder",
+  ]);
+  const folder = change.data.folder as string;
+  const host = server.hosts.get(server.name)!;
+  await host.queue.idle();
+  const { data: made } = await mutate(server.app, "session.new", { folder }, ["id"]);
+  const hook = heldHook(server.repo);
+  hook.refusing(refusing);
+
+  const dropped = await mutate(server.app, "feature.drop", { folder }, ["id"]);
+
+  expect(dropped.error).toBeUndefined();
+  const archived = () => server.sessions.cache.session(made.id)?.archivedAt ?? null;
+  expect(archived()).toBeNull();
+  hook.release();
+  await host.queue.idle();
+  if (refusing) {
+    // The refused drop's change comes back, with its sessions.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(archived()).toBeNull();
+    const [feature] = await byId(server.app, "Feature", [folder], ["id", "sessions"]);
+    expect(feature.sessions).toContain(made.id);
+  } else {
+    await vi.waitFor(() => expect(archived()).not.toBeNull());
+  }
+});

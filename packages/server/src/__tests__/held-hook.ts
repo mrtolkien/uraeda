@@ -21,7 +21,7 @@ export function heldHook(repo: string) {
     { mode: 0o755 },
   );
   return {
-    refusing: (on: boolean) => (on ? writeFileSync(refuse, "") : rmSync(refuse)),
+    refusing: (on: boolean) => (on ? writeFileSync(refuse, "") : rmSync(refuse, { force: true })),
     release: () => writeFileSync(gate, ""),
   };
 }

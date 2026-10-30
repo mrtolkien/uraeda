@@ -99,25 +99,33 @@ export class WriteQueue {
   /**
    * Runs `call`, a committing core call writing what `keys` name, in its turn, and queues the
    * commits it deferred, named by `write`, or by each commit's subject. It answers once its files
-   * are written: the commits land behind it. Its commits are queued even when it fails after
-   * deferring one.
+   * are written: the commits land behind it, and `onQueued` is given whether they all land. Its
+   * commits are queued even when it fails after deferring one.
    */
   async commit<T>(
     keys: Array<string>,
     write: Partial<NewWrite> | undefined,
     call: () => Promise<T>,
+    onQueued?: (landed: Promise<boolean>) => void,
   ): Promise<T> {
     const release = await this.#turn(keys);
     try {
       return await call();
     } finally {
-      for (const deferred of this.#core.takeDeferred()) {
-        const named = { href: "", label: deferred.subject, ...write };
-        // A refusal stays in the record: the call answered already.
-        this.enqueue(named, (onOutput) => this.#core.land(deferred.id, onOutput), keys).catch(
-          () => {},
+      const landings = this.#core
+        .takeDeferred()
+        .map((deferred) =>
+          this.enqueue(
+            { href: "", label: deferred.subject, ...write },
+            (onOutput) => this.#core.land(deferred.id, onOutput),
+            keys,
+          ),
         );
-      }
+      // A refusal stays in the record: the call answered already.
+      const landed = Promise.allSettled(landings).then((all) =>
+        all.every(({ status }) => status === "fulfilled"),
+      );
+      onQueued?.(landed);
       release();
     }
   }

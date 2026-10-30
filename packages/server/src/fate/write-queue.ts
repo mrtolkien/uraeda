@@ -33,19 +33,26 @@ export const writeQueueSource = fileSource<Context, WriteQueueRecord>(writeQueue
  * Runs `call`, a committing binding call, through the repository's write queue, its refusals as
  * `refusable` turns them: in its turn, after the queued commits of `keys`, the commits it defers
  * queued behind it, named by `write`, or by their subjects, `at` naming the feature and file it
- * concerns. It answers once the files are written.
+ * concerns. It answers once the files are written; `onQueued` is given whether its commits all
+ * land.
  */
-export function queued<T>(
+export async function queued<T>(
   ctx: RepoContext,
   keys: Array<string>,
   write: WriteInput | undefined,
   at: Omit<NewWrite, keyof WriteInput>,
   call: () => Promise<T>,
+  onQueued?: (landed: Promise<boolean>) => void,
 ): Promise<T> {
   const queue = ctx.hosts.byPath(ctx.repo)?.queue;
   const refused = () => refusable(call);
+  if (queue) {
+    return queue.commit(keys, { ...at, ...write }, refused, onQueued);
+  }
   // Without a host, nothing defers the commit: the call commits within it.
-  return queue ? queue.commit(keys, { ...at, ...write }, refused) : refused();
+  const answer = await refused();
+  onQueued?.(Promise.resolve(true));
+  return answer;
 }
 
 /**

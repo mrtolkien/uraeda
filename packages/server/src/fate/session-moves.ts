@@ -156,21 +156,45 @@ async function toChange(
 }
 
 /**
+ * Drops the change or the feature, holding it until its commit landed or was refused: its sessions
+ * are archived once it landed, and a refused drop's comes back with them. It answers once its files
+ * are written.
+ */
+async function drop(ctx: RepoContext, input: Queued<{ folder: string }>) {
+  const { folder } = input;
+  const release = await refusedOn(() => ctx.sessions.hold(ctx.repo, { folder }));
+  let landing = Promise.resolve(false);
+  try {
+    // A drop takes the proposal's line out of the priorities too.
+    const keys = [...featureKeys(folder), LISTS];
+    return await queued(
+      ctx,
+      keys,
+      input.write,
+      { folder },
+      () => ctx.binding.dropItem(ctx.repo, folder),
+      (landed) => {
+        landing = landed;
+      },
+    );
+  } finally {
+    void landing
+      .then((landed) => (landed ? ctx.sessions.archiveFolder(ctx.repo, folder) : undefined))
+      .catch((error: unknown) =>
+        process.stderr.write(`uraeda: ${folder} dropped, but its sessions stay: ${error}\n`),
+      )
+      .finally(release);
+  }
+}
+
+/**
  * The moves a human makes from a session: a session becoming a change, a change becoming a feature
  * in place, a new session of a change or a feature, and dropping one.
  */
 export const sessionMoves = {
   "feature.drop": {
     resolve: async ({ ctx, input, select }: Resolver<Queued<{ folder: string }>>) => {
-      const dropped = await moving(ctx, { folder: input.folder }, async () => {
-        // A drop takes the proposal's line out of the priorities too.
-        const keys = [...featureKeys(input.folder), LISTS];
-        const left = await queued(ctx, keys, input.write, { folder: input.folder }, () =>
-          ctx.binding.dropItem(ctx.repo, input.folder),
-        );
-        await ctx.sessions.archiveFolder(ctx.repo, input.folder);
-        return left;
-      });
+      const dropped = await drop(ctx, input);
       const record = {
         branch: dropped.branch,
         committed: dropped.committed,
