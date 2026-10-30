@@ -27,6 +27,7 @@ import { StoriesProvider } from "./stories.tsx";
 import { fileStatusBadge } from "./labels.ts";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { useVerdictState, type VerdictState } from "./ReviewVerdict.tsx";
+import { VerdictLeft } from "./review/VerdictLeft.tsx";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
 
@@ -251,6 +252,7 @@ function ReadPlan({ file, session }: { file: File; session: PageSession | undefi
             <PlanParts
               drawing={{ document: file.current.document }}
               file={file}
+              intro={<VerdictLeft file={file} />}
               items={file.current.items.plan}
             />
           </Page>

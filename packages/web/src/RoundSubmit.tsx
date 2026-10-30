@@ -197,7 +197,9 @@ export function RoundEnd({
   const margin = useScrollMargin();
   const place = useRoundPlace(file, target);
   // A hook's refusal as the queue landed the commit: the round is back as it was, answers kept.
-  const undone = <RefusedHere what="your answers are saved, not submitted." where={place} />;
+  const undone = (
+    <RefusedHere onRetry={retry} what="your answers are saved, not submitted." where={place} />
+  );
   const refused = error?.kind === "hook" && (
     <HookRefusal error={error} onRetry={retry} what="Your answers are saved, not committed." />
   );

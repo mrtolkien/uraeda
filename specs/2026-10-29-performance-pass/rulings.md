@@ -1193,3 +1193,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   and made a folder other than the one its page, its messages, and its record named.
 - **Where**: `crates/core/src/api/start.rs`, `crates/binding/src/start.rs`,
   `packages/server/src/fate/starts.ts`, final review.
+
+## R93: A verdict whose commit failed shows on its page read as it now is, with Try again
+
+- **Decision**: a review's verdict whose landing failed (R66), its file left written, shows its
+  refusal on the spec's or the plan's page once it reads the file as it now is, under the title and
+  its status, where the toast's Open leads: "The commit failed: the change is still written, not
+  committed.", its output, Dismiss, and Try again, which commits what it left written
+  (`commit.retry`). A round's refusal and the review's own notice offer the same Try again. A
+  failure of a feature's file says nothing of the commit page, which lists only the default branch's
+  lists, never a feature branch's files: its toast reads "The commit failed: the change is still
+  written, not committed. Open it to try again.". R76's copy stays for the other writes.
+- **Rationale**: the approved file's page drew no refusal, as the notice lived only in the review's
+  end, which an approval on disk no longer draws; and the copy sent the human to a commit page that
+  does not list the file.
+- **Alternatives considered**: listing a feature branch's uncommitted workflow files on the commit
+  page, which commits the default branch's lists only, and would need its own commit per branch.
+- **Where**: `packages/web/src/review/VerdictLeft.tsx`, `writes/RefusedHere.tsx`,
+  `writes/CommitToast.tsx`, `spec/SpecPage.tsx`, `PlanPage.tsx`, final review.

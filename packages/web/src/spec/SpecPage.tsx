@@ -57,6 +57,7 @@ import { StoryCard } from "./StoryCard.tsx";
 import { fileStatusBadge } from "../labels.ts";
 import { useVerdictState, type VerdictState } from "../ReviewVerdict.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
+import { VerdictLeft } from "../review/VerdictLeft.tsx";
 
 const styles = stylex.create({
   // What a group's heading counts, after its title, in the secondary colour.
@@ -312,7 +313,7 @@ function SpecLayout({
         <VStack gap={wide ? 8 : 4} xstyle={styles.layer}>
           <VStack gap={3}>
             <SpecTitle document={document} file={file} items={items} />
-            {review && <ReviewIntro file={file} review={review} />}
+            {review ? <ReviewIntro file={file} review={review} /> : <VerdictLeft file={file} />}
           </VStack>
           <SpecOpening document={document} items={items} selection={part.selection} />
           <MountedSteps

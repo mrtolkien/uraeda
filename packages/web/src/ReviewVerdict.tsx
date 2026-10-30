@@ -196,6 +196,7 @@ function VerdictNotices({
   return (
     <>
       <RefusedHere
+        onRetry={retry}
         what={`the ${kindName(file.kind)} awaits your verdict again.`}
         where={{ file: file.name, folder: file.folder }}
       />

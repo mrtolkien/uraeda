@@ -28,8 +28,6 @@ export type Where = { file?: string; folder?: string; href?: string };
  * steps and the messages sent meanwhile, which its agent starts with once it lands.
  */
 export type Write = QueuedWrite & {
-  file?: string;
-  folder?: string;
   href: string;
   queued?: string;
   steps?: ReadonlyArray<StartStep>;

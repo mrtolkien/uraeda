@@ -63,13 +63,16 @@ export const Refused: Story = {
 
 /**
  * The commit failed for another reason than a hook, here git's lock: the approval stays written,
- * not committed, and the toast points to the commit page, which lists it.
+ * not committed, on the feature's branch, which the commit page does not list: Open leads to its
+ * page's Try again.
  */
 export const Failed: Story = {
   args: {
     writes: [
       {
         failure: "failed",
+        file: "spec.md",
+        folder: "2026-10-29-performance-pass",
         id: "1",
         label: "Approving the spec of Performance pass",
         output:

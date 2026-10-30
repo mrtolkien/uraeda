@@ -25,6 +25,9 @@ import { REFUSED_ID, useDismissWrite, useWriteQueue } from "./useWriteQueue.ts";
 export type QueuedWrite = {
   /** Once refused, why: a hook refused it, its files put back, or it failed, its files left. */
   failure?: WriteFailure;
+  /** The feature's file it wrote, which the commit page never lists. */
+  file?: string;
+  folder?: string;
   id: string;
   /** What it does, as its button said: "Approving the spec of Performance pass". */
   label: string;
@@ -63,13 +66,21 @@ const styles = stylex.create({
   square: { borderRadius: 0 },
 });
 
-/** Why a refused write did not land, and what it left: a failure points to the commit page. */
-export function RefusalText({ commitHref, write }: { commitHref?: string; write: QueuedWrite }) {
+/**
+ * Why a refused write did not land, and what it left: a failure points to the commit page, or, for
+ * a feature's file, which the commit page never lists, to its page's Try again.
+ */
+function RefusalText({ commitHref, write }: { commitHref?: string; write: QueuedWrite }) {
   if (write.failure === "unsent") {
     return <>Not sent: your message is back in its composer.</>;
   }
   if (write.failure !== "failed") {
     return <>A hook refused the commit: what it showed is back as it was.</>;
+  }
+  if (write.folder !== undefined && write.file !== undefined) {
+    return (
+      <>The commit failed: the change is still written, not committed. Open it to try again.</>
+    );
   }
   return (
     <>
