@@ -629,13 +629,13 @@ git commit -m "feat(onboarding-readme): the README's screenshots, taken by one c
 
 - Consumes: the screenshots' names (task 5's Produces); the `readme:screenshots` script name.
 
-- [ ] **Step 1: Draw the banner**
+- [x] **Step 1: Draw the banner**
 
 From [the picked prototype](mockups/banner-a-plain.svg), two files without a media query: the light
 one in Catppuccin Latte's colours, the dark one in Mocha's, each with `role="img"` and
 `aria-label="Uraeda"`.
 
-- [ ] **Step 2: Move the reference**
+- [x] **Step 2: Move the reference**
 
 Every fact of today's README that the new README does not keep goes, unchanged unless wrong, to the
 page the spec's [US2 table](spec.md#us2-a-user-finds-the-reference-they-need-p2) names. Keep a list,
@@ -644,7 +644,7 @@ in the task's commit body, of today's sections and where each went. `CONTRIBUTIN
 Caddy line; `CONTRIBUTING.md` lists `vp install`, the binding's build, `vp run fast`,
 `vp run ready`, `vp dev`, and `vp run release`.
 
-- [ ] **Step 3: Write the README**
+- [x] **Step 3: Write the README**
 
 In the spec's [US1 order](spec.md#us1-a-visitor-understands-uraeda-from-its-readme-p1): the banner
 in a `<picture>` whose dark `<source>` uses `prefers-color-scheme: dark`, alt "Uraeda"; the
@@ -659,14 +659,14 @@ agent, and a first proposal; learn more; inspirations, project status, and licen
 `AGENTS.md` says the reference moved to `INSTALL.md`, `docs/`, and `CONTRIBUTING.md`, and loses its
 line saying the README holds no workflow rules.
 
-- [ ] **Step 4: Check the words and the links**
+- [x] **Step 4: Check the words and the links**
 
 - Run: `wc -w README.md`, and a check that every relative link and image of `README.md`,
   `INSTALL.md`, `CONTRIBUTING.md`, and `docs/*.md` names a file that exists, then
   `nix develop -c vp run fast`
 - Expected: at most 1,000 words; no missing file; PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add README.md INSTALL.md CONTRIBUTING.md AGENTS.md docs packages/uraeda/README.md

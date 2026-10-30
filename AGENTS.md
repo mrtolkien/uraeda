@@ -36,8 +36,11 @@ editing it.
   artifacts look like. Read it before writing or changing a template, a reference, or an example
   file.
 - `README.md`: user-facing, for people discovering the project. It describes what Uraeda is and
-  links into the skill and the example. It holds no workflow rules: update it when a change to the
-  workflow makes it wrong.
+  links into the skill and the example, with a quick install. The reference moved to its own pages:
+  every way to install in `INSTALL.md`, reference for users (the web UI, the `ura` CLI, the `specs/`
+  folder) in `docs/`, and building, testing, and releasing in `CONTRIBUTING.md`. The
+  [documentation](specs/decisions/documentation.md) decision says what goes where: update the page a
+  change makes wrong.
 - `specs/PRIORITIES.md`: what is being worked on now, next, and later.
 - `specs/ui/`: the web UI's guides, how its views read, behave, and look at each width. Read them
   before designing or changing a view.
