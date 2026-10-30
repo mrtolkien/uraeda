@@ -1,4 +1,4 @@
-// A page's column at the window's right edge, on wide screens: resized from a bar along its edge,
+// A page's column at the window's right edge, on semi-wide and wide screens: resized from a bar along its edge,
 // its width kept in the browser, and folded to a rail or unfolded from one button at the page's top
 // right, which keeps its spot in both states (C3): shown under the pointer over the column, always
 // to the keyboard and on touch, and always while the column is folded; `]` does the same, and so
@@ -18,7 +18,9 @@ import * as stylex from "@stylexjs/stylex";
 import {
   type MouseEvent,
   type ReactNode,
+  type RefObject,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -238,6 +240,38 @@ function Column({
 }
 
 /**
+ * Keeps the keyboard's focus as the railed column opens and closes, as its button goes with the
+ * rail: opened from the button, the focus moves to the open tab; closed by Escape from inside it,
+ * back to the button, which `useRail` keeps from opening it again.
+ */
+function useRailFocus(
+  isOpen: boolean,
+  place: RefObject<HTMLElement | null>,
+  button: RefObject<HTMLButtonElement | null>,
+) {
+  // Set by Escape pressed inside the open column, until the focus goes back.
+  const escaped = useRef(false);
+  useEffect(() => {
+    const element = place.current;
+    const down = (event: KeyboardEvent) => {
+      escaped.current = event.key === "Escape";
+    };
+    element?.addEventListener("keydown", down, true);
+    return () => element?.removeEventListener("keydown", down, true);
+  }, [place]);
+  useLayoutEffect(() => {
+    const lost = document.activeElement === null || document.activeElement === document.body;
+    if (isOpen && lost) {
+      place.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
+    }
+    if (!isOpen && escaped.current && lost) {
+      button.current?.focus();
+    }
+    escaped.current = false;
+  }, [button, isOpen, place]);
+}
+
+/**
  * The column railed on a half screen: its rail in the page's flow, which opens over the page at
  * the column's width, without moving it, as the sidebar's rail does (`useRail`): the mouse resting
  * on it, the keyboard's focus in it, a tap on its button or its space, `]`, or
@@ -257,6 +291,7 @@ function RailedColumn({
   const button = useRef<HTMLButtonElement>(null);
   const railed = useRail(true, place, button);
   const { isOpen, tap } = railed;
+  useRailFocus(isOpen, place, button);
   const open = useCallback(() => {
     if (!isOpen) {
       tap();

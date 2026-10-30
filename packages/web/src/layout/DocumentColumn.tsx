@@ -2,11 +2,12 @@
 // panel a tab in a labelled list at its top, WAI-ARIA's tabs pattern, the arrows moving between
 // them, and the open one under it, then the column's foot (approval comment C1 of the session's
 // spec: a panel shows as a tab, and a split, `SplitPanel.tsx`, is a panel of two). Its width is
-// one for every tab and every document, 400 px until dragged
-// (`documentColumnWidth.ts`), so switching tabs moves nothing on the page. The open
-// tab is in the address, `?tab=<key>`, so reload, Back, and a width change keep it; switching
-// replaces the history entry. `]` folds it to a rail of the panels' icons. On narrow screens, the
-// page alone, kept in its place in the tree as the window crosses 768 px, so its typed text stays.
+// one for every tab and every document, 400 px until dragged (`documentColumnWidth.ts`), so
+// switching tabs moves nothing on the page. The open tab is in the address, `?tab=<key>`, so
+// reload, Back, and a width change keep it; switching replaces the history entry. `]` folds it to
+// a rail of the panels' icons, the open one's picked, or, railed on a half screen, opens it over
+// the page. On narrow screens, the page alone, kept in its place in the tree as the window crosses
+// 768 px, so its typed text stays.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";

@@ -89,3 +89,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   target; two components binding `]` clashed in the key registry while the window crossed into the
   rail.
 - **Where**: task 4, `layout/SideColumn.tsx`.
+
+## R10: One rail open at a time
+
+- **Decision**: opening the sidebar's rail closes the side column's, and the other way round
+  (`shell/Rail.tsx`'s `claim`).
+- **Rationale**: each open rail binds Escape as a fallback, and the key registry refuses two; one
+  Escape then folds the one rail open. Found by the review of wave 2.
+- **Where**: `shell/Rail.tsx`, `layout/SideColumn.tsx`.
+
+## R11: The railed column moves the keyboard's focus with its button
+
+- **Decision**: opened from its button, the railed column moves the focus to its open tab; closed by
+  Escape from inside it, the focus goes back to the button.
+- **Rationale**: the button belongs to the closed rail, so opening the column removed the focused
+  element, and the focus fell to the page. Found by the review of wave 2.
+- **Where**: `layout/SideColumn.tsx`, `useRailFocus`.
