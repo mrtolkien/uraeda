@@ -33,7 +33,7 @@ A README that grew into a reference buried what Uraeda is under flags and settin
 learned how to start. A newcomer still needs to install it from the first page. Documentation exists
 for readability: a fact repeated where the reader needs it costs less than a link they must follow,
 so it is the one place where duplication is fine. History:
-[Onboarding + README pass](../2026-10-30-onboarding-readme/spec.md).
+[Onboarding + README pass](../done/2026-10-30-onboarding-readme.md).
 
 ## Alternatives considered
 
