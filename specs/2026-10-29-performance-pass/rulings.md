@@ -1055,3 +1055,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   it (`leave.test.tsx`).
 - **Where**: `packages/web/src/layout/useMountedSteps.ts`, `packages/web/src/RoundPage.tsx`,
   `packages/web/src/QuestionCards.tsx`, `packages/web/src/useRoundPosition.ts`.
+
+## R85: A spec's page reads its data model with the spec, and mounts its parts in steps
+
+- **Decision**: the file page of a `spec.md` asks for the feature's `data-model.md` as it asks for
+  the spec, before either answers (`readAlong` in `readAhead.ts`), and the spec page asks for the
+  stories it embeds as it first draws. Its parts after the opening, from the changes since your
+  review to the verdict, mount in steps after its first frame (`MountedSteps`, R84's hook): all at
+  once when the page opens at a place of its own, by Back, a reload, a hash, or scrolled already, as
+  when an approval draws it read in place of the review.
+- **Rationale**: R71 measured the realistic project's `spec.md` from its feature at 122 to 132 ms, 5
+  to 7 reads and no long task. Their order, logged through Playwright: the spec, then the data model
+  once the spec was in, as the part drawing it suspended only then, then the stories once the data
+  model was in. fate sends the reads asked together in one request: the spec and its data model now
+  go in one. A CPU profile found the rest in the page's drawing, its first layout forced by a
+  table's measure, 26 to 170 ms. Measured after, release build, three runs: 64 to 72 ms, one request
+  of both files, no long task, from 134 to 144. `fate.request` sends a read once: one under way or
+  held is not sent again, so asking during a draw, as `useRequest` does, sends nothing more when the
+  page draws again.
+- **If wrong**: a jump from Contents to a part not yet mounted, in the first tenth of a second, does
+  nothing. A page that embeds stories only once its preview is read asks for them once it is.
+- **Where**: `packages/web/src/FilePage.tsx`, `packages/web/src/readAhead.ts`,
+  `packages/web/src/spec/SpecPage.tsx`, `packages/web/src/layout/MountedSteps.tsx`.

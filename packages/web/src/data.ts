@@ -32,7 +32,7 @@ import {
   WorkspaceView,
 } from "./views.ts";
 import type { BaseMode } from "./freshBase.ts";
-import { proposalFilePage, show } from "./readAhead.ts";
+import { filePage, proposalFilePage, show, storyRead } from "./readAhead.ts";
 
 /** The ids of the records there is one of, as the server names them. */
 export const WORKSPACE_ID = "workspace";
@@ -105,7 +105,7 @@ export function useBranchDecision(folder: string, name: string) {
 }
 
 export function useFile(folder: string, name: string) {
-  const request = { workflowFile: { id: `${folder}/${name}`, view: FileView } };
+  const request = filePage(folder, name);
   const { workflowFile } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(FileView, workflowFile);
@@ -420,7 +420,7 @@ export function useStillViewed(request: Parameters<typeof useRequest>[0]) {
  * cached record shows; it is read again while it is drawn.
  */
 export function useStory(folder: string, story: StoryTarget) {
-  const request = { story: { id: `${folder}:${story.path}#${story.export}`, view: StoryView } };
+  const request = storyRead(folder, story);
   const { story: record } = useRequest(request, { mode: "stale-while-revalidate" });
   useRefreshOnShow(request);
   useStillViewed(request);

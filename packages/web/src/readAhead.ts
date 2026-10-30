@@ -3,7 +3,8 @@
 // reaches it as fast as a click.
 import { useEffect, useEffectEvent } from "react";
 import { useFateClient, type useRequest } from "react-fate";
-import { ProposalFileView } from "./views.ts";
+import type { StoryTarget } from "uraeda-binding";
+import { FileView, ProposalFileView, StoryView } from "./views.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
 
@@ -106,6 +107,17 @@ export function readAhead(fate: Fate, request: PageRequest) {
 }
 
 /**
+ * Reads `requests` together, as a page draws, before the first of them suspends it: each is sent
+ * once, a read under way or held by the browser not again, so a page drawn again sends nothing. A
+ * page whose parts each read their own record would read them one after another (R85).
+ */
+export function readAlong(fate: Fate, requests: ReadonlyArray<PageRequest>) {
+  for (const request of requests) {
+    readAhead(fate, request);
+  }
+}
+
+/**
  * Reads ahead `request`, the page of the row selected, each time the selection moves to another:
  * drawn by a list only for a row with a page, so a list without any needs no fate client.
  */
@@ -115,6 +127,16 @@ export function ReadAhead({ request }: { request: PageRequest }) {
   const key = keyOf(request);
   useEffect(() => read(), [key]);
   return null;
+}
+
+/** The request of a workflow file's page, by its feature's folder and its name, as `useFile` reads it. */
+export function filePage(folder: string, name: string) {
+  return { workflowFile: { id: `${folder}/${name}`, view: FileView } };
+}
+
+/** The request of a story embedded in a page, by its checkout's folder, as `useStory` reads it. */
+export function storyRead(folder: string, story: StoryTarget) {
+  return { story: { id: `${folder}:${story.path}#${story.export}`, view: StoryView } };
 }
 
 /** The request of a proposal file's page, the editor's: as `useProposalFile` reads it. */
