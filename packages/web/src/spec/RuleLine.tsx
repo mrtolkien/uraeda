@@ -10,6 +10,7 @@ import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme
 import * as stylex from "@stylexjs/stylex";
 import type { Run } from "uraeda-binding";
 import { Paragraph } from "../layout/Paragraph.tsx";
+import { proseStyles } from "../Prose.tsx";
 import { isStrength, type Strength, strengthIcon } from "../theme/icons.ts";
 
 const styles = stylex.create({
@@ -26,14 +27,9 @@ const styles = stylex.create({
     // The icon on the first line of the rule, beside its first words.
     marginBlockStart: spacingVars["--spacing-0-5"],
   },
-  intent: {
-    // A decision's intent, the first thing read: prose, in the reading font and size its rules
-    // have, heavier than them.
-    fontFamily: "var(--font-family-reading)",
-    fontSize: "var(--text-reading-size)",
-    fontWeight: fontWeightVars["--font-weight-medium"],
-    lineHeight: "var(--text-reading-line)",
-  },
+  // A decision's intent, the first thing read: prose, as its rules are (`proseStyles.reading`),
+  // heavier than them.
+  intent: { fontWeight: fontWeightVars["--font-weight-medium"] },
   removed: {
     // Removed words: a red tint and a strike, so the change does not rest on colour alone.
     backgroundColor: colorVars["--color-background-red"],
@@ -141,7 +137,7 @@ export function PartText({
 }) {
   if (intent) {
     return (
-      <Text as="div" display="block" type="inherit" xstyle={styles.intent}>
+      <Text as="div" display="block" type="inherit" xstyle={[proseStyles.reading, styles.intent]}>
         <Runs runs={runs} whole={whole} />
       </Text>
     );

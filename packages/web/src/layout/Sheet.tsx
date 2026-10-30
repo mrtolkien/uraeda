@@ -21,7 +21,7 @@ const styles = stylex.create({
     // Taken to the whole screen, it grows there, from its own height, even one that hugs its
     // content: Astryx's sheet moves with its transform and opacity alone.
     interpolateSize: "allow-keywords",
-    transitionProperty: "transform, opacity, height, max-height",
+    transitionProperty: "transform, opacity, height, max-height, margin-block-end",
   },
   // A sheet shorter than the screen, over the phone's keyboard: lifted by what it covers. Astryx
   // follows the keyboard for a tall sheet alone, and a field focused as the sheet opens does not
@@ -52,10 +52,23 @@ const styles = stylex.create({
   },
 });
 
-/** The lift of a sheet that `isShort`, over the phone's keyboard while it shows. */
-function useKeyboardLift(isShort: boolean) {
+/** The room a lifted sheet keeps above its top, under the phone's top edge. */
+const TOP_ROOM_PX = 16;
+
+/**
+ * How far a sheet `height` tall lifts over a keyboard covering `keyboard` of a screen `screen`
+ * tall: by the keyboard, but never so far that its top, its title and Close, leaves the screen.
+ */
+export function liftOf(keyboard: number, height: number, screen: number) {
+  return Math.max(0, Math.min(keyboard, screen - height - TOP_ROOM_PX));
+}
+
+/** The lift of the sheet `panel`, when it `isShort`, over the phone's keyboard while it shows. */
+function useKeyboardLift(panel: RefObject<HTMLDivElement | null>, isShort: boolean) {
   const keyboard = useKeyboardInset();
-  return isShort && keyboard > 0 && styles.lifted(keyboard);
+  const height = panel.current?.getBoundingClientRect().height ?? 0;
+  const lift = isShort && keyboard > 0 ? liftOf(keyboard, height, window.innerHeight) : 0;
+  return lift > 0 && styles.lifted(lift);
 }
 
 /** The sheet's top, its handle and its title row, where a drag up takes it to the whole screen. */
@@ -148,7 +161,7 @@ export function Sheet({
   const [onFull] = useState(() => () => setFull(true));
   usePullUp(panel, isOpen, onFull);
   useFieldFocus(panel, isOpen);
-  const lift = useKeyboardLift(height !== "tall" && !full);
+  const lift = useKeyboardLift(panel, height !== "tall" && !full);
   const close = (
     <Button
       icon={<Icon icon="close" />}
