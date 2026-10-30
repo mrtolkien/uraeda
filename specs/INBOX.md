@@ -19,6 +19,10 @@
 
 ## Deferred fixes
 
+- [agent] [reading-pass] The phone's snug pane room is opt-in, pane by pane (`isSnugOnPhone`): a new
+  pane on a reading page silently keeps the wide room, as six did in this change. A reading page's
+  context read by `Pane` would give the rule one home; and `specs/ui/phone.md` should name a
+  feature's record among the pages whose panes are snug
 - [agent] [inbox-again] The leader key fixtures' spec and rounds still link the UI checks and UI
   coherence decisions, gone from `fixtures/realistic/decisions/`: in the sandbox those links open a
   missing decision (`fixtures/spec-leader-key/`, `fixtures/round-leader-key/`)
