@@ -838,3 +838,27 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a message kept while its commit lands shows nowhere for the hook's seconds.
 - **Where**: `packages/web/src/session/ReturnedMessages.tsx`, `packages/web/src/SessionView.tsx`,
   review of the web UI.
+
+## R76: A commit that failed says its change is still written, and links the commit page
+
+- **Decision**: a refused write whose `failure` is `failed` (R66) reads, in the toast, "The commit
+  failed: the change is still written, not committed. The commit page lists it.", and, where it
+  happened, a banner titled "The commit failed: the change is still written, not committed.", with
+  the same link, but on the commit page itself, and its output. A `hook` refusal, or one with no
+  `failure`, keeps the hook's copy.
+- **Rationale**: only a hook's refusal is undone by the core; the others leave their files written,
+  which only the commit page commits.
+- **Where**: `packages/web/src/writes/CommitToast.tsx`, `packages/web/src/writes/RefusedHere.tsx`,
+  review of the web UI.
+
+## R77: The hand-over's message read again replaces the one the composer holds, unless changed
+
+- **Decision**: the workflow message is read live, so the server's message sent again once the
+  feature's queued commits land or are refused reaches the composer (R63, R65). The draft takes the
+  same address's message read again, of the same trigger and file, with another text or step, in
+  place of the one its text starts with; when the human changed that one, the draft keeps it. A
+  message read again as refused leaves the text, without its run, as any refused hand-over.
+- **Rationale**: `useView` reads a record without subscribing to it, so the composer kept the
+  message predicted before the commits landed; the human's own words are never overwritten.
+- **Where**: `packages/web/src/data.ts` (`useWorkflowMessage`), `packages/web/src/useDraft.ts`,
+  review of the web UI.
