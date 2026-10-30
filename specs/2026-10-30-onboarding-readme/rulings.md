@@ -119,3 +119,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the rule of what is set up stays in the core (R2); counting its list's required,
   unwritten items is drawing it. Raised by the review of wave 2.
 - **Where**: `crates/cli/src/status.rs`, `packages/web/src/home/Setup.tsx`
+
+## R13: The README's Home shows the realistic project at work
+
+- **Decision**: `readme-screenshots.ts` serves on the sandbox's agent and starts the realistic
+  project's two turns at work, as the sandbox does, through a `started` argument `serveUi` gains.
+- **Rationale**: on a `FakeAdapter` with no turn running, Home's Usage pane read "No run reported
+  usage yet." and the status line "0 running", beside two features shown in progress: an empty state
+  in the README's first picture. The usage's reset times follow the clock, so a new run changes
+  them.
+- **Where**: task 5, `packages/web/scripts/shots.ts`, `packages/web/scripts/readme-screenshots.ts`
