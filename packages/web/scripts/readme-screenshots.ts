@@ -53,6 +53,9 @@ async function main() {
     let working: Promise<void> | undefined;
     server = await serveUi(sandboxAgent(), 4390, (started) => {
       working = atWorkOnRealistic(started.sessions, repo);
+      // Its failure is thrown where it is awaited, below: never unhandled before then, which would
+      // end the run without removing its folders.
+      working.catch(() => {});
     });
     const url = server.resolvedUrls?.local[0]?.replace(/\/$/, "") ?? "";
     mkdirSync(out, { recursive: true });

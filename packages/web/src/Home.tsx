@@ -81,8 +81,8 @@ export function Home() {
   if (!workspace) {
     return null;
   }
-  // The pane at the same place with or without `specs/`, so the folder's item, written, is
-  // announced as the others are.
+  // The pane at the same place with or without `specs/`, so its announcements carry on as the folder
+  // appears, and its item leaves the list.
   return (
     <Page>
       <VStack gap={0}>

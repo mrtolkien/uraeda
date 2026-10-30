@@ -46,10 +46,12 @@ its `preview-command` starts it with `{port}` and `--host 127.0.0.1`, as
 The decision stays `proposed` until the human approves it; then set Storybook up, in a commit of its
 own. A "no" is recorded as [Discovery](discovery.md#what-to-ask-and-what-to-settle) describes.
 
-A project is set up once its constitution has no placeholder left, like `[Project]` or
-`[YYYY-MM-DD]` in its title, a principle's name, a rule, or a date, and its code-quality and testing
-decisions exist, whatever their status. The preview decision is optional. Until then, `ura status`
-ends with the files missing, and the web UI's Home lists them in its Setup pane.
+A project is set up once its constitution is written and its code-quality and testing decisions
+exist, whatever their status. The preview decision is optional. A constitution is still the template
+while its title, a principle's name, a rule, or a date holds a placeholder, like `[Project]` or
+`[YYYY-MM-DD]`: any bracketed text there that is not a link, a footnote, or a task box counts as
+one. Until then, `ura status` ends with the files missing, and the web UI's Home lists them in its
+Setup pane.
 
 With `ura`, `ura init` does it, and writes nothing outside `specs/`. It prints `created` or `kept`
 for each template it copies: run again, it only adds what is missing, like `INBOX.md` in a project

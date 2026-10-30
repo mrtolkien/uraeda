@@ -72,8 +72,8 @@ import { arrowRightLeft, brain, indent, outdent, trash } from "./activityIcons.t
 import { play, save } from "./barIcons.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
-// Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The README's
-// credits name them too.
+// Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The licenses
+// of CONTRIBUTING.md name them too.
 
 /** A Codicons glyph, filled on its 16-unit grid, at the neutral theme's size. */
 const codicon = (d: string) =>
