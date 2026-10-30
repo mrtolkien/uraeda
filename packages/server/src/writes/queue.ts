@@ -16,8 +16,17 @@ export type StartStep = {
   state: "done" | "running" | "waiting" | "refused";
 };
 
+/**
+ * Why a refused write did not land: `hook`, a hook refused its commit, and the core undid its
+ * files; `failed`, anything else, a staging failure, a commit the core no longer holds after a
+ * restart, other files staged: its files are left written, uncommitted, listed on the commit page.
+ */
+export type WriteFailure = "failed" | "hook";
+
 /** A write as the queue shows it: its name, where it is, and the feature and file it concerns. */
 export type QueuedWrite = WriteInput & {
+  /** Once refused, why. */
+  failure?: WriteFailure;
   file?: string;
   folder?: string;
   id: string;
@@ -30,7 +39,7 @@ export type QueuedWrite = WriteInput & {
 };
 
 /** A write to queue: its name, and the feature and file it concerns. */
-export type NewWrite = Omit<QueuedWrite, "id" | "output" | "queued" | "state">;
+export type NewWrite = Omit<QueuedWrite, "failure" | "id" | "output" | "queued" | "state">;
 
 /** What a write's commits are landed with: each line git and the hooks print goes to `onOutput`. */
 export type Land = (onOutput: (line: string) => void) => Promise<unknown>;
@@ -43,6 +52,10 @@ export type QueueCore = {
 
 /** A queued write, the keys of the calls that wait for it, and when it is landed or refused. */
 type Entry = { keys: Array<string>; settled: Promise<void>; write: QueuedWrite };
+
+/** Why a landing failed: only a hook's refusal, which the core undid, has the code `hook`. */
+const failureOf = (error: unknown): WriteFailure =>
+  error instanceof Error && error.message.startsWith("hook: ") ? "hook" : "failed";
 
 /** The message of an error, its code taken off: the record says it was refused. */
 const refusal = (error: unknown) =>
@@ -204,6 +217,7 @@ export class WriteQueue {
       return landed;
     } catch (error) {
       entry.write.state = "refused";
+      entry.write.failure = failureOf(error);
       entry.write.output = refusal(error);
       throw error;
     } finally {

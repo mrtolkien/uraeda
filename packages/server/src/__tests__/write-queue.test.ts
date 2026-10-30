@@ -162,3 +162,19 @@ test("writes land in order, and a refused one does not stop the next", async () 
   expect(held.calls.slice(5)).toEqual(["landed 2", "land 3", "landed 3"]);
   expect(held.states()).toEqual(["commit 1 refused"]);
 });
+
+test("a refused write says whether a hook refused it, undone, or it failed, its files left", async () => {
+  const queue = new WriteQueue({ land: async () => {}, takeDeferred: () => [] }, () => {});
+  const fail = (label: string, message: string) =>
+    queue.enqueue({ href: "", label }, () => Promise.reject(new Error(message))).catch(() => {});
+
+  await fail("hook", "hook: git commit failed: the pre-commit hook refused\n\nlint: 1 problem");
+  await fail("restarted", "refused: no deferred commit 1: it landed or was dropped");
+  await fail("locked", "cannot stage: .git/index.lock exists");
+
+  expect(queue.writes().map(({ failure, label }) => `${label} ${failure}`)).toEqual([
+    "hook hook",
+    "restarted failed",
+    "locked failed",
+  ]);
+});

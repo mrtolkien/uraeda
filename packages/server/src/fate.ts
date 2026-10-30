@@ -118,7 +118,7 @@ export type Settings = Entity<typeof settingsDataView, "Settings">;
 export type NeedsYouList = Entity<typeof needsYouListDataView, "NeedsYouList">;
 export type WriteQueue = Entity<typeof writeQueueDataView, "WriteQueue">;
 /** A write of the queue, and a step of a start's. */
-export type { QueuedWrite, StartStep } from "./writes/queue.ts";
+export type { QueuedWrite, StartStep, WriteFailure } from "./writes/queue.ts";
 export { NEEDS_YOU_ID } from "./fate/needs-you.ts";
 /** What started a workflow turn, for `session.send`'s `workflow`. */
 export type { Trigger } from "./runner/events.ts";

@@ -761,3 +761,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   sends again from the composer.
 - **Where**: `packages/server/src/fate/commit-messages.ts`, `fate/send-mutations.ts`,
   `fate/workflow-step.ts`, review of the server.
+
+## R66: A refused write says whether a hook refused it or its landing failed
+
+- **Decision**: a refused write of the queue carries `failure`: `hook` when the core rejected its
+  landing with the code `hook:`, its files undone (R62); `failed` for any other error, a staging
+  failure on `index.lock`, a commit the core no longer holds after a restart, other files staged:
+  its files are left written and uncommitted, and the commit page lists them. The type is exported
+  as `WriteFailure`, for the web's copy, which a later change words.
+- **Rationale**: only a hook's refusal is undone by the core; the record showed every failure as
+  one, whose copy says the write was undone, while the files of the others stay written.
+- **Where**: `packages/server/src/writes/queue.ts`, review of the server.
