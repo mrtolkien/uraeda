@@ -39,10 +39,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the composer, and the notes and lines it was filled from still in their files, until they open
   that session page again in the same tab: the plan is kept in the page's memory, so a reload before
   the commit lands forgets it, and the text and its sources then stay until the human empties the
-  composer. Nothing is lost; a second start of it as a feature is refused as its slug is taken, but
-  started as a change it would be a second one. Keeping the plan with the draft would add a stored
-  field the data model does not have. The landing runs once: a note taken out twice would take out
-  the one that moved into its place.
+  composer. Nothing is lost; a second start of it the same day, as a feature or a change, is refused
+  as its slug is taken. Keeping the plan with the draft would add a stored field the data model does
+  not have. The landing runs once: a note taken out twice would take out the one that moved into its
+  place.
 - **Where**: task 4, `useStart.ts` and `session/StartingSession.tsx`.
 
 ## R4: The research effort's levels come with the slug's proposal

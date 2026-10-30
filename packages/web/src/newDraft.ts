@@ -139,7 +139,7 @@ export function useNewDraft() {
       });
     }
   };
-  // Whether the draft still held `text`, and went with its images: a newer draft stays whole.
+  // Whether the draft still held `text`, and went with the images sent: a newer draft stays whole.
   const sent = (text: string, images: ReadonlyArray<DraftImage>) => {
     if (held(key).text.trim() !== text.trim()) {
       return false;

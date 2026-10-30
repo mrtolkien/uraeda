@@ -382,10 +382,11 @@ feature {title}", its `href` the input's, the New page by default. `SlugProposal
 
 - Produces:
   - `useNewDraft(): NewDraft`, with
-    `NewDraft = { images; setImages; text: string; setText: (update: SetStateAction<string>) => void; sources: ReadonlyArray<Source>; insert: (entry: Entry) => void; start: (entry: Entry) => void; sent: (text: string) => void; unsavedNow: () => string | undefined }`.
+    `NewDraft = { images; setImages; text: string; setText: (update: SetStateAction<string>) => void; sources: ReadonlyArray<Source>; insert: (entry: Entry) => void; start: (entry: Entry) => void; sent: (text: string, images: ReadonlyArray<DraftImage>) => boolean; unsavedNow: () => string | undefined }`.
   - `insert` adds an entry under the text with its link, as today; `start` replaces the draft with
     the entry alone, without its link, and shows "Draft replaced" with Undo when the draft held more
-    than spaces; `sent(text)` empties the draft while the store still holds `text`.
+    than spaces; `sent(text, images)` empties the draft, and takes out the images sent, while the
+    store still holds `text`.
   - `insertion(entry: Entry, { link }: { link?: boolean } = {}): string`, `link` true by default.
   - `ChangeComposer({ draft, inputRef })`, in place of `{ inputRef, sources, text }`.
   - The stored entry: key `unsavedKey(repo, "new-draft")`, `Unsaved` with

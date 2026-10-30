@@ -321,3 +321,27 @@ test("a change started from a note takes it out by its text, once a note above i
   );
   expect(read(repo, "specs/INBOX.md")).toContain("Opening a session with 2,000 messages takes 4 s");
 });
+
+/** An image pasted while a change starts is a newer draft's: the start that lands leaves it. */
+test("a change start that answers late keeps an image pasted since", async () => {
+  const held = await renderHeld();
+  const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  await type(box, "Centre the x in failure circles");
+  await start();
+  await waitFor(() => expect(held).toHaveLength(1));
+  const png = new File([readFileSync(fixture("images/phone.png"))], "newer.png", {
+    type: "image/png",
+  });
+  await act(async () => {
+    fireEvent.paste(box, { clipboardData: { files: [png], getData: () => "" } });
+  });
+  await screen.findByRole("button", { name: /^Remove/ });
+  await quiet();
+
+  await act(async () => held.shift()!());
+  await quiet();
+
+  // The change's session opened: back on the New page, the image is still in the composer.
+  await act(async () => navigate(atRepo("/new?kind=change")));
+  await screen.findByRole("button", { name: /^Remove/ });
+});
