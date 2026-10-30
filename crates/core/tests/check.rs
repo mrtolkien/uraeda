@@ -2477,7 +2477,13 @@ fn each_decision_limit() {
         ),
         (
             "decision.why",
-            |e| with_section(e, "## Why", &words(81)),
+            |e| {
+                with_section(
+                    e,
+                    "## Why",
+                    &format!("{}\n{}\n- {}", words(40), words(30), words(11)),
+                )
+            },
             "## Why",
             "81 words: keep the reason under 80".into(),
         ),
@@ -2492,6 +2498,12 @@ fn each_decision_limit() {
             |e| with_section(e, "## Consequences", &items(5)),
             "## Consequences",
             "5 consequences: keep at most 4, the costs and what a later feature must do".into(),
+        ),
+        (
+            "decision.rules",
+            |e| with_rules(e, &format!("> ## A quoted heading\n\n{}", rules(11))),
+            "## Rules",
+            "11 rules: keep at most 10, or split the topic".into(),
         ),
         (
             "decision.keywords",

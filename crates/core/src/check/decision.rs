@@ -118,6 +118,7 @@ fn check_rules(file: &File<'_>, document: &Document, heading: &Block, problems: 
     }
     for rule in &rules {
         let text = counted_text(&rule.spans);
+        let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
         let own = text.split("Checked by").next().unwrap_or_default();
         let count = keywords(own);
         if count > 1 {
@@ -159,14 +160,17 @@ fn top_heading<'a>(document: &'a Document, level: u32, name: Option<&str>) -> Op
     })
 }
 
-/// The blocks after a heading, nested ones included, up to the next level-1 or level-2 heading.
+/// The blocks after a heading, nested ones included, up to the next top-level heading of level 1
+/// or 2: a heading in a quote or an item does not end it.
 fn section<'a>(document: &'a Document, heading: &Block) -> impl Iterator<Item = &'a Block> {
     let id = heading.id;
     document
         .blocks
         .iter()
         .filter(move |b| b.id > id)
-        .take_while(|b| b.kind != BlockKind::Heading || b.level.unwrap_or(1) > 2)
+        .take_while(|b| {
+            b.parent.is_some() || b.kind != BlockKind::Heading || b.level.unwrap_or(1) > 2
+        })
 }
 
 /// The top-level items of a section's top-level lists.
