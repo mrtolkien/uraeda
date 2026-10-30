@@ -352,37 +352,6 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   which an optimistic `categories` or `sections` would compute in TypeScript.
 - **Where**: task 10.
 
-## R34: A deferred commit whose files are committed already lands as `HEAD`
-
-- **Decision**: before it commits, `land` checks each of the change's paths against `HEAD`, on disk
-  and in the index. When none differs, someone committed the files since the write: it lands with no
-  commit, its hooks not run, nothing put back, and returns the change with `HEAD`'s short hash as
-  its commit.
-- **Rationale**: git refuses a commit with nothing in it, and every failed `git commit` is a hook's
-  refusal to `land`, which undoes the write: it would have put back the text before the committed
-  one, in the working tree only, and reported a refusal no hook made. The files are committed, as
-  the action wanted; an amend over them would rewrite a commit not the action's.
-- **Alternatives considered**: an "already committed" error, which the server would show as a
-  failure though nothing failed; telling git's "nothing to commit" apart by its text, which depends
-  on git's language and runs the hooks first.
-- **If wrong**: a deferred commit whose files someone committed reports `HEAD` as its own commit.
-- **Where**: `crates/core/src/actions/deferred.rs`, review fix.
-
-## R35: A streamed commit reads stdout and stderr apart, and names a failure by stderr first
-
-- **Decision**: `run_streaming` reads the process's stdout and stderr from a pipe each, on a thread
-  each, and gives `on_line` each line as it comes, merged in that order. A failure's message is
-  stderr's first line that is not blank, then stdout's, as `run` names it; its output is all the
-  lines, merged. A read error stops the process and fails the command.
-- **Rationale**: one pipe for both kept the order as printed, but lost which stream a line came
-  from, so a failure streamed was named by another line than the same failure within the call. A
-  hook's lines keep their order: git gives a hook's stdout to its stderr.
-- **Alternatives considered**: one merged pipe with the message from its first line, which named a
-  failure by git's stdout when it printed first.
-- **If wrong**: a line git prints to stdout can show before or after a line of stderr printed just
-  before or after it.
-- **Where**: `crates/core/src/git/process.rs`, review fix.
-
 ## R31: A start puts back its proposal on a hook's refusal only where commits are deferred
 
 - **Decision**: `api::start_feature` and `api::start_change` restore the moved proposal file, the
@@ -419,6 +388,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the start's checks read that checkout's proposal file and priorities; without one,
   there is no file to plan from, and the start itself would create it next.
 - **Where**: task 11.
+
+## R34: A deferred commit whose files are committed already lands as `HEAD`
+
+- **Decision**: before it commits, `land` checks each of the change's paths against `HEAD`, on disk
+  and in the index. When none differs, someone committed the files since the write: it lands with no
+  commit, its hooks not run, nothing put back, and returns the change with `HEAD`'s short hash as
+  its commit.
+- **Rationale**: git refuses a commit with nothing in it, and every failed `git commit` is a hook's
+  refusal to `land`, which undoes the write: it would have put back the text before the committed
+  one, in the working tree only, and reported a refusal no hook made. The files are committed, as
+  the action wanted; an amend over them would rewrite a commit not the action's.
+- **Alternatives considered**: an "already committed" error, which the server would show as a
+  failure though nothing failed; telling git's "nothing to commit" apart by its text, which depends
+  on git's language and runs the hooks first.
+- **If wrong**: a deferred commit whose files someone committed reports `HEAD` as its own commit.
+- **Where**: `crates/core/src/actions/deferred.rs`, review fix.
+
+## R35: A streamed commit reads stdout and stderr apart, and names a failure by stderr first
+
+- **Decision**: `run_streaming` reads the process's stdout and stderr from a pipe each, on a thread
+  each, and gives `on_line` each line as it comes, merged in that order. A failure's message is
+  stderr's first line that is not blank, then stdout's, as `run` names it; its output is all the
+  lines, merged. A read error stops the process and fails the command.
+- **Rationale**: one pipe for both kept the order as printed, but lost which stream a line came
+  from, so a failure streamed was named by another line than the same failure within the call. A
+  hook's lines keep their order: git gives a hook's stdout to its stderr.
+- **Alternatives considered**: one merged pipe with the message from its first line, which named a
+  failure by git's stdout when it printed first.
+- **If wrong**: a line git prints to stdout can show before or after a line of stderr printed just
+  before or after it.
+- **Where**: `crates/core/src/git/process.rs`, review fix.
 
 ## R37: A note moved to a level answers with the priorities, which open on it at once
 
@@ -671,6 +671,43 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: until task 15, Start shows nothing for the seconds its commit takes.
 - **Where**: task 14.
 
+## R57: The session of a starting feature draws from the queue's write and the plan the tab made
+
+- **Decision**: the session page of a folder draws the start's steps, in place of the feature's
+  session, while the queue holds a start's write for that folder, landing, waiting, or refused, or
+  while this document planned its start and has not yet seen its write leave the queue. The plan
+  (`useStart.ts`) is kept in the document's memory: the page draws at once, before the queue's live
+  update reaches it. Once the write left, or the feature reads as existing, the feature is read
+  again from the server and its session draws. After a reload, the steps come from the write alone,
+  with an empty composer.
+- **Rationale**: the feature cannot be read before its start lands, and the queue's update may come
+  after the plan's answer: waiting for it would make the page wait.
+- **If wrong**: a start that landed before the queue's record was read here shows its steps until
+  the next change of the queue.
+- **Where**: `packages/web/src/useStart.ts`, `packages/web/src/session/StartingSession.tsx`,
+  task 15.
+
+## R58: The editor names the start's write after its proposal, and the toast opens its session
+
+- **Decision**: the editor's start names its write "Starting the <kind> <title>", its `href` the
+  proposal's editor, which the steps' "Open the proposal" opens. The toast's Open of a feature's
+  start goes to its session page, where its steps show the refusal. Every refusal of the plan, a
+  taken slug or another, shows under the slug while it holds the slug refused; a text not saved
+  stays in the editor's banner.
+- **Rationale**: once refused, the proposal is back in its file, so the record must name it for a
+  page reloaded; the steps, not the editor, are where the start happened.
+- **Where**: `packages/web/src/useStart.ts`, `packages/web/src/writes/CommitToast.tsx`,
+  `packages/web/src/ProposalStart.tsx`, task 15.
+
+## R59: A refused start's composer holds its message, and sends nothing
+
+- **Decision**: once a start is refused, the message the server kept for it goes back in the
+  composer, once, and the composer is disabled with "Nothing started: start the proposal again from
+  its file."; its `sendWaits` prop, unused since task 14, is removed.
+- **Rationale**: no feature exists to send to, and the server would refuse the message.
+- **Where**: `packages/web/src/session/StartingSession.tsx`, `packages/web/src/Composer.tsx`,
+  task 15.
+
 ## R61: A start holds the write lock to write, stage, put back, and branch, never while its hooks run
 
 - **Decision**: `start_feature` and `start_change` take the repository's write lock to reach the
@@ -713,43 +750,6 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   branch until the refusal puts the files back.
 - **Where**: `crates/core/src/api/expected.rs`, `crates/binding/src/expected.rs`, review of the
   core.
-
-## R57: The session of a starting feature draws from the queue's write and the plan the tab made
-
-- **Decision**: the session page of a folder draws the start's steps, in place of the feature's
-  session, while the queue holds a start's write for that folder, landing, waiting, or refused, or
-  while this document planned its start and has not yet seen its write leave the queue. The plan
-  (`useStart.ts`) is kept in the document's memory: the page draws at once, before the queue's live
-  update reaches it. Once the write left, or the feature reads as existing, the feature is read
-  again from the server and its session draws. After a reload, the steps come from the write alone,
-  with an empty composer.
-- **Rationale**: the feature cannot be read before its start lands, and the queue's update may come
-  after the plan's answer: waiting for it would make the page wait.
-- **If wrong**: a start that landed before the queue's record was read here shows its steps until
-  the next change of the queue.
-- **Where**: `packages/web/src/useStart.ts`, `packages/web/src/session/StartingSession.tsx`,
-  task 15.
-
-## R58: The editor names the start's write after its proposal, and the toast opens its session
-
-- **Decision**: the editor's start names its write "Starting the <kind> <title>", its `href` the
-  proposal's editor, which the steps' "Open the proposal" opens. The toast's Open of a feature's
-  start goes to its session page, where its steps show the refusal. Every refusal of the plan, a
-  taken slug or another, shows under the slug while it holds the slug refused; a text not saved
-  stays in the editor's banner.
-- **Rationale**: once refused, the proposal is back in its file, so the record must name it for a
-  page reloaded; the steps, not the editor, are where the start happened.
-- **Where**: `packages/web/src/useStart.ts`, `packages/web/src/writes/CommitToast.tsx`,
-  `packages/web/src/ProposalStart.tsx`, task 15.
-
-## R59: A refused start's composer holds its message, and sends nothing
-
-- **Decision**: once a start is refused, the message the server kept for it goes back in the
-  composer, once, and the composer is disabled with "Nothing started: start the proposal again from
-  its file."; its `sendWaits` prop, unused since task 14, is removed.
-- **Rationale**: no feature exists to send to, and the server would refuse the message.
-- **Where**: `packages/web/src/session/StartingSession.tsx`, `packages/web/src/Composer.tsx`,
-  task 15.
 
 ## R65: A message sent while a feature's commits are queued waits for them, and goes once they land
 
@@ -824,45 +824,6 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `packages/server/src/writes/queue.ts` (`free`), `fate/starts.ts` (`queueStart`), review
   of the server.
 
-## R75: A message a refused commit returns goes back in its feature's session composer, once
-
-- **Decision**: a refused write of a feature, not a start, whose `queued` holds the messages kept
-  for it (R65), puts their text back in the composer of that feature's session, before what it
-  holds, once per refusal in the document, as R59 does for a start. Under it, "Not sent: the commit
-  it waited for was refused. Your message is back.", until the composer sends again or the refusal
-  is dismissed. A message sent to a session shows at the transcript's end only until the send
-  answers (R29): a kept one, which goes into no turn yet, shows nothing until it lands, so a
-  returned one never shows as sent.
-- **Rationale**: the server drops a kept message once a commit before it is refused; its text is
-  costly to lose, and the human sent it from that composer.
-- **If wrong**: a message kept while its commit lands shows nowhere for the hook's seconds.
-- **Where**: `packages/web/src/session/ReturnedMessages.tsx`, `packages/web/src/SessionView.tsx`,
-  review of the web UI.
-
-## R76: A commit that failed says its change is still written, and links the commit page
-
-- **Decision**: a refused write whose `failure` is `failed` (R66) reads, in the toast, "The commit
-  failed: the change is still written, not committed. The commit page lists it.", and, where it
-  happened, a banner titled "The commit failed: the change is still written, not committed.", with
-  the same link, but on the commit page itself, and its output. A `hook` refusal, or one with no
-  `failure`, keeps the hook's copy.
-- **Rationale**: only a hook's refusal is undone by the core; the others leave their files written,
-  which only the commit page commits.
-- **Where**: `packages/web/src/writes/CommitToast.tsx`, `packages/web/src/writes/RefusedHere.tsx`,
-  review of the web UI.
-
-## R77: The hand-over's message read again replaces the one the composer holds, unless changed
-
-- **Decision**: the workflow message is read live, so the server's message sent again once the
-  feature's queued commits land or are refused reaches the composer (R63, R65). The draft takes the
-  same address's message read again, of the same trigger and file, with another text or step, in
-  place of the one its text starts with; when the human changed that one, the draft keeps it. A
-  message read again as refused leaves the text, without its run, as any refused hand-over.
-- **Rationale**: `useView` reads a record without subscribing to it, so the composer kept the
-  message predicted before the commits landed; the human's own words are never overwritten.
-- **Where**: `packages/web/src/data.ts` (`useWorkflowMessage`), `packages/web/src/useDraft.ts`,
-  review of the web UI.
-
 ## R71: The benchmark's first run misses on the Ledger, History, the round, and two writes
 
 - **Decision**: the first runs of `vp run performance`, on 2026-10-30, on an AMD Ryzen 9 5950X (16
@@ -924,6 +885,45 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: Send is never pressed, so SC-004's "send it and open another page" is timed only as
   the other page, opened while the steps run; Claude Code shows as not available on the session.
 - **Where**: `packages/web/scripts/performance*.ts`, task 16.
+
+## R75: A message a refused commit returns goes back in its feature's session composer, once
+
+- **Decision**: a refused write of a feature, not a start, whose `queued` holds the messages kept
+  for it (R65), puts their text back in the composer of that feature's session, before what it
+  holds, once per refusal in the document, as R59 does for a start. Under it, "Not sent: the commit
+  it waited for was refused. Your message is back.", until the composer sends again or the refusal
+  is dismissed. A message sent to a session shows at the transcript's end only until the send
+  answers (R29): a kept one, which goes into no turn yet, shows nothing until it lands, so a
+  returned one never shows as sent.
+- **Rationale**: the server drops a kept message once a commit before it is refused; its text is
+  costly to lose, and the human sent it from that composer.
+- **If wrong**: a message kept while its commit lands shows nowhere for the hook's seconds.
+- **Where**: `packages/web/src/session/ReturnedMessages.tsx`, `packages/web/src/SessionView.tsx`,
+  review of the web UI.
+
+## R76: A commit that failed says its change is still written, and links the commit page
+
+- **Decision**: a refused write whose `failure` is `failed` (R66) reads, in the toast, "The commit
+  failed: the change is still written, not committed. The commit page lists it.", and, where it
+  happened, a banner titled "The commit failed: the change is still written, not committed.", with
+  the same link, but on the commit page itself, and its output. A `hook` refusal, or one with no
+  `failure`, keeps the hook's copy.
+- **Rationale**: only a hook's refusal is undone by the core; the others leave their files written,
+  which only the commit page commits.
+- **Where**: `packages/web/src/writes/CommitToast.tsx`, `packages/web/src/writes/RefusedHere.tsx`,
+  review of the web UI.
+
+## R77: The hand-over's message read again replaces the one the composer holds, unless changed
+
+- **Decision**: the workflow message is read live, so the server's message sent again once the
+  feature's queued commits land or are refused reaches the composer (R63, R65). The draft takes the
+  same address's message read again, of the same trigger and file, with another text or step, in
+  place of the one its text starts with; when the human changed that one, the draft keeps it. A
+  message read again as refused leaves the text, without its run, as any refused hand-over.
+- **Rationale**: `useView` reads a record without subscribing to it, so the composer kept the
+  message predicted before the commits landed; the human's own words are never overwritten.
+- **Where**: `packages/web/src/data.ts` (`useWorkflowMessage`), `packages/web/src/useDraft.ts`,
+  review of the web UI.
 
 ## R79: The ledger is kept like the workspace, and its dates read only the commits since
 

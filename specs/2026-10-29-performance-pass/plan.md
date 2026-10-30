@@ -1150,7 +1150,7 @@ the committing calls' turn; the start runs in that turn (R52). The runner keeps 
 in memory: a server that stops drops it, and sends nothing twice. `change.start` goes through the
 queue too, and answers once landed: the core plans only a proposal file's start (R50).
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS. Deferred to ready: the whole suite.
