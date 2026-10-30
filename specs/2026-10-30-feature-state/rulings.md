@@ -102,3 +102,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the feature's sessions are keyed by the repository's main checkout, which the
   runner reads asynchronously; the plan's interface named a synchronous function.
 - **Where**: task 6.
+
+## R13: SC-002's 100 ms is measured on a release binding
+
+- **Decision**: the approval's step read in `live.bench.ts` holds its 100 ms on a release binding,
+  built with `nix develop -c vp run --filter uraeda-binding build:release`, as its comment says.
+- **Rationale**: the performance decision measures "on a release build". The dev binding, built
+  without optimizations, is the one the tests run on.
+- **Where**: task 1, step 5.
