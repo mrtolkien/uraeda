@@ -576,39 +576,41 @@ git commit -m "feat(onboarding-readme): Home's Setup pane, and setting up with t
 - Produces: `docs/images/screenshots/<view>-<size>-<mode>.webp`, `view` one of `home`, `questions`,
   `spec`; `size` `desktop` or `phone`; `mode` `light` or `dark`. Task 6 links them by these names.
 
-- [ ] **Step 1: Share the server and the contexts**
+- [x] **Step 1: Share the server and the contexts**
 
-Move `serve` from `screenshots.ts` to `shots.ts` as `serveUi(adapter: FakeAdapter, port: number)`,
-and the creation of the four contexts as
+Move `serve` from `screenshots.ts` to `shots.ts` as
+`serveUi(adapter: FakeAdapter, port: number, started?: (server) => void)`, `started` passed to the
+server as the sandbox's config passes it (R13), and the creation of the four contexts as
 `openShots(browser: Browser, url: string): Promise<Array<Shot>>`, the notifications banner dismissed
 as today. `screenshots.ts` calls both; its output is unchanged. Export the realistic project's
 builder as `buildRealistic(repo: string)`, dated as `buildProjects` dates it, and the realistic part
 of `seedSessions` as `seedRealisticSession(dataDir: string, realistic: string)`, which
 `seedSessions` calls.
 
-- [ ] **Step 2: Write `readme-screenshots.ts`, run by `vp run readme:screenshots`**
+- [x] **Step 2: Write `readme-screenshots.ts`, run by `vp run readme:screenshots`**
 
 It builds the realistic project in a fresh temporary folder, seeds its live session in a fresh data
-folder, lists it, serves the UI on a `FakeAdapter` with a fresh config folder, and takes three views
-into `docs/images/screenshots/` with `shooter`: `home` (`/`), `questions`
+folder, lists it, serves the UI on the sandbox's agent with a fresh config folder, starts the
+project's two turns at work with `atWorkOnRealistic` as the sandbox does (R13), and takes three
+views into `docs/images/screenshots/` with `shooter`: `home` (`/`), `questions`
 (`/f/2026-10-21-leader-key/clarifications-01.md`), and `spec` (`/f/2026-10-19-leader-key/spec.md`),
 each waiting for its page's text. It removes its folders at the end, failed or not, as
 `screenshots.ts` does. The root `package.json` gains
 `"readme:screenshots": "node packages/web/scripts/readme-screenshots.ts"`.
 
-- [ ] **Step 3: Take them**
+- [x] **Step 3: Take them**
 
 - Run: `nix develop -c vp run readme:screenshots`
 - Expected: 12 files listed, none failed; `git status` shows only `docs/images/screenshots/`, and
-  their size together near 400 KB. Open each: Home shows the realistic project's panes, no Setup
+  their size together near 650 KB. Open each: Home shows the realistic project's panes, no Setup
   pane.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package.json packages/web/scripts packages/web/samples packages/web/sandbox docs/images/screenshots

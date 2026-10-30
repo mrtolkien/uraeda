@@ -7,6 +7,7 @@
     "prepare": "vp config",
     "dev": "node packages/server/scripts/dev.ts",
     "start": "vp run --filter uraeda-binding build:release && vp run --filter uraeda-web build && node packages/server/src/main.ts",
+    "readme:screenshots": "node packages/web/scripts/readme-screenshots.ts",
     "release": "node packages/uraeda/scripts/bump.ts",
     "sandbox": "node packages/web/sandbox/main.ts",
     "validate:claude": "node packages/server/scripts/validate-claude.ts"

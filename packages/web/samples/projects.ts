@@ -101,10 +101,18 @@ function buildBroken(repo: string) {
 }
 
 /** The realistic project: set up, then a full day's features and priorities (`realistic.ts`). */
-function buildRealistic(repo: string) {
+function realistic(repo: string) {
   initRepository(repo);
   setUp(repo);
   addRealistic(repo);
+}
+
+/**
+ * Builds the realistic project alone in `repo`, every commit dated as `buildProjects` dates them:
+ * what the README's screenshots show.
+ */
+export function buildRealistic(repo: string) {
+  dated(() => realistic(repo));
 }
 
 /** The bare project: a repository with a README, and no `specs/`, as one is before its setup. */
@@ -137,7 +145,7 @@ export function buildProjects(dir: string): {
     initRepository(paths.empty);
     setUp(paths.empty);
     buildBroken(paths.broken);
-    buildRealistic(paths.realistic);
+    realistic(paths.realistic);
     buildBare(paths.bare);
   });
   return paths;

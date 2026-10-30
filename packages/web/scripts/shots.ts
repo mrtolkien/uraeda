@@ -4,8 +4,12 @@
  */
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { BrowserContext, Page } from "playwright";
+import { fileURLToPath } from "node:url";
+import type { Browser, BrowserContext, Page } from "playwright";
 import { encodeImage } from "uraeda-binding";
+import type { FakeAdapter } from "uraeda-server/testing";
+import { createServer, type PluginOption } from "vite-plus";
+import base, { uraedaServer } from "../vite.config.ts";
 
 export type Size = "phone" | "desktop";
 type Mode = "light" | "dark";
@@ -16,7 +20,64 @@ export const SPEC = "/f/2026-10-06-recurring-tasks/spec.md";
 export const COMMENT_FIELD = "Comment, or your own answer instead of a letter";
 const APPROVED = "/f/2026-10-13-plan-review/spec.md";
 
+const web = fileURLToPath(new URL("..", import.meta.url));
+
 export const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** What the server calls once it has started, with its first request. */
+type Started = NonNullable<Parameters<typeof uraedaServer>[0]>["started"];
+
+/**
+ * The UI served by Vite with the server's routes in process, on `adapter`, without sign-in, on
+ * `port` or the next one free, with the settings of the environment as it is now; `started` is
+ * called once its server has started.
+ */
+export async function serveUi(adapter: FakeAdapter, port: number, started?: Started) {
+  const plugins = (base.plugins ?? []).filter(
+    (plugin: PluginOption) => !(plugin && "name" in plugin && plugin.name === "uraeda-server"),
+  );
+  const server = await createServer({
+    ...base,
+    configFile: false,
+    logLevel: "warn",
+    plugins: [...plugins, uraedaServer({ adapter, signIn: false, ...(started && { started }) })],
+    root: web,
+    server: { host: "127.0.0.1", port, strictPort: false },
+  });
+  await server.listen();
+  return server;
+}
+
+/**
+ * A page at each size, a phone's (402 × 874, with a touch screen) and a desktop's (1440 × 900), in
+ * each theme, on the UI at `url`, with the banner that asks to notify dismissed.
+ */
+export async function openShots(browser: Browser, url: string): Promise<Array<Shot>> {
+  const shots: Array<Shot> = [];
+  for (const size of ["phone", "desktop"] as const) {
+    for (const mode of ["light", "dark"] as const) {
+      const context = await browser.newContext({
+        baseURL: url,
+        colorScheme: mode,
+        viewport: size === "phone" ? { height: 874, width: 402 } : { height: 900, width: 1440 },
+        // A touch screen, as a phone has.
+        hasTouch: size === "phone",
+        reducedMotion: "reduce",
+        // The feature page's times, as its features' commits give them.
+        timezoneId: "UTC",
+      });
+      // The banner that asks to notify shows above every page until dismissed: its own shot
+      // names its tab "banner" to show it.
+      await context.addInitScript(() => {
+        if (window.name !== "banner") {
+          window.localStorage.setItem("uraeda.notifications", "dismissed");
+        }
+      });
+      shots.push({ context, mode, page: await context.newPage(), size });
+    }
+  }
+  return shots;
+}
 
 /** The repository's prefix, `/r/<name>`, which every page's path starts with. */
 let prefix = "";
