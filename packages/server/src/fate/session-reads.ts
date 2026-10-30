@@ -1,7 +1,7 @@
 // What the sessions' records and a feature's status read: the workspace, once per request, and a
 // session's turns and its status, which `sessions.ts` and `feature-status.ts` both read.
 import type { FeatureView, WorkspaceView } from "uraeda-binding";
-import type { SessionCache, SessionRow } from "../runner/cache.ts";
+import type { SessionCache, SessionRow, TurnRow } from "../runner/cache.ts";
 import { coveredDenials } from "../runner/allow.ts";
 import { TAKEN_BACK } from "../runner/session-state.ts";
 import { sessionStatus } from "../runner/status.ts";
@@ -26,19 +26,32 @@ export function workspaceOf(ctx: RepoContext, path: string): Promise<WorkspaceVi
 }
 
 /**
- * What a session's status and its sidebar row read of its turns. Its `latest` is the latest turn
- * not taken back: a queued message taken back ran nothing, and never asks for the human.
+ * The session's latest turn not taken back, as its status reads it: a queued message taken back ran
+ * nothing, and never asks for the human. With whether a turn waits in its queue.
  */
+export function latestOf(turns: Array<TurnRow>) {
+  return {
+    latest: turns.findLast((turn) => turn.state !== "stopped" || turn.reason !== TAKEN_BACK),
+    queued: turns.some((turn) => turn.state === "queued"),
+  };
+}
+
+/** Whether the turn was refused an action the human has not allowed. */
+export function blockedOf(cache: SessionCache, turn: TurnRow | undefined): boolean {
+  return turn ? cache.itemsOf(turn.id, "denial").some((denial) => !denial.allowed) : false;
+}
+
+/** What a session's status and its sidebar row read of its turns. */
 export function turnsOf(cache: SessionCache, session: string) {
   const turns = cache.turns(session);
-  const latest = turns.findLast((turn) => turn.state !== "stopped" || turn.reason !== TAKEN_BACK);
+  const { latest, queued } = latestOf(turns);
   const running = turns.filter((turn) => turn.state === "running").at(-1);
   const subagents: Array<SubagentRecord> = running ? cache.subagentsOf(running.id) : [];
   return {
     allowable: latest ? coveredDenials(cache, latest.id).length : 0,
-    blocked: latest ? cache.itemsOf(latest.id, "denial").some((denial) => !denial.allowed) : false,
+    blocked: blockedOf(cache, latest),
     latest,
-    queued: turns.some((turn) => turn.state === "queued"),
+    queued,
     subagents,
     turns,
   };

@@ -2,12 +2,15 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { chatImages } from "../attach.ts";
+import type { RepoContext } from "../fate/context.ts";
+import { featureStatusOf } from "../fate/feature-status.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
 import { OUTPUT_LIMIT, SERVER_STOPPED } from "../runner/session-state.ts";
 import { ChatImages } from "../runner/images.ts";
 import {
   addChange,
+  binding,
   byId,
   byIdAt,
   commitOnBranch,
@@ -1629,6 +1632,29 @@ test("a feature with problems needs the human, and the notifier skips it", async
     turn: String(turn),
   });
   expect(await needsYouRow(server, AGENT)).toBeUndefined();
+});
+
+/** Review: a status read the turns of every session, their denials twice, and their sub-agents. */
+test("a feature's status is read once per request, stopping at a running session", async () => {
+  const server = await testServer();
+  doneTurn(server, (await folderSession(server, AGENT)).id, { denied: true });
+  const running = await folderSession(server, AGENT);
+  doneTurn(server, running.id, { state: "running" });
+  await folderSession(server, AGENT);
+  const ctx = { binding, repo: server.repo, sessions: server.sessions } as unknown as RepoContext;
+  const feature = (await binding.readFeature(server.repo, AGENT))!;
+  const { cache } = server.sessions;
+  const reads = [
+    vi.spyOn(cache, "turns"),
+    vi.spyOn(cache, "itemsOf"),
+    vi.spyOn(cache, "subagentsOf"),
+  ];
+
+  const status = await featureStatusOf(ctx, feature);
+
+  expect(status).toMatchObject({ session: running.id, status: "working" });
+  expect(await featureStatusOf(ctx, feature)).toBe(status);
+  expect(reads.map((read) => read.mock.calls.length)).toEqual([2, 0, 0]);
 });
 
 test("a feature lists its sessions, latest first", async () => {
