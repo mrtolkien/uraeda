@@ -135,14 +135,14 @@ app.
 - **B. A bordered pane, like the app's, with the tree and the name. Below them, the workflow's five
   steps as a row of dots joined by a line.**
 
-  [Pane banner](mockups/banner-b-pane.svg)
+  Pane banner (`mockups/banner-b-pane.svg`, deleted)
 
   - [pro] echoes the app's look and the workflow's steps.
   - [con] the steps' dots carry no labels, so they read as decoration.
 
 - **C. A, with the tree growing from its trunk, then the name appearing, once, in about a second.**
 
-  [Growing banner](mockups/banner-c-growing.svg)
+  Growing banner (`mockups/banner-c-growing.svg`, deleted)
 
   - [pro] a small moment of life on the first screen.
   - [con] plays again at each page load.
