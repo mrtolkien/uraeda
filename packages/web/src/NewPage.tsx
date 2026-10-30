@@ -295,8 +295,9 @@ function LineInsert({
 }
 
 /**
- * Home's "Set up with the agent" opens a session with the setup's message, in place of what its
- * composer held, focused as an inserted entry is: once, unsent, and not again on a reload.
+ * Home's "Set up with the agent" opens a session with the setup's message, focused as an inserted
+ * entry is, unsent. The history entry keeps asking for it, so a reload, which empties the session's
+ * composer, fills it again; a composer that holds text keeps it.
  */
 function useSetupMessage({
   input,
@@ -308,11 +309,9 @@ function useSetupMessage({
   session: ReturnType<typeof useDraft>;
 }) {
   useEffect(() => {
-    if (currentEntry().insert !== "setup" || kind !== "session") {
+    if (currentEntry().insert !== "setup" || kind !== "session" || session.text.trim() !== "") {
       return;
     }
-    const { insert: _, ...rest } = currentEntry();
-    window.history.replaceState(rest, "");
     session.setText(SET_UP_PROJECT);
     requestAnimationFrame(() => input.current?.focus());
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, when the session's composer is there

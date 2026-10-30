@@ -5,11 +5,12 @@ import { NewMenu } from "./NewMenu.tsx";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
-import { easeVars, focusVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, Suspense } from "react";
 import { useInbox, usePriorities } from "../data.ts";
 import { useClosedRail } from "../layout/closedRail.ts";
+import { Room } from "../layout/Room.tsx";
 import { Logo } from "../Logo.tsx";
 import { RepositoryMenu } from "../RepositoryMenu.tsx";
 import { useRepoPath, useRepository } from "../routes.tsx";
@@ -62,37 +63,6 @@ const styles = stylex.create({
     flexGrow: 1,
     minWidth: 0,
   },
-});
-
-/** How long the column's width eases as it folds or unfolds (`Column.tsx`), which Unfold's room follows. */
-const FOLD_EASE = "200ms";
-
-const unfoldStyles = stylex.create({
-  // The gap under it, inside its room, which closes with it.
-  gap: { paddingBlockEnd: spacingVars["--spacing-1"] },
-  inner: { minHeight: 0 },
-  // Its room, closed: no height, and the actions' gap after it taken back, so the buttons below
-  // keep their place; out of view once it has closed. Clipped to its room and its focus ring, so it
-  // shows nothing past them as it closes, under the buttons that rise over it.
-  room: {
-    clipPath: `inset(calc(-1 * (${focusVars["--focus-outline-width"]} + ${focusVars["--focus-outline-offset"]})))`,
-    display: "grid",
-    gridTemplateRows: "0fr",
-    marginBlockEnd: `calc(-1 * ${spacingVars["--spacing-1"]})`,
-    transitionDelay: {
-      "@media (prefers-reduced-motion: reduce)": "0s, 0s",
-      default: `0s, ${FOLD_EASE}`,
-    },
-    transitionDuration: {
-      "@media (prefers-reduced-motion: reduce)": "0s, 0s",
-      default: `${FOLD_EASE}, 0s`,
-    },
-    transitionProperty: "grid-template-rows, visibility",
-    transitionTimingFunction: easeVars["--ease-standard"],
-    visibility: "hidden",
-  },
-  // Open: shown at once.
-  shown: { gridTemplateRows: "1fr", transitionDelay: "0s, 0s", visibility: "visible" },
 });
 
 /** A count at a row's end: seen, and left out of the row's name, which its visible label starts. */
@@ -193,19 +163,15 @@ export function ColumnActions({
 export function Unfold({ isShown, onUnfold }: { isShown: boolean; onUnfold: () => void }) {
   const look = useActionLook(true);
   return (
-    <div {...stylex.props(unfoldStyles.room, isShown && unfoldStyles.shown)}>
-      <div {...stylex.props(unfoldStyles.inner)}>
-        <div {...stylex.props(unfoldStyles.gap)}>
-          <Button
-            icon={<Icon icon="uraeda:panel-left" size={look.icon} />}
-            label="Unfold navigation"
-            onClick={onUnfold}
-            variant="secondary"
-            xstyle={look.xstyle}
-          />
-        </div>
-      </div>
-    </div>
+    <Room gap={1} isOpen={isShown} takesGapBack>
+      <Button
+        icon={<Icon icon="uraeda:panel-left" size={look.icon} />}
+        label="Unfold navigation"
+        onClick={onUnfold}
+        variant="secondary"
+        xstyle={look.xstyle}
+      />
+    </Room>
   );
 }
 

@@ -1,6 +1,4 @@
-import { easeVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
-import * as stylex from "@stylexjs/stylex";
 import { useLayoutEffect, useState } from "react";
 import type { SetupItem } from "uraeda-binding";
 import { SET_UP_PROJECT } from "uraeda-server/round-messages";
@@ -9,6 +7,7 @@ import { HomeHub } from "./home/HomeHub.tsx";
 import { SetupAnnouncer, SetupPane } from "./home/Setup.tsx";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Page } from "./layout/Page.tsx";
+import { Room } from "./layout/Room.tsx";
 import { dismissNote, HOME_NOTES, useNotes } from "./offers.ts";
 import { navigate, useHash, useRepoPath, useRestoreScroll } from "./routes.tsx";
 import { useNewKey } from "./useNewKey.ts";
@@ -30,35 +29,6 @@ function HomeSetup({ items }: { items: Array<SetupItem> }) {
   );
 }
 
-/** How long the Setup pane takes to close once the project is set up. */
-const CLOSE_EASE = "200ms";
-
-const roomStyles = stylex.create({
-  // The page's gap under the pane, inside its room, which closes with it.
-  gap: { paddingBlockEnd: spacingVars["--spacing-4"] },
-  inner: { minHeight: 0 },
-  // Its room, closed: no height, its gap included, so the panes below rise into its place; out of
-  // view once it has closed.
-  room: {
-    display: "grid",
-    gridTemplateRows: "0fr",
-    overflow: "hidden",
-    transitionDelay: {
-      "@media (prefers-reduced-motion: reduce)": "0s, 0s",
-      default: `0s, ${CLOSE_EASE}`,
-    },
-    transitionDuration: {
-      "@media (prefers-reduced-motion: reduce)": "0s, 0s",
-      default: `${CLOSE_EASE}, 0s`,
-    },
-    transitionProperty: "grid-template-rows, visibility",
-    transitionTimingFunction: easeVars["--ease-standard"],
-    visibility: "hidden",
-  },
-  // Open: shown at once.
-  open: { gridTemplateRows: "1fr", transitionDelay: "0s, 0s", visibility: "visible" },
-});
-
 /**
  * The Setup pane's room on Home, first on the page while `items`, the core's setup, holds any. Once
  * the core gives none, the project set up, the pane closes rather than vanish, so the panes under
@@ -66,28 +36,23 @@ const roomStyles = stylex.create({
  * means, which also announces the last file written.
  */
 function SetupRoom({ items }: { items: Array<SetupItem> }) {
-  // The last items it was given, as React keeps a value from an earlier render.
+  // The last items it was given, as React keeps a value from an earlier render, until it has
+  // closed.
   const [last, setLast] = useState(items);
   if (items.length > 0 && items !== last) {
     setLast(items);
   }
   const isOpen = items.length > 0;
-  if (!isOpen && last.length === 0) {
-    return null;
-  }
   const drawn = isOpen
     ? items
     : last.map((item) => (item.required ? { ...item, state: "written" } : item));
   return (
     <>
-      {/* Plain elements, as the column's Unfold uses: no Astryx component eases a height to none. */}
-      <div {...stylex.props(roomStyles.room, isOpen && roomStyles.open)}>
-        <div {...stylex.props(roomStyles.inner)}>
-          <div {...stylex.props(roomStyles.gap)}>
-            <HomeSetup items={drawn} />
-          </div>
-        </div>
-      </div>
+      {last.length > 0 && (
+        <Room gap={4} isOpen={isOpen} onClosed={() => setLast([])}>
+          <HomeSetup items={drawn} />
+        </Room>
+      )}
       <SetupAnnouncer items={drawn} />
     </>
   );
@@ -116,31 +81,28 @@ export function Home() {
   if (!workspace) {
     return null;
   }
-  if (workspace.noSpecs) {
-    return (
-      <Page>
-        <SetupRoom items={workspace.setup} />
-      </Page>
-    );
-  }
+  // The pane at the same place with or without `specs/`, so the folder's item, written, is
+  // announced as the others are.
   return (
     <Page>
       <VStack gap={0}>
         <SetupRoom items={workspace.setup} />
-        <VStack gap={4}>
-          {notes.map((note, index) => (
-            <AnnouncedBanner
-              collapsible={false}
-              dismissLabel="Dismiss"
-              isDismissable
-              key={note.title}
-              onDismiss={() => dismissNote(HOME_NOTES, index)}
-              status={note.status}
-              title={note.title}
-            />
-          ))}
-          <HomeHub />
-        </VStack>
+        {!workspace.noSpecs && (
+          <VStack gap={4}>
+            {notes.map((note, index) => (
+              <AnnouncedBanner
+                collapsible={false}
+                dismissLabel="Dismiss"
+                isDismissable
+                key={note.title}
+                onDismiss={() => dismissNote(HOME_NOTES, index)}
+                status={note.status}
+                title={note.title}
+              />
+            ))}
+            <HomeHub />
+          </VStack>
+        )}
       </VStack>
     </Page>
   );
