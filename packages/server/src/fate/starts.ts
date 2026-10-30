@@ -342,8 +342,8 @@ async function typedStart(ctx: RepoContext, input: TypedFeature): Promise<Planna
     slug: input.slug,
   };
   return {
-    // A refused start's Open comes back to the New page, whose composer still holds the text.
-    href: "/new?kind=feature",
+    // No file to open: the session page of a refused start sends the human back to the New page.
+    href: "",
     kind: "feature",
     plan: () => ctx.binding.planTextStart(ctx.repo, input.text, options),
     run: (planned, onStep) =>

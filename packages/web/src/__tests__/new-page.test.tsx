@@ -1,7 +1,7 @@
 // The New page's start of a change, held: a start that answers late clears only the text it sent,
 // not what the human typed after. The slug is asked in a dialog once the text is sent, and is not
 // kept on the page. The lines of the priorities it was filled from leave them.
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
@@ -11,6 +11,7 @@ import {
   atRepo,
   click,
   fakeAgent,
+  fixture,
   fixtureRepo,
   git,
   quiet,
@@ -251,14 +252,24 @@ test("a line's Start replaces the draft, and `u` brings it back", async () => {
   // Emptied, the composer forgets the line it was filled from; then a draft of the human's own.
   await type(change, "");
   await type(change, "Widen the sidebar");
+  // Row: the draft's image goes with it, and comes back with it.
+  const png = new File([readFileSync(fixture("images/phone.png"))], "wide.png", {
+    type: "image/png",
+  });
+  await act(async () => {
+    fireEvent.paste(change, { clipboardData: { files: [png], getData: () => "" } });
+  });
+  await screen.findByRole("button", { name: /^Remove/ });
   await act(async () => navigate(atRepo("/priorities")));
   await screen.findByRole("heading", { level: 1, name: "Priorities" });
   await startLine();
   await quiet();
   expect(await composerText()).toBe("Proposal start flow\n- one nested line");
   await screen.findByText("Draft replaced");
+  expect(screen.queryByRole("button", { name: /^Remove/ })).toBeNull();
   await press("u");
   await waitFor(async () => expect(await composerText()).toBe("Widen the sidebar"));
+  await screen.findByRole("button", { name: /^Remove/ });
 
   // Row: switching cards three times keeps the text byte for byte.
   for (const kind of ["change", "session", "feature"]) {

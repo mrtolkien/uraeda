@@ -30,8 +30,11 @@ export function useSettled(text: string) {
   return settled;
 }
 
-/** A start's end: it went, or the refusal to show under the dialog's field. */
-type Started = { ok: true } | { message: string; ok: false };
+/**
+ * A start's end: it went, and whether the draft went with it, or the refusal to show under the
+ * dialog's field.
+ */
+type Started = { cleared: boolean; ok: true } | { message: string; ok: false };
 
 /**
  * Starts the change from the composer's text and images, under the slug asked: its session opens,
@@ -80,7 +83,7 @@ function useStart({ sent: clear, sources }: NewDraft) {
       };
     }
     // The store's text now, not this page's: the human may have come back and typed another.
-    clear(sent);
+    const cleared = clear(sent);
     void takeOut(
       fate,
       sources.filter((source) => source !== line),
@@ -92,7 +95,7 @@ function useStart({ sent: clear, sources }: NewDraft) {
         navigate(here(sessionPath(folder)));
       }
     }
-    return { ok: true };
+    return { cleared, ok: true };
   };
 }
 
@@ -152,7 +155,8 @@ export function ChangeComposer({
     if (!result.ok) {
       return result.message;
     }
-    answer(true);
+    // Only a draft that went is the composer's to clear: a newer one keeps its images.
+    answer(result.cleared);
     return undefined;
   };
   return (

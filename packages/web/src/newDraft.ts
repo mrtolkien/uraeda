@@ -85,10 +85,11 @@ function sourceOf(entry: Entry, inserted: string): Source {
  * - `sources`: the entries the text was filled from.
  * - `images`, `setImages`: its images, kept for the document's life; a reload drops them.
  * - `insert`: adds an entry under the text, with a link to its file, as a card under the composer.
- * - `start`: replaces the draft with the entry alone, without its link, as a line's Start; a draft
- *   that held more than spaces comes back with the "Draft replaced" toast's Undo, its sources with
- *   it.
- * - `sent(text)`: empties the draft while it still holds `text`: a newer text stays.
+ * - `start`: replaces the draft with the entry alone, without its link or images, as a line's
+ *   Start; a draft that held more than spaces, or images, comes back with the "Draft replaced"
+ *   toast's Undo, its sources and images with it.
+ * - `sent(text)`: empties the draft, its images too, while it still holds `text`: a newer draft
+ *   stays whole. Whether it went.
  * - `unsavedNow()`: the text as the store holds it when called.
  */
 export function useNewDraft() {
@@ -115,20 +116,26 @@ export function useNewDraft() {
   };
   const start = (entry: Entry) => {
     const before = held(key);
+    const images = kept.images;
     const added = insertion(entry, { link: false });
     store(key, { sources: [sourceOf(entry, added)], text: added });
-    if (before.text.trim() !== "") {
+    kept.setImages([]);
+    if (before.text.trim() !== "" || images.length > 0) {
       toast("Draft replaced", async () => {
         store(key, before);
+        kept.setImages(images);
         return undefined;
       });
     }
   };
+  // Whether the draft still held `text`, and went with its images: a newer draft stays whole.
   const sent = (text: string) => {
-    if (held(key).text.trim() === text.trim()) {
-      dropUnsaved(key);
-      kept.setImages([]);
+    if (held(key).text.trim() !== text.trim()) {
+      return false;
     }
+    dropUnsaved(key);
+    kept.setImages([]);
+    return true;
   };
   return {
     images: kept.images,

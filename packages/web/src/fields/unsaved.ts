@@ -56,7 +56,8 @@ function isUnsaved(value: unknown): value is Unsaved {
     entry !== null &&
     typeof entry.text === "string" &&
     typeof entry.base === "string" &&
-    typeof entry.at === "string"
+    typeof entry.at === "string" &&
+    (entry.sources === undefined || Array.isArray(entry.sources))
   );
 }
 
