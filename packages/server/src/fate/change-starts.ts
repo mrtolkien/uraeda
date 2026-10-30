@@ -2,6 +2,7 @@
 // note, or a proposal file.
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { reasonOf } from "../reason.ts";
 import type { ChatImage } from "../runner/images.ts";
 import { changeImages } from "./chat-images.ts";
 import type { RepoContext, Resolver } from "./context.ts";
@@ -44,9 +45,6 @@ async function sendFirstRun(ctx: RepoContext, folder: string): Promise<string | 
   );
   return sent.session;
 }
-
-/** The reason of a call's refusal, without its code, for the server's log. */
-const reasonOf = (error: unknown) => (error as Error).message.replace(/^refused: /, "");
 
 /**
  * Sends the started change's first run: whether one was sent. Once the change exists, a run that

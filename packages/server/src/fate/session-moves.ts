@@ -1,3 +1,4 @@
+import { reasonOf } from "../reason.ts";
 import type { Trigger } from "../runner/events.ts";
 import { editedFiles, movedOpening } from "../runner/moves.ts";
 import { REFUSALS } from "../runner/sessions.ts";
@@ -79,7 +80,7 @@ async function sendRun(
       },
     });
   } catch (error) {
-    const reason = (error as Error).message.replace(/^refused: /, "");
+    const reason = reasonOf(error);
     process.stderr.write(`uraeda: ${folder} moved, but its run was not sent: ${reason}\n`);
   }
 }
@@ -138,7 +139,7 @@ async function toChange(
     try {
       await ctx.sessions.attach(ctx.repo, row.id, started.folder);
     } catch (error) {
-      const reason = (error as Error).message.replace(/^refused: /, "");
+      const reason = reasonOf(error);
       throw callSiteError(
         `refused: The change ${started.folder} started, but this session could not move to it: ${reason}`,
       );
@@ -181,7 +182,9 @@ async function drop(ctx: RepoContext, input: Queued<{ folder: string }>) {
     void landing
       .then((landed) => (landed ? ctx.sessions.archiveFolder(ctx.repo, folder) : undefined))
       .catch((error: unknown) =>
-        process.stderr.write(`uraeda: ${folder} dropped, but its sessions stay: ${error}\n`),
+        process.stderr.write(
+          `uraeda: ${folder} dropped, but its sessions stay: ${reasonOf(error)}\n`,
+        ),
       )
       .finally(release);
   }

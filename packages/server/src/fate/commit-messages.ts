@@ -6,7 +6,7 @@ import { REFUSALS } from "../runner/sessions.ts";
 import { checkSend, type SendInput } from "../runner/send-input.ts";
 import type { WriteQueue } from "../writes/queue.ts";
 import type { RepoContext } from "./context.ts";
-import { reasonOf } from "./errors.ts";
+import { reasonOf } from "../reason.ts";
 import { featureKeys } from "./write-queue.ts";
 
 /** A message kept: the session it goes to, and whether that session was made for it. */

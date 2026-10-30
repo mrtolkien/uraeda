@@ -2,6 +2,7 @@
 // it, with the workflow's message of its first step, and the queue runs it, its steps in its write.
 // A message sent to its folder meanwhile waits in the runner, and goes once the start lands.
 import type { PlannedView, StartedView, StartStepView } from "uraeda-binding";
+import { reasonOf } from "../reason.ts";
 import { runMessage } from "../runner/message.ts";
 import { checkSend, type SendInput } from "../runner/send-input.ts";
 import { REFUSALS } from "../runner/sessions.ts";
@@ -60,10 +61,6 @@ const startQueued = (queue: WriteQueue, folder: string) =>
     .some(
       ({ folder: of, state, steps }) => steps !== undefined && of === folder && state !== "refused",
     );
-
-/** The reason of an error, without its code, for the server's log and a refused step. */
-const reasonOf = (error: unknown) =>
-  (error instanceof Error ? error.message : String(error)).replace(/^(refused|hook): /, "");
 
 /**
  * Queues a start behind the writes queued before it, its steps in its write, holding the lists'

@@ -2,6 +2,7 @@
 // made. A committing call writes its files at once and the core defers its commit; the queue lands
 // the commits it took, with the hooks, and keeps the record the toast and the start's steps read.
 import type { Deferred } from "uraeda-binding";
+import { reasonOf } from "../reason.ts";
 
 /** What the web UI names a write with: its running text, and the page it opens. */
 export type WriteInput = { href: string; label: string };
@@ -56,10 +57,6 @@ type Entry = { keys: Array<string>; settled: Promise<void>; write: QueuedWrite }
 /** Why a landing failed: only a hook's refusal, which the core undid, has the code `hook`. */
 const failureOf = (error: unknown): WriteFailure =>
   error instanceof Error && error.message.startsWith("hook: ") ? "hook" : "failed";
-
-/** The message of an error, its code taken off: the record says it was refused. */
-const refusal = (error: unknown) =>
-  (error instanceof Error ? error.message : String(error)).replace(/^(hook|refused): /, "");
 
 /**
  * A repository's write queue. Committing calls run one at a time, each with the commits it
@@ -226,7 +223,7 @@ export class WriteQueue {
     } catch (error) {
       entry.write.state = "refused";
       entry.write.failure = failureOf(error);
-      entry.write.output = refusal(error);
+      entry.write.output = reasonOf(error);
       throw error;
     } finally {
       this.#changed();
