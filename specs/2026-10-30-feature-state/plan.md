@@ -338,10 +338,11 @@ put back, so no new invalidation is needed. Check it in the test. Delete `expect
 and the binding, and make `messageStep` read `nextStep`. Run
 `nix develop -c vp run --filter uraeda-binding build`.
 
-- [ ] **Step 5: Run the task's validation, and the benchmark**
+- [x] **Step 5: Run the task's validation, and the benchmark**
 
 - Run: `nix develop -c vp run fast`, then
-  `nix develop -c vp test bench --run packages/server/src/__tests__/live.bench.ts` (R9)
+  `nix develop -c vp test bench --run packages/server/src/__tests__/live.bench.ts` (R9), on a
+  release binding (R13)
 - Expected: PASS, and the approval's step read under 100 ms.
 
 - [ ] **Step 6: Commit**

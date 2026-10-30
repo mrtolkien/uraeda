@@ -28,7 +28,9 @@ test("SC-002: a session's status change reaches a subscribed SessionList within 
 
 /**
  * The feature state pass's SC-002, with `vp run bench`: an approval whose commit the hook holds
- * moves its feature's step, from the approval to the workspace's read, within 100 ms.
+ * moves its feature's step, from the approval to the workspace's read, within 100 ms. The
+ * performance decision measures on a release build: the 100 ms holds on a release binding
+ * (`vp run --filter uraeda-binding build:release`), not on the dev one.
  */
 test("SC-002: an approval moves its feature's step within 100 ms, its commit still landing", async () => {
   const folder = "2026-10-06-recurring-tasks";
