@@ -2,6 +2,7 @@
 
 pub mod actions;
 pub mod api;
+pub mod cache;
 pub mod changes;
 pub mod check;
 mod compare;

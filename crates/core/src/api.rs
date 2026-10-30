@@ -2,9 +2,11 @@
 //! branch it writes on through a worktree, acts, and returns what the UI shows next.
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::actions::review;
 use crate::actions::{answer, place, priorities as edits};
+use crate::cache;
 use crate::check;
 use crate::files::document::{self, hash};
 use crate::files::items::items;
@@ -81,20 +83,18 @@ pub use start::{promote_change, propose_slug, start_change, start_feature, start
 
 type Result<T> = std::result::Result<T, ApiError>;
 
-/// One write at a time, whatever the repository: reaching a branch creates its worktree, and an
-/// action reads, edits, and writes a file, which two calls at once would interleave.
-static WRITES: std::sync::Mutex<()> = std::sync::Mutex::new(());
+pub(crate) use crate::cache::write_lock;
 
-pub(crate) fn write_lock() -> std::sync::MutexGuard<'static, ()> {
-    WRITES
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
+pub(crate) fn open(repo: &Path) -> Result<(Git, Arc<Workspace>)> {
+    let (git, read) = open_read(repo)?;
+    Ok((git, Arc::clone(&read.workspace)))
 }
 
-pub(crate) fn open(repo: &Path) -> Result<(Git, Workspace)> {
+/// The workspace with what its reads computed, from the read cache.
+fn open_read(repo: &Path) -> Result<(Git, Arc<cache::Read>)> {
     let git = Git::discover(repo)?;
-    let workspace = Workspace::read(&git).map_err(|error| refused(error.to_string()))?;
-    Ok((git, workspace))
+    let read = cache::read(&git).map_err(|error| refused(error.to_string()))?;
+    Ok((git, read))
 }
 
 /// Where a feature's files are on disk, when they were read from a working tree.
@@ -112,7 +112,11 @@ fn feature_dir(git: &Git, feature: &Feature) -> Option<PathBuf> {
 /// The errors `ura check` finds in a feature read from disk: its warnings stay out of the
 /// feature's problems (R1). The rules reading the branch's history give warnings only, and are not
 /// run (R65).
-fn checked(git: &Git, feature: &Feature) -> Vec<Problem> {
+fn checked(git: &Git, read: &cache::Read, feature: &Feature) -> Vec<Problem> {
+    read.checked(&feature.folder, || check_feature(git, feature))
+}
+
+fn check_feature(git: &Git, feature: &Feature) -> Vec<Problem> {
     let Some(root) = feature_dir(git, feature) else {
         return Vec::new();
     };
@@ -131,8 +135,8 @@ fn checked(git: &Git, feature: &Feature) -> Vec<Problem> {
 /// Every feature, change, and proposal, with each feature's step and problems.
 pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
     let git = Git::discover(repo)?;
-    let workspace = match Workspace::read(&git) {
-        Ok(workspace) => workspace,
+    let read = match cache::read(&git) {
+        Ok(read) => read,
         Err(WorkspaceError::NoSpecs(root)) => {
             let root = root.to_string_lossy().into_owned();
             return Ok(WorkspaceView {
@@ -148,18 +152,20 @@ pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
         }
         Err(error) => return Err(refused(error.to_string())),
     };
-    let (priorities, _) = on_default(&git, &workspace, edits::PATH);
-    Ok(WorkspaceView {
-        priorities_hash: hash(&priorities.unwrap_or_default()),
-        ..WorkspaceView::new(&workspace, |feature| checked(&git, feature))
-    })
+    Ok(read.view(|workspace| {
+        let (priorities, _) = on_default(&git, workspace, edits::PATH);
+        WorkspaceView {
+            priorities_hash: hash(&priorities.unwrap_or_default()),
+            ..WorkspaceView::new(workspace, |feature| checked(&git, &read, feature))
+        }
+    }))
 }
 
 /// One feature.
 pub fn read_feature(repo: &Path, folder: &str) -> Result<FeatureView> {
-    let (git, workspace) = open(repo)?;
-    let feature = find(&workspace, folder)?;
-    Ok(FeatureView::new(feature, &checked(&git, feature)))
+    let (git, read) = open_read(repo)?;
+    let feature = find(&read.workspace, folder)?;
+    Ok(FeatureView::new(feature, &checked(&git, &read, feature)))
 }
 
 /// Every file waiting for the human, `status: awaiting-human`, of every feature and change read from a
@@ -371,7 +377,7 @@ pub fn next_step(repo: &Path, folder: &str) -> Result<NextView> {
 /// The directory an agent works on a feature in: the checkout that has its branch, or else a new
 /// worktree for it.
 pub fn work_dir(repo: &Path, folder: &str) -> Result<String> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (_, workspace) = open(repo)?;
     if find(&workspace, folder)?.branch.is_none() {
         return Err(refused(format!("{folder} has no branch")));
@@ -393,7 +399,7 @@ pub fn main_root(repo: &Path) -> Result<String> {
 /// verdict on a spec or a plan, with its review file; with the images the
 /// feature's folder links.
 pub fn retry_commit(repo: &Path, folder: &str, name: &str) -> Result<CommitView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (_, feature, place) = reach(repo, folder)?;
     let path = format!("{}/{name}", feature.path);
     let text = std::fs::read_to_string(place.root.join(&path))

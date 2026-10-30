@@ -84,7 +84,7 @@ pub fn outline_note(
     previous: &str,
 ) -> Result<Inbox> {
     let change = outline_edit(kind, text)?;
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     if nests(at, change == OutlineEdit::Indent) {
         note_stays(&place, id, previous)?;
@@ -119,7 +119,7 @@ pub fn drop_note(
             index,
         },
     };
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     if nests(at, matches!(target, Target::Under { .. })) {
         note_stays(&place, id, previous)?;
@@ -144,7 +144,7 @@ pub fn outline_proposal(
     previous: &str,
 ) -> Result<Priorities> {
     let edit = outline_edit(kind, text)?;
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (place, workspace) = reach_default_from(repo)?;
     if nests(at, edit == OutlineEdit::Indent) {
         line_stays(&place, &workspace, id, previous)?;
@@ -181,7 +181,7 @@ pub fn drop_proposal(
             index,
         },
     };
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (place, workspace) = reach_default_from(repo)?;
     if nests(at, matches!(target, Target::Under { .. })) {
         line_stays(&place, &workspace, id, previous)?;

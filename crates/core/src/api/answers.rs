@@ -27,7 +27,7 @@ pub fn save_answer(
     comment: &str,
     previous: &str,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, feature, place) = reach(repo, folder)?;
     let written = answer::save(&place, &feature, question, letters, comment, previous)?;
     // A save writes an answer's text only: the round's status, read before it, stays right.
@@ -36,7 +36,7 @@ pub fn save_answer(
 
 /// Saves the notes on the settled points, over the notes last read.
 pub fn save_notes(repo: &Path, folder: &str, notes: &str, previous: &str) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, feature, place) = reach(repo, folder)?;
     let written = answer::save_notes(&place, &feature, notes, previous)?;
     file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
@@ -49,7 +49,7 @@ pub fn add_settled_comment(
     subject: &str,
     text: &str,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, feature, place) = reach(repo, folder)?;
     let written = answer::add_settled_comment(&place, &feature, subject, text)?;
     file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
@@ -64,7 +64,7 @@ pub fn edit_settled_comment(
     text: &str,
     previous: &str,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, feature, place) = reach(repo, folder)?;
     let written = answer::edit_settled_comment(&place, &feature, number, subject, text, previous)?;
     file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
@@ -78,7 +78,7 @@ pub fn remove_settled_comment(
     subject: &str,
     previous: &str,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, feature, place) = reach(repo, folder)?;
     let written = answer::remove_settled_comment(&place, &feature, number, subject, previous)?;
     file_view(&git, &feature, &round_name(&feature)?, Some(written.text))
@@ -92,7 +92,7 @@ pub fn submit_answers(
     round: Option<&str>,
     resumes: bool,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (_, feature, place) = reach(repo, folder)?;
     if let Some(round) = round {
         answer::ensure_latest(&feature, round)?;

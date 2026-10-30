@@ -75,6 +75,12 @@ export declare function attachNoteImages(repo: string, id: string, previous: str
 export declare function branchChanges(repo: string, folder: string): Promise<BranchChanges | null>
 
 /**
+ * The reads of git and the answers from memory for the repository at `repo` since its watch
+ * started; both 0 without a watch. It reads no workflow file, so it returns at once.
+ */
+export declare function cacheStats(repo: string): CacheStats
+
+/**
  * A deleted category's answer: the inbox, and the file as it was, which `restoreCategory` writes
  * back.
  */
@@ -652,6 +658,14 @@ export interface BranchDecision {
   change: DecisionChange
   /** The branch's version of the file. */
   document: Document
+}
+
+/** The reads of a watched repository since its watch started. */
+export interface CacheStats {
+  /** The reads of git. */
+  reads: number
+  /** The answers from memory. */
+  hits: number
 }
 
 export type CalloutKind = 'note' | 'tip' | 'important' | 'warning' | 'caution' | 'question'

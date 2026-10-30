@@ -20,7 +20,7 @@ pub fn add_comment(
     text: &str,
     decision: Option<DecisionTarget>,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, feature, place) = reach(repo, folder)?;
     let lines = lines.map(|(start, end)| (start as usize, end as usize));
     review::comment(&git, &place, &feature, file, lines, text, decision)?;
@@ -35,7 +35,7 @@ pub fn edit_comment(
     number: u32,
     text: &str,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (_, feature, place) = reach(repo, folder)?;
     review::edit(&place, &feature, file, number, text)?;
     read_file(repo, folder, file)
@@ -43,7 +43,7 @@ pub fn edit_comment(
 
 /// Removes a pending comment.
 pub fn remove_comment(repo: &Path, folder: &str, file: &str, number: u32) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (_, feature, place) = reach(repo, folder)?;
     review::remove(&place, &feature, file, number)?;
     read_file(repo, folder, file)
@@ -51,7 +51,7 @@ pub fn remove_comment(repo: &Path, folder: &str, file: &str, number: u32) -> Res
 
 /// Deletes the pending review, to review the new version from scratch.
 pub fn start_over(repo: &Path, folder: &str, file: &str) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (_, feature, place) = reach(repo, folder)?;
     review::start_over(&place, &feature, file)?;
     read_file(repo, folder, file)
@@ -84,7 +84,7 @@ pub fn approve(
     risk_tier: Option<String>,
     plan_review: Option<bool>,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, feature, place) = reach(repo, folder)?;
     as_committed(&git, &feature, &place, file)?;
     let tier = Tier {
@@ -103,7 +103,7 @@ pub fn request_changes(
     file: &str,
     summary: Option<&str>,
 ) -> Result<FileView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, feature, place) = reach(repo, folder)?;
     as_committed(&git, &feature, &place, file)?;
     let summary = summary.filter(|s| !s.trim().is_empty());

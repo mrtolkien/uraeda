@@ -22,7 +22,7 @@ pub struct DroppedView {
 /// Drops the started feature or change of `folder`, from the main checkout, never forcing the
 /// removal of its worktree and never deleting its branch.
 pub fn drop_item(repo: &Path, folder: &str) -> Result<DroppedView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, workspace) = open(repo)?;
     let dropped = drop::run(&git, &workspace, folder)?;
     Ok(DroppedView {

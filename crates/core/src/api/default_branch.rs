@@ -2,6 +2,7 @@
 //! reading its files from the checkout that has it, and reaching that checkout to write them.
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use super::{Result, open, refused, write_lock};
 use crate::actions::place;
@@ -84,7 +85,7 @@ pub(super) fn reach_default(repo: &Path) -> Result<place::Place> {
 
 /// The checkout holding the default branch, as [`reach_default`] reaches it, with the workspace
 /// read on the way.
-pub(super) fn reach_default_from(repo: &Path) -> Result<(place::Place, Workspace)> {
+pub(super) fn reach_default_from(repo: &Path) -> Result<(place::Place, Arc<Workspace>)> {
     let (git, workspace) = open(repo)?;
     let default = workspace
         .default_branch
@@ -96,6 +97,6 @@ pub(super) fn reach_default_from(repo: &Path) -> Result<(place::Place, Workspace
 /// The checkout holding the default branch, where proposal files and the priorities are written:
 /// this one, another that has it, or a worktree created for it, as [`expand_proposal`] reaches it.
 pub fn default_root(repo: &Path) -> Result<PathBuf> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     Ok(reach_default(repo)?.root)
 }

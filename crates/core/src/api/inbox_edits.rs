@@ -45,7 +45,7 @@ pub fn add_note(
     previous: &str,
 ) -> Result<Inbox> {
     let marks = marks(about);
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     let (inbox, _) = edits::add(&place, category.as_deref(), &marks, text, Some(previous))?;
     Ok(inbox)
@@ -61,7 +61,7 @@ pub fn add_note_and_commit(
     previous: &str,
 ) -> Result<(Inbox, Added)> {
     let marks = marks(about);
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::add_and_commit(
         &place,
@@ -76,7 +76,7 @@ pub fn add_note_and_commit(
 /// committed alone with `chore: remove "<note>" from the inbox`. Refused as a conflict when the
 /// inbox changed since it was read at `previous`.
 pub fn undo_committed_note(repo: &Path, lines: &[String], previous: &str) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     edits::undo_committed(&place, lines, previous)?;
     Ok(edits::read(&place))
@@ -91,21 +91,21 @@ pub fn add_note_at(
     text: &str,
 ) -> Result<(Inbox, u32)> {
     let marks = marks(about);
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::add(&place, category.as_deref(), &marks, text, None)?)
 }
 
 /// Replaces a note's text, its marks kept.
 pub fn edit_note(repo: &Path, id: &str, text: &str, previous: &str) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::edit(&place, id, text, Some(previous))?)
 }
 
 /// Removes a note, sub-items included, and its note file, which [`insert_note`] brings back.
 pub fn remove_note(repo: &Path, id: &str, previous: &str) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::remove(&place, id, Some(previous))?)
 }
@@ -113,7 +113,7 @@ pub fn remove_note(repo: &Path, id: &str, previous: &str) -> Result<Inbox> {
 /// Removes a note as [`remove_note`] does, then commits `INBOX.md` alone, when it had no other
 /// change, with `chore: remove "<note>" from the inbox`: a note started as a change.
 pub fn remove_note_and_commit(repo: &Path, id: &str, previous: &str) -> Result<(Inbox, Added)> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::remove_and_commit(&place, id, previous)?)
 }
@@ -125,7 +125,7 @@ pub fn move_note_to_category(
     category: Option<String>,
     previous: &str,
 ) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::category(
         &place,
@@ -144,7 +144,7 @@ pub fn place_note(
     index: u32,
     previous: &str,
 ) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::place(
         &place,
@@ -164,7 +164,7 @@ pub fn insert_note(
     lines: &[String],
     previous: &str,
 ) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::insert(
         &place,
@@ -185,7 +185,7 @@ pub fn note_to_proposal(
     priorities_previous: &str,
 ) -> Result<()> {
     let section = section(section_id)?;
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::to_proposal(
         &place,
@@ -206,7 +206,7 @@ pub fn note_under_proposal(
     previous: &str,
     priorities_previous: &str,
 ) -> Result<()> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     note_stays(&place, id, previous)?;
     Ok(edits::under_proposal(
@@ -228,7 +228,7 @@ pub fn note_to_proposal_file(
     priorities_previous: &str,
 ) -> Result<String> {
     let section = section(section_id)?;
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::to_proposal_file(
         &place,
@@ -244,7 +244,7 @@ pub fn note_to_proposal_file(
 /// `## Notes`, its images beside it. Returns the proposal file's path, which a single proposal file
 /// made a folder for the images changes.
 pub fn note_into_proposal(repo: &Path, id: &str, proposal: &str, previous: &str) -> Result<String> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::into_proposal(&place, id, proposal, previous)?)
 }
@@ -260,7 +260,7 @@ pub fn note_into_proposal_line(
     previous: &str,
     priorities_previous: &str,
 ) -> Result<String> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::into_proposal_line(
         &place,
@@ -300,7 +300,7 @@ pub fn add_note_with_images(
     let marks = marks(about);
     edits::checked_note(&marks, text)?;
     let images = encoded(images)?;
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     let file = edits::add_with_image(&place, category.as_deref(), &marks, text, &images, previous)?;
     Ok((edits::read(&place), file))
@@ -316,7 +316,7 @@ pub fn attach_note_images(
     previous: &str,
 ) -> Result<(Inbox, String)> {
     let images = encoded(images)?;
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     let file = edits::attach_to_note(&place, id, &images, previous)?;
     Ok((edits::read(&place), file))
@@ -325,7 +325,7 @@ pub fn attach_note_images(
 /// Commits the commit bar's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
 /// moved, or left.
 pub fn commit_changes(repo: &Path) -> Result<()> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     changes::commit(&place)?;
     Ok(())
@@ -334,7 +334,7 @@ pub fn commit_changes(repo: &Path) -> Result<()> {
 /// Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of proposal
 /// files, keeping any text the human typed: see [`changes::discard`].
 pub fn discard_changes(repo: &Path) -> Result<()> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     changes::discard(&place)?;
     Ok(())
@@ -354,7 +354,7 @@ pub fn undo_note_to_proposal(
     proposal_key: Option<String>,
 ) -> Result<Inbox> {
     let section = section(section_id)?;
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     edits::undo_to_proposal(
         &place,
@@ -377,7 +377,7 @@ pub fn undo_note_under_proposal(
     index: u32,
     proposal_key: &str,
 ) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     edits::undo_under_proposal(
         &place,
@@ -398,7 +398,7 @@ pub fn undo_note_into_proposal(
     category: Option<String>,
     index: u32,
 ) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     edits::undo_into_proposal(&place, proposal, lines, category.as_deref(), index as usize)?;
     Ok(edits::read(&place))
@@ -412,7 +412,7 @@ pub fn undo_note_category(
     category: Option<String>,
     index: u32,
 ) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     edits::undo_category(&place, lines, category.as_deref(), index as usize)?;
     Ok(edits::read(&place))
@@ -421,7 +421,7 @@ pub fn undo_note_category(
 /// Takes back a note added as a file: the note, found by its lines as written, leaves the inbox,
 /// and its note file goes with it, image included, unless a commit has it or the human typed in it.
 pub fn undo_note_as_file(repo: &Path, lines: &[String]) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     edits::undo_as_file(&place, lines)?;
     Ok(edits::read(&place))
@@ -430,7 +430,7 @@ pub fn undo_note_as_file(repo: &Path, lines: &[String]) -> Result<Inbox> {
 /// Takes back a note's add: the note, found by its lines as written, leaves the inbox wherever it
 /// is now. Refused once it changed or left, or when two notes hold its lines.
 pub fn undo_note_add(repo: &Path, lines: &[String]) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     edits::undo_add(&place, lines)?;
     Ok(edits::read(&place))
@@ -440,7 +440,7 @@ pub fn undo_note_add(repo: &Path, lines: &[String]) -> Result<Inbox> {
 /// the top level, in order: deleted unless `dry_run`, with the `images/` folders they leave empty,
 /// on the default branch, uncommitted.
 pub fn clean_images(repo: &Path, dry_run: bool) -> Result<Vec<String>> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     if dry_run {
         return Ok(crate::actions::images::unlinked_in_proposals_and_notes(

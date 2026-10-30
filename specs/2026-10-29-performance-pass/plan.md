@@ -429,7 +429,10 @@ git commit -m "chore(performance-pass): upgrade fate, whose optimistic inserts s
 - Create: `crates/core/src/cache.rs`
 - Modify: `crates/core/src/api.rs` (`open`, `read_workspace`, `write_lock`), every `write_lock()`
   call in `crates/core/src/api/` and `api.rs`, `crates/core/src/watch.rs` (`watch`, `snapshot`),
-  `crates/core/src/lib.rs`
+  `crates/core/src/lib.rs`, `crates/core/src/settings.rs` and `crates/core/src/repositories.rs`
+  (their lock, keyed by their folder)
+- Create: `crates/binding/src/cache.rs` (`cacheStats`), its line in `crates/binding/src/lib.rs`, and
+  the regenerated `packages/binding/index.d.ts` and `index.js`
 - Test: `crates/core/tests/cache.rs`
 
 **Interfaces:**
@@ -439,12 +442,13 @@ git commit -m "chore(performance-pass): upgrade fate, whose optimistic inserts s
     main checkout. Dropping the guard invalidates that repository's cache.
   - `pub(crate) fn open(repo: &Path) -> Result<(Git, Arc<Workspace>)>`: callers keep using
     `&workspace`.
-  - `pub fn cache_stats(repo: &Path) -> CacheStats { reads: u64, hits: u64 }`, `#[napi(object)]`:
+  - `pub fn cache_stats(repo: &Path) -> CacheStats { reads: u32, hits: u32 }`, `#[napi(object)]`:
     the reads of git and the answers from memory since the watch started, for the tests and the
-    server's `Server-Timing`.
+    server's `Server-Timing` (`u32`, a number in TypeScript: see ruling R11). The binding's
+    `cacheStats(repo)` returns it at once.
   - `watch::watch` enables the cache of its repository while the returned `Watcher` lives.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/cache.rs
@@ -469,39 +473,40 @@ fn without_a_watch_every_read_reads_git() {
 The break each catches: a cache never invalidated by the watcher; a read storing what it read after
 a write invalidated it (no generation check); the CLI answering from a cache nobody invalidates.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test cache`
 - Expected: FAIL, `cache_stats` not found.
 
-- [ ] **Step 3: Implement the cache**
+- [x] **Step 3: Implement the cache**
 
 In `cache.rs`, one entry per repository, keyed by the main checkout's path, present only while a
 watch runs. An entry holds a generation, bumped by every invalidation, and the last workspace read
 with the generation it was read at. A read takes the generation, reads git when the entry holds no
 workspace at that generation, and stores what it read only if the generation did not move meanwhile.
 The watcher invalidates on each raw file event, before its 200 ms debounce, so a read never answers
-from before a change it saw. The write guard invalidates when dropped. `read_workspace`'s `checked`
-problems and its priorities' hash go into the entry with the workspace. The watcher's `snapshot`
-reads through the cache too. Keep `api.rs` under 500 lines.
+from before a change it saw; opening or reading a file is not a change (ruling R11). The write guard
+invalidates when dropped. `read_workspace`'s `checked` problems and its priorities' hash go into the
+entry with the workspace. The watcher's `snapshot` reads through the cache too. Keep `api.rs` under
+500 lines.
 
-- [ ] **Step 4: Make the write lock one per repository**
+- [x] **Step 4: Make the write lock one per repository**
 
 `write_lock(repo)` in every caller; each has its repository's path in scope. The lock is keyed like
 the cache.
 
-- [ ] **Step 5: Make the breaks**
+- [x] **Step 5: Make the breaks**
 
 Remove the generation check, and see `a_read_racing_a_write_never_keeps_the_old_workspace` fail;
 remove the raw event's invalidation, and see the first test fail. Restore both. Report what failed
 in the commit's body.
 
-- [ ] **Step 6: Run the task's validation**
+- [x] **Step 6: Run the task's validation**
 
 - Run: `vp run fast`, then `nix develop -c cargo nextest run -p uraeda-core`
 - Expected: PASS, the watch tests included. Deferred to ready: the server's tests.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add crates/core/src crates/core/tests/cache.rs

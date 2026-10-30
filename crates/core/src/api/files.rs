@@ -71,7 +71,7 @@ pub fn attach_image(
         )));
     }
     let encoded = encode_image(bytes, name.unwrap_or("pasted image"))?;
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = text_place(repo, path)?;
     let attached = attach::attach(&place, path, &encoded, name, today::stamp)?;
     Ok(AttachedView {

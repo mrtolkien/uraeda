@@ -110,3 +110,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   rule's check to name the times its rule names, and failed on the approved text. Wording only: the
   rule is unchanged. The edit needs the human's approval again, with the pull request.
 - **Where**: `specs/decisions/performance.md`, before task 1.
+
+## R11: The cache's counts are 32-bit, and opening a file is not a change
+
+- **Decision**: `CacheStats` counts in `u32`, saturating, not `u64`. The watcher ignores the events
+  of a file opened, read, or closed without a write, for the cache and for its 200 ms burst alike.
+  The cache keeps one read per working tree the repository is read from, and the settings' and the
+  repository list's writes take the lock of their own folder.
+- **Rationale**: napi-rs gives a `u64` to TypeScript as a `bigint`; a `u32` is a number, and 4
+  billion reads is more than a server's run. notify 8.2 reports every file opened, and every read
+  opens files: each read would drop the cache it just filled, and start a new burst of the watcher.
+  A workspace read from a worktree differs from the main checkout's, its current branch and the
+  files of `.`, so one read cannot answer for both.
+- **Alternatives considered**: a `bigint` in the server's timing header; keeping the open events and
+  invalidating only on the others, two filters for one question.
+- **Where**: task 3, `crates/core/src/cache.rs` and `crates/core/src/watch.rs`.

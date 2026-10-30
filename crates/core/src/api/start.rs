@@ -19,7 +19,7 @@ pub fn start_feature(
     kind: Kind,
 ) -> Result<StartedView> {
     proposal_path(proposal)?;
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, workspace) = open(repo)?;
     view(start::run(
         &git,
@@ -45,7 +45,7 @@ pub fn start_change(
         .enumerate()
         .map(|(index, bytes)| encode_image(bytes, &format!("image-{}", index + 1)))
         .collect::<Result<Vec<_>>>()?;
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let (git, workspace) = open(repo)?;
     view(start::run_text(
         &git,
@@ -61,7 +61,7 @@ pub fn start_change(
 /// Makes the change in `folder` a feature, in place, in its worktree: its open pull requests are
 /// asked of `gh` first, since one refuses the move.
 pub fn promote_change(repo: &Path, folder: &str) -> Result<PromotedView> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     crate::pulls::refresh(&Git::discover(repo)?.main_root());
     let (git, workspace) = open(repo)?;
     match promote::run(&git, &workspace, folder) {

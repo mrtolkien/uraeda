@@ -13,9 +13,9 @@ use napi_derive::napi;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher as _};
 use serde::Serialize;
 
+use crate::cache::{self, Kept};
 use crate::files::document::hash;
 use crate::git::Git;
-use crate::workspace::Workspace;
 
 /// How long the file events must stop before the workspace is read again.
 pub const QUIET: Duration = Duration::from_millis(200);
@@ -89,12 +89,13 @@ fn snapshot(root: &Path) -> Snapshot {
         // A worktree's `specs/` may not exist yet: its top level shows it appear.
         folders.insert((worktree.path.clone(), false));
     }
-    let Ok(workspace) = Workspace::read(&git) else {
+    let Ok(read) = cache::read(&git) else {
         return Snapshot {
             folders,
             ..Snapshot::default()
         };
     };
+    let workspace = &read.workspace;
     let mut features = BTreeMap::new();
     let mut files = BTreeMap::new();
     let mut branch_decisions = BTreeMap::new();
@@ -155,7 +156,7 @@ fn snapshot(root: &Path) -> Snapshot {
             &serde_json::to_string(&(
                 &workspace.priorities,
                 &workspace.proposals,
-                crate::api::joined_priorities(&git, &workspace).sections,
+                crate::api::joined_priorities(&git, workspace).sections,
             ))
             .unwrap_or_default(),
         ),
@@ -164,7 +165,7 @@ fn snapshot(root: &Path) -> Snapshot {
                 &workspace.inbox,
                 &workspace.triage,
                 &workspace.decisions_check,
-                crate::decisions::candidates::on_default(&git, &workspace),
+                crate::decisions::candidates::on_default(&git, workspace),
             ))
             .unwrap_or_default(),
         ),
@@ -213,11 +214,13 @@ fn compare(before: &Snapshot, after: &Snapshot) -> Changes {
 
 type Shared = Arc<Mutex<(RecommendedWatcher, BTreeSet<(PathBuf, bool)>)>>;
 
-/// Watches more folders: those of `wanted` that exist and are not watched yet.
-fn watch_folders(shared: &Shared, wanted: &BTreeSet<(PathBuf, bool)>) {
+/// Watches more folders: those of `wanted` that exist and are not watched yet. Returns whether it
+/// watches one more.
+fn watch_folders(shared: &Shared, wanted: &BTreeSet<(PathBuf, bool)>) -> bool {
     let Ok(mut guard) = shared.lock() else {
-        return;
+        return false;
     };
+    let mut more = false;
     let (watcher, watched) = &mut *guard;
     for (folder, recursive) in wanted {
         if watched.contains(&(folder.clone(), *recursive)) || !folder.exists() {
@@ -230,25 +233,42 @@ fn watch_folders(shared: &Shared, wanted: &BTreeSet<(PathBuf, bool)>) {
         };
         if watcher.watch(folder, mode).is_ok() {
             watched.insert((folder.clone(), *recursive));
+            more = true;
         }
+    }
+    more
+}
+
+/// Whether an event may change what a read sees: opening or reading a file changes nothing, and
+/// every read opens files.
+fn changes_files(event: &notify::Event) -> bool {
+    use notify::event::{AccessKind, AccessMode, EventKind};
+    match event.kind {
+        EventKind::Access(kind) => kind == AccessKind::Close(AccessMode::Write),
+        _ => true,
     }
 }
 
-/// A running watch: it stops when dropped.
+/// A running watch: it stops when dropped, and its repository's reads are kept until then.
 pub struct Watcher {
     _shared: Shared,
+    _kept: Kept,
 }
 
 /// Watches the repository holding `root`, and calls `on_change` with what changed, from its own
-/// thread, after each burst of file events.
+/// thread, after each burst of file events. While it runs, the repository's reads are kept, and
+/// each file event drops them at once, before the burst ends.
 pub fn watch(
     root: &Path,
     on_change: impl Fn(Changes) + Send + 'static,
 ) -> Result<Watcher, WatchError> {
     let root = root.to_path_buf();
+    let kept = Kept::new(cache::key(&root));
+    let key = kept.key().to_path_buf();
     let (sender, receiver) = mpsc::channel::<()>();
     let watcher = notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
-        if event.is_ok() {
+        if event.is_ok_and(|event| changes_files(&event)) {
+            cache::invalidate(&key);
             let _ = sender.send(());
         }
     })
@@ -261,7 +281,11 @@ pub fn watch(
             root.display()
         )));
     }
-    watch_folders(&shared, &last.folders);
+    // A change made before a folder is watched shows in no event: what was read goes.
+    if watch_folders(&shared, &last.folders) {
+        cache::invalidate(kept.key());
+    }
+    let key = kept.key().to_path_buf();
     let weak: Weak<Mutex<_>> = Arc::downgrade(&shared);
     std::thread::spawn(move || {
         // Each burst of events ends after QUIET without one; the channel closes with the watcher.
@@ -277,7 +301,9 @@ pub fn watch(
             let Some(shared) = weak.upgrade() else {
                 return;
             };
-            watch_folders(&shared, &next.folders);
+            if watch_folders(&shared, &next.folders) {
+                cache::invalidate(&key);
+            }
             drop(shared);
             let changes = compare(&last, &next);
             last = next;
@@ -286,5 +312,8 @@ pub fn watch(
             }
         }
     });
-    Ok(Watcher { _shared: shared })
+    Ok(Watcher {
+        _shared: shared,
+        _kept: kept,
+    })
 }

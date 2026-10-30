@@ -8,14 +8,14 @@ use crate::files::inbox::Inbox;
 
 /// Adds a category at the end of the inbox.
 pub fn add_category(repo: &Path, name: &str, previous: &str) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::add_category(&place, name, Some(previous))?)
 }
 
 /// Renames a category, every heading of its name.
 pub fn rename_category(repo: &Path, from: &str, to: &str, previous: &str) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::rename_category(&place, from, to, Some(previous))?)
 }
@@ -28,7 +28,7 @@ pub fn remove_category(
     keep_notes: bool,
     previous: &str,
 ) -> Result<(Inbox, String)> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::remove_category(
         &place,
@@ -40,7 +40,7 @@ pub fn remove_category(
 
 /// Takes back a delete: writes `before` back, only when the inbox still hashes to `previous`.
 pub fn restore_category(repo: &Path, before: &str, previous: &str) -> Result<Inbox> {
-    let _lock = write_lock();
+    let _lock = write_lock(repo);
     let place = reach_default(repo)?;
     Ok(edits::restore_category(&place, before, previous)?)
 }

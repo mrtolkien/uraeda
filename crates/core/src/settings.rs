@@ -195,7 +195,7 @@ fn change_table(
     name: &str,
     edit: impl FnOnce(&mut dyn TableLike) -> Result<(), ApiError>,
 ) -> Result<Settings, ApiError> {
-    let _lock = crate::api::write_lock();
+    let _lock = crate::cache::write_lock(dir);
     let (read, _) = checked(dir)?;
     let (text, layout) =
         read.unwrap_or_else(|| (format!("{HEADER}\n[{name}]\n"), file::Layout::default()));
