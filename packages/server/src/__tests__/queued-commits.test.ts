@@ -135,6 +135,20 @@ test("a kept message whose send is refused comes back for the composer, after th
   expect(server.adapter.sent).toEqual([expect.objectContaining({ text: message.text })]);
 });
 
+test("a message kept for a commit the server stopped in is never sent, and its session goes", async () => {
+  const { hook, host, server } = await heldServer();
+  await approve(server);
+  const sent = await send(server, await approvalMessage(server));
+
+  await server.sessions.closeAll();
+  hook.release();
+  await host.queue.idle();
+
+  expect(server.sessions.cache.session(sent.data.id)).toBeUndefined();
+  expect(server.adapter.sent).toEqual([]);
+  expect(await writes(server)).toEqual([]);
+});
+
 /** Adds a proposal to the priorities, then commits them: the commit queued, the hook holding it. */
 async function commitPriorities(server: Server, text: string) {
   const [read] = await byId(server.app, "Priorities", ["priorities"], ["id", "hash"]);

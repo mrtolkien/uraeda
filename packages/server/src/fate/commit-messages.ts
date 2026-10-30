@@ -7,7 +7,7 @@ import { REFUSALS } from "../runner/sessions.ts";
 import { checkSend, type SendInput } from "../runner/send-input.ts";
 import type { WriteQueue } from "../writes/queue.ts";
 import type { RepoContext } from "./context.ts";
-import { type Kept, returnUnsent, sendKept } from "./kept-sends.ts";
+import { type Kept, removeMade, returnUnsent, sendKept } from "./kept-sends.ts";
 import { featureKeys } from "./write-queue.ts";
 
 /** The messages kept, by queue and folder, in the order they were sent. */
@@ -74,8 +74,14 @@ export async function keptForCommits(
   if (kept) {
     kept.push({ input, made, session });
   } else {
-    folders.set(folder, [{ input, made, session }]);
-    void sendOnceLanded(ctx, queue, folder, folders);
+    const fresh = [{ input, made, session }];
+    folders.set(folder, fresh);
+    // The server's stop drops them, and the sessions made for them, as it drops a start's.
+    const forget = ctx.sessions.starts.onStop(() => {
+      folders.delete(folder);
+      removeMade(ctx, fresh.splice(0));
+    });
+    void sendOnceLanded(ctx, queue, folder, folders).finally(forget);
   }
   return session;
 }
@@ -104,11 +110,7 @@ async function sendOnceLanded(
       returnUnsent(ctx, folder, kept, "The commit it waited for was refused.");
       return;
     }
-    for (const each of kept) {
-      if (each.made) {
-        ctx.sessions.cache.removeEmptySession(each.session);
-      }
-    }
+    removeMade(ctx, kept);
     return;
   }
   try {

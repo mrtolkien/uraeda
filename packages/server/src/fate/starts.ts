@@ -245,9 +245,17 @@ export async function keptForStart(
     throw new Error(`refused: ${REFUSALS.unavailable(adapter.name)}`);
   }
   checkSend(input, adapter.capabilities);
+  const made = row === undefined && cache.folderSessions(root, folder).length === 0;
   const session = row?.id ?? (await ctx.sessions.featureSession(ctx.repo, folder)).id;
-  // The start may have landed meanwhile: the message then goes as to any feature.
-  return starts.keep(root, folder, session, input) ? session : undefined;
+  if (starts.keep(root, folder, session, input)) {
+    return session;
+  }
+  // The start landed or was refused meanwhile: the message goes as to any feature, which makes
+  // its session again, and the one made here goes while it has no turn.
+  if (made) {
+    cache.removeEmptySession(session);
+  }
+  return undefined;
 }
 
 /** The start of a proposal file, answered once planned. */

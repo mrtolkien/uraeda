@@ -43,7 +43,12 @@ export function returnUnsent(
   if (!queue) {
     process.stderr.write(`uraeda: a message to ${folder} was not sent: ${reason}\n`);
   }
-  for (const { made, session } of unsent) {
+  removeMade(ctx, unsent);
+}
+
+/** Removes the sessions made for `kept`, while they have no turn. */
+export function removeMade(ctx: RepoContext, kept: Array<Kept>): void {
+  for (const { made, session } of kept) {
     if (made) {
       ctx.sessions.cache.removeEmptySession(session);
     }

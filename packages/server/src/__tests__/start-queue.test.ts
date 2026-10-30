@@ -180,6 +180,26 @@ test("a message sent during a refused start is dropped, and kept for the compose
   expect(server.sessions.cache.session(sent.data.id)).toBeUndefined();
 });
 
+test("a message sent as its start is refused leaves no session made for it", async () => {
+  const { hook, server } = await startServer();
+  hook.refusing();
+  const planned = await start(server, PROPOSAL);
+  const { folder, message } = planned.data as Record<string, string>;
+  const root = await server.sessions.mainRoot(server.repo);
+  // The start is refused while the message's session is made.
+  const making = server.sessions.featureSession.bind(server.sessions);
+  vi.spyOn(server.sessions, "featureSession").mockImplementationOnce(async (repo, of) => {
+    const made = await making(repo, of);
+    hook.release();
+    await idle(server);
+    return made;
+  });
+
+  await send(server, folder, message);
+
+  expect(server.sessions.cache.folderSessions(root, folder)).toEqual([]);
+});
+
 test("a message sent during a start the server stopped in is never sent", async () => {
   const { hook, server } = await startServer();
   const planned = await start(server, PROPOSAL);

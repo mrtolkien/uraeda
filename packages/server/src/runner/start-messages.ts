@@ -1,5 +1,6 @@
 // The messages sent to a feature while its start is still in the write queue: kept in memory only,
-// sent once the start lands, dropped if it is refused or the server stops, never sent twice.
+// sent once the start lands, dropped if it is refused or the server stops, never sent twice. The
+// server's stop drops those kept for features' commits too.
 import type { SessionCache } from "./cache.ts";
 import type { SendInput } from "./send-input.ts";
 
@@ -22,6 +23,8 @@ const keyOf = (root: string, folder: string) => `${root}\0${folder}`;
 export class StartMessages {
   #cache: SessionCache;
   #waiting = new Map<string, Waiting>();
+  /** What drops the messages kept for features' commits as the server stops (R65). */
+  #stops = new Set<() => void>();
 
   constructor(cache: SessionCache) {
     this.#cache = cache;
@@ -73,11 +76,27 @@ export class StartMessages {
     this.#remove(keyOf(root, folder));
   }
 
-  /** Drops every start's messages, as the server stops: a start landing after sends nothing. */
+  /**
+   * Runs `drop` as the server stops, until the returned function forgets it: it drops messages kept
+   * for a feature's commits, and removes the sessions made for them.
+   */
+  onStop(drop: () => void): () => void {
+    this.#stops.add(drop);
+    return () => this.#stops.delete(drop);
+  }
+
+  /**
+   * Drops every start's messages, and those kept for features' commits, as the server stops: a
+   * start or a commit landing after sends nothing.
+   */
   dropAll(): void {
     for (const key of this.#waiting.keys()) {
       this.#remove(key);
     }
+    for (const drop of this.#stops) {
+      drop();
+    }
+    this.#stops.clear();
   }
 
   #remove(key: string): void {
