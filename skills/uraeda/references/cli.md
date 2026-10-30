@@ -29,10 +29,11 @@ the current branch's feature, or the only one waiting for that action.
 `ura check` prints each problem as `<file>:<line>: <message>`, then each warning as
 `warning: <file>:<line>: <message>`. Warnings measure the limits of
 [Writing for the human](writing.md): `block.count`, `block.items`, `writing.sentence`, and
-`spec.length` on files waiting for the human, and `decision.rules` and `decision.order` on
-decisions. `decision.unapproved` warns on a decision edited on a branch after its spec's approval.
-It exits with an error when it found a problem, and with success when it found only warnings.
-`ura lsp` sends warnings to editors with the Warning severity.
+`spec.length` on files waiting for the human, and `decision.intent`, `decision.rules`,
+`decision.keywords`, `decision.order`, `decision.why`, `decision.alternatives`, and
+`decision.consequences` on decisions. `decision.unapproved` warns on a decision edited on a branch
+after its spec's approval. It exits with an error when it found a problem, and with success when it
+found only warnings. `ura lsp` sends warnings to editors with the Warning severity.
 
 `ura answer --submit --resume` adds `resumes: implementation` to the round, and is refused unless
 the implementation is under way. `ura answer --submit` and `ura review` set the human's status,

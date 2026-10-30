@@ -263,20 +263,21 @@ git commit -m "feat(decisions-needs): ura check warns where a decision regrows"
   decision, self-review, red flags), `skills/uraeda/references/writing.md` (its warning list, a
   decision), `skills/uraeda/references/cli.md` (its warning list),
   `skills/uraeda/references/decisions-check.md` (what counts as a finding),
-  `skills/uraeda/assets/templates/specs/decisions/decision-topic.md`
+  `skills/uraeda/assets/templates/specs/decisions/decision-topic.md`, and the Why of the setup
+  template `testing.md`, which asked for links to the question and the discovery topic
 
 **Interfaces:**
 
 - Produces: the anchors `spec.md#what-is-a-decision` and `writing.md#a-decision`, unchanged.
 
-- [ ] **Step 1: Add the fifth test to what is a decision**
+- [x] **Step 1: Add the fifth test to what is a decision**
 
 The test, as the global constraints quote it. The fourth test's last sentence becomes "A rule keeps
 a value only when the human chose that value", without its link. The example "a session lasts 30
 days" keeps the value, and its Why gives the reason. Add: a decision is never edited to describe the
 code, unless the human asks.
 
-- [ ] **Step 2: Move the shape to the writing reference**
+- [x] **Step 2: Move the shape to the writing reference**
 
 `a decision` in the writing reference gains the numbers and how a Why reads, each with its warning;
 the history rule becomes the Why's. Writing a decision in the spec reference keeps what each section
@@ -284,18 +285,18 @@ is for, and links the writing reference for the numbers rather than restating th
 change: a reversed choice joins the alternatives, and the one an agent is least likely to propose
 again goes past 3.
 
-- [ ] **Step 3: Update the template, the warning lists, the decisions check, and the red flags**
+- [x] **Step 3: Update the template, the warning lists, the decisions check, and the red flags**
 
 The template's placeholders say the limits. Both warning lists name the five new warnings. The
 decisions check's finding names the fifth test and a warning `ura check` reports. A red flag: "The
 decision should describe what the code does".
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core`, and `vp check`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add skills/uraeda

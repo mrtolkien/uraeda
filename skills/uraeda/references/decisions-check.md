@@ -28,7 +28,10 @@ is deleted when the check is applied.
    each decision to [the bar](spec.md#what-is-a-decision) and to the others. A finding is one of:
    - two decisions that say the same thing, or one that the other makes redundant;
    - a decision, or a rule, that fails the bar: it names a flag, a timeout, a file name, a size, or
-     another mechanism that its code holds and changes without the human;
+     another mechanism that its code holds and changes without the human, or a line the human cannot
+     judge from their goals, like a component's name or a list of fields;
+   - a decision past [the limits](writing.md#a-decision) of its sections, which `ura check` reports
+     as warnings, or whose **Why** tells its history;
    - a decision that conflicts with another, or with the constitution;
    - a decision file `ura check` cannot parse, like one with broken frontmatter: the question quotes
      the problem it reports, and its options repair the file or delete the decision.
