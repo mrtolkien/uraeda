@@ -7,12 +7,12 @@
 > Features for v1.0.0
 
 - [Feature state pass](/specs/2026-10-30-feature-state/proposal.md)
-- [Reading and layout pass](/specs/2026-10-30-reading-pass/proposal.md)
+- [Reading and layout pass](/specs/changes/2026-10-30-reading-pass/proposal.md)
 - [Proposal start flow](/specs/2026-10-30-proposal-start/proposal.md)
+- [Mockup previews](/specs/changes/2026-10-30-mockup-previews/proposal.md)
+- [Commits shouldn't all fail on "changes to INBOX.md", it makes no sense](/specs/changes/2026-10-30-commits-shouldn/proposal.md)
 
 - Empty inbox
-- [Mockup previews](proposals/mockup-previews/proposal.md)
-- See if we can integrate Claude Design
 
 ## Next
 
@@ -20,6 +20,7 @@
 >
 > Goals once I'm happy with the core feature set
 
+- See if we can integrate Claude Design
 - [Worker lifecycle](proposals/worker-lifecycle.md): runs survive server restarts, usage limits, and
   their own background work, and go on to the next human gate without a "Continue"
 - Review the UI guidelines properly
