@@ -261,7 +261,7 @@ Tests that guard widths the feature may change:
 
 - [Performance pass](/specs/2026-10-29-performance-pass/proposal.md), in implementation, changes
   `App.tsx`, `InboxList.tsx`, and the lists' cards, not their widths.
-- [Onboarding and README](/specs/2026-10-30-onboarding-readme/proposal.md) adds a home `Setup` pane,
+- [Onboarding and README](/specs/done/2026-10-30-onboarding-readme.md) adds a home `Setup` pane,
   which takes the home's width.
 - The phone-bottom change, merged, rewrote `FeaturePage.tsx` and `FeatureColumn.tsx`: this branch
   starts after it.
