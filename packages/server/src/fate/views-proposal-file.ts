@@ -23,8 +23,11 @@ export function sentProposalFile(record: ProposalFileRecord): ProposalFileRecord
 /** The proposal template's guidance, by heading, which the editor shows in empty sections. */
 export type ProposalHintsRecord = { hints: Array<Record_<ProposalHint>>; id: string };
 
-/** The slug the core proposes for a typed change, whose text is its ID: "New change" shows it. */
-export type SlugProposalRecord = { id: string; slug: string };
+/**
+ * The slug the core proposes for a typed start, whose text is its ID, and the research efforts a
+ * feature may ask for: the New page's start dialog shows them.
+ */
+export type SlugProposalRecord = { discoveryLevels: Array<string>; id: string; slug: string };
 
 export const proposalFileDataView = dataView<ProposalFileRecord>("ProposalFile")({
   committed: true,
@@ -53,6 +56,7 @@ export const proposalHintsDataView = dataView<ProposalHintsRecord>("ProposalHint
 });
 
 export const slugProposalDataView = dataView<SlugProposalRecord>("SlugProposal")({
+  discoveryLevels: true,
   id: true,
   slug: true,
 });

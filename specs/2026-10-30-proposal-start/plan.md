@@ -311,7 +311,7 @@ does before the write lock; `plan_text_start` reaches the default checkout as `p
     type `StartPlan`: `{ folder, id, message, title }`, answered once planned.
   - `SlugProposal` gains `discoveryLevels: Array<string>`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 test("a typed feature answers once planned with its discovery's message, then lands in one commit", async () => {
@@ -344,12 +344,12 @@ test("a typed feature answers once planned with its discovery's message, then la
 The breaks it catches: a start that waits for its landing to answer; a slug a queued typed start
 holds taken twice; the effort lost between the server and the core.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c vp test packages/server/src/__tests__/start-queue.test.ts`
 - Expected: FAIL, `no mutation feature.startText`
 
-- [ ] **Step 3: Implement `feature.startText`**
+- [x] **Step 3: Implement `feature.startText`**
 
 `startPlanned` takes what it plans and runs, so a proposal file's start and a text's share its turn,
 its slug check, its kept messages, and its queue: the text's plan is `planTextStart`, its run
@@ -357,12 +357,12 @@ its slug check, its kept messages, and its queue: the text's plan is `planTextSt
 feature {title}", its `href` the input's, the New page by default. `SlugProposal` reads
 `discoveryLevels` from the binding.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 `feat(proposal-start): the server starts a typed feature once planned`
 

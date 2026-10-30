@@ -3,11 +3,13 @@
 // A message sent to its folder meanwhile waits in the runner, and goes once the start lands.
 import type { PlannedView, StartedView, StartStepView } from "uraeda-binding";
 import { reasonOf } from "../reason.ts";
+import type { ChatImage } from "../runner/images.ts";
 import { runMessage } from "../runner/message.ts";
 import { checkSend, type SendInput } from "../runner/send-input.ts";
 import { REFUSALS } from "../runner/sessions.ts";
 import type { WriteInput, WriteQueue } from "../writes/queue.ts";
 import { STEP, StartProgress, startSteps } from "../writes/start-steps.ts";
+import { changeImages } from "./chat-images.ts";
 import type { RepoContext, Resolver } from "./context.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { sendKept } from "./kept-sends.ts";
@@ -164,25 +166,35 @@ function inPlanTurn<T>(queue: WriteQueue, plan: () => Promise<T>): Promise<T> {
 }
 
 /**
- * Plans the start of a proposal file, and queues it: one plan at a time, so a slug a start still in
- * the queue planned is taken. It waits for no queued write, and answers once queued, with the plan;
- * the messages sent to its folder meanwhile wait for it, and go once it lands.
+ * A start the core plans: its kind, the write it queues, or the page its refusal opens when the
+ * call names none, its plan, and its run as planned.
+ */
+type Plannable = {
+  href: string;
+  kind: Kind;
+  plan: () => Promise<PlannedView>;
+  run: (planned: PlannedView, onStep: (step: StartStepView) => void) => Promise<StartedView>;
+  write: WriteInput | undefined;
+};
+
+/**
+ * Plans a start, of a proposal file or of a typed feature, and queues it: one plan at a time, so a
+ * slug a start still in the queue planned is taken. It waits for no queued write, and answers once
+ * queued, with the plan; the messages sent to its folder meanwhile wait for it, and go once it
+ * lands.
  */
 async function startPlanned(
   ctx: RepoContext,
-  input: Queued<{ kind?: Kind; proposal: string; slug?: string }>,
+  { href, kind, plan, run, write }: Plannable,
 ): Promise<StartPlanRecord> {
   const queue = ctx.hosts.byPath(ctx.repo)?.queue;
   if (!queue) {
     throw callSiteError("refused: no repository");
   }
-  const kind = input.kind ?? "feature";
   const root = await refusedOn(() => ctx.sessions.mainRoot(ctx.repo));
   const { starts } = ctx.sessions;
   return inPlanTurn(queue, async () => {
-    const planned = await refusable(() =>
-      ctx.binding.planStart(ctx.repo, input.proposal, input.slug, kind),
-    );
+    const planned = await refusable(plan);
     const { branch, folder, title } = planned;
     if (startQueued(queue, planned)) {
       throw callSiteError(taken(kind, planned));
@@ -200,10 +212,9 @@ async function startPlanned(
     const start = {
       branch,
       folder,
-      run: (onStep: (step: StartStepView) => void) =>
-        ctx.binding.startFeature(ctx.repo, input.proposal, planned.slug, kind, onStep, planned.day),
+      run: (onStep: (step: StartStepView) => void) => run(planned, onStep),
       then: () => sendStartKept(ctx, root, folder),
-      write: input.write ?? { href: "", label: `Starting the ${kind} ${title}` },
+      write: write ?? { href, label: `Starting the ${kind} ${title}` },
     };
     const queued = await queueStart(ctx, queue, start, () => starts.drop(root, folder)).catch(
       (error: unknown) => {
@@ -293,7 +304,55 @@ export async function keptForStart(
   return undefined;
 }
 
-/** The start of a proposal file, answered once planned. */
+/** A proposal file's start, as `feature.start` plans and runs it. */
+function proposalStart(
+  ctx: RepoContext,
+  input: Queued<{ kind?: Kind; proposal: string; slug?: string }>,
+): Plannable {
+  const kind = input.kind ?? "feature";
+  return {
+    href: "",
+    kind,
+    plan: () => ctx.binding.planStart(ctx.repo, input.proposal, input.slug, kind),
+    run: (planned, onStep) =>
+      ctx.binding.startFeature(ctx.repo, input.proposal, planned.slug, kind, onStep, planned.day),
+    write: input.write,
+  };
+}
+
+/** What `feature.startText` starts: a typed text, its images, its line of Now, and its effort. */
+type TypedFeature = Queued<{
+  discovery?: string;
+  images?: Array<ChatImage>;
+  line?: string;
+  slug: string;
+  text: string;
+}>;
+
+/**
+ * A typed feature's start, as `feature.startText` plans and runs it: its images read before it is
+ * planned, so an image gone refuses it before anything is queued.
+ */
+async function typedStart(ctx: RepoContext, input: TypedFeature): Promise<Plannable> {
+  const images = await changeImages(ctx, input.images);
+  const options = {
+    ...(input.discovery === undefined ? {} : { discovery: input.discovery }),
+    kind: "feature" as const,
+    ...(input.line === undefined ? {} : { line: input.line }),
+    slug: input.slug,
+  };
+  return {
+    // A refused start's Open comes back to the New page, whose composer still holds the text.
+    href: "/new?kind=feature",
+    kind: "feature",
+    plan: () => ctx.binding.planTextStart(ctx.repo, input.text, options),
+    run: (planned, onStep) =>
+      ctx.binding.startText(ctx.repo, input.text, images, { ...options, day: planned.day }, onStep),
+    write: input.write,
+  };
+}
+
+/** The starts of a proposal file and of a typed feature, answered once planned. */
 export const startMutations = {
   "feature.start": {
     resolve: async ({
@@ -301,7 +360,22 @@ export const startMutations = {
       input,
       select,
     }: Resolver<Queued<{ kind?: Kind; proposal: string; slug?: string }>>) =>
-      sources.masked(startPlanDataView, ctx, await startPlanned(ctx, input), select),
+      sources.masked(
+        startPlanDataView,
+        ctx,
+        await startPlanned(ctx, proposalStart(ctx, input)),
+        select,
+      ),
+    type: "StartPlan",
+  },
+  "feature.startText": {
+    resolve: async ({ ctx, input, select }: Resolver<TypedFeature>) =>
+      sources.masked(
+        startPlanDataView,
+        ctx,
+        await startPlanned(ctx, await typedStart(ctx, input)),
+        select,
+      ),
     type: "StartPlan",
   },
 };
