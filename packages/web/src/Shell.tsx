@@ -80,6 +80,11 @@ const styles = stylex.create({
     // and the page's end scrolls past it.
     "--size-status-line": spacingVars["--spacing-8"],
     "--size-viewport-height": "calc(100dvh - var(--size-status-line))",
+    // The surface goes on under the status line, which the phone's lets show between its corner
+    // buttons, under a short page too.
+    "--size-frame-height": "100dvh",
+    boxSizing: "border-box",
+    minHeight: "var(--size-frame-height)",
     paddingBlockEnd: "var(--size-status-line)",
   },
   // The phone's bar out of the way: what sits on it, as the session's composer, follows it down
