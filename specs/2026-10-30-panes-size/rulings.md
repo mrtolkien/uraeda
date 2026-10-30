@@ -105,3 +105,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the button belongs to the closed rail, so opening the column removed the focused
   element, and the focus fell to the page. Found by the review of wave 2.
 - **Where**: `layout/SideColumn.tsx`, `useRailFocus`.
+
+## R12: On a half screen, the column narrows before it rails
+
+- **Decision**: on a semi-wide window, the column beside its page draws narrower than its dragged
+  width when it must, so the page keeps a reading pane; it becomes a rail only when even its least,
+  400 px, would not leave that. The width kept in the browser does not change.
+- **Rationale**: deciding the rail on the dragged width let a drag turn the column into a rail under
+  the pointer, its resize bar gone, and the kept width railed every page at that window size. Found
+  by the final review.
+- **If wrong**: a column dragged wide shows narrower on a half screen than on a wide one.
+- **Where**: `layout/columnRail.ts`'s `useRailing`.

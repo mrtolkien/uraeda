@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
   type RefObject,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -205,7 +206,7 @@ export function useRail(
     }
   };
   /** Whether Escape folded it from inside, until the focus leaves it: its logo may take the focus. */
-  const wasEscaped = () => quiet.current;
+  const wasEscaped = useCallback(() => quiet.current, []);
   return { handlers, isHovered: hovered, isOpen, tap, wasEscaped };
 }
 
