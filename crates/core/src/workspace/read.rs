@@ -7,6 +7,7 @@ use super::{
     Feature, FileKind, Kind, Problem, ReadFrom, Reader, Severity, Source, first_file,
     folder_branch, folder_path, record_kind, record_path,
 };
+use crate::actions::deferred;
 use crate::files::{document, frontmatter, spec};
 use crate::git::ObjectId;
 use crate::steps::{self, PullRequest, Step};
@@ -100,7 +101,8 @@ fn folder_uncommitted(
 }
 
 /// A feature or change, from its folder, or its record when the folder is gone. Read from disk, its
-/// step is read from `committed`, its latest commit, while its files stay the disk's (R4).
+/// step is read from `committed`, its latest commit, with the writes of Uraeda's still landing on
+/// top, while its files stay the disk's (R4): a hand edit does not move the step until committed.
 pub(super) fn read_feature(
     reader: &Reader<'_>,
     kind: Kind,
@@ -120,10 +122,66 @@ pub(super) fn read_feature(
             ReadFrom::Commit(commit),
             committed,
         );
+        let at_tip = with_pending(reader, kind, folder, commit, at_tip);
         feature.step = at_tip.step.clone();
         feature.at_tip = Some(Box::new(at_tip));
     }
     feature
+}
+
+/// The feature `at_tip`, read from its latest commit `commit`, with the files its deferred commits
+/// not landed yet wrote in the working tree `reader` reads on top: the step a write still landing
+/// gives. A repository that does not defer its commits, as `ura`'s, has none.
+fn with_pending(
+    reader: &Reader<'_>,
+    kind: Kind,
+    folder: &str,
+    commit: ObjectId,
+    at_tip: Feature,
+) -> Feature {
+    if at_tip.is_finished() {
+        return at_tip;
+    }
+    let key = reader.git.main_root();
+    let root = reader.git.root();
+    let pending = deferred::pending(&key, root, &at_tip.path);
+    if pending.is_empty() {
+        return at_tip;
+    }
+    let mut texts = at_tip.texts.clone();
+    overlay(&mut texts, pending);
+    let decisions = deferred::pending(&key, root, DECISIONS);
+    let mut queued = Feature::from_texts(kind, folder, texts);
+    queued.branch = at_tip.branch.clone();
+    queued.source = at_tip.source;
+    queued.proposal_committed = at_tip.proposal_committed;
+    queued.decisions_pending = queued.texts.get("spec.md").is_some_and(|spec| {
+        decisions_pending(&at_tip.path, spec, &|path| {
+            let name = path.strip_prefix(DECISIONS)?.strip_prefix('/')?;
+            match decisions.get(name) {
+                Some(text) => text.clone(),
+                None => reader.read(ReadFrom::Commit(commit), path),
+            }
+        })
+    });
+    queued.step = steps::step(&queued, PullRequest::Unknown);
+    queued
+}
+
+/// The decisions' folder.
+const DECISIONS: &str = "specs/decisions";
+
+/// Puts the pending texts over `texts`: a text replaces the file's, `None` removes it.
+fn overlay(texts: &mut BTreeMap<String, String>, pending: BTreeMap<String, Option<String>>) {
+    for (name, text) in pending {
+        if FileKind::of(&name).is_none() {
+            continue;
+        }
+        match text {
+            Some(text) => texts.insert(name, text),
+            None => texts.remove(&name),
+        };
+    }
 }
 
 /// A feature or change, from its folder, or its record when the folder is gone.
@@ -176,13 +234,14 @@ fn read_folder(
     feature.decisions_pending = feature
         .texts
         .get("spec.md")
-        .is_some_and(|spec| decisions_pending(reader, from, &path, spec));
+        .is_some_and(|spec| decisions_pending(&path, spec, &|file| reader.read(from, file)));
     feature
 }
 
 /// Whether a decision the spec lists as new or changed, in an item of its `## Decisions`, and
-/// links in the repository's `specs/decisions/`, is `proposed`. The "Relied on" table's links do not count.
-fn decisions_pending(reader: &Reader<'_>, from: ReadFrom, dir: &str, spec: &str) -> bool {
+/// links in the repository's `specs/decisions/`, is `proposed`, as `read` gives the decision's
+/// text. The "Relied on" table's links do not count.
+fn decisions_pending(dir: &str, spec: &str, read: &dyn Fn(&str) -> Option<String>) -> bool {
     let document = document::parse(spec, dir);
     spec::items(&document)
         .decisions
@@ -196,7 +255,7 @@ fn decisions_pending(reader: &Reader<'_>, from: ReadFrom, dir: &str, spec: &str)
                 .iter()
                 .find_map(|span| span.link.as_ref()?.path.as_deref());
             linked == Some(path.as_str())
-                && reader.read(from, &path).is_some_and(|text| {
+                && read(&path).is_some_and(|text| {
                     frontmatter::parse(&text)
                         .is_ok_and(|front| front.text("status") == Some("proposed"))
                 })

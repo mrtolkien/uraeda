@@ -252,7 +252,8 @@ the composer.
   `pub use` lines
 - Modify: `packages/server/src/fate/workflow-step.ts` (`messageStep`)
 - Modify: `packages/server/src/repositories.ts` (publish a feature as its commit is queued)
-- Modify: `packages/server/src/writes/queue.ts` (tell `settled`'s owner of a queued write too)
+- Modify: `packages/server/src/writes/queue.ts` (tell `moved`, once `settled`, of a queued write
+  too)
 - Test: `crates/core/tests/deferred.rs`, `packages/server/src/__tests__/queued-commits.test.ts`,
   `packages/server/src/__tests__/live.bench.ts`
 
@@ -263,15 +264,16 @@ the composer.
   - `deferred::pending(key: &Path, root: &Path, folder_path: &str) -> BTreeMap<String, Option<String>>`:
     the files under `folder_path` of the working tree at `root` that the repository's deferred
     commits not landed yet wrote, by name, with their text after the write. `None` is a file the
-    write deleted. A later write of the same file wins.
+    write deleted. A later write of the same file wins. A commit whose hooks run is still pending
+    until git is done: `land` keeps it in a `landing` map, dropped under the write lock (R8).
   - `read_feature` with `ReadFrom::Disk`: the step is the tip's with those texts on top, so a write
     still landing moves the step and a manual edit does not. The behaviour of `api::next_step`
     changes with it.
   - `binding.expectedStep` and `api::expected_step` are gone. `messageStep` reads `nextStep` always.
-  - The write queue's `settled(keys)` callback also runs when a write is queued, so
-    `repositories.ts` publishes the feature at once.
+  - The write queue's `settled(keys)` callback, renamed `moved`, also runs when a write is queued,
+    so `repositories.ts` publishes the feature at once.
 
-- [ ] **Step 1: Reproduce the approval that stayed "Needs you"**
+- [x] **Step 1: Reproduce the approval that stayed "Needs you"**
 
 In `vp run sandbox`, approve a spec whose commit waits behind the pre-commit hook, and watch the
 sidebar, home, and the feature page. Then stop the server before the commit lands, and restart it.
@@ -279,7 +281,7 @@ Then make the hook refuse it. Write in the task's commit body which cause showed
 reload was needed after the commit landed. When neither the queued commit nor the refusal explains
 what is seen, stop here and go back to the human with a new round, as the spec asks.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```rust
 // crates/core/tests/deferred.rs
@@ -319,13 +321,13 @@ The break each test catches:
 - Server: the workspace's features read the tip only, so the card stays at the gate until the commit
   lands.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test deferred` and
   `nix develop -c vp test packages/server/src/__tests__/queued-commits.test.ts`
 - Expected: FAIL, the step reads `human-gate` while the approval is queued.
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 `read_feature` overlays `deferred::pending` on the texts of the `at_tip` feature before computing
 its step, built with `Feature::from_texts`, keeping `proposal_committed` and `decisions_pending`.
@@ -339,7 +341,7 @@ and the binding, and make `messageStep` read `nextStep`. Run
 - [ ] **Step 5: Run the task's validation, and the benchmark**
 
 - Run: `nix develop -c vp run fast`, then
-  `nix develop -c vp bench packages/server/src/__tests__/live.bench.ts`
+  `nix develop -c vp test bench --run packages/server/src/__tests__/live.bench.ts` (R9)
 - Expected: PASS, and the approval's step read under 100 ms.
 
 - [ ] **Step 6: Commit**

@@ -239,8 +239,8 @@ export class Hosts {
         live.update("WriteQueue", WRITE_QUEUE_ID, {
           eventId: `write-queue:${Date.now()}:${announced++}`,
         }),
-      // A feature's step moves as its commit lands, or back as it is refused: its records, and the
-      // composer's message, read it again.
+      // A feature's step moves as its commit is queued, its files written, and back as it is
+      // refused: its records, and the composer's message, read it again, within the 100 ms.
       (keys) => {
         const features = keyFolders(keys);
         if (features.length > 0) {

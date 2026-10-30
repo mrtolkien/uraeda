@@ -3,10 +3,11 @@
 //! with the hooks. A hook's refusal puts back what the write left, file by file, from what each
 //! held when the action reached its place. Deferred commits live in memory only: one never landed
 //! leaves its files written, uncommitted. `ura` never turns deferral on, so it commits within the
-//! call.
+//! call. Until a deferred commit lands or is refused, [`pending`] gives what it wrote, which a
+//! feature's step is read with.
 
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -35,7 +36,7 @@ enum Held {
 type Before = HashMap<String, Held>;
 
 /// What undo puts back at a file's path.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum Undone {
     /// The bytes it held before the write.
     Bytes(Vec<u8>),
@@ -48,6 +49,7 @@ enum Undone {
 
 /// A file a deferred commit holds: what undo puts back at its path, and its bytes after the write,
 /// `None` when the write deleted it.
+#[derive(Clone)]
 struct Written {
     path: String,
     before: Undone,
@@ -55,6 +57,7 @@ struct Written {
 }
 
 /// A commit deferred, with what undoes its write.
+#[derive(Clone)]
 struct Deferred {
     id: String,
     place: Place,
@@ -78,6 +81,8 @@ struct Repository {
     fresh: Vec<Deferred>,
     /// Taken, waiting to land.
     taken: HashMap<String, Deferred>,
+    /// Landing: its commit and hooks run, and what it wrote is not in `HEAD` yet.
+    landing: HashMap<String, Deferred>,
 }
 
 /// The repositories that defer their commits, by main checkout.
@@ -202,16 +207,32 @@ pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed,
     let held = cache::write_lock(key);
     let deferred = repositories(|repositories| {
         let repository = repositories.get_mut(key)?;
-        if let Some(deferred) = repository.taken.remove(id) {
-            return Some(deferred);
-        }
-        let index = repository.fresh.iter().position(|d| d.id == id)?;
-        Some(repository.fresh.remove(index))
+        let deferred = match repository.taken.remove(id) {
+            Some(deferred) => deferred,
+            None => {
+                let index = repository.fresh.iter().position(|d| d.id == id)?;
+                repository.fresh.remove(index)
+            }
+        };
+        repository.landing.insert(id.to_string(), deferred.clone());
+        Some(deferred)
     })
     .ok_or_else(|| {
         ActionError::Refused(format!("no deferred commit {id}: it landed or was dropped"))
     })?;
-    if let Some(head) = already_committed(&deferred.place, &deferred.change)? {
+    // Called under the write lock, so a read sees its files pending or in `HEAD`, never neither.
+    let settled = || {
+        repositories(|repositories| {
+            repositories
+                .get_mut(key)
+                .map(|repository| repository.landing.remove(id))
+        });
+    };
+    let committed = already_committed(&deferred.place, &deferred.change);
+    if !matches!(committed, Ok(None)) {
+        settled();
+    }
+    if let Some(head) = committed? {
         return Ok(head);
     }
     // The lock held since the check, handed to the first staging, then taken again each time.
@@ -226,7 +247,7 @@ pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed,
     );
     // Dropped once the commit's files are put back, it moves the cache's generation.
     let _lock = lock();
-    match landed {
+    let result = match landed {
         Err(ActionError::Hook { message, output }) => {
             let left = undo(&deferred.place.root, &deferred.written);
             let output = if left.is_empty() {
@@ -240,7 +261,61 @@ pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed,
             Err(ActionError::Hook { message, output })
         }
         landed => landed,
+    };
+    settled();
+    result
+}
+
+/// The files directly in the folder `folder_path` of the working tree at `root` that the deferred
+/// commits of the repository `key`, not landed yet, wrote: by name, with their text after the
+/// write, `None` when the write deleted the file or left it not UTF-8. A later write of a file
+/// wins. What a hand edit wrote since is not read: only the write's own bytes.
+pub fn pending(key: &Path, root: &Path, folder_path: &str) -> BTreeMap<String, Option<String>> {
+    let mut deferred: Vec<(u64, PathBuf, Vec<Written>)> = repositories(|repositories| {
+        let Some(repository) = repositories.get(key) else {
+            return Vec::new();
+        };
+        repository
+            .fresh
+            .iter()
+            .chain(repository.taken.values())
+            .chain(repository.landing.values())
+            .filter(|deferred| {
+                deferred
+                    .written
+                    .iter()
+                    .any(|file| in_folder(&file.path, folder_path).is_some())
+            })
+            .map(|deferred| {
+                let id = deferred.id.parse().unwrap_or(0);
+                (id, deferred.place.root.clone(), deferred.written.clone())
+            })
+            .collect()
+    });
+    if deferred.is_empty() {
+        return BTreeMap::new();
     }
+    deferred.sort_by_key(|(id, _, _)| *id);
+    let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let mut files = BTreeMap::new();
+    for (_, place, written) in deferred {
+        if fs::canonicalize(&place).unwrap_or(place) != root {
+            continue;
+        }
+        for file in written {
+            if let Some(name) = in_folder(&file.path, folder_path) {
+                let text = file.after.and_then(|bytes| String::from_utf8(bytes).ok());
+                files.insert(name.to_string(), text);
+            }
+        }
+    }
+    files
+}
+
+/// The name of `path` when it is a file directly in the folder `folder_path`.
+fn in_folder<'p>(path: &'p str, folder_path: &str) -> Option<&'p str> {
+    let name = path.strip_prefix(folder_path)?.strip_prefix('/')?;
+    (!name.contains('/')).then_some(name)
 }
 
 /// `HEAD` as the commit of `change`, when each of its paths is as `HEAD` has it, on disk and in

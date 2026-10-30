@@ -6,7 +6,7 @@ mod common;
 use std::path::Path;
 
 use common::repo::TestRepo;
-use common::texts::{clarifications, proposal, record, spec};
+use common::texts::{clarifications, proposal, record};
 use uraeda_core::api;
 
 const FOLDER: &str = "2026-10-11-web-ui";
@@ -143,32 +143,4 @@ fn work_dir_of_a_merged_feature_is_refused() {
     assert_eq!(error.code, "refused");
     assert_eq!(error.message, format!("{FOLDER} has no branch"));
     assert!(!repo.exists(".worktrees"));
-}
-
-/// Review: a spec approved on disk, its commit queued: the branch's step still reads the approval
-/// gate, from its latest commit, while the expected step, the composer's prediction, reads the
-/// plan.
-#[test]
-fn the_expected_step_reads_the_uncommitted_files() {
-    let repo = repo_with_answered_round();
-    repo.switch(FOLDER);
-    repo.write(&format!("{DIR}/spec.md"), &spec("awaiting-human", 1, 1));
-    repo.commit("spec: web-ui");
-    repo.switch("main");
-    api::defer_commits(repo.path(), true);
-    api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap();
-
-    let next = api::next_step(repo.path(), FOLDER).unwrap();
-    let expected = api::expected_step(repo.path(), FOLDER).unwrap();
-
-    assert_eq!(
-        (next.step.name.as_str(), next.step.file.as_deref()),
-        ("human-gate", Some("spec.md"))
-    );
-    assert_eq!(expected.step.name, "plan");
-    assert_eq!(
-        expected.step.reference.as_deref(),
-        Some("skills/uraeda/references/plan.md")
-    );
-    assert_eq!(expected.branch.as_deref(), Some(FOLDER));
 }
