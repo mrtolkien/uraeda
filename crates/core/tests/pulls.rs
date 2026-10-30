@@ -3,7 +3,7 @@ mod common;
 use std::collections::BTreeMap;
 
 use common::repo::TestRepo;
-use common::texts::record;
+use common::texts::{clarifications, plan, proposal, record, spec};
 use uraeda_core::git::Git;
 use uraeda_core::pulls::{self, PullRequestState, PullRequestView, PullRequests};
 use uraeda_core::steps::StepName;
@@ -141,8 +141,13 @@ fn merged(head: &str) -> PullRequests {
 
 /// The test feature's branch, `parent` then `tip`: the two commits' hashes.
 fn branch(repo: &TestRepo) -> (String, String) {
+    branch_named(repo, "2026-10-10-x")
+}
+
+/// A branch of `name`, `parent` then `tip`: the two commits' hashes.
+fn branch_named(repo: &TestRepo, name: &str) -> (String, String) {
     let head = || repo.git(&["rev-parse", "HEAD"]).trim().to_string();
-    repo.switch_new("2026-10-10-x");
+    repo.switch_new(name);
     repo.write("a.md", "a\n");
     repo.commit("feat: the work");
     let parent = head();
@@ -198,6 +203,76 @@ fn a_merged_pull_request_holding_the_tip_makes_the_feature_done() {
             Feature::from_record(Kind::Feature, "2026-10-10-x", record("feature", "X"));
 
         merged(&head).apply(&mut feature, &git);
+
+        assert_eq!(feature.step.name, expected, "{name}");
+    }
+}
+
+/// Review: an open pull request wins over a merged one of the same branch; a feature still being
+/// built is not done by a merged pull request holding its tip; a change's branch ahead of its pull
+/// request reaches Push, as a feature's does.
+#[test]
+fn an_open_pull_request_and_the_implementation_keep_their_steps() {
+    let repo = TestRepo::new();
+    let (_, tip) = branch(&repo);
+    let (change_parent, _) = branch_named(&repo, "change/2026-10-10-x");
+    let git = Git::discover(repo.path()).unwrap();
+    let open_on = |branch: &str, head: &str| {
+        let mut view = view(31, PullRequestState::Open);
+        view.head = head.to_string();
+        BTreeMap::from([(branch.to_string(), view)])
+    };
+    let PullRequests::Known {
+        merged: merged_tip, ..
+    } = merged(&tip)
+    else {
+        unreachable!()
+    };
+    let texts = |files: Vec<(&str, String)>| {
+        files
+            .into_iter()
+            .map(|(name, text)| (name.to_string(), text))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let answered = clarifications("answered", "Answered on 2026-10-08.", &["A"]);
+    let building = texts(vec![
+        ("proposal.md", proposal()),
+        ("clarifications-01.md", answered),
+        ("spec.md", spec("approved", 1, 1)),
+        ("plan.md", plan("approved", 1, &[("One", 0, 2)])),
+    ]);
+    let rows = [
+        (
+            "open and merged",
+            Feature::from_record(Kind::Feature, "2026-10-10-x", record("feature", "X")),
+            PullRequests::Known {
+                open: open_on("2026-10-10-x", &tip),
+                merged: merged_tip.clone(),
+            },
+            StepName::PullRequest,
+        ),
+        (
+            "still being built",
+            Feature::from_texts(Kind::Feature, "2026-10-10-x", building),
+            merged(&tip),
+            StepName::Implementation,
+        ),
+        (
+            "a change ahead of its pull request",
+            Feature::from_texts(
+                Kind::Change,
+                "2026-10-10-x",
+                texts(vec![("proposal.md", proposal())]),
+            ),
+            PullRequests::Known {
+                open: open_on("change/2026-10-10-x", &change_parent),
+                merged: BTreeMap::new(),
+            },
+            StepName::Push,
+        ),
+    ];
+    for (name, mut feature, pull_requests, expected) in rows {
+        pull_requests.apply(&mut feature, &git);
 
         assert_eq!(feature.step.name, expected, "{name}");
     }
