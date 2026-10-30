@@ -47,8 +47,7 @@ function OnSettings({ category }: { category?: string }) {
   const { settings: change } = fate.mutations;
   const shown = optimisticSettings(settings);
   const actions: ServerActions = {
-    addHost: (name) =>
-      run(() => change.addHost({ input: { name }, optimistic: shown.addHost(name), view })),
+    addHost: (name) => run(() => change.addHost({ input: { name }, view })),
     editHost: (from, to) => run(() => change.editHost({ input: { from, to }, view })),
     removeHost: async (name) => {
       if (

@@ -436,3 +436,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a refused move shows its line in the priorities until the refusal, then takes it
   back, the page already open there.
 - **Where**: review of the web UI's writes.
+
+## R38: A setting's optimistic result is its saved value, never the value in force
+
+- **Decision**: a switch of the settings page, and a host name's removal, pass fate's `optimistic`
+  with the setting's `saved` value only, the value the input writes to the file; its `inForce` and
+  `source` stay as they were until the answer. The switches show `saved`, else `inForce`, as the
+  browser and the port already did. An added host name has no optimistic result: the core trims it
+  and puts it in lower case.
+- **Rationale**: which of a flag, a variable, the file, or the default gives a value is the server's
+  order, kept in one place, `settings.ts`'s `inForce`. The page computed it again to show a value in
+  force at once: a copied rule, which drifts once a setting gets a flag.
+- **If wrong**: a setting a flag or a variable gives for the run shows its saved value in its
+  switch, as the browser's already did, with the run's value in its note.
+- **Where**: review of the web UI's writes.
