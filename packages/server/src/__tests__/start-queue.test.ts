@@ -238,3 +238,35 @@ test("a message sent before the start's write is queued is kept for the composer
   expect(sent.error).toBeUndefined();
   expect(await writes(server)).toMatchObject([{ queued: "Go", state: "refused" }]);
 });
+
+test("the lists' calls wait for a start's commit, not for its agent", async () => {
+  const { hook, server } = await startServer();
+  const planned = await start(server, PROPOSAL);
+  await send(server, planned.data.folder, planned.data.message);
+  // The start's last step, sending the message kept, waits until the test lets it go.
+  const sending = Promise.withResolvers<void>();
+  const sendNow = server.sessions.send.bind(server.sessions);
+  server.sessions.send = async (...args) => {
+    await sending.promise;
+    return sendNow(...args);
+  };
+  hook.release();
+  await startWrite(server, (write) => write.steps[2].state === "running");
+
+  const [read] = await byId(server.app, "Priorities", ["priorities"], ["id", "hash"]);
+  await mutate(server.app, "proposals.add", { hash: read.hash, section: "next", text: "X" }, [
+    "id",
+  ]);
+  const committing = mutate(server.app, "priorities.commit", {}, ["id"]);
+  const answered = await Promise.race([
+    committing.then(() => "answered"),
+    new Promise((resolve) => setTimeout(() => resolve("waiting"), 1000)),
+  ]);
+
+  expect(answered).toBe("answered");
+  sending.resolve();
+  hook.release();
+  await committing;
+  await idle(server);
+  expect(await writes(server)).toEqual([]);
+});

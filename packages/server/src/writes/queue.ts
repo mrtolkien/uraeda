@@ -52,8 +52,16 @@ export type QueueCore = {
   takeDeferred: () => Array<Deferred>;
 };
 
-/** A queued write, the keys of the calls that wait for it, and when it is landed or refused. */
-type Entry = { keys: Array<string>; settled: Promise<void>; write: QueuedWrite };
+/**
+ * A queued write, the keys of the calls that wait for it, when it is landed or refused, and when
+ * it lets some of its keys go before.
+ */
+type Entry = {
+  freed: PromiseWithResolvers<void>;
+  keys: Array<string>;
+  settled: Promise<void>;
+  write: QueuedWrite;
+};
 
 /** Why a landing failed: only a hook's refusal, which the core undid, has the code `hook`. */
 const failureOf = (error: unknown): WriteFailure =>
@@ -144,6 +152,7 @@ export class WriteQueue {
     keys: Array<string> = [],
   ): { id: string; landed: Promise<unknown> } {
     const entry: Entry = {
+      freed: Promise.withResolvers(),
       keys,
       settled: Promise.resolve(),
       write: { ...write, id: `write-${++this.#next}`, state: "waiting" },
@@ -178,6 +187,19 @@ export class WriteQueue {
       return await call();
     } finally {
       release();
+    }
+  }
+
+  /**
+   * Lets the calls of `keys` stop waiting for the write `id`, still landing: a start whose commit
+   * landed lets the lists go while it makes its branch and starts its agent.
+   */
+  free(id: string, keys: Array<string>): void {
+    const entry = this.#entries.find(({ write }) => write.id === id);
+    if (entry) {
+      entry.keys = entry.keys.filter((key) => !keys.includes(key));
+      entry.freed.resolve();
+      entry.freed = Promise.withResolvers();
     }
   }
 
@@ -248,7 +270,9 @@ export class WriteQueue {
    */
   async #turn(keys: Array<string>): Promise<() => void> {
     for (;;) {
-      await Promise.all(this.#pending(keys).map(({ settled }) => settled));
+      await Promise.all(
+        this.#pending(keys).map(({ freed, settled }) => Promise.race([settled, freed.promise])),
+      );
       const release = await this.#callTurn();
       if (this.#pending(keys).length === 0) {
         return release;

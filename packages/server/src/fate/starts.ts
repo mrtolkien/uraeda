@@ -64,7 +64,7 @@ const startQueued = (queue: WriteQueue, folder: string) =>
 
 /**
  * Queues a start behind the writes queued before it, its steps in its write, holding the lists'
- * keys and its feature's: their next calls wait for it. Its run takes the committing calls' turn,
+ * key until its commit landed, and its feature's: their next calls wait for it. Its run takes the committing calls' turn,
  * so no call is between its write and the take of its commit while the start checks the checkout.
  * `refused` is told of a refusal.
  */
@@ -86,7 +86,13 @@ async function queueStart<R>(
       progress.to(STEP.commit);
       try {
         const started = await queue.inTurn(() =>
-          start.run((step) => progress.step(step, onOutput)),
+          start.run((step) => {
+            // Its commit landed: the lists' calls no longer wait for the start (R69).
+            if (step.step === "branching") {
+              queue.free(id, [LISTS]);
+            }
+            progress.step(step, onOutput);
+          }),
         );
         progress.to(STEP.agent);
         const result = await start.then(started);

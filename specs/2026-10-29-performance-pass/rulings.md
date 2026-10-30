@@ -798,3 +798,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a new session made while the drop lands is archived with the others once it lands.
 - **Where**: `packages/server/src/fate/session-moves.ts`, `writes/queue.ts` (`commit`'s `onQueued`),
   `__tests__/session-moves.test.ts`, review of the server.
+
+## R69: A start holds the lists' key until its commit landed, its hook included
+
+- **Decision**: a start lets the lists' key go once the core reports its branch's step, its commit
+  landed: the lists' calls then wait only for the committing calls' turn, which the start holds
+  until the core made its branch and worktree, and no longer for its agent's step, the messages kept
+  or the first run sent. Its feature's key stays until it settles. The queue's `free` lets a write's
+  keys go before it settles. This narrows R52.
+- **Rationale**: the key cannot go before the hook ends. The start's commit stages `PRIORITIES.md`
+  and the moved proposal, and a hook's refusal puts them back only where they still hold what the
+  start left (R46): a lists' write made during the hook would change `PRIORITIES.md`, which the put
+  back would then leave, its proposal back in its file but gone from the priorities, and the lists'
+  commit would land that. The committing calls' turn is held through the whole core call, which the
+  core runs as one; the worktree's step takes the repository's write lock (R61), on which a call in
+  the turn would wait holding a libuv thread.
+- **If wrong**: a lists' call made during a start's hook still waits for the hook, a commit's time.
+- **Where**: `packages/server/src/writes/queue.ts` (`free`), `fate/starts.ts` (`queueStart`), review
+  of the server.
