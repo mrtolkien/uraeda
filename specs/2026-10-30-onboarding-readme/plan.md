@@ -306,7 +306,7 @@ read.
   - `uraeda_core::api::read_setup(repo: &Path) -> Result<Vec<SetupItem>>`: the same list, for a
     repository with `specs/`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 One table test, `setup_items`, each row a repository and the `(key, state)` pairs
 `api::read_workspace(repo)?.setup` gives, or none:
@@ -330,12 +330,12 @@ a template read as written, or a missing `decisions/` read as an error; `half_wr
 `one_left`, a decision read from the wrong folder; `set_up`, an optional preview or a `proposed`
 status that keeps the pane.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test setup`
 - Expected: FAIL to compile, `no field `setup`on type`WorkspaceView``
 
-- [ ] **Step 3: Implement the check in `crates/core/src/api/setup.rs`**
+- [x] **Step 3: Implement the check in `crates/core/src/api/setup.rs`**
 
 `setup_items(git: &Git, has_specs: bool) -> Vec<SetupItem>`, crate-private, reads the default
 branch's constitution and decisions through the ledger's `source`, and builds the five items, the
@@ -353,20 +353,20 @@ is simpler.
 `setup_items(&git, true)` otherwise; `WorkspaceView::new` sets it empty. `read_setup` discovers the
 repository and calls `setup_items(&git, true)`.
 
-- [ ] **Step 4: Rebuild the binding's types**
+- [x] **Step 4: Rebuild the binding's types**
 
 - Run: `nix develop -c vp run --filter uraeda-binding build`
 - Expected: `packages/binding/index.d.ts` gains `SetupItem` and `setup: Array<SetupItem>` in
   `WorkspaceView`
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test setup`, then
   `nix develop -c vp run fast`
 - Expected: PASS. Then break the link rule, so any bracket is a placeholder, see `link_in_rule`
   fail, and revert.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add crates/core packages/binding/index.d.ts
