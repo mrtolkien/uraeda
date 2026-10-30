@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Performance pass
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Approved on 2026-10-30.
 >
 > - You approve pages and keys that answer within 100 ms from caches on the server and in the
 >   browser. Writes show their result at once, and commits land behind a toast, in order. Starting a
