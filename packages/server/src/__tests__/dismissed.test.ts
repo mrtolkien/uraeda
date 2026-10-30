@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { expect, test, vi } from "vite-plus/test";
 import { live as globalLive } from "../fate.ts";
+import { TAKEN_BACK } from "../runner/session-state.ts";
 import { SERVER_STOPPED } from "../runner/sessions.ts";
 import { byId, type Data, fixtureRepo, mutate, testDataDir, testServer } from "./helpers.ts";
 
@@ -104,4 +105,25 @@ test("a dismissal sends the session's list, feature, workspace, and what needs t
   expect(update).toHaveBeenCalledWith("Feature", AGENT, expect.anything());
   expect(update).toHaveBeenCalledWith("Workspace", "workspace", expect.anything());
   expect(global).toHaveBeenCalledWith("NeedsYouList", expect.anything(), expect.anything());
+});
+
+test("a queued message taken back never asks for the human", async () => {
+  const server = await testServer(fixtureRepo());
+  const { adapter, repo, sessions } = server;
+  const root = await sessions.mainRoot(repo);
+  const session = await sessions.featureSession(root, AGENT);
+  const { turn: first } = await sessions.send(root, session.id, { text: "What is left?" });
+  const { turn: queued } = await sessions.send(root, session.id, {
+    text: "Continue the feature.",
+    workflow: { fresh: false, trigger: "manual" },
+  });
+
+  sessions.takeBack(root, session.id, sessions.cache.itemsOf(queued, "message")[0]!.id);
+  adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
+  await sessions.settled(first);
+
+  expect(sessions.cache.turn(queued)).toMatchObject({ reason: TAKEN_BACK, state: "stopped" });
+  // Seen since the first turn's reply: idle, as before the message was queued.
+  sessions.seen(root, session.id);
+  expect(await rowOf(server, session.id)).toEqual({ status: "idle", statusReason: null });
 });

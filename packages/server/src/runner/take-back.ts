@@ -1,4 +1,4 @@
-import { type Live, REFUSALS, refused, type SessionContext } from "./session-state.ts";
+import { type Live, REFUSALS, refused, type SessionContext, TAKEN_BACK } from "./session-state.ts";
 
 /**
  * Takes back a message of the session the agent has not read: a queued turn's at once, which ends
@@ -22,7 +22,7 @@ export function takeBack(context: SessionContext, live: Live, message: string): 
   if (queued >= 0) {
     live.queue.splice(queued, 1);
     turns.mark(live, sent, "taken-back");
-    turns.end(live, sent.turn, { reason: "Taken back.", state: "stopped" });
+    turns.end(live, sent.turn, { reason: TAKEN_BACK, state: "stopped" });
     return;
   }
   if (!adapter.capabilities.takeBack) {
