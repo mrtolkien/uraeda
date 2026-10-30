@@ -35,7 +35,8 @@ const styles = stylex.create({
     containerName: "list",
     containerType: "inline-size",
     marginInline: "auto",
-    maxWidth: listVars["--list-line-max"],
+    // A page of rows' text column, its rows' markers and the selection inside its panes.
+    maxWidth: "var(--size-reading-pane)",
     width: "100%",
   },
   // The panes of the row, side by side, whose row scrolls sideways. It runs to both edges of the
