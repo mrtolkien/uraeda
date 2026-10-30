@@ -9,6 +9,7 @@ import { fixtureRepo, temporaryFolder } from "uraeda-binding/test-utils";
 import { FakeAdapter } from "../runner/fake.ts";
 import { type Server, startServer } from "../server.ts";
 import { testSettings } from "../testing.ts";
+import { testApp } from "./helpers.ts";
 
 /** The core's binding, as one object: the server takes it whole. */
 const binding = await import("uraeda-binding");
@@ -96,10 +97,21 @@ test("a host name in the file passes from the next request, until it changes", a
 });
 
 /** Review focus 1 */
+// The server's app in process, as the guard's own tests read it: the same guard over the same
+// settings, without a whole start, its session cache file, sign-in, and Storybook cleanup, which
+// this test does not check and which a loaded run once took past the test's time bound.
 test("host names given by --allowed-hosts stay, whatever the file lists", async () => {
-  const { dir, settings, status } = await hostServer([BUILD]);
+  const { app, configDir, settings } = await testApp(undefined, { allowedHosts: [BUILD] });
+  const status = async (host: string) =>
+    (
+      await app.request(`http://${host}/fate`, {
+        body: JSON.stringify({ operations: [], version: 1 }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    ).status;
 
-  await binding.addAllowedHost(dir, MAC);
+  await binding.addAllowedHost(configDir, MAC);
   await settings.reload();
 
   expect(settings.view().allowedHosts.saved).toEqual([MAC]);
