@@ -10,6 +10,10 @@
 - [Run a new inbox cleanup: anything that’s simple and requires no decision from me](/specs/changes/2026-10-30-inbox-again/proposal.md)
 
 - Empty inbox
+- [Reading and layout pass](proposals/reading-pass/proposal.md)
+- [Proposal start flow](proposals/proposal-start-flow.md)
+- [Mockup previews](proposals/mockup-previews/proposal.md)
+- See if we can integrate Claude Design
 
 ## Next
 
