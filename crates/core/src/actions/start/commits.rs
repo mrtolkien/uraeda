@@ -6,6 +6,12 @@ use std::fs;
 use super::plan::Plan;
 use super::{Source, Start, StartError, partial};
 use crate::actions::expand::with_nested;
+use crate::files::retarget;
+
+/// The folder of a file, from the top level.
+fn folder_of(file: &str) -> &str {
+    file.rsplit_once('/').map_or("", |(folder, _)| folder)
+}
 
 impl Start<'_> {
     /// What is left to do by hand once the proposal file is in the dated folder.
@@ -61,6 +67,28 @@ impl Start<'_> {
         }
         if plan.postponed {
             let _ = fs::remove_dir_all(root.join(proposal));
+        }
+        // The moved text keeps its words, its relative links pointing at the same files from the
+        // dated folder, and at each other when they moved together.
+        for (from, to) in moves.iter().filter(|(_, to)| to.ends_with(".md")) {
+            let rebased = fs::read_to_string(root.join(to)).and_then(|text| {
+                let moved = retarget::relocated(&text, folder_of(from), folder_of(to), &moves);
+                if moved == text {
+                    return Ok(());
+                }
+                fs::write(root.join(to), moved)
+            });
+            if let Err(error) = rebased {
+                let mut left = vec![format!(
+                    "point the relative links of {to} at its new folder"
+                )];
+                left.extend(self.left_after_write(plan));
+                let done: Vec<String> = moves
+                    .iter()
+                    .map(|(from, to)| format!("the move of {from} to {to}"))
+                    .collect();
+                return Err(partial(&done, left, error));
+            }
         }
         Ok(moves)
     }
