@@ -995,8 +995,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   from (R79, R80), so nothing it reads goes stale and the read cache's generations and counts are
   left alone. The first click on the clone's `/decisions` and on `2026-10-28-proposal-naming`, right
   after the server started, took 157 and 132 ms on the server in the benchmark before it; 30 ms each
-  after.
+  after. And the server's entry, `main.ts`, sizes libuv's thread pool before anything uses it: one
+  thread per core, at least 8 and at most 64, unless `UV_THREADPOOL_SIZE` is set. Each call of the
+  binding holds one of the pool's threads, 4 by default, so during a start, whose call holds one for
+  its whole run, the live updates' reads and a page's read waited for a free one: the ledger read
+  amid a start and six other reads took 108 to 112 ms with 4 threads and 35 to 41 ms with 16,
+  measured with the core directly. In the benchmark the clone's `/decisions` right after a start
+  took 148 ms on the server with 4 threads, 75 to 90 with 16, on a machine loaded by other builds
+  (load average 7 to 14).
 - **Rationale**: a server's first read of a page is a read like any other for the human; the
-  Performance decision's cache is on the server.
+  Performance decision's cache is on the server, and its reads from memory are lost when they wait
+  for a thread.
 - **If wrong**: a watch's start costs one thread a second or two of reading, beside the first pages.
-- **Where**: `crates/core/src/api/warm.rs`, `crates/core/src/watch.rs`.
+  `vp dev` serves the routes in Vite's process, whose pool is sized before the server loads.
+- **Where**: `crates/core/src/api/warm.rs`, `crates/core/src/watch.rs`,
+  `packages/server/src/threadpool.ts`, `packages/server/src/main.ts`.

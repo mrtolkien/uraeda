@@ -1,6 +1,7 @@
 // `uraeda`: reads the settings, takes their port first, then starts the server on it, or hands
 // the repository to the server already there, with the host token. The session cache and the
 // sign-in file are opened only once the port is this process's.
+import "./threadpool.ts";
 import { rmSync } from "node:fs";
 import { createServer, type RequestListener, type Server as HttpServer } from "node:http";
 import { getRequestListener } from "@hono/node-server";
