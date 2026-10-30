@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-26
 pull-request: https://github.com/mrtolkien/uraeda/pull/59
+superseded-by: [2026-10-30-phone-bottom]
 ---
 
 # Record: Feature page in the terminal look
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/59
 > The record of a merged feature, not instructions to follow. Started on 2026-10-25, finished on
 > 2026-10-26, in [its pull request](https://github.com/mrtolkien/uraeda/pull/59). Its full files are
 > in git: `git log -- specs/2026-10-25-feature-page/`.
+>
+> Superseded in part by [2026-10-30-phone-bottom](2026-10-30-phone-bottom.md).
 
 ## What and why
 
