@@ -7,6 +7,12 @@
 //! it saw before it. Without a watch nothing is kept, and every read reads git. The reads that do
 //! not read the workspace, like the ledger and a feature's history, are kept the same way, by their
 //! name, with [`kept`].
+//!
+//! A kept read is fresh only for the files the watcher watches (`watch.rs`): each working tree's
+//! `specs/`, all of it, and its top level, not its folders; git's common directory, not its
+//! folders, with its `refs/` and `worktrees/`, all of them. A read kept here that comes to read
+//! a file outside them, as a source file of a branch's working tree, misses its changes until
+//! another event moves the generation: such a read must widen the watch first.
 
 use std::any::Any;
 use std::collections::HashMap;

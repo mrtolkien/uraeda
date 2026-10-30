@@ -15,7 +15,7 @@ import { REFUSED_ID, useWriteQueue, type Write } from "../writes/useWriteQueue.t
 import { StartStepsView } from "./StartSteps.tsx";
 
 /** Why the composer of a refused start sends nothing: there is no feature to send to. */
-export const NOT_STARTED = "Nothing started: start the proposal again from its file.";
+const NOT_STARTED = "Nothing started: start the proposal again from its file.";
 
 /** The start of `folder` in the repository's write queue, landing, waiting, or refused. */
 export function useStartWrite(folder: string): Write | undefined {

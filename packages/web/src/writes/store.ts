@@ -7,7 +7,7 @@ import { useEffect, useSyncExternalStore } from "react";
 type Pending = { label: string; status?: string; timer?: ReturnType<typeof setTimeout> };
 
 /** How long a card shows an action, if the server's status stays the same. */
-export const PENDING_MS = 10_000;
+const PENDING_MS = 10_000;
 
 const pending = new Map<string, Pending>();
 const listeners = new Set<() => void>();
