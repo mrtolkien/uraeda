@@ -4,10 +4,11 @@ import type { useProposalFile } from "./data.ts";
 import type { useTextField } from "./fields/useTextField.ts";
 import { refusal } from "./errors.ts";
 import type { splitProposal } from "./pane/proposalText.ts";
-import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import type { useSave } from "./useSave.ts";
-import { ProposalFileView, StartPlanView } from "./views.ts";
+import type { StartKind } from "./ProposalStart.tsx";
+import { useStart } from "./useStart.ts";
+import { ProposalFileView } from "./views.ts";
 import { useClearRefusal, writeHere } from "./writes/useWriteQueue.ts";
 
 type File = NonNullable<ReturnType<typeof useProposalFile>>;
@@ -25,13 +26,13 @@ type Editor = {
 
 /**
  * The editor's actions on its proposal file, or a started proposal, each after the text typed in
- * `field` is saved: commit it, start it as a feature under the slug typed in `slug`, and set its
- * discovery effort, in the save queue. `written` takes the file the discovery effort was written
- * into. `message` says what the last one did, or why it did not.
+ * `field` is saved: commit it, start it as a feature or a change under the slug typed in `slug`,
+ * and set its discovery effort, in the save queue. `written` takes the file the discovery effort was
+ * written into. `message` says what the last one did, or why it did not; `slugError`, why the slug
+ * typed started nothing.
  */
 export function useEditorActions({ field, file, path, save, setConflict, slug, written }: Editor) {
   const fate = useFateClient();
-  const here = useRepoPath();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
   const clearRefusal = useClearRefusal({ file: path });
   /** Saves the text typed, after the saves before it; resolves with whether the text is saved. */
@@ -62,30 +63,16 @@ export function useEditorActions({ field, file, path, save, setConflict, slug, w
     }
     return true;
   };
-  const start = async (continues: boolean, kind: "change" | "feature" = "feature") => {
+  const starting = useStart({ path, saveTyped, slug, title: file?.title ?? path });
+  /** Starts it as `kind`: its session opens at once, or the editor says why not. */
+  const start = async (kind: StartKind) => {
     setMessage(undefined);
-    if (!(await saveTyped())) {
-      setMessage({ ok: false, text: `Your text is not saved: the ${kind} was not started.` });
+    const started = await starting.start(kind);
+    if (typeof started === "object") {
+      setMessage({ ok: false, text: started.notSaved });
       return false;
     }
-    const result = await fate.mutations.feature.start({
-      input: { kind, proposal: path, slug: slug.text },
-      view: StartPlanView,
-    });
-    if (result.error) {
-      setMessage({ ok: false, text: refusal(result.error).message });
-      return false;
-    }
-    if (typeof result.result?.folder === "string") {
-      const folder = result.result.folder;
-      slug.discard();
-      if (continues) {
-        handOver(folder, "start");
-      } else {
-        navigate(here(`/f/${folder}`));
-      }
-    }
-    return true;
+    return started;
   };
   /**
    * Sets the discovery effort in the frontmatter, in the save queue: after the text typed is saved,
@@ -120,5 +107,5 @@ export function useEditorActions({ field, file, path, save, setConflict, slug, w
       });
     }
   };
-  return { commit, message, setDiscovery, start };
+  return { commit, message, setDiscovery, slugError: starting.slugError, start };
 }

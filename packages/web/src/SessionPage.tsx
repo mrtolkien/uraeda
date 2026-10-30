@@ -17,6 +17,8 @@ import {
 import { sessionPath } from "./sessions.ts";
 import { type Handing, NO_BRANCH, SessionPane } from "./SessionView.tsx";
 import { Missing } from "./layout/Missing.tsx";
+import { StartingSession, useStartWrite } from "./session/StartingSession.tsx";
+import { usePlannedStart } from "./useStart.ts";
 
 /**
  * A feature's session: created with its first message, which this view sends. Opened to hand the
@@ -148,13 +150,26 @@ function IdSession({ draft, id }: { draft: Draft; id: string }) {
   );
 }
 
+/**
+ * A feature's session by its folder, or, while its start is in the write queue or planned here, the
+ * start's steps where the transcript will be: the feature cannot be read before the start lands.
+ */
+function FeatureOrStart({ folder }: { folder: string }) {
+  const write = useStartWrite(folder);
+  const planned = usePlannedStart(folder);
+  if (write === undefined && planned.start === undefined) {
+    return <FeatureSession folder={folder} />;
+  }
+  return <StartingSession folder={folder} planned={planned} write={write} />;
+}
+
 /** A session's page: a feature's latest, by its folder, or any session, by its ID. */
 export function SessionPage(props: { folder: string } | { id: string }) {
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const draft = useDraft();
   if ("folder" in props) {
-    return <FeatureSession folder={props.folder} />;
+    return <FeatureOrStart folder={props.folder} />;
   }
   return <IdSession draft={draft} id={props.id} />;
 }

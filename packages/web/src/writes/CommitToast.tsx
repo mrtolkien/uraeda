@@ -15,6 +15,7 @@ import { useState } from "react";
 import { glassStyles } from "../layout/glass.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { navigateHere } from "../routes.tsx";
+import { sessionPath } from "../sessions.ts";
 import { REFUSED_ID, useDismissWrite, useWriteQueue } from "./useWriteQueue.ts";
 
 /** A git write as the toast lists it: what it does, and where it is in the queue. */
@@ -158,8 +159,12 @@ export function CommitToast() {
     const write = writes.find((each) => each.id === id);
     if (write) {
       setOpened((before) => new Set(before).add(id));
-      // A write named by no page, as a start's, opens home.
-      const page = write.href || "/";
+      // A feature's start opens its session, where its steps show the refusal; a write named by no
+      // page, as a change's start, opens home.
+      const page =
+        write.steps !== undefined && write.folder !== undefined
+          ? sessionPath(write.folder)
+          : write.href || "/";
       navigateHere(page.includes("#") ? page : `${page}#${REFUSED_ID}`);
     }
   };

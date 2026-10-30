@@ -5,6 +5,7 @@ import { useFateClient, useLiveView, useRequest, view } from "react-fate";
 import type { WriteQueue } from "uraeda-server/fate";
 import { useRefreshOnShow } from "../data.ts";
 import { localPath } from "../routeTable.ts";
+import type { StartStep } from "../session/StartSteps.tsx";
 import type { QueuedWrite } from "./CommitToast.tsx";
 
 /** The id of the repository's one record of its write queue, as the server names it. */
@@ -22,8 +23,17 @@ export const REFUSED_ID = "write:refused";
 /** Where a write happened: its feature and file, or the page it was made on. */
 export type Where = { file?: string; folder?: string; href?: string };
 
-/** A write as the queue's record holds it: where it happened too. */
-export type Write = QueuedWrite & { file?: string; folder?: string; href: string };
+/**
+ * A write as the queue's record holds it: where it happened too, and, for a feature's start, its
+ * steps and the messages sent meanwhile, which its agent starts with once it lands.
+ */
+export type Write = QueuedWrite & {
+  file?: string;
+  folder?: string;
+  href: string;
+  queued?: string;
+  steps?: ReadonlyArray<StartStep>;
+};
 
 /** The writes of the repository's queue, in the order they were made, the running one first. */
 export function useWriteQueue(): ReadonlyArray<Write> {

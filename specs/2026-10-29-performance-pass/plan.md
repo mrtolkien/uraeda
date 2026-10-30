@@ -1230,9 +1230,13 @@ git commit -m "feat(performance-pass): commits land behind a glass toast, and no
 **Files:**
 
 - Start from: `packages/web/src/session/StartSteps.stories.tsx#Running`
-- Modify: `packages/web/src/useEditorActions.ts`, `ProposalStart.tsx`, `HandOver.tsx`,
-  `SessionPage.tsx`, `useComposerSend.ts`, `NewChangePage.tsx`
-- Create: `packages/web/src/useStart.ts`
+- Modify: `packages/web/src/useEditorActions.ts`, `ProposalStart.tsx`, `EditorPage.tsx`,
+  `SlugField.tsx`, `SessionPage.tsx`, `SessionView.tsx`, `Composer.tsx` (`sendWaits` removed),
+  `ComposerSend.tsx`, `writes/useWriteQueue.ts`, `writes/CommitToast.tsx`. `HandOver.tsx`,
+  `useComposerSend.ts`, and `NewChangePage.tsx` needed no change: the hand-over's draft takes the
+  plan's message once, `session.send` keeps a message sent to a starting folder, and a change's
+  start answers once landed (R50) (R57).
+- Create: `packages/web/src/useStart.ts`, `packages/web/src/session/StartingSession.tsx`
 - Test: `packages/web/src/__tests__/editor.test.tsx` (its start test, rewritten)
 
 **Interfaces:**
@@ -1242,7 +1246,7 @@ git commit -m "feat(performance-pass): commits land behind a glass toast, and no
   the text if needed, calls `feature.start`, and opens `/f/<folder>/session?continue=start` with the
   plan's message in the composer.
 
-- [ ] **Step 1: Rewrite the start's test**
+- [x] **Step 1: Rewrite the start's test**
 
 ```tsx
 // packages/web/src/__tests__/editor.test.tsx
@@ -1255,24 +1259,25 @@ test("Start saves the text typed, then opens the session at once (US4 2)", async
 
 The break it catches: a start that waits for the commit; one that starts before the save.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/web/src/__tests__/editor.test.tsx`
 - Expected: FAIL, the session not opened before the write lands.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-The session page of a folder whose start is in the queue draws `StartStepsView` where the transcript
-will be, from the start's write. Send queues the message; a refusal puts `queued` back in the
-composer, and the steps show the hook's output with the link to the proposal. A slug refused at
-planning stays in the editor, under the slug.
+The session page of a folder whose start is in the queue, or planned in this document and not yet
+seen there, draws `StartStepsView` where the transcript will be, from the start's write (R57). Send
+queues the message; a refusal puts `queued` back in the composer, and the steps show the hook's
+output with the link to the proposal. A slug refused at planning stays in the editor, under the
+slug.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS. Deferred to ready: the suite, Storybook.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/src

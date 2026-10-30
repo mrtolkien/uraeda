@@ -48,7 +48,6 @@ export function sendButtons({
   label,
   pending,
   send,
-  waits,
   workflow,
   working,
 }: {
@@ -64,7 +63,6 @@ export function sendButtons({
   label: string | undefined;
   pending: boolean;
   send: () => void;
-  waits: string | undefined;
   workflow: boolean;
   working: boolean;
 }): { sendActions?: ReactNode; sendButton?: ReactNode } {
@@ -110,10 +108,8 @@ export function sendButtons({
       sendButton: (
         <Button
           clickAction={send}
-          isDisabled={!canSend || waits !== undefined}
-          // A disabled button with a tooltip stays focusable, through `aria-disabled`.
-          {...(waits === undefined ? {} : { tooltip: waits })}
           endContent={keys && <SendKeys />}
+          isDisabled={!canSend}
           isLoading={pending}
           label={label ?? (working ? "Start once this turn ends" : "Start the agent")}
           variant="primary"

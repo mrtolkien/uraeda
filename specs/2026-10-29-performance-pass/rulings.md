@@ -707,3 +707,39 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   branch until the refusal puts the files back.
 - **Where**: `crates/core/src/api/expected.rs`, `crates/binding/src/expected.rs`, review of the
   core.
+## R57: The session of a starting feature draws from the queue's write and the plan the tab made
+
+- **Decision**: the session page of a folder draws the start's steps, in place of the feature's
+  session, while the queue holds a start's write for that folder, landing, waiting, or refused, or
+  while this document planned its start and has not yet seen its write leave the queue. The plan
+  (`useStart.ts`) is kept in the document's memory: the page draws at once, before the queue's live
+  update reaches it. Once the write left, or the feature reads as existing, the feature is read
+  again from the server and its session draws. After a reload, the steps come from the write alone,
+  with an empty composer.
+- **Rationale**: the feature cannot be read before its start lands, and the queue's update may come
+  after the plan's answer: waiting for it would make the page wait.
+- **If wrong**: a start that landed before the queue's record was read here shows its steps until
+  the next change of the queue.
+- **Where**: `packages/web/src/useStart.ts`, `packages/web/src/session/StartingSession.tsx`,
+  task 15.
+
+## R58: The editor names the start's write after its proposal, and the toast opens its session
+
+- **Decision**: the editor's start names its write "Starting the <kind> <title>", its `href` the
+  proposal's editor, which the steps' "Open the proposal" opens. The toast's Open of a feature's
+  start goes to its session page, where its steps show the refusal. Every refusal of the plan, a
+  taken slug or another, shows under the slug while it holds the slug refused; a text not saved
+  stays in the editor's banner.
+- **Rationale**: once refused, the proposal is back in its file, so the record must name it for a
+  page reloaded; the steps, not the editor, are where the start happened.
+- **Where**: `packages/web/src/useStart.ts`, `packages/web/src/writes/CommitToast.tsx`,
+  `packages/web/src/ProposalStart.tsx`, task 15.
+
+## R59: A refused start's composer holds its message, and sends nothing
+
+- **Decision**: once a start is refused, the message the server kept for it goes back in the
+  composer, once, and the composer is disabled with "Nothing started: start the proposal again from
+  its file."; its `sendWaits` prop, unused since task 14, is removed.
+- **Rationale**: no feature exists to send to, and the server would refuse the message.
+- **Where**: `packages/web/src/session/StartingSession.tsx`, `packages/web/src/Composer.tsx`,
+  task 15.

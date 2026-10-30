@@ -26,8 +26,9 @@ export type StartKind = "change" | "feature";
 
 /**
  * The pane: `kind` is what it starts as, `onKind` changes it, `slugRef` is the slug's input. Its one
- * button, or Enter in the slug, makes the branch and worktree and opens the session, the agent's
- * message in its composer for the human to read and send.
+ * button, or Enter in the slug, opens the session at once, the agent's message in its composer for
+ * the human to read and send, while the branch and worktree are made. A slug refused, as taken,
+ * says why under it.
  */
 export function ProposalStart({
   actions,
@@ -45,9 +46,9 @@ export function ProposalStart({
 }) {
   const narrow = isNarrow(useWidthClass());
   const isFeature = kind === "feature";
-  // Always the same: the branch and worktree are made, and the session opens with the workflow's
-  // message in its composer, unsent.
-  const run = () => actions.start(true, kind);
+  // Always the same: the session opens at once with the workflow's message in its composer, unsent,
+  // while the branch and worktree are made.
+  const run = () => actions.start(kind);
   return (
     <Pane icon={isFeature ? "uraeda:file-text" : "uraeda:wrench"} title="Start">
       <VStack gap={3} xstyle={styles.body}>
@@ -58,6 +59,7 @@ export function ProposalStart({
         <div ref={slugRef}>
           <SlugField
             description="Names its folder and its branch."
+            {...(actions.slugError === undefined ? {} : { error: actions.slugError })}
             field={slug}
             onEnter={() => {
               if (slug.text.trim()) {
