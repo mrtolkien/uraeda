@@ -538,3 +538,30 @@ fn a_note_linking_a_proposal_file_has_no_file() {
 
     assert_eq!(read.categories[0].notes[0].file, None);
 }
+
+/// A formatter wraps a marked note's long link to its second line: the marks end the first line,
+/// and the note is still marked and still links its note file. A note that is a mark alone is text.
+#[test]
+fn marks_alone_on_the_first_line_keep_the_link_on_the_next() {
+    let text = "# Inbox\n\n- [agent] [decisions-needs]\n  [A long title](notes/a-long-title/note.md)\n- [todo]\n";
+
+    let notes = inbox::parse(text);
+
+    assert!(notes[0].agent);
+    assert_eq!(notes[0].about.as_deref(), Some("decisions-needs"));
+    assert_eq!(notes[0].text, "A long title");
+    assert_eq!(
+        notes[0].file().as_deref(),
+        Some("specs/notes/a-long-title/note.md")
+    );
+    assert_eq!(
+        inbox::note_file_parts(text, "note-1")
+            .map(|(title, _)| title)
+            .as_deref(),
+        Some("[A long title](notes/a-long-title/note.md)")
+    );
+    assert_eq!(
+        (notes[1].about.as_deref(), notes[1].text.as_str()),
+        (None, "[todo]")
+    );
+}

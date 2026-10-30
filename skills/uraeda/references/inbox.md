@@ -52,7 +52,8 @@ them into the inbox in one commit on the default branch, from the files as they 
   marks. A note is a line or a file, like a proposal: a note with a note file is a markdown link to
   it, in `specs/notes/`, covering its whole text. A note whose link points anywhere else, like a
   proposal file or a web page, has no note file: its link is text.
-- **Marks**: leading groups `[agent]`, then `[<slug>]`, each followed by one space. A slug is
+- **Marks**: leading groups `[agent]`, then `[<slug>]`, each followed by one space, or by the end of
+  the first line when the note's text goes on under it, as a formatter wraps a long link. A slug is
   lowercase letters, digits, and `-`. Any other bracket, like `[!]`, is text.
 - **Category**: a `## ` heading; its name is the heading's text, without closing `#`s: `## UI ##` is
   `UI`. Notes before the first `##` have no category. Other headings and text are kept and ignored.
