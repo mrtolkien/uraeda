@@ -49,6 +49,7 @@ export const Refused: Story = {
   args: {
     writes: [
       {
+        failure: "hook",
         id: "1",
         label: "Approving the spec of Performance pass",
         output:
@@ -56,6 +57,25 @@ export const Refused: Story = {
         state: "refused",
       },
       { id: "2", label: "Committing the answers of Decisions needs", state: "running" },
+    ],
+  },
+};
+
+/**
+ * The commit failed for another reason than a hook, here git's lock: the approval stays written,
+ * not committed, and the toast points to the commit page, which lists it.
+ */
+export const Failed: Story = {
+  args: {
+    writes: [
+      {
+        failure: "failed",
+        id: "1",
+        label: "Approving the spec of Performance pass",
+        output:
+          "fatal: Unable to create '.git/index.lock': File exists.\nAnother git process seems to be running in this repository.",
+        state: "refused",
+      },
     ],
   },
 };

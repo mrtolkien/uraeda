@@ -1,29 +1,34 @@
 // The git writes in flight, at the window's bottom right, on the leader menu's frosted glass: the
 // one running, with what it does, then the ones waiting their turn. The page already shows each
-// write's result: the toast says only that it is still landing in git. A write a hook refused stays
-// until it is opened or dismissed, its hook's output under it, as its page also shows. On the phone,
-// it spans the screen's width over the bottom bar.
+// write's result: the toast says only that it is still landing in git. A write refused stays until
+// it is opened or dismissed, its output under it, as its page also shows: a hook's refusal put its
+// files back, any other failure left them written, for the commit page. On the phone, it spans the
+// screen's width over the bottom bar.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
+import { Link } from "@astryxdesign/core/Link";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
 import { spacingVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { useState } from "react";
+import type { WriteFailure } from "uraeda-server/fate";
 import { glassStyles } from "../layout/glass.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
-import { navigateHere } from "../routes.tsx";
+import { navigateHere, useRepoPath } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
 import { REFUSED_ID, useDismissWrite, useWriteQueue } from "./useWriteQueue.ts";
 
 /** A git write as the toast lists it: what it does, and where it is in the queue. */
 export type QueuedWrite = {
+  /** Once refused, why: a hook refused it, its files put back, or it failed, its files left. */
+  failure?: WriteFailure;
   id: string;
   /** What it does, as its button said: "Approving the spec of Performance pass". */
   label: string;
-  /** The hook's output, for a write a hook refused. */
+  /** The hook's output, or the failure's message, for a write refused. */
   output?: string;
   state: "running" | "waiting" | "refused";
 };
@@ -58,12 +63,35 @@ const styles = stylex.create({
   square: { borderRadius: 0 },
 });
 
+/** Why a refused write did not land, and what it left: a failure points to the commit page. */
+export function RefusalText({ commitHref, write }: { commitHref?: string; write: QueuedWrite }) {
+  if (write.failure !== "failed") {
+    return <>A hook refused the commit: what it showed is back as it was.</>;
+  }
+  return (
+    <>
+      The commit failed: the change is still written, not committed.
+      {commitHref !== undefined && (
+        <>
+          {" The "}
+          <Link hasUnderline href={commitHref}>
+            commit page
+          </Link>
+          {" lists it."}
+        </>
+      )}
+    </>
+  );
+}
+
 /** One write's row: its icon, what it does, and how far it is. */
 function Row({
+  commitHref,
   onDismiss,
   onOpen,
   write,
 }: {
+  commitHref: string;
   onDismiss: () => void;
   onOpen: () => void;
   write: QueuedWrite;
@@ -76,7 +104,7 @@ function Row({
           <Text weight="semibold">{write.label}</Text>
         </HStack>
         <Text color="secondary" type="supporting">
-          A hook refused the commit: what it showed is back as it was.
+          <RefusalText commitHref={commitHref} write={write} />
         </Text>
         {write.output && <pre {...stylex.props(styles.output)}>{write.output}</pre>}
         <HStack gap={2} justify="end">
@@ -104,11 +132,14 @@ function Row({
  * running one first. Nothing when there are none.
  */
 export function CommitToastView({
+  commitHref = "/commit",
   isNarrow = false,
   onDismiss,
   onOpen,
   writes,
 }: {
+  /** The commit page's address, which a failed write's row links. */
+  commitHref?: string;
   /** Whether the screen is a phone's: the toast spans its width. */
   isNarrow?: boolean;
   onDismiss: (id: string) => void;
@@ -134,6 +165,7 @@ export function CommitToastView({
       <VStack gap={2}>
         {writes.map((write) => (
           <Row
+            commitHref={commitHref}
             key={write.id}
             onDismiss={() => onDismiss(write.id)}
             onOpen={() => onOpen(write.id)}
@@ -154,6 +186,7 @@ export function CommitToast() {
   const writes = useWriteQueue();
   const dismiss = useDismissWrite();
   const narrow = isNarrow(useWidthClass());
+  const here = useRepoPath();
   const [opened, setOpened] = useState<ReadonlySet<string>>(() => new Set());
   const open = (id: string) => {
     const write = writes.find((each) => each.id === id);
@@ -170,6 +203,7 @@ export function CommitToast() {
   };
   return (
     <CommitToastView
+      commitHref={here("/commit")}
       isNarrow={narrow}
       onDismiss={(id) => void dismiss(id)}
       onOpen={open}
