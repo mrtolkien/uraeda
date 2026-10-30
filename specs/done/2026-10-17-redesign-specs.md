@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-18
 pull-request: https://github.com/mrtolkien/uraeda/pull/33
+superseded-by: [2026-10-29-decisions-needs]
 ---
 
 # Record: Redesign and reword specs
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/33
 > The record of a merged feature, not instructions to follow. Started on 2026-10-17, finished on
 > 2026-10-18, in [its pull request](https://github.com/mrtolkien/uraeda/pull/33). Its full files are
 > in git: `git log -- specs/2026-10-17-redesign-specs/`.
+>
+> Superseded in part by [2026-10-29-decisions-needs](2026-10-29-decisions-needs.md).
 
 ## What and why
 
