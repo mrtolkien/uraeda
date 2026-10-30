@@ -7,7 +7,8 @@ use crate::decisions::{Strength, keywords, strength};
 use crate::files::document::{Block, BlockKind, Document, Span, parse, plain};
 use crate::workspace::Problem;
 
-/// The most rules a decision holds before `decision.rules` warns.
+/// The most rules a decision holds before `decision.rules` warns. Every `pub` item of this module
+/// is a limit, exported from `check` as it is.
 pub const DECISION_RULES: usize = 10;
 
 /// The most sentences of its intent before `decision.intent` warns.
