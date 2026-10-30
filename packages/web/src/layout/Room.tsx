@@ -3,7 +3,7 @@
 // component eases a height to none.
 import { easeVars, focusVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 
 /** How long a room takes to open or close, as the column's width eases as it folds (`Column.tsx`). */
 const EASE = "200ms";
@@ -54,6 +54,13 @@ export function Room({
   onClosed?: () => void;
   takesGapBack?: boolean;
 }) {
+  // Under reduced motion it closes at once, and no transition ends to say so.
+  useEffect(() => {
+    if (!isOpen && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      onClosed?.();
+    }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once each time it closes
+  }, [isOpen]);
   return (
     <div
       onTransitionEnd={(event) => {
