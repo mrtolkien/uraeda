@@ -5,6 +5,21 @@ import type { ProposalFileView, ProposalHint } from "uraeda-binding";
 import type { Record_ } from "./views.ts";
 
 export type ProposalFileRecord = Record_<ProposalFileView> & { id: string };
+
+/**
+ * A proposal file as sent: the fields the core leaves out when it has none are sent as null, as
+ * `sentFile` does for a workflow file, since fate counts a field left out as missing and reads the
+ * record again, as the editor did after every draft.
+ */
+export function sentProposalFile(record: ProposalFileRecord): ProposalFileRecord {
+  const proposal = record.proposal && { feature: null, file: null, link: null, ...record.proposal };
+  const cleared = { discovery: null, folder: null, proposal: null, slug: null };
+  return {
+    ...cleared,
+    ...record,
+    ...(proposal ? { proposal } : {}),
+  } as unknown as ProposalFileRecord;
+}
 /** The proposal template's guidance, by heading, which the editor shows in empty sections. */
 export type ProposalHintsRecord = { hints: Array<Record_<ProposalHint>>; id: string };
 

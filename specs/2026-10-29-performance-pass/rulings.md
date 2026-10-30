@@ -1010,6 +1010,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `vp dev` serves the routes in Vite's process, whose pool is sized before the server loads.
 - **Where**: `crates/core/src/api/warm.rs`, `crates/core/src/watch.rs`,
   `packages/server/src/threadpool.ts`, `packages/server/src/main.ts`.
+
 ## R83: An approval reads Approved at its press, the review's refusals kept by its page
 
 - **Decision**: `review.approve` passes fate's `optimistic` result, `approvedFile` in
@@ -1098,4 +1099,5 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the row stays at the draft's time on the server and about 110 ms more until the
   server sends the two fields as null; the server's work is the server's task.
 - **Where**: `packages/server/src/fate/masked.ts` (`proposalFile`) and the proposal files' source in
-  `packages/server/src/fate/sources.ts`, left to the server's task.
+  `packages/server/src/fate/sources.ts`, both through `sentProposalFile`, which sends the fields the
+  core leaves out as null.

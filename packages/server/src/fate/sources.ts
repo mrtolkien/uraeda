@@ -63,6 +63,7 @@ import {
   WORKSPACE_ID,
   workspaceDataView,
 } from "./views.ts";
+import { sentProposalFile } from "./views-proposal-file.ts";
 import {
   DECISIONS_CHECK_ID,
   DEFAULT_ROUND_FILES,
@@ -386,7 +387,7 @@ export const sources = createSources<Context>([
     proposalFileDataView,
     repository({
       byIds: ({ binding, repo }, ids) =>
-        each(ids, async (id) => ({ id, ...(await binding.readText(repo, id)) })),
+        each(ids, async (id) => sentProposalFile({ id, ...(await binding.readText(repo, id)) })),
     }),
   ),
   fileSource(agentDataView, {
