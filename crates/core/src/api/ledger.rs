@@ -212,6 +212,14 @@ pub(crate) fn ledger_hash(git: &Git) -> String {
     hash(&format!("{on_disk:?}{committed:?}"))
 }
 
+/// Reads the dates of the decisions of the default branch, kept for the process, ahead of the
+/// ledger's first read.
+pub(crate) fn warm_dates(git: &Git) {
+    if let Some(default) = git.default_branch() {
+        dates::last_changes(git, &default, DECISIONS);
+    }
+}
+
 /// The constitution and the decisions of the default branch, from memory when a read since the
 /// last change kept them.
 pub fn read_ledger(repo: &Path) -> Result<Ledger> {

@@ -987,3 +987,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `crates/core/src/api/drafts.rs`, `crates/core/src/api/default_branch.rs`,
   `crates/core/src/api/proposal_files.rs`, `crates/core/src/actions/priorities.rs`,
   `crates/core/src/cache.rs` (`kept_read`), `crates/core/tests/cache.rs`.
+
+## R82: A watch reads ahead what is kept by commit, and the server's binding calls do not queue
+
+- **Decision**: once a watch starts, its own thread reads the ledger's dates and every feature's
+  history (`api::warm`), which fills only what is kept for the process by the commits it was read
+  from (R79, R80), so nothing it reads goes stale and the read cache's generations and counts are
+  left alone. The first click on the clone's `/decisions` and on `2026-10-28-proposal-naming`, right
+  after the server started, took 157 and 132 ms on the server in the benchmark before it; 30 ms each
+  after.
+- **Rationale**: a server's first read of a page is a read like any other for the human; the
+  Performance decision's cache is on the server.
+- **If wrong**: a watch's start costs one thread a second or two of reading, beside the first pages.
+- **Where**: `crates/core/src/api/warm.rs`, `crates/core/src/watch.rs`.

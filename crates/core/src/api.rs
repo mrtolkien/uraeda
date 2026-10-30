@@ -45,6 +45,7 @@ mod repository_list;
 mod reviews;
 mod since;
 mod start;
+mod warm;
 
 pub use answers::*;
 pub use category_edits::*;
@@ -88,6 +89,7 @@ pub use reviews::{
 pub use start::{
     plan_start, promote_change, propose_slug, start_change, start_feature, start_kind,
 };
+pub(crate) use warm::warm;
 
 type Result<T> = std::result::Result<T, ApiError>;
 

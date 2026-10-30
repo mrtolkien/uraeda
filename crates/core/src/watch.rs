@@ -257,7 +257,8 @@ pub struct Watcher {
 
 /// Watches the repository holding `root`, and calls `on_change` with what changed, from its own
 /// thread, after each burst of file events. While it runs, the repository's reads are kept, and
-/// each file event drops them at once, before the burst ends.
+/// each file event drops them at once, before the burst ends. Once it starts, another thread reads
+/// ahead what the core keeps by commit (`api::warm`).
 pub fn watch(
     root: &Path,
     on_change: impl Fn(Changes) + Send + 'static,
@@ -285,6 +286,8 @@ pub fn watch(
     if watch_folders(&shared, &last.folders) {
         cache::invalidate(kept.key());
     }
+    let warmed = root.clone();
+    std::thread::spawn(move || crate::api::warm(&warmed));
     let key = kept.key().to_path_buf();
     let weak: Weak<Mutex<_>> = Arc::downgrade(&shared);
     std::thread::spawn(move || {
