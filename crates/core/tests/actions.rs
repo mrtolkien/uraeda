@@ -2615,6 +2615,11 @@ fn a_typed_text_starts_a_feature_with_its_research_effort() {
         Some("discovery \"huge\" is not one of low, medium, high".to_string())
     );
     assert!(!repo.path().join("specs/2026-10-16-board").exists());
+    let empty = start_feature_text(&repo, "#  \n", &[], "empty", (None, None));
+    assert_eq!(
+        empty.err().map(|error| error.to_string()),
+        Some("a feature needs a text: its first line is its title".to_string())
+    );
     assert_eq!(repo.porcelain(), "");
 }
 

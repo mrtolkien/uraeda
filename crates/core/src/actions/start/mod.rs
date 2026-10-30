@@ -208,7 +208,7 @@ fn planned(
     })
 }
 
-/// The slug proposed for a change typed as `text`, from the title [`run_text`] reads in it: empty
+/// The slug proposed for a text typed to start, from the title [`run_text_with`] reads in it: empty
 /// when no line holds more than spaces and heading marks.
 pub fn propose_slug(text: &str) -> String {
     Typed::read(text).map_or_else(String::new, |typed| typed.proposed_slug())
@@ -248,10 +248,26 @@ pub struct Text<'a> {
     pub discovery: Option<&'a str>,
 }
 
-impl<'a> Text<'a> {
-    /// The text read as a proposal, and the research effort its proposal's frontmatter holds:
-    /// refused for an empty text, a level that is not one, or an effort given to a change.
-    fn read(&self) -> Result<(Typed, Option<&'a str>), StartError> {
+impl Text<'_> {
+    /// Refuses the text as its start would, before anything is read or written: an empty text, a
+    /// level that is not one, or an effort given to a change.
+    pub fn check(&self) -> Result<(), StartError> {
+        self.read().map(|_| ())
+    }
+
+    /// What the start starts from: the text read as `typed`, with its research effort.
+    fn source<'s>(&'s self, typed: &'s Typed, discovery: Option<&'s str>) -> Source<'s> {
+        Source::Text {
+            typed,
+            images: self.images,
+            line: self.line,
+            discovery,
+        }
+    }
+
+    /// The text read as a proposal, and the research effort its proposal's frontmatter holds,
+    /// refused as [`Text::check`] says.
+    fn read(&self) -> Result<(Typed, Option<&'static str>), StartError> {
         let name = match self.kind {
             Kind::Feature => "feature",
             Kind::Change => "change",
@@ -268,12 +284,12 @@ impl<'a> Text<'a> {
                     "a change has no research effort: only a feature's discovery has one".into(),
                 ));
             }
-            (Kind::Feature, level) => {
-                let level = level.unwrap_or(crate::files::proposal::DEFAULT_DISCOVERY);
-                // The level's check is the one a proposal's write makes.
-                crate::files::proposal::set_discovery("", level).map_err(StartError::Refused)?;
-                Some(level)
-            }
+            (Kind::Feature, level) => Some(
+                crate::files::proposal::discovery_level(
+                    level.unwrap_or(crate::files::proposal::DEFAULT_DISCOVERY),
+                )
+                .map_err(StartError::Refused)?,
+            ),
         };
         Ok((typed, discovery))
     }
@@ -292,12 +308,7 @@ pub fn run_text_with(
     run: &Run<'_>,
 ) -> Result<Started, StartError> {
     let (typed, discovery) = text.read()?;
-    let source = Source::Text {
-        typed: &typed,
-        images: text.images,
-        line: text.line,
-        discovery,
-    };
+    let source = text.source(&typed, discovery);
     begin(git, workspace, source, text.kind, slug, run)
 }
 
@@ -312,12 +323,7 @@ pub fn plan_text(
     today: Date,
 ) -> Result<Planned, StartError> {
     let (typed, discovery) = text.read()?;
-    let source = Source::Text {
-        typed: &typed,
-        images: text.images,
-        line: text.line,
-        discovery,
-    };
+    let source = text.source(&typed, discovery);
     planned(git, root, workspace, source, text.kind, slug, today)
 }
 

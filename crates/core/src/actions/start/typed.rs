@@ -1,4 +1,5 @@
-//! A feature or a change typed as a text: its title, its proposal, and the writes of its proposal and images.
+//! A feature or a change typed as a text: its title, its proposal, and the writes of its proposal
+//! and images.
 
 use std::fs;
 
@@ -71,10 +72,11 @@ impl Typed {
             parts.push(format!("![Image {}](images/{image})", index + 1));
         }
         let text = parts.join("\n\n") + "\n";
-        // The level was checked as the text was read.
-        discovery
-            .and_then(|level| crate::files::proposal::set_discovery(&text, level).ok())
-            .unwrap_or(text)
+        match discovery {
+            Some(level) => crate::files::proposal::set_discovery(&text, level)
+                .expect("a level checked as the text was read"),
+            None => text,
+        }
     }
 }
 

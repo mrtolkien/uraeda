@@ -6,7 +6,7 @@ use crate::files::priorities::{self, Proposal, Section};
 
 use super::typed::Typed;
 
-/// What puts a typed change's proposal, and its images, in `destination`, as the step left to do
+/// What puts a typed start's proposal, and its images, in `destination`, as the step left to do
 /// by hand.
 pub(super) fn typed_write_left(destination: &str, images: usize) -> String {
     let proposal = format!("write {destination}/proposal.md from the text");
@@ -17,10 +17,10 @@ pub(super) fn typed_write_left(destination: &str, images: usize) -> String {
     }
 }
 
-/// `PRIORITIES.md` with a typed change's link to `target` on top of **Now**, in place of the line
+/// `PRIORITIES.md` with a typed start's link to `target` on top of **Now**, in place of the line
 /// of **Now** it starts from, `line`, its plain text, when **Now** holds it once, without a link,
 /// the spaces of both collapsed: a line changed since it was read stays. Then the lines nested
-/// under the line, which the change's proposal takes, but those the typed text holds already.
+/// under the line, which the started proposal takes, but those the typed text holds already.
 pub(super) fn started_line(
     priorities_text: &str,
     typed: &Typed,

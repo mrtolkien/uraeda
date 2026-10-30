@@ -26,16 +26,20 @@ pub fn discovery(text: &str) -> &'static str {
         .unwrap_or(DEFAULT_DISCOVERY)
 }
 
+/// `level` as one of the discovery levels: refused for a value that is not one.
+pub fn discovery_level(level: &str) -> Result<&'static str, String> {
+    let levels = discovery_levels();
+    levels
+        .iter()
+        .find(|known| **known == level)
+        .copied()
+        .ok_or_else(|| format!("discovery \"{level}\" is not one of {}", levels.join(", ")))
+}
+
 /// The text with its `discovery` field set to `level`, its comment kept; refused for a value that
 /// is not a level.
 pub fn set_discovery(text: &str, level: &str) -> Result<String, String> {
-    let levels = discovery_levels();
-    if !levels.contains(&level) {
-        return Err(format!(
-            "discovery \"{level}\" is not one of {}",
-            levels.join(", ")
-        ));
-    }
+    let level = discovery_level(level)?;
     Ok(frontmatter::set(text, "discovery", level))
 }
 

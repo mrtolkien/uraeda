@@ -1,4 +1,4 @@
-//! Starting a feature or change from its proposal file, a change typed as a text, the slug proposed
+//! Starting a feature or change from its proposal file or typed as a text, the slug proposed
 //! for it, and the paths a proposal file or a note file may have.
 
 use std::cell::Cell;
@@ -128,6 +128,17 @@ pub struct TextStart<'a> {
 }
 
 impl TextStart<'_> {
+    /// The start as the core reads it, with its images encoded.
+    fn core<'a>(&'a self, images: &'a [Encoded]) -> start::Text<'a> {
+        start::Text {
+            text: self.text,
+            images,
+            line: self.line,
+            kind: self.kind,
+            discovery: self.discovery,
+        }
+    }
+
     /// Its images, each checked and encoded as `image-1`, `image-2`, and so on.
     fn encoded(&self) -> Result<Vec<Encoded>> {
         self.images
@@ -145,6 +156,9 @@ pub fn plan_text_start(
     typed: &TextStart<'_>,
     slug: Option<&str>,
 ) -> Result<PlannedView> {
+    let text = typed.core(&[]);
+    // Refused before the default branch's checkout is reached, which may make its worktree.
+    text.check().map_err(refusal)?;
     let (git, workspace) = open(repo)?;
     let default = workspace
         .default_branch
@@ -155,13 +169,6 @@ pub fn plan_text_start(
         None => place::reach(&git, &default)?.root,
     };
     let today = today::today();
-    let text = start::Text {
-        text: typed.text,
-        images: &[],
-        line: typed.line,
-        kind: typed.kind,
-        discovery: typed.discovery,
-    };
     match start::plan_text(&git, &root, &workspace, &text, slug, today) {
         Ok(planned) => Ok(PlannedView {
             folder: planned.folder,
@@ -196,14 +203,13 @@ pub fn start_text(
     let lock = || held.take().unwrap_or_else(|| write_lock(repo));
     let (git, workspace) = open(repo)?;
     let run = steps_run(repo, day, on_step, &lock);
-    let text = start::Text {
-        text: typed.text,
-        images: &encoded,
-        line: typed.line,
-        kind: typed.kind,
-        discovery: typed.discovery,
-    };
-    view(start::run_text_with(&git, &workspace, &text, slug, &run))
+    view(start::run_text_with(
+        &git,
+        &workspace,
+        &typed.core(&encoded),
+        slug,
+        &run,
+    ))
 }
 
 /// Makes the change in `folder` a feature, in place, in its worktree: its open pull requests are
