@@ -1025,11 +1025,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   running, on the realistic project, release build: "Approved" at 92 to 96 ms. The review is drawn
   by a component the read page replaces, so its state went with it, and a refusal's message with it
   (`approve-at-once.test.tsx` fails so).
-- **If wrong**: the toast now draws at 114 to 117 ms, from 67 to 69: the page drawn read at the
-  press, then again with the server's answer, 52 to 57 ms of long tasks, keeps the main thread as
-  the queue's live update comes. Drawing the read page in a transition (`useDeferredValue` of the
-  status) did not move it (96 and 117 ms). What would: a review and a read spec drawn by the same
-  components, so the answer redraws only what changed, or a spec page lighter to draw.
+- **If wrong**: alone, it drew the toast at 114 to 117 ms, from 67 to 69: the page drawn read at the
+  press, then again with the server's answer, 52 to 57 ms of long tasks, kept the main thread as the
+  queue's live update came; drawing the read page in a transition (`useDeferredValue` of the status)
+  did not move it. With R84 and R85, the full `vp run performance`: "Approved" at 82 ms, the toast
+  at 100, no long task. What would take the rest: a review and a read spec drawn by the same
+  components, so the answer redraws only what changed.
 - **Where**: `packages/web/src/review/approved.ts`, `packages/web/src/ReviewVerdict.tsx`,
   `packages/web/src/review/useReview.tsx`, `packages/web/src/spec/SpecPage.tsx`,
   `packages/web/src/PlanPage.tsx`, the benchmark's findings (R71).
@@ -1047,9 +1048,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   profile through Playwright found no single cost: React's render and commit, and the page's first
   layout, forced by the layout effects that measure widths, grew with what was mounted. With no
   question mounted, the page drew in 83 to 86 ms; with the first two, 152 to 158. Measured after,
-  release build, three runs: 76 to 92 ms, no long task. The questions draw within the frames after,
-  as the human reads the opening; nothing shows a loading state. A fold's content was not the cost:
-  `Foldable` mounts it only while open.
+  release build, three runs: 76 to 92 ms, no long task; 63 ms in the full `vp run performance`. The
+  questions draw within the frames after, as the human reads the opening; nothing shows a loading
+  state. A fold's content was not the cost: `Foldable` mounts it only while open.
 - **If wrong**: a jump from the outline or a key to a question not yet mounted, in the first tenth
   of a second, does nothing. A test that reads a later question right after the page draws waits for
   it (`leave.test.tsx`).
@@ -1070,10 +1071,31 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   model was in. fate sends the reads asked together in one request: the spec and its data model now
   go in one. A CPU profile found the rest in the page's drawing, its first layout forced by a
   table's measure, 26 to 170 ms. Measured after, release build, three runs: 64 to 72 ms, one request
-  of both files, no long task, from 134 to 144. `fate.request` sends a read once: one under way or
-  held is not sent again, so asking during a draw, as `useRequest` does, sends nothing more when the
-  page draws again.
+  of both files, no long task, from 134 to 144; 58 ms in the full `vp run performance`.
+  `fate.request` sends a read once: one under way or held is not sent again, so asking during a
+  draw, as `useRequest` does, sends nothing more when the page draws again.
 - **If wrong**: a jump from Contents to a part not yet mounted, in the first tenth of a second, does
   nothing. A page that embeds stories only once its preview is read asks for them once it is.
 - **Where**: `packages/web/src/FilePage.tsx`, `packages/web/src/readAhead.ts`,
   `packages/web/src/spec/SpecPage.tsx`, `packages/web/src/layout/MountedSteps.tsx`.
+
+## R86: The editor after a draft reads its file again until the server sends its absent fields
+
+- **Decision**: no change on the web for the New page's proposal to its editor (US4 1). The editor
+  asks for the file the draft answered with because fate counts a field an answer leaves out as
+  missing: the server sends a proposal file without `folder`, and its proposal without `feature`,
+  when they have none, for the draft's answer as for any read. Sent as null, as `sentFile` sends a
+  workflow file's, the editor draws from the draft's answer and asks for nothing.
+- **Rationale**: logged through Playwright on the realistic project, release build: the draft, 42 to
+  44 ms there, then the inbox and the priorities read again behind, and the editor's read of the
+  file, 6 ms, 50 ms after the address changed; each selected path checked against the draft's
+  answer, only `folder` and `proposal.feature` were absent. With the draft's answer given both as
+  null, measured with that change made and then undone, the editor's read went away, and its page
+  still took 77 to 88 ms to draw from the address's change: the New page's lists unmounted, the
+  editor drawn in the route's transition, and the frame after it. Reading the file ahead from the
+  draft's answer (`readAhead`) sent the same read 16 ms after the address changed, not 50, and the
+  page drew in 77 ms, not 82: left out, as the server's fix takes the read away.
+- **If wrong**: the row stays at the draft's time on the server and about 110 ms more until the
+  server sends the two fields as null; the server's work is the server's task.
+- **Where**: `packages/server/src/fate/masked.ts` (`proposalFile`) and the proposal files' source in
+  `packages/server/src/fate/sources.ts`, left to the server's task.
