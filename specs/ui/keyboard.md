@@ -33,7 +33,8 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 
 A page's own keys are few, short, and mnemonic: the feature page's `n` for the next step and `s` `S`
 for its sessions, the inbox's `c` to move a note to a category and `p` to promote it, the
-priorities' `v` to switch between columns and a list. A page never gives a base key another meaning.
+priorities' `e` to expand a proposal into a file and `v` to switch between columns and a list. A
+page never gives a base key another meaning.
 
 ## Selection
 

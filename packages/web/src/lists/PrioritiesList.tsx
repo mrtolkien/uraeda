@@ -250,7 +250,7 @@ function sectionsOf(
 }
 
 /**
- * What a proposal's keys open or make: Enter or a click on a row not edited in place, `p`, and `s`.
+ * What a proposal's keys open or make: Enter or a click on a row not edited in place, `e`, and `s`.
  * A failed expand goes to `onMoveRefused`.
  */
 function useProposalKeys(
@@ -288,7 +288,7 @@ function useProposalKeys(
   };
 
   /**
-   * `p`: the proposal is expanded into a file, its text under "What", and the file's page opens
+   * `e`: the proposal is expanded into a file, its text under "What", and the file's page opens
    * with the focus in its text. A proposal with a file opens it; one that runs or links another
    * file has none to make. A nested row's is its proposal's.
    */
