@@ -26,6 +26,11 @@ export function isDone(history: HistoryData): boolean {
   return history.current >= history.stages.length;
 }
 
+/** What a figure's jump opens first: the record's questions, folded, by their id. */
+export function openFigure(keys: OpenKeys) {
+  return (id: string) => id === "record-questions" && keys.onOpenChange(QUESTIONS_KEY, true);
+}
+
 /** The figures of the feature's "Produced so far" or "What it produced", kept up to date. */
 export function useFigureRows(feature: FeatureData, history: HistoryData) {
   const done = isDone(history);
@@ -50,11 +55,7 @@ export function FeatureColumn({ feature, history, keys }: ColumnProps) {
   const rows = useFigureRows(feature, history);
   return (
     <VStack gap={4}>
-      <ProducedPane
-        done={done}
-        onOpen={(id) => id === "record-questions" && keys.onOpenChange(QUESTIONS_KEY, true)}
-        rows={rows}
-      />
+      <ProducedPane done={done} onOpen={openFigure(keys)} rows={rows} />
       <LinksPane feature={feature} />
     </VStack>
   );

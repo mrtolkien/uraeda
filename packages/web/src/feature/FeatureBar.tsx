@@ -10,12 +10,14 @@ import { useSheetTab } from "../layout/useSheetTab.ts";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { sessionPath } from "../sessions.ts";
 import type { OpenKeys } from "../useOpenKeys.ts";
-import { isDone, useFigureRows } from "./FeatureColumn.tsx";
+import { isDone, openFigure, useFigureRows } from "./FeatureColumn.tsx";
 import { hasLinks, LinkRows } from "./LinksPane.tsx";
 import { producedTitle, ProducedRows } from "./ProducedPane.tsx";
-import { QUESTIONS_KEY } from "./Record.tsx";
 
 type FeatureData = NonNullable<ReturnType<typeof useFeature>>;
+
+/** The phone's sheets' names, by their keys in the address: `?tab=produced`, `?tab=links`. */
+const SHEETS = { links: "Links", produced: "Produced" } as const;
 type HistoryData = NonNullable<ReturnType<typeof useHistory>>;
 
 /**
@@ -34,26 +36,26 @@ export function FeatureBar({
   keys: OpenKeys;
   next: (() => void) | undefined;
 }) {
-  const done = isDone(history);
-  const produced = producedTitle(done);
-  const sheet = useSheetTab({ links: "Links", produced }, true);
+  const produced = producedTitle(isDone(history));
+  const links = hasLinks(feature);
+  // Fixed names, and Links only while it shows: a sheet's history entry is named by its label.
+  const sheet = useSheetTab(links ? SHEETS : { produced: SHEETS.produced }, true);
   const [open, setSheet] = sheet;
   const rows = useFigureRows(feature, history);
   const agent = useAgent();
   const here = useRepoPath();
-  const links = hasLinks(feature);
   const sheets: Array<ColumnSheet> = [
     {
       height: "hug",
       key: "produced",
-      label: produced,
+      label: SHEETS.produced,
       panel: (
         <ProducedRows
           beforeJump={(go) => {
             setSheet();
-            afterOverlayCloses(produced, go, { scrolls: true });
+            afterOverlayCloses(SHEETS.produced, go, { scrolls: true });
           }}
-          onOpen={(id) => id === "record-questions" && keys.onOpenChange(QUESTIONS_KEY, true)}
+          onOpen={openFigure(keys)}
           rows={rows}
         />
       ),
@@ -63,7 +65,7 @@ export function FeatureBar({
           {
             height: "hug" as const,
             key: "links",
-            label: "Links",
+            label: SHEETS.links,
             panel: <LinkRows feature={feature} />,
           },
         ]

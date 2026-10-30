@@ -1,6 +1,7 @@
-// On the phone, a document's column outside its page: the status line's buttons, the page's own,
-// and the sheets they open over the page, the open one kept in the address (`useSheetTab`). The
-// questions page's and the spec's and the plan's status lines are drawn here.
+// On the phone, a page's column outside its page: the status line's buttons, the page's own, and
+// the sheets they open over the page, the open one kept in the address (`useSheetTab`). The
+// questions page's, the spec's and the plan's, the session's, the feature's, and the draft editor's
+// bottom bars are drawn here.
 import { HStack } from "@astryxdesign/core/HStack";
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactNode } from "react";
@@ -9,7 +10,7 @@ import { TopBarSlot } from "./TopBarSlot.tsx";
 import type { SheetState } from "./useSheetTab.ts";
 
 const styles = stylex.create({
-  // The bar's whole width and height, as a round's tiles share it.
+  // The bar's whole width and height, where its tiles draw their glass (`NavBar.tsx`).
   fill: { alignSelf: "stretch", flexGrow: 1 },
 });
 
