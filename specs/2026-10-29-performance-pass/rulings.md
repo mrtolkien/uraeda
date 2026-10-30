@@ -492,7 +492,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: "writes land in order" checks the refusal, the record a second read gets, and the
   commits' order through the server with a real hook; its rows of landings held at once and of a
   write waiting for its key's commit run the queue over a core whose landings the test resolves.
-  `writes.dismiss` lives in `fate/mutations.ts`, next to the other repository mutations.
+  `writes.dismiss` lives in `fate/writes-mutations.ts`, apart from the queue's record.
 - **Rationale**: the core's `land` holds the repository's write lock while the hook runs, so a
   second write through the server waits in the core until the first commit lands: two landings at
   once, or a write run before its key's commit landed, would be serialized by the core's lock by
@@ -612,8 +612,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   sent, so it is never sent twice.
 - **If wrong**: a server that stops abruptly, without `closeAll`, leaves an empty session of the
   folder, which the next start of that slug reuses.
-- **Where**: `packages/server/src/runner/start-messages.ts`, `fate/starts.ts`, `fate/mutations.ts`
-  (`session.send`, which lives there, not in `fate/sessions.ts`), task 13.
+- **Where**: `packages/server/src/runner/start-messages.ts`, `fate/starts.ts`,
+  `fate/send-mutations.ts` (`session.send`, not in `fate/sessions.ts`), task 13.
 
 ## R52: A start is planned one at a time, run in the calls' turn, and its steps take the mockups' words
 

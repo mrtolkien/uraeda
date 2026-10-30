@@ -1,31 +1,22 @@
 import { publish } from "../live.ts";
-import type { Trigger } from "../runner/events.ts";
-import { REFUSALS } from "../runner/sessions.ts";
 import { type Context, inRepository, type Resolver } from "./context.ts";
 import { fileMutations } from "./file-mutations.ts";
 import { inboxMutations } from "./inbox-mutations.ts";
-import type { ChatImage } from "../runner/images.ts";
-import { sentImages } from "./chat-images.ts";
 import { changeStarts, onSession } from "./change-starts.ts";
 import { draftMutations } from "./draft-mutations.ts";
-import { keptForStart, startMutations } from "./starts.ts";
+import { startMutations } from "./starts.ts";
+import { sendMutations } from "./send-mutations.ts";
+import { writesMutations } from "./writes-mutations.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { previewDataView, restartPreview } from "./preview.ts";
 import { maskedSession, sessionMoves } from "./session-moves.ts";
-import { featureRecord, TRIGGERS, writable } from "./sessions.ts";
+import { featureRecord, writable } from "./sessions.ts";
 import { type ListResolver, listMutations, refusedOn } from "./list-mutations.ts";
 import { settingsMutations } from "./settings-mutations.ts";
 import { sources } from "./sources.ts";
 import { priorities, proposalFile } from "./masked.ts";
 import { featureDataView } from "./views.ts";
-import {
-  LISTS,
-  listCommit,
-  type Queued,
-  queued,
-  writeQueue,
-  writeQueueDataView,
-} from "./write-queue.ts";
+import { LISTS, listCommit, type Queued, queued } from "./write-queue.ts";
 
 /** A session, masked to the fields the client selected. */
 const session = maskedSession;
@@ -37,6 +28,8 @@ const repositoryMutations = {
   ...inboxMutations,
   ...draftMutations,
   ...startMutations,
+  ...sendMutations,
+  ...writesMutations,
   "item.settings": {
     resolve: async ({
       ctx,
@@ -291,78 +284,6 @@ const repositoryMutations = {
     },
     type: "Session",
   },
-  "session.send": {
-    resolve: async ({
-      ctx,
-      input,
-      select,
-    }: Resolver<{
-      /** Or the feature, whose session is created with its first message. */
-      folder?: string;
-      /** The chat images, as `POST /attach` saved them. */
-      images?: Array<ChatImage>;
-      /**
-       * With `folder`: a new session of the feature, as "New session" asks, created with this first
-       * message, never before; without it, the feature's session, created if it has none.
-       */
-      newSession?: boolean;
-      /** The session to send to. */
-      session?: string;
-      text: string;
-      /**
-       * The workflow's message, which starts the feature's step: in a new session of the feature
-       * when `fresh`, which answers. `step` is the step it was read at: once the feature moved on,
-       * it runs as a chat.
-       */
-      workflow?: { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
-    }>) => {
-      const { workflow } = input;
-      if (workflow && !TRIGGERS.includes(workflow.trigger)) {
-        throw callSiteError(`refused: no trigger ${workflow.trigger}`);
-      }
-      const images = await sentImages(ctx, input.images, workflow !== undefined);
-      const message = {
-        text: input.text,
-        ...(images.length === 0 ? {} : { images }),
-        ...(workflow === undefined
-          ? {}
-          : {
-              workflow: {
-                trigger: workflow.trigger,
-                ...(workflow.file === undefined ? {} : { file: workflow.file }),
-                ...(workflow.fresh === undefined ? {} : { fresh: workflow.fresh }),
-                freshByDefault: ctx.settings.runs().buildInFreshSession.inForce,
-                ...(workflow.step === undefined ? {} : { step: workflow.step }),
-              },
-            }),
-      };
-      // A feature whose start is still in the queue keeps the message until the start lands.
-      const kept = await onSession(ctx, () => keptForStart(ctx, input, message));
-      if (kept !== undefined) {
-        return session(ctx, kept, select);
-      }
-      const id = await onSession(ctx, async () => {
-        if (input.session !== undefined) {
-          return input.session;
-        }
-        if (input.folder === undefined) {
-          throw new Error("a message goes to a session or a feature");
-        }
-        if (!ctx.sessions.status().available) {
-          throw new Error(`refused: ${REFUSALS.unavailable(ctx.sessions.adapter.name)}`);
-        }
-        // A folder that is no feature's gets no session.
-        await ctx.binding.readFeature(ctx.repo, input.folder);
-        return input.newSession === true
-          ? (await ctx.sessions.newSession(ctx.repo, input.folder)).id
-          : (await ctx.sessions.featureSession(ctx.repo, input.folder)).id;
-      });
-      // A run that starts fresh went to a new session: the one it went to answers.
-      const sent = await refusedOn(() => ctx.sessions.send(ctx.repo, id, message));
-      return session(ctx, sent.session, select);
-    },
-    type: "Session",
-  },
   "session.stop": {
     resolve: async ({ ctx, input, select }: Resolver<{ session: string }>) => {
       await onSession(ctx, () => ctx.sessions.stop(ctx.repo, input.session));
@@ -416,13 +337,6 @@ const repositoryMutations = {
       return proposalFile(ctx, await ctx.binding.readText(ctx.repo, input.path), select);
     },
     type: "ProposalFile",
-  },
-  "writes.dismiss": {
-    resolve: async ({ ctx, input, select }: Resolver<{ id: string }>) => {
-      ctx.hosts.byPath(ctx.repo)?.queue.dismiss(input.id);
-      return sources.masked(writeQueueDataView, ctx, writeQueue(ctx), select);
-    },
-    type: "WriteQueue",
   },
 };
 
