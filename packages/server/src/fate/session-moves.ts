@@ -93,6 +93,7 @@ async function startChange(ctx: RepoContext, text: string, slug?: string) {
         ctx,
         (onStep) => ctx.binding.startChange(ctx.repo, text, [], slug, onStep),
         async (started) => started,
+        slug,
       );
     } catch (error) {
       const message = (error as Error).message;

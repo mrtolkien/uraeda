@@ -1168,3 +1168,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   behind it had nowhere to go, and was lost.
 - **Where**: `packages/server/src/writes/queue.ts` (`dismiss`, `update`),
   `packages/server/src/fate/write-queue.ts` (`landed`), `fate/commit-messages.ts`, final review.
+
+## R91: A typed change's start holds the slug it names while it is in the queue
+
+- **Decision**: a start the core cannot plan, a change's from typed text, an inbox note, a proposal
+  file, or a session (`change.start`, `change.fromNote`, `change.startProposal`,
+  `session.toChange`), holds the slug it names as taken from its queueing until it lands or is
+  refused: a `feature.start` of that slug meanwhile is refused at once, with the taken slug's
+  message (R32). A start that names no slug, whose slug the core makes from its text as it runs,
+  holds none.
+- **Rationale**: a planned start checked only the planned starts in the queue: one of the same slug
+  behind a typed change answered as planned, and was refused only when it ran.
+- **If wrong**: a start naming no slug still collides with a planned one at run time, refused then
+  in the queue's record.
+- **Where**: `packages/server/src/fate/starts.ts` (`holdSlug`, `landedStart`), final review.

@@ -137,6 +137,25 @@ test("a start waiting behind another write holds its slug", async () => {
   expect(git(server.repo, "branch", "--list", planned.data.folder)).toContain(planned.data.folder);
 });
 
+test("a typed change's start waiting in the queue holds its slug", async () => {
+  const { hook, server } = await startServer();
+  const [read] = await byId(server.app, "Priorities", ["priorities"], ["id", "hash"]);
+  await mutate(server.app, "proposals.add", { hash: read.hash, section: "next", text: "X" }, [
+    "id",
+  ]);
+  await mutate(server.app, "priorities.commit", {}, ["id"]);
+  const change = mutate(server.app, "change.start", { slug: SLUG, text: "# Faster\n" }, ["id"]);
+  await vi.waitFor(async () => expect(await writes(server)).toHaveLength(2));
+
+  const again = await start(server, PROPOSAL);
+
+  expect(again.error?.message).toBe(`refused: A feature named ${SLUG} exists already`);
+  const releasing = setInterval(hook.release, 50);
+  await change;
+  await idle(server);
+  clearInterval(releasing);
+});
+
 test("a message sent during a start waits, then starts the agent", async () => {
   const { hook, server } = await startServer();
   server.adapter.script([]);

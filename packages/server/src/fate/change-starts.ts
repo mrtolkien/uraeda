@@ -82,6 +82,7 @@ async function startTypedChange(
     ctx,
     (onStep) => ctx.binding.startChange(ctx.repo, input.text, bytes, input.slug, onStep),
     withFirstRun(ctx),
+    input.slug,
   );
 }
 
@@ -153,6 +154,7 @@ async function startFromNote(
     ctx,
     (onStep) => ctx.binding.startChange(ctx.repo, text, images, input.slug, onStep),
     async (started) => started,
+    input.slug,
   );
   try {
     await listCommit(ctx, undefined, () =>
@@ -178,6 +180,7 @@ async function startProposal(
     ctx,
     (onStep) => ctx.binding.startFeature(ctx.repo, input.proposal, input.slug, "change", onStep),
     withFirstRun(ctx),
+    input.slug,
   );
 }
 

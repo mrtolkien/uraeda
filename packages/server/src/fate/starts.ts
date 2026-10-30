@@ -55,13 +55,36 @@ const taken = (kind: Kind, { folder, slug }: PlannedView) =>
     ? `refused: A feature named ${slug} exists already`
     : `refused: ${folder} exists: choose another slug with --slug`;
 
-/** Whether a start of `folder` is still in the queue, landing or waiting. */
-const startQueued = (queue: WriteQueue, folder: string) =>
+/** The slugs of the starts the core cannot plan, typed changes', named, while in the queue. */
+const typedSlugs = new WeakMap<WriteQueue, Map<string, number>>();
+
+/** Whether a start of `folder`, or a typed change's of its slug, is still in the queue. */
+const startQueued = (queue: WriteQueue, { folder, slug }: PlannedView) =>
+  (typedSlugs.get(queue)?.has(slug) ?? false) ||
   queue
     .writes()
     .some(
       ({ folder: of, state, steps }) => steps !== undefined && of === folder && state !== "refused",
     );
+
+/** Holds `slug` as taken while `landed` is in the queue: a planned start of it is refused. */
+function holdSlug(queue: WriteQueue, slug: string | undefined, landed: Promise<unknown>): void {
+  if (slug === undefined) {
+    return;
+  }
+  const held = typedSlugs.get(queue) ?? new Map<string, number>();
+  typedSlugs.set(queue, held);
+  held.set(slug, (held.get(slug) ?? 0) + 1);
+  const release = () => {
+    const count = (held.get(slug) ?? 1) - 1;
+    if (count === 0) {
+      held.delete(slug);
+    } else {
+      held.set(slug, count);
+    }
+  };
+  landed.then(release, release);
+}
 
 /**
  * Queues a start behind the writes queued before it, its steps in its write, holding the lists'
@@ -161,7 +184,7 @@ async function startPlanned(
       ctx.binding.planStart(ctx.repo, input.proposal, input.slug, kind),
     );
     const { branch, folder, title } = planned;
-    if (startQueued(queue, folder)) {
+    if (startQueued(queue, planned)) {
       throw callSiteError(taken(kind, planned));
     }
     let id = "";
@@ -204,23 +227,35 @@ const CHANGE_START: WriteInput = { href: "", label: "Starting a change" };
 /**
  * Runs a start the core cannot plan, a typed change's, through the queue, then `then`, and
  * answers with its result once it landed (R50): a refusal is the call's, and leaves the record.
- * Without a host, at once.
+ * Its `slug`, when named, is taken while it is in the queue (R91). Without a host, at once.
  */
 export async function landedStart<R>(
   ctx: RepoContext,
   run: StartRun,
   then: (started: StartedView) => Promise<R>,
+  slug?: string,
 ): Promise<R> {
   const queue = ctx.hosts.byPath(ctx.repo)?.queue;
   if (!queue) {
     return then(await refusable(() => run(() => {})));
   }
-  const { id, landed } = await queueStart(ctx, queue, { run, then, write: CHANGE_START }, () => {});
+  const held = Promise.withResolvers<void>();
+  holdSlug(queue, slug, held.promise);
   try {
-    return await refusable(() => landed);
-  } catch (error) {
-    queue.dismiss(id);
-    throw error;
+    const { id, landed } = await queueStart(
+      ctx,
+      queue,
+      { run, then, write: CHANGE_START },
+      () => {},
+    );
+    try {
+      return await refusable(() => landed);
+    } catch (error) {
+      queue.dismiss(id);
+      throw error;
+    }
+  } finally {
+    held.resolve();
   }
 }
 
