@@ -3,6 +3,9 @@
 import * as stylex from "@stylexjs/stylex";
 
 export const barVars = stylex.defineVars({
+  // A tile of the bottom bar that is a button of its own, one of one or two: a 44 px target, the
+  // bar's 3 rem less a step of room under it.
+  "--bar-button": "2.75rem",
   // The room between a tile's icon and its word.
   "--bar-tile-gap": "0.25rem",
   // A tile's least width, as wide as a finger and more than a 44 px target: five tiles, their
