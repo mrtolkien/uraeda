@@ -7,7 +7,7 @@ import type { splitProposal } from "./pane/proposalText.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver } from "./sessions.ts";
 import type { useSave } from "./useSave.ts";
-import { ProposalFileView, FeatureView } from "./views.ts";
+import { ProposalFileView, StartPlanView } from "./views.ts";
 import { useClearRefusal, writeHere } from "./writes/useWriteQueue.ts";
 
 type File = NonNullable<ReturnType<typeof useProposalFile>>;
@@ -70,7 +70,7 @@ export function useEditorActions({ field, file, path, save, setConflict, slug, w
     }
     const result = await fate.mutations.feature.start({
       input: { kind, proposal: path, slug: slug.text },
-      view: FeatureView,
+      view: StartPlanView,
     });
     if (result.error) {
       setMessage({ ok: false, text: refusal(result.error).message });

@@ -630,6 +630,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   after the start was queued and before it ran, has the start refused as uncommitted changes.
 - **Where**: `packages/server/src/fate/starts.ts`, `packages/server/src/writes/queue.ts`,
   `packages/server/src/writes/start-steps.ts`, task 13.
+
 ## R53: Open hides a refusal from the tab's toast; the record keeps it until dismissed
 
 - **Decision**: the toast's Open goes to where the refused write happened, `#write:refused`, and

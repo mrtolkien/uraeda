@@ -23,6 +23,7 @@ import type {
   SessionList,
   Settings,
   SlugProposal,
+  StartPlan,
   Story,
   StoryHref,
   Turn,
@@ -134,6 +135,14 @@ export const FeatureView = view<Feature>()({
 });
 
 /** A change or a feature dropped: its branch, which stays, and the worktree left, with why. */
+/** A feature's start, as planned: the session opens on its folder with its message. */
+export const StartPlanView = view<StartPlan>()({
+  folder: true,
+  id: true,
+  message: true,
+  title: true,
+});
+
 export const DroppedView = view<Dropped>()({
   branch: true,
   committed: true,
