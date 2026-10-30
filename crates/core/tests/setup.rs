@@ -71,6 +71,11 @@ fn setup_items() {
         "- Data MUST stay local.",
         "- Data MUST stay local, as [the guide](docs/x.md) says.",
     );
+    let rule_left = written().replace("- Sync SHOULD be optional.", "- [Rule]");
+    let other_brackets = written().replace(
+        "- Data MUST stay local.",
+        "- [x] Data MUST stay local, as [[storage]] and [the guide] say[^1].\n- Ranges are [0, 1).\n\n[the guide]: docs/x.md",
+    );
     let rows: Vec<(&str, Vec<File>, Vec<Pair>)> = vec![
         // A view that skips the check without `specs/`.
         (
@@ -98,10 +103,26 @@ fn setup_items() {
             vec![(CONSTITUTION, dates_left)],
             template_left(&missing_decisions),
         ),
+        // A check that skips the rules.
+        (
+            "rule_left",
+            vec![(CONSTITUTION, rule_left)],
+            template_left(&missing_decisions),
+        ),
         // Any bracket read as a placeholder.
         (
             "link_in_rule",
             vec![(CONSTITUTION, with_link)],
+            [("constitution", "written")]
+                .into_iter()
+                .chain(missing_decisions)
+                .collect(),
+        ),
+        // A task box, a wikilink, a shortcut reference, a footnote, or an unclosed bracket read as
+        // a placeholder.
+        (
+            "other_brackets",
+            vec![(CONSTITUTION, other_brackets)],
             [("constitution", "written")]
                 .into_iter()
                 .chain(missing_decisions)
@@ -133,6 +154,11 @@ fn setup_items() {
             vec![],
         ),
     ];
+    assert_rows(rows);
+}
+
+/// Asserts each row's items, as `(key, state)` pairs, read through the workspace's view.
+fn assert_rows(rows: Vec<(&str, Vec<File>, Vec<Pair>)>) {
     for (row, files, expected) in rows {
         let repo = repository(&files);
         let setup = api::read_workspace(repo.path()).unwrap().setup;

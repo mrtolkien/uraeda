@@ -8,8 +8,12 @@ use std::path::Path;
 use serde::Serialize;
 
 use super::Result;
-use super::ledger::{Texts, source};
+use super::ledger::{checkout_of, lossy};
+use crate::embedded::{has_placeholder_span, reference_labels};
 use crate::git::Git;
+
+const CONSTITUTION: &str = "specs/CONSTITUTION.md";
+const DECISIONS_FOLDER: &str = "specs/decisions";
 
 /// An item of the setup.
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
@@ -58,7 +62,7 @@ pub fn read_setup(repo: &Path) -> Result<Vec<SetupItem>> {
 /// The setup's items, the `specs/` folder's only when `has_specs` is false: every item while a
 /// required one is not written, and none once they all are.
 pub(crate) fn setup_items(git: &Git, has_specs: bool) -> Vec<SetupItem> {
-    let (texts, _, _) = source(git, git.default_branch().as_deref());
+    let (constitution, written) = read_files(git);
     let mut items = Vec::new();
     if !has_specs {
         items.push(item("specs", "specs/ folder", "missing", true));
@@ -66,11 +70,11 @@ pub(crate) fn setup_items(git: &Git, has_specs: bool) -> Vec<SetupItem> {
     items.push(item(
         "constitution",
         "Constitution",
-        constitution_state(&texts),
+        constitution_state(constitution.as_deref()),
         true,
     ));
     for (key, file, name, required) in DECISIONS {
-        let state = if texts.decisions.contains_key(file) {
+        let state = if written.contains(&file) {
             "written"
         } else {
             "missing"
@@ -86,8 +90,36 @@ pub(crate) fn setup_items(git: &Git, has_specs: bool) -> Vec<SetupItem> {
     items
 }
 
-fn constitution_state(texts: &Texts) -> &'static str {
-    match &texts.constitution {
+/// The constitution's text, and which of the setup's decision files exist, read where the ledger
+/// reads them: the default branch's checkout, this one without a default branch, else its tip.
+/// The decisions are only looked up, not read, as the workspace reads them after every change.
+fn read_files(git: &Git) -> (Option<String>, Vec<&'static str>) {
+    let default = git.default_branch();
+    let files = DECISIONS.map(|(_, file, _, _)| file);
+    if let Some(root) = checkout_of(git, default.as_deref()) {
+        let constitution = std::fs::read(root.join(CONSTITUTION)).ok().map(lossy);
+        let written = files
+            .into_iter()
+            .filter(|file| root.join(DECISIONS_FOLDER).join(file).is_file())
+            .collect();
+        return (constitution, written);
+    }
+    let Some(tip) = default.as_deref().and_then(|default| git.tip(default)) else {
+        return (None, Vec::new());
+    };
+    let constitution = git.read_file(tip, CONSTITUTION).ok().flatten().map(lossy);
+    let written = files
+        .into_iter()
+        .filter(|file| {
+            git.entry_id(tip, &format!("{DECISIONS_FOLDER}/{file}"))
+                .is_some()
+        })
+        .collect();
+    (constitution, written)
+}
+
+fn constitution_state(constitution: Option<&str>) -> &'static str {
+    match constitution {
         None => "missing",
         Some(text) if is_template(text) => "template",
         Some(_) => "written",
@@ -95,8 +127,10 @@ fn constitution_state(texts: &Texts) -> &'static str {
 }
 
 /// Whether a constitution is still the template: its `#` title, a `###` heading, a list item, or
-/// its line holding `**Ratified**` has a bracketed placeholder. Fenced code is skipped.
+/// its lines holding `**Ratified**` or `**Last Amended**` have a bracketed placeholder. Fenced code
+/// is skipped, and so is a list item's task box, `[ ]` or `[x]`.
 fn is_template(text: &str) -> bool {
+    let labels = reference_labels(text);
     let mut fenced = false;
     text.lines().any(|line| {
         let trimmed = line.trim_start();
@@ -104,7 +138,7 @@ fn is_template(text: &str) -> bool {
             fenced = !fenced;
             return false;
         }
-        !fenced && checked_line(trimmed) && has_placeholder(trimmed)
+        !fenced && checked_line(trimmed) && has_placeholder_span(without_task_box(trimmed), &labels)
     })
 }
 
@@ -123,54 +157,20 @@ fn checked_line(line: &str) -> bool {
         || line.starts_with("+ ")
         || ordered
         || line.contains("**Ratified**")
+        || line.contains("**Last Amended**")
 }
 
-/// Whether a line has a bracketed span, like `[Project]`, that is not a link (`[…](…)` or
-/// `[…][…]`), an image, a callout (`[!…]`), or inside a code span.
-fn has_placeholder(line: &str) -> bool {
-    let bytes = line.as_bytes();
-    let mut at = 0;
-    let mut code = false;
-    while at < bytes.len() {
-        match bytes[at] {
-            b'`' => code = !code,
-            b'\\' => at += 1,
-            b'[' if !code => {
-                let Some(close) = closing(bytes, at) else {
-                    return false;
-                };
-                if is_placeholder_span(bytes, at, close) {
-                    return true;
-                }
-                at = close;
+/// A list item without its task box, `- [ ] ` or `- [x] `: other lines as they are.
+fn without_task_box(line: &str) -> &str {
+    for marker in ["- ", "* ", "+ "] {
+        for task_box in ["[ ] ", "[x] ", "[X] "] {
+            if let Some(rest) = line
+                .strip_prefix(marker)
+                .and_then(|rest| rest.strip_prefix(task_box))
+            {
+                return rest;
             }
-            _ => {}
-        }
-        at += 1;
-    }
-    false
-}
-
-/// The index of the `]` closing the `[` at `open`, counting nested brackets.
-fn closing(bytes: &[u8], open: usize) -> Option<usize> {
-    let mut depth = 0;
-    for (index, byte) in bytes.iter().enumerate().skip(open) {
-        match byte {
-            b'[' => depth += 1,
-            b']' => depth -= 1,
-            _ => continue,
-        }
-        if depth == 0 {
-            return Some(index);
         }
     }
-    None
-}
-
-/// Whether the span from `open` to `close` is a placeholder: not an image, a callout, or a link.
-fn is_placeholder_span(bytes: &[u8], open: usize, close: usize) -> bool {
-    let image = open > 0 && bytes[open - 1] == b'!';
-    let callout = bytes.get(open + 1) == Some(&b'!');
-    let link = matches!(bytes.get(close + 1), Some(b'(' | b'['));
-    !(image || callout || link)
+    line
 }
