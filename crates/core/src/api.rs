@@ -83,7 +83,9 @@ pub use repository_list::{
 pub use reviews::{
     add_comment, approve, edit_comment, remove_comment, request_changes, start_over,
 };
-pub use start::{promote_change, propose_slug, start_change, start_feature, start_kind};
+pub use start::{
+    plan_start, promote_change, propose_slug, start_change, start_feature, start_kind,
+};
 
 type Result<T> = std::result::Result<T, ApiError>;
 

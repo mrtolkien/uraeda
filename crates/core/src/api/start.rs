@@ -3,42 +3,89 @@
 
 use std::path::Path;
 
-use super::{Result, encode_image, open, plain, refused, write_lock};
-use crate::actions::promote;
-use crate::actions::start::{self, StartError, Started};
+use super::{ApiError, Result, default_checkout, encode_image, open, plain, refused, write_lock};
+use crate::actions::start::{self, Run, StartError, StartProgress, Started};
+use crate::actions::{deferred, place, promote};
+use crate::cache;
 use crate::git::Git;
 use crate::today;
-use crate::view::{PromotedView, StartedView};
+use crate::view::{PlannedView, PromotedView, StartedView};
 use crate::workspace::Kind;
 
-/// Starts a feature from its proposal file, or a change with `Kind::Change`, in its own worktree.
+/// What starting a feature from its proposal file, or a change with `Kind::Change`, would make:
+/// every check of the start made, without the write lock, nothing written. Read from the
+/// default branch's checkout, which is reached, as the start would, only when there is none.
+pub fn plan_start(
+    repo: &Path,
+    proposal: &str,
+    slug: Option<&str>,
+    kind: Kind,
+) -> Result<PlannedView> {
+    proposal_path(proposal)?;
+    let (git, workspace) = open(repo)?;
+    let default = workspace
+        .default_branch
+        .clone()
+        .ok_or_else(|| refused("no default branch: commit on main first"))?;
+    let root = match default_checkout(&git, &default) {
+        Some(root) => root,
+        None => place::reach(&git, &default)?.root,
+    };
+    let today = today::today();
+    match start::plan(&git, &root, &workspace, proposal, slug, kind, today) {
+        Ok(planned) => Ok(PlannedView {
+            folder: planned.folder,
+            branch: planned.branch,
+            slug: planned.slug,
+            title: planned.title,
+        }),
+        Err(error) => Err(refusal(error)),
+    }
+}
+
+/// Starts a feature from its proposal file, or a change with `Kind::Change`, in its own worktree,
+/// each step given to `on_step` as it is reached, the commit's output streamed. In a repository
+/// the server defers commits for, a hook's refusal of the start commit puts the proposal file and
+/// the priorities back as they were, nothing committed, as a `hook` error with the hook's output;
+/// elsewhere, as through `ura`, the files stay written, for the start to be finished by hand.
 pub fn start_feature(
     repo: &Path,
     proposal: &str,
     slug: Option<&str>,
     kind: Kind,
+    on_step: &dyn Fn(StartProgress),
 ) -> Result<StartedView> {
     proposal_path(proposal)?;
     let _lock = write_lock(repo);
     let (git, workspace) = open(repo)?;
-    view(start::run(
-        &git,
-        &workspace,
-        proposal,
-        slug,
-        kind,
-        today::today(),
-        false,
+    let run = steps_run(repo, on_step);
+    view(start::run_with(
+        &git, &workspace, proposal, slug, kind, &run,
     ))
 }
 
-/// Starts a change typed as a text, with its images, in its own worktree. Each image is checked
-/// and encoded as `image-1`, `image-2`, and so on, before the write lock is taken.
+/// A start with its steps reported, whose commit refused by a hook puts back what it wrote when
+/// the server defers the commits of the repository holding `repo`.
+fn steps_run<'a>(repo: &Path, on_step: &'a dyn Fn(StartProgress)) -> Run<'a> {
+    Run {
+        today: today::today(),
+        switch: false,
+        on_step: Some(on_step),
+        restore: deferred::deferring(&cache::key(repo)),
+    }
+}
+
+/// Starts a change typed as a text, with its images, in its own worktree, its steps given to
+/// `on_step` as [`start_feature`] does, and a hook's refusal of its commit, when the server defers
+/// commits, leaves nothing written.
+/// Each image is checked and encoded as `image-1`, `image-2`, and so on, before the write lock is
+/// taken.
 pub fn start_change(
     repo: &Path,
     text: &str,
     images: &[Vec<u8>],
     slug: Option<&str>,
+    on_step: &dyn Fn(StartProgress),
 ) -> Result<StartedView> {
     let encoded = images
         .iter()
@@ -47,14 +94,9 @@ pub fn start_change(
         .collect::<Result<Vec<_>>>()?;
     let _lock = write_lock(repo);
     let (git, workspace) = open(repo)?;
-    view(start::run_text(
-        &git,
-        &workspace,
-        text,
-        &encoded,
-        slug,
-        today::today(),
-        false,
+    let run = steps_run(repo, on_step);
+    view(start::run_text_with(
+        &git, &workspace, text, &encoded, slug, &run,
     ))
 }
 
@@ -105,9 +147,20 @@ fn view(started: std::result::Result<Started, StartError>) -> Result<StartedView
 }
 
 /// A start's or a move's refusal: a failure after the first write says what was done, if
-/// anything, and what is left.
-fn refusal(error: StartError) -> super::ApiError {
+/// anything, and what is left. A feature's taken slug is refused by its name; a change's keeps the
+/// message naming its folder, which the server reads.
+fn refusal(error: StartError) -> ApiError {
     match error {
+        StartError::Hook { message, output } => ApiError {
+            code: "hook",
+            message: format!("git commit failed: {message}"),
+            output: Some(output),
+        },
+        StartError::Taken {
+            slug,
+            kind: Kind::Feature,
+            ..
+        } => refused(format!("A feature named {slug} exists already")),
         StartError::Partial { done, left, cause } => {
             let done = if done.is_empty() {
                 String::new()

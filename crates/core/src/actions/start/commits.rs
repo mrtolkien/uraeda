@@ -4,15 +4,16 @@
 use std::fs;
 
 use super::plan::Plan;
-use super::{Source, Start, StartError, partial};
+use super::{Source, Start, StartError, StartProgress, partial};
 use crate::actions::expand::with_nested;
+use crate::git::GitError;
 
 impl Start<'_> {
     /// What is left to do by hand once the proposal file is in the dated folder.
     fn left_after_write(&self, plan: &Plan) -> Vec<String> {
         vec![
             plan.commit_left(self.default),
-            plan.branch_left(self.switch),
+            plan.branch_left(self.run.switch),
         ]
     }
 
@@ -66,14 +67,24 @@ impl Start<'_> {
     }
 
     /// The start commit, on the default branch: the proposal, and the dated folder with the
-    /// proposal file's removal.
-    pub(super) fn commit_start(&self, plan: &Plan, done: &str) -> Result<(), StartError> {
+    /// proposal file's removal. A hook's refusal puts back what the start wrote, `moves` included,
+    /// when the start asked for it.
+    pub(super) fn commit_start(
+        &self,
+        plan: &Plan,
+        done: &str,
+        moves: &[(String, String)],
+    ) -> Result<(), StartError> {
         let done = [done.to_string()];
         let proposal = format!("{}/proposal.md", plan.destination);
+        // The proposal's text before its nested lines, which a refused commit puts back.
+        let mut proposal_before = None;
         if !plan.nested.is_empty()
             && let Err(error) = fs::read_to_string(self.root.join(&proposal)).and_then(|text| {
                 let carried = with_nested(&text, &proposal, &plan.nested);
-                fs::write(self.root.join(&proposal), carried)
+                fs::write(self.root.join(&proposal), carried)?;
+                proposal_before = Some(text);
+                Ok(())
             })
         {
             let mut left = vec![
@@ -97,17 +108,36 @@ impl Start<'_> {
             paths.push(proposal.to_string());
         }
         paths.sort();
-        // Written, so a failed commit stays here: switching back could carry the staged files away.
-        if let Err(error) = self.at.commit(&paths, &plan.start_subject, None, false) {
-            return Err(partial(&done, self.left_after_write(plan), error));
+        self.report(StartProgress::Committing);
+        let on_output = |line: &str| self.report(StartProgress::Output(line.to_string()));
+        let streamed = self.run.on_step.map(|_| &on_output as &dyn Fn(&str));
+        match self
+            .at
+            .commit_streaming(&paths, &plan.start_subject, None, false, streamed)
+        {
+            Ok(()) => Ok(()),
+            Err(GitError::Command {
+                subcommand,
+                message,
+                output,
+            }) if subcommand == "commit"
+                && self.run.restore
+                && self
+                    .put_back(plan, moves, proposal_before.as_deref())
+                    .is_ok() =>
+            {
+                Err(StartError::Hook { message, output })
+            }
+            // Written, so a failed commit stays here: switching back could carry the staged files
+            // away.
+            Err(error) => Err(partial(&done, self.left_after_write(plan), error)),
         }
-        Ok(())
     }
 
     /// The feature's or the change's branch, from the start commit, switched to or in its new
     /// worktree.
     pub(super) fn create_branch(&self, plan: &Plan, done: &[String]) -> Result<(), StartError> {
-        let created = if self.switch {
+        let created = if self.run.switch {
             self.at.switch_new(&plan.branch, self.default)
         } else {
             self.git.exclude_worktrees().and_then(|()| {
@@ -115,6 +145,6 @@ impl Start<'_> {
                     .add_worktree_new(&plan.worktree, &plan.branch, self.default)
             })
         };
-        created.map_err(|error| partial(done, vec![plan.branch_left(self.switch)], error))
+        created.map_err(|error| partial(done, vec![plan.branch_left(self.run.switch)], error))
     }
 }

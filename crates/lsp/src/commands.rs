@@ -247,7 +247,7 @@ fn start(documents: &Documents, args: FileArgs) -> Result<Done, ResponseError> {
         absolute(default.join(&path)),
     ];
     let before = Before::read(written.clone());
-    let started = api::start_feature(root, &proposal, None, Kind::Feature)
+    let started = api::start_feature(root, &proposal, None, Kind::Feature, &|_| {})
         .map_err(|error| before.failed(error))?;
     let worktree = PathBuf::from(core(api::work_dir(root, &started.folder))?);
     let proposal = worktree.join(format!("specs/{}/proposal.md", started.folder));

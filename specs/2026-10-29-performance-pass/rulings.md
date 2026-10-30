@@ -380,3 +380,39 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a line git prints to stdout can show before or after a line of stderr printed just
   before or after it.
 - **Where**: `crates/core/src/git/process.rs`, review fix.
+## R31: A start puts back its proposal on a hook's refusal only where commits are deferred
+
+- **Decision**: `api::start_feature` and `api::start_change` restore the moved proposal file, the
+  typed change's folder, and `PRIORITIES.md` on a hook's refusal of the start commit, as a `hook`
+  error with its output, only in a repository the server turned deferral on for. `ura start`, the
+  language server's `uraeda.start`, and every other caller keep today's `Partial` refusal, the files
+  left written for the start to be finished by hand. The steps go to `on_step` everywhere.
+- **Rationale**: the global constraint keeps "`ura` and every core call made without the server's
+  deferral" committing as today, which R2 applies to the other commits. The language server calls
+  the same API, and its `a_failing_hook_lists_the_files_written` guards the files left written.
+- **Alternatives considered**: restoring on every API start, which breaks the language server's
+  behaviour and that test; restoring only when an `onStep` is given, which ties the rule to a
+  listener.
+- **If wrong**: `restore` in `steps_run` of `api/start.rs` is the one switch.
+- **Where**: task 11.
+
+## R32: Only a feature's taken slug is refused in the spec's words
+
+- **Decision**: a start refused because a record, a branch, or a folder holds its dated folder is
+  `StartError::Taken`, whose text stays `<folder> exists: choose another slug with --slug`. The API
+  refuses a feature's as "A feature named <slug> exists already", the spec's words. A change's keeps
+  the core's text, as `ura` does, since the server's `session-moves.ts` reads its folder from it and
+  rewords it, and `sessions.test.ts` checks it.
+- **Rationale**: the spec's edge case is the feature's editor; the change's card already has its own
+  words.
+- **Where**: task 11.
+
+## R33: The start's plan reads the default branch's checkout, without the write lock
+
+- **Decision**: `api::plan_start` makes every check of the start from the checkout that has the
+  default branch, read from the cache, and takes no write lock, so a queued commit never delays it.
+  Only when no checkout has the default branch does it reach one, as the start would, creating its
+  worktree.
+- **Rationale**: the start's checks read that checkout's proposal file and priorities; without one,
+  there is no file to plan from, and the start itself would create it next.
+- **Where**: task 11.

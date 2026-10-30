@@ -2197,3 +2197,144 @@ fn submitting_without_resuming_removes_the_key_of_a_reopened_round() {
 
     assert!(!read(&place, ROUND).contains("resumes"));
 }
+
+/// The steps a start reported, as their names, an output line as its text.
+fn steps_of(steps: &std::sync::Mutex<Vec<start::StartProgress>>) -> Vec<String> {
+    steps
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|step| match step {
+            start::StartProgress::Output(line) => format!("output {line}"),
+            step => format!("{step:?}"),
+        })
+        .collect()
+}
+
+/// Task 11: in a repository the server defers commits for, a hook refusing the start commit leaves
+/// nothing made. The proposal file is back at its path, as it was, its nested lines still under
+/// its line in the priorities.
+#[test]
+fn a_start_refused_by_a_hook_puts_the_proposal_back_nothing_committed() {
+    let repo = proposal_file_repo();
+    uraeda_core::api::defer_commits(repo.path(), true);
+    let priorities = "# Priorities\n\n## Now\n\n## Next\n\n- [Login banner](proposals/login-banner.md)\n  - Only on the sign-in page.\n\n## Later\n\n## Blocked\n";
+    repo.write("specs/PRIORITIES.md", priorities);
+    repo.commit("chore: nest a line");
+    repo.write(
+        PROPOSAL_FILE,
+        "# Login banner\n\n## What\n\nA banner, edited.\n",
+    );
+    repo.set_hook("echo 'lint: refused'\nexit 1");
+    let before = (
+        repo.git(&["for-each-ref"]),
+        repo.subjects("main"),
+        repo.porcelain(),
+    );
+    let steps = std::sync::Mutex::new(Vec::new());
+
+    let refused = uraeda_core::api::start_feature(
+        repo.path(),
+        PROPOSAL_FILE,
+        Some("login-banner"),
+        Kind::Feature,
+        &|step| steps.lock().unwrap().push(step),
+    )
+    .unwrap_err();
+
+    assert_eq!(refused.code, "hook", "{}", refused.message);
+    assert!(
+        refused
+            .output
+            .as_deref()
+            .unwrap_or_default()
+            .contains("lint: refused"),
+        "{:?}",
+        refused.output
+    );
+    assert_eq!(
+        repo.read(PROPOSAL_FILE),
+        "# Login banner\n\n## What\n\nA banner, edited.\n"
+    );
+    assert_eq!(repo.read("specs/PRIORITIES.md"), priorities);
+    assert_eq!(
+        (
+            repo.git(&["for-each-ref"]),
+            repo.subjects("main"),
+            repo.porcelain()
+        ),
+        before
+    );
+    assert!(!repo.path().join(".worktrees").exists());
+    let steps = steps_of(&steps);
+    assert_eq!(steps.first().map(String::as_str), Some("Committing"));
+    assert!(
+        steps.contains(&"output lint: refused".to_string()),
+        "{steps:?}"
+    );
+    assert!(!steps.contains(&"Branching".to_string()), "{steps:?}");
+}
+
+/// Task 11: a started feature reports its steps in order, the hook's output streamed in the
+/// commit's.
+#[test]
+fn a_start_reports_its_steps() {
+    let repo = proposal_file_repo();
+    repo.set_hook("echo 'lint: fine'");
+    let steps = std::sync::Mutex::new(Vec::new());
+
+    uraeda_core::api::start_feature(
+        repo.path(),
+        PROPOSAL_FILE,
+        Some("login-banner"),
+        Kind::Feature,
+        &|step| steps.lock().unwrap().push(step),
+    )
+    .unwrap();
+
+    assert_eq!(
+        steps_of(&steps),
+        ["Committing", "output lint: fine", "Branching", "Done"]
+    );
+}
+
+/// Task 11: a start's plan names its folder, branch, slug, and title, and writes nothing.
+#[test]
+fn a_start_is_planned_without_writing() {
+    let repo = proposal_file_repo();
+    let before = (repo.git(&["for-each-ref"]), repo.porcelain());
+
+    let planned =
+        uraeda_core::api::plan_start(repo.path(), PROPOSAL_FILE, None, Kind::Change).unwrap();
+
+    let folder = format!("{}-login-banner", uraeda_core::today::today());
+    assert_eq!(planned.folder, folder);
+    assert_eq!(planned.branch, format!("change/{folder}"));
+    assert_eq!(planned.slug, "login-banner");
+    assert_eq!(planned.title, "Login banner");
+    assert_eq!((repo.git(&["for-each-ref"]), repo.porcelain()), before);
+    assert!(repo.exists(PROPOSAL_FILE));
+}
+
+/// Task 11, the spec's edge case: a feature's taken slug is refused in its words, at the plan and
+/// at the start; a change's keeps the core's.
+#[test]
+fn a_taken_slug_is_refused_by_its_name() {
+    let repo = proposal_file_repo();
+    let folder = format!("{}-login-banner", uraeda_core::today::today());
+    repo.branch(&folder);
+
+    let planned = uraeda_core::api::plan_start(repo.path(), PROPOSAL_FILE, None, Kind::Feature);
+    let started =
+        uraeda_core::api::start_feature(repo.path(), PROPOSAL_FILE, None, Kind::Feature, &|_| {});
+    let change = uraeda_core::api::plan_start(repo.path(), PROPOSAL_FILE, None, Kind::Change);
+
+    let message = |result: Result<_, uraeda_core::api::ApiError>| result.err().map(|e| e.message);
+    let taken = Some("A feature named login-banner exists already".to_string());
+    assert_eq!(message(planned.map(drop)), taken);
+    assert_eq!(message(started.map(drop)), taken);
+    assert_eq!(
+        message(change.map(drop)),
+        Some(format!("{folder} exists: choose another slug with --slug"))
+    );
+}

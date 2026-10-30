@@ -94,7 +94,9 @@ pub fn defer(key: &Path, on: bool) {
     });
 }
 
-fn deferring(key: &Path) -> bool {
+/// Whether the repository `key` defers its commits: the server's, whose refused commits leave
+/// nothing written.
+pub(crate) fn deferring(key: &Path) -> bool {
     repositories(|repositories| repositories.contains_key(key))
 }
 

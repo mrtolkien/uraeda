@@ -100,7 +100,7 @@ impl Start<'_> {
             vec![
                 plan.write_left.clone(),
                 plan.commit_left(self.default),
-                plan.branch_left(self.switch),
+                plan.branch_left(self.run.switch),
             ]
         };
         let mut names = Vec::new();

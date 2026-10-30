@@ -316,6 +316,12 @@ export declare function pathFolder(path: string): string | null
 export declare function placeNote(repo: string, id: string, index: number, previous: string, category?: string | undefined | null): Promise<Inbox>
 
 /**
+ * What starting a proposed feature, or a change with the kind `"change"`, would make: every check
+ * of the start made, nothing written, without waiting for the repository's other writes.
+ */
+export declare function planStart(repo: string, proposal: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null): Promise<PlannedView>
+
+/**
  * The preview of the checkout at `checkout`, from its own active preview decision: `null`
  * without one, or when its fields are wrong.
  */
@@ -508,12 +514,16 @@ export declare function settingsFile(dir: string): string
 
 /**
  * Starts a change typed as a text, with its images, in its own worktree: the first written line
- * is its title.
+ * is its title. Its steps go to `onStep` as `startFeature`'s do.
  */
-export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null): Promise<StartedView>
+export declare function startChange(repo: string, text: string, images: Array<Buffer>, slug?: string | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null): Promise<StartedView>
 
-/** Starts a proposed feature, or a change with the kind `"change"`, in its own worktree. */
-export declare function startFeature(repo: string, proposal: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null): Promise<StartedView>
+/**
+ * Starts a proposed feature, or a change with the kind `"change"`, in its own worktree, calling
+ * `onStep` with each step, the commit's output line by line. With deferral on, a hook's refusal of
+ * its commit puts the proposal file and the priorities back, and rejects with `hook: `.
+ */
+export declare function startFeature(repo: string, proposal: string, slug?: string | undefined | null, kind?: "feature" | "change" | undefined | null, onStep?: ((step: StartStepView) => void) | undefined | null): Promise<StartedView>
 
 /** Deletes the pending review of a file. */
 export declare function startOver(repo: string, folder: string, file: string): Promise<FileView>
@@ -1375,6 +1385,15 @@ export interface PlanLead {
   text: Array<Span>
 }
 
+/** A start planned: what it would make, every check made, nothing written. */
+export interface PlannedView {
+  folder: string
+  branch: string
+  slug: string
+  /** The feature's or the change's name, its line in the priorities. */
+  title: string
+}
+
 /** A checkout's preview, from its active preview decision. */
 export interface Preview {
   /** The folder the command runs in, from the repository's top level: `.` for the top level. */
@@ -1926,6 +1945,15 @@ export interface StartedView {
   folder: string
   branch: string
   worktree?: string
+}
+
+/**
+ * A step of a start under way: `committing`, `output` with the `line` the commit or its hooks
+ * printed, `branching`, or `done`.
+ */
+export interface StartStepView {
+  step: string
+  line?: string
 }
 
 export interface StepItem {

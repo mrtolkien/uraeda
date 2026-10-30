@@ -6,6 +6,7 @@ use napi_derive::napi;
 use serde::Serialize;
 
 use super::{ProblemView, kebab, title};
+use crate::actions::start::StartProgress;
 use crate::files::frontmatter;
 use crate::pulls::{PullRequestState, PullRequestView};
 use crate::steps::{Step, TaskProgress};
@@ -103,6 +104,43 @@ pub struct StartedView {
     pub folder: String,
     pub branch: String,
     pub worktree: Option<String>,
+}
+
+/// A start planned: what it would make, every check made, nothing written.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlannedView {
+    pub folder: String,
+    pub branch: String,
+    pub slug: String,
+    /// The feature's or the change's name, its line in the priorities.
+    pub title: String,
+}
+
+/// A step of a start under way: `committing`, `output` with the `line` the commit or its hooks
+/// printed, `branching`, or `done`.
+#[cfg_attr(feature = "napi", napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartStepView {
+    pub step: String,
+    pub line: Option<String>,
+}
+
+impl From<StartProgress> for StartStepView {
+    fn from(progress: StartProgress) -> StartStepView {
+        let (step, line) = match progress {
+            StartProgress::Committing => ("committing", None),
+            StartProgress::Output(line) => ("output", Some(line)),
+            StartProgress::Branching => ("branching", None),
+            StartProgress::Done => ("done", None),
+        };
+        StartStepView {
+            step: step.to_string(),
+            line,
+        }
+    }
 }
 
 /// A change made a feature, in place.

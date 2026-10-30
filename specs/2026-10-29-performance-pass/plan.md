@@ -923,8 +923,9 @@ git commit -m "feat(performance-pass): lists and messages show their result at o
 
 **Files:**
 
-- Modify: `crates/core/src/actions/start/mod.rs`, `commits.rs`, `crates/core/src/api/start.rs`
-- Create: `crates/binding/src/start.rs`
+- Modify: `crates/core/src/actions/start/mod.rs`, `commits.rs`, `plan.rs`,
+  `crates/core/src/api/start.rs`, `crates/core/src/view/feature.rs` (`PlannedView`, `StartStepView`)
+- Create: `crates/binding/src/start.rs`, `crates/core/src/actions/start/restore.rs`
 - Modify: `crates/binding/src/lib.rs` (`start_feature` moves to `start.rs`)
 - Test: `crates/core/tests/actions.rs`
 
@@ -935,13 +936,18 @@ git commit -m "feat(performance-pass): lists and messages show their result at o
   - `api::plan_start(repo: &Path, proposal: &str, slug: Option<&str>, kind: Kind) -> Result<PlannedView>`:
     `{ folder, branch, slug, title }`, every check of the start made, nothing written. Refused with
     today's messages: a slug taken reads "A feature named <slug> exists already".
-  - `api::start_feature(repo, proposal, slug, kind, on_step: impl Fn(StartProgress))`:
-    `StartProgress` is `Committing`, `Output(line)`, `Branching`, or `Done`. On a hook's refusal of
-    the start commit, the moved proposal and the priorities are put back as they were, nothing
-    committed, and the `hook` error carries the output.
-  - Binding: `planStart(...)`, and `startFeature(repo, proposal, slug, kind, onStep)`.
+  - `api::start_feature(repo, proposal, slug, kind, on_step: &dyn Fn(StartProgress))`:
+    `StartProgress` is `Committing`, `Output(line)`, `Branching`, or `Done`. In a repository the
+    server defers commits for
+    ([R31](rulings.md#r31-a-start-puts-back-its-proposal-on-a-hooks-refusal-only-where-commits-are-deferred)),
+    on a hook's refusal of the start commit, the moved proposal and the priorities are put back as
+    they were, nothing committed, and the `hook` error carries the output. A change's taken slug
+    keeps the core's message
+    ([R32](rulings.md#r32-only-a-features-taken-slug-is-refused-in-the-specs-words)).
+  - Binding: `planStart(...)`, `startFeature(repo, proposal, slug, kind, onStep?)`, and
+    `startChange(repo, text, images, slug, onStep?)`, `onStep` given a `StartStepView`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```rust
 // crates/core/tests/actions.rs
@@ -955,31 +961,33 @@ fn a_start_refused_by_a_hook_puts_the_proposal_back_nothing_committed() {
 
 The break it catches: today's partial start, the proposal left in the feature's folder.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test actions`
 - Expected: FAIL, the proposal not at its path.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-`plan_start` runs `Start::plan` on the cached workspace, without writing. `start_feature` reports
-its steps through `on_step`, streams the commit's output with `run_streaming`, and on a hook's
-refusal moves the proposal back and writes the priorities read before. Other failures keep today's
-`Partial` refusal. `start_change` gets the same `on_step`.
+`plan_start` runs `Start::plan` on the cached workspace, without writing or the write lock
+([R33](rulings.md#r33-the-starts-plan-reads-the-default-branchs-checkout-without-the-write-lock)).
+`start_feature` reports its steps through `on_step`, streams the commit's output with
+`commit_streaming`, and on a hook's refusal, where commits are deferred, moves the proposal back and
+writes the priorities read before. Other failures keep today's `Partial` refusal. `start_change`
+gets the same `on_step`.
 
-- [ ] **Step 4: Make the break**
+- [x] **Step 4: Make the break**
 
 Skip the restore, and see the test fail. Restore it, and report the failure in the commit's body.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `vp run fast`, then `nix develop -c cargo nextest run -p uraeda-core`
 - Expected: PASS. Deferred to ready: the server suite.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add crates packages/binding/index.d.ts
+git add crates packages/binding/index.d.ts packages/binding/index.js specs
 git commit -m "feat(performance-pass): a start is planned at once, runs its steps, and a refusal puts the proposal back"
 ```
 
