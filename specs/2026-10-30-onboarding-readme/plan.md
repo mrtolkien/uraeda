@@ -379,36 +379,37 @@ git commit -m "feat(onboarding-readme): the setup check in the core"
 
 - Modify: `packages/web/samples/projects.ts` (`buildProjects`, the header comment),
   `packages/web/sandbox/seed.ts` (`Projects`, `paths`, `build`)
-- Test: `packages/web/sandbox/__tests__/seed.test.ts` ("the sandbox lists its four projects…")
+- Test: `packages/web/sandbox/__tests__/seed.test.ts` ("the sandbox lists its four projects…", and
+  the quick builders' counts), `packages/web/sandbox/__tests__/sandbox.test.ts` (the listed names)
 
 **Interfaces:**
 
 - Produces: `buildProjects(dir)` returns a fifth path, `bare`: a repository with one commit, a
   `README.md`, and no `specs/`. The sandbox lists it.
 
-- [ ] **Step 1: Update the sandbox's listing test to five projects**
+- [x] **Step 1: Update the sandbox's listing test to five projects**
 
 Rename it "the sandbox lists its five projects, in its own data folder", and add
 `built.projects.bare` to its expected list, in the order the seed adds them. The break it catches: a
 project built but never listed.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/web/sandbox/__tests__/seed.test.ts`
 - Expected: FAIL, the listed paths lack `bare`
 
-- [ ] **Step 3: Build and list `bare`**
+- [x] **Step 3: Build and list `bare`**
 
 In `buildProjects`, `initRepository(paths.bare)`, write a one-line `README.md`, and commit it,
 inside `dated`. In `seed.ts`, add `bare` to `Projects` and `paths`, and list it first in `build`'s
 `addRepository` loop, so "sample" stays the most recently opened.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp test packages/web/sandbox packages/web/samples`, then `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/web/samples/projects.ts packages/web/sandbox
