@@ -24,10 +24,12 @@ decisions. None binds future work: those are decisions.
   feature's `mockups/`, as `image/svg+xml`, with
   `default-src 'none'; style-src 'unsafe-inline'; sandbox`. The core reads it as a drawing only when
   it is named `.svg` and its first element is `<svg`. Attaching an SVG is still refused.
-- **Rationale**: the [attachments](../../decisions/attachments.md) decision refuses SVG as an
-  attached image, since it can carry code. A drawn `<img>` never runs an SVG's scripts, and opened
-  alone in a tab, the policy runs none and loads nothing, while its own styles still draw it, as the
-  dot banners' `<style>` and dark mode need.
+- **Rationale**: the [attachments](../../decisions/attachments.md) decision's rule "The core MUST
+  refuse image types that can carry code, such as SVG" is read here as refusing them as attached
+  images, the decision's subject, which it still does. Read literally, the core's image read now
+  takes one: the human arbitrates that conflict on the pull request. A drawn `<img>` never runs an
+  SVG's scripts, and opened alone in a tab, the policy runs none and loads nothing, while its own
+  styles still draw it, as the dot banners' `<style>` and dark mode need.
 - **Alternatives considered**: images anywhere in the repository, not only under `specs/`: the
   route's test pins `specs/`, and prototypes and attachments all live there.
 - **If wrong**: drop the `or_else` in `read_image`: SVGs show as "Image missing" again.
@@ -37,10 +39,10 @@ decisions. None binds future work: those are decisions.
 ## R3: A link alone to a prototype's image draws the image, in pages and sessions
 
 - **Decision**: a paragraph holding only a link to a PNG, JPEG, GIF, WebP, or SVG file in a
-  `mockups/` folder under `specs/` draws the image, its link text as its alt text, as a link alone
-  to an HTML page there already drew it live. In an agent's message, an image or such a link is read
-  from the repository root, with or without its leading `/`, as story links are. A web image in a
-  message still loads from the web, as Astryx's markdown drew it.
+  `mockups/` folder under `specs/`, its text marked or not, draws the image, its link text as its
+  alt text, as a link alone to an HTML page there already drew it live. In an agent's message, an
+  image or such a link is read from the repository root, with or without its leading `/`, as story
+  links are. A web image in a message still loads from the web, as Astryx's markdown drew it.
 - **Rationale**: the skill has discoveries link each prototype alone in its paragraph, whatever its
   format, and only HTML ones showed: the README banners' SVG options were three links to click.
   Agents' markdown gave a repository path to `<img>` as it was, which the page's own address broke.

@@ -76,6 +76,11 @@ export function RouterAnchor({
   );
 }
 
+/** Whether a file is in a `mockups` folder, at any depth: a mockup's or a prototype's. */
+export function inMockups(path: string): boolean {
+  return path.split("/").slice(0, -1).includes("mockups");
+}
+
 /**
  * The page of a file of the repository `repo`, from its path from the top level, at `anchor`, the
  * part of its link after `#`, when given. A decision linked from an item's file, `from`, opens as
@@ -113,7 +118,7 @@ export function pathLink(
   }
   // The mockup route serves only the files of a `mockups` folder, as the server's rule: an HTML
   // mockup, or an SVG prototype, drawn rather than shown as its source.
-  if (/\.(html|svg)$/.test(file) && file.split("/").slice(0, -1).includes("mockups")) {
+  if (/\.(html|svg)$/.test(file) && inMockups(file)) {
     return { href: at(`/mockups/${file}`), inApp: false };
   }
   return { href: at(`/raw/${file}`), inApp: false };

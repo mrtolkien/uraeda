@@ -94,7 +94,7 @@ test("a feature without a worktree has no story to run", async () => {
   expect(previewStarts(log!)).toEqual([]);
 });
 
-test("a Storybook that fails gives its last line", async () => {
+test("a Storybook that fails gives its error line", async () => {
   const repo = fixtureRepo();
   addStoryFeature(repo, { preview: { mode: "fail" } });
   const { app } = await testApp(repo);

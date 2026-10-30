@@ -6,7 +6,7 @@ import { type ReactNode, useContext } from "react";
 import type { Span } from "uraeda-binding";
 import { MAIN_CHECKOUT } from "./data.ts";
 import { ImageView } from "./ImageView.tsx";
-import { pathLink } from "./links.tsx";
+import { inMockups, pathLink } from "./links.tsx";
 import { repoPath, useRepository } from "./routes.tsx";
 import { StoryContext, storyHref } from "./stories.tsx";
 
@@ -149,14 +149,27 @@ const IMAGE_FILE = /\.(png|jpe?g|gif|webp|svg)$/i;
  * there is drawn live; else none.
  */
 export function prototypePath(path: string | undefined): string | undefined {
-  const inMockups = path?.split("/").slice(0, -1).includes("mockups");
-  return path && inMockups && IMAGE_FILE.test(path) ? imagePath(path) : undefined;
+  return path && inMockups(path) && IMAGE_FILE.test(path) ? imagePath(path) : undefined;
+}
+
+/**
+ * The spans of the one link a block holds, whitespace around it aside, as the core's embeds read
+ * it: a link whose text has several marks is several spans. None when the block holds anything else.
+ */
+function linkAlone(spans: ReadonlyArray<Span>): Array<Span> | undefined {
+  const links = spans.filter((span) => span.link);
+  const target = links[0]?.link?.target;
+  const alone =
+    target !== undefined &&
+    spans.every((span) =>
+      span.link ? span.link.target === target && !span.image : span.text.trim() === "",
+    );
+  return alone ? links : undefined;
 }
 
 /** Whether a block's spans are a link alone to a prototype's image, which draws in its place. */
 function drawsPrototype(spans: ReadonlyArray<Span>): boolean {
-  const [only] = spans;
-  return spans.length === 1 && !only!.image && prototypePath(only!.link?.path) !== undefined;
+  return prototypePath(linkAlone(spans)?.[0]?.link?.path) !== undefined;
 }
 
 /** Whether a paragraph's spans draw an image that opens in a lightbox: its own, or a prototype's. */
@@ -165,9 +178,10 @@ export function holdsImage(spans: ReadonlyArray<Span>): boolean {
 }
 
 /** A link alone in its paragraph to a prototype's image: the image, its text as its alt text. */
-function SpanPrototype({ span }: { span: Span }) {
+function SpanPrototype({ spans }: { spans: ReadonlyArray<Span> }) {
   const repo = useRepository();
-  return <ImageView alt={span.text} src={repoPath(repo, prototypePath(span.link!.path)!)} />;
+  const link = linkAlone(spans)!;
+  return <ImageView alt={plain(link)} src={repoPath(repo, prototypePath(link[0]!.link!.path)!)} />;
 }
 
 /**
@@ -206,7 +220,7 @@ export function Spans({
   spans: ReadonlyArray<Span>;
 }) {
   if (isAlone && drawsPrototype(spans)) {
-    return <SpanPrototype span={spans[0]!} />;
+    return <SpanPrototype spans={spans} />;
   }
   return spans.map((span, index) =>
     span.image ? (

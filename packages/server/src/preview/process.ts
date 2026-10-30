@@ -66,12 +66,15 @@ export function keepLines(stream: NodeJS.ReadableStream | null, lines: Array<str
 /** The frame Storybook draws before its lines: box drawing, and the shapes marking each line. */
 const FRAME = /^[─-◿\s]+/u;
 
+/** A line naming an error, of any kind: `Error: …`, `SyntaxError: …`, `TypeError: …`. */
+const ERROR_LINE = /^\w*Error\b/;
+
 /**
- * Why a process ended, from its kept lines: the last one starting with "Error", else the last one,
+ * Why a process ended, from its kept lines: the last one naming an error, else the last one,
  * without Storybook's frame. Storybook's own last line, "Storybook exited with an error", says
  * nothing of why. Undefined when it printed nothing but its frame.
  */
 export function lastReason(lines: ReadonlyArray<string>): string | undefined {
   const texts = lines.map((line) => line.replace(FRAME, "")).filter((text) => text !== "");
-  return texts.findLast((text) => text.startsWith("Error")) ?? texts.at(-1);
+  return texts.findLast((text) => ERROR_LINE.test(text)) ?? texts.at(-1);
 }
