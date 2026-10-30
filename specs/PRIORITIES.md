@@ -8,9 +8,9 @@
 
 - [Feature state pass](/specs/2026-10-30-feature-state/proposal.md)
 - [Reading and layout pass](/specs/2026-10-30-reading-pass/proposal.md)
+- [Proposal start flow](/specs/2026-10-30-proposal-start/proposal.md)
 
 - Empty inbox
-- [Proposal start flow](proposals/proposal-start-flow.md)
 - [Mockup previews](proposals/mockup-previews/proposal.md)
 - See if we can integrate Claude Design
 
