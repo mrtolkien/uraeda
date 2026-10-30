@@ -1033,3 +1033,25 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Where**: `packages/web/src/review/approved.ts`, `packages/web/src/ReviewVerdict.tsx`,
   `packages/web/src/review/useReview.tsx`, `packages/web/src/spec/SpecPage.tsx`,
   `packages/web/src/PlanPage.tsx`, the benchmark's findings (R71).
+
+## R84: A round's questions mount one at a time after its first frame
+
+- **Decision**: the round's page mounts its opening on its first frame, then its questions one at a
+  time, each in a transition of its own after the commit before it, then its end, the settled points
+  and Submit, once they are all in (`useMountedSteps` in `layout/useMountedSteps.ts`). A round that
+  opens at a question, the one saved or the first blank one, mounts every question up to it at once,
+  and one that opens at a place of its own, by Back, a reload, or an address with a hash, mounts
+  them all at once, so it opens where it did.
+- **Rationale**: R71 measured the realistic project's round, `clarifications-01.md` of
+  `2026-10-21-leader-key`, at 184 to 242 ms, its read 4 ms and 110 to 151 ms of long tasks. A CPU
+  profile through Playwright found no single cost: React's render and commit, and the page's first
+  layout, forced by the layout effects that measure widths, grew with what was mounted. With no
+  question mounted, the page drew in 83 to 86 ms; with the first two, 152 to 158. Measured after,
+  release build, three runs: 76 to 92 ms, no long task. The questions draw within the frames after,
+  as the human reads the opening; nothing shows a loading state. A fold's content was not the cost:
+  `Foldable` mounts it only while open.
+- **If wrong**: a jump from the outline or a key to a question not yet mounted, in the first tenth
+  of a second, does nothing. A test that reads a later question right after the page draws waits for
+  it (`leave.test.tsx`).
+- **Where**: `packages/web/src/layout/useMountedSteps.ts`, `packages/web/src/RoundPage.tsx`,
+  `packages/web/src/QuestionCards.tsx`, `packages/web/src/useRoundPosition.ts`.

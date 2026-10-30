@@ -5,6 +5,7 @@ import { unsavedKey, useUnsavedOf } from "./fields/unsaved.ts";
 import { Page } from "./layout/Page.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Band } from "./layout/Band.tsx";
+import { useMountedSteps } from "./layout/useMountedSteps.ts";
 import { followUpsOf, QuestionCards } from "./QuestionCards.tsx";
 import { RoundOpening } from "./RoundOpening.tsx";
 import { RoundColumn, useRoundActions } from "./RoundColumn.tsx";
@@ -16,7 +17,7 @@ import { useRepositoryPath } from "./routes.tsx";
 import { SettledPoints } from "./SettledPoints.tsx";
 import { PendingSaves } from "./useAnswer.ts";
 import { featureDraftKey, useDraft } from "./useDraft.ts";
-import { useRoundPosition } from "./useRoundPosition.ts";
+import { type RoundOpens, useRoundPosition } from "./useRoundPosition.ts";
 import { type useFile, useAgent } from "./data.ts";
 
 type File = NonNullable<ReturnType<typeof useFile>>;
@@ -50,7 +51,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const typed = useUnsavedOf(questions.map(keyOf));
   const blank = questions.filter((q) => q.asked && !q.answer.trim() && !typed.has(keyOf(q)));
   const nav = navOf(questions);
-  useRoundPosition(file.folder, file.name, nav);
+  const opens = useRoundPosition(file.folder, file.name, nav);
   // The feature's session draft, kept while its column comes and goes and shared with the
   // session's page, for a feature whose agent can be asked.
   const draft = useDraft(featureDraftKey(repo, file.folder));
@@ -66,6 +67,7 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
   const content = (
     <RoundBody
       file={file}
+      opens={opens}
       readOnly={readOnly}
       target={target}
       {...(actions.asks ? { onAsk: actions.asks } : {})}
@@ -116,13 +118,17 @@ export function RoundPage({ file, target }: { file: File; target: RoundTarget })
 }
 
 /**
- * The round's page itself: its opening, its points to check after its context, its questions, its other settled points, then `children`, its end. `onAsk` asks the
- * agent about a question, or sends a point's comment to it.
+ * The round's page itself: its opening, its points to check after its context, its questions, its
+ * other settled points, then `children`, its end. `onAsk` asks the agent about a question, or sends
+ * a point's comment to it. Its questions mount one at a time after the first frame, which draws its
+ * opening, and its end once they are all in; those up to the question it opens at, all of them
+ * when it opens at a place of its own, mount at once (R84).
  */
 function RoundBody({
   children,
   file,
   onAsk,
+  opens,
   readOnly,
   target,
 }: {
@@ -132,12 +138,16 @@ function RoundBody({
     point: (subject: string, text: string) => Promise<string | undefined>;
     question: (question: { id: string; title: string }) => void;
   };
+  opens: RoundOpens;
   readOnly: boolean;
   target: RoundTarget;
 }) {
   const wide = !isNarrow(useWidthClass());
   const round = file.current.items.clarifications;
   const document = file.current.document;
+  const questions = round?.questions ?? [];
+  const groups = questions.filter((q) => !q.parent).length;
+  const mounted = useMountedSteps(groups, firstMounted(questions, opens));
   if (!round) {
     return null;
   }
@@ -153,6 +163,7 @@ function RoundBody({
         {...(isDefaultRound(target) ? {} : { crumbs: { folder: file.folder, name: file.name } })}
       />
       <QuestionCards
+        count={mounted}
         document={document}
         path={file.path}
         questions={round.questions}
@@ -161,11 +172,33 @@ function RoundBody({
         target={target}
         {...(onAsk ? { onAsk: onAsk.question } : {})}
       />
-      {!wide && ends && <Band />}
-      <SettledPoints file={file} part="end" readOnly={readOnly} {...asks} />
-      {children}
+      {mounted === groups && (
+        <>
+          {!wide && ends && <Band />}
+          <SettledPoints file={file} part="end" readOnly={readOnly} {...asks} />
+          {children}
+        </>
+      )}
     </>
   );
+}
+
+/**
+ * How many of the round's top-level `questions` mount at once: those up to the one it opens at, or
+ * at a follow-up of, or all of them when it opens at a place of its own; none when it opens at its
+ * top.
+ */
+function firstMounted(questions: ReadonlyArray<QuestionItem>, { at, kept }: RoundOpens) {
+  const groups = questions.filter((q) => !q.parent);
+  if (kept) {
+    return groups.length;
+  }
+  let opened = questions.find((q) => q.id === at);
+  while (opened?.parent) {
+    const parent: string = opened.parent;
+    opened = questions.find((q) => q.id === parent);
+  }
+  return opened ? groups.indexOf(opened) + 1 : 0;
 }
 
 /** Submit, at the page's end, `end`, in view, and its first button in `row` focused. */

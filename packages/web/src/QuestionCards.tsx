@@ -92,14 +92,17 @@ function QuestionGroup({
 /**
  * The round's questions, each a card; on the phone, each after a band. A follow-up the round asks
  * is a card of its own after its parent's, joined to it by a line on a wide screen, under an accent
- * border on top on the phone.
+ * border on top on the phone. Only the first `count` questions with their follow-ups are mounted,
+ * all without it: the round's page mounts them in steps (R84).
  */
 export function QuestionCards({
+  count = Number.POSITIVE_INFINITY,
   questions,
   ...card
-}: CardProps & { questions: ReadonlyArray<QuestionItem> }) {
+}: CardProps & { count?: number; questions: ReadonlyArray<QuestionItem> }) {
   return questions
     .filter((q) => !q.parent)
+    .slice(0, count)
     .map((question) => (
       <QuestionGroup
         card={card}
