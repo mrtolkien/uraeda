@@ -349,3 +349,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   pending text before the file has it. Their edits, indents, and drops are the core's outline edits,
   which an optimistic `categories` or `sections` would compute in TypeScript.
 - **Where**: task 10.
+
+## R34: A deferred commit whose files are committed already lands as `HEAD`
+
+- **Decision**: before it commits, `land` checks each of the change's paths against `HEAD`, on disk
+  and in the index. When none differs, someone committed the files since the write: it lands with no
+  commit, its hooks not run, nothing put back, and returns the change with `HEAD`'s short hash as
+  its commit.
+- **Rationale**: git refuses a commit with nothing in it, and every failed `git commit` is a hook's
+  refusal to `land`, which undoes the write: it would have put back the text before the committed
+  one, in the working tree only, and reported a refusal no hook made. The files are committed, as
+  the action wanted; an amend over them would rewrite a commit not the action's.
+- **Alternatives considered**: an "already committed" error, which the server would show as a
+  failure though nothing failed; telling git's "nothing to commit" apart by its text, which depends
+  on git's language and runs the hooks first.
+- **If wrong**: a deferred commit whose files someone committed reports `HEAD` as its own commit.
+- **Where**: `crates/core/src/actions/deferred.rs`, review fix.

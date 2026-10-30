@@ -180,7 +180,8 @@ pub fn take(key: &Path) -> Vec<Taken> {
 }
 
 /// Runs the deferred commit `id` of the repository `key` with the hooks, as `commit` would have,
-/// `on_output` given each line git and its hooks print. On a hook's refusal, each file still
+/// `on_output` given each line git and its hooks print. When its files are committed already, it
+/// lands as `HEAD`, with no commit. On a hook's refusal, each file still
 /// holding what the write left gets back what it held before; the others are named after the
 /// hook's output. Called under the repository's write lock.
 pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed, ActionError> {
@@ -195,6 +196,9 @@ pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed,
     .ok_or_else(|| {
         ActionError::Refused(format!("no deferred commit {id}: it landed or was dropped"))
     })?;
+    if let Some(head) = already_committed(&deferred.place, &deferred.change)? {
+        return Ok(head);
+    }
     let landed = super::commit::run(&deferred.place, &deferred.change, deferred.only, on_output);
     match landed {
         Err(ActionError::Hook { message, output }) => {
@@ -211,6 +215,26 @@ pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed,
         }
         landed => landed,
     }
+}
+
+/// `HEAD` as the commit of `change`, when each of its paths is as `HEAD` has it, on disk and in
+/// the index: someone committed its files since the write, and git would refuse a commit with
+/// nothing in it. Its hooks are not run, and nothing is put back.
+fn already_committed(place: &Place, change: &Change) -> Result<Option<Committed>, ActionError> {
+    let git = Git::open(&place.root)?;
+    for path in &change.paths {
+        if !git.as_committed(path)? {
+            return Ok(None);
+        }
+    }
+    let commit = git
+        .head()
+        .map(|id| id.to_hex_with_len(7).to_string())
+        .unwrap_or_default();
+    Ok(Some(Committed {
+        change: change.clone(),
+        commit,
+    }))
 }
 
 /// Puts back what each file held before the write while it holds what the write left, and

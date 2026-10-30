@@ -147,3 +147,25 @@ fn a_deferred_commit_never_landed_leaves_its_files_written_uncommitted() {
     api::defer_commits(repo.path(), true);
     assert!(api::take_deferred(repo.path()).is_empty());
 }
+
+/// A deferred commit whose files someone committed meanwhile lands as HEAD, its hooks not run,
+/// and puts nothing back.
+#[test]
+fn a_deferred_commit_whose_files_were_committed_meanwhile_lands_without_undoing_them() {
+    let repo = deferring();
+    save_answers(&repo);
+    api::submit_answers(repo.path(), FOLDER, None, false).unwrap();
+    let submitted = repo.read(&in_worktree(ROUND));
+    let worktree = repo.path().join(WORKTREE);
+    common::repo::run_git(&worktree, &["add", "--", ROUND]);
+    common::repo::run_git(&worktree, &["commit", "--quiet", "-m", "answers by hand"]);
+    repo.set_hook("echo refused\nexit 1");
+
+    let (landed, lines) = land_one(&repo);
+
+    let head = common::repo::run_git(&worktree, &["rev-parse", "--short=7", "HEAD"]);
+    assert_eq!(landed.unwrap().commit, head.trim());
+    assert!(lines.is_empty(), "{lines:?}");
+    assert_eq!(repo.read(&in_worktree(ROUND)), submitted);
+    assert_eq!(repo.subjects(FOLDER)[0], "answers by hand");
+}
