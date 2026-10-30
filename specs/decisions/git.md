@@ -19,12 +19,11 @@ Tools never lose the user's work.
 - Tools MUST NOT switch the user's checkout unless the human asks. Checked by review.
 - Rust tools MUST read git with the gix library, and write through the system `git`, from one module
   of the core. Checked by review.
-- A branch's step MUST be read only from its latest commit, never from files on disk. Checked by the
-  core's workspace tests.
 - Proposal files, note files, and the human's inbox and priorities MUST be written on the default
   branch. Checked by the core's tests.
 - An agent's inbox notes MUST be written in its own worktree, never on the default branch. Checked
   by the CLI's tests.
+- A branch's step SHOULD be read from its latest commit. Checked by the core's workspace tests.
 - Tools SHOULD keep their worktrees out of the user's `git status`, without editing a tracked file.
   Checked by the core's tests.
 
