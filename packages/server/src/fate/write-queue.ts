@@ -75,7 +75,8 @@ export async function landed<T>(
   try {
     return (await refusable(() => added.landed)) as T;
   } catch (error) {
-    queue.dismiss(added.id);
+    // Messages kept for the feature's commits before it stay in it, for their composer.
+    queue.dismiss(added.id, true);
     throw error;
   }
 }

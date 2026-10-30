@@ -7,7 +7,7 @@ import { REFUSALS } from "../runner/sessions.ts";
 import { checkSend, type SendInput } from "../runner/send-input.ts";
 import type { WriteQueue } from "../writes/queue.ts";
 import type { RepoContext } from "./context.ts";
-import { type Kept, sendKept } from "./kept-sends.ts";
+import { type Kept, returnUnsent, sendKept } from "./kept-sends.ts";
 import { featureKeys } from "./write-queue.ts";
 
 /** The messages kept, by queue and folder, in the order they were sent. */
@@ -99,7 +99,11 @@ async function sendOnceLanded(
   const kept = folders.get(folder) ?? [];
   if (refused !== undefined) {
     folders.delete(folder);
-    queue.update(refused, { queued: kept.map(({ input }) => input.text).join("\n\n") });
+    // A call that answered with the refusal may have dismissed its write already.
+    if (!queue.update(refused, { queued: kept.map(({ input }) => input.text).join("\n\n") })) {
+      returnUnsent(ctx, folder, kept, "The commit it waited for was refused.");
+      return;
+    }
     for (const each of kept) {
       if (each.made) {
         ctx.sessions.cache.removeEmptySession(each.session);

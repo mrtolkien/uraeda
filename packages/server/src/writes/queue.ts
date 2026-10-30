@@ -170,13 +170,17 @@ export class WriteQueue {
     return { id: entry.write.id, landed };
   }
 
-  /** Changes a write still in the record: a start's steps, or the messages queued for it. */
-  update(id: string, change: Partial<Pick<QueuedWrite, "queued" | "steps">>): void {
+  /**
+   * Changes a write still in the record, a start's steps, or the messages queued for it: false when
+   * it is no longer there.
+   */
+  update(id: string, change: Partial<Pick<QueuedWrite, "queued" | "steps">>): boolean {
     const entry = this.#entries.find(({ write }) => write.id === id);
     if (entry) {
       Object.assign(entry.write, change);
       this.#changed();
     }
+    return entry !== undefined;
   }
 
   /**
@@ -221,10 +225,15 @@ export class WriteQueue {
     }
   }
 
-  /** Removes a refused write from the record; a write still landing stays. */
-  dismiss(id: string): void {
+  /**
+   * Removes a refused write from the record; a write still landing stays. A call whose refusal it
+   * answers with dismisses it `keepingMessages`: one holding messages kept for it stays, until the
+   * human dismisses it, so their composer takes them back.
+   */
+  dismiss(id: string, keepingMessages = false): void {
     const index = this.#entries.findIndex(({ write }) => write.id === id);
-    if (index !== -1 && this.#entries[index].write.state === "refused") {
+    const write = index === -1 ? undefined : this.#entries[index].write;
+    if (write?.state === "refused" && !(keepingMessages && write.queued !== undefined)) {
       this.#entries.splice(index, 1);
       this.#changed();
     }

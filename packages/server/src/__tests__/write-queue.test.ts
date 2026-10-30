@@ -225,3 +225,24 @@ test("a write's streamed output is sent at most once each 100 ms, and its end at
   expect(published).toHaveLength(moved);
   vi.useRealTimers();
 });
+
+test("a refused write its call dismisses stays while it holds messages kept for it", async () => {
+  const queue = new WriteQueue({ land: async () => {}, takeDeferred: () => [] }, () => {});
+  const refuse = (label: string) => {
+    const added = queue.add({ href: "", label }, () => Promise.reject(new Error("hook: refused")));
+    return added.landed.then(
+      () => added.id,
+      () => added.id,
+    );
+  };
+  const holding = await refuse("Making the change a feature");
+  const empty = await refuse("Making another change a feature");
+
+  expect(queue.update(holding, { queued: "Go on" })).toBe(true);
+  queue.dismiss(holding, true);
+  queue.dismiss(empty, true);
+
+  expect(queue.writes()).toMatchObject([{ id: holding, queued: "Go on", state: "refused" }]);
+  // Once gone, a write takes no messages: their sender returns them otherwise.
+  expect(queue.update(empty, { queued: "Lost" })).toBe(false);
+});

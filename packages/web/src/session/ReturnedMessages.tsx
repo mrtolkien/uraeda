@@ -9,8 +9,8 @@ import { useWriteQueue } from "../writes/useWriteQueue.ts";
 /** Why the composer holds a message it sent: it went back when the commit it waited for failed. */
 export const RETURNED = "Not sent: the commit it waited for was refused. Your message is back.";
 
-/** Why the composer holds a message it sent: its send was refused once its commits landed. */
-export const UNSENT = "Not sent: sending it failed. Your message is back.";
+/** Why the composer holds a message it sent: it could not be sent, as its toast says. */
+export const UNSENT = "Not sent: it could not be sent. Your message is back.";
 
 /** The refused writes whose messages this document put back in a composer already. */
 const taken = new Set<string>();

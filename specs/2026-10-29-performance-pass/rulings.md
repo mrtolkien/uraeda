@@ -1147,7 +1147,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   they landed; the first send refused stops them, and its text and the ones after it go in an
   `unsent` write of the queue, refused, its output the send's refusal, its `queued` their text. The
   sessions made only for them go while they have no turn. The composer of the feature's session
-  takes the text back, once, as R75 says, under "Not sent: sending it failed. Your message is
+  takes the text back, once, as R75 says, under "Not sent: it could not be sent. Your message is
   back."; the toast reads "Not sent: your message is back in its composer.", and its Open goes to
   the feature's session. A place's refusal banner never shows an `unsent` write.
 - **Rationale**: the send's refusal was only logged, the messages after it dropped, and a session
@@ -1156,3 +1156,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   them out of the order they were written in.
 - **Where**: `packages/server/src/fate/kept-sends.ts`, `writes/queue.ts` (`unsent`),
   `packages/web/src/session/ReturnedMessages.tsx`, `writes/CommitToast.tsx`, final review.
+
+## R90: A refused promote keeps the messages kept for the change's earlier commits
+
+- **Decision**: a call that answers with its write's refusal, a promote (R67), dismisses the write
+  unless messages kept for the feature's commits (R65) are in its `queued`: it then stays until the
+  human dismisses it, and the composer takes them back as R75 says. When the call dismissed it
+  before the messages reached it, they come back in an `unsent` write (R89), its output "The commit
+  it waited for was refused.".
+- **Rationale**: the promote's refusal dismissed its write at once, so the text of the messages kept
+  behind it had nowhere to go, and was lost.
+- **Where**: `packages/server/src/writes/queue.ts` (`dismiss`, `update`),
+  `packages/server/src/fate/write-queue.ts` (`landed`), `fate/commit-messages.ts`, final review.
