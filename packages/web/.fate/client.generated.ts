@@ -81,6 +81,11 @@ const mutations = {
     FateAPI['mutations']['feature.start']['input'],
     FateAPI['mutations']['feature.start']['output']
   >('StartPlan'),
+  'feature.startText': mutation<
+    StartPlan,
+    FateAPI['mutations']['feature.startText']['input'],
+    FateAPI['mutations']['feature.startText']['output']
+  >('StartPlan'),
   'inbox.add': mutation<
     Inbox,
     FateAPI['mutations']['inbox.add']['input'],

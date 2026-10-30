@@ -3,8 +3,9 @@
 // kept on the page. The lines of the priorities it was filled from leave them.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
+import { forgetUnsaved, unsavedKey } from "../fields/unsaved.ts";
 import { navigate } from "../routes.tsx";
 import {
   atRepo,
@@ -158,4 +159,131 @@ test("a change started from a line's Start on the Priorities page takes it out",
   await waitFor(() =>
     expect(read(repo)).not.toContain("\n- Claude Code runner (triggered manually)\n"),
   );
+});
+
+/** The composer's text, whichever card is picked, once it is drawn. */
+const composerText = async () =>
+  (
+    await waitFor(
+      () =>
+        screen.queryByRole("textbox", { name: "Message Claude Code" }) ??
+        screen.getByRole("textbox", { name: "Write Proposal" }),
+    )
+  ).textContent;
+
+/** A key pressed outside any field, as the registry hears it. */
+const press = (key: string) =>
+  act(async () => {
+    fireEvent.keyDown(document.body, { key });
+  });
+
+/** The repository with the line `text` in Now, without a file, committed. */
+function withNowLine(text: string) {
+  const repo = fixtureRepo();
+  writeFileSync(
+    join(repo, "specs/PRIORITIES.md"),
+    read(repo).replace(
+      "- [Plan review](/specs/2026-10-13-plan-review/proposal.md)\n",
+      `- [Plan review](/specs/2026-10-13-plan-review/proposal.md)\n- ${text}\n  - one nested line\n`,
+    ),
+  );
+  git(repo, "commit", "--quiet", "--all", "-m", "chore: a line of Now");
+  return repo;
+}
+
+/** The New page again, as after a reload: the store reads `localStorage` anew. */
+async function reloaded(repo: string, path: string) {
+  forgetUnsaved();
+  await act(async () => navigate(atRepo(path)));
+  const fake = await fakeAgent({ installed: false });
+  await renderPage(path, repo, {
+    agent: fake,
+    fetch: serverFetch(repo, fake.sessions),
+    reload: true,
+  });
+  await quiet();
+}
+
+/** The Change's text, a blank line, then the Feature's: no text an older page kept is dropped. */
+test("old drafts of the Change and Feature cards are joined into one, once", async () => {
+  const repo = fixtureRepo();
+  const old = (field: string, text: string) =>
+    window.localStorage.setItem(
+      unsavedKey(repo, field),
+      JSON.stringify({ at: new Date().toISOString(), base: "", text }),
+    );
+  old("new-change", "Centre the x");
+  old("new-feature-proposal", "Dark mode");
+  forgetUnsaved();
+
+  await renderPage("/new?kind=change", repo);
+  await quiet();
+
+  expect(await composerText()).toBe("Centre the x\n\nDark mode");
+  expect(window.localStorage.getItem(unsavedKey(repo, "new-change"))).toBeNull();
+  expect(window.localStorage.getItem(unsavedKey(repo, "new-feature-proposal"))).toBeNull();
+  // A reload reads the shared draft alone: nothing is joined twice.
+  await reloaded(repo, "/new?kind=feature");
+  expect(await composerText()).toBe("Centre the x\n\nDark mode");
+});
+
+/** The Start of the fifth line of Now, the one `withNowLine` adds, as the Priorities page's. */
+const startLine = () =>
+  act(async () => navigate(atRepo("/new?kind=feature"), { insert: "line:now-5" }));
+
+test("a line's Start replaces the draft, and `u` brings it back", async () => {
+  const repo = withNowLine("Proposal start flow");
+  const fake = await fakeAgent({ installed: false });
+  await renderPage("/priorities", repo, { agent: fake, fetch: serverFetch(repo, fake.sessions) });
+  await screen.findByRole("heading", { level: 1, name: "Priorities" });
+
+  // An empty composer: the line and its nested line, no link, and nothing to undo.
+  await startLine();
+  await quiet();
+  expect(await composerText()).toBe("Proposal start flow\n- one nested line");
+  expect(screen.queryByText("Draft replaced")).toBeNull();
+
+  // Over a draft: replaced, then back with `u`.
+  await act(async () => navigate(atRepo("/priorities")));
+  await screen.findByRole("heading", { level: 1, name: "Priorities" });
+  await act(async () => navigate(atRepo("/new?kind=change")));
+  const change = await screen.findByRole("textbox", { name: "Message Claude Code" });
+  // Emptied, the composer forgets the line it was filled from; then a draft of the human's own.
+  await type(change, "");
+  await type(change, "Widen the sidebar");
+  await act(async () => navigate(atRepo("/priorities")));
+  await screen.findByRole("heading", { level: 1, name: "Priorities" });
+  await startLine();
+  await quiet();
+  expect(await composerText()).toBe("Proposal start flow\n- one nested line");
+  await screen.findByText("Draft replaced");
+  await press("u");
+  await waitFor(async () => expect(await composerText()).toBe("Widen the sidebar"));
+
+  // Row: switching cards three times keeps the text byte for byte.
+  for (const kind of ["change", "session", "feature"]) {
+    await act(async () => navigate(atRepo(`/new?kind=${kind}`)));
+    await quiet();
+    expect(await composerText()).toBe("Widen the sidebar");
+  }
+  // Row: the draft brought back keeps no source of the line: a reload still holds its own text.
+  await reloaded(repo, "/new?kind=change");
+  expect(await composerText()).toBe("Widen the sidebar");
+  expect(JSON.parse(window.localStorage.getItem(unsavedKey(repo, "new-draft"))!).sources).toBe(
+    undefined,
+  );
+});
+
+/** What the composer was filled from is stored with its text: a reload keeps the line a source. */
+test("a line filled into the composer is still its source after a reload", async () => {
+  const repo = withNowLine("Alpha");
+  await filledFrom(repo, ["Alpha"]);
+
+  await reloaded(repo, "/new?kind=change");
+  await start();
+
+  await waitFor(() =>
+    expect(read(repo)).toContain("- [Alpha](/specs/changes/2026-10-16-alpha/proposal.md)"),
+  );
+  expect(read(repo)).not.toContain("- Alpha\n");
 });

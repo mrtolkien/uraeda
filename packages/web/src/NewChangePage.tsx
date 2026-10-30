@@ -10,13 +10,11 @@ import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
 import { useSlugProposal } from "./data.ts";
 import { refusal } from "./errors.ts";
-import type { useTextField } from "./fields/useTextField.ts";
-import type { Source } from "./NewEntries.tsx";
+import type { NewDraft } from "./newDraft.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { handOver, sessionPath } from "./sessions.ts";
 import { StartDialog } from "./StartDialog.tsx";
 import { takeOut } from "./useStartFrom.ts";
-import { useDraft } from "./useDraft.ts";
 import { FeatureView } from "./views.ts";
 
 /** How long typing must stop before the slug is proposed again, as the sidebar's search waits. */
@@ -44,7 +42,7 @@ type Started = { ok: true } | { message: string; ok: false };
  * text still goes, since it started, but only while it is the one sent: a newer text, typed while it
  * started, stays (R19).
  */
-function useStart(text: ReturnType<typeof useTextField>, sources: ReadonlyArray<Source>) {
+function useStart({ sent: clear, sources }: NewDraft) {
   const fate = useFateClient();
   const here = useRepoPath();
   const shown = useRef(true);
@@ -82,9 +80,7 @@ function useStart(text: ReturnType<typeof useTextField>, sources: ReadonlyArray<
       };
     }
     // The store's text now, not this page's: the human may have come back and typed another.
-    if (text.unsavedNow()?.text.trim() === sent) {
-      text.discard();
-    }
+    clear(sent);
     void takeOut(
       fate,
       sources.filter((source) => source !== line),
@@ -131,21 +127,18 @@ function SlugQuestion({
 }
 
 /**
- * The New page's change part: the composer, its text kept in the browser until the change starts
- * (R2), and a question for its slug once Ctrl+Enter sends it. `sources` are the entries the text
- * was filled from.
+ * The New page's change part: the composer, over the page's draft, kept in the browser until the
+ * change starts (R2), and a question for its slug once Ctrl+Enter sends it.
  */
 export function ChangeComposer({
+  draft,
   inputRef,
-  sources,
-  text,
 }: {
+  draft: NewDraft;
   inputRef: RefObject<ChatComposerInputHandle | null>;
-  sources: ReadonlyArray<Source>;
-  text: ReturnType<typeof useTextField>;
 }) {
-  const { images, setImages } = useDraft();
-  const start = useStart(text, sources);
+  const { images, setImages } = draft;
+  const start = useStart(draft);
   const [asking, setAsking] = useState<Asking>();
   const answer = (sent: boolean) => {
     asking?.resolve(sent);
@@ -167,14 +160,14 @@ export function ChangeComposer({
       <Composer
         images={images}
         inputRef={inputRef}
-        onChange={text.change}
+        onChange={draft.setText}
         onImagesChange={setImages}
         // The composer waits on the dialog: it sent, or the human cancelled it.
         onSend={(sent, sentImages) =>
           new Promise<boolean>((resolve) => setAsking({ images: sentImages, resolve, text: sent }))
         }
         sendLabel="Start the change"
-        value={text.text}
+        value={draft.text}
       />
       {asking && (
         <Suspense fallback={null}>

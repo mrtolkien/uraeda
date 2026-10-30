@@ -391,7 +391,7 @@ feature {title}", its `href` the input's, the New page by default. `SlugProposal
     `sources?: ReadonlyArray<Source>`. The old keys, `new-change` and `new-feature-proposal`, are
     joined into it at its first read and dropped.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```ts
 test("old drafts of the Change and Feature cards are joined into one, once", async () => {
@@ -430,12 +430,12 @@ text is the shared one, and stays.
 The breaks they catch: an old entry dropped or joined on every load; the Start appending; the Undo
 restoring nothing, or the line's sources; sources forgotten by a reload, the line added twice.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/web/src/__tests__/new-page.test.tsx`
 - Expected: FAIL, the joined test's composer text `""`
 
-- [ ] **Step 3: Implement the shared draft**
+- [x] **Step 3: Implement the shared draft**
 
 `newDraft.ts` owns the entry: its text and sources written together, an emptied text forgetting its
 sources, as `useSources` did. Its images and the session's run stay in a `useDraft` kept by the
@@ -443,12 +443,12 @@ repository's key, for the document's life. The New page draws each card's compos
 session's send calls `sent`, the change's start too, and `LineInsert` calls `start`. The undo
 restores the text and the sources the draft held before.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 `feat(proposal-start): one draft for the New page's three cards, a line's Start replacing it`
 

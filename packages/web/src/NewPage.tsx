@@ -14,21 +14,14 @@ import { SET_UP_PROJECT } from "uraeda-server/round-messages";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { Composer } from "./Composer.tsx";
 import { usePriorities, useWorkspace } from "./data.ts";
-import { useTextField } from "./fields/useTextField.ts";
 import { useKeys } from "./keys/registry.tsx";
 import { KindCards } from "./KindCards.tsx";
 import { Page } from "./layout/Page.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { ChangeComposer, StartError } from "./NewChangePage.tsx";
-import {
-  type Entry,
-  EntryLists,
-  insertion,
-  lineEntry,
-  type Source,
-  withAdded,
-} from "./NewEntries.tsx";
+import { type Entry, EntryLists, lineEntry } from "./NewEntries.tsx";
+import { type NewDraft, useNewDraft } from "./newDraft.ts";
 import { withInserted } from "./RecommendedMessage.tsx";
 import { currentEntry } from "./routeHistory.ts";
 import {
@@ -42,11 +35,8 @@ import {
   useSearch,
 } from "./routes.tsx";
 import { StartDialog } from "./StartDialog.tsx";
-import { composerDraft, useDraft } from "./useDraft.ts";
+import { composerDraft } from "./useDraft.ts";
 import { takeOut, useStartFrom } from "./useStartFrom.ts";
-
-/** The kinds, to go through them. */
-const KINDS: ReadonlyArray<NewKind> = ["session", "change", "feature"];
 
 /** A text's first line as a title: without a heading mark or the link an entry's insertion adds. */
 function titleOfText(text: string): string {
@@ -73,21 +63,20 @@ type Asking = { resolve: (started: boolean) => void; text: string };
  * slug.
  */
 function FeatureComposer({
+  draft,
   inputRef,
-  sources,
-  text,
 }: {
+  draft: NewDraft;
   inputRef: React.RefObject<ChatComposerInputHandle | null>;
-  sources: ReadonlyArray<Source>;
-  text: ReturnType<typeof useTextField>;
 }) {
   const starts = useStartFrom();
   const [asking, setAsking] = useState<Asking>();
   const [images, setImages] = useState<ReadonlyArray<DraftImage>>([]);
+  const { sources } = draft;
   const write = async (body: string, title: string) => {
     const opened = await starts.feature.fromText({ body, sources, title });
-    if (opened && text.unsavedNow()?.text.trim() === body) {
-      text.discard();
+    if (opened) {
+      draft.sent(body);
     }
     return opened;
   };
@@ -101,7 +90,7 @@ function FeatureComposer({
         hasAttach={false}
         images={images}
         inputRef={inputRef}
-        onChange={text.change}
+        onChange={draft.setText}
         onImagesChange={setImages}
         // Filled from an entry, its own title is the proposal's; else the title is asked.
         onSend={(sent) =>
@@ -111,7 +100,7 @@ function FeatureComposer({
         }
         placeholder="Write Proposal"
         sendLabel="Write the proposal"
-        value={text.text}
+        value={draft.text}
       />
       <StartError message={starts.error} />
       <StartDialog
@@ -203,89 +192,10 @@ function useComposerFocus(kind: NewKind | undefined) {
 }
 
 /**
- * What each kind's composer was filled from, and `insert`, which puts an entry into the picked
- * kind's composer, keeps it as one of them, and gives the field the focus.
+ * A proposal's Start opens the page with its line to put in the composer, in place of what it
+ * held: once, as soon as the priorities and the composer are there, and not again on a reload.
  */
-function useSources({
-  change,
-  feature,
-  input,
-  kind,
-  session,
-}: {
-  change: ReturnType<typeof useTextField>;
-  feature: ReturnType<typeof useTextField>;
-  input: React.RefObject<ChatComposerInputHandle | null>;
-  kind: NewKind | undefined;
-  session: ReturnType<typeof useDraft>;
-}) {
-  const [sources, setSources] = useState<Record<NewKind, ReadonlyArray<Source>>>({
-    change: [],
-    feature: [],
-    session: [],
-  });
-  const texts: Record<NewKind, string> = {
-    change: change.text,
-    feature: feature.text,
-    session: session.text,
-  };
-  // A composer emptied no longer holds what it was filled from. Only once emptied: a line inserted
-  // as the page opens, its text not drawn yet, stays.
-  const before = useRef(texts);
-  useEffect(() => {
-    const was = before.current;
-    before.current = texts;
-    setSources((all) => {
-      const emptied = KINDS.filter(
-        (of) => texts[of].trim() === "" && was[of].trim() !== "" && all[of].length > 0,
-      );
-      return emptied.length === 0
-        ? all
-        : { ...all, ...Object.fromEntries(emptied.map((of) => [of, []])) };
-    });
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- `texts` is these three
-  }, [change.text, feature.text, session.text]);
-  const insert = (entry: Entry) => {
-    if (kind === undefined) {
-      return;
-    }
-    const added = insertion(entry);
-    if (kind === "session") {
-      session.setText((text) => withAdded(text, added));
-    } else if (kind === "change") {
-      change.change(withAdded(change.text, added));
-    } else {
-      feature.change(withAdded(feature.text, added));
-    }
-    const source: Source = {
-      ...(entry.linked === undefined ? {} : { linked: entry.linked }),
-      ...(entry.section === undefined ? {} : { section: entry.section }),
-      id: entry.id,
-      inserted: added,
-      kind: entry.kind,
-      text: entry.text,
-    };
-    setSources((all) => ({
-      ...all,
-      [kind]: [...all[kind].filter((s) => !(s.kind === source.kind && s.id === source.id)), source],
-    }));
-    // The field takes the focus once the text is in: `Escape` goes back to the list's keys.
-    requestAnimationFrame(() => input.current?.focus());
-  };
-  return { insert, sources };
-}
-
-/**
- * A proposal's Start opens the page with its line to insert: once, as soon as the priorities and
- * the composer are there, and not again on a reload.
- */
-function LineInsert({
-  insert,
-  kind,
-}: {
-  insert: (entry: Entry) => void;
-  kind: NewKind | undefined;
-}) {
+function LineInsert({ kind, start }: { kind: NewKind | undefined; start: (entry: Entry) => void }) {
   const here = useRepoPath();
   const priorities = usePriorities();
   useEffect(() => {
@@ -299,7 +209,7 @@ function LineInsert({
     }
     const { insert: _, ...rest } = currentEntry();
     window.history.replaceState(rest, "");
-    insert(lineEntry(line, section.section, here));
+    start(lineEntry(line, section.section, here));
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, when the line and the composer are there
   }, [priorities, kind]);
   return null;
@@ -312,13 +222,13 @@ function LineInsert({
  * recommended message is inserted; each visit inserts it once, though the cards switch.
  */
 function useSetupMessage({
+  draft,
   input,
   kind,
-  session,
 }: {
+  draft: NewDraft;
   input: React.RefObject<ChatComposerInputHandle | null>;
   kind: NewKind | undefined;
-  session: ReturnType<typeof useDraft>;
 }) {
   const visit = useEntryId();
   const inserted = useRef(new Set<string | undefined>());
@@ -327,7 +237,10 @@ function useSetupMessage({
       return;
     }
     inserted.current.add(visit);
-    session.setText((typed) => withInserted(SET_UP_PROJECT, typed));
+    // A reload keeps the draft: a message it holds already is not inserted twice.
+    draft.setText((typed) =>
+      typed.startsWith(SET_UP_PROJECT.trimEnd()) ? typed : withInserted(SET_UP_PROJECT, typed),
+    );
     requestAnimationFrame(() => input.current?.focus());
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- once a visit, when the session's composer is there
   }, [kind, visit]);
@@ -359,12 +272,21 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
   // Without specs/, the setup's session alone: no priorities nor inbox to start from.
   const hasSpecs = !useWorkspace()?.noSpecs;
   const { box, focusComposer, focusOnDraw, input } = useComposerFocus(kind);
-  const session = useDraft();
   // Kept as a new chat's text is: leaving the page does not ask.
-  const change = useTextField("new-change", "", { drawn: false });
-  const feature = useTextField("new-feature-proposal", "", { drawn: false });
-  const { insert, sources } = useSources({ change, feature, input, kind, session });
-  useSetupMessage({ input, kind, session });
+  const draft = useNewDraft();
+  // The field takes the focus once an entry's text is in: `Escape` goes back to the list's keys.
+  const focusSoon = () => requestAnimationFrame(() => input.current?.focus());
+  const insert = (entry: Entry) => {
+    if (kind !== undefined) {
+      draft.insert(entry);
+      focusSoon();
+    }
+  };
+  const start = (entry: Entry) => {
+    draft.start(entry);
+    focusSoon();
+  };
+  useSetupMessage({ draft, input, kind });
   return (
     <Page kind="panes">
       <VStack gap={4}>
@@ -394,22 +316,20 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
         <div ref={box}>
           {kind === "session" && (
             <Composer
-              {...composerDraft(session)}
+              {...composerDraft(draft.kept)}
               inputRef={input}
+              onChange={draft.setText}
               onSent={(id) => {
-                void takeOut(fate, sources.session);
+                void takeOut(fate, draft.sources);
                 navigate(here(sessionIdPath(id)), { created: true });
               }}
+              value={draft.text}
             />
           )}
-          {kind === "change" && (
-            <ChangeComposer inputRef={input} sources={sources.change} text={change} />
-          )}
-          {kind === "feature" && (
-            <FeatureComposer inputRef={input} sources={sources.feature} text={feature} />
-          )}
+          {kind === "change" && <ChangeComposer draft={draft} inputRef={input} />}
+          {kind === "feature" && <FeatureComposer draft={draft} inputRef={input} />}
         </div>
-        {hasSpecs && <LineInsert insert={insert} kind={kind} />}
+        {hasSpecs && <LineInsert kind={kind} start={start} />}
         {hasSpecs && kind !== undefined && <EntryLists onInsert={insert} search={search} />}
       </VStack>
     </Page>

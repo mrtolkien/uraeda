@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
+import type { Source } from "../NewEntries.tsx";
 import type { Picked } from "../storyComment.ts";
 
 /** A field's text typed and not saved, as the store keeps it. */
@@ -17,6 +18,8 @@ export type Unsaved = {
   };
   /** The element picked in an embedded story, which a comment on it names. */
   picked?: Picked;
+  /** The entries the New page's draft was filled from, which its starts take out of their files. */
+  sources?: ReadonlyArray<Source>;
   /**
    * The comment an edit is of, as its number changes when comments before it go: a settled
    * comment's subject, or a review comment's lines.
