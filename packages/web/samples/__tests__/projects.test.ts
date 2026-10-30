@@ -53,6 +53,17 @@ test("sample has a feature at every step, and a change at each of its steps", as
   );
 });
 
+/** Whether a project is set up: the core lists no setup item, and Home shows no Setup pane. */
+const setUp = async (repo: string) => (await readWorkspace(repo)).setup.length === 0;
+
+/** Home shows the Setup pane on the projects not set up only, so it stays out of sample's reviews. */
+test("sample and realistic are set up, empty and bare are not", async () => {
+  expect(await setUp(projects.sample)).toBe(true);
+  expect(await setUp(projects.realistic)).toBe(true);
+  expect(await setUp(projects.empty)).toBe(false);
+  expect(await setUp(projects.bare)).toBe(false);
+});
+
 test("each folder is at the step SAMPLE_FOLDERS names it for", async () => {
   const { features } = await readWorkspace(projects.sample);
   const find = (folder: string) => features.find((feature) => feature.folder === folder);
