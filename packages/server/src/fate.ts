@@ -128,23 +128,47 @@ export const Root = Views;
 /** A live bus: the updates one fate server sends to the views subscribed to it. */
 export type LiveBus = ReturnType<typeof createLiveEventBus>;
 
+/** How long after a record's update a new subscription to it is still sent it. */
+export const LIVE_REPLAY_MS = 2000;
+
+/** A record's key in the live bus's times: its type and ID. */
+const recordKey = (type: string, id: string | number) => `${type}\u0000${id}`;
+
 /**
  * Live updates: the core's watcher marks what changed, and fate sends it to the views. A view reads
- * its data, then subscribes: each subscription is sent the current data once, so a change made
- * between the two is not missed until the next one.
+ * its data, then subscribes, a few milliseconds apart: a subscription to a record updated in the
+ * last 2 seconds is sent it once, so a change made between the two is not missed until the next
+ * one. A record that has not changed is not resolved again. `now` is the bus's clock, in ms.
  */
-function liveBus(): LiveBus {
+export function liveBus(now: () => number = Date.now): LiveBus {
   const bus = createLiveEventBus();
+  /** When each record, by its key, was last updated. */
+  const updated = new Map<string, number>();
+  /** Whether the record changed within the replay window; a record's older time is forgotten. */
+  const recent = (type: string, id: string | number) => {
+    const at = updated.get(recordKey(type, id));
+    if (at !== undefined && now() - at > LIVE_REPLAY_MS) {
+      updated.delete(recordKey(type, id));
+      return false;
+    }
+    return at !== undefined;
+  };
   return {
     ...bus,
     listen(type, id, handler, options) {
       const stop = bus.listen!(type, id, handler, options);
-      setTimeout(() => {
-        if (!options?.signal?.aborted) {
-          handler({ id, type: "update" });
-        }
-      });
+      if (recent(type, id)) {
+        setTimeout(() => {
+          if (!options?.signal?.aborted) {
+            handler({ id, type: "update" });
+          }
+        });
+      }
       return stop;
+    },
+    update(type, id, options) {
+      updated.set(recordKey(type, id), now());
+      bus.update(type, id, options);
     },
   };
 }

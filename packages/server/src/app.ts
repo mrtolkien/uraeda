@@ -118,6 +118,16 @@ const framed = (path: string) =>
   /^\/(r\/[^/]+\/)?mockups(\/|$)/.test(path) || PREVIEW_PATH.test(path);
 
 /**
+ * Says in `Server-Timing` how long the server took to answer, from the request to the response's
+ * headers, so the browser's timings can tell it from the network's.
+ */
+const timed = async (context: Context, next: Next) => {
+  const started = performance.now();
+  await next();
+  context.header("Server-Timing", `app;dur=${(performance.now() - started).toFixed(1)}`);
+};
+
+/**
  * The server's routes: each listed repository's under `/r/<name>/`, with its host's context and
  * fate server; the global `/fate`, which serves the list and refuses a repository's records; and
  * `/raw/*` and `/mockups/*`, links from before repositories had names, sent on to the most recently
@@ -135,6 +145,9 @@ export function createApp(options: AppOptions) {
   // stops.
   announceSettings(settings, hosts);
   const app: App = new Hono<{ Variables: FateVariables }>();
+  for (const path of ["/fate", "/r/:name/fate"]) {
+    app.use(path, timed);
+  }
   app.use(async (context, next) => {
     await next();
     if (!framed(context.req.path)) {

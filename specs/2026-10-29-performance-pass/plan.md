@@ -518,14 +518,15 @@ git commit -m "feat(performance-pass): the core answers reads from the workspace
 **Files:**
 
 - Modify: `packages/server/src/fate.ts` (`liveBus`), `packages/server/src/app.ts`
-- Test: `packages/server/src/__tests__/live.test.ts`
+- Test: `packages/server/src/__tests__/live.test.ts`; `live-stream.ts`, `session-moves.test.ts`, and
+  `sign-in/__tests__/frames.test.ts`, which waited for the update every subscription was sent
 
 **Interfaces:**
 
 - Produces: every response of `/fate` and `/r/<name>/fate` carries `Server-Timing: app;dur=<ms>`,
   which task 16 reads.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // packages/server/src/__tests__/live.test.ts
@@ -538,27 +539,27 @@ test("a subscription made with nothing changed gets no update", async () => {
 The break it catches: the bus sending an update on every subscription, which resolves each record
 twice; a bus that misses a change made between a read and its subscription.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/server/src/__tests__/live.test.ts`
 - Expected: FAIL, an update arrives with nothing changed.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The bus remembers when it last sent each record's update. A new subscription gets an update at once
 only when its record was updated within the last 2 seconds, covering the read made just before it.
 Add the `Server-Timing` header in a Hono middleware of `app.ts`, the time from the request to the
 response's headers.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS. Deferred to ready: the whole server suite.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
-git add packages/server/src/fate.ts packages/server/src/app.ts packages/server/src/__tests__/live.test.ts
+git add packages/server/src specs/2026-10-29-performance-pass
 git commit -m "feat(performance-pass): a subscription is sent a record only when it changed, and responses say their time"
 ```
 

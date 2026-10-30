@@ -125,3 +125,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Alternatives considered**: a `bigint` in the server's timing header; keeping the open events and
   invalidating only on the others, two filters for one question.
 - **Where**: task 3, `crates/core/src/cache.rs` and `crates/core/src/watch.rs`.
+
+## R12: Three tests stop waiting for the update every subscription was sent
+
+- **Decision**: `commitArrival` in `live-stream.ts`, the new session's test in
+  `session-moves.test.ts`, and the sign-out's test in `frames.test.ts` no longer wait for an update
+  sent at a subscription's start; the sign-out's counts the updates after it.
+- **Rationale**: they used that update to know the subscription had started, and R4 sends it only
+  for a record changed in the last 2 seconds. What each test checks, the update after a change, is
+  unchanged. The plan named only `live.test.ts`.
+- **Where**: task 4.

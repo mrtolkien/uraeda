@@ -308,7 +308,6 @@ test("a new session of a feature reaches a subscribed feature", async () => {
     select: ["id", "sessions"],
     type: "Feature",
   });
-  expect(await stream.arrival(first.id, 5000)).toBeDefined();
   const before = stream.mark();
 
   const created = await mutate(server.app, "session.new", { folder: AGENT }, ["id"]);

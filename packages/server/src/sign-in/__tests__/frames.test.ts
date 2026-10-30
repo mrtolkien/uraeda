@@ -172,13 +172,15 @@ test("a sign-out replaces the secret and restarts the Storybooks", async () => {
   const bus = server.hosts.byPath(server.hosts.get(name)!.path)!.live;
   const listening = new AbortController();
   bus.listen!("Preview", STORY_FEATURE, () => sent.push("Preview"), { signal: listening.signal });
-  await expect.poll(() => sent.length, WAIT).toBe(1);
+  // A subscription is sent its record at once only when it changed just before: count after it.
+  await new Promise((resolve) => setTimeout(resolve));
+  const replayed = sent.length;
 
   server.frames.replace();
 
   const after = server.frames.current();
   expect(after).not.toBe(before);
-  await expect.poll(() => sent.length, WAIT).toBe(2);
+  await expect.poll(() => sent.length, WAIT).toBe(replayed + 1);
   listening.abort();
   expect(previews.state(base)).toBeUndefined();
   expect(previews.state(`/r/${name}/preview/${before}/main/`)).toBeUndefined();
