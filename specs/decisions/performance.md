@@ -21,7 +21,7 @@ shown, so nothing waits on git for what git already said. It is a target to keep
   each feature's review.
 - Every navigation and every action SHOULD draw its result within 100 ms, and a reload within 1
   second, on a release build serving a repository the size of Uraeda's own. Checked by the
-  benchmark.
+  benchmark, against 100 ms and 1 second.
 - A page SHOULD NOT show a loading state: what it shows comes from what the server and the browser
   already hold. Checked by review and the benchmark.
 - A commit's hooks and an agent's work MAY take longer than the target, as long as their progress
