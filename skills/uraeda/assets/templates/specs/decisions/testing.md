@@ -41,7 +41,7 @@ a regression costs, in the present tense and at most 80 words.]
 
 ## Alternatives considered
 
-- [Optional: another stage, or another bar for UI tests, when it was a close call]
+- [Optional: another stage, or another bar for UI tests, when an agent could propose it again]
 
 ## Consequences
 

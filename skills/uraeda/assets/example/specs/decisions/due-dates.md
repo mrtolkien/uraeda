@@ -14,8 +14,8 @@ saving time.
 
 - Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type and the
   store's upgrade test.
-- Date arithmetic MUST go through `src/lib/dates.ts`. Checked by review.
-- Code MUST NOT convert a due date to a `Date`, except inside `src/lib/dates.ts` and to display it.
+- Date arithmetic MUST go through the app's date module. Checked by review.
+- Code MUST NOT convert a due date to a `Date`, except inside the date module and to display it.
   Checked by review.
 
 ## Why
@@ -39,8 +39,8 @@ move. A calendar day has no time to drift. History:
 
 ## Applies to
 
-- [Date helpers](/src/lib/dates.ts), [the task store](/src/store/tasks.ts), and any feature with
-  dates: recurring tasks, reminders, a calendar view
+- [Date helpers](/src/lib/), [the store](/src/store/), and any feature with dates: recurring tasks,
+  reminders, a calendar view
 
 ## Revisit when
 

@@ -40,5 +40,5 @@ its weekday, however late it is completed. History:
 
 ## Applies to
 
-- [The task store](/src/store/tasks.ts), and any feature that reads due dates or completion:
-  reminders, statistics, a calendar view
+- [The store](/src/store/), and any feature that reads due dates or completion: reminders,
+  statistics, a calendar view

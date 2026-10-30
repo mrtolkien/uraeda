@@ -24,3 +24,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `ura check specs` fails on the branch until the finish step; the pull request is
   marked ready only after it.
 - **Where**: task 4
+
+## R3: The example's decisions name folders, not the files inside them
+
+- **Decision**: the example's Due dates, Task storage, and UI components rules name the date module,
+  the upgrade, and the theme rather than their files, and Applies to links folders.
+- **Rationale**: the final review found them breaking the fifth test and the Applies to rule, while
+  the example is the model every agent copies. The example's plan quotes the new rules.
+- **Where**: the final review's fixes, `skills/uraeda/assets/example/specs/`

@@ -59,8 +59,8 @@ From [due dates](../decisions/due-dates.md):
 
 - Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type and the
   store's upgrade test.
-- Date arithmetic MUST go through `src/lib/dates.ts`. Checked by review.
-- Code MUST NOT convert a due date to a `Date`, except inside `src/lib/dates.ts` and to display it.
+- Date arithmetic MUST go through the app's date module. Checked by review.
+- Code MUST NOT convert a due date to a `Date`, except inside the date module and to display it.
   Checked by review.
 
 From [repeating tasks](../decisions/repeating-tasks.md):
@@ -76,14 +76,14 @@ From [task storage](../decisions/task-storage.md):
 - Data MUST be stored in IndexedDB, through `src/store/`. Checked by review.
 - Components MUST NOT call IndexedDB or the `idb` library directly. Checked by ESLint's
   `no-restricted-imports` and `no-restricted-globals` in `src/components/`.
-- A change to stored data MUST come with a versioned upgrade in `src/store/upgrades.ts`, tested on
-  data saved by the previous version. Checked by review, and by the upgrade's own test.
+- A change to stored data MUST come with a versioned upgrade, tested on data saved by the previous
+  version. Checked by review, and by the upgrade's own test.
 
 From [UI components](../decisions/ui-components.md):
 
 - Components MUST be written in the project, in `src/components/`. Checked by review.
-- Styles MUST use CSS modules, with the variables in `src/styles/theme.css`. Checked by Stylelint's
-  `color-no-hex` outside `theme.css`.
+- Styles MUST use CSS modules, with the theme's variables. Checked by Stylelint's `color-no-hex`
+  outside the theme.
 - Code MUST NOT add a UI component library (MUI, Chakra, shadcn/ui, ...) or a CSS framework. Checked
   by review of `package.json`.
 
