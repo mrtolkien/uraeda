@@ -491,7 +491,7 @@ impl Workspace {
         let pull_requests = crate::pulls::latest(&reading.main_root);
         features
             .iter_mut()
-            .for_each(|feature| pull_requests.apply(feature));
+            .for_each(|feature| pull_requests.apply(feature, git));
 
         let fetched = git.fetched_at();
         let mut workspace = Workspace {

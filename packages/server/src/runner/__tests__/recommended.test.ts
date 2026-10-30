@@ -17,6 +17,7 @@ const STEPS: Record<string, { reference?: string; waitsOn: string }> = {
   "pull-request": { waitsOn: "human" },
   "pull-request-changes": { reference: IMPLEMENTATION, waitsOn: "agent" },
   "pull-request-unknown": { reference: IMPLEMENTATION, waitsOn: "agent" },
+  push: { reference: IMPLEMENTATION, waitsOn: "agent" },
 };
 
 /** What `recommendedMessage` reads of a feature: its step, its pull request, and its agent. */
@@ -80,6 +81,19 @@ test("a step waiting on the agent recommends its own message", () => {
     }),
     trigger: "manual",
   });
+});
+
+/** The feature state pass's US5 1: an open pull request lacking the branch's commits */
+test("the push step recommends pushing the branch's commits", () => {
+  const message = recommendedMessage(input({ pullRequest: "open", step: "push" }));
+  expect(message).toMatchObject({
+    name: "Continue, push the branch's commits to its pull request",
+  });
+  expect("text" in message && message.text).toBe(
+    `/uraeda Continue the feature specs/${branch}/ on branch ${branch}: ` +
+      `Push the branch's commits to its pull request, starting with ${IMPLEMENTATION}.\n` +
+      "Stop when the pull request is ready for review, and earlier only if you need a decision from me.\n",
+  );
 });
 
 /** US4.2 */

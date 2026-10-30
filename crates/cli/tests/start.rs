@@ -439,7 +439,7 @@ fn feature_on_a_change_with_a_pull_request_is_refused() {
     std::fs::write(
         &gh,
         format!(
-            "#!/bin/sh\necho '[{{\"headRefName\":\"change/{BRANCH}\",\"number\":7,\"url\":\"https://github.com/o/r/pull/7\",\"isDraft\":false,\"reviewDecision\":\"\"}}]'\n"
+            "#!/bin/sh\necho '[{{\"headRefName\":\"change/{BRANCH}\",\"headRefOid\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"number\":7,\"url\":\"https://github.com/o/r/pull/7\",\"isDraft\":false,\"reviewDecision\":\"\"}}]'\n"
         ),
     )
     .unwrap();

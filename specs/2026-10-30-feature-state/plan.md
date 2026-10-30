@@ -603,14 +603,15 @@ read.
   - `PullRequests::apply(&self, feature, git: &Git)`: an open, non-draft pull request whose head
     lacks the branch's latest commit is `PullRequest::Unpushed`. A head that is the tip, a
     descendant of it, or a commit not in the local repository is `Open`. A merged pull request whose
-    head holds the branch's tip, with no open one, makes the feature `Step::done()`.
+    head holds the branch's tip, with no open one, makes the feature `Step::done()`, at a step the
+    pull request decides.
   - `StepName::Push`, `"push"`, waits on the agent, reference
     `skills/uraeda/references/implementation.md`, with `implemented: true`, ordered with
     `pull-request`.
   - `goal("push")`: work "Push the branch's commits to its pull request", stop "the pull request is
     ready for review".
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add rows to `pull_request_rows`: an open pull request whose head is the parent of the branch's tip
 reads `Push`, waiting on the agent. One whose head is a child of the tip, not fetched, reads
@@ -624,21 +625,21 @@ The break each test catches:
 - Behind: a local branch behind its pull request read as Push.
 - Merged: the merge seen only after a fetch.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test steps --test pulls`
 - Expected: FAIL, the ahead row reads `PullRequest`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 The ancestry check reads git through gix, in the core's git module. Rebuild the binding.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding packages/server specs/2026-10-30-feature-state/plan.md

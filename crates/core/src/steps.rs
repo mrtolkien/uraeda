@@ -20,6 +20,8 @@ pub enum StepName {
     Implementation,
     FinalReview,
     PullRequestChanges,
+    /// An open pull request lacks the branch's latest commits: push them.
+    Push,
     PullRequest,
     /// Past its last task, while `gh` cannot tell its pull request's state.
     PullRequestUnknown,
@@ -45,6 +47,7 @@ impl StepName {
             StepName::Implementation => "implementation",
             StepName::FinalReview => "final-review",
             StepName::PullRequestChanges => "pull-request-changes",
+            StepName::Push => "push",
             StepName::PullRequest => "pull-request",
             StepName::PullRequestUnknown => "pull-request-unknown",
             StepName::Finish => "finish",
@@ -68,8 +71,10 @@ pub enum WaitsOn {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PullRequest {
-    /// Open and ready for review.
+    /// Open and ready for review: its head holds the branch's latest commit.
     Open,
+    /// Open, its head lacking the branch's latest commit.
+    Unpushed,
     /// Open as a draft: the final review is done, and the feature is being finished.
     Draft,
     ChangesRequested,
@@ -179,7 +184,7 @@ impl Step {
             StepName::FinalReview => 9,
             StepName::Finish => 10,
             StepName::PullRequestChanges => 11,
-            StepName::PullRequest | StepName::PullRequestUnknown => 12,
+            StepName::Push | StepName::PullRequest | StepName::PullRequestUnknown => 12,
             StepName::Done => 13,
             StepName::None => 14,
         }
@@ -211,6 +216,7 @@ fn finished_step(kind: Kind, pull_request: PullRequest) -> Step {
         PullRequest::NoPullRequest | PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, changes),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
+        PullRequest::Unpushed => Step::agent(StepName::Push, "implementation"),
         PullRequest::Unknown => Step::agent(StepName::PullRequestUnknown, "finish"),
     };
     Step {
@@ -326,6 +332,7 @@ fn after_the_last_step(pull_request: PullRequest, without: StepName, reference: 
         PullRequest::Draft => Step::agent(StepName::Finish, "finish"),
         PullRequest::ChangesRequested => Step::agent(StepName::PullRequestChanges, reference),
         PullRequest::Open => Step::new(StepName::PullRequest, WaitsOn::Human),
+        PullRequest::Unpushed => Step::agent(StepName::Push, "implementation"),
         PullRequest::Unknown => Step::agent(StepName::PullRequestUnknown, reference),
     };
     Step {

@@ -217,7 +217,8 @@ pub struct NextStepView {
     pub task: Option<String>,
     /// Where the implementation is in the plan's tasks, for implementation.
     pub progress: Option<TaskProgress>,
-    /// `open`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends on it.
+    /// `open`, `unpushed`, `draft`, `changes-requested`, `none`, or `unknown`, when the step depends
+    /// on it.
     pub pull_request: Option<String>,
     /// Whether the plan waits for the human's review, for the steps before it is approved.
     pub plan_review: Option<bool>,

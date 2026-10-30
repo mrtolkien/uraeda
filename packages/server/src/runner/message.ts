@@ -62,6 +62,8 @@ function goal(step: string, planReview?: boolean): Goal {
       return { stop: READY, work: "Review the implementation" };
     case "pull-request-changes":
       return COMMENTS;
+    case "push":
+      return { stop: READY, work: "Push the branch's commits to its pull request" };
     case "change":
       return { stop: READY, work: "Investigate it, then make the change" };
     default:

@@ -137,13 +137,15 @@ fn a_changed_pull_request_shows_its_step_on_the_next_read() {
     repo.commit("finish: web ui");
     repo.switch("main");
     let root = Git::discover(repo.path()).unwrap().main_root();
+    let head = repo.git(&["rev-parse", FOLDER]).trim().to_string();
     let draft = |state| {
         let view = PullRequestView {
             number: 31,
             url: "https://github.com/o/r/pull/31".to_string(),
             state,
+            head: head.clone(),
         };
-        PullRequests::Known([(FOLDER.to_string(), view)].into())
+        PullRequests::open([(FOLDER.to_string(), view)])
     };
     pulls::remember(&root, draft(PullRequestState::Draft));
     let (_watcher, _receiver) = watching(&repo);

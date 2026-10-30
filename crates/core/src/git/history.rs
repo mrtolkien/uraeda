@@ -66,6 +66,18 @@ impl Git {
         Ok(commits)
     }
 
+    /// Whether the history of the commit whose full hash is `head` holds `commit`: `head` is it,
+    /// or one of its descendants. `None` when the repository does not have `head`, as a pull
+    /// request's head pushed from elsewhere and never fetched.
+    pub fn holds(&self, head: &str, commit: ObjectId) -> Option<bool> {
+        let head = ObjectId::from_hex(head.as_bytes()).ok()?;
+        if head == commit {
+            return Some(true);
+        }
+        self.repo.find_commit(head).ok()?;
+        Some(self.merge_base(head, commit).ok().flatten() == Some(commit))
+    }
+
     /// `git diff --numstat` between two commits, renames followed.
     pub fn numstat(
         &self,
