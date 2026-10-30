@@ -130,6 +130,18 @@ fn a_deferred_approval_with_a_proposed_decision_reads_its_approval() {
     assert_eq!(step_of(&repo), "approval");
 }
 
+/// Review focus 1: a hand edit of the approved spec itself, after the queued approval, is not
+/// read: the step is still the approval's.
+#[test]
+fn a_hand_edit_of_the_spec_after_a_deferred_approval_keeps_its_step() {
+    let repo = spec_to_review(&spec("awaiting-human", 1, 1));
+    api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap();
+
+    repo.write(&in_worktree(SPEC), &spec("changes-requested", 1, 1));
+
+    assert_eq!(step_of(&repo), "plan");
+}
+
 /// Review focus 2: undo puts back what the write left, never the committed version, and never over
 /// a later write.
 #[test]
@@ -242,6 +254,19 @@ fn a_deferred_commit_never_landed_leaves_its_files_written_uncommitted() {
     );
     api::defer_commits(repo.path(), true);
     assert!(api::take_deferred(repo.path()).is_empty());
+}
+
+/// An approval never landed, once deferral is off, no longer moves the step: it is the tip's.
+#[test]
+fn an_approval_never_landed_reads_the_gate_once_deferral_is_off() {
+    let repo = spec_to_review(&spec("awaiting-human", 1, 1));
+    api::approve(repo.path(), FOLDER, "spec.md", None, None, None).unwrap();
+    assert_eq!(step_of(&repo), "plan");
+
+    api::defer_commits(repo.path(), false);
+
+    assert!(repo.read(&in_worktree(SPEC)).contains("status: approved"));
+    assert_eq!(step_of(&repo), "human-gate");
 }
 
 /// A deferred commit whose files someone committed meanwhile lands as HEAD, its hooks not run,
