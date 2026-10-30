@@ -331,6 +331,7 @@ export const SessionView = view<Session>()({
   status: true,
   statusLabel: true,
   statusReason: true,
+  statusTurn: true,
   subagents: true,
   title: true,
   turns: true,

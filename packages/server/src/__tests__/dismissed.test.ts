@@ -145,3 +145,28 @@ test("a queued message taken back never asks for the human", async () => {
   sessions.seen(root, session.id);
   expect(await rowOf(server, session.id)).toEqual({ status: "idle", statusReason: null });
 });
+
+test("a failed run behind a queued message taken back is the one the banner dismisses", async () => {
+  const server = await testServer(fixtureRepo());
+  const { cache } = server.sessions;
+  const { session, turn } = await runningTurn(server, AGENT);
+  const takenBack = cache.addTurn({
+    allowed: null,
+    kind: "workflow",
+    sessionId: session,
+    state: "queued",
+    step: "plan",
+    trigger: "manual",
+  });
+  cache.endTurn(takenBack, { reason: TAKEN_BACK, state: "stopped" });
+  cache.endTurn(turn, { reason: "Crashed.", state: "failed" });
+
+  const [record] = await byId(server.app, "Session", [session], ["statusReason", "statusTurn"]);
+  expect(record).toMatchObject({ statusReason: "failed", statusTurn: String(turn) });
+  expect((await dismiss(server, takenBack)).error?.message).toBe(`refused: ${REFUSALS.takenBack}`);
+  expect(cache.turn(takenBack)).toMatchObject({ dismissedAt: null });
+  expect(await rowOf(server, session)).toEqual({ status: "attention", statusReason: "failed" });
+
+  expect((await dismiss(server, turn)).error).toBeUndefined();
+  expect(await rowOf(server, session)).toEqual({ status: "idle", statusReason: null });
+});

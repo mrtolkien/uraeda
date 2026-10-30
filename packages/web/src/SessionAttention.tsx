@@ -45,7 +45,8 @@ type AttentionSession = {
   id: string;
   status: SessionStatus;
   statusReason?: StatusReason | null;
-  turns: ReadonlyArray<string>;
+  /** The turn its status follows: its latest not taken back. */
+  statusTurn: string | null;
 };
 
 /** The banner's Dismiss, and why the server refused it, held by `Attention`. */
@@ -53,10 +54,11 @@ type Dismissal = { error: string | undefined; onDismiss: (turn: string) => void 
 
 /**
  * Why a session that needs attention stopped, and what the human does next, its item named as a
- * feature or a change; nothing for any other session. A failed run's text starts with its latest
- * turn's reason, when it has one. The dismissal is held here, not in the banner its idle status
- * takes away at once: a refusal shows under the banner, or alone in its place while it is hidden,
- * as long as the run it concerns is the latest or one still runs. Keyed by the session.
+ * feature or a change; nothing for any other session. A failed run's text starts with the reason
+ * of the turn its status follows, when it has one, and Dismiss sends that turn. The dismissal is
+ * held here, not in the banner its idle status takes away at once: a refusal shows under the
+ * banner, or alone in its place while it is hidden, as long as the run it concerns is the latest
+ * or one still runs. Keyed by the session.
  */
 export function Attention({
   folder,
@@ -68,7 +70,7 @@ export function Attention({
   const { dismiss, error } = useDismiss();
   const [sent, setSent] = useState<string>();
   const reason = session.status === "attention" ? session.statusReason : undefined;
-  const turn = session.turns.at(-1);
+  const turn = session.statusTurn ?? undefined;
   const refusal = turn === sent || session.status === "working" ? error : undefined;
   const dismissal: Dismissal = {
     error: refusal,
@@ -94,7 +96,7 @@ export function Attention({
   );
 }
 
-/** A failed run's banner, its latest turn's reason first. */
+/** A failed run's banner, its turn's reason first. */
 function FailedBanner({
   turn,
   ...banner
@@ -122,7 +124,7 @@ function AttentionBanner({
 }) {
   const workspace = useWorkspace();
   const item = workspace?.features.find((feature) => feature.folder === folder)?.kind ?? "feature";
-  const turn = session.turns.at(-1);
+  const turn = session.statusTurn;
   const reason = session.statusReason!;
   return (
     <RunBanner
@@ -130,7 +132,7 @@ function AttentionBanner({
       item={item}
       reason={reason}
       why={why}
-      {...(turn !== undefined && isDismissable({ reason, status: session.status })
+      {...(turn !== null && isDismissable({ reason, status: session.status })
         ? { onDismiss: () => dismissal.onDismiss(turn) }
         : {})}
     />

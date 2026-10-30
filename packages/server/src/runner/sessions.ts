@@ -19,6 +19,7 @@ import {
   ofDropped,
   refused,
   SERVER_STOPPED,
+  TAKEN_BACK,
   type SessionChange,
   type SessionContext,
 } from "./session-state.ts";
@@ -149,10 +150,7 @@ export class Sessions {
       .map((live) => live.folder as string);
   }
 
-  /**
-   * Whether any session of the repository, a feature's or a chat, has a turn running, starting, or
-   * queued.
-   */
+  /** Whether any session of the repository, a chat's too, has a turn running, starting, or queued. */
   busy(repo: string): boolean {
     return this.#busy(repo).length > 0;
   }
@@ -387,7 +385,8 @@ export class Sessions {
 
   /**
    * Dismisses a failed or stopped turn of the repository's: it no longer asks for the human. Refused
-   * while the turn runs or waits; a turn dismissed already, or done, is left as it is.
+   * while the turn runs or waits, and for a message taken back, which the status skips (`latestOf`);
+   * a turn dismissed already, or done, is left as it is.
    */
   dismiss(repo: string, turn: number): void {
     const row = this.cache.turn(turn);
@@ -397,6 +396,9 @@ export class Sessions {
     const session = this.#ownNow(repo, row.sessionId);
     if (row.state === "running" || row.state === "queued") {
       throw refused(REFUSALS.stillRunning);
+    }
+    if (row.state === "stopped" && row.reason === TAKEN_BACK) {
+      throw refused(REFUSALS.takenBack);
     }
     if (this.cache.dismiss(turn)) {
       // Its state, failed or stopped, sends it at once, with the list, the feature, the workspace,

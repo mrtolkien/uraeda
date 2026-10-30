@@ -129,6 +129,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     backgroundCommands: ctx.sessions.backgroundCommands(row.id),
     edited: ctx.sessions.cache.editedFiles(row.id),
     place: await placeOf(ctx, row, feature),
+    statusTurn: read.latest ? String(read.latest.id) : null,
     subagents: read.subagents,
     turns: read.turns.map((turn) => String(turn.id)),
     unseen: unseen(row, read),
