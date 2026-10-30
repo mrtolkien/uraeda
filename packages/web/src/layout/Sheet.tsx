@@ -11,6 +11,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { glassStyles } from "./glass.ts";
 import { useFieldFocus } from "./useFieldFocus.ts";
+import { useKeyboardInset } from "./useKeyboardInset.ts";
 
 const styles = stylex.create({
   // Astryx paints its surface on the sheet, its scrolling body, and its handle's band: taken away
@@ -22,6 +23,10 @@ const styles = stylex.create({
     interpolateSize: "allow-keywords",
     transitionProperty: "transform, opacity, height, max-height",
   },
+  // A sheet shorter than the screen, over the phone's keyboard: lifted by what it covers. Astryx
+  // follows the keyboard for a tall sheet alone, and a field focused as the sheet opens does not
+  // scroll the page to it.
+  lifted: (inset: number) => ({ marginBlockEnd: inset }),
   // The sheet's heading over its content, which takes the rest of the sheet's height: a part of it
   // that scrolls on its own stays in the sheet, under the parts after it.
   fill: {
@@ -46,6 +51,12 @@ const styles = stylex.create({
     paddingInline: spacingVars["--spacing-4"],
   },
 });
+
+/** The lift of a sheet that `isShort`, over the phone's keyboard while it shows. */
+function useKeyboardLift(isShort: boolean) {
+  const keyboard = useKeyboardInset();
+  return isShort && keyboard > 0 && styles.lifted(keyboard);
+}
 
 /** The sheet's top, its handle and its title row, where a drag up takes it to the whole screen. */
 const GRIP_PX = 64;
@@ -137,6 +148,7 @@ export function Sheet({
   const [onFull] = useState(() => () => setFull(true));
   usePullUp(panel, isOpen, onFull);
   useFieldFocus(panel, isOpen);
+  const lift = useKeyboardLift(height !== "tall" && !full);
   const close = (
     <Button
       icon={<Icon icon="close" />}
@@ -180,7 +192,7 @@ export function Sheet({
           ref.current = element;
         }
       }}
-      xstyle={[glassStyles.surface, glassStyles.docked, styles.sheet]}
+      xstyle={[glassStyles.surface, glassStyles.docked, styles.sheet, lift]}
     >
       {fills ? (
         <div {...stylex.props(styles.fill, isTitleInContent && styles.under)}>{content}</div>
