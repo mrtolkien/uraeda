@@ -1,7 +1,9 @@
 // Merge chats US1 1: the Sessions list keeps each card in the order it started, the oldest first,
 // so rows never jump as agents work; a session that became a change keeps its start. A card's
-// status is the server's, and a gate's label drops "ready" while an agent works on it.
+// status is the server's, and a gate's label drops "ready" while an agent works on it. Home splits
+// the features by that status, never by their step.
 import { expect, test } from "vite-plus/test";
+import { homeFeatures } from "../home/features.ts";
 import {
   byStart,
   byStatus,
@@ -90,6 +92,20 @@ test.each<[string, Feature, Status, string]>([
 
   expect(card.status).toEqual(status);
   expect(card.step?.label).toBe(label);
+});
+
+test.each<[string, Feature, "agents" | "human"]>([
+  ["a gate an agent works on is in progress", at("human-gate", WORKING, "spec"), "agents"],
+  [
+    "a failed run at an agent's step needs you",
+    at("implementation", { label: "Needs attention", status: "attention" }),
+    "human",
+  ],
+])("home: %s", (_, feature, pane) => {
+  const panes = homeFeatures([feature], []);
+
+  expect(panes.agents.length + panes.human.length).toBe(1);
+  expect(panes[pane]).toEqual([feature]);
 });
 
 /** An item of the sidebar: a name, its start, and its status. */
