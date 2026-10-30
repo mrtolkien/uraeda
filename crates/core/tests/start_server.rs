@@ -151,3 +151,18 @@ fn an_unreadable_priorities_file_refuses_the_start() {
     assert_eq!(repo.read(PROPOSAL_FILE), PROPOSAL);
 }
 
+/// Review: a folder where the feature's worktree goes refuses it as a taken slug, at the plan and
+/// at the start.
+#[test]
+fn a_folder_where_the_worktree_goes_is_a_taken_slug() {
+    let repo = refusing("");
+    let folder = format!("{}-login-banner", uraeda_core::today::today());
+    repo.write(&format!(".worktrees/{folder}/left-over.txt"), "x\n");
+
+    let planned = api::plan_start(repo.path(), PROPOSAL_FILE, None, Kind::Feature);
+    let refused = start(&repo);
+
+    let taken = "A feature named login-banner exists already";
+    assert_eq!(planned.err().map(|error| error.message).as_deref(), Some(taken));
+    assert_eq!(refused.message, taken);
+}

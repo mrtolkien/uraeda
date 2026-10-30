@@ -280,13 +280,17 @@ impl Start<'_> {
         })
     }
 
-    /// The dated folder for a slug, and where its worktree goes: refused when the folder is taken,
-    /// or when its worktree's folder exists.
+    /// The dated folder for a slug, and where its worktree goes: refused as taken when the folder
+    /// is, or when its worktree's folder exists.
     fn claim(&self, slug: &str, today: Date) -> Result<(String, PathBuf), StartError> {
         let folder = self.free_folder(slug, today)?;
         let worktree = place::worktree_path(self.git, &folder);
         if !self.run.switch && worktree.exists() {
-            return Err(GitError::WorktreeExists(format!(".worktrees/{folder}")).into());
+            return Err(StartError::Taken {
+                slug: slug.to_string(),
+                kind: self.kind,
+                message: GitError::WorktreeExists(format!(".worktrees/{folder}")).to_string(),
+            });
         }
         Ok((folder, worktree))
     }

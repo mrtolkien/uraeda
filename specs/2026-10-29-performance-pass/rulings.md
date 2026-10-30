@@ -553,3 +553,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   plan's answer, with the same message.
 - **Where**: `crates/core/src/actions/start/plan.rs`, `crates/core/src/api/start.rs`, review of
   task 11.
+
+## R48: A folder where the worktree goes is a taken slug, and the editor's start says so
+
+- **Decision**: a start whose `.worktrees/<folder>` exists is refused as a taken slug, like a
+  folder, a branch, or a record holding the name: through the API, a feature's reads "A feature
+  named <slug> exists already"; `ura` and a change's keep the core's "cannot create the worktree:
+  .worktrees/<folder> exists". The language server's start, which calls `api::start_feature`, now
+  reads "A feature named <slug> exists already" for any taken slug, where it read the core's
+  "<folder> exists: choose another slug with --slug".
+- **Rationale**: the worktree's folder takes the name as the others do, and is no git failure. The
+  editor has no `--slug` to choose another with: the feature's name fits it better than a hint at a
+  flag it cannot pass.
+- **If wrong**: the editor names the feature, not the folder that takes its name.
+- **Where**: `crates/core/src/actions/start/plan.rs`, `crates/lsp/src/commands.rs`, review of task
+  11.
