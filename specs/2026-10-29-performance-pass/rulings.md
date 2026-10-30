@@ -464,6 +464,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   TypeScript.
 - **If wrong**: a note added to an empty category shows once the add answers.
 - **Where**: review of the web UI's writes.
+
 ## R41: A committing call waits for the queued commits of its keys, named before it runs
 
 - **Decision**: each committing mutation names keys before its core call: `feature:<folder>` for a
