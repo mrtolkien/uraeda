@@ -12,7 +12,8 @@ With `ura`, `ura check` measures some of these rules as warnings:
 
 - on a file waiting for the human (`status: awaiting-human`): `block.count`, `block.items`, and
   `writing.sentence`, and on a spec, `spec.length`;
-- on every decision: `decision.rules` and `decision.order`;
+- on every decision: `decision.intent`, `decision.rules`, `decision.keywords`, `decision.order`,
+  `decision.why`, `decision.alternatives`, and `decision.consequences`;
 - on a decision edited on a branch after its spec's approval: `decision.unapproved`.
 
 Warnings do not fail the check, but a waiting file should have none. The parts are errors:
@@ -221,21 +222,39 @@ opening anything else, so each rule below keeps it short and whole.
 
 A decision, in `specs/decisions/`, is written from
 [its template](../assets/templates/specs/decisions/decision-topic.md), as
-[writing a decision](spec.md#writing-a-decision) describes. Agents read it before every task it
-applies to, and the human approves each of its lines.
+[writing a decision](spec.md#writing-a-decision) describes. Agents often read it alone, before a
+task, without the record of the feature that made it. The human approves each of its lines. Each
+rule below keeps it whole and short: length lowers how well an agent follows each line.
 
-34. **The intent first.** Two or three sentences before `## Rules`: the choice and what it protects.
-    A reader who stops there knows what the decision is for. A decision states intent, not
-    mechanism: see [what is a decision](spec.md#what-is-a-decision).
-35. **One sentence per rule**, then how it is checked: "Checked by review." A rule holding two ideas
-    is two rules, or one too detailed.
+34. **The intent first, in 3 sentences at most.** Before `## Rules`: the choice and what it
+    protects. A reader who stops there knows what the decision is for. A decision states intent, not
+    mechanism: see [what is a decision](spec.md#what-is-a-decision). `decision.intent` warns on a
+    fourth sentence.
+35. **One keyword per rule**, then how it is checked: "Checked by review." A rule holding two MUST,
+    SHOULD, or MAY is two rules, or one too detailed. MUST NOT counts as one keyword, and neither a
+    keyword in inline code nor one after "Checked by" counts. `decision.keywords` warns on a rule
+    with two.
 36. **Strongest first.** A rule's strength is its first RFC 2119 keyword. MUST and MUST NOT come
     first, then SHOULD and SHOULD NOT, then MAY, the most important first within a strength.
     `decision.order` warns on a rule stronger than the one before it.
 37. **At most 10 rules.** Past 10, merge rules by concept, or split the topic into two decisions.
     `decision.rules` warns on an eleventh rule.
-38. **The history stays in the record.** How the choice came about, and the investigation behind it,
-    stay in the feature's record, linked from **Why**. The decision says what holds now.
+38. **The Why gives the reason, in 80 words at most.** The problem and what the choice protects, in
+    the present tense: an agent applies a rule to a case it does not name from its reason. A link's
+    text counts as words, its target does not. `decision.why` warns past 80 words.
+39. **No history in the Why.** It says what holds now, never who asked what, or when, and cites no
+    question or review comment. It quotes the human only when their words are the reason, like
+    "we're a todo app, not a calendar". It ends with at most one link, to the feature's record:
+    `History: [Recurring tasks](../done/2026-10-06-recurring-tasks.md).` The record keeps how the
+    choice came about.
+40. **At most 3 alternatives and 4 consequences.** Alternatives list only the options an agent could
+    propose again, one line each with why they lose. Consequences list only the costs the human
+    accepted and what a later feature must do, with no code facts. `decision.alternatives` and
+    `decision.consequences` warn past their limits.
+41. **Terms defined at their first use**, in a few words: "fate, its data library". The decision is
+    read alone, so a term defined in another decision, or in a record, is not defined.
+42. **Applies to names folders and kinds of features**, not the files inside a folder: agents find
+    the decision from what they touch, and a file's name changes without the human.
 
 ## Self-review
 
