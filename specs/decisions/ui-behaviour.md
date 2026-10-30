@@ -1,14 +1,15 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: mouse-pointer-click
 ---
 
 # UI behaviour
 
 The web UI acts on things where they are, and never loses what the human typed or where they were.
-Text saves only when the human says so, or, in an outline's row, as they leave it. A slow write to
-git shows clearly while it runs. Everything works by tap and by keyboard, not by hover.
+Text saves only when the human says so, or, in an outline's row, as they leave it. A write shows its
+result at once, and a write to git its progress until it lands, without the human waiting.
+Everything works by tap and by keyboard, not by hover.
 
 ## Rules
 
@@ -20,8 +21,10 @@ git shows clearly while it runs. Everything works by tap and by keyboard, not by
   Checked by review.
 - Status MUST show next to what it concerns, and an error MUST stay there until dealt with, never
   only in a toast. Checked by review.
-- A git write MUST show its action at once and never a guessed status, and MUST block other git
-  writes until it ends. Checked by review.
+- A write MUST show its result at once and take the human where it leads, and a refused write MUST
+  put back what it showed and say why next to what it concerns. Checked by review.
+- A git write MUST show its progress in a toast until it lands, and git writes MUST land one after
+  another, in the order they were made, without blocking the human. Checked by review.
 - Back and reload MUST keep the human's place and what they were reading. Checked by review.
 - Every action MUST work by tap and by keyboard, never by hover alone. Checked by review.
 - A view of something that grows, such as a session's log, MUST mount a bounded number of rows, and
@@ -43,6 +46,10 @@ an image added to a field does
 ([images](../done/2026-10-14-text-inputs.md#q6-should-adding-an-image-still-save-its-field-at-once)).
 Commits take seconds while hooks run, so the human asked for "EXTREMELY CLEAR feedback" on writes
 ([feedback for git writes](../done/2026-10-16-redesign-interface.md#q9-what-does-a-button-that-writes-to-git-show-while-it-runs)).
+Waiting on each commit then made the UI feel sluggish: the human wants it "to feel instant, but we
+don't have to 'lie' to the user". A write shows its result and moves on, while a toast says what is
+still landing; Uraeda's own commits only hold text and notes, so a refusal is rare
+([how a commit shows](../2026-10-29-performance-pass/clarifications-01.md#q4-how-should-a-commit-show-while-it-runs)).
 
 A session's 12-hour turn held 1,800 items, 97% of them tool calls, and drew about 500 of them:
 Astryx's tool-call group mounts every row even folded, so typing lagged and old messages never
@@ -50,6 +57,10 @@ folded. Bounding by messages, not by what draws, was the gap.
 
 ## Alternatives considered
 
+- A git write showing its action, never a guessed status, and blocking the other git writes until it
+  ends, the earlier rule: every commit stopped the human for its hooks' seconds.
+- Git writes queued behind the running one, but shown as their action only: the human still waited
+  for the page a commit leads to.
 - No toasts at all: confirmations from another page have nowhere to show.
 - Text areas growing with their text, except an outline's row, which wraps in its place as its row
   does: the page moved under the human as they typed.
@@ -62,7 +73,10 @@ folded. Bounding by messages, not by what draws, was the gap.
 
 - Fields that save text share one hook, which keeps unsaved text on the same device only. An
   outline's row has its own hook, `useOutlineField`, and keeps no unsaved text.
-- Git writes share one record of writes in flight, so two never start from the UI at once.
+- Git writes share one queue on the server, so they land in the order they were made, from every
+  tab, and the toast shows the same queue everywhere.
+- A hook's refusal undoes what the page showed, after the human may have moved on: its error stays
+  next to what it concerns, and in the toast, until dealt with.
 - Every list with a pane shares one keyboard behaviour, following Linear and Gmail
   ([keys in a list](../done/2026-10-16-redesign-priorities.md#q6-which-keys-move-through-the-list)).
 
