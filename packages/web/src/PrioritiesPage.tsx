@@ -12,7 +12,7 @@ import { PrioritiesList } from "./lists/PrioritiesList.tsx";
 import type { WorkLayout } from "./lists/WorkList.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { useRestoreScroll } from "./routes.tsx";
-import { useOpenAddForm } from "./SidebarAdd.tsx";
+import { AddBar, useOpenAddForm } from "./SidebarAdd.tsx";
 import { PrioritiesView } from "./views.ts";
 import { PageTitle } from "./layout/PageTitle.tsx";
 
@@ -145,6 +145,7 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
           select={select}
         />
       </VStack>
+      <AddBar form="proposal" />
     </Page>
   );
 }

@@ -9,7 +9,7 @@ import { OrganizeButton, OrganizeMessage, TriageBanner } from "./InboxTriage.tsx
 import { useStartChat } from "./StartChat.tsx";
 import { Page } from "./layout/Page.tsx";
 import { useKeys } from "./keys/registry.tsx";
-import { useOpenAddForm } from "./SidebarAdd.tsx";
+import { AddBar, useOpenAddForm } from "./SidebarAdd.tsx";
 import { useCategoryActions } from "./lists/useCategoryActions.ts";
 import { useRestoreScroll } from "./routes.tsx";
 import { Empty } from "./layout/Empty.tsx";
@@ -77,6 +77,7 @@ export function InboxPage({ select }: { select?: { key: string } | undefined } =
           select={select}
         />
       </VStack>
+      <AddBar form="note" />
     </Page>
   );
 }
