@@ -6,7 +6,8 @@ import { useAgent } from "./data.ts";
 import { openAtEnd, windowPlace } from "./following.ts";
 import { currentEntry } from "./routes.tsx";
 import { Tail } from "./tail.tsx";
-import type { Actions } from "./TranscriptMessages.tsx";
+import { useSent } from "./sentMessages.ts";
+import { type Actions, SentMessage } from "./TranscriptMessages.tsx";
 
 export { elapsed } from "./TurnLines.tsx";
 export { type Actions, sentAt } from "./TranscriptMessages.tsx";
@@ -50,6 +51,8 @@ export function Transcript({
   stretchHref?: (key?: string) => string;
 }) {
   const agent = useAgent();
+  // The messages sent and not drawn by the tail yet, at its end.
+  const sent = useSent(session.id);
   const list = useRef<HTMLDivElement>(null);
   // The log announces nothing: the session's announcer says when a turn starts and ends, not each
   // word streamed. Astryx's `ChatMessageList` sets `aria-live` after the props it passes on.
@@ -92,6 +95,9 @@ export function Transcript({
       xstyle={styles.list}
     >
       <Tail actions={actions} key={session.id} onSettled={settled} turns={session.turns} />
+      {sent.map((one) => (
+        <SentMessage actions={actions} key={one.id} sent={one} />
+      ))}
     </ChatMessageList>
   );
 }

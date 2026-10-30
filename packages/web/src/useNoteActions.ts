@@ -5,10 +5,11 @@
 import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
-import { readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
+import { readInbox, readPriorities, readPrioritiesHash, rereadChanges } from "./data.ts";
 import { guarded, refusal } from "./errors.ts";
 import { withFreshBase } from "./freshBase.ts";
 import { useUndoToast } from "./layout/useUndoToast.ts";
+import { notePutBack, notesRemoved } from "./optimisticLists.ts";
 import { TITLES } from "./QuickAdd.tsx";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { InboxView, ProposalFileView } from "./views.ts";
@@ -21,6 +22,20 @@ type Fate = ReturnType<typeof useFateClient>;
 /** A note's lines as written, and its place, which an Undo puts it back to. */
 function at({ category, index, note }: Placed) {
   return { index, lines: note.lines, ...(category === undefined ? {} : { category }) };
+}
+
+/**
+ * The inbox as a move of `placed` leaves it, `gone`, or as its Undo does, its note back: fate's
+ * optimistic result, from the inbox the browser holds, if it holds it.
+ */
+async function shownAs(fate: Fate, placed: Placed, gone: boolean) {
+  const now = await readInbox(fate, "cache-first").catch(() => undefined);
+  const shown = now
+    ? gone
+      ? notesRemoved(now.categories, (note) => note.id === placed.note.id)
+      : notePutBack(now, placed)
+    : undefined;
+  return shown ? { optimistic: shown } : {};
 }
 
 /** An Undo's write: its refusal, if any, once both files are read again for the commit tab. */
@@ -81,12 +96,14 @@ function useMovesOut(
   const here = useRepoPath();
 
   const toProposal = async (section: string) => {
+    const shown = await shownAs(fate, placed, true);
     const result = await run(() =>
       withFreshBase(
         (mode) => readPrioritiesHash(fate, mode),
         (prioritiesHash) =>
           fate.mutations.inbox.toProposal({
             input: { ...input, prioritiesHash, section },
+            ...shown,
             view: InboxView,
           }),
       ),
@@ -96,11 +113,12 @@ function useMovesOut(
     }
     left();
     const proposalKey = await movedKey(fate, section, placed.note.text);
-    toast(`Moved to ${TITLES.get(section)}, not committed`, () =>
+    toast(`Moved to ${TITLES.get(section)}, not committed`, async () =>
       undone(
         fate,
         fate.mutations.inbox.undoToProposal({
           input: { ...at(placed), section, ...(proposalKey === undefined ? {} : { proposalKey }) },
+          ...(await shownAs(fate, placed, false)),
           view: InboxView,
         }),
       ),
@@ -109,12 +127,14 @@ function useMovesOut(
   };
 
   const underProposal = async (line: UnderLine) => {
+    const shown = await shownAs(fate, placed, true);
     const result = await run(() =>
       withFreshBase(
         (mode) => readPrioritiesHash(fate, mode),
         (prioritiesHash) =>
           fate.mutations.inbox.underProposal({
             input: { ...input, prioritiesHash, proposal: line.id },
+            ...shown,
             view: InboxView,
           }),
       ),
@@ -129,11 +149,12 @@ function useMovesOut(
       now?.sections.flatMap((s) => s.proposals).find((proposal) => proposal.key === line.key)
         ?.children ?? [];
     const moved = children.findLast((child) => child.depth === 1)?.key;
-    toast(`Moved under "${shortened(line.text)}", not committed`, () =>
+    toast(`Moved under "${shortened(line.text)}", not committed`, async () =>
       undone(
         fate,
         fate.mutations.inbox.undoUnderProposal({
           input: { ...at(placed), proposalKey: line.key },
+          ...(await shownAs(fate, placed, false)),
           view: InboxView,
         }),
       ),
@@ -173,11 +194,12 @@ function useAddsIn(
       return;
     }
     const path = (result.result as { path?: string } | undefined)?.path ?? file;
-    toast(`Added to ${shortened(title)}, not committed`, () =>
+    toast(`Added to ${shortened(title)}, not committed`, async () =>
       undone(
         fate,
         fate.mutations.inbox.undoIntoProposal({
           input: { ...at(placed), file: path },
+          ...(await shownAs(fate, placed, false)),
           view: InboxView,
         }),
       ),

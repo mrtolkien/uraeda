@@ -291,3 +291,59 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   repository, or the missing one shown, would draw the unknown repository's page until the removal
   is done and the page moves on.
 - **Where**: task 9.
+## R28: Optimistic results cover the write's own record, from what the browser holds
+
+- **Decision**: a list's or a session's write passes fate's `optimistic` with the fields of the
+  record it answers that the input decides: the inbox's `categories`, `count`, and `names`, the
+  priorities' `sections`, a session's `title`, `archived`, `unseen`, and `allowable` after "Allow
+  all". A row added, or put back by an Undo, gets a temporary id, `optimistic:<n>`, and a key,
+  `pending:optimistic-<n>`, which the outliners take for a row not written yet, until the answer's.
+  Its spans are its text, plain, as the outliners draw a row not written yet. The calls left to the
+  server's answer: those whose result only the core or the runner computes, a new file's path
+  (`proposals.expand`, `inbox.intoProposal`, `inbox.intoProposalLine`), a new session
+  (`session.newChat`), a change started (`session.toChange`, a commit), a category deleted with its
+  notes kept, whose notes the core places, `inbox.restoreCategory` and `inbox.restoreImage`, which
+  write a file's text back, `session.allow`, `session.stop`, and `session.takeBack`, whose effects
+  the runner decides or the transcript's pages hold, not the session's record. A move from the inbox
+  shows the note gone at once; the priorities show it in Now once the move answers, and the page
+  opens there then.
+- **Rationale**: fate's `optimistic` changes only the record the mutation answers, and the inbox's
+  moves answer the inbox: the priorities are another record, which no public fate call writes to.
+  The Stack decision keeps what the core computes, ids, keys, a note's lines, a hash, out of
+  TypeScript. A temporary key the outliners take as pending keeps a key or a click from writing to a
+  row the file does not have yet.
+- **Alternatives considered**: writing the priorities' record in fate's store by its internal
+  `write`, which its types expose but its docs do not; a move answering both records, a server
+  change outside this task's files.
+- **If wrong**: a move's optimistic priorities need the server to answer it with both records.
+- **Where**: task 10.
+
+## R29: A sent message shows from the browser until the transcript draws the server's
+
+- **Decision**: a message the composer sends to a session, not the workflow's, shows at once at the
+  end of the transcript as the human's message not read yet (`sentMessages.ts`, `SentMessage`), and
+  goes once the send answers: refused, at once, its text back in the composer as before; sent, once
+  the browser holds the new turn it started and that turn's last page, or at once when it went into
+  a turn the transcript already draws.
+- **Rationale**: the transcript's messages are items of `TurnLog` pages, which `session.send` does
+  not answer: its optimistic result could only change the session's record. The turn, the message's
+  ID, and its place are the server's. Reading the new turn before the message goes leaves no gap
+  where neither shows. The workflow's message may start a new session the page then opens.
+- **Alternatives considered**: a temporary turn in the session's `turns`, which the transcript would
+  read from the server, and fail to find.
+- **If wrong**: a message steered into the running turn can show twice for the moment between its
+  live update and the send's answer.
+- **Where**: task 10.
+
+## R30: The outliners wait for the version the browser holds, not up to 2 seconds
+
+- **Decision**: the outliners keep drawing their own results ahead of the file, and each write still
+  goes over the version the one before it left. `useWritesInTurn` no longer waits up to 2 seconds
+  for the list to show another version: once a write resolves, fate holds its answer, and the next
+  write waits only until that version is drawn, or not at all when it is the version drawn, as after
+  a write that left the file as it was. A list no longer drawn lets its writes go on.
+- **Rationale**: the outliners' rows not written yet are their own pending rows, dropped once the
+  drawn version is past theirs: a write over a version not drawn yet would drop the next row's
+  pending text before the file has it. Their edits, indents, and drops are the core's outline edits,
+  which an optimistic `categories` or `sections` would compute in TypeScript.
+- **Where**: task 10.

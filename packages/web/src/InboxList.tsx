@@ -19,6 +19,7 @@ import { useUndoToast } from "./layout/useUndoToast.ts";
 import { navigate, useRepoPath } from "./routes.tsx";
 import { plain, Spans } from "./Spans.tsx";
 import type { Placed } from "./useNoteActions.ts";
+import { notePutBack } from "./optimisticLists.ts";
 import { InboxView } from "./views.ts";
 import { proposalFilePage } from "./readAhead.ts";
 
@@ -152,6 +153,7 @@ function useInboxOutline(
             view: InboxView,
           }),
         ),
+      held: async () => (await readInbox(fate, "cache-first")).hash,
       read: (now) => ({
         hash: now.hash,
         sections: panesOf(now).map((category) => ({
@@ -209,12 +211,20 @@ async function putBack(
   { category, index, note }: Placed,
 ): Promise<string | undefined> {
   const result = await withFreshBase(
-    async (mode) => (await readInbox(fate, mode)).hash,
-    (hash) =>
-      fate.mutations.inbox.insert({
-        input: { hash, index, lines: note.lines, ...(category === undefined ? {} : { category }) },
+    (mode) => readInbox(fate, mode),
+    (now) => {
+      const shown = notePutBack(now, { category, index, note });
+      return fate.mutations.inbox.insert({
+        input: {
+          hash: now.hash,
+          index,
+          lines: note.lines,
+          ...(category === undefined ? {} : { category }),
+        },
+        ...(shown ? { optimistic: shown } : {}),
         view: InboxView,
-      }),
+      });
+    },
   );
   rereadChanges(fate);
   return result.error ? refusal(result.error).message : undefined;

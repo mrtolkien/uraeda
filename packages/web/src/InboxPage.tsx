@@ -28,7 +28,7 @@ export function InboxPage({ select }: { select?: { key: string } | undefined } =
   const agent = useAgent()?.available === true;
   const chat = useStartChat();
   const [message, setMessage] = useState<string>();
-  const actions = useCategoryActions(inbox?.hash ?? "");
+  const actions = useCategoryActions(inbox ?? { categories: [], hash: "", names: [] });
   const openForm = useOpenAddForm();
   // The ＋ next to Inbox, from the keyboard: the form in its default place. Not named in the status
   // line.

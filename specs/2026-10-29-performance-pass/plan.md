@@ -893,21 +893,24 @@ git commit -m "feat(performance-pass): settings, names, and efforts show their r
 **Interfaces:**
 
 - Consumes: fate's `optimistic`, checked by task 2.
-- Produces: each of these calls passes `optimistic`. A sent message shows in the transcript at once.
-  The outliners keep their own drawn results, and stop waiting up to 2 s for each write to show
-  before the next: fate's result shows it.
+- Produces: each of these calls whose result the input decides passes `optimistic`, built in
+  `optimisticLists.ts`; the others are left to the server's answer (R28). A sent message shows in
+  the transcript at once, from `sentMessages.ts` (R29). The outliners keep their own drawn results,
+  and stop waiting up to 2 s for each write to show before the next: the next write waits only for
+  the version fate holds to be drawn, through the lists' `held` (R30).
 
-- [ ] **Step 1: Give each call its optimistic result**
+- [x] **Step 1: Give each call its optimistic result**
 
-As task 9. A note moved to Now with `p` opens the priorities with it in Now: the insert's optimistic
-line, with a temporary id the server's replaces.
+As task 9. A row added or put back gets a temporary id and a `pending:` key the server's replace. A
+note moved to Now with `p` leaves the inbox at once; the priorities show it once the move answers,
+as fate's optimistic result changes only the inbox's record (R28).
 
-- [ ] **Step 2: Run the task's validation**
+- [x] **Step 2: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS, the outliners' tests unchanged. Deferred to ready: the suite, Storybook.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/web/src

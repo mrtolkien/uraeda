@@ -20,6 +20,7 @@ export function useRenameSession() {
   return async (session: string, title: string) => {
     const result = await fate.mutations.session.rename({
       input: { session, title },
+      optimistic: { id: session, title },
       view: SessionView,
     });
     return result.error ? refusal(result.error).message : undefined;
@@ -54,6 +55,7 @@ export function useSessionControls(
             setError(undefined);
             const result = await fate.mutations.session.archive({
               input: { archived: !session.archived, session: id },
+              optimistic: { archived: !session.archived, id },
               view: SessionView,
             });
             if (result.error) {
@@ -76,6 +78,8 @@ export function useSessionControls(
     setError(undefined);
     const result = await fate.mutations.session.allowAll({
       input: { session: id },
+      // Nothing is left blocked: what the allows start is the server's.
+      optimistic: { allowable: 0, id },
       view: SessionView,
     });
     if (result.error) {

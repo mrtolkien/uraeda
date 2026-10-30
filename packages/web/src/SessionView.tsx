@@ -139,7 +139,11 @@ function SessionLog({
   const unseen = session?.unseen === true;
   useEffect(() => {
     if (unseen) {
-      void fate.mutations.session.seen({ input: { session: id }, view: SessionView });
+      void fate.mutations.session.seen({
+        input: { session: id },
+        optimistic: { id, unseen: false },
+        view: SessionView,
+      });
     }
   }, [fate, id, unseen]);
   if (!session) {

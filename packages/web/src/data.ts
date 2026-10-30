@@ -175,11 +175,11 @@ export function useLedger() {
 export async function readInbox(
   fate: ReturnType<typeof useFateClient>,
   mode: BaseMode = "network-only",
-): Promise<Pick<Inbox, "categories" | "hash">> {
+): Promise<Pick<Inbox, "categories" | "hash" | "names">> {
   const { inbox } = await fate.request({ inbox: { id: INBOX_ID, view: InboxView } }, { mode });
   const { data } = await fate.readView(InboxView, inbox);
   // fate types the request's root as any entity: the view gives the inbox's fields.
-  return data as unknown as Pick<Inbox, "categories" | "hash">;
+  return data as unknown as Pick<Inbox, "categories" | "hash" | "names">;
 }
 
 /**

@@ -153,7 +153,7 @@ function usePendingWrites<Data extends { hash: string }, Source>(
   onRefused: ((message: string | undefined) => void) | undefined,
   hash: string,
 ) {
-  const { afterWrites, inTurn, latest } = useWritesInTurn(data);
+  const { afterWrites, inTurn, latest } = useWritesInTurn(data, writes.held);
   const [pending, setPending] = useState<ReadonlyArray<Pending>>([]);
   const [follow, setFollow] = useState<{ key: string }>();
   const made = useRef(0);

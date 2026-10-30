@@ -28,6 +28,7 @@ import {
   useAddWithImage,
 } from "./NoteImage.tsx";
 import { AddButtons, enterAdds } from "./QuickAdd.tsx";
+import { noteAdded } from "./optimisticLists.ts";
 import { InboxView } from "./views.ts";
 
 /** The Category menu's values for no category and a new one; a category's is its name, after `:`. */
@@ -195,8 +196,10 @@ function useAdd({
       return;
     }
     const before = inbox?.categories ?? [];
+    const shown = inbox && noteAdded(inbox, input);
     const result = await fate.mutations.inbox.add({
       input,
+      ...(shown ? { optimistic: shown } : {}),
       view: InboxView,
     });
     if (result.error) {

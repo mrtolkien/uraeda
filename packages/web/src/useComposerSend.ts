@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useFateClient } from "react-fate";
 import type { ComposerProps } from "./Composer.tsx";
 import { refusal } from "./errors.ts";
-import { sendMessage } from "./sessions.ts";
+import { sendShowing } from "./sentMessages.ts";
 import { SessionView } from "./views.ts";
 import { clearPending, markPending } from "./writes/store.ts";
 
@@ -57,16 +57,23 @@ export function useSend(
       onImagesChange([]);
       sent();
     }
-    void sendMessage(fate, {
-      ...(session === undefined
-        ? folder === undefined
-          ? {}
-          : { folder, ...(isNewSession ? { newSession: true } : {}) }
-        : { session }),
-      images: sending.flatMap((image) => (image.image ? [image.image] : [])),
-      text,
-      ...(workflow === undefined ? {} : { workflow }),
-    }).then((result) => {
+    // A message to the session shows in its transcript at once. The workflow's message may start a
+    // new session, which the page then opens: it shows there, from the server.
+    const answer = sendShowing(
+      fate,
+      {
+        ...(session === undefined
+          ? folder === undefined
+            ? {}
+            : { folder, ...(isNewSession ? { newSession: true } : {}) }
+          : { session }),
+        images: sending.flatMap((image) => (image.image ? [image.image] : [])),
+        text,
+        ...(workflow === undefined ? {} : { workflow }),
+      },
+      workflow === undefined ? session : undefined,
+    );
+    void answer.then((result) => {
       if (result.ok) {
         onSent?.(result.session);
         return;

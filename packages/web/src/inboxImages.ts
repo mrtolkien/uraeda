@@ -4,8 +4,9 @@ import { type useFateClient, view } from "react-fate";
 import type { InboxNote, RemovedImage } from "uraeda-binding";
 import type { Inbox } from "uraeda-server/fate";
 import { readProposalFile, rereadProposalFile } from "./attach/useEditorImages.ts";
-import { rereadChanges } from "./data.ts";
+import { readInbox, rereadChanges } from "./data.ts";
 import { guarded, refusal } from "./errors.ts";
+import { imageRemoved } from "./optimisticLists.ts";
 import { InboxView } from "./views.ts";
 
 type Fate = ReturnType<typeof useFateClient>;
@@ -47,9 +48,11 @@ export async function removeNoteImage(
   if (!read) {
     return `The note file ${file} was not found.`;
   }
+  const now = await readInbox(fate, "cache-first").catch(() => undefined);
   const result = await guarded(() =>
     fate.mutations.inbox.removeImage({
       input: { file, hash: read.hash, image: path },
+      ...(now ? { optimistic: imageRemoved(now.categories, note.id, path) } : {}),
       view: InboxImageRemovedView,
     }),
   );

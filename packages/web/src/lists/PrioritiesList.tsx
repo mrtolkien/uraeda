@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { Proposal } from "uraeda-server/fate";
-import type { usePriorities } from "../data.ts";
+import { readPrioritiesHash, type usePriorities } from "../data.ts";
 import { stepKindOf } from "../sidebar/cards.ts";
 import { STEP_ICONS } from "../sidebar/StepIcon.tsx";
 import { titleOf, TITLES } from "../QuickAdd.tsx";
@@ -143,6 +143,7 @@ function usePrioritiesOutline(
             view: PrioritiesView,
           }),
         ),
+      held: () => readPrioritiesHash(fate, "cache-first"),
       read: outlineOf,
     },
     onMoveRefused,

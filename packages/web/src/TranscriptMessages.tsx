@@ -15,6 +15,7 @@ import { StatusText } from "./fields/StatusText.tsx";
 import { ProseMarkdown, proseStyles, READING_MEASURE } from "./Prose.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { MessageBody } from "./MessageBody.tsx";
+import type { Sent } from "./sentMessages.ts";
 import { EarlierRecap, StretchRecap } from "./session/RecapLine.tsx";
 import { slotsOf } from "./session/stretches.ts";
 import { useOfferPlugins } from "./SessionOffers.tsx";
@@ -182,6 +183,23 @@ function Message({
       </ChatMessageBubble>
     </ChatMessage>
   );
+}
+
+/**
+ * A message just sent, not in the transcript yet (`sentMessages.ts`): drawn as the human's message
+ * the agent has not read, which it is once the server has it, and not taken back before then.
+ */
+export function SentMessage({ actions, sent }: { actions: Actions; sent: Sent }) {
+  const item: MessageItem = {
+    id: sent.id,
+    images: [...sent.images],
+    kind: "message",
+    origin: "human",
+    seq: -1,
+    state: "pending",
+    text: sent.text,
+  };
+  return <Message actions={actions} canTakeBack={false} item={item} />;
 }
 
 /** A reply's widest, its text at the measure: inside its padding and border on wide screens. */

@@ -2,12 +2,18 @@
 // delete it with Undo, each written at once over the priorities as read.
 import { useState } from "react";
 import { useFateClient } from "react-fate";
-import { readPrioritiesHash, useProposal } from "../data.ts";
+import { readPriorities, useProposal } from "../data.ts";
 import { withFreshBase } from "../freshBase.ts";
 import { guarded, refusal } from "../errors.ts";
 import { useUndoToast } from "../layout/useUndoToast.ts";
 import { currentEntry, parseLocation, redirect, useRepoPath } from "../routes.tsx";
 import { closeDetail } from "./DetailOverlay.tsx";
+import {
+  proposalEdited,
+  proposalMoved,
+  proposalPutBack,
+  proposalRemoved,
+} from "../optimisticLists.ts";
 import { plain } from "../Spans.tsx";
 import { useExpand } from "./useExpand.ts";
 import { PrioritiesView } from "../views.ts";
@@ -21,6 +27,21 @@ export type Found = NonNullable<ReturnType<typeof useProposal>["found"]>;
  */
 function origin() {
   return currentEntry().from === "/" ? "/" : "/priorities";
+}
+
+type Sections = Awaited<ReturnType<typeof readPriorities>>["sections"];
+
+/**
+ * fate's optimistic result of a write, `shown` from the priorities the browser holds, if it holds
+ * them.
+ */
+async function shownAs(
+  fate: ReturnType<typeof useFateClient>,
+  shown: (sections: Sections) => object | undefined,
+) {
+  const now = await readPriorities(fate, "cache-first").catch(() => undefined);
+  const optimistic = now && shown(now.sections);
+  return optimistic ? { optimistic } : {};
 }
 
 /**
@@ -37,9 +58,11 @@ function useRename(
   const here = useRepoPath();
   return async (text: string) => {
     onRenaming(proposal.id);
+    const shown = await shownAs(fate, (sections) => proposalEdited(sections, proposal.id, text));
     const result = await guarded(() =>
       fate.mutations.proposals.edit({
         input: { hash, proposal: proposal.id, text },
+        ...shown,
         view: PrioritiesView,
       }),
     );
@@ -94,22 +117,30 @@ export function useProposalActions(
     return result;
   };
 
-  const move = (to: string) =>
-    run(() =>
+  const move = async (to: string) => {
+    const index = Number.MAX_SAFE_INTEGER;
+    const shown = await shownAs(fate, (sections) =>
+      proposalMoved(sections, proposal.id, to, index),
+    );
+    return run(() =>
       fate.mutations.proposals.move({
-        input: { hash, index: Number.MAX_SAFE_INTEGER, proposal: proposal.id, section: to },
+        input: { hash, index, proposal: proposal.id, section: to },
+        ...shown,
         view: PrioritiesView,
       }),
     );
+  };
 
   const remove = async () => {
     const text = plain(proposal.spans);
     // What Undo writes back: the proposal's lines, nested ones included, exactly as they were.
     const { lines } = proposal;
     const at = { index, section: section.section };
+    const shown = await shownAs(fate, (sections) => proposalRemoved(sections, proposal.id));
     const result = await run(() =>
       fate.mutations.proposals.remove({
         input: { hash, proposal: proposal.id },
+        ...shown,
         view: PrioritiesView,
       }),
     );
@@ -121,10 +152,11 @@ export function useProposalActions(
       try {
         // Over the file as it is now: the proposal goes back to its place, or its section's end.
         const restored = await withFreshBase(
-          (mode) => readPrioritiesHash(fate, mode),
+          (mode) => readPriorities(fate, mode),
           (now) =>
             fate.mutations.proposals.insert({
-              input: { ...at, hash: now, lines },
+              input: { ...at, hash: now.hash, lines },
+              optimistic: proposalPutBack(now.sections, { ...at, proposal }),
               view: PrioritiesView,
             }),
         );
