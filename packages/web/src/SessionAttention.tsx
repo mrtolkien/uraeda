@@ -74,7 +74,7 @@ export function Attention({
     error: refusal,
     onDismiss: (dismissed) => {
       setSent(dismissed);
-      void dismiss({ session: session.id, turn: dismissed });
+      void dismiss({ folder, session: session.id, turn: dismissed });
     },
   };
   if (!reason || !ATTENTION[reason]) {

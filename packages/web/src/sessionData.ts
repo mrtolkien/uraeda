@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useFateClient, useLiveView, useRequest } from "react-fate";
 import { useRefreshOnShow, WORKSPACE_ID } from "./data.ts";
+import { useDismissed } from "./useDismiss.ts";
 import { SessionListView, SessionView, TurnLogView, TurnView, WorkspaceView } from "./views.ts";
 
 /** The id of the sessions' list, as the server names it. */
@@ -68,7 +69,8 @@ export function useTurnLog(id: string, latest = false) {
 
 /**
  * What the navigation reads: the workspace's features and the sessions' list, in one request, so
- * the shell waits for them once.
+ * the shell waits for them once. A feature whose run is being dismissed reads the status it leads
+ * to at once, in every pane and count.
  */
 export function useNavigation() {
   const request = {
@@ -77,8 +79,10 @@ export function useNavigation() {
   };
   const { sessionList, workspace } = useRequest(request);
   useRefreshOnShow(request);
+  const live = useLiveView(WorkspaceView, workspace);
+  const features = useDismissed(live?.features ?? []);
   return {
     sessionList: useLiveView(SessionListView, sessionList),
-    workspace: useLiveView(WorkspaceView, workspace),
+    workspace: live && features !== live.features ? { ...live, features } : live,
   };
 }

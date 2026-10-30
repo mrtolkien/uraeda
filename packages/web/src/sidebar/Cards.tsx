@@ -44,7 +44,7 @@ export function FeatureCard({
       isPicked={isPicked}
       isSelected={selects(pathname, to)}
       item={item}
-      // Gone while it runs: the card shows "Dismissing…" until the status follows.
+      // Gone while another action runs: the card shows it until the status follows.
       onDismiss={item.pending === undefined ? onDismiss : undefined}
       onOpen={() => navigate(here(to))}
       onStatus={() => navigate(here(statusPath(feature, item.status)))}
