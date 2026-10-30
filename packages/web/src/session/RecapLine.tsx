@@ -43,6 +43,7 @@ const styles = stylex.create({
   },
   link: {
     display: "block",
+    minWidth: 0,
   },
   open: {
     color: colorVars["--color-text-accent"],
@@ -53,13 +54,24 @@ const styles = stylex.create({
     color: colorVars["--color-text-primary"],
     fontWeight: fontWeightVars["--font-weight-medium"],
   },
+  // One line, cut with an ellipsis: a single call's whole command, a heredoc's lines among them,
+  // stays in the Activity the line opens.
+  words: {
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
 });
 
-/** A line's words, its time first, "**2 min** · read 3 files". */
-function Words({ text }: { text: string }) {
+/**
+ * A line's words, its time first, "**2 min** · read 3 files", on one line cut with an ellipsis.
+ * `isHidden` hides them from screen readers.
+ */
+function Words({ isHidden = false, text }: { isHidden?: boolean; text: string }) {
   const [time = "", ...rest] = text.split(" · ");
   return (
-    <span>
+    <span aria-hidden={isHidden || undefined} {...stylex.props(styles.words)}>
       <span {...stylex.props(styles.time)}>{time}</span>
       {rest.map((part) => ` · ${part}`).join("")}
     </span>
@@ -111,13 +123,7 @@ export function RecapLine({
       xstyle={styles.line}
     >
       {live ? <StatusMark label={activity} small status="working" /> : <Icon icon="wrench" />}
-      {live ? (
-        <span aria-hidden>
-          <Words text={text} />
-        </span>
-      ) : (
-        <Words text={text} />
-      )}
+      <Words isHidden={live} text={text} />
       {href !== undefined && (
         // Where it leads, for the eye: the link's name is the stretch's words. On the session's
         // page, its Activity beside; from a document's column, away to the session's page.
