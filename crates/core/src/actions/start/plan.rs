@@ -232,7 +232,16 @@ impl Start<'_> {
         }
         let destination = folder_path(self.kind, &folder);
         let target = format!("/{destination}/proposal.md");
-        let priorities_before = fs::read_to_string(self.root.join("specs/PRIORITIES.md")).ok();
+        // Only a missing file is no priorities: one the start cannot read refuses it.
+        let priorities_before = match fs::read_to_string(self.root.join("specs/PRIORITIES.md")) {
+            Ok(text) => Some(text),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+            Err(error) => {
+                return Err(StartError::Refused(format!(
+                    "cannot read specs/PRIORITIES.md: {error}"
+                )));
+            }
+        };
         let priorities_text = priorities_before.clone().unwrap_or_default();
         let (name, priorities, nested, write_left) = match &origin {
             Origin::Proposal(proposed) => {

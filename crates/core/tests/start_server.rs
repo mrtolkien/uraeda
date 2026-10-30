@@ -1,5 +1,6 @@
-//! A start refused by a hook, in a repository the server defers commits for: what it wrote is put
-//! back only where it still holds what the start left, never over what someone changed meanwhile.
+//! Starts as the server runs them, in a repository it defers commits for. A start refused by a
+//! hook puts back what it wrote only where it still holds what the start left, never over what
+//! someone changed meanwhile; its plan and its refusals.
 
 mod common;
 
@@ -130,3 +131,23 @@ fn a_start_is_planned_over_uncommitted_and_staged_files() {
 
     assert_eq!(planned.slug, "login-banner");
 }
+
+/// Review: a `PRIORITIES.md` the start cannot read refuses it, rather than counting as none and
+/// being written over.
+#[test]
+fn an_unreadable_priorities_file_refuses_the_start() {
+    let repo = refusing("");
+    let bytes = b"# Priorities\n\n## Now\n\n- \xff\n";
+    std::fs::write(repo.path().join("specs/PRIORITIES.md"), bytes).unwrap();
+    repo.commit("chore: an unreadable line");
+
+    let refused = start(&repo);
+
+    assert_eq!(refused.code, "refused", "{}", refused.message);
+    assert_eq!(
+        std::fs::read(repo.path().join("specs/PRIORITIES.md")).unwrap(),
+        bytes
+    );
+    assert_eq!(repo.read(PROPOSAL_FILE), PROPOSAL);
+}
+
