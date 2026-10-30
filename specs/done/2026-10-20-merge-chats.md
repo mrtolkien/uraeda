@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-21
 pull-request: https://github.com/mrtolkien/uraeda/pull/53
+superseded-by: [2026-10-30-proposal-start]
 ---
 
 # Record: Merge chats and changes
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/53
 > The record of a merged feature, not instructions to follow. Started on 2026-10-20, finished on
 > 2026-10-21, in [its pull request](https://github.com/mrtolkien/uraeda/pull/53). Its full files are
 > in git: `git log -- specs/2026-10-20-merge-chats/`.
+>
+> Superseded in part by [2026-10-30-proposal-start](2026-10-30-proposal-start.md).
 
 ## What and why
 
