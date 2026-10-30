@@ -80,15 +80,16 @@ impl PullRequests {
     }
 
     /// Whether `branch`'s latest merged pull request holds its latest commit, with no open one:
-    /// its work is merged, even before a fetch brings the merge.
+    /// its work is merged, even before a fetch brings the merge. A head the repository does not
+    /// have holds it when the local branch is at its remote tip, nothing left unpushed (R2).
     fn merged(&self, branch: &str, git: &Git) -> bool {
         let PullRequests::Known { open, merged } = self else {
             return false;
         };
         !open.contains_key(branch)
-            && merged
-                .get(branch)
-                .is_some_and(|head| holds_tip(git, branch, head) == Some(true))
+            && merged.get(branch).is_some_and(|head| {
+                holds_tip(git, branch, head).unwrap_or_else(|| pushed(git, branch))
+            })
     }
 
     /// Gives a feature or a change its branch's open pull request, and recomputes its step when
@@ -117,6 +118,12 @@ impl PullRequests {
 /// the repository lacks `head`.
 fn holds_tip(git: &Git, branch: &str, head: &str) -> Option<bool> {
     git.holds(head, git.tip(branch)?)
+}
+
+/// Whether the local `branch` is at its remote tip: nothing on it is left unpushed.
+fn pushed(git: &Git, branch: &str) -> bool {
+    let local = git.resolve(&format!("refs/heads/{branch}"));
+    local.is_some() && local == git.remote_tip(branch)
 }
 
 /// The open pull requests of

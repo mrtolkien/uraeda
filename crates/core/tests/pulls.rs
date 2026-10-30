@@ -96,33 +96,74 @@ fn a_failed_fetch_keeps_the_last_snapshot_for_ten_minutes() {
     assert_eq!(pulls::latest(&root), PullRequests::Unavailable);
 }
 
-/// US5 more 1: a pull request merged on GitHub whose head is the branch's latest commit makes its
-/// feature done, without a fetch; one whose head lacks it leaves the feature's step as it is.
-#[test]
-fn a_merged_pull_request_holding_the_tip_makes_the_feature_done() {
-    let repo = TestRepo::new();
+/// The head of the merged pull request #75 of the test feature's branch.
+fn merged(head: &str) -> PullRequests {
+    let json = format!(
+        r#"[{{"headRefName":"2026-10-10-x","headRefOid":"{head}","number":75,"url":"https://github.com/o/r/pull/75"}}]"#
+    );
+    PullRequests::Known {
+        open: BTreeMap::new(),
+        merged: pulls::parse_merged(json.as_bytes()).unwrap(),
+    }
+}
+
+/// The test feature's branch, `parent` then `tip`: the two commits' hashes.
+fn branch(repo: &TestRepo) -> (String, String) {
+    let head = || repo.git(&["rev-parse", "HEAD"]).trim().to_string();
     repo.switch_new("2026-10-10-x");
     repo.write("a.md", "a\n");
     repo.commit("feat: the work");
-    let tip = repo.git(&["rev-parse", "HEAD"]).trim().to_string();
+    let parent = head();
+    repo.write("b.md", "b\n");
+    repo.commit("feat: more work");
+    let tip = head();
     repo.switch("main");
+    (parent, tip)
+}
+
+/// US5 more 1: a pull request merged on GitHub whose head is the branch's latest commit makes its
+/// feature done, without a fetch; one whose head lacks it leaves the feature's step as it is. A head
+/// never fetched counts as merged when the branch has nothing unpushed (R2).
+#[test]
+fn a_merged_pull_request_holding_the_tip_makes_the_feature_done() {
+    let repo = TestRepo::new();
+    let (parent, tip) = branch(&repo);
     let git = Git::discover(repo.path()).unwrap();
-    let merged = |head: &str| {
-        let json = format!(
-            r#"[{{"headRefName":"2026-10-10-x","headRefOid":"{head}","number":75,"url":"https://github.com/o/r/pull/75"}}]"#
-        );
-        PullRequests::Known {
-            open: BTreeMap::new(),
-            merged: pulls::parse_merged(json.as_bytes()).unwrap(),
-        }
-    };
     let rows = [
-        ("its head is the tip", tip.clone(), StepName::Done),
-        ("its head lacks the tip", head(7), StepName::Finish),
+        ("its head is the tip", tip.clone(), None, StepName::Done),
+        (
+            "commits after its head",
+            parent.clone(),
+            None,
+            StepName::Finish,
+        ),
+        (
+            "its head never fetched, never pushed",
+            head(7),
+            None,
+            StepName::Finish,
+        ),
+        (
+            "its head never fetched, all pushed",
+            head(7),
+            Some(&tip),
+            StepName::Done,
+        ),
+        (
+            "its head never fetched, commits unpushed",
+            head(7),
+            Some(&parent),
+            StepName::Finish,
+        ),
     ];
-    for (name, head, expected) in rows {
-        let text = record("feature", "X");
-        let mut feature = Feature::from_record(Kind::Feature, "2026-10-10-x", text);
+    for (name, head, pushed, expected) in rows {
+        let remote = "refs/remotes/origin/2026-10-10-x";
+        match pushed {
+            Some(commit) => repo.git(&["update-ref", remote, commit]),
+            None => repo.git(&["update-ref", "-d", remote]),
+        };
+        let mut feature =
+            Feature::from_record(Kind::Feature, "2026-10-10-x", record("feature", "X"));
 
         merged(&head).apply(&mut feature, &git);
 

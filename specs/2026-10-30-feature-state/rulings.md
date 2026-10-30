@@ -18,7 +18,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   likely behind it. The spec's "a local branch behind its pull request's head reads 'PR ready'"
   covers it, and nothing proves the branch holds commits the pull request lacks.
 - **If wrong**: a branch both behind and ahead of its pull request reads ready until the next fetch.
-- **Where**: task 5.
+- **Also**: a merged pull request whose head the repository never fetched makes its item done when
+  the local branch is at its remote tip, nothing left unpushed; a branch ahead of its remote tip, or
+  never pushed, keeps its step.
+- **Where**: task 5, `crates/core/src/pulls.rs`.
 
 ## R3: Progress's `position` becomes `done`
 
