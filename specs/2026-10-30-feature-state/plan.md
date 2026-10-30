@@ -364,20 +364,21 @@ git commit -m "feat(feature-state): the step moves with the human's queued write
 - Produces: `watch::QUIET` stays 200 ms; a new `watch::LONGEST: Duration` of 1 second bounds a burst
   from its first event.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/watch.rs
 #[test]
 fn a_worktree_re_created_at_its_path_is_watched_again() {
     // start a watch on a repo with a feature worktree; remove the worktree, re-create it at the
-    // same path; commit an answer in it; `next` reports the feature within 1 second
+    // same path; write an answer in it, uncommitted: the file is reported within 1 second (a
+    // commit alone shows through git's refs, watched apart); then commit it: reported within 1 s
 }
 
 #[test]
 fn a_burst_under_steady_writes_reports_within_a_second() {
-    // a thread writes the worktree's index every 100 ms for 3 seconds; a commit lands 1 second in;
-    // the feature is reported before the writes stop
+    // a thread writes a file in the worktree's git folder, beside its index, every 100 ms for 3
+    // seconds; a commit lands 1 second in; the feature is reported before the writes stop
 }
 ```
 
@@ -387,24 +388,24 @@ The break each test catches:
 - Steady writes: a burst that ends only after 200 ms of quiet, so the report waits for the writes to
   stop.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test watch`
-- Expected: FAIL, both time out in `next`.
+- Expected: FAIL, both time out: no report within 1 second, and none while the writes go on.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `watch_folders` forgets a watched folder that no longer exists, or whose file identity changed, and
 watches it again once it exists. Unwatching a folder whose watch is already gone is not an error.
 The burst loop ends after `QUIET` without an event, or `LONGEST` after its first event, whichever
 comes first.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/watch.rs crates/core/tests/watch.rs specs/2026-10-30-feature-state/plan.md
