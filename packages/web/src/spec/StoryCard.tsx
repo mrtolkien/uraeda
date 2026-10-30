@@ -188,8 +188,8 @@ export function StoryCard({ document, folds, selection, story }: StoryCardProps)
     <Pane
       icon="uraeda:map"
       id={storyId(document, story)}
-      // On the phone, its titled top border alone, so its live window keeps the screen's width.
-      isOpenOnPhone
+      // On the phone, little room inside its border, so its live window keeps the screen's width.
+      isSnugOnPhone
       level={3}
       title={`${story.id} · ${story.title}`}
       titleSuffix={

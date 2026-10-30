@@ -1,26 +1,29 @@
-// A page's column centred on the screen, not on the room between the sidebars: with a wider column
-// open at the right than the sidebar at the left, the room's middle sits left of the screen's, and
-// the page drifts with it. Its start margin takes the room the screen's middle asks for, as far as
-// the room beside it allows, so a page with no room to spare stays where it was. It follows the
-// room as it changes, frame by frame while a column eases open or closed. A margin, not a
-// transform: a transform would hold the page's fixed parts, as a list's bar, to the page.
+// A page's column centred on the room right of the sidebar, as if the side column at the right were
+// closed: the home and every page sit in the middle of what shows beside the sidebar, and a side
+// column opening leaves the page where it was. Its start margin takes the room that middle asks for,
+// as far as the room beside it allows, so a page with no room to spare stays at its start. It
+// follows the room as it changes, frame by frame while a column eases open or closed. A margin, not
+// a transform: a transform would hold the page's fixed parts, as a list's bar, to the page.
 import { useCallback } from "react";
 
-/** The start margin that puts `page` in the screen's middle, as far as its parent's room allows. */
+/**
+ * The start margin that puts `page` in the middle of the room from its parent's start to the
+ * window's end, as far as its parent's room allows.
+ */
 function marginOf(page: HTMLElement, parent: HTMLElement): number {
   const style = getComputedStyle(parent);
   const start = parent.getBoundingClientRect().left + parent.clientLeft;
-  const left = start + (Number.parseFloat(style.paddingInlineStart) || 0);
-  const room =
-    parent.clientWidth -
-    (Number.parseFloat(style.paddingInlineStart) || 0) -
-    (Number.parseFloat(style.paddingInlineEnd) || 0) -
-    page.offsetWidth;
-  const wanted = document.documentElement.clientWidth / 2 - page.offsetWidth / 2 - left;
+  const padStart = Number.parseFloat(style.paddingInlineStart) || 0;
+  const padEnd = Number.parseFloat(style.paddingInlineEnd) || 0;
+  const left = start + padStart;
+  const room = parent.clientWidth - padStart - padEnd - page.offsetWidth;
+  // The room beside the sidebar, to the window's end, whether a side column covers its end or not.
+  const end = document.documentElement.clientWidth - padEnd;
+  const wanted = (end - left) / 2 - page.offsetWidth / 2;
   return Math.round(Math.min(Math.max(room, 0), Math.max(0, wanted)));
 }
 
-/** Keeps `page` in the screen's middle, as far as its parent's room allows, until the cleanup. */
+/** Keeps `page` in the room's middle, as far as its parent's room allows, until the cleanup. */
 function centre(page: HTMLElement): () => void {
   const parent = page.parentElement;
   if (!parent) {
@@ -46,8 +49,8 @@ function centre(page: HTMLElement): () => void {
 }
 
 /**
- * A ref callback that moves its element to the screen's middle while `isOn`, a wide screen's page:
- * see the file's opening.
+ * A ref callback that moves its element to the middle of the room right of the sidebar while
+ * `isOn`, a wide screen's page: see the file's opening.
  */
 export function useScreenCentre(isOn: boolean) {
   return useCallback(

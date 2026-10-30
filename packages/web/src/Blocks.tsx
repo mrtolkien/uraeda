@@ -2,7 +2,12 @@ import { Blockquote } from "@astryxdesign/core/Blockquote";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Divider } from "@astryxdesign/core/Divider";
 import { Heading } from "@astryxdesign/core/Heading";
-import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import {
+  borderVars,
+  colorVars,
+  fontWeightVars,
+  spacingVars,
+} from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Block, Document, Span } from "uraeda-binding";
@@ -16,7 +21,10 @@ import { useScrollMargin } from "./layout/scrollMargin.ts";
 import { After, Selectable, type Selection } from "./Selection.tsx";
 import { firstSentence } from "./sentences.ts";
 import { SinceBlock, SinceScoped, SinceWords } from "./sinceMarks.tsx";
-import { TableNode } from "./BlockTable.tsx";
+import { TableNode, tableWidth } from "./BlockTable.tsx";
+import { useOutgrow } from "./embedLayout.ts";
+import { useInPane } from "./layout/paneContext.tsx";
+import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { opensImage, Spans } from "./Spans.tsx";
 import { EmbedNode } from "./EmbedNode.tsx";
 import { useMockupAt, useStoryAt } from "./stories.tsx";
@@ -84,6 +92,21 @@ const styles = stylex.create({
     minWidth: "100%",
     width: "max-content",
   },
+  // Grown past its pane into the empty room beside it, as a live window grows: its own border and
+  // the page's background over the pane's border, its rows' lines running to its border.
+  grown: (start: string, end: string) => ({
+    backgroundColor: colorVars["--color-background-body"],
+    borderColor: colorVars["--color-border"],
+    borderStyle: "solid",
+    borderWidth: borderVars["--border-width"],
+    marginInlineEnd: end,
+    marginInlineStart: start,
+    maxWidth: "none",
+    // Its first column's text the holder's room in, as in the pane, its lines to its border.
+    paddingInline: "var(--table-bleed, 0px)",
+    position: "relative",
+    width: "auto",
+  }),
   // Into the margin, `--table-reach` past its text, as far as `room`, the screen's edge.
   // Its widest as a property of its own, as the token lint takes a `var()` only whole, not in a
   // calc.
@@ -145,28 +168,49 @@ function diagramPlace(block: Block, document: Document): Place {
 
 /**
  * A table in a block of its own, which may reach into the margin, `--table-reach` past its text, as
- * far as the screen's edge: 16rem, or none where a box holds it, as a question's card.
+ * far as the screen's edge: 16rem, or none where a box holds it, as a question's card. In a pane, on
+ * a wide screen, a table wider than the pane grows past it into the empty room beside it, as a live
+ * window does, and scrolls only past that room.
  */
 function TableBlock({ block, context }: { block: Block; context: BlockContext }) {
   const ref = useRef<HTMLDivElement>(null);
-  // The room to the screen's edge, measured once drawn, before it shows, and as the window resizes.
+  const inPane = useInPane();
+  const wide = !isNarrow(useWidthClass());
+  const grows = inPane && wide;
+  // Its holder's room at each side, which its rows' lines run through (`--table-bleed`).
+  const [bleed, setBleed] = useState(0);
+  // Its columns' width, and on each side once it grows, its border and the same room inside it:
+  // none while it fits.
+  const grow = useOutgrow(ref, grows, tableWidth(block, context), {
+    frame: 2 + 2 * bleed,
+    isPastOnly: true,
+  });
+  const grown = grow.start > 0 || grow.end > 0;
+  // The room to the screen's edge, and its holder's room, measured once drawn, before it shows, as
+  // the window resizes, and again as the width class changes the holder's room.
   const [room, setRoom] = useState<number>();
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) {
       return;
     }
+    setBleed(Number.parseFloat(getComputedStyle(element).getPropertyValue("--table-bleed")) || 0);
     const measure = () =>
       setRoom(Math.max(0, window.innerWidth - element.getBoundingClientRect().left - 16));
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, []);
+  }, [wide]);
   // The table itself, drawn again only for its own changes, not as the window resizes.
   const table = useMemo(() => <TableNode block={block} context={context} />, [block, context]);
   return (
     <div
-      {...stylex.props(styles.block, styles.table, room !== undefined && styles.reach(room))}
+      {...stylex.props(
+        styles.block,
+        styles.table,
+        room !== undefined && styles.reach(room),
+        grown && styles.grown(`-${grow.start}px`, `-${grow.end}px`),
+      )}
       ref={ref}
     >
       {table}
