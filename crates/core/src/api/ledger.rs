@@ -94,9 +94,9 @@ pub struct Decision {
 }
 
 /// The texts of the constitution and of the decisions, by file name, and where they were read.
-struct Texts {
-    constitution: Option<String>,
-    decisions: BTreeMap<String, String>,
+pub(super) struct Texts {
+    pub(super) constitution: Option<String>,
+    pub(super) decisions: BTreeMap<String, String>,
 }
 
 fn lossy(bytes: Vec<u8>) -> String {
@@ -152,7 +152,7 @@ fn checkout_of(git: &Git, default: Option<&str>) -> Option<PathBuf> {
 /// Where the default branch's files are read: its checkout, this one when there is no default
 /// branch, else its tip. With the folder `ura check` resolves links from, and the tip whose tree
 /// it resolves them against instead when no checkout has the default branch.
-fn source(git: &Git, default: Option<&str>) -> (Texts, PathBuf, Option<ObjectId>) {
+pub(super) fn source(git: &Git, default: Option<&str>) -> (Texts, PathBuf, Option<ObjectId>) {
     let checkout = checkout_of(git, default);
     match (checkout, default.and_then(|default| git.tip(default))) {
         (Some(root), _) => (disk_texts(&root), root, None),

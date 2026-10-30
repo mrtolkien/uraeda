@@ -1743,6 +1743,18 @@ export interface SettledPoint {
   subject: string
 }
 
+/** An item of the setup. */
+export interface SetupItem {
+  /** `specs`, `constitution`, `code-quality`, `testing`, or `preview`. */
+  key: string
+  /** What the human reads, like `Code-quality decision`. */
+  name: string
+  /** `missing`, `template` for a constitution still holding a placeholder, or `written`. */
+  state: string
+  /** Whether the project is set up only once it is written: the preview decision is not. */
+  required: boolean
+}
+
 /** A part of a spec that changed since its review. */
 export interface SinceChange {
   /** `changed`, `added`, or `removed`. */
@@ -1991,4 +2003,9 @@ export interface WorkspaceView {
   proposals: Array<string>
   /** The repository's path when it has no `specs/` folder: nothing else is read. */
   noSpecs?: string
+  /**
+   * What the project lacks to be set up, in the setup's order: every item while a required one
+   * is not written, and none once it is set up.
+   */
+  setup: Array<SetupItem>
 }
