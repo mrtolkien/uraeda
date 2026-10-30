@@ -98,7 +98,7 @@ export function RoundBlock({ document, round }: { document: Document; round: Rou
     .filter((b) => b.kind !== "list" || drawn.blocks.some((item) => item.parent === b.id))
     .map((b) => b.id);
   return (
-    <Pane icon="uraeda:triangle-alert" id={PART_IDS.summary} isOpenOnPhone title={title}>
+    <Pane icon="uraeda:triangle-alert" id={PART_IDS.summary} isSnugOnPhone title={title}>
       {round.verdict && <Verdict verdict={round.verdict} />}
       <Blocks document={drawn} ids={ids} />
     </Pane>
@@ -154,7 +154,7 @@ function ContextPane({
       }
       icon={anchor === undefined ? undefined : CONTEXT_ICONS[anchor]}
       id={anchor ?? PART_IDS.context}
-      isOpenOnPhone
+      isSnugOnPhone
       title={part.title || "Context"}
     >
       {/* Prose given air, and the goal's and the scope's first sentence leading: what each says first. */}
@@ -203,7 +203,7 @@ export function CheckPane({ children, count }: { children: ReactNode; count: num
       count={count}
       icon="uraeda:flag"
       id={PART_IDS.check}
-      isOpenOnPhone
+      isSnugOnPhone
       title="Check these"
       tone="attention"
     >
