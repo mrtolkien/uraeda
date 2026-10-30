@@ -3,6 +3,7 @@
 use std::fs;
 
 use crate::actions::attach;
+use crate::files::lines;
 use crate::images::Encoded;
 
 use super::plan::Plan;
@@ -43,11 +44,15 @@ impl Typed {
         Some(Typed { title, body })
     }
 
-    /// Whether the text under the title holds `line`, a line of a list: its words, without its
-    /// marker or its indent.
+    /// Whether the text under the title holds `line`, a line of a list in markdown: its plain
+    /// words, without its marker or its indent, as a typed line's, their spaces collapsed.
     pub(super) fn holds(&self, line: &str) -> bool {
-        let words = unlisted(line);
-        words.is_empty() || self.body.lines().any(|typed| unlisted(typed) == words)
+        let (words, _) = lines::plain(unlisted(line));
+        words.is_empty()
+            || self
+                .body
+                .lines()
+                .any(|typed| lines::one_line(unlisted(typed)) == words)
     }
 
     /// The slug proposed for it: the short slug of its title's words.
