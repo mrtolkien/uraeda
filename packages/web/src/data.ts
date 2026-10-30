@@ -32,7 +32,7 @@ import {
   WorkspaceView,
 } from "./views.ts";
 import type { BaseMode } from "./freshBase.ts";
-import { keep, proposalFilePage } from "./readAhead.ts";
+import { proposalFilePage, show } from "./readAhead.ts";
 
 /** The ids of the records there is one of, as the server names them. */
 export const WORKSPACE_ID = "workspace";
@@ -47,19 +47,22 @@ const NEEDS_YOU_ID = "all";
 
 /**
  * Reads a request again from the server when the page comes back to the foreground, and keeps its
- * data for the session (see `keep`).
+ * data for the session, read again behind when shown again after missing a change (see `show`).
  */
 export function useRefreshOnShow(request: Parameters<typeof useRequest>[0]) {
   const fate = useFateClient();
   useEffect(() => {
-    keep(fate, request);
+    const hide = show(fate, request);
     const refresh = () => {
       if (document.visibilityState === "visible") {
         void fate.request(request as never, { mode: "network-only" }).catch(() => {});
       }
     };
     document.addEventListener("visibilitychange", refresh);
-    return () => document.removeEventListener("visibilitychange", refresh);
+    return () => {
+      hide();
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [fate, request]);
 }
 

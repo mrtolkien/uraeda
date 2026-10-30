@@ -189,3 +189,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the benchmark reads only the slow interactions, by filtering the timings over 100
   ms.
 - **Where**: task 6.
+
+## R17: A kept page shown again is drawn from memory, and read again behind after 2 seconds away
+
+- **Decision**: the page hooks of `data.ts` keep reading `cache-first`. `useRefreshOnShow` calls
+  `show` (`readAhead.ts`): a kept page's data is drawn at once, and, when it was last known current
+  more than 2 seconds before, read again from the server with `network-only`, behind, which the
+  page's live view then draws. A page's data is current while the page is on screen, and when it is
+  first read or read ahead.
+- **Rationale**: a page off screen has no live subscription (R13), and a new one is sent only what
+  changed in the last 2 seconds (R4): a page shown again after an older change would draw old data
+  until the next change. fate 1.13.0's `stale-while-revalidate` does the same refresh, but its
+  request is released when the page leaves, so each show starts a new one whose promise is pending
+  until a microtask: `use` suspends there, and a page mounted outside the deferred route's render
+  could draw its Suspense fallback for a frame (read in fate's source, not measured). It would also
+  read the server again for a page just read ahead.
+- **Alternatives considered**: `stale-while-revalidate` on every page hook, for the reasons above.
+- **If wrong**: the window is `REPLAYED_MS`, which must not exceed the server's `LIVE_REPLAY_MS`.
+- **Where**: review of tasks 4 and 5.

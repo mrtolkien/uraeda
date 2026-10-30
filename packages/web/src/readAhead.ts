@@ -16,8 +16,18 @@ export type PageRequest = Parameters<typeof useRequest>[0];
  */
 const KEPT_REQUESTS = 1000;
 
+/**
+ * How long a page's data stays current without a live subscription: a new subscription is sent
+ * the records changed in the server's last 2 seconds (R4), so a page off screen for longer may
+ * have missed a change.
+ */
+const REPLAYED_MS = 2000;
+
+/** A request kept: its retained data, and when that data was last known current. */
+type Kept = { current: number; dispose: () => void };
+
 /** The requests each client keeps, by their key, the one used last at the end. */
-const kept = new WeakMap<Fate, Map<string, { dispose: () => void }>>();
+const kept = new WeakMap<Fate, Map<string, Kept>>();
 
 /** A number for each view, which tells two requests of the same record apart by their fields. */
 const views = new WeakMap<object, number>();
@@ -47,23 +57,43 @@ function keyOf(request: PageRequest) {
 /**
  * Keeps the data of `request` in `fate`'s memory, past the page that read it: fate's own collector
  * keeps only the last 10 requests no page shows, and its client as the server's types make it
- * takes no other number.
+ * takes no other number. A request kept anew is current now, as it is about to be read.
  */
-export function keep(fate: Fate, request: PageRequest) {
+export function keep(fate: Fate, request: PageRequest): Kept {
   let requests = kept.get(fate);
   if (!requests) {
     requests = new Map();
     kept.set(fate, requests);
   }
   const key = keyOf(request);
-  const held = requests.get(key);
+  const held = requests.get(key) ?? {
+    current: performance.now(),
+    dispose: fate.retain(request as never).dispose,
+  };
   requests.delete(key);
-  requests.set(key, held ?? fate.retain(request as never));
+  requests.set(key, held);
   if (requests.size > KEPT_REQUESTS) {
     const [oldest, handle] = requests.entries().next().value!;
     requests.delete(oldest);
     handle.dispose();
   }
+  return held;
+}
+
+/**
+ * Keeps the request of a page shown, drawn from memory at once, and reads it again from the
+ * server behind when what memory holds may have missed a change (R17). Returns what to call as the
+ * page leaves the screen: its live subscription kept it current until then.
+ */
+export function show(fate: Fate, request: PageRequest): () => void {
+  const held = keep(fate, request);
+  if (performance.now() - held.current > REPLAYED_MS) {
+    held.current = performance.now();
+    void fate.request(request as never, { mode: "network-only" }).catch(() => {});
+  }
+  return () => {
+    held.current = performance.now();
+  };
 }
 
 /**
