@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 02: Proposal start flow
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 1 question, about 5 minutes.
+> Answered on 2026-10-30.
 >
 > - Verdict: worth building, with changes: replacing a draft with Undo conflicts with an active
 >   decision.
@@ -79,6 +79,6 @@ on a Start with a draft.
   - [pro] no draft is ever lost by surprise, and no decision changes.
   - [con] one more key on every Start made with a draft in the composer.
 
-**Answer:**
+**Answer:** Just make it a SHOULD instead. Here it's warranted. User intent was clear.
 
 **Notes:**
