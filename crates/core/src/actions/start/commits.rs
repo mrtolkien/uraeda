@@ -75,7 +75,9 @@ impl Start<'_> {
         // The moved text keeps its words, its relative links pointing at the same files from the
         // dated folder, and at each other when they moved together.
         let mut before = Before::new();
-        for (from, to) in moves.iter().filter(|(_, to)| to.ends_with(".md")) {
+        let documents: Vec<&(String, String)> =
+            moves.iter().filter(|(_, to)| to.ends_with(".md")).collect();
+        for (at, (from, to)) in documents.iter().enumerate() {
             let rebased = fs::read_to_string(root.join(to)).and_then(|text| {
                 let moved = retarget::relocated(&text, folder_of(from), folder_of(to), &moves);
                 if moved == text {
@@ -86,13 +88,17 @@ impl Start<'_> {
                 Ok(())
             });
             if let Err(error) = rebased {
-                let mut left = vec![format!(
-                    "point the relative links of {to} at its new folder"
-                )];
+                let mut left: Vec<String> = documents[at..]
+                    .iter()
+                    .map(|(_, to)| format!("point the relative links of {to} at its new folder"))
+                    .collect();
                 left.extend(self.left_after_write(plan));
                 let done: Vec<String> = moves
                     .iter()
                     .map(|(from, to)| format!("the move of {from} to {to}"))
+                    .chain(documents[..at].iter().map(|(_, to)| {
+                        format!("the relative links of {to} pointed at its new folder")
+                    }))
                     .collect();
                 return Err(partial(&done, left, error));
             }

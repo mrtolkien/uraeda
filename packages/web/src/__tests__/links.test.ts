@@ -32,6 +32,11 @@ test("a proposal file or a note file opens in its editor, other files as text", 
     href: "/r/uraeda/mockups/specs/x/mockups/ui.html",
     inApp: false,
   });
+  // An SVG prototype draws as an image, sandboxed as an HTML mockup is, not as its source.
+  expect(pathLink("specs/x/mockups/banner.svg", "uraeda")).toEqual({
+    href: "/r/uraeda/mockups/specs/x/mockups/banner.svg",
+    inApp: false,
+  });
   // The mockup route serves only a mockups folder's files: other HTML opens as text.
   expect(pathLink("docs/page.html", "uraeda")).toEqual({
     href: "/r/uraeda/raw/docs/page.html",

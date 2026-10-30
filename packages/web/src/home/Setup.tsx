@@ -145,7 +145,8 @@ export function SetupPane({
 }) {
   const left = items.filter((item) => item.required && item.state !== "written").length;
   return (
-    <Pane count={left} icon="wrench" title="Setup" tone="attention">
+    // Closing, its last file written, it has none to count.
+    <Pane count={left > 0 ? left : undefined} icon="wrench" title="Setup" tone="attention">
       <VStack align="start" gap={3}>
         {items.map((item) => (
           <SetupRow item={item} key={item.key} />

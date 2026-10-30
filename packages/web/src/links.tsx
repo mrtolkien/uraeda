@@ -111,8 +111,9 @@ export function pathLink(
   if (/^specs\/(proposals|notes)\/.+\.md$/.test(file)) {
     return { href: at(`/edit/${file}`), inApp: true };
   }
-  // The mockup route serves only the files of a `mockups` folder, as the server's rule.
-  if (file.endsWith(".html") && file.split("/").slice(0, -1).includes("mockups")) {
+  // The mockup route serves only the files of a `mockups` folder, as the server's rule: an HTML
+  // mockup, or an SVG prototype, drawn rather than shown as its source.
+  if (/\.(html|svg)$/.test(file) && file.split("/").slice(0, -1).includes("mockups")) {
     return { href: at(`/mockups/${file}`), inApp: false };
   }
   return { href: at(`/raw/${file}`), inApp: false };

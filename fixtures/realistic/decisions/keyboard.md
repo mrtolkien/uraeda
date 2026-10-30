@@ -6,53 +6,50 @@ icon: keyboard
 
 # Keyboard
 
-The whole web UI can be driven from the keyboard, and every key is declared once, in one registry.
-Space opens a leader menu of nested, mnemonic groups, and every page shares one base keymap with a
-few keys of its own. The human can turn the single-key shortcuts off, and none of them is ever the
-only way to do something.
+The whole web UI can be driven from the keyboard, and every shortcut is declared once, in one
+registry. Space opens the leader menu, a menu of nested groups of shortcuts, and every page shares
+one base set of keys. Single-key shortcuts can be turned off, and no key is ever the only way to do
+something.
 
 ## Rules
 
-- A shortcut that acts on the page MUST be declared in the key registry, with its label, icon,
-  group, and whether the status line shows it, and MUST NOT be listened for anywhere else. Checked
-  by a structural test and review.
-- Single-key shortcuts MUST be switchable off by a setting in the settings file, and a modifier
-  chord MUST stay available to open the leader menu while they are off. Checked by the settings
-  page's tests.
-- A single-key shortcut MUST NOT be the only way to do something. Checked by review.
-- Space MUST open the leader menu outside text fields and while no layer is open, and the menu MUST
-  wait a short moment, so quick typing shows nothing. Checked by the UI tests.
-- Keys MUST work at every width, and MUST NOT show their hints on narrow screens. Checked by the UI
+- A shortcut MUST be declared in the key registry, and listened for nowhere else. Checked by a
+  structural test and review.
+- Every action MUST work by keyboard and by tap, never by hover or a single key alone. Checked by
+  review.
+- Single-key shortcuts MUST be switchable off by a setting in the settings file. Checked by the
+  settings page's tests.
+- A chord with a modifier key MUST open the leader menu while single-key shortcuts are off. Checked
+  by the settings page's tests.
+- Space MUST open the leader menu outside text fields and open layers, after a short wait, so quick
+  typing shows nothing. Checked by the UI tests.
+- Shortcuts MUST work at every width, with their hints hidden on narrow screens. Checked by the UI
   tests.
-- Every page MUST share one base keymap, arrows or `h j k l` to move or scroll, `a`, `i`, and `o` to
-  add and edit, and `gg` and `g` sequences to go, and its own keys MUST be few and mnemonic. Checked
-  by review.
+- Every page MUST share one base set of keys, following Vim's habits to move, add, edit, and go to a
+  page. Checked by review.
 - A key MUST NOT mean two things on one page, though two pages may give it different meanings.
   Checked by the registry's tests.
+- A page's own keys SHOULD be few and mnemonic. Checked by review.
 - The status line SHOULD show the keys that work on the page, drawn from the registry. Checked by
   the UI tests.
 
 ## Why
 
-Keys were scattered through components, each paired by hand with a status line hint, and the rule
-"an open layer owns the keys" had three copies. One registry gives the leader menu, the hints, and
-the later key search a single source ([the registry](../done/2026-10-26-leader-key.md)). The human
-asked for keyboard navigation of the whole application, with a Space leader as in LazyVim and Helix,
-and chose to turn single-key shortcuts off from the settings file, as accessibility guideline 2.1.4
-requires a way to do
-([the off switch](../done/2026-10-26-leader-key.md#q4-how-should-the-shortcuts-be-turned-off-as-accessibility-asks),
-[the scope](../done/2026-10-26-leader-key.md#q1-how-much-of-the-proposal-should-this-feature-build),
-[a decision](../done/2026-10-26-leader-key.md#q9-should-keyboard-rules-become-a-decision)).
+Keys scattered through components drifted from their hints, and one rule had three copies, so one
+registry feeds the leader menu, the hints, and a search of the keys. A Space leader follows LazyVim
+and Helix, the editors these keys imitate. The accessibility guideline WCAG 2.1.4 asks for a way to
+turn single-key shortcuts off. History: [Leader key](../done/2026-10-26-leader-key.md).
 
 ## Consequences
 
-- A new feature declares its keys in the registry, and the leader menu, the status line, and a key
+- A new feature declares its keys in the registry, and the leader menu, the status line, and the key
   search read them with no further work.
 - A key conflict on one page fails a test, instead of being found by pressing keys.
 - Every shortcut needs a label, an icon, and a group, and a page cannot grab a key on its own.
-- The setting is read by the server and the page, so it lives in the Rust core with the others.
+- The switch is read by the server and the page, so it lives in the Rust core with the other
+  settings.
 
 ## Applies to
 
-- [`packages/web/`](/packages/web/), its key registry, and every feature that adds or changes a view
-- [`crates/core/src/settings.rs`](/crates/core/src/settings.rs), for the switch
+- [`packages/web/`](/packages/web/), and every feature that adds or changes a view or a shortcut
+- [`crates/core/`](/crates/core/)'s settings, for the switch

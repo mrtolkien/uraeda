@@ -29,6 +29,7 @@ import {
   type Source,
   withAdded,
 } from "./NewEntries.tsx";
+import { withInserted } from "./RecommendedMessage.tsx";
 import { currentEntry } from "./routeHistory.ts";
 import {
   type NewKind,
@@ -37,6 +38,7 @@ import {
   sessionIdPath,
   useRepoPath,
   useRestoreScroll,
+  useEntryId,
   useSearch,
 } from "./routes.tsx";
 import { StartDialog } from "./StartDialog.tsx";
@@ -297,7 +299,8 @@ function LineInsert({
 /**
  * Home's "Set up with the agent" opens a session with the setup's message, focused as an inserted
  * entry is, unsent. The history entry keeps asking for it, so a reload, which empties the session's
- * composer, fills it again; a composer that holds text keeps it.
+ * composer, fills it again. A composer that holds text keeps it, after the message, as a
+ * recommended message is inserted; each visit inserts it once, though the cards switch.
  */
 function useSetupMessage({
   input,
@@ -308,14 +311,17 @@ function useSetupMessage({
   kind: NewKind | undefined;
   session: ReturnType<typeof useDraft>;
 }) {
+  const visit = useEntryId();
+  const inserted = useRef(new Set<string | undefined>());
   useEffect(() => {
-    if (currentEntry().insert !== "setup" || kind !== "session" || session.text.trim() !== "") {
+    if (currentEntry().insert !== "setup" || kind !== "session" || inserted.current.has(visit)) {
       return;
     }
-    session.setText(SET_UP_PROJECT);
+    inserted.current.add(visit);
+    session.setText((typed) => withInserted(SET_UP_PROJECT, typed));
     requestAnimationFrame(() => input.current?.focus());
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, when the session's composer is there
-  }, [kind]);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once a visit, when the session's composer is there
+  }, [kind, visit]);
 }
 
 /**

@@ -564,4 +564,9 @@ fn marks_alone_on_the_first_line_keep_the_link_on_the_next() {
         (notes[1].about.as_deref(), notes[1].text.as_str()),
         (None, "[todo]")
     );
+    // The inbox's list reads the link alone, its note file's title with it.
+    let read = inbox::read(text);
+    let note = &read.categories[0].notes[0];
+    assert_eq!(note.text, "[A long title](notes/a-long-title/note.md)");
+    assert_eq!(note.file_title.as_deref(), Some("A long title"));
 }

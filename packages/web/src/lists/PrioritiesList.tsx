@@ -155,12 +155,12 @@ function usePrioritiesOutline(
 /** The priorities' outline, as `useOutline` gives it. */
 type PrioritiesOutline = ReturnType<typeof usePrioritiesOutline>;
 
-/** The address's hash that opens a new proposal's row at the top of Now: New's Proposal. */
+/** The address's hash that opens a new proposal's row at the top of Now: the leader menu's Proposal. */
 export const NEW_PROPOSAL_HASH = "#new-proposal";
 
 /**
- * Opens a new row at the top of Now when the address asks for it with `NEW_PROPOSAL_HASH`, as New
- * does, then takes the hash out of the address, so a reload or Back does not open another.
+ * Opens a new row at the top of Now when the address asks for it with `NEW_PROPOSAL_HASH`, as the
+ * leader menu does, then takes the hash out of the address, so a reload or Back does not open another.
  */
 function useNewAtTop(outline: PrioritiesOutline) {
   const hash = useHash();

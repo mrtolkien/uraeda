@@ -6,47 +6,48 @@ icon: paperclip
 
 # Attachments
 
-Screenshots a human attaches to a workflow file are committed next to it. They read the same
-wherever the workflow is read, and leave with their feature. Chat images stay out of git. The Rust
-core turns every image into one small, safe WebP.
+Screenshots a human attaches to a workflow file are committed beside it, so they read the same
+wherever the workflow is read and leave with their feature. Images attached to a chat stay out of
+git. Uraeda's Rust core turns every attached image into one small, safe format, whatever tool
+received it.
 
 ## Rules
 
-- An image attached to a workflow file MUST be committed beside that file, linked with a relative
-  markdown image, and leave with its feature; a record MUST NOT link to an image. Checked by the
-  core's tests.
+- An image attached to a workflow file MUST be committed beside that file, linked by a relative
+  path. Checked by the core's tests.
+- A record of a finished feature MUST NOT link to an image, since the images leave with the
+  feature's folder. Checked by the core's tests.
 - Images attached to a chat MUST stay out of git, in Uraeda's data folder. Checked by the server's
   tests.
-- The core MUST turn every attached image into one small, safe WebP, whatever tool received it, and
-  MUST refuse types that can carry code, such as SVG. Checked by the core's tests.
-- TypeScript code and editor plugins MUST NOT encode, name, or write attached images into the
-  repository: they pass the bytes to the core. Checked by review.
-- The server MUST serve attached images so a browser cannot run them as a page. Checked by the
+- The core MUST turn every attached image into one small WebP, whatever tool received it. Checked by
+  the core's tests.
+- The core MUST refuse image types that can carry code, such as SVG. Checked by the core's tests.
+- TypeScript code and editor plugins MUST pass an image's bytes to the core, never encode or write
+  it themselves. Checked by review.
+- The server MUST serve attached images so that a browser cannot run them as a page. Checked by the
   server's tests.
 
 ## Why
 
-The human wanted screenshots in proposals, reviews, and answers, readable everywhere and recoverable
-from git
-([where images are stored](../done/2026-10-13-image-attachments.md#q1-where-are-images-attached-to-proposals-reviews-and-answers-stored)).
-Since images stay in history forever, the format must be small for screenshots
-([how images are changed](../done/2026-10-13-image-attachments.md#q6-are-images-changed-before-they-are-saved-or-sent)).
-One encoder in the core serves the server, the CLI, and `ura lsp` alike.
+Screenshots in proposals, reviews, and answers must read everywhere the workflow is read, and be
+recoverable from git. What is committed stays in history forever, so the format must be small. One
+encoder in the core serves the server, the CLI, and the editors alike, and refuses what a browser
+could run. History: [Image attachments](../done/2026-10-13-image-attachments.md).
 
 ## Alternatives considered
 
-- sharp, in the server: out of reach of `ura lsp`, which runs without Node.
+- An image library in the server: out of reach of `ura lsp`, the editors' language server, which
+  runs without Node.
 - Images outside git, or in Git LFS: links break elsewhere, or every clone needs LFS.
 
 ## Consequences
 
 - Every attached image stays in git history: a screenshot of a secret needs a history rewrite.
-- Building `ura` and the binding needs a C compiler.
+- Building `ura` and the Node binding needs a C compiler.
 - Chat images are lost with Uraeda's data folder, like chat transcripts.
 
 ## Applies to
 
-- The core's image and attachment code, [`crates/core`](/crates/core/), and its callers: the
-  [server](/packages/server/), the [binding](/packages/binding/), and [`ura lsp`](/crates/lsp/)
-- Every feature, change, and draft folder under `specs/`, and the [skill](/skills/uraeda/SKILL.md)'s
-  layout
+- [`crates/core/`](/crates/core/) and its callers: the [server](/packages/server/), the
+  [binding](/packages/binding/), and [`ura lsp`](/crates/lsp/)
+- Every folder under `specs/` that holds images, and the [skill](/skills/uraeda/SKILL.md)'s layout

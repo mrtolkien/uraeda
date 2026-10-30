@@ -2369,3 +2369,61 @@ fn a_taken_slug_is_refused_by_its_name() {
         Some(format!("{folder} exists: choose another slug with --slug"))
     );
 }
+
+/// A start whose link rebase fails on a postponed folder's second file names the first file's
+/// links as done, and the second's and the third's as left.
+#[cfg(unix)]
+#[test]
+fn a_start_whose_link_rebase_fails_names_the_files_before_and_after() {
+    use std::os::unix::fs::PermissionsExt;
+    let repo = proposal_file_repo();
+    repo.remove(PROPOSAL_FILE);
+    repo.write("specs/ui/phone.md", "# Phone\n");
+    for file in ["discovery-01.md", "proposal.md", "spec.md"] {
+        repo.write(
+            &format!("{PROPOSAL_FOLDER}/{file}"),
+            "# Login banner\n\nAs [the phone](../../ui/phone.md) says.\n",
+        );
+    }
+    repo.commit("chore: postpone Login banner");
+    let locked = repo.path().join(PROPOSAL_FOLDER).join("proposal.md");
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o444)).unwrap();
+    if std::fs::OpenOptions::new()
+        .append(true)
+        .open(&locked)
+        .is_ok()
+    {
+        // Root writes anyway.
+        return;
+    }
+    let (git, workspace) = opened(&repo);
+
+    let failed = start::run(
+        &git,
+        &workspace,
+        PROPOSAL_FOLDER,
+        Some("centred-x"),
+        Kind::Feature,
+        change_day(),
+        false,
+    );
+
+    let Err(start::StartError::Partial { done, left, .. }) = failed else {
+        panic!("not a partial failure")
+    };
+    let folder = format!("specs/{CHANGE_FOLDER}");
+    assert!(
+        done.contains(&format!(
+            "the relative links of {folder}/discovery-01.md pointed at its new folder"
+        )),
+        "{done:?}"
+    );
+    assert_eq!(
+        left[..2],
+        [
+            format!("point the relative links of {folder}/proposal.md at its new folder"),
+            format!("point the relative links of {folder}/spec.md at its new folder"),
+        ],
+        "{left:?}"
+    );
+}
