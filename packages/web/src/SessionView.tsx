@@ -221,32 +221,43 @@ function useStretchHref(boxedIn: string | undefined) {
 
 /**
  * What a session's pane is drawn in: a page, with its crumbs and the session's column, or,
- * `isBoxed`, the box it is in alone. A session that does not exist has no column, nor one whose
- * feature is still starting: `isMissing`.
+ * `isBoxed`, the box it is in alone. A session that does not exist has no column: `isMissing`. One
+ * whose feature is still starting has the column the feature's will have, without the branch's
+ * changes, which cannot be read yet: `isStarting`. The page keeps its frame as the start lands.
  */
 function Framed({
   children,
   crumbs,
   isBoxed,
   isMissing = false,
+  isStarting = false,
   session,
+  title,
 }: {
   children: ReactNode;
   crumbs?: string | undefined;
   isBoxed: boolean;
   isMissing?: boolean;
+  isStarting?: boolean;
   session?: string | undefined;
+  /** The feature's title, for its crumb until the workspace lists it. */
+  title?: string | undefined;
 }) {
   if (isBoxed) {
     return <div {...stylex.props(styles.box)}>{children}</div>;
   }
   const page = (
     <Page isFull isSnug kind="session">
-      {crumbs !== undefined && <Crumbs folder={crumbs} session />}
+      {crumbs !== undefined && <Crumbs folder={crumbs} session title={title} />}
       {children}
     </Page>
   );
-  return isMissing ? page : <SessionColumn content={page} folder={crumbs} session={session} />;
+  if (isMissing) {
+    return page;
+  }
+  return (
+    <SessionColumn content={page} folder={isStarting ? undefined : crumbs} session={session} />
+  );
 }
 
 /**
@@ -328,7 +339,7 @@ type SessionPaneProps = {
   item?: SessionItem;
   /** Called with the session a message created, before it exists. */
   onSent?: (session: string) => void;
-  /** Its feature's start, drawn where the transcript will be, in a page without a column. */
+  /** Its feature's start, drawn where the transcript will be. */
   starting?: ReactNode;
   /** The title before the session exists. */
   title?: string;
@@ -375,7 +386,13 @@ export function SessionPane({
     );
   }
   return (
-    <Framed crumbs={crumbs} isBoxed={isBoxed} isMissing={starting !== undefined} session={id}>
+    <Framed
+      crumbs={crumbs}
+      isBoxed={isBoxed}
+      isStarting={starting !== undefined}
+      session={id}
+      title={title}
+    >
       {id === undefined ? (
         <Unstarted title={title ?? ""}>{starting}</Unstarted>
       ) : (
