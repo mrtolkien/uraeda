@@ -45,6 +45,9 @@ const REPOSITORIES_ID = "repositories";
 const SETTINGS_ID = "settings";
 const NEEDS_YOU_ID = "all";
 
+/** The request of a feature, as `useFeature` reads it. */
+export const featureRequest = (folder: string) => ({ feature: { id: folder, view: FeatureView } });
+
 /**
  * Reads a request again from the server when the page comes back to the foreground, and keeps its
  * data for the session, read again behind when shown again after missing a change (see `show`).
@@ -74,7 +77,7 @@ export function useWorkspace() {
 }
 
 export function useFeature(folder: string) {
-  const request = { feature: { id: folder, view: FeatureView } };
+  const request = featureRequest(folder);
   const { feature } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(FeatureView, feature);

@@ -72,7 +72,7 @@ type OnNextRun = (run: (() => void) | undefined) => void;
 
 /**
  * `n`, what "Next"'s button does: declared before the sessions' `s` and `S`, as "Next" comes before
- * them, though it draws once its data is read.
+ * them.
  */
 function NextKey({ hasNext, run }: { hasNext: boolean; run: RefObject<(() => void) | undefined> }) {
   useKeys(
