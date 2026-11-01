@@ -4,23 +4,19 @@
 
 > [!NOTE]
 >
-> Features for v1.0.0
-
-- [Moving a file never breaks a link to it](/specs/2026-11-01-move-relinks/proposal.md)
-
-- Empty inbox
-
-## Next
-
-> [!NOTE]
->
-> Goals once I'm happy with the core feature set
+> Still wanted for my personal usage
 
 - "Master" PR: when multiple agents runs, make sure all PRs can merge smoothy. Also, make workflow
   file changes less problematic with merge issues.
+
 - [Worker lifecycle](proposals/worker-lifecycle.md): runs survive server restarts, usage limits, and
   their own background work, and go on to the next human gate without a "Continue"
   - Heartbeat/cron jobs
+  - Run options
+    - Master session vs one session per step
+    - Review options: model, command, prompt, depth, ...
+    - Can set global defaults and override per-feature
+
 - Review the UI guidelines properly
 
 - See if we can integrate Claude Design
@@ -29,22 +25,17 @@
 - Basic git UI in the web ui (pull, see diffs, ...)
   - Pretty much web lazygit?
 
-- Run options
-  - Master session vs one session per step
-  - Review options: model, command, prompt, depth, ...
-  - Can set global defaults and override per-feature
 - Global undo
 - Keyboard nav in questions and specs
 
+## Next
+
+> [!NOTE]
+>
+> Features for public release
+
 - Color themes
   - The classic open source ones
-- Cooler home view: logo, progress, gauges, ...
-
-- References (docs) querying and storing workflow -> our own local context8?
-  - Issue faced: I'm using Astryx which is pretty new, and the agents did make errors with it
-  - Where is this information saved? Not evergreen enough for AGENTS.md, not human-approved so not a
-    decision?
-  - This is early because it will help us develop the rest
 
 - Extensions system
   - claude integration could become an extension
@@ -53,9 +44,11 @@
 - Nix / Docker based execution environments
   - Make it _safer_ to run agents in YOLO mode
 
-- Dedicated docs website
-  - Explain the concepts and the controls
-  - Make sure docs stay up-to-date with agents instructions
+- References (docs) querying and storing workflow -> our own local context8?
+  - Issue faced: I'm using Astryx which is pretty new, and the agents did make errors with it
+  - Where is this information saved? Not evergreen enough for AGENTS.md, not human-approved so not a
+    decision?
+  - This is early because it will help us develop the rest
 
 - Git listener process?
 
@@ -68,7 +61,14 @@
 - Codex runtime + model settings
 - Dedicated Pi-durable runtime with basic tooling
   - Web tools in pi-durable
-  - This is v2.0
+
+- Cooler home view: logo, progress, gauges, ...
+  - Needs more features/extensions
+
+- Dedicated docs website
+  - Explain the concepts and the controls
+  - Make sure docs stay up-to-date with agents instructions
+  - Needs multiple agents and full features
 
 ## Later
 
