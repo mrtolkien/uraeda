@@ -1,7 +1,8 @@
 // The session's Changes: the files its completed edit calls changed, each with its number of edits
-// and no diff, then, for a feature's or a change's session, the files committed on its branch with
-// their lines (US2). The branch lists its first two files, the rest the core sends a button away,
-// then how many more the core left out (ruling R7).
+// and no diff, but none a shell command wrote, which no event names. Then, for a feature's or a
+// change's session, the files committed on its branch with their lines (US2). The branch lists its
+// first two files, the rest the core sends a button away, then how many more the core left out
+// (ruling R7).
 import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
@@ -23,8 +24,11 @@ const FIRST_FILES = 2;
 /** The key, among the history entry's open ones, of the branch's files unfolded. */
 const BRANCH_OPEN = "changes:branch";
 
-/** What Changes reads while the session changed no file. */
-const NOTHING = "No file changed yet.";
+/**
+ * What Changes reads while the session edited no file with a tool: saying why, since a session that
+ * writes its files through shell commands reads it too.
+ */
+const NOTHING = "No file edited by a tool. Files written by shell commands are not listed.";
 
 /** "1 file", or "N files". */
 export function fileCount(count: number) {
@@ -50,7 +54,7 @@ function moreFiles(count: number) {
   return plural(count, "more file", "more files");
 }
 
-/** What Changes reads while the session changed no file. */
+/** What Changes reads while the session edited no file with a tool. */
 function Nothing() {
   return <Empty>{NOTHING}</Empty>;
 }
