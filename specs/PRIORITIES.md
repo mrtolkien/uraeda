@@ -7,6 +7,7 @@
 > Features for v1.0.0
 
 - [When a session touched files, there's nothing in the "changed files" sidebar...](/specs/changes/2026-11-01-files-changed/proposal.md)
+- [Moving a file never breaks a link to it](/specs/2026-11-01-move-relinks/proposal.md)
 
 - Empty inbox
 
