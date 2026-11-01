@@ -7,6 +7,7 @@
 > Features for v1.0.0
 
 - [Moving a file never breaks a link to it](/specs/2026-11-01-move-relinks/proposal.md)
+- [Review all the inbox entries and fix the fixable ones. Ask me if there's any…](/specs/changes/2026-11-01-review-all/proposal.md)
 
 - Empty inbox
 
