@@ -6,7 +6,17 @@ import { Code } from "@astryxdesign/core/Code";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type RefObject, Suspense, useCallback, useRef, useState } from "react";
 import { Crumbs } from "../Crumbs.tsx";
-import { useAgent, useFeature, useHistory, useRecommendedMessage } from "../data.ts";
+import { useFateClient } from "react-fate";
+import {
+  agentRequest,
+  historyRequest,
+  recommendedRequest,
+  useAgent,
+  useFeature,
+  useHistory,
+  useRecommendedMessage,
+} from "../data.ts";
+import { readAlong } from "../readAhead.ts";
 import { useKeys } from "../keys/registry.tsx";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
@@ -246,10 +256,10 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
           problems={feature.problems}
         />
         <LeftBanner feature={feature} />
-        <Suspense fallback={null}>
-          <NextStep feature={feature} history={history} onRun={onNextRun} />
-        </Suspense>
-        {/* Before the sessions' keys, as "Next" comes before them, though "Next" draws later. */}
+        {/* Read along with the feature and its history: drawn with the page, it never pushes the
+            sessions and the timeline down once they are there. */}
+        <NextStep feature={feature} history={history} onRun={onNextRun} />
+        {/* Before the sessions' keys, as "Next" comes before them. */}
         <NextKey hasNext={hasNext} run={nextRun} />
         <SessionsPane
           folder={feature.folder}
@@ -277,8 +287,13 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
   );
 }
 
-/** A feature's or a change's page. */
+/**
+ * A feature's or a change's page, drawn once what it shows is read: its history and what "Next"
+ * reads are asked for with the feature, not one after the other.
+ */
 export function FeaturePage({ folder }: { folder: string }) {
+  const fate = useFateClient();
+  readAlong(fate, [historyRequest(folder), agentRequest(), recommendedRequest(folder)]);
   const feature = useFeature(folder);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
