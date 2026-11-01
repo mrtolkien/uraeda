@@ -22,10 +22,10 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
 
 /**
  * A session's status, from the first rule that matches: a running or queued turn, a blocked action
- * not allowed or a step that waits on the human, a latest turn that failed or was stopped, until
- * the human dismisses it, then idle, a latest turn that ended while the step still waits on the
- * agent, in its folder's latest session, a latest turn that ended after the human last saw the
- * session, and otherwise idle.
+ * not allowed, a latest turn that failed or was stopped, until the human dismisses it, a step that
+ * waits on the human, a dismissed turn as idle, a latest turn that ended while the step still waits
+ * on the agent, in its folder's latest session, a latest turn that ended after the human last saw
+ * the session, and otherwise idle.
  */
 export function sessionStatus(input: {
   blocked: boolean;
@@ -50,15 +50,16 @@ export function sessionStatus(input: {
   if (blocked) {
     return { label: "Needs you", reason: "blocked", status: "needs-you" };
   }
+  const failed = latest?.state === "failed" || latest?.state === "stopped" ? latest.state : null;
+  if (failed && latest?.dismissedAt === null) {
+    const reason = latest.reason === SERVER_STOPPED ? "interrupted" : failed;
+    return { label: "Needs attention", reason, status: "attention" };
+  }
   if (waitsOnHuman) {
     return { label: "Needs you", reason: "step", status: "needs-you" };
   }
-  if (latest?.state === "failed" || latest?.state === "stopped") {
-    if (latest.dismissedAt !== null) {
-      return { label: "Idle", status: "idle" };
-    }
-    const reason = latest.reason === SERVER_STOPPED ? "interrupted" : latest.state;
-    return { label: "Needs attention", reason, status: "attention" };
+  if (failed) {
+    return { label: "Idle", status: "idle" };
   }
   const unseen =
     latest?.endedAt && (seenAt === null || Date.parse(latest.endedAt) > Date.parse(seenAt));
