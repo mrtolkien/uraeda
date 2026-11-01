@@ -1,5 +1,6 @@
-//! The commits of a history, with their parents, subjects, and times, through gix's walk, and the
-//! lines a diff between two of them changed.
+//! The commits of a history, with their parents, subjects, and times, through gix's walk, the
+//! lines a diff between two of them changed, and the paths of `specs/` each commit added, deleted,
+//! or renamed.
 
 use gix::revision::walk::Sorting;
 use gix::traverse::commit::simple::CommitTimeOrder;
@@ -31,7 +32,40 @@ pub struct CommitInfo {
     pub committed: i64,
 }
 
+/// The paths of the `specs/` folders, the top level's and any nested one, one commit added,
+/// deleted, or renamed, renames found by git's similarity.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CommitPaths {
+    /// Its first 7 characters.
+    pub commit: String,
+    /// The first line of its message.
+    pub subject: String,
+    /// Each renamed path, `(old, new)`.
+    pub renamed: Vec<(String, String)>,
+    pub deleted: Vec<String>,
+    pub added: Vec<String>,
+}
+
 impl Git {
+    /// The paths of `specs/` each commit reachable from `tip` added, deleted, or renamed, newest
+    /// first: one `git log -M` through the system `git`, since gix is built without rename
+    /// detection. A merge commit names none.
+    pub fn path_events(&self, tip: ObjectId) -> Result<Vec<CommitPaths>, GitError> {
+        let tip = tip.to_string();
+        let args = [
+            "log",
+            tip.as_str(),
+            "-M",
+            "--diff-filter=ADR",
+            "--name-status",
+            "-z",
+            "--format=%x01%H%x00%s",
+            "--",
+            ":(glob)**/specs/**",
+        ];
+        Ok(parse_paths(&output_in(&self.root, "log", &args)?))
+    }
+
     /// The commits reachable from `tip`, newest committed first, down to the first committed
     /// before `since`, in Unix seconds.
     pub fn history(&self, tip: ObjectId, since: i64) -> Result<Vec<CommitInfo>, GitError> {
@@ -154,6 +188,37 @@ fn parse(output: &str) -> Vec<ChangedFile> {
         });
     }
     files
+}
+
+/// Commits starting with `\x01`, then NUL-separated fields: the full hash, the subject, then each
+/// change's status and its path, or a rename's status, `R<similarity>`, and its two paths.
+fn parse_paths(output: &str) -> Vec<CommitPaths> {
+    let mut commits = Vec::new();
+    for record in output.split('\x01').filter(|record| !record.is_empty()) {
+        let mut fields = record.split('\0');
+        let hash = fields.next().unwrap_or_default();
+        let mut commit = CommitPaths {
+            commit: hash.chars().take(7).collect(),
+            subject: fields.next().unwrap_or_default().trim().to_string(),
+            renamed: Vec::new(),
+            deleted: Vec::new(),
+            added: Vec::new(),
+        };
+        while let Some(status) = fields.next() {
+            let mut path = || fields.next().unwrap_or_default().to_string();
+            match status.trim().chars().next() {
+                Some('A') => commit.added.push(path()),
+                Some('D') => commit.deleted.push(path()),
+                Some('R') => {
+                    let old = path();
+                    commit.renamed.push((old, path()));
+                }
+                _ => {}
+            }
+        }
+        commits.push(commit);
+    }
+    commits
 }
 
 #[cfg(test)]

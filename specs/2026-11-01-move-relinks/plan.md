@@ -354,7 +354,8 @@ the sandbox.
 
 - Create: `crates/core/src/moves/history.rs`, `crates/core/tests/moves.rs`
 - Modify: `crates/core/src/moves.rs` (`mod history; pub use history::History;`),
-  `crates/core/src/git/history.rs` (the `git log` read)
+  `crates/core/src/git/history.rs` (the `git log` read), `crates/core/src/git.rs` (exports
+  `CommitPaths`)
 
 **Interfaces:**
 
@@ -362,15 +363,17 @@ the sandbox.
 - Produces:
   - `impl Git { pub fn path_events(&self, tip: ObjectId) -> Result<Vec<CommitPaths>, GitError> }`,
     in `git/history.rs`: one `git log <tip> -M --diff-filter=ADR --name-status -z` over the `specs/`
-    folders (the top level's and any nested one, as the example's), newest first, each commit's
-    7-character id, subject, renames `(old, new)`, deleted and added paths.
+    folders (the top level's and any nested one, as the example's: the pathspec
+    `:(glob)**/specs/**`), newest first, each commit's 7-character id, subject, renames
+    `(old, new)`, deleted and added paths.
   - `pub struct History`, in `moves/history.rs`, with
     `pub fn read(git: &Git, tip: ObjectId) -> Result<Arc<History>, GitError>`, memoized: the last
     history read is kept by repository root and tip, and returned again for them;
     `pub fn went(&self, path: &str) -> Option<Went>`, where the file or folder `path`, missing at
-    the tip, went, chained to its end; `None` when no commit names it.
+    the tip, went, chained to its end; `None` when no commit removed it, or when the chain brings it
+    back to its own path.
 
-- [ ] **Step 1: Write the failing test** `a_missing_path_is_followed_to_where_it_went`, on a
+- [x] **Step 1: Write the failing test** `a_missing_path_is_followed_to_where_it_went`, on a
       `TestRepo` whose commits, made with plain `git`, are: a proposal file edited to about a third
       of its text and moved into a dated folder in one commit; that folder later deleted with
       `specs/done/<folder>.md` added; a rename by `git mv`; a change folder moved to `specs/`; a
@@ -386,11 +389,11 @@ the sandbox.
   The breaks: git's renames alone (the edited start is lost); a chain stopped at its first move; a
   record taken for a plain move; an endless loop.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
   - Run: `nix develop -c cargo nextest run -p uraeda-core --test moves`
   - Expected: FAIL to compile, `unresolved import uraeda_core::moves::History`.
 
-- [ ] **Step 3: Implement `path_events` and `History`**
+- [x] **Step 3: Implement `path_events` and `History`**
 
   Pairing, per commit, after git's renames:
   - **A finished folder**: a commit adding (or renaming to) `specs/done/<name>.md` makes every path
@@ -405,13 +408,15 @@ the sandbox.
 
   `went` finds the newest event removing `path`, follows `Moved` to the new path, and repeats only
   with events newer than the one it came from; a `Record` or `Deleted` ends the chain. A missing
-  folder went where its files went, when they all went to one folder or one record.
+  folder went where its files went, when they all went to one folder or one record: the files the
+  last commit removing any of them removed (see
+  [R8](rulings.md#r8-a-missing-folder-follows-the-files-its-last-removal-took)).
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   ```bash
   git add crates/core/src/moves.rs crates/core/src/moves/history.rs crates/core/src/git/history.rs crates/core/tests/moves.rs

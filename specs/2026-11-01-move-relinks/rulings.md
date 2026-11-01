@@ -77,3 +77,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the Undo's links keep the subsection's anchor; `relink` keeps `anchor` when the move
   gives none.
 - **Where**: task 1, `relink`; task 6, the merged note's Undo.
+
+## R8: A missing folder follows the files its last removal took
+
+- **Decision**: a folder missing at the tip went where the files removed by the newest commit
+  removing any of its files went, when they all went to one folder, one record, or one deletion. A
+  file the folder lost earlier, as a draft deleted during the work, does not count.
+- **Rationale**: the plan asks that all its files go one way, but a finished folder often lost a
+  file before its finish, which would read as deleted and leave the link to the folder unfixed.
+- **If wrong**: a folder emptied over several commits, file by file, follows only the last of them;
+  counting every file's end would leave most folder links unfixed instead.
+- **Where**: task 2, `History::went` in `crates/core/src/moves/history.rs`.
