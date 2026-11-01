@@ -320,8 +320,11 @@ function proposalStart(
   };
 }
 
-/** Where a typed feature's refused start sends the human: the New page's Feature card. */
-export const TYPED_START_HREF = "/new?kind=feature";
+/**
+ * The New page's Feature card: where the web opens a feature's start from a line, and where a
+ * typed feature's refused start sends the human, as its write's `href` tells the web.
+ */
+export const NEW_FEATURE_HREF = "/new?kind=feature";
 
 /** What `feature.startText` starts: a typed text, its images, its line of Now, and its effort. */
 type TypedFeature = Queued<{
@@ -348,7 +351,7 @@ async function typedStart(ctx: RepoContext, input: TypedFeature): Promise<Planna
   return {
     // No file to open: the session page of a refused start sends the human back to the New page,
     // whose composer still holds the text.
-    href: TYPED_START_HREF,
+    href: NEW_FEATURE_HREF,
     kind: "feature",
     plan: () => ctx.binding.planTextStart(ctx.repo, input.text, images, options),
     run: (planned, onStep) =>

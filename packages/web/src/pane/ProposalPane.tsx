@@ -1,3 +1,4 @@
+import { NEW_FEATURE_HREF } from "uraeda-server/fate";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
@@ -58,7 +59,7 @@ function Kind({ expand, found }: { expand: () => Promise<void>; found: Found }) 
         <Button clickAction={expand} label="Expand" variant="primary" />
         <Button
           label="Start"
-          onClick={() => navigate(here("/new?kind=feature"), { insert: `line:${proposal.id}` })}
+          onClick={() => navigate(here(NEW_FEATURE_HREF), { insert: `line:${proposal.id}` })}
           variant="secondary"
         />
       </HStack>

@@ -2,6 +2,7 @@
 // the actions they run, so a test reads their icons and labels without a page. The places come
 // from `destinations.ts`, which the navigation column and the phone's tabs read too, so a place is
 // drawn the same everywhere (UI components): a place's icon and label are never written here.
+import { NEW_FEATURE_HREF } from "uraeda-server/fate";
 import { DESTINATIONS, type Destination } from "../destinations.ts";
 import { KIND_ICONS } from "./kinds.ts";
 import type { PickerKind } from "./pickerSources.ts";
@@ -105,7 +106,7 @@ export function newBindings(
       icon: KIND_ICONS.features,
       keys: "space n f",
       label: "Feature",
-      run: () => go("/new?kind=feature"),
+      run: () => go(NEW_FEATURE_HREF),
     },
     {
       icon: KIND_ICONS.notes,
