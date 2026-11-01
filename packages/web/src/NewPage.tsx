@@ -82,10 +82,15 @@ function useComposerFocus(kind: NewKind | undefined) {
   const wantsFocus = useRef(false);
   const box = useRef<HTMLDivElement>(null);
   // The composer may not be drawn yet, and on the phone it is below the cards: wait for it, focus
-  // it, and scroll it into view, its send button with it.
+  // it, and scroll it into view, its send button with it. A focus moved meanwhile, as an arrow's
+  // pick on the cards, is the human's: the wait gives up.
   const focusComposer = () => {
     let tries = 0;
+    const from = document.activeElement;
     const attempt = () => {
+      if (document.activeElement !== from) {
+        return;
+      }
       if (input.current) {
         input.current.focus();
         box.current?.scrollIntoView({ block: "nearest" });
