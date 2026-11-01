@@ -1142,3 +1142,38 @@ fn a_note_whose_marks_end_its_first_line_moves_as_one_line() {
          - The cards jump when a run starts\n\n## Next"
     ));
 }
+
+/// US1, US4 2: a file whose change is links alone waits on the commit page as a repair, committed
+/// and discarded with the list; a human's edit of another file is not a repair.
+#[test]
+fn a_repair_waits_on_the_commit_page() {
+    const FLOWS: &str = "specs/ui/flows.md";
+    const RECORD: &str = "specs/done/2026-10-01-old-feature.md";
+    let flows = "# Flows\n\nSee [the pass](/specs/proposals/look-and-feel.md).\n";
+    let repaired = "# Flows\n\nSee [the pass](/specs/proposals/git-listener.md).\n";
+    let record = "# Old feature\n\nIt shipped.\n";
+    let repo = fixture_repo();
+    repo.write(FLOWS, flows);
+    repo.write(RECORD, record);
+    repo.commit("docs: flows and a record");
+    let place = main_place(&repo);
+    repo.write(FLOWS, repaired);
+    repo.git(&["add", FLOWS]);
+    repo.write(RECORD, "# Old feature\n\nIt shipped late.\n");
+
+    assert_eq!(
+        changes::list(&place).lines,
+        ["- Repair links: flows.md".to_string()]
+    );
+    let committed = changes::commit(&place).unwrap();
+    assert_eq!(committed.change.subject, "chore: repair links in flows.md");
+    assert_eq!(repo.changed_in("main"), [FLOWS]);
+    assert_eq!(repo.porcelain(), format!(" M {RECORD}\n"));
+
+    repo.write(FLOWS, flows);
+    assert_eq!(changes::list(&place).count, 1);
+    changes::discard(&place).unwrap();
+    assert_eq!(repo.read(FLOWS), repaired);
+    assert_eq!(repo.read(RECORD), "# Old feature\n\nIt shipped late.\n");
+    assert_eq!(changes::list(&place).count, 0);
+}

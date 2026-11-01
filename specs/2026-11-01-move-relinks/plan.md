@@ -668,7 +668,9 @@ the sandbox.
 
 **Files:**
 
-- Modify: `crates/core/src/actions/changes.rs` (`gather`, `discard`)
+- Modify: `crates/core/src/actions/changes.rs` (`gather`, `discard`; `linked_files` reads the list
+  without the repairs, see [R13](rulings.md#r13-a-proposal-files-commit-leaves-the-repairs))
+- Create: `crates/core/src/actions/changes/repairs.rs` (`repairs`, `file_name`)
 - Test: `crates/core/tests/inbox_moves.rs` (a test added)
 
 **Interfaces:**
@@ -679,29 +681,30 @@ the sandbox.
   `- Repair links: <file name>`, its subject `repair links in <file name>`, its path in the commit;
   Discard restores it from `HEAD`.
 
-- [ ] **Step 1: Write the failing test** `a_repair_waits_on_the_commit_page`: a committed
+- [x] **Step 1: Write the failing test** `a_repair_waits_on_the_commit_page`: a committed
       `specs/ui/flows.md` with a link rewritten by hand to another destination, and a committed
       record with a sentence edited: `list` holds `- Repair links: flows.md` and nothing for the
       record; `commit` commits `flows.md` (`changed_in`) and leaves the record uncommitted; a second
       repair then `discard` restores it. The breaks: a repair left out of the commit page, a human's
       edit committed as a repair, a Discard that leaves the repair.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
   - Run: `nix develop -c cargo nextest run -p uraeda-core --test inbox_moves`
   - Expected: FAIL, `list` has no `- Repair links: flows.md` line.
 
-- [ ] **Step 3: Implement the repairs in `gather` and `discard`**, reading the changed files with
+- [x] **Step 3: Implement the repairs in `gather` and `discard`**, reading the changed files with
       `Git::changed_files`, under `specs/`, `.md`, other than the lists and the paths already
       listed.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   ```bash
-  git add crates/core/src/actions/changes.rs crates/core/tests/inbox_moves.rs
+  git add crates/core/src/actions/changes.rs crates/core/src/actions/changes/repairs.rs \
+    crates/core/tests/inbox_moves.rs specs/2026-11-01-move-relinks/
   git commit -m "feat(move-relinks): the commit page lists link repairs"
   ```
 
