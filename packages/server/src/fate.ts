@@ -82,6 +82,7 @@ export { LEDGER_ID } from "./fate/views-ledger.ts";
 export { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
 export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
 export { WRITE_QUEUE_ID } from "./fate/write-queue.ts";
+export { NEW_FEATURE_HREF } from "./fate/starts.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;

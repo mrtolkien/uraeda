@@ -5,7 +5,7 @@
 // place. The file keeps the started proposals at the top of Now; on screen they show apart.
 import { useEffect } from "react";
 import { useFateClient } from "react-fate";
-import type { Proposal } from "uraeda-server/fate";
+import { NEW_FEATURE_HREF, type Proposal } from "uraeda-server/fate";
 import { readPrioritiesHash, type usePriorities } from "../data.ts";
 import { stepKindOf } from "../sidebar/cards.ts";
 import { STEP_ICONS } from "../sidebar/StepIcon.tsx";
@@ -332,7 +332,7 @@ function useProposalKeys(
       navigate(here(`/edit/${proposal.file.path}`));
       return;
     }
-    navigate(here("/new?kind=feature"), { insert: `line:${proposal.id}` });
+    navigate(here(NEW_FEATURE_HREF), { insert: `line:${proposal.id}` });
   };
 
   return { onPromote, onStart, open };

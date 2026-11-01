@@ -2,6 +2,7 @@
 // feature cannot be read yet, so the page draws from the queue's record and from the plan this
 // document made, the steps where the transcript will be and the plan's message in the composer. A
 // message sent meanwhile waits for the steps; a refusal puts it back (US4).
+import { NEW_FEATURE_HREF } from "uraeda-server/fate";
 import { useEffect, useRef } from "react";
 import { useFateClient } from "react-fate";
 import { useHandOver } from "../HandOver.tsx";
@@ -19,9 +20,6 @@ const NOT_STARTED = "Nothing started: start the proposal again from its file.";
 
 /** The same, for a feature typed on the New page, whose composer still holds its text. */
 const NOT_STARTED_TYPED = "Nothing started: your text is still on the New page.";
-
-/** The page a typed feature's start opens once refused, as the server's write names it. */
-const NEW_FEATURE = "/new?kind=feature";
 
 /** The start of `folder` in the repository's write queue, landing, waiting, or refused. */
 export function useStartWrite(folder: string): Write | undefined {
@@ -129,7 +127,7 @@ export function StartingSession({
   }, [handOver, queued, refused]);
   const title = write?.label ?? (start ? `Starting the ${start.kind} ${start.title}` : folder);
   const proposal =
-    write?.href || (start?.proposal === undefined ? NEW_FEATURE : `/edit/${start.proposal}`);
+    write?.href || (start?.proposal === undefined ? NEW_FEATURE_HREF : `/edit/${start.proposal}`);
   return (
     <SessionPane
       crumbs={folder}
@@ -153,7 +151,8 @@ export function StartingSession({
         : {
             blocked:
               // Read from the plan, or once a reload forgot it, from the write.
-              (start !== undefined && start.proposal === undefined) || refused.href === NEW_FEATURE
+              (start !== undefined && start.proposal === undefined) ||
+              refused.href === NEW_FEATURE_HREF
                 ? NOT_STARTED_TYPED
                 : NOT_STARTED,
           })}

@@ -299,7 +299,7 @@ export function useProposalHints() {
 }
 
 /**
- * The slug the core proposes for a typed change's whole text, which it reads the title in (R14):
+ * The slug the core proposes for a typed change's or feature's whole text, which it reads the title in (R14):
  * empty for a text with no title. Read once per text.
  */
 export function useSlugProposal(text: string) {
