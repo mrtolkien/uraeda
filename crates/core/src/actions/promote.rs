@@ -11,11 +11,13 @@ use std::path::Path;
 use crate::decisions::{BranchSides, branch_changes};
 use crate::files::{frontmatter, priorities};
 use crate::git::Git;
+use crate::moves::{self, Went};
 use crate::steps::StepName;
 use crate::workspace::{Feature, Kind, Workspace, folder_branch, folder_path, resolve};
 
 use super::expand::with_nested;
 use super::place;
+use super::relink::{self, Relinked};
 use super::start::{StartError, check_free, partial};
 
 /// The refusal of a change with an open pull request, whose branch the move would rename.
@@ -205,11 +207,16 @@ impl Move<'_> {
             return Err(partial(&done, vec![left, commit_left], error));
         }
         done.push(format!("the move of {old} to {new}"));
+        let relinked = relink_folder(&root, &old, &new).map_err(|error| {
+            let left = format!("point the links of specs/ to {old} at {new}");
+            partial(&done, vec![left, commit_left.clone()], error)
+        })?;
         let on_branch = Git::open(&root)?;
         let decisions = self
             .propose_again(&on_branch, &root)
             .map_err(|error| partial(&done, vec![commit_left.clone()], error))?;
         let mut paths = vec![old, new];
+        paths.extend(committed(&relinked));
         paths.extend(decisions.iter().map(|name| decision_path(name)));
         if let Err(error) = on_branch.commit(&paths, &subject, None, false) {
             let left = vec![format!(
@@ -228,8 +235,9 @@ impl Move<'_> {
     }
 
     /// Writes the relinked priorities, when they change, and moves the change's folder, when the
-    /// default branch has it, then commits them there: a refused commit puts both back as they
-    /// were, so a move run again relinks and commits them, and leaves every step.
+    /// default branch has it, and points the links of `specs/` at the moved folder, then commits
+    /// them there: a refused commit puts them back as they were, a file relinked only while it
+    /// holds the rewrite, so a move run again relinks and commits them, and leaves every step.
     fn relink(
         &self,
         at: &Git,
@@ -261,6 +269,13 @@ impl Move<'_> {
             fs::rename(root.join(&old), root.join(&new)).inspect_err(|_| restore())?;
             paths.extend([old.clone(), new.clone()]);
         }
+        let relinked = relink_folder(root, &old, &new).inspect_err(|_| {
+            restore();
+            if self.on_default {
+                let _ = fs::rename(root.join(&new), root.join(&old));
+            }
+        })?;
+        paths.extend(committed(&relinked));
         // The proposal file as it was, put back with the folder when the commit is refused.
         let proposal = root.join(&new).join("proposal.md");
         let written = fs::read_to_string(&proposal).ok();
@@ -268,6 +283,7 @@ impl Move<'_> {
             && let Err(error) = self.carry(root, &new)
         {
             restore();
+            relink::put_back(root, &relinked);
             let _ = fs::rename(root.join(&new), root.join(&old));
             return Err(error.into());
         }
@@ -275,10 +291,14 @@ impl Move<'_> {
         // leaves them.
         at.commit_only(&paths, subject, None, false).map_err(|error| {
             restore();
+            if self.on_default
+                && let Some(text) = &written
+            {
+                let _ = fs::write(&proposal, text);
+            }
+            // While the moved folder's files are still at their new path.
+            relink::put_back(root, &relinked);
             if self.on_default {
-                if let Some(text) = &written {
-                    let _ = fs::write(&proposal, text);
-                }
                 let _ = fs::rename(root.join(&new), root.join(&old));
             }
             let (what, them, back) = match (edited.is_some(), self.on_default) {
@@ -347,6 +367,30 @@ impl Move<'_> {
 }
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
+
+/// Points the links of every file of `specs/` under `root` to the change's folder `old` at the
+/// feature's folder `new`, the moved folder's own files included, but `PRIORITIES.md`, which the
+/// move writes itself: all written, or none and the error.
+fn relink_folder(root: &Path, old: &str, new: &str) -> Result<Vec<Relinked>, StartError> {
+    let moved = moves::Move {
+        from: old.to_string(),
+        went: Went::Moved {
+            path: new.to_string(),
+            anchor: None,
+        },
+    };
+    relink::relink(root, "specs", &[moved], &[PRIORITIES])
+        .map_err(|error| StartError::Refused(error.to_string()))
+}
+
+/// The files `relinked` that a commit takes: those without uncommitted edits, which keep their
+/// rewrite out of it.
+fn committed(relinked: &[Relinked]) -> impl Iterator<Item = String> + '_ {
+    relinked
+        .iter()
+        .filter(|file| !file.edited)
+        .map(|file| file.path.clone())
+}
 
 fn decision_path(name: &str) -> String {
     format!("specs/decisions/{name}.md")

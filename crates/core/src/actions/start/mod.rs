@@ -432,7 +432,7 @@ impl<'a> Start<'a> {
         held: Option<WriteGuard>,
     ) -> Result<Started, StartError> {
         let plan = self.plan(slug, today)?;
-        let ((moves, before), done) = match self.source {
+        let ((moves, before, relinked), done) = match self.source {
             Source::Proposal(proposal) => {
                 let moved = self.move_proposal(proposal, &plan)?;
                 (moved, "the move of the proposal file".to_string())
@@ -450,7 +450,7 @@ impl<'a> Start<'a> {
                 )
             }
         };
-        self.commit_start(&plan, &done, (&moves, before), held)?;
+        self.commit_start(&plan, &done, (&moves, before, &relinked), held)?;
         let done = vec![done, format!("the start commit on {}", self.default)];
         self.report(StartProgress::Branching);
         let lock = self.run.lock();
