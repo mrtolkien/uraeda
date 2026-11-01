@@ -6,7 +6,10 @@
 >
 > Features for v1.0.0
 
+- [If there's nothing in progress, the "nothing in progress" in the sidebar looks…](/specs/changes/2026-11-01-nothing-bar/proposal.md)
+
 - Empty inbox
+- If there's nothing in progress, the "nothing in progress" in the sidebar looks weird
 
 ## Next
 
@@ -14,11 +17,14 @@
 >
 > Goals once I'm happy with the core feature set
 
-- See if we can integrate Claude Design
+- "Master" PR: when multiple agents runs, make sure all PRs can merge smoothy. Also, make workflow
+  file changes less problematic with merge issues.
 - [Worker lifecycle](proposals/worker-lifecycle.md): runs survive server restarts, usage limits, and
   their own background work, and go on to the next human gate without a "Continue"
+  - Heartbeat/cron jobs
 - Review the UI guidelines properly
 
+- See if we can integrate Claude Design
 - Vim in text edit mode
 
 - Basic git UI in the web ui (pull, see diffs, ...)
@@ -28,15 +34,12 @@
   - Master session vs one session per step
   - Review options: model, command, prompt, depth, ...
   - Can set global defaults and override per-feature
-
-- Heartbeat/cron jobs
 - Global undo
 - Keyboard nav in questions and specs
 
 - Color themes
   - The classic open source ones
 - Cooler home view: logo, progress, gauges, ...
-- eink mode?
 
 - References (docs) querying and storing workflow -> our own local context8?
   - Issue faced: I'm using Astryx which is pretty new, and the agents did make errors with it
@@ -48,8 +51,8 @@
   - claude integration could become an extension
   - Needs both core extenstions (WASM?), server extensions (TS?), and UI extensions
   - same for the references system which is more of a skill tbh
-
-- Nix + Docker based execution environments
+- Nix / Docker based execution environments
+  - Make it _safer_ to run agents in YOLO mode
 
 - Dedicated docs website
   - Explain the concepts and the controls
@@ -90,5 +93,6 @@
 - Lightly integrate deployment tools to add preview environments and/or deploy status
 
 - Mutation testing of the Rust code with cargo-mutants, on demand, to find code no test checks
+- eink mode?
 
 ## Blocked
