@@ -125,3 +125,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   stays broken until `ura check --fix`.
 - **Where**: task 5, `Start::relink` in `crates/core/src/actions/start/commits.rs`, and
   `relink_folder` in `crates/core/src/actions/promote.rs`.
+
+## R12: A merge's relink skips the proposal file the note went into
+
+- **Decision**: the relink of a note merged into a proposal file skips that proposal file, and the
+  note file itself, besides the two lists. The subsection's anchor is the first `###` heading the
+  merge added, numbered as GitHub numbers it, past a `## Notes` the merge wrote.
+- **Rationale**: the merge's Undo finds the text it inserted in the proposal file, and takes back
+  the one run between the text before and after: a link rewritten elsewhere in that file would widen
+  the run, and the Undo would take the human's text between them. The note file is taken away right
+  after, held as it was for the Undo.
+- **If wrong**: a link from the proposal file to the note merged into it stays, reported by the
+  check; `ura check --fix` reads it as deleted
+  ([R6](#r6-a-note-merged-into-a-proposal-file-reads-as-deleted-in-the-history)) and keeps its
+  words.
+- **Where**: task 6, `relink_and_remove` in `crates/core/src/actions/inbox/merge.rs`.
