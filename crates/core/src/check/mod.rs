@@ -7,6 +7,7 @@ mod links;
 mod names;
 mod notes;
 mod priorities;
+mod reviews;
 mod sections;
 mod spec;
 mod unapproved;
@@ -24,7 +25,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::actions::default_round::DefaultRound;
-use crate::files::{frontmatter, markdown, review};
+use crate::files::{frontmatter, markdown};
 use crate::git::{Git, ObjectId};
 use crate::workspace::{FileKind, Problem, Severity};
 
@@ -371,7 +372,7 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
     match file.kind {
         Checked::Priorities => priorities::check_priorities(file, &document, &mut problems),
         Checked::Inbox => sections::check_inbox(file, &document, &mut problems),
-        Checked::Workflow(FileKind::Review) => check_review(file, &mut problems),
+        Checked::Workflow(FileKind::Review) => reviews::check_review(file, &mut problems),
         _ => sections::check_sections(file, &document, &mut problems),
     }
     match file.kind {
@@ -449,48 +450,6 @@ fn check_file(file: &File<'_>) -> Vec<Problem> {
     }
     links::check_links(file, &document, &mut problems);
     problems
-}
-
-fn check_review(file: &File<'_>, problems: &mut Vec<Problem>) {
-    let review = match review::parse(file.text) {
-        Ok(review) => review,
-        Err(review::ReviewError::Frontmatter(_)) => return,
-        Err(error) => {
-            let line = match &error {
-                review::ReviewError::BadAnchor { line, .. } => Some(*line),
-                _ => None,
-            };
-            problems.push(file.problem(line, "reviews.format", error.to_string()));
-            return;
-        }
-    };
-    if review.verdict == review::Verdict::ChangesRequested && review.comments.is_empty() {
-        problems.push(file.problem(
-            None,
-            "reviews.comment",
-            "a request for changes needs at least one comment",
-        ));
-    }
-    for (index, comment) in review.comments.iter().enumerate() {
-        if comment.number as usize != index + 1 {
-            problems.push(file.problem(
-                Some(comment.line),
-                "reviews.numbering",
-                format!("C{} should be C{}", comment.number, index + 1),
-            ));
-        }
-        let on_lines = matches!(
-            comment.anchor,
-            review::Anchor::Lines(..) | review::Anchor::Decision { .. }
-        );
-        if on_lines && comment.quote.is_empty() {
-            problems.push(file.problem(
-                Some(comment.line),
-                "reviews.quote",
-                format!("C{} quotes no line", comment.number),
-            ));
-        }
-    }
 }
 
 /// The frontmatter of a file, when it parses.
