@@ -103,10 +103,12 @@ function useComposerFocus(kind: NewKind | undefined) {
   }, [kind]);
   // Once a visit, not on each pick: the arrows' picks keep the focus on the cards. Back to a page
   // scrolled down the entries keeps its place, which the composer, above them, would scroll away.
+  // An open overlay's entry is no visit, nor is the next page's, while this one stays drawn.
   const visit = useEntryId();
   const focusedOn = useRef<string | null | undefined>(null);
   useEffect(() => {
-    if (kind !== undefined && focusedOn.current !== visit) {
+    const isVisit = window.location.pathname.endsWith("/new") && !currentEntry().overlay;
+    if (kind !== undefined && isVisit && focusedOn.current !== visit) {
       focusedOn.current = visit;
       if (!currentEntry().scroll) {
         focusComposer();
