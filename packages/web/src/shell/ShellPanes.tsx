@@ -1,6 +1,7 @@
 // The shell's panes of work: Needs you, then the sessions without a workflow, then the features and
-// changes in progress, each the oldest started first, then the latest done items. The column draws
-// them under Navigate, as many done items as fit; the phone's sessions page draws them as its own.
+// changes in progress, each the oldest started first and left out while empty, then the latest done
+// items. The column draws them under Navigate, as many done items as fit; the phone's sessions page
+// draws them as its own.
 import { type ReactNode, type RefObject, useRef } from "react";
 import { Pane, type PaneTone } from "../layout/Pane.tsx";
 import { currentEntry, navigate, useLocalPath, useRepoPath } from "../routes.tsx";
@@ -10,7 +11,6 @@ import { EntryCard } from "../sidebar/Cards.tsx";
 import { DoneArea } from "../sidebar/DoneArea.tsx";
 import { doneRows, useKeptSession } from "../sidebar/done.ts";
 import { type Data, type Entry, entriesOf, entryKey, splitNeedsYou } from "../sidebar/entries.ts";
-import { Empty } from "../layout/Empty.tsx";
 
 /** The page's path as the shell selects its rows by it. */
 export function useShellPath() {
@@ -30,24 +30,22 @@ function useShellData() {
   return { data, kept, pathname };
 }
 
-/** A pane of the shell, titled. Left out, empty, with `isHiddenEmpty`; else it says so, in `empty`. */
+/**
+ * A pane of the shell, titled, left out while its `count` is 0: an empty pane's line, clipped in
+ * the closed rail, read as a stray word.
+ */
 export function ShellPane({
   children,
   count,
-  empty,
-  isHiddenEmpty = false,
   title,
   tone,
 }: {
   children?: ReactNode;
   count?: number;
-  empty?: string;
-  isHiddenEmpty?: boolean;
   title: string;
   tone?: PaneTone;
 }) {
-  const isEmpty = count === 0;
-  if (isEmpty && isHiddenEmpty) {
+  if (count === 0) {
     return null;
   }
   return (
@@ -57,7 +55,7 @@ export function ShellPane({
       {...(count === undefined ? {} : { count })}
       {...(tone ? { tone } : {})}
     >
-      {isEmpty && empty ? <Empty isInset>{empty}</Empty> : children}
+      {children}
     </Pane>
   );
 }
@@ -86,13 +84,13 @@ function Work({
   const progress = rest.filter((entry) => entry.kind === "feature");
   return (
     <>
-      <ShellPane count={waiting.length} isHiddenEmpty title="Needs you" tone="attention">
+      <ShellPane count={waiting.length} title="Needs you" tone="attention">
         <Cards entries={waiting} pathname={pathname} />
       </ShellPane>
-      <ShellPane count={sessions.length} isHiddenEmpty title="Sessions">
+      <ShellPane count={sessions.length} title="Sessions">
         <Cards entries={sessions} pathname={pathname} />
       </ShellPane>
-      <ShellPane count={progress.length} empty="Nothing in progress." title="In progress">
+      <ShellPane count={progress.length} title="In progress">
         <Cards entries={progress} pathname={pathname} />
       </ShellPane>
     </>
