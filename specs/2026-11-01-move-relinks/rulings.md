@@ -166,3 +166,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a main file renamed to a new name with most of its text rewritten, in one commit,
   reads as deleted: `--fix` keeps the link's words, and a rename git sees still follows.
 - **Where**: task 2, `start` in `crates/core/src/moves/history.rs`.
+
+## R15: The relinker writes by renaming, and leaves two gaps open
+
+- **Decision**: the relinker writes each file into a new file beside it, given its permissions, and
+  renames it over the file, so a failed write leaves it whole; the files written before it are put
+  back, and the error names any that could not be. Two gaps stay open: a save landing between the
+  relinker's read of a file and its write is overwritten, and `relink_back` leaves the moved link in
+  an untracked file, which no commit holds to compare against (extends R2's **If wrong**).
+- **Rationale**: the window is milliseconds, and the moves hold the repository's write lock for the
+  server's own writes, so only an editor saving at that instant loses its save. An untracked file
+  has no `HEAD` text to prove its change is links alone.
+- **If wrong**: the relinker compares each file to its `before` just ahead of the rename and skips
+  one changed since; the Undo keeps the texts in memory, as the merge does. A file the rename
+  replaces loses its other hard links and takes the writer as its owner.
+- **Where**: task 3, `write_all`, `replace`, and `relink_back` in
+  `crates/core/src/actions/relink.rs`.
