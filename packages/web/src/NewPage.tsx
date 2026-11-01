@@ -5,7 +5,7 @@
 // its own, opens. A session starts with its first message; a change with Ctrl+Enter, which asks
 // for its slug; a feature with Ctrl+Enter too, which asks for its slug and research effort, then
 // opens its session. The entries a start was filled from leave their files. `/` searches the
-// entries.
+// entries. Each visit opens with the focus in the composer, where typing goes.
 import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -73,7 +73,8 @@ function Search({
 
 /**
  * The composer's focus: `input` is its field, `box` what holds it, and `focusComposer` gives it the
- * focus; `focusOnDraw` asks for it once the kind picked draws its composer.
+ * focus; `focusOnDraw` asks for it once the kind picked draws its composer. Each visit opens with
+ * it, where typing goes: on the phone, once a card is picked.
  */
 function useComposerFocus(kind: NewKind | undefined) {
   const input = useRef<ChatComposerInputHandle>(null);
@@ -100,6 +101,18 @@ function useComposerFocus(kind: NewKind | undefined) {
       focusComposer();
     }
   }, [kind]);
+  // Once a visit, not on each pick: the arrows' picks keep the focus on the cards. Back to a page
+  // scrolled down the entries keeps its place, which the composer, above them, would scroll away.
+  const visit = useEntryId();
+  const focusedOn = useRef<string | null | undefined>(null);
+  useEffect(() => {
+    if (kind !== undefined && focusedOn.current !== visit) {
+      focusedOn.current = visit;
+      if (!currentEntry().scroll) {
+        focusComposer();
+      }
+    }
+  }, [kind, visit]);
   const focusOnDraw = () => {
     wantsFocus.current = true;
   };

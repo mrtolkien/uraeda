@@ -57,6 +57,10 @@ page never gives a base key another meaning.
 - A layer that opens takes the focus where typing goes: a picker its filter, a form its field. The
   shared confirmation focuses Cancel, so that Enter changes nothing.
 - `Escape` gives the focus back where it was before the layer opened.
+- A page that starts something opens with the focus in its text field: the New page in the picked
+  kind's composer, and again after `s c f` pick a card, and a feature's New session in its composer.
+  `Escape` gives the page its keys back. Back to a New page scrolled down its entries keeps its
+  place instead.
 - After an action that sends the human somewhere, they land there, with the result selected: a note
   promoted to the priorities opens the priorities at that line.
 - A page with a list opens with a row selected: the first of its first section, or the one the
