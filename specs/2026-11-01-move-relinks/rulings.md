@@ -184,3 +184,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   replaces loses its other hard links and takes the writer as its owner.
 - **Where**: task 3, `write_all`, `replace`, and `relink_back` in
   `crates/core/src/actions/relink.rs`.
+
+## R16: Two repairs of the same name read by their path
+
+- **Decision**: the commit page names a link repair by its file's name, as the spec says, unless
+  another repair has the same name: then each of them reads by its path from `specs/`, in its line
+  and its subject, `- Repair links: ui/a/flows.md`.
+- **Rationale**: two lines `- Repair links: spec.md` say nothing of which files they repair, and
+  `spec.md`, `proposal.md`, and `plan.md` repeat in every dated folder.
+- **If wrong**: `repairs::names` gives each file's name alone, one line.
+- **Where**: task 7's review, `names` in `crates/core/src/actions/changes/repairs.rs`.
