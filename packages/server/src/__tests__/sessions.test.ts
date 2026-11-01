@@ -506,14 +506,10 @@ test("US1.6: a write on a feature is refused while its turn runs", async () => {
     { path: `specs/${AGENT}/proposal.md` },
     ["id"],
   );
-  const [workspace] = await byId(server.app, "Workspace", ["workspace"], ["id", "running"]);
 
   expect(refused.error).toEqual(REFUSED);
   expect(committed.error).toEqual(REFUSED);
-  expect(workspace.running).toEqual([AGENT]);
   await stop(server, session);
-  const [after] = await byId(server.app, "Workspace", ["workspace"], ["id", "running"]);
-  expect(after.running).toEqual([]);
 });
 
 test("proposal files, priorities, and other features stay writable during a turn", async () => {

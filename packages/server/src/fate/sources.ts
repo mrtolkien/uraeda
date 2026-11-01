@@ -24,7 +24,6 @@ import {
   readWorkflowMessage,
   sessionList,
   sessionSearch,
-  working,
 } from "./sessions.ts";
 import { readRecommended, recommendedDataView } from "./recommended.ts";
 import { readSettingsRecord, settingsDataView } from "./settings.ts";
@@ -141,7 +140,6 @@ async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
       })),
     ),
     preview: root !== undefined && (await hasPreview(ctx, root)),
-    running: await working(ctx),
   };
 }
 

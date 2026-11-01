@@ -93,7 +93,6 @@ export const WorkspaceView = view<Workspace>()({
   prioritiesHash: true,
   proposals: true,
   root: true,
-  running: true,
   setup: true,
 });
 
