@@ -310,6 +310,30 @@ function sessionComposer(
   };
 }
 
+/** What a session's pane draws, and what it calls: see `SessionPane`. */
+type SessionPaneProps = {
+  /** Why nothing can be sent to it, which disables the composer. */
+  blocked?: string;
+  crumbs?: string;
+  draft: Draft;
+  folder?: string;
+  handing?: Handing;
+  /** The session, once it exists. */
+  id?: string;
+  /** Drawn in the box that scrolls it, not as a page. */
+  isBoxed?: boolean;
+  /** A new session of the feature in `folder`, made by its first message: leaving makes none. */
+  isNewSession?: boolean;
+  /** The change or the feature the session belongs to, once read. */
+  item?: SessionItem;
+  /** Called with the session a message created, before it exists. */
+  onSent?: (session: string) => void;
+  /** Its feature's start, drawn where the transcript will be, in a page without a column. */
+  starting?: ReactNode;
+  /** The title before the session exists. */
+  title?: string;
+};
+
 /**
  * A session's pane: its header, transcript, and composer, and the session's column, or, before its
  * first message creates it, the title and the composer alone. A feature's or a new chat's first
@@ -331,28 +355,7 @@ export function SessionPane({
   onSent,
   starting,
   title,
-}: {
-  /** Why nothing can be sent to it, which disables the composer. */
-  blocked?: string;
-  crumbs?: string;
-  draft: Draft;
-  folder?: string;
-  handing?: Handing;
-  /** The session, once it exists. */
-  id?: string;
-  /** Drawn in the box that scrolls it, not as a page. */
-  isBoxed?: boolean;
-  /** A new session of the feature in `folder`, made by its first message: leaving makes none. */
-  isNewSession?: boolean;
-  /** The change or the feature the session belongs to, once read. */
-  item?: SessionItem;
-  /** Called with the session a message created, before it exists. */
-  onSent?: (session: string) => void;
-  /** Its feature's start, drawn where the transcript will be, in a page without a column. */
-  starting?: ReactNode;
-  /** The title before the session exists. */
-  title?: string;
-}) {
+}: SessionPaneProps) {
   const wide = !isNarrow(useWidthClass());
   const session = useSessionRecord(id);
   const controls = useSessionControls(id, session);
