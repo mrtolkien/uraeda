@@ -186,8 +186,8 @@ pub fn is_svg(path: &str, bytes: &[u8]) -> bool {
 }
 
 /// The text after a doctype, from after its `<!DOCTYPE`: past its internal subset `[…]`, whose
-/// declarations may hold `>` and `]`, and the `>` that closes it, after optional whitespace, as XML
-/// allows `] >`.
+/// declarations may hold `>`, or `]` not followed by `>`, and the `>` that closes it, after optional
+/// whitespace, as XML allows `] >`.
 fn after_doctype(text: &str) -> Option<&str> {
     let mut subset = &text[text.find(['[', '>'])?..];
     if let Some(rest) = subset.strip_prefix('>') {

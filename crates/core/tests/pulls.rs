@@ -261,7 +261,7 @@ fn an_open_pull_request_and_the_implementation_keep_their_steps() {
             None,
         ),
         (
-            "a change ahead of its pull request",
+            "a change ahead of its pull request, pushed before",
             Feature::from_texts(
                 Kind::Change,
                 "2026-10-10-x",
@@ -272,7 +272,7 @@ fn an_open_pull_request_and_the_implementation_keep_their_steps() {
                 merged: BTreeMap::new(),
             },
             StepName::Push,
-            None,
+            Some(&change_parent),
         ),
         (
             "a change ahead of its pull request, pushed",
