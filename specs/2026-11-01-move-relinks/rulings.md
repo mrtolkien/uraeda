@@ -140,3 +140,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   ([R6](#r6-a-note-merged-into-a-proposal-file-reads-as-deleted-in-the-history)) and keeps its
   words.
 - **Where**: task 6, `relink_and_remove` in `crates/core/src/actions/inbox/merge.rs`.
+
+## R13: A proposal file's commit leaves the repairs
+
+- **Decision**: `changes::linked_files`, the files a proposal file's or a note file's commit from
+  its editor takes along with the lists, reads the change list without the link repairs: the repairs
+  stay on the commit page, committed by its Commit.
+- **Rationale**: that commit's subject names the proposal file alone, so a repair carried in it
+  would be committed under a message that does not name it. The spec puts a repair on the commit
+  page, as `- Repair links: <file name>`.
+- **If wrong**: `linked_files` reads `gather` instead of `gather_lists`, one line.
+- **Where**: task 7, `crates/core/src/actions/changes.rs`.

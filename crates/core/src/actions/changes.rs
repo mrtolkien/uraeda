@@ -15,6 +15,7 @@ use super::{ActionError, Change, Committed, commit, images};
 
 mod files;
 mod linked;
+mod repairs;
 
 use files::{
     FOLDERS, Found, Grown, Undo, files_in, grown_files, linked_by, take_item, take_note, unmerge,
@@ -38,12 +39,13 @@ struct Described {
     line: String,
 }
 
-/// The change list, the files its commit holds, and what Discard does to proposal files and note
-/// files.
+/// The change list, the files its commit holds, what Discard does to proposal files and note
+/// files, and the link repairs among the files, which Discard restores.
 struct Listed {
     changes: Vec<Described>,
     paths: Vec<String>,
     undo: Vec<Undo>,
+    repairs: Vec<String>,
 }
 
 /// A file's text from the top level, and its text at `HEAD`; `None` when absent.
@@ -240,7 +242,27 @@ fn files(texts: &Texts, linked: Vec<String>) -> Vec<String> {
     files
 }
 
+/// The change list with the link repairs: every file of `specs/` other than the lists and the files
+/// listed already, whose change is links alone, as its own change.
 fn gather(place: &Place) -> Listed {
+    let mut listed = gather_lists(place);
+    let mut taken = listed.paths.clone();
+    taken.extend([INBOX.to_string(), PRIORITIES.to_string()]);
+    for path in repairs::repairs(place, &taken) {
+        let name = repairs::file_name(&path);
+        listed.changes.push(Described {
+            subject: format!("repair links in {name}"),
+            line: format!("- Repair links: {name}"),
+        });
+        listed.paths.push(path.clone());
+        listed.repairs.push(path);
+    }
+    listed
+}
+
+/// The change list of the two lists, and of the proposal files and note files they need or the
+/// human edited.
+fn gather_lists(place: &Place) -> Listed {
     let texts = Texts {
         inbox: versions(place, INBOX),
         priorities: versions(place, PRIORITIES),
@@ -267,6 +289,7 @@ fn gather(place: &Place) -> Listed {
         changes,
         paths: files(&texts, paths),
         undo: found.undo,
+        repairs: Vec::new(),
     }
 }
 
@@ -359,9 +382,10 @@ pub fn message(place: &Place) -> (String, Option<String>) {
 
 /// The proposal files and note files a commit of the two lists holds: those the moves went into,
 /// those the lists link that no commit has, and the note files that moved or left. A proposal
-/// file's commit from its editor holding the lists holds them too.
+/// file's commit from its editor holding the lists holds them too, and leaves the link repairs on
+/// the commit page.
 pub(super) fn linked_files(place: &Place) -> Vec<String> {
-    let mut paths = gather(place).paths;
+    let mut paths = gather_lists(place).paths;
     paths.retain(|path| path != INBOX && path != PRIORITIES);
     paths
 }
@@ -414,7 +438,7 @@ pub fn commit(place: &Place) -> Result<Committed, ActionError> {
 /// no commit has. A file is never lost: one a move wrote and nobody committed is deleted only while
 /// it holds what the move wrote, with at most a note's images, which go with it, one a note was
 /// added to loses that note's lines only, a note file a move put among the proposals moves back,
-/// and a committed one a removal deleted comes back.
+/// a committed one a removal deleted comes back, and a link repair is restored from `HEAD`.
 pub fn discard(place: &Place) -> Result<(), ActionError> {
     let listed = gather(place);
     let git = Git::open(&place.root)?;
@@ -430,6 +454,9 @@ pub fn discard(place: &Place) -> Result<(), ActionError> {
         } else if place.root.join(path).is_file() {
             fs::remove_file(place.root.join(path))?;
         }
+    }
+    for path in &listed.repairs {
+        git.restore(path)?;
     }
     for undo in listed.undo {
         match undo {
