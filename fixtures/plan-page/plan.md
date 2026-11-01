@@ -90,20 +90,18 @@ From the active decisions the code touches, word for word:
 - [UI look](../decisions/ui-look.md): "The UI MUST look like a terminal tool: square corners, and
   content grouped in bordered panes whose title sits in their top border." "Every text colour MUST
   reach 4.5:1 against its background, and borders and controls 3:1, in every scheme."
-- [UI coherence](../decisions/ui-coherence.md): "A kind of information MUST be drawn by one shared
-  component on every page that shows it." "A change to how information is drawn MUST be made in its
-  shared component, so every page follows." "Reading text MUST be drawn through `Prose`."
 - [UI behaviour](../decisions/ui-behaviour.md): "Text MUST save only on an explicit action, and
   unsaved text MUST be marked and never dropped without asking." "Back and reload MUST keep the
   human's place and what they were reading." "Every action MUST work by tap and by keyboard, never
   by hover alone." "folded content MUST NOT be mounted".
 - [UI components](../decisions/ui-components.md): views use Astryx components wherever one fits,
   styled only through its theme's tokens; a raw element standing in for a missing one is an Astryx
-  gap, listed in [Complexity tracking](#complexity-tracking).
-- [UI checks](../decisions/ui-checks.md): "UI tests MUST drive the UI as a user does, and MUST NOT
-  assert markup, class names, or pixels." "Before handing over a UI change, the agent MUST review
-  screenshots of every changed view at both sizes and in both themes against the decisions, and
-  commit them." Widths the spec states in px are measured, as the round's browser tests already do.
+  gap, listed in [Complexity tracking](#complexity-tracking). "A kind of information MUST be drawn
+  by one shared component on every page that shows it." "A change to how information is drawn MUST
+  be made in its shared component, so every page follows."
+- [Testing](../decisions/testing.md): "A test of the web UI MUST guard behaviour that is costly to
+  lose and that using the UI would not show." "The agent MUST review each changed view in the
+  running app before handing it over, in both themes and at a phone's and a desktop's width."
 - [Code quality](../decisions/code-quality.md): TypeScript files at most 500 lines, functions 100,
   depth 4, parameters 7; Rust functions 100 lines, 7 arguments; no new disable marker.
 - [Toolchain](../decisions/toolchain.md): "After every task, fast MUST check formatting, lint,

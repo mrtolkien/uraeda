@@ -39,14 +39,14 @@ every key, so a key search and a dynamic status line can come later. See the
 
 Relied on:
 
-| Decision                                     | What it means for this spec                                     |
-| -------------------------------------------- | --------------------------------------------------------------- |
-| [UI behaviour](../decisions/ui-behaviour.md) | every action works by keyboard, and lists share one keyboard    |
-| [UI layout](../decisions/ui-layout.md)       | the menu is a sheet on narrow screens                           |
-| [UI coherence](../decisions/ui-coherence.md) | one drawing of a key, shared by the menu and the status line    |
-| [Settings](../decisions/settings.md)         | the switch lives in the settings file, through the Rust core    |
-| [UI checks](../decisions/ui-checks.md)       | tests press keys as a user does, and screenshots are reviewed   |
-| [Preview](../decisions/preview.md)           | the menu's mockups are stories, and two sketches are HTML pages |
+| Decision                                       | What it means for this spec                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------ |
+| [UI behaviour](../decisions/ui-behaviour.md)   | every action works by keyboard, and lists share one keyboard       |
+| [UI layout](../decisions/ui-layout.md)         | the menu is a sheet on narrow screens                              |
+| [UI components](../decisions/ui-components.md) | one drawing of a key, shared by the menu and the status line       |
+| [Settings](../decisions/settings.md)           | the switch lives in the settings file, through the Rust core       |
+| [Testing](../decisions/testing.md)             | tests press keys as a user does, and each changed view is reviewed |
+| [Preview](../decisions/preview.md)             | the menu's mockups are stories, and two sketches are HTML pages    |
 
 ## User stories
 
