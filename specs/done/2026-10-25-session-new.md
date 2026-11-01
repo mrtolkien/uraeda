@@ -2,7 +2,7 @@
 kind: feature
 finished: 2026-10-26
 pull-request: https://github.com/mrtolkien/uraeda/pull/58
-superseded-by: [2026-10-30-panes-size]
+superseded-by: [2026-10-30-panes-size, 2026-11-01-files-changed]
 ---
 
 # Record: Session and New in the terminal look
@@ -14,6 +14,8 @@ superseded-by: [2026-10-30-panes-size]
 > in git: `git log -- specs/2026-10-25-session-new/`.
 >
 > Superseded in part by [2026-10-30-panes-size](2026-10-30-panes-size.md).
+>
+> Superseded in part by [2026-11-01-files-changed](2026-11-01-files-changed.md).
 
 ## What and why
 
