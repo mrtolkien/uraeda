@@ -1,6 +1,6 @@
 // The sidebar draws no pane with nothing to show: its line saying so, clipped to the folded rail's
 // 52 px, read as a stray "Not".
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { NAV_KEY } from "../shell/columnWidth.ts";
 import { fixtureRepo, git, renderPage } from "./helpers.tsx";
@@ -18,14 +18,26 @@ function nothingStarted() {
   return repo;
 }
 
-// The open column draws the same rows, which the closed rail clips: one check covers both.
-test("the folded rail draws no In progress pane while nothing is", async () => {
+/** The folded rail beside the repository's Home. */
+async function foldedRail(repo: string) {
   window.localStorage.setItem(NAV_KEY, JSON.stringify({ folded: true }));
-  await renderPage("/settings", nothingStarted());
+  await renderPage("/", repo);
   const nav = await screen.findByRole("navigation", { name: "Navigation" });
   await within(nav).findByRole("button", { name: "Unfold navigation" });
-  // The inbox's count comes with the features: once it shows, the panes are drawn from them.
-  await waitFor(() => expect(nav.textContent).toContain("Inbox10"));
-  expect(within(nav).queryByText("In progress")).toBeNull();
+  return nav;
+}
+
+// Break: a pane always left out passes the test below; this one draws it while a feature is.
+test("the folded rail draws the In progress pane while a feature is in progress", async () => {
+  const nav = await foldedRail(fixtureRepo());
+  await within(nav).findByRole("group", { hidden: true, name: "In progress" });
+});
+
+// The open column draws the same rows, which the closed rail clips: one check covers both.
+test("the folded rail draws no In progress pane while nothing is", async () => {
+  const nav = await foldedRail(nothingStarted());
+  // Home's own line comes from the same features as the rail's panes: once drawn, so are they.
+  await within(screen.getByRole("main")).findByText("Nothing in progress.");
+  expect(within(nav).queryByRole("group", { hidden: true, name: "In progress" })).toBeNull();
   expect(within(nav).queryByText("Nothing in progress.")).toBeNull();
 });
