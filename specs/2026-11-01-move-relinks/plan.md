@@ -293,7 +293,7 @@ the sandbox.
     only by link destinations, or links turned into their words; true when equal. A link added where
     `then` had plain words is a change.
 
-- [ ] **Step 1: Write the failing tests**, in `retarget.rs`'s tests module:
+- [x] **Step 1: Write the failing tests**, in `retarget.rs`'s tests module:
       `links_follow_their_moves`, a table of `(text, expected)` for
       `relink(text, "specs/done", moves)` with moves for `specs/proposals/a.md` →
       `specs/2026-11-10-a/proposal.md`, the folder `specs/2026-10-10-cli-core` → record
@@ -319,11 +319,11 @@ the sandbox.
   dropped or another anchor kept on a record; a deleted link left, or its words lost; a code span
   rewritten; the commit page taking a human's edit for a repair.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `nix develop -c cargo nextest run -p uraeda-core retarget`
   - Expected: FAIL to compile, `cannot find function relink`.
 
-- [ ] **Step 3: Implement `moves.rs` and `relink`, `only_links_changed`**
+- [x] **Step 3: Implement `moves.rs` and `relink`, `only_links_changed`**
 
   `relink` extends the private `rewrite` so an edit can replace a whole inline link or image with
   its text: the link's text as written, `[…]`'s inner markdown kept, an image's alt. Resolve each
@@ -335,11 +335,11 @@ the sandbox.
   link and image reduced to its text and each reference definition's destination emptied, and
   requires every link of `now` to have one in `then`, in order, with the same text.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS, the existing `retarget.rs` tests included.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   ```bash
   git add crates/core/src/moves.rs crates/core/src/lib.rs crates/core/src/files/retarget.rs

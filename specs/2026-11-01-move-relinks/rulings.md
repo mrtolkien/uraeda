@@ -64,3 +64,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the core's merge relinks every file of `specs/` at the move, with the subsection's
   anchor; history alone cannot tell which modified file took the note.
 - **Where**: task 2.
+
+## R7: A move matched on its anchor drops the link's anchor
+
+- **Decision**: a `Move` whose `from` ends in `#anchor` takes only the links with that anchor, and
+  writes them with the `Moved` anchor it gives, or none: the link's own anchor named the merged
+  note's subsection, which the moved-back file no longer holds. A link to a moved folder keeps its
+  trailing `/`; a link to a record never has one.
+- **Rationale**: the plan says an anchor is kept unless `Moved::anchor` replaces it, and is silent
+  on the Undo of a merged note, where keeping `#<note-title>` on the note file would point at a
+  heading it may not have.
+- **If wrong**: the Undo's links keep the subsection's anchor; `relink` keeps `anchor` when the move
+  gives none.
+- **Where**: task 1, `relink`; task 6, the merged note's Undo.
