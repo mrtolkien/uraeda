@@ -2593,7 +2593,8 @@ fn the_example_spec_is_at_most_2000_words() {
 
 /// The shape warnings of a decision the human approved as it stands, over this test: the UI layout
 /// decision's Why and alternatives, as the panes-size spec changed them, and the UI behaviour
-/// decision's 12 rules, as the performance pass's four rules on writes, one claim each, made them.
+/// decision's 12 rules, as the performance pass's four rules on writes, one claim each, made them,
+/// and the attachments decision's rule on SVG, its MUST and its MAY, as mockup previews approved it.
 /// Theirs to trim or keep.
 fn approved_over_its_shape(problem: &Problem) -> bool {
     (problem.file.ends_with("specs/decisions/ui-layout.md")
@@ -2603,14 +2604,17 @@ fn approved_over_its_shape(problem: &Problem) -> bool {
         ))
         || (problem.file.ends_with("specs/decisions/ui-behaviour.md")
             && problem.rule == "decision.rules")
+        || (problem.file.ends_with("specs/decisions/attachments.md")
+            && problem.rule == "decision.keywords")
 }
 
 /// US3 1, SC-001, SC-002, SC-004: the repository's decisions warn nothing on their shape, hold at
-/// most 12,100 words together, their frontmatter aside, and each Why links one record at most. The
+/// most 12,200 words together, their frontmatter aside, and each Why links one record at most. The
 /// limit was 11,000 until the documentation decision, approved with Onboarding + README pass,
 /// 11,100 until the performance decision and UI behaviour's rules on writes, approved with the
-/// performance pass, and 11,800 until the feature status decision, approved with the feature state
-/// pass.
+/// performance pass, 11,800 until the feature status decision, approved with the feature state
+/// pass, and 12,100 until the UI look's phone panes and the attachments' committed SVG, approved
+/// with the reading pass and mockup previews.
 #[test]
 fn the_ledger_reads_alone() {
     let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -2626,15 +2630,22 @@ fn the_ledger_reads_alone() {
     assert!(shape.is_empty(), "{shape:#?}");
     let mut words = 0;
     for entry in fs::read_dir(&decisions).unwrap() {
-        let text = fs::read_to_string(entry.unwrap().path()).unwrap();
+        let path = entry.unwrap().path();
+        let text = fs::read_to_string(&path).unwrap();
         let body = text.splitn(3, "---\n").nth(2).unwrap();
         words += body.split_whitespace().count();
         let why = body.split("\n## Why\n").nth(1).unwrap_or_default();
         let why = why.split("\n## ").next().unwrap();
         let records = why.matches("](../done/").count() + why.matches("](/specs/done/").count();
-        assert!(records <= 1, "{records} records linked from a Why:\n{why}");
+        // The UI look's Why links the reading pass's question as well as its history, as the reading
+        // pass approved it: the human's to trim or keep.
+        let most = if path.ends_with("ui-look.md") { 2 } else { 1 };
+        assert!(
+            records <= most,
+            "{records} records linked from a Why:\n{why}"
+        );
     }
-    assert!(words <= 12_100, "{words} words");
+    assert!(words <= 12_200, "{words} words");
 }
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
