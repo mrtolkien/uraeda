@@ -17,6 +17,7 @@ import { refusedOn } from "./list-mutations.ts";
 import { sources } from "./sources.ts";
 import { startPlanDataView, type StartPlanRecord } from "./views-start-plan.ts";
 import { featureKeys, LISTS, type Queued } from "./write-queue.ts";
+import { NEW_FEATURE_HREF } from "../hrefs.ts";
 
 type Kind = "change" | "feature";
 
@@ -319,12 +320,6 @@ function proposalStart(
     write: input.write,
   };
 }
-
-/**
- * The New page's Feature card: where the web opens a feature's start from a line, and where a
- * typed feature's refused start sends the human, as its write's `href` tells the web.
- */
-export const NEW_FEATURE_HREF = "/new?kind=feature";
 
 /** What `feature.startText` starts: a typed text, its images, its line of Now, and its effort. */
 type TypedFeature = Queued<{

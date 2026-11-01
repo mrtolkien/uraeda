@@ -5,7 +5,8 @@
 // place. The file keeps the started proposals at the top of Now; on screen they show apart.
 import { useEffect } from "react";
 import { useFateClient } from "react-fate";
-import { NEW_FEATURE_HREF, type Proposal } from "uraeda-server/fate";
+import type { Proposal } from "uraeda-server/fate";
+import { NEW_FEATURE_HREF } from "uraeda-server/hrefs";
 import { readPrioritiesHash, type usePriorities } from "../data.ts";
 import { stepKindOf } from "../sidebar/cards.ts";
 import { STEP_ICONS } from "../sidebar/StepIcon.tsx";
