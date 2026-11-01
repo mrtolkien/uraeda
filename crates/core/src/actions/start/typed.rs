@@ -150,7 +150,7 @@ impl Start<'_> {
         let left = || {
             vec![
                 plan.write_left.clone(),
-                plan.commit_left(self.default),
+                plan.commit_left(self.default, &[]),
                 plan.branch_left(self.run.switch),
             ]
         };
