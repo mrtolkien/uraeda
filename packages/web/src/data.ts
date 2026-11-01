@@ -88,9 +88,12 @@ export function useBranchChanges(folder: string) {
   return useLiveView(BranchChangesView, branchChanges);
 }
 
+/** The request of a feature's or a change's history, as `useHistory` reads it. */
+export const historyRequest = (folder: string) => ({ history: { id: folder, view: HistoryView } });
+
 /** A feature's or a change's stages and their starts, by its folder. */
 export function useHistory(folder: string) {
-  const request = { history: { id: folder, view: HistoryView } };
+  const request = historyRequest(folder);
   const { history } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(HistoryView, history);
@@ -245,9 +248,12 @@ export function useProposalFile(path: string) {
   return useLiveView(ProposalFileView, proposalFile);
 }
 
+/** The request of the agent, as `useAgent` reads it. */
+export const agentRequest = () => ({ agent: { id: AGENT_ID, view: AgentView } });
+
 /** The agent sessions run on: whether it works on the server's machine, and what it can do. */
 export function useAgent() {
-  const request = { agent: { id: AGENT_ID, view: AgentView } };
+  const request = agentRequest();
   const { agent } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(AgentView, agent);
@@ -265,9 +271,14 @@ export function useWorkflowMessage(folder: string, trigger: Trigger, file?: stri
   return useLiveView(WorkflowMessageView, workflowMessage);
 }
 
+/** The request of a feature's recommended message, as `useRecommendedMessage` reads it. */
+export const recommendedRequest = (folder: string) => ({
+  recommendedMessage: { id: folder, view: RecommendedView },
+});
+
 /** The one workflow message the server recommends for a feature now, or why none, by its folder. */
 export function useRecommendedMessage(folder: string) {
-  const request = { recommendedMessage: { id: folder, view: RecommendedView } };
+  const request = recommendedRequest(folder);
   const { recommendedMessage } = useRequest(request);
   useRefreshOnShow(request);
   return useLiveView(RecommendedView, recommendedMessage);
