@@ -8,12 +8,18 @@ use std::path::Path;
 use crate::files::markdown::link_text;
 use crate::files::retarget::retarget as retarget_links;
 use crate::images::Encoded;
+use crate::moves::{Move, Went};
 
 use super::ActionError;
 use super::place::Place;
+use super::relink;
 
-/// The lists that link proposal files and note files, from `specs/`.
-const LISTS: [&str; 2] = ["specs/PRIORITIES.md", "specs/INBOX.md"];
+/// The lists that link proposal files and note files, from `specs/`: each move edits them itself,
+/// so its relink of every file skips them.
+pub(crate) const LISTS: [&str; 2] = ["specs/PRIORITIES.md", "specs/INBOX.md"];
+
+/// The folder whose files a move relinks.
+pub(crate) const SPECS: &str = "specs";
 
 /// The longest image name, without its extension.
 const NAME_LIMIT: usize = 60;
@@ -209,7 +215,7 @@ pub(crate) fn save_bytes(
 /// Moves the single proposal file `specs/proposals/<slug>.md` to
 /// `specs/proposals/<slug>/proposal.md`, or the note file `specs/notes/<slug>.md` to
 /// `specs/notes/<slug>/note.md`, numbering the folder when it exists, with the image in its
-/// `images/`, and points the links of the priorities and the inbox to the new path. Claims the
+/// `images/`, and points the links of every file of `specs/` to the new path. Claims the
 /// folder, saves the image, moves the file, then edits the lists: a failure undoes what was done.
 /// Returns the new path and the image's file name.
 fn into_folder(
@@ -269,7 +275,8 @@ fn claim(place: &Place, path: &str) -> Result<(String, String), ActionError> {
 }
 
 /// Moves the single file `path` into a folder of its own, as an attached image does, without an
-/// image, and points the lists' links to it at its new path, or none of it. Returns the new path.
+/// image, and points the links of every file of `specs/` to it at its new path, or none of it.
+/// Returns the new path.
 pub(crate) fn to_folder(place: &Place, path: &str) -> Result<String, ActionError> {
     let (folder, moved) = claim(place, path)?;
     let result = fs::rename(place.root.join(path), place.root.join(&moved))
@@ -291,8 +298,9 @@ pub(crate) fn to_folder(place: &Place, path: &str) -> Result<String, ActionError
 }
 
 /// The Undo of [`to_folder`]: the folder's main file `moved` back to the single file `path`, the
-/// lists' links with it, while the folder holds only it and an empty `images/`, and nothing stands
-/// at `path`. Returns whether it moved it back.
+/// lists' links with it, and the links of every file of `specs/` whose change since `HEAD` is links
+/// alone (see [`relink::relink_back`]), while the folder holds only it and an empty `images/`, and
+/// nothing stands at `path`. Returns whether it moved it back.
 pub(crate) fn to_file(place: &Place, moved: &str, path: &str) -> Result<bool, ActionError> {
     let Some((folder, main)) = moved.rsplit_once('/') else {
         return Ok(false);
@@ -309,7 +317,13 @@ pub(crate) fn to_file(place: &Place, moved: &str, path: &str) -> Result<bool, Ac
     fs::rename(place.root.join(moved), place.root.join(path))?;
     // Out of its folder, where [`retarget`] reaches no file.
     let back = |text: &str| crate::files::retarget::moved(text, moved, path);
-    if let Err(error) = edit_lists(place, back) {
+    let result =
+        relink::relink_back(&place.root, &[moved_to(moved, path)], &LISTS).and_then(|relinked| {
+            edit_lists(place, back).inspect_err(|_| {
+                relink::put_back(&place.root, &relinked);
+            })
+        });
+    if let Err(error) = result {
         let _ = fs::rename(place.root.join(path), place.root.join(moved));
         return Err(error);
     }
@@ -318,10 +332,24 @@ pub(crate) fn to_file(place: &Place, moved: &str, path: &str) -> Result<bool, Ac
     Ok(true)
 }
 
-/// Points the links of the priorities and of the inbox to the file `from` at `to`, leaving both
-/// files as they were when a write fails.
+/// Points the links of the priorities and of the inbox to the file `from` at `to`, and those of
+/// every other file of `specs/`, leaving every file as it was when a write fails.
 pub(crate) fn retarget(place: &Place, from: &str, to: &str) -> Result<(), ActionError> {
-    edit_lists(place, |text| retarget_links(text, from, to))
+    let relinked = relink::relink(&place.root, SPECS, &[moved_to(from, to)], &LISTS)?;
+    edit_lists(place, |text| retarget_links(text, from, to)).inspect_err(|_| {
+        relink::put_back(&place.root, &relinked);
+    })
+}
+
+/// The move of the file or folder `from` to `to`, both from the top level, its links' anchors kept.
+pub(crate) fn moved_to(from: &str, to: &str) -> Move {
+    Move {
+        from: from.to_string(),
+        went: Went::Moved {
+            path: to.to_string(),
+            anchor: None,
+        },
+    }
 }
 
 /// Writes each list, the priorities and the inbox, as `edit` gives it, leaving both as they were

@@ -175,7 +175,14 @@ impl Document {
 
     /// Every heading's anchor, numbered like GitHub's when several share a slug.
     pub fn anchors(&self) -> HashSet<String> {
+        self.anchor_list().into_iter().collect()
+    }
+
+    /// Every heading's anchor, numbered like GitHub's when several share a slug, in the headings'
+    /// order.
+    pub fn anchor_list(&self) -> Vec<String> {
         let mut anchors = HashSet::new();
+        let mut list = Vec::new();
         for heading in &self.headings {
             let slug = slug(&heading.text);
             let mut candidate = slug.clone();
@@ -184,9 +191,10 @@ impl Document {
                 number += 1;
                 candidate = format!("{slug}-{number}");
             }
-            anchors.insert(candidate);
+            anchors.insert(candidate.clone());
+            list.push(candidate);
         }
-        anchors
+        list
     }
 }
 

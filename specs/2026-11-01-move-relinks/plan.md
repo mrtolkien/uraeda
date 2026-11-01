@@ -233,7 +233,7 @@ the sandbox.
 | Problems decision: `links.file` stays a note                          | —    | existing `problem.rs` `BLOCKING` and its tests                                             |
 | US1 1, 2, 3; SC-002 for the start; edge case: hook refusal            | 5    | `tests/start_relinks.rs` `a_start_relinks_the_record`                                      |
 | US1 more 4; SC-002 for a change made a feature                        | 5    | `tests/promote.rs` row added to the existing default-branch test                           |
-| US1 more 1, 2, 3; SC-002 for attach and inbox moves; edge case: Undo  | 6    | `tests/move_relinks.rs` `inbox_moves_relink_and_undo_puts_back`                            |
+| US1 more 1, 2, 3; SC-002 for attach and inbox moves; edge case: Undo  | 6    | `tests/inbox_relinks.rs` `inbox_moves_relink_and_undo_puts_back`                           |
 | US1 more 1 (the commit page line); Discard restores a repair          | 7    | `tests/inbox_moves.rs` `a_repair_waits_on_the_commit_page`                                 |
 | US4 1, 2, 3                                                           | 8    | `packages/server/src/__tests__/fix-links.test.ts`; view reviewed in the sandbox            |
 | US3 1, 2                                                              | 9    | none: rules of the skill, read by review                                                   |
@@ -619,8 +619,10 @@ the sandbox.
 
 - Modify: `crates/core/src/actions/attach.rs` (`retarget`, `to_file`),
   `crates/core/src/actions/inbox/note_file.rs` (`to_proposals`, `back_to_notes`),
-  `crates/core/src/actions/inbox/merge.rs` (`merge`, `undo`, `Merged`)
-- Test: `crates/core/tests/move_relinks.rs` (a test added)
+  `crates/core/src/actions/inbox/merge.rs` (`merge`, `undo`, `Merged`),
+  `crates/core/src/files/markdown.rs` (`Document::anchor_list`, the anchors in the headings' order)
+- Test: `crates/core/tests/inbox_relinks.rs` (created: task 4 creates `move_relinks.rs` in the same
+  wave)
 
 **Interfaces:**
 
@@ -631,9 +633,10 @@ the sandbox.
   `relink_back` for the Undo. `merge` relinks the note file to
   `Moved { path: <proposal file>, anchor: Some(<subsection's anchor>) }`, and its copied images to
   their copies, and keeps the `Vec<Relinked>` in its `Merged` record; `undo` puts them back while
-  unchanged.
+  unchanged. The merge's relink skips the note file and the proposal file it goes into too
+  ([R12](rulings.md#r12-a-merges-relink-skips-the-proposal-file-the-note-went-into)).
 
-- [ ] **Step 1: Write the failing test** `inbox_moves_relink_and_undo_puts_back`: a record and
+- [x] **Step 1: Write the failing test** `inbox_moves_relink_and_undo_puts_back`: a record and
       `specs/ui/flows.md` link a single proposal file, `specs/proposals/inbox-screenshots.md#why`
       rooted; attaching an image rewrites both to `…/inbox-screenshots/proposal.md#why`; a record
       linking `/specs/notes/dark/note.md` reads `/specs/proposals/look.md#dark` after the note goes
@@ -642,22 +645,22 @@ the sandbox.
       keeps the record's text. The breaks: an attach that leaves a stale link; a merged note's link
       without its subsection; an Undo that leaves the moved path, or overwrites a hand edit.
 
-- [ ] **Step 2: Run it to check it fails**
-  - Run: `nix develop -c cargo nextest run -p uraeda-core --test move_relinks`
+- [x] **Step 2: Run it to check it fails**
+  - Run: `nix develop -c cargo nextest run -p uraeda-core --test inbox_relinks`
   - Expected: FAIL, `flows.md` still links `/specs/proposals/inbox-screenshots.md#why`.
 
-- [ ] **Step 3: Relink at each move and its Undo**, the lists skipped (each move edits them), a
+- [x] **Step 3: Relink at each move and its Undo**, the lists skipped (each move edits them), a
       failed relink undoing the move as a failed list edit does today.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS; tests met that assert a move leaves other files are rewritten, and named in the
     commit message's body.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   ```bash
-  git add crates/core/src/actions/attach.rs crates/core/src/actions/inbox crates/core/tests/move_relinks.rs
+  git add crates/core/src/actions/attach.rs crates/core/src/actions/inbox crates/core/src/files/markdown.rs crates/core/tests/inbox_relinks.rs specs/2026-11-01-move-relinks
   git commit -m "feat(move-relinks): attach and inbox moves relink every file, and their Undo"
   ```
 

@@ -8,11 +8,14 @@ use std::sync::Mutex;
 
 use crate::files::inbox;
 use crate::git::Git;
+use crate::moves::Move;
 
 use super::super::ActionError;
+use super::super::attach::{LISTS, SPECS, moved_to};
 use super::super::expand::{self, PROPOSALS};
 use super::super::images::{folder_of, in_place};
 use super::super::place::Place;
+use super::super::relink;
 
 /// What a move or a removal of the note file at `path` acts on, from the top level: its folder,
 /// or the file itself when it is a single file.
@@ -84,11 +87,21 @@ pub(super) fn relocate(place: &Place, from: &str, to: &str) -> Result<(), Action
     Ok(())
 }
 
+/// The moves [`relocate`] makes of `from` to `to`, both main files from the top level: the main
+/// file, then, for a folder, the folder with its other files.
+fn moves(from: &str, to: &str) -> Vec<Move> {
+    let mut moves = vec![moved_to(from, to)];
+    if let (Some(from_folder), Some(to_folder)) = (folder_of(from), folder_of(to)) {
+        moves.push(moved_to(from_folder, to_folder));
+    }
+    moves
+}
+
 /// Moves the note file at `path`, from the top level, among the proposals, under a free name: its
 /// folder with its images, `note.md` becoming `proposal.md`, or its single file. A freeform note
 /// file, titled `title` when its first line is no `#` title, takes the proposal template's shape,
-/// as the workflow reads a proposal's `## What` (see [`expand::note_as_proposal`]). Returns the
-/// proposal file's path.
+/// as the workflow reads a proposal's `## What` (see [`expand::note_as_proposal`]). The links of
+/// every file of `specs/` but the lists follow it. Returns the proposal file's path.
 pub(super) fn to_proposals(place: &Place, path: &str, title: &str) -> Result<String, ActionError> {
     if !place.root.join(path).is_file() {
         return Err(ActionError::Refused(format!("no note file {path}")));
@@ -101,18 +114,27 @@ pub(super) fn to_proposals(place: &Place, path: &str, title: &str) -> Result<Str
         None => format!("{PROPOSALS}/{name}.md"),
     };
     relocate(place, path, &to)?;
-    if let Some(shaped) = expand::note_as_proposal(&text, title)
-        && let Err(error) = fs::write(place.root.join(&to), shaped)
-    {
+    let shaped = expand::note_as_proposal(&text, title);
+    let result = match &shaped {
+        Some(shaped) => fs::write(place.root.join(&to), shaped).map_err(ActionError::from),
+        None => Ok(()),
+    }
+    .and_then(|()| relink::relink(&place.root, SPECS, &moves(path, &to), &LISTS));
+    if let Err(error) = result {
+        if shaped.is_some() {
+            let _ = fs::write(place.root.join(&to), &text);
+        }
         let _ = relocate(place, &to, path);
-        return Err(error.into());
+        return Err(error);
     }
     Ok(to)
 }
 
 /// Moves the proposal file at `proposal` back to the note file it was, `note`, both from the top
 /// level: the Undo of [`to_proposals`], freeform again while it holds what the move made of it.
-/// Refused when the proposal file is gone, or a file stands at the note file's place.
+/// The links of every file of `specs/` but the lists whose change since `HEAD` is links alone go
+/// back with it (see [`relink::relink_back`]). Refused when the proposal file is gone, or a file
+/// stands at the note file's place.
 pub(crate) fn back_to_notes(place: &Place, proposal: &str, note: &str) -> Result<(), ActionError> {
     let Ok(text) = fs::read_to_string(place.root.join(proposal)) else {
         return Err(ActionError::Refused(format!(
@@ -124,11 +146,17 @@ pub(crate) fn back_to_notes(place: &Place, proposal: &str, note: &str) -> Result
     let freeform = expand::proposal_as_note(&text)
         .filter(|_| super::super::place::committed(place, note).as_deref() != Some(text.as_str()));
     relocate(place, proposal, note)?;
-    if let Some(freeform) = freeform
-        && let Err(error) = fs::write(place.root.join(note), freeform)
-    {
+    let result = match &freeform {
+        Some(freeform) => fs::write(place.root.join(note), freeform).map_err(ActionError::from),
+        None => Ok(()),
+    }
+    .and_then(|()| relink::relink_back(&place.root, &moves(proposal, note), &LISTS));
+    if let Err(error) = result {
+        if freeform.is_some() {
+            let _ = fs::write(place.root.join(note), &text);
+        }
         let _ = relocate(place, note, proposal);
-        return Err(error.into());
+        return Err(error);
     }
     Ok(())
 }
