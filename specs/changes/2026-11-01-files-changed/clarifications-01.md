@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: The Changes panel misses files written by shell commands
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 1 question, about 5 minutes.
+> Answered on 2026-11-01.
 >
 > - Verdict: worth building, but not as proposed: Changes already reads the file-write tool calls.
 >   Your session made none, and wrote every file through shell commands.
@@ -88,7 +88,7 @@ how much runs on each command.
   - [pro] no new reads, nothing misattributed.
   - [con] the panel stays empty for sessions like yours.
 
-**Answer:**
+**Answer:** C
 
 ## Settled without the human
 
