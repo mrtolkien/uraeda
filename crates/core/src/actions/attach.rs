@@ -276,31 +276,36 @@ fn claim(place: &Place, path: &str) -> Result<(String, String), ActionError> {
 
 /// Moves the single file `path` into a folder of its own, as an attached image does, without an
 /// image, and points the links of every file of `specs/` to it at its new path, or none of it.
-/// Returns the new path.
-pub(crate) fn to_folder(place: &Place, path: &str) -> Result<String, ActionError> {
+/// Returns the new path, and the files of `specs/` but the lists it relinked, which its Undo puts
+/// back, see [`to_file`].
+pub(crate) fn to_folder(
+    place: &Place,
+    path: &str,
+) -> Result<(String, Vec<relink::Relinked>), ActionError> {
     let (folder, moved) = claim(place, path)?;
     let result = fs::rename(place.root.join(path), place.root.join(&moved))
         .map_err(failed)
         .and_then(|()| {
-            if let Err(error) = retarget(place, path, &moved) {
+            retarget(place, path, &moved).inspect_err(|_| {
                 let _ = fs::rename(place.root.join(&moved), place.root.join(path));
-                return Err(error);
-            }
-            Ok(())
+            })
         });
-    if let Err(error) = result {
-        if place.root.join(path).is_file() {
-            let _ = fs::remove_dir_all(place.root.join(&folder));
+    match result {
+        Ok(relinked) => Ok((moved, relinked)),
+        Err(error) => {
+            if place.root.join(path).is_file() {
+                let _ = fs::remove_dir_all(place.root.join(&folder));
+            }
+            Err(error)
         }
-        return Err(error);
     }
-    Ok(moved)
 }
 
 /// The Undo of [`to_folder`]: the folder's main file `moved` back to the single file `path`, the
 /// lists' links with it, and the links of every file of `specs/` whose change since `HEAD` is links
 /// alone (see [`relink::relink_back`]), while the folder holds only it and an empty `images/`, and
-/// nothing stands at `path`. Returns whether it moved it back.
+/// nothing stands at `path`. Returns whether it moved it back: a caller holding what
+/// [`to_folder`] relinked then puts those files back, which reaches a file edited before.
 pub(crate) fn to_file(place: &Place, moved: &str, path: &str) -> Result<bool, ActionError> {
     let Some((folder, main)) = moved.rsplit_once('/') else {
         return Ok(false);
@@ -333,12 +338,21 @@ pub(crate) fn to_file(place: &Place, moved: &str, path: &str) -> Result<bool, Ac
 }
 
 /// Points the links of the priorities and of the inbox to the file `from` at `to`, and those of
-/// every other file of `specs/`, leaving every file as it was when a write fails.
-pub(crate) fn retarget(place: &Place, from: &str, to: &str) -> Result<(), ActionError> {
+/// every other file of `specs/`, leaving every file as it was when a write fails. Returns the
+/// other files it relinked.
+pub(crate) fn retarget(
+    place: &Place,
+    from: &str,
+    to: &str,
+) -> Result<Vec<relink::Relinked>, ActionError> {
     let relinked = relink::relink(&place.root, SPECS, &[moved_to(from, to)], &LISTS)?;
-    edit_lists(place, |text| retarget_links(text, from, to)).inspect_err(|_| {
-        relink::put_back(&place.root, &relinked);
-    })
+    match edit_lists(place, |text| retarget_links(text, from, to)) {
+        Ok(()) => Ok(relinked),
+        Err(error) => {
+            relink::put_back(&place.root, &relinked);
+            Err(error)
+        }
+    }
 }
 
 /// The move of the file or folder `from` to `to`, both from the top level, its links' anchors kept.

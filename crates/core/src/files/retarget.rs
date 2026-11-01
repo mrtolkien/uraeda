@@ -144,13 +144,15 @@ pub fn relink(text: &str, folder: &str, moves: &[Move]) -> (String, usize) {
                     (None, true) => None,
                     (None, false) => anchor,
                 };
-                // A link to a moved folder stays a link to a folder.
-                let slash = if target.ends_with('/') && !rest.ends_with('/') {
+                // A link to a moved folder stays a link to a folder, unless the folder went into a
+                // markdown file, as a merged note's folder goes into a proposal file.
+                let to = format!("{new}{rest}");
+                let slash = if target.ends_with('/') && !to.ends_with('/') && !to.ends_with(".md") {
                     "/"
                 } else {
                     ""
                 };
-                written(raw, folder, &format!("{new}{rest}{slash}"), query, anchor)
+                written(raw, folder, &format!("{to}{slash}"), query, anchor)
             }
             // The finish deletes a folder's images and every other file but its markdown.
             Went::Record(_) if !rest.is_empty() && !rest.ends_with(".md") => {

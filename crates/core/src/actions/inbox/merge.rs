@@ -29,8 +29,9 @@ mod images;
 /// An add of a note file to a proposal file, what its Undo takes back: the repository's root, the
 /// note file, the proposal file as it is now, the single file it was when the add made it a folder
 /// for the images, the text the add inserted, each image's path in the note file's folder and
-/// beside the proposal file, and the files of `specs/` whose links the add pointed at the note's
-/// subsection and the images' copies.
+/// beside the proposal file, the files of `specs/` whose links the add pointed at the note's
+/// subsection and the images' copies, and those it pointed at the folder's main file when it made
+/// the proposal file a folder.
 struct Merged {
     root: PathBuf,
     note: String,
@@ -40,6 +41,7 @@ struct Merged {
     images: Vec<(String, String)>,
     created: Option<Created>,
     relinked: Vec<Relinked>,
+    foldered: Vec<Relinked>,
 }
 
 /// A proposal file an add made for a line of the priorities that had none, for the note to go
@@ -118,8 +120,9 @@ fn inserted_anchor(before: &str, after: &str) -> Option<String> {
 
 /// Points the links of every file of `specs/` but the lists, the note file `file`, and the
 /// proposal file `target` (whose text the add's Undo finds by what it inserted) at where the add
-/// put them: the note file at its subsection, `anchor`, of `target`, and each image of `copied` at
-/// its copy. Then the note file leaves, held for [`undo`]; when it cannot, the links go back.
+/// put them: the note file, and its folder when it has one, at its subsection, `anchor`, of
+/// `target`, and each image of `copied` at its copy. Then the note file leaves, held for [`undo`];
+/// when it cannot, the links go back.
 fn relink_and_remove(
     place: &Place,
     file: &str,
@@ -127,14 +130,17 @@ fn relink_and_remove(
     anchor: Option<String>,
     copied: &[(String, String)],
 ) -> Result<Vec<Relinked>, ActionError> {
-    let mut moves = vec![Move {
-        from: file.to_string(),
+    let to_subsection = |from: &str| Move {
+        from: from.to_string(),
         went: Went::Moved {
             path: target.to_string(),
-            anchor,
+            anchor: anchor.clone(),
         },
-    }];
+    };
+    let mut moves = vec![to_subsection(file)];
+    // The note file and its images first: the first move taking a link wins.
     moves.extend(copied.iter().map(|(from, to)| attach::moved_to(from, to)));
+    moves.extend(folder_of(file).map(to_subsection));
     let skip = [LISTS[0], LISTS[1], file, target];
     let relinked = relink::relink(&place.root, SPECS, &moves, &skip)?;
     if let Err(error) = note_file::remove(place, file) {
@@ -171,20 +177,23 @@ pub(super) fn merge(
     let images = images_of(place, file)?;
 
     let single = (!images.is_empty() && attach::is_single(proposal)).then(|| proposal.to_string());
-    let target = match &single {
+    let (target, foldered) = match &single {
         Some(single) => attach::to_folder(place, single)?,
-        None => proposal.to_string(),
+        None => (proposal.to_string(), Vec::new()),
     };
     // The inbox as the lists' links to a single proposal file made a folder left it.
     let linked = match &single {
         Some(single) => retarget::retarget(inbox, single, &target),
         None => inbox.to_string(),
     };
-    // Takes back what was done so far when a later step fails: the copies, then the folder.
+    // Takes back what was done so far when a later step fails: the copies, then the folder, and
+    // the links it relinked, a file edited before included.
     let back = |copied: &[(String, String)]| {
         remove_copies(place, copied);
-        if let Some(single) = &single {
-            let _ = attach::to_file(place, &target, single);
+        if let Some(single) = &single
+            && let Ok(true) = attach::to_file(place, &target, single)
+        {
+            relink::put_back(&place.root, &foldered);
         }
     };
     let folder = parent(&target);
@@ -237,6 +246,7 @@ pub(super) fn merge(
         images: copied,
         created: None,
         relinked,
+        foldered,
     });
     let over = held.len().saturating_sub(KEPT);
     held.drain(..over);
@@ -309,6 +319,25 @@ pub(super) fn into_new(
     Ok(target)
 }
 
+/// Discard's end of the held adds to the proposal file at `proposal`: the files of `specs/` they
+/// relinked to the note's subsection and the images' copies are put back, each while it holds what
+/// the add wrote, newest add first, and the adds are no longer held. Discard takes the note's text
+/// out of the proposal file and brings the note file back, so their links go back to it.
+pub(crate) fn put_back_links(place: &Place, proposal: &str) {
+    let root = root_of(place);
+    let ended: Vec<Merged> = {
+        let mut held = merged();
+        let (ended, kept) = held
+            .drain(..)
+            .partition(|kept| kept.root == root && kept.proposal == proposal);
+        *held = kept;
+        ended
+    };
+    for add in ended.iter().rev() {
+        relink::put_back(&place.root, &add.relinked);
+    }
+}
+
 /// Whether an add of the note file `note_file` to the proposal file `proposal`, by its path then
 /// or now, is held.
 pub(super) fn is_held(place: &Place, note_file: &str, proposal: &str) -> bool {
@@ -325,7 +354,8 @@ pub(super) fn is_held(place: &Place, note_file: &str, proposal: &str) -> bool {
 /// `back`, the note's row back at its place, in one write of both files or none. Then the files the
 /// add relinked are put back while they hold what it wrote, the images' copies leave, unchanged
 /// ones only, and a proposal file the add made a folder becomes a single file again while nothing
-/// else was added to it. A proposal file the add made for a line without
+/// else was added to it, the files it relinked to the folder put back. A proposal file the add made
+/// for a line without
 /// one, still as it was written, leaves too, its line as it was before, in the same writes.
 /// `gone` is the refusal when the inserted text is no longer in the proposal file.
 pub(super) fn undo(
@@ -335,7 +365,7 @@ pub(super) fn undo(
     gone: impl Fn() -> ActionError,
 ) -> Result<(), ActionError> {
     let root = root_of(place);
-    let (proposal, inserted, single, images, created, relinked) = {
+    let (proposal, inserted, single, images, created, relinked, foldered) = {
         let held = merged();
         let kept = held
             .iter()
@@ -348,6 +378,7 @@ pub(super) fn undo(
             kept.images.clone(),
             kept.created.clone(),
             kept.relinked.clone(),
+            kept.foldered.clone(),
         )
     };
     let written = fs::read_to_string(place.root.join(&proposal)).map_err(|_| gone())?;
@@ -405,8 +436,10 @@ pub(super) fn undo(
     remove_copies(place, &unchanged);
     // The Undo is whole once both files are written: a folder that cannot become a single file
     // again stays a folder, and a file that cannot be deleted stays unlinked, which loses nothing.
-    if let Some(single) = single {
-        let _ = attach::to_file(place, &proposal, &single);
+    if let Some(single) = single
+        && let Ok(true) = attach::to_file(place, &proposal, &single)
+    {
+        relink::put_back(&place.root, &foldered);
     }
     if unlinked.is_some() {
         let _ = expand::remove_written(place, &proposal, &[without]);

@@ -65,7 +65,9 @@ fn placed(inbox: &Inbox, title: &str) -> (InboxNote, Option<String>, u32) {
 
 /// An attached image relinks every file to the proposal file made a folder; a note merged into a
 /// proposal file relinks to its subsection, and its Undo links the note file again; a note file
-/// moved among the proposals relinks, and its Undo links it back but in a file edited since.
+/// moved among the proposals relinks, and its Undo links it back but in a file edited since. A
+/// file edited before a merge is put back by the merge's failure, its Undo, and Discard, and a link
+/// to the note's folder follows the note.
 #[test]
 fn inbox_moves_relink_and_undo_puts_back() {
     let repo = repo();
@@ -124,4 +126,60 @@ fn inbox_moves_relink_and_undo_puts_back() {
             .contains("[contrast](../notes/high-contrast.md)")
     );
     assert_eq!(repo.read(RECORD), edited);
+
+    // A merge that makes the proposal file a folder, then fails, puts back a file edited before.
+    let failing = self::repo();
+    let edited = format!(
+        "{}\nAgain, [look](/specs/proposals/look.md).\n",
+        failing.read(RECORD)
+    );
+    failing.write(RECORD, &edited);
+    std::fs::create_dir_all(failing.path().join("specs/notes/dark/images")).unwrap();
+    std::fs::write(
+        failing.path().join("specs/notes/dark/images/sky.png"),
+        &image,
+    )
+    .unwrap();
+    let inbox = api::read_inbox(failing.path()).unwrap();
+    let (dark, category, index) = placed(&inbox, "Dark");
+    let inbox_file = failing.path().join("specs/INBOX.md");
+    let writable = std::fs::metadata(&inbox_file).unwrap().permissions();
+    let mut read_only = writable.clone();
+    read_only.set_readonly(true);
+    std::fs::set_permissions(&inbox_file, read_only).unwrap();
+
+    let failed = api::note_into_proposal(failing.path(), &dark.id, LOOK, &inbox.hash);
+
+    std::fs::set_permissions(&inbox_file, writable).unwrap();
+    assert!(failed.is_err());
+    assert!(failing.exists(LOOK));
+    assert_eq!(failing.read(RECORD), edited);
+
+    api::note_into_proposal(failing.path(), &dark.id, LOOK, &inbox.hash).unwrap();
+    api::undo_note_into_proposal(failing.path(), LOOK, &dark.lines, category, index).unwrap();
+
+    assert!(failing.exists(LOOK));
+    assert_eq!(failing.read(RECORD), edited);
+
+    // Discard after a merge puts back a file edited before it, its link to the note's folder too.
+    let discarded = self::repo();
+    let edited = format!(
+        "{}\nThe [folder](/specs/notes/dark/).\n",
+        discarded.read(RECORD)
+    );
+    discarded.write(RECORD, &edited);
+    let inbox = api::read_inbox(discarded.path()).unwrap();
+    let (dark, ..) = placed(&inbox, "Dark");
+    api::note_into_proposal(discarded.path(), &dark.id, LOOK, &inbox.hash).unwrap();
+
+    let merged = discarded.read(RECORD);
+    assert!(
+        merged.contains("[dark](/specs/proposals/look.md#dark)")
+            && merged.contains("[folder](/specs/proposals/look.md#dark)"),
+        "{merged}"
+    );
+
+    api::discard_changes(discarded.path()).unwrap();
+
+    assert_eq!(discarded.read(RECORD), edited);
 }
