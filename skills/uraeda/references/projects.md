@@ -112,7 +112,10 @@ Do these only when a human asks.
      Only its relative links change, to point at the same files from the new folder, as **Expand**
      does. When the proposal is a folder, a feature postponed earlier or a proposal with images,
      move all its files into it, the same way. A proposal with no file is expanded first, as
-     **Expand** says: the human writes its file, and asks for the start once it is ready.
+     **Expand** says: the human writes its file, and asks for the start once it is ready. Every
+     other file of `specs/` linking a moved file points at its new path, in its own form, as
+     [the catch-up](implementation.md#where-a-moved-link-points) rewrites a moved link. A file with
+     uncommitted changes is rewritten too, but stays out of the commit.
   2. In the same commit, move the feature's proposal in `PRIORITIES.md` to the top of **Now**, after
      the other started proposals, then a blank line, unless the human says otherwise, as a link to
      the `proposal.md` from the repository root,
@@ -158,15 +161,20 @@ Do these only when a human asks.
   the default branch. In the same commit, move the feature's proposal in `PRIORITIES.md` to the
   section the human names, **Later** for one not scheduled, after what it needs when it is blocked,
   and link it to the folder's `proposal.md`. Commit with `chore(<slug>): postpone <feature name>`,
-  merge the branch into the default branch, and delete it.
+  merge the branch into the default branch, and delete it. Then, on the default branch, repair the
+  links to the moved folder, as [the catch-up](implementation.md#where-a-moved-link-points) says:
+  with `ura`, `ura check --fix`. Commit them alone, `fix(<slug>): repair the links to moved files`.
 - **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
   proposal from `PRIORITIES.md`, and its dated folder, which the start put there, so the default
   branch keeps no folder of a dropped feature or change: it would read as merged once its branch is
   gone. Stop first when that folder has uncommitted changes, since they would be lost. Commit both
   alone, `chore(<slug>): drop <name>`, only when `PRIORITIES.md` had no other changes: otherwise the
-  removals stay uncommitted, beside the human's edits. Remove its worktree, never forced. It stays
-  when it has uncommitted changes, is locked, is the one you are in, or is outside `.worktrees/`:
-  then say where it stays. Keep the branch, so nothing is lost, and give the human
+  removals stay uncommitted, beside the human's edits. After that commit, links to the folder read
+  as deleted. Repair them as [the catch-up](implementation.md#where-a-moved-link-points) says: each
+  becomes its words. With `ura`, `ura check --fix`. Commit them alone,
+  `fix(<slug>): repair the links to moved files`. Remove its worktree, never forced. It stays when
+  it has uncommitted changes, is locked, is the one you are in, or is outside `.worktrees/`: then
+  say where it stays. Keep the branch, so nothing is lost, and give the human
   `git branch -D <branch>` to delete it. In the web UI, "Drop the change…" or "Drop the feature…" in
   a session's actions does it. A merged feature is not dropped: `ura clean` removes it.
 

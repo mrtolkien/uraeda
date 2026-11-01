@@ -239,8 +239,47 @@ branch, there is nothing to do.
    - **In `PRIORITIES.md`**: take the default branch's version, with this feature's proposal kept in
      it.
    - **In a decision or the constitution**: stop, and start a new round of questions.
-4. **Run the project's complete validation.** A failure the default branch brings in is fixed like a
+4. **Repair the moved links.** The default branch may have moved or deleted a file the branch links:
+   a proposal started, a note filed, a feature finished. Repair every link of `specs/` that no
+   longer resolves, by [the rules below](#where-a-moved-link-points). Commit the repairs alone,
+   `fix(<slug>): repair the links to moved files`. With `ura`, `ura check --fix` rewrites them,
+   without committing, and `ura check` then reports what is left.
+5. **Run the project's complete validation.** A failure the default branch brings in is fixed like a
    final review finding, with a test that fails first, in a commit with the feature's scope.
+
+### Where a moved link points
+
+By hand, `git log -M --name-status -- <path>` lists the commits that removed a missing file. Follow
+its newest removal, then the new path's removals after it, to the end:
+
+- **A rename**, as git detects it, moved the file.
+- **A start** moved it: a commit removing one proposal or note file, `proposals/<x>.md`,
+  `proposals/<x>/proposal.md`, `notes/<x>.md`, or `notes/<x>/note.md`, and adding one such file or
+  one dated folder's `proposal.md`, pairs the two. The pair holds even when the file was edited past
+  git's rename detection.
+- **A change made a feature** moved `specs/changes/<folder>/<file>` to `specs/<folder>/<file>`.
+- **A finish**: a commit adding `specs/done/<folder>.md` turned every file it removed from
+  `specs/<folder>/` or `specs/changes/<folder>/` into that record.
+- **Otherwise** the commit deleted the file.
+- **A folder** went where its files went, when the newest commit removing any of them sent all the
+  files it removed to one folder, one record, or one deletion.
+
+Then rewrite the link:
+
+- **Moved**: point it at the new path, in its own form. A rooted link, `/specs/...`, stays rooted,
+  and a relative one is written from its file's folder. Its anchor, title, and `<…>` stay, and a
+  link to a folder keeps its trailing `/`.
+- **Became a record**: point it at the record. A question's anchor in a `clarifications-NN.md`,
+  `#q<number>...`, stays; any other anchor is dropped. A file of the folder that is not markdown,
+  like an image, counts as deleted: the finish deleted it.
+- **Deleted**: a link becomes its words, and an image its alt text. A reference definition,
+  `[label]: path`, stays.
+
+A path no commit ever removed, or one back at the tip, is left as it is. So are wikilinks, links in
+code, and links outside `specs/`, in `README.md`, `docs/`, or code comments. `ura check` keeps
+reporting the ones in `specs/`. Its `links.file` message says where each file went:
+`no file <path>: it moved to /<new path>`, `...: it became the record /specs/done/<folder>.md`, or
+`...: deleted in <commit> (<subject>)`.
 
 ### Review the branch
 

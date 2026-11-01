@@ -194,3 +194,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `spec.md`, `proposal.md`, and `plan.md` repeat in every dated folder.
 - **If wrong**: `repairs::names` gives each file's name alone, one line.
 - **Where**: task 7's review, `names` in `crates/core/src/actions/changes/repairs.rs`.
+
+## R17: Link repairs commit alone, and the finish's go into its commit
+
+- **Decision**: the catch-up, a postpone, and a drop commit their link repairs alone, as
+  `fix(<slug>): repair the links to moved files`. The finish's second catch-up amends its repairs
+  into the finishing commit. The skill's descriptions of the start, a change made a feature, and a
+  note file's moves now say every file of `specs/` linking the moved file follows it.
+- **Rationale**: a rebase makes no commit to carry the repairs, and `--fix` reads the history only
+  once the move is committed. The finish wants the record in the branch's last commit. The moves'
+  descriptions said only their lists followed, which the core's relink made wrong.
+- **If wrong**: the catch-up's repairs go into the last commit of the branch instead; the finish's
+  become a commit after the record.
+- **Where**: task 9, `skills/uraeda/references/{implementation,finish,projects,change,inbox}.md`.
