@@ -53,12 +53,14 @@ impl Git {
 
     /// Whether the files at or under `path` differ between `HEAD` and the working tree, as
     /// `git add --all` would stage them: ignored files left out, symbolic links compared as links,
-    /// and a new file staged then deleted from disk, `AD`, no change.
+    /// and a new file staged then deleted from disk, `AD`, no change. `path` is taken literally,
+    /// so `w[1].md` names no other file.
     pub fn differs_from_head(&self, path: &str) -> Result<bool, GitError> {
         let output = self.output(
             "status",
             &[
                 "--no-optional-locks",
+                "--literal-pathspecs",
                 "status",
                 "--porcelain=v1",
                 "-z",
