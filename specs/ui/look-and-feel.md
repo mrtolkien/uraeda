@@ -23,7 +23,7 @@ Ask of each mark, word, and control: "What does it convey? Is it clickable?" If 
 - **Icons where the icon is clear.** A row's file, a link, or a running feature shows as its icon,
   not as a word after the text: "the icons are enough". Every icon-only control keeps a label for
   screen readers.
-- **Empty sections disappear.** A pane with nothing to show, like Sessions when none runs, is not
+- **Empty sections disappear.** A pane with nothing to show, like Sessions when none is open, is not
   drawn.
 
 ## What can be pressed looks pressable

@@ -136,9 +136,9 @@ the page's end.
 ## The sidebar
 
 The left column, the shell's, is global: the repository, what needs the human, what is in progress,
-the running sessions, the usage, and Commit while changes wait. Folded to a rail, it unfolds over
-the page on hover or on `[`, without moving anything ("NOTHING SHOULD CHANGE PLACES"). It is not a
-page's place for its own controls.
+running sessions among it, the other open sessions, the usage, and Commit while changes wait. Folded
+to a rail, it unfolds over the page on hover or on `[`, without moving anything ("NOTHING SHOULD
+CHANGE PLACES"). It is not a page's place for its own controls.
 
 ## The status line
 
