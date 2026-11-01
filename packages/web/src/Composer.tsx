@@ -59,7 +59,7 @@ export type ComposerProps = {
   inputRef?: RefObject<ChatComposerInputHandle | null>;
   /**
    * With `folder` and no `session`: the message goes to a new session of the feature, created with
-   * it, as "New session" opens one, not to its latest.
+   * it, as "New session" opens one, not to its latest. Its field takes the focus as it opens.
    */
   isNewSession?: boolean;
   /**
@@ -136,6 +136,15 @@ function attachRefusal(
     : onSend
       ? unavailable
       : imageRefusal(agent, unavailable, workflow);
+}
+
+/** A new session opens to write its first message: its field takes the focus. */
+function useFocusOnOpen(input: RefObject<ChatComposerInputHandle | null>, isNewSession = false) {
+  useEffect(() => {
+    if (isNewSession) {
+      requestAnimationFrame(() => input.current?.focus());
+    }
+  }, [input, isNewSession]);
 }
 
 /**
@@ -344,6 +353,7 @@ export function Composer(given: ComposerProps) {
     isDisabled: Boolean(unavailable),
     send: canSend ? () => submit(value.trim()) : undefined,
   });
+  useFocusOnOpen(input, given.isNewSession);
   const placeholder = given.placeholder ?? `Message ${name}`;
   const isFolded = useFolded(box, !wide && isBlank(value, images, workflow, pending, error));
   const buttons = sendButtons({

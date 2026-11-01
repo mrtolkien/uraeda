@@ -113,8 +113,8 @@ function moved(key: string, index: number): number | undefined {
  * The New page's cards: a `radiogroup` named "What to start" of three `radio` cards, Session,
  * Change, and Feature, the picked one the active pane and the group's one stop in the tab order. A
  * click or Space picks a card, and the focus goes on to the composer; the arrow keys, Home, and End,
- * without a modifier, move the focus and the pick. `s c f` pick a card too, and the status line
- * names them.
+ * without a modifier, move the focus and the pick. `s c f` pick a card as a click does, and the
+ * status line names them.
  */
 export function KindCards({
   kind,
@@ -122,7 +122,7 @@ export function KindCards({
 }: {
   /** The picked kind, or none: the phone's New page starts with no card picked. */
   kind: NewKind | undefined;
-  /** `focus` says the pick was an activation, a click or Space, which moves on to the composer. */
+  /** `focus` says the pick was an activation, a click, Space, or `s c f`: it moves on to the composer. */
   onPick: (kind: NewKind, options?: { focus?: boolean }) => void;
 }) {
   const narrow = isNarrow(useWidthClass());
@@ -130,14 +130,15 @@ export function KindCards({
   const compact = narrow && kind !== undefined;
   const cards = useRef<Array<HTMLDivElement | null>>([]);
   const bodies = useId();
-  // `s c f` pick a card as a click would; the radio's own keys, below, move between them.
+  // `s c f` pick a card as a click would, the focus going on to the composer; the radio's own keys,
+  // below, move between them.
   useKeys(
     KINDS.map((card) => ({
       hint: card.key,
       hintLabel: card.name.toLowerCase(),
       keys: card.key,
       label: `Pick ${card.name}`,
-      run: () => onPick(card.kind),
+      run: () => onPick(card.kind, { focus: true }),
     })),
   );
   const keyDown = (event: KeyboardEvent, index: number) => {
