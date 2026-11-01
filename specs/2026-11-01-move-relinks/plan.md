@@ -231,7 +231,7 @@ the sandbox.
 | `--fix` output and JSON; exit code                                    | 4    | `crates/cli/tests/check.rs` `fix_rewrites_and_reports_each_file`                           |
 | SC-003, SC-004                                                        | 4    | none: the finder is built in a `OnceCell` on the first broken link (review); timed in step |
 | Problems decision: `links.file` stays a note                          | —    | existing `problem.rs` `BLOCKING` and its tests                                             |
-| US1 1, 2, 3; SC-002 for the start; edge case: hook refusal            | 5    | `tests/move_relinks.rs` `a_start_relinks_the_record`                                       |
+| US1 1, 2, 3; SC-002 for the start; edge case: hook refusal            | 5    | `tests/start_relinks.rs` `a_start_relinks_the_record`                                      |
 | US1 more 4; SC-002 for a change made a feature                        | 5    | `tests/promote.rs` row added to the existing default-branch test                           |
 | US1 more 1, 2, 3; SC-002 for attach and inbox moves; edge case: Undo  | 6    | `tests/move_relinks.rs` `inbox_moves_relink_and_undo_puts_back`                            |
 | US1 more 1 (the commit page line); Discard restores a repair          | 7    | `tests/inbox_moves.rs` `a_repair_waits_on_the_commit_page`                                 |
@@ -559,20 +559,20 @@ the sandbox.
 
 **Files:**
 
-- Modify: `crates/core/src/actions/start/commits.rs`, `crates/core/src/actions/start/restore.rs`,
+- Modify: `crates/core/src/actions/start/commits.rs`, `crates/core/src/actions/start/mod.rs`,
   `crates/core/src/actions/promote.rs`
-- Test: `crates/core/tests/move_relinks.rs` (a test added), `crates/core/tests/promote.rs`
+- Test: `crates/core/tests/start_relinks.rs` (new), `crates/core/tests/promote.rs`
 
 **Interfaces:**
 
 - Consumes: `relink::relink`, `relink::put_back`, `Relinked` (task 3); `Move`, `Went::Moved` (task
   1).
 - Produces: `move_proposal` also returns the start's `Vec<Relinked>`; `commit_start` adds each
-  relinked file not `edited` to its paths, and `put_back` puts them all back while unchanged, naming
-  the others among the paths left.
+  relinked file not `edited` to its paths, and on a hook's refusal `relink::put_back` puts them all
+  back while unchanged, naming the others among the paths left.
 
-- [ ] **Step 1: Write the failing tests**
-  - `a_start_relinks_the_record`, in `tests/move_relinks.rs`: with
+- [x] **Step 1: Write the failing tests**
+  - `a_start_relinks_the_record`, in `tests/start_relinks.rs`: with
     `specs/done/2026-10-10-cli-core.md` linking `[the draft](../proposals/cli-tuis.md)`, a start of
     `cli-tuis.md` as `2026-11-10-cli-tuis` commits the record with
     `[the draft](../2026-11-10-cli-tuis/proposal.md)` (`changed_in`); with a refusing hook, the
@@ -585,29 +585,31 @@ the sandbox.
   The breaks: a record left behind; a refused start leaving a rewritten record; the human's edit
   committed with the start.
 
-- [ ] **Step 2: Run them to check they fail**
-  - Run: `nix develop -c cargo nextest run -p uraeda-core --test move_relinks --test promote`
+- [x] **Step 2: Run them to check they fail**
+  - Run: `nix develop -c cargo nextest run -p uraeda-core --test start_relinks --test promote`
   - Expected: FAIL, the record still links `../proposals/cli-tuis.md`.
 
-- [ ] **Step 3: Relink in the start**: after the moved files' own links, relink `specs` for the
+- [x] **Step 3: Relink in the start**: after the moved files' own links, relink `specs` for the
       start's moves (each moved file, and the proposal folder for a folder), skipping
-      `specs/PRIORITIES.md`, which the start writes itself. A failed relink is a partial failure
-      like the rebase's.
+      `specs/PRIORITIES.md`, which the start writes itself, and the moved files, whose links the
+      rebase already pointed (see
+      [R11](rulings.md#r11-a-start-leaves-its-moved-files-to-the-rebase)). A failed relink is a
+      partial failure like the rebase's.
 
-- [ ] **Step 4: Relink in a change made a feature**: on the default branch before its commit, and on
+- [x] **Step 4: Relink in a change made a feature**: on the default branch before its commit, and on
       the branch before its commit, for the move of `specs/changes/<d>` to `specs/<d>`, skipping
       `PRIORITIES.md`; the refused default-branch commit puts them back with the rest; on the
       branch, the relinked files join the commit's paths and its `left` instruction.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS. A test met that asserts a start or a move leaves another file as it was is
     rewritten to the new behaviour, and named in the commit message's body.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
   ```bash
-  git add crates/core/src/actions/start crates/core/src/actions/promote.rs crates/core/tests/move_relinks.rs crates/core/tests/promote.rs
+  git add crates/core/src/actions/start crates/core/src/actions/promote.rs crates/core/tests/start_relinks.rs crates/core/tests/promote.rs
   git commit -m "feat(move-relinks): a start and a change made a feature relink every file"
   ```
 

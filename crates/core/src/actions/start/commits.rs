@@ -6,10 +6,20 @@ use std::fs;
 use super::plan::Plan;
 use super::restore::{Before, Written, written_in};
 use super::{Source, Start, StartError, StartProgress, partial};
+use crate::actions::ActionError;
 use crate::actions::expand::with_nested;
+use crate::actions::relink::{self, Relinked};
 use crate::cache::WriteGuard;
 use crate::files::retarget;
 use crate::git::{Git, GitError, ObjectId};
+use crate::moves::{Move, Went};
+
+/// The priorities, which the start writes itself, never relinked.
+const PRIORITIES: &str = "specs/PRIORITIES.md";
+
+/// What the move of a proposal file did: each move, from and to; the moved files' texts before
+/// their links were pointed at the dated folder; and the other files of `specs/` it relinked.
+pub(super) type Moved = (Vec<(String, String)>, Before, Vec<Relinked>);
 
 /// The folder of a file, from the top level.
 fn folder_of(file: &str) -> &str {
@@ -26,13 +36,9 @@ impl Start<'_> {
     }
 
     /// Moves the proposal file's files into the dated folder, on the default branch: each move,
-    /// from and to, and the text before its links were pointed at the new folder of each moved
-    /// file they changed.
-    pub(super) fn move_proposal(
-        &self,
-        proposal: &str,
-        plan: &Plan,
-    ) -> Result<(Vec<(String, String)>, Before), StartError> {
+    /// from and to, the text before its links were pointed at the new folder of each moved file
+    /// they changed, and the other files of `specs/` whose links to the moved files it rewrote.
+    pub(super) fn move_proposal(&self, proposal: &str, plan: &Plan) -> Result<Moved, StartError> {
         let left = || {
             let mut left = vec![plan.write_left.clone()];
             left.extend(self.left_after_write(plan));
@@ -103,19 +109,59 @@ impl Start<'_> {
                 return Err(partial(&done, left, error));
             }
         }
-        Ok((moves, before))
+        let relinked = self.relink(proposal, plan, &moves).map_err(|error| {
+            let mut left = vec![format!(
+                "point the links of specs/ to {proposal} at {}",
+                plan.destination
+            )];
+            left.extend(self.left_after_write(plan));
+            let done: Vec<String> = moves
+                .iter()
+                .map(|(from, to)| format!("the move of {from} to {to}"))
+                .chain(["the moved files' relative links pointed at the dated folder".into()])
+                .collect();
+            partial(&done, left, error)
+        })?;
+        Ok((moves, before, relinked))
     }
 
-    /// The start commit, on the default branch: the proposal, and the dated folder with the
-    /// proposal file's removal. A hook's refusal puts back what the start wrote, `moves` included,
-    /// with `before`'s texts, when the start asked for it. `held`, the write lock, is released once
+    /// Points the links of the other files of `specs/` at where `moves` took the proposal file's
+    /// files, and at the dated folder for a postponed proposal's folder. `PRIORITIES.md`, which
+    /// the start writes itself, and the moved files, whose links point from their new folder
+    /// already, are left alone.
+    fn relink(
+        &self,
+        proposal: &str,
+        plan: &Plan,
+        moves: &[(String, String)],
+    ) -> Result<Vec<Relinked>, ActionError> {
+        let moved = |from: &str, to: &str| Move {
+            from: from.to_string(),
+            went: Went::Moved {
+                path: to.to_string(),
+                anchor: None,
+            },
+        };
+        let mut relinks: Vec<Move> = moves.iter().map(|(from, to)| moved(from, to)).collect();
+        if plan.postponed {
+            relinks.push(moved(proposal, &plan.destination));
+        }
+        let mut skip = vec![PRIORITIES];
+        skip.extend(moves.iter().map(|(_, to)| to.as_str()));
+        relink::relink(self.root, "specs", &relinks, &skip)
+    }
+
+    /// The start commit, on the default branch: the proposal, the dated folder with the proposal
+    /// file's removal, and each file `relinked` without uncommitted edits. A hook's refusal puts
+    /// back what the start wrote, `moves` included, with `before`'s texts, and every relinked file
+    /// still as written, when the start asked for it. `held`, the write lock, is released once
     /// the files are staged, before the hooks run, and taken again to take back the stage and put
     /// the files back.
     pub(super) fn commit_start(
         &self,
         plan: &Plan,
         done: &str,
-        (moves, mut before): (&[(String, String)], Before),
+        (moves, mut before, relinked): (&[(String, String)], Before, &[Relinked]),
         held: Option<WriteGuard>,
     ) -> Result<(), StartError> {
         let done = [done.to_string()];
@@ -144,7 +190,14 @@ impl Start<'_> {
             return Err(partial(&done, left, error));
         }
         // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
-        let mut paths = vec!["specs/PRIORITIES.md".to_string(), plan.destination.clone()];
+        let mut paths = vec![PRIORITIES.to_string(), plan.destination.clone()];
+        // A file with uncommitted edits keeps its rewrite, out of the commit.
+        paths.extend(
+            relinked
+                .iter()
+                .filter(|file| !file.edited)
+                .map(|file| file.path.clone()),
+        );
         if let Source::Proposal(proposal) = self.source {
             // A proposal file staged but never committed leaves the index with its move, which the
             // commit, of committed files alone, would not take.
@@ -191,7 +244,8 @@ impl Start<'_> {
                 message,
                 output,
             } if subcommand == "commit" && self.run.restore && self.head_is(head) => {
-                let left = self.put_back(plan, moves, &written, &before);
+                let mut left = self.put_back(plan, moves, &written, &before);
+                left.extend(relink::put_back(self.root, relinked));
                 refused(message, output, &left)
             }
             error => Err(partial(&done, self.left_after_write(plan), error)),

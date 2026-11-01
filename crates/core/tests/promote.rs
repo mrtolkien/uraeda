@@ -151,14 +151,30 @@ fn a_change_becomes_a_feature_in_place() {
 }
 
 /// The start put the change's folder on main: its move there takes the folder with the proposal, in
-/// one commit, so the proposal never links a missing folder.
+/// one commit, so the proposal never links a missing folder. US1 more 4: a record linking the
+/// change's proposal links the feature's, on main and on the branch.
 #[test]
 fn the_folder_on_main_moves_with_the_proposal() {
     let repo = started(Kind::Change);
+    let record = "specs/done/2026-10-01-priorities.md";
+    let linking =
+        |folder: &str| format!("# Priorities\n\nNext, [this](/specs/{folder}/proposal.md).\n");
+    repo.write(record, &linking(&format!("changes/{FOLDER}")));
+    repo.commit("chore: link the change");
+    std::fs::create_dir_all(worktree(&repo).join("specs/done")).unwrap();
+    std::fs::write(
+        worktree(&repo).join(record),
+        linking(&format!("changes/{FOLDER}")),
+    )
+    .unwrap();
+    commit_in_worktree(&repo, "chore: link the change");
     let before = repo.subjects("main").len();
 
     promote(&repo).unwrap();
 
+    let relinked = linking(FOLDER);
+    assert_eq!(repo.git(&["show", &format!("main:{record}")]), relinked);
+    assert_eq!(repo.git(&["show", &format!("{FOLDER}:{record}")]), relinked);
     assert_eq!(repo.subjects("main").len(), before + 1);
     let tree = repo.git(&["ls-tree", "-r", "--name-only", "main", "specs"]);
     assert!(
@@ -172,9 +188,11 @@ fn the_folder_on_main_moves_with_the_proposal() {
             format!("specs/{FOLDER}/proposal.md"),
             "specs/PRIORITIES.md".to_string(),
             format!("specs/changes/{FOLDER}/proposal.md"),
+            record.to_string(),
         ]
     );
     assert_eq!(repo.porcelain(), "");
+    assert_eq!(run_git(&worktree(&repo), &["status", "--porcelain"]), "");
 }
 
 /// Uncommitted edits to the change's folder on main would ride along in its move there: refused.

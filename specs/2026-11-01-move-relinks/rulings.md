@@ -109,3 +109,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: escape the words' first characters when they would start a block, at the start of a
   line only.
 - **Where**: task 1, `relink` in `crates/core/src/files/retarget.rs`.
+
+## R11: A start leaves its moved files to the rebase
+
+- **Decision**: a start's relink of `specs/` skips the files it moved, as well as `PRIORITIES.md`;
+  their own relative links are pointed at the dated folder by the rebase before it, as today. A
+  change made a feature relinks every file of `specs/` but `PRIORITIES.md`, its moved folder's
+  included.
+- **Rationale**: the start's put back on a hook's refusal moves each file back only while it holds
+  the bytes the start left, and restores its text from before the rebase: a second rewrite of the
+  same file, put back by the relinker, would leave it named as changed. The rebase already points
+  the moved files at each other. A change's folder holds no relative link the move breaks, and a
+  rooted link inside it to `/specs/changes/<d>/` is one the move must rewrite.
+- **If wrong**: a link in a postponed proposal's folder to the folder itself, `../<proposal>/`,
+  stays broken until `ura check --fix`.
+- **Where**: task 5, `Start::relink` in `crates/core/src/actions/start/commits.rs`, and
+  `relink_folder` in `crates/core/src/actions/promote.rs`.
