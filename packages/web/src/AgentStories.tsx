@@ -116,12 +116,20 @@ function StoryParagraph({
 
 /**
  * The path, within its repository, an agent's link or image names, from the repository's top
- * level, as its story links are: none for the web, another scheme, or a link within the page.
+ * level, as its story links are: none for the web, another scheme, or a link within the page. Its
+ * percent-encoding is decoded, as the core decodes a page's links, since the image route encodes
+ * the path again; a malformed one is kept as written.
  */
-function repositoryPath(href: string): string | undefined {
-  return /^([a-z][a-z\d+.-]*:|\/\/|#|\?)/i.test(href)
-    ? undefined
-    : href.replace(/^\//, "").split(/[?#]/)[0];
+export function repositoryPath(href: string): string | undefined {
+  if (/^([a-z][a-z\d+.-]*:|\/\/|#|\?)/i.test(href)) {
+    return undefined;
+  }
+  const path = href.replace(/^\//, "").split(/[?#]/)[0]!;
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return path;
+  }
 }
 
 /**
