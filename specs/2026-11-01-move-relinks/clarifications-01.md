@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Moving a file never breaks a link to it
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 3 questions, about 15 minutes.
+> Answered on 2026-11-01.
 >
 > - Verdict: worth building, with changes. Six fix commits in two days, five of them the same fix on
 >   parallel branches, but git's renames alone miss one of the incidents.
@@ -125,7 +125,7 @@ whether a record keeps a pointer to what it named.
   - [pro] the reader still opens the proposal in one click.
   - [con] the link leaves the repository, needs a forge, and breaks on a fork or a move.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: What repairs a link that a merge on the forge breaks on the default branch?
 
@@ -161,7 +161,7 @@ branch without your action.
   - [con] a tool commits on the default branch with nobody asking, which the
     [git decision](/specs/decisions/git.md) never allowed; it needs the server running.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Does the web UI get a way to run the fix?
 
@@ -186,7 +186,8 @@ Why it matters: it decides whether a human without a terminal can repair the def
   - [pro] the repair happens where the problem shows.
   - [con] a server action and a view to build, and a commit on the default branch from a note.
 
-**Answer:**
+**Answer:** B: No commit on the default branch, just a fix to the file. The commit will go through
+our commit dialog.
 
 ## Settled without the human
 
