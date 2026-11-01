@@ -58,6 +58,9 @@ const styles = stylex.create({
     // shell's status line, fixed at the window's bottom, following it down as it slides away.
     backgroundColor: colorVars["--color-background-surface"],
     bottom: "var(--status-line-offset, var(--size-status-line, 0px))",
+    // At the page's foot from its first draw, while the transcript loads and grows (`Page`'s
+    // `isFull`): it never moves down as the session's messages come.
+    marginBlockStart: "auto",
     paddingBlock: spacingVars["--spacing-3"],
     position: "sticky",
     transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
@@ -238,7 +241,7 @@ function Framed({
     return <div {...stylex.props(styles.box)}>{children}</div>;
   }
   const page = (
-    <Page isSnug kind="session">
+    <Page isFull isSnug kind="session">
       {crumbs !== undefined && <Crumbs folder={crumbs} session />}
       {children}
     </Page>
