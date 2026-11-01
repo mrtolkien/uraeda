@@ -1,7 +1,9 @@
 // What `ura check` finds in a feature's files: the problems that stop the workflow, in a banner above
-// "Next", and the notes that do not, folded at the bottom of the page.
+// "Next", and the notes that do not, folded at the bottom of the page, with a button that repairs the
+// links whose file moved, when their file is the default branch's.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
+import { HStack } from "@astryxdesign/core/HStack";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -9,8 +11,11 @@ import { Pane } from "../layout/Pane.tsx";
 import { useRepoPath } from "../routes.tsx";
 import { useOpenKeys } from "../useOpenKeys.ts";
 
-/** A check's result: its file from the repository's top, its line, and its message. */
-type Problem = { file: string; line?: number | null; message: string };
+/**
+ * A check's result: its file from the repository's top, its line, and its message; for a link whose
+ * file moved or was deleted, `fixable`, which the repair can rewrite.
+ */
+type Problem = { file: string; fixable?: boolean | null; line?: number | null; message: string };
 
 /** A file's name, from its path. */
 function fileName(path: string): string {
@@ -69,8 +74,11 @@ export function Blocking({
 /** The fold's key in the history entry, kept open across Back. */
 const NOTES_KEY = "notes";
 
-/** The check's notes, which block nothing, a pane folded to its count, open as the history entry keeps them. */
-export function Notes({ notes }: { notes: Array<Problem> }) {
+/**
+ * The check's notes, which block nothing, a pane folded to its count, open as the history entry
+ * keeps them. `onFix`, given for a default branch's files, repairs every fixable link, uncommitted.
+ */
+export function Notes({ notes, onFix }: { notes: Array<Problem>; onFix?: () => void }) {
   const keys = useOpenKeys();
   if (notes.length === 0) {
     return null;
@@ -88,6 +96,11 @@ export function Notes({ notes }: { notes: Array<Problem> }) {
         <Text color="secondary" type="supporting">
           They block nothing: the next agent step rewrites what drifted.
         </Text>
+        {onFix && notes.some((note) => note.fixable) && (
+          <HStack>
+            <Button label="Fix moved links" onClick={onFix} variant="secondary" />
+          </HStack>
+        )}
         <ProblemLines problems={notes} />
       </VStack>
     </Pane>
