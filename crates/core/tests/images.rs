@@ -571,6 +571,8 @@ fn an_svg_file_is_a_drawing_after_its_declaration_comments_and_doctype() {
     assert!(images::is_svg("specs/x/mockups/BANNER.SVG", declared));
     let exported = b"<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"x.dtd\" [\n<!ENTITY ns \"a>b\">\n]>\n<svg version=\"1.1\"></svg>";
     assert!(images::is_svg("specs/x/mockups/exported.svg", exported));
+    let spaced = b"<!DocType svg [\n<!ENTITY ns \"a\">\n] >\n<svg></svg>";
+    assert!(images::is_svg("specs/x/mockups/spaced.svg", spaced));
 }
 
 #[test]
