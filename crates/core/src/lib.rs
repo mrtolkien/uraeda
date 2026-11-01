@@ -13,6 +13,7 @@ pub mod gates;
 pub mod git;
 pub mod history;
 pub mod images;
+pub mod moves;
 pub mod pulls;
 pub mod repositories;
 pub mod settings;
