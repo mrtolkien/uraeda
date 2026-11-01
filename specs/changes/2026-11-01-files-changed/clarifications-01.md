@@ -25,8 +25,8 @@ session changed.
 
 ### Today
 
-The panel's "This session" part lists the targets of the session's completed Edit, MultiEdit,
-NotebookEdit, and Write calls: [`editedFiles`](/packages/server/src/runner/cache-work.ts) reads them
+The panel's "This session" part lists the files of the session's completed Edit, MultiEdit,
+NotebookEdit, and Write calls. [`editedFiles`](/packages/server/src/runner/cache-work.ts) reads them
 from the session cache, and [`ChangesPanel`](/packages/web/src/session/ChangesPanel.tsx) shows them.
 So it already looks at file-write tool calls.
 
@@ -71,9 +71,9 @@ how much runs on each command.
   still count as today.
   - [pro] agent-neutral, in the server: any future agent gets it for free.
   - [pro] two quick git reads per turn, nothing per command.
-  - [con] in the main checkout, a file you save during a turn is listed as the session's, and a move
-    into a change names it as a file to carry over. Your screenshot's turn would have listed your
-    three files.
+  - [con] in the main checkout, a file you save during a turn is listed as the session's. A move
+    into a change also names it as a file to carry over. Your screenshot's turn would have listed
+    your three files.
   - Why recommended: most sessions that write files run in a worktree, where it is exact. In the
     main checkout, a wrong file costs a glance, and the carry-over already tells the agent to leave
     files you changed since.
