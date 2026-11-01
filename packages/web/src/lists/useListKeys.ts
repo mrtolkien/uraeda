@@ -1,6 +1,6 @@
 // The keys of a list whose rows open a pane, as the UI behaviour decision asks, declared in the key
-// registry: ↑ ↓ or j k (and + -) move the focus to the previous or next row, Home and End to the
-// first and last, across sections; Enter edits the selected item; Escape closes the pane. A list in
+// registry: ↑ ↓ or j k (and + -) move the focus to the previous or next row, Home and End, or g g
+// and G, to the first and last, across sections; Enter edits the selected item; Escape closes the pane. A list in
 // columns keeps them inside the column, and adds h l and ← → to the same row of the neighbouring
 // column, or its last row when that is shorter. J K H L and Shift with the arrows move the selected
 // item itself, where the list can. They act only when the focus is on a row or on the page itself;
@@ -39,6 +39,8 @@ const MOVES: Keys<Move> = [
   ["-", "previous", "previous row"],
   ["Home", "first", "first row"],
   ["End", "last", "last row"],
+  ["g g", "first", "first row"],
+  ["G", "last", "last row"],
 ];
 
 /** The keys between columns: only a list in columns binds them. */

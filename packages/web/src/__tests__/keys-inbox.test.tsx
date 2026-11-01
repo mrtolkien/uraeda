@@ -137,6 +137,24 @@ test("the note the keys pick shows its own keys in a bar under it, with no menu"
   expect(row.queryByRole("button", { name: /^Actions of/ })).toBeNull();
 });
 
+test("g g focuses the first note and G the last row, as Home and End do", async () => {
+  const { link } = await onNote("Idea one");
+
+  await press("End", link);
+  const end = document.activeElement as HTMLElement;
+  await press("k", end);
+  await press("G", document.activeElement as HTMLElement);
+  expect(document.activeElement).toBe(end);
+
+  await press("Home", end);
+  const home = document.activeElement as HTMLElement;
+  expect(home).not.toBe(end);
+  await press("j", home);
+  await press("g", document.activeElement as HTMLElement);
+  await press("g", document.activeElement as HTMLElement);
+  expect(document.activeElement).toBe(home);
+});
+
 test("m puts the note in the move mode, whose j moves it into the next category (US3 3)", async () => {
   const { link, repo } = await onNote("Idea two");
 

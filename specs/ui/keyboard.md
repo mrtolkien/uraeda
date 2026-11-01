@@ -20,7 +20,7 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `m`                       | Move mode: the row moves with the move keys, across sections, until `Enter` or `Escape`                                   | A list of rows                        |
 | `u`                       | Undo the last write that offers one (see [Surfaces](surfaces.md#undo))                                                    | Every page                            |
 | `/`                       | Search or filter the page's list                                                                                          | A page with a list to filter          |
-| `gg`, `G`                 | Top and bottom                                                                                                            | Every page                            |
+| `gg`, `G`                 | Top and bottom: the first and last row of a list, as `Home` `End`                                                         | Every page                            |
 | `g` then a letter         | Go: `h` home, `i` inbox, `p` priorities, `d` decisions, `s` sessions, `,` settings, `n` new, `c` commit, `r` a repository | Every page                            |
 | `Space`                   | The leader menu                                                                                                           | Every page                            |
 | `?`                       | The key map: every key that works where the focus is, with a search                                                       | Every page                            |

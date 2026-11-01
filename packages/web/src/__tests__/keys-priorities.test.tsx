@@ -60,10 +60,10 @@ async function onLine(line: string) {
   return { link, repo };
 }
 
-/** Presses a key on an element, as a user's reaches the window. */
+/** Presses a key on an element, as a user's reaches the window; a capital is typed with Shift. */
 async function press(key: string, target: Element = document.body) {
   await act(async () => {
-    fireEvent.keyDown(target, { key });
+    fireEvent.keyDown(target, { key, shiftKey: /^[A-Z]$/.test(key) });
   });
 }
 
@@ -182,6 +182,24 @@ test("the line the keys pick shows its own keys in a bar under it", async () => 
     expect(row.getByRole("button", { name: action }), action).toBeTruthy();
   }
   expect(within(rowOf("Next line 1")).queryByRole("button", { name: "m move" })).toBeNull();
+});
+
+test("g g focuses the first line and G the last row, as Home and End do", async () => {
+  const { link } = await onLine("Next line 1");
+
+  await press("End", link);
+  const end = document.activeElement as HTMLElement;
+  await press("k", end);
+  await press("G", document.activeElement as HTMLElement);
+  expect(document.activeElement).toBe(end);
+
+  await press("Home", end);
+  const home = document.activeElement as HTMLElement;
+  expect(home).not.toBe(end);
+  await press("j", home);
+  await press("g", document.activeElement as HTMLElement);
+  await press("g", document.activeElement as HTMLElement);
+  expect(document.activeElement).toBe(home);
 });
 
 test("with the focus on the page, i edits the line the page opened on, the first of Now", async () => {

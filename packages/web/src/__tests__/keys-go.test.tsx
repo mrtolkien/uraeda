@@ -58,8 +58,9 @@ test("every go key opens its page: h i p d s and the comma (US2 table)", async (
   }
 });
 
+// On the settings, a page with no rows: a list's `g g` goes to its first row instead.
 test("g g scrolls the page to the top (US2 2)", async () => {
-  await loaded("/");
+  await loaded("/settings");
   press("g");
   press("g");
   expect(scrollTo).toHaveBeenCalledTimes(1);

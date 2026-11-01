@@ -98,6 +98,8 @@ export function LeaderKeys() {
       },
     },
     {
+      // A fallback, as `G` is: a list's `g g` goes to its first row instead.
+      fallback: true,
       icon: "arrowUp",
       keys: "g g",
       label: "Top of the page",
