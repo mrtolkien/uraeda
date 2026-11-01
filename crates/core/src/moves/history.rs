@@ -70,16 +70,23 @@ impl History {
 
     /// Follows `path`'s newest removal, then each new path's first removal after the commit that
     /// brought it there: a chain only moves forward in time, so a path moved away and back ends.
+    /// It stops at a path whose newest change adds it, which is there at the tip.
     fn chain(&self, path: &str, changes: &[(usize, Change)]) -> Option<Went> {
         let (mut at, Change::Went(mut went)) = changes.first()?.clone() else {
             return None;
         };
         while let Went::Moved { path: next, .. } = &went {
-            let Some((index, Change::Went(further))) = self
-                .paths
-                .get(next)
-                .and_then(|changes| changes.iter().rev().find(|(index, _)| *index < at))
-                .cloned()
+            let Some(next) = self.paths.get(next) else {
+                break;
+            };
+            if next
+                .first()
+                .is_some_and(|(_, change)| *change == Change::Added)
+            {
+                break;
+            }
+            let Some((index, Change::Went(further))) =
+                next.iter().rev().find(|(index, _)| *index < at).cloned()
             else {
                 break;
             };
@@ -109,7 +116,7 @@ impl History {
             .filter(|(_, changes)| changes[0].0 == last)
             .map(|(file, changes)| match self.chain(file, changes)? {
                 Went::Moved { path, .. } => Some(Went::Moved {
-                    path: path.strip_suffix(&file[folder.len()..])?.to_string(),
+                    path: moved_folder(&path, file, folder)?.to_string(),
                     anchor: None,
                 }),
                 went => Some(went),
@@ -122,7 +129,7 @@ impl History {
 
 /// What one commit did to each path it names: every added path is `Added`; a removed path is a
 /// finished folder's `Record`, else `Moved` by git's rename, by a change made a feature, or as the
-/// one main file the commit moved, else `Deleted` by the commit.
+/// one main file the commit moved, as [`start`] pairs it, else `Deleted` by the commit.
 fn pair(commit: &CommitPaths) -> Vec<(String, Change)> {
     let added: Vec<&str> = commit
         .added
@@ -169,17 +176,11 @@ fn pair(commit: &CommitPaths) -> Vec<(String, Change)> {
         };
         changes.push((old.to_string(), Change::Went(went)));
     }
-    let started: Vec<&str> = added
-        .iter()
-        .filter(|path| !taken.contains(**path) && is_started(path))
-        .copied()
+    let fresh: Vec<&str> = (commit.added.iter())
+        .map(String::as_str)
+        .filter(|path| !taken.contains(*path))
         .collect();
-    let mains: Vec<&str> = unpaired
-        .iter()
-        .filter(|path| is_main(path))
-        .copied()
-        .collect();
-    let start = (mains.len() == 1 && started.len() == 1).then(|| (mains[0], started[0]));
+    let start = start(&unpaired, &fresh);
     for old in unpaired {
         let went = match start {
             Some((main, new)) if main == old => moved(new),
@@ -218,26 +219,50 @@ fn featured(path: &str) -> Option<String> {
     Some(format!("{specs}{}", rest.strip_prefix("changes/")?))
 }
 
-/// Whether `path` is a proposal or note file's main file: `proposals/<x>.md`,
-/// `proposals/<x>/proposal.md`, `notes/<x>.md`, or `notes/<x>/note.md` under `specs/`.
-fn is_main(path: &str) -> bool {
-    let Some((_, rest)) = split_specs(path) else {
-        return false;
+/// The one deleted main file of `unpaired` paired with the one path of `added` it can have gone
+/// to: a dated folder's `proposal.md`, which a start adds, or a main file named as it was, or with
+/// a number after, as a file made a folder or a note made a proposal is. Either side with none or
+/// more than one pairs nothing.
+fn start<'a>(unpaired: &[&'a str], added: &[&'a str]) -> Option<(&'a str, &'a str)> {
+    let mains: Vec<(&str, &str)> = (unpaired.iter())
+        .filter_map(|path| Some((*path, slug(path)?)))
+        .collect();
+    let [(main, old)] = mains[..] else {
+        return None;
     };
+    let named = |new: &str| {
+        new == old
+            || (new.strip_prefix(old))
+                .and_then(|rest| rest.strip_prefix('-'))
+                .is_some_and(|n| !n.is_empty() && n.bytes().all(|byte| byte.is_ascii_digit()))
+    };
+    let targets: Vec<&str> = (added.iter())
+        .filter(|path| is_dated(path) || slug(path).is_some_and(named))
+        .copied()
+        .collect();
+    let [target] = targets[..] else {
+        return None;
+    };
+    Some((main, target))
+}
+
+/// The name of a proposal or note file's main file, `<x>` of `proposals/<x>.md`,
+/// `proposals/<x>/proposal.md`, `notes/<x>.md`, or `notes/<x>/note.md` under `specs/`.
+fn slug(path: &str) -> Option<&str> {
+    let (_, rest) = split_specs(path)?;
     [("proposals/", "proposal.md"), ("notes/", "note.md")]
         .iter()
-        .any(|(folder, main)| {
-            rest.strip_prefix(folder)
-                .is_some_and(|name| match name.split_once('/') {
-                    Some((_, file)) => file == *main,
-                    None => name.ends_with(".md"),
-                })
+        .find_map(|(folder, main)| {
+            let name = rest.strip_prefix(folder)?;
+            match name.split_once('/') {
+                Some((name, file)) => (file == *main).then_some(name),
+                None => name.strip_suffix(".md"),
+            }
         })
 }
 
-/// Whether `path` is a main file a start or a move can bring a main file to: one, or a dated
-/// folder's `proposal.md`, a feature's or a change's.
-fn is_started(path: &str) -> bool {
+/// Whether `path` is a dated folder's `proposal.md`, a feature's or a change's.
+fn is_dated(path: &str) -> bool {
     let dated = |rest: &str| {
         rest.strip_suffix("/proposal.md").is_some_and(|folder| {
             !folder.contains('/')
@@ -245,8 +270,19 @@ fn is_started(path: &str) -> bool {
                 && folder.get(..10).and_then(Date::parse).is_some()
         })
     };
-    is_main(path)
-        || split_specs(path).is_some_and(|(_, rest)| {
-            dated(rest) || rest.strip_prefix("changes/").is_some_and(dated)
-        })
+    split_specs(path)
+        .is_some_and(|(_, rest)| dated(rest) || rest.strip_prefix("changes/").is_some_and(dated))
+}
+
+/// Where the folder `folder` went, given that its file `file` went to `path`: `path` without the
+/// file's place in the folder, or, for the folder's main file moved to another folder's main
+/// file, as a note folder made a proposal folder, that main file's folder.
+fn moved_folder<'a>(path: &'a str, file: &str, folder: &str) -> Option<&'a str> {
+    fn main_folder(path: &str) -> Option<&str> {
+        let folder =
+            (path.strip_suffix("/proposal.md")).or_else(|| path.strip_suffix("/note.md"))?;
+        (slug(path).is_some() || is_dated(path)).then_some(folder)
+    }
+    (path.strip_suffix(&file[folder.len()..]))
+        .or_else(|| (main_folder(file) == Some(folder)).then(|| main_folder(path))?)
 }

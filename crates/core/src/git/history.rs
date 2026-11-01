@@ -48,8 +48,9 @@ pub struct CommitPaths {
 
 impl Git {
     /// The paths of `specs/` each commit reachable from `tip` added, deleted, or renamed, newest
-    /// first: one `git log -M` through the system `git`, since gix is built without rename
-    /// detection. A merge commit names none.
+    /// first, a commit always before its parents whatever their clocks say: one `git log -M
+    /// --topo-order` through the system `git`, since gix is built without rename detection. A
+    /// merge commit names none.
     pub fn path_events(&self, tip: ObjectId) -> Result<Vec<CommitPaths>, GitError> {
         let tip = tip.to_string();
         let args = [
@@ -59,7 +60,8 @@ impl Git {
             "--diff-filter=ADR",
             "--name-status",
             "-z",
-            "--format=%x01%H%x00%s",
+            "--topo-order",
+            "--format=%H%x00%s",
             "--",
             ":(glob)**/specs/**",
         ];
@@ -190,35 +192,49 @@ fn parse(output: &str) -> Vec<ChangedFile> {
     files
 }
 
-/// Commits starting with `\x01`, then NUL-separated fields: the full hash, the subject, then each
-/// change's status and its path, or a rename's status, `R<similarity>`, and its two paths.
+/// NUL-separated fields, read by their place: each commit's full hash and subject, then each
+/// change's status and its path, or a rename's status, `R<similarity>`, and its two paths. A
+/// subject is the field after its hash, whatever characters it holds.
 fn parse_paths(output: &str) -> Vec<CommitPaths> {
-    let mut commits = Vec::new();
-    for record in output.split('\x01').filter(|record| !record.is_empty()) {
-        let mut fields = record.split('\0');
-        let hash = fields.next().unwrap_or_default();
-        let mut commit = CommitPaths {
-            commit: hash.chars().take(7).collect(),
-            subject: fields.next().unwrap_or_default().trim().to_string(),
-            renamed: Vec::new(),
-            deleted: Vec::new(),
-            added: Vec::new(),
-        };
-        while let Some(status) = fields.next() {
-            let mut path = || fields.next().unwrap_or_default().to_string();
-            match status.trim().chars().next() {
-                Some('A') => commit.added.push(path()),
-                Some('D') => commit.deleted.push(path()),
-                Some('R') => {
-                    let old = path();
-                    commit.renamed.push((old, path()));
-                }
-                _ => {}
+    let mut commits: Vec<CommitPaths> = Vec::new();
+    let mut fields = output
+        .split('\0')
+        .map(|field| field.trim_start_matches('\n'));
+    while let Some(field) = fields.next() {
+        let commit = match commits.last_mut() {
+            Some(commit) if is_status(field) => commit,
+            _ if field.is_empty() => continue,
+            _ => {
+                commits.push(CommitPaths {
+                    commit: field.chars().take(7).collect(),
+                    subject: fields.next().unwrap_or_default().trim().to_string(),
+                    renamed: Vec::new(),
+                    deleted: Vec::new(),
+                    added: Vec::new(),
+                });
+                continue;
             }
+        };
+        let mut path = || fields.next().unwrap_or_default().to_string();
+        match field.chars().next() {
+            Some('A') => commit.added.push(path()),
+            Some('D') => commit.deleted.push(path()),
+            Some('R') => {
+                let old = path();
+                commit.renamed.push((old, path()));
+            }
+            _ => {}
         }
-        commits.push(commit);
     }
     commits
+}
+
+/// Whether a field of `git log --name-status` is a change's status, as `A`, `D`, or `R100`: an
+/// upper case letter, then a similarity for a rename. A hash is long and lower case.
+fn is_status(field: &str) -> bool {
+    let mut chars = field.chars();
+    chars.next().is_some_and(|first| first.is_ascii_uppercase())
+        && chars.all(|char| char.is_ascii_digit())
 }
 
 #[cfg(test)]

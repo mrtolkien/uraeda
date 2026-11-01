@@ -402,8 +402,9 @@ the sandbox.
     `specs/<d>/<rest>` in the same commit is `Moved` there.
   - **A start or a move of a main file**: when exactly one unpaired deleted path is a proposal or
     note file's main file (`specs/proposals/<x>.md`, `…/<x>/proposal.md`, `specs/notes/<x>.md`,
-    `…/<x>/note.md`) and exactly one unpaired added path is one, or a dated folder's `proposal.md`,
-    they pair.
+    `…/<x>/note.md`) and exactly one path the commit added (not a rename's target, not a record) is
+    a dated folder's `proposal.md`, or a main file named `<x>` or `<x>-<n>`, they pair (see
+    [R14](rulings.md#r14-the-finder-pairs-a-main-file-only-with-a-start-or-its-own-name)).
   - **Otherwise** a deleted path is `Deleted` by that commit.
 
   `went` finds the newest event removing `path`, follows `Moved` to the new path, and repeats only
