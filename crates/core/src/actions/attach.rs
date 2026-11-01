@@ -8,7 +8,6 @@ use std::path::Path;
 use crate::files::markdown::link_text;
 use crate::files::retarget::retarget as retarget_links;
 use crate::images::Encoded;
-use crate::moves::{Move, Went};
 
 use super::ActionError;
 use super::place::Place;
@@ -322,12 +321,13 @@ pub(crate) fn to_file(place: &Place, moved: &str, path: &str) -> Result<bool, Ac
     fs::rename(place.root.join(moved), place.root.join(path))?;
     // Out of its folder, where [`retarget`] reaches no file.
     let back = |text: &str| crate::files::retarget::moved(text, moved, path);
-    let result =
-        relink::relink_back(&place.root, &[moved_to(moved, path)], &LISTS).and_then(|relinked| {
+    let result = relink::relink_back(&place.root, &[relink::moved(moved, path)], &LISTS).and_then(
+        |relinked| {
             edit_lists(place, back).inspect_err(|_| {
                 relink::put_back(&place.root, &relinked);
             })
-        });
+        },
+    );
     if let Err(error) = result {
         let _ = fs::rename(place.root.join(path), place.root.join(moved));
         return Err(error);
@@ -345,24 +345,13 @@ pub(crate) fn retarget(
     from: &str,
     to: &str,
 ) -> Result<Vec<relink::Relinked>, ActionError> {
-    let relinked = relink::relink(&place.root, SPECS, &[moved_to(from, to)], &LISTS)?;
+    let relinked = relink::relink(&place.root, SPECS, &[relink::moved(from, to)], &LISTS)?;
     match edit_lists(place, |text| retarget_links(text, from, to)) {
         Ok(()) => Ok(relinked),
         Err(error) => {
             relink::put_back(&place.root, &relinked);
             Err(error)
         }
-    }
-}
-
-/// The move of the file or folder `from` to `to`, both from the top level, its links' anchors kept.
-pub(crate) fn moved_to(from: &str, to: &str) -> Move {
-    Move {
-        from: from.to_string(),
-        went: Went::Moved {
-            path: to.to_string(),
-            anchor: None,
-        },
     }
 }
 

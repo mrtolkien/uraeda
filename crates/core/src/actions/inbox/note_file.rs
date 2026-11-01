@@ -11,7 +11,7 @@ use crate::git::Git;
 use crate::moves::Move;
 
 use super::super::ActionError;
-use super::super::attach::{LISTS, SPECS, moved_to};
+use super::super::attach::{LISTS, SPECS};
 use super::super::expand::{self, PROPOSALS};
 use super::super::images::{folder_of, in_place};
 use super::super::place::Place;
@@ -90,9 +90,9 @@ pub(super) fn relocate(place: &Place, from: &str, to: &str) -> Result<(), Action
 /// The moves [`relocate`] makes of `from` to `to`, both main files from the top level: the main
 /// file, then, for a folder, the folder with its other files.
 fn moves(from: &str, to: &str) -> Vec<Move> {
-    let mut moves = vec![moved_to(from, to)];
+    let mut moves = vec![relink::moved(from, to)];
     if let (Some(from_folder), Some(to_folder)) = (folder_of(from), folder_of(to)) {
-        moves.push(moved_to(from_folder, to_folder));
+        moves.push(relink::moved(from_folder, to_folder));
     }
     moves
 }

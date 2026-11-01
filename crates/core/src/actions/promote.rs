@@ -11,7 +11,6 @@ use std::path::Path;
 use crate::decisions::{BranchSides, branch_changes};
 use crate::files::{frontmatter, priorities};
 use crate::git::Git;
-use crate::moves::{self, Went};
 use crate::steps::StepName;
 use crate::workspace::{Feature, Kind, Workspace, folder_branch, folder_path, resolve};
 
@@ -216,7 +215,7 @@ impl Move<'_> {
             .propose_again(&on_branch, &root)
             .map_err(|error| partial(&done, vec![commit_left.clone()], error))?;
         let mut paths = vec![old, new];
-        paths.extend(committed(&relinked));
+        paths.extend(relink::committed(&relinked));
         paths.extend(decisions.iter().map(|name| decision_path(name)));
         if let Err(error) = on_branch.commit(&paths, &subject, None, false) {
             let left = vec![format!(
@@ -276,7 +275,7 @@ impl Move<'_> {
                 let _ = fs::rename(root.join(&new), root.join(&old));
             }
         })?;
-        paths.extend(committed(&relinked));
+        paths.extend(relink::committed(&relinked));
         // The proposal file as it was, put back with the folder when the commit is refused.
         let proposal = root.join(&new).join("proposal.md");
         let written = fs::read_to_string(&proposal).ok();
@@ -378,24 +377,8 @@ const PRIORITIES: &str = "specs/PRIORITIES.md";
 /// feature's folder `new`, the moved folder's own files included, but `PRIORITIES.md`, which the
 /// move writes itself: all written, or none and the error.
 fn relink_folder(root: &Path, old: &str, new: &str) -> Result<Vec<Relinked>, StartError> {
-    let moved = moves::Move {
-        from: old.to_string(),
-        went: Went::Moved {
-            path: new.to_string(),
-            anchor: None,
-        },
-    };
-    relink::relink(root, "specs", &[moved], &[PRIORITIES])
+    relink::relink(root, "specs", &[relink::moved(old, new)], &[PRIORITIES])
         .map_err(|error| StartError::Refused(error.to_string()))
-}
-
-/// The files `relinked` that a commit takes: those without uncommitted edits, which keep their
-/// rewrite out of it.
-fn committed(relinked: &[Relinked]) -> impl Iterator<Item = String> + '_ {
-    relinked
-        .iter()
-        .filter(|file| !file.edited)
-        .map(|file| file.path.clone())
 }
 
 fn decision_path(name: &str) -> String {

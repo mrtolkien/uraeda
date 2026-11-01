@@ -139,7 +139,7 @@ fn relink_and_remove(
     };
     let mut moves = vec![to_subsection(file)];
     // The note file and its images first: the first move taking a link wins.
-    moves.extend(copied.iter().map(|(from, to)| attach::moved_to(from, to)));
+    moves.extend(copied.iter().map(|(from, to)| relink::moved(from, to)));
     moves.extend(folder_of(file).map(to_subsection));
     let skip = [LISTS[0], LISTS[1], file, target];
     let relinked = relink::relink(&place.root, SPECS, &moves, &skip)?;
