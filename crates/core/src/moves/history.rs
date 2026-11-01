@@ -24,25 +24,37 @@ pub struct History {
     paths: BTreeMap<String, Vec<(usize, Change)>>,
 }
 
-/// The last history read, by repository root and tip.
+/// A history read, by repository root and tip.
 type Read = (PathBuf, ObjectId, Arc<History>);
 
-static LAST: Mutex<Option<Read>> = Mutex::new(None);
+/// The latest histories read, the most recently used last.
+static READ: Mutex<Vec<Read>> = Mutex::new(Vec::new());
+
+/// How many histories [`READ`] keeps: the server reads a feature's checkout and the default
+/// branch's in turn.
+const KEPT: usize = 4;
 
 impl History {
-    /// The history of `tip`, read once with `git log`. The last history read is kept, by
-    /// repository root and tip, and returned again for them.
+    /// The history of `tip`, read once with `git log`. The last few histories read are kept, by
+    /// repository root and tip, and returned again for them; the one used least recently leaves
+    /// first.
     pub fn read(git: &Git, tip: ObjectId) -> Result<Arc<History>, GitError> {
         let root = git.root().to_path_buf();
-        let mut last = LAST.lock().unwrap_or_else(PoisonError::into_inner);
-        if let Some((read_root, read_tip, history)) = last.as_ref()
-            && *read_root == root
-            && *read_tip == tip
+        let mut read = READ.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some(at) = read
+            .iter()
+            .position(|(read_root, read_tip, _)| *read_root == root && *read_tip == tip)
         {
-            return Ok(Arc::clone(history));
+            let used = read.remove(at);
+            let history = Arc::clone(&used.2);
+            read.push(used);
+            return Ok(history);
         }
         let history = Arc::new(History::from_commits(&git.path_events(tip)?));
-        *last = Some((root, tip, Arc::clone(&history)));
+        if read.len() == KEPT {
+            read.remove(0);
+        }
+        read.push((root, tip, Arc::clone(&history)));
         Ok(history)
     }
 

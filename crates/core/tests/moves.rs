@@ -100,9 +100,14 @@ fn a_missing_path_is_followed_to_where_it_went() {
     repo.commit("chore(dark-mode): drop Dark mode");
     let dropped = short_head(&repo);
     let (dropped_c, swapped) = commit_lookalikes(&repo);
+    repo.git(&["branch", "older", "HEAD~1"]);
 
     let git = Git::open(repo.path()).unwrap();
     let history = History::read(&git, git.head().unwrap()).unwrap();
+    // A read of another tip, as the server reads a feature's then the default branch's, keeps it.
+    History::read(&git, git.tip("older").unwrap()).unwrap();
+    let again = History::read(&git, git.head().unwrap()).unwrap();
+    assert!(std::sync::Arc::ptr_eq(&history, &again));
     let record = Went::Record("specs/done/2026-10-01-thing.md".into());
     let moved = |path: &str| Went::Moved {
         path: path.into(),
