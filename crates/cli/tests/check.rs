@@ -216,3 +216,49 @@ fn a_repeated_inbox_category_is_a_problem() {
     );
     assert_eq!(output.code, 1);
 }
+
+/// `--fix` relinks a link to a moved file, prints each file it changed, and exits as the check
+/// after it; its JSON lists them in `fixed`.
+#[test]
+fn fix_rewrites_and_reports_each_file() {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        "# Priorities\n\n## Now\n\n## Next\n\n## Later\n\n## Blocked\n",
+    );
+    let path = "specs/done/2026-10-10-cli-core.md";
+    repo.write("specs/proposals/thing.md", &proposal());
+    repo.write(
+        path,
+        &format!(
+            "{}\nSee [Thing](/specs/proposals/thing.md).\n",
+            record("feature", "CLI core")
+        ),
+    );
+    repo.commit("finish(cli-core): CLI core");
+    repo.git(&["mv", "specs/proposals/thing.md", "specs/proposals/other.md"]);
+    repo.commit("chore: rename Thing");
+
+    let output = ura(&repo, &["check", "specs", "--fix"]);
+
+    assert_eq!(
+        output.stdout,
+        format!("fixed {path}: 1 link\nspecs/: no problems\n")
+    );
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert!(
+        repo.read(path)
+            .contains("[Thing](/specs/proposals/other.md)")
+    );
+
+    repo.git(&["checkout", "--", "."]);
+    let output = ura(&repo, &["check", "specs", "--fix", "--json"]);
+
+    let json: serde_json::Value = serde_json::from_str(&output.stdout).unwrap();
+    assert_eq!(
+        json["fixed"],
+        serde_json::json!([{ "file": path, "links": 1 }])
+    );
+    assert_eq!(json["problems"], serde_json::json!([]));
+    assert_eq!(output.code, 0);
+}

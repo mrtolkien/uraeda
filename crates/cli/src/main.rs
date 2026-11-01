@@ -154,6 +154,9 @@ enum Command {
         /// Print JSON
         #[arg(long)]
         json: bool,
+        /// First relink every link to a file git's history says moved, without committing
+        #[arg(long)]
+        fix: bool,
     },
     /// Tell an agent the next step: of a feature or change, or of the first one in Now with work
     Next {
@@ -232,7 +235,7 @@ fn main() -> ExitCode {
         } => start::run(target, slug, change, switch),
         Command::Status { json } => status::run(json),
         Command::Next { target, json } => next::run(target, json),
-        Command::Check { target, json } => check::run(target, json),
+        Command::Check { target, json, fix } => check::run(target, json, fix),
         Command::Clean {
             target,
             all,

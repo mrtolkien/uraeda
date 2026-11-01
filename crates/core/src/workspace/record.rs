@@ -35,6 +35,7 @@ impl Feature {
                         rule: "frontmatter.kind".into(),
                         message: "kind is not one of feature, change".into(),
                         severity: Severity::Error,
+                        fixable: false,
                     });
                 }
             }
@@ -44,6 +45,7 @@ impl Feature {
                 rule: "frontmatter.parse".into(),
                 message: error.to_string(),
                 severity: Severity::Error,
+                fixable: false,
             }),
         }
         let mut feature = Feature {

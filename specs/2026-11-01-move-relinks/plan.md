@@ -483,8 +483,10 @@ the sandbox.
 
 **Files:**
 
-- Create: `crates/core/tests/move_relinks.rs`
-- Modify: `crates/core/src/check/mod.rs` (`File`, `check_with`, `check_texts`, a new `fix`),
+- Create: `crates/core/tests/move_relinks.rs`, `crates/core/src/check/finder.rs` (the lazy finder,
+  `fix`, and `Fixed`), `crates/core/src/check/reviews.rs` (the review file's checks, moved out of
+  `mod.rs` to keep it under 500 lines)
+- Modify: `crates/core/src/check/mod.rs` (`File`, `check_with`, `check_texts`, re-exports `fix`),
   `crates/core/src/check/links.rs`, `crates/core/src/workspace/problem.rs` (`fixable`), every
   `Problem { … }` literal, `crates/core/src/view.rs` (`ProblemView::fixable`),
   `crates/cli/src/check.rs`, `crates/cli/src/main.rs` (the flag), `crates/cli/tests/check.rs`
@@ -500,7 +502,7 @@ the sandbox.
     files under it for the moves the finder found for its fixable results, and returns each file
     changed, by path.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - `the_six_incidents_are_fixed`, in `tests/move_relinks.rs`, on a `TestRepo` replaying the
     incidents with plain `git`: a record `specs/done/2026-10-30-inbox-again.md` linking
     `/specs/2026-10-30-proposal-start/proposal.md` at line 88,
@@ -520,12 +522,12 @@ the sandbox.
   The breaks: a message without where the file went; a fix that commits, or leaves a link; a
   non-deterministic rewrite; the JSON missing `fixed`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
   - Run: `nix develop -c cargo nextest run -p uraeda-core --test move_relinks`
   - Expected: FAIL, the line 88 message is `no file /specs/2026-10-30-proposal-start/proposal.md`
     without `: it became the record …`.
 
-- [ ] **Step 3: Implement the check's history and `fix`**
+- [x] **Step 3: Implement the check's history and `fix`**
 
   `File` gains a reference to a lazy finder, created once per call of `check`, `check_files`,
   `check_text`, and `check_folder_texts`, holding `root` and the tip (`File::tip`'s, else `HEAD` of
@@ -533,16 +535,16 @@ the sandbox.
   as today. `check_links` appends `: {went}` and sets `fixable` when the finder answers. The finder
   keeps the moves it answered, for `fix`. Outside a repository nothing changes.
 
-- [ ] **Step 4: Implement `--fix` in the CLI**: `fix` first, its lines printed, then the check as
+- [x] **Step 4: Implement `--fix` in the CLI**: `fix` first, its lines printed, then the check as
       today; its JSON object gains `fixed`. Exit as the check after it.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
   - Run: `nix develop -c vp run fast`; then
     `nix develop -c cargo run -q -p uraeda-cli -- check specs` with a broken link added to a record
     by hand, timed with `time`, then the link removed.
   - Expected: PASS; the timed check under 1 second (SC-004).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
   ```bash
   git add crates/core crates/cli packages/binding

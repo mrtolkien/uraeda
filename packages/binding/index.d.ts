@@ -1470,6 +1470,8 @@ export interface ProblemView {
   line?: number
   rule: string
   message: string
+  /** Whether the fix of moved links repairs it. */
+  fixable: boolean
 }
 
 /** A change made a feature, in place. */

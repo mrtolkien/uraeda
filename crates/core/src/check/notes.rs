@@ -49,6 +49,7 @@ pub(super) fn check_note_files(root: &Path, dir: &Path, problems: &mut Vec<Probl
             rule: "layout.unlinked-note".into(),
             message: "no note links this note file".into(),
             severity: Severity::Warning,
+            fixable: false,
         });
     }
 }

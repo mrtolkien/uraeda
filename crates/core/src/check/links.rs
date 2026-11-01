@@ -141,7 +141,7 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
             continue;
         }
         if !found {
-            problems.push(file.problem(Some(link.line), "links.file", format!("no file {path}")));
+            problems.push(missing(file, link.line, path, &resolved));
             continue;
         }
         let (Some(anchor), true) = (anchor, markdown) else {
@@ -160,5 +160,17 @@ pub(super) fn check_links(file: &File<'_>, document: &Document, problems: &mut V
                 format!("no heading \"{anchor}\" in {path}"),
             ));
         }
+    }
+}
+
+/// The `links.file` result for a link to `path`, as written, resolved to `resolved`: where its file
+/// went, when git's history knows, and then fixable.
+fn missing(file: &File<'_>, line: usize, path: &str, resolved: &str) -> Problem {
+    match file.finder.went(resolved) {
+        Some(went) => Problem {
+            fixable: true,
+            ..file.problem(Some(line), "links.file", format!("no file {path}: {went}"))
+        },
+        None => file.problem(Some(line), "links.file", format!("no file {path}")),
     }
 }

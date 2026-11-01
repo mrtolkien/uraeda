@@ -60,6 +60,7 @@ pub(super) fn check_unapproved(root: &Path, target: &Path, problems: &mut Vec<Pr
             rule: "decision.unapproved".into(),
             message: format!("{name} changed after the spec's approval"),
             severity: Severity::Warning,
+            fixable: false,
         });
     }
 }

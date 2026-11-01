@@ -3,6 +3,7 @@
 
 mod answers;
 mod decision;
+mod finder;
 mod links;
 mod names;
 mod notes;
@@ -15,6 +16,7 @@ mod values;
 mod writing;
 
 pub use decision::*;
+pub use finder::{Fixed, fix};
 pub(crate) use names::change_holds;
 pub use spec::{SPEC_WORDS, reviewed_words};
 pub use values::{Action, Choice, Field, FieldKind, allowed_values};
@@ -28,11 +30,15 @@ use crate::actions::default_round::DefaultRound;
 use crate::files::{frontmatter, markdown};
 use crate::git::{Git, ObjectId};
 use crate::workspace::{FileKind, Problem, Severity};
+use finder::Finder;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CheckError {
     #[error("{}: no such file or folder", .0.display())]
     Missing(PathBuf),
+    /// The fix could not write its files.
+    #[error(transparent)]
+    Fix(#[from] crate::actions::ActionError),
 }
 
 /// What a file is, for the rules that apply to it.
@@ -63,6 +69,8 @@ pub(crate) struct File<'a> {
     pub root: &'a Path,
     /// A commit whose tree links resolve against, in place of the files under `root`.
     pub tip: Option<(&'a Git, ObjectId)>,
+    /// Where a missing file went, from the history of `tip`, else of `HEAD`.
+    pub finder: &'a Finder<'a>,
 }
 
 impl File<'_> {
@@ -73,6 +81,7 @@ impl File<'_> {
             rule: rule.to_string(),
             message: message.into(),
             severity: Severity::Error,
+            fixable: false,
         }
     }
 
@@ -106,23 +115,34 @@ pub fn check_files(root: &Path, target: &Path) -> Result<Vec<Problem>, CheckErro
 
 fn check_with(root: &Path, target: &Path, history: bool) -> Result<Vec<Problem>, CheckError> {
     let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    let finder = Finder::new(&root, None);
+    check_in(&root, target, history, &finder)
+}
+
+/// `check_with` on a canonical `root`, asking `finder` where each missing file went.
+fn check_in(
+    root: &Path,
+    target: &Path,
+    history: bool,
+    finder: &Finder<'_>,
+) -> Result<Vec<Problem>, CheckError> {
     let target = fs::canonicalize(target).map_err(|_| CheckError::Missing(target.into()))?;
     let mut problems = Vec::new();
     if target.is_file() {
-        let dir = target.parent().unwrap_or(&root);
+        let dir = target.parent().unwrap_or(root);
         let name = target.file_name().unwrap_or_default().to_string_lossy();
-        let mut found = check_folder_files(&root, dir, true, &mut problems);
+        let mut found = check_folder_files(root, dir, true, finder, &mut problems);
         problems.extend(found.remove(name.as_ref()).unwrap_or_default());
-        names::check_change_file(&root, &target, &mut problems);
+        names::check_change_file(root, &target, &mut problems);
         // A decision's file is reported as in its `specs/` folder's check, for its own warning.
         if history && let Some(specs) = decisions_parent(&target) {
-            unapproved::check_unapproved(&root, &specs, &mut problems);
+            unapproved::check_unapproved(root, &specs, &mut problems);
         }
-        problems.retain(|p| p.file == relative(&root, &target));
+        problems.retain(|p| p.file == relative(root, &target));
     } else {
-        walk(&root, &target, &mut problems);
+        walk(root, &target, finder, &mut problems);
         if history {
-            unapproved::check_unapproved(&root, &target, &mut problems);
+            unapproved::check_unapproved(root, &target, &mut problems);
         }
     }
     problems.sort_by(|a, b| (&a.file, a.line).cmp(&(&b.file, b.line)));
@@ -145,7 +165,15 @@ pub fn check_text(root: &Path, path: &Path, text: &str) -> Vec<Problem> {
     let dir = path.parent().unwrap_or(&root);
     let name = path.file_name().unwrap_or_default().to_string_lossy();
     let mut problems = Vec::new();
-    let mut found = check_folder_files_with(&root, dir, true, Some((&name, text)), &mut problems);
+    let finder = Finder::new(&root, None);
+    let mut found = check_folder_files_with(
+        &root,
+        dir,
+        true,
+        Some((&name, text)),
+        &finder,
+        &mut problems,
+    );
     problems.extend(found.remove(name.as_ref()).unwrap_or_default());
     names::check_change_file(&root, &path, &mut problems);
     problems.retain(|p| p.file == relative(&root, &path));
@@ -191,12 +219,12 @@ fn canonical_file(path: &Path) -> PathBuf {
 
 /// Checks every folder under `dir`. A change's folder is checked as a whole, so the problems of
 /// `names::check_change_file`, which checks one file of it, are reported once.
-fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
+fn walk(root: &Path, dir: &Path, finder: &Finder<'_>, problems: &mut Vec<Problem>) {
     names::check_folder_names(root, dir, problems);
     names::check_change_files(root, dir, problems);
     names::check_candidates(root, dir, problems);
     notes::check_note_files(root, dir, problems);
-    let found = check_folder_files(root, dir, false, problems);
+    let found = check_folder_files(root, dir, false, finder, problems);
     problems.extend(found.into_values().flatten());
     let mut subfolders: Vec<PathBuf> = fs::read_dir(dir)
         .into_iter()
@@ -212,7 +240,7 @@ fn walk(root: &Path, dir: &Path, problems: &mut Vec<Problem>) {
         .collect();
     subfolders.sort();
     for subfolder in subfolders {
-        walk(root, &subfolder, problems);
+        walk(root, &subfolder, finder, problems);
     }
 }
 
@@ -264,9 +292,10 @@ fn check_folder_files(
     root: &Path,
     dir: &Path,
     any_folder: bool,
+    finder: &Finder<'_>,
     problems: &mut Vec<Problem>,
 ) -> BTreeMap<String, Vec<Problem>> {
-    check_folder_files_with(root, dir, any_folder, None, problems)
+    check_folder_files_with(root, dir, any_folder, None, finder, problems)
 }
 
 /// Like `check_folder_files`, with one file's text, by name, in place of its file on disk.
@@ -275,6 +304,7 @@ fn check_folder_files_with(
     dir: &Path,
     any_folder: bool,
     replaced: Option<(&str, &str)>,
+    finder: &Finder<'_>,
     problems: &mut Vec<Problem>,
 ) -> BTreeMap<String, Vec<Problem>> {
     let mut names: Vec<String> = fs::read_dir(dir)
@@ -316,17 +346,19 @@ fn check_folder_files_with(
                     rule: "file.utf8".into(),
                     message: "not UTF-8".into(),
                     severity: Severity::Error,
+                    fixable: false,
                 });
             }
         }
     }
-    check_texts(root, dir, any_folder, &texts, None, &mut found);
+    check_texts(root, dir, any_folder, &texts, finder, &mut found);
     found
 }
 
 /// The problems of the files of the folder `dir` under `root`, holding `texts` by name, wherever
 /// they were read from, like a commit: for each file, the problems its rules find, by name. Links
-/// resolve against the tree of `tip` when it is given, else against the files under `root`.
+/// resolve against the tree of `tip` when it is given, else against the files under `root`, and a
+/// missing file is looked for in the history of `tip`, else of `HEAD`.
 pub fn check_folder_texts(
     root: &Path,
     dir: &Path,
@@ -334,7 +366,8 @@ pub fn check_folder_texts(
     tip: Option<(&Git, ObjectId)>,
 ) -> BTreeMap<String, Vec<Problem>> {
     let mut found = BTreeMap::new();
-    check_texts(root, dir, true, texts, tip, &mut found);
+    let finder = Finder::new(root, tip);
+    check_texts(root, dir, true, texts, &finder, &mut found);
     found
 }
 
@@ -343,7 +376,7 @@ fn check_texts(
     dir: &Path,
     any_folder: bool,
     texts: &BTreeMap<String, String>,
-    tip: Option<(&Git, ObjectId)>,
+    finder: &Finder<'_>,
     found: &mut BTreeMap<String, Vec<Problem>>,
 ) {
     for (name, text) in texts {
@@ -356,7 +389,8 @@ fn check_texts(
             kind,
             folder: texts,
             root,
-            tip,
+            tip: finder.tip,
+            finder,
         };
         found
             .entry(name.clone())
