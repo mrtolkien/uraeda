@@ -8,7 +8,6 @@
 
 - [I dislike moving buttons: for example on feature start, the composer jumps…](/specs/changes/2026-11-01-stable-buttons/proposal.md)
 - [When a session touched files, there's nothing in the "changed files" sidebar...](/specs/changes/2026-11-01-files-changed/proposal.md)
-- [When creating a new session/change/feature the focus should be on the text field](/specs/changes/2026-11-01-text-focus/proposal.md)
 
 - Empty inbox
 
