@@ -124,8 +124,13 @@ files, other records, the code's documentation.
   round then number, whose text links that same file and section; otherwise to the record, without
   an anchor.
 
-Links from other branches are theirs to fix, once this one is merged. With `ura`, `ura check`
-reports every link that does not resolve.
+Then repair every other link of `specs/` that no longer resolves, as
+[the catch-up](implementation.md#where-a-moved-link-points) does: the default branch may have moved
+a file since. With `ura`, `ura check --fix` repairs them, without committing. It leaves the links
+into this folder, which no commit has removed yet: the rules above rewrite those. `ura check` then
+reports every link left that does not resolve.
+
+Links from other branches are theirs to fix, once this one is merged: their catch-up repairs them.
 
 ## The finishing commit
 
@@ -140,7 +145,9 @@ Write the pull request's body from the record, in three parts, then mark it read
 `gh pr ready`. Each paragraph and list item of the body sits on one line: a forge shows every line
 break of a body, where a file's wrapped lines read as one. Tables and code blocks stay as they are.
 It is the feature's last human gate. If the default branch moved since the
-[catch-up](implementation.md#catch-up-with-the-default-branch), catch up again first.
+[catch-up](implementation.md#catch-up-with-the-default-branch), catch up again first. Its link
+repairs go into the finishing commit, with `git commit --amend`, so the record stays the last
+commit.
 
 1. **The opening block**, a `> [!IMPORTANT]` block as
    [Coming back to the human](../SKILL.md#coming-back-to-the-human) describes. Its first line is
@@ -194,7 +201,9 @@ Once the feature is built again, it is finished again, from this file's first st
 
 Records are frozen once merged: edit one only to fix a broken link, or to add `superseded-by` and
 its line, as [pointing to the records it replaces](#point-to-the-records-it-replaces) says. A later
-feature that changes the behaviour says so in its own record.
+feature that changes the behaviour says so in its own record. A link broken by a later move is
+repaired as [the catch-up](implementation.md#where-a-moved-link-points) says: with `ura`,
+`ura check --fix`, and in the web UI, "Fix moved links" on the done feature's page.
 
 The branch and its worktree stay until the human cleans them. When you find a merged feature with a
 worktree or a local branch left, tell the human to run `ura clean`. A feature merged with its folder

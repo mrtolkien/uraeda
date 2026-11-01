@@ -156,9 +156,15 @@ commit as what it became:
 A note can also have its text edited, its marks kept, or move, with the lines indented under it, to
 another place in its category or to another category.
 
+A note file that moves takes its links along: every file of `specs/` but `PRIORITIES.md` and
+`INBOX.md` linking it points at its new path, as
+[the catch-up](implementation.md#where-a-moved-link-points) rewrites a moved link. A note file
+merged into a proposal file is linked at the `### <note title>` heading it became. A file with
+uncommitted changes is rewritten too, but stays out of the commit.
+
 Commit `INBOX.md` with the files the notes went into, their note files' moves and removals included,
-and nothing else. The message names the one change, with the note's text shortened like a
-proposal's: `edit "<note>" in the inbox`, `remove "<note>" from the inbox`,
+the files whose links changed, and nothing else. The message names the one change, with the note's
+text shortened like a proposal's: `edit "<note>" in the inbox`, `remove "<note>" from the inbox`,
 `move "<note>" within <Category> in the inbox`, `move "<note>" to <Category> in the inbox`, with
 `No category` for none, `move "<note>" from the inbox to <Section>`, or
 `move "<note>" from the inbox to the proposal <title>`, each with `chore:`. A note counts as moved

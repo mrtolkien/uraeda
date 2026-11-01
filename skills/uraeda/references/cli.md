@@ -8,23 +8,23 @@ A command that acts on a feature, a change, or a proposal file takes it as a pat
 can take a name matching one item instead: its folder name or slug. Without it, the command takes
 the current branch's feature, or the only one waiting for that action.
 
-| Command                                                                                | What it does                                                                                                              |
-| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `ura init`                                                                             | [Sets a project up](projects.md#setting-up-a-project)                                                                     |
-| `ura install`, `--user`, `--repo`, `--agents`, `--claude`, `--update`, `--completions` | [Installs the skill](projects.md#setting-up-a-project), and Tab completion                                                |
-| `ura status`                                                                           | Every feature and change, its step, and who it waits on, then the [missing setup files](projects.md#setting-up-a-project) |
-| `ura next [feature]`                                                                   | The target and its step, from [the table](../SKILL.md#finding-the-next-step)                                              |
-| `ura check [path]`                                                                     | The rules of [Markdown](conventions.md#markdown), file by file                                                            |
-| `ura expand <text>`                                                                    | [Expands](projects.md#starting-postponing-and-dropping-a-feature) a proposal line into a file                             |
-| `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`                   | [Adds a note](inbox.md#capture) to the inbox, and commits it                                                              |
-| `ura inbox clean`, `--dry-run`                                                         | Deletes [the orphan images](inbox.md#images-on-a-note) of proposal files and note files                                   |
-| `ura start <proposal>`, `--switch`, `--change`, `--feature`                            | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change                                   |
-| `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`                           | Answers a round of questions, then submits it                                                                             |
-| `ura review [feature] --comment`, `--approve`, `--request-changes`                     | [Reviews](conventions.md#review-files) a spec or a plan                                                                   |
-| `ura clean [feature]`, `--all`, `--dry-run`                                            | [Cleans](finish.md#after-the-merge) a merged feature                                                                      |
-| `ura upgrade`                                                                          | Installs `ura`'s latest release, then updates the user's skill                                                            |
-| `ura lsp`                                                                              | Serves workflow files to editors: diagnostics, completion, outline, actions                                               |
-| `ura add [folder]`                                                                     | Adds the repository holding a folder to the web UI's list                                                                 |
+| Command                                                                                | What it does                                                                                                                           |
+| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `ura init`                                                                             | [Sets a project up](projects.md#setting-up-a-project)                                                                                  |
+| `ura install`, `--user`, `--repo`, `--agents`, `--claude`, `--update`, `--completions` | [Installs the skill](projects.md#setting-up-a-project), and Tab completion                                                             |
+| `ura status`                                                                           | Every feature and change, its step, and who it waits on, then the [missing setup files](projects.md#setting-up-a-project)              |
+| `ura next [feature]`                                                                   | The target and its step, from [the table](../SKILL.md#finding-the-next-step)                                                           |
+| `ura check [path]`, `--fix`                                                            | The rules of [Markdown](conventions.md#markdown), file by file, and [repairs moved links](implementation.md#where-a-moved-link-points) |
+| `ura expand <text>`                                                                    | [Expands](projects.md#starting-postponing-and-dropping-a-feature) a proposal line into a file                                          |
+| `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`                   | [Adds a note](inbox.md#capture) to the inbox, and commits it                                                                           |
+| `ura inbox clean`, `--dry-run`                                                         | Deletes [the orphan images](inbox.md#images-on-a-note) of proposal files and note files                                                |
+| `ura start <proposal>`, `--switch`, `--change`, `--feature`                            | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change                                                |
+| `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`                           | Answers a round of questions, then submits it                                                                                          |
+| `ura review [feature] --comment`, `--approve`, `--request-changes`                     | [Reviews](conventions.md#review-files) a spec or a plan                                                                                |
+| `ura clean [feature]`, `--all`, `--dry-run`                                            | [Cleans](finish.md#after-the-merge) a merged feature                                                                                   |
+| `ura upgrade`                                                                          | Installs `ura`'s latest release, then updates the user's skill                                                                         |
+| `ura lsp`                                                                              | Serves workflow files to editors: diagnostics, completion, outline, actions                                                            |
+| `ura add [folder]`                                                                     | Adds the repository holding a folder to the web UI's list                                                                              |
 
 `ura next` and `ura status` read the open pull requests with `gh`. One that is not a draft, with no
 changes requested, and lacks the branch's latest commit names the step `push`, whose reference is
@@ -40,6 +40,17 @@ branch is likely behind it.
 `decision.consequences` on decisions. `decision.unapproved` warns on a decision edited on a branch
 after its spec's approval. It exits with an error when it found a problem, and with success when it
 found only warnings. `ura lsp` sends warnings to editors with the Warning severity.
+
+`ura check` reads git's history at the first link to a missing file, and its `links.file` message
+says where the file went: `no file <path>: it moved to /<new path>`,
+`no file <path>: it became the record /specs/done/<folder>.md`, or
+`no file <path>: deleted in <commit> (<subject>)`, with the commit's 7 characters. `<path>` is the
+link's path as written. `ura check --fix` first rewrites every such link under the path, as
+[the catch-up](implementation.md#where-a-moved-link-points) says, and never commits: a file with
+uncommitted changes is rewritten in place. It prints `fixed <file>: <n> link` or `<n> links` for
+each file it changed, in path order, then the check's output, and exits as the check: with success
+when no problem is left. With `--json`, it adds `fixed`, a list of `{"file", "links"}`, before
+`problems`. Two runs from the same files write the same bytes.
 
 `ura answer --submit --resume` adds `resumes: implementation` to the round, and is refused unless
 the implementation is under way. `ura answer --submit` and `ura review` set the human's status,

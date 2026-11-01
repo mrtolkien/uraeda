@@ -774,13 +774,16 @@ the sandbox.
 - Modify: `skills/uraeda/references/implementation.md` (the catch-up),
   `skills/uraeda/references/finish.md` (`#rewrite-the-links`, the finish's catch-up),
   `skills/uraeda/references/projects.md` (postpone and drop), `skills/uraeda/references/cli.md`
-  (`ura check --fix`), `docs/cli.md`
+  (`ura check --fix`), `docs/cli.md`; the moves' own descriptions, which now name their relink:
+  `skills/uraeda/references/change.md` (a change made a feature) and
+  `skills/uraeda/references/inbox.md` (a note file's moves), see
+  [R17](rulings.md#r17-link-repairs-commit-alone-and-the-finishs-go-into-its-commit)
 
 **Interfaces:**
 
 - Consumes: the rules of tasks 1, 2, and 4, as the global constraints state them.
 
-- [ ] **Step 1: Write the rules by hand** in the catch-up of
+- [x] **Step 1: Write the rules by hand** in the catch-up of
       [implementation](/skills/uraeda/references/implementation.md#catch-up-with-the-default-branch):
       after the rebase, every link of `specs/` that no longer resolves is repaired and committed
       with the catch-up; where a file went (git's renames, a start's single proposal paired with its
@@ -788,15 +791,15 @@ the sandbox.
       form kept; a question's anchor kept on a record, any other dropped; a deleted file's link
       reduced to its words; a path never in the history left; wikilinks left. With `ura`:
       `ura check --fix`.
-- [ ] **Step 2: Point the other steps at it**: the finish keeps its anchor rule for links into its
+- [x] **Step 2: Point the other steps at it**: the finish keeps its anchor rule for links into its
       own folder, then repairs the rest as the catch-up says; postpone and drop name
       `ura check --fix` after their moves; `cli.md` and `docs/cli.md` describe `--fix`, its output,
       its JSON `fixed`, and its exit code.
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
   - Run: `nix develop -c vp run fast`, and
     `nix develop -c cargo run -q -p uraeda-cli -- check specs`
   - Expected: PASS, `specs/: no problems`.
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
   ```bash
   git add skills/uraeda/references docs/cli.md

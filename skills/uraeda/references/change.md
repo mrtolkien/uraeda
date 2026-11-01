@@ -231,10 +231,12 @@ When one item of a batch needs it, offer to split that item out instead.
      the human deletes it. Unset its upstream, `git branch --unset-upstream YYYY-MM-DD-<slug>`, so
      the next `git push -u` sets the feature's.
   4. In the worktree, move `specs/changes/YYYY-MM-DD-<slug>/` to `specs/YYYY-MM-DD-<slug>/`, its
-     files unchanged. Set each decision the change applied, the ones the branch changed that read
-     `active`, back to `status: proposed`, with an empty `approved-by:`. The human approved them for
-     the change only, and the feature's spec lists them again. Commit
-     `chore(<slug>): upgrade to a feature`.
+     files unchanged. Every file of `specs/` but `PRIORITIES.md` linking into the old folder, the
+     moved one included, points at the new one, as
+     [the catch-up](implementation.md#where-a-moved-link-points) rewrites a moved link. Set each
+     decision the change applied, the ones the branch changed that read `active`, back to
+     `status: proposed`, with an empty `approved-by:`. The human approved them for the change only,
+     and the feature's spec lists them again. Commit `chore(<slug>): upgrade to a feature`.
 
   The code the change committed stays on the branch, and the feature's spec describes it as built.
   The feature has answered rounds and no discovery file, so its first step is the
