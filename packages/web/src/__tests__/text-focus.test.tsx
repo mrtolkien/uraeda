@@ -107,3 +107,24 @@ test("Back to a New page scrolled down its entries keeps its place, not the focu
   await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
   expect(document.activeElement).toBe(document.body);
 });
+
+// Break: a focus on the page's mount alone, which the leader's `Space n c` on the page never gets.
+test("a new visit to the New page, from the New page, focuses the composer again", async () => {
+  await renderPage("/new", fixtureRepo(), { agent: await fakeAgent() });
+  await waitFor(async () => expect(document.activeElement).toBe(await composer()));
+  await press("Escape", document.activeElement!);
+
+  await act(async () => navigate(atRepo("/new?kind=change")));
+
+  await screen.findByRole("button", { name: "Start the change" });
+  await waitFor(async () => expect(document.activeElement).toBe(await composer()));
+});
+
+// Break: every session's composer taking the focus as it opens.
+test("a feature's session, not a new one, leaves the focus to the page", async () => {
+  await renderPage(`/f/${FOLDER}/session`, fixtureRepo(), { agent: await fakeAgent() });
+  await composer();
+
+  await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+  expect(document.activeElement).toBe(document.body);
+});
