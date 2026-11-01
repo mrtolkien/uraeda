@@ -275,7 +275,7 @@ it should is [a choice](#space-on-a-focused-control).
   settings, and the settings page ([settings decision](/specs/decisions/settings.md)).
 - A new decision, `keyboard.md`, if asked for ([the decision](#a-keyboard-decision)).
 - Tests in `packages/web/src/__tests__/` that press keys as a user does, per
-  [UI checks](/specs/decisions/ui-checks.md).
+  [Testing](/specs/decisions/testing.md).
 
 ### Other features in flight
 
@@ -337,7 +337,7 @@ The status line is one line, hidden on narrow screens, and fills with the page's
 ## Approaches
 
 Criteria come from [the proposal](proposal.md), the [UI behaviour](/specs/decisions/ui-behaviour.md)
-rule that every action works by keyboard, the [UI coherence](/specs/decisions/ui-coherence.md) rule
+rule that every action works by keyboard, the [UI components](/specs/decisions/ui-components.md) rule
 of one component per kind of information, the [UI look](/specs/decisions/ui-look.md) terminal style,
 the [stack](/specs/decisions/stack.md) and [settings](/specs/decisions/settings.md) decisions,
 constitution principle VI (one home per rule, justified abstractions), and WCAG 2.1.4.
