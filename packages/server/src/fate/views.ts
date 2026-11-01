@@ -73,8 +73,6 @@ export type WorkspaceRecord = Omit<Record_<WorkspaceView>, "features"> & {
   id: string;
   /** Whether the main checkout has an active preview decision. */
   preview: boolean;
-  /** Where writes are refused while a turn runs or waits; not a status, which `status` holds. */
-  running: Array<string>;
 };
 
 /** A feature, or `missing` alone when no feature has its folder. */
@@ -303,7 +301,6 @@ export const workspaceDataView = dataView<WorkspaceRecord>("Workspace")({
   prioritiesHash: true,
   proposals: true,
   root: true,
-  running: true,
   setup: true,
 });
 
