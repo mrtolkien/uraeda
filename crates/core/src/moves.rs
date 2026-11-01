@@ -1,6 +1,10 @@
 //! Where files of `specs/` went: the moves a link rewrite follows, made by the core's own moves or
 //! read from git's history.
 
+mod history;
+
+pub use history::History;
+
 use std::fmt;
 
 /// Where a file or folder went, from the top level.
