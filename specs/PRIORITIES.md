@@ -6,6 +6,8 @@
 >
 > Features for v1.0.0
 
+- [I dislike moving buttons: for example on feature start, the composer jumps…](/specs/changes/2026-11-01-stable-buttons/proposal.md)
+
 - Empty inbox
 
 ## Next
@@ -61,6 +63,7 @@
 - Monorepo support: multiple `specs` folders, principles per package, ...
 - Multi-repo projects: an agent/project aware of multiple repos, for projects spanning multiple
   repos and not in a monorepo
+  - Cross repo notes would be nice!
 
 - Codex runtime + model settings
 - Dedicated Pi-durable runtime with basic tooling
