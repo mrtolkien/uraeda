@@ -119,4 +119,31 @@ fn a_start_relinks_the_record() {
             .changed_in("main")
             .contains(&"specs/local.md".to_string())
     );
+
+    let postponed = TestRepo::new();
+    postponed.write("specs/README.md", "# Specs\n");
+    postponed.write(
+        "specs/PRIORITIES.md",
+        &PRIORITIES.replace("cli-tuis.md", "cli-tuis/proposal.md"),
+    );
+    postponed.write(
+        "specs/proposals/cli-tuis/proposal.md",
+        "# CLI TUIs\n\n## What\n\n[Here](/specs/proposals/cli-tuis/), [here](../cli-tuis/).\n",
+    );
+    postponed.commit("chore: postpone CLI TUIs");
+
+    api::start_planned(
+        postponed.path(),
+        "specs/proposals/cli-tuis/proposal.md",
+        Some("cli-tuis"),
+        Kind::Feature,
+        "2026-11-10",
+        &|_| {},
+    )
+    .unwrap();
+
+    assert_eq!(
+        postponed.read("specs/2026-11-10-cli-tuis/proposal.md"),
+        "# CLI TUIs\n\n## What\n\n[Here](/specs/2026-11-10-cli-tuis/), [here](./).\n"
+    );
 }

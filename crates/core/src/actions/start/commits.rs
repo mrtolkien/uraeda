@@ -85,13 +85,18 @@ impl Start<'_> {
             let _ = fs::remove_dir_all(root.join(proposal));
         }
         // The moved text keeps its words, its relative links pointing at the same files from the
-        // dated folder, and at each other when they moved together.
+        // dated folder, and at each other when they moved together, and at the dated folder for
+        // a postponed proposal's folder.
+        let mut went = moves.clone();
+        if plan.postponed {
+            went.push((proposal.to_string(), plan.destination.clone()));
+        }
         let mut before = Before::new();
         let documents: Vec<&(String, String)> =
             moves.iter().filter(|(_, to)| to.ends_with(".md")).collect();
         for (at, (from, to)) in documents.iter().enumerate() {
             let rebased = fs::read_to_string(root.join(to)).and_then(|text| {
-                let moved = retarget::relocated(&text, folder_of(from), folder_of(to), &moves);
+                let moved = retarget::relocated(&text, folder_of(from), folder_of(to), &went);
                 if moved == text {
                     return Ok(());
                 }
