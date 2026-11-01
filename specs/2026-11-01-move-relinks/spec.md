@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Moving a file never breaks a link to it
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 10 minutes.
+> Approved on 2026-11-01.
 >
 > - You approve every core move rewriting the links to the moved file across `specs/`, and
 >   `ura check --fix` repairing links a merge broke, from git's history, with a Fix button in the
