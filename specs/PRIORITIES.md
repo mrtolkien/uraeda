@@ -6,10 +6,7 @@
 >
 > Features for v1.0.0
 
-- [If there's nothing in progress, the "nothing in progress" in the sidebar looks…](/specs/changes/2026-11-01-nothing-bar/proposal.md)
-
 - Empty inbox
-- If there's nothing in progress, the "nothing in progress" in the sidebar looks weird
 
 ## Next
 
