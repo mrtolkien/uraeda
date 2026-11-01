@@ -290,13 +290,16 @@ pub(super) fn take_note(grown: &mut [Grown], text: &str) -> Option<(Undo, String
 
 /// Takes back, for Discard, the `## Notes` subsection titled `title` of the proposal file at
 /// `path`, a note's note file's text, with the `## Notes` it left empty, `drop_notes`, and the
-/// images of the file's folder it linked that no commit has and nothing links any more.
+/// images of the file's folder it linked that no commit has and nothing links any more. The files
+/// of `specs/` a held merge into it relinked are put back while they hold what it wrote: one
+/// edited before the merge is no repair, which `HEAD` would restore.
 pub(super) fn unmerge(
     place: &Place,
     path: &str,
     title: &str,
     drop_notes: bool,
 ) -> Result<(), crate::actions::ActionError> {
+    super::super::inbox::put_back_links(place, path);
     let file = place.root.join(path);
     let text = fs::read_to_string(&file)?;
     let Some((without, removed)) = proposal::without_note(&text, title, drop_notes) else {
