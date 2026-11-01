@@ -42,11 +42,13 @@ async function isReadable(fate: ReturnType<typeof useFateClient>, folder: string
 /**
  * Forgets the plan once its start landed: its write showed in the queue and left it, or, never seen
  * there, the feature can be read. The feature is read again first, so its page draws it at once.
+ * Nothing to do once `isLanded`: the page draws the plan it forgot until the feature's page can.
  */
 function useLanded(
   folder: string,
   planned: ReturnType<typeof usePlannedStart>,
   write: Write | undefined,
+  isLanded: boolean,
 ) {
   const fate = useFateClient();
   const writes = useWriteQueue();
@@ -56,6 +58,9 @@ function useLanded(
   // One read at a time: the effect runs again on each render while the first read is on its way.
   const reading = useRef(false);
   useEffect(() => {
+    if (isLanded) {
+      return;
+    }
     if (isQueued) {
       seen();
     } else if (start !== undefined && !reading.current) {
@@ -76,26 +81,30 @@ function useLanded(
         .catch(() => {});
     }
     // Once per change of the queue too: a start that landed before the page read it never shows.
-  }, [fate, folder, forget, isQueued, seen, start, wasSeen, writes]);
+  }, [fate, folder, forget, isLanded, isQueued, seen, start, wasSeen, writes]);
 }
 
 /**
  * The session page of `folder` while its start runs: `write`, the start's in the queue, once the
- * page read it, and `planned`, the plan this document made, if it did; `landed`, the steps of a
- * write that left the queue, drawn until the feature's page replaces them. The address's
+ * page read it, and `planned`, the plan this document made, if it did. Once the start `landed`, its
+ * plan forgotten, the page draws the plan and the steps it had until the feature's page replaces
+ * them, and reads nothing more: `planned` and `steps` are those kept. The address's
  * `?continue=start` puts the plan's message in the composer, once; Send keeps it in the server
  * until the steps end. A refusal puts the message kept back in the composer, which then sends
  * nothing.
  */
 export function StartingSession({
   folder,
-  landed,
+  landed = false,
   planned,
+  steps,
   write,
 }: {
   folder: string;
-  landed?: Write["steps"];
+  landed?: boolean;
   planned: ReturnType<typeof usePlannedStart>;
+  /** The steps of the start's write, kept once it left the queue. */
+  steps?: Write["steps"];
   write: Write | undefined;
 }) {
   const here = useRepoPath();
@@ -103,7 +112,7 @@ export function StartingSession({
   const draft = useDraft(featureDraftKey(useRepositoryPath(), folder));
   const { handOver } = draft;
   const { start } = planned;
-  useLanded(folder, planned, write);
+  useLanded(folder, planned, write, landed);
   const asks = useHandOver(search)?.trigger === "start";
   const message = start?.message;
   useEffect(() => {
@@ -133,7 +142,7 @@ export function StartingSession({
           <StartStepsView
             onProposal={() => navigateHere(proposal)}
             queued={write?.queued}
-            steps={write?.steps ?? landed ?? []}
+            steps={write?.steps ?? steps ?? []}
             title={title}
           />
         </div>

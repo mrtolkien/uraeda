@@ -1,5 +1,6 @@
-import { Suspense, useEffect, useState } from "react";
-import { useFeature } from "./data.ts";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useFateClient } from "react-fate";
+import { featureRequest, useFeature } from "./data.ts";
 import { useSession } from "./sessionData.ts";
 import { type Draft, featureDraftKey, useDraft } from "./useDraft.ts";
 import type { SessionItem } from "./dropItem.ts";
@@ -151,14 +152,42 @@ function IdSession({ draft, id }: { draft: Draft; id: string }) {
   );
 }
 
-/** Nothing to do: the start drawn while its feature's page is read has landed already. */
+/** Nothing to do: the start drawn until its feature's page can draw has landed already. */
 const settled = () => {};
+
+/**
+ * Whether the feature in `folder` is read, once `isLanded`, its start out of the queue: asked
+ * once, as its page reads it, so that page draws without waiting.
+ */
+function useFeatureRead(folder: string, isLanded: boolean) {
+  const fate = useFateClient();
+  const [read, setRead] = useState(false);
+  useEffect(() => {
+    if (!isLanded) {
+      return;
+    }
+    let live = true;
+    void fate
+      .request(featureRequest(folder) as never)
+      .catch(() => {})
+      .then(() => {
+        if (live) {
+          setRead(true);
+        }
+      });
+    return () => {
+      live = false;
+    };
+  }, [fate, folder, isLanded]);
+  return read;
+}
 
 /**
  * A feature's session by its folder, or, while its start is in the write queue or planned here, the
  * start's steps where the transcript will be: the feature cannot be read before the start lands.
- * The start's last plan and steps stay drawn until the feature's page can draw, in the same frame:
- * its composer and its column stay where they are.
+ * Once it landed, the same start's page stays, with its last plan and steps, until the feature is
+ * read: the feature's page then replaces it once, in the same frame, its composer and its column
+ * where they were.
  */
 function FeatureOrStart({ folder }: { folder: string }) {
   const write = useStartWrite(folder);
@@ -167,35 +196,30 @@ function FeatureOrStart({ folder }: { folder: string }) {
   if (planned.start !== undefined && planned.start !== last.start) {
     setLast((kept) => ({ ...kept, start: planned.start }));
   }
-  if (write?.steps !== undefined && write.steps !== last.steps) {
-    setLast((kept) => ({ ...kept, steps: write.steps }));
+  // A refused write's steps are not kept: once dismissed, the page reads the feature as before.
+  const steps = write?.state === "refused" ? undefined : write?.steps;
+  if (steps !== undefined && steps !== last.steps) {
+    setLast((kept) => ({ ...kept, steps }));
   }
-  if (write === undefined && planned.start === undefined) {
+  const isLanded = write === undefined && planned.start === undefined && last.start !== undefined;
+  const isRead = useFeatureRead(folder, isLanded);
+  // Landed: what it called once it did has run.
+  const kept = useMemo(() => {
     if (last.start === undefined) {
-      return <FeatureSession folder={folder} />;
+      return undefined;
     }
-    // Landed: what it called once it did has run.
     const { landed: _, ...start } = last.start;
-    return (
-      <Suspense
-        fallback={
-          <StartingSession
-            folder={folder}
-            {...(last.steps === undefined ? {} : { landed: last.steps })}
-            planned={{ forget: settled, seen: settled, start }}
-            write={undefined}
-          />
-        }
-      >
-        <FeatureSession folder={folder} />
-      </Suspense>
-    );
+    return { forget: settled, seen: settled, start };
+  }, [last.start]);
+  if (write === undefined && planned.start === undefined && (kept === undefined || isRead)) {
+    return <FeatureSession folder={folder} />;
   }
   return (
     <StartingSession
       folder={folder}
-      {...(last.steps === undefined ? {} : { landed: last.steps })}
-      planned={planned}
+      landed={isLanded}
+      planned={isLanded && kept !== undefined ? kept : planned}
+      {...(last.steps === undefined ? {} : { steps: last.steps })}
       write={write}
     />
   );
