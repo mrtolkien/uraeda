@@ -35,6 +35,8 @@ pub struct ProblemView {
     pub line: Option<u32>,
     pub rule: String,
     pub message: String,
+    /// Whether the fix of moved links repairs it.
+    pub fixable: bool,
 }
 
 impl From<&Problem> for ProblemView {
@@ -44,6 +46,7 @@ impl From<&Problem> for ProblemView {
             line: problem.line.map(|line| line as u32),
             rule: problem.rule.clone(),
             message: problem.message.clone(),
+            fixable: problem.fixable,
         }
     }
 }

@@ -22,6 +22,10 @@ pub struct Problem {
     pub rule: String,
     pub message: String,
     pub severity: Severity,
+    /// Whether `ura check --fix` repairs it: a link to a file whose move git's history knows.
+    /// Serialized only when true.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub fixable: bool,
 }
 
 /// The rules whose check results stop the workflow: a feature's problems. The step cannot be

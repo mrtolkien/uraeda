@@ -54,6 +54,7 @@ fn old_folder_problem(root: &Path, dir: &Path, folder: &str) -> Problem {
              and the backlog to the proposals\" in the skill's projects reference."
         ),
         severity: Severity::Error,
+        fixable: false,
     }
 }
 
@@ -104,6 +105,7 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
                           specs/changes/, and delete it if empty."
                     .into(),
                 severity: Severity::Error,
+                fixable: false,
             });
             continue;
         }
@@ -115,6 +117,7 @@ pub(super) fn check_folder_names(root: &Path, dir: &Path, problems: &mut Vec<Pro
                 "\"{folder}\" is not a feature folder: YYYY-MM-DD-<slug>, with a real date"
             ),
             severity: Severity::Error,
+            fixable: false,
         });
     }
 }
@@ -163,6 +166,7 @@ pub(super) fn check_candidates(root: &Path, dir: &Path, problems: &mut Vec<Probl
             rule: "names.candidate".into(),
             message: message.into(),
             severity: Severity::Error,
+            fixable: false,
         });
     }
 }
@@ -199,6 +203,7 @@ fn change_file_problem(root: &Path, dir: &Path, entry: &str) -> Problem {
              clarifications-NN.md, rulings.md, images/, mockups/, and screenshots/."
         ),
         severity: Severity::Error,
+        fixable: false,
     }
 }
 
@@ -259,6 +264,7 @@ pub(super) fn check_rounds(root: &Path, dir: &Path, names: &[String], problems: 
                 rule: "names.round".into(),
                 message: format!("rounds have two digits: {expected}"),
                 severity: Severity::Error,
+                fixable: false,
             });
         }
     }

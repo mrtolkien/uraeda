@@ -441,6 +441,7 @@ impl Feature {
                                 None => "no status field".into(),
                             },
                             severity: Severity::Error,
+                            fixable: false,
                         }),
                     },
                     Err(error) => problems.push(Problem {
@@ -449,6 +450,7 @@ impl Feature {
                         rule: "frontmatter.parse".into(),
                         message: error.to_string(),
                         severity: Severity::Error,
+                        fixable: false,
                     }),
                 }
             }

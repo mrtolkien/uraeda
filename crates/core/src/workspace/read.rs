@@ -61,6 +61,7 @@ fn read_record(
                 folder_branch(kind, folder)
             ),
             severity: Severity::Error,
+            fixable: false,
         });
         feature.step = Step::none();
     }
@@ -215,6 +216,7 @@ fn read_folder(
             rule: "file.utf8".into(),
             message: "not UTF-8".into(),
             severity: Severity::Error,
+            fixable: false,
         });
     }
     feature.branch = branch;

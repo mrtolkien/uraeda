@@ -13,6 +13,9 @@ use crate::output;
 
 #[derive(Serialize)]
 struct Problems<'a> {
+    /// The files `--fix` rewrote, only with `--fix`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    fixed: Option<&'a [check::Fixed]>,
     problems: &'a [Problem],
 }
 
@@ -21,10 +24,71 @@ fn root(cwd: &Path) -> PathBuf {
     Git::discover(cwd).map_or_else(|_| cwd.to_path_buf(), |git| git.root().to_path_buf())
 }
 
-pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
+/// Checks `target`, after relinking the links to moved files under it with `fix`: exits as the
+/// check.
+pub fn run(target: Option<String>, json: bool, fix: bool) -> Result<ExitCode, String> {
     let cwd = std::env::current_dir().map_err(|error| error.to_string())?;
     let root = root(&cwd);
-    let target_path = match &target {
+    let target_path = target_path(&cwd, &root, target.as_deref())?;
+    let missing = || {
+        let shown = target.clone().unwrap_or_else(|| "specs".to_string());
+        format!("{shown}: no such file or folder")
+    };
+    let fixed = if fix {
+        Some(
+            check::fix(&root, &target_path).map_err(|error| match error {
+                check::CheckError::Missing(_) => missing(),
+                error => error.to_string(),
+            })?,
+        )
+    } else {
+        None
+    };
+    let problems = check::check(&root, &target_path).map_err(|_| missing())?;
+    if json {
+        output::print_json(&Problems {
+            fixed: fixed.as_deref(),
+            problems: &problems,
+        });
+        return Ok(exit(&problems));
+    }
+    for file in fixed.iter().flatten() {
+        let noun = if file.links == 1 { "link" } else { "links" };
+        println!("fixed {}: {} {noun}", file.file, file.links);
+    }
+    if problems.is_empty() {
+        let canonical = target_path.canonicalize().unwrap_or(target_path.clone());
+        let mut shown = canonical
+            .strip_prefix(root.canonicalize().unwrap_or(root.clone()))
+            .unwrap_or(&canonical)
+            .to_string_lossy()
+            .into_owned();
+        if canonical.is_dir() {
+            shown.push('/');
+        }
+        println!("{shown}: no problems");
+    } else {
+        print_problems(&problems);
+    }
+    Ok(exit(&problems))
+}
+
+/// Failure when a problem is an error, else success.
+fn exit(problems: &[Problem]) -> ExitCode {
+    if problems
+        .iter()
+        .any(|problem| problem.severity == Severity::Error)
+    {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+/// The path `ura check` reads: `target` under `cwd`, a feature's or a proposal's by name, or the
+/// repository's `specs/`.
+fn target_path(cwd: &Path, root: &Path, target: Option<&str>) -> Result<PathBuf, String> {
+    Ok(match target {
         Some(name) if !cwd.join(name).exists() && !name.contains('/') => {
             let (_, workspace) = output::workspace()?;
             match output::target(&workspace, Some(name), Purpose::Inspect)? {
@@ -41,39 +105,7 @@ pub fn run(target: Option<String>, json: bool) -> Result<ExitCode, String> {
             ));
         }
         None => root.join("specs"),
-    };
-    let problems = check::check(&root, &target_path).map_err(|_| {
-        let shown = target.clone().unwrap_or_else(|| "specs".to_string());
-        format!("{shown}: no such file or folder")
-    })?;
-    if json {
-        output::print_json(&Problems {
-            problems: &problems,
-        });
-    } else if problems.is_empty() {
-        let canonical = target_path.canonicalize().unwrap_or(target_path.clone());
-        let mut shown = canonical
-            .strip_prefix(root.canonicalize().unwrap_or(root.clone()))
-            .unwrap_or(&canonical)
-            .to_string_lossy()
-            .into_owned();
-        if canonical.is_dir() {
-            shown.push('/');
-        }
-        println!("{shown}: no problems");
-    } else {
-        print_problems(&problems);
-    }
-    Ok(
-        if problems
-            .iter()
-            .any(|problem| problem.severity == Severity::Error)
-        {
-            ExitCode::FAILURE
-        } else {
-            ExitCode::SUCCESS
-        },
-    )
+    })
 }
 
 /// The errors, then the warnings, each `warning: ` first, then their counts.
