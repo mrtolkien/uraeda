@@ -1176,4 +1176,21 @@ fn a_repair_waits_on_the_commit_page() {
     assert_eq!(repo.read(FLOWS), repaired);
     assert_eq!(repo.read(RECORD), "# Old feature\n\nIt shipped late.\n");
     assert_eq!(changes::list(&place).count, 0);
+
+    // Two repairs of the same name read by their path from `specs/`.
+    for guide in ["specs/ui/flows/a/flows.md", "specs/ui/flows/b/flows.md"] {
+        repo.write(guide, flows);
+    }
+    repo.commit("docs: two guides");
+    for guide in ["specs/ui/flows/a/flows.md", "specs/ui/flows/b/flows.md"] {
+        repo.write(guide, repaired);
+    }
+
+    assert_eq!(
+        changes::list(&place).lines,
+        [
+            "- Repair links: ui/flows/a/flows.md",
+            "- Repair links: ui/flows/b/flows.md"
+        ]
+    );
 }

@@ -248,14 +248,14 @@ fn gather(place: &Place) -> Listed {
     let mut listed = gather_lists(place);
     let mut taken = listed.paths.clone();
     taken.extend([INBOX.to_string(), PRIORITIES.to_string()]);
-    for path in repairs::repairs(place, &taken) {
-        let name = repairs::file_name(&path);
+    let repaired = repairs::repairs(place, &taken);
+    for (path, name) in repaired.iter().zip(repairs::names(&repaired)) {
         listed.changes.push(Described {
             subject: format!("repair links in {name}"),
             line: format!("- Repair links: {name}"),
         });
         listed.paths.push(path.clone());
-        listed.repairs.push(path);
+        listed.repairs.push(path.clone());
     }
     listed
 }
