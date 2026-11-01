@@ -210,12 +210,13 @@ fn a_merged_pull_request_holding_the_tip_makes_the_feature_done() {
 
 /// Review: an open pull request wins over a merged one of the same branch; a feature still being
 /// built is not done by a merged pull request holding its tip; a change's branch ahead of its pull
-/// request reaches Push, as a feature's does.
+/// request reaches Push, as a feature's does, until the branch is at its remote tip: then `gh` has
+/// not seen the push yet, and the pull request waits on the human.
 #[test]
 fn an_open_pull_request_and_the_implementation_keep_their_steps() {
     let repo = TestRepo::new();
     let (_, tip) = branch(&repo);
-    let (change_parent, _) = branch_named(&repo, "change/2026-10-10-x");
+    let (change_parent, change_tip) = branch_named(&repo, "change/2026-10-10-x");
     let git = Git::discover(repo.path()).unwrap();
     let open_on = |branch: &str, head: &str| {
         let mut view = view(31, PullRequestState::Open);
@@ -250,12 +251,14 @@ fn an_open_pull_request_and_the_implementation_keep_their_steps() {
                 merged: merged_tip.clone(),
             },
             StepName::PullRequest,
+            None,
         ),
         (
             "still being built",
             Feature::from_texts(Kind::Feature, "2026-10-10-x", building),
             merged(&tip),
             StepName::Implementation,
+            None,
         ),
         (
             "a change ahead of its pull request",
@@ -269,9 +272,30 @@ fn an_open_pull_request_and_the_implementation_keep_their_steps() {
                 merged: BTreeMap::new(),
             },
             StepName::Push,
+            None,
+        ),
+        (
+            "a change ahead of its pull request, pushed",
+            Feature::from_texts(
+                Kind::Change,
+                "2026-10-10-x",
+                texts(vec![("proposal.md", proposal())]),
+            ),
+            PullRequests::Known {
+                open: open_on("change/2026-10-10-x", &change_parent),
+                merged: BTreeMap::new(),
+            },
+            StepName::PullRequest,
+            Some(&change_tip),
         ),
     ];
-    for (name, mut feature, pull_requests, expected) in rows {
+    for (name, mut feature, pull_requests, expected, pushed) in rows {
+        let remote = "refs/remotes/origin/change/2026-10-10-x";
+        match pushed {
+            Some(commit) => repo.git(&["update-ref", remote, commit]),
+            None => repo.git(&["update-ref", "-d", remote]),
+        };
+
         pull_requests.apply(&mut feature, &git);
 
         assert_eq!(feature.step.name, expected, "{name}");

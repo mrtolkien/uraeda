@@ -61,7 +61,8 @@ impl PullRequests {
 
     /// The state of `branch`'s pull request, as the steps read it: an open one is `Unpushed` while
     /// its head lacks the branch's latest commit, in `git`. A head the repository does not have
-    /// is ready: nothing proves the branch holds commits it lacks (R2).
+    /// is ready: nothing proves the branch holds commits it lacks (R2). A branch at its remote tip
+    /// is pushed: `gh`'s head is older than the push, until the next fetch of the pull requests.
     fn state(&self, branch: &str, git: &Git) -> PullRequest {
         let PullRequests::Known { open, .. } = self else {
             return PullRequest::Unknown;
@@ -71,7 +72,9 @@ impl PullRequests {
         };
         match view.state {
             PullRequestState::Draft => PullRequest::Draft,
-            PullRequestState::Open if holds_tip(git, branch, &view.head) == Some(false) => {
+            PullRequestState::Open
+                if holds_tip(git, branch, &view.head) == Some(false) && !pushed(git, branch) =>
+            {
                 PullRequest::Unpushed
             }
             PullRequestState::Open => PullRequest::Open,
