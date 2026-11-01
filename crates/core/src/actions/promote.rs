@@ -237,7 +237,8 @@ impl Move<'_> {
     /// Writes the relinked priorities, when they change, and moves the change's folder, when the
     /// default branch has it, and points the links of `specs/` at the moved folder, then commits
     /// them there: a refused commit puts them back as they were, a file relinked only while it
-    /// holds the rewrite, so a move run again relinks and commits them, and leaves every step.
+    /// holds the rewrite, so a move run again relinks and commits them, and leaves every step, with
+    /// each relinked file changed during the commit, left as it is.
     fn relink(
         &self,
         at: &Git,
@@ -297,7 +298,7 @@ impl Move<'_> {
                 let _ = fs::write(&proposal, text);
             }
             // While the moved folder's files are still at their new path.
-            relink::put_back(root, &relinked);
+            let changed = relink::put_back(root, &relinked);
             if self.on_default {
                 let _ = fs::rename(root.join(&new), root.join(&old));
             }
@@ -319,6 +320,11 @@ impl Move<'_> {
                  back",
                 self.default
             )];
+            left.extend(
+                changed
+                    .iter()
+                    .map(|path| format!("check {path}: changed during the commit, left as it is")),
+            );
             left.extend(rest.into_iter().cloned());
             partial(&[], left, error)
         })

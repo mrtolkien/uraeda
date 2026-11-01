@@ -428,11 +428,20 @@ fn a_failed_commit_reports_what_is_done_and_left() {
     );
 }
 
-/// Review focus 2: a refused relink on the default branch leaves the branch's name.
+/// Review focus 2: a refused relink on the default branch leaves the branch's name, and names a
+/// relinked file changed during the commit, which it leaves as it is.
 #[test]
 fn a_refused_relink_renames_nothing() {
     let repo = started(Kind::Change);
-    repo.set_hook("[ \"$(git branch --show-current)\" != main ] || exit 1");
+    let record = "specs/done/2026-10-01-priorities.md";
+    repo.write(
+        record,
+        &format!("# Priorities\n\n[This](/specs/changes/{FOLDER}/proposal.md).\n"),
+    );
+    repo.commit("chore: link the change");
+    repo.set_hook(&format!(
+        "[ \"$(git branch --show-current)\" != main ] || {{ echo Edited. >> {record}; exit 1; }}"
+    ));
 
     let failed = promote(&repo);
 
@@ -440,7 +449,11 @@ fn a_refused_relink_renames_nothing() {
         panic!("a partial move");
     };
     assert!(done.is_empty(), "{done:?}");
-    assert_eq!(left.len(), 4, "{left:?}");
+    assert_eq!(left.len(), 5, "{left:?}");
+    assert_eq!(
+        left[1],
+        format!("check {record}: changed during the commit, left as it is")
+    );
     assert!(repo.exists(&format!("specs/changes/{FOLDER}/proposal.md")));
     assert!(!repo.exists(&format!("specs/{FOLDER}")));
     assert_eq!(
