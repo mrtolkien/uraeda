@@ -117,7 +117,8 @@ fn rebased(raw: &str, from: &str, to: &str) -> Option<String> {
 /// `folder`, its `?query` and anchor kept unless the move gives its own anchor, or matched on the
 /// link's anchor. A record keeps the anchor of a question of a clarifications file, and no other.
 /// An inline link or image to a deleted file becomes its words: a link's text as written, an
-/// image's alt. A reference definition to a deleted file stays, and so do code and wikilinks.
+/// image's alt; so does one to a finished folder's file that is not markdown, such as an image. A
+/// reference definition to a deleted file stays, and so do code and wikilinks.
 pub fn relink(text: &str, folder: &str, moves: &[Move]) -> (String, usize) {
     edit_links(text, |found| {
         let raw = found.destination;
@@ -148,6 +149,10 @@ pub fn relink(text: &str, folder: &str, moves: &[Move]) -> (String, usize) {
                 };
                 written(raw, folder, &format!("{new}{rest}{slash}"), query, anchor)
             }
+            // The finish deletes a folder's images and every other file but its markdown.
+            Went::Record(_) if !rest.is_empty() && !rest.ends_with(".md") => {
+                return found.words.map(|_| Edit::Words);
+            }
             Went::Record(record) => {
                 let question = anchor.filter(|anchor| is_question(&path, anchor));
                 written(raw, folder, record, "", question)
@@ -160,7 +165,8 @@ pub fn relink(text: &str, folder: &str, moves: &[Move]) -> (String, usize) {
 
 /// Whether `now` differs from `then` only by link destinations, or by links turned into their
 /// words; true when they are equal. Every inline link and image of `now` has one in `then`, in
-/// order, with the same words: a link added where `then` had plain words is a change.
+/// order, at the same place, of the same kind, with the same words and title: a link added where
+/// `then` had plain words is a change, and so is one moved to other words.
 pub fn only_links_changed(then: &str, now: &str) -> bool {
     if then == now {
         return true;
@@ -174,24 +180,66 @@ pub fn only_links_changed(then: &str, now: &str) -> bool {
             .all(|link| then_links.any(|each| each == link))
 }
 
+/// An inline link or image as [`only_links_changed`] compares them: where its words start in the
+/// reduced text, whether it is an image, its words, and what follows its destination, its title.
+#[derive(PartialEq)]
+struct Kept<'a> {
+    at: usize,
+    image: bool,
+    words: &'a str,
+    title: &'a str,
+}
+
 /// The text with each inline link and image reduced to its words and each reference definition's
-/// destination emptied, and the words of its inline links and images, in the order of their
-/// destinations.
-fn reduced(text: &str) -> (String, Vec<String>) {
-    let mut links = Vec::new();
-    let (reduced, _) = edit_links(text, |found| match found.words {
-        Some(words) => {
-            links.push(words.to_string());
-            Some(Edit::Words)
+/// destination emptied, and its inline links and images, in the order of their destinations.
+fn reduced(text: &str) -> (String, Vec<Kept<'_>>) {
+    let places = places(text);
+    // The parts of the text the reduced text drops, none overlapping another.
+    let mut removed: Vec<Range<usize>> = Vec::new();
+    for place in &places {
+        match &place.link {
+            Some((whole, words)) => {
+                removed.push(whole.start..words.start);
+                removed.push(words.end..whole.end);
+            }
+            None => removed.push(place.destination.clone()),
         }
-        None => Some(Edit::Destination(String::new())),
-    });
+    }
+    let reduced_at = |offset: usize| {
+        let before: usize = removed
+            .iter()
+            .map(|range| range.end.min(offset).saturating_sub(range.start))
+            .sum();
+        offset - before
+    };
+    let links = places
+        .iter()
+        .filter_map(|place| {
+            let (whole, words) = place.link.as_ref()?;
+            let tail = &text[place.destination.end..whole.end.saturating_sub(1)];
+            Some(Kept {
+                at: reduced_at(words.start),
+                image: text[whole.start..].starts_with('!'),
+                words: &text[words.clone()],
+                title: tail.trim_start_matches('>').trim(),
+            })
+        })
+        .collect();
+    removed.sort_by_key(|range| range.start);
+    let mut reduced = String::with_capacity(text.len());
+    let mut kept_from = 0;
+    for range in &removed {
+        reduced.push_str(&text[kept_from..range.start]);
+        kept_from = range.end;
+    }
+    reduced.push_str(&text[kept_from..]);
     (reduced, links)
 }
 
 /// The destination `raw`, written in `folder`, pointing at `path` from the top level instead, with
 /// `query` and `anchor`: rooted when `raw` was, else relative to `folder`. `None` when it would
-/// climb out of the top level.
+/// climb out of the top level. The path's spaces and `%` are percent-encoded, unless `raw` holds a
+/// space, as it can only inside `<…>`.
 fn written(
     raw: &str,
     folder: &str,
@@ -202,6 +250,13 @@ fn written(
     let anchor = anchor
         .map(|anchor| format!("#{anchor}"))
         .unwrap_or_default();
+    let encoded;
+    let path = if raw.contains(' ') {
+        path
+    } else {
+        encoded = path.replace('%', "%25").replace(' ', "%20");
+        encoded.as_str()
+    };
     if raw.starts_with('/') {
         return Some(format!("/{path}{query}{anchor}"));
     }
@@ -403,14 +458,15 @@ mod tests {
 
     #[test]
     fn links_follow_their_moves() {
-        let moves = [
-            Move {
-                from: "specs/proposals/a.md".to_string(),
-                went: Went::Moved {
-                    path: "specs/2026-11-10-a/proposal.md".to_string(),
-                    anchor: None,
-                },
+        let moved = |from: &str, to: &str| Move {
+            from: from.to_string(),
+            went: Went::Moved {
+                path: to.to_string(),
+                anchor: None,
             },
+        };
+        let moves = [
+            moved("specs/proposals/a.md", "specs/2026-11-10-a/proposal.md"),
             Move {
                 from: "specs/2026-10-10-cli-core".to_string(),
                 went: Went::Record("specs/done/2026-10-10-cli-core.md".to_string()),
@@ -422,6 +478,9 @@ mod tests {
                     subject: "drop(dark-mode): no longer needed".to_string(),
                 },
             },
+            moved("specs/old", "specs/new"),
+            moved("specs/proposals/s.md", "specs/my notes/s.md"),
+            moved("specs/proposals/p.md#note-x", "specs/notes/x.md"),
         ];
         let cases = [
             ("[d](../proposals/a.md)", "[d](../2026-11-10-a/proposal.md)"),
@@ -455,7 +514,16 @@ mod tests {
                 "![i](../x.png)",
             ),
             ("`[d](../proposals/a.md)`", "`[d](../proposals/a.md)`"),
-            ("[[a]]", "[[a]]"),
+            ("[[../proposals/a.md]]", "[[../proposals/a.md]]"),
+            ("![shot](../2026-10-10-cli-core/images/a.png)", "shot"),
+            ("[d](../old/my%20file.md)", "[d](../new/my%20file.md)"),
+            ("[d](<../old/my file.md>)", "[d](<../new/my file.md>)"),
+            ("[s](../proposals/s.md)", "[s](../my%20notes/s.md)"),
+            ("[n](../proposals/p.md#Note-X)", "[n](../notes/x.md)"),
+            (
+                "[n](../proposals/p.md#other)",
+                "[n](../proposals/p.md#other)",
+            ),
             ("[d](../proposals/b.md)", "[d](../proposals/b.md)"),
             (
                 "[d][x]\n\n[x]: ../2026-11-05-dark-mode/proposal.md",
@@ -491,6 +559,15 @@ mod tests {
         for (now, expected) in cases {
             assert_eq!(only_links_changed(then, now), expected, "{now}");
         }
+        let changed = [
+            ("[a](x.md \"t\")", "[a](y.md \"u\")"),
+            ("[a](x.md)", "![a](x.md)"),
+            ("x and [x](a.md)", "[x](b.md) and x"),
+        ];
+        for (then, now) in changed {
+            assert!(!only_links_changed(then, now), "{then} -> {now}");
+        }
+        assert!(only_links_changed("[a](<x.md> \"t\")", "[a](<y.md> \"t\")"));
         assert!(!only_links_changed(
             "See the spec and old.",
             "See [the spec](../a/spec.md) and old."

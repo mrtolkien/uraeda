@@ -97,3 +97,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   is refused. A public item of a public module is never dead code.
 - **If wrong**: once tasks 4 to 6 call it, the module and its items can go back to `pub(crate)`.
 - **Where**: task 3, `actions/relink.rs` and `actions/mod.rs`.
+
+## R10: A link unlinked at a line's start may change the block it starts
+
+- **Decision**: a link or image turned into its words at the start of a line is left as its words,
+  even when those words then read as markdown syntax: `[1. item](../gone/x.md) text` becomes
+  `1. item text`, an ordered list. The rewrite does not escape them.
+- **Rationale**: a link whose words start like a list item, a heading, or a quote is rare in
+  `specs/`, and the check of the rewritten file shows any structure it breaks. Escaping would add
+  backslashes to the far more common words that need none.
+- **If wrong**: escape the words' first characters when they would start a block, at the start of a
+  line only.
+- **Where**: task 1, `relink` in `crates/core/src/files/retarget.rs`.
