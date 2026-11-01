@@ -27,10 +27,16 @@ fn folder_of(file: &str) -> &str {
 }
 
 impl Start<'_> {
-    /// What is left to do by hand once the proposal file is in the dated folder.
-    fn left_after_write(&self, plan: &Plan) -> Vec<String> {
+    /// What is left to do by hand once the proposal file is in the dated folder: its commit names
+    /// the files of `relinked` the start commits, those without uncommitted edits.
+    fn left_after_write(&self, plan: &Plan, relinked: &[Relinked]) -> Vec<String> {
+        let committed: Vec<String> = relinked
+            .iter()
+            .filter(|file| !file.edited)
+            .map(|file| file.path.clone())
+            .collect();
         vec![
-            plan.commit_left(self.default),
+            plan.commit_left(self.default, &committed),
             plan.branch_left(self.run.switch),
         ]
     }
@@ -41,7 +47,7 @@ impl Start<'_> {
     pub(super) fn move_proposal(&self, proposal: &str, plan: &Plan) -> Result<Moved, StartError> {
         let left = || {
             let mut left = vec![plan.write_left.clone()];
-            left.extend(self.left_after_write(plan));
+            left.extend(self.left_after_write(plan, &[]));
             left
         };
         let root = self.root;
@@ -98,7 +104,7 @@ impl Start<'_> {
                     .iter()
                     .map(|(_, to)| format!("point the relative links of {to} at its new folder"))
                     .collect();
-                left.extend(self.left_after_write(plan));
+                left.extend(self.left_after_write(plan, &[]));
                 let done: Vec<String> = moves
                     .iter()
                     .map(|(from, to)| format!("the move of {from} to {to}"))
@@ -114,7 +120,7 @@ impl Start<'_> {
                 "point the links of specs/ to {proposal} at {}",
                 plan.destination
             )];
-            left.extend(self.left_after_write(plan));
+            left.extend(self.left_after_write(plan, &[]));
             let done: Vec<String> = moves
                 .iter()
                 .map(|(from, to)| format!("the move of {from} to {to}"))
@@ -180,13 +186,13 @@ impl Start<'_> {
                 format!("add the proposal's nested lines in Now to the end of {proposal}'s What"),
                 "move the proposal to the top of Now in specs/PRIORITIES.md".into(),
             ];
-            left.extend(self.left_after_write(plan));
+            left.extend(self.left_after_write(plan, relinked));
             return Err(partial(&done, left, error));
         }
         if let Err(error) = fs::write(self.root.join("specs/PRIORITIES.md"), &plan.priorities) {
             let mut left =
                 vec!["move the proposal to the top of Now in specs/PRIORITIES.md".into()];
-            left.extend(self.left_after_write(plan));
+            left.extend(self.left_after_write(plan, relinked));
             return Err(partial(&done, left, error));
         }
         // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
@@ -203,7 +209,7 @@ impl Start<'_> {
             // commit, of committed files alone, would not take.
             self.at
                 .unstage(&[proposal])
-                .map_err(|error| partial(&done, self.left_after_write(plan), error))?;
+                .map_err(|error| partial(&done, self.left_after_write(plan, relinked), error))?;
             if !plan.tracked.is_empty() {
                 paths.push(proposal.to_string());
             }
@@ -222,7 +228,7 @@ impl Start<'_> {
         let stage = self
             .at
             .stage(&paths, true)
-            .map_err(|error| partial(&done, self.left_after_write(plan), error))?;
+            .map_err(|error| partial(&done, self.left_after_write(plan, relinked), error))?;
         // Other writes, saves included, run while the hooks do: they change the working tree, not
         // the snapshot staged, and the put back below leaves any path they changed.
         drop(held);
@@ -248,7 +254,7 @@ impl Start<'_> {
                 left.extend(relink::put_back(self.root, relinked));
                 refused(message, output, &left)
             }
-            error => Err(partial(&done, self.left_after_write(plan), error)),
+            error => Err(partial(&done, self.left_after_write(plan, relinked), error)),
         }
     }
 

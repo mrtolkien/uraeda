@@ -5,8 +5,11 @@
 mod common;
 
 use common::repo::TestRepo;
+use uraeda_core::actions::start::{self, StartError};
 use uraeda_core::api;
-use uraeda_core::workspace::Kind;
+use uraeda_core::git::Git;
+use uraeda_core::today::Date;
+use uraeda_core::workspace::{Kind, Workspace};
 
 const PROPOSAL_FILE: &str = "specs/proposals/cli-tuis.md";
 const PROPOSAL: &str = "# CLI TUIs\n\n## What\n\nTUIs.\n";
@@ -63,6 +66,34 @@ fn a_start_relinks_the_record() {
     assert_eq!(refusing.read(RECORD), LINKED);
     assert_eq!(refusing.read(PROPOSAL_FILE), PROPOSAL);
     assert_eq!(refusing.porcelain(), "");
+
+    let left_written = with_record();
+    left_written.set_hook("exit 1");
+    let git = Git::discover(left_written.path()).unwrap();
+    let workspace = Workspace::read(&git).unwrap();
+    let today = Date::parse("2026-11-10").unwrap();
+
+    let failed = start::run(
+        &git,
+        &workspace,
+        PROPOSAL_FILE,
+        None,
+        Kind::Feature,
+        today,
+        false,
+    );
+
+    let Err(StartError::Partial { left, .. }) = failed else {
+        panic!("a partial start");
+    };
+    assert_eq!(
+        left[0],
+        format!(
+            "commit specs/PRIORITIES.md, the removal of {PROPOSAL_FILE}, {RECORD}, and \
+             specs/2026-11-10-cli-tuis/ on main as \"chore(cli-tuis): start CLI TUIs\""
+        )
+    );
+    assert_eq!(left_written.read(RECORD), RELINKED);
 
     let edited = with_record();
     edited.write(RECORD, &format!("{LINKED}\nEdited.\n"));

@@ -168,15 +168,21 @@ pub(super) struct Plan {
 
 impl Plan {
     /// The start commit, as the step left to do by hand: with the proposal file's removal, when it
-    /// was committed.
-    pub(super) fn commit_left(&self, default: &str) -> String {
-        let removal = match &self.proposal {
-            Some(proposal) if !self.tracked.is_empty() => format!(", the removal of {proposal},"),
-            _ => String::new(),
-        };
+    /// was committed, and `relinked`, the other files of `specs/` the start relinked that it
+    /// commits.
+    pub(super) fn commit_left(&self, default: &str, relinked: &[String]) -> String {
+        let mut paths = vec!["specs/PRIORITIES.md".to_string()];
+        if let Some(proposal) = &self.proposal
+            && !self.tracked.is_empty()
+        {
+            paths.push(format!("the removal of {proposal}"));
+        }
+        paths.extend(relinked.iter().cloned());
+        paths.push(format!("{}/", self.destination));
         format!(
-            "commit specs/PRIORITIES.md{removal} and {}/ on {default} as \"{}\"",
-            self.destination, self.start_subject
+            "commit {} on {default} as \"{}\"",
+            crate::actions::list(&paths),
+            self.start_subject
         )
     }
 
