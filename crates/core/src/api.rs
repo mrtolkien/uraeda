@@ -7,7 +7,6 @@ use std::sync::Arc;
 use crate::actions::review;
 use crate::actions::{answer, place, priorities as edits};
 use crate::cache;
-use crate::check;
 use crate::files::document::{self, hash};
 use crate::files::items::items;
 use crate::files::priorities;
@@ -18,11 +17,12 @@ use crate::view::{
     CommitView, FeatureView, FileView, NextView, ProposalLink, StepView, VersionView, WaitingFile,
     WorkspaceView,
 };
-use crate::workspace::{Feature, FileKind, Problem, Severity, Source, Workspace, WorkspaceError};
+use crate::workspace::{Feature, FileKind, Source, Workspace, WorkspaceError};
 
 mod answered;
 mod answers;
 mod category_edits;
+mod checks;
 mod decision;
 mod default_branch;
 mod deferred;
@@ -48,6 +48,8 @@ mod warm;
 
 pub use answers::*;
 pub use category_edits::*;
+use checks::checked;
+pub use checks::fix_links;
 pub(crate) use decision::fingerprints as branch_decision_fingerprints;
 pub use decision::{BranchDecision, read_decision};
 pub(crate) use default_branch::default_checkout;
@@ -119,29 +121,6 @@ fn feature_dir(git: &Git, feature: &Feature) -> Option<PathBuf> {
     })
 }
 
-/// The errors `ura check` finds in a feature read from disk: its warnings stay out of the
-/// feature's problems (R1). The rules reading the branch's history give warnings only, and are not
-/// run (R65).
-fn checked(git: &Git, read: &cache::Read, feature: &Feature) -> Vec<Problem> {
-    read.checked(&feature.folder, || check_feature(git, feature))
-}
-
-fn check_feature(git: &Git, feature: &Feature) -> Vec<Problem> {
-    let Some(root) = feature_dir(git, feature) else {
-        return Vec::new();
-    };
-    let mut problems =
-        check::check_files(&root, &root.join(feature.checked_path())).unwrap_or_default();
-    problems.retain(|problem| {
-        problem.severity == Severity::Error
-            && !feature
-                .problems
-                .iter()
-                .any(|known| known.file == problem.file && known.rule == problem.rule)
-    });
-    problems
-}
-
 /// Every feature, change, and proposal, with each feature's step and problems.
 pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
     let git = Git::discover(repo)?;
@@ -168,16 +147,19 @@ pub fn read_workspace(repo: &Path) -> Result<WorkspaceView> {
         WorkspaceView {
             priorities_hash: hash(&priorities.unwrap_or_default()),
             setup: setup_items(&git, true),
-            ..WorkspaceView::new(workspace, |feature| checked(&git, &read, feature))
+            ..WorkspaceView::new(workspace, |feature| checked(&git, &read, feature, false))
         }
     }))
 }
 
-/// One feature.
+/// One feature, for its page: a done one with the notes of its record.
 pub fn read_feature(repo: &Path, folder: &str) -> Result<FeatureView> {
     let (git, read) = open_read(repo)?;
     let feature = find(&read.workspace, folder)?;
-    Ok(FeatureView::new(feature, &checked(&git, &read, feature)))
+    Ok(FeatureView::new(
+        feature,
+        &checked(&git, &read, feature, true),
+    ))
 }
 
 /// Every file waiting for the human, `status: awaiting-human`, of every feature and change read from a

@@ -209,6 +209,22 @@ export const sessionMoves = {
     },
     type: "Dropped",
   },
+  "feature.fixLinks": {
+    resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
+      // It commits nothing, but writes the default branch's files: in the queue's turn, so a
+      // commit of the commit page or the lists never takes the record half written.
+      const { folder } = input;
+      const feature = await queued(
+        ctx,
+        [...featureKeys(folder), LISTS],
+        undefined,
+        { folder },
+        () => ctx.binding.fixLinks(ctx.repo, folder),
+      );
+      return sources.masked(featureDataView, ctx, await featureRecord(ctx, feature), select);
+    },
+    type: "Feature",
+  },
   "feature.promote": {
     resolve: async ({ ctx, input, select }: Resolver<Queued<{ folder: string }>>) => {
       // Its commits, on the default branch and the change's, go through the queue: they never run

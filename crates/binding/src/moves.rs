@@ -1,12 +1,12 @@
-//! Moving a feature or a change through its life: a change to a feature, in place, and dropping
-//! either.
+//! Moving a feature or a change through its life: a change to a feature, in place, dropping
+//! either, and repairing a done feature's moved links.
 
 use std::path::Path;
 
 use napi::bindgen_prelude::AsyncTask;
 use napi_derive::napi;
 use uraeda_core::api::{self, DroppedView};
-use uraeda_core::view::PromotedView;
+use uraeda_core::view::{FeatureView, PromotedView};
 
 use super::{Job, job};
 
@@ -16,6 +16,14 @@ use super::{Job, job};
 #[napi(ts_return_type = "Promise<PromotedView>")]
 pub fn promote_change(repo: String, folder: String) -> AsyncTask<Job<PromotedView>> {
     job(move || api::promote_change(Path::new(&repo), &folder))
+}
+
+/// Repairs the links of the done feature `folder`'s record whose file moved or was deleted since,
+/// in the default branch's checkout, without committing: the commit page lists the repair. Returns
+/// the feature read again; rejects a feature not on the default branch.
+#[napi(ts_return_type = "Promise<FeatureView>")]
+pub fn fix_links(repo: String, folder: String) -> AsyncTask<Job<FeatureView>> {
+    job(move || api::fix_links(Path::new(&repo), &folder))
 }
 
 /// Drops a started feature or change: its proposal leaves the priorities, its worktree is removed

@@ -71,6 +71,11 @@ const mutations = {
     FateAPI['mutations']['feature.drop']['input'],
     FateAPI['mutations']['feature.drop']['output']
   >('Dropped'),
+  'feature.fixLinks': mutation<
+    Feature,
+    FateAPI['mutations']['feature.fixLinks']['input'],
+    FateAPI['mutations']['feature.fixLinks']['output']
+  >('Feature'),
   'feature.promote': mutation<
     Feature,
     FateAPI['mutations']['feature.promote']['input'],

@@ -713,10 +713,12 @@ the sandbox.
 
 **Files:**
 
-- Modify: `crates/core/src/api.rs` (`check_feature`, `read_feature`, a new `fix_links`),
-  `crates/binding/src/moves.rs` (`fix_links`), `packages/binding/index.d.ts` and `index.js` as
-  generated, `packages/server/src/fate/session-moves.ts` (`feature.fixLinks`),
-  `packages/web/src/feature/FeaturePage.tsx` (`onFix`)
+- Modify: `crates/core/src/api.rs` (`read_feature`, `read_workspace`); `check_feature` and `checked`
+  move to a new `crates/core/src/api/checks.rs`, with the new `fix_links`, which keeps `api.rs`
+  under 500 lines; `crates/binding/src/moves.rs` (`fix_links`), `packages/binding/index.d.ts` and
+  `index.js` as generated, `packages/server/src/fate/session-moves.ts` (`feature.fixLinks`),
+  `packages/web/src/feature/FeaturePage.tsx` (`onFix`), `packages/web/.fate/client.generated.ts` as
+  generated
 - Test: `packages/server/src/__tests__/fix-links.test.ts`
 
 **Interfaces:**
@@ -724,43 +726,44 @@ the sandbox.
 - Consumes: `check::fix`, `Problem::fixable`, `ProblemView::fixable` (task 4).
 - Produces:
   - `pub fn fix_links(repo: &Path, folder: &str) -> Result<FeatureView>` in `api`: reaches the
-    default branch's checkout (`place::reach`), runs `check::fix` over the feature's record under
-    the repository's write lock, and returns the feature read again. Refused for a feature not on
-    the default branch.
+    default branch's checkout (`place::reach`, through `reach_default_from`), runs `check::fix` over
+    the feature's record under the repository's write lock, and returns the feature read again.
+    Refused for a feature not on the default branch.
   - `read_feature` checks a done feature's record (`Source::DefaultBranch`) in the working tree that
     has the default branch checked out, never creating one; `read_workspace` still skips them, since
     notes show only on their page.
   - The binding's `fixLinks(repo, folder): Promise<FeatureView>`; the server's mutation
-    `feature.fixLinks({ folder })`, type `Feature`, through the write queue as `feature.promote`'s
-    writes go.
+    `feature.fixLinks({ folder })`, type `Feature`, through the write queue (`queued`, in the turn
+    of the feature's and the lists' keys: it commits nothing, so it adds no entry to the queue).
   - `FeaturePage` passes `onFix` to `Notes` when `feature.source === "default-branch"`, calling the
     mutation.
 
-- [ ] **Step 1: Write the failing test** `fix-links.test.ts`: a repository whose record links a
+- [x] **Step 1: Write the failing test** `fix-links.test.ts`: a repository whose record links a
       proposal file started and finished since; `readFeature` gives a note with `fixable: true` and
       the message `… it became the record …`; `feature.fixLinks` rewrites the record, commits
       nothing (`git status` shows it modified, `HEAD` unchanged), returns the feature without the
       note, and the commit list holds `- Repair links: <record file name>`. The breaks: notes
       missing on a done feature; a Fix that commits; a stale view after the Fix.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
   - Run: `nix develop -c vp test packages/server/src/__tests__/fix-links.test.ts`
   - Expected: FAIL, the done feature has no notes.
 
-- [ ] **Step 3: Implement the API, the binding, the mutation, and the page's `onFix`**
+- [x] **Step 3: Implement the API, the binding, the mutation, and the page's `onFix`**
 
-- [ ] **Step 4: Review in the sandbox**: `vp run sandbox`, a done feature with a moved link, in both
+- [x] **Step 4: Review in the sandbox**: `vp run sandbox`, a done feature with a moved link, in both
       themes, at a phone's and a desktop's width; press "Fix moved links", then open the commit
       page. Time the first open of that page (review focus 6).
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
   ```bash
-  git add crates/core/src/api.rs crates/binding packages/binding packages/server packages/web
+  git add crates/core/src/api.rs crates/core/src/api/checks.rs crates/binding packages/binding \
+    packages/server packages/web
   git commit -m "feat(move-relinks): fix moved links from a done feature's page"
   ```
 
