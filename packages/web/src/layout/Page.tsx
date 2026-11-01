@@ -24,11 +24,13 @@ const styles = stylex.create({
     width: "100%",
   },
   // As tall as the window under the shell's bars at least, its last block at its foot: a session's
-  // composer stays where it is while its transcript loads and grows.
+  // composer stays where it is while its transcript loads and grows. No room under that block,
+  // which brings its own: at the page's end, it is where it sticks while the page scrolls.
   full: {
     display: "flex",
     flexDirection: "column",
     minHeight: "var(--size-page-height, var(--size-viewport-height))",
+    paddingBlockEnd: 0,
   },
   snug: {
     // On the phone, `--spacing-2` (9.6 px), for a page that is read as text from edge to edge: a
@@ -162,10 +164,10 @@ export function Page({
         ref={placed}
         {...stylex.props(
           styles.page,
-          isFull && styles.full,
           isTight && styles.tight,
           isSnug && styles.snug,
           wide && styles.wide,
+          isFull && styles.full,
           wide && kinds[kind],
           wide && beside !== undefined && besides.of(`var(${beside})`),
         )}
