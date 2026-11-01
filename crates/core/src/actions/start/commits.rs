@@ -12,7 +12,7 @@ use crate::actions::relink::{self, Relinked};
 use crate::cache::WriteGuard;
 use crate::files::retarget;
 use crate::git::{Git, GitError, ObjectId};
-use crate::moves::{Move, Went};
+use crate::moves::Move;
 
 /// The priorities, which the start writes itself, never relinked.
 const PRIORITIES: &str = "specs/PRIORITIES.md";
@@ -30,13 +30,8 @@ impl Start<'_> {
     /// What is left to do by hand once the proposal file is in the dated folder: its commit names
     /// the files of `relinked` the start commits, those without uncommitted edits.
     fn left_after_write(&self, plan: &Plan, relinked: &[Relinked]) -> Vec<String> {
-        let committed: Vec<String> = relinked
-            .iter()
-            .filter(|file| !file.edited)
-            .map(|file| file.path.clone())
-            .collect();
         vec![
-            plan.commit_left(self.default, &committed),
+            plan.commit_left(self.default, &relink::committed(relinked)),
             plan.branch_left(self.run.switch),
         ]
     }
@@ -146,16 +141,12 @@ impl Start<'_> {
         plan: &Plan,
         moves: &[(String, String)],
     ) -> Result<Vec<Relinked>, ActionError> {
-        let moved = |from: &str, to: &str| Move {
-            from: from.to_string(),
-            went: Went::Moved {
-                path: to.to_string(),
-                anchor: None,
-            },
-        };
-        let mut relinks: Vec<Move> = moves.iter().map(|(from, to)| moved(from, to)).collect();
+        let mut relinks: Vec<Move> = moves
+            .iter()
+            .map(|(from, to)| relink::moved(from, to))
+            .collect();
         if plan.postponed {
-            relinks.push(moved(proposal, &plan.destination));
+            relinks.push(relink::moved(proposal, &plan.destination));
         }
         let mut skip = vec![PRIORITIES];
         skip.extend(moves.iter().map(|(_, to)| to.as_str()));
@@ -202,13 +193,8 @@ impl Start<'_> {
         }
         // Folders as pathspecs, so files git ignores, like `.DS_Store`, stay out of the commit.
         let mut paths = vec![PRIORITIES.to_string(), plan.destination.clone()];
-        // A file with uncommitted edits keeps its rewrite, out of the commit.
-        paths.extend(
-            relinked
-                .iter()
-                .filter(|file| !file.edited)
-                .map(|file| file.path.clone()),
-        );
+        // A file with uncommitted edits, or no commit has, keeps its rewrite, out of the commit.
+        paths.extend(relink::committed(relinked));
         if let Source::Proposal(proposal) = self.source {
             // A proposal file staged but never committed leaves the index with its move, which the
             // commit, of committed files alone, would not take.

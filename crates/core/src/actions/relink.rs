@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use super::ActionError;
 use crate::files::retarget;
 use crate::git::Git;
-use crate::moves::Move;
+use crate::moves::{Move, Went};
 
 /// The folder an Undo without memory relinks back.
 const SPECS: &str = "specs";
@@ -25,6 +25,27 @@ pub struct Relinked {
     /// Kept out of a move's commit: a file with uncommitted edits, or a file no commit has,
     /// untracked or ignored, which `git add` would take as new or refuse.
     pub edited: bool,
+}
+
+/// The move of the file or folder `from` to `to`, both from the top level, with no anchor of its
+/// own: a link keeps its anchor.
+pub fn moved(from: &str, to: &str) -> Move {
+    Move {
+        from: from.to_string(),
+        went: Went::Moved {
+            path: to.to_string(),
+            anchor: None,
+        },
+    }
+}
+
+/// The paths of `relinked` a move commits: the files that are not `edited`.
+pub fn committed(relinked: &[Relinked]) -> Vec<String> {
+    relinked
+        .iter()
+        .filter(|file| !file.edited)
+        .map(|file| file.path.clone())
+        .collect()
 }
 
 /// Rewrites every markdown file under `under` (a folder or a file of a `specs/` folder, from the
@@ -212,7 +233,6 @@ fn replace(path: &Path, text: &str) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::moves::{Move, Went};
     use std::fs;
     use std::path::Path;
     use std::process::Command;
@@ -280,13 +300,6 @@ mod tests {
             root.join("specs/2026-11-10-a/proposal.md"),
         )
         .unwrap();
-        let moved = |from: &str, to: &str| Move {
-            from: from.to_string(),
-            went: Went::Moved {
-                path: to.to_string(),
-                anchor: None,
-            },
-        };
         let moves = [moved(
             "specs/proposals/a.md",
             "specs/2026-11-10-a/proposal.md",
