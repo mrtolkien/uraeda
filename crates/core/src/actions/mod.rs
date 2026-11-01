@@ -18,6 +18,7 @@ pub mod install;
 pub mod place;
 pub mod priorities;
 pub mod promote;
+pub mod relink;
 pub mod review;
 pub mod start;
 pub mod text;

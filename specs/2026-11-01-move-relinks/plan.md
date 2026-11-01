@@ -430,7 +430,7 @@ the sandbox.
 **Files:**
 
 - Create: `crates/core/src/actions/relink.rs`
-- Modify: `crates/core/src/actions/mod.rs` (`pub(crate) mod relink;`)
+- Modify: `crates/core/src/actions/mod.rs` (`pub mod relink;`)
 
 **Interfaces:**
 
@@ -440,39 +440,39 @@ the sandbox.
   ```rust
   /// A file the relinker rewrote: its path from the top level, its text before and after, the
   /// links it changed, and whether it differed from `HEAD` before, which keeps it out of a commit.
-  pub(crate) struct Relinked { pub path: String, pub before: String, pub after: String, pub links: usize, pub edited: bool }
+  pub struct Relinked { pub path: String, pub before: String, pub after: String, pub links: usize, pub edited: bool }
   /// Rewrites every markdown file under `under` (a folder or a file, from the top level of `root`)
   /// but `skip`, for `moves`: all written, or none and the error.
-  pub(crate) fn relink(root: &Path, under: &str, moves: &[Move], skip: &[&str]) -> Result<Vec<Relinked>, ActionError>;
+  pub fn relink(root: &Path, under: &str, moves: &[Move], skip: &[&str]) -> Result<Vec<Relinked>, ActionError>;
   /// Puts back each file still holding what the relinker wrote: the paths left, changed since.
-  pub(crate) fn put_back(root: &Path, relinked: &[Relinked]) -> Vec<String>;
+  pub fn put_back(root: &Path, relinked: &[Relinked]) -> Vec<String>;
   /// The Undo of a move without memory: `moves` reversed by the caller, applied only to the files
   /// whose change since `HEAD` is links alone, so a file edited since keeps its text.
-  pub(crate) fn relink_back(root: &Path, moves: &[Move], skip: &[&str]) -> Result<Vec<Relinked>, ActionError>;
+  pub fn relink_back(root: &Path, moves: &[Move], skip: &[&str]) -> Result<Vec<Relinked>, ActionError>;
   ```
 
   Files are visited in path order, skipping dot-folders, symbolic links, and files that are not
   UTF-8. `edited` is `Git::differs_from_head`; outside a repository it is false.
 
-- [ ] **Step 1: Write the failing unit test** `relinks_every_file_and_puts_back_the_unchanged`, in
+- [x] **Step 1: Write the failing unit test** `relinks_every_file_and_puts_back_the_unchanged`, in
       `relink.rs`, on a temporary repository with a committed record and an uncommitted edit in a
       second file, both linking a moved proposal file: both are rewritten; the second is `edited`;
       after a hand edit of the first, `put_back` restores the second and returns the first. The
       breaks: a file left with a stale link; an edited file sent into a move's commit; a put back
       over the human's later edit.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
   - Run: `nix develop -c cargo nextest run -p uraeda-core relink`
   - Expected: FAIL to compile, `cannot find function relink in this scope`.
 
-- [ ] **Step 3: Implement the relinker**, writing each file as the rewrite gives it, and restoring
+- [x] **Step 3: Implement the relinker**, writing each file as the rewrite gives it, and restoring
       the written ones when a write fails.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
   - Run: `nix develop -c vp run fast`
   - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   ```bash
   git add crates/core/src/actions/relink.rs crates/core/src/actions/mod.rs

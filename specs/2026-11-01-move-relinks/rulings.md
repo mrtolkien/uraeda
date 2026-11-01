@@ -88,3 +88,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a folder emptied over several commits, file by file, follows only the last of them;
   counting every file's end would leave most folder links unfixed instead.
 - **Where**: task 2, `History::went` in `crates/core/src/moves/history.rs`.
+
+## R9: The relinker is public until its callers land
+
+- **Decision**: `actions::relink` is a `pub` module with `pub` items, not `pub(crate)`.
+- **Rationale**: task 3 lands before the moves that call it, and `vp run fast` runs clippy with
+  `-D warnings`: a `pub(crate)` item no code calls yet fails it as dead code, and an `allow` marker
+  is refused. A public item of a public module is never dead code.
+- **If wrong**: once tasks 4 to 6 call it, the module and its items can go back to `pub(crate)`.
+- **Where**: task 3, `actions/relink.rs` and `actions/mod.rs`.
