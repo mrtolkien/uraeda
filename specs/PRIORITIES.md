@@ -7,6 +7,7 @@
 > Features for v1.0.0
 
 - [I dislike moving buttons: for example on feature start, the composer jumps…](/specs/changes/2026-11-01-stable-buttons/proposal.md)
+- [When a session touched files, there's nothing in the "changed files" sidebar...](/specs/changes/2026-11-01-files-changed/proposal.md)
 
 - Empty inbox
 
