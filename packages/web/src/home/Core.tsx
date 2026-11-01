@@ -74,10 +74,16 @@ function part(
   };
 }
 
+/** A session's card in the core. */
+const session = (row: Row): CoreCard => ({
+  key: `s:${row.id}`,
+  node: <SessionCard pathname="" row={row} />,
+});
+
 /**
  * The core's panes in their reading order: the problems, when there are any, what needs the human,
- * what is in progress, and the sessions without a workflow, or at work on a feature or a change no
- * longer in flight, when one runs. The card whose key is `picked` is drawn picked.
+ * what is in progress, the sessions at work among them, and the other sessions without a workflow,
+ * when there are any. The card whose key is `picked` is drawn picked.
  */
 export function coreParts({
   agents,
@@ -98,7 +104,7 @@ export function coreParts({
     node: <FeatureCard detail={detail} feature={f} pathname="" row={rowOf(f, rows)} />,
   });
   const flying = new Set([...agents, ...human, ...invalid].map((f) => f.folder));
-  const sessions = byStatus(
+  const all = byStatus(
     rows
       .filter((row) => isSessionCard(row, flying) && !row.archived && !row.done)
       .map((row) => ({
@@ -106,7 +112,14 @@ export function coreParts({
         start: row.startedAt,
         status: { label: row.statusLabel, status: row.status },
       })),
-  );
+  ).map(({ row }) => row);
+  // A session at work is in progress, after the features; the others wait in Sessions.
+  const working = all.filter((row) => row.status === "working");
+  const sessions = all.filter((row) => row.status !== "working");
+  const progress = [
+    ...agents.map((f) => feature(f, f.step.task ?? undefined)),
+    ...working.map(session),
+  ];
   return [
     ...(invalid.length === 0
       ? []
@@ -128,8 +141,8 @@ export function coreParts({
     ),
     part(
       "in-progress",
-      { count: agents.length, icon: "uraeda:activity", title: "In progress" },
-      agents.map((f) => feature(f, f.step.task ?? undefined)),
+      { count: progress.length, icon: "uraeda:activity", title: "In progress" },
+      progress,
       "Nothing in progress.",
       picked,
     ),
@@ -140,10 +153,7 @@ export function coreParts({
           part(
             "sessions",
             { count: sessions.length, icon: "uraeda:bot", title: "Sessions" },
-            sessions.map(({ row }) => ({
-              key: `s:${row.id}`,
-              node: <SessionCard pathname="" row={row} />,
-            })),
+            sessions.map(session),
             "",
             picked,
           ),

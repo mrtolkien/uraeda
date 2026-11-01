@@ -1,7 +1,7 @@
-// The shell's panes of work: Needs you, then the sessions without a workflow, then the features and
-// changes in progress, each the oldest started first and left out while empty, then the latest done
-// items. The column draws them under Navigate, as many done items as fit; the phone's sessions page
-// draws them as its own.
+// The shell's panes of work: Needs you, then the sessions without a workflow, then the features,
+// changes, and sessions at work in progress, each the oldest started first and left out while empty,
+// then the latest done items. The column draws them under Navigate, as many done items as fit; the
+// phone's sessions page draws them as its own.
 import { type ReactNode, type RefObject, useRef } from "react";
 import { Pane, type PaneTone } from "../layout/Pane.tsx";
 import { currentEntry, navigate, useLocalPath, useRepoPath } from "../routes.tsx";
@@ -67,6 +67,9 @@ function Cards({ entries, pathname }: { entries: Array<Entry>; pathname: string 
   ));
 }
 
+/** Whether a card is in progress: a feature or a change, or a session at work; the others wait in Sessions. */
+const inProgress = (entry: Entry) => entry.kind === "feature" || entry.status.status === "working";
+
 /** The panes' cards: what needs the human, the sessions, and the features and changes. */
 function Work({
   data,
@@ -80,8 +83,8 @@ function Work({
   const entries = entriesOf(data, { found: undefined, ...(kept ? { kept } : {}), query: "" });
   const { rest: others, waiting } = splitNeedsYou(entries);
   const rest = byStart(others);
-  const sessions = rest.filter((entry) => entry.kind === "session");
-  const progress = rest.filter((entry) => entry.kind === "feature");
+  const sessions = rest.filter((entry) => !inProgress(entry));
+  const progress = rest.filter(inProgress);
   return (
     <>
       <ShellPane count={waiting.length} title="Needs you" tone="attention">
