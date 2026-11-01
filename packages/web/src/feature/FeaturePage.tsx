@@ -5,18 +5,21 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Code } from "@astryxdesign/core/Code";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type RefObject, Suspense, useCallback, useRef, useState } from "react";
-import { Crumbs } from "../Crumbs.tsx";
 import { useFateClient } from "react-fate";
+import { Crumbs } from "../Crumbs.tsx";
 import {
   agentRequest,
   historyRequest,
   recommendedRequest,
+  rereadChanges,
   useAgent,
   useFeature,
   useHistory,
   useRecommendedMessage,
 } from "../data.ts";
+import { refusal } from "../errors.ts";
 import { readAlong } from "../readAhead.ts";
+import { FeatureView } from "../views.ts";
 import { useKeys } from "../keys/registry.tsx";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Page } from "../layout/Page.tsx";
@@ -224,6 +227,47 @@ function FeatureTitle({ done, feature }: { done: boolean; feature: FeatureData }
   );
 }
 
+/**
+ * The check's notes; for a done feature, read from the default branch, with "Fix moved links",
+ * which rewrites its record's moved links, uncommitted, for the commit page; why it was refused
+ * shows under them until dismissed.
+ */
+function FeatureNotes({ feature }: { feature: FeatureData }) {
+  const fate = useFateClient();
+  const [refused, setRefused] = useState<string>();
+  const fix = async () => {
+    setRefused(undefined);
+    const result = await fate.mutations.feature.fixLinks({
+      input: { folder: feature.folder },
+      view: FeatureView,
+    });
+    if (result.error) {
+      setRefused(refusal(result.error).message);
+      return;
+    }
+    // The commit page's count of changes now holds the repair.
+    rereadChanges(fate);
+  };
+  return (
+    <>
+      <Notes
+        notes={feature.notes}
+        onFix={feature.source === "default-branch" ? () => void fix() : undefined}
+      />
+      {refused && (
+        <AnnouncedBanner
+          collapsible={false}
+          dismissLabel="Dismiss"
+          isDismissable
+          onDismiss={() => setRefused(undefined)}
+          status="error"
+          title={refused}
+        />
+      )}
+    </>
+  );
+}
+
 /** The page of a feature that exists, with its history read from git. */
 function FeatureBody({ feature }: { feature: FeatureData }) {
   const history = useHistory(feature.folder);
@@ -268,7 +312,7 @@ function FeatureBody({ feature }: { feature: FeatureData }) {
         />
         <Timeline feature={feature} history={history} progress={feature.step.progress} />
         <RecordPart feature={feature} history={history} keys={keys} />
-        <Notes notes={feature.notes} />
+        <FeatureNotes feature={feature} />
       </VStack>
     </Page>
   );

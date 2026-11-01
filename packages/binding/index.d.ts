@@ -209,6 +209,13 @@ export declare function encodeImage(bytes: Buffer, name: string): Promise<Encode
  */
 export declare function expandProposal(repo: string, id: string, previous: string): Promise<ProposalFileView>
 
+/**
+ * Repairs the links of the done feature `folder`'s record whose file moved or was deleted since,
+ * in the default branch's checkout, without committing: the commit page lists the repair. Returns
+ * the feature read again; rejects a feature not on the default branch.
+ */
+export declare function fixLinks(repo: string, folder: string): Promise<FeatureView>
+
 /** The bytes of an image file, with the MIME type detected from its first bytes. */
 export interface ImageFile {
   bytes: Buffer
