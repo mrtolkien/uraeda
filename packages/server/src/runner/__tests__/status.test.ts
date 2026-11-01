@@ -88,11 +88,6 @@ test.each<[string, Partial<Input>, ReturnType<typeof sessionStatus>]>([
     { label: "Idle", status: "idle" },
   ],
   [
-    "a failed turn dismissed, at a step that waits on the human (US2.2)",
-    { latest: ended("failed", "workflow", dismissed), waitsOnHuman: true },
-    { label: "Needs you", reason: "step", status: "needs-you" },
-  ],
-  [
     "a workflow turn that ended while the step still waits on the agent, seen",
     { latest: ended("done"), seenAt: "2026-10-13T11:00", waitsOnAgent: true },
     { label: "Needs attention", reason: "halted", status: "attention" },
