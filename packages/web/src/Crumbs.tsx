@@ -17,24 +17,26 @@ const styles = stylex.create({
 
 /**
  * Where a page sits: Home, its feature or change, and the page itself when it is inside it, like a
- * file. The feature is named by its title, read with the navigation's workspace. A session's page
- * is "Session" inside its feature or change. Without a feature, as the main checkout's Storybook,
- * Home and the page.
+ * file. The feature is named by its title, read with the navigation's workspace, or, before the
+ * workspace lists it, as while it starts, by `title`. A session's page is "Session" inside its
+ * feature or change. Without a feature, as the main checkout's Storybook, Home and the page.
  */
 export function Crumbs({
   current,
   folder,
   session = false,
+  title: known,
 }: {
   current?: string;
   folder?: string;
   /** Whether the page is the item's session, named "Session" inside a feature. */
   session?: boolean;
+  title?: string | undefined;
 }) {
   const workspace = useWorkspace();
   const here = useRepoPath();
   const item = workspace?.features.find((feature) => feature.folder === folder);
-  const title = item?.title ?? folder;
+  const title = item?.title ?? known ?? folder;
   const page = session ? "Session" : current;
   return (
     <Breadcrumbs label="Breadcrumbs" separator="›" xstyle={[pageText, styles.crumbs]}>

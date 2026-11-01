@@ -18,7 +18,8 @@ import { sessionPath } from "./sessions.ts";
 import { type Handing, NO_BRANCH, SessionPane } from "./SessionView.tsx";
 import { Missing } from "./layout/Missing.tsx";
 import { StartingSession, useStartWrite } from "./session/StartingSession.tsx";
-import { usePlannedStart } from "./useStart.ts";
+import { type PlannedStart, usePlannedStart } from "./useStart.ts";
+import type { Write } from "./writes/useWriteQueue.ts";
 
 /**
  * A feature's session: created with its first message, which this view sends. Opened to hand the
@@ -150,17 +151,54 @@ function IdSession({ draft, id }: { draft: Draft; id: string }) {
   );
 }
 
+/** Nothing to do: the start drawn while its feature's page is read has landed already. */
+const settled = () => {};
+
 /**
  * A feature's session by its folder, or, while its start is in the write queue or planned here, the
  * start's steps where the transcript will be: the feature cannot be read before the start lands.
+ * The start's last plan and steps stay drawn until the feature's page can draw, in the same frame:
+ * its composer and its column stay where they are.
  */
 function FeatureOrStart({ folder }: { folder: string }) {
   const write = useStartWrite(folder);
   const planned = usePlannedStart(folder);
-  if (write === undefined && planned.start === undefined) {
-    return <FeatureSession folder={folder} />;
+  const [last, setLast] = useState<{ start?: PlannedStart; steps?: Write["steps"] }>({});
+  if (planned.start !== undefined && planned.start !== last.start) {
+    setLast((kept) => ({ ...kept, start: planned.start }));
   }
-  return <StartingSession folder={folder} planned={planned} write={write} />;
+  if (write?.steps !== undefined && write.steps !== last.steps) {
+    setLast((kept) => ({ ...kept, steps: write.steps }));
+  }
+  if (write === undefined && planned.start === undefined) {
+    if (last.start === undefined) {
+      return <FeatureSession folder={folder} />;
+    }
+    // Landed: what it called once it did has run.
+    const { landed: _, ...start } = last.start;
+    return (
+      <Suspense
+        fallback={
+          <StartingSession
+            folder={folder}
+            {...(last.steps === undefined ? {} : { landed: last.steps })}
+            planned={{ forget: settled, seen: settled, start }}
+            write={undefined}
+          />
+        }
+      >
+        <FeatureSession folder={folder} />
+      </Suspense>
+    );
+  }
+  return (
+    <StartingSession
+      folder={folder}
+      {...(last.steps === undefined ? {} : { landed: last.steps })}
+      planned={planned}
+      write={write}
+    />
+  );
 }
 
 /** A session's page: a feature's latest, by its folder, or any session, by its ID. */

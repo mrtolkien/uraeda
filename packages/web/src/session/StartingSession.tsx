@@ -81,17 +81,20 @@ function useLanded(
 
 /**
  * The session page of `folder` while its start runs: `write`, the start's in the queue, once the
- * page read it, and `planned`, the plan this document made, if it did. The address's
+ * page read it, and `planned`, the plan this document made, if it did; `landed`, the steps of a
+ * write that left the queue, drawn until the feature's page replaces them. The address's
  * `?continue=start` puts the plan's message in the composer, once; Send keeps it in the server
  * until the steps end. A refusal puts the message kept back in the composer, which then sends
  * nothing.
  */
 export function StartingSession({
   folder,
+  landed,
   planned,
   write,
 }: {
   folder: string;
+  landed?: Write["steps"];
   planned: ReturnType<typeof usePlannedStart>;
   write: Write | undefined;
 }) {
@@ -120,6 +123,7 @@ export function StartingSession({
     write?.href || (start?.proposal === undefined ? NEW_FEATURE : `/edit/${start.proposal}`);
   return (
     <SessionPane
+      crumbs={folder}
       draft={draft}
       folder={folder}
       handing={{ onSent: () => redirect(here(sessionPath(folder))) }}
@@ -129,7 +133,7 @@ export function StartingSession({
           <StartStepsView
             onProposal={() => navigateHere(proposal)}
             queued={write?.queued}
-            steps={write?.steps ?? []}
+            steps={write?.steps ?? landed ?? []}
             title={title}
           />
         </div>
