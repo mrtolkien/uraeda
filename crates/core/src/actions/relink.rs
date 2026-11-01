@@ -15,13 +15,15 @@ use crate::moves::Move;
 const SPECS: &str = "specs";
 
 /// A file the relinker rewrote: its path from the top level, its text before and after, the
-/// links it changed, and whether it differed from `HEAD` before, which keeps it out of a commit.
+/// links it changed, and whether it is `edited`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Relinked {
     pub path: String,
     pub before: String,
     pub after: String,
     pub links: usize,
+    /// Kept out of a move's commit: a file with uncommitted edits, or a file no commit has,
+    /// untracked or ignored, which `git add` would take as new or refuse.
     pub edited: bool,
 }
 
@@ -126,7 +128,12 @@ fn rewrites(
             continue;
         }
         let edited = match git {
-            Some(git) => git.differs_from_head(&path)?,
+            Some(git) => {
+                let held = git
+                    .head()
+                    .is_some_and(|head| git.entry_id(head, &path).is_some());
+                !held || git.differs_from_head(&path)?
+            }
             None => false,
         };
         relinked.push(Relinked {

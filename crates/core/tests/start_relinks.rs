@@ -42,8 +42,8 @@ fn start(repo: &TestRepo) -> Result<(), api::ApiError> {
 }
 
 // Breaks: a record left behind; a refused start leaving a rewritten record; the human's edit
-// committed with the start.
-/// US1 1, 2, 3, and SC-002 for the start; edge case: a hook's refusal.
+// committed with the start; a file git ignores staged with the start.
+/// US1 1, 2, 3, and SC-002 for the start; edge cases: a hook's refusal, a file no commit has.
 #[test]
 fn a_start_relinks_the_record() {
     let repo = with_record();
@@ -72,4 +72,20 @@ fn a_start_relinks_the_record() {
     assert_eq!(edited.read(RECORD), format!("{RELINKED}\nEdited.\n"));
     assert!(!edited.changed_in("main").contains(&RECORD.to_string()));
     assert_eq!(edited.git(&["show", &format!("main:{RECORD}")]), LINKED);
+
+    let ignored = with_record();
+    ignored.write(".gitignore", "specs/local.md\n");
+    ignored.write("specs/local.md", "[draft](proposals/cli-tuis.md)\n");
+
+    start(&ignored).unwrap();
+
+    assert_eq!(
+        ignored.read("specs/local.md"),
+        "[draft](2026-11-10-cli-tuis/proposal.md)\n"
+    );
+    assert!(
+        !ignored
+            .changed_in("main")
+            .contains(&"specs/local.md".to_string())
+    );
 }
