@@ -1,5 +1,5 @@
 // The session's Changes: the files its completed edit calls changed, each with its number of edits
-// and no diff, but none a shell command wrote, which no event names. Then, for a feature's or a
+// and no diff, never those a shell command wrote, since no event names them. Then, for a feature's or a
 // change's session, the files committed on its branch with their lines (US2). The branch lists its
 // first two files, the rest the core sends a button away, then how many more the core left out
 // (ruling R7).
@@ -59,7 +59,7 @@ function Nothing() {
   return <Empty>{NOTHING}</Empty>;
 }
 
-/** The files the session `session` edited, with their edits, or that it changed none yet. */
+/** The files the session `session` edited, with their edits, or that it edited none with a tool. */
 function ThisSession({ session }: { session: string }) {
   const edited = useSession(session)?.edited ?? [];
   if (edited.length === 0) {
