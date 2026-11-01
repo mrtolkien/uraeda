@@ -160,24 +160,18 @@ pub fn is_svg(path: &str, bytes: &[u8]) -> bool {
     let mut rest = text.trim_start_matches('\u{feff}');
     loop {
         rest = rest.trim_start();
-        let doctype = rest
+        let skipped = if let Some(after) = rest.strip_prefix("<?") {
+            after.split_once("?>").map(|(_, after)| after)
+        } else if let Some(after) = rest.strip_prefix("<!--") {
+            after.split_once("-->").map(|(_, after)| after)
+        } else if rest
             .get(..9)
-            .is_some_and(|start| start.eq_ignore_ascii_case("<!doctype"));
-        let subset = doctype
-            && rest
-                .split('>')
-                .next()
-                .is_some_and(|head| head.contains('['));
-        let close = if subset { "]>" } else { ">" };
-        let skipped = [
-            ("<?", "?>"),
-            ("<!--", "-->"),
-            ("<!DOCTYPE", close),
-            ("<!doctype", close),
-        ]
-        .iter()
-        .find(|(open, _)| rest.starts_with(open))
-        .and_then(|(open, close)| rest[open.len()..].split_once(close).map(|(_, after)| after));
+            .is_some_and(|start| start.eq_ignore_ascii_case("<!doctype"))
+        {
+            after_doctype(&rest[9..])
+        } else {
+            None
+        };
         match skipped {
             Some(after) => rest = after,
             None => break,
@@ -189,6 +183,23 @@ pub fn is_svg(path: &str, bytes: &[u8]) -> bool {
             .next()
             .is_some_and(|c| c.is_whitespace() || c == '>' || c == '/')
     })
+}
+
+/// The text after a doctype, from after its `<!DOCTYPE`: past its internal subset `[…]`, whose
+/// declarations may hold `>` and `]`, and the `>` that closes it, after optional whitespace, as XML
+/// allows `] >`.
+fn after_doctype(text: &str) -> Option<&str> {
+    let mut subset = &text[text.find(['[', '>'])?..];
+    if let Some(rest) = subset.strip_prefix('>') {
+        return Some(rest);
+    }
+    loop {
+        let (_, after) = subset.split_once(']')?;
+        if let Some(rest) = after.trim_start().strip_prefix('>') {
+            return Some(rest);
+        }
+        subset = after;
+    }
 }
 
 /// The accepted type of the bytes, from their signature.
