@@ -59,6 +59,8 @@ const styles = stylex.create({
   frame: {
     // The page's surface behind a short page too.
     backgroundColor: colorVars["--color-background-surface"],
+    // The room a page has under the bars, which a page as tall as the window takes (`Page`).
+    "--size-page-height": "var(--size-viewport-height)",
     minHeight: "var(--size-viewport-height)",
   },
   header: {
@@ -90,6 +92,10 @@ const styles = stylex.create({
   // The phone's bar out of the way: what sits on it, as the session's composer, follows it down
   // (`SessionView.tsx`).
   statusAway: { "--status-line-offset": "0px" },
+  // On the phone, the tabs' bar on top too (`shell/Tabs.tsx`).
+  narrow: {
+    "--size-page-height": `calc(var(--size-viewport-height) - ${spacingVars["--spacing-12"]})`,
+  },
   statusNarrow: {
     // On the phone, a row as tall as the tabs', which holds the page's controls, as a round's Next.
     "--size-status-line": spacingVars["--spacing-12"],
@@ -145,6 +151,7 @@ function Frame({
     <div
       {...stylex.props(
         styles.frame,
+        isNarrow && styles.narrow,
         status && styles.status,
         status && isNarrow && styles.statusNarrow,
         isAway && styles.statusAway,

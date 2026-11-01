@@ -23,6 +23,13 @@ const styles = stylex.create({
     paddingInline: "var(--page-inset)",
     width: "100%",
   },
+  // As tall as the window under the shell's bars at least, its last block at its foot: a session's
+  // composer stays where it is while its transcript loads and grows.
+  full: {
+    display: "flex",
+    flexDirection: "column",
+    minHeight: "var(--size-page-height, var(--size-viewport-height))",
+  },
   snug: {
     // On the phone, `--spacing-2` (9.6 px), for a page that is read as text from edge to edge: a
     // session.
@@ -114,11 +121,13 @@ export const PageColumn = createContext<RefObject<HTMLDivElement | null> | null>
 /**
  * A page's content: its inset, and on semi-wide and wide screens its column, by its `kind`, in the
  * middle of the room right of the sidebar. On the phone, `isTight` gives it `--spacing-3`, the
- * sessions' page's inset, and `isSnug` `--spacing-2`, a session's.
+ * sessions' page's inset, and `isSnug` `--spacing-2`, a session's. `isFull`, it is as tall as the
+ * window, and the last block it holds, given `marginBlockStart: auto`, sits at its foot.
  */
 export function Page({
   beside,
   children,
+  isFull = false,
   isSnug = false,
   isTight = false,
   kind,
@@ -126,6 +135,7 @@ export function Page({
   /** A page of rows': the theme's width of what sits beside its text, as settings' controls. */
   beside?: `--size-${string}`;
   children: ReactNode;
+  isFull?: boolean;
   isSnug?: boolean;
   isTight?: boolean;
   /**
@@ -152,6 +162,7 @@ export function Page({
         ref={placed}
         {...stylex.props(
           styles.page,
+          isFull && styles.full,
           isTight && styles.tight,
           isSnug && styles.snug,
           wide && styles.wide,
