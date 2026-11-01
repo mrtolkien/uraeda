@@ -2,7 +2,7 @@
 // feature cannot be read yet, so the page draws from the queue's record and from the plan this
 // document made, the steps where the transcript will be and the plan's message in the composer. A
 // message sent meanwhile waits for the steps; a refusal puts it back (US4).
-import { NEW_FEATURE_HREF } from "uraeda-server/fate";
+import { NEW_FEATURE_HREF } from "uraeda-server/hrefs";
 import { useEffect, useRef } from "react";
 import { useFateClient } from "react-fate";
 import { useHandOver } from "../HandOver.tsx";

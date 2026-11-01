@@ -1,4 +1,4 @@
-import { NEW_FEATURE_HREF } from "uraeda-server/fate";
+import { NEW_FEATURE_HREF } from "uraeda-server/hrefs";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
