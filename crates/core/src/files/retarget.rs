@@ -63,9 +63,10 @@ pub fn rebase(text: &str, from: &str, to: &str) -> String {
 }
 
 /// The text written in the folder `from`, from the top level, as written in the folder `to`, the
-/// files of `moved` gone from each first path to its second: a link to one of them points where it
-/// went, rooted when it was, and every other relative link is rebased, as [`rebase`] does. A note
-/// file's text, its images moved, merged into a proposal file.
+/// files or folders of `moved` gone from each first path to its second: a link to one of them
+/// points where it went, rooted when it was, a link to a folder still ending in `/`, and every
+/// other relative link is rebased, as [`rebase`] does. A note file's text, its images moved, merged
+/// into a proposal file, or a postponed proposal's files, its folder moved.
 pub fn relocated(text: &str, from: &str, to: &str, moved: &[(String, String)]) -> String {
     rewrite(text, |raw| {
         let path = crate::workspace::resolve(from, raw)?;
@@ -74,11 +75,13 @@ pub fn relocated(text: &str, from: &str, to: &str, moved: &[(String, String)]) -
                 .then(|| rebased(raw, from, to))
                 .flatten();
         };
-        let rest = raw.find(['?', '#']).map_or("", |at| &raw[at..]);
+        let (target, rest) = raw.split_at(raw.find(['?', '#']).unwrap_or(raw.len()));
+        // A link to a moved folder stays a link to a folder.
+        let slash = if target.ends_with('/') { "/" } else { "" };
         if raw.starts_with('/') {
-            return Some(format!("/{new}{rest}"));
+            return Some(format!("/{new}{slash}{rest}"));
         }
-        rebased(&format!("{new}{rest}"), "", to)
+        rebased(&format!("{new}{slash}{rest}"), "", to)
     })
 }
 

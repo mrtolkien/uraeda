@@ -121,8 +121,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   same file, put back by the relinker, would leave it named as changed. The rebase already points
   the moved files at each other. A change's folder holds no relative link the move breaks, and a
   rooted link inside it to `/specs/changes/<d>/` is one the move must rewrite.
-- **If wrong**: a link in a postponed proposal's folder to the folder itself, `../<proposal>/`,
-  stays broken until `ura check --fix`.
+- **If wrong**: a link in a postponed proposal's folder to the folder itself, `../<proposal>/` or
+  `/specs/proposals/<proposal>/`, is not left behind: the rebase takes the folder's move too, and
+  points it at the dated folder, `./` or `/specs/<dated>/`. Were the rebase to miss a link, it stays
+  broken until `ura check --fix`.
 - **Where**: task 5, `Start::relink` in `crates/core/src/actions/start/commits.rs`, and
   `relink_folder` in `crates/core/src/actions/promote.rs`.
 
