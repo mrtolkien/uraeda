@@ -151,3 +151,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   page, as `- Repair links: <file name>`.
 - **If wrong**: `linked_files` reads `gather` instead of `gather_lists`, one line.
 - **Where**: task 7, `crates/core/src/actions/changes.rs`.
+
+## R14: The finder pairs a main file only with a start or its own name
+
+- **Decision**: the finder's main-file pairing, after git's renames, pairs the one deleted proposal
+  or note main file of a commit only with the one path the same commit added (a rename's target or a
+  record is not one) that is a dated folder's `proposal.md`, a start, or a main file whose name is
+  the deleted one's, or it with `-<n>` after: a file made a folder, `x.md` to `x/proposal.md`, or a
+  note moved to the proposals, which keeps its stem or takes the next free number. Any other
+  deletion reads as deleted.
+- **Rationale**: the plan paired it with any one added main file, so a commit deleting
+  `notes/old.md` and adding an unrelated `notes/new.md` read as a move, and a fix would have sent
+  links to the wrong file.
+- **If wrong**: a main file renamed to a new name with most of its text rewritten, in one commit,
+  reads as deleted: `--fix` keeps the link's words, and a rename git sees still follows.
+- **Where**: task 2, `start` in `crates/core/src/moves/history.rs`.
