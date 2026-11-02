@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.0.1 - 2026-11-02
+
+### Features
+
+- **[Moving a file never breaks a link to it](https://github.com/mrtolkien/uraeda/blob/v1.0.1/specs/done/2026-11-01-move-relinks.md)**
+  ([#86](https://github.com/mrtolkien/uraeda/pull/86)): Workflow files move: a proposal starts, a
+  note becomes a proposal, a change becomes a feature, a folder becomes its record. Each move left
+  the old path in every file but `PRIORITIES.md` and `INBOX.md`, and `ura check`, part of
+  `vp run ready`, failed on the default branch until someone fixed the link by hand: six times in
+  two days, five of them the same fix on parallel branches. The human wanted every move to rewrite
+  the links to it, and a link broken by a move on another branch to be a one-command repair, in the
+  terminal or the web UI.
+
+### Changes
+
+- **[Fixes from the review of recent work on main](https://github.com/mrtolkien/uraeda/blob/v1.0.1/specs/done/2026-11-02-main-review-fixes.md)**
+  ([#87](https://github.com/mrtolkien/uraeda/pull/87)): The human asked to check that the recent
+  pull requests and the commits made straight to main were implemented properly, and to fix what was
+  found. Shown the findings, the human kept one: nothing stopped the web from importing a value of
+  the server's fate module again, which had blanked the app in development while every check passed.
+  The rest was not worth the work, and stable buttons only concern the buttons that act, like
+  sending or starting, not a page drawing in after a navigation.
+
 ## 1.0.0 - 2026-11-01
 
 ### Features
