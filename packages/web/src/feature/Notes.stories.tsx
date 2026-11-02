@@ -30,7 +30,7 @@ const meta = {
         message: "a sentence of 31 words: split it at 25",
       },
     ],
-    onFix: () => {},
+    onFix: async () => {},
   },
   component: Notes,
   decorators: [

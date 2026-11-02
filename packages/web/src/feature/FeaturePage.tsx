@@ -250,10 +250,7 @@ function FeatureNotes({ feature }: { feature: FeatureData }) {
   };
   return (
     <>
-      <Notes
-        notes={feature.notes}
-        onFix={feature.source === "default-branch" ? () => void fix() : undefined}
-      />
+      <Notes notes={feature.notes} onFix={feature.source === "default-branch" ? fix : undefined} />
       {refused && (
         <AnnouncedBanner
           collapsible={false}

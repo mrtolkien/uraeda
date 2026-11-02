@@ -76,9 +76,10 @@ const NOTES_KEY = "notes";
 
 /**
  * The check's notes, which block nothing, a pane folded to its count, open as the history entry
- * keeps them. `onFix`, given for a default branch's files, repairs every fixable link, uncommitted.
+ * keeps them. `onFix`, given for a default branch's files, repairs every fixable link, uncommitted:
+ * its button is busy until it settles, so a second press runs no second repair.
  */
-export function Notes({ notes, onFix }: { notes: Array<Problem>; onFix?: () => void }) {
+export function Notes({ notes, onFix }: { notes: Array<Problem>; onFix?: () => Promise<void> }) {
   const keys = useOpenKeys();
   if (notes.length === 0) {
     return null;
@@ -98,7 +99,7 @@ export function Notes({ notes, onFix }: { notes: Array<Problem>; onFix?: () => v
         </Text>
         {onFix && notes.some((note) => note.fixable) && (
           <HStack>
-            <Button label="Fix moved links" onClick={onFix} variant="secondary" />
+            <Button clickAction={onFix} label="Fix moved links" variant="secondary" />
           </HStack>
         )}
         <ProblemLines problems={notes} />
