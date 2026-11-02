@@ -171,7 +171,10 @@ text shortened like a proposal's: `edit "<note>" in the inbox`, `remove "<note>"
 only when the proposal, or the proposal file's line, has its exact text: one edited on the way is a
 removal and an addition. With more changes, `PRIORITIES.md`'s included, the subject names the first
 one and ends with `, and <count> more`, and the body lists every change, one per line, the inbox's
-first: `- Move from the inbox to Next: <note>`, `- Remove from the inbox: <note>`. See
+first: `- Move from the inbox to Next: <note>`, `- Remove from the inbox: <note>`. Each other file
+of `specs/` whose only change since `HEAD` is its links, as a move or a Fix rewrites them, is a
+change of its own, after the lists': `repair links in <file>` as a subject, `- Repair links: <file>`
+as a line, `<file>` its name, or its path from `specs/` when another repair has the same name. See
 [Commits](conventions.md#commits).
 
 ## The triage
