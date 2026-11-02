@@ -94,6 +94,13 @@ const tokenProps = [
 ];
 
 /** Raw elements, each with the Astryx component to use instead. */
+/** The server's fate module, whose values the browser cannot load: it imports Node's modules. */
+const serverFate = {
+  allowTypeImports: true,
+  message: "import only types from uraeda-server/fate: its values import Node's modules",
+  name: "uraeda-server/fate",
+};
+
 const forbiddenElements = [
   ["button", "use Astryx Button"],
   ["input", "use Astryx TextInput"],
@@ -178,7 +185,8 @@ export default {
             { forbid: [{ message: "style with StyleX's stylex.props", propName: "style" }] },
           ],
           "react/forbid-elements": ["error", { forbid: forbiddenElements }],
-          // The UI components decision: prose is drawn by `Prose.tsx`, whatever the page.
+          // The UI components decision: prose is drawn by `Prose.tsx`, whatever the page. The
+          // server's fate module imports Node's: a value from it blanks the app in the browser.
           "no-restricted-imports": [
             "error",
             {
@@ -187,6 +195,7 @@ export default {
                   message: "draw markdown with ProseMarkdown (UI components decision)",
                   name: "@astryxdesign/core/Markdown",
                 },
+                serverFate,
               ],
               patterns: [
                 {
@@ -211,6 +220,11 @@ export default {
       {
         // The one place Astryx's Markdown is drawn, bar a story's mockup.
         files: ["packages/web/src/Prose.tsx", "packages/web/src/SessionMockups.stories.tsx"],
+        rules: { "no-restricted-imports": "off" },
+      },
+      {
+        // Tests run on Node, where the server's values load.
+        files: ["packages/web/src/__focused__/**", "packages/web/src/**/__tests__/**"],
         rules: { "no-restricted-imports": "off" },
       },
       {
