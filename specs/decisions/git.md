@@ -16,9 +16,9 @@ as [Feature status](feature-status.md) reads it. Tools never lose the user's wor
   branch with commits the default branch lacks. Checked by the core's tests.
 - Tools MUST remove or delete anything only when a human asks. Checked by the core's tests.
 - Tools MUST NOT bypass the user's hooks, signing, or credentials. Checked by the core's tests.
-- Tools MUST NOT switch the user's checkout unless the human asks. Checked by review.
+- Tools MUST NOT switch the user's checkout unless the human asks.
 - Rust tools MUST read git with the gix library, and write through the system `git`, from one module
-  of the core. Checked by review.
+  of the core.
 - Proposal files, note files, and the human's inbox and priorities MUST be written on the default
   branch. Checked by the core's tests.
 - An agent's inbox notes MUST be written in its own worktree, never on the default branch. Checked

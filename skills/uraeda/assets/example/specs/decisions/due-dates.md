@@ -14,9 +14,8 @@ saving time.
 
 - Due dates MUST be stored as `YYYY-MM-DD` strings. Checked by the `CalendarDay` type and the
   store's upgrade test.
-- Date arithmetic MUST go through the app's date module. Checked by review.
+- Date arithmetic MUST go through the app's date module.
 - Code MUST NOT convert a due date to a `Date`, except inside the date module and to display it.
-  Checked by review.
 
 ## Why
 

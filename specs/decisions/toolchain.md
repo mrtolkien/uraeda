@@ -20,16 +20,15 @@ optimizes the web UI.
 - CI MUST run the same checks as `ready`, uncached, in the Nix dev shell. Checked by the toolchain
   configuration's test.
 - After every task, the fast check MUST cover formatting, lint, types, and the affected focused
-  tests and boundary checks, naming the broader checks it leaves to `ready`. Checked by review.
-- An agent MUST run `vp run ready` before pushing a branch. Checked by review.
-- Every tool and runtime MUST be pinned, with Rust tests run by cargo-nextest. Checked by review and
-  CI.
+  tests and boundary checks, naming the broader checks it leaves to `ready`.
+- An agent MUST run `vp run ready` before pushing a branch.
+- Every tool and runtime MUST be pinned, with Rust tests run by cargo-nextest. Checked by CI.
 - Tests MUST be isolated, so runs in several checkouts of one machine do not collide. Checked by the
   toolchain configuration's test.
 - A test that fails without a bug MUST be fixed in the pull request that finds it, never retried.
-  Checked by the toolchain configuration's test and review.
-- The web UI MUST be compiled by React Compiler. Checked by review.
-- New code SHOULD NOT memoize by hand for speed. Checked by review.
+  Checked by the toolchain configuration's test.
+- The web UI MUST be compiled by React Compiler.
+- New code SHOULD NOT memoize by hand for speed.
 
 ## Why
 

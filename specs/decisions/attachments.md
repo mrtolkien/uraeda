@@ -25,7 +25,7 @@ received it.
   committed to the repository MAY be read and shown, as the human committed it. Checked by the
   core's tests.
 - TypeScript code and editor plugins MUST pass an image's bytes to the core, never encode or write
-  it themselves. Checked by review.
+  it themselves.
 - The server MUST serve attached images, and committed SVGs, so that a browser cannot run them as a
   page. Checked by the server's tests.
 

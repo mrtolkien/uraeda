@@ -13,25 +13,20 @@ that goal when a view's spec says why.
 
 ## Rules
 
-- A view's spec MUST say why its layout reads best, with mockups at each width class. Checked by
-  review.
+- A view's spec MUST say why its layout reads best, with mockups at each width class.
 - The UI MUST adapt to three width classes, narrow, semi-wide, and wide, and size every page and
   pane from one short scale of named widths, picked by what it holds, both set once in the theme,
-  never by a view. Checked by review.
+  never by a view.
 - On narrow screens, views MUST be pages, and pickers, short forms, and confirmations rise as sheets
-  from the bottom. Checked by review.
+  from the bottom.
 - A selector or a menu opened from a control MUST stay a popover anchored to it, at every width.
-  Checked by review.
-- Text MUST stay readable at each width without zoom, with controls easy to hit by touch. Checked by
-  review.
+- Text MUST stay readable at each width without zoom, with controls easy to hit by touch.
 - An open detail, tab, or sheet MUST be in the address, so reload, Back, or a width change keeps it.
-  Checked by review.
-- Prose SHOULD hold about 80 characters a line, even where its page is wider. Checked by review.
-- A column that takes room from the main content SHOULD be foldable and resizable. Checked by
-  review.
-- A view the human follows, such as a session, SHOULD be a page of its own. Checked by review.
+- Prose SHOULD hold about 80 characters a line, even where its page is wider.
+- A column that takes room from the main content SHOULD be foldable and resizable.
+- A view the human follows, such as a session, SHOULD be a page of its own.
 - A feature's session MAY open beside the feature's documents, in a right column wide enough to
-  follow. Checked by review.
+  follow.
 
 ## Why
 

@@ -13,21 +13,20 @@ a session, which only the human can turn into a change or a feature.
 
 ## Rules
 
-- The server MUST run the user's installed agent, never a bundled one or the agent's SDK. Checked by
-  review.
+- The server MUST run the user's installed agent, never a bundled one or the agent's SDK.
 - Every agent MUST be reached through one adapter, which keeps the agent's formats inside it and
-  declares what the agent can do. Checked by review.
+  declares what the agent can do.
 - Sessions, their turns, and their items MUST be stored and shown in one agent-neutral shape.
   Checked by the runner's tests.
 - An agent MUST run with the least permission that still lets unattended steps finish, never with
   its permissions skipped. Checked by the runner's tests.
-- Uraeda MUST NOT read or change an agent's credentials or settings. Checked by review.
+- Uraeda MUST NOT read or change an agent's credentials or settings.
 - Every conversation with an agent MUST be a session, run in the worktree of its change or feature.
   Checked by the runner's tests.
 - An agent MUST NOT turn a session into a change, or a change into a feature, unless the human
-  accepts it. Checked by review.
-- Sessions MUST be a cache in Uraeda's data folder, never stored in a repository. Checked by review.
-- Tests MUST reach agents through a fake adapter, never a real agent. Checked by review.
+  accepts it.
+- Sessions MUST be a cache in Uraeda's data folder, never stored in a repository.
+- Tests MUST reach agents through a fake adapter, never a real agent.
 
 ## Why
 

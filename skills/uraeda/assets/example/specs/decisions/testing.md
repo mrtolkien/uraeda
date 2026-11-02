@@ -14,16 +14,15 @@ logic, and the main scenario of each user story, through the real app.
 
 - A test MUST give way to the approved spec, the decisions, and the human's requests: a test that
   guards behaviour they replace is rewritten or removed in the task that changes the behaviour,
-  never kept by bending the code. Checked by review.
+  never kept by bending the code.
 - A spec that replaces behaviour MUST list it with the tests that guard it, so its approval covers
-  their removal. Checked by review.
-- A test MUST assert what a caller or a user observes, never how the code does it. Checked by
-  review.
+  their removal.
+- A test MUST assert what a caller or a user observes, never how the code does it.
 - A feature MUST test the data it stores, its date and repeat logic, the main scenario of each of
-  its user stories, and the reproduction of each bug fixed. Checked by review.
+  its user stories, and the reproduction of each bug fixed.
 - The main scenario of a story MUST run through the whole app on an in-memory store, as a user does
-  it: by roles, labels, and visible text. Checked by review.
-- The stage MUST be set by the human, and moves only when they say so. Checked by review.
+  it: by roles, labels, and visible text.
+- The stage MUST be set by the human, and moves only when they say so.
 
 ## Why
 

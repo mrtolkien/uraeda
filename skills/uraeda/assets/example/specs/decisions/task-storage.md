@@ -12,11 +12,11 @@ so users never lose their tasks when the app updates.
 
 ## Rules
 
-- Data MUST be stored in IndexedDB, through `src/store/`. Checked by review.
+- Data MUST be stored in IndexedDB, through `src/store/`.
 - Components MUST NOT call IndexedDB or the `idb` library directly. Checked by ESLint's
   `no-restricted-imports` and `no-restricted-globals` in `src/components/`.
 - A change to stored data MUST come with a versioned upgrade, tested on data saved by the previous
-  version. Checked by review, and by the upgrade's own test.
+  version. Checked by the upgrade's own test.
 
 ## Why
 

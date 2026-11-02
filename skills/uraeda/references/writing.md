@@ -230,10 +230,10 @@ rule below keeps it whole and short: length lowers how well an agent follows eac
     protects. A reader who stops there knows what the decision is for. A decision states intent, not
     mechanism: see [what is a decision](spec.md#what-is-a-decision). `decision.intent` warns on a
     fourth sentence.
-35. **One keyword per rule**, then how it is checked: "Checked by review." A rule holding two MUST,
-    SHOULD, or MAY is two rules, or one too detailed. MUST NOT counts as one keyword, and neither a
-    keyword in inline code nor one after "Checked by" counts. `decision.keywords` warns on a rule
-    with two.
+35. **One keyword per rule**, then how a tool checks it, "Checked by `ura check`.", or nothing when
+    only review does. A rule holding two MUST, SHOULD, or MAY is two rules, or one too detailed.
+    MUST NOT counts as one keyword, and neither a keyword in inline code nor one after "Checked by"
+    counts. `decision.keywords` warns on a rule with two.
 36. **Strongest first.** A rule's strength is its first RFC 2119 keyword. MUST and MUST NOT come
     first, then SHOULD and SHOULD NOT, then MAY, the most important first within a strength.
     `decision.order` warns on a rule stronger than the one before it.

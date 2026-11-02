@@ -13,19 +13,19 @@ nothing it does needs a terminal, and what it prints is stable enough for tools 
 ## Rules
 
 - Every rule the CLI enforces or checks MUST be written in the skill, in
-  [`skills/uraeda/`](/skills/uraeda/). Checked by review.
-- A change to a rule MUST update the skill and the CLI in the same change. Checked by review.
-- The skill MUST keep the manual instructions of every step. Checked by review.
+  [`skills/uraeda/`](/skills/uraeda/).
+- A change to a rule MUST update the skill and the CLI in the same change.
+- The skill MUST keep the manual instructions of every step.
 - The CLI MUST embed the skill and its templates, with no second copy of a template or a rule in its
-  code. Checked by review.
+  code.
 - Every action of a TUI, a full-terminal interactive screen, MUST also be available without one, so
   an agent never meets a prompt it cannot answer. Checked by the CLI's tests.
 - What commands print MUST be stable for tools to read, with versioned JSON on every read command.
   Checked by the CLI's tests.
-- The release binary MUST stay as small as possible. Checked by review.
-- A step of the skill SHOULD name the command that performs it. Checked by review.
+- The release binary MUST stay as small as possible.
+- A step of the skill SHOULD name the command that performs it.
 - A feature adding a CLI dependency SHOULD measure what it adds, and pick the smallest that does the
-  job. Checked by review.
+  job.
 
 ## Why
 

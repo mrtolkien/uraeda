@@ -13,14 +13,12 @@ and their look, and they follow the user's terminal theme.
 ## Rules
 
 - Every TUI of `ura`, prompts and pickers included, MUST use ratatui, with no other prompt or TUI
-  library. Checked by review.
+  library.
 - A prompt inside a command MUST draw inline under the command's output, full screens being for TUIs
-  that are the command itself. Checked by review.
-- A TUI MUST restore the terminal on every exit, cancels, errors, and panics included. Checked by
-  review.
-- A TUI MUST follow the user's terminal theme, and stay readable without colour. Checked by review.
-- Reusable TUI parts SHOULD live in their own modules, testable without a terminal. Checked by
-  review.
+  that are the command itself.
+- A TUI MUST restore the terminal on every exit, cancels, errors, and panics included.
+- A TUI MUST follow the user's terminal theme, and stay readable without colour.
+- Reusable TUI parts SHOULD live in their own modules, testable without a terminal.
 
 ## Why
 

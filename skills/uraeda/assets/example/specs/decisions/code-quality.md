@@ -24,7 +24,7 @@ only go down.
 - A marker on code that no longer breaks its limit MUST fail the lint. Checked by ESLint's
   `reportUnusedDisableDirectives: "error"`.
 - A new marker MUST NOT be added unless a human approves it as a constitution exception in the
-  plan's complexity tracking. Checked by review.
+  plan's complexity tracking.
 
 ## Why
 

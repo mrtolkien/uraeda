@@ -22,17 +22,15 @@ tests, from the stages below]. [The tests the UI keeps: the bar a UI test must p
 
 - A test MUST give way to the approved spec, the decisions, and the human's requests: a test that
   guards behaviour they replace is rewritten or removed in the task that changes the behaviour,
-  never kept by bending the code. Checked by review.
+  never kept by bending the code.
 - A spec that replaces behaviour MUST list it with the tests that guard it, so its approval covers
-  their removal. Checked by review.
-- A test MUST assert what a caller or a user observes, never how the code does it. Checked by
-  review.
-- At the [stage], a feature MUST test [what that stage tests, from the list above]. Checked by
-  review.
+  their removal.
+- A test MUST assert what a caller or a user observes, never how the code does it.
+- At the [stage], a feature MUST test [what that stage tests, from the list above].
 - [A test of the UI MUST guard behaviour that is costly to lose and that using the UI would not
   show, such as unsaved text or a git write, and everything else is left to the human's review. Or,
-  for a stage that tests the UI: what it is tested by, and how.] Checked by review.
-- The stage MUST be set by the human, and moves only when they say so. Checked by review.
+  for a stage that tests the UI: what it is tested by, and how.]
+- The stage MUST be set by the human, and moves only when they say so.
 
 ## Why
 

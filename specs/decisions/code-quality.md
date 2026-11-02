@@ -20,11 +20,9 @@ down.
   configuration's test.
 - Code over a limit when this decision was approved MUST be marked in place with its reason, so that
   a marker left on fixed code fails. Checked by the linters.
-- A new marker MUST NOT be added unless a human approves it in the plan. Checked by review.
-- A custom lint rule or structural test MUST say in its message how to fix the problem. Checked by
-  review.
+- A new marker MUST NOT be added unless a human approves it in the plan.
+- A custom lint rule or structural test MUST say in its message how to fix the problem.
 - Unit tests MUST NOT depend on elapsed time, except benchmarks of a spec's success criteria.
-  Checked by review.
 
 ## Why
 

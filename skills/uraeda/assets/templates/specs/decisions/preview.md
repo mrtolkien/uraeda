@@ -17,7 +17,7 @@ mockups stay HTML.]
 ## Rules
 
 - The preview MUST be [the project's Storybook, in `<folder>`, or a mockups Storybook in
-  `storybook/`], run by `[command]`. Checked by review.
+  `storybook/`], run by `[command]`.
 - This decision's frontmatter MUST hold the preview's folder and command, as `preview-folder` and
   `preview-command`. Checked by `ura check`.
 - Storybook MUST use its Vite builder. Checked by `uraeda-preview.js`, which stops a webpack
@@ -25,12 +25,11 @@ mockups stay HTML.]
 - [Mockups and named states MUST be stories, in `<Component>.stories.<ext>` files next to their
   component, one export per state or variant. For a mockups Storybook: in the feature's or the
   change's `mockups/*.stories.tsx`, read through `specs/*/mockups/*.stories.tsx` and
-  `specs/changes/*/mockups/*.stories.tsx`, written in React with Astryx.] Checked by review.
+  `specs/changes/*/mockups/*.stories.tsx`, written in React with Astryx.]
 - Storybook MUST load the Uraeda skill's helpers from its `assets/storybook/`, copied unchanged: its
-  `main.ts` wrapped by `uraeda-preview.js`, and its preview loading `uraeda-pick.js`. Checked by
-  review.
-- Storybook's packages MUST be pinned to exact versions, and upgraded together. Checked by review.
-- Storybook's telemetry MUST be off. Checked by review.
+  `main.ts` wrapped by `uraeda-preview.js`, and its preview loading `uraeda-pick.js`.
+- Storybook's packages MUST be pinned to exact versions, and upgraded together.
+- Storybook's telemetry MUST be off.
 - [Optional: where stories get their data, and how a story reads it through Uraeda, which forwards
   only GET and HEAD requests and WebSocket upgrades.]
 

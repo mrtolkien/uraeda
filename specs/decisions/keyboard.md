@@ -14,9 +14,8 @@ something.
 ## Rules
 
 - A shortcut MUST be declared in the key registry, and listened for nowhere else. Checked by a
-  structural test and review.
-- Every action MUST work by keyboard and by tap, never by hover or a single key alone. Checked by
-  review.
+  structural test.
+- Every action MUST work by keyboard and by tap, never by hover or a single key alone.
 - Single-key shortcuts MUST be switchable off by a setting in the settings file. Checked by the
   settings page's tests.
 - A chord with a modifier key MUST open the leader menu while single-key shortcuts are off. Checked
@@ -26,10 +25,10 @@ something.
 - Shortcuts MUST work at every width, with their hints hidden on narrow screens. Checked by the UI
   tests.
 - Every page MUST share one base set of keys, following Vim's habits to move, add, edit, and go to a
-  page. Checked by review.
+  page.
 - A key MUST NOT mean two things on one page, though two pages may give it different meanings.
   Checked by the registry's tests.
-- A page's own keys SHOULD be few and mnemonic. Checked by review.
+- A page's own keys SHOULD be few and mnemonic.
 - The status line SHOULD show the keys that work on the page, drawn from the registry. Checked by
   the UI tests.
 
