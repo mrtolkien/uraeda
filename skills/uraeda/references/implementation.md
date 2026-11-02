@@ -253,10 +253,12 @@ By hand, `git log -M --name-status -- <path>` lists the commits that removed a m
 its newest removal, then the new path's removals after it, to the end:
 
 - **A rename**, as git detects it, moved the file.
-- **A start** moved it: a commit removing one proposal or note file, `proposals/<x>.md`,
-  `proposals/<x>/proposal.md`, `notes/<x>.md`, or `notes/<x>/note.md`, and adding one such file or
-  one dated folder's `proposal.md`, pairs the two. The pair holds even when the file was edited past
-  git's rename detection.
+- **A start** moved it: a commit removing one proposal or note main file, `proposals/<x>.md`,
+  `proposals/<x>/proposal.md`, `notes/<x>.md`, or `notes/<x>/note.md`, that git did not see renamed,
+  pairs it with the one file the same commit added, not by a rename, that is either a dated folder's
+  `proposal.md` or a main file named `<x>` or `<x>-<n>`, as a file made a folder or a note moved to
+  the proposals is. With no such file, or more than one, the commit deleted it. The pair holds even
+  when the file was edited past git's rename detection.
 - **A change made a feature** moved `specs/changes/<folder>/<file>` to `specs/<folder>/<file>`.
 - **A finish**: a commit adding `specs/done/<folder>.md` turned every file it removed from
   `specs/<folder>/` or `specs/changes/<folder>/` into that record.
