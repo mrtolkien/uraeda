@@ -34,6 +34,8 @@ test.each([
   ["raw-custom-property.tsx", "custom-property-tokens"],
   // The UI components decision: markdown goes through `Prose.tsx`.
   ["raw-markdown.tsx", "no-restricted-imports"],
+  // A value of the server's fate module imports Node's modules, which blank the app.
+  ["server-fate-value.tsx", "import only types from uraeda-server/fate"],
   // US3.6: a `test.only` left behind fails the lint.
   ["only-test.test.tsx", "no-only-tests"],
   // The code quality decision: a marker left on code that no longer breaks its rule fails.
