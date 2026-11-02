@@ -115,8 +115,9 @@ fn rebased(raw: &str, from: &str, to: &str) -> Option<String> {
 }
 
 /// The text written in the folder `folder`, from the top level, with each link to a file of
-/// `moves` pointing where it went, and the number of links changed. The first move taking a link
-/// wins; moves are never chained. A moved file is linked rooted when it was, else relative to
+/// `moves` pointing where it went, and the number of links changed. The most specific move taking
+/// a link wins, a file's over its folder's, and the first of moves as specific; moves are never
+/// chained. A moved file is linked rooted when it was, else relative to
 /// `folder`, its `?query` and anchor kept unless the move gives its own anchor, or matched on the
 /// link's anchor. A record keeps the anchor of a question of a clarifications file, and no other.
 /// An inline link or image to a deleted file becomes its words: a link's text as written, an
@@ -127,10 +128,14 @@ pub fn relink(text: &str, folder: &str, moves: &[Move]) -> (String, usize) {
         let raw = found.destination;
         let path = crate::workspace::resolve(folder, raw)?;
         let anchor = raw.split_once('#').map(|(_, anchor)| anchor);
-        let (rest, went, on_anchor) = moves.iter().find_map(|each| {
-            let rest = each.rest(&path, anchor)?;
-            Some((rest, &each.went, each.from.contains('#')))
-        })?;
+        // The most specific move wins: the shortest rest, the first of equals.
+        let (rest, went, on_anchor) = moves
+            .iter()
+            .filter_map(|each| {
+                let rest = each.rest(&path, anchor)?;
+                Some((rest, &each.went, each.from.contains('#')))
+            })
+            .min_by_key(|(rest, ..)| rest.len())?;
         let before_anchor = raw.split('#').next().unwrap_or(raw);
         let (target, query) =
             before_anchor.split_at(before_anchor.find('?').unwrap_or(before_anchor.len()));

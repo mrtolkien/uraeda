@@ -126,3 +126,40 @@ fn the_six_incidents_are_fixed() {
     check::fix(repo.path(), &repo.path().join("specs")).unwrap();
     assert_eq!(repo.read(record_path), text);
 }
+
+/// A note made a proposal by hand, its main file renamed: a file linking both the note file and
+/// its folder has each relinked by its own move, the more specific one first.
+#[test]
+fn a_main_file_link_beside_its_folder_link_follows_its_own_move() {
+    let repo = TestRepo::new();
+    let record_path = "specs/done/2026-10-30-notes.md";
+    repo.write("specs/notes/x/note.md", &lines("x", 10));
+    repo.write("specs/notes/x/images/i.png", &lines("png", 10));
+    repo.write(
+        record_path,
+        "# Record: Notes\n\nSee [the note](/specs/notes/x/note.md) in [its folder](/specs/notes/x/).\n",
+    );
+    repo.commit("chore: a note and a record");
+    std::fs::remove_dir_all(repo.path().join("specs/notes/x")).unwrap();
+    repo.write("specs/proposals/x/proposal.md", &lines("proposal", 10));
+    repo.write("specs/proposals/x/images/i.png", &lines("png", 10));
+    repo.commit("chore: make the note x a proposal");
+
+    let fixed = check::fix(repo.path(), &repo.path().join("specs")).unwrap();
+
+    assert_eq!(
+        fixed,
+        vec![Fixed {
+            file: record_path.into(),
+            links: 2
+        }]
+    );
+    let text = repo.read(record_path);
+    assert!(
+        text.contains(
+            "[the note](/specs/proposals/x/proposal.md) in [its folder](/specs/proposals/x/)"
+        ),
+        "{text}"
+    );
+    assert_eq!(broken(&repo), Vec::<String>::new());
+}
