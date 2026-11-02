@@ -2,7 +2,7 @@
 kind: feature
 finished: 2026-10-16
 pull-request: https://github.com/mrtolkien/uraeda/pull/20
-superseded-by: [2026-10-28-proposal-naming]
+superseded-by: [2026-10-28-proposal-naming, 2026-11-01-move-relinks]
 ---
 
 # Record: Inbox
@@ -14,6 +14,8 @@ superseded-by: [2026-10-28-proposal-naming]
 > in git: `git log -- specs/2026-10-15-add-scratchpad/`.
 >
 > Superseded in part by [2026-10-28-proposal-naming](2026-10-28-proposal-naming.md).
+>
+> Superseded in part by [2026-11-01-move-relinks](2026-11-01-move-relinks.md).
 
 ## What and why
 

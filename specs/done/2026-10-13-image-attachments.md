@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-14
 pull-request: https://github.com/mrtolkien/uraeda/pull/14
+superseded-by: [2026-11-01-move-relinks]
 ---
 
 # Record: Image attachments
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/14
 > The record of a merged feature, not instructions to follow. Started on 2026-10-13, finished on
 > 2026-10-14, in [its pull request](https://github.com/mrtolkien/uraeda/pull/14). Its full files are
 > in git: `git log -- specs/2026-10-13-image-attachments/`.
+>
+> Superseded in part by [2026-11-01-move-relinks](2026-11-01-move-relinks.md).
 
 ## What and why
 
