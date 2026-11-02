@@ -17,7 +17,7 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/82
 The human disliked buttons that move: on a feature's start, the composer jumped around. They asked
 for stable layouts, above all in the standard flow: opening a session, starting a feature or a
 change. What must stay put are the buttons that act, like sending a message, starting, or
-committing; a page drawing in a moment after a reload or a navigation is not worth the work.
+committing. A page drawing in a moment after a reload or a navigation is not worth the work.
 
 ## Behaviour
 
@@ -27,7 +27,8 @@ committing; a page drawing in a moment after a reload or a navigation is not wor
   desktop and on the phone, where the page is no taller than the window under the tabs and the bar.
 - **A feature's start draws in its session's frame**: its page has the session's crumbs, named by
   the start's title, and its column, Activity and Changes. Its steps stay until the feature's
-  session replaces them, once, at the same place, without the app's "Loading…".
+  session replaces them, once, at the same place, without the app's "Loading…", in the tab that
+  planned the start.
 - **A feature's page draws once, with its "Next"**: "Next" no longer arrives about 280 ms later on
   top, pushing the sessions and the timeline down by 180 px.
 - **The UI guides say it**: [space and motion](/specs/ui/space-and-motion.md), "Buttons stay put
@@ -66,10 +67,10 @@ committing; a page drawing in a moment after a reload or a navigation is not wor
 - **The composer's field is replaced once as a feature's start lands**: the start's page and the
   feature's session are different components. The draft is kept by its key, but a human typing at
   that moment loses the focus.
-
 - **The start's frame is kept only in the tab that planned the start**: after a reload, or followed
   from another tab or device, the steps give way to "Loading…" as the start lands. Accepted: it is a
-  page drawing after a navigation, not a button that acts moving.
+  page drawing after a navigation, not a button that acts moving. So is a refused start: once
+  dismissed, it shows as landed for a moment before "No feature".
 
 ## Follow-ups
 

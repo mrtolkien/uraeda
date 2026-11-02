@@ -37,8 +37,8 @@ view:
 
 - **Nothing jumps.** A layout never shifts on hover: the folded rail unfolds over the page, its
   icons staying where they were. "NOTHING SHOULD CHANGE PLACES."
-- **Buttons stay put through a flow**: "I dislike moving buttons", meaning the buttons that act,
-  like sending, starting, or committing, not a page drawing in after a navigation. A session's
+- **Buttons stay put through a flow**: "I dislike moving buttons". This means the buttons that act,
+  like sending, starting, or committing, not a whole page arriving after a navigation. A session's
   composer sits at the window's foot from its first draw, short transcript or long, scrolled or at
   the end. A page draws once what it shows is read, rather than a part arriving later on top and
   pushing the rest down, as a feature's "Next" did. A feature's start draws in its session's frame,
