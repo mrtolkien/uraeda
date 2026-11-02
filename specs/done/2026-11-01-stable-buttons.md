@@ -16,7 +16,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/82
 
 The human disliked buttons that move: on a feature's start, the composer jumped around. They asked
 for stable layouts, above all in the standard flow: opening a session, starting a feature or a
-change.
+change. What must stay put are the buttons that act, like sending a message, starting, or
+committing; a page drawing in a moment after a reload or a navigation is not worth the work.
 
 ## Behaviour
 
@@ -65,6 +66,10 @@ change.
 - **The composer's field is replaced once as a feature's start lands**: the start's page and the
   feature's session are different components. The draft is kept by its key, but a human typing at
   that moment loses the focus.
+
+- **The start's frame is kept only in the tab that planned the start**: after a reload, or followed
+  from another tab or device, the steps give way to "Loading…" as the start lands. Accepted: it is a
+  page drawing after a navigation, not a button that acts moving.
 
 ## Follow-ups
 
