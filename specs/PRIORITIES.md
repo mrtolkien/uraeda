@@ -6,8 +6,6 @@
 >
 > Still wanted for my personal usage
 
-- [Fixes from the review of recent work on main](/specs/changes/2026-11-02-main-review-fixes/proposal.md)
-
 - "Master" PR: when multiple agents runs, make sure all PRs can merge smoothy. Also, make workflow
   file changes less problematic with merge issues.
 
