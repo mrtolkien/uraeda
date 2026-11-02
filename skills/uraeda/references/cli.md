@@ -45,7 +45,8 @@ found only warnings. `ura lsp` sends warnings to editors with the Warning severi
 says where the file went: `no file <path>: it moved to /<new path>`,
 `no file <path>: it became the record /specs/done/<folder>.md`, or
 `no file <path>: deleted in <commit> (<subject>)`, with the commit's 7 characters. `<path>` is the
-link's path as written. `ura check --fix` first rewrites every such link under the path, as
+link's path as written. `ura check --fix` first rewrites every such link under the path, in the
+`specs/` folders under it for a path above them such as `.`, as
 [the catch-up](implementation.md#where-a-moved-link-points) says, and never commits: a file with
 uncommitted changes is rewritten in place. It prints `fixed <file>: <n> link` or `<n> links` for
 each file it changed, in path order, then the check's output, and exits as the check: with success

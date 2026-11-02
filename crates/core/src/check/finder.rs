@@ -9,7 +9,7 @@ use std::sync::Arc;
 use serde::Serialize;
 
 use super::{CheckError, check_in, relative};
-use crate::actions::relink::relink;
+use crate::actions::relink::{put_back, relink};
 use crate::git::{Git, ObjectId};
 use crate::moves::{History, Move, Went};
 
@@ -22,17 +22,38 @@ pub struct Fixed {
 
 /// Checks `target`, a folder or a file under `root`, then rewrites the links of the markdown files
 /// under it to the files git's history says went somewhere: each file changed, in path order.
-/// Writes without committing; a file with uncommitted edits is rewritten in place.
+/// A target outside a `specs/` folder, such as the top level, has the `specs/` folders under it
+/// holding a broken link rewritten. Writes without committing; a file with uncommitted edits is
+/// rewritten in place. All written, or none and the error.
 pub fn fix(root: &Path, target: &Path) -> Result<Vec<Fixed>, CheckError> {
     let root = fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let finder = Finder::new(&root, None);
-    check_in(&root, target, false, &finder)?;
+    let problems = check_in(&root, target, false, &finder)?;
     let moves = finder.moves();
     if moves.is_empty() {
         return Ok(Vec::new());
     }
     let target = fs::canonicalize(target).map_err(|_| CheckError::Missing(target.into()))?;
-    let relinked = relink(&root, &relative(&root, &target), &moves, &[])?;
+    let target = relative(&root, &target);
+    let mut folders = match specs_folder(&target) {
+        Some(_) => vec![target],
+        None => (problems.iter())
+            .filter(|problem| problem.rule == "links.file")
+            .filter_map(|problem| specs_folder(&problem.file))
+            .collect(),
+    };
+    folders.sort();
+    folders.dedup();
+    let mut relinked = Vec::new();
+    for folder in &folders {
+        match relink(&root, folder, &moves, &[]) {
+            Ok(files) => relinked.extend(files),
+            Err(error) => {
+                put_back(&root, &relinked);
+                return Err(error.into());
+            }
+        }
+    }
     Ok(relinked
         .into_iter()
         .map(|file| Fixed {
@@ -40,6 +61,13 @@ pub fn fix(root: &Path, target: &Path) -> Result<Vec<Fixed>, CheckError> {
             links: file.links,
         })
         .collect())
+}
+
+/// The `specs/` folder holding `path`, from the top level: `path` up to its first `specs` segment.
+fn specs_folder(path: &str) -> Option<String> {
+    let segments: Vec<&str> = path.split('/').collect();
+    let at = segments.iter().position(|segment| *segment == "specs")?;
+    Some(segments[..=at].join("/"))
 }
 
 /// The history a check reads where missing files went from, with the moves it answered.
