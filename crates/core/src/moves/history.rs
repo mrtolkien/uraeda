@@ -3,8 +3,8 @@
 //! finished folder's record, or the commit that deleted it, chained to the end.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex, PoisonError};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use super::Went;
 use crate::git::{CommitPaths, Git, GitError, ObjectId};
@@ -34,23 +34,37 @@ static READ: Mutex<Vec<Read>> = Mutex::new(Vec::new());
 /// branch's in turn.
 const KEPT: usize = 4;
 
+/// The memo of histories read, taken over a panic's poison.
+fn lock() -> MutexGuard<'static, Vec<Read>> {
+    READ.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+/// The history of `root` at `tip` kept in `read`, made the most recently used.
+fn kept(read: &mut Vec<Read>, root: &Path, tip: ObjectId) -> Option<Arc<History>> {
+    let at = read
+        .iter()
+        .position(|(read_root, read_tip, _)| read_root == root && *read_tip == tip)?;
+    let used = read.remove(at);
+    let history = Arc::clone(&used.2);
+    read.push(used);
+    Some(history)
+}
+
 impl History {
     /// The history of `tip`, read once with `git log`. The last few histories read are kept, by
     /// repository root and tip, and returned again for them; the one used least recently leaves
-    /// first.
+    /// first. The memo is not held while git runs, so another repository's read never waits on
+    /// this one; of two reads of the same history at once, the first one kept is returned to both.
     pub fn read(git: &Git, tip: ObjectId) -> Result<Arc<History>, GitError> {
         let root = git.root().to_path_buf();
-        let mut read = READ.lock().unwrap_or_else(PoisonError::into_inner);
-        if let Some(at) = read
-            .iter()
-            .position(|(read_root, read_tip, _)| *read_root == root && *read_tip == tip)
-        {
-            let used = read.remove(at);
-            let history = Arc::clone(&used.2);
-            read.push(used);
+        if let Some(history) = kept(&mut lock(), &root, tip) {
             return Ok(history);
         }
         let history = Arc::new(History::from_commits(&git.path_events(tip)?));
+        let mut read = lock();
+        if let Some(kept) = kept(&mut read, &root, tip) {
+            return Ok(kept);
+        }
         if read.len() == KEPT {
             read.remove(0);
         }
