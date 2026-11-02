@@ -163,3 +163,32 @@ fn a_main_file_link_beside_its_folder_link_follows_its_own_move() {
     );
     assert_eq!(broken(&repo), Vec::<String>::new());
 }
+
+/// A fix given the top level relinks the links of the `specs/` folders under it.
+#[test]
+fn a_fix_of_the_top_level_relinks_its_specs_folders() {
+    let repo = TestRepo::new();
+    let record_path = "specs/done/2026-10-30-flow.md";
+    repo.write("specs/proposals/flow.md", &lines("idea", 10));
+    repo.write(
+        record_path,
+        "# Record: Flow\n\nFrom [the flow](/specs/proposals/flow.md).\n",
+    );
+    repo.commit("chore: a proposal and a record");
+    repo.git(&["mv", "specs/proposals/flow.md", "specs/proposals/flows.md"]);
+    repo.commit("chore: rename the flow");
+
+    let fixed = check::fix(repo.path(), repo.path()).unwrap();
+
+    assert_eq!(
+        fixed,
+        vec![Fixed {
+            file: record_path.into(),
+            links: 1
+        }]
+    );
+    assert!(
+        repo.read(record_path)
+            .contains("[the flow](/specs/proposals/flows.md)")
+    );
+}

@@ -30,7 +30,8 @@ the step is `push`, for an agent.
 
 `ura check` says where a missing file went, from git's history: it moved, it became a finished
 feature's record, or a commit deleted it. `ura check --fix` repairs those links, without committing,
-and prints each file it changed before the check's output:
+in every `specs/` folder under the path it is given, and prints each file it changed before the
+check's output:
 
 ```text
 fixed specs/done/2026-10-30-inbox-again.md: 1 link
