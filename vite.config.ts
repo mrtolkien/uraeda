@@ -93,7 +93,6 @@ const tokenProps = [
   "letterSpacing",
 ];
 
-/** Raw elements, each with the Astryx component to use instead. */
 /** The server's fate module, whose values the browser cannot load: it imports Node's modules. */
 const serverFate = {
   allowTypeImports: true,
@@ -101,6 +100,7 @@ const serverFate = {
   name: "uraeda-server/fate",
 };
 
+/** Raw elements, each with the Astryx component to use instead. */
 const forbiddenElements = [
   ["button", "use Astryx Button"],
   ["input", "use Astryx TextInput"],
