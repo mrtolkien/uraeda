@@ -269,8 +269,9 @@ its newest removal, then the new path's removals after it, to the end:
 Then rewrite the link:
 
 - **Moved**: point it at the new path, in its own form. A rooted link, `/specs/...`, stays rooted,
-  and a relative one is written from its file's folder. Its anchor, title, and `<…>` stay, and a
-  link to a folder keeps its trailing `/`.
+  and a relative one is written from its file's folder; a decision candidate's, in
+  `specs/decisions-check/`, from `specs/decisions/`, as its links resolve. Its anchor, title, and
+  `<…>` stay, and a link to a folder keeps its trailing `/`.
 - **Became a record**: point it at the record. A question's anchor in a `clarifications-NN.md`,
   `#q<number>...`, stays; any other anchor is dropped. A file of the folder that is not markdown,
   like an image, counts as deleted: the finish deleted it.

@@ -159,8 +159,9 @@ pub fn relink(text: &str, folder: &str, moves: &[Move]) -> (String, usize) {
                 };
                 written(raw, folder, &format!("{to}{slash}"), query, anchor)
             }
-            // The finish deletes a folder's images and every other file but its markdown.
-            Went::Record(_) if !rest.is_empty() && !rest.ends_with(".md") => {
+            // The finish deletes a folder's images and every other file but its markdown, whether
+            // the move is the folder's or, from `ura check --fix`, the image's own.
+            Went::Record(_) if !path.ends_with(".md") && (!rest.is_empty() || is_file(&path)) => {
                 return found.words.map(|_| Edit::Words);
             }
             Went::Record(record) => {
@@ -190,13 +191,13 @@ pub fn only_links_changed(then: &str, now: &str) -> bool {
             .all(|link| then_links.any(|each| each == link))
 }
 
-/// An inline link or image as [`only_links_changed`] compares them: where its words start in the
-/// reduced text, whether it is an image, its words, and what follows its destination, its title.
+/// An inline link or image as [`only_links_changed`] compares them: where its words start and end
+/// in the reduced text, whether it is an image, and what follows its destination, its title. Its
+/// words are compared in the reduced text, so an image inside a link is compared by its alt alone.
 #[derive(PartialEq)]
 struct Kept<'a> {
-    at: usize,
+    words: Range<usize>,
     image: bool,
-    words: &'a str,
     title: &'a str,
 }
 
@@ -228,9 +229,8 @@ fn reduced(text: &str) -> (String, Vec<Kept<'_>>) {
             let (whole, words) = place.link.as_ref()?;
             let tail = &text[place.destination.end..whole.end.saturating_sub(1)];
             Some(Kept {
-                at: reduced_at(words.start),
+                words: reduced_at(words.start)..reduced_at(words.end),
                 image: text[whole.start..].starts_with('!'),
-                words: &text[words.clone()],
                 title: tail.trim_start_matches('>').trim(),
             })
         })
@@ -275,6 +275,14 @@ fn written(
 
 /// Whether `anchor`, on a link to the file `path`, is a question of a clarifications file:
 /// `clarifications-NN.md#q6-…`.
+/// Whether `path` names a file by its extension, not a folder.
+fn is_file(path: &str) -> bool {
+    path.rsplit('/').next().is_some_and(|name| {
+        name.rsplit_once('.')
+            .is_some_and(|(stem, _)| !stem.is_empty())
+    })
+}
+
 fn is_question(path: &str, anchor: &str) -> bool {
     let name = path.rsplit('/').next().unwrap_or(path);
     let clarifications = name
@@ -491,6 +499,11 @@ mod tests {
             moved("specs/old", "specs/new"),
             moved("specs/proposals/s.md", "specs/my notes/s.md"),
             moved("specs/proposals/p.md#note-x", "specs/notes/x.md"),
+            // `ura check --fix` finds a finished folder's image by its own path.
+            Move {
+                from: "specs/2026-10-12-gone/images/b.png".to_string(),
+                went: Went::Record("specs/done/2026-10-12-gone.md".to_string()),
+            },
         ];
         let cases = [
             ("[d](../proposals/a.md)", "[d](../2026-11-10-a/proposal.md)"),
@@ -526,6 +539,7 @@ mod tests {
             ("`[d](../proposals/a.md)`", "`[d](../proposals/a.md)`"),
             ("[[../proposals/a.md]]", "[[../proposals/a.md]]"),
             ("![shot](../2026-10-10-cli-core/images/a.png)", "shot"),
+            ("![shot](../2026-10-12-gone/images/b.png)", "shot"),
             ("[d](../old/my%20file.md)", "[d](../new/my%20file.md)"),
             ("[d](<../old/my file.md>)", "[d](<../new/my file.md>)"),
             ("[s](../proposals/s.md)", "[s](../my%20notes/s.md)"),
@@ -578,6 +592,15 @@ mod tests {
             assert!(!only_links_changed(then, now), "{then} -> {now}");
         }
         assert!(only_links_changed("[a](<x.md> \"t\")", "[a](<y.md> \"t\")"));
+        // An image inside a link: only its destination changed.
+        assert!(only_links_changed(
+            "[![shot](old.png)](target.md)",
+            "[![shot](new.png)](target.md)"
+        ));
+        assert!(!only_links_changed(
+            "[![shot](old.png)](target.md)",
+            "[![other](old.png)](target.md)"
+        ));
         assert!(!only_links_changed(
             "See the spec and old.",
             "See [the spec](../a/spec.md) and old."

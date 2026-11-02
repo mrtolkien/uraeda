@@ -35,10 +35,12 @@ be a one-command repair, in the terminal or the web UI.
   file made a folder, or of a note file moved to the proposals, reverses its moves over the files
   whose change since `HEAD` is link destinations alone.
 - **A link keeps its form**: rooted or relative, its title, `<…>`, and a moved folder's trailing
-  `/`. Code spans and code blocks are never rewritten. A link to a finished folder points at its
-  record, a question's anchor kept, any other anchor dropped. A move matched on an anchor writes the
-  anchor the move gives, or none. A note merged into a proposal file is linked at its subsection,
-  the first `###` heading the merge added.
+  `/`. A decision candidate's relative links are read and written from `specs/decisions/`, as
+  `ura check` resolves them. Code spans and code blocks are never rewritten. A link to a finished
+  folder points at its record, a question's anchor kept, any other anchor dropped; a link to its
+  image, found by the folder's move or the image's own, becomes its words. A move matched on an
+  anchor writes the anchor the move gives, or none. A note merged into a proposal file is linked at
+  its subsection, the first `###` heading the merge added.
 - **A link to a deleted file keeps its words without the link**, in records too; an image keeps its
   alt text. Words left at a line's start stay as they are, even when they then read as markdown
   syntax. A reference definition to a deleted file stays, still reported. Wikilinks are reported,
@@ -58,9 +60,10 @@ be a one-command repair, in the terminal or the web UI.
   file's move over its folder's. Two runs from the same tree write identical bytes, so branches
   repairing the same link merge without conflict.
 - **The commit page lists link repairs**: each file of `specs/` whose only change since `HEAD` is
-  link destinations is a change of its own, after the lists', subject `repair links in <file>`, line
-  `- Repair links: <file>`, named by its path from `specs/` when another repair has the same name. A
-  proposal or note file's commit from its editor leaves the repairs on the commit page.
+  link destinations, an image's inside a link included, is a change of its own, after the lists',
+  subject `repair links in <file>`, line `- Repair links: <file>`, named by its path from `specs/`
+  when another repair has the same name. A proposal or note file's commit from its editor leaves the
+  repairs on the commit page.
 - **A done feature's page fixes moved links.** Its record's format notes say where each file went,
   and "Fix moved links" rewrites them in the default branch's files, without committing, busy until
   the repair settles. The record is checked when its page is read, not when Home or the sidebar read
@@ -155,3 +158,5 @@ The commit will go through our commit dialog."
 - The Fix button stays busy until its repair settles.
 - The catch-up, a postpone, and a drop commit their repairs alone; the finish amends its repairs
   into the finishing commit.
+- A decision candidate's links follow a move from `specs/decisions/`, a finished folder's image
+  found by its own path becomes its words, and an image inside a link counts as a link repair.
