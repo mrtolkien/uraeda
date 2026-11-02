@@ -16,24 +16,21 @@ of the UI are rare.
 
 - A test MUST give way to the approved spec, the decisions, and the human's requests: a test of
   behaviour they replace is rewritten or removed in the task that changes it, never kept by bending
-  the code. Checked by review.
+  the code.
 - A spec that replaces behaviour MUST list it with the tests that guard it, so its approval covers
-  their removal. Checked by review.
-- A test MUST assert what a caller or a user observes, never how the code does it. Checked by
-  review.
+  their removal.
+- A test MUST assert what a caller or a user observes, never how the code does it.
 - At the `early` stage, a feature MUST test little beyond stored formats, git, security, contracts
   between the project's parts, pure logic with many cases, and the reproduction of each bug fixed.
-  Checked by review.
 - A test of the web UI MUST guard behaviour that is costly to lose and that using the UI would not
-  show, such as unsaved text or a git write. Checked by review.
-- The stage MUST be set by the human, and moves only when they say so. Checked by review.
-- A UI change MUST be easy to try in the running app, through the sandbox. Checked by review.
+  show, such as unsaved text or a git write.
+- The stage MUST be set by the human, and moves only when they say so.
+- A UI change MUST be easy to try in the running app, through the sandbox.
 - The agent MUST review each changed view in the running app before handing it over, in both themes
-  and at a phone's and a desktop's width. Checked by review.
+  and at a phone's and a desktop's width.
 - The agent MUST NOT wait for a live review of each UI change: the human may review several
-  together, after merging. Checked by review.
+  together, after merging.
 - A pull request that adds a view MUST show one screenshot of it, never committed to the repository.
-  Checked by review.
 
 ## Why
 

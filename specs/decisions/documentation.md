@@ -14,18 +14,17 @@ what the reader needs where they need it.
 ## Rules
 
 - The README MUST hold only what a newcomer needs to understand Uraeda, see it, install it, and
-  start, linking to the rest. Checked by review.
+  start, linking to the rest.
 - The README MUST present Uraeda as a workflow first, then the CLI that enforces it, then the web UI
-  that drives it. Checked by review.
+  that drives it.
 - The README's install MUST stay a few commands, with every other way to install in `INSTALL.md`.
-  Checked by review.
 - Reference for users, such as settings, sign-in, and the CLI's commands, MUST live in pages under
-  `docs/`. Checked by review.
-- Building, testing, and releasing Uraeda MUST be explained in `CONTRIBUTING.md`. Checked by review.
+  `docs/`.
+- Building, testing, and releasing Uraeda MUST be explained in `CONTRIBUTING.md`.
 - A change that makes the README or a page of the documentation wrong SHOULD update it in the same
-  pull request. Checked by review.
+  pull request.
 - Documentation MAY repeat the skill's rules, or another page's facts, wherever that helps its
-  reader. Checked by review.
+  reader.
 
 ## Why
 

@@ -25,7 +25,7 @@ together, from one tag, with one version.
   release workflow.
 - Releases MUST be published from CI, without a long-lived npm token. Checked by the release
   workflow.
-- A release that fails part way MUST be completable at the same version. Checked by review.
+- A release that fails part way MUST be completable at the same version.
 
 ## Why
 

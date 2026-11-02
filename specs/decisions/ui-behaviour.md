@@ -14,23 +14,21 @@ progress until it lands, without the human waiting.
 ## Rules
 
 - Small edits MUST happen in place, with a dialog only to confirm an irreversible action or to hold
-  a short form. Checked by review.
+  a short form.
 - Text MUST save only on an explicit action, except an outline's row, which also saves as its field
-  is left. Checked by review.
-- Unsaved text MUST be marked as unsaved, outside an outline's rows. Checked by review.
+  is left.
+- Unsaved text MUST be marked as unsaved, outside an outline's rows.
 - Status MUST show next to what it concerns, with an error staying there until dealt with, never
-  only in a toast. Checked by review.
-- A write MUST show its result at once and take the human where it leads. Checked by review.
-- A refused write MUST put back what it showed and say why next to what it concerns. Checked by
-  review.
-- A git write MUST show its progress in a toast until it lands. Checked by review.
+  only in a toast.
+- A write MUST show its result at once and take the human where it leads.
+- A refused write MUST put back what it showed and say why next to what it concerns.
+- A git write MUST show its progress in a toast until it lands.
 - Git writes MUST land one after another, in the order they were made, without blocking the human.
-  Checked by review.
-- Back and reload MUST keep the human's place and what they were reading. Checked by review.
+- Back and reload MUST keep the human's place and what they were reading.
 - A view of something that grows, such as a session's log, MUST keep typing smooth at thousands of
-  items, by mounting a bounded number of rows and nothing folded. Checked by review.
-- Unsaved text SHOULD NOT be dropped without asking. Checked by review.
-- Lists whose rows open a pane SHOULD share one keyboard behaviour. Checked by review.
+  items, by mounting a bounded number of rows and nothing folded.
+- Unsaved text SHOULD NOT be dropped without asking.
+- Lists whose rows open a pane SHOULD share one keyboard behaviour.
 
 ## Why
 

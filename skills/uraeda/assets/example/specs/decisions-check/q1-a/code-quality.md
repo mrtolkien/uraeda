@@ -22,7 +22,7 @@ only go down.
   reason. Checked by ESLint, which fails on unmarked code over a limit.
 - A marker on code that no longer breaks its limit MUST fail the lint. Checked by ESLint.
 - A new marker MUST NOT be added unless a human approves it as a constitution exception in the
-  plan's complexity tracking. Checked by review.
+  plan's complexity tracking.
 
 ## Why
 

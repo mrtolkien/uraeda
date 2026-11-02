@@ -50,9 +50,9 @@ their code is fixed. A new marker is a constitution exception: the human approve
 
 A rule only a reader remembers is followed until someone forgets it. A rule a tool checks holds.
 
-- **Each rule of a decision ends with how it is checked**: a lint, a test, `ura check`, or "Checked
-  by review." when no tool can. Review only is an honest answer: it tells the next agent that
-  nothing else guards the rule.
+- **A rule of a decision a tool checks ends with how**: "Checked by" a lint, a test, or `ura check`.
+  A rule with nothing after it is checked by review only, an honest answer: it tells the next agent
+  that nothing else guards the rule.
 - **A decision a tool can check**, proposed by a spec, gets that check in the plan's **Test map**.
   The plan then has a task that adds it.
 - **A custom lint rule or structural test says the fix in its message**: "split this file by

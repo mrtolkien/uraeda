@@ -14,7 +14,7 @@ through the Rust core.
 
 - The list of repositories MUST be data in Uraeda's data folder, never in a repository or the
   session cache. Checked by the core's tests.
-- The Rust core MUST be the only code that reads or writes the list. Checked by review.
+- The Rust core MUST be the only code that reads or writes the list.
 - Each entry MUST be a git repository's main checkout, listed once, under a unique readable name.
   Checked by the core's tests.
 - Removing a repository from the list MUST NOT change its files or its cached sessions. Checked by
@@ -25,7 +25,7 @@ through the Rust core.
 - Each repository MUST have its own data endpoint and live updates, apart from one global endpoint
   for what spans them all. Checked by the server's tests.
 - Workflow rules MUST NOT read an entry's presentation, such as its colour. Checked by the core's
-  tests and review.
+  tests.
 
 ## Why
 

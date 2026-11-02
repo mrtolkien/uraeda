@@ -21,7 +21,7 @@ understands what will notify. The phone and closed tabs are left to a later feat
   notifier's tests.
 - A click on a notification MUST open its item. Checked by the notifier's tests.
 - Notifications MUST come from an open page, without a service worker or Web Push, until a feature
-  for the phone decides how. Checked by review.
+  for the phone decides how.
 - The tab's title SHOULD count the items that need the human. Checked by the notifier's tests.
 
 ## Why

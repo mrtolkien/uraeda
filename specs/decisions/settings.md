@@ -14,9 +14,8 @@ overrides a setting for one run, and settings stay apart from Uraeda's data and 
 
 - Settings MUST live in one TOML file in the config folder, on macOS too, apart from Uraeda's data
   and secrets. Checked by the core's tests.
-- The settings file MUST NOT hold a secret, or be read from a repository. Checked by review.
-- Finding, reading, validating, and writing the settings MUST live in the Rust core. Checked by
-  review.
+- The settings file MUST NOT hold a secret, or be read from a repository.
+- Finding, reading, validating, and writing the settings MUST live in the Rust core.
 - A write MUST keep a human's comments, unknown keys, and order. Checked by the core's tests.
 - A write MUST NOT overwrite a file that is unreadable or invalid. Checked by the core's tests.
 - A setting MUST resolve from its flag, then its environment variable, then the file, then its
@@ -24,7 +23,7 @@ overrides a setting for one run, and settings stay apart from Uraeda's data and 
 - A flag or an environment variable MUST NOT be written into the file. Checked by the server's
   tests.
 - A setting changed in the web UI MUST apply at once when it can, the page saying otherwise when it
-  applies. Checked by review.
+  applies.
 
 ## Why
 

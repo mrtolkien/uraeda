@@ -30,10 +30,9 @@ off.
   Checked by the preview proxy's and the embed's tests.
 - A process the server runs MUST NOT receive Uraeda's credentials. Checked by the preview proxy's
   tests.
-- The server MUST NOT treat an address, a `Host`, or a proxy header as proof of identity. Checked by
-  review.
+- The server MUST NOT treat an address, a `Host`, or a proxy header as proof of identity.
 - Sign-in MUST NOT be turned off by a flag, an environment variable, or a setting: only code builds
-  an app without it, for tests, Storybook, and the [sandbox](sandbox.md). Checked by review.
+  an app without it, for tests, Storybook, and the [sandbox](sandbox.md).
 
 ## Why
 

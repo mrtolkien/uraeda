@@ -167,9 +167,10 @@ the human gives the limits of each section, and how a **Why** reads.
 - **Rules**: MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY rules that a spec, a plan, or code can be
   checked against. Each rule is the human's goal or approach, judged from their goals (the fourth
   and fifth tests of [what is a decision](#what-is-a-decision)). Each rule stands on its own, since
-  plans copy it word for word. It ends with how it is checked: a lint, a test, `ura check`, or
-  "Checked by review." A check a tool could run but does not yet becomes a line of the plan's test
-  map, and a task. See [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
+  plans copy it word for word. A rule a tool checks ends with how, "Checked by" a lint, a test, or
+  `ura check`; a rule with nothing after it is checked by review. A check a tool could run but does
+  not yet becomes a line of the plan's test map, and a task. See
+  [rules enforced by tools](code-quality.md#rules-enforced-by-tools).
 - **Why**: the reason, so an agent can apply a rule to a case it does not name, and a reader can
   tell whether the decision still holds. The history and the investigation stay in the record. Until
   the feature is [finished](finish.md#rewrite-the-links), its one link points to the feature's spec,
@@ -505,7 +506,7 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
    each rule is stated once.
 7. **Decisions**: each one listed comes from an answer or a review comment, and a new one passes the
    five tests. Each reads alone, within [the limits](writing.md#a-decision): intent first, its rules
-   strongest first, one keyword each, with how it is checked.
+   strongest first, one keyword each, with the tool that checks it, if one does.
 8. **Risks**: every unverified outside behaviour and every relaxed guard is in the block, a guard as
    what an attacker could do.
 

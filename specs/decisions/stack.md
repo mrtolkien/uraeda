@@ -13,18 +13,16 @@ reaches it.
 
 ## Rules
 
-- Workflow logic, parsing, validation, and states MUST live in the Rust core. Checked by review.
-- TypeScript MUST reach the core only through the binding, never reimplementing it. Checked by
-  review.
-- The `ura` CLI MUST be Rust, needing no runtime. Checked by review.
+- Workflow logic, parsing, validation, and states MUST live in the Rust core.
+- TypeScript MUST reach the core only through the binding, never reimplementing it.
+- The `ura` CLI MUST be Rust, needing no runtime.
 - The server MUST be TypeScript on Node, and the web UI React with Astryx, the UI's design system,
-  fed only by the server through fate, its data library. Checked by review.
+  fed only by the server through fate, its data library.
 - The web UI MUST draw workflow files from the core's document tree, never parsing their markdown.
-  Checked by review.
 - Editor plugins MUST reach workflow files only through `ura lsp`, the language server over the
-  core. Checked by review.
+  core.
 - Completions and code actions MUST edit only the open document, leaving commits to a command the
-  user runs. Checked by review.
+  user runs.
 - The server MUST stop every preview command it runs when it stops. Checked by the runner's tests.
 - The server MAY run a checkout's active [preview](preview.md) command. Checked by the runner's
   tests.

@@ -15,21 +15,19 @@ where a spec, a question, or a session links them. The picked mockup is the code
 ## Rules
 
 - The preview MUST be the app's Storybook, at the repository's top level, run by
-  `npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`. Checked by review.
+  `npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`.
 - This decision's frontmatter MUST hold the preview's folder and command, as `preview-folder: .` and
   that `preview-command`. Checked by `ura check`.
 - Storybook MUST use its Vite builder, through `@storybook/react-vite`. Checked by Uraeda's helper,
   which stops a webpack Storybook.
 - Mockups and named states MUST be stories, in `*.stories.tsx` files under `src/`, one export per
-  state or variant. Checked by review.
+  state or variant.
 - Stories MUST get their tasks from the app's own store, on an in-memory IndexedDB the story fills,
-  as the integration tests do. Checked by review.
+  as the integration tests do.
 - Storybook MUST load the Uraeda skill's helpers from its `assets/storybook/`, copied unchanged: its
-  `main.ts` wrapped by `uraeda-preview.js`, and its preview loading `uraeda-pick.js`. Checked by
-  review.
-- Storybook's packages MUST be pinned to exact versions, and upgraded together. Checked by review of
-  `package.json`.
-- Storybook's telemetry MUST be off. Checked by review of `main.ts`.
+  `main.ts` wrapped by `uraeda-preview.js`, and its preview loading `uraeda-pick.js`.
+- Storybook's packages MUST be pinned to exact versions, and upgraded together.
+- Storybook's telemetry MUST be off.
 
 ## Why
 

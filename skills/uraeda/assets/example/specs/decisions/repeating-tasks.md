@@ -17,7 +17,7 @@ done.
   `RepeatRule` field of the `Task` type.
 - Completing a repeating task MUST move its due date to the next occurrence, in place of creating a
   new task. Checked by the completion tests of the task store.
-- Features MUST NOT rely on a history of completed occurrences: there is none. Checked by review.
+- Features MUST NOT rely on a history of completed occurrences: there is none.
 
 ## Why
 

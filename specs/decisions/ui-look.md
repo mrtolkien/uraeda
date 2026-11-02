@@ -14,24 +14,23 @@ outside it: the human picks one for each role.
 ## Rules
 
 - The UI MUST look like a terminal tool: square corners, and content grouped in bordered panes whose
-  title sits in their top border. Checked by review.
+  title sits in their top border.
 - On the phone, a pane MUST keep its whole border, with little room inside it and around it, so its
-  text has nearly the screen's width. Checked by review.
+  text has nearly the screen's width.
 - Text MUST be set for readability first, in the font picked for its role: a monospace font by
-  default, and a proportional one where it reads better, such as long prose. Checked by review.
-- Text MUST be set at the reading size the human chose, once, in the theme. Checked by review.
+  default, and a proportional one where it reads better, such as long prose.
+- Text MUST be set at the reading size the human chose, once, in the theme.
 - A new colour scheme MUST be added as a named scheme of the same theme, never as styles in a view.
-  Checked by review.
 - Every text colour MUST reach 4.5:1 against its background, and borders and controls 3:1, the
   contrast WCAG AA asks for, in every scheme. Checked by a test of the theme's tokens.
 - Fonts MUST be bundled with the app under an open licence, with no file loaded from another host.
   Checked by a test of the built app.
 - A harness, the tool that runs an agent such as Claude Code, MUST be marked by Codicons' drawing of
-  its mark where Codicons has one, and by a neutral glyph otherwise. Checked by review.
+  its mark where Codicons has one, and by a neutral glyph otherwise.
 - What floats over the page, such as the phone's bottom bars or the leader menu, SHOULD be frosted
-  glass: a light tint, what is behind it blurred, and square corners. Checked by review.
+  glass: a light tint, what is behind it blurred, and square corners.
 - Icons SHOULD come from Lucide, another free set's glyph standing in where it fits a concept
-  clearly better. Checked by review.
+  clearly better.
 
 ## Why
 

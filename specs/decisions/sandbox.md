@@ -14,7 +14,7 @@ where pages are browsed together, as a user does.
 ## Rules
 
 - The sandbox MUST serve the whole web UI from the checkout it runs in, with hot reload, over sample
-  projects only. Checked by review.
+  projects only.
 - The sandbox MUST NOT read or write the human's real repositories, data folder, config folder, or
   agent. Checked by a test.
 - The sandbox's sessions MUST run on a fake agent, which answers from canned text and changes no
@@ -25,10 +25,8 @@ where pages are browsed together, as a user does.
   naming the page, the element, and its source location. Checked by a test.
 - The sandbox's code, sample projects, and picker MUST NOT reach the built app or the package.
   Checked by a test of the build's output.
-- Mockups and variants SHOULD stay Storybook stories, as [Preview](preview.md) says. Checked by
-  review.
-- The sandbox MAY take source locations from a build plugin that only the sandbox loads. Checked by
-  review.
+- Mockups and variants SHOULD stay Storybook stories, as [Preview](preview.md) says.
+- The sandbox MAY take source locations from a build plugin that only the sandbox loads.
 
 ## Why
 

@@ -12,8 +12,8 @@ protects, in at most three plain sentences. The goal or approach, not a value th
 ## Rules
 
 - [One sentence with a single MUST or MUST NOT: the strongest rules first.] Checked by [a lint, a
-  test, `ura check`, or review].
-- [Then the rules with SHOULD or SHOULD NOT, then MAY, at most 10 in all.] Checked by [...].
+  test, or `ura check`, when one does; nothing when only review does].
+- [Then the rules with SHOULD or SHOULD NOT, then MAY, at most 10 in all.]
 
 ## Why
 

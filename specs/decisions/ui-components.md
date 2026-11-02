@@ -16,21 +16,18 @@ tells it.
 - Views MUST use Astryx components wherever one fits the job. Checked by lint.
 - Views MUST be styled only through Astryx's theme, never with a global stylesheet or inline styles.
   Checked by lint.
-- A kind of information MUST be drawn by one shared component on every page that shows it. Checked
-  by review.
+- A kind of information MUST be drawn by one shared component on every page that shows it.
 - A change to how information is drawn MUST be made in its shared component, so every page follows.
-  Checked by review.
 - A page MUST NOT draw information its own way, unless the plan names an extremely good reason and
-  the human approves it. Checked by review.
+  the human approves it.
 - A text input MUST behave as its class does everywhere: a single-line input, a multi-line markdown
-  input, or a composer. Checked by review.
+  input, or a composer.
 - Reading text MUST be drawn through the one shared component for prose, never sized or measured by
   a page. Checked by lint and a test.
-- Drag and drop MUST use `@dnd-kit/react`. Checked by review.
+- Drag and drop MUST use `@dnd-kit/react`.
 - Astryx, StyleX, its styling library, and `@dnd-kit/react` MUST be pinned to exact versions.
-  Checked by review.
 - A raw element or a plain style MAY stand in where Astryx and StyleX cannot do the job, with its
-  reason in a comment, the plan listing it as an Astryx gap. Checked by lint and review.
+  reason in a comment, the plan listing it as an Astryx gap. Checked by lint.
 
 ## Why
 

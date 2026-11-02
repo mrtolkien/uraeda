@@ -13,14 +13,14 @@ code reads only the new format, and old files are updated, or fail `ura check` u
 ## Rules
 
 - Before version 1.0, a format change MUST NOT keep the old format working: no fallback reading, no
-  migration code. Checked by review.
+  migration code.
 - A feature that changes a format MUST update the templates, examples, fixtures, and default-branch
   files it affects, in the same branch. Checked by `ura check`.
 - An agent that finds a file failing `ura check` because its format changed MUST rewrite it in the
   new format, keeping its content and the human's words, before its step goes on. Checked by
   `ura check`.
 - Files on other branches in flight MAY fail `ura check` after a merge, until their branch catches
-  up. Checked by review.
+  up.
 
 ## Why
 

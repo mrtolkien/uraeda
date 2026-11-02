@@ -15,7 +15,7 @@ shown, so nothing waits on git for what git already said. It is a target to keep
 - The server MUST answer reads from what it already read, reading git again only for what changed
   since. Checked by the core's tests.
 - The browser MUST keep the data of the pages it has shown, and read the page of the selected row
-  ahead, so a key reaches it as fast as a click. Checked by review.
+  ahead, so a key reaches it as fast as a click.
 - A benchmark over the sandbox's projects MUST measure the target's pages and actions on demand.
   Checked by the benchmark's run in each feature's review.
 - A development build MUST warn when an interaction passes 100 ms. Checked by the benchmark's run in
@@ -24,9 +24,9 @@ shown, so nothing waits on git for what git already said. It is a target to keep
   second, on a release build serving a repository the size of Uraeda's own. Checked by the
   benchmark, against 100 ms and 1 second.
 - A page SHOULD NOT show a loading state: what it shows comes from what the server and the browser
-  already hold. Checked by review and the benchmark.
+  already hold. Checked by the benchmark.
 - A commit's hooks and an agent's work MAY take longer than the target, as long as their progress
-  shows. Checked by review.
+  shows.
 
 ## Why
 

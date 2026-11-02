@@ -18,18 +18,16 @@ server, so a story shows what the app shows.
 - Uraeda's preview MUST be the Storybook of `packages/web`, run by the command this decision's
   `preview-folder` and `preview-command` fields hold. Checked by `ura check`.
 - A spec's mockups, and the named states of views, MUST be stories written with the real components,
-  next to them. Checked by review and lint.
-- Storybook MUST run Uraeda's real server over fixture data, never faking its responses. Checked by
-  review.
+  next to them. Checked by lint.
+- Storybook MUST run Uraeda's real server over fixture data, never faking its responses.
 - Stories MUST NOT run as tests: the rare UI tests run elsewhere, as [Testing](testing.md) says.
-  Checked by review.
 - The full check, `vp run ready`, MUST build Storybook, so a story that does not compile fails it.
   Checked by the `storybook:build` task.
-- Storybook's packages MUST be pinned to exact versions. Checked by review.
+- Storybook's packages MUST be pinned to exact versions.
 - A page's layout, or a sketch no component holds yet, MAY be an HTML page in the feature's
-  `mockups/` folder, linked from its story. Checked by review.
+  `mockups/` folder, linked from its story.
 - An investigation MAY compare throwaway prototypes in any format, which the spec's approval
-  deletes. Checked by review.
+  deletes.
 
 ## Why
 

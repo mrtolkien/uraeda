@@ -16,12 +16,11 @@ answer is missing. Everything else `ura check` finds is a note, shown only on th
   note otherwise. Checked by the core's tests.
 - Whether a rule stops the workflow MUST be decided once, in the core, never by a tool reading its
   results. Checked by the core's tests.
-- Home and the sidebar's cards MUST show problems only. Checked by review.
-- Notes MUST show only on their item's page. Checked by review.
+- Home and the sidebar's cards MUST show problems only.
+- Notes MUST show only on their item's page.
 - `ura check` and editors MUST keep reporting every result at its own severity: a note is the web
   UI's reading of an error. Checked by the CLI's tests.
 - A new rule of `ura check` SHOULD report a note, unless the workflow cannot go on without a fix.
-  Checked by review.
 
 ## Why
 

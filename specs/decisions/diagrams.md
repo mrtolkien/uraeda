@@ -13,15 +13,15 @@ any editor and renders on GitHub and GitLab. The web UI draws them with the
 ## Rules
 
 - A diagram in a workflow file MUST be a fenced `mermaid` code block, not another diagram language,
-  an image, or an ASCII drawing. Checked by review.
-- The web UI MUST draw diagrams with the Pele library. Checked by review.
+  an image, or an ASCII drawing.
+- The web UI MUST draw diagrams with the Pele library.
 - A diagram MUST NOT run a script in the page, even when its text holds one. Checked by the
   diagram's tests.
 - A diagram that fails to draw MUST show its source instead. Checked by the diagram's tests.
-- A diagram MUST NOT repeat what the text around it says. Checked by review.
+- A diagram MUST NOT repeat what the text around it says.
 - A diagram SHOULD show a flow, a sequence, or states that a list or a table would make hard to
-  follow. Checked by review.
-- The web UI SHOULD load the diagram library only on a page that holds a diagram. Checked by review.
+  follow.
+- The web UI SHOULD load the diagram library only on a page that holds a diagram.
 
 ## Why
 

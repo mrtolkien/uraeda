@@ -14,9 +14,9 @@ kept in git as plain text.
 ## Rules
 
 - Agents MUST NOT start a benchmark run without a human's explicit approval, whose giver the run's
-  record names. Checked by the runner's tests and review.
+  record names. Checked by the runner's tests.
 - A benchmark MUST reach agents through the server's adapter, reusing its parsing rather than
-  copying it. Checked by review.
+  copying it.
 - A run MUST load the skill from a named commit, never from the working tree. Checked by the
   runner's tests.
 - The simulated human MUST see only what a human would open, never the hidden tests or the reference
@@ -30,7 +30,7 @@ kept in git as plain text.
 - Git MUST hold each run's record, scores, workflow files, and final diff, but not its raw
   transcripts, which stay local. Checked by `.gitignore` and the runner's tests.
 - Each case SHOULD have one plain-agent baseline run, on the same task, model, and effort as the
-  runs it is compared with. Checked by review.
+  runs it is compared with.
 - Agents SHOULD NOT read the task's upstream repository. Checked by the audit of the addresses they
   fetched.
 
