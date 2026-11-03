@@ -1,6 +1,8 @@
-// The status line, at the bottom of the window. On semi-wide and wide screens, one line: the hints
-// of the keys that work on the page (the key registry's), then how many cards need the human and
-// how many sessions run. On the phone, a bar of the page's own controls only (`TopBarSlot`, as a
+// The status line, at the bottom of the window. On semi-wide and wide screens, one line in
+// LazyVim's shape, lualine's sections (`status/`): the Vim mode while Vim's keys are on, the branch
+// a page names, the hints of the keys that work on the page (the key registry's), then how many
+// cards need the human and how many sessions run, and the cursor's place while a field has the
+// focus. On the phone, a bar of the page's own controls only (`TopBarSlot`, as a
 // round's count and Next), while it has any: the phone's tabs show the counts. An Astryx gap
 // (plan, Complexity tracking): no component draws a status line. Astryx's `Kbd` writes keys in
 // capitals, "J K", where the line writes them as typed. Its counts are not announced as they change:
@@ -19,6 +21,12 @@ import { KeyCap } from "../keys/KeyCap.tsx";
 import { keepFocus } from "../keys/press.ts";
 import { useHints, usePress } from "../keys/registry.tsx";
 import { useHidesOnScroll } from "./useHidesOnScroll.ts";
+import { useMode } from "../fields/editor/modeStore.ts";
+import { useVimOn } from "../fields/editor/vim/load.ts";
+import { useShownBranch } from "./status/branch.ts";
+import { ModeAnnouncer, ModeSection } from "./status/Mode.tsx";
+import { Place } from "./status/Place.tsx";
+import { Section, sectionStyles, Separator, type Tone, toneOf } from "./status/Sections.tsx";
 import { bareButtonStyles } from "../layout/bareButton.ts";
 import { barVars } from "../layout/bar.stylex.ts";
 import { ruleStyles } from "../layout/rules.ts";
@@ -98,6 +106,8 @@ const styles = stylex.create({
     flexShrink: 0,
     gap: spacingVars["--spacing-2"],
   },
+  // The wide line's sections run edge to edge, each the line's height, joined by their triangles.
+  wide: { alignItems: "stretch", gap: 0, paddingInline: 0 },
 });
 
 /** Where the line's "need you" leads: the page of the one card that needs the human, else home. */
@@ -116,7 +126,7 @@ function Hints() {
   const hints = useHints();
   const press = usePress();
   return (
-    <div {...stylex.props(styles.hints)}>
+    <div {...stylex.props(sectionStyles("c", "off"), styles.hints)}>
       {hints.map((hint) => (
         <Text
           color="secondary"
@@ -146,7 +156,7 @@ function Counts() {
   const entries = needsYouEntries(data);
   const waiting = entries.length;
   return (
-    <div {...stylex.props(styles.counts)}>
+    <div {...stylex.props(sectionStyles("c", "off"), styles.counts)}>
       {waiting > 0 && (
         <Text type="supporting" xstyle={[styles.count, styles.needs]}>
           {/* oxlint-disable-next-line react/forbid-elements -- the "need you" count, pressed to open its page, drawn as the status line's text, in its font and with no padding or surface, which Astryx's Button does not draw (an Astryx gap) */}
@@ -180,7 +190,12 @@ export function StatusLine({
   onAway?: (isAway: boolean) => void;
   slot: ReactNode;
 }) {
-  return isNarrow ? <PhoneBar onAway={onAway ?? noAway} slot={slot} /> : <Line />;
+  return (
+    <>
+      <ModeAnnouncer />
+      {isNarrow ? <PhoneBar onAway={onAway ?? noAway} slot={slot} /> : <Line />}
+    </>
+  );
 }
 
 /** No one to tell where the phone's bar is. */
@@ -224,17 +239,51 @@ function PhoneBar({ onAway, slot }: { onAway: (isAway: boolean) => void; slot: R
   );
 }
 
-/** The line of semi-wide and wide screens: the hints, and the counts. */
+/**
+ * The line's left end, lualine's sections a and b: the mode while Vim's keys are on, then the
+ * branch a page names, each closed by its triangle.
+ */
+function Start({ tone }: { tone: Tone }) {
+  const { mode } = useMode();
+  const branch = useShownBranch();
+  return (
+    <>
+      {tone !== "off" && (
+        <>
+          <ModeSection mode={mode} tone={tone} />
+          <Separator from="mode" into={branch ? "b" : "line"} pointing="right" tone={tone} />
+        </>
+      )}
+      {branch && (
+        <>
+          <Section kind="b" tone={tone}>
+            <Icon icon="uraeda:git-branch" size="sm" />
+            {branch}
+          </Section>
+          <Separator from="b" into="line" pointing="right" tone={tone} />
+        </>
+      )}
+    </>
+  );
+}
+
+/**
+ * The line of semi-wide and wide screens: the mode and the branch, the hints, the counts, and the
+ * cursor's place.
+ */
 function Line() {
   // Left out under a sheet that leaves the page usable, which rises from the same edge.
   const isCovered = useStatusLineCovered();
+  const tone = toneOf(useMode().mode, useVimOn());
   if (isCovered) {
     return null;
   }
   return (
-    <footer aria-label="Status line" {...stylex.props(ruleStyles.above, styles.line)}>
+    <footer aria-label="Status line" {...stylex.props(ruleStyles.above, styles.line, styles.wide)}>
+      <Start tone={tone} />
       <Hints />
       <Counts />
+      <Place tone={tone} />
     </footer>
   );
 }

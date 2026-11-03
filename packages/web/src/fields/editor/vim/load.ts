@@ -49,3 +49,30 @@ const subscribe = (listener: () => void) => {
 export function useVimErrors(): ReadonlyArray<string> {
   return useSyncExternalStore(subscribe, () => errors);
 }
+
+/** Whether the Vim layer is in the fields now: the switch on, a fine pointer, the chunk loaded. */
+let on = false;
+const onListeners = new Set<() => void>();
+
+/** Says the layer went into the fields, or out of them. */
+export function setVimOn(next: boolean) {
+  if (next === on) {
+    return;
+  }
+  on = next;
+  for (const listener of onListeners) {
+    listener();
+  }
+}
+
+const subscribeOn = (listener: () => void) => {
+  onListeners.add(listener);
+  return () => {
+    onListeners.delete(listener);
+  };
+};
+
+/** Whether Vim's keys work in the fields now, for the status line's mode. */
+export function useVimOn(): boolean {
+  return useSyncExternalStore(subscribeOn, () => on);
+}

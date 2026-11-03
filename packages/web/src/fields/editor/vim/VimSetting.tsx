@@ -5,7 +5,7 @@ import { useSettings } from "../../../data.ts";
 import { Unread } from "../../../HandOver.tsx";
 import { OnListClient } from "../../../RepositoryMenu.tsx";
 import { registerEditorExtension } from "../slot.ts";
-import { finePointer, loadVim, setVimErrors, type VimLayer } from "./load.ts";
+import { finePointer, loadVim, setVimErrors, setVimOn, type VimLayer } from "./load.ts";
 
 const NONE: ReadonlyArray<string> = [];
 
@@ -23,12 +23,14 @@ export function useVimLayer(on: boolean, commands: ReadonlyArray<string>) {
       if (!gone && loaded) {
         unregister = registerEditorExtension(loaded.extension);
         setLayer(loaded);
+        setVimOn(true);
       }
     });
     return () => {
       gone = true;
       unregister?.();
       setLayer(undefined);
+      setVimOn(false);
     };
   }, [on]);
   // The commands as one value, so a new list with the same lines runs nothing again.

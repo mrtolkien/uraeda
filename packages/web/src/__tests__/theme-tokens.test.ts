@@ -150,6 +150,15 @@ const TEXT: Array<[string, string]> = [
     ].map((back): [string, string] => [text, back]),
   ),
   ["--color-on-accent", "--color-accent"],
+  // The status line's mode, in its block (`shell/status/Sections.tsx`), and in its section b.
+  ...[
+    "--color-text-secondary",
+    ...["blue", "green", "purple", "red", "orange"].map((hue) => `--color-border-${hue}`),
+  ].map((back): [string, string] => ["--color-on-accent", back]),
+  ...["secondary", "blue", "green", "purple", "red", "orange"].map((hue): [string, string] => [
+    `--color-text-${hue}`,
+    "--color-background-gray",
+  ]),
   // Astryx's media modes: text on light media is on-light, on dark media on-dark, each read on
   // the other, the light and dark fills the theme names.
   ["--color-on-light", "--color-on-dark"],
