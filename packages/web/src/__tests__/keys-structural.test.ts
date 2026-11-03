@@ -32,6 +32,10 @@ const LISTENERS = new RegExp(
     String.raw`\bon[kK]ey(Down|Up|Press)(Capture)?\b`,
     // The property form: `element.onkeydown = ...`.
     String.raw`\bonkey(down|up|press)\s*=`,
+    // CodeMirror's forms: its view's handlers, `domEventHandlers({ keydown(event) {} })`, and a
+    // keymap, `keymap.of([...])`.
+    String.raw`\bdomEventHandlers\b`,
+    String.raw`\bkeymap\.of\b`,
   ].join("|"),
   "g",
 );
@@ -59,7 +63,6 @@ const filesWith = (pattern: RegExp) => Object.keys(hitsOf(pattern));
  * its reason, or declare the key with `useKeys`.
  */
 const ALLOWED: Record<string, { hits: number; reason: string }> = {
-  "AddNote.tsx": { hits: 1, reason: "a text field's own keys: Enter adds the note" },
   "AddRepository.tsx": { hits: 1, reason: "a text field's own keys: Enter adds the repository" },
   "attach/useImageDrop.ts": { hits: 1, reason: "drag and drop events, named in a loop: no key" },
   "Composer.tsx": {
@@ -77,9 +80,17 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
       "a dialog's own keys while it is open, whatever the single-key setting: y, the cancel key " +
       "(n), and the question's own confirm key and answers' keys, as a category delete's n and c",
   },
-  "fields/TextField.tsx": {
+  "fields/editor/Editor.tsx": {
     hits: 2,
-    reason: "a text field's own keys: Ctrl or Cmd+Enter submits",
+    reason:
+      "the shared editor's own text keys, CodeMirror's: moving, deleting, undo and redo; and its " +
+      "view's focus, paste, and scroll, no key",
+  },
+  "fields/editor/keys.ts": {
+    hits: 1,
+    reason:
+      "the shared editor's own keys: Ctrl or Cmd+Enter submits, Enter runs a one-line field's " +
+      "action, Escape leaves the field or cancels it",
   },
   "Folds.tsx": {
     hits: 1,
@@ -106,11 +117,6 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     reason: "a text field's own keys: Enter saves the row, Escape cancels it, Tab indents it",
   },
   "NewPage.tsx": { hits: 1, reason: "a text field's own keys: Escape leaves the search" },
-  "ProposalText.tsx": {
-    hits: 1,
-    reason: "a text field's own keys: Escape leaves the file's text for the page's keys",
-  },
-  "QuickAdd.tsx": { hits: 1, reason: "a text field's own keys: Enter adds the note" },
   "RepositoryMenu.tsx": { hits: 1, reason: "the menu's filter field's own keys" },
   "routes.tsx": { hits: 1, reason: "the navigation event's own name, `CHANGE`: no key" },
   "sandbox/mountSandboxBar.tsx": {
@@ -200,6 +206,8 @@ test("the scan sees each form of key listener and each copy of the layer rule", 
     "window.addEventListener(name, run)",
     "<div onKeyDown={run} />",
     "element.onkeydown = run;",
+    "EditorView.domEventHandlers({ keydown(event, view) {} })",
+    "keymap.of([...defaultKeymap])",
   ];
   for (const sample of listeners) {
     expect(sample.match(LISTENERS), sample).not.toBeNull();

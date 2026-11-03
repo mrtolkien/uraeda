@@ -4,7 +4,16 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { GENERAL_ID } from "../YourReview.tsx";
-import { fixture, fixtureRepo, git, renderPage, serverFetch, today } from "./helpers.tsx";
+import {
+  fieldText,
+  fixture,
+  fixtureRepo,
+  git,
+  renderPage,
+  serverFetch,
+  today,
+  type,
+} from "./helpers.tsx";
 
 const FOLDER = "2026-10-06-recurring-tasks";
 const PAGE = `/f/${FOLDER}/spec.md`;
@@ -94,13 +103,13 @@ function form() {
 
 /** The field of the comment being written, once it shows. */
 async function field() {
-  return within(await form()).getByLabelText("Comment text") as HTMLTextAreaElement;
+  return within(await form()).getByLabelText("Comment text");
 }
 
 /** The general comment's field, at the review's end. */
 function generalField() {
   const end = document.getElementById(GENERAL_ID) as HTMLElement;
-  return within(end).getByLabelText("Comment text") as HTMLTextAreaElement;
+  return within(end).getByLabelText("Comment text");
 }
 
 /** Writes the comment being written, and sends it. */
@@ -165,10 +174,7 @@ function lineOf(r: string, phrase: string) {
 
 /** Types in a comment field, the one being written's by default, without sending it. */
 async function typeComment(text: string, into?: HTMLElement) {
-  const target = into ?? (await field());
-  await act(async () => {
-    fireEvent.change(target, { target: { value: text } });
-  });
+  await type(into ?? (await field()), text);
 }
 
 /** The address a request goes to. */
@@ -250,7 +256,9 @@ test("Request changes during an upload is refused, and commits nothing", async (
   await waitFor(() => expect(shown(UNSENT)).toHaveLength(1));
   expect(lastCommit(r)).toBe(before);
   await held.release();
-  await waitFor(async () => expect((await field()).value).toContain("![login](images/login.webp)"));
+  await waitFor(async () =>
+    expect(fieldText(await field())).toContain("![login](images/login.webp)"),
+  );
   expect(lastCommit(r)).toBe(before);
 });
 
@@ -318,8 +326,7 @@ const LINE_40 = "Paragraph 5 of the long spec.";
 const LINE_52 = "Paragraph 11 of the long spec.";
 
 /** The text of the comment being written. */
-const commentText = () =>
-  (within(writing()[0]!).getByLabelText("Comment text") as HTMLTextAreaElement).value;
+const commentText = () => fieldText(within(writing()[0]!).getByLabelText("Comment text"));
 
 /** The page shown again, as after a reload: the store reads `localStorage` anew. */
 async function reload(r: string) {

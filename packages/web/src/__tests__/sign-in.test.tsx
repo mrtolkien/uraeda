@@ -6,6 +6,7 @@ import { forgetUnsaved } from "../fields/unsaved.ts";
 import { forgetSignedOut } from "../sign-in/signedOut.ts";
 import {
   click,
+  fieldText,
   fixtureRepo,
   refreshUntil,
   renderPage,
@@ -77,7 +78,7 @@ test("unsaved text survives a sign-out", async () => {
 
   await reloaded(ROUND, server.repo, server.fetch);
   await screen.findByText("Which repositories does the UI open now?");
-  expect((comment() as HTMLTextAreaElement).value).toBe("Half typed");
+  expect(fieldText(comment())).toBe("Half typed");
   expect(
     within(document.getElementById("Q3")!).getByText("Unsaved text restored from", {
       exact: false,

@@ -3,7 +3,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { navigate } from "../routes.tsx";
-import { atRepo, click, fixtureRepo, renderPage, today, type } from "./helpers.tsx";
+import { atRepo, click, fieldText, fixtureRepo, renderPage, today, type } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
 const PAGE = `/f/${FOLDER}/clarifications-01.md`;
@@ -20,7 +20,7 @@ today("2026-10-11");
 const q3Comment = () =>
   within(document.getElementById("Q3") as HTMLElement).getAllByLabelText(
     "Comment, or your own answer instead of a letter",
-  )[0] as HTMLTextAreaElement;
+  )[0]!;
 
 /** The breadcrumb's link to the feature's page. */
 const featureLink = () =>
@@ -62,7 +62,7 @@ test("a link away from unsaved text asks first; Stay keeps the page, Leave page 
   await click(within(dialog).getByRole("button", { name: STAY }));
   await waitFor(() => expect(leaveDialog()).toBeNull());
   expect(window.location.pathname).toBe(atRepo(PAGE));
-  expect(q3Comment().value).toBe("Neither, keep it simple");
+  expect(fieldText(q3Comment())).toBe("Neither, keep it simple");
 
   await click(featureLink());
   await click(
@@ -85,7 +85,7 @@ test("Back from unsaved text asks first, the page staying while it asks", async 
   await click(within(dialog).getByRole("button", { name: STAY }));
   await waitFor(() => expect(leaveDialog()).toBeNull());
   expect(window.location.pathname).toBe(atRepo(PAGE));
-  expect(q3Comment().value).toBe("Neither, keep it simple");
+  expect(fieldText(q3Comment())).toBe("Neither, keep it simple");
 
   await back();
   await click(

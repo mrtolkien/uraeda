@@ -7,7 +7,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { KeyboardEvent, MouseEvent, RefObject } from "react";
+import type { MouseEvent, RefObject } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
@@ -131,12 +131,11 @@ export function ProposalText({
                   kind="editor"
                   label="Text"
                   onChange={field.change}
-                  onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
-                    // Escape leaves the field for the page's keys, as it does a terminal's editor.
-                    if (event.key === "Escape") {
-                      event.preventDefault();
-                      event.currentTarget.blur();
-                    }
+                  // Escape leaves the field for the page's keys, as it does a terminal's editor,
+                  // inside the detail overlay too.
+                  onEscape={(leave) => {
+                    leave();
+                    return "handled";
                   }}
                   onSubmit={onSubmit}
                   value={field.text}

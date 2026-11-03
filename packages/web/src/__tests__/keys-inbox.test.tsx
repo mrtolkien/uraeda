@@ -76,7 +76,7 @@ async function save(field: HTMLElement, text: string) {
 /** The category the open add form shows. */
 async function formCategory() {
   const form = within(await screen.findByRole("dialog", { name: "Add a note" }));
-  await form.findByPlaceholderText("What did you notice?");
+  await form.findByRole("textbox", { name: "Note" });
   return form.getByRole("combobox", { name: "Category" }).textContent;
 }
 
@@ -207,7 +207,7 @@ test("L moves the note to the end of the next category", async () => {
 test("none of them act in the add form's text field, or under it", async () => {
   const { link, repo } = await onNote("Idea two");
   await press("a", link);
-  const field = await screen.findByPlaceholderText("What did you notice?");
+  const field = await screen.findByRole("textbox", { name: "Note" });
 
   for (const key of ["i", "m", "o", "c", "d", "K", "L"]) {
     await press(key, field);

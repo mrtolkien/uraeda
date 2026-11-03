@@ -1,6 +1,8 @@
-import type { ClipboardEvent, RefObject } from "react";
+import type { EditorView } from "@codemirror/view";
+import type { RefObject } from "react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { AttachedView } from "uraeda-binding";
+import { type EditorHandle, useEditorElement } from "../fields/editor/Editor.tsx";
 import { dropStyles } from "./DropHint.tsx";
 import { type Edit, editBetween, followEdit, insertLinks } from "./insertLink.ts";
 import { type AttachStatus, useAttach } from "./useAttach.ts";
@@ -27,20 +29,18 @@ const NOT_SAVED = "Your text is not saved: the image was not added.";
  * edit since, placed by the field's caret once it was typed. `seen` is the text they are
  * positions of.
  */
-function usePlaces(ref: RefObject<HTMLTextAreaElement | null>, text: string) {
+function usePlaces(ref: RefObject<EditorHandle | null>, text: string) {
   const places = useRef(new Set<{ at: number }>());
   const seen = useRef(text);
   useLayoutEffect(() => {
     if (text === seen.current) {
       return;
     }
-    const field = ref.current;
+    const view = ref.current?.view();
+    const cursor = view?.state.selection.main;
     const caret =
-      field &&
-      document.activeElement === field &&
-      field.value === text &&
-      field.selectionStart === field.selectionEnd
-        ? field.selectionStart
+      view && cursor && view.hasFocus && view.state.doc.toString() === text && cursor.empty
+        ? cursor.head
         : undefined;
     shift(places.current, editBetween(seen.current, text, caret));
     seen.current = text;
@@ -56,18 +56,19 @@ export type Pending = { range: [number, number]; text: string };
  * upload's status, keeps it waiting. A field not drawn, as while the preview shows, drops the
  * selection, which would take the focus later.
  */
-export function useSelectAfterDraw(ref: RefObject<HTMLTextAreaElement | null>, initial?: Pending) {
+export function useSelectAfterDraw(ref: RefObject<EditorHandle | null>, initial?: Pending) {
   const selection = useRef<Pending | undefined>(initial);
   useLayoutEffect(() => {
-    const field = ref.current;
+    const view = ref.current?.view();
     if (!selection.current) {
       return;
     }
-    if (!field) {
+    if (!view) {
       selection.current = undefined;
-    } else if (field.value === selection.current.text) {
-      field.focus();
-      field.setSelectionRange(...selection.current.range);
+    } else if (view.state.doc.toString() === selection.current.text) {
+      const [anchor, head] = selection.current.range;
+      view.focus();
+      view.dispatch({ scrollIntoView: true, selection: { anchor, head } });
       selection.current = undefined;
     }
   });
@@ -108,11 +109,11 @@ type Field = {
   callbacks: RefObject<
     Pick<ImageTextOptions, "onLinks" | "onMoved" | "onStart" | "onText" | "path">
   >;
-  /** The element last focused, whose cursor places the links. */
-  focused: RefObject<HTMLTextAreaElement | null>;
+  /** The editor last focused, whose cursor places the links. */
+  focused: RefObject<EditorView | null>;
   latest: RefObject<string>;
   places: RefObject<Set<{ at: number }>>;
-  ref: RefObject<HTMLTextAreaElement | null>;
+  ref: RefObject<EditorHandle | null>;
   seen: RefObject<string>;
   selection: RefObject<Pending | undefined>;
 };
@@ -207,10 +208,10 @@ function useRuns(field: Field, attaching: ReturnType<typeof useAttach>) {
   };
 
   const addFiles = (files: Array<File>) => {
-    const element = field.ref.current;
+    const view = field.ref.current?.view();
     const at =
-      element && field.focused.current === element
-        ? element.selectionStart
+      view && field.focused.current === view
+        ? view.state.selection.main.from
         : field.latest.current.length;
     const place = { at };
     field.places.current.add(place);
@@ -248,9 +249,9 @@ function useRuns(field: Field, attaching: ReturnType<typeof useAttach>) {
  * The files a paste attaches, as pasted images, named by the core: none when it holds text, as a
  * paste from an office suite carries a picture of the text with the text, which is pasted (R51).
  */
-export function pastedImages(event: ClipboardEvent<HTMLTextAreaElement>) {
-  const files = [...event.clipboardData.files];
-  if (files.length === 0 || event.clipboardData.getData("text/plain").trim()) {
+export function pastedImages({ clipboardData }: { clipboardData: DataTransfer | null }) {
+  const files = [...(clipboardData?.files ?? [])];
+  if (files.length === 0 || clipboardData?.getData("text/plain").trim()) {
     return undefined;
   }
   return files.map((file) => new File([file], "", { type: file.type }));
@@ -268,10 +269,10 @@ export function pastedImages(event: ClipboardEvent<HTMLTextAreaElement>) {
  */
 export function useImageText(options: ImageTextOptions) {
   const { initialSelection, initialStatus, label, path, priority, takes, text } = options;
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const ref = useRef<EditorHandle>(null);
   // A field never focused since it was drawn has no cursor the human chose, and its images go at
   // the end. A field drawn again, as after the preview, is new.
-  const focused = useRef<HTMLTextAreaElement | null>(null);
+  const focused = useRef<EditorView | null>(null);
   const latest = useRef(text);
   const callbacks = useRef(options);
   useLayoutEffect(() => {
@@ -287,7 +288,7 @@ export function useImageText(options: ImageTextOptions) {
     label,
     onFiles: (files) => void addFiles(files),
     priority,
-    ref,
+    ref: useEditorElement(ref),
     ...(takes === undefined ? {} : { takes }),
   });
 
@@ -297,20 +298,20 @@ export function useImageText(options: ImageTextOptions) {
     /** Whether files wait or upload. */
     busy,
     /**
-     * Spread on the field's `TextArea`: its ref, its paste and focus, and its outline as the drop's
-     * target, on the field's box: Astryx 0.7 ignores a text field's own `xstyle`.
+     * Spread on the field's `TextField`: its ref, its paste and focus, and its outline as the
+     * drop's target, on the editor's box.
      */
     fieldProps: {
       controlXstyle: isTarget ? dropStyles.target : undefined,
       onFocus: () => {
-        focused.current = ref.current;
+        focused.current = ref.current?.view() ?? null;
       },
-      onPaste: (event: ClipboardEvent<HTMLTextAreaElement>) => {
+      onPaste: (event: ClipboardEvent) => {
         const files = takes === false ? undefined : pastedImages(event);
         if (files) {
-          event.preventDefault();
           void addFiles(files);
         }
+        return files !== undefined;
       },
       ref,
     },

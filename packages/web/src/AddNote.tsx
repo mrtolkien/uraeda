@@ -4,7 +4,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { HStack } from "@astryxdesign/core/HStack";
-import { type ClipboardEvent, type FocusEvent, useEffect, useRef, useState } from "react";
+import { type FocusEvent, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import type { InboxNote } from "uraeda-binding";
 import { AttachButton } from "./attach/AttachButton.tsx";
@@ -16,6 +16,7 @@ import { useInbox } from "./data.ts";
 import { type Refusal, refusal } from "./errors.ts";
 import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
+import { type EditorHandle, useEditorElement } from "./fields/editor/Editor.tsx";
 import { TextField } from "./fields/TextField.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import {
@@ -27,7 +28,7 @@ import {
   type PickedChanges,
   useAddWithImage,
 } from "./NoteImage.tsx";
-import { AddButtons, enterAdds } from "./QuickAdd.tsx";
+import { AddButtons } from "./QuickAdd.tsx";
 import { noteAdded } from "./optimisticLists.ts";
 import { InboxView } from "./views.ts";
 
@@ -285,8 +286,13 @@ export function AddNote({
 }) {
   const typed = useTypedNote(category);
   const { add, message, names, ready, status } = useAdd({ about, images, onAdded, typed });
-  const field = useRef<HTMLTextAreaElement>(null);
-  const drop = useImageDrop({ label: "the note", onFiles: picked.add, priority: 1, ref: field });
+  const field = useRef<EditorHandle>(null);
+  const drop = useImageDrop({
+    label: "the note",
+    onFiles: picked.add,
+    priority: 1,
+    ref: useEditorElement(field),
+  });
 
   useCloseGuard({ closes, images, picked, typed });
 
@@ -306,13 +312,13 @@ export function AddNote({
           label="Note"
           onChange={typed.note.change}
           // A note is one line: Enter adds it, or adds it as a file with its images.
-          onKeyDown={enterAdds(() => void add())}
-          onPaste={(event: ClipboardEvent<HTMLTextAreaElement>) => {
+          onEnter={() => void add()}
+          onPaste={(event) => {
             const files = pastedImages(event);
             if (files) {
-              event.preventDefault();
               picked.add(files);
             }
+            return files !== undefined;
           }}
           placeholder="What did you notice?"
           ref={field}

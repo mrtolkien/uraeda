@@ -2,7 +2,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { VStack } from "@astryxdesign/core/VStack";
-import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
@@ -27,16 +27,6 @@ export const TITLES = new Map([
 /** A section's title to display, a Blocked an existing file still has included. */
 export function titleOf(section: string) {
   return section === "blocked" ? "Blocked" : (TITLES.get(section) ?? section);
-}
-
-/** A one-line field's Enter, Shift+Enter aside: it calls `onEnter` instead of a new line. */
-export function enterAdds(onEnter: () => void) {
-  return (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      onEnter();
-    }
-  };
 }
 
 /**
@@ -167,7 +157,11 @@ export function AddForm({
           label="Proposal"
           onChange={field.change}
           // A proposal is a line: Enter adds it, and closes the form.
-          onKeyDown={enterAdds(() => text.trim() && void add())}
+          onEnter={() => {
+            if (text.trim()) {
+              void add();
+            }
+          }}
           value={text}
         />
       </div>

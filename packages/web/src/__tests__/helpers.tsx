@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { EditorView } from "@codemirror/view";
 import {
   act,
   cleanup,
@@ -429,16 +430,34 @@ export function homeShown() {
   return screen.findAllByRole("link", { name: /Web UI for the workflow files/ });
 }
 
-/** Types a value into a field, at once: a form field, or an editable text like the composer's. */
+/**
+ * Types a value into a field, at once: the shared editor, through its view, as typed text; a form
+ * field; or an editable text like the composer's.
+ */
 export async function type(element: HTMLElement, value: string) {
   await act(async () => {
-    if (element.getAttribute("contenteditable") === "true") {
+    const view = EditorView.findFromDOM(element);
+    if (view) {
+      view.dispatch({
+        changes: { from: 0, insert: value, to: view.state.doc.length },
+        selection: { anchor: value.length },
+        userEvent: "input.type",
+      });
+    } else if (element.getAttribute("contenteditable") === "true") {
       element.textContent = value;
       fireEvent.input(element);
     } else {
       fireEvent.change(element, { target: { value } });
     }
   });
+}
+
+/** A field's text: the shared editor's, or a form field's value. */
+export function fieldText(element: HTMLElement) {
+  return (
+    EditorView.findFromDOM(element)?.state.doc.toString() ??
+    (element as HTMLInputElement | HTMLTextAreaElement).value
+  );
 }
 
 /** A file of the repository, `PRIORITIES.md` by default. */
