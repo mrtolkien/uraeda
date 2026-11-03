@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 1
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Vim in text edit mode
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-11-03: 2 comments in spec-review.md.
 >
 > - You approve one editor, built on CodeMirror, for every text field: Markdown highlighted, long
 >   lines wrapped, Vim's keys behind a switch, the mode in the status line, and a buffer for any
