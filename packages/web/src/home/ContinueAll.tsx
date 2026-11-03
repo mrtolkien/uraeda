@@ -15,9 +15,9 @@ import {
   useRef,
   useState,
 } from "react";
-import { useFateClient } from "react-fate";
+import { useFateClient, view } from "react-fate";
+import type { ContinuedAll } from "uraeda-server/fate";
 import { guarded, refusal } from "../errors.ts";
-import { WorkspaceView } from "../views.ts";
 
 export const previewStyles = stylex.create({
   // A row Continue all leaves alone, while its preview is on.
@@ -28,6 +28,12 @@ export const previewStyles = stylex.create({
     transitionProperty: "opacity, background-color, box-shadow",
     transitionTimingFunction: "ease-out",
   },
+});
+
+/** Continue all's answer: the runs it could not continue, each with why. */
+const ContinuedAllView = view<ContinuedAll>()({
+  id: true,
+  refused: true,
 });
 
 /** How long, in ms, a tap's preview waits for the second tap. */
@@ -80,9 +86,24 @@ function useTapPreview(own: RefObject<HTMLElement | null>) {
 const AND = new Intl.ListFormat("en", { type: "conjunction" });
 
 /**
+ * What the toast says of the runs Continue all could not continue, by refusal: "cli-tuis and search
+ * could not continue: another session of this feature is working."
+ */
+function refusedText(refused: ReadonlyArray<{ name: string; reason: string }>): string {
+  const byReason = Map.groupBy(refused, ({ reason }) => reason);
+  return [...byReason]
+    .map(([reason, runs]) => {
+      const why = `${reason.charAt(0).toLowerCase()}${reason.slice(1)}`;
+      return `${AND.format(runs.map(({ name }) => name))} could not continue: ${why.replace(/\.?$/, ".")}`;
+    })
+    .join(" ");
+}
+
+/**
  * The button: `onPreview` hears its preview start and end, on while it is under the pointer or
  * focused, either one, or after a first tap. Its description names the runs it continues, `names`, for a screen reader,
- * which hears no preview. A refusal, as without the agent, is shown in a toast.
+ * which hears no preview. A refusal, as without the agent, is shown in a toast, and so are the runs
+ * it could not continue, each with why.
  */
 export function ContinueAll({
   names,
@@ -103,10 +124,16 @@ export function ContinueAll({
   const onPress = async () => {
     // A lost connection rejects the call: it is shown as a refusal.
     const result = await guarded(() =>
-      fate.mutations.feature.continueAll({ input: {}, view: WorkspaceView }),
+      fate.mutations.feature.continueAll({ input: {}, view: ContinuedAllView }),
     );
     if (result.error) {
       showToast({ autoHideDuration: 5000, body: refusal(result.error).message });
+      return;
+    }
+    // The others went on: the runs refused stay as they were, and the toast says why.
+    const refused = result.result?.refused ?? [];
+    if (refused.length > 0) {
+      showToast({ autoHideDuration: 8000, body: refusedText(refused) });
     }
   };
   return (

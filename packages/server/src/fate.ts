@@ -29,6 +29,7 @@ import { previewDataView, storyDataView, storyHrefDataView } from "./fate/previe
 import { recommendedDataView } from "./fate/recommended.ts";
 import { settingsDataView } from "./fate/settings.ts";
 import { allBranchChangesDataView, branchChangesDataView } from "./fate/views-branch.ts";
+import { continuedAllDataView } from "./fate/views-continued-all.ts";
 import { droppedDataView } from "./fate/views-dropped.ts";
 import { startPlanDataView } from "./fate/views-start-plan.ts";
 import { historyDataView } from "./fate/views-history.ts";
@@ -41,6 +42,7 @@ export {
   allBranchChangesDataView,
   branchChangesDataView,
   branchDecisionDataView,
+  continuedAllDataView,
   proposalFileDataView,
   droppedDataView,
   featureDataView,
@@ -97,6 +99,7 @@ export type Proposal = Priorities["sections"][number]["proposals"][number];
 export type Inbox = Entity<typeof inboxDataView, "Inbox">;
 export type ProposalFile = Entity<typeof proposalFileDataView, "ProposalFile">;
 export type Dropped = Entity<typeof droppedDataView, "Dropped">;
+export type ContinuedAll = Entity<typeof continuedAllDataView, "ContinuedAll">;
 export type StartPlan = Entity<typeof startPlanDataView, "StartPlan">;
 export type Ledger = Entity<typeof ledgerDataView, "Ledger">;
 export type ProposalHints = Entity<typeof proposalHintsDataView, "ProposalHints">;
@@ -137,8 +140,12 @@ export type { ChatImage } from "./runner/images.ts";
  */
 export type FateVariables = { device?: Device; fate: Context };
 
-/** The roots: the views' and the write queue's, which lives in its own module. */
-export const Root = { ...Views, writeQueues: list(writeQueueDataView) };
+/** The roots: the views', and the write queue's and Continue all's, which live in their own modules. */
+export const Root = {
+  ...Views,
+  continuedAllList: list(continuedAllDataView),
+  writeQueues: list(writeQueueDataView),
+};
 
 /** A live bus: the updates one fate server sends to the views subscribed to it. */
 export type LiveBus = ReturnType<typeof createLiveEventBus>;
