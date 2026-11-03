@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 02: "Master" PR
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 4 questions, about 10 minutes.
+> Answered on 2026-11-03.
 >
 > - Verdict: worth building, with changes: the master pull request works with GitHub as it is. It
 >   needs a merge commit, and two decisions meet it.
@@ -93,7 +93,9 @@ Why it matters: it decides what you press, and whether the default branch's hist
   - [pro] a linear history.
   - [con] GitHub shows the features' pull requests closed, not merged.
 
-**Answer:**
+**Answer:** Dropped, with the whole pull request flow: "Let's just do the changes to files
+(dedicated notes files, not deleting rows when starting, ...), not the PR flow." Starting a feature
+on another is dropped too, and the start keeps moving its line to the top of Now.
 
 ## Q2: Which features join the master pull request?
 
@@ -118,7 +120,9 @@ Why it matters: it decides whether a feature you have not reviewed can ever land
   - [pro] conflicts are found as early as possible.
   - [con] the master can hold a draft, which you must not merge until it is ready.
 
-**Answer:**
+**Answer:** Dropped, with the whole pull request flow: "Let's just do the changes to files
+(dedicated notes files, not deleting rows when starting, ...), not the PR flow." Starting a feature
+on another is dropped too, and the start keeps moving its line to the top of Now.
 
 ## Q3: Where does the master's agent work?
 
@@ -143,7 +147,9 @@ history.
   - [pro] no decision changes, and no new item.
   - [con] the master's work hides inside a feature, and moves when that feature leaves.
 
-**Answer:**
+**Answer:** Dropped, with the whole pull request flow: "Let's just do the changes to files
+(dedicated notes files, not deleting rows when starting, ...), not the PR flow." Starting a feature
+on another is dropped too, and the start keeps moving its line to the top of Now.
 
 ## Q4: Where does the "create master PR" option live?
 
@@ -169,6 +175,8 @@ Uraeda's tools only.
   - [pro] no decision changes.
   - [con] agents run without Uraeda never build the master, and one switch serves every project.
 
-**Answer:**
+**Answer:** Dropped, with the whole pull request flow: "Let's just do the changes to files
+(dedicated notes files, not deleting rows when starting, ...), not the PR flow." Starting a feature
+on another is dropped too, and the start keeps moving its line to the top of Now.
 
 **Notes:**
