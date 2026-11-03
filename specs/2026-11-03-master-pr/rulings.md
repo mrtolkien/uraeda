@@ -21,8 +21,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: every action that takes a note's id first turns an agent's note into its line, at
   the end of its category in `INBOX.md`, then runs as for a linked note file. A move also drops the
-  file's `category`. A removal leaves `INBOX.md` as it was, and deletes the file; its Undo writes
-  the line back, linking the file it restores.
+  file's `category`. A removal leaves `INBOX.md` as it was, and deletes the file when it is as
+  committed; its Undo writes the line back, linking the file it restores.
 - **Rationale**: the spec's architecture gives the actions one owner of the turn into a line, and
   the actions on a linked note file already remove, move, and promote its file.
 - **If wrong**: an action that forgets the turn refuses with "no note", losing nothing.
@@ -52,8 +52,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   refuses; a category the line made, one `INBOX.md` lacked, goes once the line left it, as a move to
   another category or out of the inbox does. `moving` adds the drop of the file's `category` for
   `category`, `place`, and a drop among the notes. A removal does not write the line: it deletes the
-  file, held for Undo, whatever it holds, since the file is the note. The plan's `linked` function
-  is folded into `acting`, which nothing else needed.
+  file, held for Undo, only when the file is as `HEAD` has it; a file edited since, or never
+  committed, refuses the removal with `<path> has uncommitted changes: the note was not removed`,
+  since the git decision forbids losing the user's work. The plan's `linked` function is folded into
+  `acting`, which nothing else needed.
 - **Rationale**: R2's "losing nothing" holds only when a refused action leaves no line behind, and a
   move of a note under "Deferred fixes", a category `INBOX.md` lacks, would otherwise leave an empty
   `## Deferred fixes`.

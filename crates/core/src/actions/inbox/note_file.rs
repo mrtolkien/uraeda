@@ -272,7 +272,7 @@ pub(super) fn remove(place: &Place, path: &str) -> Result<(), ActionError> {
 
 /// Whether the files of `unit` on disk are those `HEAD` has, byte for byte, and only those: git
 /// keeps them, and Discard brings them back.
-fn as_committed(place: &Place, path: &str) -> bool {
+pub(super) fn as_committed(place: &Place, path: &str) -> bool {
     let (Ok(git), Ok(files)) = (Git::open(&place.root), files_of(place, path)) else {
         return false;
     };

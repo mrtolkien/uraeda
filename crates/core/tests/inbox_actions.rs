@@ -730,3 +730,62 @@ fn a_refused_action_on_an_agents_note_writes_nothing() {
     assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
     assert!(repo.exists(&path));
 }
+
+/// Edge case "a note file with uncommitted changes stays": removing an agent's note whose file was
+/// edited since its commit is refused, naming the file, and nothing is written.
+#[test]
+fn removing_an_edited_agents_note_is_refused() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let edited = format!("{}\nA line the human typed.\n", repo.read(&path));
+    repo.write(&path, &edited);
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let removed = api::remove_note_and_commit(repo.path(), &path, &read.hash);
+
+    assert_eq!(
+        removed.unwrap_err().to_string(),
+        format!("{path} has uncommitted changes: the note was not removed")
+    );
+    assert_eq!(repo.read(&path), edited);
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+    assert_eq!(repo.subjects("main")[0], "chore: an agent's note");
+}
+
+/// Edge case "a note file with uncommitted changes stays", for a file never committed: removing it
+/// is refused, and it stays.
+#[test]
+fn removing_an_untracked_agents_note_is_refused() {
+    let repo = fixture_repo();
+    let text = "---\nagent: true\n---\n\n# Typed and never committed\n";
+    let path = "specs/notes/typed.md";
+    repo.write(path, text);
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let removed = api::remove_note(repo.path(), path, &read.hash);
+
+    assert_eq!(
+        removed.unwrap_err().to_string(),
+        format!("{path} has uncommitted changes: the note was not removed")
+    );
+    assert_eq!(repo.read(path), text);
+}
+
+/// US2 more 2, in a repository without `INBOX.md`: the removal commits the deleted file alone.
+#[test]
+fn removing_an_agents_note_without_an_inbox_commits_its_deletion() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        AGENTS_NOTE,
+        "---\nagent: true\nabout: feature-state\n---\n\n# The workspace record's running is read by no view\n",
+    );
+    repo.commit("chore: an agent's note");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let (_, removed) = api::remove_note_and_commit(repo.path(), AGENTS_NOTE, &read.hash).unwrap();
+
+    assert!(removed.committed, "{removed:?}");
+    assert_eq!(repo.changed_in("HEAD"), [AGENTS_NOTE]);
+    assert!(!repo.exists(INBOX));
+    assert_eq!(repo.porcelain(), "");
+}

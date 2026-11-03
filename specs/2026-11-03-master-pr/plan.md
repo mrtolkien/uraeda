@@ -306,8 +306,10 @@ git commit -m "feat(master-pr): the inbox reads agents' note files"
   the line left it. Any other id runs `act` unchanged. An id naming no such file refuses
   `no note <id>`. `acting_read` is the same for the actions read at a `&str`; `moving`, for
   `category`, `place`, and a drop among the notes, then drops the file's `category` field from its
-  frontmatter. `remove` deletes an agent's note's file alone, `INBOX.md` unchanged. Signatures of
-  the actions do not change.
+  frontmatter. `remove` deletes an agent's note's file alone, `INBOX.md` unchanged, and only when
+  the file is as `HEAD` has it: an edited or never committed file refuses
+  `<path> has uncommitted changes: the note was not removed`, writing nothing. Its commit holds the
+  deleted file, and `INBOX.md` only when the file exists. Signatures of the actions do not change.
 
 - [x] **Step 1: Write the failing tests**
 
