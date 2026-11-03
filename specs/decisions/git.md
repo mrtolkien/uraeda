@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: git-branch
 ---
 
@@ -19,10 +19,12 @@ as [Feature status](feature-status.md) reads it. Tools never lose the user's wor
 - Tools MUST NOT switch the user's checkout unless the human asks.
 - Rust tools MUST read git with the gix library, and write through the system `git`, from one module
   of the core.
-- Proposal files, note files, and the human's inbox and priorities MUST be written on the default
-  branch. Checked by the core's tests.
-- An agent's inbox notes MUST be written in its own worktree, never on the default branch. Checked
-  by the CLI's tests.
+- Proposal files, the human's note files, and the human's inbox and priorities MUST be written on
+  the default branch. Checked by the core's tests.
+- A feature's or a change's branch MUST NOT write `PRIORITIES.md` or `INBOX.md`. Checked by the
+  core's tests.
+- An agent's inbox note MUST be a note file of its own, written in its own worktree, never on the
+  default branch. Checked by the CLI's tests.
 - Tools SHOULD keep their worktrees out of the user's `git status`, without editing a tracked file.
   Checked by the core's tests.
 
@@ -31,7 +33,8 @@ as [Feature status](feature-status.md) reads it. Tools never lose the user's wor
 Reads are most of what the tools do, across every branch, and gix does them in process. gix runs no
 hooks and cannot push, so writes go through `git`, exactly as the user would. The web UI writes on
 every branch from one checkout, so it never switches branches. Cleanup waits for the human, since a
-lost commit cannot come back. History: [CLI core](../done/2026-10-10-cli-core.md).
+lost commit cannot come back. Branches add files rather than edit shared ones, so parallel work
+merges without conflict. History: [CLI core](../done/2026-10-10-cli-core.md).
 
 ## Alternatives considered
 
@@ -42,6 +45,7 @@ lost commit cannot come back. History: [CLI core](../done/2026-10-10-cli-core.md
 
 - Hooks, signing, and credentials behave as by hand, and `git` must be on the PATH.
 - gix breaks its API at minor releases, so upgrades are deliberate.
+- A merged feature's line stays in the priorities until `ura clean` removes it.
 
 ## Applies to
 
