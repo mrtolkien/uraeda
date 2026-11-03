@@ -12,6 +12,7 @@ import {
   atRepo,
   atWidth,
   click,
+  fieldText,
   fixture,
   fixtureRepo,
   read,
@@ -116,7 +117,7 @@ function filesOf(repo: string, file: string) {
 test("the add form takes a pasted image, and adds the note as a file holding it", async () => {
   const { link, repo } = await onNote("Idea two");
   await press("a", link);
-  const field = await screen.findByPlaceholderText("What did you notice?");
+  const field = await screen.findByRole("textbox", { name: "Note" });
   await type(field, "Headings are flat");
 
   await paste(field, [png("headings.png")]);
@@ -221,12 +222,12 @@ test("the selected note shows its images under its row, and Remove takes one out
 async function editorField(file: string) {
   const path = file.endsWith(".md") ? file : `${file}/note.md`;
   await act(async () => navigate(atRepo(`/edit/${path}`)));
-  return (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
+  return screen.findByRole("textbox", { name: "Text" });
 }
 
 /** Opens the editor of the note file `file` and gives its text. */
 async function editorText(file: string) {
-  return (await editorField(file)).value;
+  return fieldText(await editorField(file));
 }
 
 /** Idea one with a dropped image, its row selected and its image shown under it. */
@@ -264,7 +265,7 @@ test("a note file opened after an image's removal is undone shows the image agai
 
   const field = await editorField(file);
   // The note file is read again once the write ends, after it is written: the editor follows it.
-  await waitFor(() => expect(field.value).toContain(`images/${image}`));
+  await waitFor(() => expect(fieldText(field)).toContain(`images/${image}`));
 });
 
 test("a note file opened after a second image is dropped on its note shows both", async () => {
@@ -280,14 +281,14 @@ test("a note file opened after a second image is dropped on its note shows both"
 
   const field = await editorField(file);
   for (const one of filesOf(repo, file).images) {
-    await waitFor(() => expect(field.value).toContain(`images/${one}`));
+    await waitFor(() => expect(fieldText(field)).toContain(`images/${one}`));
   }
 });
 
 test("a drop goes to the inbox, not to the add form once it closed", async () => {
   const { link, repo } = await onNote("Idea two");
   await press("a", link);
-  const field = await screen.findByPlaceholderText("What did you notice?");
+  const field = await screen.findByRole("textbox", { name: "Note" });
   await press("Escape", field);
   await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add a note" })).toBeNull());
   act(() => (document.activeElement as HTMLElement | null)?.blur());

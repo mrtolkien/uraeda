@@ -436,63 +436,77 @@ git commit -m "feat(vim-text): read and save any Markdown file of specs/ as a bu
 **Files:**
 
 - Create: `packages/web/src/fields/editor/Editor.tsx`, `fields/editor/theme.ts`,
-  `fields/editor/markdown.ts`, `fields/editor/modeStore.ts`, `fields/editor/oneLine.ts`
+  `fields/editor/markdown.ts`, `fields/editor/modeStore.ts`, `fields/editor/oneLine.ts`,
+  `fields/editor/keys.ts` (the field's keys), `fields/editor/slot.ts` (`vimSlot`, the registry of
+  the slot's extensions, and each editor's actions)
 - Modify: `packages/web/package.json` (`@codemirror/state`, `@codemirror/view`,
-  `@codemirror/commands`, `@codemirror/language`, `@codemirror/lang-markdown`,
-  `@replit/codemirror-vim`, exact versions), `fields/TextField.tsx`, `attach/useImageText.ts` (the
-  ref and paste of an image field reach the editor), `__tests__/helpers.tsx` (`type`),
-  `__tests__/keys-structural.test.ts`, the tests that set a `textarea`'s value directly
-  (`round.test.tsx:68`, `review.test.tsx:170`, and the like) to call `type`
+  `@codemirror/commands`, `@codemirror/language`, `@codemirror/lang-markdown`, `@lezer/highlight`
+  for the highlighting's tags, `@replit/codemirror-vim`, exact versions), `fields/TextField.tsx`,
+  `attach/useImageText.ts` (the ref and paste of an image field reach the editor), `AddNote.tsx`,
+  `QuickAdd.tsx` (`onEnter` in place of their key handler), `ProposalText.tsx` (`onEscape`),
+  `__tests__/helpers.tsx` (`type`, and `fieldText` reading a field's text), `__tests__/setup.ts`
+  (happy-dom's `selectionchange`, fired at once, is dropped: CodeMirror read it as a new update
+  inside its own), `__tests__/keys-structural.test.ts` (CodeMirror's `domEventHandlers` and
+  `keymap.of` count as listeners), the tests that set a `textarea`'s value directly or read its
+  `value` (`round`, `review`, `leave`, `sign-in`, `inbox-images`, `keys-inbox`, `keys-promote`) to
+  call `type` and `fieldText`
 - Test: `packages/web/src/__tests__/editor-field.test.tsx`
 
 **Interfaces:**
 
 - Produces:
   - `Editor(props: EditorProps)`, with
-    `EditorProps = { variant: "line" | "lines"; label: string; value: string; onChange: (value: string) => void; onSubmit?: () => void; onEnter?: () => void; onEscape?: () => "handled" | "pass"; onPaste?: (event: ClipboardEvent) => boolean; rows?: number; placeholder?: string; isAutoFocused?: boolean; isDisabled?: boolean; ref?: Ref<EditorHandle> }`
+    `EditorProps = { variant: "line" | "lines"; label: string; value: string; onChange: (value: string) => void; onSubmit?: () => void; onEnter?: () => void; onEscape?: (leave: () => void) => "handled" | "pass"; onPaste?: (event: ClipboardEvent) => boolean; onFocus?: () => void; id?: string; rows?: number; placeholder?: string; isAutoFocused?: boolean; isDisabled?: boolean; ref?: Ref<EditorHandle> }`
     and
     `EditorHandle = { focus(): void; insertText(text: string): void; view(): EditorView | null; element(): HTMLElement | null }`.
-    `onEscape` runs on Escape outside Vim's insert or visual modes; its default blurs the field,
-    keeping the text. `onEnter` runs on Enter in a `line` (never inserting a line break); Ctrl+Enter
-    and Cmd+Enter run `onSubmit`, in every variant. Neither runs while composing.
+    `onEscape` runs on Escape outside Vim's insert or visual modes, `leave` blurring the field; its
+    default blurs the field, keeping the text, or inside a layer passes the key to it. `onEnter`
+    runs on Enter, Shift+Enter aside, in a `line` (which never inserts a line break) or in `lines`
+    when given, as the ＋ forms' one-line entries; Ctrl+Enter and Cmd+Enter run `onSubmit`, in every
+    variant. None runs while composing. `useEditorElement(handle)` gives the editor's element as a
+    ref, for the drop's target.
   - The `line` variant refuses line breaks (a pasted "first\nsecond" reads "first second"), wraps,
-    and grows to 9 lines, then scrolls inside. `lines` has `rows` as its minimum height.
+    and grows to 9 lines, then scrolls inside. `lines` is `rows` lines tall, scrolling past them, as
+    `mockups/fields.html` draws it (R6).
   - `modeStore`:
     `setFocused(field: { mode: Mode; line: number; column: number; progress: string } | null)`,
-    `setMode(mode: Mode)`,
+    `setMode(mode: Mode)`, `setPlace(place: { line; column; progress })` (the cursor moved),
     `useMode(): { mode: Mode | "nav"; line?: number; column?: number; progress?: string }`, with
     `Mode = "normal" | "insert" | "visual" | "visual-line" | "visual-block" | "replace" | "command"`.
-    Without Vim, a focused field reports `insert`; the status line hides it with Vim off.
-  - A compartment slot `vimSlot` in each editor, which task 6 fills; the editor exports
-    `registerEditorExtension(ext: () => Extension)` or an equivalent, so the Vim layer reaches every
-    editor, including those already mounted.
+    Without Vim, a focused field reports `insert`; the status line hides it with Vim off. `progress`
+    is Vim's ruler: `All`, `Top`, `Bot`, or a percentage of the field's scroll.
+  - A compartment slot `vimSlot` in each editor, which task 6 fills, in `fields/editor/slot.ts`:
+    `registerEditorExtension(ext: () => Extension): () => void` puts `ext()` in every editor's slot,
+    mounted or to come, until the returned function removes it; `editorActions(view)` gives the
+    field's `{ enter(), escape(), submit() }`, which the Vim layer's `:w`, `:q`, and Escape call.
   - `__tests__/helpers.tsx`'s `type(element, value)` sets a CodeMirror field's text through
     `EditorView.findFromDOM`, else as today.
   - `TextField` keeps its props (`kind`, `onSubmit`, `label`, `value`, `onChange`, …), drawn by the
     editor, `lines` variant, `rows` by kind.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `editor-field.test.tsx`, over `renderPage` on a round's page with a comment field:
 
 - "Escape leaves a comment keeping its text, and the page's keys work again": type "draft", press
-  Escape on the field's content element; the focus leaves it, the field still reads "draft", and `j`
-  moves the selection.
+  Escape on the field's content element; the focus leaves it, the field still reads "draft", and the
+  round's `n` jumps to the first unanswered question (`j` only scrolls a round's page).
 - "a field's text survives a Compartment swap": reconfigure the editor's `vimSlot` with the Vim
   extension, then with nothing; the text and the selection are unchanged (the discovery's unverified
   outside behaviour).
-- A row "Enter while composing does not save", on a `line` field: a keydown of Enter with
-  `isComposing` leaves the field open.
+- A row "Enter while composing does not save", on the ＋ form's "Proposal" field, whose Enter adds:
+  a keydown of Enter with `isComposing` leaves the form open and the file unchanged; Enter once
+  composed adds the line.
 
 The break each test catches: an Escape that clears the text or keeps the focus; a swap that rebuilds
 the state; a save during composition.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/editor-field.test.tsx`
 - Expected: FAIL, the comment field is still a `textarea` (`EditorView.findFromDOM` returns null).
 
-- [ ] **Step 3: Implement the editor, its theme over Astryx's tokens in the terminal look of
+- [x] **Step 3: Implement the editor, its theme over Astryx's tokens in the terminal look of
       `mockups/editor.css`, Markdown highlighting with dimmed marks, `TextField` on it, and `type`**
 
 The accessible name goes on the content element through `contentAttributes` (`aria-label`). The
@@ -500,12 +514,12 @@ theme's font is the theme's monospace token. Move the tests that set a field's v
 `type`, keeping their assertions. Add the editor's listener to the structural allowlist with its
 reason.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS, every existing web test included
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(vim-text): one editor for text fields, Markdown highlighted and wrapped"

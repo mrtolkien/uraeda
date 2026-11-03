@@ -9,7 +9,7 @@ import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
 import { navigate } from "../routes.tsx";
-import { atRepo, atWidth, fixtureRepo, read, renderPage } from "./helpers.tsx";
+import { atRepo, atWidth, fieldText, fixtureRepo, read, renderPage } from "./helpers.tsx";
 
 const INBOX = `# Inbox
 
@@ -213,8 +213,8 @@ test("a note added to a proposal whose editor was open before shows in its edito
   writeFileSync(join(repo, "specs/INBOX.md"), INBOX);
   // The proposal's editor, read once as it was before.
   await renderPage("/edit/specs/proposals/git-listener.md", repo);
-  const before = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
-  expect(before.value).not.toContain("Loose note");
+  const before = await screen.findByRole("textbox", { name: "Text" });
+  expect(fieldText(before)).not.toContain("Loose note");
   await act(async () => navigate(atRepo("/inbox")));
   const link = (await screen.findAllByRole("button", { name: /Loose note/ })).find(
     (one) => one.closest("[data-row-link]") !== null,
@@ -235,8 +235,8 @@ test("a note added to a proposal whose editor was open before shows in its edito
   await waitFor(() =>
     expect(read(repo, "specs/proposals/git-listener.md")).toContain("Loose note"),
   );
-  const field = (await screen.findByRole("textbox", { name: "Text" })) as HTMLTextAreaElement;
-  await waitFor(() => expect(field.value).toContain("Loose note"));
+  const field = await screen.findByRole("textbox", { name: "Text" });
+  await waitFor(() => expect(fieldText(field)).toContain("Loose note"));
 });
 
 test("a note moved to Now opens the priorities at once, and its row is selected once written", async () => {

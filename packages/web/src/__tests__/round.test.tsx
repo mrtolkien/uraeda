@@ -5,10 +5,12 @@ import { expect, test } from "vite-plus/test";
 import {
   answered as readAnswered,
   answersSoFar,
+  fieldText,
   fixtureRepo,
   git,
   renderPage,
   today,
+  type,
 } from "./helpers.tsx";
 
 const FOLDER = "2026-10-11-web-ui";
@@ -63,12 +65,6 @@ async function tap(element: HTMLElement) {
   });
 }
 
-async function type(element: HTMLElement, value: string) {
-  await act(async () => {
-    fireEvent.change(element, { target: { value } });
-  });
-}
-
 test("a comment being written is not replaced by an answer changed elsewhere", async () => {
   const repo = answered({});
   await renderPage(PAGE, repo);
@@ -88,7 +84,7 @@ test("a comment being written is not replaced by an answer changed elsewhere", a
 
   // The page read the file again, with the answer changed elsewhere, and drew it.
   await readAnswered("WorkflowFile", from);
-  expect((comment("Q2") as HTMLTextAreaElement).value).toBe("half a tho");
+  expect(fieldText(comment("Q2"))).toBe("half a tho");
   expect(saveButton("Q2").hasAttribute("disabled")).toBe(false);
 });
 
@@ -152,7 +148,7 @@ async function settledPoint(subject: string) {
 }
 
 /** The comment field of the settled point's form open. */
-const settledField = () => screen.getByLabelText("Comment text") as HTMLTextAreaElement;
+const settledField = () => screen.getByLabelText("Comment text");
 
 /** A round answered, whose notes hold a comment on each settled point. */
 function withTwoComments() {

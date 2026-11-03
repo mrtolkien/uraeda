@@ -49,3 +49,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the plan's filter `settings` matches test names, not the file, and ran one test;
   the server has no script of its own that writes the client.
 - **Where**: task 1
+
+## R6: A several-lines field keeps its height, scrolling past it
+
+- **Decision**: the `lines` variant is `rows` lines tall, scrolling inside past them, as the Astryx
+  text area was; only the `line` variant grows with its text, to 9 lines.
+- **Rationale**: `mockups/fields.html` draws a comment that "keeps its 7 rows, scrolling past them,
+  as today", where the plan's interface said `rows` was a minimum height.
+- **Alternatives considered**: a minimum height growing with the text, which moves the page under a
+  long comment as it is typed.
+- **If wrong**: `sizeTheme` in `fields/editor/theme.ts` sets `minHeight` in place of `height`.
+- **Where**: task 3

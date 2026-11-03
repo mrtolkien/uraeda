@@ -33,6 +33,19 @@ if (typeof document !== "undefined") {
 }
 
 /**
+ * happy-dom fires `selectionchange` at once, inside the code that moved the selection, where a
+ * browser fires it later, as a task of its own. CodeMirror moves the page's selection as it draws an
+ * update, and reads `selectionchange` as the human's: fired at once, it starts an update inside its
+ * own, and fired later, happy-dom's selection, which it cannot lay out, never settles into the one
+ * drawn, so each one fires the next. Nothing else in the app listens for it: the tests set an
+ * editor's selection through its view, and the event is not fired.
+ */
+if (typeof document !== "undefined") {
+  const dispatch = document.dispatchEvent.bind(document);
+  document.dispatchEvent = (event: Event) => event.type === "selectionchange" || dispatch(event);
+}
+
+/**
  * A jump ends a second after its scroll's last move: one a test started would end after the test
  * file's page is gone, its timer then reaching for a `window` that is no more. Each test ends its.
  */
