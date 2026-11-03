@@ -22,13 +22,17 @@ export const HELP = `Usage: uraeda [options]
 
 Starts Uraeda's web UI for the repository of the current folder.
 
-  --port <port>            the port on 127.0.0.1, 4310 by default (URAEDA_PORT)
-  --repo <folder>          the repository to open, the current folder by default (URAEDA_REPO)
-  --allowed-hosts <names>  host names accepted besides 127.0.0.1, comma separated (URAEDA_ALLOWED_HOSTS)
-  --no-open                do not open the browser
-  --new-key                make a new access key and sign every device out
-  --version                print the version
-  --help                   print this help
+  --port <port>                the port on 127.0.0.1, 4310 by default (URAEDA_PORT)
+  --repo <folder>              the repository to open, the current folder by default (URAEDA_REPO)
+  --allowed-hosts <names>      host names accepted besides 127.0.0.1, comma separated (URAEDA_ALLOWED_HOSTS)
+  --no-open                    do not open the browser
+  --no-continue-after-restart  do not continue a run a restart cut (URAEDA_CONTINUE_AFTER_RESTART)
+  --no-continue-after-limit    do not continue a run at its usage limit's reset (URAEDA_CONTINUE_AFTER_LIMIT)
+  --no-continue-before-gate    do not ask a run that stopped before its gate to go on (URAEDA_CONTINUE_BEFORE_GATE)
+  --automatic-continues <n>    automatic continues in a row, 1 to 10, 3 by default (URAEDA_AUTOMATIC_CONTINUES)
+  --new-key                    make a new access key and sign every device out
+  --version                    print the version
+  --help                       print this help
 `;
 
 /**
@@ -40,12 +44,25 @@ export function parseOptions(argv: Array<string>, env: Env): Options {
   const values = parse(argv);
   const show = values.help ? "help" : values.version ? "version" : undefined;
   const hosts = values["allowed-hosts"];
+  const continues = values["automatic-continues"];
   return {
     ...env,
     ...(hosts !== undefined && {
       allowedHosts: { name: "--allowed-hosts", value: hostNames(hosts) },
     }),
     allowOrigins: values["allow-origin"],
+    ...(continues !== undefined && {
+      automaticContinues: { name: "--automatic-continues", value: continues },
+    }),
+    ...(values["no-continue-after-limit"] && {
+      continueAfterLimit: { name: "--no-continue-after-limit", value: false },
+    }),
+    ...(values["no-continue-after-restart"] && {
+      continueAfterRestart: { name: "--no-continue-after-restart", value: false },
+    }),
+    ...(values["no-continue-before-gate"] && {
+      continueBeforeGate: { name: "--no-continue-before-gate", value: false },
+    }),
     given: Boolean(values.repo) || env.given,
     newKey: Boolean(values["new-key"]),
     noOpen: Boolean(values["no-open"]),
@@ -63,8 +80,12 @@ function parse(argv: Array<string>) {
       options: {
         "allow-origin": { default: [], multiple: true, type: "string" },
         "allowed-hosts": { type: "string" },
+        "automatic-continues": { type: "string" },
         help: { type: "boolean" },
         "new-key": { type: "boolean" },
+        "no-continue-after-limit": { type: "boolean" },
+        "no-continue-after-restart": { type: "boolean" },
+        "no-continue-before-gate": { type: "boolean" },
         "no-open": { type: "boolean" },
         port: { type: "string" },
         repo: { type: "string" },

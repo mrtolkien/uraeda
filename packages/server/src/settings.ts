@@ -1,7 +1,7 @@
 // The server's settings in force: each from its flag, its variable, the settings file, then its
 // default, the file read through the core and watched while the server runs.
 import type { Settings } from "uraeda-binding";
-import type { Given, HostsName, PortName } from "./env.ts";
+import type { ContinuesName, Given, GivenName, PortName } from "./env.ts";
 import type { Binding } from "./fate/context.ts";
 import type { Options } from "./options.ts";
 import { LIST_QUIET_MS } from "./repositories.ts";
@@ -10,6 +10,9 @@ import { FileWatch } from "./settings-watch.ts";
 /** The port the server listens on when no flag, variable, or file gives one. */
 export const DEFAULT_PORT = 4310;
 
+/** The automatic continues in a row when no flag, variable, or file gives them. */
+export const DEFAULT_AUTOMATIC_CONTINUES = 3;
+
 /** The settings file's name, in the config folder. */
 const FILE = "config.toml";
 
@@ -17,8 +20,8 @@ const FILE = "config.toml";
 export type Source =
   | { kind: "default" }
   | { kind: "file" }
-  | { kind: "flag"; name: "--allowed-hosts" | "--port" | "--no-open" }
-  | { kind: "environment"; name: "URAEDA_ALLOWED_HOSTS" | "URAEDA_PORT" };
+  | { kind: "flag"; name: Extract<GivenName, `--${string}`> | "--no-open" }
+  | { kind: "environment"; name: Exclude<GivenName, `--${string}`> };
 
 /** A setting: its value in force, the file's value, null when the file has none, and its source. */
 export type Setting<T> = { inForce: T; saved: T | null; source: Source };
@@ -30,9 +33,16 @@ export type ServerSettingsView = {
   port: Setting<number>;
 };
 
-/** How the workflow's runs start: the default of the run after a spec's approval. */
+/**
+ * How the workflow's runs start and go on: the default of the run after a spec's approval, the
+ * switch of each kind of automatic continue, and the automatic continues in a row.
+ */
 export type RunSettingsView = {
+  automaticContinues: Setting<number>;
   buildInFreshSession: Setting<boolean>;
+  continueAfterLimit: Setting<boolean>;
+  continueAfterRestart: Setting<boolean>;
+  continueBeforeGate: Setting<boolean>;
 };
 
 /** How the web UI's keys behave: whether the keys of one printable character act. */
@@ -48,15 +58,15 @@ export type SettingsView = {
 };
 
 /** The source of a value given for this run, by the name of its flag or variable. */
-function givenSource({ name }: Given<unknown, HostsName | PortName>): Source {
-  return name === "--allowed-hosts" || name === "--port"
-    ? { kind: "flag", name }
-    : { kind: "environment", name };
+function givenSource({ name }: Given<unknown, GivenName>): Source {
+  return name.startsWith("--")
+    ? { kind: "flag", name: name as Extract<GivenName, `--${string}`> }
+    : { kind: "environment", name: name as Exclude<GivenName, `--${string}`> };
 }
 
 /** A setting from the value given for this run, else the file's, else the default. */
 function setting<T>(
-  given: Given<T, HostsName | PortName> | undefined,
+  given: Given<T, GivenName> | undefined,
   saved: T | undefined,
   fallback: T,
 ): Setting<T> {
@@ -69,36 +79,75 @@ function setting<T>(
     : { inForce: kept, saved: kept, source: { kind: "file" } };
 }
 
-/** The values given for this run, as `options.ts` reports them: the port as typed. */
-export type GivenValues = Pick<Options, "allowedHosts" | "noOpen" | "port">;
+/**
+ * The values given for this run, as `options.ts` reports them: the port and the automatic
+ * continues as typed.
+ */
+export type GivenValues = Pick<
+  Options,
+  | "allowedHosts"
+  | "automaticContinues"
+  | "continueAfterLimit"
+  | "continueAfterRestart"
+  | "continueBeforeGate"
+  | "noOpen"
+  | "port"
+>;
 
-/** The values given for this run, the port checked. */
-export type RunValues = Omit<GivenValues, "port"> & { port?: Given<number, PortName> };
+/** The values given for this run, the port and the automatic continues checked. */
+export type RunValues = Omit<GivenValues, "automaticContinues" | "port"> & {
+  automaticContinues?: Given<number, ContinuesName>;
+  port?: Given<number, PortName>;
+};
+
+/** The core's rules for the numbers given as typed, each throwing its problem. */
+export type Checks = {
+  checkedAutomaticContinues: (typed: string) => number;
+  checkedPort: (typed: string) => number;
+};
 
 /**
- * The values given for this run, the port checked by the core's rule, `check`, which throws its
- * problem, `The port is a number from 1 to 65535.`, for a port that is not one.
+ * The values given for this run, each number checked by the core's rule, which throws its
+ * problem, like `The port is a number from 1 to 65535.`, for a value out of it.
  */
-export function checked(given: GivenValues, check: (typed: string) => number): RunValues {
-  const { port, ...rest } = given;
-  return port === undefined ? rest : { ...rest, port: { ...port, value: check(port.value) } };
+export function checked(given: GivenValues, checks: Checks): RunValues {
+  const { automaticContinues, port, ...rest } = given;
+  return {
+    ...rest,
+    ...(port && { port: { ...port, value: checks.checkedPort(port.value) } }),
+    ...(automaticContinues && {
+      automaticContinues: {
+        ...automaticContinues,
+        value: checks.checkedAutomaticContinues(automaticContinues.value),
+      },
+    }),
+  };
 }
 
 /**
  * The values in force, the one place of their order: the flag, the variable, the file, then the
- * default: no host names, port 4310, a browser opened, the build in a fresh session, and the
- * single-key shortcuts on, which have no flag or variable. `file` is null when there is none, or it
- * cannot be read.
+ * default: no host names, port 4310, a browser opened, every automatic continue on, 3 in a row, and
+ * the build in a fresh session and the single-key shortcuts on, which have no flag or variable.
+ * `file` is null when there is none, or it cannot be read.
  */
 export function inForce(options: RunValues, file: Settings | null): SettingsView {
   const saved = file?.server ?? {};
+  const runs = file?.runs ?? {};
   const openBrowser = setting(undefined, saved.openBrowser, true);
   return {
     keyboard: {
       singleKeyShortcuts: setting(undefined, file?.keyboard.singleKeyShortcuts, true),
     },
     runs: {
-      buildInFreshSession: setting(undefined, file?.runs.buildInFreshSession, true),
+      automaticContinues: setting(
+        options.automaticContinues,
+        runs.automaticContinues,
+        DEFAULT_AUTOMATIC_CONTINUES,
+      ),
+      buildInFreshSession: setting(undefined, runs.buildInFreshSession, true),
+      continueAfterLimit: setting(options.continueAfterLimit, runs.continueAfterLimit, true),
+      continueAfterRestart: setting(options.continueAfterRestart, runs.continueAfterRestart, true),
+      continueBeforeGate: setting(options.continueBeforeGate, runs.continueBeforeGate, true),
     },
     server: {
       allowedHosts: setting(options.allowedHosts, saved.allowedHosts, []),
@@ -112,7 +161,10 @@ export function inForce(options: RunValues, file: Settings | null): SettingsView
 
 /** What `ServerSettings.open` takes: the binding, the config folder, and the run's options. */
 type SettingsOptions = {
-  binding: Pick<Binding, "checkedPort" | "readSettings" | "settingsFile">;
+  binding: Pick<
+    Binding,
+    "checkedAutomaticContinues" | "checkedPort" | "readSettings" | "settingsFile"
+  >;
   dir: string;
   options: GivenValues;
 };
@@ -141,7 +193,7 @@ export class ServerSettings {
   private constructor({ options, ...rest }: SettingsOptions) {
     this.#options = rest;
     this.dir = rest.dir;
-    this.#given = checked(options, rest.binding.checkedPort);
+    this.#given = checked(options, rest.binding);
     this.file = rest.binding.settingsFile(rest.dir);
     this.#view = inForce(this.#given, null);
   }

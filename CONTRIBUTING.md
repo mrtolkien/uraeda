@@ -31,6 +31,9 @@ cargo run -p uraeda-cli -- status
 - `URAEDA_PORT` changes the port.
 - `URAEDA_ALLOWED_HOSTS` lists the host names it accepts besides 127.0.0.1, like your machine's full
   name on your tailnet, `mac.tail1234.ts.net`.
+- `URAEDA_CONTINUE_AFTER_RESTART`, `URAEDA_CONTINUE_AFTER_LIMIT`, and `URAEDA_CONTINUE_BEFORE_GATE`,
+  `true` or `false`, turn each automatic continue on or off, and `URAEDA_AUTOMATIC_CONTINUES` caps
+  the continues in a row, 1 to 10.
 
 Vite checks host names and takes its port before the settings file is read. So under `vp dev`, they
 come from these variables only. The server listens on 127.0.0.1 only: `tailscale serve --bg 4310`

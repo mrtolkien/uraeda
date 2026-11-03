@@ -3,7 +3,13 @@ import { join } from "node:path";
 import { expect, onTestFinished, test, vi } from "vite-plus/test";
 import type { Settings } from "uraeda-binding";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { type GivenValues, inForce, ServerSettings, type ServerSettingsView } from "../settings.ts";
+import {
+  type GivenValues,
+  inForce,
+  type RunSettingsView,
+  ServerSettings,
+  type ServerSettingsView,
+} from "../settings.ts";
 
 /** The core's binding, as one object: the settings take it whole. */
 const binding = await import("uraeda-binding");
@@ -125,6 +131,79 @@ test.each<{
   },
 ])("$name", ({ file, options, view }) => {
   expect(inForce(options, file).server).toEqual(view);
+});
+
+/** US2.1 to US2.5 for the continues' settings: each source over the ones after it. */
+test.each<{
+  file: Settings["runs"] | null;
+  name: string;
+  options: Parameters<typeof inForce>[0];
+  runs: Partial<RunSettingsView>;
+}>([
+  {
+    file: null,
+    name: "the continues on and 3 in a row, without a value",
+    options: none,
+    runs: {
+      automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
+      continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
+      continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
+      continueBeforeGate: { inForce: true, saved: null, source: { kind: "default" } },
+    },
+  },
+  {
+    file: { automaticContinues: 4, continueBeforeGate: false },
+    name: "the file's continues over the defaults",
+    options: none,
+    runs: {
+      automaticContinues: { inForce: 4, saved: 4, source: { kind: "file" } },
+      continueBeforeGate: { inForce: false, saved: false, source: { kind: "file" } },
+    },
+  },
+  {
+    file: { automaticContinues: 4, continueAfterRestart: true },
+    name: "the continues' variables over the file",
+    options: {
+      automaticContinues: { name: "URAEDA_AUTOMATIC_CONTINUES", value: 5 },
+      continueAfterRestart: { name: "URAEDA_CONTINUE_AFTER_RESTART", value: false },
+      noOpen: false,
+    },
+    runs: {
+      automaticContinues: {
+        inForce: 5,
+        saved: 4,
+        source: { kind: "environment", name: "URAEDA_AUTOMATIC_CONTINUES" },
+      },
+      continueAfterRestart: {
+        inForce: false,
+        saved: true,
+        source: { kind: "environment", name: "URAEDA_CONTINUE_AFTER_RESTART" },
+      },
+    },
+  },
+  {
+    file: { automaticContinues: 4, continueAfterLimit: true },
+    name: "the continues' flags over the file",
+    options: {
+      automaticContinues: { name: "--automatic-continues", value: 6 },
+      continueAfterLimit: { name: "--no-continue-after-limit", value: false },
+      noOpen: false,
+    },
+    runs: {
+      automaticContinues: {
+        inForce: 6,
+        saved: 4,
+        source: { kind: "flag", name: "--automatic-continues" },
+      },
+      continueAfterLimit: {
+        inForce: false,
+        saved: true,
+        source: { kind: "flag", name: "--no-continue-after-limit" },
+      },
+    },
+  },
+])("$name", ({ file: runs, options, runs: view }) => {
+  expect(inForce(options, runs && { ...file, runs }).runs).toMatchObject(view);
 });
 
 test("the build starts in a fresh session by default, and the file's value turns it off", () => {
@@ -272,6 +351,21 @@ test.each(["0", "abc", "70000", "4400.5", ""])("the given port %j is refused", a
   await expect(opened(temporaryFolder("uraeda-config"), options)).rejects.toThrow(
     /^The port is a number from 1 to 65535\.$/,
   );
+});
+
+/** The cap typed in `URAEDA_AUTOMATIC_CONTINUES`. */
+const typed = (value: string) => ({
+  automaticContinues: { name: "URAEDA_AUTOMATIC_CONTINUES" as const, value },
+  noOpen: false,
+});
+
+/** The variable's cap follows the core's rule, as the file's does. */
+test("a given cap on automatic continues is the core's number, from 1 to 10", async () => {
+  await expect(opened(temporaryFolder("uraeda-config"), typed("11"))).rejects.toThrow(
+    /^Automatic continues in a row is a whole number from 1 to 10\.$/,
+  );
+  const settings = await opened(temporaryFolder("uraeda-config"), typed(" 7 "));
+  expect(settings.runs().automaticContinues.inForce).toBe(7);
 });
 
 test("a given port is the core's number", async () => {

@@ -9,6 +9,7 @@ use uraeda_core::settings::{self, KeyboardSettings, RunSettings, ServerSettings,
 const HOST_PROBLEM: &str =
     "is not a host name: use letters, digits, hyphens, and dots, like mac.tail1234.ts.net.";
 const PORT_PROBLEM: &str = "The port is a number from 1 to 65535.";
+const CONTINUES_PROBLEM: &str = "Automatic continues in a row is a whole number from 1 to 10.";
 
 fn tempdir() -> TempDir {
     TempDir::new().expect("a temporary folder")
@@ -68,6 +69,10 @@ fn reads_each_file() {
         },
         runs: RunSettings {
             build_in_fresh_session: Some(false),
+            continue_after_restart: Some(false),
+            continue_after_limit: Some(true),
+            continue_before_gate: Some(false),
+            automatic_continues: Some(4),
         },
         ..Settings::default()
     };
@@ -77,7 +82,7 @@ fn reads_each_file() {
         (Some(""), Ok(Settings::default())),
         (
             Some(
-                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\nbuild_in_fresh_session = false\n",
+                "[server]\nallowed_hosts = [\"mac.tail1234.ts.net\"]\nport = 4400\nopen_browser = false\n\n[runs]\nbuild_in_fresh_session = false\ncontinue_after_restart = false\ncontinue_after_limit = true\ncontinue_before_gate = false\nautomatic_continues = 4\n",
             ),
             Ok(full),
         ),
@@ -130,17 +135,65 @@ fn reads_each_file() {
             Err("line 1, runs: [runs] is a table of settings.".into()),
         ),
     ];
+    reads(dir.path(), rows);
+}
+
+/// Reads each row's file, `None` for none, and checks its settings or its problem.
+fn reads(
+    dir: &Path,
+    rows: impl IntoIterator<Item = (Option<&'static str>, Result<Settings, String>)>,
+) {
     for (contents, expected) in rows {
-        let _ = fs::remove_file(file(dir.path()));
+        let _ = fs::remove_file(file(dir));
         if let Some(contents) = contents {
-            write(dir.path(), contents);
+            write(dir, contents);
         }
 
-        let read = settings::read(dir.path());
+        let read = settings::read(dir);
 
-        let expected = expected.map_err(|problem| unreadable(dir.path(), &problem));
+        let expected = expected.map_err(|problem| unreadable(dir, &problem));
         assert_eq!(read, expected, "for {contents:?}");
     }
+}
+
+#[test]
+fn refuses_each_continue_setting_out_of_its_rule() {
+    let dir = tempdir();
+    let rows: [(Option<&str>, Result<Settings, String>); 6] = [
+        (
+            Some("[runs]\ncontinue_after_restart = \"no\"\n"),
+            Err(
+                "line 2, continue_after_restart: Continue after a restart is true or false.".into(),
+            ),
+        ),
+        (
+            Some("[runs]\ncontinue_after_limit = 0\n"),
+            Err(
+                "line 2, continue_after_limit: Continue after a usage limit is true or false."
+                    .into(),
+            ),
+        ),
+        (
+            Some("[runs]\ncontinue_before_gate = \"true\"\n"),
+            Err(
+                "line 2, continue_before_gate: Continue before a human gate is true or false."
+                    .into(),
+            ),
+        ),
+        (
+            Some("[runs]\nautomatic_continues = 0\n"),
+            Err(format!("line 2, automatic_continues: {CONTINUES_PROBLEM}")),
+        ),
+        (
+            Some("[runs]\nautomatic_continues = 11\n"),
+            Err(format!("line 2, automatic_continues: {CONTINUES_PROBLEM}")),
+        ),
+        (
+            Some("[runs]\nautomatic_continues = \"3\"\n"),
+            Err(format!("line 2, automatic_continues: {CONTINUES_PROBLEM}")),
+        ),
+    ];
+    reads(dir.path(), rows);
 }
 
 #[test]
@@ -300,6 +353,48 @@ fn sets_building_in_a_fresh_session_in_its_own_table() {
         text(dir.path()),
         "# mine\n[server]\nport = 4400\n\n[runs]\nbuild_in_fresh_session = true\n"
     );
+}
+
+#[test]
+fn sets_each_continue_in_the_runs_table() {
+    let dir = tempdir();
+    write(
+        dir.path(),
+        "# mine\n[runs]\ncontinue_after_limit = true # on\n",
+    );
+
+    settings::set_continue(dir.path(), settings::ContinueKey::Restart, false).unwrap();
+    settings::set_continue(dir.path(), settings::ContinueKey::Limit, false).unwrap();
+    let saved = settings::set_continue(dir.path(), settings::ContinueKey::Gate, false).unwrap();
+
+    assert_eq!(saved.runs.continue_after_restart, Some(false));
+    assert_eq!(saved.runs.continue_after_limit, Some(false));
+    assert_eq!(saved.runs.continue_before_gate, Some(false));
+    assert_eq!(
+        text(dir.path()),
+        "# mine\n[runs]\ncontinue_after_limit = false # on\ncontinue_after_restart = false\ncontinue_before_gate = false\n"
+    );
+}
+
+#[test]
+fn sets_the_automatic_continues() {
+    let dir = tempdir();
+    write(dir.path(), "[runs]\nautomatic_continues = 3\n");
+
+    let saved = settings::set_automatic_continues(dir.path(), " 4 ").unwrap();
+
+    assert_eq!(saved.runs.automatic_continues, Some(4));
+    assert_eq!(text(dir.path()), "[runs]\nautomatic_continues = 4\n");
+    for typed in ["0", "11", "three", "", "-1", "3.5"] {
+        assert_eq!(
+            settings::set_automatic_continues(dir.path(), typed),
+            Err(refused(CONTINUES_PROBLEM)),
+            "for {typed:?}"
+        );
+        assert_eq!(text(dir.path()), "[runs]\nautomatic_continues = 4\n");
+    }
+    assert_eq!(settings::automatic_continues("10"), Ok(10));
+    assert_eq!(settings::automatic_continues("1"), Ok(1));
 }
 
 #[test]

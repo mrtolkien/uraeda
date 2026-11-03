@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use napi::bindgen_prelude::AsyncTask;
 use napi_derive::napi;
-use uraeda_core::settings::{self, Settings};
+use uraeda_core::settings::{self, ContinueKey, Settings};
 
 use super::{Job, job};
 
@@ -35,6 +35,13 @@ pub fn checked_port(typed: String) -> napi::Result<u32> {
     settings::port(&typed)
         .map(u32::from)
         .map_err(napi::Error::from_reason)
+}
+
+/// `typed`, trimmed, when it is a cap on automatic continues, a whole number from 1 to 10. Throws
+/// the problem otherwise, `Automatic continues in a row is a whole number from 1 to 10.`
+#[napi]
+pub fn checked_automatic_continues(typed: String) -> napi::Result<i64> {
+    settings::automatic_continues(&typed).map_err(napi::Error::from_reason)
 }
 
 /// The settings in the folder's file, the defaults when there is none.
@@ -83,4 +90,32 @@ pub fn set_build_in_fresh_session(dir: String, fresh: bool) -> AsyncTask<Job<Set
 #[napi(ts_return_type = "Promise<Settings>")]
 pub fn set_single_key_shortcuts(dir: String, on: bool) -> AsyncTask<Job<Settings>> {
     job(move || settings::set_single_key_shortcuts(Path::new(&dir), on))
+}
+
+/// Sets whether a kind of automatic continue is on: after a restart, after a usage limit, or
+/// before a human gate.
+#[napi(
+    ts_args_type = "dir: string, key: \"restart\" | \"limit\" | \"gate\", on: boolean",
+    ts_return_type = "Promise<Settings>"
+)]
+pub fn set_continue(dir: String, key: String, on: bool) -> napi::Result<AsyncTask<Job<Settings>>> {
+    let key = match key.as_str() {
+        "restart" => ContinueKey::Restart,
+        "limit" => ContinueKey::Limit,
+        "gate" => ContinueKey::Gate,
+        _ => {
+            return Err(napi::Error::from_reason(format!(
+                "{key} is not a kind of continue: restart, limit, or gate."
+            )));
+        }
+    };
+    Ok(job(move || {
+        settings::set_continue(Path::new(&dir), key, on)
+    }))
+}
+
+/// Sets the automatic continues in a row, from the text typed.
+#[napi(ts_return_type = "Promise<Settings>")]
+pub fn set_automatic_continues(dir: String, continues: String) -> AsyncTask<Job<Settings>> {
+    job(move || settings::set_automatic_continues(Path::new(&dir), &continues))
 }

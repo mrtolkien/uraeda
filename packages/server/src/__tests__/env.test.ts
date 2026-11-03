@@ -50,6 +50,37 @@ test("the environment wins over .env, and the command line over both", () => {
   expect(parseOptions([], loadEnv(root(), {})).port).toBeUndefined();
 });
 
+/** R3 */
+test("the continues' variables read true or false, and their flags replace them", () => {
+  const env = loadEnv(null, {
+    URAEDA_AUTOMATIC_CONTINUES: "5",
+    URAEDA_CONTINUE_AFTER_LIMIT: "true",
+    URAEDA_CONTINUE_AFTER_RESTART: "false",
+  });
+  expect(env.continueAfterLimit).toEqual({ name: "URAEDA_CONTINUE_AFTER_LIMIT", value: true });
+  expect(env.continueAfterRestart).toEqual({
+    name: "URAEDA_CONTINUE_AFTER_RESTART",
+    value: false,
+  });
+
+  const options = parseOptions(
+    ["--no-continue-after-limit", "--no-continue-before-gate", "--automatic-continues", "6"],
+    env,
+  );
+
+  expect(options.continueAfterLimit).toEqual({ name: "--no-continue-after-limit", value: false });
+  expect(options.continueBeforeGate).toEqual({ name: "--no-continue-before-gate", value: false });
+  expect(options.continueAfterRestart).toEqual(env.continueAfterRestart);
+  expect(options.automaticContinues).toEqual({ name: "--automatic-continues", value: "6" });
+  expect(parseOptions([], env).automaticContinues).toEqual({
+    name: "URAEDA_AUTOMATIC_CONTINUES",
+    value: "5",
+  });
+  expect(() => loadEnv(null, { URAEDA_CONTINUE_BEFORE_GATE: "yes" })).toThrow(
+    /^URAEDA_CONTINUE_BEFORE_GATE is true or false\.$/,
+  );
+});
+
 /** R7 */
 test("an empty variable leaves .env's value", () => {
   const dir = root(

@@ -125,3 +125,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   Racing two processes on a timer would depend on elapsed time, which the testing decision rules
   out.
 - **Where**: task 3.
+
+## R13: A switch's variable that is not true or false stops the start
+
+- **Decision**: `URAEDA_CONTINUE_AFTER_RESTART`, `URAEDA_CONTINUE_AFTER_LIMIT`, and
+  `URAEDA_CONTINUE_BEFORE_GATE` read `true` or `false`, trimmed. Any other value stops the start
+  with `<NAME> is true or false.`, as a port that is not one does. `env.ts` checks it, not the core.
+- **Rationale**: a TOML boolean is typed, so the file has no text rule to share with the variable,
+  unlike the port and the cap, which the core checks for the file and the variable alike.
+- **If wrong**: a core rule for the switches' text, called by the binding, as `checkedPort` is.
+- **Where**: task 4, `packages/server/src/env.ts`.

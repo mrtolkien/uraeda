@@ -1,4 +1,4 @@
-// The `Settings` record and its seven changes, on every endpoint: the values in force, the file's,
+// The `Settings` record and its nine changes, on every endpoint: the values in force, the file's,
 // and their sources; the core's refusals; and the live update each change sends (review focus 2).
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -48,9 +48,16 @@ const keyboardDefaults = {
   singleKeyShortcuts: { inForce: true, saved: null, source: { kind: "default" } },
 };
 
-/** The runs' defaults: the build after a spec's approval starts in a fresh session. */
+/**
+ * The runs' defaults: the build after a spec's approval starts in a fresh session, and every
+ * automatic continue is on, 3 in a row.
+ */
 const runDefaults = {
+  automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
   buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } },
+  continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
+  continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
+  continueBeforeGate: { inForce: true, saved: null, source: { kind: "default" } },
 };
 
 test("the record of an empty config folder is read on the global endpoint and a repository's", async () => {
@@ -94,6 +101,9 @@ test("each change answers the record with its value", async () => {
   const port = await change(opened, "setPort", { port: " 4400 " });
   const open = await change(opened, "setOpenBrowser", { open: false });
   const fresh = await change(opened, "setBuildInFreshSession", { fresh: false });
+  const gate = await change(opened, "setContinue", { key: "gate", on: false });
+  const continues = await change(opened, "setAutomaticContinues", { continues: "4" });
+  const tooMany = await change(opened, "setAutomaticContinues", { continues: "11" });
 
   expect(edited.data.server.allowedHosts.saved).toEqual(["laptop.tail1234.ts.net"]);
   expect(removed.data.server.allowedHosts.saved).toEqual([]);
@@ -108,7 +118,25 @@ test("each change answers the record with its value", async () => {
     saved: false,
     source: { kind: "file" },
   });
-  expect((await binding.readSettings(opened.configDir)).runs.buildInFreshSession).toBe(false);
+  expect(gate.data.runs.continueBeforeGate).toEqual({
+    inForce: false,
+    saved: false,
+    source: { kind: "file" },
+  });
+  expect(continues.data.runs.automaticContinues).toEqual({
+    inForce: 4,
+    saved: 4,
+    source: { kind: "file" },
+  });
+  expect(tooMany.error).toEqual({
+    code: "BAD_REQUEST",
+    message: "refused: Automatic continues in a row is a whole number from 1 to 10.",
+  });
+  expect((await binding.readSettings(opened.configDir)).runs).toEqual({
+    automaticContinues: 4,
+    buildInFreshSession: false,
+    continueBeforeGate: false,
+  });
 });
 
 /** US5 1 */
@@ -158,6 +186,8 @@ test("a broken file is the record's problem, and refuses every change with it", 
     change(opened, "setOpenBrowser", { open: false }),
     change(opened, "setBuildInFreshSession", { fresh: false }),
     change(opened, "setSingleKeyShortcuts", { on: false }),
+    change(opened, "setContinue", { key: "restart", on: false }),
+    change(opened, "setAutomaticContinues", { continues: "4" }),
   ]);
 
   expect(read).toEqual({
@@ -169,7 +199,7 @@ test("a broken file is the record's problem, and refuses every change with it", 
     server: defaults,
   });
   expect(results.map((result) => result.error)).toEqual(
-    Array(7).fill({ code: "BAD_REQUEST", message: `refused: ${problem}` }),
+    Array(9).fill({ code: "BAD_REQUEST", message: `refused: ${problem}` }),
   );
   expect(readFileSync(file, "utf8")).toBe(broken);
 });

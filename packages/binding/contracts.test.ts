@@ -40,13 +40,23 @@ test("settings cross the binding in camelCase, an absent key left out", async ()
       "",
       "[runs]",
       "build_in_fresh_session = true",
+      "continue_after_restart = false",
+      "continue_after_limit = true",
+      "continue_before_gate = false",
+      "automatic_continues = 3",
       "",
     ].join("\n"),
   );
 
   expect(await readSettings(dir)).toEqual({
     keyboard: {},
-    runs: { buildInFreshSession: true },
+    runs: {
+      automaticContinues: 3,
+      buildInFreshSession: true,
+      continueAfterLimit: true,
+      continueAfterRestart: false,
+      continueBeforeGate: false,
+    },
     server: { allowedHosts: ["box.ts.net"], openBrowser: false },
   });
 });

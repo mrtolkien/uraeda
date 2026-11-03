@@ -411,10 +411,20 @@ const mutations = {
     FateAPI['mutations']['settings.removeHost']['input'],
     FateAPI['mutations']['settings.removeHost']['output']
   >('Settings'),
+  'settings.setAutomaticContinues': mutation<
+    Settings,
+    FateAPI['mutations']['settings.setAutomaticContinues']['input'],
+    FateAPI['mutations']['settings.setAutomaticContinues']['output']
+  >('Settings'),
   'settings.setBuildInFreshSession': mutation<
     Settings,
     FateAPI['mutations']['settings.setBuildInFreshSession']['input'],
     FateAPI['mutations']['settings.setBuildInFreshSession']['output']
+  >('Settings'),
+  'settings.setContinue': mutation<
+    Settings,
+    FateAPI['mutations']['settings.setContinue']['input'],
+    FateAPI['mutations']['settings.setContinue']['output']
   >('Settings'),
   'settings.setOpenBrowser': mutation<
     Settings,

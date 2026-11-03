@@ -576,11 +576,15 @@ git commit -m "feat(worker-lifecycle): keep pending continues in the runner's ca
   - `packages/server/src/env.ts`, `options.ts`, `settings.ts`, `dev.ts`
   - `packages/server/src/fate/settings-mutations.ts`
   - `docs/web-ui.md`, `.env.example`, `CONTRIBUTING.md`
+  - for the type check: `packages/web/src/views.ts`'s `SettingsRecordView` selects the new fields,
+    `settings/SettingsView.stories.tsx`'s record holds them, and fate regenerates
+    `packages/web/.fate/client.generated.ts`
 - Test:
   - `crates/core/tests/settings.rs`
   - `packages/binding/contracts.test.ts`
-  - `packages/server/src/__tests__/settings.test.ts`, `settings-fate.test.ts`, `main.test.ts` (the
-    `HELP` assertion follows the constant)
+  - `packages/server/src/__tests__/settings.test.ts`, `settings-fate.test.ts`, `env.test.ts`,
+    `settings-watch.test.ts` (its counted binding gains the cap's check), `main.test.ts` (the `HELP`
+    assertion follows the constant)
 
 **Interfaces:**
 
@@ -599,43 +603,51 @@ git commit -m "feat(worker-lifecycle): keep pending continues in the runner's ca
   - The fate mutations `settings.setContinue` take `{ key, on }`, and
     `settings.setAutomaticContinues` takes `{ continues: string }`. Both answer the `Settings`
     record.
-- Produces the flags and variables of ruling R3:
+- Produces the flags and variables of ruling R3, a switch's variable checked by `env.ts` (R13):
   - `--no-continue-after-restart` and `URAEDA_CONTINUE_AFTER_RESTART`;
   - `--no-continue-after-limit` and `URAEDA_CONTINUE_AFTER_LIMIT`;
   - `--no-continue-before-gate` and `URAEDA_CONTINUE_BEFORE_GATE`;
   - `--automatic-continues <n>` and `URAEDA_AUTOMATIC_CONTINUES`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
-- Rows of `reads_each_file`: the four keys read, and a bad value of each refused with its problem.
+- A row of `reads_each_file`: the four keys read. `refuses_each_continue_setting_out_of_its_rule`,
+  sharing its loop, as `reads_each_file` reached clippy's 100 lines: a bad value of each refused
+  with its problem.
 - `sets_the_automatic_continues`:
   - "4" is written;
   - "0", "11", and "three" are refused with the problem, the file unchanged.
+- `sets_each_continue_in_the_runs_table`: each `ContinueKey` writes its key, a comment kept.
 - The contract test's row: `runs` crosses in camelCase, `automaticContinues: 3`.
-- Rows of "US2.1 to US2.5" for `runs`:
+- "US2.1 to US2.5" for `runs`, a table of its own next to the server's, as that one compares
+  `.server`:
   - `URAEDA_AUTOMATIC_CONTINUES=5` beats the file's 4;
   - `--automatic-continues 6` beats both;
   - `--no-continue-after-limit` beats the file's `true`;
   - without a value, the defaults are `true` and 3.
+- A given cap follows the core's rule: "11" stops the start, " 7 " is 7.
+- `env.test.ts`: the variables read `true` or `false`, the flags replace them, and `yes` throws.
+- `settings-fate.test.ts`: the defaults' record, the two mutations' answers and a refused "11", and
+  the broken file refusing nine changes.
 
 The break each test catches:
 
 - A range checked only in the web: the file or a flag holds 0.
 - A flag that does not win over the file.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test settings`
 - Expected: FAIL to compile, `no field continue_after_restart`
 
-- [ ] **Step 3: Implement the core, the binding, the server's resolution, and the mutations.** Then
+- [x] **Step 3: Implement the core, the binding, the server's resolution, and the mutations.** Then
       document the keys:
   - the `[runs]` table in `docs/web-ui.md`'s settings sample, and its flags and variables;
   - `.env.example`;
   - `CONTRIBUTING.md`'s variables;
   - `HELP`.
 
-- [ ] **Step 4: Run the tests to check they pass**
+- [x] **Step 4: Run the tests to check they pass**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test settings`, then
   `nix develop -c vp test packages/binding/contracts.test.ts packages/server/src/__tests__/settings.test.ts packages/server/src/__tests__/settings-fate.test.ts packages/server/src/__tests__/main.test.ts`
@@ -646,10 +658,10 @@ The break each test catches:
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
-git add crates/ packages/binding/ packages/server/src/ docs/ .env.example CONTRIBUTING.md
+git add crates/ packages/binding/ packages/server/src/ packages/web/ docs/ .env.example CONTRIBUTING.md specs/
 git commit -m "feat(worker-lifecycle): settings to turn off and cap automatic continues"
 ```
 

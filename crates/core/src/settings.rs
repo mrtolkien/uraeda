@@ -43,6 +43,36 @@ pub struct ServerSettings {
 pub struct RunSettings {
     /// Whether the run after a spec's approval starts in a new agent session.
     pub build_in_fresh_session: Option<bool>,
+    /// Whether a run the server's restart cut continues by itself: `true` when unset.
+    pub continue_after_restart: Option<bool>,
+    /// Whether a run a session limit stopped continues at its reset: `true` when unset.
+    pub continue_after_limit: Option<bool>,
+    /// Whether a run that ended before its gate is asked to continue: `true` when unset.
+    pub continue_before_gate: Option<bool>,
+    /// Automatic continues in a row before the run asks, 1 to 10: 3 when unset.
+    pub automatic_continues: Option<i64>,
+}
+
+/// A kind of automatic continue, each with its switch in `[runs]`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ContinueKey {
+    /// `continue_after_restart`.
+    Restart,
+    /// `continue_after_limit`.
+    Limit,
+    /// `continue_before_gate`.
+    Gate,
+}
+
+impl ContinueKey {
+    /// The switch's key in `[runs]`.
+    pub const fn key(self) -> &'static str {
+        match self {
+            Self::Restart => "continue_after_restart",
+            Self::Limit => "continue_after_limit",
+            Self::Gate => "continue_before_gate",
+        }
+    }
 }
 
 /// The `[keyboard]` table: how the web UI's keys behave.
@@ -82,6 +112,12 @@ pub fn read(dir: &Path) -> Result<Settings, ApiError> {
 /// a flag or a variable giving the port is checked.
 pub fn port(typed: &str) -> Result<u16, String> {
     rules::port(typed)
+}
+
+/// `typed`, trimmed, when it is a cap on automatic continues, a whole number from 1 to 10;
+/// otherwise the problem, as a flag or a variable giving the cap is checked.
+pub fn automatic_continues(typed: &str) -> Result<i64, String> {
+    rules::automatic_continues(typed)
 }
 
 /// Adds a host name, trimmed and in lower case, at the end of `allowed_hosts`.
@@ -157,6 +193,23 @@ pub fn set_open_browser(dir: &Path, open: bool) -> Result<Settings, ApiError> {
 pub fn set_build_in_fresh_session(dir: &Path, fresh: bool) -> Result<Settings, ApiError> {
     change_table(dir, "runs", |runs| {
         set(runs, "build_in_fresh_session", Value::from(fresh));
+        Ok(())
+    })
+}
+
+/// Sets whether the kind of automatic continue `key` is on, in `[runs]`.
+pub fn set_continue(dir: &Path, key: ContinueKey, on: bool) -> Result<Settings, ApiError> {
+    change_table(dir, "runs", |runs| {
+        set(runs, key.key(), Value::from(on));
+        Ok(())
+    })
+}
+
+/// Sets the automatic continues in a row to `typed`, a whole number from 1 to 10, in `[runs]`.
+pub fn set_automatic_continues(dir: &Path, typed: &str) -> Result<Settings, ApiError> {
+    let continues = rules::automatic_continues(typed).map_err(refused)?;
+    change_table(dir, "runs", |runs| {
+        set(runs, "automatic_continues", Value::from(continues));
         Ok(())
     })
 }
