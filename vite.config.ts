@@ -31,6 +31,15 @@ const tokenLimit = {
   reason:
     "Use an Astryx token, or the theme's `var(--…)`: raw values are allowed only for 0, percentages, auto, and keywords (see the UI components decision).",
 };
+/**
+ * Text wraps the browser's plain way. Safari's `pretty` and `balance` even out every line of a
+ * paragraph, so each stops short of the pane's border, the right edge ragged on a phone.
+ */
+const wrapLimit = {
+  limit: ["auto", "wrap", "nowrap", "stable"],
+  reason:
+    "Wrap text the plain way: Safari's `pretty` and `balance` shorten every line of a paragraph (see specs/ui/reading.md).",
+};
 const tokenProps = [
   // Colour
   "color",
@@ -208,7 +217,13 @@ export default {
           "stylex/custom-property-tokens": ["error", tokenLimit],
           "stylex/valid-styles": [
             "error",
-            { propLimits: Object.fromEntries(tokenProps.map((prop) => [prop, tokenLimit])) },
+            {
+              propLimits: {
+                ...Object.fromEntries(tokenProps.map((prop) => [prop, tokenLimit])),
+                textWrap: wrapLimit,
+                textWrapStyle: wrapLimit,
+              },
+            },
           ],
         },
       },
