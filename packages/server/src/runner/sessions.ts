@@ -353,6 +353,8 @@ export class Sessions {
     if (row.state === "stopped" && row.reason === TAKEN_BACK) {
       throw refused(REFUSALS.takenBack);
     }
+    // A decision of its continue under way is dropped too.
+    this.#context.continuer.takenOver(session.id);
     if (this.cache.dismiss(turn)) {
       // Its state, failed or stopped, sends it at once, with the list, the feature, the workspace,
       // and what needs the human, and never reaches `onTurnDone`, which takes done turns only.

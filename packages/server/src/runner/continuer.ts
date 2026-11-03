@@ -69,6 +69,11 @@ export class Continuer {
   #claimed = new Map<number, number>();
   /** The worktree commit of each session at its last continue, in memory (R5). */
   #commits = new Map<string, string>();
+  /**
+   * How many times the human or the agent took each session's run over, by a message, Allow, Stop,
+   * a dismiss, or going on: a decision that read meanwhile is dropped.
+   */
+  #takenOver = new Map<string, number>();
   /** Whether the server stops: no timer is armed then. */
   #closed = false;
   /** The worktree commit each session's pending continue was decided at, recorded as it fires. */
@@ -96,11 +101,12 @@ export class Continuer {
     if (live.queue.length > 0) {
       return undefined;
     }
+    const taken = this.#taken(turn.sessionId);
     if (turn.state === "failed" && limit?.kind === "session") {
-      return this.#decide(turn, "limit", () => this.#limitContinue(limit));
+      return this.#decide(turn, "limit", () => this.#limitContinue(limit), taken);
     }
     if (turn.state === "done" && turn.kind === "workflow") {
-      return this.#beforeGate(turn);
+      return this.#beforeGate(turn, taken);
     }
     return undefined;
   }
@@ -135,9 +141,15 @@ export class Continuer {
     return { restore, turns: cancelled.map((turn) => turn.id) };
   }
 
+  /** Drops the decisions of the session's continue under way: the run was taken over. */
+  takenOver(session: string): void {
+    this.#takenOver.set(session, this.#taken(session) + 1);
+  }
+
   /** Cancels the session's pending continues, and returns their turns as they waited. */
   #cancel(session: string, { stopped }: { stopped: boolean }): Array<TurnRow> {
     const { cache } = this.#context;
+    this.takenOver(session);
     return cache
       .pendingContinues()
       .filter((turn) => turn.sessionId === session && this.#clear(turn.id))
@@ -231,7 +243,7 @@ export class Continuer {
     for (const turn of cache.serverCuts(SERVER_STOPPED, since)) {
       const session = cache.session(turn.sessionId);
       if (session && adapter.hasSession(session.nativeId)) {
-        await this.#decide(turn, "restart", Date.now);
+        await this.#decide(turn, "restart", Date.now, this.#taken(session.id));
       }
     }
   }
@@ -266,7 +278,7 @@ export class Continuer {
    * Asks a workflow turn done before its feature's next human gate to go on to it: once, so a
    * turn that ends so after the gate's own continue asks for the human, halted.
    */
-  async #beforeGate(turn: TurnRow): Promise<void> {
+  async #beforeGate(turn: TurnRow, taken: number): Promise<void> {
     const { binding, cache } = this.#context;
     const session = cache.session(turn.sessionId);
     if (!session?.folder || !this.#runs().beforeGate) {
@@ -281,7 +293,7 @@ export class Continuer {
       () => undefined,
     );
     if (step?.waitsOn === "agent" && step.name !== "pull-request-unknown") {
-      await this.#decide(turn, "gate", Date.now);
+      await this.#decide(turn, "gate", Date.now, taken);
     }
   }
 
@@ -289,9 +301,15 @@ export class Continuer {
    * Waits the turn for its continue of `reason` at `at()`, or, at the session's cap, marks it
    * capped: nothing when that kind is off, the session is not its folder's latest, nor a chat, the
    * turn is not its latest, or it was refused an action the human has not allowed. A commit in the
-   * feature's worktree since the session's last continue sets its count back to 0 first.
+   * feature's worktree since the session's last continue sets its count back to 0 first. The run
+   * taken over since `taken`, or the switch turned off, while it reads, drops it.
    */
-  async #decide(turn: TurnRow, reason: ContinueReason, at: () => number): Promise<void> {
+  async #decide(
+    turn: TurnRow,
+    reason: ContinueReason,
+    at: () => number,
+    taken: number,
+  ): Promise<void> {
     const { cache } = this.#context;
     const session = cache.session(turn.sessionId);
     if (!session || !this.#runs()[SWITCHES[reason]] || !this.#current(session)) {
@@ -301,9 +319,11 @@ export class Continuer {
       return;
     }
     const commit = await this.#commitOf(session);
-    // The human's message or a dismiss while the commit was read takes the run over.
+    // The human's message, Stop, or a dismiss while the commit was read takes the run over.
     const now = cache.turn(turn.id);
     if (
+      this.#taken(session.id) !== taken ||
+      !this.#runs()[SWITCHES[reason]] ||
       !now ||
       now.dismissedAt !== null ||
       now.continueReason !== null ||
@@ -350,6 +370,11 @@ export class Continuer {
       .findLast(
         (turn) => turn.id < before && !(turn.state === "stopped" && turn.reason === TAKEN_BACK),
       );
+  }
+
+  /** How many times the session's run was taken over: a decision compares it after its reads. */
+  #taken(session: string): number {
+    return this.#takenOver.get(session) ?? 0;
   }
 
   /** Whether the session's runs continue: a chat, or its folder's latest session, not archived. */
