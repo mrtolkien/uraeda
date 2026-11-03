@@ -243,6 +243,28 @@ test.each<[string, Array<AgentEvent>]>([
       },
     ]),
   ],
+  // A usage report that refused a request: its usage, then the limit; none on usage credits.
+  [
+    "limit-event.jsonl",
+    [
+      {
+        fiveHour: { percentUsed: 100, resetsAt: "2026-11-03T23:40:00.000Z" },
+        type: "usage",
+        week: { percentUsed: 12, resetsAt: new Date(1_792_300_000 * 1000).toISOString() },
+      },
+      { limit: { kind: "session", resetsAt: "2026-11-03T23:40:00.000Z" }, type: "limit" },
+    ],
+  ],
+  [
+    "limit-event-overage.jsonl",
+    [
+      {
+        fiveHour: { percentUsed: 100, resetsAt: "2026-11-03T23:40:00.000Z" },
+        type: "usage",
+        week: { percentUsed: 12, resetsAt: new Date(1_792_300_000 * 1000).toISOString() },
+      },
+    ],
+  ],
   // A wakeup in 25 minutes, and a one-shot cron read in the server's zone.
   [
     "wakeup.jsonl",
@@ -258,6 +280,25 @@ test.each<[string, Array<AgentEvent>]>([
   } finally {
     vi.useRealTimers();
   }
+});
+
+test("a sub-agent's wakeup is not the main agent's", () => {
+  const line = JSON.stringify({
+    message: {
+      content: [
+        {
+          id: "toolu_01Wake4",
+          input: { delaySeconds: 600 },
+          name: "ScheduleWakeup",
+          type: "tool_use",
+        },
+      ],
+      role: "assistant",
+    },
+    parent_tool_use_id: "toolu_01Task",
+    type: "assistant",
+  });
+  expect(parseLine(line).filter((event) => event.type === "wakeup")).toEqual([]);
 });
 
 test.each<[string, unknown]>([

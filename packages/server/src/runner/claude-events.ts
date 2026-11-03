@@ -166,7 +166,8 @@ function assistantEvents(message: Json, parent: string | undefined, cwd: string 
       const input = isObject(block.input) ? block.input : {};
       return [
         toolStart(block.id, text(block.name), input, parent, cwd),
-        ...wakeupOf(text(block.name), input, now),
+        // A sub-agent's wakeup does not keep the main agent's process open.
+        ...(parent === undefined ? wakeupOf(text(block.name), input, now) : []),
       ];
     }
     // A thinking block comes whole once it ends, its text empty unless the agent shows it.

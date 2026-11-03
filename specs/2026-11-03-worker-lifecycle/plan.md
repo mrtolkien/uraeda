@@ -389,8 +389,12 @@ The fixtures are recorded lines:
 - `limit-weekly.jsonl`: the same with `rateLimitType: "seven_day"`, `resetsAt: 1794150000`, and
   `You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)`.
 - `limit-text.jsonl`: the assistant line without `api_error`, as an older Claude Code sends it.
+- `limit-event.jsonl` and `limit-event-overage.jsonl`: a `rate_limit_event` whose `five_hour` window
+  is `rejected`, the second let through on usage credits (`isUsingOverage: true`). Their rows assert
+  all the file's events: the usage, then the limit for the first, the usage alone for the second.
 - `wakeup.jsonl`: an assistant `tool_use` of `ScheduleWakeup` with `delaySeconds: 1500`, and one of
-  `CronCreate` with `recurring: false`, and a recurring `CronCreate`.
+  `CronCreate` with `recurring: false`, and a recurring `CronCreate`. A test of its own, "a
+  sub-agent's wakeup is not the main agent's", parses a sub-agent's `ScheduleWakeup` line.
 
 Rows of "the lines of %s", each asserting only the new event among the file's. The table's clock is
 set to `2026-11-03T14:01:00Z`, 23:01 in Tokyo:
@@ -414,6 +418,9 @@ carries its `text`:
 | the 8:40am text, read at `2026-11-03T23:40:20Z`                  | session, `2026-11-03T23:40:00.000Z`           |
 | `… resets 11:58pm (Asia/Tokyo)`, read at `2026-11-03T15:03:00Z`  | session, `2026-11-03T14:58:00.000Z`           |
 | `You've hit your session limit · resets 8:40am`                  | session, `2026-11-04T07:40:00.000Z`, in Paris |
+| `You've hit your session limit · resets 12am (Asia/Tokyo)`       | session, `2026-11-03T15:00:00.000Z`           |
+| `You've hit your session limit · resets 12pm (Asia/Tokyo)`       | session, `2026-11-04T03:00:00.000Z`           |
+| `5-hour limit reached ∙ resets 3am`                              | session, `2026-11-04T02:00:00.000Z`, in Paris |
 | `You've hit your session limit`                                  | session, no `resetsAt`                        |
 | `You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)` | other                                         |
 | `You've hit your Opus limit · resets 8:40am (Asia/Tokyo)`        | other                                         |
@@ -439,7 +446,8 @@ The break each test catches:
 
 - from the main agent's assistant line whose `api_error` is `usage_limit_reached`, through
   `limitOfInfo`;
-- else from one with `error: "rate_limit"`, through `limitOfText` on its text;
+- else, when that gives none or the line has `error: "rate_limit"`, through `limitOfText` on its
+  text, which "%s falls back to its text" in `claude-limits.test.ts` checks;
 - and from a `rate_limit_event` whose `rate_limit_info.status` is `rejected`, its usage event kept.
   It comes before the refusal's assistant line, which says the same or more, and is read last.
 
@@ -447,15 +455,16 @@ Rules:
 
 - `rateLimitType: "five_hour"` is the session limit. Every other type, or none, is `other`.
 - `resetsAt` is in epoch seconds.
-- `limitOfText` reads `session limit` as the session's. The time `h(:mm)?(am|pm)` gives the first
-  instant with that wall-clock time after 10 minutes before `now`, in the IANA zone in parentheses,
-  or the server's own zone without one: a refusal read just after its reset's minute keeps that
-  reset, which task 8 turns into "a minute from now", instead of waiting a day. Any other `limit`
-  sentence is `other`.
+- `limitOfText` reads `session limit`, or an older Claude Code's `5-hour limit`, as the session's
+  (ruling R15). The time `h(:mm)?(am|pm)` gives the first instant with that wall-clock time after 10
+  minutes before `now`, in the IANA zone in parentheses, or the server's own zone without one: a
+  refusal read just after its reset's minute keeps that reset, which task 8 turns into "a minute
+  from now", instead of waiting a day. Any other `limit` sentence is `other`.
 
-A `tool_use` of `ScheduleWakeup` emits `{ type: "wakeup", at: now + delaySeconds }` besides its
-`toolStart`. A `CronCreate` with `recurring: false` emits its next fire time, from its 5-field
-`cron` read in the server's zone; one it cannot read emits nothing. A recurring cron emits nothing.
+A main agent's `tool_use` of `ScheduleWakeup` emits `{ type: "wakeup", at: now + delaySeconds }`
+besides its `toolStart`; a sub-agent's emits none, as its limits do not. A `CronCreate` with
+`recurring: false` emits its next fire time, from its 5-field `cron` read in the server's zone; one
+it cannot read emits nothing. A recurring cron emits nothing.
 
 - [x] **Step 4: Run the tests to check they pass**
 

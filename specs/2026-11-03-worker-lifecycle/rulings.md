@@ -146,3 +146,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   "The agent keeps stopping." and could notify. A queued turn reads as working at once. Found by the
   review of task 3.
 - **Where**: task 8.
+
+## R15: An older Claude Code's `5-hour limit` is the session's
+
+- **Decision**: `limitOfText` reads `5-hour limit`, as in `5-hour limit reached ∙ resets 3am`, as
+  the session's limit, as it reads `session limit`.
+- **Rationale**: older Claude Code versions name the session's limit by its window. Read as another
+  limit, the run would stop for the human instead of waiting for the reset. Found by the review of
+  task 2.
+- **If wrong**: an older version's session limit stops its run as a weekly limit does.
+- **Where**: task 2, `packages/server/src/runner/claude-limits.ts`.
