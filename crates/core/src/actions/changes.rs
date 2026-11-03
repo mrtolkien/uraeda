@@ -16,12 +16,14 @@ use super::{ActionError, Change, Committed, commit, images};
 mod files;
 mod linked;
 mod repairs;
+mod texts;
 
 use files::{
     FOLDERS, Found, Grown, Undo, files_in, grown_files, linked_by, take_item, take_note, unmerge,
     written_for_link, written_from,
 };
 use linked::never_committed;
+use texts::{Texts, texts};
 
 const INBOX: &str = super::inbox::PATH;
 const PRIORITIES: &str = super::priorities::PATH;
@@ -95,12 +97,6 @@ fn moved_out(text: &str, to: &str) -> Described {
         subject: format!("move \"{}\" from the inbox to {to}", short(text)),
         line: format!("- Move from the inbox to {to}: {text}"),
     }
-}
-
-/// The texts of `INBOX.md` and `PRIORITIES.md`, now and at `HEAD`.
-struct Texts {
-    inbox: (Option<String>, Option<String>),
-    priorities: (Option<String>, Option<String>),
 }
 
 /// The note file of the note of the text `text` in `inbox`, from the top level.
@@ -228,7 +224,7 @@ fn pair(place: &Place, texts: &Texts) -> (Vec<Described>, Found) {
 /// The files the commit holds: each list that changed, then the proposal files and note files.
 fn files(texts: &Texts, linked: Vec<String>) -> Vec<String> {
     let mut files = Vec::new();
-    if texts.inbox.0 != texts.inbox.1 {
+    if texts.inbox_changed {
         files.push(INBOX.to_string());
     }
     if texts.priorities.0 != texts.priorities.1 {
@@ -263,10 +259,7 @@ fn gather(place: &Place) -> Listed {
 /// The change list of the two lists, and of the proposal files and note files they need or the
 /// human edited.
 fn gather_lists(place: &Place) -> Listed {
-    let texts = Texts {
-        inbox: versions(place, INBOX),
-        priorities: versions(place, PRIORITIES),
-    };
+    let texts = texts(place);
     let (mut changes, found) = pair(place, &texts);
     let mut paths = found.paths;
     // The proposal files and note files the human edited in their editor, which have no Commit of

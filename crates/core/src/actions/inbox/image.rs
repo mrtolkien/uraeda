@@ -13,7 +13,7 @@ use crate::workspace::resolve;
 use super::super::expand::{self, NOTES};
 use super::super::place::Place;
 use super::super::{ActionError, attach};
-use super::{Marks, PATH, checked_note, current, no_note};
+use super::{Marks, PATH, agent, checked_note, current, no_note};
 
 /// An image a note takes: as [`crate::images::encode`] checked and encoded it, and its original
 /// file name, `None` for a pasted image.
@@ -51,14 +51,16 @@ pub fn attach_to_note(
     images: &[NoteImage],
     previous: &str,
 ) -> Result<String, ActionError> {
-    let current = current(place, PATH, previous)?;
-    let note = inbox::note(&current, id).ok_or_else(|| no_note(id))?;
-    if let Some(file) = note.file() {
-        return into_file(place, &file, images);
-    }
-    let (title, nested) = inbox::note_file_parts(&current, id).ok_or_else(|| no_note(id))?;
-    new_note_file(place, &current, &title, &nested, images, |link| {
-        inbox::relink(&current, id, link).unwrap_or_else(|| current.clone())
+    agent::acting_read(place, id, previous, |id, previous| {
+        let current = current(place, PATH, previous)?;
+        let note = inbox::note(&current, id).ok_or_else(|| no_note(id))?;
+        if let Some(file) = note.file() {
+            return into_file(place, &file, images);
+        }
+        let (title, nested) = inbox::note_file_parts(&current, id).ok_or_else(|| no_note(id))?;
+        new_note_file(place, &current, &title, &nested, images, |link| {
+            inbox::relink(&current, id, link).unwrap_or_else(|| current.clone())
+        })
     })
 }
 
