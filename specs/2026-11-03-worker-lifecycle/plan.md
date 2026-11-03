@@ -516,10 +516,12 @@ keeps two servers or timers from continuing a run twice.
   - `pendingContinues(): Array<TurnRow>`: every turn with `continue_at` set.
   - `latestLimitContinue(from: number): number | undefined`: the latest `continue_at` of a pending
     limit continue at or after `from`.
-  - `addContinue(session: string): number`: increments `automatic_continues`, and returns it.
+  - `addContinue(session: string): number`: increments `automatic_continues`, and returns it; throws
+    `no session <id>` for a missing session.
   - `resetContinues(session: string): void`.
 - Changes `dismiss`: it also clears both columns.
-- Changes `interrupted`: `ended_at` is the turn's last item's `at`, else its `started_at`, else now.
+- Changes `interrupted`: `ended_at` is the later of the turn's last item's `at` and its
+  `started_at`, else either, else now: a queued turn's message is kept before it starts.
 
 - [x] **Step 1: Move the turn-state writes out of `cache.ts`.** `startTurn`, `reopenTurn`,
       `endTurn`, `dismiss`, and `interrupted` move into `cache-turns.ts`, as functions over `db`
@@ -533,13 +535,16 @@ keeps two servers or timers from continuing a run twice.
 apply `migrations.slice(0, 7)`, insert a session and a turn, then open the cache. Assert:
 
 - the new columns hold their defaults: `continueAt` null, `continueReason` null, and
-  `automaticContinues` 0;
+  `automaticContinues` 0, read without a default, so a missing column fails;
+- `addContinue("s")` returns 1, `resetContinues("s")` brings it back to 0, and `addContinue` on a
+  missing session throws `no session <id>`;
 - after `scheduleContinue(t, 1000, "limit")`, two caches on the same file each call
   `takeContinue(t)`. One gets the row, with `continueReason: "limit"` and `continueAt: null`. The
   other gets undefined.
 
 A row of "interrupted stops the running turns of gone servers": a running turn whose last item is at
-`2026-11-03T01:00:00.000Z` ends at that time.
+`2026-11-03T01:00:00.000Z` ends at that time, and a queued turn whose only item predates its start
+ends at its start.
 
 The break each test catches:
 
