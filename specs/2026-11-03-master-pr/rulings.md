@@ -82,3 +82,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the old messages would be wrong for a feature with only its line left, and the spec
   makes the line a leftover of the merge like the worktree and the branch.
 - **Where**: task 5, `crates/cli/src/clean.rs`, `crates/core/src/actions/clean.rs` `merged_line`
+
+## R8: An agent's note made a proposal leaves its frontmatter
+
+- **Decision**: a note file made a proposal takes the template's shape without its frontmatter:
+  `agent`, `about`, and `category` are the note's marks, which a proposal has no use for, and the
+  title read is the `#` line after it. The move's Undo writes back the note file as `HEAD` has it,
+  frontmatter included, when the move made the proposal of that file.
+- **Rationale**: the frontmatter copied into `## What` duplicated the title and left YAML in the
+  proposal; dropped without the Undo writing it back, the Undo would lose the file's marks.
+- **Where**: `crates/core/src/actions/expand.rs` `note_as_proposal`,
+  `crates/core/src/actions/inbox/note_file.rs` `back_to_notes`

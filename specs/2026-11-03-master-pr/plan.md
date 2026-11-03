@@ -309,7 +309,10 @@ git commit -m "feat(master-pr): the inbox reads agents' note files"
   frontmatter. `remove` deletes an agent's note's file alone, `INBOX.md` unchanged, and only when
   the file is as `HEAD` has it: an edited or never committed file refuses
   `<path> has uncommitted changes: the note was not removed`, writing nothing. Its commit holds the
-  deleted file, and `INBOX.md` only when the file exists. Signatures of the actions do not change.
+  deleted file, and `INBOX.md` only when the file exists. A note file made a proposal leaves its
+  frontmatter out, and its Undo writes back the file `HEAD` has, frontmatter included, as
+  [R8](rulings.md#r8-an-agents-note-made-a-proposal-leaves-its-frontmatter) says. Signatures of the
+  actions do not change.
 
 - [x] **Step 1: Write the failing tests**
 
