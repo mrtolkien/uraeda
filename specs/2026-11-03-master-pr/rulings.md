@@ -51,11 +51,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the line's `note-<n>` id over the new hash, and puts `INBOX.md` back as it was when the action
   refuses; a category the line made, one `INBOX.md` lacked, goes once the line left it, as a move to
   another category or out of the inbox does. `moving` adds the drop of the file's `category` for
-  `category`, `place`, and a drop among the notes. A removal does not write the line: it deletes the
-  file, held for Undo, only when the file is as `HEAD` has it; a file edited since, or never
-  committed, refuses the removal with `<path> has uncommitted changes: the note was not removed`,
-  since the git decision forbids losing the user's work. The plan's `linked` function is folded into
-  `acting`, which nothing else needed.
+  `category`, `place`, and a drop among the notes. The commit bar counts a note file whose only
+  change is that dropped `category`, linked from `INBOX.md`, as part of the move, and its Discard
+  restores the file from `HEAD`. A removal does not write the line: it deletes the file, held for
+  Undo, only when the file is as `HEAD` has it; a file edited since, or never committed, refuses the
+  removal with `<path> has uncommitted changes: the note was not removed`, since the git decision
+  forbids losing the user's work. The plan's `linked` function is folded into `acting`, which
+  nothing else needed.
 - **Rationale**: R2's "losing nothing" holds only when a refused action leaves no line behind, and a
   move of a note under "Deferred fixes", a category `INBOX.md` lacks, would otherwise leave an empty
   `## Deferred fixes`.
