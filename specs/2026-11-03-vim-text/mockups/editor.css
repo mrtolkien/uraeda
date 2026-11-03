@@ -397,3 +397,59 @@ p.note {
 .m-nav .b {
   color: var(--sub);
 }
+/* The shell around a buffer: the sidebar, then the center column. */
+.shell {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  max-width: 1100px;
+  border: 1px solid var(--surface);
+  background: var(--base);
+}
+.shell .side {
+  border-right: 1px solid var(--surface);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--sub);
+}
+.shell .side div {
+  padding: 3px 0;
+}
+.shell .side .here {
+  color: var(--text);
+}
+.shell .center {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.shell .center .editor {
+  border: none;
+  flex: 1;
+}
+.shell .ll {
+  grid-column: 1 / -1;
+  margin: 0;
+  max-width: none;
+}
+/* The buffer's top line, as bufferline draws a buffer. */
+.bufline {
+  display: flex;
+  background: var(--crust);
+  height: 28px;
+  font-size: 13px;
+}
+.bufline .tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  background: var(--mantle);
+  border-top: 2px solid var(--blue);
+  color: var(--sub);
+}
+.bufline .tab b {
+  color: var(--text);
+}
+.bufline .dot {
+  color: var(--peach);
+}
