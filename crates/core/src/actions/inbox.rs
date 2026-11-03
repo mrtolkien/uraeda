@@ -59,27 +59,35 @@ fn text(place: &Place) -> Result<String, ActionError> {
 
 /// The inbox of `text`, with the status of the triage `triage`, and `changes`, the count of the
 /// commit bar's change list.
-fn of(text: &str, triage: Option<&str>, changes: u32) -> Inbox {
+fn of(text: &str, files: &[inbox::NoteFile], triage: Option<&str>, changes: u32) -> Inbox {
     let status = triage
         .and_then(|triage| frontmatter::parse(triage).ok())
         .and_then(|front| front.text("status").map(String::from));
     Inbox {
         changes,
         triage: status,
-        ..inbox::read(text)
+        ..inbox::read(text, files)
     }
 }
 
-/// The inbox of `text`, with `changes`, the count of the commit bar's change list, and the triage's
-/// status and the notes' images from the files `file` reads, by their paths from the top level:
-/// the one way the inbox is read, from a checkout or from the default branch.
-pub fn assembled(text: &str, changes: u32, file: impl Fn(&str) -> Option<String>) -> Inbox {
+/// The inbox of `text`, with the agents' notes among the note files at `notes`, `changes`, the
+/// count of the commit bar's change list, and the triage's status and the notes' images from the
+/// files `file` reads, by their paths from the top level: the one way the inbox is read, from a
+/// checkout or from the default branch.
+pub fn assembled(
+    text: &str,
+    notes: &[String],
+    changes: u32,
+    file: impl Fn(&str) -> Option<String>,
+) -> Inbox {
     let triage = file(DefaultRound::Triage.path());
-    with_images(of(text, triage.as_deref(), changes), file)
+    let files = inbox::note_files(notes, &file);
+    with_images(of(text, &files, triage.as_deref(), changes), file)
 }
 
 fn read_text(place: &Place, written: &str) -> Inbox {
-    assembled(written, changes::list(place).count, |path| {
+    let notes = inbox::note_paths_on_disk(&place.root);
+    assembled(written, &notes, changes::list(place).count, |path| {
         fs::read_to_string(place.root.join(path)).ok()
     })
 }

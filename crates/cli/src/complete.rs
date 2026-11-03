@@ -125,7 +125,7 @@ pub fn merged() -> ArgValueCandidates {
 pub fn categories() -> ArgValueCandidates {
     ArgValueCandidates::new(|| {
         let text = workspace().and_then(|workspace| workspace.inbox);
-        inbox::read(text.as_deref().unwrap_or_default())
+        inbox::read(text.as_deref().unwrap_or_default(), &[])
             .names
             .into_iter()
             .map(CompletionCandidate::new)

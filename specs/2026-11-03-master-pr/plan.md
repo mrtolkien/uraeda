@@ -208,7 +208,7 @@ The tasks of a wave are built at the same time, then merged and reviewed while t
     `api::read_inbox` the default branch's, from its checkout when it has one, else its tip.
   - `actions::inbox::assembled(text, files, changes, file)` takes the files.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/inbox.rs
@@ -254,12 +254,12 @@ The break each test catches:
 - Keys: a line's key renumbered when a file with the same text arrives.
 - Main: the API reading only `INBOX.md`, so the web UI misses merged agents' notes.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test inbox --test inbox_actions`
 - Expected: FAIL to compile, `cannot find struct NoteFile`.
 
-- [ ] **Step 3: Implement the reader, its two sources, and the callers**
+- [x] **Step 3: Implement the reader, its two sources, and the callers**
 
 Add `agent.rs` with `NoteFile`, the agent's note's fields read with `files::frontmatter`, and
 `joined`; build `read`'s added notes with the same `inbox_note` it uses for lines, from the line
@@ -268,12 +268,12 @@ Add `agent.rs` with `NoteFile`, the agent's note's fields read with `files::fron
 agents' notes. Remove `check/notes.rs`, its call, and its test: an unlinked note file is an agent's
 note. Update every test calling `inbox::read(text)` to `inbox::read(text, &[])`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core crates/cli/src/complete.rs

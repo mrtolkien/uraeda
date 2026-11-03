@@ -553,3 +553,33 @@ fn a_note_started_from_a_changed_inbox_is_not_committed() {
     assert_eq!(repo.subjects("main")[0], "chore: specs");
     assert!(!repo.read(INBOX).contains("We need a home icon"));
 }
+
+/// SC-002: the inbox read from `main` holds an agent's note file merged there, as its line would.
+#[test]
+fn read_inbox_lists_an_agents_note_from_main() {
+    let repo = fixture_repo();
+    repo.write(
+        "specs/notes/feature-state-the-workspace-records-running.md",
+        "---\nagent: true\nabout: feature-state\ncategory: CLI\n---\n\n# The workspace record's running is read by no view\n",
+    );
+    repo.commit("chore: an agent's note");
+
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let cli = read
+        .categories
+        .iter()
+        .find(|c| c.name.as_deref() == Some("CLI"))
+        .unwrap();
+    let note = cli.notes.last().unwrap();
+    assert_eq!(
+        note.id,
+        "specs/notes/feature-state-the-workspace-records-running.md"
+    );
+    assert_eq!(
+        note.lines,
+        [
+            "- [agent] [feature-state] [The workspace record's running is read by no view](notes/feature-state-the-workspace-records-running.md)"
+        ]
+    );
+}
