@@ -579,6 +579,10 @@ test("migration 8 adds the continue columns, and a continue is claimed once", ()
 
   expect(cache.turn(1)).toMatchObject({ continueAt: null, continueReason: null });
   expect(cache.session("s")?.automaticContinues).toBe(0);
+  expect(cache.addContinue("s")).toBe(1);
+  cache.resetContinues("s");
+  expect(cache.session("s")?.automaticContinues).toBe(0);
+  expect(() => cache.addContinue("gone")).toThrow("no session gone");
   cache.scheduleContinue(1, 1000, "limit");
   const other = SessionCache.open(path, { pid: process.ppid });
   const claims = [cache.takeContinue(1), other.takeContinue(1)];

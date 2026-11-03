@@ -58,7 +58,7 @@ export type Row = Record<string, string | number | null>;
 export const toSession = (row: Row): SessionRow => ({
   agent: String(row.agent),
   archivedAt: row.archived_at as string | null,
-  automaticContinues: Number(row.automatic_continues ?? 0),
+  automaticContinues: Number(row.automatic_continues),
   createdAt: String(row.created_at),
   folder: row.folder as string | null,
   id: String(row.id),
