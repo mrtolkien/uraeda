@@ -1,5 +1,5 @@
 ---
-discovery: medium # low, medium, or high: how far the agent researches before asking
+discovery: high # low, medium, or high: how far the agent researches before asking
 ---
 
 # Worker lifecycle
@@ -24,6 +24,11 @@ Agent runs survive what happens around them, and keep going until the next human
   work notifies the session when it ends instead.
 - **After a crash**: one button that restarts every stopped agent, sending "continue" to each (from
   the inbox).
+- Heartbeat/cron jobs
+- Run options
+  - Master session vs one session per step
+  - Review options: model, command, prompt, depth, ...
+  - Can set global defaults and override per-feature
 
 ## Why
 
@@ -34,3 +39,5 @@ still need a human to restart them.
 ## Notes
 
 - Will need a few settings, should be able to turn it off too
+- Also check the children of this proposal in the priorities file: this should also include model
+  selection per step, cron jobs, …

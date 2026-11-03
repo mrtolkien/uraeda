@@ -7,14 +7,7 @@
 > Still wanted for my personal usage
 
 - ["Master" PR: when multiple agents runs, make sure all PRs can merge smoothy. Also, make workflow file changes less problematic with merge issues.](/specs/2026-11-03-master-pr/proposal.md)
-
-- [Worker lifecycle](proposals/worker-lifecycle.md): runs survive server restarts, usage limits, and
-  their own background work, and go on to the next human gate without a "Continue"
-  - Heartbeat/cron jobs
-  - Run options
-    - Master session vs one session per step
-    - Review options: model, command, prompt, depth, ...
-    - Can set global defaults and override per-feature
+- [Worker lifecycle: runs survive server restarts, usage limits, and their own background work, and go on to the next human gate without a "Continue"](/specs/2026-11-03-worker-lifecycle/proposal.md)
 
 - Review the UI guidelines properly
 

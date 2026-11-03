@@ -210,4 +210,4 @@ git decision, if they are about the status of a feature".
   Dismiss; a pull request merged and not fetched loses its number on the feature page; the workspace
   record's `running` has no reader left.
 - Resuming runs after a restart, and continuing every stopped agent at once, stay in
-  [Worker lifecycle](../proposals/worker-lifecycle.md).
+  [Worker lifecycle](../2026-11-03-worker-lifecycle/proposal.md).
