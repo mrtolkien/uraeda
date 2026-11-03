@@ -35,9 +35,10 @@ const RESET_TIME = /\bresets\s+(\d{1,2})(?::(\d{2}))?\s*([ap]m)\b(?:\s*\(([^()]+
 
 /**
  * The limit a refusal's text names, for a Claude Code that sends no typed error:
- * `You've hit your session limit · resets 8:40am (Asia/Tokyo)`. Its reset is the next instant after
- * `now` with that wall-clock time, in the zone the text names, or in `zone`, the server's, without
- * one. Any other limit is `other`, and a text naming no limit gives none.
+ * `You've hit your session limit · resets 8:40am (Asia/Tokyo)`. Its reset is the next instant with
+ * that wall-clock time, in the zone the text names, or in `zone`, the server's, without one: one up
+ * to 10 minutes before `now` counts, as a refusal read just after its reset's minute. Any other
+ * limit is `other`, and a text naming no limit gives none.
  */
 export function limitOfText(text: string, now: Date, zone = serverZone()): Limit | undefined {
   if (!/\blimit\b/i.test(text)) {
@@ -92,7 +93,13 @@ function zonedInstant(at: WallClock, zone: string): number {
   return guess - (asUtc(wallClock(first, zone)) - first);
 }
 
-/** The next instant after `now` at `hour:minute` in a zone, in ISO 8601; none in an unknown zone. */
+/** How long after its minute a reset still counts: a later one is tomorrow's. */
+const RESET_GRACE_MS = 10 * 60_000;
+
+/**
+ * The first instant at `hour:minute` in a zone, from `RESET_GRACE_MS` before `now`, in ISO 8601;
+ * none in an unknown zone.
+ */
 function nextWallClock(
   hour: number,
   minute: number,
@@ -105,9 +112,9 @@ function nextWallClock(
   } catch {
     return undefined;
   }
-  for (const days of [0, 1, 2]) {
+  for (const days of [-1, 0, 1, 2]) {
     const instant = zonedInstant({ ...today, day: today.day + days, hour, minute }, zone);
-    if (instant > now.getTime()) {
+    if (instant > now.getTime() - RESET_GRACE_MS) {
       return new Date(instant).toISOString();
     }
   }

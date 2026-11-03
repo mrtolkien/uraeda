@@ -409,7 +409,10 @@ carries its `text`:
 | Text                                                             | Expected                                      |
 | ---------------------------------------------------------------- | --------------------------------------------- |
 | `You've hit your session limit · resets 8:40am (Asia/Tokyo)`     | session, `2026-11-03T23:40:00.000Z`           |
-| `You've hit your session limit · resets 11pm (Asia/Tokyo)`       | session, `2026-11-04T14:00:00.000Z`           |
+| `You've hit your session limit · resets 10:50pm (Asia/Tokyo)`    | session, `2026-11-04T13:50:00.000Z`           |
+| `You've hit your session limit · resets 11pm (Asia/Tokyo)`       | session, `2026-11-03T14:00:00.000Z`           |
+| the 8:40am text, read at `2026-11-03T23:40:20Z`                  | session, `2026-11-03T23:40:00.000Z`           |
+| `… resets 11:58pm (Asia/Tokyo)`, read at `2026-11-03T15:03:00Z`  | session, `2026-11-03T14:58:00.000Z`           |
 | `You've hit your session limit · resets 8:40am`                  | session, `2026-11-04T07:40:00.000Z`, in Paris |
 | `You've hit your session limit`                                  | session, no `resetsAt`                        |
 | `You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)` | other                                         |
@@ -421,8 +424,8 @@ The break each test catches:
 - The fixture rows: a parser that ignores `api_error_params`, whose text fallback gives the weekly
   limit no reset, or that reads a weekly limit as the session's; a wakeup not read from its tool
   call.
-- The table: a reset read in the server's zone instead of the zone the text names, or a time already
-  past today not moved to the next day.
+- The table: a reset read in the server's zone instead of the zone the text names, a time more than
+  10 minutes past not moved to the next day, or one read just after its minute moved there.
 
 - [x] **Step 2: Run them to check they fail**
 
@@ -444,9 +447,11 @@ Rules:
 
 - `rateLimitType: "five_hour"` is the session limit. Every other type, or none, is `other`.
 - `resetsAt` is in epoch seconds.
-- `limitOfText` reads `session limit` as the session's. The time `h(:mm)?(am|pm)` gives the next
-  instant after `now` with that wall-clock time, in the IANA zone in parentheses, or the server's
-  own zone without one. Any other `limit` sentence is `other`.
+- `limitOfText` reads `session limit` as the session's. The time `h(:mm)?(am|pm)` gives the first
+  instant with that wall-clock time after 10 minutes before `now`, in the IANA zone in parentheses,
+  or the server's own zone without one: a refusal read just after its reset's minute keeps that
+  reset, which task 8 turns into "a minute from now", instead of waiting a day. Any other `limit`
+  sentence is `other`.
 
 A `tool_use` of `ScheduleWakeup` emits `{ type: "wakeup", at: now + delaySeconds }` besides its
 `toolStart`. A `CronCreate` with `recurring: false` emits its next fire time, from its 5-field
