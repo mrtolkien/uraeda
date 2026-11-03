@@ -230,7 +230,7 @@ impl FeatureView {
 
 /// The pull request of its record, once finished: its `pull-request` address, and the number at
 /// its end.
-fn recorded_pull_request(feature: &Feature) -> Option<PullRequestView> {
+pub(crate) fn recorded_pull_request(feature: &Feature) -> Option<PullRequestView> {
     let record = feature.file(FileKind::Record)?;
     let front = frontmatter::parse(feature.text(&record.name)?).ok()?;
     let url = front.text("pull-request")?;

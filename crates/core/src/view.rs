@@ -17,6 +17,7 @@ use crate::workspace::{Feature, FileKind, Problem, Workspace};
 
 mod feature;
 
+pub(crate) use feature::recorded_pull_request;
 pub use feature::{
     FeatureView, FileSummary, PlannedView, PromotedView, StartStepView, StartedView, StepView,
 };

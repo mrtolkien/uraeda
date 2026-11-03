@@ -1,5 +1,6 @@
 import { NEW_FEATURE_HREF } from "uraeda-server/hrefs";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
+import { Badge } from "@astryxdesign/core/Badge";
 import { Button } from "@astryxdesign/core/Button";
 import { Divider } from "@astryxdesign/core/Divider";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -25,9 +26,10 @@ function linkOf(spans: ReadonlyArray<Span>) {
 }
 
 /**
- * What the proposal is past its text, as the core says: running, a linked file, or nothing yet. A
- * proposal with a file opens that file's page instead: its route never draws this pane. Start opens
- * the New page, its composer holding the proposal: nothing starts before the human sends it.
+ * What the proposal is past its text, as the core says: running, merged, a linked file, or nothing
+ * yet. A proposal with a file opens that file's page instead: its route never draws this pane.
+ * Start opens the New page, its composer holding the proposal: nothing starts before the human
+ * sends it.
  */
 function Kind({ expand, found }: { expand: () => Promise<void>; found: Found }) {
   const here = useRepoPath();
@@ -39,6 +41,22 @@ function Kind({ expand, found }: { expand: () => Promise<void>; found: Found }) 
         href={here(`/f/${proposal.running.folder}`)}
         step={stepTitle(proposal.running.step)}
       />
+    );
+  }
+  if (proposal.merged) {
+    const pullRequest = proposal.merged.pullRequest;
+    return (
+      <HStack align="center" gap={2} wrap="wrap">
+        <Badge label="Merged" variant="neutral" />
+        {pullRequest && (
+          <Link hasUnderline href={pullRequest.url}>
+            {`#${pullRequest.number}`}
+          </Link>
+        )}
+        <Link hasUnderline href={here(`/f/${proposal.merged.folder}`)}>
+          Open the feature
+        </Link>
+      </HStack>
     );
   }
   const link = linkOf(proposal.spans);
@@ -68,8 +86,8 @@ function Kind({ expand, found }: { expand: () => Promise<void>; found: Found }) 
 }
 
 /**
- * A found proposal's pane: its text, what it is, its section unless it runs, Delete, and its
- * neighbours.
+ * A found proposal's pane: its text, what it is, its section unless it runs or was merged, Delete,
+ * and its neighbours.
  */
 function ProposalBody({
   found,
@@ -115,8 +133,8 @@ function ProposalBody({
     >
       <Divider />
       <Kind expand={actions.expand} found={found} />
-      {/* A running proposal does not move its branch: it has no section to pick. */}
-      {!proposal.running && (
+      {/* A running or merged proposal does not move its branch: it has no section to pick. */}
+      {!proposal.running && !proposal.merged && (
         <>
           <Divider />
           <SegmentedControl

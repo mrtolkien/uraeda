@@ -38,12 +38,20 @@ const TONES: Record<string, Tone> = {
 
 /**
  * What a proposal's row draws of it besides its text: the icon of the step running on it, as the
- * sidebar draws it, or an icon for its file. Either way its text is a hyperlink: a click leads to
- * its feature's page, or its file's.
+ * sidebar draws it, done's with "Merged" and its pull request once merged, or an icon for its file.
+ * Either way its text is a hyperlink: a click leads to its feature's page, or its file's.
  */
 export function lookOf(proposal: Proposal) {
   if (proposal.running) {
     return { icon: STEP_ICONS[stepKindOf(proposal.running.step)], isLinked: true };
+  }
+  if (proposal.merged) {
+    const pullRequest = proposal.merged.pullRequest;
+    return {
+      icon: STEP_ICONS.done,
+      isLinked: true,
+      marks: pullRequest ? `Merged · #${pullRequest.number}` : "Merged",
+    };
   }
   return proposal.file ? { icon: "uraeda:file-text" as const, isLinked: true } : {};
 }
@@ -64,7 +72,7 @@ export function byRunning(priorities: Pick<Priorities, "sections">) {
   };
 }
 
-/** The priorities as the outliner reads them: a running proposal stays as it is. */
+/** The priorities as the outliner reads them: a running or merged proposal stays as it is. */
 function outlineOf(priorities: Priorities): Outline<Proposal> {
   return {
     hash: priorities.hash,
@@ -73,7 +81,7 @@ function outlineOf(priorities: Priorities): Outline<Proposal> {
       items: section.proposals.map((proposal) => ({
         children: proposal.children,
         id: proposal.id,
-        isFixed: proposal.running !== undefined,
+        isFixed: proposal.running !== undefined || proposal.merged !== undefined,
         key: proposal.key,
         source: proposal,
         spans: proposal.spans,
@@ -195,8 +203,8 @@ function sectionsOf(
     const { isWritten, ...drawn } = outline.rowOf(item, { index, section }, href);
     return {
       ...drawn,
-      // A proposal with a file, or running, opens its page; any other is edited in place.
-      editsInPlace: isWritten && !proposal?.running && !proposal?.file,
+      // A proposal with a file, running, or merged, opens its page; any other is edited in place.
+      editsInPlace: isWritten && !proposal?.running && !proposal?.merged && !proposal?.file,
       href,
       ...(proposal?.file ? { page: proposalFilePage(proposal.file.path) } : {}),
       ...(proposal ? lookOf(proposal) : {}),
@@ -273,8 +281,9 @@ function useProposalKeys(
       .find((proposal) => proposal.key === (row.parent ?? row.key));
 
   /**
-   * Enter or a click on a row not edited in place: a proposal that runs opens its feature, one with
-   * a file opens the file's page, and an Add row opens a new row at its section's end.
+   * Enter or a click on a row not edited in place: a proposal that runs or was merged opens its
+   * feature, one with a file opens the file's page, and an Add row opens a new row at its section's
+   * end.
    */
   const open = (href: string) => {
     const adding = /#add-([a-z]+)$/.exec(href)?.[1];
@@ -285,8 +294,9 @@ function useProposalKeys(
     const proposal = priorities.sections
       .flatMap((s) => s.proposals)
       .find((candidate) => here(`/priorities/${candidate.key}`) === href);
-    if (proposal?.running) {
-      navigate(here(`/f/${proposal.running.folder}`));
+    const feature = proposal?.running ?? proposal?.merged;
+    if (feature) {
+      navigate(here(`/f/${feature.folder}`));
     } else if (proposal?.file) {
       navigate(here(`/edit/${proposal.file.path}`));
     }
@@ -294,12 +304,17 @@ function useProposalKeys(
 
   /**
    * `e`: the proposal is expanded into a file, its text under "What", and the file's page opens
-   * with the focus in its text. A proposal with a file opens it; one that runs or links another
-   * file has none to make. A nested row's is its proposal's.
+   * with the focus in its text. A proposal with a file opens it; one that runs, was merged, or
+   * links another file has none to make. A nested row's is its proposal's.
    */
   const onPromote = (row: WorkRow) => {
     const proposal = proposalOf(row);
-    if (!proposal || proposal.running || proposal.spans.some((span) => span.link?.path)) {
+    if (
+      !proposal ||
+      proposal.running ||
+      proposal.merged ||
+      proposal.spans.some((span) => span.link?.path)
+    ) {
       return proposal?.file
         ? void navigate(here(`/edit/${proposal.file.path}`), { focus: "text" })
         : false;
@@ -322,11 +337,11 @@ function useProposalKeys(
   /**
    * `s`: the New page, its composer holding the proposal, its nested rows, and a link to the file;
    * nothing starts before the human sends it. A proposal with a file starts from its file's page;
-   * a running one has started.
+   * a running or merged one has started.
    */
   const onStart = (row: WorkRow) => {
     const proposal = proposalOf(row);
-    if (!proposal || proposal.running) {
+    if (!proposal || proposal.running || proposal.merged) {
       return;
     }
     if (proposal.file) {

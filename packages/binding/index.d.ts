@@ -1302,6 +1302,18 @@ export interface ListedDecision {
   block: number
 }
 
+/**
+ * The feature or change a proposal of the priorities links, once its step is `done`: merged, its
+ * line left for `ura clean` to remove.
+ */
+export interface MergedFeature {
+  folder: string
+  /** Whether it is a change. */
+  change: boolean
+  /** Its pull request, from its record's `pull-request`. */
+  pullRequest?: PullRequestView
+}
+
 /** A paragraph that embeds an HTML mockup. */
 export interface MockupEmbed {
   /** The mockup's page, from the repository's top level, without its query or anchor. */
@@ -1574,6 +1586,8 @@ export interface ProposalItem {
   file?: LinkedFile
   /** The feature or change it links, while it runs: set by the workspace. */
   running?: RunningFeature
+  /** The feature or change it links, once merged: set by the workspace. */
+  merged?: MergedFeature
 }
 
 export interface ProposalView {
