@@ -67,7 +67,7 @@ export function CommitPage() {
   const narrow = isNarrow(useWidthClass());
   const here = { href: useLocalPath() };
   const refused = useRefusal(here) !== undefined;
-  const { commit, discard, messageOf, outcome, setMessage } = usePaneWrites(here);
+  const { commit, discard, messageOf, outcome, setMessage } = usePaneWrites(here, panes);
   useRestoreScroll(true);
   const all = panes ?? [];
   const at = Math.min(picked, Math.max(all.length - 1, 0));
