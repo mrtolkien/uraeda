@@ -50,17 +50,17 @@ test("the environment wins over .env, and the command line over both", () => {
   expect(parseOptions([], loadEnv(root(), {})).port).toBeUndefined();
 });
 
-/** R3 */
-test("the continues' variables read true or false, and their flags replace them", () => {
+/** R3, R13 */
+test("the continues' variables are kept as typed, and their flags replace them", () => {
   const env = loadEnv(null, {
     URAEDA_AUTOMATIC_CONTINUES: "5",
     URAEDA_CONTINUE_AFTER_LIMIT: "true",
     URAEDA_CONTINUE_AFTER_RESTART: "false",
   });
-  expect(env.continueAfterLimit).toEqual({ name: "URAEDA_CONTINUE_AFTER_LIMIT", value: true });
+  expect(env.continueAfterLimit).toEqual({ name: "URAEDA_CONTINUE_AFTER_LIMIT", value: "true" });
   expect(env.continueAfterRestart).toEqual({
     name: "URAEDA_CONTINUE_AFTER_RESTART",
-    value: false,
+    value: "false",
   });
 
   const options = parseOptions(
@@ -76,9 +76,13 @@ test("the continues' variables read true or false, and their flags replace them"
     name: "URAEDA_AUTOMATIC_CONTINUES",
     value: "5",
   });
-  expect(() => loadEnv(null, { URAEDA_CONTINUE_BEFORE_GATE: "yes" })).toThrow(
-    /^URAEDA_CONTINUE_BEFORE_GATE is true or false\.$/,
-  );
+  // A variable that is neither is checked with the port, after --help: a flag replaces it.
+  const bad = loadEnv(null, { URAEDA_CONTINUE_BEFORE_GATE: "yes" });
+  expect(bad.continueBeforeGate).toEqual({ name: "URAEDA_CONTINUE_BEFORE_GATE", value: "yes" });
+  expect(parseOptions(["--no-continue-before-gate"], bad).continueBeforeGate).toEqual({
+    name: "--no-continue-before-gate",
+    value: false,
+  });
 });
 
 /** R7 */

@@ -617,7 +617,8 @@ git commit -m "feat(worker-lifecycle): keep pending continues in the runner's ca
   - The fate mutations `settings.setContinue` take `{ key, on }`, and
     `settings.setAutomaticContinues` takes `{ continues: string }`. Both answer the `Settings`
     record.
-- Produces the flags and variables of ruling R3, a switch's variable checked by `env.ts` (R13):
+- Produces the flags and variables of ruling R3, a switch's variable kept as typed by `env.ts` and
+  checked by `settings.ts`, with the port (R13):
   - `--no-continue-after-restart` and `URAEDA_CONTINUE_AFTER_RESTART`;
   - `--no-continue-after-limit` and `URAEDA_CONTINUE_AFTER_LIMIT`;
   - `--no-continue-before-gate` and `URAEDA_CONTINUE_BEFORE_GATE`;
@@ -640,7 +641,9 @@ git commit -m "feat(worker-lifecycle): keep pending continues in the runner's ca
   - `--no-continue-after-limit` beats the file's `true`;
   - without a value, the defaults are `true` and 3.
 - A given cap follows the core's rule: "11" stops the start, " 7 " is 7.
-- `env.test.ts`: the variables read `true` or `false`, the flags replace them, and `yes` throws.
+- `env.test.ts`: the variables are kept as typed, and the flags replace them, a `yes` too.
+- `settings.test.ts`: a given switch's `yes` stops the start, and `false` is false. `main.test.ts`:
+  `--help` and `--version` work with `yes`, and a start with it is refused with its problem.
 - `settings-fate.test.ts`: the defaults' record, the two mutations' answers and a refused "11", and
   the broken file refusing nine changes.
 
