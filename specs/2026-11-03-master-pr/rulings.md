@@ -44,3 +44,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the spec's scenario names the file
   `feature-state-the-workspace-records-running.md`.
 - **Where**: task 3, `crates/core/src/actions/inbox/agent_file.rs`
+
+## R5: The actions on an agent's note run through one wrapper, which takes its line back
+
+- **Decision**: `actions::inbox::agent::acting` writes an agent's note's line, runs the action on
+  the line's `note-<n>` id over the new hash, and puts `INBOX.md` back as it was when the action
+  refuses; a category the line made, one `INBOX.md` lacked, goes once the line left it, as a move to
+  another category or out of the inbox does. `moving` adds the drop of the file's `category` for
+  `category`, `place`, and a drop among the notes. A removal does not write the line: it deletes the
+  file, held for Undo, whatever it holds, since the file is the note. The plan's `linked` function
+  is folded into `acting`, which nothing else needed.
+- **Rationale**: R2's "losing nothing" holds only when a refused action leaves no line behind, and a
+  move of a note under "Deferred fixes", a category `INBOX.md` lacks, would otherwise leave an empty
+  `## Deferred fixes`.
+- **Where**: task 2, `crates/core/src/actions/inbox/agent.rs`
+
+## R6: The removal's subject shortens the note as every inbox subject does
+
+- **Decision**: `chore: remove "<note>" from the inbox` shortens the note with the commit subjects'
+  rule, 40 characters cut at a word: "The workspace record's running is read…", not the spec's "The
+  workspace record's running…".
+- **Rationale**: the spec's scenario illustrates the shortening; changing the rule would change
+  every inbox and priorities subject.
+- **Where**: task 2, `crates/core/tests/inbox_actions.rs`

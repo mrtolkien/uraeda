@@ -12,6 +12,7 @@ use super::default_round::DefaultRound;
 use super::place::Place;
 use super::{ActionError, Change, Committed, STALE, changes, commit};
 
+mod agent;
 mod categories;
 mod image;
 mod merge;
@@ -227,7 +228,11 @@ pub fn remove_and_commit(
     id: &str,
     previous: &str,
 ) -> Result<(Inbox, Added), ActionError> {
-    let note = inbox::note(&current(place, PATH, previous)?, id).ok_or_else(|| no_note(id))?;
+    let current = current(place, PATH, previous)?;
+    let note = agent::as_line(place, &current, id)
+        .map(|(_, note)| note)
+        .or_else(|| inbox::note(&current, id))
+        .ok_or_else(|| no_note(id))?;
     let subject = format!(
         "chore: remove \"{}\" from the inbox",
         super::priorities::short(&note.text)
@@ -259,12 +264,14 @@ pub fn edit(
     if text.trim().is_empty() {
         return Err(ActionError::Refused(NO_TEXT.to_string()));
     }
-    apply(
-        place,
-        previous,
-        |current| inbox::edit(current, id, text),
-        &format!("no note {id}"),
-    )
+    agent::acting(place, id, previous, |id, previous| {
+        apply(
+            place,
+            previous,
+            |current| inbox::edit(current, id, text),
+            &format!("no note {id}"),
+        )
+    })
 }
 
 /// Edits the outline of a note: the note, or with `at`, the item at `at` of its nested items in the
@@ -280,12 +287,14 @@ pub fn outline(
     if at.is_none() && *change == crate::files::nested::OutlineEdit::Remove {
         return remove(place, id, previous);
     }
-    apply(
-        place,
-        previous,
-        |current| inbox::outline(current, id, at, change),
-        &format!("no note {id}, no such item, nowhere to go, or code under it"),
-    )
+    agent::acting(place, id, previous, |id, previous| {
+        apply(
+            place,
+            previous,
+            |current| inbox::outline(current, id, at, change),
+            &format!("no note {id}, no such item, nowhere to go, or code under it"),
+        )
+    })
 }
 
 /// Moves a note, or with `at` its nested item at `at`, its own items with it, to `to`: a drop (see
@@ -297,18 +306,27 @@ pub fn drop_item(
     to: &inbox::Drop,
     previous: Option<&str>,
 ) -> Result<Inbox, ActionError> {
-    apply(
-        place,
-        previous,
-        |current| inbox::drop_item(current, id, at, to),
-        &format!("no note {id}, no such item or place, or code under it"),
-    )
+    let act = |id: &str, previous: Option<&str>| {
+        apply(
+            place,
+            previous,
+            |current| inbox::drop_item(current, id, at, to),
+            &format!("no note {id}, no such item or place, or code under it"),
+        )
+    };
+    match (at, to) {
+        (None, inbox::Drop::Note { .. }) => agent::moving(place, id, previous, act),
+        _ => agent::acting(place, id, previous, act),
+    }
 }
 
 /// Removes a note, sub-items included, and its note file, held for the removal's Undo, when
 /// nothing is lost: the file holds only what the note wrote, or is as the default branch committed
 /// it. A file typed in since, or one another note links too, stays.
 pub fn remove(place: &Place, id: &str, previous: Option<&str>) -> Result<Inbox, ActionError> {
+    if let Some(removed) = agent::remove(place, id, previous) {
+        return removed;
+    }
     let before = text(place)?;
     let mut after = String::new();
     let inbox = apply(
@@ -334,12 +352,14 @@ pub fn category(
     category: Option<&str>,
     previous: Option<&str>,
 ) -> Result<Inbox, ActionError> {
-    apply(
-        place,
-        previous,
-        |current| inbox::move_to(current, id, category),
-        &format!("no note {id}"),
-    )
+    agent::moving(place, id, previous, |id, previous| {
+        apply(
+            place,
+            previous,
+            |current| inbox::move_to(current, id, category),
+            &format!("no note {id}"),
+        )
+    })
 }
 
 /// Moves a note before the note at `index` of a category, or of the notes without one, or to its
@@ -351,12 +371,14 @@ pub fn place(
     index: usize,
     previous: Option<&str>,
 ) -> Result<Inbox, ActionError> {
-    apply(
-        place,
-        previous,
-        |current| inbox::place(current, id, category, index),
-        &format!("no note {id}"),
-    )
+    agent::moving(place, id, previous, |id, previous| {
+        apply(
+            place,
+            previous,
+            |current| inbox::place(current, id, category, index),
+            &format!("no note {id}"),
+        )
+    })
 }
 
 /// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:

@@ -287,24 +287,29 @@ git commit -m "feat(master-pr): the inbox reads agents' note files"
 **Files:**
 
 - Create: `crates/core/src/actions/inbox/agent.rs`
+- Create: `crates/core/src/actions/changes/texts.rs` (`Texts`, `INBOX.md` read through `joined`, at
+  `HEAD` and now: `changes.rs` would pass the 500-line limit)
 - Modify: `crates/core/src/actions/inbox.rs` (each action by id), `actions/inbox/moves.rs`,
-  `actions/inbox/image.rs`, `crates/core/src/actions/changes.rs` (`Texts.inbox` read through
-  `joined`, at `HEAD` and now)
+  `actions/inbox/image.rs`, `crates/core/src/actions/changes.rs`
 - Test: `crates/core/tests/inbox_actions.rs`
 
 **Interfaces:**
 
 - Consumes: `inbox::read(text, files)`, `inbox::joined`, `NoteFile` readers (task 1).
-- Produces:
-  `pub(crate) fn linked(place: &Place, id: &str, previous: Option<&str>) -> Result<(String, Option<String>), ActionError>`:
+- Produces (see
+  [R5](rulings.md#r5-the-actions-on-an-agents-note-run-through-one-wrapper-which-takes-its-line-back)):
+  `pub(super) fn acting<T>(place, id, previous: Option<&str>, act: impl FnOnce(&str, Option<&str>) -> Result<T, ActionError>) -> Result<T, ActionError>`:
   for an id naming a note file of `specs/notes/` no line links, refuses `INBOX.md` changed since
   `previous` (`INBOX.md` and the stale message, as `apply`), writes the file's line with
-  `inbox::add` at the end of its category, and gives the line's `note-<n>` id and the new hash; any
-  other id comes back unchanged. An id naming no such file refuses `no note <id>`. Every action by
-  id calls it first. `category` and `place` then drop the file's `category` field from its
-  frontmatter. Signatures of the actions do not change.
+  `inbox::add` at the end of its category, and runs `act` on the line's `note-<n>` id and the new
+  hash; `INBOX.md` goes back as it was when `act` refuses, and a category the line made goes once
+  the line left it. Any other id runs `act` unchanged. An id naming no such file refuses
+  `no note <id>`. `acting_read` is the same for the actions read at a `&str`; `moving`, for
+  `category`, `place`, and a drop among the notes, then drops the file's `category` field from its
+  frontmatter. `remove` deletes an agent's note's file alone, `INBOX.md` unchanged. Signatures of
+  the actions do not change.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```rust
 // crates/core/tests/inbox_actions.rs
@@ -341,19 +346,19 @@ The break each test catches:
 - Place: the line written at the end of the category instead of the drop, or `category` kept.
 - Stale id: the old path writes a second line.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test inbox_actions`
 - Expected: FAIL, `Refused("no note specs/notes/feature-state-the-workspace-records-running.md")`.
 
-- [ ] **Step 3: Implement `linked` and call it from every action by id, then the commit bar**
+- [x] **Step 3: Implement `acting` and call it from every action by id, then the commit bar**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core

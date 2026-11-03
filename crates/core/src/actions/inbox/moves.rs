@@ -13,7 +13,7 @@ use super::super::ActionError;
 use super::super::expand;
 use super::super::place::Place;
 use super::super::priorities::PATH as PRIORITIES;
-use super::{PATH, current, merge, no_note, note_file, write_both};
+use super::{PATH, agent, current, merge, no_note, note_file, write_both};
 
 /// The inbox and the priorities, each refused when it changed since it was read.
 fn both(
@@ -97,11 +97,13 @@ pub fn to_proposal(
     previous: &str,
     priorities_previous: &str,
 ) -> Result<(), ActionError> {
-    let (inbox, priorities) = both(place, previous, priorities_previous)?;
-    move_out(place, &inbox, id, PRIORITIES, |lines| {
-        priorities::insert_proposal(&priorities, section, usize::MAX, lines)
-    })?;
-    Ok(())
+    agent::acting_read(place, id, previous, |id, previous| {
+        let (inbox, priorities) = both(place, previous, priorities_previous)?;
+        move_out(place, &inbox, id, PRIORITIES, |lines| {
+            priorities::insert_proposal(&priorities, section, usize::MAX, lines)
+        })?;
+        Ok(())
+    })
 }
 
 /// Moves a note's lines, without its marks, its nested items with them, under the proposal
@@ -114,13 +116,15 @@ pub fn under_proposal(
     previous: &str,
     priorities_previous: &str,
 ) -> Result<(), ActionError> {
-    let (inbox, priorities) = both(place, previous, priorities_previous)?;
-    let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
-    let edited = priorities::append_under(&priorities, proposal, &lines).ok_or_else(|| {
-        ActionError::Refused(format!("no proposal {proposal} to put the note under"))
-    })?;
-    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
-    write_both(place, PRIORITIES, &edited, &without)
+    agent::acting_read(place, id, previous, |id, previous| {
+        let (inbox, priorities) = both(place, previous, priorities_previous)?;
+        let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
+        let edited = priorities::append_under(&priorities, proposal, &lines).ok_or_else(|| {
+            ActionError::Refused(format!("no proposal {proposal} to put the note under"))
+        })?;
+        let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+        write_both(place, PRIORITIES, &edited, &without)
+    })
 }
 
 /// Makes a note a new proposal file, `specs/proposals/<slug>.md` or the next free name, linked
@@ -134,40 +138,43 @@ pub fn to_proposal_file(
     previous: &str,
     priorities_previous: &str,
 ) -> Result<String, ActionError> {
-    let (inbox, priorities) = both(place, previous, priorities_previous)?;
-    let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
-    if movable(place, &inbox, &note).is_some() {
-        let insert =
-            |lines: &[String]| priorities::insert_proposal(&priorities, section, usize::MAX, lines);
-        let moved = move_out(place, &inbox, id, PRIORITIES, insert)?;
-        return moved.ok_or_else(|| no_note(id));
-    }
-    let linked = note
-        .link
-        .as_deref()
-        .and_then(|link| crate::workspace::resolve("specs", link))
-        .filter(|path| crate::target::is_linked_file(path));
-    if let Some(linked) = linked {
-        return Err(ActionError::Refused(format!(
-            "{} already links {linked}",
-            note.text
-        )));
-    }
-    let (title, nested) = inbox::note_file_parts(&inbox, id).ok_or_else(|| no_note(id))?;
-    let path = expand::free_path(place, &note.text);
-    let line = format!(
-        "- {}",
-        inbox::link_to(&title, path.trim_start_matches("specs/"))
-    );
-    let edited = priorities::insert_proposal(&priorities, section, usize::MAX, &[line])
-        .ok_or_else(|| no_note(id))?;
-    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
-    expand::write_new(place, &path, &title, &nested)?;
-    if let Err(error) = write_both(place, PRIORITIES, &edited, &without) {
-        let _ = fs::remove_file(place.root.join(&path));
-        return Err(error);
-    }
-    Ok(path)
+    agent::acting_read(place, id, previous, |id, previous| {
+        let (inbox, priorities) = both(place, previous, priorities_previous)?;
+        let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
+        if movable(place, &inbox, &note).is_some() {
+            let insert = |lines: &[String]| {
+                priorities::insert_proposal(&priorities, section, usize::MAX, lines)
+            };
+            let moved = move_out(place, &inbox, id, PRIORITIES, insert)?;
+            return moved.ok_or_else(|| no_note(id));
+        }
+        let linked = note
+            .link
+            .as_deref()
+            .and_then(|link| crate::workspace::resolve("specs", link))
+            .filter(|path| crate::target::is_linked_file(path));
+        if let Some(linked) = linked {
+            return Err(ActionError::Refused(format!(
+                "{} already links {linked}",
+                note.text
+            )));
+        }
+        let (title, nested) = inbox::note_file_parts(&inbox, id).ok_or_else(|| no_note(id))?;
+        let path = expand::free_path(place, &note.text);
+        let line = format!(
+            "- {}",
+            inbox::link_to(&title, path.trim_start_matches("specs/"))
+        );
+        let edited = priorities::insert_proposal(&priorities, section, usize::MAX, &[line])
+            .ok_or_else(|| no_note(id))?;
+        let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+        expand::write_new(place, &path, &title, &nested)?;
+        if let Err(error) = write_both(place, PRIORITIES, &edited, &without) {
+            let _ = fs::remove_file(place.root.join(&path));
+            return Err(error);
+        }
+        Ok(path)
+    })
 }
 
 /// Adds a note with a note file to the proposal of `PRIORITIES.md` with the id `proposal`, like
@@ -183,19 +190,21 @@ pub fn into_proposal_line(
     previous: &str,
     priorities_previous: &str,
 ) -> Result<String, ActionError> {
-    let (inbox, priorities) = both(place, previous, priorities_previous)?;
-    let line = priorities::parse(&priorities)
-        .into_iter()
-        .find(|line| format!("{}-{}", line.section.id(), line.position) == proposal)
-        .ok_or_else(|| ActionError::Refused(format!("no proposal {proposal}")))?;
-    let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
-    let file = movable(place, &inbox, &note).ok_or_else(|| {
-        ActionError::Refused(format!(
-            "{} has no note file to go into a proposal's file.",
-            note.text
-        ))
-    })?;
-    merge::into_new(place, &inbox, &priorities, id, &file, &line)
+    agent::acting_read(place, id, previous, |id, previous| {
+        let (inbox, priorities) = both(place, previous, priorities_previous)?;
+        let line = priorities::parse(&priorities)
+            .into_iter()
+            .find(|line| format!("{}-{}", line.section.id(), line.position) == proposal)
+            .ok_or_else(|| ActionError::Refused(format!("no proposal {proposal}")))?;
+        let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
+        let file = movable(place, &inbox, &note).ok_or_else(|| {
+            ActionError::Refused(format!(
+                "{} has no note file to go into a proposal's file.",
+                note.text
+            ))
+        })?;
+        merge::into_new(place, &inbox, &priorities, id, &file, &line)
+    })
 }
 
 /// The text of the proposal file or the note file at `path`, from the top level, refused when it
@@ -228,16 +237,18 @@ pub fn into_proposal(
     proposal: &str,
     previous: &str,
 ) -> Result<String, ActionError> {
-    let inbox = current(place, PATH, previous)?;
-    let text = file_text(place, proposal)?;
-    let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
-    if let Some(file) = movable(place, &inbox, &note) {
-        return merge::merge(place, &inbox, id, &file, proposal, &text);
-    }
-    let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
-    let edited = proposal::append_to_what(&text, &into_file(&lines, proposal))
-        .ok_or_else(|| ActionError::Refused(format!("{proposal} has no ## What section")))?;
-    let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
-    write_both(place, proposal, &edited, &without)?;
-    Ok(proposal.to_string())
+    agent::acting_read(place, id, previous, |id, previous| {
+        let inbox = current(place, PATH, previous)?;
+        let text = file_text(place, proposal)?;
+        let note = inbox::note(&inbox, id).ok_or_else(|| no_note(id))?;
+        if let Some(file) = movable(place, &inbox, &note) {
+            return merge::merge(place, &inbox, id, &file, proposal, &text);
+        }
+        let (lines, _) = inbox::unmarked_lines(&inbox, id).ok_or_else(|| no_note(id))?;
+        let edited = proposal::append_to_what(&text, &into_file(&lines, proposal))
+            .ok_or_else(|| ActionError::Refused(format!("{proposal} has no ## What section")))?;
+        let without = inbox::remove(&inbox, id).ok_or_else(|| no_note(id))?;
+        write_both(place, proposal, &edited, &without)?;
+        Ok(proposal.to_string())
+    })
 }

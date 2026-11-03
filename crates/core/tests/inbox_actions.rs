@@ -2,7 +2,7 @@ mod common;
 
 use common::repo::TestRepo;
 use uraeda_core::actions::inbox::{self as actions, Marks};
-use uraeda_core::actions::{ActionError, place};
+use uraeda_core::actions::{ActionError, changes, place};
 use uraeda_core::api;
 use uraeda_core::git::Git;
 
@@ -582,4 +582,151 @@ fn read_inbox_lists_an_agents_note_from_main() {
             "- [agent] [feature-state] [The workspace record's running is read by no view](notes/feature-state-the-workspace-records-running.md)"
         ]
     );
+}
+
+const AGENTS_NOTE: &str = "specs/notes/feature-state-the-workspace-records-running.md";
+
+/// The fixture repository with an agent's note file committed in it, in a category `INBOX.md`
+/// lacks: `Deferred fixes`.
+fn repo_with_agents_note(title: &str) -> (TestRepo, String) {
+    let repo = fixture_repo();
+    repo.write(
+        AGENTS_NOTE,
+        &format!(
+            "---\nagent: true\nabout: feature-state\ncategory: Deferred fixes\n---\n\n# {title}\n"
+        ),
+    );
+    repo.commit("chore: an agent's note");
+    (repo, AGENTS_NOTE.to_string())
+}
+
+/// US2 more 2: removing an agent's note deletes its file, in `chore: remove "..." from the inbox`,
+/// and leaves `INBOX.md` as it was.
+#[test]
+fn removing_an_agents_note_deletes_its_file() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let (_, removed) = api::remove_note_and_commit(repo.path(), &path, &read.hash).unwrap();
+
+    assert!(removed.committed);
+    assert!(!repo.exists(&path));
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore: remove \"The workspace record's running is read…\" from the inbox"
+    );
+    assert_eq!(repo.changed_in("HEAD"), [path]);
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// US2 more 2, without committing: the commit bar names the removal, and its commit holds the
+/// deleted file.
+#[test]
+fn the_commit_bar_holds_an_agents_note_removed() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let removed = api::remove_note(repo.path(), &path, &read.hash).unwrap();
+
+    assert_eq!(removed.count, read.count - 1);
+    assert_eq!(removed.changes, 1);
+    let (subject, _) = changes::message(&main_place(&repo));
+    assert!(
+        subject.contains("remove \"The workspace record's running is read…\" from the inbox"),
+        "{subject}"
+    );
+    api::commit_changes(repo.path()).unwrap();
+    assert_eq!(repo.changed_in("HEAD"), [path]);
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// US2 more 2: Undo of an agent's note's removal writes its line back, linking the file it
+/// restores.
+#[test]
+fn undo_of_an_agents_note_removal_links_its_file() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let file = repo.read(&path);
+    let read = api::read_inbox(repo.path()).unwrap();
+    let note = read
+        .categories
+        .iter()
+        .flat_map(|category| &category.notes)
+        .find(|note| note.id == path)
+        .unwrap()
+        .clone();
+
+    let removed = api::remove_note(repo.path(), &path, &read.hash).unwrap();
+    let back = api::insert_note(
+        repo.path(),
+        Some("Deferred fixes".into()),
+        0,
+        &note.lines,
+        &removed.hash,
+    )
+    .unwrap();
+
+    assert_eq!(repo.read(&path), file);
+    assert!(repo.read(INBOX).ends_with(&format!("{}\n", note.lines[0])));
+    assert_eq!(back.count, read.count);
+}
+
+/// US2 more 3: a moved agent's note becomes a line linking its file, its `category` dropped; its
+/// old id, now that a line links the file, is refused.
+#[test]
+fn placing_an_agents_note_writes_its_line() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let placed = api::place_note(repo.path(), &path, Some("UI".into()), 0, &read.hash).unwrap();
+
+    let ui = placed
+        .categories
+        .iter()
+        .find(|c| c.name.as_deref() == Some("UI"))
+        .unwrap();
+    assert_eq!(
+        ui.notes[0].lines,
+        [
+            "- [agent] [feature-state] [The workspace record's running is read by no view](notes/feature-state-the-workspace-records-running.md)"
+        ]
+    );
+    assert!(
+        !repo.read(&path).contains("category:"),
+        "{}",
+        repo.read(&path)
+    );
+    assert!(!repo.read(INBOX).contains("Deferred fixes"));
+
+    let again = api::place_note(repo.path(), &path, Some("CLI".into()), 0, &placed.hash);
+
+    assert_eq!(again.unwrap_err().to_string(), format!("no note {path}"));
+    assert_eq!(api::read_inbox(repo.path()).unwrap().hash, placed.hash);
+}
+
+/// Review focus 1: the id of an agent's note whose file is gone is refused, and nothing is
+/// written.
+#[test]
+fn an_agents_note_whose_file_is_gone_is_refused() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let read = api::read_inbox(repo.path()).unwrap();
+    repo.remove(&path);
+
+    let edited = api::edit_note(repo.path(), &path, "Anything", &read.hash);
+
+    assert_eq!(edited.unwrap_err().to_string(), format!("no note {path}"));
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+}
+
+/// An action that refuses once the agent's note is a line takes the line back: nothing is written.
+#[test]
+fn a_refused_action_on_an_agents_note_writes_nothing() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let moved = api::note_into_proposal(repo.path(), &path, "specs/proposals/none.md", &read.hash);
+
+    assert!(moved.is_err());
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+    assert!(repo.exists(&path));
 }

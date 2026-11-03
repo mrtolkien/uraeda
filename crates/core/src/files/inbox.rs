@@ -12,6 +12,7 @@ mod found;
 mod outline;
 mod read;
 
+pub(crate) use agent::agent_notes;
 pub use agent::{NoteFile, is_note_file_path, joined, note_files, note_paths_on_disk};
 pub use diff::{NoteChange, diff};
 pub use found::{file_of_lines, ids_of_lines, of_lines};
