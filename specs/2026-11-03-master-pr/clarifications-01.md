@@ -53,7 +53,7 @@ The workflow, for every project: how pull requests land, starting a feature afte
 shared workflow files. Changes follow the same rules as features, since they finish the same way.
 Conflicts in code between two features stay: an agent resolves them in a catch-up, within each spec.
 Out of scope: how agents run on their own, which is the
-[Worker lifecycle](/specs/proposals/worker-lifecycle.md) proposal.
+[Worker lifecycle](/specs/2026-11-03-worker-lifecycle/proposal.md) proposal.
 
 ### Sources
 
