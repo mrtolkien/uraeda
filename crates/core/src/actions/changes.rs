@@ -7,6 +7,7 @@ use std::fs;
 use crate::files::inbox::{self, NoteChange};
 use crate::files::priorities::{self, ProposalChange, Section};
 
+use super::amend::CHORE;
 use super::commit::Mode;
 use super::place::{self, Place};
 use super::priorities::{describe, line, short};
@@ -32,7 +33,6 @@ use texts::{Texts, texts};
 
 const INBOX: &str = super::inbox::PATH;
 const PRIORITIES: &str = super::priorities::PATH;
-const CHORE: &str = "chore: ";
 
 /// What the commit bar shows: how many changes wait, and each as a line of the commit's body.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -249,11 +249,29 @@ fn files(texts: &Texts, linked: Vec<String>) -> Vec<String> {
 /// The change list with the link repairs: every file of `specs/` other than the lists and the files
 /// listed already, whose change is links alone, as its own change.
 fn gather(place: &Place) -> Listed {
-    let edits = edits::edits(place);
-    let mut listed = gather_lists(place, &edits);
+    gather_with(place, edits::edits(place), &[])
+}
+
+/// The change list of the lists' own commit, the editor's and the commit bar's: the files a buffer
+/// edited other than the lists are left out, for the Commit page alone to commit.
+fn gather_lists_route(place: &Place) -> Listed {
+    let (edits, others) = lists_and_other_edits(place);
+    gather_with(place, edits, &others)
+}
+
+/// The files a buffer edited: the lists, then the others.
+fn lists_and_other_edits(place: &Place) -> (Vec<String>, Vec<String>) {
+    edits::edits(place)
+        .into_iter()
+        .partition(|path| path == INBOX || path == PRIORITIES)
+}
+
+/// [`gather`] over the files a buffer edited, `edits`, `left` the ones it leaves out.
+fn gather_with(place: &Place, edits: Vec<String>, left: &[String]) -> Listed {
+    let mut listed = gather_lists(place, &edits, left);
     let mut taken = listed.paths.clone();
     taken.extend([INBOX.to_string(), PRIORITIES.to_string()]);
-    taken.extend(edits.iter().cloned());
+    taken.extend(edits.iter().chain(left).cloned());
     let repaired = repairs::repairs(place, &taken);
     for (path, name) in repaired.iter().zip(repairs::names(&repaired)) {
         listed.changes.push(Described {
@@ -280,15 +298,16 @@ fn gather(place: &Place) -> Listed {
 }
 
 /// The change list of the two lists, and of the proposal files and note files they need or the
-/// human edited; a list among `edits`, the files a buffer edited, has none of its own.
-fn gather_lists(place: &Place, edits: &[String]) -> Listed {
+/// human edited; a list among `edits`, the files a buffer edited, has none of its own, and a file of
+/// `left` is not listed as edited.
+fn gather_lists(place: &Place, edits: &[String], left: &[String]) -> Listed {
     let texts = texts(place, edits);
     let (mut changes, mut found) = pair(place, &texts);
     let mut paths = found.paths;
     let inbox_now = versions(place, INBOX).0.unwrap_or_default();
     // The proposal files and note files the human edited in their editor, which have no Commit of
     // their own: this list commits them. Discard leaves their text.
-    let taken: Vec<String> = paths.iter().chain(edits).cloned().collect();
+    let taken: Vec<String> = paths.iter().chain(edits).chain(left).cloned().collect();
     for Edited {
         path,
         title,
@@ -393,7 +412,8 @@ pub fn message(place: &Place) -> (String, Option<String>) {
 /// file's commit from its editor holding the lists holds them too, and leaves the link repairs on
 /// the commit page.
 pub(super) fn linked_files(place: &Place) -> Vec<String> {
-    let mut paths = gather_lists(place, &[]).paths;
+    let (_, others) = lists_and_other_edits(place);
+    let mut paths = gather_lists(place, &[], &others).paths;
     paths.retain(|path| path != INBOX && path != PRIORITIES);
     paths
 }
@@ -417,10 +437,11 @@ pub(super) fn linked_images(place: &Place, paths: &[String]) -> Result<Vec<Strin
     Ok(linked)
 }
 
-/// Commits `INBOX.md`, `PRIORITIES.md`, the files a buffer edited, and the files notes went into,
-/// moved, or left, a folder with its images, with a message naming their changes.
+/// Commits `INBOX.md`, `PRIORITIES.md`, and the files notes went into, moved, or left, a folder
+/// with its images, with a message naming their changes. The other files a buffer edited wait for
+/// the Commit page's pane.
 pub fn commit(place: &Place) -> Result<Committed, ActionError> {
-    let listed = gather(place);
+    let listed = gather_lists_route(place);
     let message = message_of(&listed, CHORE);
     commit_listed(place, &listed, message, true)
 }

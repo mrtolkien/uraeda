@@ -5,7 +5,7 @@ mod common;
 use std::path::{Path, PathBuf};
 
 use common::repo::{TestRepo, run_git};
-use common::texts::{proposal, spec};
+use common::texts::{proposal, record, spec};
 use uraeda_core::actions::edited;
 use uraeda_core::actions::place::Place;
 use uraeda_core::api::{self, BranchPane};
@@ -367,4 +367,90 @@ fn a_pane_commits_a_created_file_and_a_deleted_one() {
         "# Storage\n"
     );
     assert!(api::branch_changes(repo.path()).unwrap().is_empty());
+}
+
+/// Break caught: a typed message of a subject and a body on the next line committed with a blank
+/// line put between them, or its other lines rewritten.
+#[test]
+fn a_typed_message_is_committed_as_typed() {
+    let repo = repo();
+    two_branches(&repo);
+    let message = "chore: plan the undo\nWith a body on the next line.\n\n\nAnd two  spaces.";
+
+    for branch in ["main", FOLDER] {
+        api::commit_branch(repo.path(), branch, &format!("\n{message}\n\n")).unwrap();
+
+        assert_eq!(
+            repo.git(&["log", "-1", "--format=%B", branch]).trim_end(),
+            message,
+            "{branch}"
+        );
+    }
+}
+
+/// Break caught: a finished feature's branch read as no feature's, its pane committed under the
+/// default branch's scope, without the agent's check.
+#[test]
+fn a_finished_unmerged_features_pane_is_its_own() {
+    let repo = repo();
+    repo.switch(FOLDER);
+    repo.git(&["rm", "-r", "--quiet", &format!("specs/{FOLDER}")]);
+    let path = format!("specs/done/{FOLDER}.md");
+    repo.write(&path, &record("feature", "Web UI"));
+    repo.commit("finish: web UI");
+    repo.switch("main");
+    save(&repo, &path, |text| format!("{text}\nOne more line.\n"));
+
+    let panes = api::branch_changes(repo.path()).unwrap();
+
+    assert_eq!(panes.len(), 1, "{panes:?}");
+    assert_eq!(panes[0].folder.as_deref(), Some(FOLDER));
+    assert!(
+        panes[0].message.starts_with("chore(web-ui): "),
+        "{}",
+        panes[0].message
+    );
+}
+
+/// Break caught: the lists' commit, the editor's or a proposal file's, sweeping in a file a buffer
+/// edited, which only the Commit page commits.
+#[test]
+fn the_lists_commits_leave_a_buffers_edit() {
+    let decision = "specs/decisions/storage.md";
+    let proposal_file = "specs/proposals/undo.md";
+    for route in ["lists", "priorities", "text"] {
+        let repo = repo();
+        repo.write("specs/proposals/search.md", "# Search\n");
+        repo.commit("docs: search");
+        api::save_buffer(repo.path(), decision, "# Storage\n", &hash("")).unwrap();
+        save(&repo, "specs/proposals/search.md", |text| {
+            format!("{text}\nFast.\n")
+        });
+        repo.write(proposal_file, "# Undo\n");
+        repo.write(
+            PRIORITIES,
+            &format!("{PRIORITIES_TEXT}- [Undo](proposals/undo.md)\n"),
+        );
+
+        match route {
+            "lists" => api::commit_changes(repo.path()).unwrap(),
+            "priorities" => drop(api::commit_priorities(repo.path()).unwrap()),
+            _ => drop(api::commit_text(repo.path(), proposal_file).unwrap()),
+        }
+
+        assert_eq!(
+            repo.changed_in("main"),
+            [PRIORITIES, proposal_file],
+            "{route}"
+        );
+        let panes = api::branch_changes(repo.path()).unwrap();
+        assert_eq!(
+            panes[0].lines,
+            [
+                format!("- Edit {decision}"),
+                "- Edit specs/proposals/search.md".to_string()
+            ],
+            "{route}"
+        );
+    }
 }

@@ -15,7 +15,7 @@ const LISTS: [&str; 2] = [super::inbox::PATH, super::priorities::PATH];
 const FOLDERS: [&str; 2] = ["specs/proposals/", "specs/notes/"];
 
 /// The type and the missing scope of the commits amended.
-const CHORE: &str = "chore: ";
+pub(super) const CHORE: &str = "chore: ";
 
 /// The file, in the repository's git folder, naming the latest commit whose message the human
 /// typed: amending it would rewrite that message into a list (ruling R13).

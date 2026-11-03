@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
+use super::buffer::branch_owner;
 use super::{Result, default_checkout, open, refused, write_lock};
 use crate::actions::changes::{self, Pane};
 use crate::actions::place::{self, Place};
@@ -32,14 +33,6 @@ fn at(root: PathBuf) -> Place {
         created: false,
         switched: None,
     }
-}
-
-/// The unfinished feature or change on `branch`.
-fn feature_on<'a>(workspace: &'a Workspace, branch: &str) -> Option<&'a Feature> {
-    workspace
-        .features
-        .iter()
-        .find(|feature| !feature.is_finished() && feature.branch.as_deref() == Some(branch))
 }
 
 /// The pane of `branch`, other than the default one.
@@ -82,7 +75,7 @@ pub(super) fn panes(git: &Git, workspace: &Workspace) -> Vec<BranchPane> {
     others.sort();
     others.dedup_by(|a, b| a.0 == b.0);
     for (branch, root) in others {
-        let feature = feature_on(workspace, &branch);
+        let feature = branch_owner(workspace, &branch);
         let folder = feature.map(|feature| feature.folder.clone());
         push(&branch, root, branch_pane(feature), folder);
     }
@@ -108,7 +101,7 @@ fn reach_pane<'a>(git: &Git, workspace: &'a Workspace, branch: &str) -> Result<(
     if !checked_out {
         return Err(refused(format!("{branch} has no change to commit")));
     }
-    let pane = branch_pane(feature_on(workspace, branch));
+    let pane = branch_pane(branch_owner(workspace, branch));
     Ok((place::reach(git, branch)?, pane))
 }
 
@@ -119,8 +112,10 @@ pub fn commit_branch(repo: &Path, branch: &str, message: &str) -> Result<CommitV
     let (git, workspace) = open(repo)?;
     let (place, pane) = reach_pane(&git, &workspace, branch)?;
     let committed = changes::commit_pane(&place, pane, message)?;
+    // A typed message is one text: its first line is the subject.
+    let subject = committed.change.subject.lines().next().unwrap_or_default();
     Ok(CommitView {
-        subject: committed.change.subject,
+        subject: subject.to_string(),
         commit: committed.commit,
     })
 }

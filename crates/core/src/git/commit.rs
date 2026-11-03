@@ -186,6 +186,9 @@ impl Git {
         commit.extend(["commit", "--quiet", "--message", subject]);
         if let Some(body) = body {
             commit.extend(["--message", body]);
+        } else if subject.contains('\n') {
+            // A message of several lines is the human's, typed: committed as typed.
+            commit.push("--cleanup=verbatim");
         }
         commit.extend(extra);
         match on_output {

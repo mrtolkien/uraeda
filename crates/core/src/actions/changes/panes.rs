@@ -41,10 +41,7 @@ fn scope(pane: Pane) -> String {
 /// A pane's changes, and the message suggested for them: the subject, then the body.
 pub fn pane(place: &Place, pane: Pane) -> (Changes, String) {
     let listed = listed(place, pane);
-    let message = match message_of(&listed, &scope(pane)) {
-        (subject, Some(body)) => format!("{subject}\n\n{body}"),
-        (subject, None) => subject,
-    };
+    let message = joined(&message_of(&listed, &scope(pane)));
     let changes = Changes {
         count: listed.changes.len() as u32,
         lines: listed.changes.into_iter().map(|c| c.line).collect(),
@@ -52,21 +49,24 @@ pub fn pane(place: &Place, pane: Pane) -> (Changes, String) {
     (changes, message)
 }
 
-/// A message as typed, trimmed of the blank lines around it: its first line, and the lines after
-/// it, blank lines before them left out. `None` when every line is blank.
-fn typed(message: &str) -> Option<(String, Option<String>)> {
-    let mut lines = message.lines().skip_while(|line| line.trim().is_empty());
-    let subject = lines.next()?.to_string();
-    let rest: Vec<&str> = lines.skip_while(|line| line.trim().is_empty()).collect();
-    let end = rest
-        .iter()
-        .rposition(|line| !line.trim().is_empty())
-        .map_or(0, |at| at + 1);
-    let body = (end > 0).then(|| rest[..end].join("\n"));
-    Some((subject, body))
+/// A message as typed, trimmed of the blank lines around it only. `None` when every line is blank.
+fn typed(message: &str) -> Option<String> {
+    let lines: Vec<&str> = message.lines().collect();
+    let start = lines.iter().position(|line| !line.trim().is_empty())?;
+    let end = lines.iter().rposition(|line| !line.trim().is_empty())?;
+    Some(lines[start..=end].join("\n"))
 }
 
-/// Commits a pane's files with `message`, as typed, trimmed of the blank lines around it. The
+/// The suggested message as one text, as the pane's field shows it.
+fn joined((subject, body): &(String, Option<String>)) -> String {
+    match body {
+        Some(body) => format!("{subject}\n\n{body}"),
+        None => subject.clone(),
+    }
+}
+
+/// Commits a pane's files with `message`, as typed, trimmed of the blank lines around it: one text,
+/// which git commits verbatim, with no blank line put after its first line. The
 /// record of the buffer's edits it commits ends as the commit lands (see
 /// [`crate::actions::edited`]). The default branch's commit may amend the latest one only with the
 /// suggested message; another branch's commits its files alone, leaving any other file of its
@@ -76,19 +76,21 @@ pub fn commit_pane(place: &Place, pane: Pane, message: &str) -> Result<Committed
         .ok_or_else(|| ActionError::Refused("A commit needs a message.".to_string()))?;
     let listed = listed(place, pane);
     if let Pane::Default = pane {
-        let amends = typed == message_of(&listed, CHORE);
-        return commit_listed(place, &listed, typed, amends);
+        let suggested = message_of(&listed, CHORE);
+        if typed == joined(&suggested) {
+            return commit_listed(place, &listed, suggested, true);
+        }
+        return commit_listed(place, &listed, (typed, None), false);
     }
     if listed.paths.is_empty() {
         return Err(ActionError::Refused(
             "This branch has no change to commit".to_string(),
         ));
     }
-    let (subject, body) = typed;
     let change = Change {
         paths: listed.paths.clone(),
-        subject,
-        body,
+        subject: typed,
+        body: None,
     };
     let mode = Mode {
         only: true,
