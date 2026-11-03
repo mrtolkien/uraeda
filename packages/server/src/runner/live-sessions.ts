@@ -119,7 +119,8 @@ export class LiveSessions {
       live.proc === undefined &&
       live.turn === undefined &&
       live.queue.length === 0 &&
-      live.messages.size === 0
+      live.messages.size === 0 &&
+      live.held === undefined
     ) {
       clearTimeout(live.idle);
       this.#live.delete(live.id);

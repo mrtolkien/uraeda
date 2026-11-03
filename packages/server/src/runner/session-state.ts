@@ -190,6 +190,11 @@ export type Live = {
   /** The sends and turn starts waiting or running, which keep it in memory. */
   calls: number;
   folder: string | null;
+  /**
+   * While the continuer decides the continue of a turn that ended, the session's changes held, to
+   * publish once it decided: read before, the run would ask (SC-003).
+   */
+  held?: { changes: Array<[number | undefined, TurnState | undefined]>; deciding: number };
   id: string;
   idle?: Timer;
   /** Sends and turn starts, one after another. */

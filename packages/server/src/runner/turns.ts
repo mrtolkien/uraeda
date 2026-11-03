@@ -194,9 +194,27 @@ export class Turns {
     }
     this.#forget(live, id);
     if (deciding) {
-      void deciding.catch(failed).then(() => this.#ended(live, id, end.state));
+      // Every change of the session waits for the decision: the process's exit publishes too.
+      live.held ??= { changes: [], deciding: 0 };
+      live.held.deciding += 1;
+      void deciding.catch(failed).then(() => this.#release(live, id, end.state));
     } else {
       this.#ended(live, id, end.state);
+    }
+  }
+
+  /** Publishes the turn's end once decided, then the session's changes held meanwhile. */
+  #release(live: Live, id: number, state: TurnState) {
+    const held = live.held;
+    if (held && --held.deciding === 0) {
+      live.held = undefined;
+    }
+    this.#ended(live, id, state);
+    if (held && live.held === undefined) {
+      for (const [turn, changed] of held.changes) {
+        this.#context.changed(live, turn, changed);
+      }
+      this.#context.live.prune(live);
     }
   }
 

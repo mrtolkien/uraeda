@@ -251,3 +251,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   minutes away behind it, an hour late. Found by the review of task 8.
 - **If wrong**: two resets a minute apart may interleave their runs, each still a minute apart.
 - **Where**: task 8, `packages/server/src/runner/continuer.ts` and `cache-turns.ts`.
+
+## R22: A session's changes wait for the decision of its turn's continue
+
+- **Decision**: while `Continuer.ended`'s promise is pending, every change the session publishes is
+  held in `Live.held`, and published in order once the decision settled, after the turn's end. The
+  session stays in memory meanwhile.
+- **Rationale**: the decision reads the feature and its commit after the turn's end is written, so
+  the end and the decision are not one step. A process that exits after its turn's limit publishes
+  the session at once: NeedsYouList read the turn failed without a continue, and could notify,
+  against SC-003. Reading the feature before `endTurn` would make `Turns.end` asynchronous for every
+  path that ends a turn; holding the session's publishes keeps it synchronous. Found by the review
+  of task 9.
+- **If wrong**: a session's other changes reach its views a few milliseconds late while a turn's
+  continue is decided.
+- **Where**: task 8, `packages/server/src/runner/turns.ts`, `sessions.ts`, and `session-state.ts`.

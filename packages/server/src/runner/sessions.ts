@@ -83,14 +83,19 @@ export class Sessions {
       agentChanged: () => options.onChange({ agent: true }),
       binding: options.binding,
       cache: options.cache,
-      changed: (live, turn, state) =>
+      changed: (live, turn, state) => {
+        if (live.held) {
+          live.held.changes.push([turn, state]);
+          return;
+        }
         options.onChange({
           folder: live.folder,
           repo: live.repo,
           session: live.id,
           ...(turn === undefined ? {} : { turn }),
           ...(state === undefined ? {} : { state }),
-        }),
+        });
+      },
       live: new LiveSessions(),
     } as SessionContext;
     context.processes = new Processes(context);

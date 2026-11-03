@@ -954,7 +954,9 @@ The rules:
 4. **Timers** are armed per pending continue, unref'd, and cleared by `Sessions.close`.
 5. **No ask before the decision**: a turn that may continue publishes its end only once
    `scheduleContinue` or `markCapped` ran. Until then, NeedsYouList would read it failed or halted,
-   and notify (SC-003). The decision that reads the feature stays before the publish.
+   and notify (SC-003). The decision that reads the feature stays before the publish. While it
+   reads, every change of the session is held, `Live.held`, and published once it decided: the
+   process's exit publishes the session too (ruling R22).
 6. **A continue's turn taken back or refused**, while queued: the claimed turn's `continue_reason`
    is cleared, as for a refusal, so it does not read `capped` again.
 7. **The tests' clock**: `testSessions` fakes only `setTimeout`. The tests fake `Date` too, or move
