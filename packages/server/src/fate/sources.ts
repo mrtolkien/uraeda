@@ -28,6 +28,7 @@ import {
 import { readRecommended, recommendedDataView } from "./recommended.ts";
 import { readSettingsRecord, settingsDataView } from "./settings.ts";
 import { createSources, fileSource, type FileSourceReaders } from "./source.ts";
+import { continuedAllDataView } from "./views-continued-all.ts";
 import { droppedDataView } from "./views-dropped.ts";
 import { startPlanDataView } from "./views-start-plan.ts";
 import {
@@ -481,6 +482,8 @@ export const sources = createSources<Context>([
         : [],
   }),
   writeQueueSource,
+  // Continue all's answer, read once, from its mutation: nothing to read again.
+  fileSource(continuedAllDataView, { byIds: async () => [] }),
   // A drop's result, read once, from its mutation: nothing to read again.
   fileSource(droppedDataView, { byIds: async () => [] }),
   // A start's plan, read once, from `feature.start`: nothing to read again.

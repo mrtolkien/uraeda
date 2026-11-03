@@ -51,3 +51,20 @@ test("US5: Continue all sends each stopped run its step's message, and none to a
   expect(turns[1]).toMatchObject({ kind: "workflow", step: "plan", trigger: "manual" });
   expect(server.sessions.cache.turns(gate)).toHaveLength(1);
 });
+
+/** A refused run is left as it was, and the answer names it with its refusal, for the toast. */
+test("Continue all answers the runs refused, by name, with their refusal", async () => {
+  const server = await testServer();
+  const failed = await failedRun(server, AGENT);
+  // A move or a drop of the feature holds it: its sessions take no message.
+  const release = await server.sessions.hold(server.repo, { folder: AGENT });
+
+  const result = await mutate(server.app, "feature.continueAll", {}, ["id", "refused"]);
+  release();
+
+  expect(result.error).toBeUndefined();
+  expect(result.data).toMatchObject({
+    refused: [{ folder: AGENT, name: "cli-tuis", reason: "The agent is working" }],
+  });
+  expect(server.sessions.cache.turns(failed)).toHaveLength(1);
+});
