@@ -44,7 +44,7 @@ import {
   slugProposalDataView,
 } from "./views-proposal-file.ts";
 import { droppedDataView } from "./views-dropped.ts";
-import { bufferDataView } from "./views-buffer.ts";
+import { bufferDataView, commitPanesDataView } from "./views-buffer.ts";
 import { historyDataView } from "./views-history.ts";
 import { ledgerDataView } from "./views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./views-repositories.ts";
@@ -473,6 +473,7 @@ export const Root = {
   branchChangesList: list(branchChangesDataView),
   branchDecisions: list(branchDecisionDataView),
   buffers: list(bufferDataView),
+  commitPanesList: list(commitPanesDataView),
   droppedItems: list(droppedDataView),
   features: list(featureDataView),
   folderSuggestionsList: list(folderSuggestionsDataView),

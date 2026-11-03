@@ -18,13 +18,22 @@ pub(super) struct Texts {
     pub inbox_changed: bool,
 }
 
-/// The texts of the two lists, now and at `HEAD`.
-pub(super) fn texts(place: &Place) -> Texts {
-    let (now, then) = versions(place, INBOX);
+/// The texts of the two lists, now and at `HEAD`; a list among `edits`, the files a buffer edited,
+/// reads its text now as its text at `HEAD` too, its edit one change of its own.
+pub(super) fn texts(place: &Place, edits: &[String]) -> Texts {
+    let texts_of = |path: &str| {
+        if edits.iter().any(|edit| edit == path) {
+            let now = fs::read_to_string(place.root.join(path)).ok();
+            (now.clone(), now)
+        } else {
+            versions(place, path)
+        }
+    };
+    let (now, then) = texts_of(INBOX);
     Texts {
         inbox_changed: now != then,
         inbox: joined(place, now, then),
-        priorities: versions(place, PRIORITIES),
+        priorities: texts_of(PRIORITIES),
     }
 }
 

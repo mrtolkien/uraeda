@@ -1,8 +1,8 @@
 /**
  * The mutations of the inbox, each written on the default branch over the hash it was read at: its
- * notes' edits, their moves into the priorities and proposal files, the commit page's Commit and
- * Discard, and the answers of the default branch's rounds. None writes a feature's files, so none is
- * refused while an agent works: `writable` guards features only.
+ * notes' edits, their moves into the priorities and proposal files, and the answers of the default
+ * branch's rounds; the commit page's are `commit-mutations.ts`'s. None writes a feature's files, so
+ * none is refused while an agent works: `writable` guards features only.
  */
 import type { Resolver } from "./context.ts";
 import type { RemovedImage } from "uraeda-binding";
@@ -34,20 +34,6 @@ type ToProposalInput = NoteInput & { prioritiesHash: string; section: string };
 type UnderProposalInput = NoteInput & { prioritiesHash: string; proposal: string };
 
 export const inboxMutations = {
-  "changes.commit": {
-    resolve: async ({ ctx, input, select }: Resolver<Queued<object>>) => {
-      await listCommit(ctx, input.write, () => ctx.binding.commitChanges(ctx.repo));
-      return priorities(ctx, await ctx.binding.readPriorities(ctx.repo), select);
-    },
-    type: "Priorities",
-  },
-  "changes.discard": {
-    resolve: async ({ ctx, select }: Resolver<Record<string, never>>) => {
-      await refusable(() => ctx.binding.discardChanges(ctx.repo));
-      return priorities(ctx, await ctx.binding.readPriorities(ctx.repo), select);
-    },
-    type: "Priorities",
-  },
   "defaultRound.answer": {
     resolve: async ({
       ctx,

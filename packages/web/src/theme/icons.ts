@@ -211,6 +211,7 @@ export const uraedaIcons = {
   "uraeda:file-pen-line": filePenLine,
   "uraeda:file-text": fileText,
   "uraeda:flag": flag,
+  "uraeda:git-branch": gitBranch,
   "uraeda:git-compare": gitCompare,
   "uraeda:globe": globe,
   // An unknown harness: Lucide's `bot`.

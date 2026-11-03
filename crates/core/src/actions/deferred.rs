@@ -16,6 +16,7 @@ use std::sync::{Mutex, MutexGuard, PoisonError};
 use crate::cache;
 use crate::git::Git;
 
+use super::commit::Mode;
 use super::place::Place;
 use super::{ActionError, Change, Committed};
 
@@ -29,8 +30,8 @@ struct Deferred {
     id: String,
     place: Place,
     change: Change,
-    /// Whether the change is committed alone, as `commit_only` commits it.
-    only: bool,
+    /// Whether the change is committed alone, and may amend.
+    mode: Mode,
     written: Vec<Written>,
 }
 
@@ -102,7 +103,7 @@ pub(super) fn record(git: &Git, place: &Place) {
 
 /// Defers the commit of `change`, written in `place`, when its repository defers commits: returns
 /// it as committed, with no commit yet. `None` when the commit is to run now.
-pub(super) fn defer_commit(place: &Place, change: &Change, only: bool) -> Option<Committed> {
+pub(super) fn defer_commit(place: &Place, change: &Change, mode: Mode) -> Option<Committed> {
     // An action commits once: what its place held is used, and goes.
     let (key, before) = BEFORE.with_borrow_mut(|befores| befores.remove(&place.root))?;
     if !deferring(&key) {
@@ -113,7 +114,7 @@ pub(super) fn defer_commit(place: &Place, change: &Change, only: bool) -> Option
         id: (IDS.fetch_add(1, Ordering::Relaxed) + 1).to_string(),
         place: place.clone(),
         change: change.clone(),
-        only,
+        mode,
         written,
     };
     repositories(|repositories| {
@@ -186,7 +187,7 @@ pub fn land(key: &Path, id: &str, on_output: &dyn Fn(&str)) -> Result<Committed,
     let landed = super::commit::run(
         &deferred.place,
         &deferred.change,
-        deferred.only,
+        deferred.mode,
         on_output,
         &lock,
     );

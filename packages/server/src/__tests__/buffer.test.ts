@@ -95,3 +95,38 @@ test.each([
   server.sessions.stop(server.repo, session.id as string);
   await server.sessions.settled(Number((session.turns as Array<Data>).at(-1)));
 });
+
+// Break caught: a feature pane's commit on the Commit page that skips the refusal while its agent
+// works, committing the buffer's edits under it.
+test("a feature pane is refused while its agent works", async () => {
+  const server = await testServer();
+  const folder = "2026-10-16-centred-x";
+  const branch = `change/${folder}`;
+  const path = `specs/changes/${folder}/proposal.md`;
+  addChange(server.repo, folder, { "proposal.md": "# Centre\n" });
+  const [before] = await byId(server.app, "Buffer", [path], ["id", "hash"]);
+  const saved = await mutate(
+    server.app,
+    "buffer.save",
+    { hash: before.hash, path, text: "# Centre\n\nMore.\n" },
+    ["id"],
+  );
+  expect(saved.error).toBeUndefined();
+  const [commit] = await byId(server.app, "CommitPanes", ["commit"], ["id", "panes"]);
+  expect(commit.panes).toMatchObject([{ branch, folder, lines: ["- Edit proposal.md"] }]);
+  const tip = git(server.repo, "rev-parse", branch);
+  const session = await send(server, folder);
+
+  const refused = await mutate(
+    server.app,
+    "changes.commit",
+    { branch, message: "chore: centre the x" },
+    ["id"],
+  );
+
+  expect(refused.error).toEqual(REFUSED);
+  expect(git(server.repo, "rev-parse", branch)).toBe(tip);
+  await server.sessions.mainRoot(server.repo);
+  server.sessions.stop(server.repo, session.id as string);
+  await server.sessions.settled(Number((session.turns as Array<Data>).at(-1)));
+});

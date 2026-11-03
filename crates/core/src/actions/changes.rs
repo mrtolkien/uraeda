@@ -6,27 +6,33 @@ use std::fs;
 
 use crate::files::inbox::{self, NoteChange};
 use crate::files::priorities::{self, ProposalChange, Section};
-use crate::files::proposal;
-use crate::git::Git;
 
+use super::commit::Mode;
 use super::place::{self, Place};
 use super::priorities::{describe, line, short};
-use super::{ActionError, Change, Committed, commit, images};
+use super::{ActionError, Change, Committed, commit, edited, images};
 
+mod discard;
+mod edits;
 mod files;
 mod linked;
+mod panes;
 mod repairs;
 mod texts;
 
+pub use discard::discard;
+pub use panes::{Pane, commit_pane, discard_pane, pane};
+
 use files::{
     Edited, Found, Grown, Undo, edited_files, grown_files, linked_by, take_item, take_note,
-    uncategorized, unmerge, written_for_link, written_from,
+    uncategorized, written_for_link, written_from,
 };
 use linked::never_committed;
 use texts::{Texts, texts};
 
 const INBOX: &str = super::inbox::PATH;
 const PRIORITIES: &str = super::priorities::PATH;
+const CHORE: &str = "chore: ";
 
 /// What the commit bar shows: how many changes wait, and each as a line of the commit's body.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -48,6 +54,8 @@ struct Listed {
     paths: Vec<String>,
     undo: Vec<Undo>,
     repairs: Vec<String>,
+    /// The files a buffer edited, among `paths`: each one change.
+    edits: Vec<String>,
 }
 
 /// A file's text from the top level, and its text at `HEAD`; `None` when absent.
@@ -241,9 +249,11 @@ fn files(texts: &Texts, linked: Vec<String>) -> Vec<String> {
 /// The change list with the link repairs: every file of `specs/` other than the lists and the files
 /// listed already, whose change is links alone, as its own change.
 fn gather(place: &Place) -> Listed {
-    let mut listed = gather_lists(place);
+    let edits = edits::edits(place);
+    let mut listed = gather_lists(place, &edits);
     let mut taken = listed.paths.clone();
     taken.extend([INBOX.to_string(), PRIORITIES.to_string()]);
+    taken.extend(edits.iter().cloned());
     let repaired = repairs::repairs(place, &taken);
     for (path, name) in repaired.iter().zip(repairs::names(&repaired)) {
         listed.changes.push(Described {
@@ -253,24 +263,38 @@ fn gather(place: &Place) -> Listed {
         listed.paths.push(path.clone());
         listed.repairs.push(path.clone());
     }
+    // A file a buffer edited is one change, before the others.
+    let mut changes: Vec<Described> = edits.iter().map(|path| edits::edit(path)).collect();
+    changes.append(&mut listed.changes);
+    listed.changes = changes;
+    let mut paths = edits.clone();
+    paths.extend(
+        listed
+            .paths
+            .into_iter()
+            .filter(|path| !edits.contains(path)),
+    );
+    listed.paths = paths;
+    listed.edits = edits;
     listed
 }
 
 /// The change list of the two lists, and of the proposal files and note files they need or the
-/// human edited.
-fn gather_lists(place: &Place) -> Listed {
-    let texts = texts(place);
+/// human edited; a list among `edits`, the files a buffer edited, has none of its own.
+fn gather_lists(place: &Place, edits: &[String]) -> Listed {
+    let texts = texts(place, edits);
     let (mut changes, mut found) = pair(place, &texts);
     let mut paths = found.paths;
     let inbox_now = versions(place, INBOX).0.unwrap_or_default();
     // The proposal files and note files the human edited in their editor, which have no Commit of
     // their own: this list commits them. Discard leaves their text.
+    let taken: Vec<String> = paths.iter().chain(edits).cloned().collect();
     for Edited {
         path,
         title,
         now,
         then,
-    } in edited_files(place, &paths)
+    } in edited_files(place, &taken)
     {
         if uncategorized(&inbox_now, &path, &now, &then) {
             paths.push(path.clone());
@@ -295,6 +319,7 @@ fn gather_lists(place: &Place) -> Listed {
         paths: files(&texts, paths),
         undo: found.undo,
         repairs: Vec::new(),
+        edits: Vec::new(),
     }
 }
 
@@ -337,13 +362,14 @@ pub fn list(place: &Place) -> Changes {
     }
 }
 
-fn message_of(listed: &Listed) -> (String, Option<String>) {
+/// The commit message of `listed`, its type and scope `scope`, like `chore: `.
+fn message_of(listed: &Listed, scope: &str) -> (String, Option<String>) {
     match listed.changes.as_slice() {
         [] if listed.paths == [PRIORITIES] => ("chore: update the priorities".to_string(), None),
         [] => ("chore: update the inbox".to_string(), None),
-        [change] => (format!("chore: {}", change.subject), None),
+        [change] => (format!("{scope}{}", change.subject), None),
         [first, rest @ ..] => (
-            format!("chore: {}, and {} more", first.subject, rest.len()),
+            format!("{scope}{}, and {} more", first.subject, rest.len()),
             Some(
                 listed
                     .changes
@@ -359,7 +385,7 @@ fn message_of(listed: &Listed) -> (String, Option<String>) {
 /// The commit message of the changes: the first change, and with more, their count, and every
 /// change in the body.
 pub fn message(place: &Place) -> (String, Option<String>) {
-    message_of(&gather(place))
+    message_of(&gather(place), CHORE)
 }
 
 /// The proposal files and note files a commit of the two lists holds: those the moves went into,
@@ -367,7 +393,7 @@ pub fn message(place: &Place) -> (String, Option<String>) {
 /// file's commit from its editor holding the lists holds them too, and leaves the link repairs on
 /// the commit page.
 pub(super) fn linked_files(place: &Place) -> Vec<String> {
-    let mut paths = gather_lists(place).paths;
+    let mut paths = gather_lists(place, &[]).paths;
     paths.retain(|path| path != INBOX && path != PRIORITIES);
     paths
 }
@@ -391,92 +417,42 @@ pub(super) fn linked_images(place: &Place, paths: &[String]) -> Result<Vec<Strin
     Ok(linked)
 }
 
-/// Commits `INBOX.md`, `PRIORITIES.md`, and the files notes went into, moved, or left, a folder
-/// with its images, with a message naming their changes.
+/// Commits `INBOX.md`, `PRIORITIES.md`, the files a buffer edited, and the files notes went into,
+/// moved, or left, a folder with its images, with a message naming their changes.
 pub fn commit(place: &Place) -> Result<Committed, ActionError> {
     let listed = gather(place);
+    let message = message_of(&listed, CHORE);
+    commit_listed(place, &listed, message, true)
+}
+
+/// Commits what `listed` holds with `message`, its subject and its body, amending only when
+/// `amends`, and forgets the buffer's edits it held.
+fn commit_listed(
+    place: &Place,
+    listed: &Listed,
+    (subject, body): (String, Option<String>),
+    amends: bool,
+) -> Result<Committed, ActionError> {
     if listed.paths.is_empty() {
         return Err(ActionError::Refused(
             "INBOX.md and PRIORITIES.md have no change to commit".to_string(),
         ));
     }
-    let (subject, body) = message_of(&listed);
     let mut candidates = listed.paths.clone();
     candidates.extend(images_folders(&listed.paths));
     place::ensure_only_staged(place, &candidates)?;
     let mut paths = listed.paths.clone();
     paths.extend(linked_images(place, &listed.paths)?);
-    commit::commit(
-        place,
-        &Change {
-            paths,
-            subject,
-            body,
-        },
-    )
-}
-
-/// Restores the committed `INBOX.md` and `PRIORITIES.md`, staged edits included, deleting one that
-/// no commit has. A file is never lost: one a move wrote and nobody committed is deleted only while
-/// it holds what the move wrote, with at most a note's images, which go with it, one a note was
-/// added to loses that note's lines only, a note file a move put among the proposals moves back,
-/// a committed one a removal deleted comes back, and a link repair is restored from `HEAD`.
-pub fn discard(place: &Place) -> Result<(), ActionError> {
-    let listed = gather(place);
-    let git = Git::open(&place.root)?;
-    // Nothing discarded stays staged, as a refused commit or the human left it: a deleted file's
-    // entry would block the next commit, or bring the file back.
-    let mut staged: Vec<&str> = vec![INBOX, PRIORITIES];
-    let folders = images_folders(&listed.paths);
-    staged.extend(listed.paths.iter().chain(&folders).map(String::as_str));
-    git.unstage(&staged)?;
-    for path in [INBOX, PRIORITIES] {
-        if place::committed(place, path).is_some() {
-            git.restore(path)?;
-        } else if place.root.join(path).is_file() {
-            fs::remove_file(place.root.join(path))?;
-        }
-    }
-    for path in &listed.repairs {
-        git.restore(path)?;
-    }
-    for undo in listed.undo {
-        match undo {
-            Undo::Created { path, written } => {
-                super::expand::remove_written(place, &path, &written)?;
-            }
-            Undo::Converted { old, path } => {
-                let Some(written) = place::committed(place, &old) else {
-                    continue;
-                };
-                if super::expand::remove_written(place, &path, &[written])? {
-                    git.restore(&old)?;
-                } else {
-                    super::attach::retarget(place, &old, &path)?;
-                }
-            }
-            Undo::Grown { path, markdown } => {
-                let file = place.root.join(&path);
-                let text = fs::read_to_string(&file)?;
-                if let Some(without) = proposal::without_item(&text, &markdown) {
-                    fs::write(file, without)?;
-                }
-            }
-            Undo::Merged {
-                path,
-                title,
-                drop_notes,
-            } => unmerge(place, &path, &title, drop_notes)?,
-            Undo::Moved { path, note } => super::inbox::back_to_notes(place, &path, &note)?,
-            Undo::Uncategorized { path } => git.restore(&path)?,
-            Undo::Removed { note, paths } => {
-                if !super::inbox::restore_note_file(place, &note)? {
-                    for path in paths {
-                        git.restore(&path)?;
-                    }
-                }
-            }
-        }
-    }
-    Ok(())
+    let change = Change {
+        paths,
+        subject,
+        body,
+    };
+    let mode = Mode {
+        only: false,
+        amends,
+    };
+    let committed = commit::commit_as(place, &change, mode)?;
+    edited::clear(place, &listed.edits)?;
+    Ok(committed)
 }

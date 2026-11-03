@@ -3,12 +3,9 @@
 
 use std::path::Path;
 
-use super::{
-    Result, default_checkout, on_default, open, reach_default, reach_default_from, refused,
-    write_lock,
-};
+use super::{Result, on_default, open, reach_default, reach_default_from, refused, write_lock};
 use crate::actions::commit::Added;
-use crate::actions::{changes, place, priorities as edits};
+use crate::actions::{changes, priorities as edits};
 use crate::files::priorities::{self, Priorities, Section};
 use crate::git::Git;
 use crate::workspace::Workspace;
@@ -17,35 +14,27 @@ pub(super) fn section(id: &str) -> Result<Section> {
     Section::from_id(id).ok_or_else(|| refused(format!("no section {id}")))
 }
 
-/// The changes the commit holds, in the default branch's checkout: none without one, since the
-/// branch's tip has no uncommitted change.
-fn change_list(git: &Git, workspace: &Workspace) -> changes::Changes {
-    let checkout = workspace
-        .default_branch
-        .as_deref()
-        .and_then(|default| default_checkout(git, default));
-    checkout.map_or_else(changes::Changes::default, |root| {
-        changes::list(&place::Place {
-            root,
-            created: false,
-            switched: None,
-        })
-    })
-}
-
-/// How many changes the commit counts, in the default branch's checkout.
+/// How many changes the Commit page counts, every branch's pane.
 pub(super) fn change_count(git: &Git, workspace: &Workspace) -> u32 {
-    change_list(git, workspace).count
+    super::commit_panes::panes(git, workspace)
+        .iter()
+        .map(|pane| pane.count)
+        .sum()
 }
 
-/// The priorities, with the count of the commit's changes and each as a line, without creating a
-/// worktree.
+/// The priorities, with the count of the Commit page's changes, every branch's, and the default
+/// branch's as lines, without creating a worktree.
 pub fn read_priorities(repo: &Path) -> Result<Priorities> {
     let (git, workspace) = open(repo)?;
-    let list = change_list(&git, &workspace);
+    let panes = super::commit_panes::panes(&git, &workspace);
+    let lines = panes
+        .iter()
+        .find(|pane| workspace.default_branch.as_deref() == Some(pane.branch.as_str()))
+        .map(|pane| pane.lines.clone())
+        .unwrap_or_default();
     Ok(Priorities {
-        changes: list.count,
-        change_lines: list.lines,
+        changes: panes.iter().map(|pane| pane.count).sum(),
+        change_lines: lines,
         ..joined_priorities(&git, &workspace)
     })
 }
