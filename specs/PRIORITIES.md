@@ -61,6 +61,8 @@
   - Make sure docs stay up-to-date with agents instructions
   - Needs multiple agents and full features
 
+- Agents fix merge conflicts on open pull requests on their own, after Worker lifecycle
+
 ## Later
 
 > [!NOTE]
