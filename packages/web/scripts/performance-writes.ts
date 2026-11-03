@@ -1,12 +1,13 @@
 /**
  * The benchmark's writes: each one's result from its press (SC-003), Start to its session
- * (SC-004), a commit made outside to its page (SC-005), and pages right after a start made its
- * worktree (SC-006).
+ * (SC-004), a commit made outside to its page (SC-005), pages right after a start made its
+ * worktree (SC-006), and a key typed in a long comment with Vim on, to its frame (`keystroke`).
  */
 import { execFileSync } from "node:child_process";
 import { appendFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { Locator } from "playwright";
+import { setVimMode } from "uraeda-binding";
 import { clickColumn } from "./performance-pages.ts";
 import { type Condition, MAIN, measure, pagePattern } from "./performance-probe.ts";
 import type { Criterion, Run } from "./performance-report.ts";
@@ -134,24 +135,18 @@ function worktrees(repo: string): number {
 }
 
 /**
- * A feature written on New and started: the editor from its title, the session from Start with
- * its message, another page while its steps run (SC-004), then the pages once its worktree is
- * made (SC-006).
+ * A feature written on New and started: its session from the slug dialog's Enter, with its
+ * message, another page while its steps run (SC-004), then the pages once its worktree is made
+ * (SC-006).
  */
 export async function start(run: Run, prefix: string, repo: string) {
   await open(run, `${prefix}/new?kind=feature`);
   await run.page.getByRole("textbox", { name: "Write Proposal" }).fill("Benchmark start");
   await run.page.keyboard.press("Control+Enter");
   await run.page.getByRole("dialog").waitFor();
-  await timed(
-    run,
-    "SC-003",
-    "a proposal written: its editor",
-    [{ kind: "navigate", name: "editor", pattern: `${pagePattern(prefix)}/edit/.+` }],
-    () => run.page.keyboard.press("Enter"),
-  );
   await run.page.waitForTimeout(500);
   const before = worktrees(repo);
+  // The dialog's slug field has the focus: its Enter starts the feature.
   await timed(
     run,
     "SC-004",
@@ -160,7 +155,7 @@ export async function start(run: Run, prefix: string, repo: string) {
       { kind: "navigate", name: "session", pattern: `${pagePattern(prefix)}/f/[^/]+/session` },
       { kind: "filled", name: "message", selector: '[role="textbox"][aria-label^="Message"]' },
     ],
-    () => run.page.getByRole("button", { name: "Start feature" }).click(),
+    () => run.page.keyboard.press("Enter"),
   );
   const column = run.page.getByRole("navigation", { name: "Navigation" });
   const inbox = column.getByRole("link", { exact: true, name: "Inbox" });
@@ -202,4 +197,41 @@ export async function outsideCommit(run: Run, prefix: string, repo: string, note
     () => written,
   );
   run.report.add("SC-005", run.project, "a commit made with git, on its page", measured);
+}
+
+/** A comment's 2,000 characters of text, without a `z`, which the keystrokes type. */
+const LONG_COMMENT = "Lorem ipsum dolor sit amet, the benchmark's comment goes on. "
+  .repeat(40)
+  .slice(0, 2000);
+
+/**
+ * Vim mode turned on in the config folder `config`, then keys typed at the end of a round's
+ * comment of 2,000 characters, in insert mode: each timed from its `keydown` to the frame drawing
+ * it, against 16 ms (Vim in text edit mode's SC-002). The first key only warms the field up.
+ */
+export async function keystroke(run: Run, round: string, config: string) {
+  await setVimMode(config, true);
+  await open(run, round);
+  // The server reads the file as it changes; the status line shows NAV once Vim's keys are on.
+  await run.page.getByText("NAV", { exact: true }).first().waitFor();
+  const field = run.page.getByRole("textbox", { name: /^Comment, or your own answer/ }).first();
+  // The comment `answer` saved, put back once timed: an unsaved field would hold the next page.
+  const saved = await field.innerText();
+  await field.fill(LONG_COMMENT);
+  await field.press("Control+End");
+  const text = await mark(field, "comment");
+  await run.page.keyboard.press("z");
+  await run.page.waitForTimeout(200);
+  for (let typed = 2; typed <= 4; typed += 1) {
+    await timed(
+      run,
+      "keystroke",
+      `a key, 2,000-character comment, Vim on (${typed - 1})`,
+      [{ kind: "text", name: "drawn", selector: text, text: "z".repeat(typed) }],
+      () => run.page.keyboard.press("z"),
+    );
+    await run.page.waitForTimeout(200);
+  }
+  await field.fill(saved);
+  await setVimMode(config, false);
 }

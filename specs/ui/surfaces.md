@@ -29,11 +29,12 @@ asking the human for something it should not.
 The default. A row is edited where it is (`i`, or a click on the selected row), a category is
 renamed in its own title, a comment is written under the block it is about. A one-line field saves
 on `Enter` or its button, and leaving it keeps it open with its text; a field of several lines saves
-on `Ctrl+Enter` or its button; `Escape` drops the change, asking first when there is one. Lists that
-nest are outlines: a row's field also saves what changed as it is left, `Enter` after a row opens
-the next one, `Tab` and `Shift+Tab` indent and outdent, a row with its children moves as one. "Not
-really elegant to type a text with bullet points inside a multiline in a modal. What if children
-were just treated like priorities themselves? Something behaving like an Outliner."
+on `Ctrl+Enter` or its button. `Escape` drops a row's change, asking first when there is one, and
+leaves any other field keeping its text. Lists that nest are outlines: a row's field also saves what
+changed as it is left, `Enter` after a row opens the next one, `Tab` and `Shift+Tab` indent and
+outdent, a row with its children moves as one. "Not really elegant to type a text with bullet points
+inside a multiline in a modal. What if children were just treated like priorities themselves?
+Something behaving like an Outliner."
 
 ## The row's bar
 
@@ -142,9 +143,14 @@ CHANGE PLACES"). It is not a page's place for its own controls.
 
 ## The status line
 
-The bottom line of wide and semi-wide screens: the page's key hints and the counts of what needs the
-human and what runs. It holds no content. It has a slot for a page's own controls, which only the
-phone's bar uses today.
+The bottom line of wide and semi-wide screens, in the shape of LazyVim's: lualine's sections in
+Catppuccin's colours, set apart by triangles. In order: the Vim mode while Vim mode is on, the
+branch a page names, like a buffer's, the page's key hints, the counts of what needs the human and
+what runs, and the cursor's place while a field has the focus, like "Top 3:9". The mode reads NAV,
+grey, while keys act on the page, and in a field NORMAL in blue, INSERT in green, VISUAL in mauve,
+REPLACE in red, or COMMAND in peach. With Vim mode off, the line keeps its sections without the
+mode. It holds no content. It has a slot for a page's own controls, which only the phone's bar uses
+today.
 
 ## A session
 

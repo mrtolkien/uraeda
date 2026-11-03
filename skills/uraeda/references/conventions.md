@@ -225,8 +225,17 @@ a bug, as in `fix(tasks-reappear): save new tasks as they are`, and `feat(<slug>
 Its rounds use `discovery(<slug>):`, and an approved change to a decision uses
 `decision(<slug>): apply <topic>`.
 
+Tools save the human's edits and never commit them on their own. An edit waits until the human
+commits it: on the web UI's Commit page, or by an action that says it commits, like submitting a
+round's answers. Starting a feature or a change may commit on its own. The Commit page commits each
+branch with changes apart, the default branch's and each feature's, with its own message. A buffer,
+the web UI's editor of a whole file under `specs/`, only saves its file: its edit waits on that page
+too, on the feature's branch for a file of a feature's folder. The commit names it as one change,
+`edit <path>`, in place of the changes its lines would read as.
+
 The human's commits, and the agent's when the human asks, use the step's type for what they answer
-and `chore:` for the rest. `ura` and the web UI write the same messages.
+and `chore:` for the rest. `ura` and the web UI write the same messages. A message the human typed
+is committed as typed.
 
 | Commit                             | Example                                                                                                                                             |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -243,6 +252,7 @@ and `chore:` for the rest. `ura` and the web UI write the same messages.
 | The inbox triage                   | `chore: propose an inbox triage`, `chore: answer the inbox triage`, `chore: apply the inbox triage`                                                 |
 | Notes moved into the inbox         | `chore: move the scratchpad to the inbox`                                                                                                           |
 | Drafts moved to the proposals      | `chore: move the drafts and the backlog to the proposals`                                                                                           |
+| A file edited as a buffer          | `chore: edit specs/PRIORITIES.md`, on a feature's branch `chore(recurring-tasks): edit spec.md`                                                     |
 
 A commit of `PRIORITIES.md` alone names its one change: `add "<proposal>" to <section>`,
 `remove "<proposal>"`, `edit "<proposal>"`, `move "<proposal>" to <section>`, or
@@ -260,9 +270,10 @@ changes the same way: `add "<note>" to the inbox`, `edit "<note>" in the inbox`,
 without a scope, of `INBOX.md`, `PRIORITIES.md`, and files under `specs/proposals/` and
 `specs/notes/` alone, on the default branch. The latest commit has one parent, and no other branch,
 remote branch as last fetched or pushed, or tag holds it: a commit pushed and known to be pushed
-stays as it is. Its body must be empty or a list of changes, and the amend must not leave it empty.
-The amended subject names the first change and ends with `, and <count> more`, and the body lists
-every change of both commits, a commit's one change given by its subject:
-`- Add "<note>" to the inbox`. By hand, amending is optional.
+stays as it is. Its message is not one the human typed, and neither is the new commit's. Its body
+must be empty or a list of changes, and the amend must not leave it empty. The amended subject names
+the first change and ends with `, and <count> more`, and the body lists every change of both
+commits, a commit's one change given by its subject: `- Add "<note>" to the inbox`. By hand,
+amending is optional.
 
 The commit type is only a label: the `status` fields and the checkboxes are the source of truth.

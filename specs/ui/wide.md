@@ -24,8 +24,9 @@ page and its companions side by side.
   is one page, at `/decisions/constitution`.
 - **The side column** on the right, for a document's or a session's companions, 400 px until
   dragged, foldable with `]`, resizable, its tab in the address.
-- **The status line** at the bottom: `Space menu`, `[ ] fold`, then the page's hints in the order
-  they are used, each one clickable, and the counts of what needs the human and what runs.
+- **The status line** at the bottom, in LazyVim's shape: the Vim mode while it is on, the branch a
+  page names, `Space menu`, `[ ] fold`, then the page's hints in the order they are used, each one
+  clickable, the counts of what needs the human and what runs, and a focused field's cursor place.
 
 ## Pages of columns
 

@@ -212,3 +212,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   one-line field whose Enter does not close it.
 - **If wrong**: `submitAndQuit` in `fields/editor/Editor.tsx` runs the quit for every field.
 - **Where**: task 6 (review fix pass)
+
+## R18: The keystroke's row is `keystroke` in the benchmark, and Start is timed from the dialog
+
+- **Decision**: the benchmark's rows name the performance pass's criteria, whose SC-002 is the
+  reloads, so this spec's keystroke is the criterion `keystroke`, against 16 ms: Vim mode turned on
+  in the benchmark's config folder, three keys typed at the end of a round's 2,000-character
+  comment, each timed from its `keydown` to the frame drawing it. The reloads keep this spec's
+  SC-003. The benchmark's Start, which waited for a proposal editor the New page no longer opens, is
+  timed from the slug dialog's Enter to the session (added while building task 11).
+- **Rationale**: the New page's dialog starts the feature itself since before this feature, so the
+  benchmark stopped at its Start and never printed its table.
+- **Where**: task 11
