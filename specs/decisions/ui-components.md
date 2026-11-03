@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: component
 ---
 
@@ -13,7 +13,8 @@ tells it.
 
 ## Rules
 
-- Views MUST use Astryx components wherever one fits the job. Checked by lint.
+- Views MUST use Astryx components wherever one fits the job, except text fields, which follow the
+  [Text editing](text-editing.md) decision. Checked by lint.
 - Views MUST be styled only through Astryx's theme, never with a global stylesheet or inline styles.
   Checked by lint.
 - A kind of information MUST be drawn by one shared component on every page that shows it.

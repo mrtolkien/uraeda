@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width" />
+<title>A file opened as a buffer</title>
+<link rel="stylesheet" href="editor.css" />
+<body>
+  <h1>The priorities, opened with Space b, Vim on, normal mode</h1>
+  <p class="note">
+    The whole file, as it is on disk: frontmatter, comments, and blank lines. The title is the
+    file's path; the line under it says where it is written and whether the text is saved.
+  </p>
+  <div class="pane" style="max-width: 1000px">
+    <h2>Buffer</h2>
+    <div style="font-weight: 700">specs/PRIORITIES.md</div>
+    <div style="color: var(--sub); margin-bottom: 10px">default branch · unsaved changes</div>
+    <div class="editor focused" style="min-height: 22em">
+      <div class="ln">
+        <span class="md-h"><span class="md-mark"># </span>Priorities</span>
+      </div>
+      <div class="ln"></div>
+      <div class="ln">
+        <span class="md-h"><span class="md-mark">## </span>Now</span>
+      </div>
+      <div class="ln"></div>
+      <div class="ln"><span class="md-quote">&gt; [!NOTE]</span></div>
+      <div class="ln"><span class="md-quote">&gt;</span></div>
+      <div class="ln"><span class="md-quote">&gt; Still wanted for my personal usage</span></div>
+      <div class="ln"></div>
+      <div class="ln">
+        <span class="md-list">- </span
+        ><span class="md-link"
+          ><span class="md-mark">[</span>Vim in text edit mode<span class="md-mark">](</span
+          ><span class="md-url">/specs/2026-11-03-vim-text/proposal.md</span
+          ><span class="md-mark">)</span></span
+        >
+      </div>
+      <div class="ln"><span class="md-list">- </span>Review the UI guidelines properly</div>
+      <div class="ln">
+        <span class="md-list">- </span><span class="block">S</span>ee if we can integrate Claude
+        Design
+      </div>
+      <div class="ln"></div>
+      <div class="ln">
+        <span class="md-h"><span class="md-mark">## </span>Next</span>
+      </div>
+    </div>
+    <div class="row-bar">
+      <span class="btn">Save</span><span>Ctrl+Enter or :w saves</span
+      ><span>esc leaves the text</span><span>b back</span>
+    </div>
+  </div>
+  <div class="status">
+    <span class="mode normal"
+      ><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" /></svg>NORMAL</span
+    >
+    <span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span><span><kbd>[ ]</kbd> fold</span>
+    <span class="counts">2 need you</span>
+  </div>
+
+  <h1>Saved while the file changed underneath</h1>
+  <p class="note">
+    An agent committed to the priorities since the buffer was opened: nothing is written, and the
+    banner offers the proposal editor's two ways out.
+  </p>
+  <div class="pane" style="max-width: 1000px">
+    <h2>Buffer</h2>
+    <div style="font-weight: 700">specs/PRIORITIES.md</div>
+    <div style="color: var(--sub); margin-bottom: 10px">default branch · unsaved changes</div>
+    <div class="banner">
+      The proposal editor's banner: the file changed since it was read, and your text is not saved.
+      <div class="row-bar">
+        <span class="btn quiet">Copy my text</span
+        ><span class="btn quiet">Load the new version</span>
+      </div>
+    </div>
+    <div class="editor" style="min-height: 6em">
+      <div class="ln">
+        <span class="md-h"><span class="md-mark"># </span>Priorities</span>
+      </div>
+      <div class="ln">…</div>
+    </div>
+  </div>
+
+  <h1>A feature's spec, opened as a buffer, while its agent works</h1>
+  <p class="note">The buffer opens to read; Save is refused, as every write to that feature is.</p>
+  <div class="pane" style="max-width: 1000px">
+    <h2>Buffer</h2>
+    <div style="font-weight: 700">specs/2026-11-03-vim-text/spec.md</div>
+    <div style="color: var(--sub); margin-bottom: 10px">branch 2026-11-03-vim-text · saved</div>
+    <div class="editor" style="min-height: 6em">
+      <div class="ln"><span class="md-fm">---</span></div>
+      <div class="ln"><span class="md-fm">status: awaiting-human</span></div>
+      <div class="ln"><span class="md-fm">revision: 1</span></div>
+      <div class="ln"><span class="md-fm">---</span></div>
+      <div class="ln"></div>
+      <div class="ln">
+        <span class="md-h"><span class="md-mark"># </span>Spec: Vim in text edit mode</span>
+      </div>
+    </div>
+    <div class="problem">An agent is working on this feature. Stop it first, or wait for it.</div>
+  </div>
+</body>
