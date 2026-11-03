@@ -11,6 +11,7 @@ import {
   type Running,
   type SessionContext,
   type Tool,
+  WAKEUP_HORIZON_MS,
 } from "./session-state.ts";
 
 /** The plugin the skill loads as, which every process must report loaded. */
@@ -66,9 +67,9 @@ export class Transcript {
         this.#context.processes.tokens(live, proc, event.total);
         return;
       case "wakeup": {
-        // A wakeup in the past is dropped: no output follows it.
+        // A wakeup in the past is dropped, no output follows it, and one over a day ahead too.
         const at = Date.parse(event.at);
-        if (at > Date.now()) {
+        if (at > Date.now() && at <= Date.now() + WAKEUP_HORIZON_MS) {
           proc.wakeup = Math.max(proc.wakeup ?? 0, at);
         }
         return;

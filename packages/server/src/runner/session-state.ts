@@ -12,6 +12,11 @@ import type { Turns } from "./turns.ts";
 export const IDLE_CLOSE_MS = 15 * 60_000;
 /** An idle process with a pending wakeup closes this long after it, unless the agent went on. */
 export const WAKEUP_GRACE_MS = 60_000;
+/**
+ * A wakeup further ahead than this holds no process open: it would for days, and a timer past ~24.8
+ * days fires at once (R16).
+ */
+export const WAKEUP_HORIZON_MS = 24 * 60 * 60_000;
 /** A turn without any output for this long is stopped, and fails. */
 export const WATCHDOG_MS = 30 * 60_000;
 /**
