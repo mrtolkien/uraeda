@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { Binding } from "../fate/context.ts";
 import { allowAll, allowDenial } from "./allow.ts";
 import type { Adapter } from "./adapter.ts";
@@ -6,17 +5,16 @@ import type { SessionCache, SessionRow } from "./cache.ts";
 import type { TurnActivity, UsageLimit } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatTitle } from "./message.ts";
-import { transaction } from "./migrations.ts";
 import { Processes } from "./processes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
 import { sendTo } from "./send.ts";
+import { archiveFolder, attach, featureSession, newChat, newSession } from "./session-folders.ts";
 import { takeBack } from "./take-back.ts";
 import { StartMessages } from "./start-messages.ts";
 import {
   type Live,
   REFUSALS,
   commandCount,
-  ofDropped,
   refused,
   SERVER_STOPPED,
   TAKEN_BACK,
@@ -175,73 +173,19 @@ export class Sessions {
     return commandCount(this.#context.live.get(session)?.proc?.background);
   }
 
-  /**
-   * The latest session of a change or a feature, created when it has none: refused for a dropped
-   * one, whose sessions are all archived, so its runs never recreate its worktree.
-   */
+  /** The latest session of a change or a feature, created when it has none: `featureSession`. */
   async featureSession(repo: string, folder: string): Promise<SessionRow> {
-    const { cache } = this;
-    const root = await this.mainRoot(repo);
-    // One transaction: another server cannot create a first session between the read and the write.
-    return transaction(cache.db, () => {
-      const latest = cache.latestSession(root, folder);
-      if (latest && ofDropped(latest)) {
-        throw refused(REFUSALS.dropped);
-      }
-      return (
-        latest ??
-        cache.createSession({
-          agent: this.adapter.kind,
-          folder,
-          nativeId: randomUUID(),
-          repo: root,
-          title: null,
-        })
-      );
-    });
+    return featureSession(this.#context, await this.mainRoot(repo), folder);
   }
 
-  /**
-   * A new session of a change or a feature, which becomes its latest: its runs go to it. Its
-   * feature's open pages are sent it. Refused for a dropped one.
-   */
+  /** A new session of a change or a feature, which becomes its latest: `newSession`. */
   async newSession(repo: string, folder: string): Promise<SessionRow> {
-    const root = await this.mainRoot(repo);
-    const latest = this.cache.latestSession(root, folder);
-    if (latest && ofDropped(latest)) {
-      throw refused(REFUSALS.dropped);
-    }
-    const row = this.cache.createSession({
-      agent: this.adapter.kind,
-      folder,
-      nativeId: randomUUID(),
-      repo: root,
-      title: null,
-    });
-    this.#options.onChange({ folder, repo: root, session: row.id });
-    return row;
+    return newSession(this.#context, this.#options.onChange, await this.mainRoot(repo), folder);
   }
 
-  /**
-   * Moves a session without a workflow to the change it became, between turns: refused while its
-   * agent works. Its open process closes, so its next turn opens in the change's worktree, and
-   * resumes its agent session there.
-   */
+  /** Moves a session without a workflow to the change it became, between turns: `attach`. */
   async attach(repo: string, session: string, folder: string): Promise<void> {
-    const { live: sessions, processes } = this.#context;
-    const live = sessions.of(await this.#own(repo, session));
-    await sessions.serial(live, async () => {
-      if (live.turn !== undefined || live.queue.length > 0) {
-        throw refused(REFUSALS.agentWorking);
-      }
-      this.cache.attach(live.id, folder);
-      // Kept in memory with the folder it had: its next turn reads this one.
-      live.folder = folder;
-      if (live.proc) {
-        processes.close(live.proc);
-      }
-      this.#context.changed(live);
-    });
+    await attach(this.#context, await this.#own(repo, session), folder);
   }
 
   /** Whether the session's agent works: a turn of it runs, starts, or waits, on this server. */
@@ -272,26 +216,12 @@ export class Sessions {
 
   /** Archives every session of a dropped change or feature, and closes their processes. */
   async archiveFolder(repo: string, folder: string): Promise<void> {
-    const root = await this.mainRoot(repo);
-    for (const row of this.cache.folderSessions(root, folder)) {
-      const proc = this.#context.live.get(row.id)?.proc;
-      if (proc) {
-        this.#context.processes.close(proc);
-      }
-      this.cache.updateSession(row.id, { archivedAt: now() });
-      this.#options.onChange({ folder, repo: root, session: row.id });
-    }
+    archiveFolder(this.#context, this.#options.onChange, await this.mainRoot(repo), folder);
   }
 
   /** A new chat, without a feature, titled by its first message. */
   async newChat(repo: string): Promise<SessionRow> {
-    return this.cache.createSession({
-      agent: this.adapter.kind,
-      folder: null,
-      nativeId: randomUUID(),
-      repo: await this.mainRoot(repo),
-      title: null,
-    });
+    return newChat(this.#context, await this.mainRoot(repo));
   }
 
   /**
