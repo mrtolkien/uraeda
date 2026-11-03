@@ -878,6 +878,8 @@ The rules:
 
 1. **When a turn ends failed with a limit** (`Running.limit`, from the transcript, or its process's
    exit after a `limit` event), and its session is its folder's latest, or a chat:
+   - `Running.limit` keeps the turn's last `limit` event (ruling R11), and counts only when the turn
+     fails: a model's limit followed by a successful fallback is no refusal;
    - a limit of kind `other` changes nothing: it fails and asks, its text as its reason;
    - with `afterLimit` off, the same;
    - when the session's `automaticContinues` is at the cap, `markCapped`;
