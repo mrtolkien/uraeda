@@ -35,16 +35,17 @@ const RESET_TIME = /\bresets\s+(\d{1,2})(?::(\d{2}))?\s*([ap]m)\b(?:\s*\(([^()]+
 
 /**
  * The limit a refusal's text names, for a Claude Code that sends no typed error:
- * `You've hit your session limit · resets 8:40am (Asia/Tokyo)`. Its reset is the next instant with
- * that wall-clock time, in the zone the text names, or in `zone`, the server's, without one: one up
- * to 10 minutes before `now` counts, as a refusal read just after its reset's minute. Any other
- * limit is `other`, and a text naming no limit gives none.
+ * `You've hit your session limit · resets 8:40am (Asia/Tokyo)`, or an older one's `5-hour limit
+ * reached ∙ resets 3am`. Its reset is the next instant with that wall-clock time, in the zone the
+ * text names, or in `zone`, the server's, without one: one up to 10 minutes before `now` counts, as
+ * a refusal read just after its reset's minute. Any other limit is `other`, and a text naming no
+ * limit gives none.
  */
 export function limitOfText(text: string, now: Date, zone = serverZone()): Limit | undefined {
   if (!/\blimit\b/i.test(text)) {
     return undefined;
   }
-  if (!/\bsession limit\b/i.test(text)) {
+  if (!/\b(?:session|5-hour) limit\b/i.test(text)) {
     return { kind: "other", text };
   }
   const match = RESET_TIME.exec(text);
@@ -192,15 +193,13 @@ export function wakeupOf(name: string, input: Json, now: Date): Array<AgentEvent
 
 /**
  * The usage limit an assistant message reports refusing the turn: its typed error first, with the
- * kind and reset, else the text of a `rate_limit` error.
+ * kind and reset, else the text of a typed or `rate_limit` error.
  */
 export function limitOfMessage(message: Json, text: string, now: Date): Array<AgentEvent> {
   const params = isObject(message.api_error_params) ? message.api_error_params : {};
+  const typed = message.api_error === "usage_limit_reached";
   const limit =
-    message.api_error === "usage_limit_reached"
-      ? limitOfInfo(params.rate_limit_info, text)
-      : message.error === "rate_limit"
-        ? limitOfText(text, now)
-        : undefined;
+    (typed ? limitOfInfo(params.rate_limit_info, text) : undefined) ??
+    (typed || message.error === "rate_limit" ? limitOfText(text, now) : undefined);
   return limit ? [{ limit, type: "limit" }] : [];
 }
