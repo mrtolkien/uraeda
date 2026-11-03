@@ -349,7 +349,9 @@ checkout.
 **Files:**
 
 - Create: `crates/core/src/actions/edited.rs`, `crates/core/src/api/buffer.rs`,
-  `packages/server/src/fate/buffer.ts`
+  `crates/binding/src/buffer.rs`, `packages/server/src/fate/buffer.ts` (the mutation),
+  `packages/server/src/fate/views-buffer.ts` (the data view and its source, apart from the mutation,
+  which imports the sources)
 - Modify: `crates/core/src/actions/mod.rs`, `crates/core/src/api/mod.rs`,
   `crates/binding/src/lib.rs`, `packages/binding/index.d.ts`, `packages/binding/index.js`,
   `packages/server/src/fate/mutations.ts` (or the server's list of mutation modules),
@@ -366,19 +368,20 @@ checkout.
     returning the new hash, never committing.
   - Core: `actions::edited::{record(place, path), list(place) -> Vec<String>, clear(place, paths)}`:
     the paths (from the repository root) a buffer saved in the checkout of `place`, kept in a file
-    of that checkout's own git directory (`git rev-parse --git-dir`), so each worktree has its own.
+    of that checkout's own git directory (`git rev-parse --git-dir`, `Git::git_dir`), named
+    `uraeda-edited`, one path per line, so each worktree has its own.
   - Where a path is written: under `specs/<folder>/` or `specs/changes/<folder>/` of a known feature
-    or change, at any depth, on its branch through `place::reach`; any other `specs/**/*.md` on the
-    default branch through `reach_default`. A path not ending in `.md`, outside `specs/`, with `..`,
-    or resolving outside the repository through a symlink, is refused with
-    `"<path> is not a Markdown file of specs/"`. A stale hash is the existing conflict.
+    or change, at any depth, on its branch through `place::reach`; any other `specs/**/*.md`, and a
+    merged feature's files, which have no branch left, on the default branch. A path not ending in
+    `.md`, outside `specs/`, with `..`, or resolving outside the repository through a symlink, is
+    refused with `"<path> is not a Markdown file of specs/"`. A stale hash is the existing conflict.
   - Binding: `readBuffer(repo, path): Promise<BufferView>`,
     `saveBuffer(repo, path, text, previous): Promise<string>`.
   - Server: a `Buffer` source by id (the path) and mutation `buffer.save({ path, text, hash })`
     returning the `Buffer`, refused through `writable(ctx, { path })` while an agent works, with
-    `binding.pathFolder` answering for nested feature paths too.
+    `binding.pathFolder` answering for nested feature paths too (it already did: unchanged).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `crates/core/tests/buffer.rs`:
 
@@ -391,8 +394,10 @@ checkout.
   `specs/<folder>/contracts/api.md` land in the feature's worktree, and the default checkout's tree
   is unchanged.
 - `a_buffer_refuses_paths_outside_specs`: rows `Cargo.toml`, `specs/../Cargo.toml`,
-  `specs/x/../../a.md`, `specs/image.png`, and a symlink `specs/out.md` to a file outside: each
-  refused with the message above, nothing written.
+  `specs/x/../../a.md`, `specs/<folder>/../PRIORITIES.md` (inside `specs/`, but routed to the
+  feature's branch), `specs/image.png`, a symlink `specs/out.md` to a file outside, a dangling
+  symlink, and a file under a symlinked folder: each refused with the message above, read or saved,
+  nothing written.
 - `a_buffer_reads_the_whole_file`: `read_buffer("specs/<folder>/spec.md")` starts with `---`.
 
 Server `buffer.test.ts`: "a feature's buffer is refused while its agent works" (with a running fake
@@ -402,17 +407,17 @@ feature. Stop it first, or wait for it."
 The break each test catches: a commit on save; a write over a stale hash; a feature file written on
 the default branch; a path escape; the frontmatter stripped; a missing refusal.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test buffer`
 - Expected: FAIL, unresolved `read_buffer`.
 
-- [ ] **Step 3: Implement `read_buffer`, `save_buffer`, and the record**, reusing `text::save` for
+- [x] **Step 3: Implement `read_buffer`, `save_buffer`, and the record**, reusing `text::save` for
       the hash check and `place::reach` for the branch; widen `text::checked` only through the new
       API, leaving `save_text`'s rules as they are. Then the binding and the server's source and
       mutation.
 
-- [ ] **Step 4: Make the breaks**: remove the `..` check, and the symlink check, one at a time; see
+- [x] **Step 4: Make the breaks**: remove the `..` check, and the symlink check, one at a time; see
       `a_buffer_refuses_paths_outside_specs` fail; restore.
 
 - [ ] **Step 5: Run the task's validation**
@@ -420,7 +425,7 @@ the default branch; a path escape; the frontmatter stripped; a missing refusal.
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -m "feat(vim-text): read and save any Markdown file of specs/ as a buffer"

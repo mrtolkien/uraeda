@@ -10,6 +10,7 @@ pub mod commit;
 pub mod default_round;
 pub mod deferred;
 pub mod drop;
+pub mod edited;
 pub mod expand;
 pub mod images;
 pub mod inbox;

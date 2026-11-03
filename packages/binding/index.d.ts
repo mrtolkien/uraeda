@@ -359,6 +359,9 @@ export declare function proposalHints(): Promise<Array<ProposalHint>>
  */
 export declare function proposeSlug(text: string): string
 
+/** A Markdown file under `specs/`, whole, frontmatter included, with the branch it is written on. */
+export declare function readBuffer(repo: string, path: string): Promise<BufferView>
+
 /**
  * A decision of `specs/decisions/`, by its name, as a feature's branch has it, with its change
  * against the merge base of the branch and the default branch.
@@ -479,6 +482,12 @@ export declare function retryRound(repo: string, id: string): Promise<FileView>
 
 /** Saves an answer from the letters picked and a comment, over the answer last read. */
 export declare function saveAnswer(repo: string, folder: string, question: string, letters: Array<string>, comment: string, previous: string): Promise<FileView>
+
+/**
+ * Saves a Markdown file under `specs/` as typed, over the version read at `previous`, on its
+ * feature's branch or the default branch, without committing; resolves with the new hash.
+ */
+export declare function saveBuffer(repo: string, path: string, text: string, previous: string): Promise<string>
 
 /** Saves the notes on the settled points, over the notes last read. */
 export declare function saveNotes(repo: string, folder: string, notes: string, previous: string): Promise<FileView>
@@ -752,6 +761,14 @@ export interface BranchDecision {
   change: DecisionChange
   /** The branch's version of the file. */
   document: Document
+}
+
+/** A buffer's file as read: its whole text, frontmatter included, and the branch it is written on. */
+export interface BufferView {
+  path: string
+  text: string
+  hash: string
+  branch: string
 }
 
 /** The reads of a watched repository since its watch started. */

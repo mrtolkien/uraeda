@@ -21,6 +21,7 @@ use crate::workspace::{Feature, FileKind, Source, Workspace, WorkspaceError};
 
 mod answered;
 mod answers;
+mod buffer;
 mod category_edits;
 mod checks;
 mod decision;
@@ -47,6 +48,7 @@ mod start;
 mod warm;
 
 pub use answers::*;
+pub use buffer::{BufferView, read_buffer, save_buffer};
 pub use category_edits::*;
 use checks::checked;
 pub use checks::fix_links;

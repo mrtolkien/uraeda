@@ -114,6 +114,11 @@ impl Git {
         std::fs::canonicalize(common).unwrap_or_else(|_| common.to_path_buf())
     }
 
+    /// This working tree's own git folder: `.git` of the main one, `.git/worktrees/<name>` else.
+    pub fn git_dir(&self) -> PathBuf {
+        self.repo.git_dir().to_path_buf()
+    }
+
     /// The top level of the main working tree, where `.worktrees/` lives.
     pub fn main_root(&self) -> PathBuf {
         let common = self.repo.common_dir();

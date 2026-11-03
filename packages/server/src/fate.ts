@@ -32,6 +32,7 @@ import { allBranchChangesDataView, branchChangesDataView } from "./fate/views-br
 import { continuedAllDataView } from "./fate/views-continued-all.ts";
 import { droppedDataView } from "./fate/views-dropped.ts";
 import { startPlanDataView } from "./fate/views-start-plan.ts";
+import { bufferDataView } from "./fate/views-buffer.ts";
 import { historyDataView } from "./fate/views-history.ts";
 import { ledgerDataView } from "./fate/views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-repositories.ts";
@@ -42,6 +43,7 @@ export {
   allBranchChangesDataView,
   branchChangesDataView,
   branchDecisionDataView,
+  bufferDataView,
   continuedAllDataView,
   proposalFileDataView,
   droppedDataView,
@@ -91,6 +93,8 @@ export type Feature = Entity<typeof featureDataView, "Feature">;
 export type BranchChanges = Entity<typeof branchChangesDataView, "BranchChanges">;
 export type AllBranchChanges = Entity<typeof allBranchChangesDataView, "AllBranchChanges">;
 export type History = Entity<typeof historyDataView, "History">;
+/** A Markdown file under `specs/` in a buffer, by its path. */
+export type Buffer = Entity<typeof bufferDataView, "Buffer">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type BranchDecision = Entity<typeof branchDecisionDataView, "BranchDecision">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;

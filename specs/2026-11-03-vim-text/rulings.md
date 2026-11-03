@@ -21,7 +21,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: a buffer path under `specs/<folder>/` or `specs/changes/<folder>/`, at any depth, is
   written on that feature's or change's branch; every other Markdown file under `specs/` on the
-  default branch.
+  default branch, a merged feature's too, as it has no branch left (added while building task 2).
 - **Rationale**: "any Markdown file under `specs/`" includes a feature's `contracts/`; its branch is
   where the feature's files live.
 - **Where**: task 2
