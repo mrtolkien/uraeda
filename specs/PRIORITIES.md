@@ -89,3 +89,8 @@
 - eink mode?
 
 ## Blocked
+
+- [Run options](/specs/proposals/run-options.md): one session per feature or per step, model and
+  effort per step, review options, global defaults with per-feature overrides
+- [Scheduled jobs](/specs/proposals/scheduled-jobs.md): agent runs on a schedule, like a daily
+  dependencies upgrade and performance pass
