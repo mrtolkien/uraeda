@@ -132,3 +132,48 @@ fn an_agents_note_placed_where_it_shows_after_others_writes_nothing() {
     assert_eq!(placed.changes, 0);
     assert_eq!(repo.porcelain(), "");
 }
+
+/// US2 more 3, for a drop's target: a note dropped under an agent's note nests under its line,
+/// written first, its file still linked.
+#[test]
+fn a_note_dropped_under_an_agents_note_nests_under_its_line() {
+    let repo = repo_with_agents_notes("UI");
+    let read = api::read_inbox(repo.path()).unwrap();
+    let id = id_of(&read, "Make sure agents are resumable");
+
+    let dropped = api::drop_note(
+        repo.path(),
+        &id,
+        None,
+        &DropAt {
+            under: Some("specs/notes/a.md".into()),
+            index: 0,
+            ..DropAt::default()
+        },
+        &read.hash,
+    )
+    .unwrap();
+
+    let ui = &dropped
+        .categories
+        .iter()
+        .find(|c| c.name.as_deref() == Some("UI"))
+        .unwrap()
+        .notes;
+    let a = ui
+        .iter()
+        .find(|note| note.text == "[A](notes/a.md)")
+        .unwrap();
+    assert_eq!(
+        a.lines,
+        [
+            "- [agent] [A](notes/a.md)",
+            "  - Make sure agents are resumable"
+        ]
+    );
+    assert_eq!(a.file.as_deref(), Some("specs/notes/a.md"));
+    assert_eq!(
+        shown(&dropped, "CLI"),
+        ["Allow no selection in responses (after a warning)"]
+    );
+}
