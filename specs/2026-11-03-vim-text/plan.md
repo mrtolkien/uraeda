@@ -330,7 +330,7 @@ comment or reorders keys; a mutation not reaching the file.
       `vp run --filter uraeda-binding build`, and regenerate the fate client with the web's build,
       `vp run --filter uraeda-web build`, whose fate plugin writes it.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
@@ -420,7 +420,7 @@ the default branch; a path escape; the frontmatter stripped; a missing refusal.
 - [x] **Step 4: Make the breaks**: remove the `..` check, and the symlink check, one at a time; see
       `a_buffer_refuses_paths_outside_specs` fail; restore.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
