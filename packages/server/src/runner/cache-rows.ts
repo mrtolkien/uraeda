@@ -1,10 +1,12 @@
-import type { TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
+import type { ContinueReason, TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
 
 /** A session, as the cache keeps it. */
 export type SessionRow = {
   /** The agent's kind: `claude`. */
   agent: string;
   archivedAt: string | null;
+  /** The automatic continues in a row, set back to 0 by a commit or the human's message. */
+  automaticContinues: number;
   createdAt: string;
   /** The change's or feature's folder, set once, null for a session without one. */
   folder: string | null;
@@ -28,6 +30,10 @@ export type SessionRow = {
 export type TurnRow = {
   /** Allow turns: the allow rule. */
   allowed: string | null;
+  /** When Uraeda continues the run by itself, epoch ms, null when no continue waits. */
+  continueAt: number | null;
+  /** Why the run continues, or why it would have past the cap: kept once a continue is claimed. */
+  continueReason: ContinueReason | null;
   /** When the human dismissed its failure or its stop, null while it still asks for them. */
   dismissedAt: string | null;
   endedAt: string | null;
@@ -52,6 +58,7 @@ export type Row = Record<string, string | number | null>;
 export const toSession = (row: Row): SessionRow => ({
   agent: String(row.agent),
   archivedAt: row.archived_at as string | null,
+  automaticContinues: Number(row.automatic_continues ?? 0),
   createdAt: String(row.created_at),
   folder: row.folder as string | null,
   id: String(row.id),
@@ -65,6 +72,8 @@ export const toSession = (row: Row): SessionRow => ({
 
 export const toTurn = (row: Row): TurnRow => ({
   allowed: row.allowed as string | null,
+  continueAt: row.continue_at as number | null,
+  continueReason: row.continue_reason as ContinueReason | null,
   dismissedAt: row.dismissed_at as string | null,
   endedAt: row.ended_at as string | null,
   id: Number(row.id),

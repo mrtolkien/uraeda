@@ -145,6 +145,10 @@ export const migrations: Array<Migration> = [
   CREATE INDEX sessions_by_folder ON sessions (repo, folder) WHERE folder IS NOT NULL;`,
   // When the human dismissed a failed or stopped turn, null while it still asks for them.
   "ALTER TABLE turns ADD COLUMN dismissed_at TEXT;",
+  // A continue waiting for its time, epoch ms, and why; the automatic continues in a row.
+  `ALTER TABLE turns ADD COLUMN continue_at INTEGER;
+  ALTER TABLE turns ADD COLUMN continue_reason TEXT;
+  ALTER TABLE sessions ADD COLUMN automatic_continues INTEGER NOT NULL DEFAULT 0;`,
 ];
 
 /**
