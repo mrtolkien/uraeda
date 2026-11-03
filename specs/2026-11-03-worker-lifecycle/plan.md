@@ -788,7 +788,7 @@ git commit -m "feat(worker-lifecycle): a run waiting to continue reads in progre
 - Produces: `Proc.wakeup?: number`, the latest pending one-shot wakeup in epoch ms. `Turns.next`
   arms the idle close at the later of 15 minutes and a minute after the wakeup.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 "US6.1: a pending wakeup keeps the idle process open until it fires":
 
@@ -800,25 +800,25 @@ git commit -m "feat(worker-lifecycle): a run waiting to continue reads in progre
 
 The break it catches: an idle close that ignores the wakeup and closes at 15 minutes.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c vp test packages/server/src/runner/__tests__/sessions.test.ts -t US6.1`
 - Expected: FAIL, `expected 1 to be 0` on `closes`
 
-- [ ] **Step 3: Implement it.** The transcript records the wakeup on the process. A wakeup in the
+- [x] **Step 3: Implement it.** The transcript records the wakeup on the process. A wakeup in the
       past is dropped. "US1.7 and C1" keeps passing: no wakeup, a close at 15 minutes.
 
-- [ ] **Step 4: Run the runner's session tests**
+- [x] **Step 4: Run the runner's session tests**
 
 - Run: `nix develop -c vp test packages/server/src/runner/__tests__/sessions.test.ts`
 - Expected: PASS
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/runner/

@@ -6,6 +6,7 @@ import type { AgentEvent } from "../events.ts";
 import {
   IDLE_CLOSE_MS,
   OUTPUT_LIMIT,
+  RESUMED,
   type SendInput,
   TERMINATE_AFTER_MS,
   WATCHDOG_MS,
@@ -35,6 +36,7 @@ const done = (extra: Partial<Extract<AgentEvent, { type: "result" }>> = {}): Age
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 test("US1.1: a chat message on a feature waiting on the human goes with the opening line", async () => {
@@ -254,6 +256,40 @@ test("a background command holds its turn and its process, and the watchdog wait
   expect(cache.turn(turn)).toMatchObject({ state: "done" });
   expect(sessions.backgroundCommands(session.id)).toBe(0);
   vi.advanceTimersByTime(IDLE_CLOSE_MS);
+  expect(adapter.closes).toBe(1);
+});
+
+test("US6.1: a pending wakeup keeps the idle process open until it fires", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions();
+  // The clock moves with the timers: the idle timer reads the wakeup against it.
+  let now = Date.now();
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  const advance = (ms: number) => {
+    now += ms;
+    vi.advanceTimersByTime(ms);
+  };
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Wait for CI" });
+  adapter.emit({ at: new Date(now + 25 * 60_000).toISOString(), type: "wakeup" });
+  adapter.emit({ text: "I check again in 25 minutes.", type: "text" });
+  adapter.emit(done());
+  await sessions.settled(turn);
+
+  advance(IDLE_CLOSE_MS);
+  expect(adapter.closes).toBe(0);
+
+  // The wakeup fires: the agent goes on by itself, in the turn that ended.
+  advance(10 * 60_000);
+  adapter.emit({ text: "CI passed.", type: "text" });
+  await flush();
+  expect(cache.turn(turn)?.state).toBe("running");
+  expect(cache.itemsOf(turn, "system").map((item) => item.text)).toContain(RESUMED);
+  adapter.emit(done());
+  await sessions.settled(turn);
+  expect(adapter.closes).toBe(0);
+  advance(IDLE_CLOSE_MS - 1);
+  expect(adapter.closes).toBe(0);
+  advance(1);
   expect(adapter.closes).toBe(1);
 });
 
