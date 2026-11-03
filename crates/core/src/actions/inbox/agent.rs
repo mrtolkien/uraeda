@@ -8,7 +8,7 @@ use std::fs;
 use crate::files::document::hash;
 use crate::files::frontmatter;
 use crate::files::inbox::categories::remove_category;
-use crate::files::inbox::{self, AgentNote, Inbox, NoteFile};
+use crate::files::inbox::{self, AgentNote, Drop, Inbox, NoteFile};
 
 use super::super::place::Place;
 use super::super::{ActionError, STALE};
@@ -211,6 +211,42 @@ pub(super) fn shown_before(
     let mut agents = agents_in(place, text, category);
     agents.truncate(index.saturating_sub(lines));
     with_lines(text, &agents, id)
+}
+
+/// A drop of the note `id`, or with `at` its nested item at `at`, to `to` over `text`, as the inbox
+/// shows it: `text` with the lines written of the agents' notes the drop counts or lands under, the
+/// id `id` has there, and `to` naming the line of an agent's note it lands under. `None` for a note
+/// or an agent's note that is not there.
+pub(super) fn dropped(
+    place: &Place,
+    text: &str,
+    id: &str,
+    at: Option<usize>,
+    to: &Drop,
+) -> Option<(String, String, Drop)> {
+    match to {
+        Drop::Note { category, index } => {
+            let (text, id) =
+                shown_before(place, text, id, (category.as_deref(), *index), at.is_none())?;
+            Some((text, id, to.clone()))
+        }
+        Drop::Under { note, at, index } if inbox::is_note_file_path(note) => {
+            let under = inbox::agent_notes(text, &files_on_disk(place))
+                .into_iter()
+                .find(|agent| agent.path == *note)?;
+            let (text, id) = with_lines(text, &[under], id)?;
+            let line = inbox::parse(&text)
+                .into_iter()
+                .find(|line| line.file().as_deref() == Some(note.as_str()))?;
+            let to = Drop::Under {
+                note: line.id,
+                at: *at,
+                index: *index,
+            };
+            Some((text, id, to))
+        }
+        Drop::Under { .. } => Some((text.to_string(), id.to_string(), to.clone())),
+    }
 }
 
 /// The note files of `specs/notes/` in the checkout, with their texts.

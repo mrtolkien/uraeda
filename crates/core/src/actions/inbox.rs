@@ -313,17 +313,8 @@ pub fn drop_item(
             place,
             previous,
             |current| {
-                let (text, id) = match to {
-                    inbox::Drop::Note { category, index } => agent::shown_before(
-                        place,
-                        current,
-                        id,
-                        (category.as_deref(), *index),
-                        at.is_none(),
-                    )?,
-                    inbox::Drop::Under { .. } => (current.to_string(), id.to_string()),
-                };
-                inbox::drop_item(&text, &id, at, to)
+                let (text, id, to) = agent::dropped(place, current, id, at, to)?;
+                inbox::drop_item(&text, &id, at, &to)
             },
             &format!("no note {id}, no such item or place, or code under it"),
         )

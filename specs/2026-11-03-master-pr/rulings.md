@@ -29,7 +29,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   category's notes counts them as the inbox shows them, its agents' notes after its lines: when it
   falls past the category's lines, whichever note moves, the lines of the agents' notes shown before
   that place are written first, in the inbox's order, so the index counts the same notes in
-  `INBOX.md`.
+  `INBOX.md`. A drop under an agent's note writes that note's line first, at the end of its
+  category, and nests under the line, which still links its file.
 - **Rationale**: the spec's architecture gives the actions one owner of the turn into a line, and
   the actions on a linked note file already remove, move, and promote its file.
 - **If wrong**: an action that forgets the turn refuses with "no note", losing nothing.
