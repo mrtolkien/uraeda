@@ -225,3 +225,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   path. Found by building task 9.
 - **If wrong**: a limit's end reached NeedsYouList a few milliseconds later than before.
 - **Where**: task 9, `packages/server/src/runner/continuer.ts`.
+
+## R21: On a touch screen, Continue all's first tap previews it
+
+- **Decision**: a touch screen has no pointer over Continue all, so its first tap shows the preview
+  and sends nothing; a second tap while it shows sends. A tap elsewhere, or 4 seconds without one,
+  ends it. A tap's focus shows no preview: only a key's focus does, as a mouse's hover does. A mouse
+  click and a key send at once.
+- **Rationale**: US5 shows the human which runs Continue all sends before they press it. Without a
+  pointer, the preview flashed under the finger only while it pressed, after the sends had left. A
+  sheet to confirm would be a second surface for what the home already shows.
+- **If wrong**: a confirmation, or a preview of its own on the phone, replaces the first tap's.
+- **Where**: review of task 11, `packages/web/src/home/ContinueAll.tsx`.
