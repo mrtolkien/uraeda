@@ -171,7 +171,14 @@ export function coreParts({
       {
         ...(continued.size === 0 || preview === undefined
           ? {}
-          : { actions: <ContinueAll onPreview={preview.onChange} /> }),
+          : {
+              actions: (
+                <ContinueAll
+                  names={human.filter(continuedByAll).map((f) => f.slug)}
+                  onPreview={preview.onChange}
+                />
+              ),
+            }),
         count: human.length,
         icon: "uraeda:hourglass",
         title: "Needs you",
