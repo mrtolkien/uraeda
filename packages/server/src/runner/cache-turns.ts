@@ -186,13 +186,16 @@ export function latestLimitContinue(db: DatabaseSync, from: number): number | un
 
 /** Counts an automatic continue of the session, and returns its continues in a row. */
 export function addContinue(db: DatabaseSync, session: string): number {
-  const { count } = db
+  const row = db
     .prepare(
       `UPDATE sessions SET automatic_continues = automatic_continues + 1 WHERE id = ?
        RETURNING automatic_continues AS count`,
     )
-    .get(session) as { count: number };
-  return count;
+    .get(session) as { count: number } | undefined;
+  if (!row) {
+    throw new Error(`no session ${session}`);
+  }
+  return row.count;
 }
 
 /** Sets the session's continues in a row back to 0: a commit, or the human's message. */
