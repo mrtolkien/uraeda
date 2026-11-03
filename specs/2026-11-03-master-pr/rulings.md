@@ -30,7 +30,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   falls past the category's lines, whichever note moves, the lines of the agents' notes shown before
   that place are written first, in the inbox's order, so the index counts the same notes in
   `INBOX.md`. A drop under an agent's note writes that note's line first, at the end of its
-  category, and nests under the line, which still links its file.
+  category, and nests under the line, which still links its file. A category's edits count the
+  categories the inbox shows, its agents' notes' among them: a rename or a removal writes the lines
+  of the category's agents' notes first, in the inbox's order, at its end, its heading made when
+  `INBOX.md` lacks it, then acts on them as on notes linking their files, their files' `category`
+  left as it was. A removal with the notes is refused, writing nothing, with
+  `<path> has uncommitted changes: the note was not removed` when one of those files is not as
+  `HEAD` has it; its Undo writes those files back, and `INBOX.md` as `HEAD` has it when it shows the
+  same inbox, so the checkout is as before. A new name, added or renamed to, may be none of them.
 - **Rationale**: the spec's architecture gives the actions one owner of the turn into a line, and
   the actions on a linked note file already remove, move, and promote its file.
 - **If wrong**: an action that forgets the turn refuses with "no note", losing nothing.

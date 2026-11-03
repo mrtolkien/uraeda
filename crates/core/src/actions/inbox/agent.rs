@@ -249,6 +249,39 @@ pub(super) fn dropped(
     }
 }
 
+/// The names of the categories the inbox shows over `text`: its headings', then its agents' notes'.
+pub(super) fn shown_names(place: &Place, text: &str) -> Vec<String> {
+    inbox::read(text, &files_on_disk(place)).names
+}
+
+/// `text` with the lines of the agents' notes of the category `name` written at its end, in the
+/// inbox's order, its heading made when `text` lacks it, and those notes: a category's edit then
+/// acts on them as on notes linking their files.
+pub(super) fn category_written(place: &Place, text: &str, name: &str) -> (String, Vec<AgentNote>) {
+    let notes = agents_in(place, text, Some(name));
+    let written = notes.iter().fold(text.to_string(), |text, note| {
+        inbox::add(&text, note.category.as_deref(), &note.line).0
+    });
+    (written, notes)
+}
+
+/// Writes `INBOX.md` as `HEAD` has it over the checkout's when the two show the same inbox, the
+/// lines of the checkout's being those of agents' notes shown where they are: the Undo of a
+/// category's removal then leaves the checkout as before it.
+pub(super) fn as_committed_when_shown(place: &Place) -> Result<bool, ActionError> {
+    let Some(committed) = super::super::place::committed(place, PATH) else {
+        return Ok(false);
+    };
+    let current = text(place)?;
+    let files = files_on_disk(place);
+    if current == committed || inbox::joined(&current, &files) != inbox::joined(&committed, &files)
+    {
+        return Ok(false);
+    }
+    fs::write(place.root.join(PATH), committed)?;
+    Ok(true)
+}
+
 /// The note files of `specs/notes/` in the checkout, with their texts.
 fn files_on_disk(place: &Place) -> Vec<NoteFile> {
     inbox::note_files(&inbox::note_paths_on_disk(&place.root), |path| {
