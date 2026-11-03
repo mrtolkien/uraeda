@@ -168,6 +168,17 @@ test("a port that is not one is refused with the core's message", async () => {
   expect((await record(opened)).server.port).toEqual(defaults.port);
 });
 
+test("an unknown kind of continue is refused as a bad request", async () => {
+  const opened = await testApp();
+
+  const result = await change(opened, "setContinue", { key: "sleep", on: false });
+
+  expect(result.error).toEqual({
+    code: "BAD_REQUEST",
+    message: "refused: sleep is not a kind of continue: restart, limit, or gate.",
+  });
+});
+
 test("a broken file is the record's problem, and refuses every change with it", async () => {
   const opened = await testApp();
   const file = join(opened.configDir, "config.toml");
