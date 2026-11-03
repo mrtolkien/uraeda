@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Worker lifecycle
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 6 questions and 1 follow-up, about 20 minutes.
+> Answered on 2026-11-03.
 >
 > - Verdict: worth building, with changes: restarts and usage limits still cost hours, and early
 >   stops are mostly fixed. Run options and scheduled jobs are features of their own.
@@ -110,7 +110,9 @@ feature takes.
   - [con] a spec past the split rule. Run options get their own round of questions after this one,
     since their research and choices are separate.
 
-**Answer:**
+**Answer:** A: Ok, create both at the _end_ of PRIORITIES.md, with a very short, concise proposal.
+
+Scheduled job would be a daily dependencies upgrade + performance pass CRON job for example.
 
 ### Q1.B: Which jobs should run on a schedule?
 
@@ -167,7 +169,7 @@ Why it matters: it sets how much a restart loses, and how much of the runner cha
   - [pro] nothing runs without you.
   - [con] the run waits for you: on 2026-11-01 it was never resumed.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What should happen when a run hits a usage limit?
 
@@ -197,7 +199,7 @@ Why it matters: limits caused most of the lost time, about 14.5 hours in 18 days
   - [pro] nothing runs while you are away.
   - [con] keeps the "Continue" this feature exists to remove.
 
-**Answer:**
+**Answer:** A: It's life if it's flaky. It's a best effort feature.
 
 ## Q4: Should a run waiting to continue by itself ask for you?
 
@@ -223,7 +225,7 @@ Why it matters: it decides whether limits and restarts still notify you, and cha
   - [pro] no decision changes, and you always know a run stopped.
   - [con] a notification for each limit, with nothing for you to do.
 
-**Answer:**
+**Answer:** A: It should be inside "in progress", because it's in progress.
 
 ## Q5: What should happen when a run stops before the next human gate?
 
@@ -251,7 +253,7 @@ Why it matters: it decides whether Uraeda sends a message to an agent without yo
   - [pro] Uraeda never speaks for you.
   - [con] the two episodes stay.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: How should agents wait for their own background work?
 
@@ -281,7 +283,7 @@ B comes on top of A.
   - [pro] no change to the skill.
   - [con] the polling stays.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -308,3 +310,6 @@ B comes on top of A.
 - **Resumed runs keep the same flags and permission mode**: no guard changes.
 
 **Notes:**
+
+- **A cap on automatic resumes**: Make it a setting
+- **Weekly limits**: Let's not handle weekly limits for the moment
