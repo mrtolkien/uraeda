@@ -263,3 +263,137 @@ p.note {
   white-space: normal;
   min-height: 1.5em;
 }
+
+/* The status line in lualine's shape, as LazyVim sets it: sections, with drawn triangles between
+   them, since the bundled fonts have no Powerline glyphs. */
+.ll {
+  display: flex;
+  align-items: stretch;
+  height: 26px;
+  background: var(--mantle);
+  font-size: 13px;
+  color: var(--sub);
+  margin: 8px 0;
+  max-width: 1000px;
+}
+.ll .sec {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+.ll .a {
+  font-weight: 700;
+  color: var(--crust);
+}
+.ll .a svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ll .b {
+  background: var(--surface);
+}
+.ll .c {
+  gap: 14px;
+}
+.ll .gap {
+  flex: 1;
+}
+.ll .tri {
+  width: 11px;
+  flex: none;
+}
+.ll .tri.r {
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.ll .tri.l {
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+.ll kbd {
+  font: inherit;
+  color: var(--text);
+}
+.ll .file b {
+  color: var(--text);
+}
+.ll .dirty {
+  color: var(--peach);
+}
+.ll .need {
+  color: var(--peach);
+}
+.m-nav {
+  --m: #585b70;
+  --mf: var(--text);
+}
+.m-normal {
+  --m: var(--blue);
+}
+.m-insert {
+  --m: var(--green);
+}
+.m-visual {
+  --m: var(--mauve);
+}
+.m-replace {
+  --m: var(--red);
+}
+.m-command {
+  --m: var(--peach);
+}
+.ll .a {
+  background: var(--m);
+  color: var(--mf, var(--crust));
+}
+.ll .tri.ab {
+  background: var(--m);
+}
+.ll .b {
+  color: var(--m);
+}
+.ll .tri.bc,
+.ll .tri.yb {
+  background: var(--surface);
+}
+.ll .tri.za {
+  background: var(--m);
+}
+.ll .z {
+  background: var(--m);
+  color: var(--mf, var(--crust));
+  font-weight: 700;
+}
+/* A window the buffer fills alone. */
+.window {
+  border: 1px solid var(--surface);
+  display: flex;
+  flex-direction: column;
+  max-width: 1000px;
+  background: var(--mantle);
+}
+.window .editor {
+  border: none;
+  flex: 1;
+}
+.window .ll {
+  margin: 0;
+}
+/* The colour behind a triangle: the section it points into. */
+.ll .tw {
+  display: flex;
+}
+.ll .tw.on-b {
+  background: var(--surface);
+}
+.ll .tw.on-m {
+  background: var(--m);
+}
+.m-nav .b {
+  color: var(--sub);
+}

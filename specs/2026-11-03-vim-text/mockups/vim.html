@@ -1,69 +1,9 @@
 <!doctype html>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width" />
-<title>Vim on: the modes, a field, and the setting</title>
+<title>Vim mode: a field, and the setting</title>
 <link rel="stylesheet" href="editor.css" />
 <body>
-  <h1>The status line, one per mode</h1>
-  <p class="note">
-    While Vim is on, the mode opens the status line: its full name, its icon, its colour. Outside a
-    field it is NAVIGATION, the page's keys. With Vim off, nothing is drawn there.
-  </p>
-  <div class="status">
-    <span class="mode nav"
-      ><svg viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" />
-        <path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36z" /></svg
-      >NAVIGATION</span
-    >
-    <span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span><span><kbd>[ ]</kbd> fold</span
-    ><span><kbd>i</kbd> edit</span><span><kbd>a</kbd> add</span>
-    <span class="counts">2 need you</span>
-  </div>
-  <div class="status">
-    <span class="mode normal"
-      ><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" /></svg>NORMAL</span
-    >
-    <span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span><span><kbd>[ ]</kbd> fold</span>
-    <span class="counts">2 need you</span>
-  </div>
-  <div class="status">
-    <span class="mode insert"
-      ><svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg
-      >INSERT</span
-    >
-    <span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span><span><kbd>[ ]</kbd> fold</span>
-    <span class="counts">2 need you</span>
-  </div>
-  <div class="status">
-    <span class="mode visual"
-      ><svg viewBox="0 0 24 24">
-        <path
-          d="M5 3H3v2M9 3h2M15 3h2M21 5V3h-2M21 9v2M21 15v2M19 21h2v-2M15 21h-2M9 21H7M3 19v2h2M3 15v-2M3 9V7"
-        /></svg
-      >VISUAL</span
-    >
-    <span class="mode visual"
-      ><svg viewBox="0 0 24 24">
-        <path
-          d="M5 3H3v2M9 3h2M15 3h2M21 5V3h-2M21 9v2M21 15v2M19 21h2v-2M15 21h-2M9 21H7M3 19v2h2M3 15v-2M3 9V7"
-        /></svg
-      >VISUAL LINE</span
-    >
-    <span class="mode visual"
-      ><svg viewBox="0 0 24 24">
-        <path
-          d="M5 3H3v2M9 3h2M15 3h2M21 5V3h-2M21 9v2M21 15v2M19 21h2v-2M15 21h-2M9 21H7M3 19v2h2M3 15v-2M3 9V7"
-        /></svg
-      >VISUAL BLOCK</span
-    >
-    <span class="mode replace"
-      ><svg viewBox="0 0 24 24">
-        <path d="M14 4h6v6h-6zM4 14h6v6H4zM4 10V6a2 2 0 0 1 2-2h4M20 14v4a2 2 0 0 1-2 2h-4" /></svg
-      >REPLACE</span
-    >
-  </div>
-
   <h1>A comment in normal mode</h1>
   <p class="note">
     The cursor is a block on a character. The field's frame is the same; only the cursor and the
@@ -93,7 +33,7 @@
   <h1>Visual line mode, then the command line</h1>
   <p class="note">
     <kbd>V</kbd> <kbd>j</kbd> selects two lines; <kbd>:</kbd> opens the engine's command line under
-    the field, with the range filled in. The status line keeps the mode it came from.
+    the field, with the range filled in. The status line reads COMMAND, in peach.
   </p>
   <div class="pane">
     <h2>Notes</h2>
@@ -128,7 +68,7 @@
     <div class="setting">
       <span class="sw"></span>
       <div class="grow">
-        <h3>Vim keys</h3>
+        <h3>Vim mode</h3>
         <p>
           Vim's keys in every text field, with the mode in the status line. Escape in normal mode
           leaves the field; Shift+Escape leaves from any mode. Off on touch screens.

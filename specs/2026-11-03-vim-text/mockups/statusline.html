@@ -1,0 +1,159 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width" />
+<title>The status line, one per mode</title>
+<link rel="stylesheet" href="editor.css" />
+<body>
+  <h1>Vim mode on: one line per mode</h1>
+  <p class="note">
+    lualine's sections, as LazyVim sets them, in the Catppuccin lualine theme's colours. The mode
+    opens the line; the page's hints follow; the counts and, in a field, the cursor's place close
+    it. NAV is the page's keys, outside any field.
+  </p>
+  <div>
+    <div class="ll m-nav">
+      <span class="sec a"
+        ><svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" />
+          <path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36z" /></svg
+        >NAV</span
+      >
+      <span class="tw"><span class="tri r ab"></span></span>
+      <span class="sec c"
+        ><span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span
+        ><span><kbd>[ ]</kbd> fold</span><span><kbd>i</kbd> edit</span
+        ><span><kbd>a</kbd> add</span></span
+      ><span class="gap"></span>
+      <span class="sec c"><span class="need">2 need you</span></span>
+    </div>
+    <div class="ll m-normal">
+      <span class="sec a"
+        ><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" /></svg>NORMAL</span
+      >
+      <span class="tw"><span class="tri r ab"></span></span>
+      <span class="sec c"
+        ><span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span
+        ><span><kbd>[ ]</kbd> fold</span></span
+      ><span class="gap"></span>
+      <span class="sec c"><span class="need">2 need you</span></span>
+      <span class="tw"><span class="tri l yb"></span></span><span class="sec b">Top</span>
+      <span class="tw on-b"><span class="tri l za"></span></span><span class="sec z">3:9</span>
+    </div>
+    <div class="ll m-insert">
+      <span class="sec a"
+        ><svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg
+        >INSERT</span
+      >
+      <span class="tw"><span class="tri r ab"></span></span>
+      <span class="sec c"
+        ><span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span
+        ><span><kbd>[ ]</kbd> fold</span></span
+      ><span class="gap"></span>
+      <span class="sec c"><span class="need">2 need you</span></span>
+      <span class="tw"><span class="tri l yb"></span></span><span class="sec b">Top</span>
+      <span class="tw on-b"><span class="tri l za"></span></span><span class="sec z">3:12</span>
+    </div>
+    <div class="ll m-visual">
+      <span class="sec a"
+        ><svg viewBox="0 0 24 24">
+          <path
+            d="M5 3H3v2M9 3h2M15 3h2M21 5V3h-2M21 9v2M21 15v2M19 21h2v-2M15 21h-2M9 21H7M3 19v2h2M3 15v-2M3 9V7"
+          /></svg
+        >VISUAL</span
+      >
+      <span class="tw"><span class="tri r ab"></span></span>
+      <span class="sec c"
+        ><span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span
+        ><span><kbd>[ ]</kbd> fold</span></span
+      ><span class="gap"></span>
+      <span class="sec c"><span class="need">2 need you</span></span>
+      <span class="tw"><span class="tri l yb"></span></span><span class="sec b">Top</span>
+      <span class="tw on-b"><span class="tri l za"></span></span><span class="sec z">3:9</span>
+    </div>
+    <div class="ll m-visual">
+      <span class="sec a"
+        ><svg viewBox="0 0 24 24">
+          <path
+            d="M5 3H3v2M9 3h2M15 3h2M21 5V3h-2M21 9v2M21 15v2M19 21h2v-2M15 21h-2M9 21H7M3 19v2h2M3 15v-2M3 9V7"
+          /></svg
+        >V-LINE</span
+      >
+      <span class="tw"><span class="tri r ab"></span></span>
+      <span class="sec c"
+        ><span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span
+        ><span><kbd>[ ]</kbd> fold</span></span
+      ><span class="gap"></span>
+      <span class="sec c"><span class="need">2 need you</span></span>
+      <span class="tw"><span class="tri l yb"></span></span><span class="sec b">Top</span>
+      <span class="tw on-b"><span class="tri l za"></span></span><span class="sec z">2:1</span>
+    </div>
+    <div class="ll m-visual">
+      <span class="sec a"
+        ><svg viewBox="0 0 24 24">
+          <path
+            d="M5 3H3v2M9 3h2M15 3h2M21 5V3h-2M21 9v2M21 15v2M19 21h2v-2M15 21h-2M9 21H7M3 19v2h2M3 15v-2M3 9V7"
+          /></svg
+        >V-BLOCK</span
+      >
+      <span class="tw"><span class="tri r ab"></span></span>
+      <span class="sec c"
+        ><span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span
+        ><span><kbd>[ ]</kbd> fold</span></span
+      ><span class="gap"></span>
+      <span class="sec c"><span class="need">2 need you</span></span>
+      <span class="tw"><span class="tri l yb"></span></span><span class="sec b">Top</span>
+      <span class="tw on-b"><span class="tri l za"></span></span><span class="sec z">2:1</span>
+    </div>
+    <div class="ll m-replace">
+      <span class="sec a"
+        ><svg viewBox="0 0 24 24">
+          <path
+            d="M14 4h6v6h-6zM4 14h6v6H4zM4 10V6a2 2 0 0 1 2-2h4M20 14v4a2 2 0 0 1-2 2h-4"
+          /></svg
+        >REPLACE</span
+      >
+      <span class="tw"><span class="tri r ab"></span></span>
+      <span class="sec c"
+        ><span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span
+        ><span><kbd>[ ]</kbd> fold</span></span
+      ><span class="gap"></span>
+      <span class="sec c"><span class="need">2 need you</span></span>
+      <span class="tw"><span class="tri l yb"></span></span><span class="sec b">Top</span>
+      <span class="tw on-b"><span class="tri l za"></span></span><span class="sec z">3:9</span>
+    </div>
+    <div class="ll m-command">
+      <span class="sec a"
+        ><svg viewBox="0 0 24 24"><path d="m4 17 6-6-6-6M12 19h8" /></svg>COMMAND</span
+      >
+      <span class="tw"><span class="tri r ab"></span></span>
+      <span class="sec c"
+        ><span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span
+        ><span><kbd>[ ]</kbd> fold</span></span
+      ><span class="gap"></span>
+      <span class="sec c"><span class="need">2 need you</span></span>
+      <span class="tw"><span class="tri l yb"></span></span><span class="sec b">Top</span>
+      <span class="tw on-b"><span class="tri l za"></span></span><span class="sec z">3:9</span>
+    </div>
+  </div>
+
+  <h1>Vim mode off</h1>
+  <p class="note">The same line without its mode: outside a field, then in a comment.</p>
+  <div>
+    <div class="ll m-normal">
+      <span class="sec c"
+        ><span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span
+        ><span><kbd>[ ]</kbd> fold</span><span><kbd>i</kbd> edit</span
+        ><span><kbd>a</kbd> add</span></span
+      ><span class="gap"></span>
+      <span class="sec c"><span class="need">2 need you</span></span>
+    </div>
+    <div class="ll m-normal">
+      <span class="sec c"
+        ><span><kbd>space</kbd> menu</span><span><kbd>?</kbd> keys</span
+        ><span><kbd>[ ]</kbd> fold</span></span
+      ><span class="gap"></span>
+      <span class="sec c"><span class="need">2 need you</span></span>
+      <span class="sec b">Top 3:9</span>
+    </div>
+  </div>
+</body>
