@@ -112,3 +112,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: once task 4 lands, a row of `vim.test.tsx` on the priority "Review the UI guidelines
   properly" can press `dw` then Escape and wait for "Discard your changes?".
 - **Where**: task 6
+
+## R11: Only the suggested message amends
+
+- **Decision**: a pane's commit with the core's suggested message may amend the latest `chore:`
+  commit of the lists, as the commit bar did; a message the human rewrote is always a commit of its
+  own, as typed. A feature's pane commits its files alone (`git commit --only`), never amending.
+- **Rationale**: an amend merges the subjects into a list, which would drop the message as typed
+  (US6 3); the suggestion keeps today's run of small edits in one commit.
+- **If wrong**: `changes::commit_pane` passes `amends: false` always.
+- **Where**: task 7

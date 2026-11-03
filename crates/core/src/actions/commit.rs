@@ -9,48 +9,86 @@ use crate::git::{Git, GitError};
 use super::place::Place;
 use super::{ActionError, Change, Committed};
 
+/// How a commit runs: alone, other staged files left out of it, and whether it may amend the latest
+/// commit, as [`amend`](super::amend) says. A message the human typed never amends.
+#[derive(Clone, Copy, Debug)]
+pub(super) struct Mode {
+    pub only: bool,
+    pub amends: bool,
+}
+
 /// Commits an action's files in the working tree it wrote in, running the hooks, or amends the
 /// latest commit with them, as [`amend`](super::amend) says. A hook's refusal keeps the files
 /// written, and returns its whole output. In a repository that defers its commits, returns at
 /// once, the commit left to [`land`](super::deferred::land).
 pub fn commit(place: &Place, change: &Change) -> Result<Committed, ActionError> {
-    if let Some(deferred) = super::deferred::defer_commit(place, change, false) {
-        return Ok(deferred);
-    }
-    committed(place, change, Git::commit)
+    commit_as(
+        place,
+        change,
+        Mode {
+            only: false,
+            amends: true,
+        },
+    )
 }
 
 /// Commits an action's files alone, as [`commit`] does, leaving other staged files staged and
 /// out of the commit.
 pub fn commit_only(place: &Place, change: &Change) -> Result<Committed, ActionError> {
-    if let Some(deferred) = super::deferred::defer_commit(place, change, true) {
-        return Ok(deferred);
-    }
-    committed(place, change, Git::commit_only)
+    commit_as(
+        place,
+        change,
+        Mode {
+            only: true,
+            amends: true,
+        },
+    )
 }
 
-/// Runs a deferred commit, alone when `only` is set, as [`commit`] or [`commit_only`] would have,
-/// `on_output` given git's output as it comes. The repository's write lock, which `lock` takes, is
-/// held to stage the change's paths and to take them back on a refusal, never while `git commit`
-/// and its hooks run.
+/// Commits an action's files as `mode` says, as [`commit`] does.
+pub(super) fn commit_as(
+    place: &Place,
+    change: &Change,
+    mode: Mode,
+) -> Result<Committed, ActionError> {
+    if let Some(deferred) = super::deferred::defer_commit(place, change, mode) {
+        return Ok(deferred);
+    }
+    type Run = fn(&Git, &[String], &str, Option<&str>, bool) -> Result<(), GitError>;
+    let run: Run = if mode.only {
+        Git::commit_only
+    } else {
+        Git::commit
+    };
+    committed(place, change, mode.amends, run)
+}
+
+/// Runs a deferred commit as `mode` says, as [`commit_as`] would have, `on_output` given git's
+/// output as it comes. The repository's write lock, which `lock` takes, is held to stage the
+/// change's paths and to take them back on a refusal, never while `git commit` and its hooks run.
 pub(super) fn run(
     place: &Place,
     change: &Change,
-    only: bool,
+    mode: Mode,
     on_output: &dyn Fn(&str),
     lock: &dyn Fn() -> WriteGuard,
 ) -> Result<Committed, ActionError> {
-    committed(place, change, |git, paths, subject, body, amend| {
-        let stage = {
-            let _lock = lock();
-            git.stage(paths, only)?
-        };
-        git.commit_stage(&stage, subject, body, amend, Some(on_output))
-            .inspect_err(|_| {
+    committed(
+        place,
+        change,
+        mode.amends,
+        |git, paths, subject, body, amend| {
+            let stage = {
                 let _lock = lock();
-                drop(git.unstage_stage(&stage));
-            })
-    })
+                git.stage(paths, mode.only)?
+            };
+            git.commit_stage(&stage, subject, body, amend, Some(on_output))
+                .inspect_err(|_| {
+                    let _lock = lock();
+                    drop(git.unstage_stage(&stage));
+                })
+        },
+    )
 }
 
 /// Commits `change` with `run`, and returns it with the message committed, an amend's. An amend
@@ -59,10 +97,14 @@ pub(super) fn run(
 fn committed(
     place: &Place,
     change: &Change,
+    amends: bool,
     run: impl Fn(&Git, &[String], &str, Option<&str>, bool) -> Result<(), GitError>,
 ) -> Result<Committed, ActionError> {
     let git = Git::open(&place.root)?;
-    let amended = match super::amend::message(place, change) {
+    let amend = amends
+        .then(|| super::amend::message(place, change))
+        .flatten();
+    let amended = match amend {
         Some((subject, body)) => match run(&git, &change.paths, &subject, Some(&body), true) {
             Ok(()) => Some((subject, Some(body))),
             Err(GitError::Command { subcommand, .. }) if subcommand == "commit" => None,

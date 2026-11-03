@@ -6,6 +6,7 @@ import type {
   AllBranchChanges,
   BranchChanges,
   BranchDecision,
+  CommitPanes,
   ProposalFile,
   Dropped,
   Feature,
@@ -233,6 +234,9 @@ export const PrioritiesView = view<Priorities>()({
   id: true,
   sections: true,
 });
+
+/** The Commit page's panes, a branch's each, the default branch's first. */
+export const CommitPanesView = view<CommitPanes>()({ id: true, panes: true });
 
 /** The priorities as an add answers them: its sections, the line added ending its own. */
 export const PrioritiesAddedView = view<Priorities>()({

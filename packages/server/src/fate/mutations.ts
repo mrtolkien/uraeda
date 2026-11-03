@@ -8,6 +8,7 @@ import { startMutations } from "./starts.ts";
 import { sendMutations } from "./send-mutations.ts";
 import { writesMutations } from "./writes-mutations.ts";
 import { bufferMutations } from "./buffer.ts";
+import { commitMutations } from "./commit-mutations.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { previewDataView, restartPreview } from "./preview.ts";
 import { maskedSession, sessionMoves } from "./session-moves.ts";
@@ -32,6 +33,7 @@ const repositoryMutations = {
   ...sendMutations,
   ...writesMutations,
   ...bufferMutations,
+  ...commitMutations,
   "item.settings": {
     resolve: async ({
       ctx,

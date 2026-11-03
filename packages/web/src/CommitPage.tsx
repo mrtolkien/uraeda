@@ -1,21 +1,16 @@
-// The commit page, the one place the inbox's, the priorities', and the proposal and note files'
-// edits are committed: every form and list only edits and saves a file, and this page shows what a
-// commit would hold, as the core lists it, with Commit, and Discard, which asks first: on the phone,
-// in the bottom bar's two corners. The sidebar's Commit button, the phone's tab, and `g c` lead here
-// while something waits.
-import { Button } from "@astryxdesign/core/Button";
-import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
+// The commit page, the one place the inbox's, the priorities', the proposal and note files', and the
+// buffers' edits are committed: every form, list, and buffer only edits and saves a file, and this
+// page shows a pane per branch with changes, the default branch's first, each with what its commit
+// would hold, as the core lists it, its message, and its own Commit, and Discard, which asks first.
+// With one pane, on the phone, both sit in the bottom bar's two corners. `j` and `k` pick a pane
+// among several, which Enter and `d` act on. The sidebar's Commit button, the phone's tab, and
+// `g c` lead here while something waits.
 import { Text } from "@astryxdesign/core/Text";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
-import * as stylex from "@stylexjs/stylex";
-import { markVars } from "./marks.stylex.ts";
 import { useRef, useState } from "react";
-import { useFateClient } from "react-fate";
-import { rereadChanges, usePriorities } from "./data.ts";
-import { refusal } from "./errors.ts";
-import { discardChanges, useConfirm } from "./fields/Confirm.tsx";
+import { BranchPane } from "./commit/BranchPane.tsx";
+import { useCommitPanes } from "./commit/useCommitPanes.ts";
+import { usePaneWrites } from "./commit/usePaneWrites.ts";
 import { useKeys } from "./keys/registry.tsx";
 import { plural } from "./labels.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
@@ -24,55 +19,9 @@ import { NavTile, NavTiles } from "./layout/NavBar.tsx";
 import { PageTitle } from "./layout/PageTitle.tsx";
 import { TopBarSlot } from "./layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
-import { Pane } from "./layout/Pane.tsx";
-import { closeUndoToasts } from "./layout/useUndoToast.ts";
 import { useLocalPath, useRestoreScroll } from "./routes.tsx";
-import { PrioritiesView } from "./views.ts";
 import { RefusedHere } from "./writes/RefusedHere.tsx";
-import { useClearRefusal, useRefusal, writeHere } from "./writes/useWriteQueue.ts";
-import { WriteButton } from "./writes/WriteButton.tsx";
-
-const styles = stylex.create({
-  // One change: its kind, small, over what it is about.
-  change: {
-    borderInlineStartColor: colorVars["--color-border"],
-    borderInlineStartStyle: "solid",
-    borderInlineStartWidth: markVars["--mark-change-bar"],
-    paddingInlineStart: spacingVars["--spacing-3"],
-  },
-});
-
-/** A change line of the core, `- Add to the inbox: text`, as its kind and its text. */
-function parts(line: string) {
-  const body = line.replace(/^- /, "");
-  const at = body.indexOf(": ");
-  return at === -1
-    ? { kind: "", text: body }
-    : { kind: body.slice(0, at), text: body.slice(at + 2) };
-}
-
-/** What the commit holds: one change to a line, its kind over its text. */
-function Changes({ lines }: { lines: ReadonlyArray<string> }) {
-  return (
-    <Pane icon="check" title="This commit holds">
-      <VStack gap={2}>
-        {lines.map((line, at) => {
-          const { kind, text } = parts(line);
-          return (
-            <div key={at} {...stylex.props(styles.change)}>
-              {kind && (
-                <Text color="secondary" display="block" type="supporting">
-                  {kind}
-                </Text>
-              )}
-              <Text display="block">{text}</Text>
-            </div>
-          );
-        })}
-      </VStack>
-    </Pane>
-  );
-}
+import { useRefusal } from "./writes/useWriteQueue.ts";
 
 /**
  * On the phone, the bottom bar: Discard in its left corner, and Commit, in the accent, in its
@@ -107,127 +56,88 @@ function CommitBar({
 }
 
 /**
- * Commit and Discard while changes wait, in the phone's bottom bar or under the changes, or that
- * nothing waits.
- */
-function CommitButtons({
-  count,
-  onCommit,
-  onDiscard,
-}: {
-  count: number;
-  onCommit: () => Promise<unknown>;
-  onDiscard: () => void;
-}) {
-  const narrow = isNarrow(useWidthClass());
-  if (count === 0) {
-    return (
-      <Text color="secondary">
-        The inbox, the priorities, and the proposal and note files are all committed.
-      </Text>
-    );
-  }
-  return narrow ? (
-    <CommitBar onCommit={onCommit} onDiscard={onDiscard} />
-  ) : (
-    <HStack align="center" gap={2}>
-      <WriteButton
-        endContent={<Icon aria-hidden="true" icon="uraeda:enter" label="Enter" />}
-        label="Commit"
-        onClick={onCommit}
-        variant="primary"
-      />
-      {/* Not `clickAction`: its pending state closes the question this opens. */}
-      <Button label="Discard" onClick={onDiscard} variant="ghost" />
-    </HStack>
-  );
-}
-
-/**
- * What waits for a commit, one change to a line, and what the commit and the discard do. Both
- * write on the default branch; a hook's refusal shows here, and the changes stay. The commit lands
- * behind the page, in the toast: its refusal, once it comes, replaces the page's "Committed.".
+ * What waits for a commit, a pane per branch, and what each pane's commit and discard do. A
+ * feature's pane writes on its branch, refused while its agent works; a hook's refusal shows here,
+ * and the changes stay. The commit lands behind the page, in the toast: its refusal, once it comes,
+ * replaces the page's "Committed.".
  */
 export function CommitPage() {
-  const fate = useFateClient();
-  const confirm = useConfirm();
-  const priorities = usePriorities();
-  const [message, setMessage] = useState<{ ok: boolean; text: string }>();
+  const panes = useCommitPanes()?.panes;
+  const [picked, setPicked] = useState(0);
+  const narrow = isNarrow(useWidthClass());
   const here = { href: useLocalPath() };
   const refused = useRefusal(here) !== undefined;
-  const clearRefusal = useClearRefusal(here);
+  const { commit, discard, messageOf, outcome, setMessage } = usePaneWrites(here);
   useRestoreScroll(true);
-
-  /** Runs a write: the counts everywhere read again, and a refusal shows. */
-  const run = async (call: () => Promise<{ error?: unknown }>, done: string) => {
-    setMessage(undefined);
-    const result = await call();
-    rereadChanges(fate);
-    if (result.error) {
-      setMessage({ ok: false, text: refusal(result.error).message });
-      return false;
-    }
-    // An Undo would write a change back over the committed file.
-    closeUndoToasts();
-    setMessage({ ok: true, text: done });
-    return true;
-  };
-  const lines = priorities?.changeLines ?? [];
-  const count = priorities?.changes ?? 0;
-  const commit = () => {
-    clearRefusal();
-    return run(
-      () =>
-        fate.mutations.changes.commit({
-          input: { write: writeHere(`Committing ${plural(count, "change")}`) },
-          view: PrioritiesView,
-        }),
-      "Committed.",
-    );
-  };
-  const discard = async () => {
-    if (count > 0 && (await confirm(discardChanges(count)))) {
-      await run(
-        () => fate.mutations.changes.discard({ input: {}, view: PrioritiesView }),
-        "Discarded.",
-      );
-    }
-  };
-  useKeys(
-    count > 0
+  const all = panes ?? [];
+  const at = Math.min(picked, Math.max(all.length - 1, 0));
+  const count = all.reduce((sum, pane) => sum + pane.count, 0);
+  const current = all[at];
+  const step = (by: 1 | -1) => () => setPicked(Math.min(Math.max(at + by, 0), all.length - 1));
+  useKeys([
+    ...(current
       ? [
           {
             hint: "⏎",
             keys: "Enter",
             label: "commit",
-            run: () => void commit(),
+            run: () => void commit(current),
             // A focused button's own Enter presses it: only the page's Enter commits.
-            when: (target) => target === document.body || target === document.documentElement,
+            when: (target: EventTarget | null) =>
+              target === document.body || target === document.documentElement,
           },
-          { keys: "mod+Enter", label: "commit", run: () => void commit() },
-          { hint: "d", keys: "d", label: "discard", run: () => void discard() },
+          { keys: "mod+Enter", label: "commit", run: () => void commit(current) },
+          { hint: "d", keys: "d", label: "discard", run: () => void discard(current) },
         ]
-      : [],
-  );
-  if (!priorities) {
+      : []),
+    ...(all.length > 1
+      ? [
+          { hint: "j k", keys: "j", label: "move", run: step(1) },
+          { keys: "k", label: "previous branch", run: step(-1) },
+        ]
+      : []),
+  ]);
+  if (!panes) {
     return null;
   }
+  const meta =
+    count === 0
+      ? "Nothing waits"
+      : `${plural(count, "change")}${all.length > 1 ? `, on ${all.length} branches` : ""}`;
+  // On the phone, one pane's Commit and Discard sit in the bottom bar; several keep their own.
+  const barred = narrow && all.length === 1;
   return (
     <Page kind="rows">
       <VStack gap={4}>
-        <PageTitle meta={{ text: count > 0 ? plural(count, "change") : "Nothing waits" }}>
-          Commit
-        </PageTitle>
+        <PageTitle meta={{ text: meta }}>Commit</PageTitle>
         <RefusedHere what="the changes wait, not committed." where={here} />
-        {message && !(message.ok && refused) && (
-          <AnnouncedBanner
-            collapsible={false}
-            status={message.ok ? "success" : "error"}
-            title={message.text}
-          />
+        {outcome?.ok && !refused && (
+          <AnnouncedBanner collapsible={false} status="success" title={outcome.text} />
         )}
-        {count > 0 && <Changes lines={lines} />}
-        <CommitButtons count={count} onCommit={commit} onDiscard={() => void discard()} />
+        {all.map((pane, index) => (
+          <VStack gap={2} key={pane.branch}>
+            {outcome && !outcome.ok && outcome.branch === pane.branch && (
+              <AnnouncedBanner collapsible={false} status="error" title={outcome.text} />
+            )}
+            <BranchPane
+              hasButtons={!barred}
+              isPicked={all.length > 1 && index === at}
+              message={messageOf(pane)}
+              onCommit={() => commit(pane)}
+              onDiscard={() => void discard(pane)}
+              onMessage={(message) => setMessage(pane.branch, message)}
+              pane={pane}
+            />
+          </VStack>
+        ))}
+        {count === 0 && (
+          <Text color="secondary">
+            The inbox, the priorities, and the proposal and note files are all committed.
+          </Text>
+        )}
+        {barred && current && (
+          <CommitBar onCommit={() => commit(current)} onDiscard={() => void discard(current)} />
+        )}
       </VStack>
     </Page>
   );

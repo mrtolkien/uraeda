@@ -120,10 +120,22 @@ export declare function checkedPort(typed: string): number
 export declare function checkoutCommit(checkout: string): Promise<string | null>
 
 /**
+ * Commits the pane of `branch` with `message` as typed, trimmed of the blank lines around it;
+ * refused when it is blank.
+ */
+export declare function commitBranch(repo: string, branch: string, message: string): Promise<CommitView>
+
+/**
  * Commits the commit page's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
  * moved, or left.
  */
 export declare function commitChanges(repo: string): Promise<void>
+
+/**
+ * The Commit page's panes: the default branch's, then each branch's whose checkout holds files a
+ * buffer edited, each with its lines and its suggested message.
+ */
+export declare function commitPanes(repo: string): Promise<Array<BranchPane>>
 
 /** Commits the priorities alone. */
 export declare function commitPriorities(repo: string): Promise<Priorities>
@@ -152,6 +164,9 @@ export declare function dataDir(custom?: string | undefined | null): string
  * once.
  */
 export declare function deferCommits(repo: string, on: boolean): void
+
+/** Discards the pane of `branch`, the files a buffer edited put back as committed. */
+export declare function discardBranch(repo: string, branch: string): Promise<void>
 
 /**
  * Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of proposal
@@ -767,6 +782,19 @@ export interface BranchDecision {
   change: DecisionChange
   /** The branch's version of the file. */
   document: Document
+}
+
+/** One branch's pane: what its commit holds, a line each, and the message suggested for it. */
+export interface BranchPane {
+  branch: string
+  /**
+   * The folder of the feature or change on the branch, as an agent's session names it; none on
+   * the default branch.
+   */
+  folder?: string
+  count: number
+  lines: Array<string>
+  message: string
 }
 
 /** A buffer's file as read: its whole text, frontmatter included, and the branch it is written on. */

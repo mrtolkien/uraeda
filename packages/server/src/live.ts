@@ -9,6 +9,7 @@ import { type LiveBus, live as globalLive } from "./fate.ts";
 import { NEEDS_YOU_ID } from "./fate/needs-you.ts";
 import { LEDGER_ID } from "./fate/views-ledger.ts";
 import { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
+import { COMMIT_PANES_ID } from "./fate/views-buffer.ts";
 import { readMessages } from "./fate/workflow-step.ts";
 import { Previews } from "./preview/runner.ts";
 import type { Host, Hosts } from "./repositories.ts";
@@ -66,11 +67,13 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
   for (const id of changes.branchDecisions) {
     live.update("BranchDecision", id, { eventId: eventId(`branch-decision:${id}`) });
   }
-  // The inbox and the priorities share the count of changes waiting for a commit, so a change of
-  // either sends both.
-  if (changes.priorities || changes.inbox) {
+  // The inbox and the priorities share the count of changes waiting for a commit, every branch's
+  // pane's, so a change of either, or of a feature, whose checkout a buffer may have edited, sends
+  // both, and the Commit page's panes.
+  if (changes.priorities || changes.inbox || changes.features.length > 0) {
     live.update("Priorities", PRIORITIES_ID, { eventId: eventId("priorities") });
     live.update("Inbox", INBOX_ID, { eventId: eventId("inbox") });
+    live.update("CommitPanes", COMMIT_PANES_ID, { eventId: eventId("commit-panes") });
   }
   // The ledger carries the decisions check's status, which a change of the inbox's rounds moves.
   if (changes.decisions || changes.inbox) {

@@ -732,15 +732,18 @@ git commit -m "feat(vim-text): Vim's keys behind the Vim mode setting"
   `packages/web/src/CommitPage.tsx`, `packages/web/src/views.ts`, `packages/web/src/data.ts`, the
   sidebar's Commit count
 - Create: `packages/web/src/commit/BranchPane.tsx` (one pane: its lines, its message field, Commit
-  and Discard)
-- Test: `crates/core/tests/branch_commits.rs`, `packages/server/src/__tests__/inbox.test.ts`
+  and Discard), `commit/usePaneWrites.ts`, `commit/useCommitPanes.ts`; core
+  `actions/changes/{edits,panes,discard}.rs`, `api/commit_panes.rs`; server
+  `fate/commit-mutations.ts` (the two mutations, out of `inbox-mutations.ts`, at its 500 lines)
+- Test: `crates/core/tests/branch_commits.rs`, `packages/server/src/__tests__/buffer.test.ts` (with
+  its running-agent helper)
 
 **Interfaces:**
 
 - Consumes: `actions::edited::{list, clear}` (task 2); `Editor` (task 3).
 - Produces:
   - Core: `pub fn branch_changes(repo: &Path) -> Result<Vec<BranchPane>>` with
-    `BranchPane { branch: String, folder: Option<String>, count: usize, lines: Vec<String>, message: String }`:
+    `BranchPane { branch: String, folder: Option<String>, count: u32, lines: Vec<String>, message: String }`:
     the default branch's pane first, when it has changes, then each feature or change branch whose
     worktree has buffer edits. A path in `edited::list` reads one `- Edit <path>` line in place of
     its structured lines, from the root on the default branch, from the folder on a feature's.
@@ -751,16 +754,22 @@ git commit -m "feat(vim-text): Vim's keys behind the Vim mode setting"
     refused with "A commit needs a message." when it is blank; clears the record of the paths it
     committed. `pub fn discard_branch(repo: &Path, branch: &str)` restores what the pane lists, the
     files a buffer edited included. The default branch keeps today's `commit_changes` and
-    `discard_changes` behaviour through these.
+    `discard_changes` behaviour through these. The commit bar's count (`Priorities.changes`,
+    `Inbox.changes`) sums every pane's. A message equal to the suggestion may amend as today; any
+    other never amends (ruling R11).
+  - Binding: `commitPanes(repo)` (the name `branchChanges` is a feature's diff already),
+    `commitBranch(repo, branch, message)`, `discardBranch(repo, branch)`.
   - Server: mutations `changes.commit({ write, branch, message })` and
-    `changes.discard({ branch })`; a feature branch's commit goes through
-    `writable(ctx, { folder })`. A `BranchChanges` list view of the panes.
+    `changes.discard({ branch })`, `branch` left out committing the default branch with the
+    suggestion as before; a feature branch's commit goes through `writable(ctx, { folder })`. A
+    `CommitPanes` record (id `commit`, `panes`), as `BranchChanges` names a feature's diff already,
+    sent live with the priorities and on a feature's change.
   - Web: the page's selected pane for `j` `k`; Enter and `d` act on it; Ctrl+Enter in a message
     commits its pane; "Use the suggested message" shows once the message differs from the
     suggestion. With one pane the page looks as today; on the phone, two panes put their buttons in
     each pane and the bottom bar holds none.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `crates/core/tests/branch_commits.rs`:
 
@@ -779,27 +788,27 @@ git commit -m "feat(vim-text): Vim's keys behind the Vim mode setting"
 
 Existing tests keep passing with the suggested message: `priorities.rs` :232, :268, :348;
 `inbox_moves.rs` :313, :427, :789. Server `inbox.test.ts`: a row "a feature pane is refused while
-its agent works".
+its agent works", in `buffer.test.ts`.
 
 The break each test catches: a pane listing an agent's files; structured lines beside a buffer edit;
 a commit on the wrong branch or with other files; a rewritten message; an empty commit.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test branch_commits`
 - Expected: FAIL, unresolved `branch_changes`.
 
-- [ ] **Step 3: Implement the panes, from the core to the page**, after `mockups/commit.html`.
+- [x] **Step 3: Implement the panes, from the core to the page**, after `mockups/commit.html`.
 
-- [ ] **Step 4: Make the break**: stage the whole worktree in `commit_branch`; see
+- [x] **Step 4: Make the break**: stage the whole worktree in `commit_branch`; see
       `a_branch_commits_alone` fail; restore.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git commit -m "feat(vim-text): the Commit page commits each branch apart, with its message"
