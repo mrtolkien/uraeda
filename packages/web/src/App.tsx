@@ -50,6 +50,7 @@ import { Missing } from "./layout/Missing.tsx";
 import type { LedgerOpen } from "./decisions/DecisionsPage.tsx";
 import {
   BranchDecisionPage,
+  BufferPage,
   CheckPage,
   CommitPage,
   DecisionsPage,
@@ -171,6 +172,8 @@ function RoutePage({ route }: { route: Route }) {
       return <CommitPage />;
     case "edit":
       return <EditorPage key={route.path} path={route.path} />;
+    case "buffer":
+      return <BufferPage key={route.path} path={route.path} />;
     case "mockup":
       return <MockupPage folder={route.folder} name={route.name} />;
     case "branch-decision":

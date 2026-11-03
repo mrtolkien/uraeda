@@ -168,3 +168,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   any save or discard, still reads as the human's edit; recording the saved text's hash too would
   end it.
 - **Where**: task 7
+
+## R15: Vim's `:q` is a field action of its own, and a buffer opens read first
+
+- **Decision**: the editor's actions gain `quit`, which `:q` and `:wq` run: a field's Escape, unless
+  the field passes `onQuit`, as the buffer's page does to go back. Escape stays the field's Escape
+  everywhere, in the buffer too, where it leaves the text, Vim on or off. A field marked
+  `isReadFirst`, the buffer's, keeps the engine's mode at focus, normal as it opens, where every
+  other field starts in insert mode.
+- **Rationale**: the spec's `:q` goes back from a buffer, and its status line reads ":q back"; with
+  `:q` running Escape, Escape in normal mode would have left the page too, as the decision asks
+  Escape in normal mode to do what it does without Vim. A second Escape out of habit would then
+  leave the buffer.
+- **Alternatives considered**: the buffer's Escape going back, which makes a habitual Escape in
+  normal mode leave the page.
+- **If wrong**: `quit` in `fields/editor/Editor.tsx` runs the field's Escape always, and the
+  buffer's `onEscape` goes back.
+- **Where**: task 10

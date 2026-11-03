@@ -1,3 +1,4 @@
+import { useBufferKey } from "./buffer/useBufferKey.ts";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useFateClient } from "react-fate";
 import { Crumbs } from "./Crumbs.tsx";
@@ -23,6 +24,7 @@ export function FilePage({ folder, name }: { folder: string; name: string }) {
   // A spec's page draws its data model too: read with the spec, not once the spec is in.
   readAlong(fate, name === "spec.md" ? [filePage(folder, "data-model.md")] : []);
   const file = useFile(folder, name);
+  useBufferKey(file && !file.missing ? file.path : undefined);
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   if (!file || file.missing) {

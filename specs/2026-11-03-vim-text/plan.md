@@ -899,10 +899,13 @@ git commit -m "feat(vim-text): lint keeps every text field on the shared editor"
 
 - Create: `packages/web/src/buffer/BufferPage.tsx`, `buffer/Bufferline.tsx`, `buffer/useBuffer.ts`,
   `buffer/useBufferKey.ts`
-- Modify: `routeTable.ts` and `App.tsx` (`/buffer/<path>`), `pane/useProposalEditor.ts` or the
-  shared save it uses, the pages showing one file (priorities, inbox, a feature's documents, a
-  decision, a UI guide, a proposal, a note), `keys/leaderTree.ts` if the leader groups need it, the
-  shell's right column (folded away while a buffer is open)
+- Modify: `routeTable.ts`, `App.tsx`, and `pages.ts` (`/buffer/<path>`), `pane/ProposalEditor.tsx`
+  (`ConflictBanner` takes a buffer too), the pages showing one file (`PrioritiesPage`, `InboxPage`,
+  `FilePage` for a feature's documents, `EditorPage` for a proposal or a note file, the decisions
+  page's reader for a decision or the constitution; no UI guide has a page), and the editor:
+  `fields/editor/Editor.tsx` (`isReadFirst`, `onQuit`, the `page` variant), `slot.ts` (the
+  `readFirst` facet and the `quit` action), `theme.ts`, `vim/vim.ts` (R15). The right column needs
+  no change: the buffer's page has none, as the shell draws a page's own column only.
 - Test: `packages/web/src/__tests__/buffer.test.tsx`
 
 **Interfaces:**
@@ -910,9 +913,11 @@ git commit -m "feat(vim-text): lint keeps every text field on the shared editor"
 - Consumes: `Buffer` source and `buffer.save` (task 2); `Editor` (task 3); the Vim layer's `:w` and
   `:q` through `onSubmit` and Escape (task 6); `useStatusBranch` (task 8).
 - Produces: `useBufferKey(path: string | undefined)`: declares `Space b`, "Open as a buffer", on a
-  page showing one file; not declared where `path` is undefined.
+  page showing one file; not declared where `path` is undefined. `bufferPath(path)`, the page's
+  address. `useBuffer(path)`, the buffer's read and save over `withFreshBase`, as the proposal
+  editor's, its record read through a `BufferView` of its own.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `buffer.test.tsx`: "Space b opens the page's file, frontmatter and all": on a feature's spec page,
 `Space b` navigates to `/buffer/specs/<folder>/spec.md`, whose field's text starts with `---`;
@@ -920,22 +925,22 @@ typing a line and Ctrl+Enter writes the file in the feature's worktree, and no c
 
 The break it catches: the frontmatter dropped; a save on the wrong branch; a commit on save.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/web/src/__tests__/buffer.test.tsx`
-- Expected: FAIL, `Space b` is not declared.
+- Expected: FAIL, `Space b` is not declared: the location stays on the spec's page.
 
-- [ ] **Step 3: Implement the page after `mockups/buffer.html`**: the bufferline "specs ›
+- [x] **Step 3: Implement the page after `mockups/buffer.html`**: the bufferline "specs ›
       PRIORITIES.md" with its unsaved dot, the conflict banner of the proposal editor, the agent's
       refusal in it, the cursor at the start in normal mode with Vim on, the Leave guard on `:q` or
       `b` with unsaved text, and on the phone Back and Save in the bottom bar.
 
-- [ ] **Step 4: Run the task's validation, and review it in the sandbox**
+- [x] **Step 4: Run the task's validation, and review it in the sandbox**
 
 - Run: `vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(vim-text): open any file of specs/ as a buffer"

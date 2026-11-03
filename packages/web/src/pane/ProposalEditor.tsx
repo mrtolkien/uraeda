@@ -1,12 +1,16 @@
-// A proposal's save refused as the file changed elsewhere: the editor page's banner, with the text
-// to copy and the new version to load.
+// A save refused as the file changed elsewhere, a proposal's or a buffer's: the banner with the
+// text to copy and the new version to load.
 import { Button } from "@astryxdesign/core/Button";
 import { VStack } from "@astryxdesign/core/VStack";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import type { ProposalEditorState } from "./useProposalEditor.ts";
 
 /** A save refused as the file changed elsewhere: the text to copy, or the new version to load. */
-export function ConflictBanner({ editor }: { editor: ProposalEditorState }) {
+export function ConflictBanner({
+  editor,
+}: {
+  editor: Pick<ProposalEditorState, "conflict" | "reload"> & { field: { text: string } };
+}) {
   if (!editor.conflict) {
     return null;
   }

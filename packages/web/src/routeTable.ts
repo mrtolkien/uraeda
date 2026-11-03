@@ -19,6 +19,7 @@ export type Route =
   | { page: "constitution" }
   | { page: "commit" }
   | { page: "edit"; path: string }
+  | { page: "buffer"; path: string }
   | { folder: string; name: string; page: "mockup" }
   | { folder: string; page: "session" }
   // Kept for the story page, or a redirect Home when it has no story (R6).
@@ -134,6 +135,9 @@ export function parseRoute(pathname: string, search = ""): Route {
   }
   if (parts[0] === "edit" && parts.length > 1) {
     return { page: "edit", path: parts.slice(1).join("/") };
+  }
+  if (parts[0] === "buffer" && parts.length > 1) {
+    return { page: "buffer", path: parts.slice(1).join("/") };
   }
   return { page: "missing", path: pathname };
 }

@@ -29,7 +29,7 @@ import { fieldKeys } from "./keys.ts";
 import { markdown } from "./markdown.ts";
 import { setFocused, setPlace, type Place } from "./modeStore.ts";
 import { oneLine } from "./oneLine.ts";
-import { type EditorActions, mountEditor, slotContent, vimSlot } from "./slot.ts";
+import { type EditorActions, mountEditor, readFirst, slotContent, vimSlot } from "./slot.ts";
 import { editorTheme, sizeTheme } from "./theme.ts";
 
 /** What a caller reaches of its field. */
@@ -49,6 +49,8 @@ export type EditorProps = {
   id?: string;
   isAutoFocused?: boolean;
   isDisabled?: boolean;
+  /** Read before it is edited, as a file Vim opens: Vim's mode kept at focus, normal at first. */
+  isReadFirst?: boolean;
   /**
    * Keys of the field's own, before CodeMirror's, like a row's Tab that indents it or a search's
    * arrows that move its results: the first render's keys, each running its latest `run`.
@@ -72,6 +74,8 @@ export type EditorProps = {
   onFocus?: () => void;
   /** Takes a paste first: `true` says it took it, as an image a field attaches. */
   onPaste?: (event: ClipboardEvent) => boolean;
+  /** Vim's `:q`, where it leaves more than the field, as a buffer's page: Escape's action without. */
+  onQuit?: () => void;
   /** Ctrl+Enter's and Cmd+Enter's action, in every variant; a one-line field's `onEnter` without. */
   onSubmit?: () => void;
   placeholder?: string;
@@ -83,10 +87,11 @@ export type EditorProps = {
 };
 
 /**
- * A one-line field, a several-lines one, or the composer's, which grows upward from `rows` to
- * `maxRows` lines, unframed in the composer's box.
+ * A one-line field, a several-lines one, the composer's, which grows upward from `rows` to
+ * `maxRows` lines, unframed in the composer's box, or a page's, a buffer's, as tall as the room its
+ * page stretches it to, growing past it with its text.
  */
-export type Variant = "line" | "lines" | "composer";
+export type Variant = "line" | "lines" | "composer" | "page";
 
 /** Marks a change the caller's text made, which is no typing to report back. */
 const fromCaller = Annotation.define<boolean>();
@@ -241,6 +246,18 @@ function showText(view: EditorView, value: string) {
   });
 }
 
+/** A field's Escape: the caller's, else leaving the field, or passing it to a layer holding it. */
+function escape(view: EditorView, props: EditorProps, leave: () => void): "handled" | "pass" {
+  if (props.onEscape) {
+    return props.onEscape(leave);
+  }
+  if (isLayerOpen(view.contentDOM)) {
+    return "pass";
+  }
+  leave();
+  return "handled";
+}
+
 /** A field's actions, from its latest props: what its keys and a layer's commands run. */
 function actionsOf(view: EditorView, latest: { current: EditorProps }): EditorActions {
   const leave = () => view.contentDOM.blur();
@@ -249,16 +266,14 @@ function actionsOf(view: EditorView, latest: { current: EditorProps }): EditorAc
       latest.current.onEnter?.();
       return latest.current.onEnter !== undefined;
     },
-    escape: () => {
-      const { onEscape } = latest.current;
-      if (onEscape) {
-        return onEscape(leave);
+    escape: () => escape(view, latest.current, leave),
+    quit: () => {
+      const { onQuit } = latest.current;
+      if (onQuit) {
+        onQuit();
+      } else {
+        escape(view, latest.current, leave);
       }
-      if (isLayerOpen(view.contentDOM)) {
-        return "pass";
-      }
-      leave();
-      return "handled";
     },
     // A one-line field's Ctrl+Enter, and `:w`, is its Enter, as a row's saves it.
     submit: () => {
@@ -291,6 +306,7 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
   return [
     // First: a layer like Vim's takes its keys before the field's own.
     vimSlot.of(slotContent()),
+    readFirst.of(latest.current.isReadFirst === true),
     fieldKeys(() => ({
       ...actions(),
       enters: latest.current.onEnter !== undefined,

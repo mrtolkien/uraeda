@@ -47,6 +47,12 @@ export const editorTheme: Extension = EditorView.theme({
   },
 });
 
+/**
+ * A page's field scrolls the window, under the bars that stay over it: the cursor kept clear of the
+ * page's sticky top line, and the phone's tabs, above, and of the status line below.
+ */
+const pageMargins = EditorView.scrollMargins.of(() => ({ bottom: 64, top: 112 }));
+
 /** The sizes made so far, one theme each, shared by the fields of the same size. */
 const sizes = new Map<string, Extension>();
 
@@ -71,7 +77,8 @@ const composerTheme = (rows: number, maxRows: number) =>
 /**
  * A field's height: a one-line field grows with its text up to 9 lines, as tall as the phone's
  * composer, then scrolls inside; a several-lines field is `rows` lines tall, scrolling past them;
- * the composer grows from `rows` to `maxRows`. None ever scrolls sideways: the editor wraps its
+ * the composer grows from `rows` to `maxRows`; a page's fills the room its page gives it, and grows
+ * past it with its text, the page scrolling. None ever scrolls sideways: the editor wraps its
  * lines.
  */
 export function sizeTheme(variant: Variant, rows: number, maxRows = rows): Extension {
@@ -84,8 +91,13 @@ export function sizeTheme(variant: Variant, rows: number, maxRows = rows): Exten
         : EditorView.theme(
             variant === "line"
               ? { ".cm-scroller": { maxHeight: linesHigh(9), overflow: "auto" } }
-              : { ".cm-scroller": { height: linesHigh(rows), overflow: "auto" } },
+              : variant === "page"
+                ? { ".cm-scroller": { flexGrow: 1 }, "&": { minHeight: "100%" } }
+                : { ".cm-scroller": { height: linesHigh(rows), overflow: "auto" } },
           );
+    if (variant === "page") {
+      theme = [theme, pageMargins];
+    }
     sizes.set(key, theme);
   }
   return theme;

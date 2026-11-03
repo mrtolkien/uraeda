@@ -1,7 +1,7 @@
 // The editor's slot for a layer every field takes, Vim's: one compartment in each editor's state,
 // filled with what is registered here, in the editors mounted then and in those mounted after. And
 // each editor's own actions, by its view, which such a layer calls rather than acting itself.
-import { Compartment, type Extension } from "@codemirror/state";
+import { Compartment, type Extension, Facet } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 
 /**
@@ -44,9 +44,19 @@ export type EditorActions = {
   enter(): boolean;
   /** Escape's action, as Escape outside a layer's modes runs it: leaves or cancels. */
   escape(): "handled" | "pass";
+  /** Vim's `:q`: the field's Escape, unless the field leaves its page another way, as a buffer. */
+  quit(): void;
   /** Ctrl+Enter's action: `false` when the field has none. */
   submit(): boolean;
 };
+
+/**
+ * Whether a field is read before it is edited, as a file Vim opens: a layer with modes keeps the
+ * mode it is in at focus, normal at first, rather than starting in insert mode. A buffer's.
+ */
+export const readFirst = Facet.define<boolean, boolean>({
+  combine: (values) => values.some(Boolean),
+});
 
 const actions = new WeakMap<EditorView, EditorActions>();
 
