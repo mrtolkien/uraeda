@@ -21,9 +21,7 @@ Without it, the file names and their `status` fields still tell where each featu
   to its `images/`
 - `notes/`: note files, the inbox's notes written as files, free form: `<slug>.md`, or a `note.md`
   next to its `images/`; and agents' notes, which no line of `INBOX.md` links, each a note of the
-  inbox on its own; and agents' notes, which no line of `INBOX.md` links, each a note of the inbox
-  on its own; and agents' notes, which no line of `INBOX.md` links, each a note of the inbox on its
-  own
+  inbox on its own
 - `decisions/`: the decision ledger, one file per topic, named after the question it answers:
   high-impact choices made by humans, binding for all work once `active`
 - `ui/`: for a project with a UI, its guides, free form: how its views read and behave, which every

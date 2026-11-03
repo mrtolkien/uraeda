@@ -189,7 +189,9 @@ proposal is committed on the default branch when the feature
 The branch holds everything after it: discovery, questions, spec, decisions, plan, and
 implementation, until its folder is [finished](projects.md#finishing-a-feature) into a record. Its
 pull request merges all of it at once. Decisions become active on the branch when its spec is
-approved, and bind the rest of the project once the branch is merged. A change lives on
+approved, and bind the rest of the project once the branch is merged. A branch never writes
+`PRIORITIES.md` or `INBOX.md`, which the human writes on the default branch, so parallel branches
+never conflict there: an agent's note is a note file of its own. A change lives on
 `change/YYYY-MM-DD-<slug>`, named after its folder, `specs/changes/YYYY-MM-DD-<slug>/`. Run every
 step on the target's branch: the human answers and approves on it too.
 
@@ -235,6 +237,7 @@ and `chore:` for the rest. `ura` and the web UI write the same messages.
 | A note file, then its edits        | `chore: add the note Sort completed tasks`, `chore: edit the note Sort completed tasks`                                                             |
 | Start, postpone, drop              | `chore(recurring-tasks): start Recurring tasks`, `chore(recurring-tasks): postpone Recurring tasks`, `chore(recurring-tasks): drop Recurring tasks` |
 | `PRIORITIES.md` alone              | `chore: move "Recurring tasks" to Next`                                                                                                             |
+| A merged feature's line, cleaned   | `chore(recurring-tasks): remove "Recurring tasks" from the priorities`                                                                              |
 | A note                             | `chore: add "Sort completed tasks" to the inbox`                                                                                                    |
 | `INBOX.md`, and where notes go     | `chore: move "Sort completed tasks" from the inbox to Next`                                                                                         |
 | The inbox triage                   | `chore: propose an inbox triage`, `chore: answer the inbox triage`, `chore: apply the inbox triage`                                                 |

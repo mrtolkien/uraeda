@@ -163,10 +163,10 @@ Do these only when a human asks.
   the default branch, and delete it. Then, on the default branch, in the next commit, move the
   feature's proposal in `PRIORITIES.md` to the section the human names, **Later** for one not
   scheduled, after what it needs when it is blocked, and link it to the folder's `proposal.md`:
-  `chore(<slug>): move <feature name> to <Section>`. The branch never writes `PRIORITIES.md`. Then
-  repair the links to the moved folder, as
-  [the catch-up](implementation.md#where-a-moved-link-points) says: with `ura`, `ura check --fix`.
-  Commit them alone, `fix(<slug>): repair the links to moved files`.
+  `chore: move "<feature name>" to <Section>`. The branch never writes `PRIORITIES.md`. Then repair
+  the links to the moved folder, as [the catch-up](implementation.md#where-a-moved-link-points)
+  says: with `ura`, `ura check --fix`. Commit them alone,
+  `fix(<slug>): repair the links to moved files`.
 - **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
   proposal from `PRIORITIES.md`, and its dated folder, which the start put there, so the default
   branch keeps no folder of a dropped feature or change: it would read as merged once its branch is
@@ -189,5 +189,5 @@ ready: the default branch keeps what the feature does and why, and git keeps the
 the folder are rewritten to the record, whose questions keep their anchors. Records are frozen once
 merged, but for a broken link and the link to a newer record. See [Finish](finish.md).
 
-After the merge, the branch and its worktree stay until the human runs `ura clean`, which removes
-them unless that would lose work.
+After the merge, the branch, its worktree, and its line in `PRIORITIES.md` stay until the human runs
+`ura clean`, which removes them unless that would lose work.
