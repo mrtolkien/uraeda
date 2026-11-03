@@ -1527,6 +1527,7 @@ test("a running session makes its feature Working everywhere, then it follows it
     session: older.id,
     status: "working",
     turn: String(running),
+    wait: null,
   });
   expect(await needsYouRow(server, AGENT)).toBeUndefined();
 
@@ -1554,6 +1555,28 @@ test("an older session's blocked or failed run does not hold its feature", async
   expect(await statusesOf(server, AGENT)).toMatchObject({ session: latest.id, status: "idle" });
   expect(await needsYouRow(server, AGENT)).toBeUndefined();
   expect(await rowOf(server, latest.id)).toMatchObject({ status: "idle" });
+});
+
+/** US2 of the worker lifecycle: a waiting run reads in progress, with when it goes on (R2). */
+test("a run waiting to continue makes its feature Working, with when it goes on", async () => {
+  const server = await testServer();
+  const session = await folderSession(server, AGENT);
+  const turn = doneTurn(server, session.id, { kind: "workflow", state: "failed" });
+  const at = Date.parse("2026-11-03T08:41:00Z");
+  server.sessions.cache.scheduleContinue(turn, at, "limit");
+
+  const wait = { at: "2026-11-03T08:41:00.000Z", reason: "limit" };
+  expect(await statusesOf(server, AGENT)).toEqual({
+    label: "Waiting",
+    reason: "waiting",
+    session: session.id,
+    status: "working",
+    turn: String(turn),
+    wait,
+  });
+  expect(await needsYouRow(server, AGENT)).toBeUndefined();
+  const [record] = await byId(server.app, "Session", [session.id], ["automaticContinues", "wait"]);
+  expect(record).toMatchObject({ automaticContinues: 0, wait });
 });
 
 /** US1.2 and US1.3: a run on a feature at a gate reads Working, then notifies the gate again (R5). */
@@ -1591,6 +1614,7 @@ test("a feature at a gate without a session needs the human, following no sessio
     session: null,
     status: "needs-you",
     turn: null,
+    wait: null,
   });
   expect(await needsYouRow(server, HUMAN)).toMatchObject({
     message: "Questions to answer",
@@ -1614,6 +1638,7 @@ test("a feature with problems needs the human, and the notifier skips it", async
     session: null,
     status: "needs-you",
     turn: null,
+    wait: null,
   });
   expect(await needsYouRow(server, AGENT)).toBeUndefined();
 
@@ -1626,6 +1651,7 @@ test("a feature with problems needs the human, and the notifier skips it", async
     session: session.id,
     status: "needs-you",
     turn: String(turn),
+    wait: null,
   });
   expect(await needsYouRow(server, AGENT)).toBeUndefined();
 });

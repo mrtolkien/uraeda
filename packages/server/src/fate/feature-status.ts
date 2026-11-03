@@ -2,7 +2,7 @@
 // feature page, the notifier, and the tab's title read it (see `specs/decisions/feature-status.md`).
 import type { FeatureView } from "uraeda-binding";
 import type { SessionRow } from "../runner/cache.ts";
-import type { SessionStatus, StatusReason } from "../runner/status.ts";
+import type { SessionStatus, StatusReason, Wait } from "../runner/status.ts";
 import type { RepoContext } from "./context.ts";
 import { blockedOf, latestOf, statusOf, workspaceOf } from "./session-reads.ts";
 
@@ -15,6 +15,8 @@ export type FeatureStatus = {
   status: SessionStatus;
   /** That session's latest turn, as an ID: what Dismiss names; null without one. */
   turn: string | null;
+  /** When that turn's run continues by itself, while it waits; null otherwise. */
+  wait: Wait | null;
 };
 
 /** The status of a feature that waits on nothing and no session works on. */
@@ -24,6 +26,7 @@ export const IDLE: FeatureStatus = {
   session: null,
   status: "idle",
   turn: null,
+  wait: null,
 };
 
 const NEEDS_YOU = { label: "Needs you", status: "needs-you" } as const;
@@ -64,7 +67,7 @@ async function readStatus(ctx: RepoContext, feature: FeatureView): Promise<Featu
     const { latest, queued } = read;
     if (queued || latest?.state === "running" || latest?.state === "queued") {
       const turn = latest === undefined ? null : String(latest.id);
-      return { label: "Working", reason: null, session: row.id, status: "working", turn };
+      return { ...IDLE, label: "Working", session: row.id, status: "working", turn };
     }
     followed ??= { read, row };
   }
@@ -76,11 +79,11 @@ async function readStatus(ctx: RepoContext, feature: FeatureView): Promise<Featu
   const { read, row } = followed;
   const of = { session: row.id, turn: read.latest === undefined ? null : String(read.latest.id) };
   if (feature.problems.length > 0) {
-    return { ...NEEDS_YOU, reason: null, ...of };
+    return { ...IDLE, ...NEEDS_YOU, ...of };
   }
   const blocked = blockedOf(cache, read.latest);
-  const { status, statusLabel, statusReason } = statusOf(row, { ...read, blocked }, feature);
-  return { label: statusLabel, reason: statusReason, status, ...of };
+  const { status, statusLabel, statusReason, wait } = statusOf(row, { ...read, blocked }, feature);
+  return { label: statusLabel, reason: statusReason, status, wait, ...of };
 }
 
 /** Each feature in flight of the server's repository, with its status: the notifier's list. */

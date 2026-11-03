@@ -4,7 +4,7 @@ import type { FeatureView, WorkspaceView } from "uraeda-binding";
 import type { SessionCache, SessionRow, TurnRow } from "../runner/cache.ts";
 import { coveredDenials } from "../runner/allow.ts";
 import { TAKEN_BACK } from "../runner/session-state.ts";
-import { sessionStatus } from "../runner/status.ts";
+import { sessionStatus, waitOf } from "../runner/status.ts";
 import type { RepoContext } from "./context.ts";
 import type { SubagentRecord } from "./views.ts";
 
@@ -59,7 +59,7 @@ export function turnsOf(cache: SessionCache, session: string) {
 
 /**
  * The session's status, from its turns, when it was seen, its feature's step, and whether it is its
- * feature's `latestSession`.
+ * feature's `latestSession`, with when its run continues by itself while it waits.
  */
 export function statusOf(
   row: SessionRow,
@@ -77,5 +77,10 @@ export function statusOf(
     waitsOnAgent: feature?.step.waitsOn === "agent",
     waitsOnHuman: feature?.step.waitsOn === "human",
   });
-  return { status: status.status, statusLabel: status.label, statusReason: status.reason ?? null };
+  return {
+    status: status.status,
+    statusLabel: status.label,
+    statusReason: status.reason ?? null,
+    wait: status.reason === "waiting" ? waitOf(read.latest) : null,
+  };
 }

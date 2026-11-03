@@ -701,7 +701,8 @@ git commit -m "docs(worker-lifecycle): agents wait for background work by its no
   - `packages/server/src/runner/status.ts`
   - `packages/server/src/fate/session-reads.ts`, `feature-status.ts`, `needs-you.ts`, `sessions.ts`,
     `views.ts`
-  - `packages/web/src/views.ts`, which selects the new fields
+  - `packages/web/src/views.ts`, which selects the new fields, `wait` as `{ at, reason }`
+  - `packages/web/src/__focused__/helpers.tsx`, whose session record gains the new fields
 - Create: `packages/web/src/wait.ts`, with `waitLabel`
 - Test:
   - `packages/server/src/runner/__tests__/status.test.ts`
@@ -723,14 +724,16 @@ git commit -m "docs(worker-lifecycle): agents wait for background work by its no
   - `continuable(status: { reason: StatusReason | null; status: SessionStatus }): boolean`: true for
     `attention` with `failed`, `stopped`, `interrupted`, `halted`, or `capped`. It is exported for
     the web through `uraeda-server/status`.
-  - `type Wait = { at: string; reason: ContinueReason }`, with `at` in ISO 8601.
+  - `type Wait = { at: string; reason: ContinueReason }`, with `at` in ISO 8601, and `waitOf(turn)`,
+    which gives a turn's wait, both in `runner/status.ts`. `statusOf` returns `wait` beside the
+    status, set while the status reads `waiting`.
   - `FeatureStatus` and `SessionRecord` gain `wait: Wait | null`, and `SessionRecord` gains
     `automaticContinues: number`.
   - `needs-you`'s message for `capped` is `The agent keeps stopping`.
   - On the web, `waitLabel(wait: Wait): string` gives `Waiting until 8:41`, with the time in the
     reader's locale. Tasks 10 and 11 use it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - Rows of `status.test.ts`:
   - "a turn waiting to continue": `ended("failed")` with `continueAt` set gives
@@ -746,25 +749,25 @@ The break each test catches:
 - A waiting turn read by its failed state: it asks, notifies, and counts in the title.
 - A feature status that drops `wait`: home cannot say when.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner/__tests__/status.test.ts packages/server/src/__tests__/needs-you.test.ts packages/server/src/__tests__/sessions.test.ts`
 - Expected: FAIL. The waiting row reads `Needs attention`.
 
-- [ ] **Step 3: Implement the rules, the records, and the web's selections**
+- [x] **Step 3: Implement the rules, the records, and the web's selections**
 
-- [ ] **Step 4: Run the tests to check they pass**
+- [x] **Step 4: Run the tests to check they pass**
 
 - Run: the command of step 2
 - Expected: PASS
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/ packages/web/src/

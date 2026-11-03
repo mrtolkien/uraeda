@@ -118,7 +118,14 @@ export const FeatureView = view<Feature>()({
   sessions: true,
   slug: true,
   source: true,
-  status: { label: true, reason: true, session: true, status: true, turn: true },
+  status: {
+    label: true,
+    reason: true,
+    session: true,
+    status: true,
+    turn: true,
+    wait: { at: true, reason: true },
+  },
   step: {
     file: true,
     fileKind: true,
@@ -321,6 +328,7 @@ export const SessionView = view<Session>()({
   agent: true,
   allowable: true,
   archived: true,
+  automaticContinues: true,
   edited: true,
   folder: true,
   id: true,
@@ -335,6 +343,7 @@ export const SessionView = view<Session>()({
   title: true,
   turns: true,
   unseen: true,
+  wait: { at: true, reason: true },
 });
 
 export const TurnView = view<Turn>()({
