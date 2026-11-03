@@ -156,9 +156,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: the record of a buffer's edit holds the id `HEAD` had for the file at the save; it
   is the human's edit only while `HEAD` still has that id. A commit by any route, the pane's own as
-  it lands, an agent's, a terminal's, or an action's that sweeps the file, ends it; the record is
-  rewritten without the ended paths at the next save or discard. A pane's commit no longer clears
-  the record itself.
+  it lands, an agent's, a terminal's, or an action's that commits the file, as the lists' commit
+  does a list a buffer edited (R21), ends it; the record is rewritten without the ended paths at the
+  next save or discard. A pane's commit no longer clears the record itself.
 - **Rationale**: the server defers every pane's commit, and cleared the record as the call returned:
   a hook's refusal then left the files written and the feature's pane gone. A record never pruned
   showed an agent's later edit of a file committed elsewhere as the human's, for Commit to commit
@@ -254,4 +254,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   through a field the store keeps for comments.
 - **If wrong**: a reload while a typed message's commit lands leaves it restored over the next
   changes of its branch, until its Discard.
+- **Where**: task 7 (final review's fix pass)
+
+## R21: The lists' commits leave out a buffer's other edits
+
+- **Decision**: the lists' own commits, the editor's `uraeda.commit`, the server's
+  `priorities.commit`, and a proposal file's or a note file's commit, hold the files a buffer edited
+  only when they are `INBOX.md` or `PRIORITIES.md`, or the file committed. A buffer's other edits, a
+  decision's or a proposal file's, are never swept in as edited files or link repairs: they wait for
+  the Commit page's pane, which commits them under its message.
+- **Rationale**: the spec commits a buffer's edit only from the Commit page; the lists' commits
+  swept a decision a buffer edited in under the lists' message.
+- **Alternatives considered**: refusing the lists' commit while a buffer's edit waits, which blocks
+  the editor's commit on an unrelated file.
+- **If wrong**: `changes::commit` uses `gather` again, and `linked_files` passes no edits to leave.
+- **Where**: task 7 (final review's fix pass)
+
+## R22: A typed commit message is one text, committed verbatim
+
+- **Decision**: a pane's typed message, trimmed of the blank lines around it, is the commit's whole
+  message, committed with `--cleanup=verbatim`; a suggested one keeps its subject and body. The
+  pane's `CommitView` names its first line as the subject.
+- **Rationale**: the message was split into a subject and a body, each its own `--message`, so git
+  put a blank line after a first line the human followed with a body at once (US6 3).
+- **Alternatives considered**: `git commit -F <file>`, a file written for each commit to say the
+  same.
+- **If wrong**: `typed` in `actions/changes/panes.rs` splits the subject from the body again.
 - **Where**: task 7 (final review's fix pass)
