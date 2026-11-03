@@ -3,8 +3,9 @@
 // focused, home previews which runs it continues (`Core.tsx`).
 import { Button } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useFateClient } from "react-fate";
 import { guarded, refusal } from "../errors.ts";
 import { WorkspaceView } from "../views.ts";
@@ -20,12 +21,23 @@ export const previewStyles = stylex.create({
   },
 });
 
+/** "a, b, and c". */
+const AND = new Intl.ListFormat("en", { type: "conjunction" });
+
 /**
  * The button: `onPreview` hears its preview start and end, on while it is under the pointer or
- * focused, either one. A refusal, as without the agent, is shown in a toast.
+ * focused, either one. Its description names the runs it continues, `names`, for a screen reader,
+ * which hears no preview. A refusal, as without the agent, is shown in a toast.
  */
-export function ContinueAll({ onPreview }: { onPreview: (isOn: boolean) => void }) {
+export function ContinueAll({
+  names,
+  onPreview,
+}: {
+  names: Array<string>;
+  onPreview: (isOn: boolean) => void;
+}) {
   const fate = useFateClient();
+  const described = useId();
   const showToast = useToast();
   const [isHovered, setHovered] = useState(false);
   const [isFocused, setFocused] = useState(false);
@@ -47,7 +59,14 @@ export function ContinueAll({ onPreview }: { onPreview: (isOn: boolean) => void 
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
     >
-      <Button clickAction={onPress} label="Continue all" size="sm" variant="secondary" />
+      <Button
+        aria-describedby={described}
+        clickAction={onPress}
+        label="Continue all"
+        size="sm"
+        variant="secondary"
+      />
+      <VisuallyHidden id={described}>Continues {AND.format(names)}</VisuallyHidden>
     </span>
   );
 }

@@ -1,5 +1,5 @@
 // US5 2 of the worker lifecycle: while Continue all is under the pointer, home tints the runs it
-// continues and dims every other row, by the server's own rule.
+// continues and dims every other row, by the server's own rule; its description names them.
 import { act, fireEvent, screen } from "@testing-library/react";
 import * as stylex from "@stylexjs/stylex";
 import { expect, test } from "vite-plus/test";
@@ -50,7 +50,11 @@ test("Continue all's preview tints the runs it continues and dims the rest", asy
   await failedRun(agent, repo, HUMAN);
   await renderPage("/", repo, { agent });
 
-  const button = await screen.findByRole("button", { name: "Continue all" });
+  // A screen reader hears what it continues, as the preview shows it.
+  const button = await screen.findByRole("button", {
+    description: "Continues cli-tuis",
+    name: "Continue all",
+  });
   await act(async () => {
     fireEvent.pointerEnter(button);
   });
