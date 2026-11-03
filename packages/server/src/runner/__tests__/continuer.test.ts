@@ -202,6 +202,30 @@ test("a message refused during a wait leaves the wait in place", async () => {
   expect(changes.slice(published)).toContainEqual(expect.objectContaining({ turn }));
 });
 
+/** Rule 6: a continue's turn taken back before it started gives the run back its own reason. */
+test("a continue taken back while queued leaves the run failed, not capped", async () => {
+  const setup = await testSessions(fixtureRepo(), { runs: () => ON });
+  const { adapter, cache, repo, sessions } = setup;
+  const time = clock("2026-11-03T14:01:00Z");
+  // An older session of the feature works: the continue's turn waits behind it.
+  const older = await sessions.featureSession(repo, AGENT);
+  await sessions.newSession(repo, AGENT);
+  const { session, turn } = await sendLimited(setup, AGENT);
+  adapter.script([hold]);
+  await sessions.send(repo, older.id, { text: "Look at the tests" });
+
+  time.to(AFTER_RESET);
+  await until(() => latest(cache, session).state === "queued");
+  const queued = latest(cache, session);
+  const [message] = cache.itemsOf(queued.id, "message");
+  sessions.takeBack(repo, session, message!.id);
+  await flush();
+
+  expect(cache.turn(queued.id)).toMatchObject({ state: "stopped" });
+  expect(cache.turn(turn)).toMatchObject({ continueReason: null, state: "failed" });
+  expect(statusOf(cache, turn).reason).toBe("failed");
+});
+
 /** Review focus 1: Allow, a new session, or the agent going on takes the run over from its wait. */
 test.each(["Allow", "a new session", "the agent going on by itself"])(
   "%s during a wait drops the continue at the reset",
