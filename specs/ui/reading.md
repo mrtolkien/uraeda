@@ -37,6 +37,9 @@ whatever font is picked. Lines are 1.4 high everywhere: "just do 1.4 everywhere"
 - **Prose's measure is about 80 characters**: `--size-reading-measure`, 60 of the reading font's
   "0", which hold about 80 of its letters and spaces. It is set in the reading size, not in `ch`,
   since `ch` would be measured in the font of whatever element reads it.
+- **Text wraps the plain way**, each line as full as its words allow. Safari's `text-wrap: pretty`
+  and `balance` even out every line of a paragraph, so each stops short of the border: "Why is the
+  right border so much bigger than the left". The lint refuses both.
 - **A pane of prose is as wide as its prose**: a reading page's pane (`Page`'s `reading` kind: the
   round, the spec, the plan, a document, the data model) is at most a reading pane, the measure and
   the pane's own padding and border, so its text fills it and never stops short of the border: a

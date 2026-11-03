@@ -54,7 +54,6 @@ export const proseStyles = stylex.create({
     fontFamily: "var(--font-family-reading)",
     fontSize: "var(--text-reading-size)",
     lineHeight: "var(--text-reading-line)",
-    textWrap: "pretty",
   },
   // The reading size alone, for a control that reads as text, such as a fold's toggle: its font
   // stays the UI's.
@@ -78,7 +77,6 @@ export const proseStyles = stylex.create({
     lineHeight: "var(--text-reading-line)",
     maxWidth: "var(--size-reading-measure)",
     textAlign: "start",
-    textWrap: "pretty",
   },
 });
 
