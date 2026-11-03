@@ -1275,7 +1275,7 @@ The views:
 
 - **Needs you's pane** has `Continue all` in its border when `continuedByAll` picks a row.
 - **While the button is under the pointer or focused by a key**, either one, or after a first tap on
-  a touch screen, which sends nothing until the second (R20):
+  a touch screen, which sends nothing until the second (R21):
   - the rows it continues get `pickedStyles.picked`;
   - every other card of home is dimmed to an opacity of 0.4, and the widgets under the Overview line
     with them;
