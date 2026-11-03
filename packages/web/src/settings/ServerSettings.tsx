@@ -36,6 +36,8 @@ export type ServerActions = {
   setOpenBrowser: (open: boolean) => Promise<string | undefined>;
   setPort: (port: string) => Promise<string | undefined>;
   setSingleKeyShortcuts: (on: boolean) => Promise<string | undefined>;
+  setVimCommands: (lines: Array<string>) => Promise<string | undefined>;
+  setVimMode: (on: boolean) => Promise<string | undefined>;
 };
 
 const EMPTY_HOST = "A host name cannot be empty.";

@@ -51,6 +51,8 @@ const serverActions: ServerActions = {
   setOpenBrowser: async () => undefined,
   setPort: async () => undefined,
   setSingleKeyShortcuts: async () => undefined,
+  setVimCommands: async () => undefined,
+  setVimMode: async () => undefined,
 };
 
 const meta = {
@@ -136,6 +138,25 @@ export const KeyboardOff: Story = {
       keyboard: {
         singleKeyShortcuts: { inForce: false, saved: false, source: { kind: "file" } },
         ...vimDefaults,
+      },
+    },
+  },
+};
+
+/** Vim on, with the human's commands, as the mockup draws the Keyboard section. */
+export const KeyboardVim: Story = {
+  args: {
+    category: "keyboard",
+    server: {
+      ...server,
+      keyboard: {
+        singleKeyShortcuts: { inForce: true, saved: null, source: { kind: "default" } },
+        vimCommands: {
+          inForce: ["imap jj <Esc>", "nmap Y y$"],
+          saved: ["imap jj <Esc>", "nmap Y y$"],
+          source: { kind: "file" },
+        },
+        vimMode: { inForce: true, saved: true, source: { kind: "file" } },
       },
     },
   },

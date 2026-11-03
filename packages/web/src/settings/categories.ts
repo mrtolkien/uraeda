@@ -104,6 +104,18 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         icon: "uraeda:keyboard",
         label: "Single-key shortcuts",
       },
+      {
+        help: "Vim's keys in every text field, with the mode in the status line. Escape in normal mode leaves the field; Shift+Escape leaves from any mode. Off on touch screens. A change applies at once.",
+        icon: "uraeda:terminal",
+        label: "Vim mode",
+        terms: ["vi", "modal", "editor"],
+      },
+      {
+        help: "Run in order when Vim starts, one per line, like imap jj <Esc>.",
+        icon: "uraeda:terminal",
+        label: "Vim commands",
+        terms: ["vi", "map", "vimrc"],
+      },
     ],
   },
   {

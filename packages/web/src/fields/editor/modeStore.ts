@@ -61,6 +61,9 @@ const subscribe = (listener: () => void) => {
   };
 };
 
+/** The focused field's mode and place, or `nav`, as they are now, outside React. */
+export const modeNow = (): ModeView => current;
+
 /** The focused field's mode and place, or `nav`. */
 export function useMode(): ModeView {
   return useSyncExternalStore(subscribe, () => current);

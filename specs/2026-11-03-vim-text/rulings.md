@@ -100,3 +100,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the editor takes a `drop` handler of its own that hands its files to the page's
   target.
 - **Where**: task 5
+
+## R10: The Vim layer's tests run on comments, not on priority rows
+
+- **Decision**: `vim.test.tsx` checks insert mode at focus and Escape in normal mode on a round's
+  comment field, which is on the editor already, in place of the priority row of US2 1 and 2. Escape
+  in normal mode runs the field's own Escape action, a comment's leaving it and a row's asking
+  "Discard your changes?", so the row's question follows from task 4's `onEscape`.
+- **Rationale**: task 4 moves the rows to the editor in parallel with task 6; a test on a row would
+  fail until both land.
+- **If wrong**: once task 4 lands, a row of `vim.test.tsx` on the priority "Review the UI guidelines
+  properly" can press `dw` then Escape and wait for "Discard your changes?".
+- **Where**: task 6
