@@ -815,7 +815,12 @@ git commit -m "feat(worker-lifecycle): a run waiting to continue reads in progre
   does;
 - 15 minutes after that turn ends, `closes` is 1.
 
-The break it catches: an idle close that ignores the wakeup and closes at 15 minutes.
+"a wakeup in $wakeup ms closes the idle process after $closesAfter ms", its other side, a table:
+with no output after it, a wakeup in 25 minutes closes the process at 26 minutes, not before, and
+one in 25 hours, over a day ahead, at 15 minutes (ruling R16).
+
+The breaks they catch: an idle close that ignores the wakeup and closes at 15 minutes, one that
+never closes while a wakeup is set, and a wakeup days ahead holding the process open.
 
 - [x] **Step 2: Run it to check it fails**
 
@@ -823,7 +828,8 @@ The break it catches: an idle close that ignores the wakeup and closes at 15 min
 - Expected: FAIL, `expected 1 to be 0` on `closes`
 
 - [x] **Step 3: Implement it.** The transcript records the wakeup on the process. A wakeup in the
-      past is dropped. "US1.7 and C1" keeps passing: no wakeup, a close at 15 minutes.
+      past is dropped, and one more than 24 hours ahead (R16). "US1.7 and C1" keeps passing: no
+      wakeup, a close at 15 minutes.
 
 - [x] **Step 4: Run the runner's session tests**
 

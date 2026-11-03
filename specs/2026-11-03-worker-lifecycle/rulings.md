@@ -159,3 +159,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   task 2.
 - **If wrong**: an older version's session limit stops its run as a weekly limit does.
 - **Where**: task 2, `packages/server/src/runner/claude-limits.ts`.
+
+## R16: A wakeup more than a day ahead holds no process open
+
+- **Decision**: the transcript ignores a wakeup more than 24 hours ahead, `WAKEUP_HORIZON_MS`: the
+  idle process closes after 15 minutes, as without one, and the wakeup dies with it.
+- **Rationale**: a one-shot cron days ahead would hold the agent's process open that long, and a
+  timer past about 24.8 days overflows `setTimeout` and fires at once, closing the process at the
+  turn's end. Found by the review of task 7.
+- **If wrong**: an agent that sets a wakeup a few days ahead does not go on by itself; a cap of a
+  few days, under the timer's limit, would keep it.
+- **Where**: task 7, `packages/server/src/runner/transcript.ts`.

@@ -293,6 +293,33 @@ test("US6.1: a pending wakeup keeps the idle process open until it fires", async
   expect(adapter.closes).toBe(1);
 });
 
+/**
+ * US6.1, the other side: with no output after its wakeup, the process closes a minute after it,
+ * not before. A wakeup more than a day ahead is ignored: the process closes after 15 minutes.
+ */
+test.each([
+  { closesAfter: 26 * 60_000, wakeup: 25 * 60_000 },
+  { closesAfter: IDLE_CLOSE_MS, wakeup: 25 * 60 * 60_000 },
+])("a wakeup in $wakeup ms closes the idle process after $closesAfter ms", async (row) => {
+  const { adapter, repo, sessions } = await testSessions();
+  let now = Date.now();
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  const advance = (ms: number) => {
+    now += ms;
+    vi.advanceTimersByTime(ms);
+  };
+  const session = await sessions.featureSession(repo, AGENT);
+  const { turn } = await sessions.send(repo, session.id, { text: "Wait for CI" });
+  adapter.emit({ at: new Date(now + row.wakeup).toISOString(), type: "wakeup" });
+  adapter.emit(done());
+  await sessions.settled(turn);
+
+  advance(row.closesAfter - 1);
+  expect(adapter.closes).toBe(0);
+  advance(1);
+  expect(adapter.closes).toBe(1);
+});
+
 /** Review focus 3 */
 test("a background command that ends while no turn runs starts the idle timer then", async () => {
   const { adapter, cache, repo, sessions } = await testSessions();
