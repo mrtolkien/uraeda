@@ -44,11 +44,12 @@ struct Listing<'a> {
     notes: Vec<Note<'a>>,
 }
 
-/// A note of `ura inbox --json`: `None` prints as `null`.
+/// A note of `ura inbox --json`: `None` prints as `null`. `text` is the plain text `ura inbox`
+/// prints: a note file's title, not its link.
 #[derive(Serialize)]
 struct Note<'a> {
     category: Option<&'a str>,
-    text: &'a str,
+    text: String,
     agent: bool,
     about: Option<&'a str>,
     file: Option<&'a str>,
@@ -74,7 +75,7 @@ fn listing(inbox: &Inbox) -> Listing<'_> {
         .flat_map(|category| {
             category.notes.iter().map(|note| Note {
                 category: category.name.as_deref(),
-                text: &note.text,
+                text: plain(&note.spans),
                 agent: note.agent,
                 about: note.about.as_deref(),
                 file: note.file.as_deref(),
