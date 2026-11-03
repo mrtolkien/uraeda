@@ -109,11 +109,22 @@ const serverFate = {
   name: "uraeda-server/fate",
 };
 
-/** Raw elements, each with the Astryx component to use instead. */
+/** The Text editing decision: every text field is the shared editor, never Astryx's own fields. */
+const editorMessage = "use the shared editor, fields/editor (Text editing decision)";
+
+/** Astryx's text fields, which the shared editor replaces. */
+const astryxFields = [
+  { message: editorMessage, name: "@astryxdesign/core/TextInput" },
+  { message: editorMessage, name: "@astryxdesign/core/TextArea" },
+  // Only the composer's field: the composer around it stays.
+  { importNames: ["ChatComposerInput"], message: editorMessage, name: "@astryxdesign/core/Chat" },
+];
+
+/** Raw elements, each with the component to use instead. */
 const forbiddenElements = [
   ["button", "use Astryx Button"],
-  ["input", "use Astryx TextInput"],
-  ["textarea", "use Astryx TextArea"],
+  ["input", editorMessage],
+  ["textarea", editorMessage],
   ["select", "use Astryx Selector"],
   ["dialog", "use Astryx Dialog or BottomSheet"],
 ].map(([element, message]) => ({ element, message }));
@@ -194,8 +205,9 @@ export default {
             { forbid: [{ message: "style with StyleX's stylex.props", propName: "style" }] },
           ],
           "react/forbid-elements": ["error", { forbid: forbiddenElements }],
-          // The UI components decision: prose is drawn by `Prose.tsx`, whatever the page. The
-          // server's fate module imports Node's: a value from it blanks the app in the browser.
+          // The UI components decision: prose is drawn by `Prose.tsx`, whatever the page. The Text
+          // editing decision: every text field is the shared editor. The server's fate module
+          // imports Node's: a value from it blanks the app in the browser.
           "no-restricted-imports": [
             "error",
             {
@@ -204,6 +216,7 @@ export default {
                   message: "draw markdown with ProseMarkdown (UI components decision)",
                   name: "@astryxdesign/core/Markdown",
                 },
+                ...astryxFields,
                 serverFate,
               ],
               patterns: [
@@ -233,7 +246,8 @@ export default {
         rules: { "stylex/custom-property-tokens": "off" },
       },
       {
-        // The one place Astryx's Markdown is drawn, bar a story's mockup.
+        // The one place Astryx's Markdown is drawn, bar a story's mockup, which also draws Astryx's
+        // composer field: a look over fixed text, never the app's field.
         files: ["packages/web/src/Prose.tsx", "packages/web/src/SessionMockups.stories.tsx"],
         rules: { "no-restricted-imports": "off" },
       },

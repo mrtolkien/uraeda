@@ -862,26 +862,27 @@ git commit -m "feat(vim-text): the status line in LazyVim's shape, with the Vim 
   "use the shared editor, fields/editor (Text editing decision)"; the `input` and `textarea`
   messages of `forbiddenElements` name the editor), `SignInPage.tsx` (an `oxlint-disable-next-line`
   with its reason: the password, for password managers)
-- Create: `packages/web/src/__lint__/astryx-text-input.tsx`
+- Create: `packages/web/src/__lint__/astryx-text-input.tsx`, `__lint__/astryx-composer-input.tsx`
 - Test: `packages/web/src/__tests__/lint.test.ts`
 
-- [ ] **Step 1: Add the fixture and its row to `lint.test.ts`**: importing `TextInput` fails with
+- [x] **Step 1: Add the fixture and its row to `lint.test.ts`**: importing `TextInput` fails with
       the message above.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/web/src/__tests__/lint.test.ts`
 - Expected: FAIL, no lint error for the fixture.
 
-- [ ] **Step 3: Add the rule**, with the editor's own files and the Storybook mockup stories allowed
-      by an override.
+- [x] **Step 3: Add the rule**, with the Storybook mockup stories allowed by their existing
+      override. The editor's own files need none: they import only Astryx's type
+      `ChatComposerInputControl`, which the rule leaves alone.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(vim-text): lint keeps every text field on the shared editor"
