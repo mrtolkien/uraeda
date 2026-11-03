@@ -94,15 +94,16 @@ test("p on a note with a note file offers every proposal, and a level moves its 
   await act(async () => {
     fireEvent.click(later!);
   });
-  await waitFor(() =>
+  // The writes land one after the other: wait for all of them.
+  await waitFor(() => {
     expect(read(repo)).toContain(
       "- Benchmarks: after the runner is ready\n- [Dark mode](proposals/dark-mode.md)\n",
-    ),
-  );
-  expect(read(repo, "specs/proposals/dark-mode.md")).toContain(
-    "# Dark mode\n\n## What\n\nDark mode\n\nThe dark.\n\n## Why\n\n## Notes\n",
-  );
-  expect(existsSync(join(repo, "specs/notes/dark-mode.md"))).toBe(false);
+    );
+    expect(read(repo, "specs/proposals/dark-mode.md")).toContain(
+      "# Dark mode\n\n## What\n\nDark mode\n\nThe dark.\n\n## Why\n\n## Notes\n",
+    );
+    expect(existsSync(join(repo, "specs/notes/dark-mode.md"))).toBe(false);
+  });
   // The move ends on its toast, once its line is read back: the test ends after it.
   await screen.findByText(/Moved to Later/);
 });
@@ -119,19 +120,22 @@ test("a note with a note file added to a proposal's file goes into its Notes, an
     fireEvent.click(proposal!);
   });
 
-  await waitFor(() =>
-    expect(read(repo, listener)).toBe(`${before}\n## Notes\n\n### Dark mode\n\nThe dark.\n`),
-  );
-  expect(existsSync(join(repo, "specs/notes/dark-mode.md"))).toBe(false);
-  expect(read(repo, "specs/INBOX.md")).not.toContain("Dark mode");
+  // The writes land one after the other: wait for all of them.
+  await waitFor(() => {
+    expect(read(repo, listener)).toBe(`${before}\n## Notes\n\n### Dark mode\n\nThe dark.\n`);
+    expect(existsSync(join(repo, "specs/notes/dark-mode.md"))).toBe(false);
+    expect(read(repo, "specs/INBOX.md")).not.toContain("Dark mode");
+  });
 
   await act(async () => {
     fireEvent.click(await screen.findByRole("button", { name: /^Undo/ }));
   });
 
-  await waitFor(() => expect(read(repo, listener)).toBe(before));
-  expect(read(repo, "specs/notes/dark-mode.md")).toBe("# Dark mode\n\nThe dark.\n");
-  expect(read(repo, "specs/INBOX.md")).toContain("- [Dark mode](notes/dark-mode.md)\n");
+  await waitFor(() => {
+    expect(read(repo, listener)).toBe(before);
+    expect(read(repo, "specs/notes/dark-mode.md")).toBe("# Dark mode\n\nThe dark.\n");
+    expect(read(repo, "specs/INBOX.md")).toContain("- [Dark mode](notes/dark-mode.md)\n");
+  });
 });
 
 test("a note with images added to a single proposal file opens it as the folder it became, and Undo makes it a file again", async () => {
