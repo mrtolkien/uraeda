@@ -115,6 +115,14 @@ pub fn block(text: &str) -> Result<(&str, usize), FrontmatterError> {
     Err(FrontmatterError::Unclosed)
 }
 
+/// The text after the frontmatter's closing `---` line, or the whole text without a frontmatter.
+pub fn body(text: &str) -> &str {
+    block(text).map_or(text, |(_, end)| {
+        let skipped: usize = text.split_inclusive('\n').take(end).map(str::len).sum();
+        &text[skipped.min(text.len())..]
+    })
+}
+
 /// Parses the frontmatter of a workflow file.
 pub fn parse(text: &str) -> Result<Frontmatter, FrontmatterError> {
     let (yaml, end_line) = block(text)?;

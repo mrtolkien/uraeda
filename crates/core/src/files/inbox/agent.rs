@@ -39,11 +39,7 @@ pub fn is_note_file_path(path: &str) -> bool {
 
 /// The note's text: the file's first `# ` heading, or else its name.
 fn title(path: &str, text: &str) -> String {
-    let body = frontmatter::block(text).map_or(text, |(_, end)| {
-        let skip: usize = text.split_inclusive('\n').take(end).map(str::len).sum();
-        &text[skip.min(text.len())..]
-    });
-    let heading = body
+    let heading = frontmatter::body(text)
         .lines()
         .find_map(|line| line.strip_prefix("# "))
         .map(str::trim)
