@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { commitOnBranch, fixtureRepo } from "uraeda-binding/test-utils";
+import type { Binding } from "../../fate/context.ts";
 import type { SessionCache } from "../cache.ts";
 import type { ContinueSettings } from "../continuer.ts";
 import type { Limit } from "../events.ts";
@@ -293,6 +294,43 @@ test.each(["Allow", "a new session", "the agent going on by itself"])(
     expect(cache.turns(session.id)).toHaveLength(turns);
     expect(continues(adapter)).toBe(0);
     expect(cache.turn(turn)).toMatchObject({ continueAt: null, continueReason: null });
+  },
+);
+
+/** A Stop, or the switch turned off, while the decision reads the feature's commit wins. */
+test.each(["Stop", "the limit's continue turned off"])(
+  "%s while the continue is decided drops it",
+  async (action) => {
+    let release!: () => void;
+    const reading = new Promise<void>((resolve) => (release = resolve));
+    const held: Binding = {
+      ...binding,
+      checkoutCommit: async (dir) => {
+        await reading;
+        return binding.checkoutCommit(dir);
+      },
+    };
+    let runs = ON;
+    const setup = await testSessions(fixtureRepo(), { binding: held, runs: () => runs });
+    const { adapter, cache, repo, sessions } = setup;
+    const time = clock("2026-11-03T14:01:00Z");
+    const session = await sessions.featureSession(repo, AGENT);
+    limitTurn(adapter, SESSION_LIMIT);
+    const { turn } = await sessions.send(repo, session.id, { text: "Go on with the plan" });
+    await until(() => cache.turn(turn)?.state === "failed");
+
+    if (action === "Stop") {
+      sessions.stop(repo, session.id);
+    } else {
+      runs = { ...ON, afterLimit: false };
+      sessions.runsChanged();
+    }
+    release();
+    await sessions.settled(turn);
+    expect(cache.turn(turn)).toMatchObject({ continueAt: null, continueReason: null });
+    time.to(AFTER_RESET + HOUR);
+    await flush();
+    expect(adapter.sent).toHaveLength(1);
   },
 );
 
