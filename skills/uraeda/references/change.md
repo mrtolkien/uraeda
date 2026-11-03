@@ -247,9 +247,10 @@ When one item of a batch needs it, offer to split that item out instead.
 - **On "A", for one item of a batch**: on the default branch, write that item's text as
   `specs/proposals/<item-slug>.md`. Add its proposal to **Now**, first after the started proposals
   and their blank line, not nested under the change's proposal. Commit `chore: expand <Name>`. Then
-  make the other items. Finish removes the change's proposal with its nested lines, and the
-  [catch-up](implementation.md#catch-up-with-the-default-branch) brings the new proposal's line into
-  the branch before it, so it stays.
+  make the other items. The branch never writes `PRIORITIES.md`: the change's proposal keeps its
+  line, nested lines included, until the merge, and `ura clean` then removes that line with all its
+  nested lines, on the default branch. The new proposal has a line of its own, not nested, so it
+  stays.
 - **On another answer**: keep the change within that answer, or stop if it leaves nothing to do, and
   say so in the session.
 
