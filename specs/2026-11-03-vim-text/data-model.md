@@ -28,12 +28,12 @@ vim_mode = true
 vim_commands = ["imap jj <Esc>", "nmap Y y$"]
 ```
 
-## The Commit page's line for a file edited as a whole
+## The Commit page's commits
 
-A buffer's save writes the file only. The Commit page lists it, and commits it when the human
-commits.
+A buffer's save writes the file only. The Commit page commits each branch with changes apart, when
+the human commits its pane.
 
-| Field   | Type | Meaning                                                                                                                       | Change |
-| ------- | ---- | ----------------------------------------------------------------------------------------------------------------------------- | ------ |
-| Line    | text | `- Edit specs/INBOX.md`, in the default branch's commit with the lists' other changes                                         | New    |
-| Message | text | `chore(<slug>): edit spec.md`, the commit of a feature's own files changed in a buffer, on its branch, one commit per feature | New    |
+| Field   | Type | Meaning                                                                                                                                                      | Change  |
+| ------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| Line    | text | `- Edit specs/INBOX.md`, a file edited whole, among the default branch's other changes                                                                       | New     |
+| Message | text | the core's suggestion, like `chore: edit specs/PRIORITIES.md` or `chore(<slug>): edit spec.md`, until the human rewrites it; committed as typed, never empty | Changed |

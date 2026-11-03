@@ -453,3 +453,26 @@ p.note {
 .bufline .dot {
   color: var(--peach);
 }
+/* The Commit page: a pane per branch. */
+.change {
+  border-left: 3px solid var(--surface);
+  padding-left: 10px;
+  margin: 6px 0;
+}
+.change .kind {
+  color: var(--sub);
+  font-size: 13px;
+}
+.pane.picked {
+  border-color: var(--mauve);
+  box-shadow: inset 3px 0 0 var(--mauve);
+}
+.label {
+  color: var(--sub);
+  font-size: 13px;
+  margin: 10px 0 4px;
+}
+.edited {
+  color: var(--peach);
+  font-size: 13px;
+}
