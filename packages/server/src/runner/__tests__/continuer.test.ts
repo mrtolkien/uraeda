@@ -537,13 +537,14 @@ test("US4.3: turning off the limit's continue ends its waits, and the runs ask",
 /** Review focus 3, US2 2, US2's more scenarios 1 and 2, and the edge "the transcript is gone". */
 test.each([
   { continues: true, name: "a run cut just now continues" },
+  { continues: true, name: "a run continues once the agent is back", uninstalled: true },
   { continues: false, name: "a run cut 7 hours before does not", wait: 7 * HOUR },
   { continues: false, name: "a run whose transcript is gone does not", transcript: false },
   { continues: false, name: "a run of an older session does not", older: true },
   { continues: false, name: "a queued turn that never started does not", queued: true },
 ])(
   "US2.1: a run the restart cut continues at the next start, with its line: $name",
-  async ({ continues: continued, older, queued, transcript, wait }) => {
+  async ({ continues: continued, older, queued, transcript, uninstalled, wait }) => {
     const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
       runs: () => ON,
     });
@@ -557,6 +558,7 @@ test.each([
       adapter.capabilities.steer = false;
       await sessions.send(repo, session.id, { text: "Then the tasks" });
     }
+    adapter.installed = uninstalled !== true;
     const next = await restart(sessions, { runs: () => ON });
     const cut = latest(cache, session.id);
     expect(cut).toMatchObject({ reason: "Stopped: the server stopped while it ran." });
@@ -570,6 +572,14 @@ test.each([
     const sent = adapter.sent.length;
 
     await next.startContinues();
+    if (uninstalled) {
+      // The agent is checked again: the scan waited for it.
+      time.by(10_000);
+      await flush();
+      expect(adapter.sent).toHaveLength(sent);
+      adapter.installed = true;
+      await next.check();
+    }
     time.by(10_000);
     if (continued) {
       await until(() => adapter.sent.length === sent + 1);

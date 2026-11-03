@@ -74,6 +74,8 @@ export class Continuer {
    * a dismiss, or going on: a decision that read meanwhile is dropped.
    */
   #takenOver = new Map<string, number>();
+  /** Whether `start` ran: the restart's scan waits for it. */
+  #started = false;
   /** Whether the server stops: no timer is armed then. */
   #closed = false;
   /** The worktree commit each session's pending continue was decided at, recorded as it fires. */
@@ -220,11 +222,12 @@ export class Continuer {
 
   /**
    * Arms every pending continue, as the server starts: the ones of a kind now off are dropped. Then
-   * continues the runs the server's stop cut in the last 6 hours, whose agent kept their session.
+   * continues the runs the server's stop cut in the last 6 hours, whose agent kept their session,
+   * once the agent works.
    */
   async start(): Promise<void> {
     this.runsChanged();
-    const { adapter, cache } = this.#context;
+    const { cache } = this.#context;
     // The limits' overdue waits go a minute apart, in their order, as they would have.
     let overdue = Date.now();
     for (const turn of cache.pendingContinues()) {
@@ -236,9 +239,19 @@ export class Continuer {
         this.#arm(turn.id, at);
       }
     }
-    if (!this.#runs().afterRestart) {
+    this.#started = true;
+    await this.agentBack();
+  }
+
+  /**
+   * Continues the runs the server's stop cut, once the agent works: at the start, or when a check
+   * finds it back. Safe twice: a cut decided once has its continue's reason.
+   */
+  async agentBack(): Promise<void> {
+    if (!this.#started || !this.#available() || !this.#runs().afterRestart) {
       return;
     }
+    const { adapter, cache } = this.#context;
     const since = new Date(Date.now() - RESTART_WINDOW_MS).toISOString();
     for (const turn of cache.serverCuts(SERVER_STOPPED, since)) {
       const session = cache.session(turn.sessionId);

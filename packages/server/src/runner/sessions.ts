@@ -141,6 +141,9 @@ export class Sessions {
     }
     this.#status = status;
     this.#options.onChange({ agent: true });
+    if (status.available) {
+      await this.#context.continuer.agentBack();
+    }
   }
 
   /** The repository's main checkout, which keys its sessions. */
