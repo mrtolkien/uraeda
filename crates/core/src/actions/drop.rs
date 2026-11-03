@@ -83,7 +83,7 @@ fn remove_from_default(
     if on_default {
         check_folder(place, &folder, default)?;
     }
-    let removed = priorities::remove_linked(place, &format!("{folder}/proposal.md"))?;
+    let removed = priorities::remove_linked(place, &folder)?;
     if removed.is_none() && !on_default {
         return Ok(None);
     }

@@ -12,7 +12,7 @@ use crate::actions::{ActionError, Change};
 use crate::git::Git;
 use crate::steps::StepName;
 use crate::workspace::{
-    Feature, Kind, Workspace, folder_branch, folder_path, folder_slug, resolve,
+    Feature, Kind, Workspace, folder_branch, folder_path, folder_slug, links_folder, resolve,
 };
 
 /// What the cleanup did, or would do on a dry run.
@@ -187,15 +187,18 @@ fn local_branch(
     }))
 }
 
-/// The name of the line of the default branch's priorities linking the feature's proposal, as the
-/// workspace read it, uncommitted edits included.
+/// The name of the line of the default branch's priorities linking the feature's folder or its
+/// proposal (see [`links_folder`]), as the workspace read it, uncommitted edits included.
 pub fn merged_line<'a>(workspace: &'a Workspace, feature: &Feature) -> Option<&'a str> {
-    let proposal = format!("{}/proposal.md", folder_path(feature.kind, &feature.folder));
+    let folder = folder_path(feature.kind, &feature.folder);
     workspace
         .priorities
         .iter()
         .find(|line| {
-            line.link.as_deref().and_then(|link| resolve("specs", link)) == Some(proposal.clone())
+            line.link
+                .as_deref()
+                .and_then(|link| resolve("specs", link))
+                .is_some_and(|path| links_folder(&path, &folder))
         })
         .map(|line| line.text.as_str())
 }
@@ -224,8 +227,8 @@ fn line(
         }));
     }
     let place = place::reach(git, default).map_err(|e| ActionError::Refused(e.to_string()))?;
-    let proposal = format!("{}/proposal.md", folder_path(feature.kind, &feature.folder));
-    let Some((name, clean)) = priorities::remove_linked(&place, &proposal)? else {
+    let folder = folder_path(feature.kind, &feature.folder);
+    let Some((name, clean)) = priorities::remove_linked(&place, &folder)? else {
         return Ok(None);
     };
     let slug = folder_slug(&feature.folder).unwrap_or(&feature.folder);

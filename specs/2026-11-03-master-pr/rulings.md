@@ -85,8 +85,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   `Nothing to clean: no merged feature has a worktree, a branch, or a line of the priorities left.`,
   and
   `<n> merged features have a worktree, a branch, or a line of the priorities left: name one, or pass --all`.
-  Whether the line is there comes from the workspace's priorities, read once from the default
-  branch, uncommitted edits included; `ura clean` reaches the default branch only when it is.
+  The line is one linking the feature's folder or its `proposal.md`, the same test the priorities'
+  join reads a merged line with (`workspace::links_folder`). Whether the line is there comes from
+  the workspace's priorities, read once from the default branch, uncommitted edits included;
+  `ura clean` reaches the default branch only when it is.
 - **Rationale**: the old messages would be wrong for a feature with only its line left, and the spec
   makes the line a leftover of the merge like the worktree and the branch.
 - **Where**: task 5, `crates/cli/src/clean.rs`, `crates/core/src/actions/clean.rs` `merged_line`

@@ -200,7 +200,8 @@ struct Row {
     subject: Option<&'static str>,
 }
 
-/// US1.3, and more scenarios 2 and 3
+/// US1.3, and more scenarios 2 and 3; a line linking the feature's folder, not its proposal, is its
+/// line too, as the priorities' join reads it.
 #[test]
 fn clean_removes_the_merged_line() {
     const NOW: &str = "# Priorities\n\n## Now\n\n";
@@ -226,6 +227,15 @@ fn clean_removes_the_merged_line() {
             stdout: "change/2026-10-14-fix-bug\n  deleted the branch change/2026-10-14-fix-bug\n  removed \"Fix the bug\" from the priorities\n",
             after: without.clone(),
             subject: Some("chore(fix-bug): remove \"Fix the bug\" from the priorities"),
+        },
+        Row {
+            folder: WEB_UI,
+            target: "web-ui",
+            line: "- [Web UI](2026-10-11-web-ui/)\n",
+            edited: false,
+            stdout: "2026-10-11-web-ui\n  deleted the branch 2026-10-11-web-ui\n  removed \"Web UI\" from the priorities\n",
+            after: without.clone(),
+            subject: Some("chore(web-ui): remove \"Web UI\" from the priorities"),
         },
         Row {
             folder: WEB_UI,

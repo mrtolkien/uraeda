@@ -283,13 +283,14 @@ pub fn discard(place: &Place) -> Result<(), ActionError> {
     changes::discard(place)
 }
 
-/// Removes, on disk, the line of the priorities linking `proposal`, a path from the root: its name,
-/// and whether the file was as committed before, or `None` when no line links it.
+/// Removes, on disk, the line of the priorities linking `folder`, a path from the root, or its
+/// `proposal.md`: its name, and whether the file was as committed before, or `None` when no line
+/// links it.
 pub(crate) fn remove_linked(
     place: &Place,
-    proposal: &str,
+    folder: &str,
 ) -> Result<Option<(String, bool)>, ActionError> {
-    let Some((without, name)) = priorities::remove_linked(&text(place), proposal) else {
+    let Some((without, name)) = priorities::remove_linked(&text(place), folder) else {
         return Ok(None);
     };
     let clean = is_clean(place, PATH);
