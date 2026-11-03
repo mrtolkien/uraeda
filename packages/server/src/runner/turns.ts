@@ -101,7 +101,9 @@ export class Turns {
     if (!ended || live.turn || live.queue.length > 0 || proc.closing || live.proc !== proc) {
       return undefined;
     }
-    const { cache } = this.#context;
+    const { cache, continuer } = this.#context;
+    // The agent goes on by itself: the run no longer waits to continue.
+    continuer.cancel(live.id, { stopped: false });
     cache.reopenTurn(ended.id);
     cache.appendItem(ended.id, { kind: "system", text: RESUMED });
     this.track(ended.id);

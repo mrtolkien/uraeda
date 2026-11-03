@@ -170,6 +170,48 @@ test("a message during a wait goes at once, drops the continue, and sets the cou
   expect(adapter.sent).toHaveLength(sent);
 });
 
+/** Review focus 1: Allow, a new session, or the agent going on takes the run over from its wait. */
+test.each(["Allow", "a new session", "the agent going on by itself"])(
+  "%s during a wait drops the continue at the reset",
+  async (action) => {
+    const setup = await testSessions(fixtureRepo(), { runs: () => ON });
+    const { adapter, cache, repo, sessions } = setup;
+    const time = clock("2026-11-03T14:01:00Z");
+    const session = await sessions.featureSession(repo, AGENT);
+    // A blocked push the human has not allowed yet, before the run met the limit.
+    const push = { input: { command: "git push origin HEAD" }, tool: "Bash" };
+    adapter.script([{ denials: [push], errors: [], interrupted: false, ok: true, type: "result" }]);
+    const blocked = await sessions.send(repo, session.id, { text: "Push it" });
+    await sessions.settled(blocked.turn);
+    const { turn } = await sendLimited(setup, AGENT);
+    // The run continued once before this wait.
+    cache.addContinue(session.id);
+
+    if (action === "Allow") {
+      adapter.script([]);
+      const [denial] = cache.itemsOf(blocked.turn, "denial");
+      await sessions.settled(
+        (await sessions.allow(repo, session.id, blocked.turn, denial!.seq)).turn,
+      );
+      expect(cache.turn(turn)).toMatchObject({ continueAt: null, continueReason: null });
+      expect(cache.session(session.id)?.automaticContinues).toBe(0);
+    } else if (action === "a new session") {
+      await sessions.newSession(repo, AGENT);
+    } else {
+      adapter.emit({ text: "The background task finished.", type: "text" });
+      await until(() => cache.turn(turn)?.state === "running");
+      adapter.emit({ denials: [], errors: [], interrupted: false, ok: true, type: "result" });
+      await sessions.settled(turn);
+    }
+    const turns = cache.turns(session.id).length;
+    time.to(AFTER_RESET);
+    await flush();
+    expect(cache.turns(session.id)).toHaveLength(turns);
+    expect(continues(adapter)).toBe(0);
+    expect(cache.turn(turn)).toMatchObject({ continueAt: null, continueReason: null });
+  },
+);
+
 /** US1, more scenarios 2, and the edges "Stop during a wait" and "you dismissed a run". */
 test.each(["Stop", "a dismiss"])("%s during a wait ends it for good", async (action) => {
   const setup = await testSessions(fixtureRepo(), { runs: () => ON });
