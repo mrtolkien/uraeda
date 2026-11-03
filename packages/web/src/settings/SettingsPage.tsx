@@ -60,6 +60,9 @@ function OnSettings({ category }: { category?: string }) {
         change.removeHost({ input: { name }, optimistic: shown.removeHost(name), view }),
       );
     },
+    // Typed in a field, as the port is.
+    setAutomaticContinues: (continues) =>
+      run(() => change.setAutomaticContinues({ input: { continues }, view })),
     setBuildInFreshSession: (fresh) =>
       run(() =>
         change.setBuildInFreshSession({
@@ -67,6 +70,10 @@ function OnSettings({ category }: { category?: string }) {
           optimistic: shown.setBuildInFreshSession(fresh),
           view,
         }),
+      ),
+    setContinue: (key, on) =>
+      run(() =>
+        change.setContinue({ input: { key, on }, optimistic: shown.setContinue(key, on), view }),
       ),
     setOpenBrowser: (open) =>
       run(() =>

@@ -12,6 +12,7 @@ import { sessionIdPath } from "../routes.tsx";
 import { SESSION_LIST_ID } from "../sessionData.ts";
 import { InboxView, LedgerView, PrioritiesView, SessionListView, WorkspaceView } from "../views.ts";
 import { type Row, rowOf, sessionCard, toCard } from "../sidebar/cards.ts";
+import { statusLabel } from "../wait.ts";
 import type { CardItem } from "../sidebar/ItemCard.tsx";
 import { KIND_ICONS } from "./kinds.ts";
 import type { IconName } from "./store.ts";
@@ -185,7 +186,8 @@ function sessionItems(
   return [...rows.filter((row) => !row.archived), ...rows.filter((row) => row.archived)].map(
     (row): PickerItem => {
       const branch = row.folder === null ? workspace?.currentBranch : branches.get(row.folder);
-      const state = row.archived ? `Archived · ${row.statusLabel}` : row.statusLabel;
+      const label = statusLabel({ label: row.statusLabel, wait: row.wait });
+      const state = row.archived ? `Archived · ${label}` : label;
       return {
         card: sessionCard(row),
         icon: KIND_ICONS.sessions,

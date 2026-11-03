@@ -10,7 +10,7 @@ import { LiveRecap } from "./session/RecapLine.tsx";
 import { useTurn, useTurnLog } from "./sessionData.ts";
 import type { Piece } from "./tail.tsx";
 import { type Actions, TranscriptItems } from "./TranscriptMessages.tsx";
-import { Ending, ending } from "./TurnLines.tsx";
+import { Ending, ending, LatestEnding } from "./TurnLines.tsx";
 
 const styles = stylex.create({
   turn: {
@@ -80,7 +80,13 @@ function TailPage({
           />
         )}
         {live && <LiveRecap actions={actions} activity={live} pages={turn.pages} turn={turn.id} />}
-        {last && end && <Ending state={turn.state} text={end} />}
+        {last &&
+          end &&
+          (latest ? (
+            <LatestEnding text={end} turn={turn} />
+          ) : (
+            <Ending state={turn.state} text={end} />
+          ))}
       </div>
     </>
   );

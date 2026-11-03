@@ -5,6 +5,7 @@ import type { SessionStatus } from "uraeda-server/fate";
 import { STATUS_ORDER } from "uraeda-server/status";
 import type { useNavigation } from "../sessionData.ts";
 import { stepLabel, waiting } from "../labels.ts";
+import { statusLabel } from "../wait.ts";
 import type { CardItem } from "./ItemCard.tsx";
 import type { StepKind } from "./StepIcon.tsx";
 
@@ -140,7 +141,7 @@ export function toCard(feature: Feature, row: Row | undefined): CardItem {
     label: label ?? feature.slug,
     ...(step.progress ? { progress: step.progress } : {}),
     ...(pullRequest ? { pullRequest: { number: pullRequest.number, url: pullRequest.url } } : {}),
-    status: { label: status.label, status: status.status },
+    status: { label: statusLabel(status), status: status.status },
     step: stepOf(feature),
     ...(row && row.subagents.length > 0 ? { subagents: row.subagents } : {}),
     title: feature.title,
@@ -155,7 +156,7 @@ export function sessionCard(row: Row): CardItem {
     ...(row.backgroundCommands > 0 ? { hasBackgroundCommand: true } : {}),
     kind: "session",
     label: row.title,
-    status: { label: row.statusLabel, status: row.status },
+    status: { label: statusLabel({ label: row.statusLabel, wait: row.wait }), status: row.status },
     ...(row.subagents.length > 0 ? { subagents: row.subagents } : {}),
     title: "",
   };

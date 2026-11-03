@@ -268,6 +268,8 @@ export type SessionRowRecord = {
   title: string;
   /** The last turn's start or end. */
   updatedAt: string;
+  /** When its run continues by itself, while it waits; null otherwise. */
+  wait: Wait | null;
 };
 
 /** The sidebar's sessions, what needs the human first: one record, `all`, kept live. */

@@ -77,6 +77,10 @@ They apply at once. Each continue's switch comes from its flag, `--no-continue-a
 set to `true` or `false`, else the file, else its default. The continues in a row come from
 `--automatic-continues <n>`, else `URAEDA_AUTOMATIC_CONTINUES`, else the file, else 3.
 
+The page shows them under Runs: a switch for each kind of continue, and the continues in a row,
+saved on Enter or when you leave the field, a number outside 1 to 10 refused. Turning a switch off
+cancels the waits it started, and those runs ask for you.
+
 A flag or a variable holds for one run, is never written into the file, and the page says which one
 is in force. A file that cannot be read is never overwritten: the server says why and uses its
 defaults until it is fixed.
@@ -116,6 +120,12 @@ you until you dismiss it, with Dismiss on its feature's or change's card, or on 
 banner. A pull request reads "PR ready" only once it holds its branch's latest commit. While its
 branch holds commits the pull request lacks, the feature reads "Push", in In progress, for the agent
 to push.
+
+A run Uraeda continues by itself says so in its session, with a line such as "Continued after the
+server restarted." While a run waits for a usage limit's reset, it reads "Waiting until 8:41", the
+time it goes on, and its session says so above the composer: a message you send goes at once, and
+Stop ends the wait. Past the continues in a row set under Runs, without a commit or a message from
+you, the run reads "The agent keeps stopping." and asks for you.
 
 Claude Code runs in `auto` permission mode, with your own settings, and with the server's copy of
 the skill as a plugin: see the [agents](../specs/decisions/agents.md) decision.

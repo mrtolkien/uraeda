@@ -6,6 +6,16 @@ import type { Settings } from "uraeda-server/fate";
 
 type Values = Pick<Settings, "id" | "keyboard" | "runs" | "server">;
 
+/** A kind of automatic continue, as the server's `settings.setContinue` names it. */
+export type ContinueKey = "gate" | "limit" | "restart";
+
+/** The record's switch of each kind of automatic continue. */
+export const CONTINUE_SETTINGS = {
+  gate: "continueBeforeGate",
+  limit: "continueAfterLimit",
+  restart: "continueAfterRestart",
+} as const satisfies Record<ContinueKey, keyof Settings["runs"]>;
+
 /** The records each change of the settings page shows while it is sent. */
 export function optimisticSettings({ id, keyboard, runs, server }: Values) {
   const { allowedHosts, openBrowser } = server;
@@ -25,6 +35,10 @@ export function optimisticSettings({ id, keyboard, runs, server }: Values) {
       id,
       runs: { ...runs, buildInFreshSession: { ...runs.buildInFreshSession, saved: fresh } },
     }),
+    setContinue: (key: ContinueKey, on: boolean) => {
+      const name = CONTINUE_SETTINGS[key];
+      return { id, runs: { ...runs, [name]: { ...runs[name], saved: on } } };
+    },
     setOpenBrowser: (open: boolean) => ({
       id,
       server: { ...server, openBrowser: { ...openBrowser, saved: open } },

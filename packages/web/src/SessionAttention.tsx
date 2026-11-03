@@ -1,22 +1,33 @@
 import { Suspense, useState } from "react";
 import type { SessionStatus, StatusReason } from "uraeda-server/fate";
+import type { Wait } from "uraeda-server/status";
 import { useWorkspace } from "./data.ts";
 import { StatusText } from "./fields/StatusText.tsx";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { useTurn } from "./sessionData.ts";
 import { isDismissable, useDismiss } from "./useDismiss.ts";
+import { waitTime } from "./wait.ts";
+
+/** What a banner's text reads: the session's item, a feature or a change, and its continues. */
+type Of = { continues: number; item: string };
 
 /**
  * What a session that needs attention tells the human, by why it needs it, its item named as a
  * feature or a change. A failed, stopped, or interrupted run asks until dismissed: its text says
- * so, and the banner has Dismiss.
+ * so, and the banner has Dismiss. A run past the cap on automatic continues says how many it had.
  */
 const ATTENTION: Partial<
   Record<
     StatusReason,
-    { status: "error" | "warning"; text: string | ((item: string) => string); title: string }
+    { status: "error" | "warning"; text: string | ((of: Of) => string); title: string }
   >
 > = {
+  capped: {
+    status: "warning",
+    text: ({ continues }) =>
+      `Uraeda continued it ${continues} times in a row without a commit or a message from you, and stops there. Read its last message, then tell it how to go on, or dismiss this.`,
+    title: "The agent keeps stopping.",
+  },
   failed: {
     status: "error",
     text: "Read how it ended, then tell the agent how to go on, or dismiss this.",
@@ -24,7 +35,7 @@ const ATTENTION: Partial<
   },
   halted: {
     status: "warning",
-    text: (item) =>
+    text: ({ item }) =>
       `The ${item} still waits on the agent. Read its last message, then tell it how to go on.`,
     title: "The agent stopped before a human gate.",
   },
@@ -40,13 +51,17 @@ const ATTENTION: Partial<
   },
 };
 
-/** A session that needs attention, as the banner reads it. */
+/** A session that needs attention, or waits to continue, as the banner reads it. */
 type AttentionSession = {
+  /** The automatic continues in a row of its run, which a capped run's banner counts. */
+  automaticContinues?: number;
   id: string;
   status: SessionStatus;
   statusReason?: StatusReason | null;
   /** The turn its status follows: its latest not taken back. */
   statusTurn: string | null;
+  /** When its run continues by itself, while it waits. */
+  wait?: Wait | null;
 };
 
 /** The banner's Dismiss, and why the server refused it, held by `Attention`. */
@@ -79,6 +94,9 @@ export function Attention({
       void dismiss({ folder, session: session.id, turn: dismissed });
     },
   };
+  if (session.wait?.reason === "limit") {
+    return <LimitWait wait={session.wait} />;
+  }
   if (!reason || !ATTENTION[reason]) {
     return refusal ? (
       <StatusText role="alert" tone="error">
@@ -87,12 +105,28 @@ export function Attention({
     ) : null;
   }
   const banner = <AttentionBanner dismissal={dismissal} folder={folder} session={session} />;
-  return reason === "failed" && turn !== undefined ? (
+  const Read = reason === "failed" ? FailedBanner : reason === "capped" ? CappedBanner : undefined;
+  return Read && turn !== undefined ? (
     <Suspense fallback={banner}>
-      <FailedBanner dismissal={dismissal} folder={folder} session={session} turn={turn} />
+      <Read dismissal={dismissal} folder={folder} session={session} turn={turn} />
     </Suspense>
   ) : (
     banner
+  );
+}
+
+/**
+ * A run waiting for a usage limit's reset: when it continues, and what a message or Stop does
+ * meanwhile. A restart's or a gate's wait lasts seconds, and has none: it would only flash.
+ */
+function LimitWait({ wait }: { wait: Wait }) {
+  return (
+    <AnnouncedBanner
+      collapsible={false}
+      description={`The run continues by itself at ${waitTime(wait)}. A message you send now goes to the agent at once, and Stop cancels the wait.`}
+      status="info"
+      title="Waiting for the usage limit's reset."
+    />
   );
 }
 
@@ -110,16 +144,32 @@ function FailedBanner({
   return <AttentionBanner {...banner} why={ended} />;
 }
 
+/** A capped run's banner, with Dismiss when its turn failed or stopped: one ended done takes none. */
+function CappedBanner({
+  turn,
+  ...banner
+}: {
+  dismissal: Dismissal;
+  folder?: string | undefined;
+  session: AttentionSession;
+  turn: string;
+}) {
+  const state = useTurn(turn)?.state;
+  return <AttentionBanner {...banner} turnState={state} />;
+}
+
 /** The banner, by why the session needs attention, `why` before its text; with its Dismiss. */
 function AttentionBanner({
   dismissal,
   folder,
   session,
+  turnState,
   why,
 }: {
   dismissal: Dismissal;
   folder?: string | undefined;
   session: AttentionSession;
+  turnState?: string | undefined;
   why?: string | undefined;
 }) {
   const workspace = useWorkspace();
@@ -128,11 +178,12 @@ function AttentionBanner({
   const reason = session.statusReason!;
   return (
     <RunBanner
+      continues={session.automaticContinues ?? 0}
       error={dismissal.error}
       item={item}
       reason={reason}
       why={why}
-      {...(turn !== null && isDismissable({ reason, status: session.status })
+      {...(turn !== null && isDismissable({ reason, status: session.status, turnState })
         ? { onDismiss: () => dismissal.onDismiss(turn) }
         : {})}
     />
@@ -141,16 +192,18 @@ function AttentionBanner({
 
 /**
  * The banner of a run that needs attention, by `reason`, its item named as `item`, `why` before
- * its text; with Dismiss when `onDismiss` is given, and why the server refused it, `error`, under
- * it.
+ * its text, a capped run's automatic `continues` counted; with Dismiss when `onDismiss` is given,
+ * and why the server refused it, `error`, under it.
  */
 export function RunBanner({
+  continues = 0,
   error,
   item = "feature",
   onDismiss,
   reason,
   why,
 }: {
+  continues?: number;
   error?: string | undefined;
   item?: string;
   onDismiss?: () => void;
@@ -161,7 +214,8 @@ export function RunBanner({
   if (!attention) {
     return null;
   }
-  const text = typeof attention.text === "string" ? attention.text : attention.text(item);
+  const text =
+    typeof attention.text === "string" ? attention.text : attention.text({ continues, item });
   return (
     <>
       <AnnouncedBanner

@@ -3,6 +3,7 @@
 // panes split into Needs you, Sessions, and In progress; and the counts the column's rows and the
 // phone's tabs show.
 import type { useNavigation } from "../sessionData.ts";
+import { statusLabel } from "../wait.ts";
 import {
   byStatus,
   type Feature,
@@ -78,7 +79,10 @@ export function entriesOf(
         kind: "session" as const,
         row,
         start: row.startedAt,
-        status: { label: row.statusLabel, status: row.status },
+        status: {
+          label: statusLabel({ label: row.statusLabel, wait: row.wait }),
+          status: row.status,
+        },
       })),
   ];
 }

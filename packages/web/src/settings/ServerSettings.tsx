@@ -13,6 +13,7 @@ import type { Settings } from "uraeda-server/fate";
 import { EditableLine, LineField } from "../EditableLine.tsx";
 import { useLineSave } from "../useLineSave.ts";
 import { type Category, settingOf } from "./categories.ts";
+import type { ContinueKey } from "./optimistic.ts";
 import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
 
 /** The settings record, as the page reads it: the file, its problem, and the values. */
@@ -29,7 +30,9 @@ export type ServerActions = {
   addHost: (name: string) => Promise<string | undefined>;
   editHost: (from: string, to: string) => Promise<string | undefined>;
   removeHost: (name: string) => Promise<string | undefined>;
+  setAutomaticContinues: (continues: string) => Promise<string | undefined>;
   setBuildInFreshSession: (fresh: boolean) => Promise<string | undefined>;
+  setContinue: (key: ContinueKey, on: boolean) => Promise<string | undefined>;
   setOpenBrowser: (open: boolean) => Promise<string | undefined>;
   setPort: (port: string) => Promise<string | undefined>;
   setSingleKeyShortcuts: (on: boolean) => Promise<string | undefined>;
@@ -39,7 +42,7 @@ const EMPTY_HOST = "A host name cannot be empty.";
 const EMPTY_PORT = "The port is a number from 1 to 65535.";
 
 /** "Set by --port for this run: 4400.", when a flag or a variable overrides the file. */
-function overridden<T>(
+export function overridden<T>(
   setting: { inForce: T; source: Source },
   show: (value: T) => string,
 ): string | undefined {

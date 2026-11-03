@@ -36,7 +36,9 @@ const serverActions: ServerActions = {
   addHost: async () => undefined,
   editHost: async () => undefined,
   removeHost: async () => undefined,
+  setAutomaticContinues: async () => undefined,
   setBuildInFreshSession: async () => undefined,
+  setContinue: async () => undefined,
   setOpenBrowser: async () => undefined,
   setPort: async () => undefined,
   setSingleKeyShortcuts: async () => undefined,
@@ -76,6 +78,24 @@ export const Overridden: Story = {
           source: { kind: "flag", name: "--allowed-hosts" },
         },
         port: { inForce: 4400, saved: 4310, source: { kind: "environment", name: "URAEDA_PORT" } },
+      },
+    },
+  },
+};
+
+/** Started with `--no-continue-after-limit`: the Runs section says the limit's continue is off. */
+export const RunsOverridden: Story = {
+  args: {
+    category: "runs",
+    server: {
+      ...server,
+      runs: {
+        ...server.runs,
+        continueAfterLimit: {
+          inForce: false,
+          saved: null,
+          source: { kind: "flag", name: "--no-continue-after-limit" },
+        },
       },
     },
   },

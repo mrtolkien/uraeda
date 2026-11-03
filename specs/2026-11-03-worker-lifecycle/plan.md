@@ -1175,7 +1175,11 @@ git commit -m "feat(worker-lifecycle): continue a run after a restart, and befor
 - Modify:
   - `packages/web/src/SessionAttention.tsx`, `packages/web/src/useDismiss.ts`,
     `packages/web/src/TurnLines.tsx`
-  - `packages/web/src/sidebar/ItemCard.tsx`, or wherever `StatusMark`'s label is read
+  - `packages/web/src/sidebar/cards.ts`, `entries.ts`, `SessionView.tsx`,
+    `feature/SessionsPane.tsx`, and `keys/pickerSources.ts`, where a status's label is read, through
+    `statusLabel` in `wait.ts`
+  - `packages/server/src/fate/views.ts` and `sessions.ts`: the sidebar's session rows gain `wait`,
+    so a chat's card reads when it goes on too
   - `packages/web/src/settings/RunSettings.tsx`, `ServerSettings.tsx`, `SettingsPage.tsx`,
     `optimistic.ts`, `categories.ts`
   - `docs/web-ui.md`
@@ -1206,18 +1210,18 @@ What the views show:
   - The rows go under "Build in a fresh session", with the footer
     `A change applies at once: turning one off cancels the waits it started.`
 
-- [ ] **Step 1: Build the views from the stories, wired to the records and mutations**
+- [x] **Step 1: Build the views from the stories, wired to the records and mutations**
 
-- [ ] **Step 2: Review them in the sandbox.** Run `nix develop -c vp run sandbox`. Look at a waiting
+- [x] **Step 2: Review them in the sandbox.** Run `nix develop -c vp run sandbox`. Look at a waiting
       run, a capped run, and the Runs section, in both themes, at a phone's and a desktop's width.
       To see the states, seed `continue_at` in the sandbox's `runner.sqlite`.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS. The `categories.test.ts` labels include the new rows.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/web/src/ docs/web-ui.md

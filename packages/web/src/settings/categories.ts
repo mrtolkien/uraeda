@@ -151,6 +151,26 @@ export const CATEGORIES: ReadonlyArray<Category> = [
         icon: "uraeda:terminal",
         label: "Build in a fresh session",
       },
+      {
+        help: "A run the server stopped while it worked continues by itself when the server starts again, if it stopped less than 6 hours before.",
+        icon: "uraeda:workflow",
+        label: "Continue after a restart",
+      },
+      {
+        help: "A run stopped by Claude Code's session limit continues by itself when the limit resets. Weekly limits still stop the run.",
+        icon: "uraeda:workflow",
+        label: "Continue after a usage limit",
+      },
+      {
+        help: "A run that ends before the next human gate is asked once to continue to it.",
+        icon: "uraeda:workflow",
+        label: "Continue before a human gate",
+      },
+      {
+        help: "How many times in a row Uraeda continues a run without a commit or a message from you. Past it, the run asks for you.",
+        icon: "uraeda:history",
+        label: "Automatic continues in a row",
+      },
     ],
   },
   {
