@@ -13,7 +13,13 @@ const server: ServerValues = {
   file: "~/.config/uraeda/config.toml",
   keyboard: { singleKeyShortcuts: { inForce: true, saved: null, source: { kind: "default" } } },
   problem: null,
-  runs: { buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } } },
+  runs: {
+    automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
+    buildInFreshSession: { inForce: true, saved: null, source: { kind: "default" } },
+    continueAfterLimit: { inForce: true, saved: null, source: { kind: "default" } },
+    continueAfterRestart: { inForce: true, saved: null, source: { kind: "default" } },
+    continueBeforeGate: { inForce: true, saved: null, source: { kind: "default" } },
+  },
   server: {
     allowedHosts: {
       inForce: ["mac.tail1234.ts.net"],

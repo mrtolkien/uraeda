@@ -23,6 +23,7 @@ const hosts = (name: string) => `[server]\nallowed_hosts = ["${name}"]\n`;
  */
 async function watched(dir: string) {
   const counted = {
+    checkedAutomaticContinues: binding.checkedAutomaticContinues,
     checkedPort: binding.checkedPort,
     reads: 0,
     readSettings(folder: string) {

@@ -96,6 +96,12 @@ export interface CategoryRemoved {
 }
 
 /**
+ * `typed`, trimmed, when it is a cap on automatic continues, a whole number from 1 to 10. Throws
+ * the problem otherwise, `Automatic continues in a row is a whole number from 1 to 10.`
+ */
+export declare function checkedAutomaticContinues(typed: string): number
+
+/**
  * `typed`, trimmed, when it is a port, a whole number from 1 to 65535. Throws the problem
  * otherwise, `The port is a number from 1 to 65535.`
  */
@@ -495,8 +501,17 @@ export declare function saveRoundNotes(repo: string, id: string, notes: string, 
  */
 export declare function saveText(repo: string, path: string, text: string, previous: string): Promise<string>
 
+/** Sets the automatic continues in a row, from the text typed. */
+export declare function setAutomaticContinues(dir: string, continues: string): Promise<Settings>
+
 /** Sets whether the run after a spec's approval starts in a new agent session. */
 export declare function setBuildInFreshSession(dir: string, fresh: boolean): Promise<Settings>
+
+/**
+ * Sets whether a kind of automatic continue is on: after a restart, after a usage limit, or
+ * before a human gate.
+ */
+export declare function setContinue(dir: string, key: "restart" | "limit" | "gate", on: boolean): Promise<Settings>
 
 /** Sets the discovery effort of a proposal file or a proposal, over the version read at `previous`. */
 export declare function setDiscovery(repo: string, path: string, level: string, previous: string): Promise<ProposalFileView>
@@ -1783,6 +1798,14 @@ export interface RunningFeature {
 export interface RunSettings {
   /** Whether the run after a spec's approval starts in a new agent session. */
   buildInFreshSession?: boolean
+  /** Whether a run the server's restart cut continues by itself: `true` when unset. */
+  continueAfterRestart?: boolean
+  /** Whether a run a session limit stopped continues at its reset: `true` when unset. */
+  continueAfterLimit?: boolean
+  /** Whether a run that ended before its gate is asked to continue: `true` when unset. */
+  continueBeforeGate?: boolean
+  /** Automatic continues in a row before the run asks, 1 to 10: 3 when unset. */
+  automaticContinues?: number
 }
 
 export interface Scenario {

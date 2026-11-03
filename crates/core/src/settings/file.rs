@@ -165,7 +165,45 @@ fn parse_runs(runs: &dyn TableLike) -> Result<RunSettings, Problem> {
         })?;
         settings.build_in_fresh_session = Some(fresh);
     }
+    settings.continue_after_restart = switch(
+        runs,
+        "continue_after_restart",
+        "Continue after a restart is true or false.",
+    )?;
+    settings.continue_after_limit = switch(
+        runs,
+        "continue_after_limit",
+        "Continue after a usage limit is true or false.",
+    )?;
+    settings.continue_before_gate = switch(
+        runs,
+        "continue_before_gate",
+        "Continue before a human gate is true or false.",
+    )?;
+    if let Some((key, item)) = runs.get_key_value("automatic_continues") {
+        let continues = item
+            .as_integer()
+            .ok_or_else(|| rules::CONTINUES_PROBLEM.to_owned())
+            .and_then(rules::automatic_continues_number);
+        settings.automatic_continues =
+            Some(continues.map_err(|problem| (offset(key, item), "automatic_continues", problem))?);
+    }
     Ok(settings)
+}
+
+/// The switch `name` of `table`, `None` when absent, or `problem` when it is not true or false.
+fn switch(
+    table: &dyn TableLike,
+    name: &'static str,
+    problem: &str,
+) -> Result<Option<bool>, Problem> {
+    table
+        .get_key_value(name)
+        .map(|(key, item)| {
+            item.as_bool()
+                .ok_or_else(|| (offset(key, item), name, problem.to_owned()))
+        })
+        .transpose()
 }
 
 /// The `[keyboard]` table's values.

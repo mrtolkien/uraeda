@@ -716,7 +716,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addAllowedHost, addCategory, addComment, addNote, addNoteWithImages, addProposal, addRepository, addSettledComment, allBranchChanges, approve, attachImage, attachNoteImages, branchChanges, cacheStats, checkedPort, checkoutCommit, commitChanges, commitPriorities, commitText, configDir, dataDir, deferCommits, discardChanges, discardPriorities, discoveryLevels, dropItem, dropNote, dropProposal, editAllowedHost, editComment, editNote, editProposal, editSettledComment, encodeImage, expandProposal, fixLinks, insertNote, insertProposal, land, mainRoot, moveNoteToCategory, moveProposal, nextStep, noteIntoProposal, noteIntoProposalLine, noteToProposal, noteToProposalFile, noteUnderProposal, openRepository, outlineNote, outlineProposal, pathFolder, placeNote, planStart, planTextStart, preview, promoteChange, proposalHints, proposeSlug, readDecision, readFeature, readFile, readHistory, readImage, readInbox, readLedger, readPriorities, readProposalFile, readRaw, readRepositories, readRound, readSettings, readText, readWorkspace, refreshPullRequests, removeAllowedHost, removeCategory, removeComment, removeNote, removeNoteAndCommit, removeNoteImage, removeProposal, removeRepository, removeSettledComment, renameCategory, requestChanges, restoreCategory, restoreNoteImage, retryCommit, retryRound, saveAnswer, saveNotes, saveRoundAnswer, saveRoundNotes, saveText, setBuildInFreshSession, setDiscovery, setItemSettings, setOpenBrowser, setPort, setSingleKeyShortcuts, settingsFile, startChange, startFeature, startOver, startText, storyLink, submitAnswers, submitRound, takeDeferred, undoCommittedNote, undoCommittedProposal, undoNoteAdd, undoNoteAsFile, undoNoteCategory, undoNoteIntoProposal, undoNoteToProposal, undoNoteUnderProposal, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState, RowChangeKind, SettledKind, VerdictKind } = nativeBinding
+const { WatchHandle, addAllowedHost, addCategory, addComment, addNote, addNoteWithImages, addProposal, addRepository, addSettledComment, allBranchChanges, approve, attachImage, attachNoteImages, branchChanges, cacheStats, checkedAutomaticContinues, checkedPort, checkoutCommit, commitChanges, commitPriorities, commitText, configDir, dataDir, deferCommits, discardChanges, discardPriorities, discoveryLevels, dropItem, dropNote, dropProposal, editAllowedHost, editComment, editNote, editProposal, editSettledComment, encodeImage, expandProposal, fixLinks, insertNote, insertProposal, land, mainRoot, moveNoteToCategory, moveProposal, nextStep, noteIntoProposal, noteIntoProposalLine, noteToProposal, noteToProposalFile, noteUnderProposal, openRepository, outlineNote, outlineProposal, pathFolder, placeNote, planStart, planTextStart, preview, promoteChange, proposalHints, proposeSlug, readDecision, readFeature, readFile, readHistory, readImage, readInbox, readLedger, readPriorities, readProposalFile, readRaw, readRepositories, readRound, readSettings, readText, readWorkspace, refreshPullRequests, removeAllowedHost, removeCategory, removeComment, removeNote, removeNoteAndCommit, removeNoteImage, removeProposal, removeRepository, removeSettledComment, renameCategory, requestChanges, restoreCategory, restoreNoteImage, retryCommit, retryRound, saveAnswer, saveNotes, saveRoundAnswer, saveRoundNotes, saveText, setAutomaticContinues, setBuildInFreshSession, setContinue, setDiscovery, setItemSettings, setOpenBrowser, setPort, setSingleKeyShortcuts, settingsFile, startChange, startFeature, startOver, startText, storyLink, submitAnswers, submitRound, takeDeferred, undoCommittedNote, undoCommittedProposal, undoNoteAdd, undoNoteAsFile, undoNoteCategory, undoNoteIntoProposal, undoNoteToProposal, undoNoteUnderProposal, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState, RowChangeKind, SettledKind, VerdictKind } = nativeBinding
 export { WatchHandle }
 export { addAllowedHost }
 export { addCategory }
@@ -732,6 +732,7 @@ export { attachImage }
 export { attachNoteImages }
 export { branchChanges }
 export { cacheStats }
+export { checkedAutomaticContinues }
 export { checkedPort }
 export { checkoutCommit }
 export { commitChanges }
@@ -813,7 +814,9 @@ export { saveNotes }
 export { saveRoundAnswer }
 export { saveRoundNotes }
 export { saveText }
+export { setAutomaticContinues }
 export { setBuildInFreshSession }
+export { setContinue }
 export { setDiscovery }
 export { setItemSettings }
 export { setOpenBrowser }

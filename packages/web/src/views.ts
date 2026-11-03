@@ -415,7 +415,13 @@ export const SettingsRecordView = view<Settings>()({
   id: true,
   keyboard: { singleKeyShortcuts: SettingSelection },
   problem: true,
-  runs: { buildInFreshSession: SettingSelection },
+  runs: {
+    automaticContinues: SettingSelection,
+    buildInFreshSession: SettingSelection,
+    continueAfterLimit: SettingSelection,
+    continueAfterRestart: SettingSelection,
+    continueBeforeGate: SettingSelection,
+  },
   server: {
     allowedHosts: SettingSelection,
     openBrowser: SettingSelection,

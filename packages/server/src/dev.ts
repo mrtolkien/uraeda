@@ -146,13 +146,13 @@ export function devHandler(
     const dataDir = loadDataDir(root, binding, process.env, sources);
     // Read with the first request, as the data folder is: the screenshot script's setup sets them
     // after Vite's server is made.
-    const { allowedHosts, given, port: portVariable, repo } = loadEnv(root, process.env, sources);
+    const { given, repo, ...variables } = loadEnv(root, process.env, sources);
     // The server's routes follow the settings file, as the packaged server's do; Vite's own pages
     // keep the variable's host names (R1).
     const settings = await ServerSettings.open({
       binding,
       dir: loadConfigDir(root, binding, process.env, sources),
-      options: { allowedHosts, noOpen: false, port: portVariable },
+      options: { ...variables, noOpen: false },
     });
     const server = await startServer({
       adapter:

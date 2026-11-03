@@ -50,9 +50,22 @@ export const settingsMutations = {
       settingsChanged(call, (dir) => call.ctx.binding.removeAllowedHost(dir, input.name)),
     type: "Settings",
   },
+  "settings.setAutomaticContinues": {
+    resolve: ({ input, ...call }: ListResolver<{ continues: string }>) =>
+      settingsChanged(call, (dir) => call.ctx.binding.setAutomaticContinues(dir, input.continues)),
+    type: "Settings",
+  },
   "settings.setBuildInFreshSession": {
     resolve: ({ input, ...call }: ListResolver<{ fresh: boolean }>) =>
       settingsChanged(call, (dir) => call.ctx.binding.setBuildInFreshSession(dir, input.fresh)),
+    type: "Settings",
+  },
+  "settings.setContinue": {
+    resolve: ({
+      input,
+      ...call
+    }: ListResolver<{ key: "gate" | "limit" | "restart"; on: boolean }>) =>
+      settingsChanged(call, (dir) => call.ctx.binding.setContinue(dir, input.key, input.on)),
     type: "Settings",
   },
   "settings.setOpenBrowser": {

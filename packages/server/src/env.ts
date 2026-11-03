@@ -11,6 +11,21 @@ export type HostsName = "--allowed-hosts" | "URAEDA_ALLOWED_HOSTS";
 /** The flag and the variable giving the port. */
 export type PortName = "--port" | "URAEDA_PORT";
 
+/** The flag and the variable turning off the continue after a server restart. */
+export type RestartName = "--no-continue-after-restart" | "URAEDA_CONTINUE_AFTER_RESTART";
+
+/** The flag and the variable turning off the continue after a usage limit's reset. */
+export type LimitName = "--no-continue-after-limit" | "URAEDA_CONTINUE_AFTER_LIMIT";
+
+/** The flag and the variable turning off the continue before a human gate. */
+export type GateName = "--no-continue-before-gate" | "URAEDA_CONTINUE_BEFORE_GATE";
+
+/** The flag and the variable giving the automatic continues in a row. */
+export type ContinuesName = "--automatic-continues" | "URAEDA_AUTOMATIC_CONTINUES";
+
+/** Every flag and variable giving a setting's value for one run. */
+export type GivenName = HostsName | PortName | RestartName | LimitName | GateName | ContinuesName;
+
 /**
  * The variables of the server's settings, from the process's environment, then `.env` at the
  * checkout's root, if any: each with its variable's name, absent when no variable gives it. The
@@ -19,6 +34,14 @@ export type PortName = "--port" | "URAEDA_PORT";
 export type Env = {
   /** Host names accepted besides 127.0.0.1 and localhost, like `mac.tail1234.ts.net`. */
   allowedHosts?: Given<Array<string>, HostsName>;
+  /** The automatic continues in a row as typed: the settings unit checks it with the core's rule. */
+  automaticContinues?: Given<string, ContinuesName>;
+  /** Whether a run a usage limit stopped continues at its reset. */
+  continueAfterLimit?: Given<boolean, LimitName>;
+  /** Whether a run the server's restart cut continues. */
+  continueAfterRestart?: Given<boolean, RestartName>;
+  /** Whether a run that ended before its gate is asked to continue. */
+  continueBeforeGate?: Given<boolean, GateName>;
   /** Whether `URAEDA_REPO` named the repository, which must then be in git. */
   given: boolean;
   /** The port as typed: the settings unit checks it with the core's rule. */
@@ -34,9 +57,10 @@ export type Env = {
 export type Sources = { file?: boolean };
 
 /**
- * Reads `URAEDA_ALLOWED_HOSTS`, `URAEDA_PORT`, and `URAEDA_REPO` from `<root>/.env` and the
- * environment, an empty variable as unset. Without a root, as in the package, only the
- * environment, and the repository is resolved from the current folder.
+ * Reads `URAEDA_ALLOWED_HOSTS`, `URAEDA_PORT`, `URAEDA_REPO`, and the continues' variables from
+ * `<root>/.env` and the environment, an empty variable as unset. Without a root, as in the package,
+ * only the environment, and the repository is resolved from the current folder. Throws
+ * `<name> is true or false.` for a switch's variable that is neither.
  */
 export function loadEnv(
   root: string | null,
@@ -47,12 +71,40 @@ export function loadEnv(
   const hosts = value("URAEDA_ALLOWED_HOSTS");
   const port = value("URAEDA_PORT");
   const repo = value("URAEDA_REPO");
+  const continues = value("URAEDA_AUTOMATIC_CONTINUES");
+  const restart = switchOf(value, "URAEDA_CONTINUE_AFTER_RESTART");
+  const limit = switchOf(value, "URAEDA_CONTINUE_AFTER_LIMIT");
+  const gate = switchOf(value, "URAEDA_CONTINUE_BEFORE_GATE");
   return {
     ...(hosts && { allowedHosts: { name: "URAEDA_ALLOWED_HOSTS", value: hostNames(hosts) } }),
+    ...(continues && {
+      automaticContinues: { name: "URAEDA_AUTOMATIC_CONTINUES", value: continues },
+    }),
+    ...(limit && { continueAfterLimit: limit }),
+    ...(restart && { continueAfterRestart: restart }),
+    ...(gate && { continueBeforeGate: gate }),
     given: Boolean(repo),
     ...(port && { port: { name: "URAEDA_PORT", value: port } }),
     repo: resolve(root ?? process.cwd(), repo || "."),
   };
+}
+
+/**
+ * The switch the variable `name` gives, `true` or `false`, undefined when unset; throws
+ * `<name> is true or false.` otherwise.
+ */
+function switchOf<N extends string>(
+  value: (name: string) => string | undefined,
+  name: N,
+): Given<boolean, N> | undefined {
+  const typed = value(name)?.trim();
+  if (!typed) {
+    return undefined;
+  }
+  if (typed !== "true" && typed !== "false") {
+    throw new Error(`${name} is true or false.`);
+  }
+  return { name, value: typed === "true" };
 }
 
 /** A comma separated list of host names, as `URAEDA_ALLOWED_HOSTS` and `--allowed-hosts` take. */

@@ -1,7 +1,13 @@
-//! What a host name and a port are, the only home of these rules.
+//! What a host name, a port, and a cap on automatic continues are, the only home of these rules.
 
 /// A port's problem, whatever was typed.
 pub const PORT_PROBLEM: &str = "The port is a number from 1 to 65535.";
+
+/// The problem of a cap on automatic continues, whatever was typed.
+pub const CONTINUES_PROBLEM: &str = "Automatic continues in a row is a whole number from 1 to 10.";
+
+/// The most automatic continues in a row.
+const MOST_CONTINUES: i64 = 10;
 
 /// The longest host name.
 const LONGEST: usize = 253;
@@ -43,4 +49,25 @@ pub fn port_number(number: i64) -> Result<u16, String> {
         .ok()
         .filter(|port| *port > 0)
         .ok_or_else(|| PORT_PROBLEM.into())
+}
+
+/// `typed`, trimmed, when it is a whole number from 1 to 10, written in digits only.
+pub fn automatic_continues(typed: &str) -> Result<i64, String> {
+    let digits = typed.trim();
+    if digits.is_empty() || !digits.chars().all(|c| c.is_ascii_digit()) {
+        return Err(CONTINUES_PROBLEM.into());
+    }
+    digits
+        .parse::<i64>()
+        .map_err(|_| CONTINUES_PROBLEM.to_owned())
+        .and_then(automatic_continues_number)
+}
+
+/// `number`, from the file, when it is from 1 to 10.
+pub fn automatic_continues_number(number: i64) -> Result<i64, String> {
+    if (1..=MOST_CONTINUES).contains(&number) {
+        Ok(number)
+    } else {
+        Err(CONTINUES_PROBLEM.into())
+    }
 }
