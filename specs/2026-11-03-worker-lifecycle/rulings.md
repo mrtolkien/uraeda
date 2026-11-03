@@ -130,11 +130,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: `URAEDA_CONTINUE_AFTER_RESTART`, `URAEDA_CONTINUE_AFTER_LIMIT`, and
   `URAEDA_CONTINUE_BEFORE_GATE` read `true` or `false`, trimmed. Any other value stops the start
-  with `<NAME> is true or false.`, as a port that is not one does. `env.ts` checks it, not the core.
+  with `<NAME> is true or false.`, as a port that is not one does. `env.ts` keeps the variable as
+  typed, and `settings.ts` checks it where it checks the port, at `ServerSettings.open`, not the
+  core: after `--help` and `--version`, which a bad variable does not break, and after the flags, so
+  a `--no-…` flag replaces a bad variable without an error. Found by the review of task 4.
 - **Rationale**: a TOML boolean is typed, so the file has no text rule to share with the variable,
   unlike the port and the cap, which the core checks for the file and the variable alike.
 - **If wrong**: a core rule for the switches' text, called by the binding, as `checkedPort` is.
-- **Where**: task 4, `packages/server/src/env.ts`.
+- **Where**: task 4, `packages/server/src/env.ts` and `packages/server/src/settings.ts`.
 
 ## R14: A continue's turn is queued in the step that claims it
 

@@ -1,7 +1,16 @@
 // The server's settings in force: each from its flag, its variable, the settings file, then its
 // default, the file read through the core and watched while the server runs.
 import type { Settings } from "uraeda-binding";
-import type { ContinuesName, Given, GivenName, PortName } from "./env.ts";
+import type {
+  ContinuesName,
+  GateName,
+  Given,
+  GivenName,
+  LimitName,
+  PortName,
+  RestartName,
+  Switch,
+} from "./env.ts";
 import type { Binding } from "./fate/context.ts";
 import type { Options } from "./options.ts";
 import { LIST_QUIET_MS } from "./repositories.ts";
@@ -80,8 +89,8 @@ function setting<T>(
 }
 
 /**
- * The values given for this run, as `options.ts` reports them: the port and the automatic
- * continues as typed.
+ * The values given for this run, as `options.ts` reports them: the port, the automatic continues,
+ * and the switches' variables as typed.
  */
 export type GivenValues = Pick<
   Options,
@@ -94,9 +103,19 @@ export type GivenValues = Pick<
   | "port"
 >;
 
-/** The values given for this run, the port and the automatic continues checked. */
-export type RunValues = Omit<GivenValues, "automaticContinues" | "port"> & {
+/** The values given for this run, the port, the automatic continues, and the switches checked. */
+export type RunValues = Omit<
+  GivenValues,
+  | "automaticContinues"
+  | "continueAfterLimit"
+  | "continueAfterRestart"
+  | "continueBeforeGate"
+  | "port"
+> & {
   automaticContinues?: Given<number, ContinuesName>;
+  continueAfterLimit?: Given<boolean, LimitName>;
+  continueAfterRestart?: Given<boolean, RestartName>;
+  continueBeforeGate?: Given<boolean, GateName>;
   port?: Given<number, PortName>;
 };
 
@@ -107,13 +126,38 @@ export type Checks = {
 };
 
 /**
+ * A switch given for this run: a flag's `false`, or its variable's `true` or `false`, trimmed;
+ * throws `<name> is true or false.` for a variable that is neither (R13).
+ */
+function checkedSwitch<N extends string>(
+  given: Switch<N> | undefined,
+): Given<boolean, N> | undefined {
+  if (given === undefined || typeof given.value === "boolean") {
+    return given as Given<boolean, N> | undefined;
+  }
+  const typed = given.value.trim();
+  if (typed !== "true" && typed !== "false") {
+    throw new Error(`${given.name} is true or false.`);
+  }
+  return { name: given.name, value: typed === "true" };
+}
+
+/**
  * The values given for this run, each number checked by the core's rule, which throws its
- * problem, like `The port is a number from 1 to 65535.`, for a value out of it.
+ * problem, like `The port is a number from 1 to 65535.`, for a value out of it, and each switch's
+ * variable read as true or false.
  */
 export function checked(given: GivenValues, checks: Checks): RunValues {
   const { automaticContinues, port, ...rest } = given;
+  const { continueAfterLimit, continueAfterRestart, continueBeforeGate, ...others } = rest;
+  const limit = checkedSwitch(continueAfterLimit);
+  const restart = checkedSwitch(continueAfterRestart);
+  const gate = checkedSwitch(continueBeforeGate);
   return {
-    ...rest,
+    ...others,
+    ...(limit && { continueAfterLimit: limit }),
+    ...(restart && { continueAfterRestart: restart }),
+    ...(gate && { continueBeforeGate: gate }),
     ...(port && { port: { ...port, value: checks.checkedPort(port.value) } }),
     ...(automaticContinues && {
       automaticContinues: {

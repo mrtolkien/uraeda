@@ -368,6 +368,25 @@ test("a given cap on automatic continues is the core's number, from 1 to 10", as
   expect(settings.runs().automaticContinues.inForce).toBe(7);
 });
 
+/** The switch typed in `URAEDA_CONTINUE_BEFORE_GATE`. */
+const gate = (value: string) => ({
+  continueBeforeGate: { name: "URAEDA_CONTINUE_BEFORE_GATE" as const, value },
+  noOpen: false,
+});
+
+/** R13 */
+test("a given switch's variable reads true or false, and stops the start otherwise", async () => {
+  await expect(opened(temporaryFolder("uraeda-config"), gate("yes"))).rejects.toThrow(
+    /^URAEDA_CONTINUE_BEFORE_GATE is true or false\.$/,
+  );
+  const settings = await opened(temporaryFolder("uraeda-config"), gate(" false "));
+  expect(settings.runs().continueBeforeGate).toEqual({
+    inForce: false,
+    saved: null,
+    source: { kind: "environment", name: "URAEDA_CONTINUE_BEFORE_GATE" },
+  });
+});
+
 test("a given port is the core's number", async () => {
   const options = { noOpen: false, port: { name: "--port" as const, value: " 4400 " } };
 

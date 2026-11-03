@@ -254,15 +254,24 @@ test("refuses to start on a folder that is not a repository", async () => {
   expect(result.code).toBe(1);
 });
 
+/** A switch's variable that is not true or false is checked after --help and --version. */
+const BAD_SWITCH = { ...process.env, URAEDA_CONTINUE_BEFORE_GATE: "yes" };
+
 test("--help prints the options and exits 0", () => {
-  const result = spawnSync(process.execPath, [main, "--help"], { encoding: "utf8" });
+  const result = spawnSync(process.execPath, [main, "--help"], {
+    encoding: "utf8",
+    env: BAD_SWITCH,
+  });
 
   expect(result.stdout).toBe(HELP);
   expect(result.status).toBe(0);
 });
 
 test("--version prints the workspace's version", () => {
-  const result = spawnSync(process.execPath, [main, "--version"], { encoding: "utf8" });
+  const result = spawnSync(process.execPath, [main, "--version"], {
+    encoding: "utf8",
+    env: BAD_SWITCH,
+  });
 
   expect(result.stdout).toBe(`${version()}\n`);
   expect(result.status).toBe(0);
@@ -847,12 +856,22 @@ test("a start leaves an empty config folder empty, and an absent one absent", as
   expect(existsSync(absent)).toBe(false);
 });
 
-/** A port given by a flag or a variable follows the core's rule, as the file's does. */
-test.each<{ args: Array<string>; env: Record<string, string> }>([
-  { args: ["--port", "abc"], env: {} },
-  { args: [], env: { URAEDA_PORT: "0" } },
-  { args: [], env: { URAEDA_PORT: "70000" } },
-])("a port that is not one refuses the start: $args $env", async ({ args, env }) => {
+const NOT_A_PORT = "The port is a number from 1 to 65535.";
+
+/**
+ * A port given by a flag or a variable follows the core's rule, as the file's does; a switch's
+ * variable reads true or false (R13).
+ */
+test.each<{ args: Array<string>; env: Record<string, string>; problem: string }>([
+  { args: ["--port", "abc"], env: {}, problem: NOT_A_PORT },
+  { args: [], env: { URAEDA_PORT: "0" }, problem: NOT_A_PORT },
+  { args: [], env: { URAEDA_PORT: "70000" }, problem: NOT_A_PORT },
+  {
+    args: [],
+    env: { URAEDA_CONTINUE_BEFORE_GATE: "yes" },
+    problem: "URAEDA_CONTINUE_BEFORE_GATE is true or false.",
+  },
+])("a value that is not one refuses the start: $args $env", async ({ args, env, problem }) => {
   const data = temporaryFolder("uraeda-data");
 
   const refused = await run(["--repo", fixtureRepo(), ...args], {
@@ -861,7 +880,7 @@ test.each<{ args: Array<string>; env: Record<string, string> }>([
 
   expect(refused.code).toBe(1);
   expect(refused.stdout).toBe("");
-  expect(refused.stderr).toBe("uraeda: The port is a number from 1 to 65535.\n");
+  expect(refused.stderr).toBe(`uraeda: ${problem}\n`);
   expect(readdirSync(data)).toEqual([]);
 });
 
