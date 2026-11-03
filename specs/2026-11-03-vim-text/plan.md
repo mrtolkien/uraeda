@@ -1,0 +1,900 @@
+---
+status: auto-approved
+spec-revision: 5
+---
+
+# Plan: Vim in text edit mode
+
+**Goal:** every text field of the web UI becomes one CodeMirror editor, Markdown highlighted and
+wrapped, with Vim's keys behind a switch, the mode in a LazyVim-shaped status line, a buffer for any
+Markdown file under `specs/`, and a Commit page with a pane per branch.
+
+**Architecture:** see the [spec's architecture](spec.md#architecture). Ownership:
+
+- **The core** owns what can be read and written as a buffer, where it is written, and which files a
+  buffer changed: a buffer's save records its path beside the checkout it wrote, and that record
+  decides the Commit page's `- Edit <path>` lines and each branch's pane. It owns the settings keys
+  `vim_mode` and `vim_commands`, their defaults and their file problems.
+- **The server** owns the refusal while an agent works ("An agent is working on this feature. Stop
+  it first, or wait for it."), through its existing `writable()`, for a buffer's save and a feature
+  pane's commit.
+- **The editor** (`packages/web/src/fields/editor/`) owns every text field's element: its variants,
+  highlighting, wrapping, theme, accessible name, Ctrl+Enter, and the Escape hand-over. Callers keep
+  their props; `useTextField` and the unsaved store stay the owners of unsaved text.
+- **The Vim layer** (`fields/editor/vim/`) owns everything Vim: its lazy chunk, insert mode at
+  focus, `:w` `:q` `:wq`, yanks to the clipboard, the human's commands and their errors. It only
+  ever calls the editor's own actions (save, leave, cancel), so Escape keeps one meaning per field.
+- **The mode store** (`fields/editor/modeStore.ts`) is the one place the status line reads the mode
+  and the cursor's place from.
+
+The Rust side follows the core's existing modules: settings in `settings.rs` and `settings/file.rs`,
+writes through `actions/place.rs`'s `reach`, the Commit page's lines in `actions/changes.rs`.
+
+**Spec:** [spec.md](spec.md): the plan argues from the spec, so the implementer reads both.
+
+## Review focus
+
+1. **A path that climbs out**, like `specs/../Cargo.toml`, `specs/x/../../a.md`, or a symlink under
+   `specs/` pointing outside, is refused by the buffer's read and save, as `text::checked` refuses
+   today. Task 2.
+2. **A buffer path in a feature's subfolder**, like `specs/<folder>/contracts/api.md`, is written on
+   the feature's branch, never the default branch. Task 2.
+3. **A pane commit stages only the files it lists**: a file the agent left uncommitted in the same
+   worktree stays out of the commit. Task 7.
+4. **A buffer save of `INBOX.md` while the inbox has structured changes** shows one
+   `- Edit specs/INBOX.md` line, and its commit holds the file as typed. Task 7.
+5. **A commit message with surrounding blank lines** is committed as typed, trimmed of the blank
+   lines only; a message of spaces is refused as empty. Task 7.
+6. **Typing in the one-line field with an input method** (`isComposing`): Enter during composition
+   does not save. Task 3.
+7. **The Vim chunk never loads on a coarse main pointer**, even with the switch on. Task 6.
+
+## Global constraints
+
+From [Text editing](../decisions/text-editing.md), word for word:
+
+- Every text field MUST be the one shared editor, unless it is part of another Astryx component,
+  like a picker's filter, or only the browser's field can do the job, like a password. Checked by
+  lint.
+- The editor MUST highlight Markdown, with Vim on or off.
+- Text MUST wrap in every field, one-line fields included, never scrolling sideways.
+- Vim's keys MUST come from CodeMirror's Vim engine, never from keys handled by hand.
+- Vim MUST stay off until the human turns it on in the settings file. Checked by the core's tests.
+- Escape in Vim's normal mode MUST do what Escape does in the same field without Vim.
+- A yank MUST also reach the system clipboard.
+- The status line MUST name the Vim mode while Vim is on.
+
+From [Git](../decisions/git.md):
+
+- Tools MUST NOT commit the human's edits unless the human asks for that commit, on the Commit page
+  or by an action that says it commits. Checked by the core's tests.
+- Rust tools MUST read git with the gix library, and write through the system `git`, from one module
+  of the core.
+- Tools MUST NOT switch the user's checkout unless the human asks.
+
+From [UI components](../decisions/ui-components.md): Views MUST use Astryx components wherever one
+fits the job, except text fields, which follow the Text editing decision. Views MUST be styled only
+through Astryx's theme, never with a global stylesheet or inline styles. The editor's own look goes
+through CodeMirror's `EditorView.theme` over Astryx's theme tokens (`var(--…)`), which is no global
+stylesheet: see Complexity tracking.
+
+From [Keyboard](../decisions/keyboard.md): a shortcut MUST be declared in the key registry, and
+listened for nowhere else; the structural test's allowlist names each field listener with its
+reason. `Space b` is declared with `useKeys`.
+
+From [Settings](../decisions/settings.md): the settings file is read and written by the core only,
+keeping comments and order.
+
+From [Code quality](../decisions/code-quality.md): files stop at 500 lines, functions at 100; a new
+marker needs the plan's approval (none is added).
+
+From [Testing](../decisions/testing.md): the stage is `early`; a test of the web UI guards behaviour
+costly to lose that using the UI would not show. Each changed view is reviewed in the sandbox, both
+themes, phone and desktop widths, before the hand-over.
+
+Exact texts from the spec and the data model:
+
+- "Discard your changes?" (Escape on a changed row, as today)
+- "Vim mode is true or false." and "Vim commands are a list of lines, like [\"imap jj <Esc>\"]."
+- "Line 2: Not an editor command \":nmpa Q dd\"" (the engine's message, prefixed `Line N: `)
+- "An agent is working on this feature. Stop it first, or wait for it."
+- "A commit needs a message."
+- "Use the suggested message"; the conflict banner's "Copy my text" and "Load the new version".
+- Lines `- Edit specs/PRIORITIES.md` (default branch, path from the repository root) and
+  `- Edit spec.md` (a feature's pane, path from its folder); suggested messages
+  `chore: edit specs/PRIORITIES.md` and `chore(<slug>): edit spec.md`, the slug the folder's name
+  without its date.
+- The mode names NAV, NORMAL, INSERT, VISUAL, V-LINE, V-BLOCK, REPLACE, COMMAND; Lucide icons NAV
+  `compass`, NORMAL `square`, INSERT `pencil`, visual `square-dashed`, REPLACE `replace`, COMMAND
+  `terminal`; colours: NAV grey, NORMAL blue, INSERT green, visual mauve, REPLACE red, COMMAND peach
+  (Catppuccin, through the theme's tokens).
+- One-line fields: past 9 lines, they scroll inside.
+
+Preserved: Ctrl+Enter saves or sends every field; Enter saves a row and a one-line field; pasting an
+image attaches it in the composer, a note, and an inbox row; unsaved text, the Leave guard, and the
+restore notice follow `useTextField`; `keys/fields.ts` already counts `[role="textbox"]` and
+`[contenteditable]` as a text field, which CodeMirror's content element is.
+
+## Code read
+
+- **Fields**: [`fields/TextField.tsx`](/packages/web/src/fields/TextField.tsx) (Astryx `TextArea`,
+  rows by kind, Ctrl+Enter; 8 call sites), [`EditableLine.tsx`](/packages/web/src/EditableLine.tsx)
+  (`LineField`: Enter saves, Escape cancels; used by `InboxPage`, `SessionHeader`, `CategoryPane`,
+  `EntryPane`, `ServerSettings`),
+  [`lists/OutlineEditor.tsx`](/packages/web/src/lists/OutlineEditor.tsx) (raw one-row `textarea`;
+  Enter, Escape, Tab, Backspace, paste of images through `OutlineImages`),
+  [`ComposerField.tsx`](/packages/web/src/ComposerField.tsx) and
+  [`Composer.tsx`](/packages/web/src/Composer.tsx) (Astryx `ChatComposerInput`; handle
+  `{insertText, focus, getValue}`; Escape blurs; folding on the phone). Astryx's `ChatComposer`
+  accepts a custom input through `ChatComposerContext` (`value`, `onChange`, `inputControlRef`):
+  `dist/Chat/ChatContext.d.ts`. One-line `TextInput`s: `AddNote`, `AddRepository`, `NewPage`,
+  `OfferCard`, `RepositoryMenu`, `SlugField`, `StartDialog`, `keys/KeyMap`, `settings/SettingsView`,
+  `sidebar/FeatureSettings`, `sidebar/RenameSession`; `sign-in/SignInPage`'s password stays.
+- **Keys**: [`keys/fields.ts`](/packages/web/src/keys/fields.ts),
+  [`keys/registry.tsx`](/packages/web/src/keys/registry.tsx) (`useKeys(bindings, place)`,
+  `useSingleKeys`),
+  [`__tests__/keys-structural.test.ts`](/packages/web/src/__tests__/keys-structural.test.ts)
+  (allowlist of listeners per file), [`keys/leaderTree.ts`](/packages/web/src/keys/leaderTree.ts).
+- **Status line**: [`shell/StatusLine.tsx`](/packages/web/src/shell/StatusLine.tsx), 240 lines:
+  `Hints`, `Counts`, the phone's `PhoneBar`.
+- **Settings**: core `settings.rs` (`KeyboardSettings { single_key_shortcuts: Option<bool> }` :48,
+  `set_single_key_shortcuts` :165, `change_table` :193 with toml_edit), `settings/file.rs`
+  (`parse_keyboard` :172, message `Single-key shortcuts is true or false.`), tests
+  `crates/core/tests/settings.rs` (`reads_the_keyboard_table` :478,
+  `sets_single_key_shortcuts_in_its_own_table_keeping_the_hand_edits` :522); binding
+  `crates/binding/src/settings.rs` (`setSingleKeyShortcuts`), `packages/binding/contracts.test.ts`;
+  server `packages/server/src/settings.ts` (`KeyboardSettingsView`, `inForce` :93),
+  `fate/settings.ts`, `fate/settings-mutations.ts` (`settings.setSingleKeyShortcuts` :68), tests
+  `__tests__/settings.test.ts` and `settings-fate.test.ts`; web `views.ts:413`
+  (`SettingsRecordView`), `data.ts:353` (`useSettings`), `settings/KeyboardSettings.tsx`,
+  `settings/SingleKeysSetting.tsx`, `settings/SettingsPage.tsx:77`, `settings/optimistic.ts`. The
+  path came in commits `63fc7ef5` and `068edc6d`.
+- **Text writes**: `crates/core/src/api/proposal_files.rs` (`text_place` :109, `save_text` :127,
+  `read_text` :173; feature files refused with a `/` past the folder),
+  `crates/core/src/actions/text.rs` (`checked` :25, `save` :36 with the hash conflict "<name>
+  changed on disk since you opened it. Your text was not saved."), `actions/place.rs` (`reach` :36
+  uses the checkout with the branch, else a worktree, creating `.worktrees/<branch>`),
+  `default_branch.rs` (`on_default`, `default_checkout`). Server `fate/mutations.ts` (`text.save`
+  :335, `text.commit` :306), `fate/sessions.ts:384` (`writable`, only when
+  `binding.pathFolder(path)` names a folder). Web `pane/useProposalEditor.ts` (`withFreshBase` save,
+  conflict state, `reload`), `pane/ProposalEditor.tsx` (`ConflictBanner`), `EditorPage.tsx`,
+  `routeTable.ts:135`. Tests `crates/core/tests/api.rs` (`:290`
+  `proposal_file_paths_stay_in_the_proposal_files`, `:481`), `actions.rs:860`, web
+  `__tests__/editor.test.tsx:87`, server `sessions.test.ts:1340`.
+- **Commit page**: web [`CommitPage.tsx`](/packages/web/src/CommitPage.tsx) (lines from
+  `PrioritiesView.changeLines`, `changes.commit` and `changes.discard`, keys Enter, mod+Enter, `d`);
+  server `fate/inbox-mutations.ts` (`changes.commit` :37 queued under `LISTS`, `changes.discard`
+  :44); core `api/proposal_edits.rs` (`change_list` :22, only in the default checkout),
+  `actions/changes.rs` (`Changes {count, lines}` :31, `list` :350, `message` :379, `commit` :414
+  refusing "INBOX.md and PRIORITIES.md have no change to commit", `discard` :442),
+  `api/inbox_edits.rs` (`commit_changes` :327, `discard_changes` :336). Tests
+  `crates/core/tests/priorities.rs` (:232, :268, :348, :398), `inbox_moves.rs` (:313, :427, :789),
+  server `inbox.test.ts:416` and `:433`, web `commit-toast.test.tsx`. Writes with deferral on wait
+  for `land` (`actions/deferred.rs`).
+- **Tests**: Vitest through `vp test`, under happy-dom (`packages/web/src/__tests__/setup.ts`);
+  `renderPage(path, repo, …)` renders the whole app over a fixture repository copied per test
+  (`__tests__/helpers.tsx`), whose `type(element, value)` sets a field's value; `__focused__/`
+  renders the composer alone. Rust tests run with `cargo nextest`, over example repositories built
+  per test.
+- **Validation**: `vp run fast` after each task, `vp run ready` before a push (Rust fmt, clippy,
+  nextest, `vp check`, `vp test`, the web build, Storybook build, `ura check`). `vp run performance`
+  is the performance decision's benchmark, on demand.
+- **Lint**: root [`vite.config.ts`](/vite.config.ts): `forbiddenElements` (:103) forbids raw `input`
+  and `textarea`; `no-restricted-imports` (:190) has the pattern to forbid Astryx's text fields;
+  `__tests__/lint.test.ts` lints one fixture per banned pattern in `src/__lint__/`.
+
+## Constitution check
+
+| I. Humans in control | II. Plain text | III. Async | IV. Review effort | V. Tools optional |
+| -------------------- | -------------- | ---------- | ----------------- | ----------------- |
+| ✅                   | ✅             | ✅         | ✅                | ✅                |
+
+The record of files a buffer changed is tool state beside the checkout, like the deferred commits:
+losing it only turns `- Edit <path>` lines back into the structured lines of today.
+
+## Complexity tracking
+
+| Unit                                                   | Why                                                                                                        | Simpler alternative rejected                                                               |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `fields/editor/` (the editor, its variants, its theme) | the spec's one editor for 23 call sites                                                                    | a wrapper per field kind: four copies of Escape and Ctrl+Enter                             |
+| The editor's theme through `EditorView.theme`          | CodeMirror styles itself with an injected `<style>`; the theme reads Astryx's tokens as CSS variables      | StyleX on CodeMirror's inner elements: StyleX cannot reach elements CodeMirror creates     |
+| `fields/editor/modeStore.ts`                           | the status line reads the focused field's mode and cursor; the fields write it                             | a React context: every field would re-render the shell                                     |
+| `fields/editor/vim/` (its own chunk)                   | SC-004: the engine's chunk is never requested with Vim off                                                 | importing it statically: 42 KB for everyone                                                |
+| Core `actions/edited.rs`, the buffer's record          | US5 2 and US6 need the files a buffer changed, apart from the inbox's structured diff and an agent's files | listing every uncommitted file of a worktree: an agent's work in progress would be offered |
+| `__tests__/helpers.tsx`'s `type` over CodeMirror       | 25 test files type into fields; one helper sets an editor's text through its view                          | each test dispatching CodeMirror transactions itself                                       |
+| `shell/status/` (the status line's sections)           | `StatusLine.tsx` is 240 lines; LazyVim's sections are files of their own, as the spec says                 | growing `StatusLine.tsx` past 500 lines                                                    |
+
+## Test map
+
+Web tests render the app over a fixture repository under happy-dom, with CodeMirror's real view and
+the real Vim engine; the clipboard is happy-dom's. Core tests run over example repositories with the
+system `git`. The stage is `early`: UI behaviour the sandbox shows has no test.
+
+| Spec item                                              | Task | Check                                                                                              |
+| ------------------------------------------------------ | ---- | -------------------------------------------------------------------------------------------------- |
+| US1 1 (bold, Ctrl+Enter saves a comment)               | 3    | existing comment-saving tests in `review.test.tsx`, through the new `type`; highlighting: sandbox  |
+| US1 2 (a row wraps and grows on the phone)             | 4    | none: layout, seen in the sandbox                                                                  |
+| US1 3 (Escape leaves a comment, keeps text; `j` moves) | 3    | `editor-field.test.tsx` "Escape leaves a comment keeping its text, and the page's keys work again" |
+| US1 more 1 (paste "first\nsecond" in a row)            | 4    | `keys-row-editing.test.tsx` row of "a row refuses line breaks" (existing test, rewritten)          |
+| US1 more 2 (a PNG pasted in the composer)              | 5    | `__focused__/composer.test.tsx`'s existing paste test, through the new editor                      |
+| US2 1 (`i`, insert mode at focus)                      | 6    | `vim.test.tsx` "a field opens in insert mode"                                                      |
+| US2 2 (`dw` then Escape asks to discard)               | 6    | `vim.test.tsx` "Escape in normal mode cancels a changed row, asking first"                         |
+| US2 3 (Shift+Escape leaves from insert)                | 6    | `vim.test.tsx` row of the Escape test                                                              |
+| US2 4 (`yy` reaches the clipboard, `p` in a row)       | 6    | `vim.test.tsx` "a yank reaches the clipboard"                                                      |
+| US2 more 1 (`:w` `:q` `:wq`)                           | 6    | `vim.test.tsx` "`:w` saves a comment"; `:q`, `:wq`: sandbox                                        |
+| US2 more 2 (Enter in normal mode)                      | 6    | none: the engine's key, seen in the sandbox                                                        |
+| US2 more 3 (no Vim on touch)                           | 6    | `vim-load.test.ts` "the engine loads only with the switch on and a fine pointer"                   |
+| US3 1–3, more 1 (the mode in the status line)          | 8    | none: drawn, seen in the sandbox; the mode store's names: `vim.test.tsx` asserts NORMAL and INSERT |
+| US4 1 (`imap jj <Esc>`)                                | 6    | `vim.test.tsx` "the human's commands run when Vim starts"                                          |
+| US4 2 (a refused line's error)                         | 6    | `vim-load.test.ts` "a refused command gives its line and the engine's message"                     |
+| US4 3 (a string, not a list)                           | 1    | core `reads_the_keyboard_table`, new rows                                                          |
+| US5 1 (`Space b` opens the priorities)                 | 10   | `buffer.test.tsx` "Space b opens the page's file, frontmatter and all"                             |
+| US5 2 (`:w` writes, not committed; Commit lists it)    | 2, 7 | core `a_buffer_save_writes_without_committing`; core `a_buffer_edit_is_one_edit_line`              |
+| US5 3 (a conflict)                                     | 2    | core `a_buffer_save_over_a_changed_file_writes_nothing`; banner: `editor.test.tsx`'s existing test |
+| US5 more 1 (a feature's spec on its branch)            | 2    | core `a_buffer_writes_a_features_file_on_its_branch`                                               |
+| US5 more 2 (refused while the agent works)             | 2    | server `buffer.test.ts` "a feature's buffer is refused while its agent works"                      |
+| US5 more 3–5 (`:q`, the phone, no `Space b`)           | 10   | none: seen in the sandbox; the Leave guard is the existing `leave.test.tsx`                        |
+| US6 1 (a pane per branch)                              | 7    | core `each_branch_lists_its_buffer_edits`                                                          |
+| US6 2 (a pane commits its branch only)                 | 7    | core `a_branch_commits_alone`                                                                      |
+| US6 3 (the message as typed)                           | 7    | core `a_branch_commits_alone` (rewritten message row)                                              |
+| Edge: Vim on, a changed row, Escape twice              | 6    | `vim.test.tsx` "Escape in normal mode cancels a changed row, asking first"                         |
+| Edge: a buffer over a changed file                     | 2    | as US5 3                                                                                           |
+| Edge: a buffer breaks a file's format                  | 2    | `a_buffer_save_writes_without_committing` saves a broken decision as typed                         |
+| Edge: an emptied commit message                        | 7    | core `an_empty_message_is_refused`                                                                 |
+| Edge: Vim off with unsaved text                        | 6    | `vim.test.tsx` "turning Vim off keeps the field's text"                                            |
+| Edge: changes grow after a rewritten message           | 7    | none: the field's state, seen in the sandbox                                                       |
+| Edge: two panes on the phone                           | 7    | none: layout                                                                                       |
+| Edge: Escape in a dialog's field                       | 6    | none: the editor's Escape inside a layer, seen in the sandbox                                      |
+| Edge: a feature pane committed while its agent works   | 7    | server `inbox.test.ts` new row "a feature pane is refused while its agent works"                   |
+| Edge: Shift+Escape in Chrome; dead keys; `"+p`; Ctrl+W | 6    | none: browser behaviour                                                                            |
+| Edge: a 2,000-character line                           | 3    | none: layout                                                                                       |
+| Edge: a screen reader hears the mode                   | 8    | none: a polite live region, checked in the sandbox                                                 |
+| SC-001 (every field is the editor)                     | 9    | `lint.test.ts` new fixtures                                                                        |
+| SC-002 (keystroke 16 ms) and SC-003 (reload 1 s)       | 11   | `vp run performance`, new keystroke measure                                                        |
+| SC-004 (switch off, no chunk)                          | 6    | `vim-load.test.ts`                                                                                 |
+| SC-005 (settings keys)                                 | 1    | core `reads_the_keyboard_table`, `sets_vim_keys_keeping_the_hand_edits`                            |
+| SC-006 (buffer paths and conflict)                     | 2    | core buffer tests                                                                                  |
+| Review focus 1, 2                                      | 2    | core `a_buffer_refuses_paths_outside_specs`, `a_buffer_writes_a_features_file_on_its_branch`       |
+| Review focus 3, 4, 5                                   | 7    | core `a_branch_commits_alone`, `a_buffer_edit_is_one_edit_line`, `an_empty_message_is_refused`     |
+| Review focus 6                                         | 3    | `editor-field.test.tsx` row "Enter while composing does not save"                                  |
+| Review focus 7                                         | 6    | `vim-load.test.ts`                                                                                 |
+
+## Waves
+
+1. Tasks 1, 2, 3: the settings keys, the core's buffer, the editor. No file in common; task 2 and
+   task 1 both add to the binding's `index.d.ts`, generated, and to `crates/binding/src/lib.rs` side
+   by side.
+2. Tasks 4, 5, 6, 7: one-line fields and rows, the composer, the Vim layer with its settings, the
+   Commit page. They each add rows to `keys-structural.test.ts`'s allowlist.
+3. Tasks 8, 9: the status line, the lint rule.
+4. Task 10: the buffer page.
+5. Task 11: documentation and the benchmark.
+
+---
+
+## Task 1: The `vim_mode` and `vim_commands` settings
+
+**Risky:** the settings file's format, read and written by the core.
+
+**Files:**
+
+- Modify: `crates/core/src/settings.rs`, `crates/core/src/settings/file.rs`,
+  `crates/binding/src/settings.rs`, `packages/binding/index.d.ts`, `packages/binding/index.js`,
+  `packages/binding/contracts.test.ts`, `packages/server/src/settings.ts`,
+  `packages/server/src/fate/settings.ts`, `packages/server/src/fate/settings-mutations.ts`,
+  `packages/web/src/views.ts`, `packages/web/.fate/client.generated.ts`,
+  `packages/web/src/settings/optimistic.ts`
+- Test: `crates/core/tests/settings.rs`, `packages/server/src/__tests__/settings.test.ts`,
+  `packages/server/src/__tests__/settings-fate.test.ts`
+
+**Interfaces:**
+
+- Produces:
+  - Core:
+    `KeyboardSettings { single_key_shortcuts: Option<bool>, vim_mode: Option<bool>, vim_commands: Option<Vec<String>> }`;
+    `pub fn set_vim_mode(dir: &Path, on: bool) -> Result<Settings, ApiError>`;
+    `pub fn set_vim_commands(dir: &Path, lines: &[String]) -> Result<Settings, ApiError>`.
+  - Binding: `setVimMode(dir, on): Promise<Settings>`,
+    `setVimCommands(dir, lines): Promise<Settings>`;
+    `KeyboardSettings { singleKeyShortcuts?: boolean; vimMode?: boolean; vimCommands?: Array<string> }`.
+  - Server:
+    `KeyboardSettingsView { singleKeyShortcuts, vimMode: Setting<boolean>, vimCommands: Setting<Array<string>> }`,
+    in force `false` and `[]`; mutations `settings.setVimMode({ on: boolean })` and
+    `settings.setVimCommands({ lines: Array<string> })`, both returning the settings record.
+  - Web: `SettingsRecordView.keyboard.vimMode` and `.vimCommands`; `shown.setVimMode(on)` and
+    `shown.setVimCommands(lines)` in `optimistic.ts`.
+
+- [ ] **Step 1: Write the failing tests**
+
+In `crates/core/tests/settings.rs`, add rows to `reads_the_keyboard_table`: `vim_mode = true` and
+`vim_commands = ["imap jj <Esc>", "nmap Y y$"]` read as written; a file without them reads `None`;
+`vim_mode = "yes"` fails with `line N, vim_mode: Vim mode is true or false.`;
+`vim_commands = "imap jj <Esc>"` and `vim_commands = [1]` fail with
+`line N, vim_commands: Vim commands are a list of lines, like ["imap jj <Esc>"].` Add
+`sets_vim_keys_keeping_the_hand_edits`: over a file with a comment on `single_key_shortcuts`,
+`set_vim_mode(dir, true)` then `set_vim_commands(dir, &["imap jj <Esc>"])` leave the comment and the
+key order, and append the two keys in `[keyboard]`. Server: `settings.test.ts` asserts the defaults
+in force (`vimMode.inForce === false`, `vimCommands.inForce` empty); `settings-fate.test.ts` sets
+both through the mutations and reads them back.
+
+The break each test catches: a default of `true`; a list read from a string; a write that drops a
+comment or reorders keys; a mutation not reaching the file.
+
+- [ ] **Step 2: Run them to check they fail**
+
+- Run: `nix develop -c cargo nextest run -p uraeda-core settings`
+- Expected: FAIL, compile error `no field vim_mode` or the missing `set_vim_mode`.
+
+- [ ] **Step 3: Implement the keys, from the core to the web's view**, following
+      `single_key_shortcuts`'s path (commit `63fc7ef5`). Rebuild the binding with
+      `vp run --filter uraeda-binding build`, and regenerate the fate client as the server's scripts
+      do.
+
+- [ ] **Step 4: Run the task's validation**
+
+- Run: `nix develop -c vp run fast`
+- Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "feat(vim-text): the Vim mode and Vim commands settings"
+```
+
+## Task 2: The core's buffer: read and save any Markdown file under `specs/`
+
+**Risky:** it widens what the web UI can write, a security guard, and records state beside a
+checkout.
+
+**Files:**
+
+- Create: `crates/core/src/actions/edited.rs`, `crates/core/src/api/buffer.rs`,
+  `packages/server/src/fate/buffer.ts`
+- Modify: `crates/core/src/actions/mod.rs`, `crates/core/src/api/mod.rs`,
+  `crates/binding/src/lib.rs`, `packages/binding/index.d.ts`, `packages/binding/index.js`,
+  `packages/server/src/fate/mutations.ts` (or the server's list of mutation modules),
+  `packages/server/src/fate/sources.ts`, the fate types the server exports
+- Test: `crates/core/tests/buffer.rs`, `packages/server/src/__tests__/buffer.test.ts`
+
+**Interfaces:**
+
+- Produces:
+  - Core: `pub fn read_buffer(repo: &Path, path: &str) -> Result<BufferView>` with
+    `BufferView { path: String, text: String, hash: String, branch: String }`, the text whole,
+    frontmatter included;
+    `pub fn save_buffer(repo: &Path, path: &str, text: &str, previous: &str) -> Result<String>`
+    returning the new hash, never committing.
+  - Core: `actions::edited::{record(place, path), list(place) -> Vec<String>, clear(place, paths)}`:
+    the paths (from the repository root) a buffer saved in the checkout of `place`, kept in a file
+    of that checkout's own git directory (`git rev-parse --git-dir`), so each worktree has its own.
+  - Where a path is written: under `specs/<folder>/` or `specs/changes/<folder>/` of a known feature
+    or change, at any depth, on its branch through `place::reach`; any other `specs/**/*.md` on the
+    default branch through `reach_default`. A path not ending in `.md`, outside `specs/`, with `..`,
+    or resolving outside the repository through a symlink, is refused with
+    `"<path> is not a Markdown file of specs/"`. A stale hash is the existing conflict.
+  - Binding: `readBuffer(repo, path): Promise<BufferView>`,
+    `saveBuffer(repo, path, text, previous): Promise<string>`.
+  - Server: a `Buffer` source by id (the path) and mutation `buffer.save({ path, text, hash })`
+    returning the `Buffer`, refused through `writable(ctx, { path })` while an agent works, with
+    `binding.pathFolder` answering for nested feature paths too.
+
+- [ ] **Step 1: Write the failing tests**
+
+`crates/core/tests/buffer.rs`:
+
+- `a_buffer_save_writes_without_committing`: save `specs/PRIORITIES.md` with "- Global undo" added
+  under Now; the file holds the text, `HEAD` is unchanged, and `edited::list` names the path. A
+  second row saves a decision with a section removed: written as typed.
+- `a_buffer_save_over_a_changed_file_writes_nothing`: the error's code is `conflict`; the file is
+  unchanged.
+- `a_buffer_writes_a_features_file_on_its_branch`: `specs/<folder>/spec.md` and
+  `specs/<folder>/contracts/api.md` land in the feature's worktree, and the default checkout's tree
+  is unchanged.
+- `a_buffer_refuses_paths_outside_specs`: rows `Cargo.toml`, `specs/../Cargo.toml`,
+  `specs/x/../../a.md`, `specs/image.png`, and a symlink `specs/out.md` to a file outside: each
+  refused with the message above, nothing written.
+- `a_buffer_reads_the_whole_file`: `read_buffer("specs/<folder>/spec.md")` starts with `---`.
+
+Server `buffer.test.ts`: "a feature's buffer is refused while its agent works" (with a running fake
+session, as `sessions.test.ts:1340` sets one up): the refusal is "An agent is working on this
+feature. Stop it first, or wait for it."
+
+The break each test catches: a commit on save; a write over a stale hash; a feature file written on
+the default branch; a path escape; the frontmatter stripped; a missing refusal.
+
+- [ ] **Step 2: Run them to check they fail**
+
+- Run: `nix develop -c cargo nextest run -p uraeda-core --test buffer`
+- Expected: FAIL, unresolved `read_buffer`.
+
+- [ ] **Step 3: Implement `read_buffer`, `save_buffer`, and the record**, reusing `text::save` for
+      the hash check and `place::reach` for the branch; widen `text::checked` only through the new
+      API, leaving `save_text`'s rules as they are. Then the binding and the server's source and
+      mutation.
+
+- [ ] **Step 4: Make the breaks**: remove the `..` check, and the symlink check, one at a time; see
+      `a_buffer_refuses_paths_outside_specs` fail; restore.
+
+- [ ] **Step 5: Run the task's validation**
+
+- Run: `nix develop -c vp run fast`
+- Expected: PASS
+
+- [ ] **Step 6: Commit**
+
+```bash
+git commit -m "feat(vim-text): read and save any Markdown file of specs/ as a buffer"
+```
+
+## Task 3: The editor, and every several-lines field on it
+
+**Files:**
+
+- Create: `packages/web/src/fields/editor/Editor.tsx`, `fields/editor/theme.ts`,
+  `fields/editor/markdown.ts`, `fields/editor/modeStore.ts`, `fields/editor/oneLine.ts`
+- Modify: `packages/web/package.json` (`@codemirror/state`, `@codemirror/view`,
+  `@codemirror/commands`, `@codemirror/language`, `@codemirror/lang-markdown`,
+  `@replit/codemirror-vim`, exact versions), `fields/TextField.tsx`, `attach/useImageText.ts` (the
+  ref and paste of an image field reach the editor), `__tests__/helpers.tsx` (`type`),
+  `__tests__/keys-structural.test.ts`, the tests that set a `textarea`'s value directly
+  (`round.test.tsx:68`, `review.test.tsx:170`, and the like) to call `type`
+- Test: `packages/web/src/__tests__/editor-field.test.tsx`
+
+**Interfaces:**
+
+- Produces:
+  - `Editor(props: EditorProps)`, with
+    `EditorProps = { variant: "line" | "lines"; label: string; value: string; onChange: (value: string) => void; onSubmit?: () => void; onEnter?: () => void; onEscape?: () => "handled" | "pass"; onPaste?: (event: ClipboardEvent) => boolean; rows?: number; placeholder?: string; isAutoFocused?: boolean; isDisabled?: boolean; ref?: Ref<EditorHandle> }`
+    and
+    `EditorHandle = { focus(): void; insertText(text: string): void; view(): EditorView | null; element(): HTMLElement | null }`.
+    `onEscape` runs on Escape outside Vim's insert or visual modes; its default blurs the field,
+    keeping the text. `onEnter` runs on Enter in a `line` (never inserting a line break); Ctrl+Enter
+    and Cmd+Enter run `onSubmit`, in every variant. Neither runs while composing.
+  - The `line` variant refuses line breaks (a pasted "first\nsecond" reads "first second"), wraps,
+    and grows to 9 lines, then scrolls inside. `lines` has `rows` as its minimum height.
+  - `modeStore`:
+    `setFocused(field: { mode: Mode; line: number; column: number; progress: string } | null)`,
+    `setMode(mode: Mode)`,
+    `useMode(): { mode: Mode | "nav"; line?: number; column?: number; progress?: string }`, with
+    `Mode = "normal" | "insert" | "visual" | "visual-line" | "visual-block" | "replace" | "command"`.
+    Without Vim, a focused field reports `insert`; the status line hides it with Vim off.
+  - A compartment slot `vimSlot` in each editor, which task 6 fills; the editor exports
+    `registerEditorExtension(ext: () => Extension)` or an equivalent, so the Vim layer reaches every
+    editor, including those already mounted.
+  - `__tests__/helpers.tsx`'s `type(element, value)` sets a CodeMirror field's text through
+    `EditorView.findFromDOM`, else as today.
+  - `TextField` keeps its props (`kind`, `onSubmit`, `label`, `value`, `onChange`, …), drawn by the
+    editor, `lines` variant, `rows` by kind.
+
+- [ ] **Step 1: Write the failing tests**
+
+`editor-field.test.tsx`, over `renderPage` on a round's page with a comment field:
+
+- "Escape leaves a comment keeping its text, and the page's keys work again": type "draft", press
+  Escape on the field's content element; the focus leaves it, the field still reads "draft", and `j`
+  moves the selection.
+- "a field's text survives a Compartment swap": reconfigure the editor's `vimSlot` with the Vim
+  extension, then with nothing; the text and the selection are unchanged (the discovery's unverified
+  outside behaviour).
+- A row "Enter while composing does not save", on a `line` field: a keydown of Enter with
+  `isComposing` leaves the field open.
+
+The break each test catches: an Escape that clears the text or keeps the focus; a swap that rebuilds
+the state; a save during composition.
+
+- [ ] **Step 2: Run them to check they fail**
+
+- Run: `vp test packages/web/src/__tests__/editor-field.test.tsx`
+- Expected: FAIL, the comment field is still a `textarea` (`EditorView.findFromDOM` returns null).
+
+- [ ] **Step 3: Implement the editor, its theme over Astryx's tokens in the terminal look of
+      `mockups/editor.css`, Markdown highlighting with dimmed marks, `TextField` on it, and `type`**
+
+The accessible name goes on the content element through `contentAttributes` (`aria-label`). The
+theme's font is the theme's monospace token. Move the tests that set a field's value directly to
+`type`, keeping their assertions. Add the editor's listener to the structural allowlist with its
+reason.
+
+- [ ] **Step 4: Run the task's validation**
+
+- Run: `vp run fast`
+- Expected: PASS, every existing web test included
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "feat(vim-text): one editor for text fields, Markdown highlighted and wrapped"
+```
+
+## Task 4: One-line fields and outline rows on the editor
+
+**Files:**
+
+- Modify: `EditableLine.tsx` (`LineField`), `lists/OutlineEditor.tsx`, `lists/useOutlineField.ts`,
+  `AddNote.tsx`, `AddRepository.tsx`, `NewPage.tsx` (the search), `OfferCard.tsx`,
+  `RepositoryMenu.tsx`, `SlugField.tsx`, `StartDialog.tsx`, `keys/KeyMap.tsx`,
+  `settings/SettingsView.tsx`, `sidebar/FeatureSettings.tsx`, `sidebar/RenameSession.tsx`,
+  `__tests__/keys-structural.test.ts`, and the tests that type into them
+- Test: `__tests__/keys-row-editing.test.tsx` (rewritten row)
+
+**Interfaces:**
+
+- Consumes: `Editor` with `variant: "line"`, `onEnter`, `onEscape`, `onPaste` (task 3).
+- Produces: no new interface; each field keeps its props and its keys: Enter saves a row or a line,
+  Escape cancels it asking "Discard your changes?" when changed, Tab and Shift+Tab indent a row,
+  Backspace drops an empty new row, an image pasted in an inbox row goes to its images, a search's
+  arrows still move its results. The password in `SignInPage.tsx` stays a `TextInput`.
+
+- [ ] **Step 1: Rewrite the failing test**: in `keys-row-editing.test.tsx`, a row "a row refuses
+      line breaks": `type(row, "first\nsecond")` then Enter saves "first second" in `PRIORITIES.md`.
+
+- [ ] **Step 2: Run it to check it fails**
+
+- Run: `vp test packages/web/src/__tests__/keys-row-editing.test.tsx`
+- Expected: FAIL, the row is still a `textarea`.
+
+- [ ] **Step 3: Move every one-line field and the outline row to the editor**, keeping each one's
+      handlers through `onEnter`, `onEscape`, and `onPaste`; Tab on a row goes through the editor's
+      keymap, not a listener of its own. Move the tests that type into them to `type`.
+
+- [ ] **Step 4: Run the task's validation**
+
+- Run: `vp run fast`
+- Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "feat(vim-text): one-line fields and outline rows on the editor"
+```
+
+## Task 5: The composer on the editor
+
+**Files:**
+
+- Create: `packages/web/src/fields/editor/ComposerEditor.tsx`
+- Modify: `ComposerField.tsx`, `Composer.tsx`, `ComposerImages.tsx`, `NewPage.tsx`,
+  `NewFeatureComposer.tsx`, `NewChangePage.tsx`, `__focused__/helpers.tsx`,
+  `__focused__/composer.test.tsx`, `__tests__/keys-structural.test.ts`
+
+**Interfaces:**
+
+- Consumes: `Editor`, `EditorHandle` (task 3).
+- Produces: `ComposerEditor`, the composer variant: an `Editor` with `variant: "lines"` reading and
+  writing `ChatComposerContext`'s `value` and `onChange`, registering
+  `inputControlRef.current = { focus }`, growing upward to 20 rows, 9 on the phone, then scrolling
+  inside, folding to one line as today. The pages' `inputRef` becomes
+  `RefObject<EditorHandle | null>` (`focus`, `insertText`). Escape blurs keeping the draft; Enter
+  adds a line; Ctrl+Enter sends; pasted and dropped images reach `onFiles`.
+
+- [ ] **Step 1: Check the composer's existing tests type through `type`**, and that the paste test
+      pastes a PNG on the editor's content element.
+
+- [ ] **Step 2: Run them to check they fail**
+
+- Run: `vp test packages/web/src/__focused__/composer.test.tsx`
+- Expected: FAIL, the content element has no `EditorView`.
+
+- [ ] **Step 3: Implement `ComposerEditor`, and give it to `FoldingField`**
+
+- [ ] **Step 4: Run the task's validation**
+
+- Run: `vp run fast`
+- Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "feat(vim-text): the composer on the editor"
+```
+
+## Task 6: The Vim layer, and its settings
+
+**Files:**
+
+- Create: `fields/editor/vim/load.ts` (the lazy loader), `fields/editor/vim/vim.ts` (the chunk: the
+  extension, Escape, `:w` `:q` `:wq`, the clipboard, the commands),
+  `fields/editor/vim/VimSetting.tsx` (reads the setting and the pointer, loads, reports the
+  commands' errors), `settings/VimSettings.tsx` (the Keyboard section's switch and commands field)
+- Modify: `settings/KeyboardSettings.tsx`, `settings/SettingsPage.tsx`, `settings/categories.ts`,
+  `Shell.tsx` (mounts `VimSetting` beside `SingleKeysSetting`), `fields/editor/Editor.tsx`
+- Test: `__tests__/vim.test.tsx`, `__tests__/vim-load.test.ts`
+
+**Interfaces:**
+
+- Consumes: `vimSlot` and the editor's actions (task 3); `SettingsRecordView.keyboard.vimMode`,
+  `.vimCommands`, `settings.setVimMode`, `settings.setVimCommands` (task 1).
+- Produces:
+  - `loadVim(settings: { on: boolean; commands: ReadonlyArray<string> }, pointer: { fine: boolean }): Promise<VimLayer | undefined>`,
+    importing `./vim.ts` only when `on && fine` (`matchMedia("(pointer: fine)")`).
+  - `runCommands(lines: ReadonlyArray<string>): Array<string>` in the chunk: each line through the
+    engine's `Vim.handleEx`, the errors as `Line N: <the engine's message>`.
+  - The mode reaches `modeStore.setMode` on the engine's `vim-mode-change`, and `command` while its
+    `:` prompt is open.
+  - A yank writes the unnamed register's text to `navigator.clipboard.writeText`; `p` pastes the
+    engine's register.
+  - Fields open in insert mode at focus. Escape in normal mode, and Shift+Escape in any mode, run
+    the editor's Escape. `:w` runs the field's `onSubmit`, `:q` its Escape action keeping the text,
+    `:wq` both.
+
+- [ ] **Step 1: Write the failing tests**
+
+`vim-load.test.ts`:
+
+- "the engine loads only with the switch on and a fine pointer": with a mocked import counter, rows
+  (off, fine) and (on, coarse) never import; (on, fine) imports once.
+- "a refused command gives its line and the engine's message":
+  `runCommands(["imap jj <Esc>", "nmpa Q dd"])` returns
+  `["Line 2: Not an editor command \":nmpa Q dd\""]`.
+
+`vim.test.tsx`, with `vimMode = true` and `vim_commands = ["imap jj <Esc>"]` in the fixture's
+settings and a fine pointer:
+
+- "a field opens in insert mode": `i` on the priority "Review the UI guidelines properly", then `x`
+  typed through the engine: the row reads "Review the UI guidelines properlyx" and the mode store
+  reads `insert`.
+- "Escape in normal mode cancels a changed row, asking first": `dw` in normal mode, then Escape:
+  "Discard your changes?" shows; a second row: Shift+Escape in insert mode on a comment leaves it
+  keeping the text.
+- "a yank reaches the clipboard": `yy` in a comment; `navigator.clipboard.readText()` gives the
+  line.
+- "`:w` saves a comment": `:w` then Enter saves it as Ctrl+Enter does.
+- "the human's commands run when Vim starts": `jj` typed quickly in insert mode leaves normal mode
+  reading NORMAL, no `j` inserted.
+- "turning Vim off keeps the field's text": unsaved text, then the setting off: the field keeps it
+  and has no Vim.
+
+The break each test catches: the chunk loaded for everyone or on touch; an error without its line; a
+field opening in normal mode; Escape dropping changes unasked; a yank kept in Vim only; `:w`
+ignored; commands not run; a switch that rebuilds the field.
+
+- [ ] **Step 2: Run them to check they fail**
+
+- Run: `vp test packages/web/src/__tests__/vim-load.test.ts packages/web/src/__tests__/vim.test.tsx`
+- Expected: FAIL, `fields/editor/vim/load.ts` does not exist.
+
+- [ ] **Step 3: Implement the layer and the Keyboard section**: the "Vim mode" switch, and "Vim
+      commands" as a several-lines editor, one command per line, saved as the list, each error under
+      the field. Use `Vim.defineEx` for `w`, `q`, `wq`, and the engine's register controller for the
+      clipboard.
+
+- [ ] **Step 4: Run the task's validation**
+
+- Run: `vp run fast`
+- Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "feat(vim-text): Vim's keys behind the Vim mode setting"
+```
+
+## Task 7: The Commit page, a pane per branch
+
+**Risky:** git writes on several branches, and a commit message the human types.
+
+**Files:**
+
+- Modify: `crates/core/src/actions/changes.rs`, `crates/core/src/api/proposal_edits.rs`,
+  `crates/core/src/api/inbox_edits.rs`, `crates/binding/src/inbox_writes.rs`,
+  `packages/binding/index.d.ts`, `packages/binding/index.js`,
+  `packages/server/src/fate/inbox-mutations.ts`, the server's sources and views,
+  `packages/web/src/CommitPage.tsx`, `packages/web/src/views.ts`, `packages/web/src/data.ts`, the
+  sidebar's Commit count
+- Create: `packages/web/src/commit/BranchPane.tsx` (one pane: its lines, its message field, Commit
+  and Discard)
+- Test: `crates/core/tests/branch_commits.rs`, `packages/server/src/__tests__/inbox.test.ts`
+
+**Interfaces:**
+
+- Consumes: `actions::edited::{list, clear}` (task 2); `Editor` (task 3).
+- Produces:
+  - Core: `pub fn branch_changes(repo: &Path) -> Result<Vec<BranchPane>>` with
+    `BranchPane { branch: String, folder: Option<String>, count: usize, lines: Vec<String>, message: String }`:
+    the default branch's pane first, when it has changes, then each feature or change branch whose
+    worktree has buffer edits. A path in `edited::list` reads one `- Edit <path>` line in place of
+    its structured lines, from the root on the default branch, from the folder on a feature's.
+    `message` is the suggestion: as today on the default branch, with `edit <path>` as a subject;
+    `chore(<slug>): edit <name>` on a feature's, `, and N more` past one.
+  - Core: `pub fn commit_branch(repo: &Path, branch: &str, message: &str) -> Result<CommitView>`:
+    commits the pane's files only, with the message as typed, trimmed of blank lines around it;
+    refused with "A commit needs a message." when it is blank; clears the record of the paths it
+    committed. `pub fn discard_branch(repo: &Path, branch: &str)` restores what the pane lists, the
+    files a buffer edited included. The default branch keeps today's `commit_changes` and
+    `discard_changes` behaviour through these.
+  - Server: mutations `changes.commit({ write, branch, message })` and
+    `changes.discard({ branch })`; a feature branch's commit goes through
+    `writable(ctx, { folder })`. A `BranchChanges` list view of the panes.
+  - Web: the page's selected pane for `j` `k`; Enter and `d` act on it; Ctrl+Enter in a message
+    commits its pane; "Use the suggested message" shows once the message differs from the
+    suggestion. With one pane the page looks as today; on the phone, two panes put their buttons in
+    each pane and the bottom bar holds none.
+
+- [ ] **Step 1: Write the failing tests**
+
+`crates/core/tests/branch_commits.rs`:
+
+- `each_branch_lists_its_buffer_edits`: buffer saves of `specs/PRIORITIES.md` and a feature's
+  `spec.md`; panes `main` with `- Edit specs/PRIORITIES.md` and message
+  `chore: edit specs/PRIORITIES.md`, then the feature's with `- Edit spec.md` and
+  `chore(<slug>): edit spec.md`.
+- `a_buffer_edit_is_one_edit_line`: a buffer save of `INBOX.md` beside an inbox addition made by the
+  structured action: one `- Edit specs/INBOX.md` line, and the commit holds the file as typed.
+- `a_branch_commits_alone`: committing the feature's pane with "chore: drop the clock" makes one
+  commit on its branch with that subject, leaves the `main` pane, and leaves an untracked file of
+  the worktree out of the commit; a row commits `main` with "\n\nchore: add Global undo to Now\n"
+  and reads "chore: add Global undo to Now".
+- `an_empty_message_is_refused`: rows "" and " ": refused with "A commit needs a message.", nothing
+  staged.
+
+Existing tests keep passing with the suggested message: `priorities.rs` :232, :268, :348;
+`inbox_moves.rs` :313, :427, :789. Server `inbox.test.ts`: a row "a feature pane is refused while
+its agent works".
+
+The break each test catches: a pane listing an agent's files; structured lines beside a buffer edit;
+a commit on the wrong branch or with other files; a rewritten message; an empty commit.
+
+- [ ] **Step 2: Run them to check they fail**
+
+- Run: `nix develop -c cargo nextest run -p uraeda-core --test branch_commits`
+- Expected: FAIL, unresolved `branch_changes`.
+
+- [ ] **Step 3: Implement the panes, from the core to the page**, after `mockups/commit.html`.
+
+- [ ] **Step 4: Make the break**: stage the whole worktree in `commit_branch`; see
+      `a_branch_commits_alone` fail; restore.
+
+- [ ] **Step 5: Run the task's validation**
+
+- Run: `nix develop -c vp run fast`
+- Expected: PASS
+
+- [ ] **Step 6: Commit**
+
+```bash
+git commit -m "feat(vim-text): the Commit page commits each branch apart, with its message"
+```
+
+## Task 8: The status line in LazyVim's shape
+
+**Files:**
+
+- Create: `packages/web/src/shell/status/Mode.tsx`, `shell/status/Sections.tsx` (lualine's
+  separators, drawn triangles), `shell/status/Place.tsx` (the cursor's place), and a store for the
+  branch section, `shell/status/branch.ts`
+- Modify: `shell/StatusLine.tsx`, `theme/icons.ts` (Lucide `compass`, `square`, `pencil`,
+  `square-dashed`, `replace`, `terminal`)
+
+**Interfaces:**
+
+- Consumes: `modeStore.useMode` (task 3), the Vim setting in force (task 1).
+- Produces: `useStatusBranch(branch: string | undefined)`, which a page calls to show its branch in
+  section b while it is drawn (task 10's buffer).
+
+- [ ] **Step 1: Draw the line after `mockups/statusline.html`**: with Vim on, the mode block first,
+      NAV outside a field; with Vim off, the same sections without it; the cursor's place as "Top
+      3:9" at the right end while a field has the focus; the mode announced in a polite live region,
+      once per change. The phone's bar is unchanged.
+
+- [ ] **Step 2: Run the task's validation**
+
+- Run: `vp run fast`
+- Expected: PASS, `keys-hints.test.tsx` included
+
+- [ ] **Step 3: Review it in the sandbox**: `vp run sandbox`, Vim on and off, both themes, wide.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "feat(vim-text): the status line in LazyVim's shape, with the Vim mode"
+```
+
+## Task 9: Lint keeps every text field on the editor
+
+**Files:**
+
+- Modify: `vite.config.ts` (`no-restricted-imports` paths `@astryxdesign/core/TextInput`,
+  `@astryxdesign/core/TextArea`, and `ChatComposerInput` from `@astryxdesign/core/Chat`, the message
+  "use the shared editor, fields/editor (Text editing decision)"; the `input` and `textarea`
+  messages of `forbiddenElements` name the editor), `SignInPage.tsx` (an `oxlint-disable-next-line`
+  with its reason: the password, for password managers)
+- Create: `packages/web/src/__lint__/astryx-text-input.tsx`
+- Test: `packages/web/src/__tests__/lint.test.ts`
+
+- [ ] **Step 1: Add the fixture and its row to `lint.test.ts`**: importing `TextInput` fails with
+      the message above.
+
+- [ ] **Step 2: Run it to check it fails**
+
+- Run: `vp test packages/web/src/__tests__/lint.test.ts`
+- Expected: FAIL, no lint error for the fixture.
+
+- [ ] **Step 3: Add the rule**, with the editor's own files and the Storybook mockup stories allowed
+      by an override.
+
+- [ ] **Step 4: Run the task's validation**
+
+- Run: `vp run fast`
+- Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "feat(vim-text): lint keeps every text field on the shared editor"
+```
+
+## Task 10: The buffer page and `Space b`
+
+**Files:**
+
+- Create: `packages/web/src/buffer/BufferPage.tsx`, `buffer/Bufferline.tsx`, `buffer/useBuffer.ts`,
+  `buffer/useBufferKey.ts`
+- Modify: `routeTable.ts` and `App.tsx` (`/buffer/<path>`), `pane/useProposalEditor.ts` or the
+  shared save it uses, the pages showing one file (priorities, inbox, a feature's documents, a
+  decision, a UI guide, a proposal, a note), `keys/leaderTree.ts` if the leader groups need it, the
+  shell's right column (folded away while a buffer is open)
+- Test: `packages/web/src/__tests__/buffer.test.tsx`
+
+**Interfaces:**
+
+- Consumes: `Buffer` source and `buffer.save` (task 2); `Editor` (task 3); the Vim layer's `:w` and
+  `:q` through `onSubmit` and Escape (task 6); `useStatusBranch` (task 8).
+- Produces: `useBufferKey(path: string | undefined)`: declares `Space b`, "Open as a buffer", on a
+  page showing one file; not declared where `path` is undefined.
+
+- [ ] **Step 1: Write the failing test**
+
+`buffer.test.tsx`: "Space b opens the page's file, frontmatter and all": on a feature's spec page,
+`Space b` navigates to `/buffer/specs/<folder>/spec.md`, whose field's text starts with `---`;
+typing a line and Ctrl+Enter writes the file in the feature's worktree, and no commit is made.
+
+The break it catches: the frontmatter dropped; a save on the wrong branch; a commit on save.
+
+- [ ] **Step 2: Run it to check it fails**
+
+- Run: `vp test packages/web/src/__tests__/buffer.test.tsx`
+- Expected: FAIL, `Space b` is not declared.
+
+- [ ] **Step 3: Implement the page after `mockups/buffer.html`**: the bufferline "specs ›
+      PRIORITIES.md" with its unsaved dot, the conflict banner of the proposal editor, the agent's
+      refusal in it, the cursor at the start in normal mode with Vim on, the Leave guard on `:q` or
+      `b` with unsaved text, and on the phone Back and Save in the bottom bar.
+
+- [ ] **Step 4: Run the task's validation, and review it in the sandbox**
+
+- Run: `vp run fast`
+- Expected: PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit -m "feat(vim-text): open any file of specs/ as a buffer"
+```
+
+## Task 11: Documentation and the benchmark
+
+**Files:**
+
+- Modify: `skills/uraeda/references/conventions.md` (a buffer's edits wait on the Commit page),
+  `specs/ui/keyboard.md` (Vim mode, Escape, Shift+Escape, `Space b`), `docs/web-ui.md` (the editor,
+  Vim mode and its commands, the buffer, the Commit page's panes),
+  `packages/web/scripts/performance-writes.ts` and `performance.ts` (a keystroke in a
+  2,000-character comment with Vim on, SC-002, against 16 ms)
+
+- [ ] **Step 1: Write the pages**, each where [documentation](../decisions/documentation.md) says.
+
+- [ ] **Step 2: Run the benchmark**
+
+- Run: `nix develop -c vp run performance`
+- Expected: every target met, the keystroke within 16 ms and reloads within 1 second.
+
+- [ ] **Step 3: Run the task's validation**
+
+- Run: `nix develop -c vp run fast`
+- Expected: PASS
+
+- [ ] **Step 4: Commit**
+
+```bash
+git commit -m "docs(vim-text): Vim mode, the buffer, and the Commit page's panes"
+```

@@ -1,0 +1,43 @@
+# Rulings: Vim in text edit mode
+
+The low-impact choices made while planning and building [the plan](plan.md), inside the limits of
+[the spec](spec.md) and the decisions. None binds future work: those are decisions.
+
+## R1: A buffer's edits are recorded beside the checkout they changed
+
+- **Decision**: a buffer's save records the path it wrote in a file of that checkout's own git
+  directory. The Commit page lists a recorded path as one `- Edit <path>` line, and a feature's pane
+  lists only recorded paths.
+- **Rationale**: the spec's scenario lists "Edit specs/PRIORITIES.md" for a line added by a buffer,
+  where the structured diff would read "Add to Now". A feature's worktree also holds an agent's
+  uncommitted work, which a pane must not offer to commit.
+- **Alternatives considered**: every uncommitted file of a worktree, which offers an agent's work;
+  the structured lines only, which contradict the scenario.
+- **If wrong**: a lost record turns the lines back into today's structured ones; a feature's buffer
+  edit then waits off the Commit page until recorded again.
+- **Where**: tasks 2 and 7
+
+## R2: A feature's files at any depth are written on its branch
+
+- **Decision**: a buffer path under `specs/<folder>/` or `specs/changes/<folder>/`, at any depth, is
+  written on that feature's or change's branch; every other Markdown file under `specs/` on the
+  default branch.
+- **Rationale**: "any Markdown file under `specs/`" includes a feature's `contracts/`; its branch is
+  where the feature's files live.
+- **Where**: task 2
+
+## R3: Discarding a pane restores the files a buffer edited
+
+- **Decision**: a pane's Discard restores every file it lists, a buffer's edits included, after the
+  confirmation that names them.
+- **Rationale**: the pane lists what its commit holds, and its Discard drops what it lists; today's
+  Discard keeps a proposal's typed text because the page never listed it as a line.
+- **Where**: task 7
+
+## R4: The mode store is outside React
+
+- **Decision**: the focused field's mode and cursor live in a small external store read with
+  `useSyncExternalStore`.
+- **Rationale**: every keystroke moves the cursor; a context would re-render the shell each time,
+  against the 16 ms keystroke target.
+- **Where**: task 3
