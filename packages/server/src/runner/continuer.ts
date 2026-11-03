@@ -109,12 +109,38 @@ export class Continuer {
    * message, or `stopped`, their Stop, which leaves the turn stopped.
    */
   cancel(session: string, { stopped }: { stopped: boolean }): Array<number> {
+    return this.#cancel(session, { stopped }).map((turn) => turn.id);
+  }
+
+  /**
+   * The human's message or Allow takes the place of the session's continue, and sets its count
+   * back. Returns the turns cancelled, and what puts the wait and the count back, as they were,
+   * for a refused one, which never went.
+   */
+  takeOver(session: string): { restore: () => void; turns: Array<number> } {
+    const { cache } = this.#context;
+    const count = cache.session(session)?.automaticContinues ?? 0;
+    const cancelled = this.#cancel(session, { stopped: false });
+    cache.resetContinues(session);
+    const restore = () => {
+      cache.resetContinues(session, count);
+      for (const { continueAt, continueReason, id } of cancelled) {
+        if (continueAt !== null && continueReason !== null) {
+          cache.scheduleContinue(id, continueAt, continueReason);
+          this.#arm(id, continueAt);
+        }
+      }
+    };
+    return { restore, turns: cancelled.map((turn) => turn.id) };
+  }
+
+  /** Cancels the session's pending continues, and returns their turns as they waited. */
+  #cancel(session: string, { stopped }: { stopped: boolean }): Array<TurnRow> {
     const { cache } = this.#context;
     return cache
       .pendingContinues()
       .filter((turn) => turn.sessionId === session && this.#clear(turn.id))
-      .filter((turn) => cache.cancelContinue(turn.id, { stopped }))
-      .map((turn) => turn.id);
+      .filter((turn) => cache.cancelContinue(turn.id, { stopped }));
   }
 
   /**

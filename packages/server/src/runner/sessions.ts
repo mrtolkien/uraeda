@@ -249,10 +249,9 @@ export class Sessions {
     const message = checkSend(input, this.adapter.capabilities);
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
-    return this.#context.live.serial(live, () => {
-      this.#takeOver(live);
-      return sendTo(this.#context, live, message, () => this.#available());
-    });
+    return this.#context.live.serial(live, () =>
+      this.#asHuman(live, () => sendTo(this.#context, live, message, () => this.#available())),
+    );
   }
 
   /**
@@ -294,10 +293,9 @@ export class Sessions {
   async allow(repo: string, session: string, turn: number, seq: number): Promise<{ turn: number }> {
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
-    return this.#context.live.serial(live, () => {
-      this.#takeOver(live);
-      return allowDenial(this.#context, live, turn, seq);
-    });
+    return this.#context.live.serial(live, () =>
+      this.#asHuman(live, () => allowDenial(this.#context, live, turn, seq)),
+    );
   }
 
   /**
@@ -308,10 +306,9 @@ export class Sessions {
   async allowAll(repo: string, session: string): Promise<{ turn: number }> {
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
-    return this.#context.live.serial(live, () => {
-      this.#takeOver(live);
-      return allowAll(this.#context, live);
-    });
+    return this.#context.live.serial(live, () =>
+      this.#asHuman(live, () => allowAll(this.#context, live)),
+    );
   }
 
   /** Renames a session, by the title's first line that is not blank, cut at 80 characters. */
@@ -435,10 +432,25 @@ export class Sessions {
     }
   }
 
-  /** The human's message or Allow takes the place of the run's continue, and sets the count back. */
-  #takeOver(live: Live) {
-    this.#context.continuer.cancel(live.id, { stopped: false });
-    this.cache.resetContinues(live.id);
+  /**
+   * The human's message or Allow takes the place of the run's continue, and sets the count back:
+   * a refused one gives both back. The cancelled turns' change is published either way.
+   */
+  async #asHuman<T>(live: Live, body: () => Promise<T>): Promise<T> {
+    const { changed, continuer } = this.#context;
+    const taken = continuer.takeOver(live.id);
+    try {
+      return await body();
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("refused: ")) {
+        taken.restore();
+      }
+      throw error;
+    } finally {
+      for (const turn of taken.turns) {
+        changed(live, turn);
+      }
+    }
   }
 
   // Sessions and their owners.

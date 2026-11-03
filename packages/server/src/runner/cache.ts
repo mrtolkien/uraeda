@@ -373,8 +373,8 @@ export class SessionCache {
   addContinue(session: string): number {
     return addContinue(this.db, session);
   }
-  resetContinues(session: string): void {
-    resetContinues(this.db, session);
+  resetContinues(session: string, count = 0): void {
+    resetContinues(this.db, session, count);
   }
 
   /** Adds the counts to the turn's own, a null count read as 0. */
