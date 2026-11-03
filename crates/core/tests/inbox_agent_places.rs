@@ -177,3 +177,116 @@ fn a_note_dropped_under_an_agents_note_nests_under_its_line() {
         ["Allow no selection in responses (after a warning)"]
     );
 }
+
+/// The names of the categories `inbox` shows.
+fn names(inbox: &uraeda_core::files::inbox::Inbox) -> Vec<String> {
+    inbox
+        .categories
+        .iter()
+        .filter_map(|c| c.name.clone())
+        .collect()
+}
+
+/// US2 more 3, for a category's rename: a category only agents' notes name is renamed, its notes
+/// with it.
+#[test]
+fn a_category_of_agents_notes_alone_is_renamed() {
+    let repo = repo_with_agents_notes("Deferred fixes");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let renamed = api::rename_category(repo.path(), "Deferred fixes", "Later", &read.hash).unwrap();
+
+    assert!(!names(&renamed).contains(&"Deferred fixes".to_string()));
+    assert_eq!(
+        shown(&renamed, "Later"),
+        ["[A](notes/a.md)", "[B](notes/b.md)", "[C](notes/c.md)"]
+    );
+}
+
+/// US2 more 3, for a category's rename: a category of lines and agents' notes is renamed whole.
+#[test]
+fn a_mixed_category_is_renamed_whole() {
+    let repo = repo_with_agents_notes("CLI");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let renamed = api::rename_category(repo.path(), "CLI", "Commands", &read.hash).unwrap();
+
+    assert!(!names(&renamed).contains(&"CLI".to_string()));
+    assert_eq!(shown(&renamed, "Commands").len(), 5);
+}
+
+/// A rename onto a category only agents' notes name is refused, as onto any category shown.
+#[test]
+fn a_rename_onto_a_category_of_agents_notes_is_refused() {
+    let repo = repo_with_agents_notes("Deferred fixes");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let renamed = api::rename_category(repo.path(), "CLI", "Deferred fixes", &read.hash);
+
+    assert_eq!(
+        renamed.unwrap_err().to_string(),
+        "A category named Deferred fixes exists."
+    );
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// US2 more 2, for a category's removal: a category of agents' notes removed with its notes deletes
+/// their files, and its Undo brings the checkout back as it was.
+#[test]
+fn a_category_of_agents_notes_removed_and_restored() {
+    let repo = repo_with_agents_notes("Deferred fixes");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let (removed, before) =
+        api::remove_category(repo.path(), "Deferred fixes", false, &read.hash).unwrap();
+
+    assert!(!names(&removed).contains(&"Deferred fixes".to_string()));
+    assert_eq!(removed.count, read.count - 3);
+    assert!(!repo.exists("specs/notes/a.md"));
+
+    let restored = api::restore_category(repo.path(), &before, &removed.hash).unwrap();
+
+    assert_eq!(restored.hash, read.hash);
+    assert_eq!(restored.changes, 0);
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// US2 more 2, for a category's removal keeping its notes: its agents' notes stay, without a
+/// category, and its Undo brings the checkout back as it was.
+#[test]
+fn a_category_of_agents_notes_removed_keeping_them() {
+    let repo = repo_with_agents_notes("CLI");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let (removed, before) = api::remove_category(repo.path(), "CLI", true, &read.hash).unwrap();
+
+    assert!(!names(&removed).contains(&"CLI".to_string()));
+    assert_eq!(removed.count, read.count);
+    assert!(repo.exists("specs/notes/a.md"));
+
+    api::restore_category(repo.path(), &before, &removed.hash).unwrap();
+
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// Edge case "a note file with uncommitted changes stays": a category removed with its notes is
+/// refused when one of its agents' notes' files was edited since its commit, and nothing is written.
+#[test]
+fn a_category_with_an_edited_agents_note_is_not_removed() {
+    let repo = repo_with_agents_notes("Deferred fixes");
+    let edited = format!(
+        "{}\nA line the human typed.\n",
+        repo.read("specs/notes/b.md")
+    );
+    repo.write("specs/notes/b.md", &edited);
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let removed = api::remove_category(repo.path(), "Deferred fixes", false, &read.hash);
+
+    assert_eq!(
+        removed.unwrap_err().to_string(),
+        "specs/notes/b.md has uncommitted changes: the note was not removed"
+    );
+    assert_eq!(repo.porcelain(), " M specs/notes/b.md\n");
+    assert!(repo.exists("specs/notes/a.md"));
+}
