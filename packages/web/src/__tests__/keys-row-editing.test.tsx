@@ -353,3 +353,17 @@ test("m and the bar's m move are one move mode, which m ends", async () => {
   );
   expect(within(cardOf("Nbeta")).getByRole("button", { name: "m move" })).toBeTruthy();
 });
+
+// Breaks: Ctrl+Enter taken by the field's submit, which a row has none of, saving nothing.
+test("Ctrl+Enter saves a row, as Enter does", async () => {
+  const repo = await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
+  await press("i", focus("Nalpha"));
+  const field = await editorOf(LINE, "Nalpha");
+  await type(field, "Nalpha, by Ctrl+Enter");
+
+  await act(async () => {
+    fireEvent.keyDown(field, { ctrlKey: true, key: "Enter" });
+  });
+
+  await waitFor(() => expect(read(repo)).toContain("- Nalpha, by Ctrl+Enter\n"));
+});

@@ -6,6 +6,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { FieldStatus } from "@astryxdesign/core/FieldStatus";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Switch } from "@astryxdesign/core/Switch";
+import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
 import { SaveKeys } from "../fields/SaveKeys.tsx";
@@ -82,7 +83,11 @@ export function VimCommands({ actions, category, values }: Props) {
             placeholder="imap jj <Esc>"
             value={field.text}
           />
-          {errors.map((error) => (
+          {/* Without the engine, nothing checks the commands: the field says so. */}
+          {errors === undefined && (
+            <Text color="secondary">Checked when Vim mode is on, with a mouse or trackpad.</Text>
+          )}
+          {errors?.map((error) => (
             <FieldStatus key={error} message={error} type="error" variant="detached" />
           ))}
           {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}

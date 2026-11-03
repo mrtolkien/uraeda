@@ -217,11 +217,11 @@ system `git`. The stage is `early`: UI behaviour the sandbox shows has no test.
 | US1 3 (Escape leaves a comment, keeps text; `j` moves) | 3    | `editor-field.test.tsx` "Escape leaves a comment keeping its text, and the page's keys work again" |
 | US1 more 1 (paste "first\nsecond" in a row)            | 4    | `keys-row-editing.test.tsx` row of "a row refuses line breaks" (existing test, rewritten)          |
 | US1 more 2 (a PNG pasted in the composer)              | 5    | `__focused__/composer.test.tsx`'s existing paste test, through the new editor                      |
-| US2 1 (`i`, insert mode at focus)                      | 6    | `vim.test.tsx` "a field opens in insert mode", on a comment (R10)                                  |
-| US2 2 (`dw` then Escape asks to discard)               | 6    | `vim.test.tsx` "Escape in normal mode does the field's Escape…", on a comment (R10)                |
+| US2 1 (`i`, insert mode at focus)                      | 6    | `vim.test.tsx` "a field opens in insert mode"; a row's: each row test's `rowPage` (R10)            |
+| US2 2 (`dw` then Escape asks to discard)               | 6    | `vim.test.tsx` "Escape twice in a changed row asks before dropping the change" (R10)               |
 | US2 3 (Shift+Escape leaves from insert)                | 6    | `vim.test.tsx` "Shift+Escape leaves a comment from insert mode, keeping its text"                  |
 | US2 4 (`yy` reaches the clipboard, `p` in a row)       | 6    | `vim.test.tsx` "a yank reaches the clipboard"                                                      |
-| US2 more 1 (`:w` `:q` `:wq`)                           | 6    | `vim.test.tsx` "`:w` saves a comment"; `:q`, `:wq`: sandbox                                        |
+| US2 more 1 (`:w` `:q` `:wq`)                           | 6    | `vim.test.tsx` "`:w` saves a comment", "`:w` saves a row", "`:q` in a changed row asks…" (R12)     |
 | US2 more 2 (Enter in normal mode)                      | 6    | none: the engine's key, seen in the sandbox                                                        |
 | US2 more 3 (no Vim on touch)                           | 6    | `vim-load.test.ts` "the engine loads only with the switch on and a fine pointer"                   |
 | US3 1–3, more 1 (the mode in the status line)          | 8    | none: drawn, seen in the sandbox; the mode store's names: `vim.test.tsx` asserts NORMAL and INSERT |
@@ -238,7 +238,7 @@ system `git`. The stage is `early`: UI behaviour the sandbox shows has no test.
 | US6 1 (a pane per branch)                              | 7    | core `each_branch_lists_its_buffer_edits`                                                          |
 | US6 2 (a pane commits its branch only)                 | 7    | core `a_branch_commits_alone`                                                                      |
 | US6 3 (the message as typed)                           | 7    | core `a_branch_commits_alone` (rewritten message row)                                              |
-| Edge: Vim on, a changed row, Escape twice              | 6    | `vim.test.tsx` "Escape in normal mode does the field's Escape…" (R10)                              |
+| Edge: Vim on, a changed row, Escape twice              | 6    | `vim.test.tsx` "Escape twice in a changed row asks before dropping the change" (R10)               |
 | Edge: a buffer over a changed file                     | 2    | as US5 3                                                                                           |
 | Edge: a buffer breaks a file's format                  | 2    | `a_buffer_save_writes_without_committing` saves a broken decision as typed                         |
 | Edge: an emptied commit message                        | 7    | core `an_empty_message_is_refused`                                                                 |
@@ -649,11 +649,12 @@ git commit -m "feat(vim-text): the composer on the editor"
 - Consumes: `vimSlot` and the editor's actions (task 3); `SettingsRecordView.keyboard.vimMode`,
   `.vimCommands`, `settings.setVimMode`, `settings.setVimCommands` (task 1).
 - Produces:
-  - `loadVim(settings: { on: boolean; commands: ReadonlyArray<string> }, pointer: { fine: boolean }): Promise<VimLayer | undefined>`,
+  - `loadVim(settings: { on: boolean }, pointer: { fine: boolean }): Promise<VimLayer | undefined>`,
     importing `./vim.ts` only when `on && fine` (`finePointer()`, `matchMedia("(pointer: fine)")`);
     `VimLayer` is the chunk's module: `runCommands` and `extension`, the factory `VimSetting` gives
     `registerEditorExtension`. The commands' errors are kept beside it, `setVimErrors(errors)` and
-    `useVimErrors()`, which the Keyboard section reads.
+    `useVimErrors()`, which the Keyboard section reads: `undefined` while the engine is not loaded,
+    where the field says "Checked when Vim mode is on, with a mouse or trackpad."
   - `runCommands(lines: ReadonlyArray<string>): Array<string>` in the chunk: each line through the
     engine's `Vim.handleEx`, the errors as `Line N: <the engine's message>`.
   - The mode reaches `modeStore.setMode` on the engine's `vim-mode-change`, and `command` while its

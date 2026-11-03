@@ -11,7 +11,7 @@ export type VimLayer = typeof import("./vim.ts");
  * switch off, or on a touch screen, the engine's chunk is never requested.
  */
 export async function loadVim(
-  settings: { commands: ReadonlyArray<string>; on: boolean },
+  settings: { on: boolean },
   pointer: { fine: boolean },
 ): Promise<VimLayer | undefined> {
   if (!settings.on || !pointer.fine) {
@@ -23,13 +23,16 @@ export async function loadVim(
 /** Whether the main pointer is fine: a mouse or a trackpad, not a finger. */
 export const finePointer = () => globalThis.matchMedia?.("(pointer: fine)").matches ?? false;
 
-/** The commands' errors from the engine's last start, `Line N: <message>` each. */
-let errors: ReadonlyArray<string> = [];
+/**
+ * The commands' errors from the engine's last start, `Line N: <message>` each: `undefined` while
+ * the engine is not loaded, which checks nothing.
+ */
+let errors: ReadonlyArray<string> | undefined;
 const listeners = new Set<() => void>();
 
 /** Keeps the errors the engine gave the human's commands, for the settings to show. */
-export function setVimErrors(next: ReadonlyArray<string>) {
-  if (next.join("\n") === errors.join("\n")) {
+export function setVimErrors(next: ReadonlyArray<string> | undefined) {
+  if (next?.join("\n") === errors?.join("\n")) {
     return;
   }
   errors = next;
@@ -45,8 +48,8 @@ const subscribe = (listener: () => void) => {
   };
 };
 
-/** The errors of the human's Vim commands, none while the engine is not loaded. */
-export function useVimErrors(): ReadonlyArray<string> {
+/** The errors of the human's Vim commands, `undefined` while the engine is not loaded. */
+export function useVimErrors(): ReadonlyArray<string> | undefined {
   return useSyncExternalStore(subscribe, () => errors);
 }
 

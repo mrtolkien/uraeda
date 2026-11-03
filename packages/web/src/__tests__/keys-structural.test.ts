@@ -36,6 +36,10 @@ const LISTENERS = new RegExp(
     // keymap, `keymap.of([...])`.
     String.raw`\bdomEventHandlers\b`,
     String.raw`\bkeymap\.of\b`,
+    // A view plugin's handlers, `eventHandlers: { keydown() {} }`, and the shared editor's own keys
+    // a field gives it, `<Editor keys={...} />`, or a one-line field's, `<TextLine keys={...} />`.
+    String.raw`\beventHandlers:`,
+    String.raw`<(Editor|TextLine|TextField)\b[^<]*?\bkeys=\{`,
   ].join("|"),
   "g",
 );
@@ -63,6 +67,11 @@ const filesWith = (pattern: RegExp) => Object.keys(hitsOf(pattern));
  * its reason, or declare the key with `useKeys`.
  */
 const ALLOWED: Record<string, { hits: number; reason: string }> = {
+  "AddRepository.tsx": {
+    hits: 1,
+    reason:
+      "a one-line field's own keys, the editor's: Down and Up move along the folders it suggests",
+  },
   "attach/useImageDrop.ts": { hits: 1, reason: "drag and drop events, named in a loop: no key" },
   "embedLayout.ts": { hits: 1, reason: "Escape leaves the full-screen overlay it draws (R132)" },
   "fields/Confirm.tsx": {
@@ -85,11 +94,11 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
       "action, Escape leaves the field or cancels it",
   },
   "fields/editor/vim/vim.ts": {
-    hits: 1,
+    hits: 2,
     reason:
       "the Vim layer's keys before the engine's, each the field's own action: Shift+Escape " +
       "leaves the field, Escape after a pending key drops it, Enter in normal mode runs a " +
-      "one-line field's Enter",
+      "one-line field's Enter; and its plugin's focus, which opens insert mode, no key",
   },
   "Folds.tsx": {
     hits: 1,
@@ -110,6 +119,16 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
   "KindCards.tsx": {
     hits: 1,
     reason: "a radio group's own keys: the arrows move between its cards",
+  },
+  "lists/OutlineEditor.tsx": {
+    hits: 1,
+    reason:
+      "a row's field's own keys, the editor's: Tab and Shift+Tab indent and outdent it, and " +
+      "Backspace drops an empty new row",
+  },
+  "RepositoryMenu.tsx": {
+    hits: 1,
+    reason: "a filter's own keys, the editor's: Down and Up move along the repositories it lists",
   },
   "routes.tsx": { hits: 1, reason: "the navigation event's own name, `CHANGE`: no key" },
   "sandbox/mountSandboxBar.tsx": {
@@ -200,6 +219,8 @@ test("the scan sees each form of key listener and each copy of the layer rule", 
     "element.onkeydown = run;",
     "EditorView.domEventHandlers({ keydown(event, view) {} })",
     "keymap.of([...defaultKeymap])",
+    "ViewPlugin.fromClass(Plugin, { eventHandlers: { keydown() {} } })",
+    '<Editor keys={[{ key: "Tab", run }]} />',
   ];
   for (const sample of listeners) {
     expect(sample.match(LISTENERS), sample).not.toBeNull();

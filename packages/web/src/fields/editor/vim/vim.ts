@@ -34,10 +34,16 @@ function modeOf(cm: CM): Mode {
   return "normal";
 }
 
-/** Whether the engine waits for more keys, like after `d`: Escape then only drops them. */
+/** Whether the engine waits for more keys, like after `d`, `"a`, or `3`: Escape only drops them. */
 function pending(cm: CM) {
   const input = cm.state.vim?.inputState;
-  return Boolean(input && (input.operator || input.keyBuffer.length > 0));
+  return Boolean(
+    input &&
+    (input.operator ||
+      input.registerName ||
+      input.keyBuffer.length > 0 ||
+      input.prefixRepeat.length > 0),
+  );
 }
 
 /** The view of the engine's editor, which its commands get. */
@@ -121,11 +127,9 @@ const fieldFirst = Prec.highest(
         return false;
       }
       if (event.key === "Escape" && event.shiftKey) {
-        // Shift+Escape leaves from any mode; passed, it reaches the layer holding the field.
-        if (actions.escape() === "handled") {
-          event.preventDefault();
-        }
-        return true;
+        // Shift+Escape leaves from any mode; passed, it reaches the layer holding the field, as
+        // the engine, which has no `<S-Esc>`, leaves it, and so do the editor's own keys.
+        return actions.escape() === "handled";
       }
       const normal = !state.insertMode && !state.visualMode;
       if (event.key === "Escape" && normal && pending(cm)) {

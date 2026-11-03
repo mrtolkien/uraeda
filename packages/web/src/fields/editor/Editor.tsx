@@ -2,7 +2,13 @@
 // highlighted, lines wrapped, in a terminal's look. It owns the field's element, its accessible name,
 // its keys (keys.ts), and its Escape; the caller owns its text, as a controlled field's.
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { Annotation, Compartment, EditorState, type Extension } from "@codemirror/state";
+import {
+  Annotation,
+  Compartment,
+  EditorState,
+  type Extension,
+  Transaction,
+} from "@codemirror/state";
 import {
   EditorView,
   type KeyBinding,
@@ -52,7 +58,7 @@ export type EditorProps = {
   label: string;
   /** The composer's tallest, in lines, which it grows to from `rows` before scrolling inside. */
   maxRows?: number;
-  /** The focus left the field. */
+  /** The focus left the field, for anything but its own prompt, like Vim's `:`. */
   onBlur?: () => void;
   onChange: (value: string) => void;
   /** Enter's action, Shift+Enter aside: in a one-line field, which never breaks its line, or any. */
@@ -66,7 +72,7 @@ export type EditorProps = {
   onFocus?: () => void;
   /** Takes a paste first: `true` says it took it, as an image a field attaches. */
   onPaste?: (event: ClipboardEvent) => boolean;
-  /** Ctrl+Enter's and Cmd+Enter's action, in every variant. */
+  /** Ctrl+Enter's and Cmd+Enter's action, in every variant; a one-line field's `onEnter` without. */
   onSubmit?: () => void;
   placeholder?: string;
   ref?: Ref<EditorHandle>;
@@ -161,8 +167,48 @@ function reportFocus(update: ViewUpdate) {
     view.hasFocus &&
     (update.selectionSet || update.docChanged || update.geometryChanged)
   ) {
-    setPlace(placeOf(view));
+    measurePlace(view);
   }
+}
+
+/** The key of a place's measure, one per field and frame however many keys moved it. */
+const PLACE = {};
+
+/**
+ * Gives the mode store the cursor's place in CodeMirror's next measure, with its layout: read as a
+ * key is handled, the field's scroll would lay the page out at each keystroke.
+ */
+function measurePlace(view: EditorView) {
+  view.requestMeasure({
+    key: PLACE,
+    read: placeOf,
+    write: (place) => {
+      if (view.hasFocus) {
+        setPlace(place);
+      }
+    },
+  });
+}
+
+/** Whether a click's label is a field's own, whose `for` names its content element. */
+let labelsHeard = false;
+
+/**
+ * Gives a field the focus when its label is clicked, as a form field's label does: `for` names the
+ * editor's content element, which is no form field the browser focuses. Once for the page.
+ */
+function hearLabels(page: Document) {
+  if (labelsHeard) {
+    return;
+  }
+  labelsHeard = true;
+  page.addEventListener("click", (event) => {
+    const label = (event.target as Element | null)?.closest?.("label[for]");
+    const content = label && page.getElementById((label as HTMLLabelElement).htmlFor);
+    if (content?.classList.contains("cm-content")) {
+      EditorView.findFromDOM(content)?.focus();
+    }
+  });
 }
 
 /** Makes the caller's text the field's, changing only what differs, so the cursor keeps its place. */
@@ -186,8 +232,10 @@ function showText(view: EditorView, value: string) {
     to: end,
   });
   // A cursor where the text came goes after it, as a suggestion picked fills a search's field.
+  // Out of the undo history: undo takes back the human's typing, not the page's restore notice,
+  // image link, or new version.
   view.dispatch({
-    annotations: fromCaller.of(true),
+    annotations: [fromCaller.of(true), Transaction.addToHistory.of(false)],
     changes,
     selection: view.state.selection.map(changes, 1),
   });
@@ -212,9 +260,12 @@ function actionsOf(view: EditorView, latest: { current: EditorProps }): EditorAc
       leave();
       return "handled";
     },
+    // A one-line field's Ctrl+Enter, and `:w`, is its Enter, as a row's saves it.
     submit: () => {
-      latest.current.onSubmit?.();
-      return latest.current.onSubmit !== undefined;
+      const { onEnter, onSubmit, variant } = latest.current;
+      const run = onSubmit ?? (variant === "line" ? onEnter : undefined);
+      run?.();
+      return run !== undefined;
     },
   };
 }
@@ -246,7 +297,13 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
       line: latest.current.variant === "line",
     })),
     history(),
-    keymap.of([...ownKeys(latest), ...defaultKeymap, ...historyKeymap]),
+    // Without CodeMirror's Escape, which would narrow a selection where the field's Escape leaves,
+    // or passes to a dialog, which then closes on the second Escape only.
+    keymap.of([
+      ...ownKeys(latest),
+      ...defaultKeymap.filter(({ key }) => key !== "Escape"),
+      ...historyKeymap,
+    ]),
     markdown(),
     EditorView.lineWrapping,
     editorTheme,
@@ -254,8 +311,10 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
       compartment.of(now[part as keyof typeof parts]),
     ),
     EditorView.domEventHandlers({
-      blur: (_event, view) => {
-        if (!destroying.has(view)) {
+      // The text's own blur: the editor's prompt under it, like Vim's `:`, gives the focus back
+      // to the text as it closes, so the focus going there, or leaving it, is no leaving.
+      blur: (event, view) => {
+        if (!destroying.has(view) && !view.dom.contains(event.relatedTarget as Node | null)) {
           latest.current.onBlur?.();
         }
       },
@@ -271,7 +330,7 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
       },
       scroll: (_event, view) => {
         if (view.hasFocus) {
-          setPlace(placeOf(view));
+          measurePlace(view);
         }
       },
     }),
@@ -311,6 +370,7 @@ export function Editor(props: EditorProps) {
     });
     own.current = actionsOf(view, latest);
     viewRef.current = view;
+    hearLabels(view.dom.ownerDocument);
     const unmount = mountEditor(view, own.current);
     if (latest.current.isAutoFocused) {
       view.focus();
