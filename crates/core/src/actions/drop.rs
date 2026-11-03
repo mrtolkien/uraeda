@@ -6,11 +6,10 @@
 use std::fs;
 
 use crate::actions::clean::{self, Left};
-use crate::actions::commit::{commit_only, is_clean};
+use crate::actions::commit::commit_only;
 use crate::actions::place::{self, Place};
-use crate::actions::priorities::PATH;
+use crate::actions::priorities::{self, PATH};
 use crate::actions::{ActionError, Change};
-use crate::files::priorities;
 use crate::git::Git;
 use crate::steps::StepName;
 use crate::workspace::{Feature, Workspace, folder_branch, folder_path, folder_slug};
@@ -84,9 +83,7 @@ fn remove_from_default(
     if on_default {
         check_folder(place, &folder, default)?;
     }
-    let file = place.root.join(PATH);
-    let text = fs::read_to_string(&file).unwrap_or_default();
-    let removed = priorities::remove_linked(&text, &format!("{folder}/proposal.md"));
+    let removed = priorities::remove_linked(place, &format!("{folder}/proposal.md"))?;
     if removed.is_none() && !on_default {
         return Ok(None);
     }
@@ -96,9 +93,8 @@ fn remove_from_default(
     // them, uncommitted.
     let mut clean = true;
     let name = match removed {
-        Some((without, name)) => {
-            clean = is_clean(place, PATH);
-            fs::write(&file, without)?;
+        Some((name, was_clean)) => {
+            clean = was_clean;
             paths.push(PATH.to_string());
             name
         }

@@ -1,13 +1,18 @@
 //! Cleaning a merged feature: its worktree under `.worktrees/` and its local branch, unless that
-//! would lose work (see `specs/decisions/git.md`). Decides everything from what git records, never
+//! would lose work, and its line of the priorities on the default branch (see `specs/decisions/git.md`). Decides everything from what git records, never
 //! from git's messages, and prints nothing.
 
 use std::path::Path;
 
-use crate::actions::ActionError;
+use crate::actions::commit::commit_only;
+use crate::actions::place;
+use crate::actions::priorities::{self, PATH};
+use crate::actions::{ActionError, Change};
 use crate::git::Git;
 use crate::steps::StepName;
-use crate::workspace::{Feature, Kind, Workspace, folder_branch};
+use crate::workspace::{
+    Feature, Kind, Workspace, folder_branch, folder_path, folder_slug, resolve,
+};
 
 /// What the cleanup did, or would do on a dry run.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -15,6 +20,12 @@ pub enum Did {
     RemovedWorktree(String),
     PrunedWorktree(String),
     DeletedBranch(String),
+    /// The line of the priorities linking its proposal, and whether its removal was committed:
+    /// never on a dry run.
+    RemovedLine {
+        name: String,
+        committed: bool,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -60,7 +71,8 @@ pub struct Cleaned {
     pub dry_run: bool,
 }
 
-/// Removes a merged feature's worktree and local branch, or, on a dry run, says what it would do.
+/// Removes a merged feature's worktree, its local branch, and the line of the priorities linking
+/// its proposal, or, on a dry run, says what it would do.
 pub fn clean(
     git: &Git,
     workspace: &Workspace,
@@ -88,28 +100,36 @@ pub fn clean(
         left: Vec::new(),
         dry_run,
     };
-
-    // The worktree.
-    let mut worktree_left = false;
-    match worktree(git, &main_root, &here, &branch, dry_run)? {
-        Some(Ok(did)) => cleaned.did.push(did),
-        Some(Err(left)) => {
-            worktree_left = true;
-            cleaned.left.push(left);
+    let removed = worktree(git, &main_root, &here, &branch, dry_run)?;
+    let worktree_left = matches!(removed, Some(Err(_)));
+    let deleted = local_branch(git, workspace, &branch, worktree_left, dry_run)?;
+    for outcome in [removed, deleted].into_iter().flatten() {
+        match outcome {
+            Ok(did) => cleaned.did.push(did),
+            Err(left) => cleaned.left.push(left),
         }
-        None => {}
     }
-
-    // The branch.
+    cleaned.did.extend(line(git, workspace, feature, dry_run)?);
+    Ok(cleaned)
+}
+/// Deletes a merged feature's local branch, never forced, or says why it stays: checked out in the
+/// main checkout, its worktree left, or with commits on none of the default branch's tips. `None`
+/// when there is no local branch. On a dry run, says what it would do.
+fn local_branch(
+    git: &Git,
+    workspace: &Workspace,
+    branch: &str,
+    worktree_left: bool,
+    dry_run: bool,
+) -> Result<Option<Result<Did, Left>>, ActionError> {
     let local = git
         .branches()?
         .into_iter()
         .any(|b| b.name == branch && b.local.is_some());
     if !local {
-        return Ok(cleaned);
+        return Ok(None);
     }
-    let checked_out_here = Git::open(&main_root)?.current_branch().as_deref() == Some(&branch);
-    let why = if checked_out_here {
+    let why = if git.current_branch().as_deref() == Some(branch) {
         Some(WhyLeft::CheckedOutHere)
     } else if worktree_left {
         Some(WhyLeft::WorktreeLeft)
@@ -135,22 +155,76 @@ pub fn clean(
             )));
         }
         let names: Vec<&str> = bases.iter().map(String::as_str).collect();
-        let count = git.unmerged_commits(&branch, &names)?;
+        let count = git.unmerged_commits(branch, &names)?;
         (count > 0).then_some(WhyLeft::Unmerged { count, bases })
     };
-    match why {
-        Some(why) => cleaned.left.push(Left {
-            what: Leftover::Branch(branch),
+    Ok(Some(match why {
+        Some(why) => Err(Left {
+            what: Leftover::Branch(branch.to_string()),
             why,
         }),
         None => {
             if !dry_run {
-                git.delete_branch(&branch)?;
+                git.delete_branch(branch)?;
             }
-            cleaned.did.push(Did::DeletedBranch(branch));
+            Ok(Did::DeletedBranch(branch.to_string()))
         }
+    }))
+}
+
+/// The name of the line of the default branch's priorities linking the feature's proposal, as the
+/// workspace read it, uncommitted edits included.
+pub fn merged_line<'a>(workspace: &'a Workspace, feature: &Feature) -> Option<&'a str> {
+    let proposal = format!("{}/proposal.md", folder_path(feature.kind, &feature.folder));
+    workspace
+        .priorities
+        .iter()
+        .find(|line| {
+            line.link.as_deref().and_then(|link| resolve("specs", link)) == Some(proposal.clone())
+        })
+        .map(|line| line.text.as_str())
+}
+
+/// Removes the line of the priorities linking the feature's proposal on the default branch, and
+/// commits it alone, in `chore(<slug>): remove "<name>" from the priorities`, when the priorities
+/// had no other change: those are someone's work in progress, and the removal stays beside them,
+/// uncommitted, as after a hook's refusal. `None` when no line links it.
+fn line(
+    git: &Git,
+    workspace: &Workspace,
+    feature: &Feature,
+    dry_run: bool,
+) -> Result<Option<Did>, ActionError> {
+    let (Some(name), Some(default)) = (
+        merged_line(workspace, feature),
+        workspace.default_branch.as_deref(),
+    ) else {
+        return Ok(None);
+    };
+    if dry_run {
+        return Ok(Some(Did::RemovedLine {
+            name: name.to_string(),
+            committed: false,
+        }));
     }
-    Ok(cleaned)
+    let place = place::reach(git, default).map_err(|e| ActionError::Refused(e.to_string()))?;
+    let proposal = format!("{}/proposal.md", folder_path(feature.kind, &feature.folder));
+    let Some((name, clean)) = priorities::remove_linked(&place, &proposal)? else {
+        return Ok(None);
+    };
+    let slug = folder_slug(&feature.folder).unwrap_or(&feature.folder);
+    let change = Change {
+        paths: vec![PATH.to_string()],
+        subject: format!("chore({slug}): remove \"{name}\" from the priorities"),
+        body: None,
+    };
+    let committed = clean
+        && match commit_only(&place, &change) {
+            Ok(_) => true,
+            Err(ActionError::Hook { .. }) => false,
+            Err(error) => return Err(error),
+        };
+    Ok(Some(Did::RemovedLine { name, committed }))
 }
 
 /// Removes a branch's worktree from `main_root`, the main checkout, or prunes its record when its

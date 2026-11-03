@@ -108,7 +108,7 @@ pub fn proposals() -> ArgValueCandidates {
     })
 }
 
-/// The merged features with a worktree or a branch left: `clean`.
+/// The merged features with a worktree, a branch, or a line of the priorities left: `clean`.
 pub fn merged() -> ArgValueCandidates {
     ArgValueCandidates::new(|| {
         let Some(workspace) = workspace() else {

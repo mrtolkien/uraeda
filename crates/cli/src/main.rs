@@ -172,7 +172,7 @@ enum Command {
         /// A merged feature or change: a path under specs/, a folder name, or a slug
         #[arg(add = complete::merged())]
         target: Option<String>,
-        /// Clean every merged feature with a worktree or a branch left
+        /// Clean every merged feature with a worktree, a branch, or a line of the priorities left
         #[arg(long)]
         all: bool,
         /// Print what would be removed, and remove nothing

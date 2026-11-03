@@ -486,31 +486,35 @@ git commit -m "feat(master-pr): ura inbox prints the inbox"
   says it would remove it. `render` prints `removed "<name>" from the priorities`,
   `would remove "<name>" from the priorities`, and, uncommitted,
   `PRIORITIES.md had uncommitted changes: the line is removed but not committed.` `candidates` also
-  takes a merged feature whose line is still in the priorities.
+  takes a merged feature whose line is still in the priorities, found by `clean::merged_line` in the
+  workspace's priorities; the messages for nothing to clean and for several candidates name the line
+  ([R7](rulings.md#r7-ura-clean-names-the-priorities-line-among-what-is-left)). The removal on disk
+  is shared with `drop.rs` as `actions::priorities::remove_linked`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `clean_removes_the_merged_line`, rows over one helper building a merged feature with its line in
 Now: (a) a feature: the line leaves, the subject is
 `chore(<slug>): remove "<name>" from the priorities`; (b) a change: same, its line linking
 `/specs/changes/<folder>/proposal.md`; (c) `PRIORITIES.md` edited first: the line leaves, no new
 commit, stdout has the uncommitted message; (d) no line: the priorities' text and `main`'s subjects
-unchanged, and the worktree still removed. The break: the line removed without its commit, a
-change's line missed, the human's edit committed.
+unchanged, and the worktree still removed. `a_merged_line_alone_is_something_to_clean`: a merged
+feature with only its line left is found by `ura clean` with no target, dry run included. The break:
+the line removed without its commit, a change's line missed, the human's edit committed.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-cli --test clean`
 - Expected: FAIL, the line is still in `PRIORITIES.md`.
 
-- [ ] **Step 3: Implement**, sharing the removal with `drop.rs` where it reads simpler.
+- [x] **Step 3: Implement**, sharing the removal with `drop.rs` where it reads simpler.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core crates/cli
