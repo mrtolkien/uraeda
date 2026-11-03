@@ -171,11 +171,12 @@ async function deliver(
 }
 
 /**
- * Queues an automatic continue's turn in the session, at once, and returns it: the message of
- * `reason`, from the workflow, after `line`, in a turn of the stopped turn's kind, step, and
- * trigger, an `allow` turn's as a chat. The session's queue starts it, behind another session of
- * its change or feature working, as any queued turn; it is not checked again as a workflow
- * message. Refused while a move or a drop holds the session, or once a drop archived it.
+ * Queues an automatic continue's turn in the session, at once, counts it, and returns it: the
+ * message of `reason`, from the workflow, after `line`, in a turn of the stopped turn's kind, step,
+ * and trigger, an `allow` turn's as a chat. The turn, its items, and the count are written as one,
+ * or not at all. The session's queue starts it, behind another session of its change or feature
+ * working, as any queued turn; it is not checked again as a workflow message. The continuer checks
+ * its refusals before.
  */
 export function deliverContinue(
   context: SessionContext,
@@ -183,27 +184,25 @@ export function deliverContinue(
   { line, reason, stopped }: { line: string; reason: ContinueReason; stopped: TurnRow },
 ): number {
   const { cache, changed, turns } = context;
-  if (context.live.moving(live)) {
-    throw refused(REFUSALS.agentWorking);
-  }
-  if (ofDropped(rowOf(cache, live))) {
-    throw refused(REFUSALS.dropped);
-  }
   const id = randomUUID();
   const text = continueMessage(reason);
   const item = messageItem(id, "workflow", text);
   const chat = stopped.kind === "allow" || stopped.kind === "chat";
-  const queued = cache.addTurn({
-    allowed: null,
-    kind: chat ? "chat" : stopped.kind,
-    sessionId: live.id,
-    state: "queued",
-    step: chat ? null : stopped.step,
-    trigger: chat ? null : stopped.trigger,
+  const { queued, seq } = cache.atomically(() => {
+    const queued = cache.addTurn({
+      allowed: null,
+      kind: chat ? "chat" : stopped.kind,
+      sessionId: live.id,
+      state: "queued",
+      step: chat ? null : stopped.step,
+      trigger: chat ? null : stopped.trigger,
+    });
+    cache.appendItem(queued, { kind: "system", text: line });
+    const seq = cache.appendItem(queued, item);
+    cache.addContinue(live.id);
+    return { queued, seq };
   });
   turns.track(queued);
-  cache.appendItem(queued, { kind: "system", text: line });
-  const seq = cache.appendItem(queued, item);
   live.messages.set(id, { item, seq, turn: queued, written: false });
   live.queue.push({ id: queued, message: { id, images: [], text, when: "queue" } });
   changed(live, queued, "queued");

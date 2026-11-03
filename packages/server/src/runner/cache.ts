@@ -370,6 +370,10 @@ export class SessionCache {
   serverCuts(reason: string, since: string): Array<TurnRow> {
     return serverCuts(this.db, reason, since);
   }
+  /** Runs the writes of `body` as one: all of them, or none when it throws. */
+  atomically<T>(body: () => T): T {
+    return transaction(this.db, body);
+  }
   addContinue(session: string): number {
     return addContinue(this.db, session);
   }

@@ -911,8 +911,10 @@ sends messages to an agent without the human.
     each call. `fakeSessions` takes `runs`, off by default (R4).
   - In `send.ts`:
     `deliverContinue(context, live, { line, reason, stopped }: { line: string; reason: ContinueReason; stopped: TurnRow }): number`,
-    synchronous, which throws its refusals.
+    synchronous. The continuer checks its refusals before it.
     - It sends `continueMessage(reason)` as an item with `origin: "workflow"`.
+    - The turn, its items, and `addContinue` are written in one transaction, `cache.atomically`:
+      all, or none.
     - The turn takes the stopped turn's kind, step, and trigger. An `allow` turn becomes `chat`.
     - The turn opens with `line` as its first system line, whether it starts or queues.
     - A queued continue is not rechecked as a workflow message.
@@ -939,7 +941,10 @@ The rules:
 
    A refusal, such as the agent unavailable or the feature dropped, clears the turn's
    `continue_reason`: the turn asks with its own reason. It is checked before `addContinue`, so a
-   refused continue is not counted.
+   refused continue is not counted. So is a run taken over another way: the claimed turn no longer
+   its session's latest turn not taken back, or the session no longer current (archived, or not its
+   folder's latest). A failure of the cache while it queues the turn is logged and reads as a
+   refusal: the turn, its items, and the count are one transaction.
 
 3. **The cancels**:
    - `Sessions.send` cancels the session's pending continue, and calls `resetContinues`;
