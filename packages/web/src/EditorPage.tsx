@@ -4,6 +4,7 @@
 // leaves the field, `r` sets the research effort, `f` and `c` pick a feature or a change, and `s`
 // goes to the slug, where Enter starts it, as Ctrl+Enter does in the text. A started proposal's `s`
 // saves.
+import { useBufferKey } from "./buffer/useBufferKey.ts";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
@@ -243,6 +244,7 @@ export function EditorPage({ path }: { path: string }) {
   // Starts it as the kind picked, saved text first: its session opens as the start is planned.
   const startNow = () => void editor.actions.start(kind);
   useEditorKeys(file, { edit, editor, focusSlug, level, preview, setKind, setLevel, startNow });
+  useBufferKey(file ? path : undefined);
   if (!file) {
     return (
       <Page kind="rows">

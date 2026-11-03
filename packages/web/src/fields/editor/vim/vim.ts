@@ -1,15 +1,16 @@
 // The Vim layer, a chunk of its own that `load.ts` imports with the switch on and a fine pointer:
 // CodeMirror's Vim engine in every field's slot (Text editing decision: Vim's keys come from the
 // engine, never from keys handled by hand). The layer only calls the field's own actions: insert
-// mode at focus, Escape in normal mode and Shift+Escape in any mode run the field's Escape, Enter
-// in normal mode its Enter, `:w` `:q` `:wq` its Ctrl+Enter and Escape; a yank also reaches the
+// mode at focus, but in a field read first, Escape in normal mode and Shift+Escape in any mode run
+// the field's Escape, Enter in normal mode its Enter, `:w` its Ctrl+Enter, `:q` its quit, which is
+// its Escape but where it leaves its page, `:wq` both; a yank also reaches the
 // clipboard; and the human's commands run when it starts, each refusal with its line.
 import { type Extension, Prec } from "@codemirror/state";
 import { EditorView, ViewPlugin } from "@codemirror/view";
 import { type CodeMirror, type CodeMirrorV, getCM, Vim, vim } from "@replit/codemirror-vim";
 import { placeOf } from "../Editor.tsx";
 import { type Mode, setFocused, setMode } from "../modeStore.ts";
-import { editorActions } from "../slot.ts";
+import { editorActions, readFirst } from "../slot.ts";
 
 type CM = CodeMirror;
 
@@ -64,11 +65,11 @@ function afterPrompt(
 }
 
 Vim.defineEx("write", "w", (cm: CM) => afterPrompt(cm, (actions) => actions.submit()));
-Vim.defineEx("quit", "q", (cm: CM) => afterPrompt(cm, (actions) => actions.escape()));
+Vim.defineEx("quit", "q", (cm: CM) => afterPrompt(cm, (actions) => actions.quit()));
 Vim.defineEx("wq", "wq", (cm: CM) =>
   afterPrompt(cm, (actions) => {
     actions.submit();
-    actions.escape();
+    actions.quit();
   }),
 );
 
@@ -177,10 +178,13 @@ const modeReport = ViewPlugin.fromClass(
         this.report();
       }
     };
-    /** At focus, insert mode, unless the focus comes back from the prompt. */
+    /**
+     * At focus, insert mode, unless the focus comes back from the prompt, or the field is read
+     * first, as a buffer, which keeps its mode.
+     */
     focus() {
       const { cm } = this;
-      if (!cm || this.fromPrompt) {
+      if (!cm || this.fromPrompt || this.view.state.facet(readFirst)) {
         this.fromPrompt = false;
         return;
       }

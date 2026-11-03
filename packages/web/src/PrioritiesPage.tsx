@@ -1,3 +1,4 @@
+import { useBufferKey } from "./buffer/useBufferKey.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -89,6 +90,7 @@ export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; sel
   // The ＋ next to Priorities, from the keyboard: the form in its default place. Not named in the
   // status line.
   useKeys([{ icon: "plus", keys: "a", label: "add", run: () => openForm("proposal") }]);
+  useBufferKey("specs/PRIORITIES.md");
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const [message, setMessage] = useState<string>();

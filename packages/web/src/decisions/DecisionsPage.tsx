@@ -4,6 +4,7 @@
 // picked. On narrow ones, the reader replaces the list once an item is picked, with a way back.
 // The keys move through the principles, then the decisions, the reader following (`useListKeys`);
 // `/` or "Jump to…" opens the key picker over any of them (`KeyPicker`).
+import { useBufferKey } from "../buffer/useBufferKey.ts";
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -271,6 +272,7 @@ function Reader({
   const index = shown === undefined ? -1 : paths.indexOf(shown);
   const file =
     open?.kind === "decision" ? `specs/decisions/${open.name}.md` : "specs/CONSTITUTION.md";
+  useBufferKey(file);
   if (isSplit) {
     return (
       <Pane title={file}>

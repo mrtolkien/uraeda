@@ -1,3 +1,4 @@
+import { useBufferKey } from "./buffer/useBufferKey.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Icon } from "@astryxdesign/core/Icon";
 import { VStack } from "@astryxdesign/core/VStack";
@@ -33,6 +34,7 @@ export function InboxPage({ select }: { select?: { key: string } | undefined } =
   // The ＋ next to Inbox, from the keyboard: the form in its default place. Not named in the status
   // line.
   useKeys([{ icon: "plus", keys: "a", label: "add", run: () => openForm("note") }]);
+  useBufferKey("specs/INBOX.md");
   // `C`, which the list declares with its other category keys, opens the New category line.
   const [newCategory, setNewCategory] = useState(0);
   // Its data is read before it draws: the position comes back at once.
