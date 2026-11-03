@@ -293,21 +293,34 @@ test.each(["Stop", "a dismiss"])("%s during a wait ends it for good", async (act
   expect(adapter.sent).toHaveLength(1);
 });
 
-/** US1, more scenarios 3 and 4: a wait is kept in the cache, and an overdue one goes at once. */
+/**
+ * US1, more scenarios 3 and 4: a wait is kept in the cache, and an overdue one goes at once; the
+ * overdue waits of several runs go a minute apart, in their order.
+ */
 test.each([
-  { name: "at its time", startsAt: "2026-11-03T15:00:00Z" },
-  { name: "at once once overdue", startsAt: "2026-11-04T01:30:00Z" },
-])("a wait survives a restart, and continues $name", async ({ startsAt }) => {
+  { name: "at its time", runs: 1, startsAt: "2026-11-03T15:00:00Z" },
+  { name: "at once once overdue", runs: 1, startsAt: "2026-11-04T01:30:00Z" },
+  { name: "a minute apart, two runs overdue", runs: 2, startsAt: "2026-11-04T01:30:00Z" },
+])("a wait survives a restart, and continues $name", async ({ runs, startsAt }) => {
   const setup = await testSessions(fixtureRepo(), { runs: () => ON });
-  const { adapter } = setup;
+  const { adapter, cache } = setup;
   const time = clock("2026-11-03T14:01:00Z");
-  await sendLimited(setup, AGENT);
+  const first = await sendLimited(setup, AGENT);
+  const second = runs === 2 ? await sendLimited(setup, HUMAN) : undefined;
 
   const next = await restart(setup.sessions, { runs: () => ON });
   time.to(Date.parse(startsAt));
   await next.startContinues();
+  if (second) {
+    // The first goes at once, the second a minute later: read before `until`, which moves timers.
+    time.by(60_000 - 1);
+    expect(cache.turn(first.turn)?.continueAt).toBeNull();
+    expect(cache.turn(second.turn)?.continueAt).not.toBeNull();
+    time.by(1);
+    expect(cache.turn(second.turn)?.continueAt).toBeNull();
+  }
   time.by(Math.max(0, AFTER_RESET - Date.parse(startsAt)));
-  await until(() => adapter.sent.length === 2);
+  await until(() => continues(adapter) === runs);
   expect(adapter.sent.at(-1)?.text).toBe(LIMIT_MESSAGE);
 });
 
