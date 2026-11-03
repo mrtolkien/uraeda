@@ -10,8 +10,8 @@ use clap_complete::engine::{ArgValueCandidates, ArgValueCompleter, CompletionCan
 use clap_complete::engine::{PathCompleter, ValueCompleter};
 use clap_complete::env::EnvCompleter;
 use uraeda_core::actions::answer;
+use uraeda_core::api;
 use uraeda_core::files::clarifications;
-use uraeda_core::files::inbox;
 use uraeda_core::target::{self, Purpose, Target};
 use uraeda_core::workspace::{Feature, Workspace};
 
@@ -121,12 +121,16 @@ pub fn merged() -> ArgValueCandidates {
     })
 }
 
-/// The inbox's categories: `note --category`.
+/// The inbox's categories, those of agents' notes included, read as `ura inbox` reads them:
+/// `note --category`.
 pub fn categories() -> ArgValueCandidates {
     ArgValueCandidates::new(|| {
-        let text = workspace().and_then(|workspace| workspace.inbox);
-        inbox::read(text.as_deref().unwrap_or_default(), &[])
-            .names
+        let Ok((git, _)) = output::workspace() else {
+            return Vec::new();
+        };
+        api::read_inbox(git.root())
+            .map(|inbox| inbox.names)
+            .unwrap_or_default()
             .into_iter()
             .map(CompletionCandidate::new)
             .collect()
