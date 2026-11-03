@@ -3,7 +3,7 @@ import { fixtureRepo } from "uraeda-binding/test-utils";
 import type { Binding } from "../../fate/context.ts";
 import { SessionCache } from "../cache.ts";
 import { CONTINUES_OFF, type ContinueSettings } from "../continuer.ts";
-import type { Limit } from "../events.ts";
+import type { Denial, Limit } from "../events.ts";
 import { FakeAdapter } from "../fake.ts";
 import { type SessionChange, Sessions } from "../sessions.ts";
 
@@ -77,12 +77,15 @@ export async function restart(
   return next;
 }
 
-/** Scripts the next turn to be refused by a usage limit: its `limit` event, then a failed result. */
-export function limitTurn(adapter: FakeAdapter, limit: Limit) {
+/**
+ * Scripts the next turn to be refused by a usage limit: its `limit` event, then a failed result,
+ * with the actions `denials` blocked before.
+ */
+export function limitTurn(adapter: FakeAdapter, limit: Limit, denials: Array<Denial> = []) {
   adapter.script([
     { limit, type: "limit" },
     {
-      denials: [],
+      denials,
       errors: [limit.text ?? "Usage limit reached."],
       interrupted: false,
       ok: false,

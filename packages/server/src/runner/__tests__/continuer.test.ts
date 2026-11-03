@@ -3,7 +3,7 @@ import { commitOnBranch, fixtureRepo } from "uraeda-binding/test-utils";
 import type { Binding } from "../../fate/context.ts";
 import type { SessionCache } from "../cache.ts";
 import type { ContinueSettings } from "../continuer.ts";
-import type { Limit } from "../events.ts";
+import type { Denial, Limit } from "../events.ts";
 import type { FakeAdapter } from "../fake.ts";
 import { Sessions } from "../sessions.ts";
 import { sessionStatus } from "../status.ts";
@@ -34,6 +34,8 @@ const SESSION_LIMIT: Limit = {
   resetsAt: "2026-11-03T23:40:00.000Z",
   text: "You've hit your session limit · resets 11:40pm (UTC)",
 };
+/** An action blocked: a run that stops on one asks the human, and never goes on by itself. */
+const PUSH: Denial = { input: { command: "git push origin HEAD" }, tool: "Bash" };
 /** When a run stopped by `SESSION_LIMIT` continues: a minute after its reset. */
 const AFTER_RESET = Date.parse("2026-11-03T23:41:00Z");
 
@@ -63,9 +65,10 @@ async function sendLimited(
   { adapter, repo, sessions }: { adapter: FakeAdapter; repo: string; sessions: Sessions },
   folder: string,
   limit: Limit = SESSION_LIMIT,
+  denials: Array<Denial> = [],
 ) {
   const session = await sessions.featureSession(repo, folder);
-  limitTurn(adapter, limit);
+  limitTurn(adapter, limit, denials);
   const { turn } = await sessions.send(repo, session.id, { text: "Go on with the plan" });
   await sessions.settled(turn);
   return { session: session.id, turn };
@@ -264,8 +267,7 @@ test.each(["Allow", "a new session", "the agent going on by itself"])(
     const time = clock("2026-11-03T14:01:00Z");
     const session = await sessions.featureSession(repo, AGENT);
     // A blocked push the human has not allowed yet, before the run met the limit.
-    const push = { input: { command: "git push origin HEAD" }, tool: "Bash" };
-    adapter.script([{ denials: [push], errors: [], interrupted: false, ok: true, type: "result" }]);
+    adapter.script([{ denials: [PUSH], errors: [], interrupted: false, ok: true, type: "result" }]);
     const blocked = await sessions.send(repo, session.id, { text: "Push it" });
     await sessions.settled(blocked.turn);
     const { turn } = await sendLimited(setup, AGENT);
@@ -453,11 +455,12 @@ test.each([
     runs: ON,
   },
   { limit: SESSION_LIMIT, name: "the limit's continue off", runs: { ...ON, afterLimit: false } },
-])("a limit that is not continued fails and asks: $name", async ({ limit, runs }) => {
+  { denials: [PUSH], limit: SESSION_LIMIT, name: "a blocked action", runs: ON },
+])("a limit that is not continued fails and asks: $name", async ({ denials, limit, runs }) => {
   const setup = await testSessions(fixtureRepo(), { runs: () => runs });
   const { adapter, cache } = setup;
   const time = clock("2026-11-03T14:01:00Z");
-  const { turn } = await sendLimited(setup, AGENT, limit);
+  const { turn } = await sendLimited(setup, AGENT, limit, denials);
 
   expect(cache.turn(turn)).toMatchObject({
     continueAt: null,
@@ -542,10 +545,14 @@ test.each([
   { continues: false, name: "a run whose transcript is gone does not", transcript: false },
   { continues: false, name: "a run of an older session does not", older: true },
   { continues: false, name: "a run of a repository no longer listed does not", unlisted: true },
+  { continues: false, name: "a run whose restart continue is off does not", off: true },
+  { continues: false, dismissed: true, name: "a run the human dismissed does not" },
   { continues: false, name: "a queued turn that never started does not", queued: true },
 ])(
   "US2.1: a run the restart cut continues at the next start, with its line: $name",
-  async ({ continues: continued, older, queued, transcript, uninstalled, unlisted, wait }) => {
+  async (row) => {
+    const { continues: continued, dismissed, off, older, queued } = row;
+    const { transcript, uninstalled, unlisted, wait } = row;
     const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
       runs: () => ON,
     });
@@ -562,7 +569,7 @@ test.each([
     adapter.installed = uninstalled !== true;
     const next = await restart(sessions, {
       hosted: (root) => unlisted !== true || root !== session.repo,
-      runs: () => ON,
+      runs: () => (off === true ? { ...ON, afterRestart: false } : ON),
     });
     const cut = latest(cache, session.id);
     expect(cut).toMatchObject({ reason: "Stopped: the server stopped while it ran." });
@@ -571,6 +578,9 @@ test.each([
     }
     if (older) {
       await next.newSession(repo, AGENT);
+    }
+    if (dismissed) {
+      next.dismiss(repo, cut.id);
     }
     time.by(wait ?? 0);
     const sent = adapter.sent.length;
@@ -596,9 +606,50 @@ test.each([
     await flush();
     expect(adapter.sent).toHaveLength(sent);
     expect(latest(cache, session.id).id).toBe(cut.id);
-    expect(statusOf(cache, cut.id).reason).toBe("interrupted");
+    // A dismissed run asks for nothing.
+    expect(statusOf(cache, cut.id).reason).toBe(dismissed ? undefined : "interrupted");
   },
 );
+
+/** US3's conditions: the gate's continue waits on the agent's step, and a run never blocked. */
+test.each([
+  { denials: [], gate: true, name: "once its step waits on the human" },
+  { denials: [PUSH], gate: false, name: "with an action blocked" },
+])("a run done before its gate is not asked to go on $name", async ({ denials, gate }) => {
+  // The run writes its plan: the feature then waits on the human, at its gate.
+  let atGate = false;
+  const moving: Binding = {
+    ...binding,
+    readFeature: async (repo, folder) => {
+      const feature = await binding.readFeature(repo, folder);
+      const step = { ...feature.step, name: "human-gate", waitsOn: "human" };
+      return atGate ? { ...feature, step } : feature;
+    },
+  };
+  const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
+    binding: moving,
+    runs: () => ON,
+  });
+  const time = clock("2026-11-03T14:01:00Z");
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([
+    () => {
+      atGate = gate;
+    },
+    { denials, errors: [], interrupted: false, ok: true, type: "result" },
+  ]);
+  const { turn } = await sessions.send(repo, session.id, { text: "Go on", workflow: PLAN });
+  await sessions.settled(turn);
+
+  time.by(HOUR);
+  await flush();
+  expect(cache.turn(turn)).toMatchObject({
+    continueAt: null,
+    continueReason: null,
+    kind: "workflow",
+  });
+  expect(adapter.sent).toHaveLength(1);
+});
 
 test("US3: a run that stops before its gate is asked once, and a second stop asks for you", async () => {
   // SC-003: each end is published once decided, the first already waiting, never halted.
