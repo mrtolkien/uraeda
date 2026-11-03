@@ -293,8 +293,8 @@ export class Continuer {
   }
 
   /**
-   * Asks a workflow turn done before its feature's next human gate to go on to it: once, so a
-   * turn that ends so after the gate's own continue asks for the human, halted.
+   * Asks a workflow turn done before its feature's next human gate to go on to it: once, so the
+   * gate's own continue's turn that ends so asks for the human, halted.
    */
   async #beforeGate(turn: TurnRow, taken: number): Promise<void> {
     const { binding, cache } = this.#context;
@@ -302,7 +302,10 @@ export class Continuer {
     if (!session?.folder || !this.#runs().beforeGate) {
       return;
     }
-    if (this.#latest(session.id, turn.id)?.continueReason === "gate") {
+    // Asked once: the turn of the gate's own continue, sent, stops for the human. A gate past the
+    // cap was never asked, so the next stop after the human's message is.
+    const [first] = cache.items(turn.id, 0, 1);
+    if (first?.kind === "system" && first.text === continuedLine("gate")) {
       return;
     }
     // A feature gone from the repository has no gate to go on to.

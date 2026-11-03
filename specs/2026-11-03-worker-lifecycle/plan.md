@@ -1109,12 +1109,13 @@ The rules:
    continuer asks it to go on when all of these hold:
    - its step waits on the agent, and is not `pull-request-unknown`;
    - `beforeGate` is on;
-   - the turn before it in the session has no `continue_reason` of `gate`;
+   - the turn is not the gate's own continue's turn, whose first line is `continuedLine("gate")`: a
+     gate past the cap was never asked, so after the human's message the next stop is;
    - the turn was refused no action the human has not allowed: a blocked turn keeps asking, as
      today. The same holds for every kind of continue.
 
    It gets `scheduleContinue(now, "gate")` and fires at once, or `markCapped` at the cap. When the
-   turn before was a gate continue, nothing happens: the run reads `halted`.
+   turn is the gate's continue's own, nothing happens: the run reads `halted`.
 
 3. **The count**: before each decision, the feature's worktree commit is read with
    `binding.checkoutCommit`. When it differs from the one recorded at the session's last continue,
