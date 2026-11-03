@@ -29,8 +29,9 @@ export function fieldKeys(actions: () => EditorActions & { enters: boolean; line
     EditorView.domEventHandlers({
       keydown(event, view) {
         if (composing(event, view)) {
-          // The input method's: neither the field's actions nor CodeMirror's own keys, and the
-          // browser's default, which composes, stays.
+          // The input method's: neither the field's actions nor CodeMirror's own keys, whose Enter
+          // would add a line as the input method picks its text. Taken, so CodeMirror cancels the
+          // key's default: the composition goes on through its own events, not the key's.
           return true;
         }
         const own = actions();

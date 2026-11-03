@@ -101,16 +101,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   target.
 - **Where**: task 5
 
-## R10: The Vim layer's tests run on comments, not on priority rows
+## R10: The Vim layer's tests run on comments, and on a priority row once rows were editors
 
 - **Decision**: `vim.test.tsx` checks insert mode at focus and Escape in normal mode on a round's
-  comment field, which is on the editor already, in place of the priority row of US2 1 and 2. Escape
-  in normal mode runs the field's own Escape action, a comment's leaving it and a row's asking
-  "Discard your changes?", so the row's question follows from task 4's `onEscape`.
-- **Rationale**: task 4 moves the rows to the editor in parallel with task 6; a test on a row would
-  fail until both land.
-- **If wrong**: once task 4 lands, a row of `vim.test.tsx` on the priority "Review the UI guidelines
-  properly" can press `dw` then Escape and wait for "Discard your changes?".
+  comment field, and, since task 4 put the rows on the editor, US2 2 and the edge case "a changed
+  row, Escape twice" on the priority "Review the UI guidelines properly": `0dw`, then Escape asks
+  "Discard your changes?" and saves nothing (added in the review's fix pass).
+- **Rationale**: task 4 moved the rows to the editor in parallel with task 6; a test on a row would
+  have failed until both landed.
 - **Where**: task 6
 
 ## R11: Only the suggested message amends
@@ -122,3 +120,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   (US6 3); the suggestion keeps today's run of small edits in one commit.
 - **If wrong**: `changes::commit_pane` passes `amends: false` always.
 - **Where**: task 7
+
+## R12: A one-line field's Ctrl+Enter is its Enter, and its own prompt is no leaving
+
+- **Decision**: without an `onSubmit`, Ctrl+Enter and Vim's `:w` run a `line` field's `onEnter`, so
+  a row and a one-line field save on both, as they did before the editor. The text's blur toward the
+  editor's own elements, like Vim's `:` prompt under the text, is not the field's `onBlur`: the
+  engine gives the focus back to the text as the prompt closes, so `:q` in a changed row asks
+  "Discard your changes?" rather than saving as the row is left.
+- **Rationale**: rows and one-line fields pass `onEnter` only; the review found Ctrl+Enter, `:w`,
+  and `:wq` did nothing there, and `:` saved and closed a row.
+- **Alternatives considered**: each row and one-line field passing `onSubmit`, a second prop for one
+  action at every call site.
+- **If wrong**: `actionsOf` in `fields/editor/Editor.tsx` runs `onSubmit` alone.
+- **Where**: tasks 3, 4, and 6 (review fix pass)

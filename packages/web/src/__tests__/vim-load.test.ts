@@ -18,11 +18,11 @@ test("the engine loads only with the switch on and a fine pointer", async () => 
     [true, false],
     [false, false],
   ]) {
-    expect(await loadVim({ commands: [], on: on! }, { fine: fine! })).toBeUndefined();
+    expect(await loadVim({ on: on! }, { fine: fine! })).toBeUndefined();
   }
   expect(imported.count).toBe(0);
 
-  const layer = await loadVim({ commands: [], on: true }, { fine: true });
+  const layer = await loadVim({ on: true }, { fine: true });
   expect(layer?.runCommands).toBeTypeOf("function");
   expect(imported.count).toBe(1);
 });

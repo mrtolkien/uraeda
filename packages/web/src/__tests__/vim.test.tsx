@@ -8,8 +8,10 @@ import { getCM } from "@replit/codemirror-vim";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { modeNow } from "../fields/editor/modeStore.ts";
+import { slotContent } from "../fields/editor/slot.ts";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import {
+  click,
   fieldText,
   fixture,
   fixtureRepo,
@@ -90,6 +92,56 @@ async function roundPage() {
   return { config, field: field!, repo };
 }
 
+/** The priorities, with one row to edit. */
+const PRIORITIES = `# Priorities
+
+## Now
+
+- Review the UI guidelines properly
+
+## Next
+
+## Later
+
+## Blocked
+`;
+
+/** The label of a priority's field, edited in place. */
+const ROW = "Edit the proposal";
+
+/** The priorities' page, Vim on, its one row edited in place: the row's field, focused. */
+async function rowPage() {
+  const config = vimOn();
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, "specs/PRIORITIES.md"), PRIORITIES);
+  await renderPage("/priorities", repo, { config });
+  await screen.findByRole("heading", { name: /^Now/ });
+  // The engine is in every field once its chunk loaded: the row opens with it.
+  await waitFor(() => expect(slotContent()).toHaveLength(1));
+  const control = screen
+    .getAllByRole("button", { name: /Review the UI guidelines properly/ })
+    .find((one) => one.closest("[data-row-link]") !== null)!;
+  act(() => control.focus());
+  await act(async () => {
+    fireEvent.keyDown(control, { key: "i" });
+  });
+  const field = await screen.findByRole("textbox", { name: ROW });
+  await waitFor(() => expect(mode()).toBe("insert"));
+  return { field, repo };
+}
+
+/** Runs an ex command, like `q`, in the engine's prompt, which `:` opened in `field`. */
+async function ex(field: HTMLElement, command: string) {
+  await keys(field, ":");
+  const prompt = within(field.closest(".cm-editor") as HTMLElement).getByRole("textbox", {
+    name: "",
+  });
+  act(() => {
+    (prompt as HTMLInputElement).value = command;
+  });
+  await keys(prompt, "<CR>");
+}
+
 /** Focuses a field, as a click or a page's key does. */
 const focus = (field: HTMLElement) => act(() => field.focus());
 
@@ -155,15 +207,8 @@ test("`:w` saves a comment", async () => {
   await focus(field);
   await keys(field, "<Esc>");
   await type(field, "Saved by the engine");
-  await keys(field, ":");
-  const prompt = within(field.closest(".cm-editor") as HTMLElement).getByRole("textbox", {
-    name: "",
-  });
-  act(() => {
-    (prompt as HTMLInputElement).value = "w";
-  });
 
-  await keys(prompt, "<CR>");
+  await ex(field, "w");
 
   // Breaks if `:w` is the engine's own, which saves nothing.
   await waitFor(() => expect(read(repo, ROUND)).toContain("Saved by the engine"));
@@ -194,4 +239,46 @@ test("turning Vim off keeps the field's text", async () => {
   await refreshUntil(() => expect(getCM(view)).toBeNull());
   expect(EditorView.findFromDOM(field)).toBe(view);
   expect(fieldText(field)).toBe("unsaved");
+});
+
+test("Escape twice in a changed row asks before dropping the change", async () => {
+  const { field, repo } = await rowPage();
+  await keys(field, "<Esc>0dw");
+  expect(fieldText(field)).toBe("the UI guidelines properly");
+
+  // The first Escape went to normal mode; the second is the row's own, which asks.
+  await keys(field, "<Esc>");
+
+  // Breaks if Escape in normal mode drops the change unasked, or saves it.
+  await screen.findByRole("dialog", { name: "Discard your changes?" });
+  expect(read(repo)).toBe(PRIORITIES);
+});
+
+test("`:q` in a changed row asks before dropping the change, saving nothing", async () => {
+  const { field, repo } = await rowPage();
+  await type(field, "Review the UI guidelines, changed");
+  await keys(field, "<Esc>");
+
+  await ex(field, "q");
+
+  // Breaks if the prompt taking the focus is the row's blur, which saves the change unasked.
+  await screen.findByRole("dialog", { name: "Discard your changes?" });
+  await click(
+    within(screen.getByRole("dialog", { name: "Discard your changes?" })).getByRole("button", {
+      name: /^Discard/,
+    }),
+  );
+  await waitFor(() => expect(screen.queryByRole("textbox", { name: ROW })).toBeNull());
+  expect(read(repo)).toBe(PRIORITIES);
+});
+
+test("`:w` saves a row", async () => {
+  const { field, repo } = await rowPage();
+  await type(field, "Review the UI guidelines, saved");
+  await keys(field, "<Esc>");
+
+  await ex(field, "w");
+
+  // Breaks if `:w` runs a submit the row has none of.
+  await waitFor(() => expect(read(repo)).toContain("- Review the UI guidelines, saved\n"));
 });

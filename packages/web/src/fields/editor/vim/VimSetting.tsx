@@ -3,7 +3,7 @@
 import { type ReactNode, Suspense, useEffect, useState } from "react";
 import { useSettings } from "../../../data.ts";
 import { Unread } from "../../../HandOver.tsx";
-import { OnListClient } from "../../../RepositoryMenu.tsx";
+import { OnListClient } from "../../../ListClient.tsx";
 import { registerEditorExtension } from "../slot.ts";
 import { finePointer, loadVim, setVimErrors, setVimOn, type VimLayer } from "./load.ts";
 
@@ -19,7 +19,7 @@ export function useVimLayer(on: boolean, commands: ReadonlyArray<string>) {
   useEffect(() => {
     let gone = false;
     let unregister: (() => void) | undefined;
-    void loadVim({ commands: [], on }, { fine: finePointer() }).then((loaded) => {
+    void loadVim({ on }, { fine: finePointer() }).then((loaded) => {
       if (!gone && loaded) {
         unregister = registerEditorExtension(loaded.extension);
         setLayer(loaded);
@@ -40,7 +40,7 @@ export function useVimLayer(on: boolean, commands: ReadonlyArray<string>) {
       return;
     }
     setVimErrors(layer.runCommands(lines === "" ? [] : lines.split("\n")));
-    return () => setVimErrors(NONE);
+    return () => setVimErrors(undefined);
   }, [layer, lines]);
 }
 
