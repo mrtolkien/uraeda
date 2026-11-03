@@ -19,8 +19,8 @@ mod repairs;
 mod texts;
 
 use files::{
-    FOLDERS, Found, Grown, Undo, files_in, grown_files, linked_by, take_item, take_note, unmerge,
-    written_for_link, written_from,
+    Edited, Found, Grown, Undo, edited_files, grown_files, linked_by, take_item, take_note,
+    uncategorized, unmerge, written_for_link, written_from,
 };
 use linked::never_committed;
 use texts::{Texts, texts};
@@ -260,11 +260,23 @@ fn gather(place: &Place) -> Listed {
 /// human edited.
 fn gather_lists(place: &Place) -> Listed {
     let texts = texts(place);
-    let (mut changes, found) = pair(place, &texts);
+    let (mut changes, mut found) = pair(place, &texts);
     let mut paths = found.paths;
+    let inbox_now = versions(place, INBOX).0.unwrap_or_default();
     // The proposal files and note files the human edited in their editor, which have no Commit of
     // their own: this list commits them. Discard leaves their text.
-    for (path, title) in edited_files(place, &paths) {
+    for Edited {
+        path,
+        title,
+        now,
+        then,
+    } in edited_files(place, &paths)
+    {
+        if uncategorized(&inbox_now, &path, &now, &then) {
+            paths.push(path.clone());
+            found.undo.push(Undo::Uncategorized { path });
+            continue;
+        }
         let what = if crate::target::is_note_file(&path) {
             "note file"
         } else {
@@ -284,29 +296,6 @@ fn gather_lists(place: &Place) -> Listed {
         undo: found.undo,
         repairs: Vec::new(),
     }
-}
-
-/// The proposal files and note files whose text differs from the committed one, with each title;
-/// `taken` are the files the list holds already. A file no commit has is a note's or a
-/// proposal's, which [`never_committed`] counts.
-fn edited_files(place: &Place, taken: &[String]) -> Vec<(String, String)> {
-    let mut found = Vec::new();
-    for path in files_in(place, &FOLDERS) {
-        if taken.contains(&path) {
-            continue;
-        }
-        let (Ok(now), Some(then)) = (
-            fs::read_to_string(place.root.join(&path)),
-            place::committed(place, &path),
-        ) else {
-            continue;
-        };
-        if now != then {
-            let title = crate::view::title(&now).unwrap_or_else(|| path.clone());
-            found.push((path, title));
-        }
-    }
-    found
 }
 
 /// Takes the added proposal the removed note of the text `text` in `inbox` became out of the
@@ -479,6 +468,7 @@ pub fn discard(place: &Place) -> Result<(), ActionError> {
                 drop_notes,
             } => unmerge(place, &path, &title, drop_notes)?,
             Undo::Moved { path, note } => super::inbox::back_to_notes(place, &path, &note)?,
+            Undo::Uncategorized { path } => git.restore(&path)?,
             Undo::Removed { note, paths } => {
                 if !super::inbox::restore_note_file(place, &note)? {
                     for path in paths {

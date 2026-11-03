@@ -4,9 +4,9 @@
 
 use std::fs;
 
-use crate::files::inbox;
 use crate::files::lines;
 use crate::files::proposal;
+use crate::files::{frontmatter, inbox};
 
 use super::super::expand;
 use super::super::images::folder_of;
@@ -36,6 +36,9 @@ pub(super) enum Undo {
     /// A committed note file, `note`, its note's removal deleted: written back as the removal found
     /// it, else its committed files, `paths`, restored.
     Removed { note: String, paths: Vec<String> },
+    /// A committed note file whose only change is the `category` its note's move into a line
+    /// dropped: restored from `HEAD`.
+    Uncategorized { path: String },
 }
 
 /// The folders of proposal files and of note files, each with the name of a folder's main file.
@@ -344,4 +347,53 @@ pub(super) fn take_item(grown: &mut [Grown], text: &str) -> Option<(String, Stri
         let (markdown, _) = file.added.remove(at);
         Some((file.path.clone(), file.title.clone(), markdown))
     })
+}
+
+/// Whether the note file at `path`, from the top level, holding `now`, differs from `then`, its
+/// text at `HEAD`, only by the `category` its note's move into a line dropped: a line of the text
+/// of `INBOX.md`, `inbox`, links it. Its change is part of the move.
+pub(super) fn uncategorized(inbox: &str, path: &str, now: &str, then: &str) -> bool {
+    now != then
+        && frontmatter::remove(then, "category") == now
+        && inbox::parse(inbox)
+            .iter()
+            .any(|note| note.file().as_deref() == Some(path))
+}
+
+/// A proposal file or a note file whose text differs from the committed one.
+pub(super) struct Edited {
+    pub path: String,
+    pub title: String,
+    /// Its text.
+    pub now: String,
+    /// Its text at `HEAD`.
+    pub then: String,
+}
+
+/// The proposal files and note files whose text differs from the committed one; `taken` are the
+/// files the list holds already. A file no commit has is a note's or a proposal's, which
+/// [`never_committed`](super::linked::never_committed) counts.
+pub(super) fn edited_files(place: &Place, taken: &[String]) -> Vec<Edited> {
+    let mut found = Vec::new();
+    for path in files_in(place, &FOLDERS) {
+        if taken.contains(&path) {
+            continue;
+        }
+        let (Ok(now), Some(then)) = (
+            fs::read_to_string(place.root.join(&path)),
+            place::committed(place, &path),
+        ) else {
+            continue;
+        };
+        if now != then {
+            let title = crate::view::title(&now).unwrap_or_else(|| path.clone());
+            found.push(Edited {
+                path,
+                title,
+                now,
+                then,
+            });
+        }
+    }
+    found
 }

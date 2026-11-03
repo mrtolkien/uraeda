@@ -179,9 +179,9 @@ pub fn write_new(
 }
 
 /// The text of the note file `note`, freeform, as a proposal file's, as the workflow reads a
-/// proposal's `## What`, its frontmatter left out: the template with the note's `#` title, or `title` when its first line is
-/// none, as its title and the first paragraph of What, and the rest of the note after it, as
-/// [`proposal`] writes a note's line and nested lines. `None` for a note file with a `## What`
+/// proposal's `## What`, its frontmatter left out: the template with the note's `#` title, or
+/// `title` when its first line is none, as its title and the first paragraph of What, and the rest
+/// of the note after it, as [`proposal`] writes a note's line and nested lines. `None` for a note file with a `## What`
 /// already, as older tools wrote them from the template, or without the template.
 pub(crate) fn note_as_proposal(note: &str, title: &str) -> Option<String> {
     if crate::files::proposal::has_what(note) {

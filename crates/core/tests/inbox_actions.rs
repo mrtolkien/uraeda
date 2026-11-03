@@ -838,3 +838,24 @@ fn an_agents_note_made_a_proposal_leaves_its_frontmatter() {
 
     assert_eq!(repo.read(&path), file);
 }
+
+/// US2 more 3, in the commit bar: the move of an agent's note is one change, its file's dropped
+/// `category` part of it, and Discard puts `INBOX.md` and the file back as `HEAD` has them.
+#[test]
+fn discarding_a_placed_agents_note_restores_its_file() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let file = repo.read(&path);
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let placed = api::place_note(repo.path(), &path, Some("UI".into()), 0, &read.hash).unwrap();
+
+    assert_eq!(placed.changes, 1);
+    let (subject, _) = changes::message(&main_place(&repo));
+    assert!(!subject.contains("more"), "{subject}");
+
+    changes::discard(&main_place(&repo)).unwrap();
+
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+    assert_eq!(repo.read(&path), file);
+    assert_eq!(repo.porcelain(), "");
+}
