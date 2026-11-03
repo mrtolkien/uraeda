@@ -185,3 +185,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `quit` in `fields/editor/Editor.tsx` runs the field's Escape always, and the
   buffer's `onEscape` goes back.
 - **Where**: task 10
+
+## R16: Only the default branch's typed commit is marked
+
+- **Decision**: the mark of R13 is written only for a commit on the default branch; a feature pane's
+  commit, typed too, leaves it as it is.
+- **Rationale**: the mark is one file in the git folder every worktree shares, and only the default
+  branch's commits amend; a feature pane's commit overwrote the mark of the default branch's typed
+  commit, which a later suggested commit then amended into "…, and 1 more".
+- **Alternatives considered**: a mark per branch, kept for commits that never amend.
+- **If wrong**: `amend::keep` writes the mark for any branch's commit, and the mark holds one id per
+  branch.
+- **Where**: task 7 (review fix pass)

@@ -229,6 +229,28 @@ fn a_typed_message_is_never_amended() {
     );
 }
 
+/// Ruling R16. Break caught: a feature pane's commit taking the one mark of the git folder every
+/// worktree shares, so a later suggested commit amends the default branch's typed commit.
+#[test]
+fn a_feature_commit_keeps_the_typed_mark_of_the_default_branch() {
+    let repo = repo();
+    two_branches(&repo);
+    api::commit_branch(repo.path(), "main", "chore: add Global undo to Now").unwrap();
+    api::commit_branch(repo.path(), FOLDER, "docs: drop the clock").unwrap();
+    save(&repo, INBOX, |text| format!("{text}- A second note\n"));
+
+    let suggested = api::branch_changes(repo.path()).unwrap()[0].message.clone();
+    api::commit_branch(repo.path(), "main", &suggested).unwrap();
+
+    assert_eq!(
+        repo.subjects("main")[..2],
+        [
+            "chore: edit specs/INBOX.md",
+            "chore: add Global undo to Now"
+        ]
+    );
+}
+
 /// Break caught: a suggested message no longer joining the latest suggested commit, a run of small
 /// edits split into a commit each.
 #[test]

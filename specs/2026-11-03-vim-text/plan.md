@@ -760,7 +760,8 @@ git commit -m "feat(vim-text): Vim's keys behind the Vim mode setting"
     buffer edited included. The default branch keeps today's `commit_changes` and `discard_changes`
     behaviour through these. The commit bar's count (`Priorities.changes`, `Inbox.changes`) sums
     every pane's. A message equal to the suggestion may amend as today; any other never amends
-    (ruling R11), nor is amended by a later commit (ruling R13).
+    (ruling R11), nor is amended by a later commit (ruling R13); only the default branch's commit
+    marks itself typed, so a feature pane's commit leaves that mark (ruling R16).
   - Binding: `commitPanes(repo)` (the name `branchChanges` is a feature's diff already),
     `commitBranch(repo, branch, message)`, `discardBranch(repo, branch)`.
   - Server: mutations `changes.commit({ write, branch, message })` and

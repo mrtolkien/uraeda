@@ -67,9 +67,10 @@ fn typed(message: &str) -> Option<(String, Option<String>)> {
 }
 
 /// Commits a pane's files with `message`, as typed, trimmed of the blank lines around it. The
-/// record of the buffer's edits it commits ends as the commit lands (see [`crate::actions::edited`]). The default branch's commit may amend the latest one
-/// only with the suggested message; another branch's commits its files alone, leaving any other
-/// file of its worktree out. Refused with "A commit needs a message." when the message is blank.
+/// record of the buffer's edits it commits ends as the commit lands (see
+/// [`crate::actions::edited`]). The default branch's commit may amend the latest one only with the
+/// suggested message; another branch's commits its files alone, leaving any other file of its
+/// worktree out. Refused with "A commit needs a message." when the message is blank.
 pub fn commit_pane(place: &Place, pane: Pane, message: &str) -> Result<Committed, ActionError> {
     let typed = typed(message)
         .ok_or_else(|| ActionError::Refused("A commit needs a message.".to_string()))?;
