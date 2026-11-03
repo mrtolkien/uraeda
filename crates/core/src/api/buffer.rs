@@ -68,10 +68,22 @@ fn inside(root: &Path, path: &str) -> Result<()> {
     }
 }
 
+/// The feature or change whose branch is `branch`, finished or not: the one a buffer's file of its
+/// folder is written for, and whose pane on the Commit page commits it.
+pub(super) fn branch_owner<'a>(
+    workspace: &'a Workspace,
+    branch: &str,
+) -> Option<&'a crate::workspace::Feature> {
+    workspace
+        .features
+        .iter()
+        .find(|feature| feature.branch.as_deref() == Some(branch))
+}
+
 /// The feature or change a buffer's file is written for, on its branch: none for a file of the
 /// default branch, a merged feature's included.
 fn owner<'a>(workspace: &'a Workspace, path: &str) -> Option<&'a crate::workspace::Feature> {
-    feature_of(workspace, path).filter(|feature| feature.branch.is_some())
+    branch_owner(workspace, feature_of(workspace, path)?.branch.as_deref()?)
 }
 
 /// The folder of the feature or change whose branch a buffer's file is written on, as an agent's

@@ -755,14 +755,17 @@ git commit -m "feat(vim-text): Vim's keys behind the Vim mode setting"
     `message` is the suggestion: as today on the default branch, with `edit <path>` as a subject;
     `chore(<slug>): edit <name>` on a feature's, `, and N more` past one.
   - Core: `pub fn commit_branch(repo: &Path, branch: &str, message: &str) -> Result<CommitView>`:
-    commits the pane's files only, with the message as typed, trimmed of blank lines around it;
-    refused with "A commit needs a message." when it is blank. The record of a path ends once a
-    commit by any route changes its file in `HEAD`, so a refused deferred commit keeps its pane, and
-    an agent's later edit of a file committed elsewhere is not the human's (ruling R14).
-    `pub fn discard_branch(repo: &Path, branch: &str)` restores what the pane lists, the files a
-    buffer edited included. The default branch keeps today's `commit_changes` and `discard_changes`
-    behaviour through these. The commit bar's count (`Priorities.changes`, `Inbox.changes`) sums
-    every pane's. A message equal to the suggestion may amend as today; any other never amends
+    commits the pane's files only, with the message as typed, trimmed of blank lines around it, one
+    text git commits verbatim (ruling R22); refused with "A commit needs a message." when it is
+    blank. The record of a path ends once a commit by any route changes its file in `HEAD`, so a
+    refused deferred commit keeps its pane, and an agent's later edit of a file committed elsewhere
+    is not the human's (ruling R14). `pub fn discard_branch(repo: &Path, branch: &str)` restores
+    what the pane lists, the files a buffer edited included. The default branch keeps today's
+    `commit_changes` and `discard_changes` behaviour through these; those, the editor's
+    `uraeda.commit`, and a proposal file's commit leave out the files a buffer edited other than the
+    lists (ruling R21). A branch's pane belongs to the feature or change on it, finished or not, as
+    a buffer's file does (ruling R2). The commit bar's count (`Priorities.changes`, `Inbox.changes`)
+    sums every pane's. A message equal to the suggestion may amend as today; any other never amends
     (ruling R11), nor is amended by a later commit (ruling R13); only the default branch's commit
     marks itself typed, so a feature pane's commit leaves that mark (ruling R16).
   - Binding: `commitPanes(repo)` (the name `branchChanges` is a feature's diff already),
