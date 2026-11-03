@@ -79,7 +79,7 @@ import {
 import { filePenLine, gitCompare, listChecks, users } from "./sessionIcons.ts";
 import { arrowRightLeft, brain, indent, outdent, trash } from "./activityIcons.ts";
 import { play, save } from "./barIcons.ts";
-import { textCursorInput } from "./editorIcons.ts";
+import { compass, replace, square, squareDashed, textCursorInput } from "./editorIcons.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
 // Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The licenses
@@ -204,6 +204,7 @@ export const uraedaIcons = {
   "uraeda:brain": brain,
   "uraeda:columns-3": columns3,
   "uraeda:comment": comment,
+  "uraeda:compass": compass,
   "uraeda:crop": crop,
   "uraeda:database": database,
   "uraeda:enter": enter,
@@ -244,6 +245,7 @@ export const uraedaIcons = {
   "uraeda:play": play,
   "uraeda:plug": plug,
   "uraeda:plus": plus,
+  "uraeda:replace": replace,
   "uraeda:rows-3": rows3,
   "uraeda:ruler": ruler,
   "uraeda:save": save,
@@ -253,6 +255,8 @@ export const uraedaIcons = {
   "uraeda:shield": shield,
   "uraeda:smartphone": smartphone,
   "uraeda:space": space,
+  "uraeda:square": square,
+  "uraeda:square-dashed": squareDashed,
   "uraeda:square-terminal": squareTerminal,
   "uraeda:step-discovery": discovery,
   "uraeda:step-given": given,

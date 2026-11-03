@@ -225,6 +225,7 @@ system `git`. The stage is `early`: UI behaviour the sandbox shows has no test.
 | US2 more 2 (Enter in normal mode)                      | 6    | none: the engine's key, seen in the sandbox                                                        |
 | US2 more 3 (no Vim on touch)                           | 6    | `vim-load.test.ts` "the engine loads only with the switch on and a fine pointer"                   |
 | US3 1–3, more 1 (the mode in the status line)          | 8    | none: drawn, seen in the sandbox; the mode store's names: `vim.test.tsx` asserts NORMAL and INSERT |
+| Niche edge: the mode read out to a screen reader       | 8    | `status-line.test.tsx` "a mode's change in a field is read out once, politely"                     |
 | US4 1 (`imap jj <Esc>`)                                | 6    | `vim.test.tsx` "the human's commands run when Vim starts"                                          |
 | US4 2 (a refused line's error)                         | 6    | `vim-load.test.ts` "a refused command gives its line and the engine's message"                     |
 | US4 3 (a string, not a list)                           | 1    | core `reads_the_keyboard_table`, new rows                                                          |
@@ -821,28 +822,32 @@ git commit -m "feat(vim-text): the Commit page commits each branch apart, with i
 - Create: `packages/web/src/shell/status/Mode.tsx`, `shell/status/Sections.tsx` (lualine's
   separators, drawn triangles), `shell/status/Place.tsx` (the cursor's place), and a store for the
   branch section, `shell/status/branch.ts`
-- Modify: `shell/StatusLine.tsx`, `theme/icons.ts` (Lucide `compass`, `square`, `pencil`,
-  `square-dashed`, `replace`, `terminal`)
+- Modify: `shell/StatusLine.tsx`, `theme/icons.ts` and `theme/editorIcons.ts` (Lucide `compass`,
+  `square`, `square-dashed`, `replace`; `pencil` and `terminal` were registered already),
+  `fields/editor/vim/load.ts` and `VimSetting.tsx` (`useVimOn()`: whether the Vim layer is in the
+  fields, the switch on and a fine pointer)
+- Test: `__tests__/status-line.test.tsx` (the mode named with Vim on, left out with Vim off, its
+  change read out once), `__tests__/theme-tokens.test.ts` (the mode's colours read at 4.5:1)
 
 **Interfaces:**
 
 - Consumes: `modeStore.useMode` (task 3), the Vim setting in force (task 1).
 - Produces: `useStatusBranch(branch: string | undefined)`, which a page calls to show its branch in
-  section b while it is drawn (task 10's buffer).
+  section b while it is drawn (task 10's buffer); the line reads it with `useShownBranch()`.
 
-- [ ] **Step 1: Draw the line after `mockups/statusline.html`**: with Vim on, the mode block first,
+- [x] **Step 1: Draw the line after `mockups/statusline.html`**: with Vim on, the mode block first,
       NAV outside a field; with Vim off, the same sections without it; the cursor's place as "Top
       3:9" at the right end while a field has the focus; the mode announced in a polite live region,
       once per change. The phone's bar is unchanged.
 
-- [ ] **Step 2: Run the task's validation**
+- [x] **Step 2: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS, `keys-hints.test.tsx` included
 
-- [ ] **Step 3: Review it in the sandbox**: `vp run sandbox`, Vim on and off, both themes, wide.
+- [x] **Step 3: Review it in the sandbox**: `vp run sandbox`, Vim on and off, both themes, wide.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git commit -m "feat(vim-text): the status line in LazyVim's shape, with the Vim mode"
