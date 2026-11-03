@@ -81,6 +81,12 @@ export declare function attachNoteImages(repo: string, id: string, previous: str
 export declare function branchChanges(repo: string, folder: string): Promise<BranchChanges | null>
 
 /**
+ * The folder of the feature or change whose branch a buffer's file is written on, as an agent's
+ * session names it; null for a file of the default branch.
+ */
+export declare function bufferFolder(repo: string, path: string): Promise<string | null>
+
+/**
  * The reads of git and the answers from memory for the repository at `repo` since its watch
  * started; both 0 without a watch. It reads no workflow file, so it returns at once.
  */

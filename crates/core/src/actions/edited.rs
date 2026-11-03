@@ -38,7 +38,12 @@ fn write(place: &Place, paths: &BTreeSet<String>) -> Result<(), ActionError> {
         };
     }
     let text: String = paths.iter().map(|path| format!("{path}\n")).collect();
-    fs::write(file, text)?;
+    // Written whole beside it, then moved over it: a reader never sees half a record.
+    let temporary = file.with_extension("tmp");
+    fs::write(&temporary, text)?;
+    fs::rename(&temporary, &file).inspect_err(|_| {
+        let _ = fs::remove_file(&temporary);
+    })?;
     Ok(())
 }
 

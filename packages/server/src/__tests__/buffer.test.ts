@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { addChange, byId, type Data, mutate, testServer } from "./helpers.ts";
+import { addChange, byId, commitOnBranch, type Data, git, mutate, testServer } from "./helpers.ts";
 
 type Server = Awaited<ReturnType<typeof testServer>>;
 
@@ -41,6 +41,52 @@ test("a feature's buffer is refused while its agent works", async () => {
     server.app,
     "buffer.save",
     { hash: (saved.data as Record<string, string>).hash, path, text: "# Mine\n" },
+    ["id"],
+  );
+
+  expect(refused.error).toEqual(REFUSED);
+  await server.sessions.mainRoot(server.repo);
+  server.sessions.stop(server.repo, session.id as string);
+  await server.sessions.settled(Number((session.turns as Array<Data>).at(-1)));
+});
+
+const RECORD = `---
+kind: feature
+finished: 2026-10-11
+pull-request: https://github.com/owner/repo/pull/1
+---
+
+# Record: Centred x
+
+## What and why
+
+A thing.
+`;
+
+// Break caught: the refusal decided from the path's first folder, not from the feature the core
+// writes the file for: a finished feature's record, `specs/done/<folder>.md`, is written on its
+// branch, in the worktree its agent works in.
+test.each([
+  ["a feature's file", (folder: string) => `specs/${folder}/spec.md`, "# Spec\n"],
+  ["a finished feature's record", (folder: string) => `specs/done/${folder}.md`, RECORD],
+])("%s is refused while its agent works", async (_, pathOf, text) => {
+  const server = await testServer();
+  const folder = "2026-10-16-centred-x";
+  const path = pathOf(folder);
+  git(server.repo, "branch", folder, "main");
+  const proposal = `specs/${folder}/proposal.md`;
+  commitOnBranch(server.repo, folder, { [proposal]: "# Centre\n" });
+  const session = await send(server, folder);
+  // Finishing a feature removes its folder beside the record.
+  const finished = path.startsWith("specs/done/");
+  commitOnBranch(server.repo, folder, { [path]: text, ...(finished ? { [proposal]: null } : {}) });
+  const [before] = await byId(server.app, "Buffer", [path], ["id", "hash", "branch"]);
+  expect(before).toMatchObject({ branch: folder });
+
+  const refused = await mutate(
+    server.app,
+    "buffer.save",
+    { hash: before.hash, path, text: "# Mine\n" },
     ["id"],
   );
 

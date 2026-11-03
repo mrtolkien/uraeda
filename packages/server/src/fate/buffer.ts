@@ -15,7 +15,11 @@ export const bufferMutations = {
       input,
       select,
     }: Resolver<{ hash: string; path: string; text: string }>) => {
-      await writable(ctx, input);
+      // The core names the feature a file is written for: a finished one's record included.
+      const folder = await refusable(() => ctx.binding.bufferFolder(ctx.repo, input.path));
+      if (folder !== null) {
+        await writable(ctx, { folder });
+      }
       await refusable(() => ctx.binding.saveBuffer(ctx.repo, input.path, input.text, input.hash));
       const read = await refusable(() => ctx.binding.readBuffer(ctx.repo, input.path));
       return sources.masked(bufferDataView, ctx, sentBuffer(read), select);

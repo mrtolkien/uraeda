@@ -27,9 +27,14 @@ fn not_a_buffer(path: &str) -> super::ApiError {
     refused(format!("{path} is not a Markdown file of specs/"))
 }
 
-/// Refuses a path that is not a Markdown file under `specs/`, or that climbs out of it.
+/// Refuses a path that is not a Markdown file under `specs/`, that climbs out of it, or that holds
+/// a control character, which would split it in the record of edits, one path per line.
 fn markdown_of_specs(path: &str) -> Result<()> {
-    if path.starts_with("specs/") && path.ends_with(".md") && plain(path) {
+    if path.starts_with("specs/")
+        && path.ends_with(".md")
+        && plain(path)
+        && !path.contains(char::is_control)
+    {
         Ok(())
     } else {
         Err(not_a_buffer(path))
@@ -63,10 +68,24 @@ fn inside(root: &Path, path: &str) -> Result<()> {
     }
 }
 
+/// The feature or change a buffer's file is written for, on its branch: none for a file of the
+/// default branch, a merged feature's included.
+fn owner<'a>(workspace: &'a Workspace, path: &str) -> Option<&'a crate::workspace::Feature> {
+    feature_of(workspace, path).filter(|feature| feature.branch.is_some())
+}
+
+/// The folder of the feature or change whose branch a buffer's file is written on, as an agent's
+/// session names it: none for a file of the default branch.
+pub fn buffer_folder(repo: &Path, path: &str) -> Result<Option<String>> {
+    markdown_of_specs(path)?;
+    let (_, workspace) = open(repo)?;
+    Ok(owner(&workspace, path).map(|feature| feature.folder.clone()))
+}
+
 /// The branch a buffer's file is written on: its feature's or its change's, when it has one, else
 /// the default branch.
 fn branch_of(workspace: &Workspace, path: &str) -> Result<String> {
-    if let Some(branch) = feature_of(workspace, path).and_then(|feature| feature.branch.clone()) {
+    if let Some(branch) = owner(workspace, path).and_then(|feature| feature.branch.clone()) {
         return Ok(branch);
     }
     workspace
@@ -106,15 +125,36 @@ pub fn read_buffer(repo: &Path, path: &str) -> Result<BufferView> {
 
 /// Saves a Markdown file under `specs/` as typed, over the version read at `previous`, on its
 /// branch, and records it as a buffer's edit of that checkout. Never commits. Returns the new
-/// hash.
+/// hash. The path is checked in the checkout that has the branch before reaching it, so a refused
+/// path makes no worktree; one made for it is removed.
 pub fn save_buffer(repo: &Path, path: &str, text: &str, previous: &str) -> Result<String> {
     markdown_of_specs(path)?;
     let _lock = write_lock(repo);
     let (git, workspace) = open(repo)?;
     let branch = branch_of(&workspace, path)?;
+    if let Some(root) = default_checkout(&git, &branch) {
+        inside(&root, path)?;
+    }
     let place = place::reach(&git, &branch)?;
-    inside(&place.root, path)?;
-    let saved = text::save(&place, path, text, previous)?;
-    edited::record(&place, path)?;
+    if let Err(error) = inside(&place.root, path) {
+        if place.created {
+            // Just made from the branch, it holds nothing of the human's.
+            let _ = git.remove_worktree(&place.root);
+        }
+        return Err(error);
+    }
+    record_and_save(&place, path, text, previous)
+}
+
+/// Records the edit, then writes it: a write that fails takes its new record back, and a record
+/// that fails writes nothing, so the record names every file a buffer changed.
+fn record_and_save(place: &place::Place, path: &str, text: &str, previous: &str) -> Result<String> {
+    let recorded = edited::list(place).iter().any(|edited| edited == path);
+    edited::record(place, path)?;
+    let saved = text::save(place, path, text, previous).inspect_err(|_| {
+        if !recorded {
+            let _ = edited::clear(place, &[path.to_string()]);
+        }
+    })?;
     Ok(saved)
 }

@@ -3,7 +3,7 @@ mod common;
 use std::path::Path;
 
 use common::repo::TestRepo;
-use common::texts::{proposal, spec};
+use common::texts::{proposal, record, spec};
 use uraeda_core::actions::edited;
 use uraeda_core::actions::place::Place;
 use uraeda_core::api;
@@ -96,6 +96,7 @@ fn a_buffer_save_over_a_changed_file_writes_nothing() {
 #[test]
 fn a_buffer_writes_a_features_file_on_its_branch() {
     let repo = repo();
+    let tip = repo.git(&["rev-parse", FOLDER]);
     let read = api::read_buffer(repo.path(), SPEC).unwrap();
     assert_eq!(read.branch, FOLDER);
     let typed = format!("{}More.\n", read.text);
@@ -113,6 +114,12 @@ fn a_buffer_writes_a_features_file_on_its_branch() {
     assert!(!repo.exists(CONTRACT));
     assert_eq!(repo.porcelain(), "");
     assert_eq!(edited::list(&place(&worktree)), vec![CONTRACT, SPEC]);
+    // Never committed on the feature's branch either.
+    assert_eq!(repo.git(&["rev-parse", FOLDER]), tip);
+    assert_eq!(
+        common::repo::run_git(&worktree, &["rev-parse", "HEAD"]),
+        tip
+    );
     assert!(edited::list(&place(repo.path())).is_empty());
     assert_eq!(
         api::read_buffer(repo.path(), CONTRACT).unwrap().text,
@@ -149,6 +156,9 @@ fn a_buffer_refuses_paths_outside_specs() {
         ("specs/out.md", hash("# Outside\n")),
         ("specs/dangling.md", hash("")),
         ("specs/up/outside.md", hash("# Outside\n")),
+        // A line break would split the path in the record of edits, one path per line.
+        ("specs/a.md\nspecs/b.md", hash("")),
+        ("specs/tab\t.md", hash("")),
     ] {
         let message = format!("{path} is not a Markdown file of specs/");
         let read = api::read_buffer(repo.path(), path).unwrap_err();
@@ -174,4 +184,97 @@ fn a_buffer_reads_the_whole_file() {
 
     assert!(read.text.starts_with("---\n"), "{}", read.text);
     assert_eq!(read.text, spec("awaiting-human", 1, 0));
+}
+
+/// The feature's branch with its folder finished into its record, `specs/done/<folder>.md`.
+fn finish(repo: &TestRepo) {
+    repo.switch(FOLDER);
+    repo.git(&["rm", "-r", "--quiet", &format!("specs/{FOLDER}")]);
+    repo.write(
+        &format!("specs/done/{FOLDER}.md"),
+        &record("feature", "Web UI"),
+    );
+    repo.commit("finish: web UI");
+    repo.switch("main");
+}
+
+/// Review focus 2. Break caught: a finished feature's record written on the default branch while
+/// its branch is not merged, or told apart from its feature for the agent's refusal.
+#[test]
+fn a_finished_features_record_is_written_on_its_branch_until_merged() {
+    let repo = repo();
+    finish(&repo);
+    let path = format!("specs/done/{FOLDER}.md");
+
+    let read = api::read_buffer(repo.path(), &path).unwrap();
+    assert_eq!(read.branch, FOLDER);
+    assert_eq!(
+        api::buffer_folder(repo.path(), &path).unwrap().as_deref(),
+        Some(FOLDER)
+    );
+    api::save_buffer(repo.path(), &path, "# Record\n", &read.hash).unwrap();
+    let worktree = repo.path().join(".worktrees").join(FOLDER);
+    assert_eq!(
+        std::fs::read_to_string(worktree.join(&path)).unwrap(),
+        "# Record\n"
+    );
+    assert!(!repo.exists(&path));
+    assert_eq!(
+        api::buffer_folder(repo.path(), SPEC).unwrap(),
+        None,
+        "a finished feature owns its record only"
+    );
+
+    // Merged, with its branch gone: the record is the default branch's.
+    common::repo::run_git(&worktree, &["checkout", "--quiet", "--", "."]);
+    repo.git(&["worktree", "remove", "--force", &worktree.to_string_lossy()]);
+    repo.git(&["merge", "--quiet", "--no-edit", FOLDER]);
+    repo.delete_branch(FOLDER);
+    let read = api::read_buffer(repo.path(), &path).unwrap();
+    assert_eq!(read.branch, "main");
+    assert_eq!(api::buffer_folder(repo.path(), &path).unwrap(), None);
+    api::save_buffer(repo.path(), &path, "# Record\n", &read.hash).unwrap();
+    assert_eq!(repo.read(&path), "# Record\n");
+}
+
+/// Break caught: a path refused only once its branch's worktree was made for it, which stays.
+#[test]
+fn a_refused_path_leaves_no_worktree() {
+    let repo = repo();
+    let outside = repo.parent().join("outside.md");
+    std::fs::write(&outside, "# Outside\n").unwrap();
+    repo.switch(FOLDER);
+    let link = format!("specs/{FOLDER}/link.md");
+    std::os::unix::fs::symlink(&outside, repo.path().join(&link)).unwrap();
+    repo.git(&["add", &link]);
+    repo.commit("chore: link");
+    repo.switch("main");
+
+    let error = api::save_buffer(repo.path(), &link, "# Mine\n", &hash("# Outside\n")).unwrap_err();
+
+    assert_eq!(
+        error.message,
+        format!("{link} is not a Markdown file of specs/")
+    );
+    assert_eq!(std::fs::read_to_string(&outside).unwrap(), "# Outside\n");
+    assert!(!repo.path().join(".worktrees").join(FOLDER).exists());
+    assert_eq!(
+        repo.git(&["worktree", "list", "--porcelain"])
+            .matches("worktree ")
+            .count(),
+        1
+    );
+}
+
+/// Break caught: a file written whose save then fails to be recorded, which the page reads as a
+/// conflict while the file holds the text.
+#[test]
+fn a_save_that_cannot_be_recorded_writes_nothing() {
+    let repo = repo();
+    std::fs::create_dir(repo.path().join(".git/uraeda-edited")).unwrap();
+
+    let saved = api::save_buffer(repo.path(), PRIORITIES, "# Mine\n", &hash(PRIORITIES_TEXT));
+
+    assert!(saved.is_err());
+    assert_eq!(repo.read(PRIORITIES), PRIORITIES_TEXT);
 }

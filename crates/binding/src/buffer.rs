@@ -15,6 +15,13 @@ pub fn read_buffer(repo: String, path: String) -> AsyncTask<Job<BufferView>> {
     job(move || api::read_buffer(Path::new(&repo), &path))
 }
 
+/// The folder of the feature or change whose branch a buffer's file is written on, as an agent's
+/// session names it; null for a file of the default branch.
+#[napi(ts_return_type = "Promise<string | null>")]
+pub fn buffer_folder(repo: String, path: String) -> AsyncTask<Job<Option<String>>> {
+    job(move || api::buffer_folder(Path::new(&repo), &path))
+}
+
 /// Saves a Markdown file under `specs/` as typed, over the version read at `previous`, on its
 /// feature's branch or the default branch, without committing; resolves with the new hash.
 #[napi(ts_return_type = "Promise<string>")]

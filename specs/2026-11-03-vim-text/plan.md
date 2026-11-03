@@ -375,11 +375,15 @@ checkout.
     merged feature's files, which have no branch left, on the default branch. A path not ending in
     `.md`, outside `specs/`, with `..`, or resolving outside the repository through a symlink, is
     refused with `"<path> is not a Markdown file of specs/"`. A stale hash is the existing conflict.
+  - Core: `pub fn buffer_folder(repo: &Path, path: &str) -> Result<Option<String>>`, the folder of
+    the feature or change whose branch the file is written on, a finished feature's record
+    `specs/done/<folder>.md` included; none for a file of the default branch.
   - Binding: `readBuffer(repo, path): Promise<BufferView>`,
-    `saveBuffer(repo, path, text, previous): Promise<string>`.
+    `saveBuffer(repo, path, text, previous): Promise<string>`,
+    `bufferFolder(repo, path): Promise<string | null>`.
   - Server: a `Buffer` source by id (the path) and mutation `buffer.save({ path, text, hash })`
-    returning the `Buffer`, refused through `writable(ctx, { path })` while an agent works, with
-    `binding.pathFolder` answering for nested feature paths too (it already did: unchanged).
+    returning the `Buffer`, refused through `writable(ctx, { folder })` while an agent works, the
+    folder from `binding.bufferFolder`: `pathFolder` reads `done` for a finished feature's record.
 
 - [x] **Step 1: Write the failing tests**
 
