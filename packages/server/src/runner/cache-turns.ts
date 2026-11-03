@@ -174,6 +174,20 @@ export function pendingContinues(db: DatabaseSync): Array<TurnRow> {
   return rows.map(toTurn);
 }
 
+/**
+ * The turns a server's stop cut since `since`, an ISO 8601 time, the oldest first: stopped with
+ * `reason` after they started, neither dismissed nor waiting, capped, or claimed for a continue.
+ */
+export function serverCuts(db: DatabaseSync, reason: string, since: string): Array<TurnRow> {
+  const rows = db
+    .prepare(
+      `SELECT * FROM turns WHERE state = 'stopped' AND reason = ? AND started_at IS NOT NULL
+       AND dismissed_at IS NULL AND continue_reason IS NULL AND ended_at >= ? ORDER BY id`,
+    )
+    .all(reason, since) as Array<Row>;
+  return rows.map(toTurn);
+}
+
 /** The latest time a limit's continue waits for, at or after `from`. */
 export function latestLimitContinue(db: DatabaseSync, from: number): number | undefined {
   const { at } = db

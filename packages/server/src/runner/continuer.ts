@@ -5,7 +5,15 @@ import type { SessionRow, TurnRow } from "./cache.ts";
 import type { ContinueReason, Limit } from "./events.ts";
 import { continuedLine } from "./message.ts";
 import { deliverContinue } from "./send.ts";
-import { type Live, REFUSALS, refused, type SessionContext, type Timer } from "./session-state.ts";
+import {
+  type Live,
+  REFUSALS,
+  refused,
+  SERVER_STOPPED,
+  type SessionContext,
+  TAKEN_BACK,
+  type Timer,
+} from "./session-state.ts";
 
 /** Which automatic continues are on, and how many in a row a session takes: the `[runs]` settings. */
 export type ContinueSettings = {
@@ -34,6 +42,8 @@ export const CONTINUES_OFF: ContinueSettings = {
 const MINUTE_MS = 60_000;
 /** A limit without a reset time is tried again this long after, each try counting toward the cap. */
 export const RETRY_WITHOUT_RESET_MS = 60 * MINUTE_MS;
+/** How long after its cut a run the server's stop cut continues at the next start. */
+export const RESTART_WINDOW_MS = 6 * 60 * MINUTE_MS;
 /** The longest wait of a timer: past it, `setTimeout` fires at once. */
 const LONGEST_TIMER_MS = 2 ** 31 - 1;
 
@@ -58,6 +68,10 @@ export class Continuer {
   #timers = new Map<number, Timer>();
   /** The turn each continue queued, mapped to the turn it continues, until it ends. */
   #claimed = new Map<number, number>();
+  /** The worktree commit of each session at its last continue, in memory (R5). */
+  #commits = new Map<string, string>();
+  /** The worktree commit each session's pending continue was decided at, recorded as it fires. */
+  #decidedAt = new Map<string, string>();
 
   constructor(
     context: SessionContext,
@@ -70,15 +84,22 @@ export class Continuer {
 
   /**
    * Decides the continue of a turn that ended, before its end is published, so it never reads as
-   * asking: a turn failed by a session's limit waits for the reset, unless a turn queued after it
-   * goes on with the run. A promise while the decision reads more than the cache, the end
-   * published once it settles. A continue's turn that ends without starting, taken back or
-   * refused, gives the run back its own reason.
+   * asking: a turn failed by a session's limit waits for the reset, and a workflow turn done
+   * before its feature's next human gate is asked to go on to it, unless a turn queued after it
+   * goes on with the run. A promise while the decision reads the feature, the end published once
+   * it settles. A continue's turn that ends without starting, taken back or refused, gives the run
+   * back its own reason.
    */
   ended(live: Live, turn: TurnRow, limit?: Limit): Promise<void> | undefined {
     this.#unclaim(turn);
-    if (turn.state === "failed" && limit?.kind === "session" && live.queue.length === 0) {
-      this.#decide(turn, "limit", this.#limitContinue(limit));
+    if (live.queue.length > 0) {
+      return undefined;
+    }
+    if (turn.state === "failed" && limit?.kind === "session") {
+      return this.#decide(turn, "limit", () => this.#limitContinue(limit));
+    }
+    if (turn.state === "done" && turn.kind === "workflow") {
+      return this.#beforeGate(turn);
     }
     return undefined;
   }
@@ -119,6 +140,10 @@ export class Continuer {
       const queued = deliverContinue(this.#context, live, { line, reason, stopped: claimed });
       cache.addContinue(row.id);
       this.#claimed.set(queued, claimed.id);
+      const commit = this.#decidedAt.get(row.id);
+      if (commit !== undefined) {
+        this.#commits.set(row.id, commit);
+      }
     } catch {
       cache.cancelContinue(claimed.id, { stopped: false });
       changed(live, claimed.id, claimed.state);
@@ -127,11 +152,25 @@ export class Continuer {
     }
   }
 
-  /** Arms every pending continue, as the server starts: the ones of a kind now off are dropped. */
+  /**
+   * Arms every pending continue, as the server starts: the ones of a kind now off are dropped. Then
+   * continues the runs the server's stop cut in the last 6 hours, whose agent kept their session.
+   */
   async start(): Promise<void> {
     this.runsChanged();
-    for (const turn of this.#context.cache.pendingContinues()) {
+    const { adapter, cache } = this.#context;
+    for (const turn of cache.pendingContinues()) {
       this.#arm(turn.id, turn.continueAt ?? Date.now());
+    }
+    if (!this.#runs().afterRestart) {
+      return;
+    }
+    const since = new Date(Date.now() - RESTART_WINDOW_MS).toISOString();
+    for (const turn of cache.serverCuts(SERVER_STOPPED, since)) {
+      const session = cache.session(turn.sessionId);
+      if (session && adapter.hasSession(session.nativeId)) {
+        await this.#decide(turn, "restart", Date.now);
+      }
     }
   }
 
@@ -161,22 +200,93 @@ export class Continuer {
   }
 
   /**
-   * Waits the turn for its continue of `reason` at `at`, or, at the session's cap, marks it capped:
-   * nothing when that kind is off, or the session is not its folder's latest, nor a chat.
+   * Asks a workflow turn done before its feature's next human gate to go on to it: once, so a
+   * turn that ends so after the gate's own continue asks for the human, halted.
    */
-  #decide(turn: TurnRow, reason: ContinueReason, at: number): void {
-    const { cache } = this.#context;
+  async #beforeGate(turn: TurnRow): Promise<void> {
+    const { binding, cache } = this.#context;
     const session = cache.session(turn.sessionId);
-    const runs = this.#runs();
-    if (!session || !runs[SWITCHES[reason]] || !this.#current(session)) {
+    if (!session?.folder || !this.#runs().beforeGate) {
       return;
     }
-    if (session.automaticContinues >= runs.cap) {
+    if (this.#latest(session.id, turn.id)?.continueReason === "gate") {
+      return;
+    }
+    // A feature gone from the repository has no gate to go on to.
+    const step = await binding.readFeature(session.repo, session.folder).then(
+      (feature) => feature.step,
+      () => undefined,
+    );
+    if (step?.waitsOn === "agent" && step.name !== "pull-request-unknown") {
+      await this.#decide(turn, "gate", Date.now);
+    }
+  }
+
+  /**
+   * Waits the turn for its continue of `reason` at `at()`, or, at the session's cap, marks it
+   * capped: nothing when that kind is off, the session is not its folder's latest, nor a chat, the
+   * turn is not its latest, or it was refused an action the human has not allowed. A commit in the
+   * feature's worktree since the session's last continue sets its count back to 0 first.
+   */
+  async #decide(turn: TurnRow, reason: ContinueReason, at: () => number): Promise<void> {
+    const { cache } = this.#context;
+    const session = cache.session(turn.sessionId);
+    if (!session || !this.#runs()[SWITCHES[reason]] || !this.#current(session)) {
+      return;
+    }
+    if (cache.itemsOf(turn.id, "denial").some((denial) => !denial.allowed)) {
+      return;
+    }
+    const commit = await this.#commitOf(session);
+    // The human's message or a dismiss while the commit was read takes the run over.
+    const now = cache.turn(turn.id);
+    if (
+      !now ||
+      now.dismissedAt !== null ||
+      now.continueReason !== null ||
+      this.#latest(session.id)?.id !== turn.id
+    ) {
+      return;
+    }
+    if (commit !== undefined) {
+      const recorded = this.#commits.get(session.id);
+      if (recorded !== undefined && recorded !== commit) {
+        cache.resetContinues(session.id);
+      }
+      this.#commits.delete(session.id);
+      this.#decidedAt.set(session.id, commit);
+    }
+    const runs = this.#runs();
+    if ((cache.session(session.id)?.automaticContinues ?? 0) >= runs.cap) {
       cache.markCapped(turn.id, reason);
       return;
     }
-    cache.scheduleContinue(turn.id, at, reason);
-    this.#arm(turn.id, at);
+    const time = at();
+    cache.scheduleContinue(turn.id, time, reason);
+    this.#arm(turn.id, time);
+  }
+
+  /** The commit the feature's worktree has checked out, for its count: none for a chat. */
+  async #commitOf(session: SessionRow): Promise<string | undefined> {
+    const { binding } = this.#context;
+    if (session.folder === null) {
+      return undefined;
+    }
+    try {
+      const dir = await binding.workDir(session.repo, session.folder);
+      return (await binding.checkoutCommit(dir)) ?? undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** The session's latest turn, or its latest before turn `before`, skipping those taken back. */
+  #latest(session: string, before = Number.POSITIVE_INFINITY): TurnRow | undefined {
+    return this.#context.cache
+      .turns(session)
+      .findLast(
+        (turn) => turn.id < before && !(turn.state === "stopped" && turn.reason === TAKEN_BACK),
+      );
   }
 
   /** Whether the session's runs continue: a chat, or its folder's latest session, not archived. */

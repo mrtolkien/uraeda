@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vite-plus/test";
-import { fixtureRepo } from "uraeda-binding/test-utils";
+import { commitOnBranch, fixtureRepo } from "uraeda-binding/test-utils";
 import type { SessionCache } from "../cache.ts";
 import type { ContinueSettings } from "../continuer.ts";
 import type { Limit } from "../events.ts";
@@ -20,6 +20,13 @@ const ON: ContinueSettings = { afterLimit: true, afterRestart: true, beforeGate:
 const LIMIT_MESSAGE = "The usage limit has reset. Continue where you left off.";
 const LIMIT_LINE = "Continued after the usage limit's reset.";
 const HOUR = 60 * 60_000;
+const RESTART_MESSAGE = "The server restarted while you worked. Continue where you left off.";
+const RESTART_LINE = "Continued after the server restarted.";
+const GATE_MESSAGE = "You stopped before the next human gate. Continue to it.";
+const GATE_LINE =
+  "The run stopped before a human gate. Uraeda asked it to continue to the next one.";
+/** The workflow's message at the agent's step, in the session it is sent to. */
+const PLAN = { fresh: false, step: "plan", trigger: "manual" } as const;
 
 const SESSION_LIMIT: Limit = {
   kind: "session",
@@ -66,14 +73,21 @@ async function sendLimited(
 const latest = (cache: SessionCache, session: string) => cache.turns(session).at(-1)!;
 const continues = (adapter: FakeAdapter) =>
   adapter.sent.filter((message) => message.text === LIMIT_MESSAGE).length;
+/** The turn's status, as its session's latest, its feature at `plan`, waiting on the agent. */
 const statusOf = (cache: SessionCache, turn: number) =>
   sessionStatus({
     blocked: false,
     latest: cache.turn(turn),
     queued: false,
     seenAt: null,
+    stepName: "plan",
+    waitsOnAgent: true,
     waitsOnHuman: false,
   });
+const sentOf = (adapter: FakeAdapter, text: string) =>
+  adapter.sent.filter((message) => message.text === text).length;
+/** A step that holds its turn until the process ends: a run the restart cuts. */
+const hold = () => new Promise<void>(() => {});
 
 /** Review focus 5: a reset read too late continues a minute after now, never at once. */
 test.each([
@@ -257,7 +271,9 @@ test("US4.1: past the cap, the run asks: the agent keeps stopping", async () => 
   for (const count of [1, 2, 3]) {
     limitTurn(adapter, noReset);
     time.by(HOUR);
-    await until(() => latest(cache, session).state === "failed");
+    // The decision reads the feature's commit: the run waits, or is capped, once it is made.
+    await until(() => cache.turns(session).length === count + 1);
+    await until(() => latest(cache, session).continueReason !== null);
     expect(cache.session(session)?.automaticContinues).toBe(count);
   }
   const fourth = latest(cache, session);
@@ -304,4 +320,127 @@ test("US4.3: turning off the limit's continue ends its waits, and the runs ask",
     state: "failed",
   });
   expect(adapter.sent).toHaveLength(3);
+});
+
+/** Review focus 3, US2 2, US2's more scenarios 1 and 2, and the edge "the transcript is gone". */
+test.each([
+  { continues: true, name: "a run cut just now continues" },
+  { continues: false, name: "a run cut 7 hours before does not", wait: 7 * HOUR },
+  { continues: false, name: "a run whose transcript is gone does not", transcript: false },
+  { continues: false, name: "a run of an older session does not", older: true },
+  { continues: false, name: "a queued turn that never started does not", queued: true },
+])(
+  "US2.1: a run the restart cut continues at the next start, with its line: $name",
+  async ({ continues: continued, older, queued, transcript, wait }) => {
+    const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
+      runs: () => ON,
+    });
+    // The cache stamps the cut with the real time: the clock starts there.
+    const time = clock(new Date().toISOString());
+    const session = await sessions.featureSession(repo, AGENT);
+    adapter.script([hold]);
+    await sessions.send(repo, session.id, { text: "Write the plan", workflow: PLAN });
+    await until(() => latest(cache, session.id).state === "running");
+    if (queued) {
+      adapter.capabilities.steer = false;
+      await sessions.send(repo, session.id, { text: "Then the tasks" });
+    }
+    const next = await restart(sessions, { runs: () => ON });
+    const cut = latest(cache, session.id);
+    expect(cut).toMatchObject({ reason: "Stopped: the server stopped while it ran." });
+    if (transcript === false) {
+      adapter.sessions.delete(session.nativeId);
+    }
+    if (older) {
+      await next.newSession(repo, AGENT);
+    }
+    time.by(wait ?? 0);
+    const sent = adapter.sent.length;
+
+    await next.startContinues();
+    time.by(10_000);
+    if (continued) {
+      await until(() => adapter.sent.length === sent + 1);
+      expect(adapter.sent.at(-1)?.text).toBe(RESTART_MESSAGE);
+      const turn = latest(cache, session.id);
+      expect(turn).toMatchObject({ kind: "workflow", step: "plan" });
+      expect(cache.items(turn.id, 0, 1)).toEqual([{ kind: "system", seq: 0, text: RESTART_LINE }]);
+      return;
+    }
+    await flush();
+    expect(adapter.sent).toHaveLength(sent);
+    expect(latest(cache, session.id).id).toBe(cut.id);
+    expect(statusOf(cache, cut.id).reason).toBe("interrupted");
+  },
+);
+
+test("US3: a run that stops before its gate is asked once, and a second stop asks for you", async () => {
+  // SC-003: each end is published once decided, the first already waiting, never halted.
+  const published: Array<string | undefined> = [];
+  const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
+    onChange: (change, cache) => {
+      if ("turn" in change && change.state === "done") {
+        published.push(statusOf(cache, change.turn!).reason);
+      }
+    },
+    runs: () => ON,
+  });
+  const time = clock("2026-11-03T14:01:00Z");
+  const session = await sessions.featureSession(repo, AGENT);
+  // The run, then its continue, each end at `plan`, which waits on the agent.
+  adapter.script([]);
+  adapter.script([]);
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Write the plan",
+    workflow: PLAN,
+  });
+  await sessions.settled(turn);
+
+  time.by(0);
+  await until(
+    () => cache.turns(session.id).length === 2 && latest(cache, session.id).state === "done",
+  );
+  expect(adapter.sent.at(-1)?.text).toBe(GATE_MESSAGE);
+  const asked = latest(cache, session.id);
+  expect(cache.items(asked.id, 0, 1)).toEqual([{ kind: "system", seq: 0, text: GATE_LINE }]);
+
+  // The second end is published once decided: then no continue is armed, however long it waits.
+  await until(() => published.length === 2);
+  time.by(HOUR);
+  await flush();
+  expect(sentOf(adapter, GATE_MESSAGE)).toBe(1);
+  expect(cache.turns(session.id)).toHaveLength(2);
+  expect(statusOf(cache, asked.id).reason).toBe("halted");
+  expect(published).toEqual(["waiting", "halted"]);
+});
+
+/** US4 2: what the run committed is progress, so its continues start counting again. */
+test("US4.2: a commit on the branch sets the count back to 0", async () => {
+  const runs = { ...ON, cap: 2 };
+  const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
+    runs: () => runs,
+  });
+  const time = clock("2026-11-03T14:01:00Z");
+  const session = await sessions.featureSession(repo, AGENT);
+  const count = () => cache.session(session.id)?.automaticContinues;
+  // The run stops before its gate; its gate's continue meets the limit; the limit's continue
+  // commits, then stops before the gate again.
+  adapter.script([]);
+  limitTurn(adapter, SESSION_LIMIT);
+  adapter.script([() => commitOnBranch(repo, AGENT, { "notes.md": "The plan's notes.\n" })]);
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Write the plan",
+    workflow: PLAN,
+  });
+  await sessions.settled(turn);
+  time.by(0);
+  await until(() => latest(cache, session.id).continueReason === "limit");
+  expect(count()).toBe(1);
+
+  time.to(AFTER_RESET);
+  await until(() => sentOf(adapter, GATE_MESSAGE) === 2);
+  expect(sentOf(adapter, LIMIT_MESSAGE)).toBe(1);
+  expect(cache.turns(session.id)).toHaveLength(4);
+  // At the cap of 2 without the commit, the gate's continue went: 0, then this one.
+  expect(count()).toBe(1);
 });
