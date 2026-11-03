@@ -193,3 +193,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   before the decision. Without an `await`, neither can be broken by a later change of order, and a
   refusal is known before the continue is counted.
 - **Where**: task 8, `packages/server/src/runner/continuer.ts` and `send.ts`.
+
+## R19: Continue all leaves a run that failed at a human gate
+
+- **Decision**: Continue all picks its runs with `continuedByAll` in `runner/status.ts`: the
+  feature's status is `continuable`, and its step waits on the agent. It sends in the run's own
+  session, `fresh` off, so a run at `plan` or `approval` goes on where it stopped instead of in a
+  new session. The web's preview imports the same function.
+- **Rationale**: a run whose step moved to a human gate before it failed reads `continuable`, but
+  its step has no message to send: with `continuable` alone, the preview would tint a row that gets
+  nothing. The plan names the latest session as the one that goes on. The plan's break for the
+  server's test, a rule that sends to every Needs you row, cannot send to a gate: the step's
+  recommended message is none there. The test's gate fails its run instead, and the web's test
+  catches a preview by a rule of its own.
+- **If wrong**: a run at a gate would need a message of its own, which the spec does not give.
+- **Where**: task 11, `packages/server/src/fate/continue-all.ts` and
+  `packages/web/src/home/Core.tsx`.

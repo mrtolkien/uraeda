@@ -3,6 +3,7 @@ import { type Context, inRepository, type Resolver } from "./context.ts";
 import { fileMutations } from "./file-mutations.ts";
 import { inboxMutations } from "./inbox-mutations.ts";
 import { changeStarts, onSession } from "./change-starts.ts";
+import { continueAllMutations } from "./continue-all.ts";
 import { startMutations } from "./starts.ts";
 import { sendMutations } from "./send-mutations.ts";
 import { writesMutations } from "./writes-mutations.ts";
@@ -24,6 +25,7 @@ const repositoryMutations = {
   ...fileMutations,
   ...sessionMoves,
   ...changeStarts,
+  ...continueAllMutations,
   ...inboxMutations,
   ...startMutations,
   ...sendMutations,

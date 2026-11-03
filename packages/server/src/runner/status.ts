@@ -35,6 +35,18 @@ export function continuable(status: {
   return status.status === "attention" && status.reason !== null && CONTINUABLE.has(status.reason);
 }
 
+/**
+ * Whether Continue all continues the feature: its run asks and a message can continue it, and its
+ * step waits on the agent, which has a message to send. A run that failed at a human gate asks
+ * too, but the gate is the human's (R17).
+ */
+export function continuedByAll(feature: {
+  status: Parameters<typeof continuable>[0];
+  step: { waitsOn?: string | null };
+}): boolean {
+  return continuable(feature.status) && feature.step.waitsOn === "agent";
+}
+
 /** The wait of the turn, when it waits to continue by itself. */
 export function waitOf(turn?: Pick<TurnRow, "continueAt" | "continueReason">): Wait | null {
   return turn?.continueAt != null && turn.continueReason !== null

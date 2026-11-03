@@ -2,7 +2,8 @@
 // workflow when there are any, what waits on the human, In progress, and Sessions, as the sidebar's
 // cards, in the two columns that end nearest each other (`Core.tsx`); under it, the widgets in two
 // columns as well: the inbox's latest notes with what is done under them, and the priorities now
-// with the usage. From semi-wide, two columns; on the phone, one, in the same order.
+// with the usage. From semi-wide, two columns; on the phone, one, in the same order. While Continue
+// all's preview is on, the widgets are dimmed with the cards it leaves alone.
 import { type FocusEvent, Fragment, useRef, useState } from "react";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
@@ -21,7 +22,8 @@ import {
   stepCore,
   useCoreKeys,
 } from "./coreKeys.ts";
-import { type CorePart, coreParts, splitColumns } from "./Core.tsx";
+import { type CorePart, continuedKeys, coreParts, splitColumns } from "./Core.tsx";
+import { previewStyles } from "./ContinueAll.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { homeFeatures } from "./features.ts";
 import { Columns, Overview, PaneLink } from "./parts.tsx";
@@ -205,6 +207,8 @@ export function HomeHub() {
   const [picked, setPicked] = useState<string>();
   const [follow, setFollow] = useState<{ column: number }>();
   const [clear, setClear] = useState<object>();
+  // Continue all under the pointer or focused: its preview, on while it has a run to continue.
+  const [isPreviewing, setPreviewing] = useState(false);
   const onLeave = (column: number) => setFollow({ column });
   const onCoreKey = useCoreKeys(core, onLeave);
   const onEdge = (move: Move, column: number | undefined) => {
@@ -228,7 +232,18 @@ export function HomeHub() {
   }
   const rows = sessionList?.rows ?? [];
   const { agents, human, invalid } = homeFeatures(workspace.features, rows);
-  const parts = coreParts({ agents, human, invalid, picked, rows });
+  // Its button goes with the last run to continue, under the pointer too: the preview goes with it.
+  if (isPreviewing && continuedKeys(human).size === 0) {
+    setPreviewing(false);
+  }
+  const parts = coreParts({
+    agents,
+    human,
+    invalid,
+    picked,
+    preview: { isOn: isPreviewing, onChange: setPreviewing },
+    rows,
+  });
   // Two columns from semi-wide, split so that they end as near each other as they can; the
   // reading order on the phone.
   const [left, right] = splitColumns(parts);
@@ -246,7 +261,9 @@ export function HomeHub() {
         )}
       </div>
       <Overview />
-      <div {...stylex.props(styles.widgets)}>
+      <div
+        {...stylex.props(styles.widgets, previewStyles.row, isPreviewing && previewStyles.dimmed)}
+      >
         <Lists
           clear={clear}
           features={workspace.features}
