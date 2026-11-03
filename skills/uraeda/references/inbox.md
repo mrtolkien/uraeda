@@ -57,11 +57,12 @@ them into the inbox in one commit on the default branch, from the files as they 
   lowercase letters, digits, and `-`. Any other bracket, like `[!]`, is text.
 - **Category**: a `## ` heading; its name is the heading's text, without closing `#`s: `## UI ##` is
   `UI`. Notes before the first `##` have no category. Other headings and text are kept and ignored.
-- **Agent's note**: a note file of `specs/notes/` that no note of `INBOX.md` links, `<name>.md` or
-  `<name>/note.md`. It is a note of the inbox on its own, shown at the end of its category, where
-  its line would be added, a category `INBOX.md` lacks after the file's own, and one with none after
-  the notes without a category. An agent writes one instead of a line, so two branches never edit
-  `INBOX.md`. Its fields are optional, so a human can write one by hand too:
+- **Agent's note**: a note file of `specs/notes/` that no link of `INBOX.md` reaches, a note's own
+  or one in its nested lines, `<name>.md` or `<name>/note.md`. It is a note of the inbox on its own,
+  shown at the end of its category, where its line would be added, a category `INBOX.md` lacks after
+  the file's own, and one with none after the notes without a category. An agent writes one instead
+  of a line, so two branches never edit `INBOX.md`. Its fields are optional, so a human can write
+  one by hand too:
 
   ```md
   ---
@@ -76,8 +77,11 @@ them into the inbox in one commit on the default branch, from the files as they 
   ```
 
   `agent: true` is the `[agent]` mark, `about` the `[<slug>]` mark, and `category` the category it
-  shows under. Its `# ` title is its text, and the rest of the file follows, as in any note file. A
-  note file a note links ignores these fields: the line carries the marks and the category.
+  shows under. A value YAML would misread, like one with `: ` or starting with `#`, is
+  double-quoted, `"` and `\` escaped: `category: "Mobile: phones"`. Its `# ` title is its text, and
+  the rest of the file follows, as in any note file. A note file a note links ignores these fields:
+  the line carries the marks and the category. Made a proposal, the file leaves its frontmatter
+  behind.
 
 The `[agent]` mark says an agent wrote the note. The slug is the folder of the feature or
 [change](change.md) the note is about, without its date: `[run-ui]` for `specs/2026-10-14-run-ui/`
@@ -182,9 +186,14 @@ another place in its category or to another category.
 
 An agent's note is organized like a note with a note file, once its line is written: any outcome, or
 edit, first adds its line, `- [agent] [<slug>] [<title>](notes/<file>)`, at the end of its category
-in `INBOX.md`. Nothing deletes the file but its removal; a move puts the line where the note goes,
-and drops the file's `category`, which the line now carries. Its removal leaves `INBOX.md` as it
-was, and deletes the file: `chore: remove "<note>" from the inbox`.
+in `INBOX.md`; an outcome or edit that fails leaves `INBOX.md` as it was. Nothing deletes the file
+but its removal; a move puts the line where the note goes, and drops the file's `category`, which
+the line now carries. A move that drops the note where it already shows changes nothing. Its removal
+leaves `INBOX.md` as it was, and deletes the file: `chore: remove "<note>" from the inbox`. Only a
+file as committed is removed: one edited since its commit, or never committed, holds someone's work,
+and the removal refuses with `<path> has uncommitted changes: the note was not removed`. Undo of the
+removal brings the file back alone when the note goes back where it showed, and writes its line
+anywhere else.
 
 A note file that moves takes its links along: every file of `specs/` but `PRIORITIES.md` and
 `INBOX.md` linking it points at its new path, as
@@ -317,8 +326,8 @@ A note is written:
   `specs/notes/<slug>-<words>.md`, `<words>` the slug of the note's first four words, apostrophes
   dropped: `feature-state-the-workspace-records-running.md`, with `-2`, `-3`, ... when it is taken,
   and the words alone when the note is about no feature or change. It holds the frontmatter
-  `agent: true`, `about: <slug>`, and `category: <name>`, then the note as its `# ` title, as
-  [the format](#the-format) shows. The file is committed alone with
+  `agent: true`, `about: <slug>`, and `category: <name>`, quoted when YAML would misread them, then
+  the note as its `# ` title, as [the format](#the-format) shows. The file is committed alone with
   `chore: add "<note>" to the inbox`, and reaches the default branch with the branch's merge.
 
 Then the agent names the note in its step's report, and in the pull request when it opens one.
