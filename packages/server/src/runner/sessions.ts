@@ -250,9 +250,7 @@ export class Sessions {
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
     return this.#context.live.serial(live, () => {
-      // The human's message takes the place of the continue, and sets the count back.
-      this.#context.continuer.cancel(live.id, { stopped: false });
-      this.cache.resetContinues(live.id);
+      this.#takeOver(live);
       return sendTo(this.#context, live, message, () => this.#available());
     });
   }
@@ -296,7 +294,10 @@ export class Sessions {
   async allow(repo: string, session: string, turn: number, seq: number): Promise<{ turn: number }> {
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
-    return this.#context.live.serial(live, () => allowDenial(this.#context, live, turn, seq));
+    return this.#context.live.serial(live, () => {
+      this.#takeOver(live);
+      return allowDenial(this.#context, live, turn, seq);
+    });
   }
 
   /**
@@ -307,7 +308,10 @@ export class Sessions {
   async allowAll(repo: string, session: string): Promise<{ turn: number }> {
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
-    return this.#context.live.serial(live, () => allowAll(this.#context, live));
+    return this.#context.live.serial(live, () => {
+      this.#takeOver(live);
+      return allowAll(this.#context, live);
+    });
   }
 
   /** Renames a session, by the title's first line that is not blank, cut at 80 characters. */
@@ -429,6 +433,12 @@ export class Sessions {
       live.proc?.terminate.forEach(clearTimeout);
       this.#context.turns.clearTimers(live);
     }
+  }
+
+  /** The human's message or Allow takes the place of the run's continue, and sets the count back. */
+  #takeOver(live: Live) {
+    this.#context.continuer.cancel(live.id, { stopped: false });
+    this.cache.resetContinues(live.id);
   }
 
   // Sessions and their owners.

@@ -136,6 +136,10 @@ export class Continuer {
       if (!this.#available()) {
         throw refused(REFUSALS.unavailable(adapter.name));
       }
+      // The human took the run over another way: a new session, Allow, an archive, or its agent.
+      if (!this.#current(row) || this.#latest(row.id)?.id !== claimed.id) {
+        throw refused(REFUSALS.working);
+      }
       const line = continuedLine(reason);
       const queued = deliverContinue(this.#context, live, { line, reason, stopped: claimed });
       cache.addContinue(row.id);
