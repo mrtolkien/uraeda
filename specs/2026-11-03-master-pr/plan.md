@@ -388,9 +388,9 @@ git commit -m "feat(master-pr): act on an agent's note as on its line"
   [R4](rulings.md#r4-an-agents-note-file-is-named-from-four-words) names it, with the frontmatter
   `agent: true`, `about`, `category` (each only when set), a blank line, and `# <text>`; commits it
   alone with `chore: add "<note>" to the inbox` when `commit`; gives the path. `ura note --agent`
-  calls it outside the default branch's checkout, as
-  [R3](rulings.md#r3-ura-note---agent-on-the-default-branch-writes-a-line-as-before) says, and
-  prints `added to the inbox` or `added to the inbox, not committed`, as today.
+  calls it outside the default branch's checkout, and refuses on it, as
+  [R3](rulings.md#r3-ura-note---agent-is-refused-on-the-default-branch) says, and prints
+  `added to the inbox` or `added to the inbox, not committed`, as today.
 
 - [x] **Step 1: Rewrite the tests of the replaced behaviour**
 
@@ -403,10 +403,10 @@ twice in the worktree of `2026-10-15-add-scratchpad`; assert the first commit ch
 the second wrote `...-running-2.md`, `INBOX.md` is unchanged on the branch (SC-003), and `main` has
 no new commit. Rewrite `an_agents_note_about_a_feature` and
 `an_about_naming_a_change_writes_its_slug` to assert the file's name and `about:` instead of
-`INBOX.md`'s line, both from a feature's worktree; the first's old body, on `main`, stays as
-`an_agents_note_on_the_default_branch_is_a_line` for
-[R3](rulings.md#r3-ura-note---agent-on-the-default-branch-writes-a-line-as-before), and the second
-keeps its human note's line on `main`.
+`INBOX.md`'s line, both from a feature's worktree; the first's old body, on `main`, becomes
+`an_agents_note_on_the_default_branch_is_refused` for
+[R3](rulings.md#r3-ura-note---agent-is-refused-on-the-default-branch): the refusal, and nothing
+written; the second keeps its human note's line on `main`.
 
 The break each test catches: a write to `INBOX.md` on the branch; a second note overwriting the
 first; `about` lost.

@@ -165,10 +165,10 @@ fn an_agents_note_about_a_feature() {
     );
 }
 
-/// R3: on the default branch's checkout, an agent's note is a line of `INBOX.md`, as before, in a
-/// file that does not exist yet.
+/// Git decision, "an agent's inbox note is never written on the default branch", and R3: on the
+/// default branch's checkout, `--agent` is refused before anything is written.
 #[test]
-fn an_agents_note_on_the_default_branch_is_a_line() {
+fn an_agents_note_on_the_default_branch_is_refused() {
     let repo = TestRepo::new();
     specs(&repo, "# Priorities\n\n## Now\n");
     feature(
@@ -176,6 +176,7 @@ fn an_agents_note_on_the_default_branch_is_a_line() {
         "2026-10-14-session-view",
         &[("proposal.md", proposal())],
     );
+    let subjects = repo.subjects("main");
 
     let output = note(
         &repo,
@@ -189,15 +190,14 @@ fn an_agents_note_on_the_default_branch_is_a_line() {
         ],
     );
 
-    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(output.code, 1, "{}", output.stderr);
     assert_eq!(
-        repo.read(INBOX),
-        "# Inbox\n\n## UI\n\n- [agent] [session-view] Opening a session with 2,000 messages takes 4 s\n"
+        output.stderr,
+        "ura: --agent writes in a feature's or a change's worktree, never on the default branch\n"
     );
-    assert_eq!(
-        repo.subjects("main")[0],
-        "chore: add \"Opening a session with 2,000 messages…\" to the inbox"
-    );
+    assert!(!repo.exists(INBOX));
+    assert!(!repo.exists("specs/notes"));
+    assert_eq!(repo.subjects("main"), subjects);
     assert_eq!(repo.porcelain(), "");
 }
 

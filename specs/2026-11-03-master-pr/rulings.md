@@ -28,12 +28,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an action that forgets the turn refuses with "no note", losing nothing.
 - **Where**: task 2, `crates/core/src/actions/inbox/agent.rs`
 
-## R3: `ura note --agent` on the default branch writes a line, as before
+## R3: `ura note --agent` is refused on the default branch
 
-- **Decision**: in a feature's or a change's worktree, `--agent` writes a note file. On the default
-  branch's checkout, it writes a line of `INBOX.md`, as today.
-- **Rationale**: the spec's conflicts come from branches; a line written on the default branch
-  conflicts with nothing, and the git decision forbids only a branch's write of `INBOX.md`.
+- **Decision**: in a feature's or a change's worktree, `--agent` writes a note file and commits it
+  on its branch. On the default branch's checkout, it refuses before writing anything, with
+  `--agent writes in a feature's or a change's worktree, never on the default branch`. On any other
+  branch, it writes the note file in this checkout, as in a feature's worktree.
+- **Rationale**: the git decision says an agent's inbox note is a note file of its own, written in
+  its own worktree, never on the default branch. Writing a line there instead, as planned first,
+  broke that rule.
 - **Where**: task 3, `crates/cli/src/note.rs`
 
 ## R4: An agent's note file is named from four words

@@ -1,5 +1,6 @@
 //! `ura note`: a note added to `specs/INBOX.md` on the default branch, and committed alone; with
-//! `--agent` in a feature's or a change's worktree, a note file of its own, committed on its branch.
+//! `--agent`, a note file of its own in this checkout, committed on its branch, refused on the
+//! default branch's checkout.
 
 use std::process::ExitCode;
 
@@ -12,6 +13,8 @@ use uraeda_core::workspace::{Workspace, WorkspaceError, branch_folder, folder_sl
 use crate::output;
 
 const NO_SPECS: &str = "No specs/ folder here.";
+const AGENT_ON_DEFAULT: &str =
+    "--agent writes in a feature's or a change's worktree, never on the default branch";
 
 pub struct Options {
     pub text: String,
@@ -33,36 +36,39 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         .clone()
         .ok_or("no default branch: commit on main first")?;
     // An agent's note in a feature's or a change's worktree is a note file of its own, on its
-    // branch: the inbox reads it once merged, and the branch never writes INBOX.md. On the
-    // default branch's checkout, it is a line, as anyone's note.
-    let (place, noted) =
-        if options.agent && git.current_branch().as_deref() != Some(default.as_str()) {
-            let place = place::Place {
-                root: git.root().to_path_buf(),
-                created: false,
-                switched: None,
-            };
-            let (_, noted) = inbox::agent_note(
-                &place,
-                options.category.as_deref(),
-                &marks,
-                &options.text,
-                !options.no_commit,
-            )
-            .map_err(output::action_error)?;
-            (place, noted)
-        } else {
-            let place = place::reach(&git, &default).map_err(|error| error.to_string())?;
-            let noted = inbox::note(
-                &place,
-                options.category.as_deref(),
-                &marks,
-                &options.text,
-                !options.no_commit,
-            )
-            .map_err(output::action_error)?;
-            (place, noted)
+    // branch: the inbox reads it once merged, and the branch never writes INBOX.md. The git
+    // decision forbids writing one on the default branch.
+    let on_default = git.current_branch().as_deref() == Some(default.as_str());
+    if options.agent && on_default {
+        return Err(AGENT_ON_DEFAULT.to_string());
+    }
+    let (place, noted) = if options.agent {
+        let place = place::Place {
+            root: git.root().to_path_buf(),
+            created: false,
+            switched: None,
         };
+        let (_, noted) = inbox::agent_note(
+            &place,
+            options.category.as_deref(),
+            &marks,
+            &options.text,
+            !options.no_commit,
+        )
+        .map_err(output::action_error)?;
+        (place, noted)
+    } else {
+        let place = place::reach(&git, &default).map_err(|error| error.to_string())?;
+        let noted = inbox::note(
+            &place,
+            options.category.as_deref(),
+            &marks,
+            &options.text,
+            !options.no_commit,
+        )
+        .map_err(output::action_error)?;
+        (place, noted)
+    };
     if let Some(message) = output::place_message(&git, &place) {
         eprintln!("{message}");
     }
