@@ -4,6 +4,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
 import * as stylex from "@stylexjs/stylex";
+import { useEffect, useState } from "react";
 import { useFateClient } from "react-fate";
 import { guarded, refusal } from "../errors.ts";
 import { WorkspaceView } from "../views.ts";
@@ -20,12 +21,16 @@ export const previewStyles = stylex.create({
 });
 
 /**
- * The button: `onPreview` hears it come under the pointer or take the focus, and leave them. A
- * refusal, as without the agent, is shown in a toast.
+ * The button: `onPreview` hears its preview start and end, on while it is under the pointer or
+ * focused, either one. A refusal, as without the agent, is shown in a toast.
  */
 export function ContinueAll({ onPreview }: { onPreview: (isOn: boolean) => void }) {
   const fate = useFateClient();
   const showToast = useToast();
+  const [isHovered, setHovered] = useState(false);
+  const [isFocused, setFocused] = useState(false);
+  const isOn = isHovered || isFocused;
+  useEffect(() => onPreview(isOn), [isOn, onPreview]);
   const onPress = async () => {
     // A lost connection rejects the call: it is shown as a refusal.
     const result = await guarded(() =>
@@ -37,10 +42,10 @@ export function ContinueAll({ onPreview }: { onPreview: (isOn: boolean) => void 
   };
   return (
     <span
-      onBlur={() => onPreview(false)}
-      onFocus={() => onPreview(true)}
-      onPointerEnter={() => onPreview(true)}
-      onPointerLeave={() => onPreview(false)}
+      onBlur={() => setFocused(false)}
+      onFocus={() => setFocused(true)}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
     >
       <Button clickAction={onPress} label="Continue all" size="sm" variant="secondary" />
     </span>
