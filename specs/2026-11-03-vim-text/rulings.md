@@ -127,7 +127,9 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   a row and a one-line field save on both, as they did before the editor. The text's blur toward the
   editor's own elements, like Vim's `:` prompt under the text, is not the field's `onBlur`: the
   engine gives the focus back to the text as the prompt closes, so `:q` in a changed row asks
-  "Discard your changes?" rather than saving as the row is left.
+  "Discard your changes?" rather than saving as the row is left. The focus leaving the prompt for
+  outside the editor, as a click away moves it, is the field's `onBlur`, so the row saves as it did;
+  the prompt's own blur as Enter or Escape closes it is not, the focus back in the text by then.
 - **Rationale**: rows and one-line fields pass `onEnter` only; the review found Ctrl+Enter, `:w`,
   and `:wq` did nothing there, and `:` saved and closed a row.
 - **Alternatives considered**: each row and one-line field passing `onSubmit`, a second prop for one
