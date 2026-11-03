@@ -440,7 +440,7 @@ git commit -m "feat(master-pr): an agent's note is a note file of its own"
   `{"version": 1, "notes": [{"category": "...", "text": "...", "agent": true, "about": "...", "file": "..."}]}`,
   `null` for an absent value. `ura inbox clean` is unchanged.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `ura_inbox_prints_the_notes_by_category`: a repository with an `INBOX.md` of one line under
 "Deferred fixes", and a committed note file about `feature-state` under the same category. Assert
@@ -449,19 +449,19 @@ stdout contains
 and that `--json`'s note for the file has `"agent": true`, `"about": "feature-state"`, `"file"` its
 path. The break: a listing that skips note files, or loses the marks.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-cli --test inbox`
 - Expected: FAIL, clap's `requires a subcommand`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/cli

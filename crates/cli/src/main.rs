@@ -69,9 +69,8 @@ enum Command {
         #[arg(long)]
         no_commit: bool,
     },
-    /// Work on the inbox
-    #[command(subcommand)]
-    Inbox(inbox::Command),
+    /// Print the inbox of the default branch, by category, or work on it
+    Inbox(inbox::Args),
     /// Start a feature or change from its proposal: its line in Now, its branch, and its folder.
     /// With --feature, make a started change a feature, in place
     Start {
@@ -221,7 +220,7 @@ fn main() -> ExitCode {
             agent,
             no_commit,
         }),
-        Command::Inbox(command) => inbox::run(command),
+        Command::Inbox(args) => inbox::run(args),
         Command::Start {
             target,
             feature: true,
