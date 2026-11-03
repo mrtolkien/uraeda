@@ -11,12 +11,17 @@ const src = fileURLToPath(new URL("..", import.meta.url));
 
 /** `vp lint` on a file of `packages/web`, with the repository's config. */
 function lint(file: string) {
-  return spawnSync(join(root, "node_modules/.bin/vp"), ["lint", `packages/web/${file}`], {
-    cwd: root,
-    encoding: "utf8",
-    // The fixtures are left out of the normal lint.
-    env: { ...process.env, URAEDA_LINT_FIXTURES: "1" },
-  });
+  return spawnSync(
+    join(root, "node_modules/.bin/vp"),
+    ["lint", "--format", "default", `packages/web/${file}`],
+    {
+      cwd: root,
+      encoding: "utf8",
+      // The fixtures are left out of the normal lint. The format is set, as on CI the lint picks
+      // GitHub's annotations, which leave out a rule's help, the message some fixtures look for.
+      env: { ...process.env, URAEDA_LINT_FIXTURES: "1" },
+    },
+  );
 }
 
 /** What `vp lint` reports on a file of `packages/web`. */
