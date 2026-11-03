@@ -240,3 +240,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: the `page` variant in `fields/editor/theme.ts` grows with its text again, and the
   motions need the window's scroll; or `withText` in `buffer/useBufferKey.ts` reads a new field.
 - **Where**: task 10 (review fix pass)
+
+## R20: A rewritten commit message is the store's unsaved text
+
+- **Decision**: each pane's message is a field of the unsaved store, `commit:<branch>#message`, over
+  the core's suggestion as its saved text: rewritten, it is marked "Unsaved message", leaving the
+  page asks first, and coming back restores it with its notice. The pane's lines at a typed
+  message's commit are kept outside the page until the commit lands, which drops the entry, or a
+  refusal keeps it.
+- **Rationale**: the message was the page's state only, lost with no question as the page was left,
+  against the UI behaviour decision's unsaved text rules.
+- **Alternatives considered**: the landing lines in the entry itself, which would survive a reload,
+  through a field the store keeps for comments.
+- **If wrong**: a reload while a typed message's commit lands leaves it restored over the next
+  changes of its branch, until its Discard.
+- **Where**: task 7 (final review's fix pass)

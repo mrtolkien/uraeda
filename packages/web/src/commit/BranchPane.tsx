@@ -8,10 +8,13 @@ import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
+import { RestoreNotice } from "../fields/RestoreNotice.tsx";
 import { TextField } from "../fields/TextField.tsx";
+import { useTextField } from "../fields/useTextField.ts";
 import { Pane } from "../layout/Pane.tsx";
 import { markVars } from "../marks.stylex.ts";
 import { WriteButton } from "../writes/WriteButton.tsx";
+import { messageField } from "./usePaneWrites.ts";
 
 const styles = stylex.create({
   // One change: its kind, small, over what it is about.
@@ -65,39 +68,47 @@ function Changes({ lines }: { lines: ReadonlyArray<string> }) {
   );
 }
 
+/** What the restore notice adds when the core's suggestion changed since the message was typed. */
+const SUGGESTION_CHANGED = "The suggested message changed since.";
+
 /**
- * A branch's pane. `message` is the field's text, the suggestion until rewritten; "Use the
- * suggested message" brings the core's back. Ctrl+Enter in the field commits the pane, as its
- * Commit button does. `hasButtons` is false on the phone with one pane, whose bottom bar holds them.
+ * A branch's pane. Its message is the suggestion until rewritten, then unsaved text, kept by
+ * branch until its commit lands, and marked; "Use the suggested message" brings the core's back.
+ * Ctrl+Enter in the field commits the pane, as its Commit button does. `hasButtons` is false on the
+ * phone with one pane, whose bottom bar holds them.
  */
 export function BranchPane({
   hasButtons,
   isPicked,
-  message,
   onCommit,
   onDiscard,
-  onMessage,
   pane,
 }: {
   hasButtons: boolean;
   isPicked: boolean;
-  message: string;
   onCommit: () => Promise<unknown>;
   onDiscard: () => void;
-  onMessage: (message: string | undefined) => void;
   pane: CommitPane;
 }) {
-  const rewritten = message !== pane.message;
+  const field = useTextField(messageField(pane.branch), pane.message);
+  const rewritten = field.text !== pane.message;
   return (
     <Pane icon="uraeda:git-branch" isActive={isPicked} title={pane.branch}>
       <VStack gap={3}>
         <Changes lines={pane.lines} />
+        {field.restored && (
+          <RestoreNotice
+            changed={SUGGESTION_CHANGED}
+            onDiscard={field.discard}
+            restored={field.restored}
+          />
+        )}
         <TextField
           kind={pane.count > 1 ? "comment" : "line"}
           label="Message"
-          onChange={onMessage}
+          onChange={field.change}
           onSubmit={() => void onCommit()}
-          value={message}
+          value={field.text}
         />
         {(hasButtons || rewritten) && (
           <HStack align="center" gap={2} wrap="wrap">
@@ -114,11 +125,12 @@ export function BranchPane({
               </>
             )}
             {rewritten && (
-              <Button
-                label="Use the suggested message"
-                onClick={() => onMessage(undefined)}
-                variant="ghost"
-              />
+              <>
+                <Button label="Use the suggested message" onClick={field.discard} variant="ghost" />
+                <Text color="secondary" type="supporting">
+                  Unsaved message
+                </Text>
+              </>
             )}
           </HStack>
         )}

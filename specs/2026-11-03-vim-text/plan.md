@@ -775,9 +775,11 @@ git commit -m "feat(vim-text): Vim's keys behind the Vim mode setting"
     priorities and the inbox, whose count it changes.
   - Web: the page's selected pane for `j` `k`; Enter and `d` act on it; Ctrl+Enter in a message
     commits its pane; "Use the suggested message" shows once the message differs from the
-    suggestion. A typed message stays until its commit lands, through a hook's refusal. With one
-    pane the page looks as today; on the phone, two panes put their buttons in each pane and the
-    bottom bar holds none.
+    suggestion. A typed message is unsaved text, in the store as `commit:<branch>#message` through
+    `useTextField`, so the Leave guard, the "Unsaved message" mark, and the restore notice apply; it
+    stays until its commit lands, through a hook's refusal (ruling R20). With one pane the page
+    looks as today; on the phone, two panes put their buttons in each pane and the bottom bar holds
+    none.
 
 - [x] **Step 1: Write the failing tests**
 
