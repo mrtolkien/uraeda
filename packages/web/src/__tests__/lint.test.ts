@@ -33,7 +33,7 @@ test.each([
   // A raw value moved into a custom property and read back with `var()`.
   ["raw-custom-property.tsx", "custom-property-tokens"],
   // Safari's `pretty` shortens every line of a paragraph, its right edge ragged on a phone.
-  ["pretty-wrap.tsx", "valid-styles"],
+  ["pretty-wrap.tsx", "textWrap value must be one of"],
   // The UI components decision: markdown goes through `Prose.tsx`.
   ["raw-markdown.tsx", "no-restricted-imports"],
   // A value of the server's fate module imports Node's modules, which blank the app.
