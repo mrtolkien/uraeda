@@ -316,30 +316,31 @@ New tests: 15, under the ceiling of 20 (15 key scenarios and 5 high edge cases).
 **Files:**
 
 - Modify: `packages/server/src/runner/sessions.ts`
-- Create: one module beside it, such as `runner/session-folders.ts`, for a cohesive group of
-  `Sessions`' methods: the feature sessions' creation, attach, hold, and archive
+- Create: `runner/session-folders.ts`, for a cohesive group of `Sessions`' methods: the sessions'
+  creation (`featureSession`, `newSession`, `newChat`), `attach`, and `archiveFolder`. `hold` stays
+  in `Sessions`, which it shares `working` and `sessionWorking` with
 
 **Interfaces:**
 
 - Produces: `Sessions`' public methods unchanged, in name, signature, and behaviour. `sessions.ts`
   is under 440 lines, leaving room for task 8.
 
-- [ ] **Step 1: Move the group into its module.** The moved code becomes functions over
+- [x] **Step 1: Move the group into its module.** The moved code becomes functions over
       `SessionContext`, plus what they need, called by thin `Sessions` methods. Leave the module's
       exports to the implementer.
 
-- [ ] **Step 2: Run the runner's and the server's session tests, which pass before and after**
+- [x] **Step 2: Run the runner's and the server's session tests, which pass before and after**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner/__tests__/sessions.test.ts packages/server/src/__tests__/sessions.test.ts`
 - Expected: PASS
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/server/src/runner/
