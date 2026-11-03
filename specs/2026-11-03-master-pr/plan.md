@@ -447,7 +447,8 @@ git commit -m "feat(master-pr): an agent's note is a note file of its own"
   name on its own line and its notes, a blank line between groups; a note is `- `, `[agent] ` when
   marked, `[<slug>] ` when about one, and its plain text (a note file's: its title). JSON:
   `{"version": 1, "notes": [{"category": "...", "text": "...", "agent": true, "about": "...", "file": "..."}]}`,
-  `null` for an absent value. `ura inbox clean` is unchanged.
+  `null` for an absent value, `text` the same plain text the text output prints. `ura inbox clean`
+  is unchanged.
 
 - [x] **Step 1: Write the failing test**
 

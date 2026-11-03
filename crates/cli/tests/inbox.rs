@@ -46,7 +46,7 @@ fn ura_inbox_prints_the_notes_by_category() {
 }
 
 /// US2, more scenario 7: `--json` prints each note with its category, text, marks, and file, with
-/// the version.
+/// the version; a note file's text is its title's plain text, as `ura inbox` prints it.
 #[test]
 fn ura_inbox_json_gives_a_note_file_its_marks_and_path() {
     let repo = repo();
@@ -64,6 +64,10 @@ fn ura_inbox_json_gives_a_note_file_its_marks_and_path() {
     assert_eq!(human["file"], serde_json::Value::Null);
     let agent = &notes[1];
     assert_eq!(agent["category"], "Deferred fixes");
+    assert_eq!(
+        agent["text"],
+        "The workspace record's running is read by no view"
+    );
     assert_eq!(agent["agent"], true);
     assert_eq!(agent["about"], "feature-state");
     assert_eq!(
