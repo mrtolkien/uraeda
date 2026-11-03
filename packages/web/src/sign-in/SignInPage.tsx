@@ -3,6 +3,7 @@
 import { Button } from "@astryxdesign/core/Button";
 import { Code } from "@astryxdesign/core/Code";
 import { HStack } from "@astryxdesign/core/HStack";
+// oxlint-disable-next-line no-restricted-imports -- the access key is a password: password managers fill only the browser's own field
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars } from "@astryxdesign/core/theme/tokens.stylex";

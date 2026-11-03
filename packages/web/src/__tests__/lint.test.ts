@@ -41,6 +41,9 @@ test.each([
   ["pretty-wrap.tsx", "textWrap value must be one of"],
   // The UI components decision: markdown goes through `Prose.tsx`.
   ["raw-markdown.tsx", "no-restricted-imports"],
+  // The Text editing decision: every text field is the shared editor, never Astryx's own.
+  ["astryx-text-input.tsx", "use the shared editor, fields/editor (Text editing decision)"],
+  ["astryx-composer-input.tsx", "use the shared editor, fields/editor (Text editing decision)"],
   // A value of the server's fate module imports Node's modules, which blank the app.
   ["server-fate-value.tsx", "import only types from uraeda-server/fate"],
   // US3.6: a `test.only` left behind fails the lint.
