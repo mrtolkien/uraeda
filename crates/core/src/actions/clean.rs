@@ -1,8 +1,9 @@
 //! Cleaning a merged feature: its worktree under `.worktrees/` and its local branch, unless that
-//! would lose work, and its line of the priorities on the default branch (see `specs/decisions/git.md`). Decides everything from what git records, never
-//! from git's messages, and prints nothing.
+//! would lose work, and its line of the priorities on the default branch (see
+//! `specs/decisions/git.md`). Decides everything from what git records, never from git's messages,
+//! and prints nothing.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::actions::commit::commit_only;
 use crate::actions::place;
@@ -20,12 +21,25 @@ pub enum Did {
     RemovedWorktree(String),
     PrunedWorktree(String),
     DeletedBranch(String),
-    /// The line of the priorities linking its proposal, and whether its removal was committed:
-    /// never on a dry run.
+    /// The line of the priorities linking its proposal, whether its removal was committed, and the
+    /// working tree of the default branch it was removed in: none on a dry run.
     RemovedLine {
         name: String,
-        committed: bool,
+        committed: LineCommit,
+        wrote_in: Option<PathBuf>,
     },
+}
+
+/// Whether the removal of a merged feature's line was committed, or why not.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LineCommit {
+    Committed,
+    /// `PRIORITIES.md` had other uncommitted changes: someone's work in progress.
+    OtherChanges,
+    /// A hook refused the commit.
+    HookRefused,
+    /// A dry run commits nothing.
+    DryRun,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -112,6 +126,7 @@ pub fn clean(
     cleaned.did.extend(line(git, workspace, feature, dry_run)?);
     Ok(cleaned)
 }
+
 /// Deletes a merged feature's local branch, never forced, or says why it stays: checked out in the
 /// main checkout, its worktree left, or with commits on none of the default branch's tips. `None`
 /// when there is no local branch. On a dry run, says what it would do.
@@ -204,7 +219,8 @@ fn line(
     if dry_run {
         return Ok(Some(Did::RemovedLine {
             name: name.to_string(),
-            committed: false,
+            committed: LineCommit::DryRun,
+            wrote_in: None,
         }));
     }
     let place = place::reach(git, default).map_err(|e| ActionError::Refused(e.to_string()))?;
@@ -218,13 +234,20 @@ fn line(
         subject: format!("chore({slug}): remove \"{name}\" from the priorities"),
         body: None,
     };
-    let committed = clean
-        && match commit_only(&place, &change) {
-            Ok(_) => true,
-            Err(ActionError::Hook { .. }) => false,
+    let committed = if clean {
+        match commit_only(&place, &change) {
+            Ok(_) => LineCommit::Committed,
+            Err(ActionError::Hook { .. }) => LineCommit::HookRefused,
             Err(error) => return Err(error),
-        };
-    Ok(Some(Did::RemovedLine { name, committed }))
+        }
+    } else {
+        LineCommit::OtherChanges
+    };
+    Ok(Some(Did::RemovedLine {
+        name,
+        committed,
+        wrote_in: Some(place.root),
+    }))
 }
 
 /// Removes a branch's worktree from `main_root`, the main checkout, or prunes its record when its

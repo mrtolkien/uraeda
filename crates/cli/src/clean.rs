@@ -3,7 +3,8 @@
 
 use std::process::ExitCode;
 
-use uraeda_core::actions::clean::{self, Cleaned, Did, Left, Leftover, WhyLeft};
+use uraeda_core::actions::clean::{self, Cleaned, Did, Left, Leftover, LineCommit, WhyLeft};
+use uraeda_core::actions::place::Place;
 use uraeda_core::steps::StepName;
 use uraeda_core::target::{Purpose, Target};
 use uraeda_core::workspace::{Feature, Workspace, branch_folder};
@@ -74,12 +75,34 @@ pub fn run(target: Option<String>, all: bool, dry_run: bool) -> Result<ExitCode,
         let cleaned =
             clean::clean(&git, &workspace, feature, dry_run).map_err(|e| e.to_string())?;
         left |= !cleaned.left.is_empty();
+        if let Some(message) = wrote_in(&git, &cleaned) {
+            eprintln!("{message}");
+        }
         print!("{}", render(&cleaned, &default));
     }
     Ok(if left {
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
+    })
+}
+
+/// Where the cleanup removed the line of the priorities, when it is not this working tree: as
+/// `ura note` says it.
+fn wrote_in(git: &uraeda_core::git::Git, cleaned: &Cleaned) -> Option<String> {
+    cleaned.did.iter().find_map(|did| match did {
+        Did::RemovedLine {
+            wrote_in: Some(root),
+            ..
+        } => output::place_message(
+            git,
+            &Place {
+                root: root.clone(),
+                created: false,
+                switched: None,
+            },
+        ),
+        _ => None,
     })
 }
 
@@ -105,16 +128,21 @@ fn render(cleaned: &Cleaned, default: &str) -> String {
             }
         };
         text.push_str(&wrap(&line));
-        if let (
+        let why = match did {
             Did::RemovedLine {
-                committed: false, ..
-            },
-            false,
-        ) = (did, cleaned.dry_run)
-        {
-            text.push_str(&wrap(
+                committed: LineCommit::OtherChanges,
+                ..
+            } => Some(
                 "PRIORITIES.md had uncommitted changes: the line is removed but not committed.",
-            ));
+            ),
+            Did::RemovedLine {
+                committed: LineCommit::HookRefused,
+                ..
+            } => Some("a hook refused the commit: the line is removed but not committed."),
+            _ => None,
+        };
+        if let Some(why) = why {
+            text.push_str(&wrap(why));
         }
     }
     for left in &cleaned.left {
