@@ -188,14 +188,15 @@ export function serverCuts(db: DatabaseSync, reason: string, since: string): Arr
   return rows.map(toTurn);
 }
 
-/** The latest time a limit's continue waits for, at or after `from`. */
-export function latestLimitContinue(db: DatabaseSync, from: number): number | undefined {
-  const { at } = db
+/** Whether a limit's continue waits for a time in `[from, to)`. */
+export function limitContinueWithin(db: DatabaseSync, from: number, to: number): boolean {
+  const row = db
     .prepare(
-      "SELECT MAX(continue_at) AS at FROM turns WHERE continue_reason = 'limit' AND continue_at >= ?",
+      `SELECT 1 FROM turns WHERE continue_reason = 'limit' AND continue_at >= ? AND continue_at < ?
+       LIMIT 1`,
     )
-    .get(from) as { at: number | null };
-  return at ?? undefined;
+    .get(from, to);
+  return row !== undefined;
 }
 
 /** Counts an automatic continue of the session, and returns its continues in a row. */

@@ -239,3 +239,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   sheet to confirm would be a second surface for what the home already shows.
 - **If wrong**: a confirmation, or a preview of its own on the phone, replaces the first tap's.
 - **Where**: review of task 11, `packages/web/src/home/ContinueAll.tsx`.
+
+## R22: The runs of one reset go a minute apart, and no later wait delays them
+
+- **Decision**: a limit's continue starts at its reset plus a minute, and steps a minute at a time
+  while another pending limit continue waits within that minute, `limitContinueWithin(t, t + 1 min)`
+  in `cache-turns.ts`. The plan's "a minute after that one", the latest limit continue at or after
+  the reset, is read as "a minute after the waits of the same reset".
+- **Rationale**: SC-001 asks for a continue within 2 minutes of the reset. With the latest continue
+  at or after the reset, a run waiting an hour without a reset time pushed a run whose reset was 5
+  minutes away behind it, an hour late. Found by the review of task 8.
+- **If wrong**: two resets a minute apart may interleave their runs, each still a minute apart.
+- **Where**: task 8, `packages/server/src/runner/continuer.ts` and `cache-turns.ts`.

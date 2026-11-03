@@ -126,23 +126,32 @@ test.each([
   expect(cache.items(next.id, 0, 1)).toEqual([{ kind: "system", seq: 0, text: LIMIT_LINE }]);
 });
 
-test("US1.3: two runs waiting for one reset continue a minute apart", async () => {
+test.each([
+  {
+    at: [AFTER_RESET, AFTER_RESET + 60_000],
+    first: SESSION_LIMIT,
+    name: "two runs waiting for one reset continue a minute apart",
+    second: SESSION_LIMIT,
+  },
+  {
+    at: [Date.parse("2026-11-03T15:01:00Z"), Date.parse("2026-11-03T14:06:00Z")],
+    first: { kind: "session", text: "You've hit your session limit" } as const,
+    name: "a run waiting an hour without a reset does not delay a reset 4 minutes away",
+    second: { ...SESSION_LIMIT, resetsAt: "2026-11-03T14:05:00.000Z" },
+  },
+])("US1.3: $name", async ({ at, first: firstLimit, second: secondLimit }) => {
   const setup = await testSessions(fixtureRepo(), { runs: () => ON });
   const { adapter, cache } = setup;
   const time = clock("2026-11-03T14:01:00Z");
-  const first = await sendLimited(setup, AGENT);
-  const second = await sendLimited(setup, HUMAN);
+  const first = await sendLimited(setup, AGENT, firstLimit);
+  const second = await sendLimited(setup, HUMAN, secondLimit);
 
-  expect([cache.turn(first.turn)?.continueAt, cache.turn(second.turn)?.continueAt]).toEqual([
-    AFTER_RESET,
-    AFTER_RESET + 60_000,
-  ]);
-  time.to(AFTER_RESET);
-  await until(() => continues(adapter) === 1);
-  expect(continues(adapter)).toBe(1);
-  time.to(AFTER_RESET + 60_000);
-  await until(() => continues(adapter) === 2);
-  expect(continues(adapter)).toBe(2);
+  expect([cache.turn(first.turn)?.continueAt, cache.turn(second.turn)?.continueAt]).toEqual(at);
+  for (const [index, when] of [...at].sort((a, b) => a - b).entries()) {
+    time.to(when);
+    await until(() => continues(adapter) === index + 1);
+    expect(continues(adapter)).toBe(index + 1);
+  }
 });
 
 /** US1, more scenarios 1, and review focus 1: the human's message takes the continue's place. */
