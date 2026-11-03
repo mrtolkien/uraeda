@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: approved
 revision: 1
 clarifications: 2
 risk-tier: medium
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: "Master" PR
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 10 minutes.
+> Approved on 2026-11-03.
 >
 > - You approve branches that never edit `PRIORITIES.md` or `INBOX.md`: agents' notes become note
 >   files of their own, and a merged feature's line waits for `ura clean`.
