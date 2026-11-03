@@ -753,23 +753,27 @@ git commit -m "feat(vim-text): Vim's keys behind the Vim mode setting"
     `chore(<slug>): edit <name>` on a feature's, `, and N more` past one.
   - Core: `pub fn commit_branch(repo: &Path, branch: &str, message: &str) -> Result<CommitView>`:
     commits the pane's files only, with the message as typed, trimmed of blank lines around it;
-    refused with "A commit needs a message." when it is blank; clears the record of the paths it
-    committed. `pub fn discard_branch(repo: &Path, branch: &str)` restores what the pane lists, the
-    files a buffer edited included. The default branch keeps today's `commit_changes` and
-    `discard_changes` behaviour through these. The commit bar's count (`Priorities.changes`,
-    `Inbox.changes`) sums every pane's. A message equal to the suggestion may amend as today; any
-    other never amends (ruling R11).
+    refused with "A commit needs a message." when it is blank. The record of a path ends once a
+    commit by any route changes its file in `HEAD`, so a refused deferred commit keeps its pane, and
+    an agent's later edit of a file committed elsewhere is not the human's (ruling R14).
+    `pub fn discard_branch(repo: &Path, branch: &str)` restores what the pane lists, the files a
+    buffer edited included. The default branch keeps today's `commit_changes` and `discard_changes`
+    behaviour through these. The commit bar's count (`Priorities.changes`, `Inbox.changes`) sums
+    every pane's. A message equal to the suggestion may amend as today; any other never amends
+    (ruling R11), nor is amended by a later commit (ruling R13).
   - Binding: `commitPanes(repo)` (the name `branchChanges` is a feature's diff already),
     `commitBranch(repo, branch, message)`, `discardBranch(repo, branch)`.
   - Server: mutations `changes.commit({ write, branch, message })` and
     `changes.discard({ branch })`, `branch` left out committing the default branch with the
     suggestion as before; a feature branch's commit goes through `writable(ctx, { folder })`. A
     `CommitPanes` record (id `commit`, `panes`), as `BranchChanges` names a feature's diff already,
-    sent live with the priorities and on a feature's change.
+    sent live with the priorities, on a feature's change, and on each buffer's save, with the
+    priorities and the inbox, whose count it changes.
   - Web: the page's selected pane for `j` `k`; Enter and `d` act on it; Ctrl+Enter in a message
     commits its pane; "Use the suggested message" shows once the message differs from the
-    suggestion. With one pane the page looks as today; on the phone, two panes put their buttons in
-    each pane and the bottom bar holds none.
+    suggestion. A typed message stays until its commit lands, through a hook's refusal. With one
+    pane the page looks as today; on the phone, two panes put their buttons in each pane and the
+    bottom bar holds none.
 
 - [x] **Step 1: Write the failing tests**
 

@@ -134,3 +134,37 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   action at every call site.
 - **If wrong**: `actionsOf` in `fields/editor/Editor.tsx` runs `onSubmit` alone.
 - **Where**: tasks 3, 4, and 6 (review fix pass)
+
+## R13: A commit whose message the human typed is never amended
+
+- **Decision**: a commit made with a message the human typed marks itself, in a file of the
+  repository's git folder naming that commit; a later commit with a suggested message, the Commit
+  page's or an action's, never amends the commit it names, and is a commit of its own.
+- **Rationale**: R11 kept the typed commit from amending, but `amend` joins any unscoped `chore:`
+  commit of the lists, so a later suggested commit rewrote "chore: add Global undo to Now" into "…,
+  and 1 more", against US6 3. Only the latest commit can be amended, so one id is enough.
+- **Alternatives considered**: joining only a latest commit whose message equals what the core would
+  have suggested for its changes, which means reading the lists at its parent; a trailer in the
+  message, which changes the message as typed.
+- **If wrong**: a lost or removed mark lets a later suggested commit amend it, as before; the mark
+  is `uraeda-typed` in the repository's common git folder, written by `amend::keep`.
+- **Where**: task 7
+
+## R14: A buffer's record ends when a commit takes its file
+
+- **Decision**: the record of a buffer's edit holds the id `HEAD` had for the file at the save; it
+  is the human's edit only while `HEAD` still has that id. A commit by any route, the pane's own as
+  it lands, an agent's, a terminal's, or an action's that sweeps the file, ends it; the record is
+  rewritten without the ended paths at the next save or discard. A pane's commit no longer clears
+  the record itself.
+- **Rationale**: the server defers every pane's commit, and cleared the record as the call returned:
+  a hook's refusal then left the files written and the feature's pane gone. A record never pruned
+  showed an agent's later edit of a file committed elsewhere as the human's, for Commit to commit
+  under the human's message and Discard (R3) to throw away.
+- **Alternatives considered**: clearing the record in `land`'s success path, which every other route
+  of a commit misses; pruning while listing, a write in a read the server makes without the write
+  lock.
+- **If wrong**: a file put back by hand to `HEAD`, outside the page, then edited by an agent before
+  any save or discard, still reads as the human's edit; recording the saved text's hash too would
+  end it.
+- **Where**: task 7

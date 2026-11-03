@@ -10,7 +10,7 @@ use crate::files::priorities::{self, ProposalChange, Section};
 use super::commit::Mode;
 use super::place::{self, Place};
 use super::priorities::{describe, line, short};
-use super::{ActionError, Change, Committed, commit, edited, images};
+use super::{ActionError, Change, Committed, commit, images};
 
 mod discard;
 mod edits;
@@ -426,7 +426,8 @@ pub fn commit(place: &Place) -> Result<Committed, ActionError> {
 }
 
 /// Commits what `listed` holds with `message`, its subject and its body, amending only when
-/// `amends`, and forgets the buffer's edits it held.
+/// `amends`. The record of the buffer's edits it held ends as the commit lands, which changes
+/// their files in `HEAD`: a refused one keeps them listed.
 fn commit_listed(
     place: &Place,
     listed: &Listed,
@@ -448,11 +449,11 @@ fn commit_listed(
         subject,
         body,
     };
+    // A message that may not amend is one the human typed.
     let mode = Mode {
         only: false,
         amends,
+        typed: !amends,
     };
-    let committed = commit::commit_as(place, &change, mode)?;
-    edited::clear(place, &listed.edits)?;
-    Ok(committed)
+    commit::commit_as(place, &change, mode)
 }

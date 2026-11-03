@@ -9,12 +9,14 @@ use crate::git::{Git, GitError};
 use super::place::Place;
 use super::{ActionError, Change, Committed};
 
-/// How a commit runs: alone, other staged files left out of it, and whether it may amend the latest
-/// commit, as [`amend`](super::amend) says. A message the human typed never amends.
+/// How a commit runs: alone, other staged files left out of it, whether it may amend the latest
+/// commit, as [`amend`](super::amend) says, and whether the human typed its message, which never
+/// amends, nor is amended later (ruling R13).
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Mode {
     pub only: bool,
     pub amends: bool,
+    pub typed: bool,
 }
 
 /// Commits an action's files in the working tree it wrote in, running the hooks, or amends the
@@ -28,6 +30,7 @@ pub fn commit(place: &Place, change: &Change) -> Result<Committed, ActionError> 
         Mode {
             only: false,
             amends: true,
+            typed: false,
         },
     )
 }
@@ -41,6 +44,7 @@ pub fn commit_only(place: &Place, change: &Change) -> Result<Committed, ActionEr
         Mode {
             only: true,
             amends: true,
+            typed: false,
         },
     )
 }
@@ -60,7 +64,7 @@ pub(super) fn commit_as(
     } else {
         Git::commit
     };
-    committed(place, change, mode.amends, run)
+    committed(place, change, mode, run)
 }
 
 /// Runs a deferred commit as `mode` says, as [`commit_as`] would have, `on_output` given git's
@@ -73,35 +77,31 @@ pub(super) fn run(
     on_output: &dyn Fn(&str),
     lock: &dyn Fn() -> WriteGuard,
 ) -> Result<Committed, ActionError> {
-    committed(
-        place,
-        change,
-        mode.amends,
-        |git, paths, subject, body, amend| {
-            let stage = {
+    committed(place, change, mode, |git, paths, subject, body, amend| {
+        let stage = {
+            let _lock = lock();
+            git.stage(paths, mode.only)?
+        };
+        git.commit_stage(&stage, subject, body, amend, Some(on_output))
+            .inspect_err(|_| {
                 let _lock = lock();
-                git.stage(paths, mode.only)?
-            };
-            git.commit_stage(&stage, subject, body, amend, Some(on_output))
-                .inspect_err(|_| {
-                    let _lock = lock();
-                    drop(git.unstage_stage(&stage));
-                })
-        },
-    )
+                drop(git.unstage_stage(&stage));
+            })
+    })
 }
 
 /// Commits `change` with `run`, and returns it with the message committed, an amend's. An amend
 /// that git or a hook refuses is tried again as a plain commit, so the files are committed whenever
-/// a plain commit would be.
+/// a plain commit would be. A commit with a typed message is kept from later amends.
 fn committed(
     place: &Place,
     change: &Change,
-    amends: bool,
+    mode: Mode,
     run: impl Fn(&Git, &[String], &str, Option<&str>, bool) -> Result<(), GitError>,
 ) -> Result<Committed, ActionError> {
     let git = Git::open(&place.root)?;
-    let amend = amends
+    let amend = mode
+        .amends
         .then(|| super::amend::message(place, change))
         .flatten();
     let amended = match amend {
@@ -127,8 +127,13 @@ fn committed(
             }
         }
     };
-    let head = Git::open(&place.root)?
-        .head()
+    let head = Git::open(&place.root)?.head();
+    if mode.typed
+        && let Some(head) = head
+    {
+        super::amend::keep(place, head);
+    }
+    let head = head
         .map(|id| id.to_hex_with_len(7).to_string())
         .unwrap_or_default();
     Ok(Committed {

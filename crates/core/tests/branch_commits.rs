@@ -9,6 +9,7 @@ use common::texts::{proposal, spec};
 use uraeda_core::actions::edited;
 use uraeda_core::actions::place::Place;
 use uraeda_core::api::{self, BranchPane};
+use uraeda_core::files::document::hash;
 
 const FOLDER: &str = "2026-10-11-web-ui";
 const SPEC: &str = "specs/2026-10-11-web-ui/spec.md";
@@ -203,6 +204,145 @@ fn a_branch_discards_alone() {
     assert_eq!(
         std::fs::read_to_string(worktree(&repo).join(SPEC)).unwrap(),
         spec("awaiting-human", 1, 0)
+    );
+    assert!(api::branch_changes(repo.path()).unwrap().is_empty());
+}
+
+/// Ruling R13. Break caught: a later suggested commit amending the commit whose message the human
+/// typed, which rewrites it into "…, and 1 more".
+#[test]
+fn a_typed_message_is_never_amended() {
+    let repo = repo();
+    save(&repo, PRIORITIES, |text| format!("{text}- Global undo\n"));
+    api::commit_branch(repo.path(), "main", "chore: add Global undo to Now").unwrap();
+    save(&repo, INBOX, |text| format!("{text}- A second note\n"));
+
+    let suggested = api::branch_changes(repo.path()).unwrap()[0].message.clone();
+    api::commit_branch(repo.path(), "main", &suggested).unwrap();
+
+    assert_eq!(
+        repo.subjects("main")[..2],
+        [
+            "chore: edit specs/INBOX.md",
+            "chore: add Global undo to Now"
+        ]
+    );
+}
+
+/// Break caught: a suggested message no longer joining the latest suggested commit, a run of small
+/// edits split into a commit each.
+#[test]
+fn a_suggested_message_amends_the_latest_suggested_one() {
+    let repo = repo();
+    save(&repo, PRIORITIES, |text| format!("{text}- Global undo\n"));
+    let suggested = api::branch_changes(repo.path()).unwrap()[0].message.clone();
+    api::commit_branch(repo.path(), "main", &suggested).unwrap();
+    save(&repo, INBOX, |text| format!("{text}- A second note\n"));
+
+    let suggested = api::branch_changes(repo.path()).unwrap()[0].message.clone();
+    api::commit_branch(repo.path(), "main", &suggested).unwrap();
+
+    assert_eq!(
+        repo.subjects("main")[..2],
+        [
+            "chore: edit specs/PRIORITIES.md, and 1 more",
+            "chore: specs"
+        ]
+    );
+}
+
+/// Break caught: a deferred commit forgetting the buffer's edits before it lands, so a hook's
+/// refusal leaves them uncommitted, and off the Commit page.
+#[test]
+fn a_refused_deferred_commit_keeps_its_pane() {
+    let repo = repo();
+    two_branches(&repo);
+    api::defer_commits(repo.path(), true);
+    repo.set_hook("echo refused\nexit 1");
+    let before = api::branch_changes(repo.path()).unwrap();
+
+    for branch in [FOLDER, "main"] {
+        api::commit_branch(repo.path(), branch, "chore: a message of my own").unwrap();
+        let deferred = api::take_deferred(repo.path());
+        assert_eq!(deferred.len(), 1, "{branch}");
+        let refused = api::land(repo.path(), &deferred[0].id, |_| {}).unwrap_err();
+        assert_eq!(refused.code, "hook", "{branch}");
+    }
+
+    assert_eq!(api::branch_changes(repo.path()).unwrap(), before);
+}
+
+/// Break caught: a recorded file committed by another route, then edited by an agent, listed as
+/// the human's edit: committed under the human's message, or thrown away by Discard.
+#[test]
+fn a_recorded_file_committed_elsewhere_is_forgotten() {
+    let repo = repo();
+    two_branches(&repo);
+    let tree = worktree(&repo);
+    run_git(
+        &tree,
+        &[
+            "commit",
+            "--quiet",
+            "--no-verify",
+            "-am",
+            "spec(web-ui): agent",
+        ],
+    );
+    let spec_path = tree.join(SPEC);
+    let agent = std::fs::read_to_string(&spec_path).unwrap() + "\nThe agent's line.\n";
+    std::fs::write(&spec_path, agent).unwrap();
+    repo.git(&["commit", "--quiet", "--no-verify", "-am", "chore: by hand"]);
+    repo.write(
+        PRIORITIES,
+        &format!("{PRIORITIES_TEXT}- Global undo\n- Search\n"),
+    );
+
+    let panes = api::branch_changes(repo.path()).unwrap();
+
+    assert_eq!(panes.len(), 1, "{panes:?}");
+    assert_eq!(panes[0].branch, "main");
+    assert_ne!(panes[0].lines, ["- Edit specs/PRIORITIES.md"]);
+}
+
+/// Break caught: a feature pane's commit carrying a file an agent staged.
+#[test]
+fn a_feature_pane_leaves_a_staged_file_out() {
+    let repo = repo();
+    two_branches(&repo);
+    let plan = format!("specs/{FOLDER}/plan.md");
+    std::fs::write(worktree(&repo).join(&plan), "# Plan\n").unwrap();
+    run_git(&worktree(&repo), &["add", "--", &plan]);
+
+    api::commit_branch(repo.path(), FOLDER, "chore: drop the clock").unwrap();
+
+    assert_eq!(repo.changed_in(FOLDER), [SPEC]);
+    assert_eq!(
+        run_git(&worktree(&repo), &["diff", "--cached", "--name-only"]),
+        format!("{plan}\n")
+    );
+}
+
+/// Break caught: a pane leaving out a file a buffer created, or one deleted since its save.
+#[test]
+fn a_pane_commits_a_created_file_and_a_deleted_one() {
+    let repo = repo();
+    let created = "specs/decisions/storage.md";
+    api::save_buffer(repo.path(), created, "# Storage\n", &hash("")).unwrap();
+    save(&repo, INBOX, |text| format!("{text}- A second note\n"));
+    std::fs::remove_file(repo.path().join(INBOX)).unwrap();
+
+    let panes = api::branch_changes(repo.path()).unwrap();
+    assert_eq!(
+        panes[0].lines,
+        ["- Edit specs/INBOX.md", &format!("- Edit {created}")]
+    );
+    api::commit_branch(repo.path(), "main", "chore: storage, and no inbox").unwrap();
+
+    assert_eq!(repo.changed_in("main"), [INBOX, created]);
+    assert_eq!(
+        repo.git(&["show", &format!("main:{created}")]),
+        "# Storage\n"
     );
     assert!(api::branch_changes(repo.path()).unwrap().is_empty());
 }
