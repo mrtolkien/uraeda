@@ -7,7 +7,13 @@ import type { Duplex } from "node:stream";
 import { createApp } from "./app.ts";
 import { chatImages } from "./attach.ts";
 import type { Binding } from "./fate/context.ts";
-import { createSessions, type HostsOf, livePreviews, renewPreviews } from "./live.ts";
+import {
+  continueSettings,
+  createSessions,
+  type HostsOf,
+  livePreviews,
+  renewPreviews,
+} from "./live.ts";
 import { NOT_A_REPOSITORY, openFolder, type OpenRequest } from "./open.ts";
 import { guardCheck } from "./guard.ts";
 import { GroupRecord, groupsFolder, killLeftGroups } from "./preview/groups.ts";
@@ -37,14 +43,15 @@ export const SWEEP_EVERY_MS = 60_000;
 /**
  * The server's session manager: its cache opened in the data folder, the turns a stopped server
  * left marked stopped, the chat images no message holds deleted once a day old, and the agent
- * checked now and every 60 seconds. `stop` stops its turns and
- * closes its processes.
+ * checked now and every 60 seconds. Its pending continues are armed once the agent is checked, and
+ * the continues follow `settings` as they change. `stop` stops its turns and closes its processes.
  */
 export async function startSessions(options: {
   adapter: Adapter;
   binding: Binding;
   dataDir: string;
   hosts: HostsOf;
+  settings: ServerSettings;
 }): Promise<{ sessions: Sessions; stop: () => Promise<void> }> {
   const cache = SessionCache.open(join(options.dataDir, "runner.sqlite"));
   cache.interrupted(SERVER_STOPPED);
@@ -55,14 +62,17 @@ export async function startSessions(options: {
   } catch (error) {
     process.stderr.write(`uraeda: the chat images were not cleaned: ${(error as Error).message}\n`);
   }
-  const sessions = createSessions({ ...options, cache });
+  const sessions = createSessions({ ...options, cache, runs: continueSettings(options.settings) });
   await sessions.check();
+  await sessions.startContinues();
+  const unsubscribe = options.settings.onChange(() => sessions.runsChanged());
   const timer = setInterval(() => void sessions.check(), CHECK_EVERY_MS);
   timer.unref();
   return {
     sessions,
     stop: async () => {
       clearInterval(timer);
+      unsubscribe();
       await sessions.closeAll();
       sessions.close();
     },
@@ -239,7 +249,13 @@ async function startOpened(
   const frames = new FrameSecret();
   frames.onReplace(() => renewPreviews(previews));
   let hosts: Hosts | undefined;
-  const sessions = await startSessions({ adapter, binding, dataDir, hosts: () => hosts });
+  const sessions = await startSessions({
+    adapter,
+    binding,
+    dataDir,
+    hosts: () => hosts,
+    settings: options.settings,
+  });
   try {
     hosts = await Hosts.open({
       binding,

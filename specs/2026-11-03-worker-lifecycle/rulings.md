@@ -170,3 +170,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an agent that sets a wakeup a few days ahead does not go on by itself; a cap of a
   few days, under the timer's limit, would keep it.
 - **Where**: task 7, `packages/server/src/runner/transcript.ts`.
+
+## R17: Two servers on one cache test the continuer's claim
+
+- **Decision**: `continuer.test.ts` gets one more test, "two servers sharing the cache continue a
+  wait once": a second `Sessions` on the same cache arms the same wait, and one continue is sent.
+- **Rationale**: the plan's tests did not catch a fire that skips the claim. Every cancel clears
+  `continue_reason` too, so a fire that only reads the turn still finds nothing to send after a
+  message, Stop, a dismiss, or a setting turned off. Only a second timer on the same wait, another
+  server's, shows it. Found by the break of task 8's step 4.
+- **Where**: task 8, `packages/server/src/runner/__tests__/continuer.test.ts`.
+
+## R18: A continue is delivered synchronously
+
+- **Decision**: `Continuer.fire` and `deliverContinue` are synchronous. The claim, the refusals (the
+  agent unavailable, a move or a drop holding the session), the queued turn with its line and
+  message, and the count are one step; the session's queue opens the process and starts the turn.
+  `Continuer.ended` returns a promise only when its decision awaits, and `Turns.end` then publishes
+  the end once it settles; the limit's decision reads the cache alone, so its end is published at
+  once, already waiting.
+- **Rationale**: R14 asks for the queued turn in the claim's step, and rule 5 for no end published
+  before the decision. Without an `await`, neither can be broken by a later change of order, and a
+  refusal is known before the continue is counted.
+- **Where**: task 8, `packages/server/src/runner/continuer.ts` and `send.ts`.

@@ -1,6 +1,6 @@
 import { isAbsolute, relative, sep } from "node:path";
 import type { FeatureView, NextView } from "uraeda-binding";
-import type { Trigger } from "./events.ts";
+import type { ContinueReason, Trigger } from "./events.ts";
 import {
   REFUSALS,
   SENT_AS_CHAT,
@@ -251,6 +251,30 @@ export function retryMessage(denials: ReadonlyArray<{ target?: string; tool: str
   return actions.length === 1
     ? `Try the blocked action again, now allowed: ${actions[0]}`
     : `Try the blocked actions again, now allowed:\n${actions.map((action) => `- ${action}`).join("\n")}`;
+}
+
+/** The message of an automatic continue, which tells the agent why it goes on. */
+export function continueMessage(reason: ContinueReason): string {
+  switch (reason) {
+    case "restart":
+      return "The server restarted while you worked. Continue where you left off.";
+    case "limit":
+      return "The usage limit has reset. Continue where you left off.";
+    case "gate":
+      return "You stopped before the next human gate. Continue to it.";
+  }
+}
+
+/** The line an automatic continue's turn opens with, which tells the human why it happened. */
+export function continuedLine(reason: ContinueReason): string {
+  switch (reason) {
+    case "restart":
+      return "Continued after the server restarted.";
+    case "limit":
+      return "Continued after the usage limit's reset.";
+    case "gate":
+      return "The run stopped before a human gate. Uraeda asked it to continue to the next one.";
+  }
 }
 
 const TITLE_LENGTH = 80;

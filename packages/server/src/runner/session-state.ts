@@ -2,7 +2,8 @@ import type { Binding } from "../fate/context.ts";
 import { IMAGE_REFUSALS } from "../limits.ts";
 import type { Adapter, AgentProcess, Outgoing } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
-import type { BackgroundTask, Item, Trigger, TurnActivity, TurnState } from "./events.ts";
+import type { Continuer } from "./continuer.ts";
+import type { BackgroundTask, Item, Limit, Trigger, TurnActivity, TurnState } from "./events.ts";
 import type { LiveSessions } from "./live-sessions.ts";
 import type { Processes } from "./processes.ts";
 import type { Transcript } from "./transcript.ts";
@@ -141,6 +142,11 @@ export type Running = {
   /** The ID of the message that started it. */
   first: string;
   id: number;
+  /**
+   * The usage limit that refused it, the last one reported (R11): it counts only when the turn
+   * fails.
+   */
+  limit?: Limit;
   /** Its reply ended, and it waits for its background sub-agents to report back. */
   replied?: boolean;
   skipped?: { count: number; seq: number };
@@ -209,6 +215,8 @@ export type SessionContext = {
   cache: SessionCache;
   /** Reports a change of the session, with its turn and that turn's new state. */
   changed: (live: Live, turn?: number, state?: TurnState) => void;
+  /** Their automatic continues: decided as turns end, armed, cancelled, and sent. */
+  continuer: Continuer;
   /** The sessions kept in memory. */
   live: LiveSessions;
   /** Their processes: opened, closed, and read. */

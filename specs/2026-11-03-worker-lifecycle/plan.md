@@ -260,7 +260,7 @@ The tests run on the `FakeAdapter`, never a real agent, as the agents decision r
 - **The core's tests** read and write a real `config.toml` in a temporary folder.
 - **The web's view changes** are reviewed in the sandbox, with one test for Continue all's preview.
 
-New tests: 15, under the ceiling of 20 (15 key scenarios and 5 high edge cases).
+New tests: 16, under the ceiling of 20 (15 key scenarios and 5 high edge cases).
 
 | Spec                                                                                                 | Task | Test                                                                                                                                    |
 | ---------------------------------------------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -275,6 +275,7 @@ New tests: 15, under the ceiling of 20 (15 key scenarios and 5 high edge cases).
 | US1 1, 2, SC-001: wait and continue after the reset, with its line                                   | 8    | `runner/__tests__/continuer.test.ts`, "US1.1 and US1.2: a session limit waits, then continues a minute after its reset"                 |
 | US1 3: a stagger of a minute                                                                         | 8    | `continuer.test.ts`, "US1.3: two runs waiting for one reset continue a minute apart"                                                    |
 | US1 more 1, high edge "a message during a wait", review focus 1                                      | 8    | `continuer.test.ts`, "a message during a wait goes at once, drops the continue, and sets the count back"                                |
+| Review focus 1: a second server on the cache                                                         | 8    | `continuer.test.ts`, "two servers sharing the cache continue a wait once" (R17)                                                         |
 | US1 more 2, high edges "Stop during a wait", "you dismissed a run"                                   | 8    | `continuer.test.ts`, "Stop or a dismiss during a wait ends it for good" (two rows)                                                      |
 | US1 more 3, 4, high edge "restart during a wait"                                                     | 8    | `continuer.test.ts`, "a wait survives a restart, and an overdue one continues at once"                                                  |
 | US1 more 5, edge "weekly or model-family limit"                                                      | 8    | `continuer.test.ts`, row of "a limit that is not the session's fails and asks" (weekly, model)                                          |
@@ -892,14 +893,24 @@ sends messages to an agent without the human.
     every pending continue. Task 9 adds the restart scan to it.
   - `Sessions.runsChanged(): void`: called on `settings.onChange`. It drops the pending continues of
     each kind now off.
-  - In `continuer.ts`:
-    - `Continuer.ended(live: Live, turn: TurnRow, limit?: Limit): Promise<void>`, called by
-      `Turns.end` for every turn that ends;
-    - `Continuer.cancel(session: string, { stopped }: { stopped: boolean }): void`;
-    - `Continuer.fire(turn: number): Promise<void>`;
-    - `Continuer.decide(...)`, private, which task 9 extends with the gate and the commit.
+  - In `continuer.ts`, with `CONTINUES_ON` and `CONTINUES_OFF` (R4):
+    - `Continuer.ended(live: Live, turn: TurnRow, limit?: Limit): Promise<void> | undefined`, called
+      by `Turns.end` for every turn that ends, before the end is published. A promise only while the
+      decision reads more than the cache, as task 9's gate; `Turns.end` publishes the end, and
+      resolves `settled`, once it settles;
+    - `Continuer.cancel(session: string, { stopped }: { stopped: boolean }): Array<number>`, the
+      turns it cancelled, which `Sessions.stop` publishes;
+    - `Continuer.fire(turn: number): void`, synchronous: the claim and the queued turn are one step
+      (R14, R18);
+    - `Continuer.start()`, `runsChanged()`, and `close()`, behind `Sessions.startContinues`,
+      `runsChanged`, and `close`. `start` drops the kinds now off first, then arms the rest;
+    - `#decide(turn, reason, at)`, private, which task 9 calls with the gate and the restart and
+      extends with the commit: the switch, the folder's latest session or a chat, then the cap.
+  - In `live.ts`: `continueSettings(settings)`, the `inForce` values of `settings.runs()`, read at
+    each call. `fakeSessions` takes `runs`, off by default (R4).
   - In `send.ts`:
-    `deliverContinue(context, live, { line, reason, stopped }: { line: string; reason: ContinueReason; stopped: TurnRow }): Promise<number>`.
+    `deliverContinue(context, live, { line, reason, stopped }: { line: string; reason: ContinueReason; stopped: TurnRow }): number`,
+    synchronous, which throws its refusals.
     - It sends `continueMessage(reason)` as an item with `origin: "workflow"`.
     - The turn takes the stopped turn's kind, step, and trigger. An `allow` turn becomes `chat`.
     - The turn opens with `line` as its first system line, whether it starts or queues.
@@ -925,7 +936,8 @@ The rules:
      them. The session's queue then starts it as any queued turn (ruling R14).
 
    A refusal, such as the agent unavailable or the feature dropped, clears the turn's
-   `continue_reason`: the turn asks with its own reason.
+   `continue_reason`: the turn asks with its own reason. It is checked before `addContinue`, so a
+   refused continue is not counted.
 
 3. **The cancels**:
    - `Sessions.send` cancels the session's pending continue, and calls `resetContinues`;
@@ -941,10 +953,12 @@ The rules:
 7. **The tests' clock**: `testSessions` fakes only `setTimeout`. The tests fake `Date` too, or move
    `Date.now` with the timers, as task 7's US6.1 does.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use.** `testSessions(repo, { runs })`
-      passes `runs`. `restart(sessions)` calls `closeAll` and builds a second `Sessions` on the same
-      cache and adapter. `limitTurn(adapter, limit)` scripts a turn that emits a `limit` event, then
-      fails with its text.
+- [x] **Step 1: Write the failing tests, and the helpers they use.**
+      `testSessions(repo, { runs, onChange })` passes `runs`, a getter, and lets a test read the
+      cache as each change is published. `restart(sessions, { runs })` calls `closeAll` and `close`,
+      as the server's stop does, and builds a second `Sessions` on the same cache and adapter.
+      `limitTurn(adapter, limit)` scripts a turn that emits a `limit` event, then fails with its
+      text.
 
 ```ts
 test("US1.1 and US1.2: a session limit waits, then continues a minute after its reset", async () => {
@@ -982,7 +996,10 @@ The others:
   only the human's. `automaticContinues` is back to 0.
 - **Stop or a dismiss during a wait**:
   - after Stop, the turn reads `stopped` with reason null, and no continue is sent at the reset;
-  - after a dismiss, no continue is sent either.
+  - after a dismiss, no continue is sent either: its timer, left armed, claims nothing;
+  - nor after a restart, and `startContinues()`.
+- **Two servers sharing the cache** (review focus 1): a second `Sessions` on the same cache runs
+  `startContinues()`, so both arm the wait. At the reset, one continue is sent (R17).
 - **A wait across a restart**: `restart(sessions)`, then `startContinues()`. The continue is sent at
   the reset. A second case starts the new manager after the reset: it continues at once, on the
   first timer tick.
@@ -1004,39 +1021,42 @@ The break each test catches:
 - The US1.1 test: a continue at the reset itself, or one with no line.
 - US1.3: a stagger computed only from the reset, so both continue at 23:41.
 - The message test: a continue left armed after the human's message, so two messages go.
+- The two servers' test: a fire that reads the turn without claiming it, so both send.
 - The Stop and dismiss test: a cancel that clears the timer but not the cache, so the next start
   continues it.
 - The restart test: waits kept only in memory.
 - The other-limit test: a weekly limit read as the session's.
-- US4.1: a count incremented at the decision instead of the fire, or never compared to the cap.
+- US4.1: a count incremented at the decision instead of the fire, or never compared to the cap. It
+  reads the count 0 while the first wait lasts.
+- The US1.1 rows: an end published before the decision, read as `failed` once (rule 5).
 - US4.3: a setting read once at start.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/runner/__tests__/continuer.test.ts`
 - Expected: FAIL, `continueAt` null on the limited turn
 
-- [ ] **Step 3: Implement the continuer, its wiring, and the server's start.** `startSessions` takes
+- [x] **Step 3: Implement the continuer, its wiring, and the server's start.** `startSessions` takes
       the server's `settings`. It passes `runs` to `createSessions`, calls `startContinues()` after
       `check()`, and subscribes `runsChanged` to `settings.onChange`. The subscription is removed on
       `stop`.
 
-- [ ] **Step 4: Run the tests, then make the breaks.** Make each break above that touches the claim,
+- [x] **Step 4: Run the tests, then make the breaks.** Make each break above that touches the claim,
       the cancel, or the cap: PASS, then FAIL with the break, then revert. Report the failures in
       the commit body.
 
-- [ ] **Step 5: Run the runner's and the server's tests**
+- [x] **Step 5: Run the runner's and the server's tests**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner packages/server/src/__tests__/sessions.test.ts packages/server/src/__tests__/dismissed.test.ts`
 - Expected: PASS. The helpers keep the continues off for the existing tests.
 
-- [ ] **Step 6: Run the task's validation**
+- [x] **Step 6: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/server/src/

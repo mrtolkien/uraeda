@@ -7,6 +7,7 @@ import { temporaryFolder } from "uraeda-binding/test-utils";
 import type { Binding } from "./fate/context.ts";
 import { createSessions, type HostsOf } from "./live.ts";
 import { SessionCache } from "./runner/cache.ts";
+import { CONTINUES_OFF, type ContinueSettings } from "./runner/continuer.ts";
 import type { TokenCounts } from "./runner/events.ts";
 import { FakeAdapter } from "./runner/fake.ts";
 import type { Sessions } from "./runner/sessions.ts";
@@ -24,7 +25,8 @@ export { FakeAdapter, type Sessions };
  * A session manager on the fake adapter, `adapter` or a new one, publishing live updates to `hosts`,
  * and not checked yet: it reads unavailable until `sessions.check()`, which finds the agent when
  * `installed`. Its cache is in memory, or in the file `cache`, which the caller closes. `binding`
- * replaces the core's, as to hold a call.
+ * replaces the core's, as to hold a call. Its automatic continues are off, unless `runs` turns them
+ * on (R4).
  */
 export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
   adapter = new FakeAdapter() as T,
@@ -32,12 +34,14 @@ export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
   cache = ":memory:",
   hosts = () => undefined,
   installed = true,
+  runs = () => CONTINUES_OFF,
 }: {
   adapter?: T;
   binding?: Binding;
   cache?: string;
   hosts?: HostsOf;
   installed?: boolean;
+  runs?: () => ContinueSettings;
 } = {}): {
   adapter: T;
   sessions: Sessions;
@@ -48,6 +52,7 @@ export function fakeSessions<T extends FakeAdapter = FakeAdapter>({
     binding: using,
     cache: SessionCache.open(cache),
     hosts,
+    runs,
   });
   return { adapter, sessions };
 }

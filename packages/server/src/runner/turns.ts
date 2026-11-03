@@ -162,27 +162,47 @@ export class Turns {
     );
   }
 
-  /** Records the end of a turn, running or queued. */
+  /**
+   * Records the end of a turn, running or queued, and reports it to the continuer. The end is
+   * published once the continuer decided, so a run that waits to continue never reads as asking.
+   */
   end(live: Live, id: number, end: { reason?: string; state: TurnState }) {
-    if (live.turn?.id === id) {
-      clearTimeout(live.turn.watchdog);
-      live.turn.terminate.forEach(clearTimeout);
+    const running = live.turn?.id === id ? live.turn : undefined;
+    if (running) {
+      clearTimeout(running.watchdog);
+      running.terminate.forEach(clearTimeout);
       if (live.proc) {
-        live.proc.ended = { first: live.turn.first, id };
+        live.proc.ended = { first: running.first, id };
       }
       live.turn = undefined;
     }
-    try {
-      this.#context.cache.endTurn(id, end);
-    } catch (error) {
+    // A limit counts only when it failed the turn on its own, not halted.
+    const limit = end.state === "failed" && !running?.stop ? running?.limit : undefined;
+    const failed = (error: unknown) =>
       process.stderr.write(
         `The session manager could not record the end of turn ${id}: ${String(error)}\n`,
       );
+    let deciding: Promise<void> | undefined;
+    try {
+      this.#context.cache.endTurn(id, end);
+      const row = this.#context.cache.turn(id);
+      deciding = row && this.#context.continuer.ended(live, row, limit);
+    } catch (error) {
+      failed(error);
     }
+    this.#forget(live, id);
+    if (deciding) {
+      void deciding.catch(failed).then(() => this.#ended(live, id, end.state));
+    } else {
+      this.#ended(live, id, end.state);
+    }
+  }
+
+  /** Publishes the turn's end, and lets `settled` resolve. */
+  #ended(live: Live, id: number, state: TurnState) {
     this.#pending.get(id)?.resolve();
     this.#pending.delete(id);
-    this.#forget(live, id);
-    this.#context.changed(live, id, end.state);
+    this.#context.changed(live, id, state);
   }
 
   /** Forgets the messages of the turn once it ended, but those the agent may still read. */

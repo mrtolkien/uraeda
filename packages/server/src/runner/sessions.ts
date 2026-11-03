@@ -2,6 +2,7 @@ import type { Binding } from "../fate/context.ts";
 import { allowAll, allowDenial } from "./allow.ts";
 import type { Adapter } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
+import { CONTINUES_ON, Continuer, type ContinueSettings } from "./continuer.ts";
 import type { TurnActivity, UsageLimit } from "./events.ts";
 import { LiveSessions } from "./live-sessions.ts";
 import { chatTitle } from "./message.ts";
@@ -24,6 +25,7 @@ import {
 import { Transcript } from "./transcript.ts";
 import { Turns } from "./turns.ts";
 
+export { type ContinueSettings } from "./continuer.ts";
 export { type SendInput, type SentImage } from "./send-input.ts";
 export {
   IDLE_CLOSE_MS,
@@ -39,6 +41,18 @@ export {
 
 const now = () => new Date().toISOString();
 
+/**
+ * What the session manager works with: its agent, binding, and cache, where it reports a change,
+ * and the continues' settings in force, read at each decision: all on, cap 3, by default.
+ */
+type SessionsOptions = {
+  adapter: Adapter;
+  binding: Binding;
+  cache: SessionCache;
+  onChange: (change: SessionChange) => void;
+  runs?: () => ContinueSettings;
+};
+
 /** Whether a turn of the session runs, starts, or waits. */
 const working = (live: Live) =>
   live.turn !== undefined || live.starting === true || live.queue.length > 0;
@@ -52,12 +66,7 @@ const working = (live: Live) =>
  * their processes, their turns, and the transcript their events are recorded in.
  */
 export class Sessions {
-  #options: {
-    adapter: Adapter;
-    binding: Binding;
-    cache: SessionCache;
-    onChange: (change: SessionChange) => void;
-  };
+  #options: SessionsOptions;
   #status: { available: boolean; version: string | null } = { available: false, version: null };
   /** Each repository's main checkout, by the path it was given as. */
   #roots = new Map<string, string>();
@@ -65,12 +74,7 @@ export class Sessions {
   /** The messages sent to features whose start is still in the write queue. */
   readonly starts: StartMessages;
 
-  constructor(options: {
-    adapter: Adapter;
-    binding: Binding;
-    cache: SessionCache;
-    onChange: (change: SessionChange) => void;
-  }) {
+  constructor(options: SessionsOptions) {
     this.#options = options;
     this.starts = new StartMessages(options.cache);
     // Each part reaches the others through the context, filled once they are all made.
@@ -92,6 +96,10 @@ export class Sessions {
     context.processes = new Processes(context);
     context.turns = new Turns(context);
     context.transcript = new Transcript(context);
+    context.continuer = new Continuer(context, {
+      available: () => this.#status.available,
+      runs: options.runs ?? (() => CONTINUES_ON),
+    });
     this.#context = context;
   }
 
@@ -241,9 +249,12 @@ export class Sessions {
     const message = checkSend(input, this.adapter.capabilities);
     this.#available();
     const live = this.#context.live.of(await this.#own(repo, session));
-    return this.#context.live.serial(live, () =>
-      sendTo(this.#context, live, message, () => this.#available()),
-    );
+    return this.#context.live.serial(live, () => {
+      // The human's message takes the place of the continue, and sets the count back.
+      this.#context.continuer.cancel(live.id, { stopped: false });
+      this.cache.resetContinues(live.id);
+      return sendTo(this.#context, live, message, () => this.#available());
+    });
   }
 
   /**
@@ -259,15 +270,21 @@ export class Sessions {
     }
   }
 
-  /** Stops the running turn, which keeps the session, and the turns queued after it. */
+  /**
+   * Stops the running turn, which keeps the session, and the turns queued after it, or the run's
+   * wait to continue, for good.
+   */
   stop(repo: string, session: string): void {
-    const { turns } = this.#context;
+    const { changed, continuer, turns } = this.#context;
     const live = this.#context.live.of(this.#ownNow(repo, session));
     for (const queued of live.queue.splice(0)) {
       turns.end(live, queued.id, { state: "stopped" });
     }
     if (live.turn) {
       turns.halt(live, live.turn, { state: "stopped" });
+    }
+    for (const turn of continuer.cancel(live.id, { stopped: true })) {
+      changed(live, turn, "stopped");
     }
     this.#context.live.prune(live);
   }
@@ -392,8 +409,21 @@ export class Sessions {
     await Promise.all(procs);
   }
 
+  /**
+   * Arms every pending continue, as the server starts, after `check`: an overdue one goes at once.
+   */
+  async startContinues(): Promise<void> {
+    await this.#context.continuer.start();
+  }
+
+  /** Drops the pending continues of each kind the settings turned off: their runs ask. */
+  runsChanged(): void {
+    this.#context.continuer.runsChanged();
+  }
+
   /** Clears every timer. */
   close(): void {
+    this.#context.continuer.close();
     for (const live of this.#context.live.values()) {
       clearTimeout(live.idle);
       live.proc?.terminate.forEach(clearTimeout);
