@@ -102,21 +102,48 @@ export function interrupted(
   });
 }
 
-/** Sets when the turn's run continues by itself, and why. */
-export function scheduleContinue(db: DatabaseSync, turn: number, at: number, why: ContinueReason) {
-  db.prepare("UPDATE turns SET continue_at = ?, continue_reason = ? WHERE id = ?").run(
-    at,
-    why,
-    turn,
-  );
+/**
+ * Sets the turn's continue, `at` null for one past the cap, and returns whether it did: only for a
+ * turn not decided yet nor dismissed, its session's latest but those stopped with `takenBack`. One
+ * statement: a decision another server or the human made meanwhile stands.
+ */
+function decideContinue(
+  db: DatabaseSync,
+  turn: number,
+  at: number | null,
+  why: ContinueReason,
+  takenBack: string,
+): boolean {
+  const { changes } = db
+    .prepare(
+      `UPDATE turns SET continue_at = ?1, continue_reason = ?2
+       WHERE id = ?3 AND continue_reason IS NULL AND dismissed_at IS NULL
+       AND id = (SELECT MAX(id) FROM turns t WHERE t.session_id = turns.session_id
+         AND NOT (t.state = 'stopped' AND t.reason IS ?4))`,
+    )
+    .run(at, why, turn, takenBack);
+  return Number(changes) > 0;
 }
 
-/** Records why the turn's run would have continued, past the cap: none waits. */
-export function markCapped(db: DatabaseSync, turn: number, why: ContinueReason): void {
-  db.prepare("UPDATE turns SET continue_at = NULL, continue_reason = ? WHERE id = ?").run(
-    why,
-    turn,
-  );
+/** Sets when the turn's run continues by itself, and why: see `decideContinue`. */
+export function scheduleContinue(
+  db: DatabaseSync,
+  turn: number,
+  at: number,
+  why: ContinueReason,
+  takenBack: string,
+): boolean {
+  return decideContinue(db, turn, at, why, takenBack);
+}
+
+/** Records why the turn's run would have continued, past the cap, none waiting: see above. */
+export function markCapped(
+  db: DatabaseSync,
+  turn: number,
+  why: ContinueReason,
+  takenBack: string,
+): boolean {
+  return decideContinue(db, turn, null, why, takenBack);
 }
 
 /**

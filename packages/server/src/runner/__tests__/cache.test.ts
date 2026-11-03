@@ -32,6 +32,9 @@ const workflowTurn = {
 /** A pid no process has: above Linux's and macOS's highest. */
 const DEAD_PID = 2 ** 31 - 1;
 
+/** The reason of a message taken back, which the latest turn skips. */
+const TAKEN = "Taken back.";
+
 const tempPath = () => join(temporaryFolder("uraeda-cache"), "runner.sqlite");
 
 test("a session keeps its fields, and their updates", () => {
@@ -583,7 +586,7 @@ test("migration 8 adds the continue columns, and a continue is claimed once", ()
   cache.resetContinues("s");
   expect(cache.session("s")?.automaticContinues).toBe(0);
   expect(() => cache.addContinue("gone")).toThrow("no session gone");
-  cache.scheduleContinue(1, 1000, "limit");
+  cache.scheduleContinue(1, 1000, "limit", TAKEN);
   const other = SessionCache.open(path, { pid: process.ppid });
   const claims = [cache.takeContinue(1), other.takeContinue(1)];
   expect(claims.filter((claim) => claim === undefined)).toHaveLength(1);
@@ -592,6 +595,32 @@ test("migration 8 adds the continue columns, and a continue is claimed once", ()
     continueReason: "limit",
     id: 1,
   });
+});
+
+test("a continue is scheduled only for its session's latest turn, undecided and not dismissed", () => {
+  const cache = SessionCache.open(":memory:");
+  const session = cache.createSession(feature).id;
+  const turn = (state: "failed" | "stopped", reason?: string) => {
+    const id = cache.addTurn({ sessionId: session, ...workflowTurn });
+    cache.endTurn(id, { ...(reason === undefined ? {} : { reason }), state });
+    return id;
+  };
+  const older = turn("failed");
+  const dismissed = turn("failed");
+  cache.dismiss(dismissed);
+  expect(cache.scheduleContinue(dismissed, 1000, "limit", TAKEN)).toBe(false);
+  const latest = turn("failed");
+  // A message taken back after it is skipped: the run's latest turn is still `latest`.
+  turn("stopped", TAKEN);
+
+  expect(cache.scheduleContinue(older, 1000, "limit", TAKEN)).toBe(false);
+  expect(cache.markCapped(older, "limit", TAKEN)).toBe(false);
+  expect(cache.scheduleContinue(latest, 1000, "limit", TAKEN)).toBe(true);
+  // Decided once: a second decision, as another server's, changes nothing.
+  expect(cache.scheduleContinue(latest, 2000, "gate", TAKEN)).toBe(false);
+  expect(cache.markCapped(latest, "gate", TAKEN)).toBe(false);
+  expect(cache.turn(latest)).toMatchObject({ continueAt: 1000, continueReason: "limit" });
+  expect(cache.turn(older)).toMatchObject({ continueAt: null, continueReason: null });
 });
 
 // oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the version 2 rows in a helper of their own

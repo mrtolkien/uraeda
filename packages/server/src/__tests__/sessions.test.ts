@@ -6,7 +6,7 @@ import type { RepoContext } from "../fate/context.ts";
 import { featureStatusOf } from "../fate/feature-status.ts";
 import type { AgentEvent } from "../runner/events.ts";
 import { imagesInUse } from "../runner/image-uses.ts";
-import { OUTPUT_LIMIT, SERVER_STOPPED } from "../runner/session-state.ts";
+import { OUTPUT_LIMIT, SERVER_STOPPED, TAKEN_BACK } from "../runner/session-state.ts";
 import { ChatImages } from "../runner/images.ts";
 import {
   addChange,
@@ -1563,7 +1563,7 @@ test("a run waiting to continue makes its feature Working, with when it goes on"
   const session = await folderSession(server, AGENT);
   const turn = doneTurn(server, session.id, { kind: "workflow", state: "failed" });
   const at = Date.parse("2026-11-03T08:41:00Z");
-  server.sessions.cache.scheduleContinue(turn, at, "limit");
+  server.sessions.cache.scheduleContinue(turn, at, "limit", TAKEN_BACK);
 
   const wait = { at: "2026-11-03T08:41:00.000Z", reason: "limit" };
   expect(await statusesOf(server, AGENT)).toEqual({

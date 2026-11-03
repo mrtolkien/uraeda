@@ -136,8 +136,11 @@ export class Continuer {
     const restore = () => {
       cache.resetContinues(session, count);
       for (const { continueAt, continueReason, id } of cancelled) {
-        if (continueAt !== null && continueReason !== null) {
-          cache.scheduleContinue(id, continueAt, continueReason);
+        if (
+          continueAt !== null &&
+          continueReason !== null &&
+          cache.scheduleContinue(id, continueAt, continueReason, TAKEN_BACK)
+        ) {
           this.#arm(id, continueAt);
         }
       }
@@ -357,12 +360,13 @@ export class Continuer {
     }
     const runs = this.#runs();
     if ((cache.session(session.id)?.automaticContinues ?? 0) >= runs.cap) {
-      cache.markCapped(turn.id, reason);
+      cache.markCapped(turn.id, reason, TAKEN_BACK);
       return;
     }
     const time = at();
-    cache.scheduleContinue(turn.id, time, reason);
-    this.#arm(turn.id, time);
+    if (cache.scheduleContinue(turn.id, time, reason, TAKEN_BACK)) {
+      this.#arm(turn.id, time);
+    }
   }
 
   /**

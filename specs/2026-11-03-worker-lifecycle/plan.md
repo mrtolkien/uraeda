@@ -503,9 +503,12 @@ keeps two servers or timers from continuing a run twice.
   `continueReason: ContinueReason | null`.
 - Produces on `SessionRow`: `automaticContinues: number`.
 - Produces on `SessionCache`:
-  - `scheduleContinue(turn: number, at: number, reason: ContinueReason): void`.
-  - `markCapped(turn: number, reason: ContinueReason): void`: `continue_reason` set, `continue_at`
-    null.
+  - `scheduleContinue(turn: number, at: number, reason: ContinueReason, takenBack: string): boolean`.
+  - `markCapped(turn: number, reason: ContinueReason, takenBack: string): boolean`:
+    `continue_reason` set, `continue_at` null.
+  - Both write in one statement, and return whether they did: only for a turn with no
+    `continue_reason`, not dismissed, and its session's latest turn but those stopped with
+    `takenBack`. A decision another server or the human made meanwhile stands.
   - `takeContinue(turn: number): TurnRow | undefined`: one transaction that clears `continue_at`,
     keeps `continue_reason`, and returns the row. It returns undefined when nothing waited.
   - `cancelContinue(turn: number, { stopped }: { stopped: boolean }): boolean`:
