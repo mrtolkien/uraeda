@@ -35,15 +35,46 @@ fn free_path(place: &Place, marks: &Marks, text: &str) -> String {
     path
 }
 
-/// The note file's text: its frontmatter, `about` and `category` each only when set, and the note
-/// as its title.
+/// The words YAML reads as something other than text when plain.
+const KEYWORDS: [&str; 11] = [
+    "true", "false", "yes", "no", "on", "off", "y", "n", "null", "nan", "inf",
+];
+
+/// `value` as a YAML scalar that reads back as this text: plain when it is words of letters and
+/// digits, like `Deferred fixes`, double-quoted otherwise, `"` and `\` escaped, so that
+/// `Mobile: phones` is no mapping and `#Later` no comment.
+fn scalar(value: &str) -> String {
+    let plain = value.chars().next().is_some_and(char::is_alphabetic)
+        && !value.ends_with(' ')
+        && value
+            .chars()
+            .all(|c| c.is_alphanumeric() || matches!(c, ' ' | '-' | '_' | '.' | '(' | ')' | '/'))
+        && !KEYWORDS.contains(&value.to_lowercase().as_str());
+    if plain {
+        return value.to_string();
+    }
+    let mut quoted = String::from("\"");
+    for c in value.chars() {
+        match c {
+            '"' => quoted.push_str("\\\""),
+            '\\' => quoted.push_str("\\\\"),
+            '\n' => quoted.push_str("\\n"),
+            c => quoted.push(c),
+        }
+    }
+    quoted.push('"');
+    quoted
+}
+
+/// The note file's text: its frontmatter, `about` and `category` each only when set, as scalars
+/// that read back as written, and the note as its title.
 fn content(category: Option<&str>, marks: &Marks, text: &str) -> String {
     let mut front = String::from("---\nagent: true\n");
     if let Some(about) = &marks.about {
-        front.push_str(&format!("about: {about}\n"));
+        front.push_str(&format!("about: {}\n", scalar(about)));
     }
     if let Some(category) = category {
-        front.push_str(&format!("category: {category}\n"));
+        front.push_str(&format!("category: {}\n", scalar(category)));
     }
     format!("{front}---\n\n# {}\n", crate::files::lines::one_line(text))
 }

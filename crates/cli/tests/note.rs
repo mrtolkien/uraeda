@@ -448,3 +448,40 @@ fn staged_files_do_not_refuse_a_note_that_is_not_committed() {
     assert_eq!(output.stderr, DIRTY);
     assert!(repo.read(INBOX).contains("- Hints flicker on save\n"));
 }
+
+/// US2, key scenario 1, with categories YAML would read otherwise: `Mobile: phones` and `#Later`
+/// come back from the merged note files as written.
+#[test]
+fn an_agents_note_category_reads_back_as_written() {
+    let repo = repo();
+    let worktree = feature_worktree(&repo);
+    for category in ["Mobile: phones", "#Later \"soon\""] {
+        let output = ura_in(
+            &worktree,
+            &[
+                "note",
+                &format!("A note for {category}"),
+                "--agent",
+                "--category",
+                category,
+            ],
+            &[],
+        );
+        assert_eq!(output.code, 0, "{}", output.stderr);
+    }
+    repo.git(&["merge", "--quiet", "--no-edit", FEATURE]);
+
+    let output = ura(&repo, &["inbox", "--json"]);
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    let json: serde_json::Value = serde_json::from_str(&output.stdout).expect("JSON");
+    let mut categories: Vec<&str> = json["notes"]
+        .as_array()
+        .expect("notes")
+        .iter()
+        .filter(|note| note["file"].is_string())
+        .map(|note| note["category"].as_str().unwrap_or_default())
+        .collect();
+    categories.sort_unstable();
+    assert_eq!(categories, ["#Later \"soon\"", "Mobile: phones"]);
+}

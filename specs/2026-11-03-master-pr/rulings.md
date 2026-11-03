@@ -107,3 +107,13 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: a file linked from a nested item showed twice, as that item and as an agent's note
   at the end of its category; the spec's edge case has the line win.
 - **Where**: `crates/core/src/files/inbox/agent.rs` `agent_notes`
+
+## R10: An agent's note file's fields are quoted when YAML would misread them
+
+- **Decision**: `ura note --agent` writes `about` and `category` plain when they are words of
+  letters and digits (with `-`, `_`, `.`, `(`, `)`, `/`), starting with a letter and no YAML keyword
+  like `true` or `null`: `category: Deferred fixes`, as the spec shows. Any other value is
+  double-quoted, `"` and `\` escaped: `category: "Mobile: phones"`.
+- **Rationale**: written plain, `Mobile: phones` broke the frontmatter's parse and `#Later` read as
+  a comment, so the note lost its category. Quoting only when needed keeps the spec's plain form.
+- **Where**: task 3, `crates/core/src/actions/inbox/agent_file.rs` `scalar`

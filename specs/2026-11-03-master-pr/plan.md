@@ -386,11 +386,13 @@ git commit -m "feat(master-pr): act on an agent's note as on its line"
   `pub fn agent_note(place: &Place, category: Option<&str>, marks: &Marks, text: &str, commit: bool) -> Result<(String, Noted), ActionError>`:
   writes `specs/notes/<about>-<words>.md`, `-2`, `-3`, ... when taken, as
   [R4](rulings.md#r4-an-agents-note-file-is-named-from-four-words) names it, with the frontmatter
-  `agent: true`, `about`, `category` (each only when set), a blank line, and `# <text>`; commits it
-  alone with `chore: add "<note>" to the inbox` when `commit`; gives the path. `ura note --agent`
-  calls it outside the default branch's checkout, and refuses on it, as
-  [R3](rulings.md#r3-ura-note---agent-is-refused-on-the-default-branch) says, and prints
-  `added to the inbox` or `added to the inbox, not committed`, as today.
+  `agent: true`, `about`, `category` (each only when set, plain when words of letters and digits,
+  double-quoted otherwise, as
+  [R10](rulings.md#r10-an-agents-note-files-fields-are-quoted-when-yaml-would-misread-them) says), a
+  blank line, and `# <text>`; commits it alone with `chore: add "<note>" to the inbox` when
+  `commit`; gives the path. `ura note --agent` calls it outside the default branch's checkout, and
+  refuses on it, as [R3](rulings.md#r3-ura-note---agent-is-refused-on-the-default-branch) says, and
+  prints `added to the inbox` or `added to the inbox, not committed`, as today.
 
 - [x] **Step 1: Rewrite the tests of the replaced behaviour**
 
