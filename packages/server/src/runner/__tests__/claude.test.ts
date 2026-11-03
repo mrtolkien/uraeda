@@ -11,6 +11,10 @@ import type { AgentEvent, Denial } from "../events.ts";
 import { chatOpening } from "../message.ts";
 
 const SESSION = "06e0f968-6806-4810-b91e-df3ca38e0f25";
+const SESSION_TEXT = "You've hit your session limit · resets 8:40am (Asia/Tokyo)";
+const WEEKLY_TEXT = "You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)";
+/** The clock of the recorded lines: 23:01 in Tokyo, so 8:40am is the next morning there. */
+const NOW = new Date("2026-11-03T14:01:00Z");
 const open = { cwd: "/w", nativeId: "id" };
 
 /** The lines of a recorded fixture, in `fixtures/claude/`. */
@@ -211,8 +215,49 @@ test.each<[string, Array<AgentEvent>]>([
     ],
   ],
   ["unknown.jsonl", [{ type: "skipped" }]],
+  // A usage limit refused the turn: its kind and reset from the typed error, else from its text.
+  [
+    "limit-session.jsonl",
+    expect.arrayContaining([
+      {
+        limit: { kind: "session", resetsAt: "2026-11-03T23:40:00.000Z", text: SESSION_TEXT },
+        type: "limit",
+      },
+    ]),
+  ],
+  [
+    "limit-weekly.jsonl",
+    expect.arrayContaining([
+      {
+        limit: { kind: "other", resetsAt: "2026-11-08T15:00:00.000Z", text: WEEKLY_TEXT },
+        type: "limit",
+      },
+    ]),
+  ],
+  [
+    "limit-text.jsonl",
+    expect.arrayContaining([
+      {
+        limit: { kind: "session", resetsAt: "2026-11-03T23:40:00.000Z", text: SESSION_TEXT },
+        type: "limit",
+      },
+    ]),
+  ],
+  // A wakeup in 25 minutes, and a one-shot cron read in the server's zone.
+  [
+    "wakeup.jsonl",
+    expect.arrayContaining([
+      { at: "2026-11-03T14:26:00.000Z", type: "wakeup" },
+      { at: new Date(2026, 10, 5, 9, 30).toISOString(), type: "wakeup" },
+    ]),
+  ],
 ])("the lines of %s", (file, events) => {
-  expect(recorded(file).flatMap((line) => parseLine(line))).toEqual(events);
+  vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
+  try {
+    expect(recorded(file).flatMap((line) => parseLine(line))).toEqual(events);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test.each<[string, unknown]>([

@@ -102,3 +102,15 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the decision the human approved with the spec puts the ledger at 12,214 words. The
   same limit was raised for the decisions main approved before, in `b3cc500b`.
 - **Where**: `crates/core/tests/check.rs`, before task 1.
+
+## R11: A refusal may give two `limit` events, and usage credits refuse nothing
+
+- **Decision**: `parseLine` reads each line alone, so a refusal reported by a rejected
+  `rate_limit_event` and then by its assistant line gives two `limit` events, the later one the more
+  precise. A reader keeps the turn's last one. A `rate_limit_info` with `isUsingOverage: true` gives
+  none: the request went through on usage credits.
+- **Rationale**: one event per refusal would need state kept across lines for a case where both
+  reports say the same limit. A rejected window let through on credits is not a refusal, and read as
+  one it would make a working run wait for a reset.
+- **If wrong**: a run whose last report is the usage event alone waits for that report's reset.
+- **Where**: task 2, and the readers of the `limit` event in tasks 7 and 8.
