@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 2
+status: awaiting-human
+revision: 3
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,20 +8,19 @@ plan-review: false
 
 # Spec: Vim in text edit mode
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-11-03: 1 comment in spec-review.md.
+> Spec to review, about 5 minutes.
 >
 > - You approve one editor, built on CodeMirror, for every text field: Markdown highlighted, long
 >   lines wrapped, Vim mode behind a switch, the mode in the status line, and a buffer for any file.
-> - Since your review, the status line takes the shape of LazyVim's: the mode in its coloured block
->   with lualine's names and NAV, then the file, the hints, the counts, and the cursor's place.
-> - That shape is the status line's for everyone: with Vim mode off, the same line without its mode.
-> - The buffer now takes the whole window: only the text and the status line. `:w` saves, `:q` goes
->   back, and the phone's bottom bar holds Save and Back.
-> - The setting is "Vim mode", `vim_mode` in the settings file. Each mode keeps the icon you asked
->   for in the round, though LazyVim draws none.
-> - Unchanged: the new Text editing decision, the change to UI components, and every other story.
+> - Since your review, the buffer fills the center column only: the sidebar stays, and a line at the
+>   top shows the file as bufferline does, its path, name, and unsaved mark.
+> - The right column folds away while a buffer is open, and comes back when you leave it.
+> - The file's path left the status line, so it shows once, in the buffer's top line.
+> - One buffer at a time: the top line holds no list of open buffers.
+> - Unchanged: the status line in LazyVim's shape, the "Vim mode" setting, the decisions, and every
+>   other story.
 
 The [proposal](proposal.md) asks for Vim's keys in every text field of the web UI, as many as
 possible, in the browser and instant, with the mode in the status line, and a shortcut opening any
@@ -33,11 +32,8 @@ Vim, so every field becomes that editor.
 
 ## Your review
 
-- **C1** (a status line like LazyVim's, NAV, the setting's name): done. The status line takes
-  lualine's sections and Catppuccin's colours, NAV names the page's keys, and the setting is "Vim
-  mode". See [the mode in the status line](#us3-the-mode-in-the-status-line-p2).
-- **C2** (the buffer takes the whole page): done. The buffer shows only its text and the status
-  line, with no sidebar, title, pane, or button. See
+- **C1** (the buffer takes the center column, with the sidebar and a title): done. The buffer fills
+  the center column under a bufferline-like top line, and the sidebar stays. See
   [open a file as a buffer](#us5-open-a-file-as-a-buffer-p2).
 
 ## Decisions
@@ -161,18 +157,19 @@ Key scenarios:
 ### US5: Open a file as a buffer (P2)
 
 On any page showing one file, `Space b` opens the whole file as it is on disk, frontmatter included,
-and the buffer takes the whole window: only the text, and the status line naming the file. You edit
-it, Vim mode on or off, save with `:w` or Ctrl+Enter, and leave with `:q`.
+and the buffer fills the center column, the sidebar beside it. A line at its top shows the file as
+Neovim's bufferline does. You edit it, Vim mode on or off, save with `:w` or Ctrl+Enter, and leave
+with `:q`.
 
 [A file opened as a buffer](mockups/buffer.html)
 
 Key scenarios:
 
 1. **Given** the priorities page, **When** you press `Space b`, **Then** `specs/PRIORITIES.md` fills
-   the window, with no sidebar, title, or button, and the status line reads its branch, "main", and
-   its path.
+   the center column, its top line reading "specs › PRIORITIES.md", and the status line its branch,
+   "main".
 2. **Given** you add the line "- Global undo" under Now, **When** you type `:w`, **Then** the file
-   is written and committed as `chore: edit specs/PRIORITIES.md`, and the status line's unsaved mark
+   is written and committed as `chore: edit specs/PRIORITIES.md`, and the top line's unsaved mark
    goes.
 3. **Given** an agent committed to the priorities since the buffer opened, **When** you save,
    **Then** nothing is written, and a banner across the top offers "Copy my text" and "Load the new
@@ -186,8 +183,8 @@ More scenarios:
    refused, in the banner: "An agent is working on this feature. Stop it first, or wait for it."
 3. **Given** unsaved text in a buffer, **When** you type `:q`, or press `b` outside the text,
    **Then** the Leave guard asks first; `:wq` saves, then goes back.
-4. **Given** a phone, **When** a buffer is open, **Then** the bottom bar holds Back and Save, its
-   only controls.
+4. **Given** a phone, **When** a buffer is open, **Then** the top line names the file, and the
+   bottom bar holds Back and Save, its only controls.
 5. **Given** home or the settings, pages showing no single file, **When** you press `Space b`,
    **Then** nothing happens, and the leader menu does not list it there.
 
@@ -233,18 +230,19 @@ components keep their props and callers, so pages change little.
   draws, since the bundled fonts have no Powerline glyphs. Each mode has lualine's name, a Lucide
   icon, and the Catppuccin lualine theme's colour: NAV `compass` grey, NORMAL `square` blue, INSERT
   `pencil` green, VISUAL, V-LINE, and V-BLOCK `square-dashed` mauve, REPLACE `replace` red, COMMAND
-  `terminal` peach. The branch and the file show on a buffer only. The sections are files of their
-  own: `StatusLine.tsx` has 240 lines.
+  `terminal` peach. The branch shows on a buffer only. The sections are files of their own:
+  `StatusLine.tsx` has 240 lines.
 - **The settings** gain `vim_mode` and `vim_commands` in the core's `[keyboard]` table, through the
   binding, the server's settings view and mutations, and the Keyboard section: the switch, the
   commands' field, and its refused lines. See the [data model](data-model.md).
 - **The buffer** is a page at `/buffer/<path>`, over the proposal editor's hook, keeping the
-  frontmatter. The shell draws it alone, without the sidebar, the rail, or the top tabs, over the
-  status line on wide screens and the bottom bar on the phone. Its `:q` and `:wq` go back. Its save
-  writes and commits in one queued git write, with the conflict check of today. The core's rule for
-  text writes accepts any Markdown file under `specs/`, from the default branch or, for a feature's
-  folder at any depth, from its branch. `Space b` is declared on the pages showing one file: the
-  proposal editor, a feature's file pages, the inbox, the priorities, a decision, and a document.
+  frontmatter. It fills the center column, the sidebar beside it and the right column folded away,
+  under a top line drawn as bufferline draws a buffer: the path's folders, the file's icon and name,
+  and a dot while the text is unsaved. Its `:q` and `:wq` go back. Its save writes and commits in
+  one queued git write, with the conflict check of today. The core's rule for text writes accepts
+  any Markdown file under `specs/`, from the default branch or, for a feature's folder at any depth,
+  from its branch. `Space b` is declared on the pages showing one file: the proposal editor, a
+  feature's file pages, the inbox, the priorities, a decision, and a document.
 - **A lint rule** forbids Astryx's text fields outside the editor, with the password's and the
   picker's exceptions marked in place.
 - **The documentation**: the skill's conventions gain the buffer's commit message, the keyboard
@@ -309,6 +307,8 @@ Settled while writing this spec:
 - **No clock** at the status line's right end, unlike LazyVim's: Uraeda's page shows no time
   elsewhere, and the line keeps the counts there.
 - **Code blocks** are highlighted as Markdown, not by their language, to keep the size.
+- **One buffer at a time**: the top line shows the open file only, not a list of buffers, as Uraeda
+  opens one page at a time.
 - **The buffer** opens Markdown files only, and saves with a commit, unlike the proposal editor,
   because the inbox and the priorities are committed by every structured action.
 - **A buffer opens** with its cursor at the file's start, in normal mode with Vim mode on, as when
@@ -327,6 +327,21 @@ Medium: two new settings keys and wider text writes in the core, and every field
 its element, with no stored data converted.
 
 ## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-11-03: 1 comment in spec-review.md.
+>
+> - You approve one editor, built on CodeMirror, for every text field: Markdown highlighted, long
+>   lines wrapped, Vim mode behind a switch, the mode in the status line, and a buffer for any file.
+> - Since your review, the status line takes the shape of LazyVim's: the mode in its coloured block
+>   with lualine's names and NAV, then the file, the hints, the counts, and the cursor's place.
+> - That shape is the status line's for everyone: with Vim mode off, the same line without its mode.
+> - The buffer now takes the whole window: only the text and the status line. `:w` saves, `:q` goes
+>   back, and the phone's bottom bar holds Save and Back.
+> - The setting is "Vim mode", `vim_mode` in the settings file. Each mode keeps the icon you asked
+>   for in the round, though LazyVim draws none.
+> - Unchanged: the new Text editing decision, the change to UI components, and every other story.
 
 > [!NOTE]
 >
