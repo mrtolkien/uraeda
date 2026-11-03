@@ -422,7 +422,11 @@ const SettingSelection = { inForce: true, saved: true, source: true } as const;
 export const SettingsRecordView = view<Settings>()({
   file: true,
   id: true,
-  keyboard: { singleKeyShortcuts: SettingSelection },
+  keyboard: {
+    singleKeyShortcuts: SettingSelection,
+    vimCommands: SettingSelection,
+    vimMode: SettingSelection,
+  },
   problem: true,
   runs: {
     automaticContinues: SettingSelection,

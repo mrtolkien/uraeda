@@ -1,4 +1,4 @@
-// The `Settings` record and its nine changes, on every endpoint: the values in force, the file's,
+// The `Settings` record and its eleven changes, on every endpoint: the values in force, the file's,
 // and their sources; the core's refusals; and the live update each change sends (review focus 2).
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -43,9 +43,11 @@ const defaults = {
   port: { inForce: 4310, saved: null, source: { kind: "default" } },
 };
 
-/** The keyboard's defaults: single-key shortcuts are on. */
+/** The keyboard's defaults: single-key shortcuts are on, Vim is off and without commands. */
 const keyboardDefaults = {
   singleKeyShortcuts: { inForce: true, saved: null, source: { kind: "default" } },
+  vimCommands: { inForce: [], saved: null, source: { kind: "default" } },
+  vimMode: { inForce: false, saved: null, source: { kind: "default" } },
 };
 
 /**
@@ -155,6 +157,32 @@ test("turning single-key shortcuts off answers the record and writes the file", 
   expect((await record(opened)).keyboard.singleKeyShortcuts.inForce).toBe(false);
 });
 
+test("turning Vim on and setting its commands answer the record and write the file", async () => {
+  const opened = await testApp();
+
+  const mode = await change(opened, "setVimMode", { on: true });
+  const commands = await change(opened, "setVimCommands", { lines: ["imap jj <Esc>"] });
+
+  expect([mode.error, commands.error]).toEqual([undefined, undefined]);
+  expect(mode.data.keyboard.vimMode).toEqual({
+    inForce: true,
+    saved: true,
+    source: { kind: "file" },
+  });
+  expect(commands.data.keyboard.vimCommands).toEqual({
+    inForce: ["imap jj <Esc>"],
+    saved: ["imap jj <Esc>"],
+    source: { kind: "file" },
+  });
+  const { keyboard } = await binding.readSettings(opened.configDir);
+  expect([keyboard.vimMode, keyboard.vimCommands]).toEqual([true, ["imap jj <Esc>"]]);
+  const read = await record(opened);
+  expect([read.keyboard.vimMode.inForce, read.keyboard.vimCommands.inForce]).toEqual([
+    true,
+    ["imap jj <Esc>"],
+  ]);
+});
+
 /** US3 */
 test("a port that is not one is refused with the core's message", async () => {
   const opened = await testApp();
@@ -199,6 +227,8 @@ test("a broken file is the record's problem, and refuses every change with it", 
     change(opened, "setSingleKeyShortcuts", { on: false }),
     change(opened, "setContinue", { key: "restart", on: false }),
     change(opened, "setAutomaticContinues", { continues: "4" }),
+    change(opened, "setVimMode", { on: true }),
+    change(opened, "setVimCommands", { lines: ["imap jj <Esc>"] }),
   ]);
 
   expect(read).toEqual({
@@ -210,7 +240,7 @@ test("a broken file is the record's problem, and refuses every change with it", 
     server: defaults,
   });
   expect(results.map((result) => result.error)).toEqual(
-    Array(9).fill({ code: "BAD_REQUEST", message: `refused: ${problem}` }),
+    Array(11).fill({ code: "BAD_REQUEST", message: `refused: ${problem}` }),
   );
   expect(readFileSync(file, "utf8")).toBe(broken);
 });

@@ -81,6 +81,10 @@ impl ContinueKey {
 pub struct KeyboardSettings {
     /// Whether the keys of one printable character act: `true` when unset.
     pub single_key_shortcuts: Option<bool>,
+    /// Whether the text fields edit with Vim's keys: `false` when unset.
+    pub vim_mode: Option<bool>,
+    /// The lines of Vim's commands run when Vim starts, like `imap jj <Esc>`: none when unset.
+    pub vim_commands: Option<Vec<String>>,
 }
 
 /// Uraeda's config folder: `URAEDA_CONFIG_DIR`, or else `$XDG_CONFIG_HOME/uraeda`, or else
@@ -218,6 +222,23 @@ pub fn set_automatic_continues(dir: &Path, typed: &str) -> Result<Settings, ApiE
 pub fn set_single_key_shortcuts(dir: &Path, on: bool) -> Result<Settings, ApiError> {
     change_table(dir, "keyboard", |keyboard| {
         set(keyboard, "single_key_shortcuts", Value::from(on));
+        Ok(())
+    })
+}
+
+/// Sets whether the text fields edit with Vim's keys, in `[keyboard]`.
+pub fn set_vim_mode(dir: &Path, on: bool) -> Result<Settings, ApiError> {
+    change_table(dir, "keyboard", |keyboard| {
+        set(keyboard, "vim_mode", Value::from(on));
+        Ok(())
+    })
+}
+
+/// Sets the lines of Vim's commands run when Vim starts, in `[keyboard]`.
+pub fn set_vim_commands(dir: &Path, lines: &[String]) -> Result<Settings, ApiError> {
+    change_table(dir, "keyboard", |keyboard| {
+        let lines: Array = lines.iter().map(String::as_str).collect();
+        set(keyboard, "vim_commands", Value::Array(lines));
         Ok(())
     })
 }

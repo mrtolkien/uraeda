@@ -54,9 +54,14 @@ export type RunSettingsView = {
   continueBeforeGate: Setting<boolean>;
 };
 
-/** How the web UI's keys behave: whether the keys of one printable character act. */
+/**
+ * How the web UI's keys behave: whether the keys of one printable character act, whether the text
+ * fields edit with Vim's keys, and the lines of Vim's commands run when Vim starts.
+ */
 export type KeyboardSettingsView = {
   singleKeyShortcuts: Setting<boolean>;
+  vimCommands: Setting<Array<string>>;
+  vimMode: Setting<boolean>;
 };
 
 /** Every setting in force, by the file's table. */
@@ -171,8 +176,8 @@ export function checked(given: GivenValues, checks: Checks): RunValues {
 /**
  * The values in force, the one place of their order: the flag, the variable, the file, then the
  * default: no host names, port 4310, a browser opened, every automatic continue on, 3 in a row, and
- * the build in a fresh session and the single-key shortcuts on, which have no flag or variable.
- * `file` is null when there is none, or it cannot be read.
+ * the build in a fresh session, the single-key shortcuts on, and Vim off without commands, which
+ * have no flag or variable. `file` is null when there is none, or it cannot be read.
  */
 export function inForce(options: RunValues, file: Settings | null): SettingsView {
   const saved = file?.server ?? {};
@@ -181,6 +186,8 @@ export function inForce(options: RunValues, file: Settings | null): SettingsView
   return {
     keyboard: {
       singleKeyShortcuts: setting(undefined, file?.keyboard.singleKeyShortcuts, true),
+      vimCommands: setting(undefined, file?.keyboard.vimCommands, []),
+      vimMode: setting(undefined, file?.keyboard.vimMode, false),
     },
     runs: {
       automaticContinues: setting(

@@ -9,6 +9,8 @@ import {
   readSettings,
   setPort,
   setSingleKeyShortcuts,
+  setVimCommands,
+  setVimMode,
   settingsFile,
 } from "./index.js";
 import { temporaryFolder } from "./test-utils.ts";
@@ -83,6 +85,20 @@ test("the keyboard table crosses the binding, and a write keeps the human's comm
 
   expect(written.keyboard).toEqual({ singleKeyShortcuts: true });
   expect(read(dir)).toBe("# mine\n[keyboard]\nsingle_key_shortcuts = true # mouse only\n");
+});
+
+test("Vim's keys cross the binding, its commands as a list of lines", async () => {
+  const dir = configWith("# mine\n[keyboard]\nsingle_key_shortcuts = false # mouse only\n");
+
+  await setVimMode(dir, true);
+  const written = await setVimCommands(dir, ["imap jj <Esc>", "nmap Y y$"]);
+
+  expect(written.keyboard).toEqual({
+    singleKeyShortcuts: false,
+    vimCommands: ["imap jj <Esc>", "nmap Y y$"],
+    vimMode: true,
+  });
+  expect(await readSettings(dir)).toEqual(written);
 });
 
 test("a synchronous check throws its problem at the call, not as a rejection", () => {
