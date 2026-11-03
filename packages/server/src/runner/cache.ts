@@ -346,11 +346,11 @@ export class SessionCache {
   }
 
   // The continues: see their functions in `cache-turns.ts`.
-  scheduleContinue(turn: number, at: number, reason: ContinueReason): void {
-    scheduleContinue(this.db, turn, at, reason);
+  scheduleContinue(turn: number, at: number, reason: ContinueReason, takenBack: string): boolean {
+    return scheduleContinue(this.db, turn, at, reason, takenBack);
   }
-  markCapped(turn: number, reason: ContinueReason): void {
-    markCapped(this.db, turn, reason);
+  markCapped(turn: number, reason: ContinueReason, takenBack: string): boolean {
+    return markCapped(this.db, turn, reason, takenBack);
   }
   takeContinue(turn: number): TurnRow | undefined {
     return takeContinue(this.db, turn);
