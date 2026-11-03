@@ -506,7 +506,7 @@ keeps two servers or timers from continuing a run twice.
 - Changes `dismiss`: it also clears both columns.
 - Changes `interrupted`: `ended_at` is the turn's last item's `at`, else its `started_at`, else now.
 
-- [ ] **Step 1: Move the turn-state writes out of `cache.ts`.** `startTurn`, `reopenTurn`,
+- [x] **Step 1: Move the turn-state writes out of `cache.ts`.** `startTurn`, `reopenTurn`,
       `endTurn`, `dismiss`, and `interrupted` move into `cache-turns.ts`, as functions over `db`
       that `SessionCache` delegates to, following `cache-tokens.ts`. Run
       `nix develop -c vp test packages/server/src/runner/__tests__/cache.test.ts`: PASS. Commit

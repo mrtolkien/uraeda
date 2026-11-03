@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { type Row, type SessionRow, type TurnRow, toSession, toTurn } from "./cache-rows.ts";
 import { addTurnTokens, agentSessionTokens } from "./cache-tokens.ts";
+import { dismiss, endTurn, interrupted, reopenTurn, startTurn, touch } from "./cache-turns.ts";
 import { type EditedFile, editedFiles, type SubagentRow, subagentsOf } from "./cache-work.ts";
 import type { Item, TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
 import { migrate, transaction } from "./migrations.ts";
@@ -295,24 +296,14 @@ export class SessionCache {
           row.state,
           row.state === "running" ? at : null,
         );
-      this.#touch(row.sessionId, at);
+      touch(this.db, row.sessionId, at);
       return Number(lastInsertRowid);
     });
   }
 
   /** Starts a queued turn. */
   startTurn(id: number): void {
-    transaction(this.db, () => {
-      const at = now();
-      const row = this.db
-        .prepare(
-          "UPDATE turns SET state = 'running', started_at = ? WHERE id = ? RETURNING session_id",
-        )
-        .get(at, id) as { session_id: string } | undefined;
-      if (row) {
-        this.#touch(row.session_id, at);
-      }
-    });
+    startTurn(this.db, id);
   }
 
   /** Changes a queued turn's kind, step, and trigger: a workflow run that starts as a chat. */
@@ -324,32 +315,12 @@ export class SessionCache {
 
   /** Makes an ended turn run again, as its agent went on after it ended. */
   reopenTurn(id: number): void {
-    transaction(this.db, () => {
-      const row = this.db
-        .prepare(
-          `UPDATE turns SET state = 'running', reason = NULL, ended_at = NULL WHERE id = ?
-           RETURNING session_id`,
-        )
-        .get(id) as { session_id: string } | undefined;
-      if (row) {
-        this.#touch(row.session_id, now());
-      }
-    });
+    reopenTurn(this.db, id);
   }
 
   /** Ends a turn. */
   endTurn(id: number, end: { reason?: string; state: TurnState }): void {
-    transaction(this.db, () => {
-      const at = now();
-      const row = this.db
-        .prepare(
-          `UPDATE turns SET state = ?, reason = ?, ended_at = ? WHERE id = ? RETURNING session_id`,
-        )
-        .get(end.state, end.reason ?? null, at, id) as { session_id: string } | undefined;
-      if (row) {
-        this.#touch(row.session_id, at);
-      }
-    });
+    endTurn(this.db, id, end);
   }
 
   /**
@@ -357,13 +328,7 @@ export class SessionCache {
    * other state, or dismissed already.
    */
   dismiss(turn: number): boolean {
-    const { changes } = this.db
-      .prepare(
-        `UPDATE turns SET dismissed_at = ? WHERE id = ? AND state IN ('failed', 'stopped')
-           AND dismissed_at IS NULL`,
-      )
-      .run(now(), turn);
-    return Number(changes) > 0;
+    return dismiss(this.db, turn);
   }
 
   /** Adds the counts to the turn's own, a null count read as 0. */
@@ -455,26 +420,6 @@ export class SessionCache {
    * running.
    */
   interrupted(reason: string): Array<TurnRow> {
-    return transaction(this.db, () => {
-      const running = this.db
-        .prepare(
-          `SELECT t.id, s.pid FROM turns t JOIN sessions s ON s.id = t.session_id
-           WHERE t.state IN ('running', 'queued')`,
-        )
-        .all() as Array<{ id: number; pid: number | null }>;
-      const ended = now();
-      const stop = this.db.prepare(
-        "UPDATE turns SET state = 'stopped', reason = ?, ended_at = ? WHERE id = ? RETURNING *",
-      );
-      return running
-        .filter(({ pid }) => pid === null || pid === this.#pid || !alive(pid))
-        .map(({ id }) => toTurn(stop.get(reason, ended, id) as Row))
-        .sort((a, b) => a.id - b.id);
-    });
-  }
-
-  /** Records a change of the session's turns. */
-  #touch(sessionId: string, at: string): void {
-    this.db.prepare("UPDATE sessions SET updated_at = ? WHERE id = ?").run(at, sessionId);
+    return interrupted(this.db, reason, (pid) => pid === null || pid === this.#pid || !alive(pid));
   }
 }
