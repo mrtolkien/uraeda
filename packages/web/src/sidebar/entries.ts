@@ -71,7 +71,7 @@ export function entriesOf(
       kind: "feature" as const,
       row: rowOf(feature, all),
       start: startOf(feature, all),
-      status: feature.status,
+      status: { ...feature.status, label: statusLabel(feature.status) },
     })),
     ...sessions
       .filter((row) => found || (!row.archived && (!row.done || row.id === kept)))
