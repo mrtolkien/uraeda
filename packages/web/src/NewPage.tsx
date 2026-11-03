@@ -6,7 +6,6 @@
 // for its slug; a feature with Ctrl+Enter too, which asks for its slug and research effort, then
 // opens its session. The entries a start was filled from leave their files. `/` searches the
 // entries. Each visit opens with the focus in the composer, where typing goes.
-import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -71,7 +70,7 @@ function Search({
  * it, where typing goes: on the phone, once a card is picked.
  */
 function useComposerFocus(kind: NewKind | undefined) {
-  const input = useRef<ChatComposerInputHandle>(null);
+  const input = useRef<EditorHandle>(null);
   // A pick by a click moves the focus to the composer, which the pick may draw: once it is there.
   const wantsFocus = useRef(false);
   const box = useRef<HTMLDivElement>(null);
@@ -156,7 +155,7 @@ function useSetupMessage({
   kind,
 }: {
   draft: NewDraft;
-  input: React.RefObject<ChatComposerInputHandle | null>;
+  input: React.RefObject<EditorHandle | null>;
   kind: NewKind | undefined;
 }) {
   const visit = useEntryId();

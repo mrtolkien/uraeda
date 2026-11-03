@@ -9,6 +9,7 @@ import {
   atRepo,
   click,
   fakeAgent,
+  fieldText,
   fixtureRepo,
   renderPage,
   serverFetch,
@@ -30,7 +31,7 @@ test("the setup's message comes before a draft already in the composer", async (
   await act(async () => navigate(atRepo("/new?kind=session"), { insert: "setup" }));
 
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
-  await waitFor(() => expect(box.textContent).toBe(`${SET_UP_PROJECT}\nOld draft`));
+  await waitFor(() => expect(fieldText(box)).toBe(`${SET_UP_PROJECT}\nOld draft`));
 });
 
 test("an empty composer gets the setup's message alone, once though the cards switch", async () => {
@@ -43,13 +44,13 @@ test("an empty composer gets the setup's message alone, once though the cards sw
 
   await act(async () => navigate(atRepo("/new?kind=session"), { insert: "setup" }));
   const box = await screen.findByRole("textbox", { name: "Message Claude Code" });
-  await waitFor(() => expect(box.textContent).toBe(SET_UP_PROJECT));
+  await waitFor(() => expect(fieldText(box)).toBe(SET_UP_PROJECT));
 
   await click(screen.getByRole("radio", { name: /Change/ }));
   await click(screen.getByRole("radio", { name: /Session/ }));
 
   await waitFor(() =>
-    expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toBe(
+    expect(fieldText(screen.getByRole("textbox", { name: "Message Claude Code" }))).toBe(
       SET_UP_PROJECT,
     ),
   );

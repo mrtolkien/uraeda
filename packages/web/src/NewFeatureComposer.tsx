@@ -3,7 +3,6 @@
 // research effort, High first; Enter starts it, and its session opens as soon as the start is
 // planned, the discovery's message in its composer, unsent, while the write queue commits it. The
 // draft goes once the start landed: a refused start leaves it in the composer.
-import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type RefObject, Suspense, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -18,6 +17,7 @@ import { StartDialog } from "./StartDialog.tsx";
 import { takeOut } from "./takeOut.ts";
 import { remember } from "./useStart.ts";
 import { StartPlanView } from "./views.ts";
+import type { EditorHandle } from "./fields/editor/Editor.tsx";
 
 /** The research effort picked first, as a proposal without the field reads. */
 const INITIAL_EFFORT = "high";
@@ -111,7 +111,7 @@ export function FeatureComposer({
   inputRef,
 }: {
   draft: NewDraft;
-  inputRef: RefObject<ChatComposerInputHandle | null>;
+  inputRef: RefObject<EditorHandle | null>;
 }) {
   const start = useFeatureStart(draft);
   const [asking, setAsking] = useState<Asking>();

@@ -1,7 +1,6 @@
-import { ChatComposer, type ChatComposerInputHandle } from "@astryxdesign/core/Chat";
+import { ChatComposer } from "@astryxdesign/core/Chat";
 import {
   type Dispatch,
-  type KeyboardEvent,
   type ReactNode,
   type RefObject,
   type SetStateAction,
@@ -18,6 +17,7 @@ import { useImageDrop } from "./attach/useImageDrop.ts";
 import { FoldingField, paperclip, phoneBoxStyles, useFolded } from "./ComposerField.tsx";
 import { ComposerImages, useFocusAfterRemove } from "./ComposerImages.tsx";
 import { useAgent } from "./data.ts";
+import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { FreshDefault, useFreshRun } from "./HandOver.tsx";
@@ -56,7 +56,7 @@ export type ComposerProps = {
   /** The message's images, kept by the page with its text. */
   images: ReadonlyArray<DraftImage>;
   /** The field's handle, for a page that gives it the focus, as when it inserts text. */
-  inputRef?: RefObject<ChatComposerInputHandle | null>;
+  inputRef?: RefObject<EditorHandle | null>;
   /**
    * With `folder` and no `session`: the message goes to a new session of the feature, created with
    * it, as "New session" opens one, not to its latest. Its field takes the focus as it opens.
@@ -139,7 +139,7 @@ function attachRefusal(
 }
 
 /** A new session opens to write its first message: its field takes the focus. */
-function useFocusOnOpen(input: RefObject<ChatComposerInputHandle | null>, isNewSession = false) {
+function useFocusOnOpen(input: RefObject<EditorHandle | null>, isNewSession = false) {
   useEffect(() => {
     if (isNewSession) {
       requestAnimationFrame(() => input.current?.focus());
@@ -148,17 +148,12 @@ function useFocusOnOpen(input: RefObject<ChatComposerInputHandle | null>, isNewS
 }
 
 /**
- * The keys the field owns, as it is a text field and the registry never hears it. Ctrl+Enter or
- * Cmd+Enter sends, as it saves every other field (the UI components decision); Enter adds a line, on
- * every screen. Astryx sends text alone on Enter: a message of images alone, or images still being
- * saved, are this handler's (an Astryx gap, see the plan). Escape leaves the field for the page,
- * keeping the draft, which `i`, the registry's key, comes back to unless the field is disabled. The
- * composer has no menu of its own (no `@` or `/` triggers), so its Escape is always this one.
+ * `i`, the registry's key, comes back to the field, unless it is disabled. The field's own keys are
+ * the editor's: Ctrl+Enter or Cmd+Enter sends, as it saves every other field (the UI components
+ * decision); Enter adds a line, on every screen; Escape leaves the field for the page, keeping the
+ * draft. A message of images alone, or images still being saved, are the send's to judge.
  */
-function useFieldKeys(
-  input: RefObject<ChatComposerInputHandle | null>,
-  { isDisabled, send }: { isDisabled: boolean; send: (() => void) | undefined },
-) {
+function useInsertKey(input: RefObject<EditorHandle | null>, isDisabled: boolean) {
   useKeys([
     {
       hint: "i",
@@ -168,22 +163,6 @@ function useFieldKeys(
       run: () => (isDisabled ? false : input.current?.focus()),
     },
   ]);
-  return (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Escape" && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      (event.target as HTMLElement).blur();
-      return;
-    }
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
-      return;
-    }
-    event.preventDefault();
-    if (event.ctrlKey || event.metaKey) {
-      send?.();
-    } else {
-      input.current?.insertText("\n");
-    }
-  };
 }
 
 /** What the composer says under it: an error, the page's notice, or why it cannot send. */
@@ -212,7 +191,7 @@ function composerStatus(
  * After a spec's approval, the run builds in a fresh session as the setting says, with the
  * hand-over's switch: `reader` reads the setting once a message is inserted.
  */
-function useInserted(given: ComposerProps, input: RefObject<ChatComposerInputHandle | null>) {
+function useInserted(given: ComposerProps, input: RefObject<EditorHandle | null>) {
   const [own, setOwn] = useState<DraftRun>();
   const inserted = given.onRun ? given.run : own;
   const setInserted = given.onRun ?? setOwn;
@@ -321,7 +300,7 @@ function isBlank(
  */
 export function Composer(given: ComposerProps) {
   const { blocked, images, onSend, value, working = false } = given;
-  const own = useRef<ChatComposerInputHandle>(null);
+  const own = useRef<EditorHandle>(null);
   const input = given.inputRef ?? own;
   const { edit, insert, props, reader } = useInserted(given, input);
   const { workflow } = props;
@@ -349,10 +328,7 @@ export function Composer(given: ComposerProps) {
   const hasContent = value.trim() !== "" || (!workflow && !onSend && images.length > 0);
   const canSend = hasContent && !saving && !unavailable;
   const { error, pending, stop, submit } = useSend(props, { canSend, sent: attaching.sent });
-  const onKeyDown = useFieldKeys(input, {
-    isDisabled: Boolean(unavailable),
-    send: canSend ? () => submit(value.trim()) : undefined,
-  });
+  useInsertKey(input, Boolean(unavailable));
   useFocusOnOpen(input, given.isNewSession);
   const placeholder = given.placeholder ?? `Message ${name}`;
   const isFolded = useFolded(box, !wide && isBlank(value, images, workflow, pending, error));
@@ -389,7 +365,7 @@ export function Composer(given: ComposerProps) {
               isFolded={isFolded}
               label={placeholder}
               onFiles={attaching.addFiles}
-              onKeyDown={onKeyDown}
+              {...(canSend ? { onSubmit: () => submit(value.trim()) } : {})}
               send={buttons.sendButton}
             />
           }

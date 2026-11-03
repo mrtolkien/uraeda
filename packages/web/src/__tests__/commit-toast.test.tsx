@@ -11,6 +11,7 @@ import { REFUSED_ID } from "../writes/useWriteQueue.ts";
 import {
   click,
   fakeAgent,
+  fieldText,
   fixtureRepo,
   refreshUntil,
   renderPage,
@@ -89,14 +90,14 @@ test("a message sent while its feature's commit lands goes back in the composer 
   await act(async () => {
     fireEvent.keyDown(field, { ctrlKey: true, key: "Enter" });
   });
-  await waitFor(() => expect(field.textContent).toBe(""));
+  await waitFor(() => expect(fieldText(field)).toBe(""));
   expect(existsSync(gate)).toBe(false);
   writeFileSync(gate, "");
 
   // The server kept the message for the approval's commit, which the hook refused: it is back.
   await refreshUntil(() => {
     const back = screen.getByRole("textbox", { name: "Message Claude Code" });
-    expect(back.textContent).toContain("Go on with the plan");
+    expect(fieldText(back)).toContain("Go on with the plan");
   });
   // Shown under the composer, not counting the screen reader's announcement.
   expect(
