@@ -21,10 +21,15 @@ const CHORE: &str = "chore: ";
 /// typed: amending it would rewrite that message into a list (ruling R13).
 const TYPED: &str = "uraeda-typed";
 
-/// Keeps the commit `id`, whose message the human typed, from being amended. Best effort: the
-/// commit landed, and a mark lost only lets a later commit amend it.
+/// Keeps the commit `id`, whose message the human typed, from being amended. Only the default
+/// branch's commits amend, and the mark is one for every worktree, so another branch's commit
+/// leaves it as it is (ruling R16). Best effort: the commit landed, and a mark lost only lets a
+/// later commit amend it.
 pub(super) fn keep(place: &Place, id: ObjectId) {
-    if let Ok(git) = Git::open(&place.root) {
+    let Ok(git) = Git::open(&place.root) else {
+        return;
+    };
+    if git.current_branch().is_some() && git.current_branch() == git.default_branch() {
         drop(fs::write(git.common_dir().join(TYPED), id.to_string()));
     }
 }
