@@ -392,8 +392,10 @@ export class Sessions {
 
   /** Stops every turn and closes every process, as the server stops, and waits for them. */
   async closeAll(): Promise<void> {
-    const { processes, turns } = this.#context;
+    const { continuer, processes, turns } = this.#context;
     const procs: Array<Promise<void>> = [];
+    // A continue whose time comes while the processes close is the next start's.
+    continuer.close();
     this.starts.dropAll();
     for (const live of this.#context.live.values()) {
       for (const queued of live.queue.splice(0)) {
