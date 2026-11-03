@@ -118,6 +118,12 @@ const astryxFields = [
   { message: editorMessage, name: "@astryxdesign/core/TextArea" },
   // Only the composer's field: the composer around it stays.
   { importNames: ["ChatComposerInput"], message: editorMessage, name: "@astryxdesign/core/Chat" },
+  // The same fields from Astryx's root, which exports every component.
+  {
+    importNames: ["TextInput", "TextArea", "ChatComposerInput"],
+    message: editorMessage,
+    name: "@astryxdesign/core",
+  },
 ];
 
 /** Raw elements, each with the component to use instead. */
