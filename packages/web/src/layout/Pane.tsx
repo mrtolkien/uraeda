@@ -13,7 +13,7 @@ import {
   typeScaleVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ComponentProps, type ReactNode, use, useId, useRef } from "react";
+import { type ComponentProps, type ReactNode, use, useId } from "react";
 import { SinceSign, useSinceTitle } from "../sinceMarks.tsx";
 import { railPaneStyles, useClosedRail } from "./closedRail.ts";
 import { InPane, PaneContent } from "./paneContext.tsx";
@@ -169,13 +169,6 @@ const styles = stylex.create({
   },
   problem: { borderColor: colorVars["--color-border-red"] },
   problemTitle: { color: colorVars["--color-text-red"] },
-  // Beside the actions, the title wraps before them: their width, and the gap, kept free.
-  reserve: (room: string) => ({ "--pane-actions-room": room }),
-  // Actions too wide to leave the title room beside them: the title goes under them, inside the
-  // pane, from below the actions' lower half.
-  under: (below: string) => ({
-    marginBlockStart: below,
-  }),
   // On the phone, a reading page's pane keeps its whole border, past the page's inset to a little
   // room from the screen's edges (`--pane-phone-margin`), with little room inside it
   // (`--pane-phone-inset`), so its text has nearly the screen's width, about where the page's own
@@ -270,16 +263,6 @@ function looks(isActive: boolean, tone: PaneTone | undefined, isTinted: boolean,
       ] as const);
 }
 
-/** The title's room by the actions: the width it keeps free beside them, or its place under them. */
-function besideActions(room: ReturnType<typeof useActionsRoom>) {
-  if (!room) {
-    return null;
-  }
-  return room.under
-    ? styles.under(`calc(${room.height / 2}px + ${spacingVars["--spacing-1"]})`)
-    : styles.reserve(`calc(${room.width}px + ${spacingVars["--spacing-2"]})`);
-}
-
 /** The title's words, its icons, its count, what follows it, and its Δ, if it changed. */
 function PaneName({
   count,
@@ -335,7 +318,8 @@ function PaneName({
  * already has the room. With `fold`, its title is a button that opens
  * and closes it, named by its title and its count, and folded, its content is not mounted.
  * `actions` sit in the top border at its end, as a live window's buttons do, the title wrapping
- * before them, or under them where they leave it too little room; `titleSuffix` follows
+ * before them, or under them where they leave it too little room, or where it holds on one line
+ * there but not beside them; `titleSuffix` follows
  * the title in secondary text, as a live window's size and scale do, outside the pane's name.
  * With `id`, its heading is `<id>-title`, focusable by script, which a jump to the pane focuses.
  * `isTinted` sets its background in the accent's muted tint, as a picked card's. `tint` colours the
@@ -381,9 +365,7 @@ export function Pane({
   xstyle?: ReadonlyArray<stylex.StyleXStyles | false | undefined>;
 }) {
   const titleId = useId();
-  const own = useRef<HTMLElement>(null);
-  const actionsBox = useRef<HTMLDivElement>(null);
-  const beside = besideActions(useActionsRoom(own, actionsBox, actions !== undefined));
+  const { actionsRef, headingRef, paneRef, title: place } = useActionsRoom(actions !== undefined);
   const [border, ink] = looks(isActive, tone, isTinted, useClosedRail());
   const margin = useScrollMargin("pane");
   const width = useWidthClass();
@@ -407,7 +389,7 @@ export function Pane({
     <section
       aria-labelledby={titleId}
       id={id}
-      ref={own}
+      ref={paneRef}
       role={isGroup ? "group" : undefined}
       {...stylex.props(
         styles.pane,
@@ -422,8 +404,9 @@ export function Pane({
       <Heading
         id={id === undefined ? undefined : `${id}-title`}
         level={level}
+        ref={headingRef}
         tabIndex={id === undefined ? undefined : -1}
-        xstyle={[styles.title, isSnug && styles.snugOnPhoneTitle, tint && TINTS[tint], ink, beside]}
+        xstyle={[styles.title, isSnug && styles.snugOnPhoneTitle, tint && TINTS[tint], ink, place]}
       >
         <TitleWords fold={fold} label={label}>
           {name}
@@ -431,7 +414,7 @@ export function Pane({
       </Heading>
       {actions !== undefined && (
         <div
-          ref={actionsBox}
+          ref={actionsRef}
           {...stylex.props(styles.actions, isSnug && styles.snugOnPhoneActions)}
         >
           {actions}
