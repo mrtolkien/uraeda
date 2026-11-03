@@ -39,6 +39,21 @@ fn notes_on_default(git: &crate::git::Git, workspace: &crate::workspace::Workspa
         .unwrap_or_default()
 }
 
+/// The default branch's note files, each path with its text, as the inbox reads them: the watcher
+/// tells a note file added, removed, or edited alone as a change of the inbox.
+pub(crate) fn note_texts_on_default(
+    git: &crate::git::Git,
+    workspace: &crate::workspace::Workspace,
+) -> Vec<(String, Option<String>)> {
+    notes_on_default(git, workspace)
+        .into_iter()
+        .map(|path| {
+            let text = on_default(git, workspace, &path).0;
+            (path, text)
+        })
+        .collect()
+}
+
 /// The marks of a note added from the web UI: `about` is the folder of the page it was added from,
 /// written as its slug when it is a feature's or a change's, a dated folder; any other marks
 /// nothing. A slug that would not parse back as a mark is refused by the action.

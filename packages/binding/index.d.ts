@@ -776,7 +776,10 @@ export interface Changes {
    * feature a proposal links.
    */
   priorities: boolean
-  /** Whether the default branch's `INBOX.md`, `INBOX-TRIAGE.md`, or `DECISIONS-CHECK.md` changed. */
+  /**
+   * Whether the default branch's `INBOX.md`, its note files, `INBOX-TRIAGE.md`, or
+   * `DECISIONS-CHECK.md` changed.
+   */
   inbox: boolean
   /**
    * The decisions a feature's branch has that changed, as `<folder>/<name>`: its text on the

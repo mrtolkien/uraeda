@@ -63,6 +63,7 @@ use error::refused;
 pub use files::{attach_image, encode_image, read_image, read_raw};
 pub use history::read_history;
 pub use image_edits::{remove_note_image, restore_note_image};
+pub(crate) use inbox_edits::note_texts_on_default;
 pub use inbox_edits::*;
 pub(crate) use ledger::ledger_hash;
 pub use ledger::{Constitution, Decision, Ledger, Principle, read_ledger};
