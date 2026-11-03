@@ -126,12 +126,6 @@ export declare function checkoutCommit(checkout: string): Promise<string | null>
 export declare function commitBranch(repo: string, branch: string, message: string): Promise<CommitView>
 
 /**
- * Commits the commit page's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
- * moved, or left.
- */
-export declare function commitChanges(repo: string): Promise<void>
-
-/**
  * The Commit page's panes: the default branch's, then each branch's whose checkout holds files a
  * buffer edited, each with its lines and its suggested message.
  */
@@ -167,12 +161,6 @@ export declare function deferCommits(repo: string, on: boolean): void
 
 /** Discards the pane of `branch`, the files a buffer edited put back as committed. */
 export declare function discardBranch(repo: string, branch: string): Promise<void>
-
-/**
- * Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of proposal
- * files, keeping any text the human typed.
- */
-export declare function discardChanges(repo: string): Promise<void>
 
 /** Restores the committed priorities. */
 export declare function discardPriorities(repo: string): Promise<Priorities>

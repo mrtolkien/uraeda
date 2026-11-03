@@ -7,6 +7,7 @@
 import { createContext, useContext } from "react";
 import { pastedImages } from "../attach/useImageText.ts";
 import { Editor } from "../fields/editor/Editor.tsx";
+import { took } from "../fields/editor/keys.ts";
 import { RowBar } from "./RowBar.tsx";
 import { useOutlineField } from "./useOutlineField.ts";
 
@@ -15,12 +16,6 @@ import { useOutlineField } from "./useOutlineField.ts";
  * inbox's note's images. None outside such a row: a paste of an image does nothing then.
  */
 export const OutlineImages = createContext<((files: Array<File>) => void) | undefined>(undefined);
-
-/** Runs a key's action, which takes the key. */
-function took(action: () => void) {
-  action();
-  return true;
-}
 
 /** What the editor does as it closes, or before it closes. */
 export type OutlineEditorProps = {

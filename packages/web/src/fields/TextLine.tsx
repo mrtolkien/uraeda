@@ -1,6 +1,7 @@
 import { Field, type FieldStatusInput } from "@astryxdesign/core/Field";
 import { useId } from "react";
 import { Editor, type EditorProps, type FieldKey } from "./editor/Editor.tsx";
+import { took } from "./editor/keys.ts";
 
 /**
  * The app's one-line text field: the shared editor, `line` variant, under its label, shown or for
@@ -45,10 +46,7 @@ export function TextLine({
 
 /** Down and Up in a field over a list, as a search's: `move` steps along its rows, by 1 or -1. */
 export function arrowKeys(move: (step: 1 | -1) => void): Array<FieldKey> {
-  const run = (step: 1 | -1) => () => {
-    move(step);
-    return true;
-  };
+  const run = (step: 1 | -1) => () => took(() => move(step));
   return [
     { key: "ArrowDown", run: run(1) },
     { key: "ArrowUp", run: run(-1) },

@@ -298,20 +298,6 @@ pub fn attach_note_images(
     })
 }
 
-/// Commits the commit page's changes: `INBOX.md`, `PRIORITIES.md`, and the files notes went into,
-/// moved, or left.
-#[napi(ts_return_type = "Promise<void>")]
-pub fn commit_changes(repo: String) -> AsyncTask<Job<()>> {
-    job(move || api::commit_changes(Path::new(&repo)))
-}
-
-/// Restores the committed `INBOX.md` and `PRIORITIES.md`, and takes the notes back out of proposal
-/// files, keeping any text the human typed.
-#[napi(ts_return_type = "Promise<void>")]
-pub fn discard_changes(repo: String) -> AsyncTask<Job<()>> {
-    job(move || api::discard_changes(Path::new(&repo)))
-}
-
 /// The Commit page's panes: the default branch's, then each branch's whose checkout holds files a
 /// buffer edited, each with its lines and its suggested message.
 #[napi(ts_return_type = "Promise<Array<BranchPane>>")]

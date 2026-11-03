@@ -1,6 +1,6 @@
 // The Vim mode switch as the shell reads it: the settings record, kept up to date, so turning it on
 // or off in the settings page, or in the file, reaches every field at once, without rebuilding one.
-import { type ReactNode, Suspense, useEffect, useState } from "react";
+import { type ReactNode, Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useSettings } from "../../../data.ts";
 import { Unread } from "../../../HandOver.tsx";
 import { OnListClient } from "../../../ListClient.tsx";
@@ -9,17 +9,28 @@ import { finePointer, loadVim, setVimErrors, setVimOn, type VimLayer } from "./l
 
 const NONE: ReadonlyArray<string> = [];
 
+/** Listens to the main pointer becoming fine or coarse, as a mouse is attached or taken away. */
+function subscribePointer(listener: () => void) {
+  const query = globalThis.matchMedia?.("(pointer: fine)");
+  query?.addEventListener?.("change", listener);
+  return () => query?.removeEventListener?.("change", listener);
+}
+
+/** Whether the main pointer is fine now, drawn again as it changes. */
+const useFinePointer = () => useSyncExternalStore(subscribePointer, finePointer);
+
 /**
- * Loads the engine with the switch on and a fine pointer, and puts the layer in every field until
- * the switch goes off or the shell goes; runs the human's commands as it starts and as they change,
+ * Loads the engine with the switch on and a fine pointer, a mouse attached later included, and puts
+ * the layer in every field until the switch goes off, the pointer goes coarse, or the shell goes; runs the human's commands as it starts and as they change,
  * leaving the fields as they are.
  */
 export function useVimLayer(on: boolean, commands: ReadonlyArray<string>) {
   const [layer, setLayer] = useState<VimLayer>();
+  const fine = useFinePointer();
   useEffect(() => {
     let gone = false;
     let unregister: (() => void) | undefined;
-    void loadVim({ on }, { fine: finePointer() }).then((loaded) => {
+    void loadVim({ on }, { fine }).then((loaded) => {
       if (!gone && loaded) {
         unregister = registerEditorExtension(loaded.extension);
         setLayer(loaded);
@@ -32,7 +43,7 @@ export function useVimLayer(on: boolean, commands: ReadonlyArray<string>) {
       setLayer(undefined);
       setVimOn(false);
     };
-  }, [on]);
+  }, [on, fine]);
   // The commands as one value, so a new list with the same lines runs nothing again.
   const lines = commands.join("\n");
   useEffect(() => {

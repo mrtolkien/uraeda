@@ -313,3 +313,20 @@ test("clicking away while the `:` prompt is open saves the row", async () => {
   // Breaks if only the text's own blur is the row's leave: the prompt's is missed.
   await waitFor(() => expect(read(repo)).toContain("- Review the UI guidelines, left\n"));
 });
+
+// Break: the blank lines kept in the field after the save drops them from the list, so the engine's
+// "Line 2" names the field's third line.
+test("saved commands lose their blank lines in the field, which an error's line number counts", async () => {
+  const config = vimOn();
+  await renderPage("/settings", fixtureRepo(), { config });
+  const field = await screen.findByRole("textbox", { name: "Vim commands" });
+  await waitFor(() => expect(slotContent()).not.toHaveLength(0));
+  await type(field, "imap jj <Esc>\n\nnmpa Q dd");
+
+  await click(screen.getByRole("button", { name: "Save" }));
+
+  await refreshUntil(() =>
+    expect(screen.getByText('Line 2: Not an editor command ":nmpa Q dd"')).toBeTruthy(),
+  );
+  expect(fieldText(field).split("\n")[1]).toBe("nmpa Q dd");
+});

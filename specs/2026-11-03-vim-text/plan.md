@@ -922,9 +922,9 @@ git commit -m "feat(vim-text): lint keeps every text field on the shared editor"
 - Consumes: `Buffer` source and `buffer.save` (task 2); `Editor` (task 3); the Vim layer's `:w` and
   `:q` through `onSubmit` and Escape (task 6); `useStatusBranch` (task 8).
 - Produces: `useBufferKey(path: string | undefined)`: declares `Space b`, "Open as a buffer", on a
-  page showing one file; not declared where `path` is undefined. `bufferPath(path)`, the page's
-  address. `useBuffer(path)`, the buffer's read and save over `withFreshBase`, as the proposal
-  editor's, its record read through a `BufferView` of its own.
+  page showing one file; not declared where `path` is undefined, and leading to the page's address,
+  which `bufferPath(path)` in the same file builds. `useBuffer(path)`, the buffer's read and save
+  over `withFreshBase`, as the proposal editor's, its record read through a `BufferView` of its own.
 
 - [x] **Step 1: Write the failing test**
 

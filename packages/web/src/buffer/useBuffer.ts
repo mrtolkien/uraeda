@@ -105,6 +105,3 @@ export function useBuffer(path: string) {
     saveText,
   };
 }
-
-/** A buffer, as `useBuffer` gives it. */
-export type BufferState = ReturnType<typeof useBuffer>;
