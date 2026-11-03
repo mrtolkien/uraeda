@@ -71,15 +71,19 @@ struct Written {
     made: Option<String>,
 }
 
+/// Writes `INBOX.md` back as it was, `before`, deleting it when it did not exist.
+fn write_back(place: &Place, before: Option<&str>) -> std::io::Result<()> {
+    let file = place.root.join(PATH);
+    match before {
+        Some(before) => fs::write(&file, before),
+        None => fs::remove_file(&file),
+    }
+}
+
 /// Puts `INBOX.md` back as it was, `before`, deleting it when it did not exist, after an action
 /// refused with `error`: `error`, or, when `INBOX.md` could not be put back, an error saying so too.
 fn put_back(place: &Place, before: Option<&str>, error: ActionError) -> ActionError {
-    let file = place.root.join(PATH);
-    let back = match before {
-        Some(before) => fs::write(&file, before),
-        None => fs::remove_file(&file),
-    };
-    match back {
+    match write_back(place, before) {
         Ok(()) => error,
         Err(back) => ActionError::Io(format!(
             "{error}; and INBOX.md could not be put back as it was: {back}"
@@ -132,21 +136,72 @@ pub(super) fn acting_read<T>(
 }
 
 /// [`acting`] for a move within the inbox: an agent's note's file then loses its `category`, which
-/// its line now holds.
+/// its line now holds. A move that leaves the inbox showing as it did, the note dropped where it
+/// was, writes nothing: `INBOX.md` goes back as it was, and the file keeps its `category`.
 pub(super) fn moving(
     place: &Place,
     id: &str,
     previous: Option<&str>,
     act: impl FnOnce(&str, Option<&str>) -> Result<Inbox, ActionError>,
 ) -> Result<Inbox, ActionError> {
-    let inbox = acting(place, id, previous, act)?;
     if !inbox::is_note_file_path(id) {
-        return Ok(inbox);
+        return acting(place, id, previous, act);
+    }
+    let before = place
+        .root
+        .join(PATH)
+        .exists()
+        .then(|| text(place))
+        .transpose()?;
+    acting(place, id, previous, act)?;
+    let files = files_on_disk(place);
+    let shown = |text: &str| inbox::joined(text, &files);
+    if shown(&text(place)?) == shown(before.as_deref().unwrap_or_default()) {
+        write_back(place, before.as_deref())?;
+        return Ok(read(place));
     }
     let path = place.root.join(id);
     let text = fs::read_to_string(&path)?;
     fs::write(path, frontmatter::remove(&text, "category"))?;
     Ok(read(place))
+}
+
+/// The note files of `specs/notes/` in the checkout, with their texts.
+fn files_on_disk(place: &Place) -> Vec<NoteFile> {
+    inbox::note_files(&inbox::note_paths_on_disk(&place.root), |path| {
+        fs::read_to_string(place.root.join(path)).ok()
+    })
+}
+
+/// The Undo of an agent's note's removal, `lines` put back before the note at `index` of
+/// `category`: the file the removal took away comes back, and, when its line would go exactly where
+/// the inbox shows the file as an agent's note, `HEAD`'s `INBOX.md` linking it not, `INBOX.md` stays
+/// as it is, so the checkout is as before the removal. `None`, writing nothing, when `lines` link no
+/// note file a removal holds.
+pub(super) fn restored(
+    place: &Place,
+    category: Option<&str>,
+    index: usize,
+    lines: &[String],
+    previous: Option<&str>,
+) -> Result<Option<Inbox>, ActionError> {
+    let Some(path) = inbox::file_of_lines(lines).filter(|path| inbox::is_note_file_path(path))
+    else {
+        return Ok(None);
+    };
+    let current = unchanged(place, previous)?;
+    let inserted = inbox::insert(&current, category, index, lines)
+        .ok_or_else(|| ActionError::Refused("Nothing to put back.".to_string()))?;
+    if !note_file::restore(place, &path)? {
+        return Ok(None);
+    }
+    let committed = super::super::place::committed(place, PATH).unwrap_or_default();
+    let shown = as_line(place, &committed, &path).is_some()
+        && as_line(place, &current, &path).is_some_and(|(edited, _)| edited == inserted);
+    if !shown {
+        fs::write(place.root.join(PATH), &inserted)?;
+    }
+    Ok(Some(read(place)))
 }
 
 /// Removes the agent's note `id` over `INBOX.md` as read at `previous`: its file goes, held for the

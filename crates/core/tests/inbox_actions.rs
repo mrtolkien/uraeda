@@ -641,10 +641,10 @@ fn the_commit_bar_holds_an_agents_note_removed() {
     assert_eq!(repo.porcelain(), "");
 }
 
-/// US2 more 2: Undo of an agent's note's removal writes its line back, linking the file it
-/// restores.
+/// US2 more 2: Undo of an agent's note's removal restores its file alone, where the inbox showed
+/// it: the checkout is as `HEAD` has it, and the commit bar holds nothing.
 #[test]
-fn undo_of_an_agents_note_removal_links_its_file() {
+fn undo_of_an_agents_note_removal_restores_its_file() {
     let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
     let file = repo.read(&path);
     let read = api::read_inbox(repo.path()).unwrap();
@@ -667,8 +667,78 @@ fn undo_of_an_agents_note_removal_links_its_file() {
     .unwrap();
 
     assert_eq!(repo.read(&path), file);
-    assert!(repo.read(INBOX).ends_with(&format!("{}\n", note.lines[0])));
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
     assert_eq!(back.count, read.count);
+    assert_eq!(back.changes, 0);
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// US2 more 2: Undo of an agent's note's removal put back elsewhere than the inbox showed it writes
+/// its line there, linking the file it restores.
+#[test]
+fn undo_of_an_agents_note_removal_elsewhere_links_its_file() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let file = repo.read(&path);
+    let read = api::read_inbox(repo.path()).unwrap();
+    let note = read
+        .categories
+        .iter()
+        .flat_map(|category| &category.notes)
+        .find(|note| note.id == path)
+        .unwrap()
+        .clone();
+
+    let removed = api::remove_note(repo.path(), &path, &read.hash).unwrap();
+    let back = api::insert_note(
+        repo.path(),
+        Some("UI".into()),
+        0,
+        &note.lines,
+        &removed.hash,
+    )
+    .unwrap();
+
+    assert_eq!(repo.read(&path), file);
+    assert!(
+        repo.read(INBOX)
+            .contains(&format!("## UI\n\n{}\n", note.lines[0]))
+    );
+    assert_eq!(back.count, read.count);
+}
+
+/// US2 more 3: an agent's note dropped where the inbox shows it, or moved to its own category, is
+/// not moved: the checkout is as `HEAD` has it, and the commit bar holds nothing.
+#[test]
+fn an_agents_note_left_in_place_writes_nothing() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let file = repo.read(&path);
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let placed = api::place_note(
+        repo.path(),
+        &path,
+        Some("Deferred fixes".into()),
+        0,
+        &read.hash,
+    )
+    .unwrap();
+
+    assert_eq!(placed.changes, 0);
+    assert_eq!(placed.hash, read.hash);
+    assert_eq!(repo.read(&path), file);
+    assert_eq!(repo.read(INBOX), fixture_text("repo/main/specs/INBOX.md"));
+    assert_eq!(repo.porcelain(), "");
+
+    let moved = api::move_note_to_category(
+        repo.path(),
+        &path,
+        Some("Deferred fixes".into()),
+        &read.hash,
+    )
+    .unwrap();
+
+    assert_eq!(moved.changes, 0);
+    assert_eq!(repo.porcelain(), "");
 }
 
 /// US2 more 3: a moved agent's note becomes a line linking its file, its `category` dropped; its

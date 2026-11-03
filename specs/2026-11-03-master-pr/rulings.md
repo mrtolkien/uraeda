@@ -22,7 +22,10 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Decision**: every action that takes a note's id first turns an agent's note into its line, at
   the end of its category in `INBOX.md`, then runs as for a linked note file. A move also drops the
   file's `category`. A removal leaves `INBOX.md` as it was, and deletes the file when it is as
-  committed; its Undo writes the line back, linking the file it restores.
+  committed; its Undo restores the file alone when the note goes back where the inbox showed it, and
+  writes the line back, linking the file it restores, anywhere else. A move that drops the note
+  where the inbox showed it writes nothing, its file keeping its `category`: the checkout stays as
+  `HEAD` has it, with nothing for the commit bar.
 - **Rationale**: the spec's architecture gives the actions one owner of the turn into a line, and
   the actions on a linked note file already remove, move, and promote its file.
 - **If wrong**: an action that forgets the turn refuses with "no note", losing nothing.
