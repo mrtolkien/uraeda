@@ -5,6 +5,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { Annotation, Compartment, EditorState, type Extension } from "@codemirror/state";
 import {
   EditorView,
+  type KeyBinding,
   keymap,
   placeholder as placeholderText,
   type ViewUpdate,
@@ -34,13 +35,23 @@ export type EditorHandle = {
   view(): EditorView | null;
 };
 
+/** A key of the field's own, as `"Tab"` or `"Shift-Tab"`: `run` says whether it took the key. */
+export type FieldKey = { key: string; run: () => boolean };
+
 export type EditorProps = {
   /** The content element's id, as a field's own: `document.getElementById(id)?.focus()` works. */
   id?: string;
   isAutoFocused?: boolean;
   isDisabled?: boolean;
+  /**
+   * Keys of the field's own, before CodeMirror's, like a row's Tab that indents it or a search's
+   * arrows that move its results: the first render's keys, each running its latest `run`.
+   */
+  keys?: ReadonlyArray<FieldKey>;
   /** The field's accessible name, on its content element. */
   label: string;
+  /** The focus left the field. */
+  onBlur?: () => void;
   onChange: (value: string) => void;
   /** Enter's action, Shift+Enter aside: in a one-line field, which never breaks its line, or any. */
   onEnter?: () => void;
@@ -77,18 +88,20 @@ const parts = {
 /** The props the parts are made of. */
 type PartProps = Pick<
   EditorProps,
-  "id" | "isDisabled" | "label" | "placeholder" | "rows" | "variant"
+  "id" | "isAutoFocused" | "isDisabled" | "label" | "placeholder" | "rows" | "variant"
 >;
 
 /** Each part's content, from the props. */
 function partsOf(props: PartProps) {
-  const { id, isDisabled = false, label, placeholder, rows = 3, variant } = props;
+  const { id, isAutoFocused, isDisabled = false, label, placeholder, rows = 3, variant } = props;
   return {
     attributes: EditorView.contentAttributes.of({
       "aria-label": label,
       "aria-multiline": String(variant === "lines"),
       ...(placeholder ? { "aria-placeholder": placeholder } : {}),
       ...(id === undefined ? {} : { id }),
+      // What an overlay gives its focus to once drawn (`useFieldFocus`), as Astryx's fields say.
+      ...(isAutoFocused ? { "data-autofocus": "" } : {}),
     }),
     editable: [EditorView.editable.of(!isDisabled), EditorState.readOnly.of(isDisabled)],
     placeholder: placeholder ? placeholderText(placeholder) : [],
@@ -150,9 +163,16 @@ function showText(view: EditorView, value: string) {
     end -= 1;
     valueEnd -= 1;
   }
+  const changes = view.state.changes({
+    from: start,
+    insert: value.slice(start, valueEnd),
+    to: end,
+  });
+  // A cursor where the text came goes after it, as a suggestion picked fills a search's field.
   view.dispatch({
     annotations: fromCaller.of(true),
-    changes: { from: start, insert: value.slice(start, valueEnd), to: end },
+    changes,
+    selection: view.state.selection.map(changes, 1),
   });
 }
 
@@ -182,6 +202,21 @@ function actionsOf(view: EditorView, latest: { current: EditorProps }): EditorAc
   };
 }
 
+/** The caller's own keys, as bound at the first render, each running the latest props' `run`. */
+function ownKeys(latest: { current: EditorProps }): Array<KeyBinding> {
+  return (latest.current.keys ?? []).map(({ key }) => ({
+    key,
+    run: () => latest.current.keys?.find((each) => each.key === key)?.run() ?? false,
+  }));
+}
+
+/**
+ * The fields being taken down, whose blur is no human's leaving: a field's element removed takes
+ * its focus with it unannounced, and React's development mode takes a field down and up again as
+ * it mounts, which must not save or close a row.
+ */
+const destroying = new WeakSet<EditorView>();
+
 /** The extensions of a new field's state. */
 function extensionsOf(latest: { current: EditorProps }, actions: () => EditorActions): Extension {
   const now = partsOf(latest.current);
@@ -194,7 +229,7 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
       line: latest.current.variant === "line",
     })),
     history(),
-    keymap.of([...defaultKeymap, ...historyKeymap]),
+    keymap.of([...ownKeys(latest), ...defaultKeymap, ...historyKeymap]),
     markdown(),
     EditorView.lineWrapping,
     editorTheme,
@@ -202,6 +237,11 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
       compartment.of(now[part as keyof typeof parts]),
     ),
     EditorView.domEventHandlers({
+      blur: (_event, view) => {
+        if (!destroying.has(view)) {
+          latest.current.onBlur?.();
+        }
+      },
       focus: () => {
         latest.current.onFocus?.();
       },
@@ -233,7 +273,7 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
  * of them while an input method composes.
  */
 export function Editor(props: EditorProps) {
-  const { id, isDisabled, label, placeholder, ref, rows, value, variant } = props;
+  const { id, isAutoFocused, isDisabled, label, placeholder, ref, rows, value, variant } = props;
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const latest = useRef(props);
@@ -263,6 +303,7 @@ export function Editor(props: EditorProps) {
         focusedView = null;
         setFocused(null);
       }
+      destroying.add(view);
       view.destroy();
       viewRef.current = null;
     };
@@ -275,13 +316,13 @@ export function Editor(props: EditorProps) {
   }, [value]);
 
   useLayoutEffect(() => {
-    const now = partsOf({ id, isDisabled, label, placeholder, rows, variant });
+    const now = partsOf({ id, isAutoFocused, isDisabled, label, placeholder, rows, variant });
     viewRef.current?.dispatch({
       effects: Object.entries(parts).map(([part, compartment]) =>
         compartment.reconfigure(now[part as keyof typeof parts]),
       ),
     });
-  }, [id, isDisabled, label, placeholder, rows, variant]);
+  }, [id, isAutoFocused, isDisabled, label, placeholder, rows, variant]);
 
   useImperativeHandle(
     ref,

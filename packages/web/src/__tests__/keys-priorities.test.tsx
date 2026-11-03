@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atWidth, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
+import { atWidth, fieldText, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
 
 const PATH = "specs/PRIORITIES.md";
 
@@ -93,7 +93,7 @@ test("o opens a new row under the selected line, in its section, and Enter write
   await waitFor(() => expect(read(repo)).toContain("## Later\n\n- Later line 1\n- Later line 2\n"));
   // Enter opened the next new row under it; Escape drops it, and nothing more is written.
   const next = await within(later).findByRole("textbox", { name: "New proposal" });
-  expect((next as HTMLTextAreaElement).value).toBe("");
+  expect(fieldText(next)).toBe("");
   await press("Escape", next);
   await waitFor(() => expect(screen.queryByRole("textbox", { name: "New proposal" })).toBeNull());
   expect(read(repo)).toContain("## Later\n\n- Later line 1\n- Later line 2\n");
@@ -132,7 +132,7 @@ test("i turns the selected line into its field, with the line's text, and Enter 
 
   const next = screen.getByRole("list", { name: "Next lines" });
   const field = await within(next).findByRole("textbox", { name: "Edit the proposal" });
-  expect((field as HTMLTextAreaElement).value).toBe("Next line 2");
+  expect(fieldText(field)).toBe("Next line 2");
   await save(field, "Next line two");
   await waitFor(() => expect(read(repo)).toContain("- Next line two\n"));
   expect(read(repo)).not.toContain("Next line 2");
@@ -210,7 +210,7 @@ test("with the focus on the page, i edits the line the page opened on, the first
   await press("i");
 
   const field = await screen.findByRole("textbox", { name: "Edit the proposal" });
-  expect((field as HTMLTextAreaElement).value).toBe("Now line 1");
+  expect(fieldText(field)).toBe("Now line 1");
 });
 
 test("none of them act in the add form's text field", async () => {

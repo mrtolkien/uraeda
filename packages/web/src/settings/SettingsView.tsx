@@ -3,7 +3,6 @@
 // under the heading on narrow ones; while it holds text, it filters the rows, and a section left
 // without one is hidden. The title and the search stay in view as the page scrolls. A section named
 // in the address is scrolled into view, below them.
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
@@ -30,6 +29,7 @@ import { RunSettings } from "./RunSettings.tsx";
 import { RefusalsProvider } from "./SettingRow.tsx";
 import { type ServerActions, ServerSettings, type ServerValues } from "./ServerSettings.tsx";
 import { Empty } from "../layout/Empty.tsx";
+import { TextLine } from "../fields/TextLine.tsx";
 import { PageTitle } from "../layout/PageTitle.tsx";
 
 const styles = stylex.create({
@@ -94,12 +94,11 @@ function SearchField({
   wide: boolean;
 }) {
   return (
-    <TextInput
+    <TextLine
       isLabelHidden
       label="Search settings"
       onChange={onChange}
       placeholder="Search settings"
-      startIcon="search"
       value={text}
       // A field's width at the end of the heading row on a desktop; the whole line on a phone.
       width={wide ? "var(--size-settings-search)" : undefined}

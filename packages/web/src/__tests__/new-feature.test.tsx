@@ -12,6 +12,7 @@ import {
   atRepo,
   click,
   fakeAgent,
+  fieldText,
   fixture,
   fixtureRepo,
   git,
@@ -46,9 +47,7 @@ async function sendFeature() {
   await click(await screen.findByRole("button", { name: "Start the feature" }));
   const dialog = await screen.findByRole("dialog", { name: "Name the feature" });
   await waitFor(() =>
-    expect((within(dialog).getByRole("textbox", { name: "Slug" }) as HTMLInputElement).value).toBe(
-      "dark-mode",
-    ),
+    expect(fieldText(within(dialog).getByRole("textbox", { name: "Slug" }))).toBe("dark-mode"),
   );
   return dialog;
 }

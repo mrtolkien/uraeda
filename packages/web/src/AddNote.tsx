@@ -1,7 +1,6 @@
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { HStack } from "@astryxdesign/core/HStack";
 import { type FocusEvent, useEffect, useRef, useState } from "react";
@@ -18,6 +17,7 @@ import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { type EditorHandle, useEditorElement } from "./fields/editor/Editor.tsx";
 import { TextField } from "./fields/TextField.tsx";
+import { TextLine } from "./fields/TextLine.tsx";
 import { useTextField } from "./fields/useTextField.ts";
 import {
   type AddInput,
@@ -82,7 +82,7 @@ function CategoryField({
         value={category}
       />
       {category === NEW && (
-        <TextInput hasAutoFocus label="Category name" onChange={onName} value={name} />
+        <TextLine hasAutoFocus label="Category name" onChange={onName} value={name} />
       )}
     </>
   );

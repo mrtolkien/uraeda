@@ -1,6 +1,5 @@
-import { TextInput } from "@astryxdesign/core/TextInput";
-import type { KeyboardEvent } from "react";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
+import { TextLine } from "./fields/TextLine.tsx";
 import type { useTextField } from "./fields/useTextField.ts";
 
 /** What the notice says when the slug the file's name gives changed since one was typed. */
@@ -35,17 +34,11 @@ export function SlugField({
       {restoreNotice && field.restored && (
         <RestoreNotice changed={SLUG_CHANGED} onDiscard={field.discard} restored={field.restored} />
       )}
-      <TextInput
+      {/* Escape leaves the field, its text kept: the page's keys work again. */}
+      <TextLine
         description={description}
         label="Slug"
         onChange={field.change}
-        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
-          // Leaves the field, its text kept: the page's keys work again.
-          if (event.key === "Escape") {
-            event.preventDefault();
-            event.currentTarget.blur();
-          }
-        }}
         value={field.text}
         {...(error === undefined ? {} : { status: { message: error, type: "error" as const } })}
         {...(onEnter ? { onEnter } : {})}

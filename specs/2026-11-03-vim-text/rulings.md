@@ -60,3 +60,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   long comment as it is typed.
 - **If wrong**: `sizeTheme` in `fields/editor/theme.ts` sets `minHeight` in place of `height`.
 - **Where**: task 3
+
+## R7: A field's own keys are props of the editor, and one-line fields are `TextLine`
+
+- **Decision**: the editor takes a field's own keys as `keys`, CodeMirror key names bound in its
+  keymap before CodeMirror's own, each running the latest props' `run`: a row's Tab, Shift+Tab, and
+  Backspace in an empty new row, a filter's Down and Up. It takes `onBlur`, which a row saves on.
+  The one-line fields are `fields/TextLine.tsx`, the `line` editor under Astryx's `Field`, which
+  draws the label, the help, and an error as `TextInput` did. A search's magnifier icon
+  (`startIcon`) is left out: the placeholder says "Search".
+- **Rationale**: the plan asks for a row's Tab "through the editor's keymap, not a listener of its
+  own"; a keymap per caller would be a listener per file on the structural test's list.
+- **Alternatives considered**: an `extensions` prop, which lets a caller add any listener unseen by
+  the structural test; an icon drawn inside the editor's frame, a layout of its own for two fields.
+- **If wrong**: a field's key moves back to a `keymap.of` of its own file, on the allowlist.
+- **Where**: task 4

@@ -9,7 +9,6 @@
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { Fragment, type ReactNode, useRef, useState } from "react";
@@ -20,6 +19,7 @@ import { Sheet } from "../layout/Sheet.tsx";
 import { useBackCloses } from "../layout/useBackCloses.ts";
 import { useFieldFocus } from "../layout/useFieldFocus.ts";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
+import { TextLine } from "../fields/TextLine.tsx";
 import { KeyCap } from "./KeyCap.tsx";
 import { type KeyRow, keyMapSections, type KeySection, searchKeyMap, written } from "./keyMap.ts";
 import { menuVars } from "./menu.stylex.ts";
@@ -115,7 +115,7 @@ function Body({ sections }: { sections: ReadonlyArray<KeySection> }) {
   const found = searchKeyMap(sections, query);
   return (
     <div {...stylex.props(styles.body)}>
-      <TextInput
+      <TextLine
         hasAutoFocus
         isLabelHidden
         label="Search the keys"

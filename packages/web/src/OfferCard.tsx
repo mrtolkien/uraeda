@@ -4,7 +4,6 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { type ReactNode, Suspense, useCallback, useId, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
@@ -18,6 +17,7 @@ import { useFeatureTitle } from "./writes/labels.ts";
 import { writeHere } from "./writes/useWriteQueue.ts";
 import { Pane } from "./layout/Pane.tsx";
 import { TextField } from "./fields/TextField.tsx";
+import { TextLine } from "./fields/TextLine.tsx";
 import { StatusText } from "./fields/StatusText.tsx";
 
 /** The session an offer moves: its ID, its change's folder for a feature's offer, and whether its agent works. */
@@ -131,7 +131,7 @@ function ProposedSlug({
 function SlugField({ onChange, value }: { onChange: (slug: string) => void; value: string }) {
   return (
     <>
-      <TextInput
+      <TextLine
         description="Two words at most: it names the folder and the branch."
         label="Slug"
         onChange={onChange}
