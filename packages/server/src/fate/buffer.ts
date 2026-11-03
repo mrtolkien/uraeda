@@ -1,11 +1,31 @@
 // A buffer's mutation: a Markdown file under `specs/` saved as typed on its branch, never committed,
 // refused while an agent works on the feature it belongs to. It is apart from `views-buffer.ts`,
 // which the sources this mutation masks its answer with import.
-import type { Resolver } from "./context.ts";
+import type { RepoContext, Resolver } from "./context.ts";
 import { refusable } from "./errors.ts";
 import { writable } from "./sessions.ts";
 import { sources } from "./sources.ts";
-import { bufferDataView, sentBuffer } from "./views-buffer.ts";
+import { INBOX_ID, PRIORITIES_ID } from "./views.ts";
+import { bufferDataView, COMMIT_PANES_ID, sentBuffer } from "./views-buffer.ts";
+
+let sent = 0;
+
+/**
+ * Sends the records a save adds a change to: the Commit page's panes, and the commit bar's count,
+ * which the priorities and the inbox carry. The core's watcher sends them for the lists and the
+ * features only, not for a decision or the constitution saved on the default branch.
+ */
+function publishSaved(ctx: RepoContext) {
+  const live = ctx.hosts.byPath(ctx.repo)?.live;
+  const records = [
+    ["CommitPanes", COMMIT_PANES_ID],
+    ["Priorities", PRIORITIES_ID],
+    ["Inbox", INBOX_ID],
+  ] as const;
+  for (const [type, id] of records) {
+    live?.update(type, id, { eventId: `saved:${type}:${Date.now()}:${sent++}` });
+  }
+}
 
 /** The mutations of a buffer. */
 export const bufferMutations = {
@@ -21,6 +41,7 @@ export const bufferMutations = {
         await writable(ctx, { folder });
       }
       await refusable(() => ctx.binding.saveBuffer(ctx.repo, input.path, input.text, input.hash));
+      publishSaved(ctx);
       const read = await refusable(() => ctx.binding.readBuffer(ctx.repo, input.path));
       return sources.masked(bufferDataView, ctx, sentBuffer(read), select);
     },

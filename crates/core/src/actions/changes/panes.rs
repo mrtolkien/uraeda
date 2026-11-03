@@ -66,8 +66,8 @@ fn typed(message: &str) -> Option<(String, Option<String>)> {
     Some((subject, body))
 }
 
-/// Commits a pane's files with `message`, as typed, trimmed of the blank lines around it, and
-/// forgets the buffer's edits it committed. The default branch's commit may amend the latest one
+/// Commits a pane's files with `message`, as typed, trimmed of the blank lines around it. The
+/// record of the buffer's edits it commits ends as the commit lands (see [`crate::actions::edited`]). The default branch's commit may amend the latest one
 /// only with the suggested message; another branch's commits its files alone, leaving any other
 /// file of its worktree out. Refused with "A commit needs a message." when the message is blank.
 pub fn commit_pane(place: &Place, pane: Pane, message: &str) -> Result<Committed, ActionError> {
@@ -92,10 +92,9 @@ pub fn commit_pane(place: &Place, pane: Pane, message: &str) -> Result<Committed
     let mode = Mode {
         only: true,
         amends: false,
+        typed: true,
     };
-    let committed = commit::commit_as(place, &change, mode)?;
-    crate::actions::edited::clear(place, &listed.edits)?;
-    Ok(committed)
+    commit::commit_as(place, &change, mode)
 }
 
 /// Discards a pane: the default branch's as [`discard`] does; another branch's files a buffer

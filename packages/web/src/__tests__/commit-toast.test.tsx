@@ -1,7 +1,7 @@
 // US3 3 and its more scenario 2: a commit a hook refuses after the page moved on is undone, its
 // hook's output where it happened, at the verdict, and in the toast, which opens that place; a
 // message sent while it landed goes back in the composer.
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
@@ -103,4 +103,22 @@ test("a message sent while its feature's commit lands goes back in the composer 
   expect(
     screen.getByText(RETURNED, { ignore: "script, style, [data-astryx-live-region]" }),
   ).toBeTruthy();
+});
+
+// Break: the Commit page dropping the message the human typed as its deferred call returns, so
+// the hook's refusal that comes after leaves the suggestion in its place.
+test("a typed commit message stays once its commit is refused", async () => {
+  const repo = fixtureRepo();
+  refusingHook(repo);
+  const priorities = join(repo, "specs/PRIORITIES.md");
+  writeFileSync(priorities, `${readFileSync(priorities, "utf8")}\n- Global undo\n`);
+  await renderPage("/commit", repo);
+  const field = await screen.findByRole("textbox", { name: "Message" });
+  await type(field, "chore: plan the undo");
+
+  await click(screen.getByRole("button", { name: "Commit" }));
+
+  await refreshUntil(() => expect(refusedHere()?.textContent).toContain(OUTPUT));
+  const kept = screen.getByRole("textbox", { name: "Message" });
+  expect(fieldText(kept)).toBe("chore: plan the undo");
 });

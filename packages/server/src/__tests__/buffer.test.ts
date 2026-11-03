@@ -1,4 +1,4 @@
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { addChange, byId, commitOnBranch, type Data, git, mutate, testServer } from "./helpers.ts";
 
 type Server = Awaited<ReturnType<typeof testServer>>;
@@ -129,4 +129,26 @@ test("a feature pane is refused while its agent works", async () => {
   await server.sessions.mainRoot(server.repo);
   server.sessions.stop(server.repo, session.id as string);
   await server.sessions.settled(Number((session.turns as Array<Data>).at(-1)));
+});
+
+// Break caught: a decision saved in a buffer on the default branch, which the core's watcher sends
+// no list's update for, missing from an open Commit page and from the sidebar's count.
+test("a buffer's save sends the Commit page's panes and the count", async () => {
+  const server = await testServer();
+  const host = server.hosts.get(server.name)!;
+  const path = "specs/decisions/git.md";
+  const [before] = await byId(server.app, "Buffer", [path], ["id", "hash", "text"]);
+  const update = vi.spyOn(host.live, "update");
+
+  const saved = await mutate(
+    server.app,
+    "buffer.save",
+    { hash: before.hash, path, text: `${String(before.text)}\nOne more line.\n` },
+    ["id"],
+  );
+
+  expect(saved.error).toBeUndefined();
+  expect(update).toHaveBeenCalledWith("CommitPanes", "commit", expect.anything());
+  expect(update).toHaveBeenCalledWith("Priorities", "priorities", expect.anything());
+  expect(update).toHaveBeenCalledWith("Inbox", "inbox", expect.anything());
 });

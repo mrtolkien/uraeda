@@ -1,10 +1,11 @@
 //! Whether an action's commit amends the latest commit: both are `chore:` commits of proposal
 //! files, note files, the inbox, or the priorities alone, on the default branch, and no other
-//! branch holds the latest one. A run of small edits makes one commit, whose message lists them.
+//! branch holds the latest one, and its message is not one the human typed. A run of small edits
+//! makes one commit, whose message lists them.
 
 use std::fs;
 
-use crate::git::{Git, Latest};
+use crate::git::{Git, Latest, ObjectId};
 
 use super::Change;
 use super::place::Place;
@@ -15,6 +16,24 @@ const FOLDERS: [&str; 2] = ["specs/proposals/", "specs/notes/"];
 
 /// The type and the missing scope of the commits amended.
 const CHORE: &str = "chore: ";
+
+/// The file, in the repository's git folder, naming the latest commit whose message the human
+/// typed: amending it would rewrite that message into a list (ruling R13).
+const TYPED: &str = "uraeda-typed";
+
+/// Keeps the commit `id`, whose message the human typed, from being amended. Best effort: the
+/// commit landed, and a mark lost only lets a later commit amend it.
+pub(super) fn keep(place: &Place, id: ObjectId) {
+    if let Ok(git) = Git::open(&place.root) {
+        drop(fs::write(git.common_dir().join(TYPED), id.to_string()));
+    }
+}
+
+/// Whether the human typed the message of the commit `id`.
+fn typed(git: &Git, id: ObjectId) -> bool {
+    fs::read_to_string(git.common_dir().join(TYPED))
+        .is_ok_and(|kept| ObjectId::from_hex(kept.trim().as_bytes()).is_ok_and(|kept| kept == id))
+}
 
 /// The message of the latest commit amended with `change`, its subject and its body, or `None`
 /// when `change` is a commit of its own. A read that fails makes it a commit of its own.
@@ -30,6 +49,7 @@ pub fn message(place: &Place, change: &Change) -> Option<(String, String)> {
     let latest = git.latest().ok()??;
     if latest.parents.len() != 1
         || !joins(&latest.subject, latest.body.as_deref(), &latest.files)
+        || typed(&git, latest.id)
         || undoes(place, &git, &latest, &change.paths)
         || git.held_elsewhere(latest.id, &branch).unwrap_or(true)
     {
