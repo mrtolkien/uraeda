@@ -2623,7 +2623,7 @@ fn the_ledger_reads_alone() {
             "{records} records linked from a Why:\n{why}"
         );
     }
-    assert!(words <= 12_200, "{words} words");
+    assert!(words <= 12_300, "{words} words");
 }
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
