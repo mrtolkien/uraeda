@@ -282,6 +282,22 @@ fn an_edit_of_the_inbox_triage_is_reported() {
     assert!(next(&receiver).inbox);
 }
 
+/// US2 2: an agent's note file added alone, as a merge brings one, is a change of the inbox.
+#[test]
+fn an_agents_note_file_added_is_reported() {
+    let repo = repo();
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.write(
+        "specs/notes/feature-state-the-record.md",
+        "---\nagent: true\ncategory: Deferred fixes\n---\n\n# The record\n",
+    );
+
+    let changes = next(&receiver);
+    assert!(changes.inbox);
+    assert!(!changes.priorities);
+}
+
 /// The check's view follows its candidates, which are files of their own.
 #[test]
 fn an_edit_of_a_decisions_check_candidate_is_reported() {
