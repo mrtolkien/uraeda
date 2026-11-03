@@ -48,6 +48,12 @@ export type EditorActions = {
   quit(): void;
   /** Ctrl+Enter's action: `false` when the field has none. */
   submit(): boolean;
+  /**
+   * Vim's `:wq`: Ctrl+Enter's action, then the quit. A one-line field, whose Enter saves and closes
+   * as a row's, is left as a click away leaves it instead: its Escape would ask to discard what it
+   * just saved. Without Ctrl+Enter's action, the quit alone.
+   */
+  submitAndQuit(): void;
 };
 
 /**

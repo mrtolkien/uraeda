@@ -197,3 +197,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: `amend::keep` writes the mark for any branch's commit, and the mark holds one id per
   branch.
 - **Where**: task 7 (review fix pass)
+
+## R17: `:wq` leaves a one-line field it saved without its Escape
+
+- **Decision**: `:wq` runs the field's Ctrl+Enter, then, in a one-line field, leaves it as a click
+  away does; another field, or one with nothing to run, gets its quit, as `:q` (R15).
+- **Rationale**: a row's Enter saves and closes, and its Escape asks "Discard your changes?" while
+  the change is not yet saved: `:wq` asked over a row it had just saved, and a line's Escape could
+  drop its text while its save was in flight. A field of many lines keeps its quit, so the buffer
+  page's `:wq` saves, then goes back (US5, more scenarios 3).
+- **Alternatives considered**: `:wq` as `:w` alone in a one-line field, which leaves the focus in a
+  one-line field whose Enter does not close it.
+- **If wrong**: `submitAndQuit` in `fields/editor/Editor.tsx` runs the quit for every field.
+- **Where**: task 6 (review fix pass)

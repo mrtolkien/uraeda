@@ -261,26 +261,35 @@ function escape(view: EditorView, props: EditorProps, leave: () => void): "handl
 /** A field's actions, from its latest props: what its keys and a layer's commands run. */
 function actionsOf(view: EditorView, latest: { current: EditorProps }): EditorActions {
   const leave = () => view.contentDOM.blur();
+  const quit = () => {
+    const { onQuit } = latest.current;
+    if (onQuit) {
+      onQuit();
+    } else {
+      escape(view, latest.current, leave);
+    }
+  };
+  // A one-line field's Ctrl+Enter, and `:w`, is its Enter, as a row's saves it.
+  const submit = () => {
+    const { onEnter, onSubmit, variant } = latest.current;
+    const run = onSubmit ?? (variant === "line" ? onEnter : undefined);
+    run?.();
+    return run !== undefined;
+  };
   return {
     enter: () => {
       latest.current.onEnter?.();
       return latest.current.onEnter !== undefined;
     },
     escape: () => escape(view, latest.current, leave),
-    quit: () => {
-      const { onQuit } = latest.current;
-      if (onQuit) {
-        onQuit();
+    quit,
+    submit,
+    submitAndQuit: () => {
+      if (submit() && latest.current.variant === "line") {
+        leave();
       } else {
-        escape(view, latest.current, leave);
+        quit();
       }
-    },
-    // A one-line field's Ctrl+Enter, and `:w`, is its Enter, as a row's saves it.
-    submit: () => {
-      const { onEnter, onSubmit, variant } = latest.current;
-      const run = onSubmit ?? (variant === "line" ? onEnter : undefined);
-      run?.();
-      return run !== undefined;
     },
   };
 }
