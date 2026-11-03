@@ -1,0 +1,265 @@
+/* Mockup of the shared editor's look: Catppuccin Mocha, square corners, titles in borders. */
+:root {
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --crust: #11111b;
+  --surface: #313244;
+  --overlay: #6c7086;
+  --text: #cdd6f4;
+  --sub: #a6adc8;
+  --blue: #89b4fa;
+  --green: #a6e3a1;
+  --mauve: #cba6f7;
+  --red: #f38ba8;
+  --peach: #fab387;
+  --yellow: #f9e2af;
+  --teal: #94e2d5;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--base);
+  color: var(--text);
+  font:
+    15px/1.5 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  padding: 24px 24px 64px;
+}
+h1 {
+  font-size: 15px;
+  color: var(--sub);
+  font-weight: 600;
+  margin: 40px 0 6px;
+}
+h1:first-child {
+  margin-top: 0;
+}
+p.note {
+  color: var(--sub);
+  margin: 0 0 14px;
+  max-width: 760px;
+}
+.pane {
+  border: 1px solid var(--surface);
+  padding: 14px 12px 10px;
+  position: relative;
+  margin: 18px 0;
+  max-width: 760px;
+}
+.pane > h2 {
+  position: absolute;
+  top: -1px;
+  left: 10px;
+  margin: 0;
+  transform: translateY(-50%);
+  background: var(--base);
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--sub);
+  font-weight: 600;
+}
+/* The editor: a terminal's text, a 1 px frame, no rounded corners, no inner shadow. */
+.editor {
+  background: var(--mantle);
+  border: 1px solid var(--surface);
+  padding: 6px 10px;
+  overflow-wrap: anywhere;
+  min-height: 2.6em;
+}
+.editor.focused {
+  border-color: var(--overlay);
+}
+.editor.rows7 {
+  min-height: calc(7 * 1.5em + 14px);
+}
+.placeholder {
+  color: var(--overlay);
+}
+/* Markdown highlighting, from the theme's colours. */
+.md-h {
+  color: var(--mauve);
+  font-weight: 700;
+}
+.md-mark {
+  color: var(--overlay);
+}
+.md-em {
+  font-style: italic;
+  color: var(--text);
+}
+.md-strong {
+  font-weight: 700;
+}
+.md-code {
+  color: var(--peach);
+}
+.md-link {
+  color: var(--blue);
+  text-decoration: underline;
+}
+.md-url {
+  color: var(--overlay);
+}
+.md-list {
+  color: var(--teal);
+}
+.md-fm {
+  color: var(--sub);
+}
+.md-quote {
+  color: var(--sub);
+  font-style: italic;
+}
+/* Cursors: a bar in insert mode and without Vim, a block in normal mode. */
+.bar {
+  border-left: 2px solid var(--text);
+  margin-left: -1px;
+}
+.block {
+  background: var(--text);
+  color: var(--base);
+}
+.sel {
+  background: #45475a;
+}
+/* The status line at the bottom of wide screens. */
+.status {
+  background: var(--mantle);
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 12px 0 0;
+  font-size: 13px;
+  color: var(--sub);
+  max-width: 1000px;
+  margin: 6px 0;
+}
+.status kbd {
+  font: inherit;
+  color: var(--text);
+  border: 1px solid var(--surface);
+  padding: 0 4px;
+}
+.status .counts {
+  margin-left: auto;
+  color: var(--peach);
+}
+.mode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 10px;
+  font-weight: 700;
+  color: var(--crust);
+  letter-spacing: 0.04em;
+}
+.mode svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mode.nav {
+  background: var(--surface);
+  color: var(--sub);
+}
+.mode.normal {
+  background: var(--blue);
+}
+.mode.insert {
+  background: var(--green);
+}
+.mode.visual {
+  background: var(--mauve);
+}
+.mode.replace {
+  background: var(--red);
+}
+.prompt {
+  background: var(--crust);
+  border: 1px solid var(--surface);
+  border-top: none;
+  padding: 2px 10px;
+}
+.btn {
+  display: inline-block;
+  background: var(--mauve);
+  color: var(--crust);
+  padding: 2px 12px;
+  font-weight: 700;
+}
+.btn.quiet {
+  background: none;
+  color: var(--text);
+  border: 1px solid var(--surface);
+}
+.row-bar {
+  color: var(--sub);
+  font-size: 13px;
+  margin-top: 4px;
+  display: flex;
+  gap: 14px;
+}
+.phone {
+  width: 375px;
+  border: 1px solid var(--surface);
+  padding: 10px 6px;
+}
+.problem {
+  color: var(--red);
+  margin-top: 6px;
+}
+.banner {
+  border: 1px solid var(--peach);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
+.sw {
+  width: 38px;
+  height: 18px;
+  border: 1px solid var(--green);
+  position: relative;
+  flex: none;
+  margin-top: 4px;
+}
+.sw::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--green);
+}
+.setting {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-top: 1px solid var(--surface);
+}
+.setting h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.setting p {
+  margin: 2px 0 8px;
+  color: var(--sub);
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+/* One line of text; an empty one keeps its height. */
+.ln {
+  white-space: normal;
+  min-height: 1.5em;
+}
