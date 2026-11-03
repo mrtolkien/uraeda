@@ -887,7 +887,9 @@ The rules:
 2. **When the timer fires**:
    - `takeContinue` claims the continue; nothing happens without the claim;
    - `addContinue` counts it;
-   - `deliverContinue` sends it with `continuedLine(reason)`.
+   - `deliverContinue` sends it with `continuedLine(reason)`. Its turn is added `queued`, with its
+     line and message items, in the same synchronous step as the claim, with no `await` between
+     them. The session's queue then starts it as any queued turn (ruling R14).
 
    A refusal, such as the agent unavailable or the feature dropped, clears the turn's
    `continue_reason`: the turn asks with its own reason.
