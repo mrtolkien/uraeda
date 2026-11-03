@@ -579,15 +579,15 @@ git commit -m "feat(master-pr): a merged feature's line shows as merged"
 - Test: `nix develop -c cargo run -q -p uraeda-cli -- check skills/uraeda/assets/example/specs`, and
   the skill's structural tests in `crates/cli/tests/skill.rs`
 
-- [ ] **Step 1: Rewrite the references, the example, and the docs**, each rule of the spec where its
+- [x] **Step 1: Rewrite the references, the example, and the docs**, each rule of the spec where its
       step reads it, with `ura`'s command beside the manual steps
 
-- [ ] **Step 2: Run the task's validation**
+- [x] **Step 2: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS, and `ura check` on the example reports nothing.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add skills docs

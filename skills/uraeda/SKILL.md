@@ -80,7 +80,7 @@ specs/
   proposals/                # proposal files: upcoming features, human-written, free form:
                             # <slug>.md; a folder is a postponed feature, or a proposal with images:
                             # <slug>/proposal.md, images/, ...
-  notes/                    # note files: inbox notes with images, <slug>/note.md, images/
+  notes/                    # note files: inbox notes with images, and agents' notes
   decisions/                # decision ledger, one file per topic: due-dates.md
   ui/                       # the project's UI guides, free form: read before designing a view
   done/YYYY-MM-DD-<slug>.md # the record of a merged feature or change, in place of its folder

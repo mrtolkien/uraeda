@@ -16,12 +16,13 @@ the current branch's feature, or the only one waiting for that action.
 | `ura next [feature]`                                                                   | The target and its step, from [the table](../SKILL.md#finding-the-next-step)                                                           |
 | `ura check [path]`, `--fix`                                                            | The rules of [Markdown](conventions.md#markdown), file by file, and [repairs moved links](implementation.md#where-a-moved-link-points) |
 | `ura expand <text>`                                                                    | [Expands](projects.md#starting-postponing-and-dropping-a-feature) a proposal line into a file                                          |
-| `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`                   | [Adds a note](inbox.md#capture) to the inbox, and commits it                                                                           |
+| `ura note <text>`, `--category`, `--about`, `--agent`, `--no-commit`                   | [Adds a note](inbox.md#capture) to the inbox, or an agent's note file, and commits it                                                  |
+| `ura inbox`, `--json`                                                                  | Prints [the inbox](inbox.md#the-format), agents' notes included, by category                                                           |
 | `ura inbox clean`, `--dry-run`                                                         | Deletes [the orphan images](inbox.md#images-on-a-note) of proposal files and note files                                                |
 | `ura start <proposal>`, `--switch`, `--change`, `--feature`                            | [Starts](projects.md#starting-postponing-and-dropping-a-feature) a feature, or a change                                                |
 | `ura answer [feature] <Q2> <answer>`, `--submit`, `--resume`                           | Answers a round of questions, then submits it                                                                                          |
 | `ura review [feature] --comment`, `--approve`, `--request-changes`                     | [Reviews](conventions.md#review-files) a spec or a plan                                                                                |
-| `ura clean [feature]`, `--all`, `--dry-run`                                            | [Cleans](finish.md#after-the-merge) a merged feature                                                                                   |
+| `ura clean [feature]`, `--all`, `--dry-run`                                            | [Cleans](finish.md#after-the-merge) a merged feature: its worktree, branch, and line in the priorities                                 |
 | `ura upgrade`                                                                          | Installs `ura`'s latest release, then updates the user's skill                                                                         |
 | `ura lsp`                                                                              | Serves workflow files to editors: diagnostics, completion, outline, actions                                                            |
 | `ura add [folder]`                                                                     | Adds the repository holding a folder to the web UI's list                                                                              |
@@ -65,8 +66,9 @@ change and makes it a feature in place, as [Upgrading](change.md#upgrading) says
 - An answer or a note with a line starting with `#`, `**Answer:**`, or `**Notes:**`. A review
   comment with a line starting with `#`. They would read as a new heading or answer.
 - A commit while other files are staged, since it would carry them. The exceptions are `ura note`'s,
-  which commits `INBOX.md` alone, and `ura start`'s, which commits its own files alone: the other
-  changes, uncommitted or staged, stay as they are. A start is refused instead during a merge or a
+  which commits `INBOX.md`, or an agent's note file, alone, `ura clean`'s, which commits
+  `PRIORITIES.md` alone, and `ura start`'s, which commits its own files alone: the other changes,
+  uncommitted or staged, stay as they are. A start is refused instead during a merge or a
   cherry-pick on the default branch, where git refuses a commit of some files alone, and during a
   revert or a `git am`, which such a commit would end or leave half applied.
 - With `--switch`, a branch switch over uncommitted changes.

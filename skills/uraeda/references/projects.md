@@ -125,9 +125,10 @@ Do these only when a human asks.
      the proposal from the start. Proposals match branches through that link. Started proposals are
      those linking a dated folder's `proposal.md`, a feature's or a change's. Proposals started
      lower in **Now** stay where they are, and no blank line is left at the end of **Now**.
-     `PRIORITIES.md` lives on the default branch: feature branches only remove their own proposal,
-     in their last commit. While the branch is there, the folder is the branch's: the default
-     branch's copy is read as merged only once the branch is gone.
+     `PRIORITIES.md` lives on the default branch: branches never write it, and the feature's line
+     leaves it after the merge, when the human cleans the feature. While the branch is there, the
+     folder is the branch's: the default branch's copy is read as merged only once the branch is
+     gone.
   3. Create the branch `YYYY-MM-DD-feature-slug` from there, checked out in its worktree,
      `.worktrees/YYYY-MM-DD-feature-slug/`, unless the human asks to switch their checkout to it.
      Every later step writes on the branch.
@@ -158,12 +159,14 @@ Do these only when a human asks.
   `specs/proposals/<slug>/`, without its date: the proposal, the discovery rounds, and the
   questions, answered or not, stay as they are. Revert the branch's edits to the decisions: delete
   the ones it created. Restore the ones it changed or removed to their text at the merge base with
-  the default branch. In the same commit, move the feature's proposal in `PRIORITIES.md` to the
-  section the human names, **Later** for one not scheduled, after what it needs when it is blocked,
-  and link it to the folder's `proposal.md`. Commit with `chore(<slug>): postpone <feature name>`,
-  merge the branch into the default branch, and delete it. Then, on the default branch, repair the
-  links to the moved folder, as [the catch-up](implementation.md#where-a-moved-link-points) says:
-  with `ura`, `ura check --fix`. Commit them alone, `fix(<slug>): repair the links to moved files`.
+  the default branch. Commit with `chore(<slug>): postpone <feature name>`, merge the branch into
+  the default branch, and delete it. Then, on the default branch, in the next commit, move the
+  feature's proposal in `PRIORITIES.md` to the section the human names, **Later** for one not
+  scheduled, after what it needs when it is blocked, and link it to the folder's `proposal.md`:
+  `chore(<slug>): move <feature name> to <Section>`. The branch never writes `PRIORITIES.md`. Then
+  repair the links to the moved folder, as
+  [the catch-up](implementation.md#where-a-moved-link-points) says: with `ura`, `ura check --fix`.
+  Commit them alone, `fix(<slug>): repair the links to moved files`.
 - **Drop**: after the human confirms, on the default branch, remove the feature's or the change's
   proposal from `PRIORITIES.md`, and its dated folder, which the start put there, so the default
   branch keeps no folder of a dropped feature or change: it would read as merged once its branch is

@@ -236,8 +236,13 @@ branch, there is nothing to do.
    overwritten. Resolve conflicts:
    - **In code**: keep what both sides need, within the spec and the default branch's decisions. A
      resolution that needs a choice the spec does not settle is a reason to stop.
-   - **In `PRIORITIES.md`**: take the default branch's version, with this feature's proposal kept in
-     it.
+   - **In a record of `specs/done/`**: both sides repaired links in it. Take the default branch's
+     version, then repair the branch's links again in the next step. When the branch's side holds
+     more than link repairs, it is no repair: stop, as for any conflict needing a choice.
+   - **In a file the build generates**, like a binding's typings: take either side, then regenerate
+     it with the build, and commit what it writes. Never merge it by hand.
+   - **In `PRIORITIES.md` or `INBOX.md`**: a branch started before branches stopped writing them
+     still has its own edit: take the default branch's version. The branch never writes either.
    - **In a decision or the constitution**: stop, and start a new round of questions.
 4. **Repair the moved links.** The default branch may have moved or deleted a file the branch links:
    a proposal started, a note filed, a feature finished. Repair every link of `specs/` that no

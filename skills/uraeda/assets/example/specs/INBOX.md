@@ -8,5 +8,3 @@
 - [recurring-tasks] "Every weekday" wraps on a narrow window
 
 ## Storage
-
-- [agent] [tasks-reappear] Completing a task rewrites all 5,000 tasks in IndexedDB, in 300 ms

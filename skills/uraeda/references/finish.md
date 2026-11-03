@@ -7,8 +7,7 @@ ready for the human.
 - **Runs when**: the final review of a feature, or the review of a change, is done and its pull
   request is a draft; or the branch has the record, and its pull request is not ready yet
 - **Writes**: `specs/done/YYYY-MM-DD-<slug>.md`, the deletion of the folder, the links into it, the
-  records it supersedes, its proposal in `PRIORITIES.md`, and the pull request's body, made from the
-  record
+  records it supersedes, and the pull request's body, made from the record
 - **Ends at**: a human gate, the pull request
 
 A merged folder is mostly process: discovery notes, questions with their options, a plan with every
@@ -135,9 +134,13 @@ Links from other branches are theirs to fix, once this one is merged: their catc
 ## The finishing commit
 
 In one commit: the record, the deletion of the whole folder, its images included, the rewritten
-links, the older records' `superseded-by` and line, and the removal of the feature's proposal from
-`PRIORITIES.md`, if the branch still has it, with the blank line after it when it was the last
-started proposal. Its message: `finish(<slug>): <feature name>`. Run `ura check` first, with `ura`.
+links, and the older records' `superseded-by` and line. Its message:
+`finish(<slug>): <feature name>`. Run `ura check` first, with `ura`.
+
+The commit never touches `PRIORITIES.md` or `INBOX.md`: a branch writes neither, so parallel
+branches never conflict there. The feature's line stays in **Now** after the merge, shown as merged,
+until the human cleans it, as [after the merge](#after-the-merge) says. Its link into the deleted
+folder is no problem for `ura check`.
 
 ## Mark the pull request ready
 
@@ -157,7 +160,7 @@ commit.
    that was already there, a final review done without a fresh reviewer, a second reviewer, how a
    review comment was carried out, and, for a change, the points settled without asking, where the
    human checks the reading of the proposal. Its last line: "Once merged, run `ura clean` to remove
-   the worktree and the branch."
+   the worktree, the branch, and the line in the priorities."
 2. **The record's text**, from its title, without its frontmatter, and with its links made absolute
    at the finishing commit: a relative link or one from the repository root becomes
    `https://<forge>/<owner>/<repo>/blob/<finishing commit>/<path>`, its anchor kept. The body
@@ -205,10 +208,11 @@ feature that changes the behaviour says so in its own record. A link broken by a
 repaired as [the catch-up](implementation.md#where-a-moved-link-points) says: with `ura`,
 `ura check --fix`, and in the web UI, "Fix moved links" on the done feature's page.
 
-The branch and its worktree stay until the human cleans them. When you find a merged feature with a
-worktree or a local branch left, tell the human to run `ura clean`. A feature merged with its folder
-and no record shows as merged only once its branch is gone: remove its branch by hand, as below. By
-hand, from the main checkout, never forced:
+The branch, its worktree, and its line in `PRIORITIES.md` stay until the human cleans them. When you
+find a merged feature with a worktree, a local branch, or a line in the priorities left, tell the
+human to run `ura clean`. A feature merged with its folder and no record shows as merged only once
+its branch is gone: remove its branch by hand, as below. By hand, from the main checkout, never
+forced:
 
 1. `git worktree remove .worktrees/<folder>`: git refuses a worktree with uncommitted or untracked
    files, and they stay until the human deals with them. `git worktree prune` drops the record of a
@@ -217,6 +221,11 @@ hand, from the main checkout, never forced:
    `git log --cherry-pick --right-only --format=%H <default>...<branch>` lists the commits it lacks.
    When the merge is only on the forge yet, run it with `origin/<default>` too: a commit counts as
    merged when either list leaves it out. `-D`, because `-d` refuses a rebased branch.
+3. On the default branch, remove the line of `PRIORITIES.md` linking the folder's `proposal.md`,
+   with the blank line after it when it was the last started proposal, and commit it alone,
+   `chore(<slug>): remove "<name>" from the priorities`, `<name>` the line's text. When
+   `PRIORITIES.md` has other uncommitted changes, remove the line without committing: they are
+   someone's work in progress. A line already gone needs nothing.
 
 Remote branches are the forge's: GitHub's "Automatically delete head branches" setting removes them.
 

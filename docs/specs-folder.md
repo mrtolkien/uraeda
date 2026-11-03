@@ -100,7 +100,9 @@ tasks feature went through the whole workflow:
 7. **It finishes the feature** in the pull request's last commit. One
    [record](../skills/uraeda/assets/example/specs/done/2026-10-06-recurring-tasks.md) replaces the
    folder, with what the feature does, each question and its answer, and what changed after you
-   approved. Once you merge, `ura clean` removes its worktree and branch.
+   approved. Once you merge, its line stays in Now, shown as merged, and `ura clean` removes its
+   worktree, its branch, and the line. No branch edits `PRIORITIES.md` or `INBOX.md`, so features
+   built in parallel merge without conflicts there.
 
 Every file waiting for you opens with a summary of what is asked, how long it takes, and what to
 look at first. Its spec opened like this when it was submitted:
@@ -135,7 +137,7 @@ specs/
   INBOX.md                     # notes jotted down, waiting to be organized
   proposals/                   # upcoming features, free form: one becomes a dated folder when you
                                # say "start it"; a postponed feature keeps its folder here, undated
-  notes/                       # inbox notes with images: their files
+  notes/                       # inbox notes with images, and agents' notes: their files
   decisions/                   # decision ledger, one file per topic
   done/                        # one record per merged feature or change, in place of its folder
   changes/YYYY-MM-DD-<slug>/   # a change: your proposal, and the questions it needed
@@ -179,6 +181,7 @@ too big is offered to you as a feature, and becomes one in place, its code kept.
 ## The inbox
 
 Small things you notice while working, a misaligned icon or a confusing command, go in the inbox,
-`specs/INBOX.md`, in a few seconds. Use the web UI's ＋, or `ura note`, which agents use too. You
-organize the notes later into proposals or changes, by hand or by answering an agent's proposed
-triage.
+`specs/INBOX.md`, in a few seconds. Use the web UI's ＋, or `ura note`. An agent's note is a file of
+its own in `specs/notes/`, written on its branch, which shows in the inbox once merged; `ura inbox`
+lists them all. You organize the notes later into proposals or changes, by hand or by answering an
+agent's proposed triage.
