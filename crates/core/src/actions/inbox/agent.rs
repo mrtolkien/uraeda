@@ -1,6 +1,7 @@
 //! An agent's note acted on by its id, its file's path: turned into its line first, at the end of
 //! its category in `INBOX.md`, then acted on as a note linking its file (see the rulings of the
-//! "Master" PR, R2). A removal deletes the file alone, `INBOX.md` left as it was.
+//! "Master" PR, R2). A removal deletes the file alone, `INBOX.md` left as it was, and only when the
+//! file is as committed.
 
 use std::fs;
 
@@ -132,7 +133,9 @@ pub(super) fn moving(
 }
 
 /// Removes the agent's note `id` over `INBOX.md` as read at `previous`: its file goes, held for the
-/// removal's Undo, and `INBOX.md` stays as it was. `None` for an id that is no note file's path.
+/// removal's Undo, and `INBOX.md` stays as it was. Refused, writing nothing, when the file is not
+/// as `HEAD` has it: edited since its commit, or never committed, it holds the human's work. `None`
+/// for an id that is no note file's path.
 pub(super) fn remove(
     place: &Place,
     id: &str,
@@ -143,6 +146,11 @@ pub(super) fn remove(
     }
     let removed = unchanged(place, previous).and_then(|current| {
         as_line(place, &current, id).ok_or_else(|| no_note(id))?;
+        if !note_file::as_committed(place, id) {
+            return Err(ActionError::Refused(format!(
+                "{id} has uncommitted changes: the note was not removed"
+            )));
+        }
         note_file::remove(place, id)?;
         Ok(read(place))
     });

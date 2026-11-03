@@ -146,8 +146,9 @@ pub fn is_clean(place: &Place, path: &str) -> bool {
 }
 
 /// Runs `write`, an add to the file at `path`, then commits that file alone with `subject`, with
-/// the paths `also` gives once it ran, those the write deleted, when it was as committed before: other changes are
-/// someone's work in progress. A hook's refusal leaves the add written, uncommitted.
+/// the paths `also` gives once it ran, those the write deleted, when it was as committed before:
+/// other changes are someone's work in progress. A hook's refusal leaves the add written,
+/// uncommitted.
 pub fn add_alone<T>(
     place: &Place,
     path: &str,
@@ -160,7 +161,14 @@ pub fn add_alone<T>(
     if !clean {
         return Ok((written, Added::not("other-changes", None)));
     }
-    let mut paths = vec![path.to_string()];
+    // A file missing on disk and in `HEAD`, as `INBOX.md` before its first note, is no path to
+    // commit: the deletions of `also` are the whole commit.
+    let mut paths: Vec<String> = Some(path.to_string())
+        .filter(|path| {
+            place.root.join(path).exists() || super::place::committed(place, path).is_some()
+        })
+        .into_iter()
+        .collect();
     paths.extend(also());
     let change = Change {
         paths,
