@@ -14,7 +14,7 @@ import { Previews } from "./preview/runner.ts";
 import type { Host, Hosts } from "./repositories.ts";
 import type { Adapter } from "./runner/adapter.ts";
 import type { SessionCache } from "./runner/cache.ts";
-import { type SessionChange, Sessions } from "./runner/sessions.ts";
+import { type ContinueSettings, type SessionChange, Sessions } from "./runner/sessions.ts";
 import type { ServerSettings } from "./settings.ts";
 
 /** A session's live updates are sent at most this often while its items change. */
@@ -276,13 +276,15 @@ export function onTurnDone(
 
 /**
  * A session manager whose changes are sent as live updates, to the hosts of their repositories, and
- * whose features' turns that end done reach `onTurnDone`'s listeners.
+ * whose features' turns that end done reach `onTurnDone`'s listeners. `runs` gives the continues'
+ * settings in force.
  */
 export function createSessions(options: {
   adapter: Adapter;
   binding: Binding;
   cache: SessionCache;
   hosts: HostsOf;
+  runs?: () => ContinueSettings;
 }): Sessions {
   const publish = sessionPublisher(options.cache, options.binding, options.hosts);
   const sessions: Sessions = new Sessions({
@@ -301,6 +303,19 @@ export function createSessions(options: {
     },
   });
   return sessions;
+}
+
+/** The continues' settings in force, from the `[runs]` settings, read at each call. */
+export function continueSettings(settings: ServerSettings): () => ContinueSettings {
+  return () => {
+    const runs = settings.runs();
+    return {
+      afterLimit: runs.continueAfterLimit.inForce,
+      afterRestart: runs.continueAfterRestart.inForce,
+      beforeGate: runs.continueBeforeGate.inForce,
+      cap: runs.automaticContinues.inForce,
+    };
+  };
 }
 
 /**

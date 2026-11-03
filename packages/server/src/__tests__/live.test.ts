@@ -10,6 +10,7 @@ import { SessionCache } from "../runner/cache.ts";
 import { FakeAdapter } from "../runner/fake.ts";
 import { UNSENT_KEPT_MS } from "../runner/images.ts";
 import { startSessions } from "../server.ts";
+import { testSettings } from "../testing.ts";
 import {
   byId,
   fixtureRepo,
@@ -582,13 +583,16 @@ test("review focus 10: the server's start cleans chat images no session uses, ol
     text: "Look",
   });
 
+  const settings = await testSettings();
   const { stop } = await startSessions({
     adapter: new FakeAdapter(),
     binding,
     dataDir,
     hosts: () => undefined,
+    settings,
   });
   await stop();
+  settings.close();
 
   expect(readdirSync(images.dir).sort()).toEqual([held.id, recent.id].sort());
 });

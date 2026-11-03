@@ -74,6 +74,12 @@ export class Transcript {
         }
         return;
       }
+      case "limit":
+        // The later report of one refusal says more (R11); it counts once the turn fails.
+        if (turn) {
+          turn.limit = event.limit;
+        }
+        return;
       case "accepted":
       case "cancelled": {
         const sent = live.messages.get(event.id);
