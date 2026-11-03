@@ -209,3 +209,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a run at a gate would need a message of its own, which the spec does not give.
 - **Where**: task 11, `packages/server/src/fate/continue-all.ts` and
   `packages/web/src/home/Core.tsx`.
+
+## R20: Every decision of a feature's run reads its worktree's commit first
+
+- **Decision**: `Continuer.#decide` reads the feature's worktree commit, `binding.checkoutCommit`,
+  before its cap check, for every kind of continue, so a limit's `ended` returns a promise too, and
+  `Turns.end` publishes its end once the decision settled. A chat's decision reads nothing. After
+  the read, the decision is dropped when the human's message, a dismiss, or a turn queued after it
+  took the run over. The commit read at the decision is recorded as the continue fires, which stays
+  synchronous.
+- **Rationale**: the commit sets the count back before the cap is checked (rule 3, R5), and reading
+  it is asynchronous. Read at the fire, after the turn is queued, it could see the agent's next
+  commit and miss the reset. R18's "the limit's end is published at once" no longer holds: it is
+  published after the read, already waiting. The US3 test checks the published statuses on this
+  path. Found by building task 9.
+- **If wrong**: a limit's end reached NeedsYouList a few milliseconds later than before.
+- **Where**: task 9, `packages/server/src/runner/continuer.ts`.

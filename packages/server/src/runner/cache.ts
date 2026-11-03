@@ -17,6 +17,7 @@ import {
   reopenTurn,
   resetContinues,
   scheduleContinue,
+  serverCuts,
   startTurn,
   takeContinue,
   touch,
@@ -365,6 +366,9 @@ export class SessionCache {
   }
   latestLimitContinue(from: number): number | undefined {
     return latestLimitContinue(this.db, from);
+  }
+  serverCuts(reason: string, since: string): Array<TurnRow> {
+    return serverCuts(this.db, reason, since);
   }
   addContinue(session: string): number {
     return addContinue(this.db, session);

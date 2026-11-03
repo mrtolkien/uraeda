@@ -1070,7 +1070,8 @@ share.
 
 **Files:**
 
-- Modify: `packages/server/src/runner/continuer.ts`
+- Modify: `packages/server/src/runner/continuer.ts`, and `runner/cache-turns.ts` with `cache.ts` for
+  `serverCuts`
 - Test: `packages/server/src/runner/__tests__/continuer.test.ts`
 
 **Interfaces:**
@@ -1105,9 +1106,15 @@ The rules:
 
 3. **The count**: before each decision, the feature's worktree commit is read with
    `binding.checkoutCommit`. When it differs from the one recorded at the session's last continue,
-   the count goes back to 0. The commit is recorded at each fire, in memory (ruling R5).
+   the count goes back to 0. The commit read at the decision is recorded as its continue fires, in
+   memory (ruling R5): `fire` stays synchronous (R18). Every decision of a feature's run reads it,
+   so a limit's `ended` returns a promise too, and its end is published once decided (ruling R20). A
+   message or a dismiss during the read, or a turn queued after it, leaves the run to the human.
 
-- [ ] **Step 1: Write the failing tests**
+The restart scan reads the candidates with the cache's `serverCuts(reason, since)`, in
+`cache-turns.ts`. `ended` decides nothing when a turn is queued after the ended one, for every kind.
+
+- [x] **Step 1: Write the failing tests**
 
 "US2.1: a run the restart cut continues at the next start, with its line":
 
@@ -1130,11 +1137,15 @@ Rows where nothing is sent and the turn stays `interrupted`:
 - that turn ends `done` too, and nothing more is sent;
 - `sessionStatus` reads `halted`.
 
-"US4.2: a commit on the branch sets the count back to 0":
+"US4.2: a commit on the branch sets the count back to 0", with a cap of 2:
 
-- two gate continues, each on a different feature run: the count is 2;
-- `commitOnBranch` on the feature's branch, then the next stop: the count read before it is 0;
-- the stop continues.
+- a gate continue, whose turn meets the session's limit, then the limit's continue: the count is 2;
+  a gate continue cannot follow a gate continue, which rule 2 forbids;
+- the limit's continue calls `commitOnBranch` on the feature's branch, then stops before the gate;
+- the stop continues: a third gate message is sent, and the count is 1.
+
+The US3 test also records the statuses the manager publishes: the first end reads `waiting`, the
+second `halted`, so no end is published before its decision.
 
 The break each test catches:
 
@@ -1143,23 +1154,23 @@ The break each test catches:
 - US3: the gate continue asked again and again, until the cap.
 - US4.2: a count never set back, so a run that commits still reaches the cap.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/runner/__tests__/continuer.test.ts`
 - Expected: FAIL. No message is sent after the restart.
 
-- [ ] **Step 3: Implement the rules**
+- [x] **Step 3: Implement the rules**
 
-- [ ] **Step 4: Run the tests, then make the breaks.** Make the 6-hour window's and the gate-once
+- [x] **Step 4: Run the tests, then make the breaks.** Make the 6-hour window's and the gate-once
       breaks: PASS, then FAIL with each, then revert. Report the failures in the commit body.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`, and
   `nix develop -c vp test packages/server/src/runner packages/server/src/__tests__/sessions.test.ts`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/runner/
