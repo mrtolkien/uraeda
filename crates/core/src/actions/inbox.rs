@@ -384,7 +384,8 @@ pub fn place(
 }
 
 /// Inserts a note's lines, as written, before the note at `index` of a category, or at its end:
-/// Undo of a removal, which writes back the note file the removal took away, as it was.
+/// Undo of a removal, which writes back the note file the removal took away, as it was. An agent's
+/// note put back where the inbox shows its file gets its file alone back, `INBOX.md` unchanged.
 pub fn insert(
     place: &Place,
     category: Option<&str>,
@@ -392,6 +393,9 @@ pub fn insert(
     lines: &[String],
     previous: Option<&str>,
 ) -> Result<Inbox, ActionError> {
+    if let Some(inbox) = agent::restored(place, category, index, lines, previous)? {
+        return Ok(inbox);
+    }
     let inbox = apply(
         place,
         previous,
