@@ -31,6 +31,12 @@ whose answers either continue the implementation or revise the spec.
 - **Commit is a place of its own**: while changes wait, a Commit in the sidebar and in the phone's
   tabs opens the commit page, with what the commit holds, edited proposal files included.
   "Committing is its own dedicated view/flow."
+- **Saving never commits**: a buffer, a form, and a list only save their file, and the edit waits on
+  the commit page, unless the action says it commits.
+- **One pane per branch with changes**, the default branch's first, then each feature's whose files
+  a buffer changed. Each pane lists what its commit holds, its message in a field filled with the
+  suggestion, and its own Commit and Discard. A rewritten message is committed as typed, and "Use
+  the suggested message" brings the suggestion back. With one pane, the page looks as before.
 - **Discard asks first**, through the shared confirmation, since it destroys what was typed.
 - **Starting work may commit by itself**: a flow whose only sense is to start, like starting a
   feature, commits what it must without asking. "That much is ok."

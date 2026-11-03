@@ -16,8 +16,12 @@ import { sandboxEnv, seed } from "../sandbox/seed.ts";
 /** A project the benchmark opens: its folder, and its pages' prefix, `/r/<name>`. */
 export type Project = { folder: string; prefix: string };
 
-/** The served sandbox: its address, its projects, and what stops it and removes its folders. */
+/**
+ * The served sandbox: its address, its config folder, its projects, and what stops it and removes
+ * its folders.
+ */
 export type Served = {
+  config: string;
   key: string;
   projects: { realistic: Project; uraeda: Project };
   stop: () => void;
@@ -108,6 +112,7 @@ export async function serve(root: string): Promise<Served> {
   try {
     const { key, url } = await started(child);
     return {
+      config: sandbox.configDir,
       key,
       projects: {
         realistic: { folder: sandbox.projects.realistic, prefix: "/r/realistic" },

@@ -957,22 +957,24 @@ git commit -m "feat(vim-text): open any file of specs/ as a buffer"
 - Modify: `skills/uraeda/references/conventions.md` (a buffer's edits wait on the Commit page),
   `specs/ui/keyboard.md` (Vim mode, Escape, Shift+Escape, `Space b`), `docs/web-ui.md` (the editor,
   Vim mode and its commands, the buffer, the Commit page's panes),
-  `packages/web/scripts/performance-writes.ts` and `performance.ts` (a keystroke in a
-  2,000-character comment with Vim on, SC-002, against 16 ms)
+  `packages/web/scripts/performance-writes.ts`, `performance.ts`, `performance-report.ts`, and
+  `performance-setup.ts` (a keystroke in a 2,000-character comment with Vim on, SC-002, against 16
+  ms, its row's criterion `keystroke`), and the UI guides `surfaces.md`, `flows.md`, `phone.md`,
+  `wide.md`, and `components.md`, whose status line, fields, and Commit page changed
 
-- [ ] **Step 1: Write the pages**, each where [documentation](../decisions/documentation.md) says.
+- [x] **Step 1: Write the pages**, each where [documentation](../decisions/documentation.md) says.
 
 - [ ] **Step 2: Run the benchmark**
 
 - Run: `nix develop -c vp run performance`
 - Expected: every target met, the keystroke within 16 ms and reloads within 1 second.
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git commit -m "docs(vim-text): Vim mode, the buffer, and the Commit page's panes"

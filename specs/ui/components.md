@@ -37,8 +37,11 @@ anything, and a change made to one is made once.
 | An undo                                    | `layout/useUndoToast.ts`                                                                           |
 | A button that writes to git                | `writes/WriteButton.tsx`: it shows its result at once, never blocks, and names its write           |
 | A git write still landing, or refused      | `writes/CommitToast.tsx`, fed by `writes/useWriteQueue.ts`; its refusal on the page, `RefusedHere` |
-| A one-line field edited in place           | `EditableLine.tsx`'s `LineField`                                                                   |
+| Any text field, Vim mode included          | `fields/editor/Editor.tsx`, under the fields below; never Astryx's text fields, which lint refuses |
+| A one-line field                           | `fields/TextLine.tsx`; edited in place, `EditableLine.tsx`'s `LineField`                           |
 | A field of several lines                   | `fields/TextField.tsx`, its height by its `kind`, with `useTextField`'s unsaved store              |
+| A file opened as a buffer                  | `buffer/BufferPage.tsx`, its top line `buffer/Bufferline.tsx`, opened by `useBufferKey`            |
+| A branch's pane of the commit page         | `commit/BranchPane.tsx`                                                                            |
 | A comment                                  | `CommentForm.tsx`                                                                                  |
 | A message to the agent                     | `Composer.tsx`                                                                                     |
 | An agent's session: its messages and calls | `SessionView.tsx`, `Transcript.tsx`, `session/ActivityPanel.tsx`, `session/PlanProgress.tsx`       |
@@ -55,10 +58,13 @@ are its own:
   or a square glass button of its own when the bar has one or two; and with its word under a big
   icon in the phone's row actions.
 - `lists/RowBar.tsx`: the wide row bar's action, drawn as the row's supporting text.
-- `shell/StatusLine.tsx`: a hint, and the "need you" count, each pressed as text of the line.
+- `shell/StatusLine.tsx`: a hint, and the "need you" count, each pressed as text of the line; its
+  sections and their triangles in `shell/status/`, as the bundled fonts have no Powerline glyphs.
+- `fields/editor/`: every text field, over CodeMirror, as the
+  [Text editing](../decisions/text-editing.md) decision asks.
 - `keys/LeaderMenu.tsx`: a menu row, and the footer's back and close keys, drawn as the menu's text.
-- `lists/OutlineEditor.tsx`: the row's field, a `textarea` in the row's own font, with no frame,
-  growing with its text.
+- `lists/OutlineEditor.tsx`: the row's field, the shared editor's one line, wrapping and growing
+  with its text.
 - `layout/Room.tsx`: a room that eases its height open and closed, so what is under it glides into
   its place: the column's Unfold, and Home's Setup pane.
 

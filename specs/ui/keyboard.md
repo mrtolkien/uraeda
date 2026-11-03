@@ -23,18 +23,48 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 | `gg`, `G`                 | Top and bottom: the first and last row of a list, as `Home` `End`                                                         | Every page                            |
 | `g` then a letter         | Go: `h` home, `i` inbox, `p` priorities, `d` decisions, `s` sessions, `,` settings, `n` new, `c` commit, `r` a repository | Every page                            |
 | `Space`                   | The leader menu                                                                                                           | Every page                            |
+| `Space b`                 | Open the page's file as a buffer, the whole file to edit                                                                  | Every page showing one file           |
 | `?`                       | The key map: every key that works where the focus is, with a search                                                       | Every page                            |
 | `b`                       | Back                                                                                                                      | Every page                            |
 | `Ctrl+D`, `Ctrl+U`        | Half a screen down and up (never Cmd on a Mac, which the browser owns)                                                    | Every page                            |
 | `[`, `]`                  | Fold the sidebar, and the right column                                                                                    | `[` everywhere; `]` on wide screens   |
-| `Escape`                  | Leave the field, the layer, or the mode, and nothing more                                                                 | Every page                            |
+| `Escape`                  | Leave the field, the layer, or the mode, and nothing more; with Vim mode on, insert mode goes to normal mode first        | Every page                            |
 | `y`, `n`                  | Answer a confirmation                                                                                                     | The shared confirmation               |
 | `Ctrl+Enter`, `Cmd+Enter` | Send what a field holds, as its button does                                                                               | Every field of several lines          |
 
 A page's own keys are few, short, and mnemonic: the feature page's `n` for the next step and `s` `S`
 for its sessions, the inbox's `c` to move a note to a category and `p` to promote it, the
-priorities' `e` to expand a proposal into a file and `v` to switch between columns and a list. A
-page never gives a base key another meaning.
+priorities' `e` to expand a proposal into a file and `v` to switch between columns and a list. The
+Commit page's panes, one per branch with changes, take `j` `k` to select one among several, and
+`Enter` and `d` to commit or discard the selected pane, discarding after a yes/no. A page never
+gives a base key another meaning.
+
+## In a field
+
+Every text field is one editor, with keys of its own that the page never hears.
+
+- **`Enter`** runs a one-line field's action, like saving a row; in a field of several lines it adds
+  a line. `Ctrl+Enter` sends what any field holds, as its button does: a commit message's commits
+  its pane.
+- **`Escape` leaves the field**, keeping its text, and the page's keys work again: `j` moves the
+  selection. A changed row asks "Discard your changes?" first; in a layer, it is the layer's Escape.
+- **Vim mode**, a switch in the settings' Keyboard section, off by default, gives every field Vim's
+  keys. A field opens in insert mode, typing as without Vim. `Escape` goes to normal mode, and
+  `Escape` in normal mode is the field's own `Escape`, as above. `Shift+Escape` leaves the field
+  from any mode. `Enter` in normal mode saves a row, and moves down a line in a field of several
+  lines.
+- **Vim's commands** work in every field: `:w` is the field's `Ctrl+Enter`, `:q` its `Escape`, and
+  `:wq` both. A yank also reaches the system clipboard; a delete never replaces what was copied.
+- **Touch screens** have no Vim: on a phone, or wherever the main pointer is a finger, fields type
+  as without it.
+
+## The buffer
+
+`Space b` opens the file the page shows, frontmatter included, as a buffer: the center column holds
+its whole text, under a line naming the file. With Vim mode on, it opens in normal mode at the
+file's start, as Vim opens a file. `:w` or `Ctrl+Enter` saves it, without committing: the edit waits
+on the Commit page. `:q`, or `b` outside the text, goes back, asking first while the text is not
+saved; `:wq` saves, then goes back. `Escape` leaves the text for the page's keys, as in any field.
 
 ## Selection
 
@@ -68,11 +98,12 @@ page never gives a base key another meaning.
 
 ## What shows the keys
 
-- **The status line**, at the bottom of wide and semi-wide screens, shows the hints the page's
-  bindings declare (a binding with a `hint`), each one a button that does what its key does.
-  `Space menu` comes first, `? keys` second, and `[ ] fold` third, then the page's hints, in the
-  order the human uses them, the step that ends the page's work last ("Start should be at the end"),
-  then the shell's.
+- **The status line**, at the bottom of wide and semi-wide screens, in LazyVim's shape, opens with
+  the Vim mode while Vim mode is on: NAV while the keys act on the page, else the field's mode, as
+  NORMAL or INSERT. It then shows the hints the page's bindings declare (a binding with a `hint`),
+  each one a button that does what its key does. `Space menu` comes first, `? keys` second, and
+  `[ ] fold` third, then the page's hints, in the order the human uses them, the step that ends the
+  page's work last ("Start should be at the end"), then the shell's.
 - **The most important keys of the whole page**, decided page by page: "the status bar holds the
   _most important_ shortcuts for the _full page_". A key that works on every page (`b`, `Ctrl+D`,
   `gg`), a second key for an action already shown (`a` beside `o`, `Enter` beside `n`), and the

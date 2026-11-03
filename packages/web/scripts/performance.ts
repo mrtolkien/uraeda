@@ -7,9 +7,11 @@
  *
  * It times each success criterion of the performance pass: pages by click and by key (SC-001),
  * reloads (SC-002), writes from their press (SC-003), Start to its session (SC-004), a commit made
- * outside to its page (SC-005), and pages once a start made its worktree (SC-006). Each time is
- * printed against its target, 100 ms or 1 second, with the `Server-Timing` of the requests it
- * waited on, and the run exits 1 past any target.
+ * outside to its page (SC-005), and pages once a start made its worktree (SC-006). And a key typed
+ * in a 2,000-character comment with Vim mode on, to its frame (`keystroke`, Vim in text edit mode's
+ * SC-002); the reloads, of pages drawn with the editor, keep that feature's SC-003. Each time is
+ * printed against its target, 16 ms, 100 ms, or 1 second, with the `Server-Timing` of the requests
+ * it waited on, and the run exits 1 past any target.
  */
 import { fileURLToPath } from "node:url";
 import { type Browser, chromium } from "playwright";
@@ -17,7 +19,7 @@ import { clickColumn, keyPages, reloads, visited } from "./performance-pages.ts"
 import { installProbe, ServerTimes } from "./performance-probe.ts";
 import { Report, type Run } from "./performance-report.ts";
 import { buildRelease, type Project, serve, signIn } from "./performance-setup.ts";
-import { answer, approve, outsideCommit, promote, start } from "./performance-writes.ts";
+import { answer, approve, keystroke, outsideCommit, promote, start } from "./performance-writes.ts";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 
@@ -61,6 +63,7 @@ async function main(): Promise<boolean> {
     await promote(onRealistic, realistic.prefix, NOTE);
     await approve(onRealistic, `${realistic.prefix}${SPEC}`, realistic.folder);
     await outsideCommit(onRealistic, realistic.prefix, realistic.folder, "A note from outside");
+    await keystroke(onRealistic, `${realistic.prefix}${ROUND}`, served.config);
 
     const onUraeda: Run = { page, project: "uraeda", report, server };
     await pages(onUraeda, uraeda);

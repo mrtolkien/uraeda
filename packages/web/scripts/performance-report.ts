@@ -1,12 +1,16 @@
 /**
- * The benchmark's results: one row per time, against its criterion's target, 100 ms or 1 second,
- * printed as a table once the run ends.
+ * The benchmark's results: one row per time, against its criterion's target, 16 ms, 100 ms, or 1
+ * second, printed as a table once the run ends.
  */
 import type { Page } from "playwright";
 import type { Measured, ServerTimes } from "./performance-probe.ts";
 
-/** The success criteria, and each one's target in milliseconds. */
+/**
+ * The success criteria, and each one's target in milliseconds: the performance pass's, and
+ * `keystroke`, Vim in text edit mode's SC-002, a key drawn within a frame.
+ */
 export const TARGETS = {
+  keystroke: 16,
   "SC-001": 100,
   "SC-002": 1000,
   "SC-003": 100,

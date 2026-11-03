@@ -85,6 +85,75 @@ A flag or a variable holds for one run, is never written into the file, and the 
 is in force. A file that cannot be read is never overwritten: the server says why and uses its
 defaults until it is fixed.
 
+Its `[keyboard]` table holds the keys' settings, each applied at once:
+
+```toml
+[keyboard]
+single_key_shortcuts = true                    # the letter keys of every page, and the Space leader
+vim_mode = true                                # Vim's keys in every text field, off by default
+vim_commands = ["imap jj <Esc>", "nmap Y y$"]  # run in order when Vim starts, empty by default
+```
+
+## Editing text
+
+Every text field is the same editor, in the look of a terminal's text. Markdown is highlighted as
+you type, its marks dimmed, and long lines wrap. A one-line field grows with its text, up to 9
+lines, then scrolls; a pasted line break becomes a space. Enter saves a one-line field, and
+Ctrl+Enter saves any field, as its button does. Escape leaves the field and keeps its text, so the
+page's keys work again. A changed row asks "Discard your changes?" first.
+
+### Vim mode
+
+"Vim mode", in the settings' Keyboard section, gives every field Vim's keys, from CodeMirror's Vim
+engine. A field opens in insert mode, so typing works as without Vim. Escape goes to normal mode,
+and Escape in normal mode leaves the field. Shift+Escape leaves it from any mode. `:w` saves, as
+Ctrl+Enter does, `:q` leaves the field, and `:wq` does both. A yank also copies to the system
+clipboard; a delete never replaces what you copied.
+
+The status line at the bottom opens with the mode: NAV while keys act on the page, else the field's,
+like NORMAL or INSERT. At its right end, it shows the cursor's place, like "Top 3:9".
+
+Touch screens have no Vim: on a phone, or wherever the main pointer is a finger, fields type as
+without it, and the engine is never loaded.
+
+"Vim commands", under the switch, holds your own commands, one per line, like `imap jj <Esc>`. They
+run in order when Vim starts. A line the engine refuses shows its error under the field, like
+`Line 2: Not an editor command ":nmpa Q dd"`. A value of the wrong type in the file, like a string
+instead of a list, shows as a problem of the file.
+
+Keys the browser keeps never reach Vim: Ctrl+W closes the tab, even in insert mode. The Leave guard
+asks first while text is not saved.
+
+## Buffers
+
+On a page showing one file, like the priorities, the inbox, a decision, or a feature's spec,
+`Space b` opens the whole file as a buffer, frontmatter included. It fills the center column, under
+a line naming the file, and the status line names its branch. A file of a feature's folder opens
+from the feature's branch.
+
+`:w` or Ctrl+Enter saves the file, without committing it. `:q`, or `b` outside the text, goes back,
+asking first while the text is not saved; `:wq` saves, then goes back. With Vim mode on, a buffer
+opens in normal mode at the file's start. On the phone, the bottom bar holds Back and Save.
+
+A save is refused when the file changed since the buffer opened. A banner then offers "Copy my text"
+and "Load the new version". A feature's file is refused while its agent works: "An agent is working
+on this feature. Stop it first, or wait for it." Its edit then waits too, on the Commit page.
+
+## Committing
+
+Saving never commits. The inbox, the priorities, proposal and note files, and buffers only save
+their files, and Commit, in the sidebar or the phone's tabs, opens the Commit page. Actions that say
+they commit, like submitting a round's answers or a review's verdict, still commit at once.
+
+The Commit page shows a pane per branch with changes: the default branch's first, then each
+feature's whose files a buffer changed. Each pane lists what its commit holds, a buffer's file as
+"Edit <path>". Its message is a field filled with the suggested message. Rewrite it, and it is
+committed as typed; "Use the suggested message" brings the suggestion back. Each pane has its own
+Commit and Discard, and Discard asks first.
+
+With several panes, `j` and `k` select one, and Enter and `d` commit or discard it. Ctrl+Enter in a
+message commits its pane. On the phone, a single pane's Commit and Discard sit in the bottom bar.
+
 ## Reaching it from another device
 
 The server listens on 127.0.0.1 only. To reach Uraeda from a public address, put a proxy that ends
