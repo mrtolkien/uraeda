@@ -385,7 +385,7 @@ git commit -m "feat(master-pr): act on an agent's note as on its line"
   [R3](rulings.md#r3-ura-note---agent-on-the-default-branch-writes-a-line-as-before) says, and
   prints `added to the inbox` or `added to the inbox, not committed`, as today.
 
-- [ ] **Step 1: Rewrite the tests of the replaced behaviour**
+- [x] **Step 1: Rewrite the tests of the replaced behaviour**
 
 Rewrite `an_agents_note_from_a_feature_worktree_stays_on_its_branch` as
 `an_agents_note_from_a_feature_worktree_is_a_note_file`:
@@ -396,24 +396,27 @@ twice in the worktree of `2026-10-15-add-scratchpad`; assert the first commit ch
 the second wrote `...-running-2.md`, `INBOX.md` is unchanged on the branch (SC-003), and `main` has
 no new commit. Rewrite `an_agents_note_about_a_feature` and
 `an_about_naming_a_change_writes_its_slug` to assert the file's name and `about:` instead of
-`INBOX.md`'s line.
+`INBOX.md`'s line, both from a feature's worktree; the first's old body, on `main`, stays as
+`an_agents_note_on_the_default_branch_is_a_line` for
+[R3](rulings.md#r3-ura-note---agent-on-the-default-branch-writes-a-line-as-before), and the second
+keeps its human note's line on `main`.
 
 The break each test catches: a write to `INBOX.md` on the branch; a second note overwriting the
 first; `about` lost.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-cli --test note`
 - Expected: FAIL, the commit changed `specs/INBOX.md`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core crates/cli

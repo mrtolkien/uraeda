@@ -13,6 +13,7 @@ use super::place::Place;
 use super::{ActionError, Change, Committed, STALE, changes, commit};
 
 mod agent;
+mod agent_file;
 mod categories;
 mod image;
 mod merge;
@@ -21,6 +22,7 @@ mod note_file;
 mod undo;
 mod unlink;
 
+pub use agent_file::agent_note;
 pub use categories::{add_category, remove_category, rename_category, restore_category};
 pub use image::{NoteImage, add_with_image, attach_to_note, with_images};
 pub(crate) use merge::put_back_links;

@@ -1,4 +1,5 @@
-//! `ura note`: a note written to `specs/INBOX.md` on the default branch, and committed alone.
+//! `ura note`: a note written to `specs/INBOX.md` on the default branch, and committed alone; an
+//! agent's note from a feature's or a change's worktree, a note file of its own on its branch.
 
 mod common;
 
@@ -81,32 +82,93 @@ fn a_note_from_a_feature_worktree_is_committed_on_main() {
     assert_eq!(repo.porcelain(), "");
 }
 
-/// An agent's note from a feature's worktree is committed on the feature's branch, never on `main`.
+/// US2 1: an agent's note from a feature's worktree is a note file of its own, committed alone on
+/// the feature's branch, `INBOX.md` untouched there (SC-003) and `main` unchanged; a second note of
+/// the same words gets `-2`.
 #[test]
-fn an_agents_note_from_a_feature_worktree_stays_on_its_branch() {
+fn an_agents_note_from_a_feature_worktree_is_a_note_file() {
     let repo = repo();
     let worktree = feature_worktree(&repo);
     let main_head = repo.subjects("main");
+    let inbox = repo.git(&["show", &format!("{FEATURE}:{INBOX}")]);
+    let args = [
+        "note",
+        "The workspace record's running is read by no view",
+        "--agent",
+        "--category",
+        "Deferred fixes",
+    ];
+
+    let first = ura_in(&worktree, &args, &[]);
+    let second = ura_in(&worktree, &args, &[]);
+
+    assert_eq!(first.code, 0, "{}", first.stderr);
+    assert_eq!(first.stderr, "added to the inbox\n");
+    assert_eq!(second.code, 0, "{}", second.stderr);
+    let file = "specs/notes/add-scratchpad-the-workspace-records-running";
+    assert_eq!(
+        repo.changed_in(&format!("{FEATURE}~1")),
+        [format!("{file}.md")]
+    );
+    assert_eq!(repo.changed_in(FEATURE), [format!("{file}-2.md")]);
+    assert_eq!(
+        repo.subjects(FEATURE)[0],
+        "chore: add \"The workspace record's running is read…\" to the inbox"
+    );
+    assert_eq!(
+        std::fs::read_to_string(worktree.join(format!("{file}.md"))).unwrap(),
+        "---\nagent: true\nabout: add-scratchpad\ncategory: Deferred fixes\n---\n\n\
+         # The workspace record's running is read by no view\n"
+    );
+    assert_eq!(repo.git(&["show", &format!("{FEATURE}:{INBOX}")]), inbox);
+    assert_eq!(repo.subjects("main"), main_head);
+    assert_eq!(run_git(&worktree, &["status", "--porcelain"]), "");
+}
+
+/// An agent's note about another feature, from a feature's worktree: the file is named and marked
+/// with the slug `--about` names.
+#[test]
+fn an_agents_note_about_a_feature() {
+    let repo = repo();
+    feature(
+        &repo,
+        "2026-10-14-session-view",
+        &[("proposal.md", proposal())],
+    );
+    let worktree = feature_worktree(&repo);
 
     let output = ura_in(
         &worktree,
-        &["note", "Status hangs on a broken worktree", "--agent"],
+        &[
+            "note",
+            "Opening a session with 2,000 messages takes 4 s",
+            "--agent",
+            "--about",
+            "session-view",
+            "--category",
+            "UI",
+        ],
         &[],
     );
 
     assert_eq!(output.code, 0, "{}", output.stderr);
-    assert_eq!(repo.subjects("main"), main_head);
+    let file = "specs/notes/session-view-opening-a-session-with.md";
+    assert_eq!(repo.changed_in(FEATURE), [file]);
+    assert_eq!(
+        std::fs::read_to_string(worktree.join(file)).unwrap(),
+        "---\nagent: true\nabout: session-view\ncategory: UI\n---\n\n\
+         # Opening a session with 2,000 messages takes 4 s\n"
+    );
     assert_eq!(
         repo.subjects(FEATURE)[0],
-        "chore: add \"Status hangs on a broken worktree\" to the inbox"
+        "chore: add \"Opening a session with 2,000 messages…\" to the inbox"
     );
-    assert_eq!(repo.changed_in(FEATURE), [INBOX]);
-    assert_eq!(repo.porcelain(), "");
 }
 
-/// US5 1: an agent's note, about another feature, in a file that does not exist yet.
+/// R3: on the default branch's checkout, an agent's note is a line of `INBOX.md`, as before, in a
+/// file that does not exist yet.
 #[test]
-fn an_agents_note_about_a_feature() {
+fn an_agents_note_on_the_default_branch_is_a_line() {
     let repo = TestRepo::new();
     specs(&repo, "# Priorities\n\n## Now\n");
     feature(
@@ -341,12 +403,31 @@ fn an_about_naming_a_change_writes_its_slug() {
         &[("proposal.md", "# Broken link\n".to_string())],
     );
 
+    let worktree = feature_worktree(&repo);
+
     let output = note(&repo, &["Links break on rename", "--about", "broken-link"]);
+    let agents = ura_in(
+        &worktree,
+        &[
+            "note",
+            "Links break on rename",
+            "--agent",
+            "--about",
+            "broken-link",
+        ],
+        &[],
+    );
 
     assert_eq!(output.code, 0, "{}", output.stderr);
     assert!(
         repo.read(INBOX)
             .contains("- [broken-link] Links break on rename\n")
+    );
+    assert_eq!(agents.code, 0, "{}", agents.stderr);
+    assert_eq!(
+        std::fs::read_to_string(worktree.join("specs/notes/broken-link-links-break-on-rename.md"))
+            .unwrap(),
+        "---\nagent: true\nabout: broken-link\n---\n\n# Links break on rename\n"
     );
 }
 

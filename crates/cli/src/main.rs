@@ -61,7 +61,8 @@ enum Command {
         /// this checkout's branch
         #[arg(long, add = complete::started())]
         about: Option<String>,
-        /// Mark the note as written by an agent
+        /// Mark the note as written by an agent. In a feature's or a change's worktree, write it as
+        /// a note file of its own, specs/notes/<slug>-<words>.md, committed on its branch
         #[arg(long)]
         agent: bool,
         /// Leave INBOX.md for you to commit
