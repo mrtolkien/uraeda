@@ -252,7 +252,7 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: two resets a minute apart may interleave their runs, each still a minute apart.
 - **Where**: task 8, `packages/server/src/runner/continuer.ts` and `cache-turns.ts`.
 
-## R22: A session's changes wait for the decision of its turn's continue
+## R23: A session's changes wait for the decision of its turn's continue
 
 - **Decision**: while `Continuer.ended`'s promise is pending, every change the session publishes is
   held in `Live.held`, and published in order once the decision settled, after the turn's end. The
