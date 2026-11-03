@@ -367,20 +367,34 @@ test("interrupted stops the running turns of gone servers, ended at their last a
   const deadTurn = gone.addTurn({ sessionId: dead.id, ...workflowTurn });
   const unclaimed = gone.createSession(chat);
   const unclaimedTurn = gone.addTurn({ sessionId: unclaimed.id, ...workflowTurn });
+  // A queued turn gets its message when queued, before it starts.
+  const late = gone.createSession({ ...feature, folder: "2026-10-15-late" });
+  gone.claimSession(late.id);
+  const lateTurn = gone.addTurn({ sessionId: late.id, ...workflowTurn, state: "queued" });
+  gone.appendItem(lateTurn, {
+    id: "m1",
+    kind: "message",
+    origin: "workflow",
+    state: "pending",
+    text: "Go on.",
+  });
   vi.setSystemTime(new Date("2026-11-03T01:00:00.000Z"));
   gone.appendItem(deadTurn, { kind: "text", streaming: false, text: "Writing the plan." });
+  vi.setSystemTime(new Date("2026-11-03T02:00:00.000Z"));
+  gone.startTurn(lateTurn);
   vi.setSystemTime(new Date("2026-11-03T08:00:00.000Z"));
   const ours = SessionCache.open(path);
 
   const stopped = ours.interrupted("Stopped: the server stopped while it ran.");
 
-  expect(stopped.map((turn) => turn.id)).toEqual([deadTurn, unclaimedTurn]);
+  expect(stopped.map((turn) => turn.id)).toEqual([deadTurn, unclaimedTurn, lateTurn]);
   expect(stopped[0]).toMatchObject({
     endedAt: "2026-11-03T01:00:00.000Z",
     reason: "Stopped: the server stopped while it ran.",
     state: "stopped",
   });
   expect(stopped[1]?.endedAt).toBe("2026-11-03T00:30:00.000Z");
+  expect(stopped[2]?.endedAt).toBe("2026-11-03T02:00:00.000Z");
   expect(ours.turn(theirTurn)?.state).toBe("running");
   expect(ours.turn(done)?.state).toBe("done");
 });

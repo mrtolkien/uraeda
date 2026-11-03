@@ -74,7 +74,8 @@ export function dismiss(db: DatabaseSync, turn: number): boolean {
 /**
  * Marks the turns still `running` or `queued` as stopped with the reason, and returns them, when
  * `orphaned` says their session's holder, a pid or null, no longer runs them. Each ends at its last
- * activity, its latest item or else its start, not now: a crash's server may start hours later.
+ * activity, the later of its latest item and its start (a queued turn's message is kept before it
+ * starts), else now: not now when it has either, as a crash's server may start hours later.
  */
 export function interrupted(
   db: DatabaseSync,
@@ -89,8 +90,9 @@ export function interrupted(
       )
       .all() as Array<{ id: number; pid: number | null }>;
     const stop = db.prepare(
-      `UPDATE turns SET state = 'stopped', reason = ?1, ended_at = COALESCE(
-         (SELECT at FROM items WHERE turn_id = ?2 ORDER BY seq DESC LIMIT 1), started_at, ?3)
+      `WITH last AS (SELECT at FROM items WHERE turn_id = ?2 ORDER BY seq DESC LIMIT 1)
+       UPDATE turns SET state = 'stopped', reason = ?1, ended_at = COALESCE(
+         MAX((SELECT at FROM last), started_at), (SELECT at FROM last), started_at, ?3)
        WHERE id = ?2 RETURNING *`,
     );
     return running
