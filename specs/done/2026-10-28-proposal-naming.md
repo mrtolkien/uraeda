@@ -9,6 +9,7 @@ supersedes:
     2026-10-18-start-draft-folder,
     2026-10-20-inbox-images,
   ]
+superseded-by: [2026-11-03-master-pr]
 ---
 
 # Record: Proposal naming
@@ -18,6 +19,8 @@ supersedes:
 > The record of a merged change, not instructions to follow. Started on 2026-10-28, finished on
 > 2026-10-29, in [its pull request](https://github.com/mrtolkien/uraeda/pull/64). Its full files are
 > in git: `git log -- specs/changes/2026-10-28-proposal-naming/`.
+>
+> Superseded in part by [2026-11-03-master-pr](2026-11-03-master-pr.md).
 
 ## What and why
 

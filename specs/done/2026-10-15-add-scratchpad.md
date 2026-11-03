@@ -2,7 +2,7 @@
 kind: feature
 finished: 2026-10-16
 pull-request: https://github.com/mrtolkien/uraeda/pull/20
-superseded-by: [2026-10-28-proposal-naming, 2026-11-01-move-relinks]
+superseded-by: [2026-10-28-proposal-naming, 2026-11-01-move-relinks, 2026-11-03-master-pr]
 ---
 
 # Record: Inbox
@@ -16,6 +16,8 @@ superseded-by: [2026-10-28-proposal-naming, 2026-11-01-move-relinks]
 > Superseded in part by [2026-10-28-proposal-naming](2026-10-28-proposal-naming.md).
 >
 > Superseded in part by [2026-11-01-move-relinks](2026-11-01-move-relinks.md).
+>
+> Superseded in part by [2026-11-03-master-pr](2026-11-03-master-pr.md).
 
 ## What and why
 
