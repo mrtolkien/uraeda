@@ -25,7 +25,11 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   committed; its Undo restores the file alone when the note goes back where the inbox showed it, and
   writes the line back, linking the file it restores, anywhere else. A move that drops the note
   where the inbox showed it writes nothing, its file keeping its `category`: the checkout stays as
-  `HEAD` has it, with nothing for the commit bar.
+  `HEAD` has it, with nothing for the commit bar. The index of a `place` or a drop among a
+  category's notes counts them as the inbox shows them, its agents' notes after its lines: when it
+  falls past the category's lines, whichever note moves, the lines of the agents' notes shown before
+  that place are written first, in the inbox's order, so the index counts the same notes in
+  `INBOX.md`.
 - **Rationale**: the spec's architecture gives the actions one owner of the turn into a line, and
   the actions on a linked note file already remove, move, and promote its file.
 - **If wrong**: an action that forgets the turn refuses with "no note", losing nothing.
