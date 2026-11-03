@@ -39,7 +39,8 @@ whatever font is picked. Lines are 1.4 high everywhere: "just do 1.4 everywhere"
   since `ch` would be measured in the font of whatever element reads it.
 - **Text wraps the plain way**, each line as full as its words allow. Safari's `text-wrap: pretty`
   and `balance` even out every line of a paragraph, so each stops short of the border: "Why is the
-  right border so much bigger than the left". The lint refuses both.
+  right border so much bigger than the left". The lint refuses both in a style, and no view passes
+  them to Astryx's `Text` or `Heading` either.
 - **A pane of prose is as wide as its prose**: a reading page's pane (`Page`'s `reading` kind: the
   round, the spec, the plan, a document, the data model) is at most a reading pane, the measure and
   the pane's own padding and border, so its text fills it and never stops short of the border: a
