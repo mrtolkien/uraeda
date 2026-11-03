@@ -5,10 +5,10 @@ plan's.
 
 ## Agent's note file
 
-A note file of `specs/notes/` that no note of `INBOX.md` links. It is a note of the inbox on its
-own, at the end of its category. An agent writes one per note, on its branch, named
-`<slug>-<words>.md`: the slug of the feature or change it is about, then the note's first words. Two
-branches never pick the same name, since their slugs differ.
+A note file of `specs/notes/` that no link of `INBOX.md` reaches, a note's or a nested item's. It is
+a note of the inbox on its own, at the end of its category. An agent writes one per note, on its
+branch, named `<slug>-<words>.md`: the slug of the feature or change it is about, then the note's
+first words. Two branches never pick the same name, since their slugs differ.
 
 ```md
 ---

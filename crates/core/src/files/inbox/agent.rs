@@ -1,5 +1,6 @@
-//! Agents' notes: the note files of `specs/notes/` that no note of `INBOX.md` links. Each is a note
-//! of the inbox on its own, shown where `ura note` would add its line: at the end of its category.
+//! Agents' notes: the note files of `specs/notes/` that no link of `INBOX.md` reaches. Each is a
+//! note of the inbox on its own, shown where `ura note` would add its line: at the end of its
+//! category.
 //! A branch adds one instead of editing `INBOX.md`, so parallel branches never conflict there.
 
 use super::{Note, add, note_line, parse};
@@ -95,9 +96,23 @@ fn agent_note(file: &NoteFile) -> AgentNote {
     }
 }
 
-/// The agents' notes among `files`: the note files no note of `text` links, by path.
+/// The files the links of `INBOX.md`'s text `text` resolve to, from the top level: a note's, and
+/// any other link of the file, like one in a note's nested item.
+fn linked_files(text: &str) -> Vec<String> {
+    let mut linked: Vec<String> = parse(text).iter().filter_map(Note::file).collect();
+    linked.extend(
+        crate::files::markdown::Document::parse(text)
+            .links
+            .iter()
+            .filter(|link| !link.wiki && !link.image)
+            .filter_map(|link| crate::workspace::resolve("specs", &link.target)),
+    );
+    linked
+}
+
+/// The agents' notes among `files`: the note files no link of `text` reaches, by path.
 pub(crate) fn agent_notes(text: &str, files: &[NoteFile]) -> Vec<AgentNote> {
-    let linked: Vec<String> = parse(text).iter().filter_map(Note::file).collect();
+    let linked = linked_files(text);
     let mut notes: Vec<AgentNote> = files
         .iter()
         .filter(|file| is_note_file_path(&file.path) && !linked.contains(&file.path))

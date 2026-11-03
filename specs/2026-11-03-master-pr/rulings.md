@@ -95,3 +95,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   proposal; dropped without the Undo writing it back, the Undo would lose the file's marks.
 - **Where**: `crates/core/src/actions/expand.rs` `note_as_proposal`,
   `crates/core/src/actions/inbox/note_file.rs` `back_to_notes`
+
+## R9: Any link of `INBOX.md` makes a note file no agent's note
+
+- **Decision**: a note file of `specs/notes/` is an agent's note only when no link of `INBOX.md`
+  reaches it: a note's own link, or any other markdown link of the file, like one in a nested item,
+  resolved from `specs/`.
+- **Rationale**: a file linked from a nested item showed twice, as that item and as an agent's note
+  at the end of its category; the spec's edge case has the line win.
+- **Where**: `crates/core/src/files/inbox/agent.rs` `agent_notes`

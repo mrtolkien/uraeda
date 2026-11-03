@@ -192,14 +192,15 @@ The tasks of a wave are built at the same time, then merged and reviewed while t
   - `pub struct NoteFile { pub path: String, pub text: String }`: a note file of `specs/notes/`,
     `<name>.md` or `<name>/note.md`, its path from the top level.
   - `pub fn read(text: &str, files: &[NoteFile]) -> Inbox`: as today for `INBOX.md`'s notes, their
-    ids, keys, and lines unchanged; then each file no note links, sorted by path, as an `InboxNote`
-    with `id` its path, `file` its path, `agent`, `about` (when a slug), and its category from the
-    frontmatter, `text` the link markdown `[<title>](notes/<file>)` and `file_title` the title,
-    `start_line` and `end_line` 0, `lines` the one line `inbox::note_line` gives for that link with
-    its marks, a key unique besides every line's key and `triage`. It shows where
-    `inbox::add(text, category, line)` would put that line: at the end of its category, a category
-    `INBOX.md` lacks after the file's own, in order, no category after the notes without one.
-    `count` and `names` include them. The title is the file's first `# ` heading, else its name.
+    ids, keys, and lines unchanged; then each file no link of `INBOX.md` reaches (a note's, or one
+    in a nested item), sorted by path, as an `InboxNote` with `id` its path, `file` its path,
+    `agent`, `about` (when a slug), and its category from the frontmatter, `text` the link markdown
+    `[<title>](notes/<file>)` and `file_title` the title, `start_line` and `end_line` 0, `lines` the
+    one line `inbox::note_line` gives for that link with its marks, a key unique besides every
+    line's key and `triage`. It shows where `inbox::add(text, category, line)` would put that line:
+    at the end of its category, a category `INBOX.md` lacks after the file's own, in order, no
+    category after the notes without one. `count` and `names` include them. The title is the file's
+    first `# ` heading, else its name.
   - `pub fn joined(text: &str, files: &[NoteFile]) -> String`: `text` with each such line added by
     `inbox::add`, in path order: what the commit bar diffs.
   - `pub fn note_files(list: impl Fn() -> Vec<String>, read: impl Fn(&str) -> Option<String>) -> Vec<NoteFile>`
