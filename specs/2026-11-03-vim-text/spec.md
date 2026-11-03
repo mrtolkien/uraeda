@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 4
+status: awaiting-human
+revision: 5
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,21 +8,19 @@ plan-review: false
 
 # Spec: Vim in text edit mode
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-11-03: 1 comment in spec-review.md.
+> Spec to review, about 10 minutes.
 >
 > - You approve one editor, built on CodeMirror, for every text field: Markdown highlighted, long
 >   lines wrapped, Vim mode behind a switch, the mode in the status line, and a buffer for any file.
-> - Since your review, a buffer only saves: nothing commits on its own, and its edits wait on the
->   Commit page, like every other edit.
-> - A changed decision, Git: tools commit your edits only when you ask, on the Commit page or by an
->   action that says it commits. Only starting a feature or a change commits on its own.
-> - I read "an action that says it commits" as keeping today's: "Add and commit" in the inbox,
->   submitting answers, a review's verdict, and the proposal editor's Commit.
-> - The Commit page grows: it lists the files a buffer changed, on the default branch and, per
->   feature, on its branch, each branch committed apart.
-> - Unchanged: the editor, Vim mode, the status line, the buffer's layout, and the other decisions.
+> - Since your review, the Commit page has one pane per branch with changes, each with its own
+>   changes, message, Commit, and Discard: a new story, with its mockup.
+> - Each pane's message is a field, filled with the suggested message; you can rewrite it, and go
+>   back to the suggestion.
+> - On the phone, two panes put their buttons in each pane; one pane keeps today's bottom bar.
+> - Two rare scenarios moved to the edge cases, keeping the spec at 30 scenarios.
+> - Unchanged: the editor, Vim mode, the status line, the buffer, and the decisions.
 
 The [proposal](proposal.md) asks for Vim's keys in every text field, as many as possible, with the
 mode in the status line and a buffer for any file. The [discovery](discovery-01.md) found one
@@ -31,9 +29,9 @@ with Markdown highlighting even without Vim.
 
 ## Your review
 
-- **C1** (no commit on save, and a decision for it): done. A buffer's save writes the file only, and
-  the Commit page commits it. The Git decision now says tools commit your edits only when you ask,
-  and only starting a feature or a change commits on its own.
+- **C1** (a commit per branch, and an editable message): done. The Commit page has a pane per branch
+  with changes, each committed by its own Commit, and each message is a field you can rewrite. See
+  [commit each branch apart](#us6-commit-each-branch-apart-p2).
 
 ## Decisions
 
@@ -82,8 +80,6 @@ More scenarios:
 1. **Given** you paste "first\nsecond" into a priority row, **When** the paste lands, **Then** the
    row reads "first second".
 2. **Given** the composer, **When** you paste a PNG image, **Then** it attaches, as today.
-3. **Given** the sign-in page, **When** your password manager fills the password, **Then** it works
-   as today: the password field stays the browser's own.
 
 ### US2: Vim's keys, behind a switch (P1)
 
@@ -111,8 +107,6 @@ More scenarios:
    comment, the cursor moves down a line.
 3. **Given** a phone, or any screen whose main pointer is touch, **When** Vim is on, **Then** fields
    have no Vim and the engine is not loaded.
-4. **Given** the search of the `?` key map, a dialog, **When** you press Escape in normal mode,
-   **Then** the key map closes, as today.
 
 ### US3: The mode in the status line (P2)
 
@@ -136,8 +130,6 @@ More scenarios:
 
 1. **Given** normal mode, **When** you press `v`, `V`, `Ctrl+V`, `R`, or `:`, **Then** the mode
    reads VISUAL, V-LINE, or V-BLOCK in mauve, REPLACE in red, or COMMAND in peach.
-2. **Given** a screen reader, **When** the mode changes in a field, **Then** the new mode is read
-   out politely, once.
 
 ### US4: Your own Vim commands (P2)
 
@@ -180,8 +172,7 @@ Key scenarios:
 More scenarios:
 
 1. **Given** a feature's spec page, **When** you press `Space b`, **Then** its `spec.md` opens from
-   the feature's branch, a save writes it there, and the Commit page lists it under the feature,
-   committed apart as `chore(<slug>): edit spec.md`.
+   the feature's branch, and a save writes it there.
 2. **Given** the feature's agent is working, **When** you save its spec's buffer, **Then** it is
    refused, in the banner: "An agent is working on this feature. Stop it first, or wait for it."
 3. **Given** unsaved text in a buffer, **When** you type `:q`, or press `b` outside the text,
@@ -190,6 +181,24 @@ More scenarios:
    bottom bar holds Back and Save, its only controls.
 5. **Given** home or the settings, pages showing no single file, **When** you press `Space b`,
    **Then** nothing happens, and the leader menu does not list it there.
+
+### US6: Commit each branch apart (P2)
+
+The Commit page shows a pane per branch with changes: the default branch's, then each feature's
+whose files a buffer changed. Each pane lists what its commit holds, its message in a field you can
+rewrite, and its own Commit and Discard.
+
+[The Commit page, two branches](mockups/commit.html)
+
+Key scenarios:
+
+1. **Given** you saved `specs/PRIORITIES.md` and the spec of "vim-text" in buffers, **When** you
+   open the Commit page, **Then** it shows a "main" pane holding "Edit specs/PRIORITIES.md" and a
+   "2026-11-03-vim-text" pane holding "Edit spec.md", each with its Commit.
+2. **Given** those two panes, **When** you press Commit in the feature's, **Then** only its branch
+   gets the commit `chore(vim-text): edit spec.md`, and the "main" pane stays.
+3. **Given** the "main" pane's message "chore: edit specs/PRIORITIES.md", **When** you rewrite it as
+   "chore: add Global undo to Now" and commit, **Then** the commit has your message, as typed.
 
 ## Replaced behaviour
 
@@ -203,57 +212,47 @@ More scenarios:
 - **Escape does nothing in a field without its own handler**: comments, notes, a question's comment,
   quick-add lines, the inbox's add form, and most one-line fields. Guarded by no test.
 - **A one-line field scrolls sideways past its width.** Guarded by no test.
+- **The Commit page commits the default branch only, with the core's message.** Guarded by the
+  commit tests of the core's changes and the server's `changes.commit`, which keep passing with the
+  suggested message.
 - **The core writes as text only proposal files, note files, and a feature's top-level files.**
   Guarded by no test: the test refusing paths that climb out of `specs/proposals/` stays as it is.
 
 ## Architecture
 
 Every field becomes one shared editor over CodeMirror 6, with
-[`@codemirror/lang-markdown`](https://github.com/codemirror/lang-markdown) for highlighting and
-[`@replit/codemirror-vim`](https://github.com/replit/codemirror-vim) for Vim, the engine Overleaf
-and JupyterLab ship (see [discovery](discovery-01.md#replitcodemirror-vim-codemirror-6)). The field
+[`@codemirror/lang-markdown`](https://github.com/codemirror/lang-markdown) and
+[`@replit/codemirror-vim`](https://github.com/replit/codemirror-vim), the Vim engine Overleaf and
+JupyterLab ship (see [discovery](discovery-01.md#replitcodemirror-vim-codemirror-6)). The field
 components keep their props and callers, so pages change little.
 
-- **The editor** draws every text field, in three variants by class: one line (wraps, grows, refuses
-  line breaks, Enter as today), several lines (rows by kind, Ctrl+Enter), and the composer (grows
-  upward, takes pasted and dropped images). It owns Markdown highlighting, wrapping, the
-  placeholder, the field's accessible name, the terminal look over the theme's tokens, and Escape:
-  outside a layer it leaves the field, or cancels an in-place line or a row; inside a layer it is
-  the layer's. `TextField`, `LineField`, the outline row, the composer's field, and the one-line
-  call sites use it.
-- **The Vim layer** loads in its own chunk when the app starts, only with the switch on and a fine
-  main pointer, and adds the engine to every editor. It owns starting in insert mode, Escape in
-  normal mode and Shift+Escape handing over to the editor's Escape, `:w`, `:q`, and `:wq`, Enter in
-  a one-line field's normal mode, yanks reaching the clipboard, and running your commands once,
-  keeping the refused lines and their errors. Registers, marks, and macros are the engine's, shared
-  by every field of the tab.
+- **The editor** draws every text field in three variants: one line (wraps, grows, refuses line
+  breaks), several lines (rows by kind), and the composer (grows upward, takes images). It owns
+  highlighting, wrapping, the accessible name, the terminal look over the theme's tokens, and
+  Escape: it leaves the field or cancels a row, and inside a layer it is the layer's.
+- **The Vim layer** loads in its own chunk at start, only with the switch on and a fine main
+  pointer. It owns insert mode at focus, Escape and Shift+Escape handing over to the editor's
+  Escape, `:w`, `:q`, `:wq`, yanks reaching the clipboard, and your commands with their errors.
 - **The mode store** holds the focused field's mode, or NAV, and its cursor's place.
-- **The status line** takes lualine's sections, as LazyVim sets them: the mode, the branch, the file
-  and the page's hints, then the counts and the cursor's place. Its separators are triangles it
-  draws, since the bundled fonts have no Powerline glyphs. Each mode has lualine's name, a Lucide
-  icon, and the Catppuccin lualine theme's colour: NAV `compass` grey, NORMAL `square` blue, INSERT
-  `pencil` green, VISUAL, V-LINE, and V-BLOCK `square-dashed` mauve, REPLACE `replace` red, COMMAND
-  `terminal` peach. The branch shows on a buffer only. The sections are files of their own:
-  `StatusLine.tsx` has 240 lines.
-- **The settings** gain `vim_mode` and `vim_commands` in the core's `[keyboard]` table, through the
-  binding, the server's settings view and mutations, and the Keyboard section: the switch, the
-  commands' field, and its refused lines. See the [data model](data-model.md).
-- **The buffer** is a page at `/buffer/<path>`, over the proposal editor's hook, keeping the
-  frontmatter. It fills the center column, the sidebar beside it and the right column folded away,
-  under a top line drawn as bufferline draws a buffer: the path's folders, the file's icon and name,
-  and a dot while the text is unsaved. Its `:q` and `:wq` go back. Its save writes the file only,
-  with the conflict check of today, and never commits. The core's rule for text writes accepts any
-  Markdown file under `specs/`, from the default branch or, for a feature's folder at any depth,
-  from its branch. `Space b` is declared on the pages showing one file: the proposal editor, a
-  feature's file pages, the inbox, the priorities, a decision, and a document.
-- **The Commit page** lists every Markdown file under `specs/` changed and not committed, beside the
-  lists and the proposal files it lists today, and, in a group per feature, the files changed on
-  that feature's branch. It commits the default branch's and each feature's apart, each with its own
-  message, and Discard drops them as it does today. The core lists them, and owns the messages.
-- **A lint rule** forbids Astryx's text fields outside the editor, with the password's and the
-  picker's exceptions marked in place.
-- **The documentation**: the skill's conventions gain the commit message of a file edited whole, the
-  keyboard guide gains Vim and `Space b`, and [`docs/web-ui.md`](/docs/web-ui.md) describes both.
+- **The status line** takes lualine's sections, its separators triangles it draws, since the bundled
+  fonts have no Powerline glyphs. Icons are Lucide's: NAV `compass`, NORMAL `square`, INSERT
+  `pencil`, the visual modes `square-dashed`, REPLACE `replace`, COMMAND `terminal`. Its sections
+  are files of their own, since `StatusLine.tsx` has 240 lines.
+- **The settings** gain `vim_mode` and `vim_commands`, from the core to the Keyboard section. See
+  the [data model](data-model.md).
+- **The buffer** is a page at `/buffer/<path>` over the proposal editor's hook, keeping the
+  frontmatter, in the center column under its bufferline. Its save writes only, with today's
+  conflict check. The core's text writes accept any Markdown file under `specs/`, on the default
+  branch or, for a feature's folder, on its branch. `Space b` is declared on every page showing one
+  file.
+- **The Commit page** has a pane per branch with changes, the default branch's first, each with its
+  changes, its message field, and its own Commit and Discard; with one pane, it looks as today. The
+  core lists each branch's changes, now with any Markdown file under `specs/`, and suggests its
+  message; a commit takes the message as typed.
+- **A lint rule** forbids Astryx's text fields outside the editor, the password and the picker
+  marked in place.
+- **The documentation**: the skill's conventions, the keyboard guide, and
+  [`docs/web-ui.md`](/docs/web-ui.md).
 
 Tradeoffs:
 
@@ -264,21 +263,23 @@ Tradeoffs:
 
 ## Edge cases
 
-| Importance | Situation                                                          | What happens                                                                                      |
-| ---------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| High       | Vim on, a changed row, Escape twice quickly                        | the first goes to normal mode; the second asks "Discard your changes?" before dropping anything   |
-| High       | A buffer saved over a file changed underneath                      | nothing is written; the conflict banner offers to copy the text or load the new version           |
-| High       | A buffer edit breaks the file's format, like a decision's sections | saved as typed, and committed only from the Commit page; `ura check`'s problems show as today     |
-| Normal     | Committing a feature's buffer edits while its agent works          | refused on the Commit page: "An agent is working on this feature. Stop it first, or wait for it." |
-| High       | Turning Vim mode off while a field holds unsaved text              | the field loses Vim at once; the text stays, unsaved, in the same field                           |
-| Normal     | Shift+Escape in Chrome on Linux, where it opens the task manager   | the field takes it, as JupyterLab's Vim does                                                      |
-| Normal     | A dead key or an input method in normal mode                       | the engine's known gap: the character may be inserted; insert mode works as today                 |
-| Normal     | `"+p` without clipboard permission                                 | the browser asks for it, or offers its own Paste; nothing is pasted until allowed                 |
-| Normal     | A one-line field with a 2,000-character line                       | it wraps and grows; past 9 lines, as tall as the phone's composer, it scrolls inside              |
-| Normal     | A buffer open on a screen too short for its text                   | the text scrolls inside the window; the status line stays at the bottom                           |
-| Normal     | The `:` prompt in a one-line field                                 | it opens under the field, as in a multi-line one                                                  |
-| Niche      | Ctrl+W in insert mode                                              | the browser closes the tab; the Leave guard asks first when text is unsaved                       |
-| Niche      | An iPad with a keyboard, its main pointer touch                    | no Vim, as on a phone                                                                             |
+| Importance | Situation                                                                | What happens                                                                                                        |
+| ---------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| High       | Vim on, a changed row, Escape twice quickly                              | the first goes to normal mode; the second asks "Discard your changes?" before dropping anything                     |
+| High       | A buffer saved over a file changed underneath                            | nothing is written; the conflict banner offers to copy the text or load the new version                             |
+| High       | A buffer edit breaks the file's format, like a decision's sections       | saved as typed, and committed only from the Commit page; `ura check`'s problems show as today                       |
+| High       | A commit message emptied                                                 | Commit is refused in its pane: "A commit needs a message."                                                          |
+| High       | Turning Vim mode off while a field holds unsaved text                    | the field loses Vim at once; the text stays, unsaved, in the same field                                             |
+| Normal     | The changes grow after you rewrote the message                           | your message stays; the pane's list shows the new change, and "Use the suggested message" brings the new suggestion |
+| Normal     | Two panes on the phone                                                   | each pane holds its own Commit and Discard, and the bottom bar holds none                                           |
+| Normal     | Escape in normal mode in a dialog's field, like the `?` key map's search | the dialog closes, as today                                                                                         |
+| Normal     | Committing a feature's buffer edits while its agent works                | refused on the Commit page: "An agent is working on this feature. Stop it first, or wait for it."                   |
+| Normal     | Shift+Escape in Chrome on Linux, where it opens the task manager         | the field takes it, as JupyterLab's Vim does                                                                        |
+| Normal     | A dead key or an input method in normal mode                             | the engine's known gap: the character may be inserted; insert mode works as today                                   |
+| Normal     | `"+p` without clipboard permission                                       | the browser asks for it, or offers its own Paste; nothing is pasted until allowed                                   |
+| Normal     | A one-line field with a 2,000-character line                             | it wraps and grows; past 9 lines, as tall as the phone's composer, it scrolls inside                                |
+| Niche      | A screen reader, when the Vim mode changes in a field                    | the new mode is read out politely, once                                                                             |
+| Niche      | Ctrl+W in insert mode                                                    | the browser closes the tab; the Leave guard asks first when text is unsaved                                         |
 
 ## Success criteria
 
@@ -307,8 +308,6 @@ Settled while writing this spec:
 - **Checked in throwaway experiments**, under happy-dom: the engine's `i`, Escape, `dw`, and typed
   keys work, Escape in normal mode reaches the page, yanks reach the clipboard through the engine's
   register controller, and a refused command carries the engine's message.
-- **The mode names** are lualine's, which LazyVim shows: NORMAL, INSERT, VISUAL, V-LINE, V-BLOCK,
-  REPLACE, COMMAND, with NAV for the page's keys, as you asked.
 - **No clock**, unlike LazyVim's status line: its right end keeps the counts.
 - **Code blocks** are highlighted as Markdown, not by their language, to keep the size.
 - **One buffer at a time**: the top line shows the open file only, not a list of buffers, as Uraeda
@@ -318,6 +317,8 @@ Settled while writing this spec:
   commits only its own files, and the edit waits on the Commit page.
 - **A buffer opens** with its cursor at the file's start, in normal mode with Vim mode on, as when
   Vim opens a file: a buffer is read before it is edited.
+- **The Commit page's keys**: with several panes, `j` and `k` select one, and Enter and `d` commit
+  or discard the selected pane only; Ctrl+Enter in a message commits its pane.
 - **`Space b`** is free on every page, and "b" reads as buffer.
 
 ## Constitution check
@@ -332,6 +333,22 @@ Medium: two new settings keys, wider text writes in the core, a Commit page list
 and every field of the UI changes its element, with no stored data converted.
 
 ## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-11-03: 1 comment in spec-review.md.
+>
+> - You approve one editor, built on CodeMirror, for every text field: Markdown highlighted, long
+>   lines wrapped, Vim mode behind a switch, the mode in the status line, and a buffer for any file.
+> - Since your review, a buffer only saves: nothing commits on its own, and its edits wait on the
+>   Commit page, like every other edit.
+> - A changed decision, Git: tools commit your edits only when you ask, on the Commit page or by an
+>   action that says it commits. Only starting a feature or a change commits on its own.
+> - I read "an action that says it commits" as keeping today's: "Add and commit" in the inbox,
+>   submitting answers, a review's verdict, and the proposal editor's Commit.
+> - The Commit page grows: it lists the files a buffer changed, on the default branch and, per
+>   feature, on its branch, each branch committed apart.
+> - Unchanged: the editor, Vim mode, the status line, the buffer's layout, and the other decisions.
 
 > [!NOTE]
 >
