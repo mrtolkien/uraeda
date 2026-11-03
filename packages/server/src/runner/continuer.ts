@@ -1,6 +1,8 @@
 // The automatic continues of the run lifecycle decision: whether a stopped turn continues, and
 // when; the switches, the cap, and what sets the count back; the stagger; and the cancels. The
 // cache holds every pending continue: a timer only wakes this server to claim one.
+import { resolve } from "node:path";
+import type { FeatureView } from "uraeda-binding";
 import type { SessionRow, TurnRow } from "./cache.ts";
 import type { ContinueReason, Limit } from "./events.ts";
 import { continuedLine } from "./message.ts";
@@ -301,12 +303,10 @@ export class Continuer {
       return;
     }
     // A feature gone from the repository has no gate to go on to.
-    const step = await binding.readFeature(session.repo, session.folder).then(
-      (feature) => feature.step,
-      () => undefined,
-    );
+    const feature = await binding.readFeature(session.repo, session.folder).catch(() => undefined);
+    const step = feature?.step;
     if (step?.waitsOn === "agent" && step.name !== "pull-request-unknown") {
-      await this.#decide(turn, "gate", Date.now, taken);
+      await this.#decide(turn, "gate", Date.now, taken, feature);
     }
   }
 
@@ -322,6 +322,7 @@ export class Continuer {
     reason: ContinueReason,
     at: () => number,
     taken: number,
+    feature?: FeatureView,
   ): Promise<void> {
     const { cache } = this.#context;
     const session = cache.session(turn.sessionId);
@@ -331,7 +332,7 @@ export class Continuer {
     if (cache.itemsOf(turn.id, "denial").some((denial) => !denial.allowed)) {
       return;
     }
-    const commit = await this.#commitOf(session);
+    const commit = await this.#commitOf(session, feature);
     // The human's message, Stop, or a dismiss while the commit was read takes the run over.
     const now = cache.turn(turn.id);
     if (
@@ -344,7 +345,9 @@ export class Continuer {
     ) {
       return;
     }
-    if (commit !== undefined) {
+    if (commit === undefined) {
+      this.#decidedAt.delete(session.id);
+    } else {
       const recorded = this.#commits.get(session.id);
       if (recorded !== undefined && recorded !== commit) {
         cache.resetContinues(session.id);
@@ -362,15 +365,22 @@ export class Continuer {
     this.#arm(turn.id, time);
   }
 
-  /** The commit the feature's worktree has checked out, for its count: none for a chat. */
-  async #commitOf(session: SessionRow): Promise<string | undefined> {
+  /**
+   * The commit the feature's worktree has checked out, for its count: none for a chat, nor for a
+   * feature without a worktree. Read only: the worktree is never created here, nor the repository
+   * locked.
+   */
+  async #commitOf(session: SessionRow, read?: FeatureView): Promise<string | undefined> {
     const { binding } = this.#context;
     if (session.folder === null) {
       return undefined;
     }
     try {
-      const dir = await binding.workDir(session.repo, session.folder);
-      return (await binding.checkoutCommit(dir)) ?? undefined;
+      const feature = read ?? (await binding.readFeature(session.repo, session.folder));
+      if (feature.worktree === undefined) {
+        return undefined;
+      }
+      return (await binding.checkoutCommit(resolve(session.repo, feature.worktree))) ?? undefined;
     } catch {
       return undefined;
     }

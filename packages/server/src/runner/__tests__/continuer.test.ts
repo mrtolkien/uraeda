@@ -639,7 +639,17 @@ test("US3: a run that stops before its gate is asked once, and a second stop ask
 /** US4 2: what the run committed is progress, so its continues start counting again. */
 test("US4.2: a commit on the branch sets the count back to 0", async () => {
   const runs = { ...ON, cap: 2 };
+  // The decisions read the worktree the feature has: only a process opening asks for one.
+  let workDirs = 0;
+  const counted: Binding = {
+    ...binding,
+    workDir: (repo, folder) => {
+      workDirs += 1;
+      return binding.workDir(repo, folder);
+    },
+  };
   const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
+    binding: counted,
     runs: () => runs,
   });
   const time = clock("2026-11-03T14:01:00Z");
@@ -665,4 +675,5 @@ test("US4.2: a commit on the branch sets the count back to 0", async () => {
   expect(cache.turns(session.id)).toHaveLength(4);
   // At the cap of 2 without the commit, the gate's continue went: 0, then this one.
   expect(count()).toBe(1);
+  expect(workDirs).toBe(adapter.opens.length);
 });
