@@ -636,6 +636,35 @@ test("US3: a run that stops before its gate is asked once, and a second stop ask
   expect(published).toEqual(["waiting", "halted"]);
 });
 
+/** A gate past the cap was never asked: once the human sends the run on, its next stop is. */
+test("a gate past the cap asks, and the next stop after the human's message goes on", async () => {
+  const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
+    runs: () => ({ ...ON, cap: 1 }),
+  });
+  const time = clock("2026-11-03T14:01:00Z");
+  const session = await sessions.featureSession(repo, AGENT);
+  // The run meets the limit, and its continue stops before the gate: past the cap of 1.
+  limitTurn(adapter, SESSION_LIMIT);
+  adapter.script([]);
+  const { turn } = await sessions.send(repo, session.id, {
+    text: "Write the plan",
+    workflow: PLAN,
+  });
+  await sessions.settled(turn);
+  time.to(AFTER_RESET);
+  await until(() => latest(cache, session.id).continueReason === "gate");
+  const capped = latest(cache, session.id);
+  expect(capped).toMatchObject({ continueAt: null, state: "done" });
+  expect(statusOf(cache, capped.id).reason).toBe("capped");
+
+  adapter.script([]);
+  adapter.script([]);
+  const sent = await sessions.send(repo, session.id, { text: "Write the plan", workflow: PLAN });
+  await sessions.settled(sent.turn);
+  await until(() => sentOf(adapter, GATE_MESSAGE) === 1);
+  expect(sentOf(adapter, GATE_MESSAGE)).toBe(1);
+});
+
 /** US4 2: what the run committed is progress, so its continues start counting again. */
 test("US4.2: a commit on the branch sets the count back to 0", async () => {
   const runs = { ...ON, cap: 2 };
