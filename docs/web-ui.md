@@ -148,8 +148,9 @@ they commit, like submitting a round's answers or a review's verdict, still comm
 The Commit page shows a pane per branch with changes: the default branch's first, then each
 feature's whose files a buffer changed. Each pane lists what its commit holds, a buffer's file as
 "Edit <path>". Its message is a field filled with the suggested message. Rewrite it, and it is
-committed as typed; "Use the suggested message" brings the suggestion back. Each pane has its own
-Commit and Discard, and Discard asks first.
+committed as typed; until then it is unsaved text, kept in this browser like any field's, and "Use
+the suggested message" brings the suggestion back. Each pane has its own Commit and Discard, and
+Discard asks first.
 
 With several panes, `j` and `k` select one, and Enter and `d` commit or discard it. Ctrl+Enter in a
 message commits its pane. On the phone, a single pane's Commit and Discard sit in the bottom bar.
