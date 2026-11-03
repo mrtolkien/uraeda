@@ -298,11 +298,20 @@ fn gather_with(place: &Place, edits: Vec<String>, left: &[String]) -> Listed {
 }
 
 /// The change list of the two lists, and of the proposal files and note files they need or the
-/// human edited; a list among `edits`, the files a buffer edited, has none of its own, and a file of
-/// `left` is not listed as edited.
+/// human edited; a list among `edits`, the files a buffer edited, has no change line of its own,
+/// and a file of `left` is not listed as edited. The files the lists need, and what Discard does to
+/// them, still come from both lists since the last commit: a buffer's edit of the inbox holds the
+/// note file a note added before it links.
 fn gather_lists(place: &Place, edits: &[String], left: &[String]) -> Listed {
-    let texts = texts(place, edits);
-    let (mut changes, mut found) = pair(place, &texts);
+    let texts = texts(place, &[]);
+    let (changes, mut found) = pair(place, &texts);
+    let edited = |path: &str| edits.iter().any(|edit| edit == path);
+    // The lines of a list a buffer edited read as if it had not changed.
+    let mut changes = if edited(INBOX) || edited(PRIORITIES) {
+        pair(place, &self::texts(place, edits)).0
+    } else {
+        changes
+    };
     let mut paths = found.paths;
     let inbox_now = versions(place, INBOX).0.unwrap_or_default();
     // The proposal files and note files the human edited in their editor, which have no Commit of

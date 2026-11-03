@@ -454,3 +454,60 @@ fn the_lists_commits_leave_a_buffers_edit() {
         );
     }
 }
+
+/// A note added with an image, a note file no commit has, then the inbox saved in a buffer.
+/// Returns the note file's path.
+fn note_with_image_then_buffer(repo: &TestRepo) -> String {
+    let inbox = api::read_inbox(repo.path()).unwrap();
+    let image = std::fs::read(common::fixture("images/phone.png")).unwrap();
+    let (_, file) = api::add_note_with_images(
+        repo.path(),
+        None,
+        None,
+        "A note with a picture",
+        &[(image, Some("picture.png".to_string()))],
+        &inbox.hash,
+    )
+    .unwrap();
+    save(repo, INBOX, |text| {
+        text.replace("A first note", "A first note, rewritten")
+    });
+    file
+}
+
+/// Edge case. Break caught: a buffer's edit of the inbox committing its link to a note file no
+/// commit has without the file and its images.
+#[test]
+fn a_buffer_edit_of_the_inbox_commits_the_note_files_it_links() {
+    let repo = repo();
+    let file = note_with_image_then_buffer(&repo);
+    let panes = api::branch_changes(repo.path()).unwrap();
+    assert_eq!(panes[0].lines, vec!["- Edit specs/INBOX.md"]);
+
+    api::commit_branch(repo.path(), "main", &panes[0].message).unwrap();
+
+    let changed = repo.changed_in("main");
+    assert!(changed.contains(&INBOX.to_string()), "{changed:?}");
+    assert!(changed.contains(&file), "{changed:?}");
+    assert!(
+        changed.iter().any(|path| path.contains("/images/")),
+        "{changed:?}"
+    );
+    assert_eq!(repo.porcelain(), "");
+}
+
+/// Edge case. Break caught: Discard of a buffer's edit of the inbox leaving behind the note file
+/// with its images that the inbox no longer links.
+#[test]
+fn a_buffer_edit_of_the_inbox_discards_the_note_files_it_links() {
+    let repo = repo();
+    let file = note_with_image_then_buffer(&repo);
+    let folder = file.strip_suffix("/note.md").unwrap();
+
+    api::discard_branch(repo.path(), "main").unwrap();
+
+    assert_eq!(repo.read(INBOX), INBOX_TEXT);
+    assert!(!repo.exists(folder), "{folder} left behind");
+    assert_eq!(repo.porcelain(), "");
+    assert!(api::branch_changes(repo.path()).unwrap().is_empty());
+}
