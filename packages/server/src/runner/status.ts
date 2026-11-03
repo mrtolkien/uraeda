@@ -38,7 +38,7 @@ export function continuable(status: {
 /**
  * Whether Continue all continues the feature: its run asks and a message can continue it, and its
  * step waits on the agent, which has a message to send. A run that failed at a human gate asks
- * too, but the gate is the human's (R17).
+ * too, but the gate is the human's (R19).
  */
 export function continuedByAll(feature: {
   status: Parameters<typeof continuable>[0];
