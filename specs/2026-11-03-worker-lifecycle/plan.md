@@ -291,6 +291,7 @@ New tests: 16, under the ceiling of 20 (15 key scenarios and 5 high edge cases).
 | Session lines and banners: waiting, capped                                                           | 10   | none: reviewed in the sandbox; the texts are owned by task 8's line assertions and task 6's status                                      |
 | US5 1, 3, SC-006: Continue all sends each asking run its step's message, none to a gate              | 11   | `packages/server/src/__tests__/continue-all.test.ts`, "US5: Continue all sends each stopped run its step's message, and none to a gate" |
 | US5 2: the preview                                                                                   | 11   | `packages/web/src/__tests__/continue-all.test.tsx`, "Continue all's preview tints the runs it continues and dims the rest"              |
+| Review of task 11: a refused run is named, with why                                                  | 11   | `packages/server/src/__tests__/continue-all.test.ts`, "Continue all answers the runs refused, by name, with their refusal"              |
 | Edge "Not logged in"                                                                                 | none | the existing failure path: `sessions.test.ts`, "the process exits during a turn: it fails with its stderr"; Continue all owns the rest  |
 | Edge "another session of the worktree is working"                                                    | none | the existing queue: `deliver` queues any message; the continue goes through it                                                          |
 | Edge "a restart from Vite"                                                                           | none | `stopDevRuns` calls the same `server.stop`, and the next server the same `startSessions`                                                |
@@ -1244,12 +1245,12 @@ git commit -m "feat(worker-lifecycle): show waiting runs, the cap, and the Runs 
 **Files:**
 
 - Start from: `packages/web/src/RunLifecycle.stories.tsx#Home` and `#ContinueAllPreview`
-- Create: `packages/server/src/fate/continue-all.ts`, and `packages/web/src/home/ContinueAll.tsx`,
-  the button and the preview's styles
+- Create: `packages/server/src/fate/continue-all.ts` and `fate/views-continued-all.ts`, its answer's
+  view, and `packages/web/src/home/ContinueAll.tsx`, the button and the preview's styles
 - Modify:
-  - `packages/server/src/fate/mutations.ts`, which registers it
-  - `packages/server/src/runner/status.ts`, with `continuedByAll`, and `fate/sources.ts`, which
-    exports `workspace`
+  - `packages/server/src/fate/mutations.ts`, which registers it, `fate.ts` and `fate/sources.ts`,
+    which register its answer, and `__tests__/request-fixture.ts`, which reads every view
+  - `packages/server/src/runner/status.ts`, with `continuedByAll`
   - `packages/web/src/home/Core.tsx` and `HomeHub.tsx`, and `web/src/wait.ts`, with `waitTime`
   - `docs/web-ui.md`
 - Test:
@@ -1259,23 +1260,30 @@ git commit -m "feat(worker-lifecycle): show waiting runs, the cap, and the Runs 
 **Interfaces:**
 
 - Consumes: task 6's `continuable`, `FeatureStatus.wait`, and `waitLabel`.
-- Produces: the repository mutation `feature.continueAll`, with input `{}`. It answers the
-  `Workspace` record.
+- Produces: the repository mutation `feature.continueAll`, with input `{}`. It answers a
+  `ContinuedAll` record, read once, as a drop's `Dropped` is: `refused`, the runs it could not
+  continue, each `{ folder, name, reason }`. Home's statuses follow the sends live.
   - It sends each feature of the repository that `continuedByAll` picks, its `FeatureStatus`
     `continuable` and its step waiting on the agent, the step's recommended message, with
     `recommendedMessage`, through `ctx.sessions.send` to its latest session, `fresh` off. That is
     the message the step's start sends (ruling R19).
   - It skips the features at a gate, a run that failed there too, blocked, or working.
-  - A feature refused, for example while another session works, is skipped. The others go on.
+  - A feature refused, for example while another session works, is skipped, and named in the answer
+    with its refusal. The others go on.
 
 The views:
 
 - **Needs you's pane** has `Continue all` in its border when `continuedByAll` picks a row.
-- **While the button is under the pointer or focused**:
+- **While the button is under the pointer or focused by a key**, either one, or after a first tap on
+  a touch screen, which sends nothing until the second (R20):
   - the rows it continues get `pickedStyles.picked`;
   - every other card of home is dimmed to an opacity of 0.4, and the widgets under the Overview line
     with them;
   - both fade in 150 ms, at once with reduced motion.
+- **The button's description** names the runs it continues, "Continues cli-tuis and search", for a
+  screen reader.
+- **The runs refused** show in a toast, by refusal: "cli-tuis and search could not continue: another
+  session of this feature is working."
 - **In progress**: a waiting feature's detail is its task, then
   `waiting for the usage limit, until {time}` for a limit.
 
