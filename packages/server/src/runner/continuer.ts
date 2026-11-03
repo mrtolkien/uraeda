@@ -1,9 +1,9 @@
 // The automatic continues of the run lifecycle decision: whether a stopped turn continues, and
 // when; the switches, the cap, and what sets the count back; the stagger; and the cancels. The
 // cache holds every pending continue: a timer only wakes this server to claim one.
-import { resolve } from "node:path";
 import type { FeatureView } from "uraeda-binding";
 import type { SessionRow, TurnRow } from "./cache.ts";
+import { limitContinueAt, MINUTE_MS, worktreeCommit } from "./continue-reads.ts";
 import type { ContinueReason, Limit } from "./events.ts";
 import { continuedLine } from "./message.ts";
 import { deliverContinue } from "./send.ts";
@@ -40,9 +40,6 @@ export const CONTINUES_OFF: ContinueSettings = {
   cap: 3,
 };
 
-const MINUTE_MS = 60_000;
-/** A limit without a reset time is tried again this long after, each try counting toward the cap. */
-export const RETRY_WITHOUT_RESET_MS = 60 * MINUTE_MS;
 /** How long after its cut a run the server's stop cut continues at the next start. */
 export const RESTART_WINDOW_MS = 6 * 60 * MINUTE_MS;
 /** The longest wait of a timer: past it, `setTimeout` fires at once. */
@@ -113,7 +110,7 @@ export class Continuer {
     }
     const taken = this.#taken(turn.sessionId);
     if (turn.state === "failed" && limit?.kind === "session") {
-      return this.#decide(turn, "limit", () => this.#limitContinue(limit), taken);
+      return this.#decide(turn, "limit", () => limitContinueAt(this.#context.cache, limit), taken);
     }
     if (turn.state === "done" && turn.kind === "workflow") {
       return this.#beforeGate(turn, taken);
@@ -345,7 +342,7 @@ export class Continuer {
     if (cache.itemsOf(turn.id, "denial").some((denial) => !denial.allowed)) {
       return;
     }
-    const commit = await this.#commitOf(session, feature);
+    const commit = await worktreeCommit(this.#context.binding, session, feature);
     // The human's message, Stop, or a dismiss while the commit was read takes the run over.
     const now = cache.turn(turn.id);
     if (
@@ -379,27 +376,6 @@ export class Continuer {
     }
   }
 
-  /**
-   * The commit the feature's worktree has checked out, for its count: none for a chat, nor for a
-   * feature without a worktree. Read only: the worktree is never created here, nor the repository
-   * locked.
-   */
-  async #commitOf(session: SessionRow, read?: FeatureView): Promise<string | undefined> {
-    const { binding } = this.#context;
-    if (session.folder === null) {
-      return undefined;
-    }
-    try {
-      const feature = read ?? (await binding.readFeature(session.repo, session.folder));
-      if (feature.worktree === undefined) {
-        return undefined;
-      }
-      return (await binding.checkoutCommit(resolve(session.repo, feature.worktree))) ?? undefined;
-    } catch {
-      return undefined;
-    }
-  }
-
   /** The session's latest turn, or its latest before turn `before`, skipping those taken back. */
   #latest(session: string, before = Number.POSITIVE_INFINITY): TurnRow | undefined {
     return this.#context.cache
@@ -423,26 +399,6 @@ export class Continuer {
       session.folder === null ||
       this.#context.cache.latestSession(session.repo, session.folder)?.id === session.id
     );
-  }
-
-  /**
-   * When a limit's continue goes: a minute after its reset, an hour from now without one, never
-   * sooner than a minute from now. The runs waiting for one reset go a minute apart: it steps a
-   * minute at a time while another limit's continue waits in that minute, so a later wait, as one
-   * without a reset, never delays it.
-   */
-  #limitContinue(limit: Limit): number {
-    const now = Date.now();
-    const reset = limit.resetsAt === undefined ? Number.NaN : Date.parse(limit.resetsAt);
-    const at = Math.max(
-      Number.isNaN(reset) ? now + RETRY_WITHOUT_RESET_MS : reset + MINUTE_MS,
-      now + MINUTE_MS,
-    );
-    let time = at;
-    while (this.#context.cache.limitContinueWithin(time, time + MINUTE_MS)) {
-      time += MINUTE_MS;
-    }
-    return time;
   }
 
   /** Arms the turn's timer for `at`, unref'd: it never keeps the server running. */
