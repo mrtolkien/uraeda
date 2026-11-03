@@ -1,23 +1,39 @@
 // The Runs section: whether the run after a spec's approval starts in a fresh session, the default
-// the approval's own switch starts from, then the run settings later features bring.
+// the approval's own switch starts from; whether Uraeda continues a run by itself after a restart,
+// a usage limit, or an early end before its gate, and how many times in a row; then the run
+// settings later features bring.
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
+import { HStack } from "@astryxdesign/core/HStack";
 import { Switch } from "@astryxdesign/core/Switch";
+import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
+import { EditableLine } from "../EditableLine.tsx";
 import { type Category, settingOf } from "./categories.ts";
+import { CONTINUE_SETTINGS, type ContinueKey } from "./optimistic.ts";
 import { PlannedRows } from "./OtherSettings.tsx";
 import { SettingRow, SettingRows, useRefusal } from "./SettingRow.tsx";
-import { FileProblem, type ServerActions, type ServerValues } from "./ServerSettings.tsx";
+import {
+  FileProblem,
+  overridden,
+  type ServerActions,
+  type ServerValues,
+} from "./ServerSettings.tsx";
+
+/** What a row of the section reads and changes. */
+type RowProps = { actions: ServerActions; category: Category; values: ServerValues };
+
+/** Each kind of automatic continue's switch, in the section's order, by its row's name. */
+const CONTINUES: ReadonlyArray<{ key: ContinueKey; label: string }> = [
+  { key: "restart", label: "Continue after a restart" },
+  { key: "limit", label: "Continue after a usage limit" },
+  { key: "gate", label: "Continue before a human gate" },
+];
+
+const CAP = "Automatic continues in a row";
+const CAP_PROBLEM = "Automatic continues in a row is a whole number from 1 to 10.";
 
 /** Building in a fresh session, saved at once, with its refusal under it. */
-function BuildFresh({
-  actions,
-  category,
-  values,
-}: {
-  actions: ServerActions;
-  category: Category;
-  values: ServerValues;
-}) {
+function BuildFresh({ actions, category, values }: RowProps) {
   const setting = settingOf(category, "Build in a fresh session");
   const [refused, setRefused] = useRefusal(setting.label);
   return (
@@ -39,27 +55,96 @@ function BuildFresh({
 }
 
 /**
- * The Runs section's rows that `shows` keeps, the settings to come included; the file's problem
- * in place of its switch when the file cannot be read.
+ * A kind of automatic continue's switch, saved at once, with the flag or the variable that sets it
+ * for this run, and its refusal, under it.
+ */
+function ContinueSwitch({
+  actions,
+  category,
+  kind,
+  values,
+}: RowProps & { kind: (typeof CONTINUES)[number] }) {
+  const setting = settingOf(category, kind.label);
+  const value = values.runs[CONTINUE_SETTINGS[kind.key]];
+  const note = overridden(value, (on) => (on ? "on" : "off"));
+  const [refused, setRefused] = useRefusal(setting.label);
+  return (
+    <SettingRow
+      notes={
+        <>
+          {note && <Text color="accent">{note}</Text>}
+          {refused && <AnnouncedBanner collapsible={false} status="error" title={refused} />}
+        </>
+      }
+      setting={setting}
+    >
+      <Switch
+        isLabelHidden
+        label={setting.label}
+        onChange={async (on: boolean) => {
+          setRefused(undefined);
+          setRefused(await actions.setContinue(kind.key, on));
+        }}
+        value={value.saved ?? value.inForce}
+      />
+    </SettingRow>
+  );
+}
+
+/** The automatic continues in a row, edited in place as the port is, saved on Enter or blur. */
+function AutomaticContinues({ actions, category, values }: RowProps) {
+  const { automaticContinues } = values.runs;
+  const note = overridden(automaticContinues, String);
+  return (
+    <SettingRow
+      notes={note && <Text color="accent">{note}</Text>}
+      setting={settingOf(category, CAP)}
+    >
+      <HStack>
+        <EditableLine
+          empty={CAP_PROBLEM}
+          field="settings.automaticContinues"
+          label={CAP}
+          look="field"
+          onSave={actions.setAutomaticContinues}
+          value={String(automaticContinues.saved ?? automaticContinues.inForce)}
+        />
+      </HStack>
+    </SettingRow>
+  );
+}
+
+/**
+ * The Runs section's rows that `shows` keeps, then, when it keeps a continue's, that a change
+ * applies at once, then the settings to come; the file's problem in place of its controls when the
+ * file cannot be read.
  */
 export function RunSettings({
   actions,
   category,
   shows,
   values,
-}: {
-  actions: ServerActions;
-  category: Category;
-  shows: (label: string) => boolean;
-  values: ServerValues;
-}) {
+}: RowProps & { shows: (label: string) => boolean }) {
+  const props = { actions, category, values };
+  const kinds = CONTINUES.filter((kind) => shows(kind.label));
+  const isContinuing = !values.problem && (kinds.length > 0 || shows(CAP));
   return (
     <VStack>
       {values.problem && <FileProblem problem={values.problem} />}
       <SettingRows>
-        {!values.problem && shows("Build in a fresh session") && (
-          <BuildFresh actions={actions} category={category} values={values} />
-        )}
+        {!values.problem && shows("Build in a fresh session") && <BuildFresh {...props} />}
+        {!values.problem &&
+          kinds.map((kind) => <ContinueSwitch key={kind.key} {...props} kind={kind} />)}
+        {!values.problem && shows(CAP) && <AutomaticContinues {...props} />}
+      </SettingRows>
+      {isContinuing && (
+        <VStack paddingBlock={2} paddingInline={3}>
+          <Text color="secondary" type="supporting">
+            A change applies at once: turning one off cancels the waits it started.
+          </Text>
+        </VStack>
+      )}
+      <SettingRows>
         <PlannedRows category={category} shows={shows} />
       </SettingRows>
     </VStack>

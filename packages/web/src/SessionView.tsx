@@ -38,6 +38,7 @@ import { stretchAddress } from "./session/stretches.ts";
 import { sessionPath } from "./sessions.ts";
 import { type Controls, useSessionControls } from "./useSessionControls.ts";
 import { StoriesProvider } from "./stories.tsx";
+import { statusLabel } from "./wait.ts";
 import { Transcript } from "./Transcript.tsx";
 import { useKeepPlace } from "./useKeepPlace.ts";
 import { SessionView } from "./views.ts";
@@ -161,7 +162,10 @@ function SessionLog({
       <SessionHeader
         agent={session.agent}
         place={session.place}
-        status={{ label: session.statusLabel, status: session.status }}
+        status={{
+          label: statusLabel({ label: session.statusLabel, wait: session.wait }),
+          status: session.status,
+        }}
         // Its own name once renamed, else its change's or feature's title.
         title={session.name ?? session.title}
         {...(rename ? { rename } : {})}

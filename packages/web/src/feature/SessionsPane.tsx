@@ -26,6 +26,7 @@ import { StatusMark } from "../StatusMark.tsx";
 import { clock, day, duration } from "./times.ts";
 import { CardRow } from "../sidebar/CardRow.tsx";
 import { Empty } from "../layout/Empty.tsx";
+import { statusLabel } from "../wait.ts";
 
 const styles = stylex.create({
   subagent: { paddingInlineStart: spacingVars["--spacing-6"] },
@@ -76,6 +77,7 @@ function Row({
   const working = session.status === "working";
   const last = session.turns.at(-1);
   const started = `${day(session.startedAt)}, ${clock(session.startedAt)}`;
+  const label = statusLabel({ label: session.statusLabel, wait: session.wait });
   return (
     <VStack gap={1}>
       <CardRow
@@ -86,10 +88,10 @@ function Row({
         }
         // The latest opens as the feature's session, which "Next" hands runs to.
         href={here(latest ? sessionPath(folder) : sessionIdPath(session.id))}
-        icon={<StatusMark label={session.statusLabel} status={session.status} />}
+        icon={<StatusMark label={label} status={session.status} />}
         isSelected={false}
         label={title}
-        name={`${session.statusLabel} ${title} ${started}`}
+        name={`${label} ${title} ${started}`}
       />
       {session.subagents.map((subagent) => (
         <HStack align="center" gap={2} key={subagent.id} xstyle={styles.subagent}>
@@ -159,6 +161,7 @@ function useSessionKeys(
     // The latest opens as the feature's session, as its row does.
     const path = index === 0 ? sessionPath(folder) : sessionIdPath(id);
     const started = `${day(row.startedAt)}, ${clock(row.startedAt)}`;
+    const label = statusLabel({ label: row.statusLabel, wait: row.wait });
     return [
       {
         card: sessionCard(row),
@@ -166,8 +169,8 @@ function useSessionKeys(
         id: path,
         kind: "sessions",
         path,
-        preview: [row.statusLabel, started].join("\n"),
-        title: `${started} · ${row.statusLabel}`,
+        preview: [label, started].join("\n"),
+        title: `${started} · ${label}`,
       },
     ];
   });

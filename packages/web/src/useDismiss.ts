@@ -93,9 +93,24 @@ function dismissedStatus(feature: { status: Status; step: { waitsOn?: string | n
 /** Why a run asks until dismissed: it failed, or the human or the server stopped it. */
 const DISMISSABLE: ReadonlySet<StatusReason> = new Set(["failed", "interrupted", "stopped"]);
 
-/** Whether a status asks until the human dismisses it, which Dismiss shows for. */
-export function isDismissable(status: { reason?: StatusReason | null; status: SessionStatus }) {
-  return status.status === "attention" && status.reason != null && DISMISSABLE.has(status.reason);
+/**
+ * Whether a status asks until the human dismisses it, which Dismiss shows for. A run past the cap
+ * on automatic continues takes a dismiss when its turn, `turnState`, failed or stopped: one that
+ * ended done, before its gate, asks until the human's message, as a halted run does.
+ */
+export function isDismissable(status: {
+  reason?: StatusReason | null;
+  status: SessionStatus;
+  turnState?: string | undefined;
+}) {
+  if (status.status !== "attention" || status.reason == null) {
+    return false;
+  }
+  return (
+    DISMISSABLE.has(status.reason) ||
+    (status.reason === "capped" &&
+      (status.turnState === "failed" || status.turnState === "stopped"))
+  );
 }
 
 /**

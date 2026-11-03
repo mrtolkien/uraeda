@@ -204,7 +204,7 @@ async function rows(
     .map((row) => {
       const feature = row.folder === null ? undefined : features.get(row.folder);
       const read = turnsOf(cache, row.id);
-      const { status, statusLabel } = statusOf(row, read, feature, isLatest(cache, row));
+      const { status, statusLabel, wait } = statusOf(row, read, feature, isLatest(cache, row));
       return {
         agent: row.agent,
         archived: row.archivedAt !== null,
@@ -218,6 +218,7 @@ async function rows(
         subagents: read.subagents,
         title: titleOf(row, feature),
         updatedAt: row.updatedAt,
+        wait,
       };
     })
     .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);

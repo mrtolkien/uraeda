@@ -6,6 +6,16 @@ import { CATEGORIES, shownLabels } from "../settings/categories.ts";
 test.each([
   ["host", [["Allowed host names", "Server"]]],
   ["FRESH", [["Build in a fresh session", "Runs"]]],
+  // The continues' switches and their cap, under Runs.
+  [
+    "Continue",
+    [
+      ["Continue after a restart", "Runs"],
+      ["Continue after a usage limit", "Runs"],
+      ["Continue before a human gate", "Runs"],
+      ["Automatic continues in a row", "Runs"],
+    ],
+  ],
   // The colour scheme is found by its name, its choices, and "theme".
   ["COLOUR", [["Colour scheme", "Appearance"]]],
   ["scheme", [["Colour scheme", "Appearance"]]],
