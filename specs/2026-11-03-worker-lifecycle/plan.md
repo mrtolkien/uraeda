@@ -905,6 +905,13 @@ The rules:
    - `Sessions.dismiss` clears it through the cache's `dismiss`;
    - `runsChanged` calls `dropContinues` for each kind turned off.
 4. **Timers** are armed per pending continue, unref'd, and cleared by `Sessions.close`.
+5. **No ask before the decision**: a turn that may continue publishes its end only once
+   `scheduleContinue` or `markCapped` ran. Until then, NeedsYouList would read it failed or halted,
+   and notify (SC-003). The decision that reads the feature stays before the publish.
+6. **A continue's turn taken back or refused**, while queued: the claimed turn's `continue_reason`
+   is cleared, as for a refusal, so it does not read `capped` again.
+7. **The tests' clock**: `testSessions` fakes only `setTimeout`. The tests fake `Date` too, or move
+   `Date.now` with the timers, as task 7's US6.1 does.
 
 - [ ] **Step 1: Write the failing tests, and the helpers they use.** `testSessions(repo, { runs })`
       passes `runs`. `restart(sessions)` calls `closeAll` and builds a second `Sessions` on the same
@@ -1041,7 +1048,9 @@ The rules:
    continuer asks it to go on when all of these hold:
    - its step waits on the agent, and is not `pull-request-unknown`;
    - `beforeGate` is on;
-   - the turn before it in the session has no `continue_reason` of `gate`.
+   - the turn before it in the session has no `continue_reason` of `gate`;
+   - the turn was refused no action the human has not allowed: a blocked turn keeps asking, as
+     today. The same holds for every kind of continue.
 
    It gets `scheduleContinue(now, "gate")` and fires at once, or `markCapped` at the cap. When the
    turn before was a gate continue, nothing happens: the run reads `halted`.
