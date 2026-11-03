@@ -316,6 +316,7 @@
     --size-palette-height: min(600px, 76dvh);
     --size-palette-list: 360px;
     --size-viewport-height: 100dvh;
+    --size-buffer-min: 12lh;
     --size-image-max-height: 80dvh;
     --size-message-image: 120px;
     --size-note-image: 240px;
