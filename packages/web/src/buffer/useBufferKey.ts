@@ -16,7 +16,7 @@ export function withText(path: string, file: { hash: string } | null | undefined
 }
 
 /** The buffer's page of the file at `path`, from the top level: `specs/PRIORITIES.md`. */
-export function bufferPath(path: string) {
+function bufferPath(path: string) {
   return `/buffer/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
 

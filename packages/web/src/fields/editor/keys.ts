@@ -11,8 +11,14 @@ const composing = (event: KeyboardEvent, view: EditorView) => event.isComposing 
 /** Whether a key is pressed with Ctrl, Cmd, or Alt. */
 const modified = (event: KeyboardEvent) => event.ctrlKey || event.metaKey || event.altKey;
 
-/** Runs a key's action, and takes the key when it did something. */
-function took(event: KeyboardEvent, ran: boolean) {
+/** Runs a field's own key's action, which takes the key: a `FieldKey`'s `run`. */
+export function took(action: () => void): true {
+  action();
+  return true;
+}
+
+/** Takes the key when its action did something. */
+function handled(event: KeyboardEvent, ran: boolean) {
   if (ran) {
     event.preventDefault();
   }
@@ -38,18 +44,18 @@ export function fieldKeys(actions: () => EditorActions & { enters: boolean; line
         if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
           // Taken without a submit too: CodeMirror's own would add a blank line.
           own.submit();
-          return took(event, true);
+          return handled(event, true);
         }
         if (event.key === "Enter" && !modified(event)) {
           if (own.enters && !event.shiftKey) {
-            return took(event, own.enter());
+            return handled(event, own.enter());
           }
           // A one-line field never breaks its line, Shift+Enter included.
-          return own.line ? took(event, true) : false;
+          return own.line ? handled(event, true) : false;
         }
         // Shift+Escape too, which leaves the field from any of Vim's modes.
         if (event.key === "Escape" && !modified(event)) {
-          return took(event, own.escape() === "handled");
+          return handled(event, own.escape() === "handled");
         }
         return false;
       },

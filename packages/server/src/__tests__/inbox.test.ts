@@ -419,7 +419,10 @@ test("US2 7: the commit bar commits the inbox's changes", async () => {
   const { hash } = await readInbox(app);
   await mutate(app, "inbox.add", { hash, text: "A note to commit" }, ["id"]);
 
-  const committed = await mutate(app, "changes.commit", {}, ["id", "changes"]);
+  const [commit] = await byId(app, "CommitPanes", ["commit"], ["id", "panes"]);
+  const [{ branch, message }] = commit.panes as Array<{ branch: string; message: string }>;
+
+  const committed = await mutate(app, "changes.commit", { branch, message }, ["id", "changes"]);
 
   // The commit answers once its files are written, and lands in the write queue behind it.
   expect(committed.data.id).toBe("priorities");
@@ -437,7 +440,7 @@ test("the commit bar's Discard restores the inbox", async () => {
   const { hash } = await readInbox(app);
   await mutate(app, "inbox.add", { hash, text: "A note to discard" }, ["id"]);
 
-  const discarded = await mutate(app, "changes.discard", {}, ["id", "changes"]);
+  const discarded = await mutate(app, "changes.discard", { branch: "main" }, ["id", "changes"]);
 
   expect(discarded.data.changes).toBe(0);
   expect(read(repo, "specs/INBOX.md")).toBe(before);

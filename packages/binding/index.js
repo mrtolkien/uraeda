@@ -716,7 +716,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { WatchHandle, addAllowedHost, addCategory, addComment, addNote, addNoteWithImages, addProposal, addRepository, addSettledComment, allBranchChanges, approve, attachImage, attachNoteImages, branchChanges, bufferFolder, cacheStats, checkedAutomaticContinues, checkedPort, checkoutCommit, commitBranch, commitChanges, commitPanes, commitPriorities, commitText, configDir, dataDir, deferCommits, discardBranch, discardChanges, discardPriorities, discoveryLevels, dropItem, dropNote, dropProposal, editAllowedHost, editComment, editNote, editProposal, editSettledComment, encodeImage, expandProposal, fixLinks, insertNote, insertProposal, land, mainRoot, moveNoteToCategory, moveProposal, nextStep, noteIntoProposal, noteIntoProposalLine, noteToProposal, noteToProposalFile, noteUnderProposal, openRepository, outlineNote, outlineProposal, pathFolder, placeNote, planStart, planTextStart, preview, promoteChange, proposalHints, proposeSlug, readBuffer, readDecision, readFeature, readFile, readHistory, readImage, readInbox, readLedger, readPriorities, readProposalFile, readRaw, readRepositories, readRound, readSettings, readText, readWorkspace, refreshPullRequests, removeAllowedHost, removeCategory, removeComment, removeNote, removeNoteAndCommit, removeNoteImage, removeProposal, removeRepository, removeSettledComment, renameCategory, requestChanges, restoreCategory, restoreNoteImage, retryCommit, retryRound, saveAnswer, saveBuffer, saveNotes, saveRoundAnswer, saveRoundNotes, saveText, setAutomaticContinues, setBuildInFreshSession, setContinue, setDiscovery, setItemSettings, setOpenBrowser, setPort, setSingleKeyShortcuts, settingsFile, setVimCommands, setVimMode, startChange, startFeature, startOver, startText, storyLink, submitAnswers, submitRound, takeDeferred, undoCommittedNote, undoCommittedProposal, undoNoteAdd, undoNoteAsFile, undoNoteCategory, undoNoteIntoProposal, undoNoteToProposal, undoNoteUnderProposal, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState, RowChangeKind, SettledKind, VerdictKind } = nativeBinding
+const { WatchHandle, addAllowedHost, addCategory, addComment, addNote, addNoteWithImages, addProposal, addRepository, addSettledComment, allBranchChanges, approve, attachImage, attachNoteImages, branchChanges, bufferFolder, cacheStats, checkedAutomaticContinues, checkedPort, checkoutCommit, commitBranch, commitPanes, commitPriorities, commitText, configDir, dataDir, deferCommits, discardBranch, discardPriorities, discoveryLevels, dropItem, dropNote, dropProposal, editAllowedHost, editComment, editNote, editProposal, editSettledComment, encodeImage, expandProposal, fixLinks, insertNote, insertProposal, land, mainRoot, moveNoteToCategory, moveProposal, nextStep, noteIntoProposal, noteIntoProposalLine, noteToProposal, noteToProposalFile, noteUnderProposal, openRepository, outlineNote, outlineProposal, pathFolder, placeNote, planStart, planTextStart, preview, promoteChange, proposalHints, proposeSlug, readBuffer, readDecision, readFeature, readFile, readHistory, readImage, readInbox, readLedger, readPriorities, readProposalFile, readRaw, readRepositories, readRound, readSettings, readText, readWorkspace, refreshPullRequests, removeAllowedHost, removeCategory, removeComment, removeNote, removeNoteAndCommit, removeNoteImage, removeProposal, removeRepository, removeSettledComment, renameCategory, requestChanges, restoreCategory, restoreNoteImage, retryCommit, retryRound, saveAnswer, saveBuffer, saveNotes, saveRoundAnswer, saveRoundNotes, saveText, setAutomaticContinues, setBuildInFreshSession, setContinue, setDiscovery, setItemSettings, setOpenBrowser, setPort, setSingleKeyShortcuts, settingsFile, setVimCommands, setVimMode, startChange, startFeature, startOver, startText, storyLink, submitAnswers, submitRound, takeDeferred, undoCommittedNote, undoCommittedProposal, undoNoteAdd, undoNoteAsFile, undoNoteCategory, undoNoteIntoProposal, undoNoteToProposal, undoNoteUnderProposal, version, watch, workDir, BlockKind, CalloutKind, ItemMarker, PullRequestState, RowChangeKind, SettledKind, VerdictKind } = nativeBinding
 export { WatchHandle }
 export { addAllowedHost }
 export { addCategory }
@@ -737,7 +737,6 @@ export { checkedAutomaticContinues }
 export { checkedPort }
 export { checkoutCommit }
 export { commitBranch }
-export { commitChanges }
 export { commitPanes }
 export { commitPriorities }
 export { commitText }
@@ -745,7 +744,6 @@ export { configDir }
 export { dataDir }
 export { deferCommits }
 export { discardBranch }
-export { discardChanges }
 export { discardPriorities }
 export { discoveryLevels }
 export { dropItem }
