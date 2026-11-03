@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: "Master" PR
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 5 questions and 3 follow-ups, about 20 minutes.
+> Answered on 2026-11-03.
 >
 > - Verdict: worth building, with changes: half the recent conflicts, in workflow files, can
 >   disappear. One "master" pull request is not the best fix for the rest.
@@ -117,7 +117,12 @@ changes the feature status decision: a pull request reads as ready only when it 
   - [pro] you never press merge, and nothing conflicts by the time you look.
   - [con] a tool merges on your behalf, a new power, and it stops on any conflict needing a choice.
 
-**Answer:**
+**Answer:** B: I’m not fully sure I understand exactly when and how it triggers for A
+
+I feel like B is the closest to what I want. Keep one PR per feature but as soon as a feature opens
+a PR after another one, also start a master PR that holds all features and merges neatly.
+
+It should be an option in settings btw (“create master PR”)
 
 ### Q1.A: When does a pull request go back to its agent?
 
@@ -172,7 +177,7 @@ pull request.
   - [pro] nothing new.
   - [con] the dependent feature waits, discovery included.
 
-**Answer:**
+**Answer:** A
 
 ### Q2.A: What does the dependent feature do while the other is not merged?
 
@@ -193,7 +198,7 @@ needs.
   - [pro] no wait.
   - [con] merging them in the wrong order merges both at once.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: Should a branch stop removing its proposal from the priorities?
 
@@ -217,7 +222,7 @@ Why it matters: it decides how long a merged feature's line stays in Now, and wh
   - [pro] the line leaves at the merge.
   - [con] GitHub's merge button cannot run it, and without `ura` the conflicts stay.
 
-**Answer:**
+**Answer:** A
 
 ### Q3.A: Who removes a merged feature's line?
 
@@ -236,7 +241,7 @@ Why it matters: it decides whether the cleanup you already run takes the line to
   - [pro] nothing new in the tools.
   - [con] one more chore after each merge.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Where should an agent's inbox note go?
 
@@ -266,7 +271,7 @@ Why it matters: it changes the inbox's format, which every tool reads, or the gi
   - [pro] notes show at once, and keep their format.
   - [con] agents commit on your branch while you edit it, about work not merged yet.
 
-**Answer:**
+**Answer:** A: Ok, make sure they are visible with the CLI and webui
 
 ## Q5: How should conflicts in the records of `specs/done/` be avoided?
 
@@ -291,7 +296,7 @@ Why it matters: B changes how every workflow file is written and formatted, in e
   - [pro] far fewer conflicts in every workflow file, specs and plans too.
   - [con] every template, example, and file rewritten, and the formatter's setting changed.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
