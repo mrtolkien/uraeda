@@ -5,7 +5,7 @@ import { useFateClient } from "react-fate";
 import { useSettings } from "../data.ts";
 import { refusal } from "../errors.ts";
 import { type ConfirmOptions, useConfirm } from "../fields/Confirm.tsx";
-import { OnListClient } from "../RepositoryMenu.tsx";
+import { OnListClient } from "../ListClient.tsx";
 import { useRestoreScroll } from "../routes.tsx";
 import { SettingsRecordView } from "../views.ts";
 import { categoryOf } from "./categories.ts";

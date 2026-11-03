@@ -19,24 +19,22 @@ import {
 import * as stylex from "@stylexjs/stylex";
 import {
   type ComponentProps,
-  createContext,
   type ReactNode,
   Suspense,
-  use,
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
 } from "react";
-import { FateClient, useFateClient } from "react-fate";
+import { useFateClient } from "react-fate";
 import { AddRepository } from "./AddRepository.tsx";
-import type { FateClient as Client } from "./clients.ts";
 import { useRepositories } from "./data.ts";
 import { refusal } from "./errors.ts";
 import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { arrowKeys, TextLine } from "./fields/TextLine.tsx";
 import { afterOverlayCloses, Overlay } from "./layout/Overlay.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import { OnListClient } from "./ListClient.tsx";
 import { Logo } from "./Logo.tsx";
 import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
@@ -81,18 +79,6 @@ const styles = stylex.create({
     visibility: "hidden",
   },
 });
-
-/**
- * The global fate client, `/fate`, set by `App` around a repository's pages, whose own client is in
- * context there; outside them, the client in context is the global one.
- */
-export const ListClientContext = createContext<Client | null>(null);
-
-/** Its children on the global client, which reads and changes the list and the settings. */
-export function OnListClient({ children }: { children: ReactNode }) {
-  const client = use(ListClientContext);
-  return client ? <FateClient client={client}>{children}</FateClient> : children;
-}
 
 /**
  * Opens a repository each time the tab switches to it, which moves it first in the list, through
