@@ -549,7 +549,8 @@ git commit -m "feat(vim-text): one editor for text fields, Markdown highlighted 
 - Consumes: `Editor` with `variant: "line"`, `onEnter`, `onEscape`, `onPaste` (task 3).
 - Produces: `EditorProps.keys?: ReadonlyArray<FieldKey>`, with
   `FieldKey = { key: string; run: () => boolean }` (CodeMirror's key names, before its own keymap:
-  the first render's keys, each running its latest `run`), and `EditorProps.onBlur?: () => void`;
+  the first render's keys, each running its latest `run`), and `EditorProps.onBlur?: () => void`,
+  run as the focus leaves the editor, from its text or its Vim prompt (ruling R12);
   `TextLine(props)`, `Editor`'s props with `variant: "line"` set, plus `description`, `status`,
   `isLabelHidden`, `hasAutoFocus`, and `width`, as Astryx's `TextInput` had; and `arrowKeys(move)`,
   Down and Up for a field over a list. Each field keeps its props and its keys: each field keeps its

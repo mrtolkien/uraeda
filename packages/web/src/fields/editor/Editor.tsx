@@ -309,6 +309,46 @@ function ownKeys(latest: { current: EditorProps }): Array<KeyBinding> {
  */
 const destroying = new WeakSet<EditorView>();
 
+/**
+ * Runs the field's `onBlur` as the focus leaves the editor, from its text or from its prompt under
+ * it, like Vim's `:`, once per stay. The focus moving between the two is no leaving. The prompt
+ * also loses the focus as Enter or Escape closes it, its engine giving it back to the text at once:
+ * a leave from the prompt counts only once the focus is still outside. Returns the listeners'
+ * removal.
+ */
+function hearLeave(view: EditorView, latest: { current: EditorProps }) {
+  let left = false;
+  const leave = () => {
+    if (!left && !destroying.has(view)) {
+      left = true;
+      latest.current.onBlur?.();
+    }
+  };
+  const focusIn = () => {
+    left = false;
+  };
+  const focusOut = (event: FocusEvent) => {
+    if (view.dom.contains(event.relatedTarget as Node | null)) {
+      return;
+    }
+    if (event.target === view.contentDOM) {
+      leave();
+      return;
+    }
+    queueMicrotask(() => {
+      if (!view.dom.contains(view.dom.ownerDocument.activeElement)) {
+        leave();
+      }
+    });
+  };
+  view.dom.addEventListener("focusin", focusIn);
+  view.dom.addEventListener("focusout", focusOut);
+  return () => {
+    view.dom.removeEventListener("focusin", focusIn);
+    view.dom.removeEventListener("focusout", focusOut);
+  };
+}
+
 /** The extensions of a new field's state. */
 function extensionsOf(latest: { current: EditorProps }, actions: () => EditorActions): Extension {
   const now = partsOf(latest.current);
@@ -336,13 +376,6 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
       compartment.of(now[part as keyof typeof parts]),
     ),
     EditorView.domEventHandlers({
-      // The text's own blur: the editor's prompt under it, like Vim's `:`, gives the focus back
-      // to the text as it closes, so the focus going there, or leaving it, is no leaving.
-      blur: (event, view) => {
-        if (!destroying.has(view) && !view.dom.contains(event.relatedTarget as Node | null)) {
-          latest.current.onBlur?.();
-        }
-      },
       focus: () => {
         latest.current.onFocus?.();
       },
@@ -396,12 +429,14 @@ export function Editor(props: EditorProps) {
     own.current = actionsOf(view, latest);
     viewRef.current = view;
     hearLabels(view.dom.ownerDocument);
+    const unhear = hearLeave(view, latest);
     const unmount = mountEditor(view, own.current);
     if (latest.current.isAutoFocused) {
       view.focus();
     }
     return () => {
       unmount();
+      unhear();
       if (focusedView === view) {
         focusedView = null;
         setFocused(null);

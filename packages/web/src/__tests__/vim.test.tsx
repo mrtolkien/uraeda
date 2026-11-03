@@ -295,3 +295,21 @@ test("`:wq` in a changed row saves it and asks nothing", async () => {
   await waitFor(() => expect(screen.queryByRole("textbox", { name: ROW })).toBeNull());
   expect(screen.queryByRole("dialog", { name: "Discard your changes?" })).toBeNull();
 });
+
+test("clicking away while the `:` prompt is open saves the row", async () => {
+  const { field, repo } = await rowPage();
+  await type(field, "Review the UI guidelines, left");
+  await keys(field, "<Esc>:");
+  const prompt = within(field.closest(".cm-editor") as HTMLElement).getByRole("textbox", {
+    name: "",
+  });
+  expect(document.activeElement).toBe(prompt);
+
+  // The focus goes to the page's heading, outside the field, as a click there moves it.
+  const heading = screen.getByRole("heading", { name: /^Now/ });
+  heading.tabIndex = -1;
+  act(() => heading.focus());
+
+  // Breaks if only the text's own blur is the row's leave: the prompt's is missed.
+  await waitFor(() => expect(read(repo)).toContain("- Review the UI guidelines, left\n"));
+});
