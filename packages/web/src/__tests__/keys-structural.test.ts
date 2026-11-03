@@ -84,6 +84,13 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
       "the shared editor's own keys: Ctrl or Cmd+Enter submits, Enter runs a one-line field's " +
       "action, Escape leaves the field or cancels it",
   },
+  "fields/editor/vim/vim.ts": {
+    hits: 1,
+    reason:
+      "the Vim layer's keys before the engine's, each the field's own action: Shift+Escape " +
+      "leaves the field, Escape after a pending key drops it, Enter in normal mode runs a " +
+      "one-line field's Enter",
+  },
   "Folds.tsx": {
     hits: 1,
     reason:

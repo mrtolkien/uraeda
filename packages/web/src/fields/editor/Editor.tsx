@@ -139,7 +139,7 @@ function progressOf({ scrollDOM: { clientHeight, scrollHeight, scrollTop } }: Ed
 }
 
 /** The cursor's place, for the status line. */
-function placeOf(view: EditorView): Place {
+export function placeOf(view: EditorView): Place {
   const head = view.state.selection.main.head;
   const line = view.state.doc.lineAt(head);
   return { column: head - line.from + 1, line: line.number, progress: progressOf(view) };

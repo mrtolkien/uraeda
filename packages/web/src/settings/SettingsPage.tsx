@@ -89,6 +89,16 @@ function OnSettings({ category }: { category?: string }) {
           view,
         }),
       ),
+    setVimCommands: (lines) =>
+      run(() =>
+        change.setVimCommands({
+          input: { lines },
+          optimistic: shown.setVimCommands(lines),
+          view,
+        }),
+      ),
+    setVimMode: (on) =>
+      run(() => change.setVimMode({ input: { on }, optimistic: shown.setVimMode(on), view })),
   };
   return (
     <SettingsView

@@ -172,13 +172,15 @@ export async function renderPage(
   repo = fixtureRepo(),
   options: {
     agent?: Fake;
+    /** The server's config folder, holding its settings file: a new empty one by default. */
+    config?: string;
     fetch?: typeof globalThis.fetch;
     onSignedIn?: () => void;
     reload?: boolean;
   } = {},
 ) {
   const fake = options.agent ?? (await fakeAgent({ installed: false }));
-  const fetch = options.fetch ?? serverFetch(repo, fake.sessions);
+  const fetch = options.fetch ?? serverFetch(repo, fake.sessions, options.config);
   current = (await names.get(fetch)) ?? basename(repo);
   if (options.reload) {
     // A reload: the page goes, and its history entry, with its state, stays.
@@ -260,10 +262,15 @@ export async function quiet() {
 
 /**
  * The server's app in process, as a `fetch`, on sessions whose agent is not installed by default,
- * with a list in a temporary data folder holding `repo`, on the core's binding.
+ * with a list in a temporary data folder holding `repo`, on the core's binding, and settings in
+ * `config`, a new empty config folder by default.
  */
-export function serverFetch(repo: string, sessions?: Fake["sessions"]): typeof globalThis.fetch {
-  const { added, created } = serverApp(repo, sessions, temporaryFolder("uraeda-data"));
+export function serverFetch(
+  repo: string,
+  sessions?: Fake["sessions"],
+  config?: string,
+): typeof globalThis.fetch {
+  const { added, created } = serverApp(repo, sessions, temporaryFolder("uraeda-data"), { config });
   return fetchOn(created, added);
 }
 
@@ -276,7 +283,7 @@ export function serverFetch(repo: string, sessions?: Fake["sessions"]): typeof g
 export function signInServer(repo = fixtureRepo()) {
   const dataDir = temporaryFolder("uraeda-data");
   const { key, options } = testSignIn(dataDir);
-  const { added, created } = serverApp(repo, undefined, dataDir, options);
+  const { added, created } = serverApp(repo, undefined, dataDir, { signIn: options });
   const device = (from?: typeof globalThis.fetch) =>
     fetchOn(created, added, new Map(from && jars.get(from)));
   return { device, fetch: device(), key };
@@ -287,7 +294,7 @@ function serverApp(
   repo: string,
   sessions: Fake["sessions"] | undefined,
   dataDir: string,
-  signIn?: ReturnType<typeof testSignIn>["options"],
+  { config, signIn }: { config?: string; signIn?: ReturnType<typeof testSignIn>["options"] },
 ) {
   if (!sessions) {
     sessions = fakeSessions({ installed: false }).sessions;
@@ -298,8 +305,8 @@ function serverApp(
   opened.push(hosts);
   const previews = livePreviews();
   runners.push(previews);
-  // On a config folder of its own, empty: no host name besides the server's own.
-  const settings = testSettings();
+  // On a config folder of its own, empty by default: no host name besides the server's own.
+  const settings = testSettings({ dir: config });
   settled.push(settings);
   const created = Promise.all([hosts, settings]).then(([hosts, settings]) =>
     createApp({

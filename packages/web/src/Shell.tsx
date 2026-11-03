@@ -26,6 +26,7 @@ import { StatusLine } from "./shell/StatusLine.tsx";
 import { Tabs } from "./shell/Tabs.tsx";
 import { FeatureSettingsHost } from "./sidebar/FeatureSettingsDialog.tsx";
 import { RenameSessionHost } from "./sidebar/RenameSession.tsx";
+import { VimSetting } from "./fields/editor/vim/VimSetting.tsx";
 import { SingleKeysSetting } from "./settings/SingleKeysSetting.tsx";
 import { SidebarAddForms } from "./SidebarAdd.tsx";
 import { StatusLineCoverProvider } from "./statusHints.tsx";
@@ -201,6 +202,7 @@ export function Shell({ children, keysSwitch }: { children: ReactNode; keysSwitc
           <StatusLineCoverProvider>
             <KeysProvider singleKeys={singleKeys}>
               <SingleKeysSetting onRead={setSingleKeys} />
+              <VimSetting />
               <Frame
                 // The phone has no bar but for a page's own controls: none takes no room there.
                 bottom={

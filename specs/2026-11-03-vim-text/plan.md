@@ -217,9 +217,9 @@ system `git`. The stage is `early`: UI behaviour the sandbox shows has no test.
 | US1 3 (Escape leaves a comment, keeps text; `j` moves) | 3    | `editor-field.test.tsx` "Escape leaves a comment keeping its text, and the page's keys work again" |
 | US1 more 1 (paste "first\nsecond" in a row)            | 4    | `keys-row-editing.test.tsx` row of "a row refuses line breaks" (existing test, rewritten)          |
 | US1 more 2 (a PNG pasted in the composer)              | 5    | `__focused__/composer.test.tsx`'s existing paste test, through the new editor                      |
-| US2 1 (`i`, insert mode at focus)                      | 6    | `vim.test.tsx` "a field opens in insert mode"                                                      |
-| US2 2 (`dw` then Escape asks to discard)               | 6    | `vim.test.tsx` "Escape in normal mode cancels a changed row, asking first"                         |
-| US2 3 (Shift+Escape leaves from insert)                | 6    | `vim.test.tsx` row of the Escape test                                                              |
+| US2 1 (`i`, insert mode at focus)                      | 6    | `vim.test.tsx` "a field opens in insert mode", on a comment (R10)                                  |
+| US2 2 (`dw` then Escape asks to discard)               | 6    | `vim.test.tsx` "Escape in normal mode does the field's Escape…", on a comment (R10)                |
+| US2 3 (Shift+Escape leaves from insert)                | 6    | `vim.test.tsx` "Shift+Escape leaves a comment from insert mode, keeping its text"                  |
 | US2 4 (`yy` reaches the clipboard, `p` in a row)       | 6    | `vim.test.tsx` "a yank reaches the clipboard"                                                      |
 | US2 more 1 (`:w` `:q` `:wq`)                           | 6    | `vim.test.tsx` "`:w` saves a comment"; `:q`, `:wq`: sandbox                                        |
 | US2 more 2 (Enter in normal mode)                      | 6    | none: the engine's key, seen in the sandbox                                                        |
@@ -237,7 +237,7 @@ system `git`. The stage is `early`: UI behaviour the sandbox shows has no test.
 | US6 1 (a pane per branch)                              | 7    | core `each_branch_lists_its_buffer_edits`                                                          |
 | US6 2 (a pane commits its branch only)                 | 7    | core `a_branch_commits_alone`                                                                      |
 | US6 3 (the message as typed)                           | 7    | core `a_branch_commits_alone` (rewritten message row)                                              |
-| Edge: Vim on, a changed row, Escape twice              | 6    | `vim.test.tsx` "Escape in normal mode cancels a changed row, asking first"                         |
+| Edge: Vim on, a changed row, Escape twice              | 6    | `vim.test.tsx` "Escape in normal mode does the field's Escape…" (R10)                              |
 | Edge: a buffer over a changed file                     | 2    | as US5 3                                                                                           |
 | Edge: a buffer breaks a file's format                  | 2    | `a_buffer_save_writes_without_committing` saves a broken decision as typed                         |
 | Edge: an emptied commit message                        | 7    | core `an_empty_message_is_refused`                                                                 |
@@ -636,7 +636,11 @@ git commit -m "feat(vim-text): the composer on the editor"
   `fields/editor/vim/VimSetting.tsx` (reads the setting and the pointer, loads, reports the
   commands' errors), `settings/VimSettings.tsx` (the Keyboard section's switch and commands field)
 - Modify: `settings/KeyboardSettings.tsx`, `settings/SettingsPage.tsx`, `settings/categories.ts`,
-  `Shell.tsx` (mounts `VimSetting` beside `SingleKeysSetting`), `fields/editor/Editor.tsx`
+  `settings/ServerSettings.tsx` (`ServerActions` gains `setVimMode` and `setVimCommands`),
+  `settings/SettingsView.stories.tsx`, `Shell.tsx` (mounts `VimSetting` beside `SingleKeysSetting`),
+  `fields/editor/Editor.tsx` (exports `placeOf`), `fields/editor/modeStore.ts` (`modeNow()`, the
+  store read outside React), `__tests__/helpers.tsx` (`renderPage`'s `config`, the server's config
+  folder), `__tests__/keys-structural.test.ts`
 - Test: `__tests__/vim.test.tsx`, `__tests__/vim-load.test.ts`
 
 **Interfaces:**
@@ -645,7 +649,10 @@ git commit -m "feat(vim-text): the composer on the editor"
   `.vimCommands`, `settings.setVimMode`, `settings.setVimCommands` (task 1).
 - Produces:
   - `loadVim(settings: { on: boolean; commands: ReadonlyArray<string> }, pointer: { fine: boolean }): Promise<VimLayer | undefined>`,
-    importing `./vim.ts` only when `on && fine` (`matchMedia("(pointer: fine)")`).
+    importing `./vim.ts` only when `on && fine` (`finePointer()`, `matchMedia("(pointer: fine)")`);
+    `VimLayer` is the chunk's module: `runCommands` and `extension`, the factory `VimSetting` gives
+    `registerEditorExtension`. The commands' errors are kept beside it, `setVimErrors(errors)` and
+    `useVimErrors()`, which the Keyboard section reads.
   - `runCommands(lines: ReadonlyArray<string>): Array<string>` in the chunk: each line through the
     engine's `Vim.handleEx`, the errors as `Line N: <the engine's message>`.
   - The mode reaches `modeStore.setMode` on the engine's `vim-mode-change`, and `command` while its
@@ -653,10 +660,12 @@ git commit -m "feat(vim-text): the composer on the editor"
   - A yank writes the unnamed register's text to `navigator.clipboard.writeText`; `p` pastes the
     engine's register.
   - Fields open in insert mode at focus. Escape in normal mode, and Shift+Escape in any mode, run
-    the editor's Escape. `:w` runs the field's `onSubmit`, `:q` its Escape action keeping the text,
-    `:wq` both.
+    the editor's Escape; Escape after a pending key, like `d`, only drops it; Enter in normal mode
+    runs a one-line field's Enter. `:w` runs the field's `onSubmit`, `:q` its Escape action keeping
+    the text, `:wq` both, once the engine's prompt has closed. The engine and the layer's keys sit
+    at `Prec.highest` in the slot, before the editor's own keys.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `vim-load.test.ts`:
 
@@ -666,15 +675,17 @@ git commit -m "feat(vim-text): the composer on the editor"
   `runCommands(["imap jj <Esc>", "nmpa Q dd"])` returns
   `["Line 2: Not an editor command \":nmpa Q dd\""]`.
 
-`vim.test.tsx`, with `vimMode = true` and `vim_commands = ["imap jj <Esc>"]` in the fixture's
-settings and a fine pointer:
+`vim.test.tsx`, with `vim_mode = true` and `vim_commands = ["imap jj <Esc>"]` in the server's
+settings file (`renderPage`'s `config`) and a fine pointer, on a round's comment field, since the
+priorities' rows reach the editor in task 4, run beside this one (R10):
 
-- "a field opens in insert mode": `i` on the priority "Review the UI guidelines properly", then `x`
-  typed through the engine: the row reads "Review the UI guidelines properlyx" and the mode store
-  reads `insert`.
-- "Escape in normal mode cancels a changed row, asking first": `dw` in normal mode, then Escape:
-  "Discard your changes?" shows; a second row: Shift+Escape in insert mode on a comment leaves it
-  keeping the text.
+- "a field opens in insert mode": a comment holding "Review the UI guidelines properly", focused,
+  then `x` typed through the engine: the field reads "Review the UI guidelines properlyx" and the
+  mode store reads `insert`.
+- "Escape in normal mode does the field's Escape, the first leaving insert mode": the first Escape
+  goes to normal mode in the field, `0dw` deletes "Review ", the second runs the comment's Escape,
+  which leaves it keeping the text; a row's Escape, the same action, asks "Discard your changes?".
+- "Shift+Escape leaves a comment from insert mode, keeping its text".
 - "a yank reaches the clipboard": `yy` in a comment; `navigator.clipboard.readText()` gives the
   line.
 - "`:w` saves a comment": `:w` then Enter saves it as Ctrl+Enter does.
@@ -687,22 +698,22 @@ The break each test catches: the chunk loaded for everyone or on touch; an error
 field opening in normal mode; Escape dropping changes unasked; a yank kept in Vim only; `:w`
 ignored; commands not run; a switch that rebuilds the field.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__tests__/vim-load.test.ts packages/web/src/__tests__/vim.test.tsx`
 - Expected: FAIL, `fields/editor/vim/load.ts` does not exist.
 
-- [ ] **Step 3: Implement the layer and the Keyboard section**: the "Vim mode" switch, and "Vim
+- [x] **Step 3: Implement the layer and the Keyboard section**: the "Vim mode" switch, and "Vim
       commands" as a several-lines editor, one command per line, saved as the list, each error under
       the field. Use `Vim.defineEx` for `w`, `q`, `wq`, and the engine's register controller for the
       clipboard.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(vim-text): Vim's keys behind the Vim mode setting"
