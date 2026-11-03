@@ -11,8 +11,9 @@ import { Text } from "@astryxdesign/core/Text";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
-import { useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { useProposalFile } from "./data.ts";
+import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { ProposalStart, START_SHEETS, StartBar, type StartKind } from "./ProposalStart.tsx";
 import { ProposalText } from "./ProposalText.tsx";
 import { useTextField } from "./fields/useTextField.ts";
@@ -92,13 +93,12 @@ function ResearchEffort({
   );
 }
 
-/** Calls `focus` on the next frames until the element it finds is there: a field that mounts late. */
-function focusSoon(find: () => HTMLElement | null | undefined) {
+/** Focuses the field on the next frames once its editor is drawn: a field that mounts late. */
+function focusSoon(field: RefObject<EditorHandle | null>) {
   let tries = 0;
   const attempt = () => {
-    const element = find();
-    if (element) {
-      element.focus();
+    if (field.current?.view()) {
+      field.current.focus();
     } else if (tries++ < 20) {
       requestAnimationFrame(attempt);
     }
@@ -207,8 +207,7 @@ export function EditorPage({ path }: { path: string }) {
   const editor = useProposalEditor({ file, path, slug });
   const width = useWidthClass();
   const isWide = width === "wide";
-  const box = useRef<HTMLDivElement>(null);
-  const slugBox = useRef<HTMLDivElement>(null);
+  const slugField = useRef<EditorHandle>(null);
   const [kind, setKind] = useState<StartKind>("feature");
   const isFile = file?.kind === "proposal-file";
   // On the phone, a proposal file's Start is a sheet.
@@ -216,7 +215,7 @@ export function EditorPage({ path }: { path: string }) {
   const sheet = useSheetTab(START_SHEETS, inSheet);
   const edit = () => {
     editor.setDrawn(false);
-    focusSoon(() => box.current?.querySelector("textarea"));
+    focusSoon(editor.images.fieldProps.ref);
   };
   // A proposal file just made opens with the focus in its text, once: Back to it later does not
   // take it.
@@ -238,7 +237,7 @@ export function EditorPage({ path }: { path: string }) {
     if (inSheet) {
       sheet[1]("start");
     }
-    focusSoon(() => slugBox.current?.querySelector("input"));
+    focusSoon(slugField);
   };
   const [level, setLevel] = useResearchEffort(file, editor);
   // Starts it as the kind picked, saved text first: its session opens as the start is planned.
@@ -259,7 +258,7 @@ export function EditorPage({ path }: { path: string }) {
       kind={kind}
       onKind={setKind}
       slug={slug}
-      slugRef={slugBox}
+      slugRef={slugField}
     />
   );
   const banner = message && (
@@ -278,7 +277,6 @@ export function EditorPage({ path }: { path: string }) {
         <div {...stylex.props(isFile && isWide ? styles.columns : styles.stacked)}>
           <div {...stylex.props(isFile && isWide && styles.text)}>
             <ProposalText
-              boxRef={box}
               editor={editor}
               file={file}
               onEdit={edit}

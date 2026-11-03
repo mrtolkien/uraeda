@@ -15,6 +15,7 @@ import type { SheetState } from "./layout/useSheetTab.ts";
 import type { useTextField } from "./fields/useTextField.ts";
 import { Pane } from "./layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
+import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { SlugField } from "./SlugField.tsx";
 import type { useEditorActions } from "./useEditorActions.ts";
 import { WriteButton } from "./writes/WriteButton.tsx";
@@ -28,7 +29,7 @@ const styles = stylex.create({
 export type StartKind = "change" | "feature";
 
 /**
- * The pane: `kind` is what it starts as, `onKind` changes it, `slugRef` is the slug's input. Its one
+ * The pane: `kind` is what it starts as, `onKind` changes it, `slugRef` is the slug's field. Its one
  * button, or Enter in the slug, opens the session at once, the agent's message in its composer for
  * the human to read and send, while the branch and worktree are made. A slug refused, as taken,
  * says why under it.
@@ -44,8 +45,8 @@ export function ProposalStart({
   kind: StartKind;
   onKind: (kind: StartKind) => void;
   slug: ReturnType<typeof useTextField>;
-  /** The element around the slug field, whose input `f` and `c` bring the focus to. */
-  slugRef: RefObject<HTMLDivElement | null>;
+  /** The slug's field, which `s` and the phone's Start bring the focus to. */
+  slugRef: RefObject<EditorHandle | null>;
 }) {
   const narrow = isNarrow(useWidthClass());
   const isFeature = kind === "feature";
@@ -58,18 +59,17 @@ export function ProposalStart({
         <SegmentedControlItem label="Feature" value="feature" />
         <SegmentedControlItem label="Change" value="change" />
       </SegmentedControl>
-      <div ref={slugRef}>
-        <SlugField
-          description="Names its folder and its branch."
-          {...(actions.slugError === undefined ? {} : { error: actions.slugError })}
-          field={slug}
-          onEnter={() => {
-            if (slug.text.trim()) {
-              void run();
-            }
-          }}
-        />
-      </div>
+      <SlugField
+        description="Names its folder and its branch."
+        {...(actions.slugError === undefined ? {} : { error: actions.slugError })}
+        field={slug}
+        fieldRef={slugRef}
+        onEnter={() => {
+          if (slug.text.trim()) {
+            void run();
+          }
+        }}
+      />
       <HStack align="center" gap={2} wrap="wrap">
         <WriteButton
           // Its key, as the New page's send shows Enter: the phone has no such key.

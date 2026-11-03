@@ -225,3 +225,19 @@ test("US6 1, US2 more 3: the questions page's status line reads `n p unanswered`
 
   await waitFor(() => expect(document.activeElement?.textContent).toContain("Q1"));
 });
+
+// Break: `i` and `s` querying a `textarea` and an `input`, which the editor has none of: the focus
+// stayed on the page, and the letters typed next ran its keys.
+test("on a proposal file, `i` focuses its text and `s` its slug, the keys typed then theirs", async () => {
+  await renderPage("/edit/specs/proposals/git-listener.md", fixtureRepo());
+  const text = await screen.findByRole("textbox", { name: "Text" });
+  const slug = screen.getByRole("textbox", { name: "Slug" });
+
+  await press("i");
+  await waitFor(() => expect(document.activeElement).toBe(text));
+  await press("Escape", text);
+  await waitFor(() => expect(document.activeElement).not.toBe(text));
+
+  await press("s");
+  await waitFor(() => expect(document.activeElement).toBe(slug));
+});
