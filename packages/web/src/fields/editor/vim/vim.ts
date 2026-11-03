@@ -3,8 +3,9 @@
 // engine, never from keys handled by hand). The layer only calls the field's own actions: insert
 // mode at focus, but in a field read first, Escape in normal mode and Shift+Escape in any mode run
 // the field's Escape, Enter in normal mode its Enter, `:w` its Ctrl+Enter, `:q` its quit, which is
-// its Escape but where it leaves its page, `:wq` both; a yank also reaches the
-// clipboard; and the human's commands run when it starts, each refusal with its line.
+// its Escape but where it leaves its page, `:wq` both, a one-line field it saved left without its
+// Escape; a yank also reaches the clipboard; and the human's commands run when it starts, each
+// refusal with its line.
 import { type Extension, Prec } from "@codemirror/state";
 import { EditorView, ViewPlugin } from "@codemirror/view";
 import { type CodeMirror, type CodeMirrorV, getCM, Vim, vim } from "@replit/codemirror-vim";
@@ -66,12 +67,7 @@ function afterPrompt(
 
 Vim.defineEx("write", "w", (cm: CM) => afterPrompt(cm, (actions) => actions.submit()));
 Vim.defineEx("quit", "q", (cm: CM) => afterPrompt(cm, (actions) => actions.quit()));
-Vim.defineEx("wq", "wq", (cm: CM) =>
-  afterPrompt(cm, (actions) => {
-    actions.submit();
-    actions.quit();
-  }),
-);
+Vim.defineEx("wq", "wq", (cm: CM) => afterPrompt(cm, (actions) => actions.submitAndQuit()));
 
 // A yank to the unnamed register also reaches the system clipboard; a delete never replaces what
 // was copied elsewhere. `p` pastes the engine's register, as Vim does.

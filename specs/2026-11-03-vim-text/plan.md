@@ -664,8 +664,10 @@ git commit -m "feat(vim-text): the composer on the editor"
   - Fields open in insert mode at focus. Escape in normal mode, and Shift+Escape in any mode, run
     the editor's Escape; Escape after a pending key, like `d`, only drops it; Enter in normal mode
     runs a one-line field's Enter. `:w` runs the field's `onSubmit`, `:q` its Escape action keeping
-    the text, `:wq` both, once the engine's prompt has closed. The engine and the layer's keys sit
-    at `Prec.highest` in the slot, before the editor's own keys.
+    the text, `:wq` both, once the engine's prompt has closed: a one-line field `:wq` saves is left
+    as a click away leaves it, not by its Escape, which would ask to discard what it just saved
+    (ruling R17). The engine and the layer's keys sit at `Prec.highest` in the slot, before the
+    editor's own keys.
 
 - [x] **Step 1: Write the failing tests**
 

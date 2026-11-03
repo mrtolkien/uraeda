@@ -282,3 +282,16 @@ test("`:w` saves a row", async () => {
   // Breaks if `:w` runs a submit the row has none of.
   await waitFor(() => expect(read(repo)).toContain("- Review the UI guidelines, saved\n"));
 });
+
+test("`:wq` in a changed row saves it and asks nothing", async () => {
+  const { field, repo } = await rowPage();
+  await type(field, "Review the UI guidelines, written");
+  await keys(field, "<Esc>");
+
+  await ex(field, "wq");
+
+  // Breaks if `:wq` runs the row's Escape after its save, which asks to discard the saved change.
+  await waitFor(() => expect(read(repo)).toContain("- Review the UI guidelines, written\n"));
+  await waitFor(() => expect(screen.queryByRole("textbox", { name: ROW })).toBeNull());
+  expect(screen.queryByRole("dialog", { name: "Discard your changes?" })).toBeNull();
+});
