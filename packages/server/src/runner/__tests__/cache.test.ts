@@ -350,7 +350,9 @@ test("a session is released only by its holder", () => {
   expect(theirs.session(id)?.pid).toBe(process.ppid);
 });
 
-test("interrupted stops the running turns of gone servers", () => {
+test("interrupted stops the running turns of gone servers, ended at their last activity", () => {
+  vi.useFakeTimers({ now: new Date("2026-11-03T00:30:00.000Z"), toFake: ["Date"] });
+  onTestFinished(() => void vi.useRealTimers());
   const path = tempPath();
   // Another server: the process that started this test's runner is alive.
   const live = SessionCache.open(path, { pid: process.ppid });
@@ -365,16 +367,20 @@ test("interrupted stops the running turns of gone servers", () => {
   const deadTurn = gone.addTurn({ sessionId: dead.id, ...workflowTurn });
   const unclaimed = gone.createSession(chat);
   const unclaimedTurn = gone.addTurn({ sessionId: unclaimed.id, ...workflowTurn });
+  vi.setSystemTime(new Date("2026-11-03T01:00:00.000Z"));
+  gone.appendItem(deadTurn, { kind: "text", streaming: false, text: "Writing the plan." });
+  vi.setSystemTime(new Date("2026-11-03T08:00:00.000Z"));
   const ours = SessionCache.open(path);
 
   const stopped = ours.interrupted("Stopped: the server stopped while it ran.");
 
   expect(stopped.map((turn) => turn.id)).toEqual([deadTurn, unclaimedTurn]);
   expect(stopped[0]).toMatchObject({
-    endedAt: expect.any(String),
+    endedAt: "2026-11-03T01:00:00.000Z",
     reason: "Stopped: the server stopped while it ran.",
     state: "stopped",
   });
+  expect(stopped[1]?.endedAt).toBe("2026-11-03T00:30:00.000Z");
   expect(ours.turn(theirTurn)?.state).toBe("running");
   expect(ours.turn(done)?.state).toBe("done");
 });
@@ -539,6 +545,37 @@ test("migration 6 keeps every session, and lets a folder hold several", () => {
   expect(cache.folderSessions(REPO, FOLDER).map((session) => session.id)).toEqual([second.id, "f"]);
 });
 
+test("migration 8 adds the continue columns, and a continue is claimed once", () => {
+  const path = tempPath();
+  const old = new DatabaseSync(path);
+  for (const migration of migrations.slice(0, 7)) {
+    if (typeof migration === "string") {
+      old.exec(migration);
+    } else {
+      migration(old);
+    }
+  }
+  old.exec("PRAGMA user_version = 7");
+  old.exec(`INSERT INTO sessions (id, repo, folder, agent, native_id, created_at, updated_at)
+    VALUES ('s', '${REPO}', '${FOLDER}', 'claude', '3f2c', '2026-11-03', '2026-11-03');
+    INSERT INTO turns (id, session_id, kind, state) VALUES (1, 's', 'workflow', 'failed');`);
+  old.close();
+
+  const cache = SessionCache.open(path);
+
+  expect(cache.turn(1)).toMatchObject({ continueAt: null, continueReason: null });
+  expect(cache.session("s")?.automaticContinues).toBe(0);
+  cache.scheduleContinue(1, 1000, "limit");
+  const other = SessionCache.open(path, { pid: process.ppid });
+  const claims = [cache.takeContinue(1), other.takeContinue(1)];
+  expect(claims.filter((claim) => claim === undefined)).toHaveLength(1);
+  expect(claims.find((claim) => claim !== undefined)).toMatchObject({
+    continueAt: null,
+    continueReason: "limit",
+    id: 1,
+  });
+});
+
 // oxlint-disable-next-line max-lines-per-function -- over the limit before the code quality decision: the version 2 rows in a helper of their own
 test("migration 3 turns each feature's runs into the turns of one session", () => {
   const path = tempPath();
@@ -631,7 +668,9 @@ test("migration 3 turns each feature's runs into the turns of one session", () =
   expect(cache.turns(session.id)).toEqual([
     {
       allowed: null,
-      // A cache an older server made gains the column, empty.
+      // A cache an older server made gains the columns, empty.
+      continueAt: null,
+      continueReason: null,
       dismissedAt: null,
       endedAt: "2026-10-12T10:05:00.000Z",
       id: first,

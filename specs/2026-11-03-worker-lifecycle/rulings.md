@@ -114,3 +114,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   one it would make a working run wait for a reset.
 - **If wrong**: a run whose last report is the usage event alone waits for that report's reset.
 - **Where**: task 2, and the readers of the `limit` event in tasks 7 and 8.
+
+## R12: The claim's test catches an unchecked claim, not a race
+
+- **Decision**: task 3's claim test makes two claims one after the other, on two caches of one file.
+  It catches a claim that does not check that a continue still waits. A claim that checks in one
+  statement and writes in another, outside a transaction, would pass it: the guard against that race
+  is the code itself, one `UPDATE … RETURNING` in a `BEGIN IMMEDIATE` transaction.
+- **Rationale**: `node:sqlite` is synchronous, so one test process cannot interleave two claims.
+  Racing two processes on a timer would depend on elapsed time, which the testing decision rules
+  out.
+- **Where**: task 3.

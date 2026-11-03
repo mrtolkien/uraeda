@@ -4,9 +4,25 @@ import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { type Row, type SessionRow, type TurnRow, toSession, toTurn } from "./cache-rows.ts";
 import { addTurnTokens, agentSessionTokens } from "./cache-tokens.ts";
-import { dismiss, endTurn, interrupted, reopenTurn, startTurn, touch } from "./cache-turns.ts";
+import {
+  addContinue,
+  cancelContinue,
+  dismiss,
+  dropContinues,
+  endTurn,
+  interrupted,
+  latestLimitContinue,
+  markCapped,
+  pendingContinues,
+  reopenTurn,
+  resetContinues,
+  scheduleContinue,
+  startTurn,
+  takeContinue,
+  touch,
+} from "./cache-turns.ts";
 import { type EditedFile, editedFiles, type SubagentRow, subagentsOf } from "./cache-work.ts";
-import type { Item, TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
+import type { ContinueReason, Item, TokenCounts, Trigger, TurnKind, TurnState } from "./events.ts";
 import { migrate, transaction } from "./migrations.ts";
 import { refused } from "./session-state.ts";
 
@@ -323,12 +339,38 @@ export class SessionCache {
     endTurn(this.db, id, end);
   }
 
-  /**
-   * Dismisses a failed or stopped turn, so it no longer asks for the human: false for a turn in any
-   * other state, or dismissed already.
-   */
+  /** Dismisses a failed or stopped turn, and its continue: see `dismiss`. */
   dismiss(turn: number): boolean {
     return dismiss(this.db, turn);
+  }
+
+  // The continues: see their functions in `cache-turns.ts`.
+  scheduleContinue(turn: number, at: number, reason: ContinueReason): void {
+    scheduleContinue(this.db, turn, at, reason);
+  }
+  markCapped(turn: number, reason: ContinueReason): void {
+    markCapped(this.db, turn, reason);
+  }
+  takeContinue(turn: number): TurnRow | undefined {
+    return takeContinue(this.db, turn);
+  }
+  cancelContinue(turn: number, { stopped }: { stopped: boolean }): boolean {
+    return cancelContinue(this.db, turn, stopped);
+  }
+  dropContinues(reason: ContinueReason): Array<TurnRow> {
+    return dropContinues(this.db, reason);
+  }
+  pendingContinues(): Array<TurnRow> {
+    return pendingContinues(this.db);
+  }
+  latestLimitContinue(from: number): number | undefined {
+    return latestLimitContinue(this.db, from);
+  }
+  addContinue(session: string): number {
+    return addContinue(this.db, session);
+  }
+  resetContinues(session: string): void {
+    resetContinues(this.db, session);
   }
 
   /** Adds the counts to the turn's own, a null count read as 0. */

@@ -193,3 +193,6 @@ export type Trigger =
 
 /** A background task of the agent's run, by the tool call that started it. */
 export type BackgroundTask = { kind: "subagent" | "command"; tool: string };
+
+/** Why Uraeda continues a run by itself: a server's restart, a limit's reset, or an early end. */
+export type ContinueReason = "restart" | "limit" | "gate";

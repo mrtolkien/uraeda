@@ -493,8 +493,9 @@ keeps two servers or timers from continuing a run twice.
   - `takeContinue(turn: number): TurnRow | undefined`: one transaction that clears `continue_at`,
     keeps `continue_reason`, and returns the row. It returns undefined when nothing waited.
   - `cancelContinue(turn: number, { stopped }: { stopped: boolean }): boolean`:
-    - clears both columns;
-    - with `stopped`, sets the state `stopped` and the reason null, as the human's Stop does;
+    - clears both columns, a capped turn's reason too;
+    - with `stopped`, when a continue waited, sets the state `stopped` and the reason null, as the
+      human's Stop does;
     - returns whether a continue waited.
   - `dropContinues(reason: ContinueReason): Array<TurnRow>`: clears both columns of every pending
     continue of that reason.
@@ -512,7 +513,7 @@ keeps two servers or timers from continuing a run twice.
       `nix develop -c vp test packages/server/src/runner/__tests__/cache.test.ts`: PASS. Commit
       alone: `refactor(worker-lifecycle): move the cache's turn-state writes to their module`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 "migration 8 adds the continue columns, and a continue is claimed once". It follows "migration 5":
 apply `migrations.slice(0, 7)`, insert a session and a turn, then open the cache. Assert:
@@ -528,15 +529,19 @@ A row of "interrupted stops the running turns of gone servers": a running turn w
 
 The break each test catches:
 
-- A claim that reads, then writes, outside one transaction: both callers get the row.
+- A claim that does not check that a continue still waits, `AND continue_at IS NOT NULL` dropped:
+  both callers get the row. Two claims in one test run one after the other, so a claim that checks,
+  but reads and writes in two statements outside a transaction, passes it: the claim is one
+  `UPDATE … RETURNING` in `transaction`, which leaves no gap (ruling R12).
 - `interrupted` keeping the start's time: a crash's run reads as cut minutes ago.
 
-- [ ] **Step 3: Run them to check they fail**
+- [x] **Step 3: Run them to check they fail**
 
 - Run: `nix develop -c vp test packages/server/src/runner/__tests__/cache.test.ts`
-- Expected: FAIL. `takeContinue` is not a function.
+- Expected: FAIL. The migration test fails first on the new columns' defaults, `continueAt`
+  undefined; the interrupted row ends at the start's time, 08:00, not 01:00.
 
-- [ ] **Step 4: Implement the migration and the methods.** Migration 8:
+- [x] **Step 4: Implement the migration and the methods.** Migration 8:
 
 ```sql
 ALTER TABLE turns ADD COLUMN continue_at INTEGER;
@@ -544,15 +549,15 @@ ALTER TABLE turns ADD COLUMN continue_reason TEXT;
 ALTER TABLE sessions ADD COLUMN automatic_continues INTEGER NOT NULL DEFAULT 0;
 ```
 
-- [ ] **Step 5: Run the tests, then make the breaks.** For each: PASS, then FAIL with the break,
+- [x] **Step 5: Run the tests, then make the breaks.** For each: PASS, then FAIL with the break,
       then revert. Report the failures in the commit body.
 
-- [ ] **Step 6: Run the task's validation**
+- [x] **Step 6: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/server/src/runner/
