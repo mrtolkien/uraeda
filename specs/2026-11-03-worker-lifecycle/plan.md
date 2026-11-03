@@ -950,11 +950,21 @@ The rules:
    refusal: the turn, its items, and the count are one transaction.
 
 3. **The cancels**:
-   - `Sessions.send` cancels the session's pending continue, and calls `resetContinues`;
+   - `Sessions.send`, `allow`, and `allowAll` cancel the session's pending continue, and call
+     `resetContinues`, through `Continuer.takeOver`. A refused one puts both back: the wait at its
+     old `continueAt` and reason, armed, and the count. The cancelled turns' change is published
+     either way;
    - `Sessions.stop` cancels it with `stopped: true`;
    - `Sessions.dismiss` clears it through the cache's `dismiss`;
+   - `Turns.resume`, the agent going on by itself, cancels it;
    - `runsChanged` calls `dropContinues` for each kind turned off.
-4. **Timers** are armed per pending continue, unref'd, and cleared by `Sessions.close`.
+
+   Each of these, a dismiss too, counts the session's run as taken over: a decision under way, which
+   took the count before its reads, is dropped after them.
+
+4. **Timers** are armed per pending continue, unref'd, and cleared at the start of
+   `Sessions.closeAll`, before it awaits the processes: none is armed once the server stops. At the
+   start, the overdue limit waits are armed a minute apart, in their `continueAt` order.
 5. **No ask before the decision**: a turn that may continue publishes its end only once
    `scheduleContinue` or `markCapped` ran. Until then, NeedsYouList would read it failed or halted,
    and notify (SC-003). The decision that reads the feature stays before the publish. While it
@@ -1122,11 +1132,13 @@ The rules:
    turn is the gate's continue's own, nothing happens: the run reads `halted`.
 
 3. **The count**: before each decision, the feature's worktree commit is read with
-   `binding.checkoutCommit`. When it differs from the one recorded at the session's last continue,
-   the count goes back to 0. The commit read at the decision is recorded as its continue fires, in
+   `binding.checkoutCommit`, on the `worktree` `readFeature` gives, read only: a feature without a
+   worktree has no reset. When it differs from the one recorded at the session's last continue, the
+   count goes back to 0. The commit read at the decision is recorded as its continue fires, in
    memory (ruling R5): `fire` stays synchronous (R18). Every decision of a feature's run reads it,
    so a limit's `ended` returns a promise too, and its end is published once decided (ruling R20). A
-   message or a dismiss during the read, or a turn queued after it, leaves the run to the human.
+   message, Stop, Allow, or a dismiss during the read, a turn queued after it, or the kind's switch
+   turned off, leaves the run to the human.
 
 The restart scan reads the candidates with the cache's `serverCuts(reason, since)`, in
 `cache-turns.ts`. `ended` decides nothing when a turn is queued after the ended one, for every kind.
