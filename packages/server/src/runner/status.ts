@@ -82,7 +82,8 @@ export function sessionStatus(input: {
   if (queued || latest?.state === "running" || latest?.state === "queued") {
     return { label: "Working", status: "working" };
   }
-  if (latest?.continueAt != null) {
+  // The same rule as the run's wait, so the two never disagree.
+  if (waitOf(latest) !== null) {
     return { label: "Waiting", reason: "waiting", status: "working" };
   }
   const capped = latest?.continueReason != null;
