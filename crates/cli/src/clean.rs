@@ -11,12 +11,15 @@ use uraeda_core::workspace::{Feature, Workspace, branch_folder};
 use crate::output;
 use crate::status;
 
-/// Merged features with a worktree or a branch left, in folder order.
+/// Merged features with a worktree, a branch, or a line of the priorities left, in folder order.
 pub fn candidates(workspace: &Workspace) -> Vec<&Feature> {
     let mut features: Vec<&Feature> = workspace
         .features
         .iter()
-        .filter(|f| f.step.name == StepName::Done && status::leftovers(f).is_some())
+        .filter(|f| {
+            f.step.name == StepName::Done
+                && (status::leftovers(f).is_some() || clean::merged_line(workspace, f).is_some())
+        })
         .collect();
     features.sort_by(|a, b| a.folder.cmp(&b.folder));
     features
@@ -48,7 +51,7 @@ pub fn run(target: Option<String>, all: bool, dry_run: bool) -> Result<ExitCode,
                         .map(|f| format!("  {}", status::name(f)))
                         .collect();
                     return Err(format!(
-                        "{} merged features have a worktree or a branch left: name one, or pass --all\n{}",
+                        "{} merged features have a worktree, a branch, or a line of the priorities left: name one, or pass --all\n{}",
                         several.len(),
                         names.join("\n")
                     ));
@@ -57,7 +60,9 @@ pub fn run(target: Option<String>, all: bool, dry_run: bool) -> Result<ExitCode,
         }
     };
     if chosen.is_empty() {
-        println!("Nothing to clean: no merged feature has a worktree or a branch left.");
+        println!(
+            "Nothing to clean: no merged feature has a worktree, a branch, or a line of the priorities left."
+        );
         return Ok(ExitCode::SUCCESS);
     }
     let default = workspace
@@ -92,8 +97,25 @@ fn render(cleaned: &Cleaned, default: &str) -> String {
             }
             (Did::DeletedBranch(branch), false) => format!("deleted the branch {branch}"),
             (Did::DeletedBranch(branch), true) => format!("would delete the branch {branch}"),
+            (Did::RemovedLine { name, .. }, false) => {
+                format!("removed \"{name}\" from the priorities")
+            }
+            (Did::RemovedLine { name, .. }, true) => {
+                format!("would remove \"{name}\" from the priorities")
+            }
         };
         text.push_str(&wrap(&line));
+        if let (
+            Did::RemovedLine {
+                committed: false, ..
+            },
+            false,
+        ) = (did, cleaned.dry_run)
+        {
+            text.push_str(&wrap(
+                "PRIORITIES.md had uncommitted changes: the line is removed but not committed.",
+            ));
+        }
     }
     for left in &cleaned.left {
         text.push_str(&wrap(&left_line(left, default)));

@@ -282,3 +282,17 @@ pub fn commit(place: &Place) -> Result<Committed, ActionError> {
 pub fn discard(place: &Place) -> Result<(), ActionError> {
     changes::discard(place)
 }
+
+/// Removes, on disk, the line of the priorities linking `proposal`, a path from the root: its name,
+/// and whether the file was as committed before, or `None` when no line links it.
+pub(crate) fn remove_linked(
+    place: &Place,
+    proposal: &str,
+) -> Result<Option<(String, bool)>, ActionError> {
+    let Some((without, name)) = priorities::remove_linked(&text(place), proposal) else {
+        return Ok(None);
+    };
+    let clean = is_clean(place, PATH);
+    fs::write(place.root.join(PATH), without)?;
+    Ok(Some((name, clean)))
+}
