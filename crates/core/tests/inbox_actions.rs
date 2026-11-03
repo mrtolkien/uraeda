@@ -789,3 +789,52 @@ fn removing_an_agents_note_without_an_inbox_commits_its_deletion() {
     assert!(!repo.exists(INBOX));
     assert_eq!(repo.porcelain(), "");
 }
+
+/// US2 more 4: an agent's note made a proposal moves its file among the proposals, its frontmatter
+/// left behind: the proposal has one title, and no `agent:`. Its Undo writes the note file back as
+/// it was committed.
+#[test]
+fn an_agents_note_made_a_proposal_leaves_its_frontmatter() {
+    let (repo, path) = repo_with_agents_note("The workspace record's running is read by no view");
+    let file = repo.read(&path);
+    let read = api::read_inbox(repo.path()).unwrap();
+    let note = read
+        .categories
+        .iter()
+        .flat_map(|category| &category.notes)
+        .find(|note| note.id == path)
+        .unwrap()
+        .clone();
+    let priorities = api::read_priorities(repo.path()).unwrap();
+
+    let proposal =
+        api::note_to_proposal_file(repo.path(), &path, "later", &read.hash, &priorities.hash)
+            .unwrap();
+
+    let text = repo.read(&proposal);
+    assert!(!text.contains("agent:"), "{text}");
+    assert!(!text.contains("category:"), "{text}");
+    assert_eq!(
+        text.lines().filter(|line| line.starts_with("# ")).count(),
+        1,
+        "{text}"
+    );
+    assert!(
+        text.contains(
+            "# The workspace record's running is read by no view\n\n## What\n\nThe workspace record's running is read by no view\n\n## Why"
+        ),
+        "{text}"
+    );
+
+    api::undo_note_to_proposal(
+        repo.path(),
+        &note.lines,
+        Some("Deferred fixes".into()),
+        0,
+        "later",
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(repo.read(&path), file);
+}

@@ -131,7 +131,8 @@ pub(super) fn to_proposals(place: &Place, path: &str, title: &str) -> Result<Str
 }
 
 /// Moves the proposal file at `proposal` back to the note file it was, `note`, both from the top
-/// level: the Undo of [`to_proposals`], freeform again while it holds what the move made of it.
+/// level: the Undo of [`to_proposals`], freeform again while it holds what the move made of it,
+/// as `HEAD` has the note file when the move made the proposal of that.
 /// The links of every file of `specs/` but the lists whose change since `HEAD` is links alone go
 /// back with it (see [`relink::relink_back`]). Refused when the proposal file is gone, or a file
 /// stands at the note file's place.
@@ -142,9 +143,17 @@ pub(crate) fn back_to_notes(place: &Place, proposal: &str, note: &str) -> Result
             base(unit(proposal))
         )));
     };
-    // A note file committed in the proposal's shape, as older tools wrote them, stays so.
-    let freeform = expand::proposal_as_note(&text)
-        .filter(|_| super::super::place::committed(place, note).as_deref() != Some(text.as_str()));
+    // A note file committed in the proposal's shape, as older tools wrote them, stays so; one
+    // committed with a frontmatter, an agent's, which the move left out, gets it back.
+    let committed = super::super::place::committed(place, note);
+    let freeform = match committed {
+        Some(committed) if expand::note_as_proposal(&committed, "").as_ref() == Some(&text) => {
+            Some(committed)
+        }
+        committed => {
+            expand::proposal_as_note(&text).filter(|_| committed.as_deref() != Some(text.as_str()))
+        }
+    };
     relocate(place, proposal, note)?;
     let result = match &freeform {
         Some(freeform) => fs::write(place.root.join(note), freeform).map_err(ActionError::from),

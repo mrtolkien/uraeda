@@ -179,7 +179,7 @@ pub fn write_new(
 }
 
 /// The text of the note file `note`, freeform, as a proposal file's, as the workflow reads a
-/// proposal's `## What`: the template with the note's `#` title, or `title` when its first line is
+/// proposal's `## What`, its frontmatter left out: the template with the note's `#` title, or `title` when its first line is
 /// none, as its title and the first paragraph of What, and the rest of the note after it, as
 /// [`proposal`] writes a note's line and nested lines. `None` for a note file with a `## What`
 /// already, as older tools wrote them from the template, or without the template.
@@ -188,6 +188,14 @@ pub(crate) fn note_as_proposal(note: &str, title: &str) -> Option<String> {
         return None;
     }
     let shaped = crate::files::with_unix_newlines(note, |note| {
+        // An agent's note file's frontmatter is the note's marks, which a proposal has no use for.
+        let note = match crate::files::frontmatter::block(note) {
+            Ok((_, end)) => {
+                let skipped: usize = note.split_inclusive('\n').take(end).map(str::len).sum();
+                note[skipped..].trim_start_matches('\n')
+            }
+            Err(_) => note,
+        };
         let (first, rest) = note.split_once('\n').unwrap_or((note, ""));
         let (title, body) = match first.strip_prefix("# ") {
             Some(own) => (own.trim(), rest),
