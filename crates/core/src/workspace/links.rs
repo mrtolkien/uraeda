@@ -70,6 +70,14 @@ pub fn resolve(dir: &str, target: &str) -> Option<String> {
     Some(parts.join("/"))
 }
 
+/// Whether `path`, a link's target from the top level, is the line of the feature or change in
+/// `folder`, a folder from the top level: a link to the folder itself, or to its `proposal.md`, as a
+/// started line has. The one test of a feature's line: the priorities' join, `ura clean`, and its
+/// removal of the line read it.
+pub fn links_folder(path: &str, folder: &str) -> bool {
+    path == folder || path.strip_prefix(folder) == Some("/proposal.md")
+}
+
 /// Whether a target starts with a URI scheme, `[A-Za-z][A-Za-z0-9+.-]*:`.
 fn has_scheme(target: &str) -> bool {
     let Some((scheme, _)) = target.split_once(':') else {
@@ -138,9 +146,10 @@ impl Linked<'_> {
     pub fn merged(&self) -> Option<MergedFeature> {
         let feature = self.feature?;
         let folder = super::paths::folder_path(feature.kind, &feature.folder);
-        let own = self.path.as_deref().is_some_and(|path| {
-            path == folder || path.strip_prefix(folder.as_str()) == Some("/proposal.md")
-        });
+        let own = self
+            .path
+            .as_deref()
+            .is_some_and(|path| links_folder(path, &folder));
         (own && feature.step.name == StepName::Done).then(|| MergedFeature {
             folder: feature.folder.clone(),
             change: feature.kind == Kind::Change,

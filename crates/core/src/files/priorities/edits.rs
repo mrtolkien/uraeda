@@ -282,16 +282,18 @@ pub fn remove(text: &str, id: &str) -> Option<String> {
     .ok()
 }
 
-/// Removes the first proposal whose link leads to `path`, from the top level, with its nested
-/// lines: the text without it, and the proposal's text. `None` when no proposal links it.
-pub fn remove_linked(text: &str, path: &str) -> Option<(String, String)> {
+/// Removes the first proposal linking the folder `folder`, from the top level, or its
+/// `proposal.md` (see [`crate::workspace::links_folder`]), with its nested lines: the text without
+/// it, and the proposal's text. `None` when no proposal links it.
+pub fn remove_linked(text: &str, folder: &str) -> Option<(String, String)> {
     let mut name = None;
     let without = super::super::with_unix_newlines(text, |text| {
         let proposal = parse(text)
             .into_iter()
             .find(|proposal| {
-                (proposal.link.as_deref()).and_then(|link| crate::workspace::resolve("specs", link))
-                    == Some(path.to_string())
+                (proposal.link.as_deref())
+                    .and_then(|link| crate::workspace::resolve("specs", link))
+                    .is_some_and(|path| crate::workspace::links_folder(&path, folder))
             })
             .ok_or(())?;
         name = Some(proposal.text.clone());
