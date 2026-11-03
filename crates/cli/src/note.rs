@@ -1,5 +1,5 @@
-//! `ura note`: a note added to `specs/INBOX.md`, and committed alone: on the default branch, or in
-//! the agent's own worktree with `--agent`.
+//! `ura note`: a note added to `specs/INBOX.md` on the default branch, and committed alone; with
+//! `--agent` in a feature's or a change's worktree, a note file of its own, committed on its branch.
 
 use std::process::ExitCode;
 
@@ -32,24 +32,37 @@ pub fn run(options: Options) -> Result<ExitCode, String> {
         .default_branch
         .clone()
         .ok_or("no default branch: commit on main first")?;
-    // An agent's note stays in its own worktree, and reaches the default branch with its merge.
-    let place = if options.agent && git.current_branch().as_deref() != Some(default.as_str()) {
-        place::Place {
-            root: git.root().to_path_buf(),
-            created: false,
-            switched: None,
-        }
-    } else {
-        place::reach(&git, &default).map_err(|error| error.to_string())?
-    };
-    let noted = inbox::note(
-        &place,
-        options.category.as_deref(),
-        &marks,
-        &options.text,
-        !options.no_commit,
-    )
-    .map_err(output::action_error)?;
+    // An agent's note in a feature's or a change's worktree is a note file of its own, on its
+    // branch: the inbox reads it once merged, and the branch never writes INBOX.md. On the
+    // default branch's checkout, it is a line, as anyone's note.
+    let (place, noted) =
+        if options.agent && git.current_branch().as_deref() != Some(default.as_str()) {
+            let place = place::Place {
+                root: git.root().to_path_buf(),
+                created: false,
+                switched: None,
+            };
+            let (_, noted) = inbox::agent_note(
+                &place,
+                options.category.as_deref(),
+                &marks,
+                &options.text,
+                !options.no_commit,
+            )
+            .map_err(output::action_error)?;
+            (place, noted)
+        } else {
+            let place = place::reach(&git, &default).map_err(|error| error.to_string())?;
+            let noted = inbox::note(
+                &place,
+                options.category.as_deref(),
+                &marks,
+                &options.text,
+                !options.no_commit,
+            )
+            .map_err(output::action_error)?;
+            (place, noted)
+        };
     if let Some(message) = output::place_message(&git, &place) {
         eprintln!("{message}");
     }
