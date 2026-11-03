@@ -170,6 +170,29 @@ test("a message during a wait goes at once, drops the continue, and sets the cou
   expect(adapter.sent).toHaveLength(sent);
 });
 
+/** A message the server refuses never went: the wait it cancelled comes back, with its count. */
+test("a message refused during a wait leaves the wait in place", async () => {
+  const setup = await testSessions(fixtureRepo(), { runs: () => ON });
+  const { adapter, cache, changes, repo, sessions } = setup;
+  clock("2026-11-03T14:01:00Z");
+  // An older session of the feature works while its latest waits.
+  const older = await sessions.featureSession(repo, AGENT);
+  await sessions.newSession(repo, AGENT);
+  const { session, turn } = await sendLimited(setup, AGENT);
+  cache.addContinue(session);
+  adapter.script([hold]);
+  await sessions.send(repo, older.id, { text: "Look at the tests" });
+
+  const published = changes.length;
+  await expect(sessions.send(repo, session, { text: "Skip the review" })).rejects.toThrow(
+    /refused: /,
+  );
+  expect(cache.turn(turn)).toMatchObject({ continueAt: AFTER_RESET, continueReason: "limit" });
+  expect(cache.session(session)?.automaticContinues).toBe(1);
+  // A view holding the turn read its wait gone, then back.
+  expect(changes.slice(published)).toContainEqual(expect.objectContaining({ turn }));
+});
+
 /** Review focus 1: Allow, a new session, or the agent going on takes the run over from its wait. */
 test.each(["Allow", "a new session", "the agent going on by itself"])(
   "%s during a wait drops the continue at the reset",

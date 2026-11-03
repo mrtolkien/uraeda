@@ -212,7 +212,10 @@ export function addContinue(db: DatabaseSync, session: string): number {
   return row.count;
 }
 
-/** Sets the session's continues in a row back to 0: a commit, or the human's message. */
-export function resetContinues(db: DatabaseSync, session: string): void {
-  db.prepare("UPDATE sessions SET automatic_continues = 0 WHERE id = ?").run(session);
+/**
+ * Sets the session's continues in a row back to 0, a commit, or the human's message, or to `count`,
+ * as a refused message gives it back.
+ */
+export function resetContinues(db: DatabaseSync, session: string, count = 0): void {
+  db.prepare("UPDATE sessions SET automatic_continues = ? WHERE id = ?").run(count, session);
 }
