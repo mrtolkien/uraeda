@@ -1,4 +1,5 @@
 import type { Activity, AgentEvent, Denial, TokenCounts, ToolKind, UsageLimit } from "./events.ts";
+import { limitOfInfo, limitOfMessage, wakeupOf } from "./claude-limits.ts";
 import { toolTarget } from "./message.ts";
 
 /**
@@ -125,30 +126,7 @@ export function parseLine(
     case "command_lifecycle":
       return lifecycleEvents(message);
     case "assistant":
-      return objects(isObject(message.message) ? message.message.content : undefined).flatMap(
-        (block): Array<AgentEvent> => {
-          // A sub-agent's text is not the main agent's: only its tools are shown.
-          if (block.type === "text" && typeof block.text === "string" && block.text !== "") {
-            return parent === undefined ? [{ text: block.text, type: "text" }] : [];
-          }
-          if (block.type === "tool_use" && typeof block.id === "string") {
-            return [toolStart(block.id, text(block.name), block.input, parent, cwd)];
-          }
-          // A thinking block comes whole once it ends, its text empty unless the agent shows it.
-          if (block.type === "thinking" || block.type === "redacted_thinking") {
-            return [
-              {
-                ...(parent === undefined ? {} : { parent }),
-                ...(typeof block.thinking === "string" && block.thinking !== ""
-                  ? { text: block.thinking }
-                  : {}),
-                type: "thought",
-              },
-            ];
-          }
-          return [];
-        },
-      );
+      return assistantEvents(message, parent, cwd);
     case "user":
       return objects(isObject(message.message) ? message.message.content : undefined).flatMap(
         (block): Array<AgentEvent> =>
@@ -166,10 +144,59 @@ export function parseLine(
     case "result":
       return [...tokensEvent(message.modelUsage), resultEvent(message)];
     case "rate_limit_event":
-      return usageEvents(message.rate_limit_info);
+      return [...usageEvents(message.rate_limit_info), ...limitEvent(message.rate_limit_info)];
     default:
       return [];
   }
+}
+
+/**
+ * An assistant message's blocks: its text, tool calls, and thinking. The main agent's message also
+ * says when a usage limit refused its turn, and its tool calls when it set a wakeup.
+ */
+function assistantEvents(message: Json, parent: string | undefined, cwd: string | undefined) {
+  const now = new Date();
+  const content = objects(isObject(message.message) ? message.message.content : undefined);
+  const events = content.flatMap((block): Array<AgentEvent> => {
+    // A sub-agent's text is not the main agent's: only its tools are shown.
+    if (block.type === "text" && typeof block.text === "string" && block.text !== "") {
+      return parent === undefined ? [{ text: block.text, type: "text" }] : [];
+    }
+    if (block.type === "tool_use" && typeof block.id === "string") {
+      const input = isObject(block.input) ? block.input : {};
+      return [
+        toolStart(block.id, text(block.name), input, parent, cwd),
+        ...wakeupOf(text(block.name), input, now),
+      ];
+    }
+    // A thinking block comes whole once it ends, its text empty unless the agent shows it.
+    if (block.type === "thinking" || block.type === "redacted_thinking") {
+      return [
+        {
+          ...(parent === undefined ? {} : { parent }),
+          ...(typeof block.thinking === "string" && block.thinking !== ""
+            ? { text: block.thinking }
+            : {}),
+          type: "thought",
+        },
+      ];
+    }
+    return [];
+  });
+  if (parent !== undefined) {
+    return events;
+  }
+  const said = content
+    .filter((block) => block.type === "text")
+    .map((block) => text(block.text))
+    .join("\n");
+  return [...events, ...limitOfMessage(message, said, now)];
+}
+
+/** A usage report that refused a request, before the refusal itself. */
+function limitEvent(info: unknown): Array<AgentEvent> {
+  const limit = limitOfInfo(info);
+  return limit ? [{ limit, type: "limit" }] : [];
 }
 
 /**

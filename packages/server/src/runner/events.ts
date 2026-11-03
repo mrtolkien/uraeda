@@ -7,6 +7,13 @@ export type Denial = { input: Record<string, unknown>; tool: string };
 export type UsageLimit = { percentUsed: number; resetsAt: string };
 
 /**
+ * A usage limit that refused the agent's turn. `session` is the limit of a few hours that resets by
+ * itself; `other` is any weekly, per-model, spend, or unknown limit. `resetsAt` is in ISO 8601, and
+ * `text` the agent's own words for it.
+ */
+export type Limit = { kind: "session" | "other"; resetsAt?: string; text?: string };
+
+/**
  * Tokens the model read and wrote. `input` was read for the first time, `cacheWrite` read and
  * written to the cache, `cacheRead` read back from it.
  */
@@ -62,6 +69,13 @@ export type AgentEvent =
    * reports back.
    */
   | { tasks: Array<BackgroundTask>; type: "background" }
+  /**
+   * The agent reported that a usage limit refused its turn. A refusal may be reported twice, a
+   * rejected usage report then the refusal itself: the last one says the most.
+   */
+  | { limit: Limit; type: "limit" }
+  /** The agent set a one-shot wakeup for that instant, in ISO 8601: it goes on by itself then. */
+  | { at: string; type: "wakeup" }
   /** The agent session's running total, its sub-agents included, sent before each result. */
   | { total: TokenCounts; type: "tokens" }
   /** The agent ended its reply. */

@@ -369,65 +369,76 @@ git commit -m "refactor(worker-lifecycle): split the session manager's folder se
     that instant, in ISO 8601.
 - Produces, in `claude-limits.ts`:
   - `limitOfInfo(info: unknown, text?: string): Limit | undefined`, from a `rate_limit_info` with
-    `status: "rejected"`.
-  - `limitOfText(text: string, now: Date): Limit | undefined`, from the limit's text.
+    `status: "rejected"`, and not let through on usage credits (`isUsingOverage`).
+  - `limitOfText(text: string, now: Date, zone?: string): Limit | undefined`, from the limit's text.
+    `zone` is the server's own by default; the tests set it.
+  - `limitOfMessage` and `wakeupOf`, which `parseLine` calls on an assistant message and on its tool
+    calls.
 
-- [ ] **Step 1: Write the failing tests, and the fixtures they use**
+- [x] **Step 1: Write the failing tests, and the fixtures they use**
 
 The fixtures are recorded lines:
 
 - `limit-session.jsonl`:
   - an assistant line with `error: "rate_limit"`, `is_api_error_message: true`,
     `api_error: "usage_limit_reached"`, and
-    `api_error_params.rate_limit_info: { status: "rejected", rateLimitType: "five_hour", resetsAt: 1793781600 }`;
+    `api_error_params.rate_limit_info: { status: "rejected", rateLimitType: "five_hour", resetsAt: 1793749200 }`,
+    2026-11-03T23:40Z, 8:40am in Tokyo;
   - the text `You've hit your session limit · resets 8:40am (Asia/Tokyo)`;
   - a `result` with `is_error: true` and that text.
-- `limit-weekly.jsonl`: the same with `rateLimitType: "seven_day"`, and
+- `limit-weekly.jsonl`: the same with `rateLimitType: "seven_day"`, `resetsAt: 1794150000`, and
   `You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)`.
 - `limit-text.jsonl`: the assistant line without `api_error`, as an older Claude Code sends it.
 - `wakeup.jsonl`: an assistant `tool_use` of `ScheduleWakeup` with `delaySeconds: 1500`, and one of
-  `CronCreate` with `recurring: false`.
+  `CronCreate` with `recurring: false`, and a recurring `CronCreate`.
 
-Rows of "the lines of %s", each asserting only the new event among the file's:
+Rows of "the lines of %s", each asserting only the new event among the file's. The table's clock is
+set to `2026-11-03T14:01:00Z`, 23:01 in Tokyo:
 
 ```ts
 ["limit-session.jsonl", expect.arrayContaining([{ type: "limit", limit: { kind: "session", resetsAt: "2026-11-03T23:40:00.000Z", text: SESSION_TEXT } }])],
-["limit-weekly.jsonl", expect.arrayContaining([{ type: "limit", limit: expect.objectContaining({ kind: "other" }) }])],
+["limit-weekly.jsonl", expect.arrayContaining([{ type: "limit", limit: { kind: "other", resetsAt: "2026-11-08T15:00:00.000Z", text: WEEKLY_TEXT } }])],
+["limit-text.jsonl", expect.arrayContaining([{ type: "limit", limit: { kind: "session", resetsAt: "2026-11-03T23:40:00.000Z", text: SESSION_TEXT } }])],
+["wakeup.jsonl", expect.arrayContaining([{ type: "wakeup", at: "2026-11-03T14:26:00.000Z" }, { type: "wakeup", at: new Date(2026, 10, 5, 9, 30).toISOString() }])],
 ```
 
-`claude-limits.test.ts`, "the limit text %s": a table over `limitOfText(text, now)`, with `now`
-`2026-11-03T14:01:00Z`:
+`claude-limits.test.ts`, "the limit text %s": a table over `limitOfText(text, now, zone)`, with
+`now` `2026-11-03T14:01:00Z` and the server's zone `Europe/Paris` (15:01 there). Each limit also
+carries its `text`:
 
-| Text                                                             | Expected                                               |
-| ---------------------------------------------------------------- | ------------------------------------------------------ |
-| `You've hit your session limit · resets 8:40am (Asia/Tokyo)`     | session, `2026-11-03T23:40:00.000Z`                    |
-| `You've hit your session limit · resets 11pm (Asia/Tokyo)`       | session, `2026-11-03T14:00:00Z` + 1 day, the next 11pm |
-| `You've hit your session limit · resets 8:40am`                  | session, 8:40 the next morning in the server's zone    |
-| `You've hit your session limit`                                  | session, no `resetsAt`                                 |
-| `You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)` | other                                                  |
-| `You've hit your Opus limit · resets 8:40am (Asia/Tokyo)`        | other                                                  |
-| `Not logged in · Please run /login`                              | undefined                                              |
+| Text                                                             | Expected                                      |
+| ---------------------------------------------------------------- | --------------------------------------------- |
+| `You've hit your session limit · resets 8:40am (Asia/Tokyo)`     | session, `2026-11-03T23:40:00.000Z`           |
+| `You've hit your session limit · resets 11pm (Asia/Tokyo)`       | session, `2026-11-04T14:00:00.000Z`           |
+| `You've hit your session limit · resets 8:40am`                  | session, `2026-11-04T07:40:00.000Z`, in Paris |
+| `You've hit your session limit`                                  | session, no `resetsAt`                        |
+| `You've hit your weekly limit · resets Mon 12:00am (Asia/Tokyo)` | other                                         |
+| `You've hit your Opus limit · resets 8:40am (Asia/Tokyo)`        | other                                         |
+| `Not logged in · Please run /login`                              | undefined                                     |
 
 The break each test catches:
 
-- The fixture rows: a parser that ignores `api_error_params`, or that reads a weekly limit as the
-  session's.
+- The fixture rows: a parser that ignores `api_error_params`, whose text fallback gives the weekly
+  limit no reset, or that reads a weekly limit as the session's; a wakeup not read from its tool
+  call.
 - The table: a reset read in the server's zone instead of the zone the text names, or a time already
   past today not moved to the next day.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/runner/__tests__/claude.test.ts packages/server/src/runner/__tests__/claude-limits.test.ts`
 - Expected: FAIL. The rows miss the `limit` event, and `claude-limits.ts` does not exist.
 
-- [ ] **Step 3: Implement the stop reader**
+- [x] **Step 3: Implement the stop reader**
 
-`parseLine` emits one `limit` event per refusal:
+`parseLine` emits a `limit` event for a refusal (ruling R11):
 
-- from an assistant line whose `api_error` is `usage_limit_reached`, through `limitOfInfo`;
-- else from a `rate_limit_event` whose `rate_limit_info.status` is `rejected`, its usage event kept;
-- else from an assistant line with `error: "rate_limit"`, through `limitOfText` on its text.
+- from the main agent's assistant line whose `api_error` is `usage_limit_reached`, through
+  `limitOfInfo`;
+- else from one with `error: "rate_limit"`, through `limitOfText` on its text;
+- and from a `rate_limit_event` whose `rate_limit_info.status` is `rejected`, its usage event kept.
+  It comes before the refusal's assistant line, which says the same or more, and is read last.
 
 Rules:
 
@@ -441,17 +452,17 @@ A `tool_use` of `ScheduleWakeup` emits `{ type: "wakeup", at: now + delaySeconds
 `toolStart`. A `CronCreate` with `recurring: false` emits its next fire time, from its 5-field
 `cron` read in the server's zone; one it cannot read emits nothing. A recurring cron emits nothing.
 
-- [ ] **Step 4: Run the tests to check they pass**
+- [x] **Step 4: Run the tests to check they pass**
 
 - Run: the command of step 2
 - Expected: PASS
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS. The transcript ignores the new events until tasks 7 and 8.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/runner/ fixtures/claude/
