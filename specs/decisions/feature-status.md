@@ -1,6 +1,6 @@
 ---
-status: active
-approved-by: mrtolkien
+status: proposed
+approved-by:
 icon: activity
 ---
 
@@ -19,8 +19,10 @@ with it.
   server's tests.
 - A feature no session works on MUST follow its latest session, never an older session's outcome.
   Checked by the server's tests.
-- A failed or stopped run MUST ask for the human until they dismiss it. Checked by the runner's
-  tests.
+- A failed or stopped run MUST ask for the human until they dismiss it, unless it waits to continue
+  by itself. Checked by the runner's tests.
+- A run waiting to continue by itself MUST read as in progress, with when it goes on. Checked by the
+  server's tests.
 - A pull request MUST read as ready for the human's review only when it holds the branch's latest
   commit. Checked by the core's tests.
 - A branch's step SHOULD be read from its latest commit, or from a write of the human's that Uraeda
@@ -38,14 +40,14 @@ landing is no guess, and a refused commit puts it back. History:
 
 - The most urgent session's status, working ranked first: an old crash came back after every run.
 - A warning cleared by opening its session: a glance cleared a failure not dealt with yet.
-- Reading a checked-out branch from its disk: it showed branches outside the workflow, and gates not
-  committed yet.
+- A run waiting for a limit's reset asking for the human: a notification with nothing to do.
 
 ## Consequences
 
 - The web UI moves when a commit lands or the human's own write is queued, not when a file is saved
   by hand.
-- A run stopped by a server restart waits for a dismiss or a message, until runs resume alone.
+- A run that waits to continue by itself never notifies: the human learns of it only if it fails, or
+  stops continuing.
 - The workflow has a step for the agent to push the commits an open pull request lacks.
 
 ## Applies to
