@@ -1,18 +1,21 @@
 ---
 verdict: changes-requested
-commit: ed0fe03
+commit: ac4a783
 ---
 
 # Review: Spec, Vim in text edit mode
 
-## C1: General
+## C1: Lines 249–252, under "Architecture"
 
-> The buffer's save commits one file, with a message in the conventions' style for a human's edit.
+> - **The Commit page** lists every Markdown file under `specs/` changed and not committed, beside
+>   the lists and the proposal files it lists today, and, in a group per feature, the files changed
+>   on that feature's branch. It commits the default branch's and each feature's apart, each with
+>   its own message, and Discard drops them as it does today. The core lists them, and owns the
+>   messages.
 
-Why the fuck?
+So:
 
-NO AUTO COMMITS. WE HAVE A FUCKING DEDICATED COMMIT PAGE. WHY ARE YOU SUGGESTING SHORTCUTTING IT.
-IT'S THE SECOND TIME. Make sure there's a clear decision: the only auto-commits (from the core)
-allowed are for starting changes/features.
-
-Committing proposals and all is a human action.
+1. Each branch/worktree should commit individually: if there are changes on main AND a worktree,
+   there should be two sets of changes and two "commit" buttons. Separate them with panes. It will
+   come up rarely but hey.
+2. We should the option for the user to input the commit's text if they want to change it.
