@@ -48,13 +48,14 @@ fn unchanged(place: &Place, previous: Option<&str>) -> Result<String, ActionErro
 /// linked since.
 fn written(place: &Place, id: &str, previous: Option<&str>) -> Result<Written, ActionError> {
     let before = unchanged(place, previous)?;
+    let existed = place.root.join(PATH).exists();
     let (after, line) = as_line(place, &before, id).ok_or_else(|| no_note(id))?;
     fs::write(place.root.join(PATH), &after)?;
     let made = line
         .category
         .filter(|name| !inbox::category_names(&before).contains(name));
     Ok(Written {
-        before,
+        before: existed.then_some(before),
         after,
         id: line.id,
         made,
@@ -63,10 +64,27 @@ fn written(place: &Place, id: &str, previous: Option<&str>) -> Result<Written, A
 
 /// What [`written`] wrote.
 struct Written {
-    before: String,
+    /// `INBOX.md`'s text before, `None` when it did not exist.
+    before: Option<String>,
     after: String,
     id: String,
     made: Option<String>,
+}
+
+/// Puts `INBOX.md` back as it was, `before`, deleting it when it did not exist, after an action
+/// refused with `error`: `error`, or, when `INBOX.md` could not be put back, an error saying so too.
+fn put_back(place: &Place, before: Option<&str>, error: ActionError) -> ActionError {
+    let file = place.root.join(PATH);
+    let back = match before {
+        Some(before) => fs::write(&file, before),
+        None => fs::remove_file(&file),
+    };
+    match back {
+        Ok(()) => error,
+        Err(back) => ActionError::Io(format!(
+            "{error}; and INBOX.md could not be put back as it was: {back}"
+        )),
+    }
 }
 
 /// Runs `act` on the note `id`, given its id and `INBOX.md`'s hash once an agent's note is its line,
@@ -86,9 +104,8 @@ pub(super) fn acting<T>(
         &written.id,
         previous.map(|_| hash(&written.after)).as_deref(),
     );
-    if result.is_err() {
-        let _ = fs::write(place.root.join(PATH), &written.before);
-        return result;
+    if let Err(error) = result {
+        return Err(put_back(place, written.before.as_deref(), error));
     }
     if let Some(name) = &written.made {
         let now = text(place)?;

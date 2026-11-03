@@ -859,3 +859,28 @@ fn discarding_a_placed_agents_note_restores_its_file() {
     assert_eq!(repo.read(&path), file);
     assert_eq!(repo.porcelain(), "");
 }
+
+/// An action refused once the agent's note is a line, in a repository without `INBOX.md`, leaves
+/// no `INBOX.md` behind.
+#[test]
+fn a_refused_action_without_an_inbox_leaves_no_inbox() {
+    let repo = TestRepo::new();
+    repo.write("specs/README.md", "# Specs\n");
+    repo.write(
+        AGENTS_NOTE,
+        "---\nagent: true\nabout: feature-state\n---\n\n# The workspace record's running is read by no view\n",
+    );
+    repo.commit("chore: an agent's note");
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    let moved = api::note_into_proposal(
+        repo.path(),
+        AGENTS_NOTE,
+        "specs/proposals/none.md",
+        &read.hash,
+    );
+
+    assert!(moved.is_err());
+    assert!(!repo.exists(INBOX));
+    assert_eq!(repo.porcelain(), "");
+}
