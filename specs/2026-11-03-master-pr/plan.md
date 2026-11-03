@@ -542,7 +542,7 @@ git commit -m "feat(master-pr): ura clean removes a merged feature's line"
   offers no edit in place, no Start, and no Expand; the line pane shows it as merged. Home's
   "Priorities now" row does the same.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `a merged line carries its folder and pull request`: on `fixtureRepo()`, write
 `specs/done/2026-10-11-web-ui.md` from the record template with
@@ -551,21 +551,21 @@ delete the branch, read the priorities; the line linking `/specs/2026-10-11-web-
 `merged.folder` `2026-10-11-web-ui` and `merged.pullRequest.number` 12, and no `running`. The break:
 a done feature's line read as plain text.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run:
   `nix develop -c vp run --filter uraeda-binding build && nix develop -c vp test packages/server/src/__tests__/fate.test.ts`
 - Expected: FAIL, `merged` is undefined.
 
-- [ ] **Step 3: Implement the join, then the web's line, row, pane, and Home row**
+- [x] **Step 3: Implement the join, then the web's line, row, pane, and Home row**
 
-- [ ] **Step 4: Run the task's validation, and review the view in the sandbox**
+- [x] **Step 4: Run the task's validation, and review the view in the sandbox**
 
 - Run: `nix develop -c vp run fast`, then `vp run sandbox` with a merged line, in both themes, at a
   phone's and a desktop's width.
 - Expected: PASS; the line reads "Merged" with its pull request.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages

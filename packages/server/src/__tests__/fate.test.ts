@@ -145,6 +145,36 @@ test("US4.1 and US4.2: the priorities' proposals carry their file and running fe
   expect(running?.step).toHaveProperty("progress", null);
 });
 
+/** US1 2: a merged feature's line stays, carrying its folder and its record's pull request. */
+test("a merged line carries its folder and pull request", async () => {
+  const repo = fixtureRepo();
+  mkdirSync(join(repo, "specs/done"), { recursive: true });
+  writeFileSync(
+    join(repo, "specs/done/2026-10-11-web-ui.md"),
+    "---\nkind: feature\nfinished: 2026-10-12\npull-request: https://github.com/o/r/pull/12\n---\n\n" +
+      "# Record: Web UI for the workflow files\n\n## What and why\n\nA web UI.\n",
+  );
+  git(repo, "add", "--all");
+  git(repo, "commit", "--quiet", "--no-verify", "--message", "chore(web-ui): finish");
+  git(repo, "branch", "--quiet", "--delete", "--force", "2026-10-11-web-ui");
+
+  const [priorities] = await byId(
+    (await testApp(repo)).app,
+    "Priorities",
+    ["priorities"],
+    ["sections"],
+  );
+  const proposal = priorities.sections
+    .flatMap((section: { proposals: Array<Proposal> }) => section.proposals)
+    .find((p: Proposal) => p.text.includes("Web UI for the workflow files"));
+
+  expect(proposal?.merged).toMatchObject({
+    folder: "2026-10-11-web-ui",
+    pullRequest: { number: 12 },
+  });
+  expect(proposal?.running).toBeFalsy();
+});
+
 test("US8: the ledger sends the constitution and each decision, a field it lacks as null", async () => {
   const repo = fixtureRepo();
   // One decision, and a constitution without its version line, in place of the fixture's.

@@ -161,6 +161,8 @@ pub struct ProposalItem {
     pub file: Option<crate::workspace::LinkedFile>,
     /// The feature or change it links, while it runs: set by the workspace.
     pub running: Option<crate::workspace::RunningFeature>,
+    /// The feature or change it links, once merged: set by the workspace.
+    pub merged: Option<crate::workspace::MergedFeature>,
 }
 
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
@@ -267,6 +269,7 @@ pub fn read(text: &str, committed: Option<&str>) -> Priorities {
                         ),
                         file: None,
                         running: None,
+                        merged: None,
                     }
                 })
                 .collect(),

@@ -6,8 +6,9 @@ use std::path::{Path, PathBuf};
 use super::{Feature, Kind, LinkedProposal, Workspace};
 use crate::files::lines;
 use crate::files::priorities::{self, Priorities};
+use crate::pulls::PullRequestView;
 use crate::steps::StepName;
-use crate::view::StepView;
+use crate::view::{StepView, recorded_pull_request};
 
 /// The proposal file a proposal of the priorities links, as it is on the default branch.
 #[cfg_attr(feature = "napi", napi_derive::napi(object))]
@@ -27,6 +28,19 @@ pub struct RunningFeature {
     /// Whether it is a change.
     pub change: bool,
     pub step: StepView,
+}
+
+/// The feature or change a proposal of the priorities links, once its step is `done`: merged, its
+/// line left for `ura clean` to remove.
+#[cfg_attr(feature = "napi", napi_derive::napi(object))]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MergedFeature {
+    pub folder: String,
+    /// Whether it is a change.
+    pub change: bool,
+    /// Its pull request, from its record's `pull-request`.
+    pub pull_request: Option<PullRequestView>,
 }
 
 /// A link's file, from the top level, relative to the folder `dir` holding the linking file.
@@ -115,6 +129,16 @@ impl Linked<'_> {
             step: StepView::from(&feature.step),
         })
     }
+
+    /// Its feature or change, once its step is `done`.
+    pub fn merged(&self) -> Option<MergedFeature> {
+        let feature = self.feature?;
+        (feature.step.name == StepName::Done).then(|| MergedFeature {
+            folder: feature.folder.clone(),
+            change: feature.kind == Kind::Change,
+            pull_request: recorded_pull_request(feature),
+        })
+    }
 }
 
 /// The proposal file a link points to, when `proposals`, as [`Workspace::proposals`] lists them,
@@ -141,7 +165,7 @@ impl Workspace {
         }
     }
 
-    /// The priorities with each proposal's file and running feature, from this workspace.
+    /// The priorities with each proposal's file and running or merged feature, from this workspace.
     pub fn join_priorities(&self, mut priorities: Priorities) -> Priorities {
         for proposal in priorities
             .sections
@@ -152,6 +176,7 @@ impl Workspace {
             let linked = link.as_deref().map(|link| self.link(link));
             proposal.file = linked.as_ref().and_then(|linked| linked.file.clone());
             proposal.running = linked.as_ref().and_then(Linked::running);
+            proposal.merged = linked.as_ref().and_then(Linked::merged);
         }
         priorities
     }

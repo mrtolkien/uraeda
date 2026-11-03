@@ -28,7 +28,7 @@ use read::read_feature;
 use reader::Reader;
 use record::record_kind;
 
-pub use links::{Linked, LinkedFile, RunningFeature, resolve};
+pub use links::{Linked, LinkedFile, MergedFeature, RunningFeature, resolve};
 
 use links::linked_proposals;
 pub(crate) use paths::folder_path;

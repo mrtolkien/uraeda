@@ -4,6 +4,7 @@
 // two have an agent working (one writes the spec, one builds the plan, which the sandbox starts as it
 // starts: `sandbox/agent.ts`), three are done, and Now and Next hold five lines each, not counting
 // the four live features', which show apart as Ongoing (a feature waiting on the human is one), and
+// the line of a done one, Keyboard navigation, shown as merged until `ura clean` removes it, and
 // Later six, one of them linking its proposal file, some of them long; and an inbox of ten notes,
 // three of them long, and one with a freeform note file holding a screenshot, which can be added
 // to the Notes of any proposal, its file made first for a line without one. Its constitution and
@@ -27,7 +28,7 @@ export const REALISTIC_FOLDERS = {
   specifying: "2026-10-21-calendar-view",
 } as const;
 
-/** The priorities file: five lines in each section, and the live features besides in Now. */
+/** The priorities file: five lines in each section, and the live and merged features' in Now. */
 const PRIORITIES = `# Priorities
 
 ## Now
@@ -36,6 +37,7 @@ const PRIORITIES = `# Priorities
 >
 > The features worked on today
 
+- [Keyboard navigation](/specs/2026-10-14-keyboard-nav/proposal.md)
 - [Due date reminders](/specs/${REALISTIC_FOLDERS.building}/proposal.md)
 - [Calendar view](/specs/${REALISTIC_FOLDERS.specifying}/proposal.md)
 - [Leader key/shortcut map](/specs/${REALISTIC_FOLDERS.asking}/proposal.md)
