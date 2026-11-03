@@ -6,10 +6,11 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useEffect, useRef, useState } from "react";
 import { StatusText } from "./fields/StatusText.tsx";
+import { type EditorHandle } from "./fields/editor/Editor.tsx";
+import { TextLine } from "./fields/TextLine.tsx";
 import { Overlay } from "./layout/Overlay.tsx";
 
 /** What the dialog asks, and how it reads: its field's name and its help. */
@@ -49,11 +50,12 @@ function Ask({
   const [error, setError] = useState(shown);
   // The field takes the focus, its text selected, once the dialog has settled: the dialog's own
   // focus goes to its first control as it opens, and Enter must confirm from the first key.
-  const field = useRef<HTMLInputElement>(null);
+  const field = useRef<EditorHandle>(null);
   useEffect(() => {
     const timer = setTimeout(() => {
-      field.current?.focus();
-      field.current?.select();
+      const view = field.current?.view();
+      view?.focus();
+      view?.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
     }, 80);
     return () => clearTimeout(timer);
   }, []);
@@ -76,7 +78,7 @@ function Ask({
   };
   return (
     <VStack gap={4}>
-      <TextInput
+      <TextLine
         description={question.description}
         hasAutoFocus
         label={question.label}

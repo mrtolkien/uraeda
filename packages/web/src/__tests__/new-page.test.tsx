@@ -11,6 +11,7 @@ import {
   atRepo,
   click,
   fakeAgent,
+  fieldText,
   fixture,
   fixtureRepo,
   git,
@@ -50,9 +51,7 @@ test("a start that answers late clears only the text it sent", async () => {
   await click(screen.getByRole("button", { name: "Start the change" }));
   const dialog = await screen.findByRole("dialog", { name: "Name the change" });
   await waitFor(() =>
-    expect((within(dialog).getByRole("textbox", { name: "Slug" }) as HTMLInputElement).value).toBe(
-      "centre-x",
-    ),
+    expect(fieldText(within(dialog).getByRole("textbox", { name: "Slug" }))).toBe("centre-x"),
   );
   await click(within(dialog).getByRole("button", { name: "Start the change" }));
   await waitFor(() => expect(held).toHaveLength(1));
@@ -90,9 +89,7 @@ async function start() {
   await click(await screen.findByRole("button", { name: "Start the change" }));
   const dialog = await screen.findByRole("dialog", { name: "Name the change" });
   await waitFor(() =>
-    expect(
-      (within(dialog).getByRole("textbox", { name: "Slug" }) as HTMLInputElement).value,
-    ).not.toBe(""),
+    expect(fieldText(within(dialog).getByRole("textbox", { name: "Slug" }))).not.toBe(""),
   );
   await click(within(dialog).getByRole("button", { name: "Start the change" }));
   await quiet();

@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atWidth, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
+import { atWidth, fieldText, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
 
 const PATH = "specs/INBOX.md";
 
@@ -118,7 +118,7 @@ test("i turns the selected note into its field, with its text, and Enter saves i
   await press("i", link);
 
   const field = await screen.findByRole("textbox", { name: "Edit the note" });
-  expect((field as HTMLTextAreaElement).value).toBe("Idea two");
+  expect(fieldText(field)).toBe("Idea two");
   await save(field, "Idea deux");
   await waitFor(() => expect(read(repo, PATH)).toContain("- Idea deux\n"));
   // In place: the page did not open the note's pane.

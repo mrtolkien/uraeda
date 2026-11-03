@@ -7,13 +7,14 @@
 // opens its session. The entries a start was filled from leave their files. `/` searches the
 // entries. Each visit opens with the focus in the composer, where typing goes.
 import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { SET_UP_PROJECT } from "uraeda-server/round-messages";
 import { Composer } from "./Composer.tsx";
 import { usePriorities, useWorkspace } from "./data.ts";
+import type { EditorHandle } from "./fields/editor/Editor.tsx";
+import { TextLine } from "./fields/TextLine.tsx";
 import { useKeys } from "./keys/registry.tsx";
 import { KindCards } from "./KindCards.tsx";
 import { Page } from "./layout/Page.tsx";
@@ -45,25 +46,18 @@ function Search({
   onChange,
   text,
 }: {
-  field: React.RefObject<HTMLInputElement | null>;
+  field: React.RefObject<EditorHandle | null>;
   isNarrow: boolean;
   onChange: (text: string) => void;
   text: string;
 }) {
   return (
-    <TextInput
+    <TextLine
       isLabelHidden
       label="Search the notes and priorities"
       onChange={onChange}
-      onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          event.currentTarget.blur();
-        }
-      }}
       placeholder="Search"
       ref={field}
-      startIcon="search"
       value={text}
       // On the title's line at every width, as a desktop's: narrower on the phone, beside "New".
       width={narrow ? "11rem" : "var(--size-settings-search)"}
@@ -194,7 +188,7 @@ export function NewPage({ kind: addressed }: { kind: NewKind }) {
   const named = new URLSearchParams(useSearch()).has("kind");
   const kind = narrow && !named ? undefined : addressed;
   const [search, setSearch] = useState("");
-  const searchField = useRef<HTMLInputElement>(null);
+  const searchField = useRef<EditorHandle>(null);
   useKeys([
     {
       hint: "/",

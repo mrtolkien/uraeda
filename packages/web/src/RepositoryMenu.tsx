@@ -9,7 +9,6 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Spinner } from "@astryxdesign/core/Spinner";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
   fontWeightVars,
@@ -34,6 +33,8 @@ import { AddRepository } from "./AddRepository.tsx";
 import type { FateClient as Client } from "./clients.ts";
 import { useRepositories } from "./data.ts";
 import { refusal } from "./errors.ts";
+import type { EditorHandle } from "./fields/editor/Editor.tsx";
+import { arrowKeys, TextLine } from "./fields/TextLine.tsx";
 import { afterOverlayCloses, Overlay } from "./layout/Overlay.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Logo } from "./Logo.tsx";
@@ -227,7 +228,7 @@ function Menu({
   const [moved, setMoved] = useState<number>();
   // The focus in the filter once the menu is drawn, its list read: typing filters at once, and the
   // arrows move along the rows. The dialog's own focus goes to its title as it opens, before.
-  const field = useRef<HTMLInputElement>(null);
+  const field = useRef<EditorHandle>(null);
   useEffect(() => {
     const frame = requestAnimationFrame(() => field.current?.focus());
     return () => cancelAnimationFrame(frame);
@@ -240,29 +241,27 @@ function Menu({
         )
       : 0;
   const cursor = Math.min(moved ?? first, rows.length - 1);
+  const move = (by: number) => {
+    setMoved(Math.min(Math.max(cursor + by, 0), rows.length - 1));
+  };
   return (
     <VStack gap={2}>
-      <TextInput
+      <TextLine
         isLabelHidden
+        // The arrows move along the rows from the field, and Enter opens the one they are on.
+        keys={arrowKeys(move)}
         label="Filter repositories"
         onChange={(value: string) => {
           setFilter(value);
           setMoved(undefined);
         }}
-        onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-          // The arrows move along the rows from the field, and Enter opens the one they are on.
-          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-            event.preventDefault();
-            const by = event.key === "ArrowDown" ? 1 : -1;
-            setMoved(Math.min(Math.max(cursor + by, 0), rows.length - 1));
-          } else if (event.key === "Enter" && rows[cursor] !== undefined) {
-            event.preventDefault();
+        onEnter={() => {
+          if (rows[cursor] !== undefined) {
             onPick(rows[cursor].name);
           }
         }}
         placeholder="Filter repositories"
         ref={field}
-        startIcon="search"
         value={filter}
       />
       {list?.problem && <AnnouncedBanner collapsible={false} status="error" title={list.problem} />}

@@ -2,7 +2,6 @@ import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Link } from "@astryxdesign/core/Link";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
   borderVars,
@@ -12,9 +11,10 @@ import {
   spacingVars,
 } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type KeyboardEvent, type ReactNode, useEffect, useEffectEvent } from "react";
+import { type ReactNode, useEffect, useEffectEvent } from "react";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { SaveStatus } from "./fields/SaveStatus.tsx";
+import { TextLine } from "./fields/TextLine.tsx";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { useLineSave } from "./useLineSave.ts";
 
@@ -123,20 +123,15 @@ export function LineField({
       {field.restored && (
         <RestoreNotice changed={LINE_CHANGED} onDiscard={line.drop} restored={field.restored} />
       )}
-      <TextInput
+      <TextLine
         hasAutoFocus
         isLabelHidden
-        isLoading={line.state.kind === "saving"}
         label={label}
         onChange={line.change}
-        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
-          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-            event.preventDefault();
-            void line.save();
-          } else if (event.key === "Escape") {
-            event.preventDefault();
-            void line.cancel();
-          }
+        onEnter={() => void line.save()}
+        onEscape={() => {
+          void line.cancel();
+          return "handled";
         }}
         status={line.error ? { message: line.error, type: "error" } : undefined}
         value={field.text}

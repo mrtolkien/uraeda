@@ -1,8 +1,9 @@
 // What an outline's field does with its text, apart from the keys that call it (see
-// `OutlineEditor`): it grows with the text, opens focused with its caret at the end, and closes
-// once, saving, cancelling, or indenting.
+// `OutlineEditor`): it opens focused with its caret at the end, and closes once, saving,
+// cancelling, or indenting.
 import { useLayoutEffect, useRef, useState } from "react";
 import { DISCARD_CHANGES, useConfirm } from "../fields/Confirm.tsx";
+import type { EditorHandle } from "../fields/editor/Editor.tsx";
 import type { OutlineEditorProps } from "./OutlineEditor.tsx";
 
 /**
@@ -17,25 +18,16 @@ export function useOutlineField({
   value,
 }: Omit<OutlineEditorProps, "label">) {
   const [text, setText] = useState(value);
-  const field = useRef<HTMLTextAreaElement>(null);
+  const field = useRef<EditorHandle>(null);
   // Closed once: a key that closed it is not followed by the blur it causes.
   const closed = useRef(false);
   // While Escape asks whether to discard the change: the blur the question causes saves nothing.
   const asking = useRef(false);
   const confirm = useConfirm();
   useLayoutEffect(() => {
-    const element = field.current;
-    if (element) {
-      // Written on the element, not a StyleX style: its height must be let go and measured again in
-      // the same frame, which a render between the two would show.
-      element.style.height = "auto";
-      element.style.height = `${element.scrollHeight}px`;
-    }
-  }, [text]);
-  useLayoutEffect(() => {
-    const element = field.current;
-    element?.focus({ preventScroll: true });
-    element?.setSelectionRange(element.value.length, element.value.length);
+    const view = field.current?.view();
+    view?.dispatch({ selection: { anchor: view.state.doc.length } });
+    view?.focus();
   }, []);
 
   const close = (then: () => void) => {
@@ -75,7 +67,7 @@ export function useOutlineField({
     if (discards) {
       close(onCancel);
     } else {
-      field.current?.focus({ preventScroll: true });
+      field.current?.focus();
     }
   };
   /** Tab, or Shift+Tab with `isOut`. */

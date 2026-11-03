@@ -63,15 +63,10 @@ const filesWith = (pattern: RegExp) => Object.keys(hitsOf(pattern));
  * its reason, or declare the key with `useKeys`.
  */
 const ALLOWED: Record<string, { hits: number; reason: string }> = {
-  "AddRepository.tsx": { hits: 1, reason: "a text field's own keys: Enter adds the repository" },
   "attach/useImageDrop.ts": { hits: 1, reason: "drag and drop events, named in a loop: no key" },
   "Composer.tsx": {
     hits: 3,
     reason: "a text field's own keys: Ctrl or Cmd+Enter sends, Escape leaves the field",
-  },
-  "EditableLine.tsx": {
-    hits: 1,
-    reason: "a text field's own keys: Enter saves the line, Escape leaves it",
   },
   "embedLayout.ts": { hits: 1, reason: "Escape leaves the full-screen overlay it draws (R132)" },
   "fields/Confirm.tsx": {
@@ -83,8 +78,9 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
   "fields/editor/Editor.tsx": {
     hits: 2,
     reason:
-      "the shared editor's own text keys, CodeMirror's: moving, deleting, undo and redo; and its " +
-      "view's focus, paste, and scroll, no key",
+      "the shared editor's own text keys, CodeMirror's: moving, deleting, undo and redo, and a " +
+      "field's own, like a row's Tab or a search's arrows; and its view's focus, blur, paste, and " +
+      "scroll, no key",
   },
   "fields/editor/keys.ts": {
     hits: 1,
@@ -112,12 +108,6 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 1,
     reason: "a radio group's own keys: the arrows move between its cards",
   },
-  "lists/OutlineEditor.tsx": {
-    hits: 3,
-    reason: "a text field's own keys: Enter saves the row, Escape cancels it, Tab indents it",
-  },
-  "NewPage.tsx": { hits: 1, reason: "a text field's own keys: Escape leaves the search" },
-  "RepositoryMenu.tsx": { hits: 1, reason: "the menu's filter field's own keys" },
   "routes.tsx": { hits: 1, reason: "the navigation event's own name, `CHANGE`: no key" },
   "sandbox/mountSandboxBar.tsx": {
     hits: 1,
@@ -132,7 +122,6 @@ const ALLOWED: Record<string, { hits: number; reason: string }> = {
     hits: 1,
     reason: "a text field's own keys: Enter signs in, on a page outside the shell",
   },
-  "SlugField.tsx": { hits: 1, reason: "a text field's own keys: Enter and Escape" },
   "StoryPick.tsx": { hits: 1, reason: "Escape ends pick mode, an overlay of its own (R132)" },
 };
 

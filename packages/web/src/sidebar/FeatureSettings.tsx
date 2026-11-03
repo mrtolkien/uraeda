@@ -3,9 +3,9 @@
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useState } from "react";
+import { TextLine } from "../fields/TextLine.tsx";
 
 /** The longest name, so a card keeps one line in the widest sidebar. */
 export const LABEL_MAX = 40;
@@ -27,7 +27,7 @@ export function FeatureSettingsForm({
   const save = () => onSave({ label: name.trim() });
   return (
     <VStack gap={4}>
-      <TextInput
+      <TextLine
         description={`Leave it empty to show its slug, ${slug}.`}
         hasAutoFocus
         label="Name in the sidebar"

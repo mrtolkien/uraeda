@@ -6,13 +6,13 @@ import { Code } from "@astryxdesign/core/Code";
 import { HStack } from "@astryxdesign/core/HStack";
 import { List, ListItem } from "@astryxdesign/core/List";
 import { Text } from "@astryxdesign/core/Text";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import { Suspense, useDeferredValue, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { useFolderSuggestions } from "./data.ts";
 import { refusal } from "./errors.ts";
+import { arrowKeys, TextLine } from "./fields/TextLine.tsx";
 import { navigate, repoPath } from "./routes.tsx";
 import { RepositoriesView } from "./views.ts";
 
@@ -72,27 +72,15 @@ function Suggestions({
 }
 
 /**
- * Adds the git repository holding a typed folder, and opens it: `onAdded` is given its name, or,
- * without it, its home opens at once. Its error, under the field, stays until the text changes.
- * `onCancel` adds Cancel beside Add. List mutations go through the client in context, the global
- * one: the repository gate reads the list there.
+ * The field's text, its error, and its suggestions: those drawn (`onShown`), the one Down and Up
+ * are on (`move`), and whether one filled the field (`fill`). `picked` is the suggestion Enter fills
+ * the field with: the one the arrows are on, or the only one, unless one filled it already.
  */
-export function AddRepository({
-  inline = false,
-  onAdded,
-  onCancel,
-}: {
-  inline?: boolean;
-  onAdded?: (name: string) => void;
-  onCancel?: () => void;
-}) {
-  const fate = useFateClient();
+function useFolderText() {
   const [text, setText] = useState(START);
   const [error, setError] = useState<string>();
   // Suggestions show once the human types, the earlier ones kept while the next ones load.
   const [typed, setTyped] = useState(false);
-  const shown = useDeferredValue(text);
-  // The suggestions drawn, and the one Down and Up are on, which Enter picks.
   const suggested = useRef<ReadonlyArray<string>>([]);
   const [onShown] = useState(() => (paths: ReadonlyArray<string>) => {
     suggested.current = paths;
@@ -108,11 +96,50 @@ export function AddRepository({
     setError(undefined);
     setActive(-1);
   };
-
-  const fill = (value: string) => {
-    change(value);
-    filled.current = true;
+  return {
+    active,
+    change,
+    error,
+    fill: (value: string) => {
+      change(value);
+      filled.current = true;
+    },
+    move: (step: number) => {
+      filled.current = false;
+      setActive(Math.max(-1, Math.min(suggested.current.length - 1, active + step)));
+    },
+    onShown,
+    picked: () => {
+      const rows = suggested.current;
+      return filled.current
+        ? undefined
+        : (rows[active] ?? (rows.length === 1 ? rows[0] : undefined));
+    },
+    setError,
+    text,
+    typed,
   };
+}
+
+/**
+ * Adds the git repository holding a typed folder, and opens it: `onAdded` is given its name, or,
+ * without it, its home opens at once. Its error, under the field, stays until the text changes.
+ * `onCancel` adds Cancel beside Add. List mutations go through the client in context, the global
+ * one: the repository gate reads the list there.
+ */
+export function AddRepository({
+  inline = false,
+  onAdded,
+  onCancel,
+}: {
+  inline?: boolean;
+  onAdded?: (name: string) => void;
+  onCancel?: () => void;
+}) {
+  const fate = useFateClient();
+  const { active, change, error, fill, move, onShown, picked, setError, text, typed } =
+    useFolderText();
+  const shown = useDeferredValue(text);
 
   const add = async () => {
     setError(undefined);
@@ -133,28 +160,17 @@ export function AddRepository({
 
   return (
     <VStack gap={3} xstyle={inline && styles.inline}>
-      <TextInput
+      <TextLine
         hasAutoFocus={!inline}
+        keys={arrowKeys(move)}
         label="Folder"
         onChange={change}
-        onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-          const rows = suggested.current;
-          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-            event.preventDefault();
-            const step = event.key === "ArrowDown" ? 1 : -1;
-            filled.current = false;
-            setActive(Math.max(-1, Math.min(rows.length - 1, active + step)));
-          } else if (event.key === "Enter") {
-            event.preventDefault();
-            // The suggestion the arrows are on, or the only one, fills the field; then Enter adds.
-            const picked = filled.current
-              ? undefined
-              : (rows[active] ?? (rows.length === 1 ? rows[0] : undefined));
-            if (picked !== undefined && !sameFolder(picked, text)) {
-              fill(picked);
-            } else {
-              void add();
-            }
+        onEnter={() => {
+          const pick = picked();
+          if (pick !== undefined && !sameFolder(pick, text)) {
+            fill(pick);
+          } else {
+            void add();
           }
         }}
         status={error ? { message: error, type: "error" } : undefined}

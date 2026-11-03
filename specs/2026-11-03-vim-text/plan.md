@@ -533,9 +533,12 @@ git commit -m "feat(vim-text): one editor for text fields, Markdown highlighted 
 
 **Files:**
 
-- Modify: `EditableLine.tsx` (`LineField`), `lists/OutlineEditor.tsx`, `lists/useOutlineField.ts`,
-  `AddNote.tsx`, `AddRepository.tsx`, `NewPage.tsx` (the search), `OfferCard.tsx`,
-  `RepositoryMenu.tsx`, `SlugField.tsx`, `StartDialog.tsx`, `keys/KeyMap.tsx`,
+- Create: `fields/TextLine.tsx` (`TextLine`, the one-line field under Astryx's `Field` label, and
+  `arrowKeys`)
+- Modify: `fields/editor/Editor.tsx` (`keys`, `onBlur`, `data-autofocus`, a caller's text placing
+  the cursor after it), `EditableLine.tsx` (`LineField`), `lists/OutlineEditor.tsx`,
+  `lists/useOutlineField.ts`, `AddNote.tsx`, `AddRepository.tsx`, `NewPage.tsx` (the search),
+  `OfferCard.tsx`, `RepositoryMenu.tsx`, `SlugField.tsx`, `StartDialog.tsx`, `keys/KeyMap.tsx`,
   `settings/SettingsView.tsx`, `sidebar/FeatureSettings.tsx`, `sidebar/RenameSession.tsx`,
   `__tests__/keys-structural.test.ts`, and the tests that type into them
 - Test: `__tests__/keys-row-editing.test.tsx` (rewritten row)
@@ -543,29 +546,38 @@ git commit -m "feat(vim-text): one editor for text fields, Markdown highlighted 
 **Interfaces:**
 
 - Consumes: `Editor` with `variant: "line"`, `onEnter`, `onEscape`, `onPaste` (task 3).
-- Produces: no new interface; each field keeps its props and its keys: Enter saves a row or a line,
-  Escape cancels it asking "Discard your changes?" when changed, Tab and Shift+Tab indent a row,
-  Backspace drops an empty new row, an image pasted in an inbox row goes to its images, a search's
-  arrows still move its results. The password in `SignInPage.tsx` stays a `TextInput`.
+- Produces: `EditorProps.keys?: ReadonlyArray<FieldKey>`, with
+  `FieldKey = { key: string; run: () => boolean }` (CodeMirror's key names, before its own keymap:
+  the first render's keys, each running its latest `run`), and `EditorProps.onBlur?: () => void`;
+  `TextLine(props)`, `Editor`'s props with `variant: "line"` set, plus `description`, `status`,
+  `isLabelHidden`, `hasAutoFocus`, and `width`, as Astryx's `TextInput` had; and `arrowKeys(move)`,
+  Down and Up for a field over a list. Each field keeps its props and its keys: each field keeps its
+  props and its keys: Enter saves a row or a line, Escape cancels it asking "Discard your changes?"
+  when changed, Tab and Shift+Tab indent a row, Backspace drops an empty new row, an image pasted in
+  an inbox row goes to its images, a search's arrows still move its results. The password in
+  `SignInPage.tsx` stays a `TextInput`.
 
-- [ ] **Step 1: Rewrite the failing test**: in `keys-row-editing.test.tsx`, a row "a row refuses
-      line breaks": `type(row, "first\nsecond")` then Enter saves "first second" in `PRIORITIES.md`.
+- [x] **Step 1: Write the failing test**: in `keys-row-editing.test.tsx`, a new test "a row refuses
+      line breaks": `type(row, "first\nsecond")`, the field reads "first second", then Enter saves
+      "first second" in `PRIORITIES.md`.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `vp test packages/web/src/__tests__/keys-row-editing.test.tsx`
-- Expected: FAIL, the row is still a `textarea`.
+- Expected: FAIL once the row is on the editor without `oneLine`, the field reading two lines. On
+  the `textarea`, the test passes: its `onChange` already replaced a line break, and the core writes
+  one line either way, so the failing run is the editor's with `oneLine` taken out.
 
-- [ ] **Step 3: Move every one-line field and the outline row to the editor**, keeping each one's
+- [x] **Step 3: Move every one-line field and the outline row to the editor**, keeping each one's
       handlers through `onEnter`, `onEscape`, and `onPaste`; Tab on a row goes through the editor's
       keymap, not a listener of its own. Move the tests that type into them to `type`.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(vim-text): one-line fields and outline rows on the editor"

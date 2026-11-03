@@ -10,7 +10,16 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
-import { atRepo, atWidth, click, fixtureRepo, read, renderPage, type } from "./helpers.tsx";
+import {
+  atRepo,
+  atWidth,
+  click,
+  fieldText,
+  fixtureRepo,
+  read,
+  renderPage,
+  type,
+} from "./helpers.tsx";
 
 const PRIORITIES = `# Priorities
 
@@ -98,8 +107,8 @@ async function press(key: string, target: Element = document.body) {
 
 /** The field of the row edited in place, once it shows with the text `value`. */
 async function editorOf(label: string, value: string) {
-  const field = (await screen.findByRole("textbox", { name: label })) as HTMLTextAreaElement;
-  expect(field.value).toBe(value);
+  const field = await screen.findByRole("textbox", { name: label });
+  expect(fieldText(field)).toBe(value);
   return field;
 }
 
@@ -303,7 +312,7 @@ test("Escape on a changed field asks first: Keep editing keeps the text, Discard
 
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   const kept = screen.getByRole("textbox", { name: LINE });
-  expect((kept as HTMLTextAreaElement).value).toBe("Nalpha, changed");
+  expect(fieldText(kept)).toBe("Nalpha, changed");
 
   await press("Escape", kept);
   await click(
@@ -315,6 +324,20 @@ test("Escape on a changed field asks first: Keep editing keeps the text, Discard
 
   await waitFor(() => expect(screen.queryByRole("textbox", { name: LINE })).toBeNull());
   expect(read(repo)).toBe(PRIORITIES);
+});
+
+// Breaks: a row's field that keeps a pasted line break, showing two lines where the file gets one.
+test("a row refuses line breaks: a pasted second line joins the first with a space", async () => {
+  const repo = await open("/priorities", "specs/PRIORITIES.md", PRIORITIES, "Next · 3");
+  await press("i", focus("Nalpha"));
+  const field = await editorOf(LINE, "Nalpha");
+
+  await type(field, "first\nsecond");
+  expect(fieldText(field)).toBe("first second");
+  await press("Enter", field);
+
+  await waitFor(() => expect(read(repo)).toContain("- first second\n"));
+  expect(read(repo)).not.toContain("- Nalpha\n");
 });
 
 test("m and the bar's m move are one move mode, which m ends", async () => {

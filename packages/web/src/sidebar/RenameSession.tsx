@@ -2,13 +2,13 @@
 // drawn beside the shell, as a feature's settings are. The server refuses a blank title.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { VStack } from "@astryxdesign/core/VStack";
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { Overlay } from "../layout/Overlay.tsx";
 import { useRenameSession } from "../useSessionControls.ts";
 import type { Row } from "./cards.ts";
 import { StatusText } from "../fields/StatusText.tsx";
+import { TextLine } from "../fields/TextLine.tsx";
 
 /** The session renamed: its ID and its title. */
 type Renamed = Pick<Row, "id" | "title">;
@@ -39,7 +39,7 @@ function Rename({ onClose, row }: { onClose: () => void; row: Renamed }) {
   };
   return (
     <VStack gap={4}>
-      <TextInput
+      <TextLine
         hasAutoFocus
         label="Title"
         onChange={setTitle}

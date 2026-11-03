@@ -4,40 +4,23 @@
 // Backspace in an empty new row drops it. Leaving the field saves what changed. Where the list
 // takes images for a row, as the inbox does for a note, an image pasted saves the text, closes the
 // field, and goes to the row's images.
-import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
-import * as stylex from "@stylexjs/stylex";
-import { type ClipboardEvent, createContext, type KeyboardEvent, useContext } from "react";
+import { createContext, useContext } from "react";
 import { pastedImages } from "../attach/useImageText.ts";
+import { Editor } from "../fields/editor/Editor.tsx";
 import { RowBar } from "./RowBar.tsx";
 import { useOutlineField } from "./useOutlineField.ts";
-
-const styles = stylex.create({
-  // The row's text, as it reads, on a surface of its own with the accent's ring: the field grows
-  // with the text and wraps it, as the row does.
-  field: {
-    backgroundColor: colorVars["--color-background-card"],
-    borderStyle: "none",
-    boxSizing: "border-box",
-    color: "inherit",
-    display: "block",
-    font: "inherit",
-    lineHeight: "inherit",
-    outlineColor: colorVars["--color-accent"],
-    outlineStyle: "solid",
-    outlineWidth: borderVars["--border-width"],
-    overflow: "hidden",
-    padding: 0,
-    paddingInline: spacingVars["--spacing-1"],
-    resize: "none",
-    width: "100%",
-  },
-});
 
 /**
  * What takes the images pasted in a row's field, once its text is saved and the field closed: the
  * inbox's note's images. None outside such a row: a paste of an image does nothing then.
  */
 export const OutlineImages = createContext<((files: Array<File>) => void) | undefined>(undefined);
+
+/** Runs a key's action, which takes the key. */
+function took(action: () => void) {
+  action();
+  return true;
+}
 
 /** What the editor does as it closes, or before it closes. */
 export type OutlineEditorProps = {
@@ -73,47 +56,40 @@ export function OutlineEditor({
   const onImages = useContext(OutlineImages);
 
   /** An image pasted: the text is saved first, as leaving the field saves it, then the images go. */
-  const onPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+  const onPaste = (event: ClipboardEvent) => {
     const files = onImages ? pastedImages(event) : undefined;
     if (onImages && files) {
-      event.preventDefault();
       finish();
       onImages(files);
     }
-  };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.nativeEvent.isComposing) {
-      return;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      save();
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      void cancel();
-    } else if (event.key === "Tab") {
-      event.preventDefault();
-      indent(event.shiftKey);
-    } else if (event.key === "Backspace" && text === "" && value === "") {
-      event.preventDefault();
-      close(onCancel);
-    }
+    return files !== undefined;
   };
 
   return (
     <>
-      {/* oxlint-disable-next-line react/forbid-elements -- the row's text edited in its own place, in the row's font, with no frame or padding of a field, growing with the text: Astryx's TextArea draws a field of its own, with its label, border, and height (an Astryx gap) */}
-      <textarea
-        aria-label={label}
+      {/* The row's text in the shared editor, one line that wraps and grows with it. */}
+      <Editor
+        keys={[
+          { key: "Tab", run: () => took(() => indent(false)) },
+          { key: "Shift-Tab", run: () => took(() => indent(true)) },
+          // An empty new row dropped: Backspace in it has nothing else to do.
+          {
+            key: "Backspace",
+            run: () => text === "" && value === "" && took(() => close(onCancel)),
+          },
+        ]}
+        label={label}
         onBlur={finish}
-        onChange={(event) => setText(event.target.value.replaceAll("\n", " "))}
-        onKeyDown={onKeyDown}
+        onChange={setText}
+        onEnter={save}
+        onEscape={() => {
+          void cancel();
+          return "handled";
+        }}
         onPaste={onPaste}
         ref={field}
-        rows={1}
         value={text}
-        {...stylex.props(styles.field)}
+        variant="line"
       />
       {/* The keys of the field, for the mouse and the finger: a press leaves the focus in it. */}
       <RowBar
