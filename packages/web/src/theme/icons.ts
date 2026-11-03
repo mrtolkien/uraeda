@@ -79,6 +79,7 @@ import {
 import { filePenLine, gitCompare, listChecks, users } from "./sessionIcons.ts";
 import { arrowRightLeft, brain, indent, outdent, trash } from "./activityIcons.ts";
 import { play, save } from "./barIcons.ts";
+import { textCursorInput } from "./editorIcons.ts";
 
 // The harnesses' marks: Codicons' drawings (https://github.com/microsoft/vscode-codicons), by
 // Microsoft, under the Creative Commons Attribution 4.0 licence (CC BY 4.0), unchanged. The licenses
@@ -176,6 +177,7 @@ const DECISION_ICONS = {
   settings,
   "square-terminal": squareTerminal,
   terminal,
+  "text-cursor-input": textCursorInput,
   "triangle-alert": triangleAlert,
   workflow,
   wrench,
