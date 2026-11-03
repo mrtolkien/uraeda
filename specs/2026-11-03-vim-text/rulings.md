@@ -75,3 +75,28 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the structural test; an icon drawn inside the editor's frame, a layout of its own for two fields.
 - **If wrong**: a field's key moves back to a `keymap.of` of its own file, on the allowlist.
 - **Where**: task 4
+
+## R8: The composer is the editor's third variant
+
+- **Decision**: the composer's editor is `variant: "composer"` with `rows` and a new `maxRows`: it
+  grows from `rows` to `maxRows` lines, then scrolls inside, and has no frame of its own, since the
+  composer's box is its frame. Folding slides its height over 150 ms, none with reduced motion.
+- **Rationale**: the plan's interface said `variant: "lines"`, which R6 made a fixed height; the
+  spec's architecture names three variants, the composer one of them. The editor's own frame inside
+  the composer's box drew two frames.
+- **Alternatives considered**: `lines` with a `maxRows` that makes it grow, which mixes R6's fixed
+  height with the composer's growth in one variant.
+- **If wrong**: `sizeTheme` in `fields/editor/theme.ts` folds `composer` into `lines`.
+- **Where**: task 5
+
+## R9: The page's drop target hears a drop first
+
+- **Decision**: `attach/useImageDrop.ts` listens to drag and drop on the window in the capture
+  phase, and hands every dropped file to the page's target, with no "a field took it already".
+- **Rationale**: CodeMirror reads a file dropped on an editor as text and cancels the drop, so the
+  page's target skipped it as handled: an image dropped on the composer's field, or any field taking
+  images, was lost. The composer's Astryx input was the one field that took drops itself, and it is
+  gone.
+- **If wrong**: the editor takes a `drop` handler of its own that hands its files to the page's
+  target.
+- **Where**: task 5

@@ -66,7 +66,7 @@ test("a start that answers late clears only the text it sent", async () => {
   await quiet();
 
   expect(`${window.location.pathname}${window.location.search}`).toBe(atRepo("/new?kind=change"));
-  expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toBe(
+  expect(fieldText(screen.getByRole("textbox", { name: "Message Claude Code" }))).toBe(
     "Widen the sidebar",
   );
 });
@@ -99,7 +99,7 @@ async function start() {
 test("a change started from a line of Next takes it out of the priorities", async () => {
   const repo = fixtureRepo();
   await filledFrom(repo, ["Claude Code runner"]);
-  expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toContain(
+  expect(fieldText(screen.getByRole("textbox", { name: "Message Claude Code" }))).toContain(
     "Claude Code runner (triggered manually)",
   );
 
@@ -148,7 +148,7 @@ test("a change started from a line's Start on the Priorities page takes it out",
   await screen.findByRole("heading", { level: 1, name: "Priorities" });
   await act(async () => navigate(atRepo("/new?kind=change"), { insert: "line:next-1" }));
   await quiet();
-  expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toContain(
+  expect(fieldText(screen.getByRole("textbox", { name: "Message Claude Code" }))).toContain(
     "Claude Code runner (triggered manually)",
   );
 
@@ -161,13 +161,13 @@ test("a change started from a line's Start on the Priorities page takes it out",
 
 /** The composer's text, whichever card is picked, once it is drawn. */
 const composerText = async () =>
-  (
+  fieldText(
     await waitFor(
       () =>
         screen.queryByRole("textbox", { name: "Message Claude Code" }) ??
         screen.getByRole("textbox", { name: "Write Proposal" }),
-    )
-  ).textContent;
+    ),
+  );
 
 /** A key pressed outside any field, as the registry hears it. */
 const press = (key: string) =>

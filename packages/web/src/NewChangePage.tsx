@@ -2,7 +2,6 @@
 // then sends its first run. Ctrl+Enter asks for the change's slug, which the core proposes for the
 // text: the page has no field for it.
 import { VStack } from "@astryxdesign/core/VStack";
-import type { ChatComposerInputHandle } from "@astryxdesign/core/Chat";
 import { type RefObject, Suspense, startTransition, useEffect, useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
@@ -16,6 +15,7 @@ import { handOver, sessionPath } from "./sessions.ts";
 import { StartDialog } from "./StartDialog.tsx";
 import { takeOut } from "./takeOut.ts";
 import { FeatureView } from "./views.ts";
+import type { EditorHandle } from "./fields/editor/Editor.tsx";
 
 /** How long typing must stop before the slug is proposed again, as the sidebar's search waits. */
 const PROPOSAL_DELAY = 200;
@@ -131,7 +131,7 @@ export function ChangeComposer({
   inputRef,
 }: {
   draft: NewDraft;
-  inputRef: RefObject<ChatComposerInputHandle | null>;
+  inputRef: RefObject<EditorHandle | null>;
 }) {
   const { images, setImages } = draft;
   const start = useStart(draft);

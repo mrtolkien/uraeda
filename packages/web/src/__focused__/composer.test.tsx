@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import {
   controlled,
+  fieldText,
   png,
   refused,
   renderComposer,
@@ -81,4 +82,38 @@ test("a refused send reaches the endpoint, then restores its exact text, images 
     "Remove third.png — image 3 of 3",
   ]);
   expect(screen.getByText("The session is archived: unarchive it to send.", SHOWN)).toBeTruthy();
+});
+
+/** Pastes `files` in the field, as the clipboard gives a screenshot: files, and no text. */
+async function paste(files: Array<File>) {
+  await act(async () => {
+    fireEvent.paste(field(), { clipboardData: { files, getData: () => "" } });
+  });
+}
+
+/** Drops `files` on the field, as a file manager does. */
+async function drop(files: Array<File>) {
+  const dataTransfer = { dropEffect: "none", files, getData: () => "", types: ["Files"] };
+  await act(async () => {
+    fireEvent.dragEnter(field(), { dataTransfer });
+    fireEvent.drop(field(), { dataTransfer });
+  });
+}
+
+// Breaks caught: a paste the editor reads as text, so the image never attaches; a drop on the field
+// the editor takes as a text file, which the page's drop target then skips as handled.
+test.each([
+  ["pasted in", paste],
+  ["dropped on", drop],
+])("a PNG %s the field attaches to the message, and types nothing", async (_how, give) => {
+  await renderComposer(
+    { session: "chat-1" },
+    { attach: async () => THIRD.image!, sessions: [sessionRecord("chat-1")], value: "Look" },
+  );
+
+  await give([png("third.png")]);
+  await settle();
+
+  expect(thumbnails()).toEqual(["Remove third.png"]);
+  expect(fieldText(field())).toBe("Look");
 });

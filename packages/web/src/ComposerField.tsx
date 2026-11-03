@@ -1,23 +1,15 @@
 // The composer's field and what folds it on the phone: 7 rows empty on wide screens, 3 on the
 // phone, and on the phone one line while it is empty and has no focus, Send beside it, its box on
 // the glass of the bar under it.
-import { ChatComposerInput, type ChatComposerInputProps } from "@astryxdesign/core/Chat";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import { type ReactNode, type RefObject, useEffect, useState } from "react";
+import { type ComponentProps, type ReactNode, type RefObject, useEffect, useState } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
+import { ComposerEditor } from "./fields/editor/ComposerEditor.tsx";
 import { glassStyles } from "./layout/glass.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 
 const styles = stylex.create({
-  input: { minHeight: "var(--size-composer-input)" },
-  narrow: {
-    minHeight: "var(--size-composer-input-narrow)",
-    transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "150ms" },
-    transitionProperty: "min-height",
-  },
-  // Folded on the phone: one line.
-  folded: { minHeight: 0 },
   // The field, and Send beside it while the composer is folded.
   field: { flexGrow: 1, minWidth: 0 },
   row: { alignItems: "flex-end", display: "flex", gap: "var(--spacing-2)" },
@@ -45,15 +37,9 @@ const styles = stylex.create({
 function ComposerInput({
   isFolded,
   ...props
-}: Omit<ChatComposerInputProps, "maxRows" | "xstyle"> & { isFolded: boolean }) {
+}: Omit<ComponentProps<typeof ComposerEditor>, "maxRows" | "rows"> & { isFolded: boolean }) {
   const wide = !isNarrow(useWidthClass());
-  return (
-    <ChatComposerInput
-      {...props}
-      maxRows={wide ? 20 : 9}
-      xstyle={wide ? styles.input : [styles.narrow, isFolded && styles.folded]}
-    />
-  );
+  return <ComposerEditor {...props} maxRows={wide ? 20 : 9} rows={wide ? 7 : isFolded ? 1 : 3} />;
 }
 
 /** The paperclip, which adds its files to the message. */

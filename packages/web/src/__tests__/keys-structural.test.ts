@@ -64,10 +64,6 @@ const filesWith = (pattern: RegExp) => Object.keys(hitsOf(pattern));
  */
 const ALLOWED: Record<string, { hits: number; reason: string }> = {
   "attach/useImageDrop.ts": { hits: 1, reason: "drag and drop events, named in a loop: no key" },
-  "Composer.tsx": {
-    hits: 3,
-    reason: "a text field's own keys: Ctrl or Cmd+Enter sends, Escape leaves the field",
-  },
   "embedLayout.ts": { hits: 1, reason: "Escape leaves the full-screen overlay it draws (R132)" },
   "fields/Confirm.tsx": {
     hits: 4,

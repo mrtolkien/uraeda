@@ -1,10 +1,11 @@
-import { ChatComposerDrawer, type ChatComposerInputHandle } from "@astryxdesign/core/Chat";
+import { ChatComposerDrawer } from "@astryxdesign/core/Chat";
 import { HStack } from "@astryxdesign/core/HStack";
 import { type RefObject, useEffect, useRef } from "react";
 import type { DraftImage } from "./attach/chatImages.ts";
 import { useRepository } from "./routes.tsx";
 import { chatImageSrc } from "./sessions.ts";
 import { RemovableThumbnail } from "./attach/RemovableThumbnail.tsx";
+import type { EditorHandle } from "./fields/editor/Editor.tsx";
 
 /** The image being removed: where it was, and its key. */
 export type RemovedImage = { index: number; key: string } | undefined;
@@ -17,7 +18,7 @@ export type RemovedImage = { index: number; key: string } | undefined;
  */
 export function useFocusAfterRemove(
   box: RefObject<HTMLDivElement | null>,
-  input: RefObject<ChatComposerInputHandle | null>,
+  input: RefObject<EditorHandle | null>,
   images: ReadonlyArray<DraftImage>,
 ) {
   const focusAt = useRef<RemovedImage>(undefined);

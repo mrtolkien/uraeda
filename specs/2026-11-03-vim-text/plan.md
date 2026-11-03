@@ -589,35 +589,39 @@ git commit -m "feat(vim-text): one-line fields and outline rows on the editor"
 
 - Create: `packages/web/src/fields/editor/ComposerEditor.tsx`
 - Modify: `ComposerField.tsx`, `Composer.tsx`, `ComposerImages.tsx`, `NewPage.tsx`,
-  `NewFeatureComposer.tsx`, `NewChangePage.tsx`, `__focused__/helpers.tsx`,
-  `__focused__/composer.test.tsx`, `__tests__/keys-structural.test.ts`
+  `NewFeatureComposer.tsx`, `NewChangePage.tsx`, `fields/editor/Editor.tsx` and `theme.ts` (the
+  `composer` variant, R8), `attach/useImageDrop.ts` (drops heard first, R9),
+  `__focused__/helpers.tsx`, `__focused__/composer.test.tsx`, `__tests__/keys-structural.test.ts`,
+  and the tests reading the composer's `textContent` (`commit-toast`, `keys-pages`, `new-feature`,
+  `new-page`, `setup-message`), now through `fieldText`
 
 **Interfaces:**
 
 - Consumes: `Editor`, `EditorHandle` (task 3).
-- Produces: `ComposerEditor`, the composer variant: an `Editor` with `variant: "lines"` reading and
-  writing `ChatComposerContext`'s `value` and `onChange`, registering
+- Produces: `ComposerEditor`, the composer variant: an `Editor` with `variant: "composer"` and
+  `maxRows` (R8) reading and writing `ChatComposerContext`'s `value` and `onChange`, registering
   `inputControlRef.current = { focus }`, growing upward to 20 rows, 9 on the phone, then scrolling
   inside, folding to one line as today. The pages' `inputRef` becomes
   `RefObject<EditorHandle | null>` (`focus`, `insertText`). Escape blurs keeping the draft; Enter
   adds a line; Ctrl+Enter sends; pasted and dropped images reach `onFiles`.
 
-- [ ] **Step 1: Check the composer's existing tests type through `type`**, and that the paste test
-      pastes a PNG on the editor's content element.
+- [x] **Step 1: Check the composer's existing tests type through `type`**, and add the paste test,
+      which did not exist: a row each for a PNG pasted in and dropped on the editor's content
+      element, attached and not typed.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `vp test packages/web/src/__focused__/composer.test.tsx`
 - Expected: FAIL, the content element has no `EditorView`.
 
-- [ ] **Step 3: Implement `ComposerEditor`, and give it to `FoldingField`**
+- [x] **Step 3: Implement `ComposerEditor`, and give it to `FoldingField`**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(vim-text): the composer on the editor"

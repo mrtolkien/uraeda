@@ -71,7 +71,7 @@ test("a feature typed in the Feature card starts into its session", async () => 
 
   await waitFor(() => expect(address().split("?")[0]).toBe(atRepo(sessionPath(FOLDER))));
   await waitFor(() =>
-    expect(screen.getByRole("textbox", { name: "Message Claude Code" }).textContent).toContain(
+    expect(fieldText(screen.getByRole("textbox", { name: "Message Claude Code" }))).toContain(
       `specs/${FOLDER}/`,
     ),
   );
@@ -79,7 +79,7 @@ test("a feature typed in the Feature card starts into its session", async () => 
   await act(async () => navigate(atRepo("/new?kind=feature")));
   const held = await screen.findByRole("textbox", { name: "Write Proposal" });
   await quiet();
-  expect(held.textContent).toBe(TEXT);
+  expect(fieldText(held)).toBe(TEXT);
   // Row: an image pasted meanwhile is the human's newer draft: the landing leaves it.
   const png = new File([readFileSync(fixture("images/phone.png"))], "later.png", {
     type: "image/png",
@@ -111,7 +111,7 @@ test("a feature typed in the Feature card starts into its session", async () => 
   );
   await act(async () => navigate(atRepo("/new?kind=feature")));
   const box = await screen.findByRole("textbox", { name: "Write Proposal" });
-  await waitFor(() => expect(box.textContent).toBe(""));
+  await waitFor(() => expect(fieldText(box)).toBe(""));
   expect(screen.getByRole("button", { name: /^Remove/ })).toBeTruthy();
   // Row: a second start of the slug is refused in the dialog, which stays open, the text kept.
   await type(box, TEXT);
@@ -119,5 +119,5 @@ test("a feature typed in the Feature card starts into its session", async () => 
   await click(within(again).getByRole("button", { name: "Start the feature" }));
   await within(again).findByText("A feature named dark-mode exists already.");
   expect(screen.getByRole("dialog", { name: "Name the feature" })).toBe(again);
-  expect(box.textContent).toBe(TEXT);
+  expect(fieldText(box)).toBe(TEXT);
 });

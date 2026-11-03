@@ -4,6 +4,7 @@
 // read as CSS variables: it follows the light and dark themes, and no global stylesheet is added.
 import type { Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import type { Variant } from "./Editor.tsx";
 
 /** A line's height, in the field's font. */
 const LINE = 1.5;
@@ -50,19 +51,41 @@ export const editorTheme: Extension = EditorView.theme({
 const sizes = new Map<string, Extension>();
 
 /**
- * A field's height: a one-line field grows with its text up to 9 lines, as tall as the phone's
- * composer, then scrolls inside; a several-lines field is `rows` lines tall, scrolling past them.
- * Neither ever scrolls sideways: the editor wraps its lines.
+ * The composer's look: no frame of its own, since the composer's box is its frame, and its height
+ * growing with its text from `rows` to `maxRows`, then scrolling inside. A change of `rows`, as the
+ * phone's composer folds or opens, slides its height.
  */
-export function sizeTheme(variant: "line" | "lines", rows: number): Extension {
-  const key = `${variant}:${rows}`;
+const composerTheme = (rows: number, maxRows: number) =>
+  EditorView.theme({
+    ".cm-scroller": {
+      maxHeight: linesHigh(maxRows),
+      minHeight: linesHigh(rows),
+      overflow: "auto",
+      transition: "min-height 150ms",
+    },
+    "@media (prefers-reduced-motion: reduce)": { ".cm-scroller": { transition: "none" } },
+    // Over the frame every field has: two classes, as the composer's box is the frame.
+    "&.cm-editor": { backgroundColor: "transparent", border: "none" },
+  });
+
+/**
+ * A field's height: a one-line field grows with its text up to 9 lines, as tall as the phone's
+ * composer, then scrolls inside; a several-lines field is `rows` lines tall, scrolling past them;
+ * the composer grows from `rows` to `maxRows`. None ever scrolls sideways: the editor wraps its
+ * lines.
+ */
+export function sizeTheme(variant: Variant, rows: number, maxRows = rows): Extension {
+  const key = `${variant}:${rows}:${maxRows}`;
   let theme = sizes.get(key);
   if (!theme) {
-    theme = EditorView.theme(
-      variant === "line"
-        ? { ".cm-scroller": { maxHeight: linesHigh(9), overflow: "auto" } }
-        : { ".cm-scroller": { height: linesHigh(rows), overflow: "auto" } },
-    );
+    theme =
+      variant === "composer"
+        ? composerTheme(rows, maxRows)
+        : EditorView.theme(
+            variant === "line"
+              ? { ".cm-scroller": { maxHeight: linesHigh(9), overflow: "auto" } }
+              : { ".cm-scroller": { height: linesHigh(rows), overflow: "auto" } },
+          );
     sizes.set(key, theme);
   }
   return theme;

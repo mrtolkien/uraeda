@@ -3,6 +3,7 @@
 // and endpoint; a request the case did not script fails it.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { EditorView } from "@codemirror/view";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { Suspense, useLayoutEffect, useState } from "react";
 import { FateClient } from "react-fate";
@@ -17,6 +18,7 @@ import {
 import { afterEach, beforeEach, vi } from "vite-plus/test";
 import type { DraftImage } from "../attach/chatImages.ts";
 import { ServerFetch } from "../attach/ServerFetch.tsx";
+import { useDropGuard } from "../attach/useImageDrop.ts";
 import { fateClients } from "../clients.ts";
 import { Composer, type ComposerProps } from "../Composer.tsx";
 import { RepositoryContext } from "../routes.tsx";
@@ -181,6 +183,8 @@ export async function renderComposer(
     const [value, setValue] = useState(state.current.value);
     const [images, setImages] = useState(state.current.images);
     useLayoutEffect(() => report({ images, value }));
+    // The app's guard: files dropped on the page reach its drop target, the composer.
+    useDropGuard();
     return (
       <Composer
         {...props}
@@ -218,3 +222,7 @@ export async function settle() {
     } while (pending.size > 0);
   });
 }
+
+/** The composer's text, as its editor holds it. */
+export const fieldText = (element: HTMLElement) =>
+  EditorView.findFromDOM(element)?.state.doc.toString();

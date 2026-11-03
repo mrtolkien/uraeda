@@ -11,6 +11,7 @@ import {
   atRepo,
   atWidth,
   fakeAgent,
+  fieldText,
   fixture,
   fixtureRepo,
   git,
@@ -134,16 +135,16 @@ test("US3 2: `i` in a session focuses the composer, and Escape leaves it keeping
 
   expect(document.activeElement).toBe(field);
   // The key was the page's, not typed into the field.
-  expect(field.textContent).toBe("");
+  expect(fieldText(field)).toBe("");
   await type(field, "hello");
   await press("Escape", field);
 
   expect(document.activeElement).toBe(document.body);
-  expect(field.textContent).toBe("hello");
+  expect(fieldText(field)).toBe("hello");
   // The page's keys work again, and a later `i` comes back to the draft.
   await press("i");
   expect(document.activeElement).toBe(field);
-  expect(field.textContent).toBe("hello");
+  expect(fieldText(field)).toBe("hello");
 });
 
 test("US3 5: on the New page, `f`, `c`, and `s` pick a card as a click would", async () => {

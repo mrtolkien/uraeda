@@ -50,6 +50,8 @@ export type EditorProps = {
   keys?: ReadonlyArray<FieldKey>;
   /** The field's accessible name, on its content element. */
   label: string;
+  /** The composer's tallest, in lines, which it grows to from `rows` before scrolling inside. */
+  maxRows?: number;
   /** The focus left the field. */
   onBlur?: () => void;
   onChange: (value: string) => void;
@@ -68,11 +70,17 @@ export type EditorProps = {
   onSubmit?: () => void;
   placeholder?: string;
   ref?: Ref<EditorHandle>;
-  /** A several-lines field's height, in lines, scrolling past them. */
+  /** A several-lines field's height, in lines, scrolling past them; the composer's smallest. */
   rows?: number;
   value: string;
-  variant: "line" | "lines";
+  variant: Variant;
 };
+
+/**
+ * A one-line field, a several-lines one, or the composer's, which grows upward from `rows` to
+ * `maxRows` lines, unframed in the composer's box.
+ */
+export type Variant = "line" | "lines" | "composer";
 
 /** Marks a change the caller's text made, which is no typing to report back. */
 const fromCaller = Annotation.define<boolean>();
@@ -88,16 +96,25 @@ const parts = {
 /** The props the parts are made of. */
 type PartProps = Pick<
   EditorProps,
-  "id" | "isAutoFocused" | "isDisabled" | "label" | "placeholder" | "rows" | "variant"
+  "id" | "isAutoFocused" | "isDisabled" | "label" | "maxRows" | "placeholder" | "rows" | "variant"
 >;
 
 /** Each part's content, from the props. */
 function partsOf(props: PartProps) {
-  const { id, isAutoFocused, isDisabled = false, label, placeholder, rows = 3, variant } = props;
+  const {
+    id,
+    isAutoFocused,
+    isDisabled = false,
+    label,
+    maxRows,
+    placeholder,
+    rows = 3,
+    variant,
+  } = props;
   return {
     attributes: EditorView.contentAttributes.of({
       "aria-label": label,
-      "aria-multiline": String(variant === "lines"),
+      "aria-multiline": String(variant !== "line"),
       ...(placeholder ? { "aria-placeholder": placeholder } : {}),
       ...(id === undefined ? {} : { id }),
       // What an overlay gives its focus to once drawn (`useFieldFocus`), as Astryx's fields say.
@@ -105,7 +122,7 @@ function partsOf(props: PartProps) {
     }),
     editable: [EditorView.editable.of(!isDisabled), EditorState.readOnly.of(isDisabled)],
     placeholder: placeholder ? placeholderText(placeholder) : [],
-    size: [sizeTheme(variant, rows), variant === "line" ? oneLine : []],
+    size: [sizeTheme(variant, rows, maxRows), variant === "line" ? oneLine : []],
   };
 }
 
@@ -269,11 +286,12 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
 
 /**
  * A text field: `line` wraps and grows to 9 lines, then scrolls inside, and refuses line breaks;
- * `lines` is `rows` lines tall. Ctrl+Enter runs `onSubmit`, Enter `onEnter`, Escape `onEscape`, none
- * of them while an input method composes.
+ * `lines` is `rows` lines tall; `composer` grows from `rows` to `maxRows`. Ctrl+Enter runs
+ * `onSubmit`, Enter `onEnter`, Escape `onEscape`, none of them while an input method composes.
  */
 export function Editor(props: EditorProps) {
-  const { id, isAutoFocused, isDisabled, label, placeholder, ref, rows, value, variant } = props;
+  const { id, isAutoFocused, isDisabled, label, maxRows, placeholder, ref, rows, value, variant } =
+    props;
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const latest = useRef(props);
@@ -316,13 +334,22 @@ export function Editor(props: EditorProps) {
   }, [value]);
 
   useLayoutEffect(() => {
-    const now = partsOf({ id, isAutoFocused, isDisabled, label, placeholder, rows, variant });
+    const now = partsOf({
+      id,
+      isAutoFocused,
+      isDisabled,
+      label,
+      maxRows,
+      placeholder,
+      rows,
+      variant,
+    });
     viewRef.current?.dispatch({
       effects: Object.entries(parts).map(([part, compartment]) =>
         compartment.reconfigure(now[part as keyof typeof parts]),
       ),
     });
-  }, [id, isAutoFocused, isDisabled, label, placeholder, rows, variant]);
+  }, [id, isAutoFocused, isDisabled, label, maxRows, placeholder, rows, variant]);
 
   useImperativeHandle(
     ref,

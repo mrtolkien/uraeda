@@ -77,14 +77,12 @@ const onDrop = (event: DragEvent) => {
   if (!carriesFiles(event)) {
     return;
   }
-  // A field that took the drop itself, like the composer's input, cancelled it already.
-  const handled = event.defaultPrevented;
   event.preventDefault();
   const field = target ?? pick();
   depth = 0;
   update(undefined);
   const files = [...(event.dataTransfer?.files ?? [])];
-  if (!handled && field && files.length > 0) {
+  if (field && files.length > 0) {
     field.current.onFiles(files);
   }
 };
@@ -93,7 +91,9 @@ const onDrop = (event: DragEvent) => {
  * Listens on the window for files dragged over the page and dropped, until the returned function
  * stops it. The browser's default of a file drop, opening the file in place of the app, is
  * cancelled on every page, with or without a field. Native events: no Astryx component makes a page
- * a drop target, an Astryx gap the plan lists.
+ * a drop target, an Astryx gap the plan lists. They listen as the event goes down, before any
+ * field's own: the shared editor reads a file dropped on it as text, which a drop cancelled first
+ * keeps it from doing, so a dropped image always reaches the page's target.
  */
 function listen() {
   const events = [
@@ -104,11 +104,11 @@ function listen() {
     ["drop", onDrop],
   ] as const;
   for (const [type, listener] of events) {
-    window.addEventListener(type, listener);
+    window.addEventListener(type, listener, { capture: true });
   }
   return () => {
     for (const [type, listener] of events) {
-      window.removeEventListener(type, listener);
+      window.removeEventListener(type, listener, { capture: true });
     }
   };
 }
