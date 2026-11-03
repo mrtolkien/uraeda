@@ -311,6 +311,20 @@ test.each([
   expect(adapter.sent.at(-1)?.text).toBe(LIMIT_MESSAGE);
 });
 
+/** A timer that fires while the server stops claims nothing: the wait is the next start's. */
+test("a wait whose time comes while the server stops is kept for the next start", async () => {
+  const setup = await testSessions(fixtureRepo(), { runs: () => ON });
+  const { adapter, cache, sessions } = setup;
+  const time = clock("2026-11-03T14:01:00Z");
+  const { turn } = await sendLimited(setup, AGENT);
+
+  await sessions.closeAll();
+  time.to(AFTER_RESET);
+  await flush();
+  expect(cache.turn(turn)).toMatchObject({ continueAt: AFTER_RESET, continueReason: "limit" });
+  expect(adapter.sent).toHaveLength(1);
+});
+
 /** Review focus 1: a second server on the same cache arms the same wait, which continues once. */
 test("two servers sharing the cache continue a wait once", async () => {
   const setup = await testSessions(fixtureRepo(), { runs: () => ON });

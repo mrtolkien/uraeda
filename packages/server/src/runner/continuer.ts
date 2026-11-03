@@ -70,6 +70,8 @@ export class Continuer {
   #claimed = new Map<number, number>();
   /** The worktree commit of each session at its last continue, in memory (R5). */
   #commits = new Map<string, string>();
+  /** Whether the server stops: no timer is armed then. */
+  #closed = false;
   /** The worktree commit each session's pending continue was decided at, recorded as it fires. */
   #decidedAt = new Map<string, string>();
 
@@ -221,8 +223,9 @@ export class Continuer {
     }
   }
 
-  /** Clears every timer, as the server stops. */
+  /** Clears every timer, as the server stops: the waits stay in the cache, armed by no timer. */
   close(): void {
+    this.#closed = true;
     for (const timer of this.#timers.values()) {
       clearTimeout(timer);
     }
@@ -353,6 +356,9 @@ export class Continuer {
   /** Arms the turn's timer for `at`, unref'd: it never keeps the server running. */
   #arm(turn: number, at: number) {
     this.#clear(turn);
+    if (this.#closed) {
+      return;
+    }
     const wait = Math.max(0, at - Date.now());
     const timer =
       wait > LONGEST_TIMER_MS
