@@ -43,12 +43,14 @@ const now = () => new Date().toISOString();
 
 /**
  * What the session manager works with: its agent, binding, and cache, where it reports a change,
- * and the continues' settings in force, read at each decision: all on, cap 3, by default.
+ * and the continues' settings in force, read at each decision: all on, cap 3, by default. `hosted`
+ * says whether the server lists a main checkout: the restart's continues skip the others.
  */
 type SessionsOptions = {
   adapter: Adapter;
   binding: Binding;
   cache: SessionCache;
+  hosted?: (root: string) => boolean;
   onChange: (change: SessionChange) => void;
   runs?: () => ContinueSettings;
 };
@@ -103,6 +105,7 @@ export class Sessions {
     context.transcript = new Transcript(context);
     context.continuer = new Continuer(context, {
       available: () => this.#status.available,
+      hosted: options.hosted ?? (() => true),
       runs: options.runs ?? (() => CONTINUES_ON),
     });
     this.#context = context;

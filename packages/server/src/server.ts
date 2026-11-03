@@ -43,8 +43,9 @@ export const SWEEP_EVERY_MS = 60_000;
 /**
  * The server's session manager: its cache opened in the data folder, the turns a stopped server
  * left marked stopped, the chat images no message holds deleted once a day old, and the agent
- * checked now and every 60 seconds. Its pending continues are armed once the agent is checked, and
- * the continues follow `settings` as they change. `stop` stops its turns and closes its processes.
+ * checked now and every 60 seconds. The continues follow `settings` as they change; the server
+ * arms them with `startContinues` once its repositories are open, the restart's continues kept to
+ * those. `stop` stops its turns and closes its processes.
  */
 export async function startSessions(options: {
   adapter: Adapter;
@@ -64,7 +65,6 @@ export async function startSessions(options: {
   }
   const sessions = createSessions({ ...options, cache, runs: continueSettings(options.settings) });
   await sessions.check();
-  await sessions.startContinues();
   const unsubscribe = options.settings.onChange(() => sessions.runsChanged());
   const timer = setInterval(() => void sessions.check(), CHECK_EVERY_MS);
   timer.unref();
@@ -268,6 +268,8 @@ async function startOpened(
     await sessions.stop();
     throw error;
   }
+  // Once the repositories are open: a run of one no longer listed does not go on after a restart.
+  await sessions.sessions.startContinues();
   const opened = hosts;
   const sweeping = setInterval(() => {
     previews.sweep();

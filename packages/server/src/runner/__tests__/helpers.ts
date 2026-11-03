@@ -53,11 +53,15 @@ export async function testSessions(
 
 /**
  * Restarts the session manager, as the server does: stops its turns and clears its timers, then
- * starts a second one on the same cache and agent, checked once, whose continues `runs` sets.
+ * starts a second one on the same cache and agent, checked once, whose continues `runs` sets, and
+ * which hosts the repositories `hosted` holds, every one by default.
  */
 export async function restart(
   sessions: Sessions,
-  { runs = () => CONTINUES_OFF }: { runs?: () => ContinueSettings } = {},
+  {
+    hosted,
+    runs = () => CONTINUES_OFF,
+  }: { hosted?: (root: string) => boolean; runs?: () => ContinueSettings } = {},
 ): Promise<Sessions> {
   await sessions.closeAll();
   sessions.close();
@@ -65,6 +69,7 @@ export async function restart(
     adapter: sessions.adapter,
     binding,
     cache: sessions.cache,
+    ...(hosted === undefined ? {} : { hosted }),
     onChange: () => {},
     runs,
   });

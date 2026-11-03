@@ -64,6 +64,7 @@ const SWITCHES: Record<ContinueReason, Exclude<keyof ContinueSettings, "cap">> =
 export class Continuer {
   #context: SessionContext;
   #available: () => boolean;
+  #hosted: (root: string) => boolean;
   #runs: () => ContinueSettings;
   /** The timer of each pending continue this server armed, by its turn. */
   #timers = new Map<number, Timer>();
@@ -85,10 +86,15 @@ export class Continuer {
 
   constructor(
     context: SessionContext,
-    options: { available: () => boolean; runs: () => ContinueSettings },
+    options: {
+      available: () => boolean;
+      hosted: (root: string) => boolean;
+      runs: () => ContinueSettings;
+    },
   ) {
     this.#context = context;
     this.#available = options.available;
+    this.#hosted = options.hosted;
     this.#runs = options.runs;
   }
 
@@ -260,7 +266,8 @@ export class Continuer {
     const since = new Date(Date.now() - RESTART_WINDOW_MS).toISOString();
     for (const turn of cache.serverCuts(SERVER_STOPPED, since)) {
       const session = cache.session(turn.sessionId);
-      if (session && adapter.hasSession(session.nativeId)) {
+      // A repository removed from the server's list shows its runs nowhere: none goes on there.
+      if (session && this.#hosted(session.repo) && adapter.hasSession(session.nativeId)) {
         await this.#decide(turn, "restart", Date.now, this.#taken(session.id));
       }
     }

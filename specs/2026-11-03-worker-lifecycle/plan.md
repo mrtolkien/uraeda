@@ -893,8 +893,8 @@ sends messages to an agent without the human.
   - `type ContinueSettings = { afterRestart: boolean; afterLimit: boolean; beforeGate: boolean; cap: number }`.
   - `new Sessions({ ..., runs?: () => ContinueSettings })`. The default is all on, cap 3.
     `createSessions` passes the `inForce` values of `settings.runs()`.
-  - `Sessions.startContinues(): Promise<void>`: called by `startSessions` after `check()`. It arms
-    every pending continue. Task 9 adds the restart scan to it.
+  - `Sessions.startContinues(): Promise<void>`: called by the server after `check()`, once its
+    repositories are open. It arms every pending continue. Task 9 adds the restart scan to it.
   - `Sessions.runsChanged(): void`: called on `settings.onChange`. It drops the pending continues of
     each kind now off.
   - In `continuer.ts`, with `CONTINUES_ON` and `CONTINUES_OFF` (R4):
@@ -1049,9 +1049,9 @@ The break each test catches:
 - Expected: FAIL, `continueAt` null on the limited turn
 
 - [x] **Step 3: Implement the continuer, its wiring, and the server's start.** `startSessions` takes
-      the server's `settings`. It passes `runs` to `createSessions`, calls `startContinues()` after
-      `check()`, and subscribes `runsChanged` to `settings.onChange`. The subscription is removed on
-      `stop`.
+      the server's `settings`. It passes `runs` to `createSessions`, calls `check()`, and subscribes
+      `runsChanged` to `settings.onChange`. The subscription is removed on `stop`. The server calls
+      `startContinues()` once its repositories are open (task 9).
 
 - [x] **Step 4: Run the tests, then make the breaks.** Make each break above that touches the claim,
       the cancel, or the cap: PASS, then FAIL with the break, then revert. Report the failures in
@@ -1100,7 +1100,11 @@ The rules:
    - `endedAt` is less than 6 hours ago;
    - it is its session's latest turn, not taken back;
    - its session is not archived, and is its folder's latest session, or a chat;
-   - `adapter.hasSession(nativeId)` holds.
+   - `adapter.hasSession(nativeId)` holds;
+   - its repository is one the server lists, `hosted`: a run of a repository removed from the list
+     shows nowhere to stop it. The server calls `startContinues()` once its repositories are open.
+
+   The scan runs only while the agent works, and again when `check()` finds it back.
 
    With `afterRestart` on and the count under the cap, it gets `scheduleContinue(now, "restart")`
    and fires at once. At the cap, it gets `markCapped`.
