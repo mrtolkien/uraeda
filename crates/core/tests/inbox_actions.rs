@@ -884,3 +884,29 @@ fn a_refused_action_without_an_inbox_leaves_no_inbox() {
     assert!(!repo.exists(INBOX));
     assert_eq!(repo.porcelain(), "");
 }
+
+/// Edge case "a note file that a line links: the line wins", for a link in a nested item: a note
+/// file linked anywhere in `INBOX.md` is no agent's note, and shows once.
+#[test]
+fn a_note_file_linked_from_a_nested_item_shows_once() {
+    let repo = TestRepo::new();
+    repo.write(
+        INBOX,
+        "# Inbox\n\n- A note\n  - See [the details](notes/details.md)\n",
+    );
+    repo.write(
+        "specs/notes/details.md",
+        "---\nagent: true\n---\n\n# The details\n",
+    );
+    repo.commit("chore: inbox");
+
+    let read = api::read_inbox(repo.path()).unwrap();
+
+    assert_eq!(read.count, 1);
+    assert!(
+        read.categories
+            .iter()
+            .flat_map(|category| &category.notes)
+            .all(|note| note.id != "specs/notes/details.md")
+    );
+}
