@@ -20,7 +20,8 @@ ura start git-listener-process             # a proposal file becomes a feature; 
 ura note "Blurry icons" --category UI      # a note in the inbox, committed on the default branch
 ura answer cli-core Q3 "B, simpler"        # one answer; --submit sends the round
 ura review cli-core --comment 50-52 "Why?" # a comment; --approve or --request-changes
-ura clean --all                            # the worktrees and branches of merged features
+ura inbox                                  # every note, agents' notes included; --json for tools
+ura clean --all                            # merged features' worktrees, branches, and priorities lines
 ura upgrade                                # the latest release, then your skill
 ```
 

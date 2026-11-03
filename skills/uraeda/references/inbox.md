@@ -7,9 +7,9 @@ are organized later.
 
 A misaligned icon, a confusing command, an idea: things worth keeping, noticed while doing something
 else, and not proposals yet. The human writes them down in a few seconds and goes back to what they
-were doing. Notes wait in `specs/INBOX.md`, grouped under categories the human names, until someone
-decides what each becomes: a proposal, a line or a file, part of an existing proposal file, a
-change, or nothing.
+were doing. Notes wait in `specs/INBOX.md`, grouped under categories the human names, and agents'
+notes in files of their own in `specs/notes/`, until someone decides what each becomes: a proposal,
+a line or a file, part of an existing proposal file, a change, or nothing.
 
 ## Setting it up
 
@@ -57,13 +57,35 @@ them into the inbox in one commit on the default branch, from the files as they 
   lowercase letters, digits, and `-`. Any other bracket, like `[!]`, is text.
 - **Category**: a `## ` heading; its name is the heading's text, without closing `#`s: `## UI ##` is
   `UI`. Notes before the first `##` have no category. Other headings and text are kept and ignored.
+- **Agent's note**: a note file of `specs/notes/` that no note of `INBOX.md` links, `<name>.md` or
+  `<name>/note.md`. It is a note of the inbox on its own, shown at the end of its category, where
+  its line would be added, a category `INBOX.md` lacks after the file's own, and one with none after
+  the notes without a category. An agent writes one instead of a line, so two branches never edit
+  `INBOX.md`. Its fields are optional, so a human can write one by hand too:
+
+  ```md
+  ---
+  agent: true
+  about: feature-state
+  category: Deferred fixes
+  ---
+
+  # The workspace record's `running` is read by no view
+
+  Remove it, or name what reads it (`packages/server/src/fate/sources.ts`).
+  ```
+
+  `agent: true` is the `[agent]` mark, `about` the `[<slug>]` mark, and `category` the category it
+  shows under. Its `# ` title is its text, and the rest of the file follows, as in any note file. A
+  note file a note links ignores these fields: the line carries the marks and the category.
 
 The `[agent]` mark says an agent wrote the note. The slug is the folder of the feature or
 [change](change.md) the note is about, without its date: `[run-ui]` for `specs/2026-10-14-run-ui/`
 or `specs/changes/2026-10-14-run-ui/`. Lines inside fenced code are not notes, a fence indented
 under a note is part of it, and a `###` heading does not end a category. A category's name appears
 once: tools add to the first heading of a name, and `ura check` reports a repeated one. A category
-left empty keeps its heading.
+left empty keeps its heading. `ura inbox` prints every note, agents' notes included, by category,
+and `ura inbox --json` the same for tools: its category, text, marks, and file.
 
 Tools edit the file line by line: every line they do not change keeps its bytes. By hand, do the
 same.
@@ -72,23 +94,24 @@ same.
 
 The human's notes are written on the default branch, from any checkout, like `PRIORITIES.md`: in the
 checkout or worktree that has the default branch, see [Branches](conventions.md#branches). An
-agent's notes are written in its own worktree, see [agents' notes](#agents-notes). Write one line
-per note, at the end of its category, or after the last note without one. A new category goes at the
-end of the file. When `INBOX.md` does not exist, create it as `# Inbox`, a blank line, and the note,
-and add that title to a file without one.
+agent's notes are note files of their own, written in its own worktree, see
+[agents' notes](#agents-notes). Write one line per note, at the end of its category, or after the
+last note without one. A new category goes at the end of the file. When `INBOX.md` does not exist,
+create it as `# Inbox`, a blank line, and the note, and add that title to a file without one.
 
 - **By hand**: add the line, then commit `specs/INBOX.md` alone, with
   `chore: add "<note>" to the inbox`. When it has other uncommitted changes, write the note without
   committing: they are someone's work in progress.
 - **With `ura`**:
   `ura note <text> [--category <name>] [--about <feature or change>] [--agent] [--no-commit]` writes
-  the note on the default branch, or in this checkout with `--agent`, and commits `specs/INBOX.md`
-  alone. When `INBOX.md` had other uncommitted changes, it writes without committing, and says
+  the note on the default branch, and commits `specs/INBOX.md` alone. With `--agent`, in a feature's
+  or a change's worktree, it writes an [agent's note](#agents-notes) file there instead, and commits
+  it alone. When `INBOX.md` had other uncommitted changes, it writes without committing, and says
   "INBOX.md had uncommitted changes: the note is written but not committed." `--about` writes the
   slug of the target's folder; inside a feature's or a change's worktree, it defaults to that one.
-  `--category` names the category, created when missing; `--agent` adds the `[agent]` mark;
-  `--no-commit` leaves the file for you to commit. It refuses a blank note with "A note needs
-  text.", and runs only in a repository with a `specs/` folder.
+  `--category` names the category, created when missing; `--agent` adds the `[agent]` mark, or
+  `agent: true`; `--no-commit` leaves the file for you to commit. It refuses a blank note with "A
+  note needs text.", and runs only in a repository with a `specs/` folder.
 - **In the web UI**: the ＋ next to Inbox in the sidebar, from any page. From a feature's or a
   change's page, the note gets its slug. "Add" leaves it uncommitted, for the commit page's Commit.
   "Add as a file" saves a note with images as a file that holds them, linked from the inbox: pick,
@@ -156,6 +179,12 @@ commit as what it became:
 A note can also have its text edited, its marks kept, or move, with the lines indented under it, to
 another place in its category or to another category.
 
+An agent's note is organized like a note with a note file, once its line is written: any outcome, or
+edit, first adds its line, `- [agent] [<slug>] [<title>](notes/<file>)`, at the end of its category
+in `INBOX.md`. Nothing deletes the file but its removal; a move puts the line where the note goes,
+and drops the file's `category`, which the line now carries. Its removal leaves `INBOX.md` as it
+was, and deletes the file: `chore: remove "<note>" from the inbox`.
+
 A note file that moves takes its links along: every file of `specs/` but `PRIORITIES.md` and
 `INBOX.md` linking it points at its new path, as
 [the catch-up](implementation.md#where-a-moved-link-points) rewrites a moved link. A note file
@@ -189,9 +218,9 @@ decisions.
 
 1. **Refuse a second triage.** When `specs/INBOX-TRIAGE.md` exists, stop and say: "An inbox triage
    already waits: answer or delete specs/INBOX-TRIAGE.md first."
-2. **Read every note against the project**: the code it is about, `PRIORITIES.md`, the proposal
-   files, and the open feature and change branches. A note may be done already, a duplicate, or part
-   of a proposal.
+2. **Read every note against the project**, `INBOX.md`'s and the agents' note files, as `ura inbox`
+   lists them: the code it is about, `PRIORITIES.md`, the proposal files, and the open feature and
+   change branches. A note may be done already, a duplicate, or part of a proposal.
 3. **Write `specs/INBOX-TRIAGE.md`** from [the template](../assets/templates/specs/INBOX-TRIAGE.md),
    with `status: awaiting-human`, following [Writing for the human](writing.md) as a round of
    questions does, but for its free Context and its lack of settled points:
@@ -227,13 +256,13 @@ opens it in the questions view, and Submit commits it. `ura answer` answers feat
 
 Once `INBOX-TRIAGE.md` is `answered`:
 
-1. **Carry out each answer** on the notes it names, found by their text in `INBOX.md` as it is now,
-   as [organizing by hand](#organizing-by-hand) does. A new proposal file for a group of notes takes
-   the option's title, and the notes' lines, marks dropped, as its What. A note answered with a
-   change becomes a new proposal file in the same way, linked from **Now**, first after its started
-   proposals and their blank line, next to where starting puts it. A note kept in the inbox does not
-   change. A note added after the triage was written stays in the inbox, untouched. A note the
-   triage names that is no longer there is skipped.
+1. **Carry out each answer** on the notes it names, found by their text in the inbox as it is now,
+   agents' notes included, as [organizing by hand](#organizing-by-hand) does. A new proposal file
+   for a group of notes takes the option's title, and the notes' lines, marks dropped, as its What.
+   A note answered with a change becomes a new proposal file in the same way, linked from **Now**,
+   first after its started proposals and their blank line, next to where starting puts it. A note
+   kept in the inbox does not change. A note added after the triage was written stays in the inbox,
+   untouched. A note the triage names that is no longer there is skipped.
 2. **Commit once**: `INBOX.md`, `PRIORITIES.md`, the proposal files the notes went into, and the
    deletion of `INBOX-TRIAGE.md`, with `chore: apply the inbox triage`. The body lists every note
    the triage names, one per line, in the questions' order:
@@ -278,10 +307,16 @@ nothing. The two tests:
 
 A note is written:
 
-- marked `[agent]`, then with the slug of the feature or change the note is about;
+- marked as an agent's, with the slug of the feature or change the note is about;
 - under the category that fits, or a new one named like the others;
+- as a note file of its own, never a line of `INBOX.md`: a branch never writes `INBOX.md`, so notes
+  from parallel branches never conflict;
 - with `ura note <text> --agent --about <slug> --category <name>`, or by hand, in its own worktree
-  and branch, never in the default branch's checkout: the note is committed alone with
+  and branch, never in the default branch's checkout. By hand, write
+  `specs/notes/<slug>-<words>.md`, `<words>` the slug of the note's first four words, apostrophes
+  dropped: `feature-state-the-workspace-records-running.md`, with `-2`, `-3`, ... when it is taken.
+  It holds the frontmatter `agent: true`, `about: <slug>`, and `category: <name>`, then the note as
+  its `# ` title, as [the format](#the-format) shows. The file is committed alone with
   `chore: add "<note>" to the inbox`, and reaches the default branch with the branch's merge.
 
 Then the agent names the note in its step's report, and in the pull request when it opens one.

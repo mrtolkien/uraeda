@@ -310,11 +310,12 @@ open its draft pull request, and run the finish step, as
 Push only after the project's complete validation, run after the last commit, as
 [every push](implementation.md#each-task) requires.
 
-Run the [finish](finish.md) step: the folder becomes its record, `kind: change`, and the finishing
-commit removes the change's proposal from `PRIORITIES.md`. The pull request's body is written when
-it is marked ready, as [the finish step](finish.md#mark-the-pull-request-ready) says: "Pull request
-to review, about 5 minutes.", the points needing attention, among them the points you settled
-without asking, then the record's text, with a screenshot of each new view.
+Run the [finish](finish.md) step: the folder becomes its record, `kind: change`. As for a feature,
+the branch never writes `PRIORITIES.md`: the change's line stays until `ura clean`, after the merge.
+The pull request's body is written when it is marked ready, as
+[the finish step](finish.md#mark-the-pull-request-ready) says: "Pull request to review, about 5
+minutes.", the points needing attention, among them the points you settled without asking, then the
+record's text, with a screenshot of each new view.
 
 Commits the open pull request lacks are pushed as for a feature, as [Push](implementation.md#push)
 says.
