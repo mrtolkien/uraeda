@@ -117,6 +117,8 @@ pub struct Linked<'a> {
     pub feature: Option<&'a Feature>,
     /// The proposal file it links, when the default branch has it.
     pub file: Option<LinkedFile>,
+    /// The file it links, from the top level.
+    pub path: Option<String>,
 }
 
 impl Linked<'_> {
@@ -130,13 +132,22 @@ impl Linked<'_> {
         })
     }
 
-    /// Its feature or change, once its step is `done`.
+    /// Its feature or change, once its step is `done`, when it links the folder's proposal, as a
+    /// started line does: a link to its record, or to a proposal file named alike, is no merged
+    /// line.
     pub fn merged(&self) -> Option<MergedFeature> {
         let feature = self.feature?;
-        (feature.step.name == StepName::Done).then(|| MergedFeature {
+        let folder = super::paths::folder_path(feature.kind, &feature.folder);
+        let own = self.path.as_deref().is_some_and(|path| {
+            path == folder || path.strip_prefix(folder.as_str()) == Some("/proposal.md")
+        });
+        (own && feature.step.name == StepName::Done).then(|| MergedFeature {
             folder: feature.folder.clone(),
             change: feature.kind == Kind::Change,
-            pull_request: recorded_pull_request(feature),
+            pull_request: feature
+                .pull_request
+                .clone()
+                .or_else(|| recorded_pull_request(feature)),
         })
     }
 }
@@ -162,6 +173,7 @@ impl Workspace {
         Linked {
             feature: match_feature(link, &self.features).and_then(|folder| self.feature(&folder)),
             file: linked_file(link, &self.proposals),
+            path: resolve("specs", link),
         }
     }
 

@@ -154,6 +154,12 @@ test("a merged line carries its folder and pull request", async () => {
     "---\nkind: feature\nfinished: 2026-10-12\npull-request: https://github.com/o/r/pull/12\n---\n\n" +
       "# Record: Web UI for the workflow files\n\n## What and why\n\nA web UI.\n",
   );
+  // A line linking the record names the feature, but is no merged line.
+  const file = join(repo, "specs/PRIORITIES.md");
+  writeFileSync(
+    file,
+    readFileSync(file, "utf8") + "\n- Undo for [the web UI](/specs/done/2026-10-11-web-ui.md)\n",
+  );
   git(repo, "add", "--all");
   git(repo, "commit", "--quiet", "--no-verify", "--message", "chore(web-ui): finish");
   git(repo, "branch", "--quiet", "--delete", "--force", "2026-10-11-web-ui");
@@ -173,6 +179,10 @@ test("a merged line carries its folder and pull request", async () => {
     pullRequest: { number: 12 },
   });
   expect(proposal?.running).toBeFalsy();
+  const undo = priorities.sections
+    .flatMap((section: { proposals: Array<Proposal> }) => section.proposals)
+    .find((p: Proposal) => p.text.includes("Undo for"));
+  expect(undo?.merged).toBeFalsy();
 });
 
 test("US8: the ledger sends the constitution and each decision, a field it lacks as null", async () => {
