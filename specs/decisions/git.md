@@ -51,13 +51,12 @@ shared ones, so parallel work merges without conflict. History:
 ## Consequences
 
 - Hooks, signing, and credentials behave as by hand, and `git` must be on the PATH.
-- gix breaks its API at minor releases, so upgrades are deliberate.
-Reads are most of what the tools do, and gix does them in process; it runs no hooks, so writes go
-through `git`, as the user would. The web UI writes on every branch from one checkout, so it never
-switches branches. Cleanup waits for the human, since a lost commit cannot come back. Commits wait
-too: the Commit page shows what a commit holds before it lands. Branches add files rather than edit
-shared ones, so parallel work merges without conflict. History:
-[CLI core](../done/2026-10-10-cli-core.md).
+- gix breaks its API at minor releases, so upgrades are deliberate. Reads are most of what the tools
+  do, and gix does them in process; it runs no hooks, so writes go through `git`, as the user would.
+  The web UI writes on every branch from one checkout, so it never switches branches. Cleanup waits
+  for the human, since a lost commit cannot come back. Commits wait too: the Commit page shows what
+  a commit holds before it lands. Branches add files rather than edit shared ones, so parallel work
+  merges without conflict. History: [CLI core](../done/2026-10-10-cli-core.md).
 
 ## Applies to
 
