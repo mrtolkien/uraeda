@@ -488,16 +488,21 @@ git commit -m "feat(master-pr): ura inbox prints the inbox"
 
 **Interfaces:**
 
-- Produces: `Did::RemovedLine { name: String, committed: bool }`. `clean` (not on a dry run) reaches
-  the default branch with `place::reach`, removes the line linking
+- Produces: `Did::RemovedLine { name: String, committed: LineCommit, wrote_in: Option<PathBuf> }`,
+  `LineCommit` one of `Committed`, `OtherChanges`, `HookRefused`, `DryRun`
+  ([R11](rulings.md#r11-ura-clean-tells-a-hooks-refusal-and-where-it-wrote)). `clean` (not on a dry
+  run) reaches the default branch with `place::reach`, removes the line linking
   `folder_path(kind, folder)/proposal.md` with `priorities::remove_linked`, and commits
   `specs/PRIORITIES.md` alone as `chore(<slug>): remove "<name>" from the priorities` when it had no
-  other change; otherwise it leaves it written, `committed: false`. No line: no `Did`. A dry run
-  says it would remove it. `render` prints `removed "<name>" from the priorities`,
-  `would remove "<name>" from the priorities`, and, uncommitted,
-  `PRIORITIES.md had uncommitted changes: the line is removed but not committed.` `candidates` also
-  takes a merged feature whose line is still in the priorities, found by `clean::merged_line` in the
-  workspace's priorities; the messages for nothing to clean and for several candidates name the line
+  other change; otherwise it leaves it written, `OtherChanges`, or `HookRefused` when a hook refused
+  the commit. No line: no `Did`. A dry run says it would remove it. `render` prints
+  `removed "<name>" from the priorities`, `would remove "<name>" from the priorities`, and, with
+  other changes, `PRIORITIES.md had uncommitted changes: the line is removed but not committed.`,
+  or, refused by a hook, `a hook refused the commit: the line is removed but not committed.`; and
+  `ura clean` prints `output::place_message` for `wrote_in` on stderr, as `ura note` does.
+  `candidates` also takes a merged feature whose line is still in the priorities, found by
+  `clean::merged_line` in the workspace's priorities; the messages for nothing to clean and for
+  several candidates name the line
   ([R7](rulings.md#r7-ura-clean-names-the-priorities-line-among-what-is-left)). The removal on disk
   is shared with `drop.rs` as `actions::priorities::remove_linked`.
 

@@ -317,3 +317,50 @@ fn a_merged_line_alone_is_something_to_clean() {
         "Nothing to clean: no merged feature has a worktree, a branch, or a line of the priorities left.\n"
     );
 }
+
+const WEB_UI_LINE: &str =
+    "# Priorities\n\n## Now\n\n- [Web UI](2026-10-11-web-ui/proposal.md)\n\n## Next\n";
+
+/// US1.3, when a hook refuses the removal's commit: the line is removed, and `ura clean` says the
+/// hook refused it, not that the priorities had other changes.
+#[test]
+fn a_hook_refusing_the_lines_commit_is_named() {
+    let repo = repo_with_merged_line(WEB_UI, WEB_UI_LINE);
+    repo.set_hook("echo refused >&2; exit 1");
+    let before = repo.subjects("main");
+
+    let output = ura(&repo, &["clean", "web-ui"]);
+
+    assert_eq!(
+        output.stdout,
+        "2026-10-11-web-ui\n  deleted the branch 2026-10-11-web-ui\n  removed \"Web UI\" from the priorities\n  a hook refused the commit: the line is removed but not committed.\n",
+        "{}",
+        output.stderr
+    );
+    assert_eq!(
+        repo.read("specs/PRIORITIES.md"),
+        "# Priorities\n\n## Now\n\n## Next\n"
+    );
+    assert_eq!(repo.subjects("main"), before);
+}
+
+/// US1.3, with no checkout on the default branch: `ura clean` removes the line in a worktree it
+/// makes, and says where it wrote, as `ura note` does.
+#[test]
+fn clean_says_where_it_removed_the_line() {
+    let repo = repo_with_merged_line(WEB_UI, WEB_UI_LINE);
+    repo.switch_new("other");
+
+    let output = ura(&repo, &["clean", "web-ui"]);
+
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert_eq!(output.stderr, "wrote in .worktrees/main\n");
+    assert_eq!(
+        output.stdout,
+        "2026-10-11-web-ui\n  deleted the branch 2026-10-11-web-ui\n  removed \"Web UI\" from the priorities\n"
+    );
+    assert_eq!(
+        repo.subjects("main")[0],
+        "chore(web-ui): remove \"Web UI\" from the priorities"
+    );
+}

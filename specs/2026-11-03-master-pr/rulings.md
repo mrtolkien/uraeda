@@ -117,3 +117,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: written plain, `Mobile: phones` broke the frontmatter's parse and `#Later` read as
   a comment, so the note lost its category. Quoting only when needed keeps the spec's plain form.
 - **Where**: task 3, `crates/core/src/actions/inbox/agent_file.rs` `scalar`
+
+## R11: `ura clean` tells a hook's refusal, and where it wrote
+
+- **Decision**: a hook refusing the commit of the line's removal prints
+  `a hook refused the commit: the line is removed but not committed.`, apart from
+  `PRIORITIES.md had uncommitted changes: the line is removed but not committed.`, which only other
+  changes print. When `ura clean` removes the line in another working tree of the default branch,
+  one it made among them, it says so on stderr as `ura note` does: `wrote in .worktrees/main`.
+- **Rationale**: the hook's case printed the other changes' message, which was false; and a line
+  removed in a worktree the human did not see made would otherwise go unmentioned.
+- **Where**: task 5, `crates/core/src/actions/clean.rs` `LineCommit`, `crates/cli/src/clean.rs`
