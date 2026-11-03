@@ -140,6 +140,11 @@ again from the repository.
    an active decision has one; otherwise name it in the pull request, as a failure that was already
    there, and go on.
 
+   Start long work, such as a test suite, a build, or a subagent, as background work your harness
+   tracks and reports on, never with a shell's `&`. Then end your turn and wait for its notice.
+   Never poll it, with sleep loops or by rereading its output file: a run blocked in a loop cannot
+   read the human's messages.
+
 4. **Check the task's boxes** in `plan.md`, and commit them with the code and tests, using the
    plan's commit message. Check a box only for a step that ran, with the output the plan expects:
    the next agent trusts it without running it again.
