@@ -70,7 +70,8 @@ export function jumpToComment(tree: Document, comment: CommentItem) {
  * far from the column.
  */
 function toField(container: HTMLElement | null) {
-  const field = container?.querySelector<HTMLElement>("textarea");
+  // The editor's content element, which takes the focus as a field's own.
+  const field = container?.querySelector<HTMLElement>('[role="textbox"]');
   field?.scrollIntoView?.({ block: "center" });
   field?.focus({ preventScroll: true });
 }

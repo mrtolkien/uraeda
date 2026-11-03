@@ -163,6 +163,20 @@ test("an image dropped on the page goes to the selected note", async () => {
   expect(read(repo, PATH)).toContain("- Idea two\n");
 });
 
+// Break: the row's field found by a `textarea`, which the editor has none of: the image went to the
+// note's old text, and the text typed in its field was lost to the write.
+test("an image dropped while a note's field is open saves its text first, then gives it a file", async () => {
+  const { link, repo } = await onNote("Idea two");
+  await press("i", link);
+  const field = await screen.findByRole("textbox", { name: "Edit the note" });
+  await type(field, "Idea deux");
+
+  await drop([png("dropped.png")]);
+
+  await waitFor(() => expect(read(repo, PATH)).toMatch(/- \[Idea deux\]\(/));
+  expect(filesOf(repo, fileOf(repo, "Idea deux")).images).toHaveLength(1);
+});
+
 test("an image dropped with no note selected opens the add form holding it", async () => {
   const repo = fixtureRepo();
   writeFileSync(join(repo, PATH), INBOX);

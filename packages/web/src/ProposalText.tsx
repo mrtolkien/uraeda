@@ -7,7 +7,7 @@ import { HStack } from "@astryxdesign/core/HStack";
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars, typographyVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { MouseEvent, RefObject } from "react";
+import type { MouseEvent } from "react";
 import { AttachButton } from "./attach/AttachButton.tsx";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { DropHint } from "./attach/DropHint.tsx";
@@ -74,20 +74,18 @@ function Drawn({
 }
 
 /**
- * The pane: `boxRef` holds its text field, which `i` brings the focus to. `onSubmit` is its
+ * The pane: its text field's handle is `editor.images.fieldProps.ref`, which `i` focuses. `onSubmit` is its
  * Ctrl+Enter: a proposal file's starts it, a started proposal's saves it. A proposal file has no
  * Commit, as its start commits it; a started proposal commits with "Commit and start the agent", as
  * in its feature.
  */
 export function ProposalText({
-  boxRef,
   editor,
   file,
   onEdit,
   onSubmit,
   path,
 }: {
-  boxRef: RefObject<HTMLDivElement | null>;
   editor: ProposalEditorState;
   file: File;
   onEdit: () => void;
@@ -120,7 +118,7 @@ export function ProposalText({
             restored={field.restored}
           />
         )}
-        <div ref={boxRef}>
+        <div>
           {editor.drawn ? (
             <Drawn editor={editor} file={file} onEdit={onEdit} />
           ) : (

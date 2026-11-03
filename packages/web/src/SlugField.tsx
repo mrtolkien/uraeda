@@ -1,3 +1,5 @@
+import type { Ref } from "react";
+import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { TextLine } from "./fields/TextLine.tsx";
 import type { useTextField } from "./fields/useTextField.ts";
@@ -20,12 +22,15 @@ export function SlugField({
   description = DESCRIPTION,
   error,
   field,
+  fieldRef,
   onEnter,
   restoreNotice = true,
 }: {
   description?: string;
   error?: string;
   field: ReturnType<typeof useTextField>;
+  /** The slug's editor, which a page's key focuses. */
+  fieldRef?: Ref<EditorHandle>;
   onEnter?: () => void;
   restoreNotice?: boolean;
 }) {
@@ -40,6 +45,7 @@ export function SlugField({
         label="Slug"
         onChange={field.change}
         value={field.text}
+        {...(fieldRef ? { ref: fieldRef } : {})}
         {...(error === undefined ? {} : { status: { message: error, type: "error" as const } })}
         {...(onEnter ? { onEnter } : {})}
       />

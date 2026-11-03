@@ -170,7 +170,8 @@ export function useInboxImages({
     }
     // A row's field open with its text: left, which saves the text before the images go.
     const active = document.activeElement as HTMLElement | null;
-    const isEditing = active?.tagName === "TEXTAREA" && box.current?.contains(active) === true;
+    const isEditing =
+      active?.matches('[role="textbox"]') === true && box.current?.contains(active) === true;
     if (isEditing) {
       active?.blur();
     }

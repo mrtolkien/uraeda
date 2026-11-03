@@ -7,6 +7,7 @@ import { useFateClient } from "react-fate";
 import { usePriorities } from "./data.ts";
 import { refusal } from "./errors.ts";
 import { DISCARD_CHANGES, useConfirm } from "./fields/Confirm.tsx";
+import type { EditorHandle } from "./fields/editor/Editor.tsx";
 import { showPageError } from "./layout/useUndoToast.ts";
 import { RestoreNotice } from "./fields/RestoreNotice.tsx";
 import { proposalAdded } from "./optimisticLists.ts";
@@ -105,9 +106,9 @@ export function AddForm({
   const [section, setSection] = useState(start);
   // The field takes the focus once the dialog has settled: the dialog's own focus goes to its first
   // control as it opens, which an autofocus alone sometimes loses to, as a key that opened it.
-  const box = useRef<HTMLDivElement>(null);
+  const input = useRef<EditorHandle>(null);
   useEffect(() => {
-    const timer = setTimeout(() => box.current?.querySelector("textarea")?.focus(), 120);
+    const timer = setTimeout(() => input.current?.focus(), 120);
     return () => clearTimeout(timer);
   }, []);
 
@@ -149,22 +150,21 @@ export function AddForm({
         // Its saved text is always empty: it never changes since.
         <RestoreNotice changed="" onDiscard={field.discard} restored={field.restored} />
       )}
-      <div ref={box}>
-        <TextField
-          hasAutoFocus
-          isLabelHidden
-          kind="line"
-          label="Proposal"
-          onChange={field.change}
-          // A proposal is a line: Enter adds it, and closes the form.
-          onEnter={() => {
-            if (text.trim()) {
-              void add();
-            }
-          }}
-          value={text}
-        />
-      </div>
+      <TextField
+        hasAutoFocus
+        isLabelHidden
+        kind="line"
+        label="Proposal"
+        onChange={field.change}
+        // A proposal is a line: Enter adds it, and closes the form.
+        onEnter={() => {
+          if (text.trim()) {
+            void add();
+          }
+        }}
+        ref={input}
+        value={text}
+      />
       <SectionPicker onChange={setSection} section={section} />
       <AddButtons isReady={text.trim() !== ""} onAdd={add} onCancel={() => void cancel()} />
     </VStack>
