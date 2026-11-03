@@ -8,7 +8,7 @@ use std::fs;
 use crate::files::document::hash;
 use crate::files::frontmatter;
 use crate::files::inbox::categories::remove_category;
-use crate::files::inbox::{self, Inbox, NoteFile};
+use crate::files::inbox::{self, AgentNote, Inbox, NoteFile};
 
 use super::super::place::Place;
 use super::super::{ActionError, STALE};
@@ -164,6 +164,53 @@ pub(super) fn moving(
     let text = fs::read_to_string(&path)?;
     fs::write(path, frontmatter::remove(&text, "category"))?;
     Ok(read(place))
+}
+
+/// The agents' notes of `text` in `category`, in the order the inbox shows them.
+fn agents_in(place: &Place, text: &str, category: Option<&str>) -> Vec<AgentNote> {
+    inbox::agent_notes(text, &files_on_disk(place))
+        .into_iter()
+        .filter(|note| note.category.as_deref() == category)
+        .collect()
+}
+
+/// `text` with the lines of `notes` written, each at the end of its category, and the id the note
+/// `id` of `text` has there: the lines added before it shift it. `None` for an `id` that names no
+/// note of `text`.
+fn with_lines(text: &str, notes: &[AgentNote], id: &str) -> Option<(String, String)> {
+    let mut at = inbox::parse(text).iter().position(|note| note.id == id)?;
+    let mut text = text.to_string();
+    for note in notes {
+        let (edited, line) = inbox::add(&text, note.category.as_deref(), &note.line);
+        let added = inbox::parse(&edited)
+            .iter()
+            .position(|note| note.line == line as usize)?;
+        if added <= at {
+            at += 1;
+        }
+        text = edited;
+    }
+    Some((text, format!("note-{}", at + 1)))
+}
+
+/// `text` with the lines written of the agents' notes of `category` the inbox shows before the
+/// place `index`, and the id the note `id` has there: `index` then counts the notes of `INBOX.md` as
+/// it counted the notes shown, the agents' notes after the category's lines. With `leaving`, `id`
+/// leaves the category first, and `index` counts the notes without it.
+pub(super) fn shown_before(
+    place: &Place,
+    text: &str,
+    id: &str,
+    (category, index): (Option<&str>, usize),
+    leaving: bool,
+) -> Option<(String, String)> {
+    let lines = inbox::parse(text)
+        .iter()
+        .filter(|note| note.category.as_deref() == category && !(leaving && note.id == id))
+        .count();
+    let mut agents = agents_in(place, text, category);
+    agents.truncate(index.saturating_sub(lines));
+    with_lines(text, &agents, id)
 }
 
 /// The note files of `specs/notes/` in the checkout, with their texts.

@@ -312,7 +312,19 @@ pub fn drop_item(
         apply(
             place,
             previous,
-            |current| inbox::drop_item(current, id, at, to),
+            |current| {
+                let (text, id) = match to {
+                    inbox::Drop::Note { category, index } => agent::shown_before(
+                        place,
+                        current,
+                        id,
+                        (category.as_deref(), *index),
+                        at.is_none(),
+                    )?,
+                    inbox::Drop::Under { .. } => (current.to_string(), id.to_string()),
+                };
+                inbox::drop_item(&text, &id, at, to)
+            },
             &format!("no note {id}, no such item or place, or code under it"),
         )
     };
@@ -377,7 +389,10 @@ pub fn place(
         apply(
             place,
             previous,
-            |current| inbox::place(current, id, category, index),
+            |current| {
+                let (text, id) = agent::shown_before(place, current, id, (category, index), true)?;
+                inbox::place(&text, &id, category, index)
+            },
             &format!("no note {id}"),
         )
     })
