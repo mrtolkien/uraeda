@@ -718,3 +718,41 @@ fn sets_vim_keys_keeping_the_hand_edits() {
     );
     assert_eq!(settings::read(dir.path()).unwrap(), saved);
 }
+
+// Breaks: a save of the commands that collapses the human's list on one line, losing its comments.
+#[test]
+fn sets_vim_commands_keeping_a_hand_formatted_list() {
+    let dir = tempdir();
+    let before = "[keyboard]\nvim_commands = [\n  # escape\n  \"imap jj <Esc>\",\n  \
+                  \"nmap Q dd\", # quick delete\n  # the end\n]\n";
+    write(dir.path(), before);
+
+    let lines = ["imap jj <Esc>", "nmap Q dd", "nmap Y y$"].map(str::to_owned);
+    settings::set_vim_commands(dir.path(), &lines).unwrap();
+
+    assert_eq!(
+        text(dir.path()),
+        "[keyboard]\nvim_commands = [\n  # escape\n  \"imap jj <Esc>\",\n  \
+         \"nmap Q dd\", # quick delete\n  \"nmap Y y$\",\n  # the end\n]\n"
+    );
+    let read = settings::read(dir.path()).unwrap();
+    assert_eq!(read.keyboard.vim_commands, Some(lines.to_vec()));
+
+    // A list without its last comma, a line dropped and one added: still the lines, still a list.
+    write(
+        dir.path(),
+        "[keyboard]\nvim_commands = [\n  \"imap jj <Esc>\" # escape\n]\n",
+    );
+    let lines = ["nmap Y y$".to_owned()];
+    settings::set_vim_commands(dir.path(), &lines).unwrap();
+    assert_eq!(
+        settings::read(dir.path()).unwrap().keyboard.vim_commands,
+        Some(lines.to_vec()),
+        "{}",
+        text(dir.path())
+    );
+    assert_eq!(
+        text(dir.path()),
+        "[keyboard]\nvim_commands = [\n  \"nmap Y y$\"\n]\n"
+    );
+}
