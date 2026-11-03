@@ -653,7 +653,7 @@ The break each test catches:
   `nix develop -c vp test packages/binding/contracts.test.ts packages/server/src/__tests__/settings.test.ts packages/server/src/__tests__/settings-fate.test.ts packages/server/src/__tests__/main.test.ts`
 - Expected: PASS
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
