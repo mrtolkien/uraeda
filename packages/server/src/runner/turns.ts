@@ -14,6 +14,7 @@ import {
   type SessionContext,
   TERMINATE_AFTER_MS,
   type TurnEnd,
+  WAKEUP_GRACE_MS,
   WATCHDOG_MS,
 } from "./session-state.ts";
 
@@ -215,9 +216,14 @@ export class Turns {
     }
     clearTimeout(live.idle);
     const proc = live.proc;
-    // A background task still runs: the idle timer starts once it ends.
+    // A background task still runs: the idle timer starts once it ends. A pending wakeup holds the
+    // process open until a minute after it, for the agent to go on by itself.
     if (proc && !proc.closing && proc.background.size === 0) {
-      live.idle = setTimeout(() => this.#context.processes.close(proc), IDLE_CLOSE_MS);
+      const wakeup = (proc.wakeup ?? 0) + WAKEUP_GRACE_MS - Date.now();
+      live.idle = setTimeout(
+        () => this.#context.processes.close(proc),
+        Math.max(IDLE_CLOSE_MS, wakeup),
+      );
     }
     this.wake(live);
   }

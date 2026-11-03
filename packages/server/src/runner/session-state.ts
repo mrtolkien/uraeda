@@ -10,6 +10,8 @@ import type { Turns } from "./turns.ts";
 
 /** A session's process is closed after this long without a turn, and resumed by its next message. */
 export const IDLE_CLOSE_MS = 15 * 60_000;
+/** An idle process with a pending wakeup closes this long after it, unless the agent went on. */
+export const WAKEUP_GRACE_MS = 60_000;
 /** A turn without any output for this long is stopped, and fails. */
 export const WATCHDOG_MS = 30 * 60_000;
 /**
@@ -120,6 +122,11 @@ export type Proc = {
   line?: string;
   /** SIGTERM, then SIGKILL, for a closed process that does not exit. */
   terminate: Array<Timer>;
+  /**
+   * The latest one-shot wakeup the agent set, in epoch milliseconds: the idle timer waits a minute
+   * past it, for the agent to go on by itself.
+   */
+  wakeup?: number;
 };
 
 /** The turn running on a session's process. */

@@ -65,6 +65,14 @@ export class Transcript {
       case "tokens":
         this.#context.processes.tokens(live, proc, event.total);
         return;
+      case "wakeup": {
+        // A wakeup in the past is dropped: no output follows it.
+        const at = Date.parse(event.at);
+        if (at > Date.now()) {
+          proc.wakeup = Math.max(proc.wakeup ?? 0, at);
+        }
+        return;
+      }
       case "accepted":
       case "cancelled": {
         const sent = live.messages.get(event.id);
