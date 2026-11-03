@@ -367,6 +367,8 @@ export const uraedaTheme = defineTheme({
     "--size-palette-height": "min(600px, 76dvh)",
     "--size-palette-list": "360px",
     "--size-viewport-height": "100dvh",
+    // A buffer's text at least, on a short window: 12 lines, the page scrolling past it.
+    "--size-buffer-min": "12lh",
     // An image in a document or a message: a tall screenshot stays shorter than the window.
     "--size-image-max-height": "80dvh",
     // A chat message's image, a preview the human opens full screen.

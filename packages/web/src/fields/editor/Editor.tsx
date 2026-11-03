@@ -90,7 +90,7 @@ export type EditorProps = {
 /**
  * A one-line field, a several-lines one, the composer's, which grows upward from `rows` to
  * `maxRows` lines, unframed in the composer's box, or a page's, a buffer's, as tall as the room its
- * page stretches it to, growing past it with its text.
+ * page gives it, scrolling inside.
  */
 export type Variant = "line" | "lines" | "composer" | "page";
 

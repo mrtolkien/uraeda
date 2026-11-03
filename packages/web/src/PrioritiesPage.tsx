@@ -1,4 +1,4 @@
-import { useBufferKey } from "./buffer/useBufferKey.ts";
+import { useBufferKey, withText } from "./buffer/useBufferKey.ts";
 import { AnnouncedBanner } from "./layout/AnnouncedBanner.tsx";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Icon } from "@astryxdesign/core/Icon";
@@ -86,11 +86,11 @@ function LayoutSwitch({
 export function PrioritiesPage({ isFocused, select }: { isFocused?: boolean; select?: string }) {
   const fate = useFateClient();
   const priorities = usePriorities();
+  useBufferKey(withText("specs/PRIORITIES.md", priorities));
   const openForm = useOpenAddForm();
   // The ＋ next to Priorities, from the keyboard: the form in its default place. Not named in the
   // status line.
   useKeys([{ icon: "plus", keys: "a", label: "add", run: () => openForm("proposal") }]);
-  useBufferKey("specs/PRIORITIES.md");
   // Its data is read before it draws: the position comes back at once.
   useRestoreScroll(true);
   const [message, setMessage] = useState<string>();

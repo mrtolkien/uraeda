@@ -272,7 +272,12 @@ function Reader({
   const index = shown === undefined ? -1 : paths.indexOf(shown);
   const file =
     open?.kind === "decision" ? `specs/decisions/${open.name}.md` : "specs/CONSTITUTION.md";
-  useBufferKey(file);
+  // A missing constitution, or a decision no longer there, offers no buffer.
+  const exists =
+    open?.kind === "decision"
+      ? ledger.decisions.some((one) => one.name === open.name)
+      : Boolean(ledger.constitution);
+  useBufferKey(exists ? file : undefined);
   if (isSplit) {
     return (
       <Pane title={file}>

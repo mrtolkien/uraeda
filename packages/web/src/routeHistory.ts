@@ -68,6 +68,14 @@ export function setLeaveGuard(next: LeaveGuard | undefined) {
   guard = next;
 }
 
+/**
+ * Whether the UI opened the current page from one of its own, so Back stays in the app: a page it
+ * was loaded on, typed or linked from another site, has none of its own before it.
+ */
+export function openedInApp(): boolean {
+  return entry().opener !== undefined;
+}
+
 /** Merges values into the current history entry's state. */
 export function updateEntry(values: Entry) {
   window.history.replaceState({ ...entry(), ...values }, "");
