@@ -124,6 +124,7 @@ fn targets_complete_started_features_and_changes_by_slug() {
     assert!(values(complete(&repo, &["check", "c"])).contains(&"cli-core".to_string()));
 }
 
+/// US2 more 1: the categories include those of agents' notes, as the inbox reader shows them.
 #[test]
 fn category_completes_the_inbox_categories() {
     let repo = TestRepo::new();
@@ -132,11 +133,15 @@ fn category_completes_the_inbox_categories() {
         "specs/INBOX.md",
         "# Inbox\n\n## UI\n\n- A note.\n\n## Prompts\n\n- Another.\n",
     );
+    repo.write(
+        "specs/notes/feature-state-the-record.md",
+        "---\nagent: true\nabout: feature-state\ncategory: Deferred fixes\n---\n\n# The record\n",
+    );
     repo.commit("chore: inbox");
 
     assert_eq!(
         complete(&repo, &["note", "a note", "--category", ""]),
-        ["UI", "Prompts"]
+        ["UI", "Prompts", "Deferred fixes"]
     );
 }
 
