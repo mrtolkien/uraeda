@@ -5,9 +5,10 @@
 // committing: the Commit page lists it. `:q`, or `b` outside the text, goes back, the Leave guard
 // asking first while the text is not saved. On the phone, the bottom bar holds Back and Save.
 import { VStack } from "@astryxdesign/core/VStack";
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { Editor } from "../fields/editor/Editor.tsx";
+import { RestoreNotice } from "../fields/RestoreNotice.tsx";
 import { useVimOn } from "../fields/editor/vim/load.ts";
 import { useKeys } from "../keys/registry.tsx";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
@@ -17,29 +18,32 @@ import { Page } from "../layout/Page.tsx";
 import { TopBarSlot } from "../layout/TopBarSlot.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { ConflictBanner } from "../pane/ProposalEditor.tsx";
+import { openedInApp } from "../routeHistory.ts";
 import { navigateHere, useRestoreScroll } from "../routes.tsx";
 import { useStatusBranch } from "../shell/status/branch.ts";
 import { Bufferline } from "./Bufferline.tsx";
 import { useBuffer } from "./useBuffer.ts";
 
+/** The sentence of the restore notice when the file changed since the text was typed. */
+const BUFFER_CHANGED = "The file changed since: saving replaces it.";
+
 const styles = stylex.create({
-  // The bufferline stays in view as the page scrolls the text, under the phone's tabs there.
-  line: {
-    backgroundColor: colorVars["--color-background-surface"],
-    paddingBlock: spacingVars["--spacing-1"],
-    position: "sticky",
-    top: 0,
-    zIndex: 1,
-  },
-  lineNarrow: { top: spacingVars["--spacing-12"] },
-  // The page's room under the bufferline, which the editor fills, growing past it with its text.
-  room: { display: "flex", flexDirection: "column", flexGrow: 1 },
-  text: { display: "grid", flexGrow: 1 },
+  line: { paddingBlock: spacingVars["--spacing-1"] },
+  // The page's room under the bufferline and its banners, the window's height, which the text
+  // fills, its own scroller, as Vim's screen motions measure: the page does not scroll with it.
+  room: { display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0 },
+  // On a short window, the text keeps a few lines, the page scrolling past it.
+  text: { flexBasis: 0, flexGrow: 1, minHeight: "var(--size-buffer-min)", position: "relative" },
+  // Out of the flow, so the text's length never grows the room: the editor fills it.
+  fill: { display: "grid", gridTemplateRows: "minmax(0, 1fr)", inset: 0, position: "absolute" },
 });
 
-/** Back to the page the buffer was opened from; home when the buffer was the first page opened. */
+/**
+ * Back to the page of the app the buffer was opened from; home when it was opened first, typed or
+ * linked from another site, where the browser's Back would leave the app.
+ */
 function back() {
-  if (window.history.length > 1) {
+  if (openedInApp()) {
     window.history.back();
   } else {
     navigateHere("/");
@@ -77,24 +81,33 @@ export function BufferPage({ path }: { path: string }) {
   return (
     <Page isFull kind="window">
       <VStack gap={2} xstyle={styles.room}>
-        <div {...stylex.props(styles.line, narrow && styles.lineNarrow)}>
+        <div {...stylex.props(styles.line)}>
           <Bufferline isDirty={buffer.field.dirty} path={path} />
         </div>
+        {buffer.field.restored && (
+          <RestoreNotice
+            changed={BUFFER_CHANGED}
+            onDiscard={buffer.field.discard}
+            restored={buffer.field.restored}
+          />
+        )}
         <ConflictBanner editor={buffer} />
         {buffer.refused !== undefined && (
           <AnnouncedBanner collapsible={false} status="error" title={buffer.refused} />
         )}
         <div {...stylex.props(styles.text)}>
-          <Editor
-            isAutoFocused
-            isReadFirst
-            label={path}
-            onChange={buffer.field.change}
-            onQuit={quit}
-            onSubmit={buffer.saveText}
-            value={buffer.field.text}
-            variant="page"
-          />
+          <div {...stylex.props(styles.fill)}>
+            <Editor
+              isAutoFocused
+              isReadFirst
+              label={path}
+              onChange={buffer.field.change}
+              onQuit={quit}
+              onSubmit={buffer.saveText}
+              value={buffer.field.text}
+              variant="page"
+            />
+          </div>
         </div>
       </VStack>
       {narrow && (

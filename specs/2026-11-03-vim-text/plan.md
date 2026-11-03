@@ -936,8 +936,11 @@ The break it catches: the frontmatter dropped; a save on the wrong branch; a com
 
 - [x] **Step 3: Implement the page after `mockups/buffer.html`**: the bufferline "specs ›
       PRIORITIES.md" with its unsaved dot, the conflict banner of the proposal editor, the agent's
-      refusal in it, the cursor at the start in normal mode with Vim on, the Leave guard on `:q` or
-      `b` with unsaved text, and on the phone Back and Save in the bottom bar.
+      refusal in it, the restore notice over unsaved text kept from before, the cursor at the start
+      in normal mode with Vim on, the Leave guard on `:q` or `b` with unsaved text, and on the phone
+      Back and Save in the bottom bar. The text scrolls in its own scroller, the room under the
+      bufferline, so Vim's screen motions work (R19); `:q` and Back go home when the buffer was the
+      first page the app opened; `Space b` is declared only for a file that exists.
 
 - [x] **Step 4: Run the task's validation, and review it in the sandbox**
 

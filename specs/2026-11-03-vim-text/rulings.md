@@ -224,3 +224,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the New page's dialog starts the feature itself since before this feature, so the
   benchmark stopped at its Start and never printed its table.
 - **Where**: task 11
+
+## R19: A buffer's text scrolls in its own scroller, and a missing list file offers no buffer
+
+- **Decision**: the buffer's editor is as tall as the room under the bufferline and its banners,
+  above the status line, and scrolls inside; the page does not scroll with the text. `Space b` is
+  declared only for a file that exists: the priorities' and the inbox's files read as empty when
+  missing, so a file whose hash is the empty text's offers no buffer, an empty one included.
+- **Rationale**: Vim's screen motions (Ctrl+D, Ctrl+F, `H`, `L`, `zz`, Ctrl+E) measure the editor's
+  scroller; with the window scrolling a field as tall as its text, they moved by the whole text. The
+  list pages' data has no field saying the file exists, and an empty file has nothing to edit that
+  the list page's Add does not.
+- **Alternatives considered**: the window scrolling, with the motions reimplemented over it; an
+  `exists` field on the priorities and the inbox, through the core and the binding.
+- **If wrong**: the `page` variant in `fields/editor/theme.ts` grows with its text again, and the
+  motions need the window's scroll; or `withText` in `buffer/useBufferKey.ts` reads a new field.
+- **Where**: task 10 (review fix pass)

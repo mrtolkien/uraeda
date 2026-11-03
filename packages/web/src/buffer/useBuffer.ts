@@ -35,7 +35,7 @@ async function readBuffer(fate: Fate, path: string) {
 /**
  * The buffer of the file at `path`: `file`, undefined when it is no Markdown file of `specs/`; its
  * `field`; `saveText`, from `:w` or Ctrl+Enter, nothing when unchanged; `flush`, which resolves once
- * the saves sent are done; `conflict`, a save refused over a changed file, and `reload`, which
+ * the saves sent are done; `conflict`, a save refused over a changed file, while its text is unsaved, and `reload`, which
  * shows the new version; and `refused`, any other refusal, like an agent's work on the feature.
  */
 export function useBuffer(path: string) {
@@ -47,6 +47,10 @@ export function useBuffer(path: string) {
   const text = file?.text ?? "";
   const field = useTextField(`${path}#buffer`, text);
   const [conflict, setConflict] = useState<string>();
+  // The conflict goes with the text it kept: undone back to the file's, there is nothing to copy.
+  if (conflict !== undefined && !field.dirty) {
+    setConflict(undefined);
+  }
   const save = useSave<string>(async (value, previous) => {
     // The file as the page shows it, the text typed over: a conflict over it is a stale hash, read
     // again and written over once. A text another writer changed keeps the conflict.
@@ -99,7 +103,6 @@ export function useBuffer(path: string) {
     refused: state.kind === "error" && !conflict ? state.message : undefined,
     reload,
     saveText,
-    saving: save.state.kind === "saving",
   };
 }
 
