@@ -49,12 +49,18 @@ function Kind({ expand, found }: { expand: () => Promise<void>; found: Found }) 
       <HStack align="center" gap={2} wrap="wrap">
         <Badge label="Merged" variant="neutral" />
         {pullRequest && (
-          <Link hasUnderline href={pullRequest.url}>
-            {`#${pullRequest.number}`}
+          <Link
+            aria-label={`Pull request #${pullRequest.number}`}
+            hasUnderline
+            href={pullRequest.url}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {`#${pullRequest.number} ↗`}
           </Link>
         )}
         <Link hasUnderline href={here(`/f/${proposal.merged.folder}`)}>
-          Open the feature
+          {proposal.merged.change ? "Open the change" : "Open the feature"}
         </Link>
       </HStack>
     );
