@@ -1,14 +1,16 @@
 // The Commit page's writes: a pane's Commit, with its message as the human left it, and its
-// Discard, which asks first. The messages the human rewrote are kept by branch until their commit
-// lands: a hook's refusal of the pane's commit, which comes after the call returns, leaves the
-// message as typed.
-import { useEffect, useState } from "react";
+// Discard, which asks first. A message the human rewrote is unsaved text, in the store by branch
+// (`messageField`), until its commit lands: a hook's refusal of the pane's commit, which comes after
+// the call returns, leaves the message as typed.
+import { useLayoutEffect, useState } from "react";
 import { useFateClient } from "react-fate";
 import { rereadChanges } from "../data.ts";
 import { refusal } from "../errors.ts";
 import { discardChanges, useConfirm } from "../fields/Confirm.tsx";
+import { dropUnsaved, readUnsaved, unsavedKey } from "../fields/unsaved.ts";
 import { plural } from "../labels.ts";
 import { closeUndoToasts } from "../layout/useUndoToast.ts";
+import { useRepositoryPath } from "../routes.tsx";
 import { PrioritiesView } from "../views.ts";
 import { refusedAt, useClearRefusal, useWriteQueue, writeHere } from "../writes/useWriteQueue.ts";
 import type { CommitPane } from "./BranchPane.tsx";
@@ -16,15 +18,21 @@ import type { CommitPane } from "./BranchPane.tsx";
 /** The page's last write: done, or refused, in the pane of `branch`. */
 export type Outcome = { branch?: string; ok: boolean; text: string };
 
-/** A message the human typed, and the pane's lines as its commit was made, while it lands. */
-type Typed = { landing?: string; message: string };
+/** The unsaved store's field of a branch's message, which `useTextField` takes. */
+export const messageField = (branch: string) => `commit:${branch}#message`;
+
+/**
+ * The pane's lines as each typed message's commit was made, by its store key, while it lands: kept
+ * outside the page, so a commit that lands once the page is left still takes its message with it.
+ */
+const landing = new Map<string, { branch: string; lines: string }>();
 
 /** A pane's lines as one key: they change once its commit lands. */
 const linesOf = (pane: CommitPane) => pane.lines.join("\n");
 
 /** Whether a commit landed: the pane's lines changed since, or it went, and no refusal of its own. */
-const landed = (kept: Typed, pane: CommitPane | undefined, refused: boolean) =>
-  kept.landing !== undefined && !refused && (pane === undefined || kept.landing !== linesOf(pane));
+const landed = (lines: string, pane: CommitPane | undefined, refused: boolean) =>
+  !refused && (pane === undefined || lines !== linesOf(pane));
 
 /**
  * Each pane's message, and its Commit and Discard, for the page at `here`, showing `panes`, once
@@ -38,41 +46,31 @@ export function usePaneWrites(
   const confirm = useConfirm();
   const clearRefusal = useClearRefusal(here);
   const writes = useWriteQueue();
+  const repo = useRepositoryPath();
+  const keyOf = (branch: string) => unsavedKey(repo, messageField(branch));
   // A pane's own refusal: a feature's write names its folder, the default branch's none.
   const refusedIn = (branch: string) => {
     const folder = panes?.find((pane) => pane.branch === branch)?.folder ?? undefined;
     return writes.some((write) => refusedAt(write, here) && write.folder === folder);
   };
   const [outcome, setOutcome] = useState<Outcome>();
-  // The messages the human rewrote, by branch, the others following the core's suggestion, with
-  // the pane's lines when it was committed: the commit lands behind the page, and once they change,
-  // its message goes, for good. A refusal of the pane's commit keeps it, for the next try.
-  const [typed, setTyped] = useState<Readonly<Record<string, Typed>>>({});
-  const gone = Object.keys(typed).filter(
-    (branch) =>
-      panes !== undefined &&
-      landed(
-        typed[branch]!,
-        panes.find((pane) => pane.branch === branch),
-        refusedIn(branch),
-      ),
-  );
-  const goneKey = gone.join("\n");
-  useEffect(() => {
-    if (goneKey !== "") {
-      const drop = new Set(goneKey.split("\n"));
-      setTyped((now) => Object.fromEntries(Object.entries(now).filter(([b]) => !drop.has(b))));
+  // A typed message whose commit landed goes, for good, before the page draws it again; a refusal
+  // of the pane's commit keeps it, for the next try. Panes not read yet decide nothing.
+  useLayoutEffect(() => {
+    if (panes === undefined) {
+      return;
     }
-  }, [goneKey]);
-  const messageOf = (pane: CommitPane) => {
-    const kept = typed[pane.branch];
-    return kept && !gone.includes(pane.branch) ? kept.message : pane.message;
-  };
-  /** Sets a pane's message, or with `undefined`, takes the suggestion back. */
-  const setMessage = (branch: string, message: string | undefined) =>
-    setTyped(({ [branch]: _, ...others }) =>
-      message === undefined ? others : { ...others, [branch]: { message } },
-    );
+    for (const [key, { branch, lines }] of landing) {
+      const pane = panes.find((one) => one.branch === branch);
+      // Another repository's message waits for its own page.
+      if (key === keyOf(branch) && landed(lines, pane, refusedIn(branch))) {
+        landing.delete(key);
+        dropUnsaved(key);
+      }
+    }
+  });
+  /** The message a pane commits: the one typed, kept in the store, or the core's suggestion. */
+  const messageOf = (pane: CommitPane) => readUnsaved(keyOf(pane.branch))?.text ?? pane.message;
 
   /** Runs a pane's write: the counts everywhere read again, and a refusal shows in its pane. */
   const run = async (pane: CommitPane, call: () => Promise<{ error?: unknown }>, done: string) => {
@@ -85,9 +83,9 @@ export function usePaneWrites(
     }
     // An Undo would write a change back over the committed file.
     closeUndoToasts();
-    setTyped(({ [pane.branch]: kept, ...others }) =>
-      kept ? { ...others, [pane.branch]: { ...kept, landing: linesOf(pane) } } : others,
-    );
+    if (readUnsaved(keyOf(pane.branch))) {
+      landing.set(keyOf(pane.branch), { branch: pane.branch, lines: linesOf(pane) });
+    }
     setOutcome({ ok: true, text: done });
     return true;
   };
@@ -117,5 +115,5 @@ export function usePaneWrites(
       );
     }
   };
-  return { commit, discard, messageOf, outcome, setMessage };
+  return { commit, discard, outcome };
 }

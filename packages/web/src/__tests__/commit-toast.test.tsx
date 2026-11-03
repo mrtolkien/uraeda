@@ -5,10 +5,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
-import { navigateHere } from "../routes.tsx";
+import { navigate, navigateHere } from "../routes.tsx";
 import { RETURNED } from "../session/ReturnedMessages.tsx";
 import { REFUSED_ID } from "../writes/useWriteQueue.ts";
 import {
+  atRepo,
   click,
   fakeAgent,
   fieldText,
@@ -142,4 +143,25 @@ test("a landed typed message goes, and the same change again reads the suggestio
   await refreshUntil(() =>
     expect(fieldText(screen.getByRole("textbox", { name: "Message" }))).toBe(suggested),
   );
+});
+
+// Break: a pane's rewritten message kept in the page's state only, lost with no question as the
+// page is left, and gone when it comes back.
+test("a rewritten message is unsaved text: leaving asks, and it comes back with its notice", async () => {
+  const repo = fixtureRepo();
+  const priorities = join(repo, "specs/PRIORITIES.md");
+  writeFileSync(priorities, `${readFileSync(priorities, "utf8")}\n- Global undo\n`);
+  await renderPage("/commit", repo);
+  await type(await screen.findByRole("textbox", { name: "Message" }), "chore: plan the undo");
+  expect(screen.getByText("Unsaved message")).toBeTruthy();
+
+  await act(async () => navigate(atRepo("/inbox")));
+  const dialog = await screen.findByRole("dialog", { name: "Leave page?" });
+  await click(within(dialog).getByRole("button", { name: /^Leave page\b/ }));
+  await waitFor(() => expect(window.location.pathname).toBe(atRepo("/inbox")));
+  await act(async () => navigate(atRepo("/commit")));
+
+  const field = await screen.findByRole("textbox", { name: "Message" });
+  expect(fieldText(field)).toBe("chore: plan the undo");
+  expect(screen.getByText(/^Unsaved text restored from/)).toBeTruthy();
 });

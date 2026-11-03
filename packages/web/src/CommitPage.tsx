@@ -67,7 +67,7 @@ export function CommitPage() {
   const narrow = isNarrow(useWidthClass());
   const here = { href: useLocalPath() };
   const refused = useRefusal(here) !== undefined;
-  const { commit, discard, messageOf, outcome, setMessage } = usePaneWrites(here, panes);
+  const { commit, discard, outcome } = usePaneWrites(here, panes);
   useRestoreScroll(true);
   const all = panes ?? [];
   const at = Math.min(picked, Math.max(all.length - 1, 0));
@@ -122,10 +122,8 @@ export function CommitPage() {
             <BranchPane
               hasButtons={!barred}
               isPicked={all.length > 1 && index === at}
-              message={messageOf(pane)}
               onCommit={() => commit(pane)}
               onDiscard={() => void discard(pane)}
-              onMessage={(message) => setMessage(pane.branch, message)}
               pane={pane}
             />
           </VStack>
