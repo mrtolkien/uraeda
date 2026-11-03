@@ -105,7 +105,7 @@ pub fn set_continue(dir: String, key: String, on: bool) -> napi::Result<AsyncTas
         "gate" => ContinueKey::Gate,
         _ => {
             return Err(napi::Error::from_reason(format!(
-                "{key} is not a kind of continue: restart, limit, or gate."
+                "refused: {key} is not a kind of continue: restart, limit, or gate."
             )));
         }
     };
