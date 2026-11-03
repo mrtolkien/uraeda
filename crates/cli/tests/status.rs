@@ -137,7 +137,7 @@ fn merged_features_are_done() {
         .collect();
     assert_eq!(rows.len(), 2, "{}", output.stdout);
     assert!(
-        rows[0].ends_with("-      merged: branch left, run ura clean"),
+        rows[0].ends_with("-      merged: branch and line in the priorities left, run ura clean"),
         "{rows:?}"
     );
     assert!(rows[1].ends_with("-      merged"), "{rows:?}");
@@ -362,6 +362,28 @@ fn a_merged_feature_with_leftovers_says_so() {
     assert_eq!(json["version"], 1);
     assert_eq!(feature["left-worktree"], ".worktrees/2026-10-11-web-ui");
     assert_eq!(feature["left-branch"], WEB_UI);
+}
+
+/// US1.2, US1.3: a merged feature with only its line left in the priorities hints `ura clean`,
+/// as one with its branch left does.
+#[test]
+fn a_merged_feature_with_only_its_line_left() {
+    let repo = repo_with_priorities();
+    let folder = "2026-10-10-cli-core";
+    feature(&repo, folder, &[("proposal.md", proposal())]);
+    finish_and_merge(&repo, folder);
+    repo.delete_branch(folder);
+
+    let output = ura(&repo, &["status"]);
+
+    assert_eq!(
+        output.row(folder),
+        [
+            folder,
+            "-",
+            "merged: line in the priorities left, run ura clean"
+        ]
+    );
 }
 
 #[test]

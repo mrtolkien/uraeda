@@ -302,3 +302,23 @@ fn leftovers_are_reminded_on_stderr() {
     );
     assert_eq!(output.code, 0);
 }
+
+/// US1.3: a merged feature with only its line left in the priorities is reminded on stderr too.
+#[test]
+fn a_line_left_is_reminded_on_stderr() {
+    let repo = TestRepo::new();
+    specs(
+        &repo,
+        "# Priorities\n\n## Now\n\n- [Web UI](2026-10-11-web-ui/proposal.md)\n\n## Next\n",
+    );
+    feature(&repo, "2026-10-11-web-ui", &[("proposal.md", proposal())]);
+    finish_and_merge(&repo, "2026-10-11-web-ui");
+    repo.delete_branch("2026-10-11-web-ui");
+
+    let output = ura(&repo, &["next"]);
+
+    assert_eq!(
+        output.stderr,
+        "ura: 2026-10-11-web-ui is merged, with its line in the priorities left: run ura clean\n"
+    );
+}

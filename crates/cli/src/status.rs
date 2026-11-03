@@ -3,6 +3,7 @@
 use std::process::ExitCode;
 
 use serde::Serialize;
+use uraeda_core::actions::clean::merged_line;
 use uraeda_core::api::{SetupItem, read_setup};
 use uraeda_core::files::priorities::Section;
 use uraeda_core::steps::{PullRequest, StepName, WaitsOn};
@@ -72,18 +73,33 @@ pub fn name(feature: &Feature) -> String {
     folder_branch(feature.kind, &feature.folder)
 }
 
-/// What a merged feature left behind, in words: `worktree and branch`, `worktree`, or `branch`.
-pub fn leftovers(feature: &Feature) -> Option<&'static str> {
-    match (&feature.left_worktree, &feature.left_branch) {
-        (Some(_), Some(_)) => Some("worktree and branch"),
-        (Some(_), None) => Some("worktree"),
-        (None, Some(_)) => Some("branch"),
-        (None, None) => None,
+/// What a merged feature left behind for `ura clean`, in words: its worktree, its branch, and its
+/// line in the default branch's priorities, as `worktree, branch, and line in the priorities`.
+pub fn leftovers(workspace: &Workspace, feature: &Feature) -> Option<String> {
+    let line = feature.step.name == StepName::Done && merged_line(workspace, feature).is_some();
+    let left: Vec<&str> = [
+        (feature.left_worktree.is_some(), "worktree"),
+        (feature.left_branch.is_some(), "branch"),
+        (line, "line in the priorities"),
+    ]
+    .into_iter()
+    .filter_map(|(left, what)| left.then_some(what))
+    .collect();
+    match left.as_slice() {
+        [] => None,
+        [one] => Some((*one).to_string()),
+        [first, second] => Some(format!("{first} and {second}")),
+        [rest @ .., last] => Some(format!("{}, and {last}", rest.join(", "))),
     }
 }
 
-/// What a feature waits for, in words.
-pub fn describe(feature: &Feature) -> String {
+/// What a feature of `workspace` waits for, in words.
+pub fn describe(workspace: &Workspace, feature: &Feature) -> String {
+    described(feature, leftovers(workspace, feature).as_deref())
+}
+
+/// What a feature waits for, in words, `left` what it left once merged (see [`leftovers`]).
+fn described(feature: &Feature, left: Option<&str>) -> String {
     if !feature.problems.is_empty() {
         return "invalid files: run ura check".to_string();
     }
@@ -111,7 +127,7 @@ pub fn describe(feature: &Feature) -> String {
             (false, _) => "finish: write the record",
         }
         .to_string(),
-        (StepName::Done, _) => match leftovers(feature) {
+        (StepName::Done, _) => match left {
             Some(left) => format!("merged: {left} left, run ura clean"),
             None => "merged".to_string(),
         },
@@ -129,7 +145,7 @@ pub fn describe(feature: &Feature) -> String {
     text
 }
 
-fn feature_row(feature: &Feature) -> Row {
+fn feature_row(workspace: &Workspace, feature: &Feature) -> Row {
     let waits = match (
         feature.problems.is_empty(),
         feature.step.name,
@@ -143,7 +159,7 @@ fn feature_row(feature: &Feature) -> Row {
     Row {
         name: name(feature),
         waits,
-        step: describe(feature),
+        step: describe(workspace, feature),
     }
 }
 
@@ -203,7 +219,7 @@ fn render(workspace: &Workspace) -> String {
                     .as_deref()
                     .and_then(|f| workspace.feature(f))
                 {
-                    Some(feature) => feature_row(feature),
+                    Some(feature) => feature_row(workspace, feature),
                     None => proposal_row(proposal),
                 }
             })
@@ -222,7 +238,7 @@ fn render(workspace: &Workspace) -> String {
         .features
         .iter()
         .filter(|feature| !listed.contains(&feature.folder.as_str()) && !done(feature))
-        .map(feature_row)
+        .map(|feature| feature_row(workspace, feature))
         .collect();
     if !others.is_empty() {
         groups.push(("Not in priorities".to_string(), others));
@@ -231,7 +247,7 @@ fn render(workspace: &Workspace) -> String {
         .features
         .iter()
         .filter(|feature| !listed.contains(&feature.folder.as_str()) && done(feature))
-        .map(feature_row)
+        .map(|feature| feature_row(workspace, feature))
         .collect();
     if !merged.is_empty() {
         groups.push(("Done".to_string(), merged));
@@ -278,7 +294,7 @@ mod tests {
     use uraeda_core::steps::PullRequest;
     use uraeda_core::workspace::{Feature, Kind};
 
-    use super::describe;
+    use super::described;
 
     const RECORD: &str = "---\nkind: feature\nfinished: 2026-10-11\n---\n\n# Record: X\n";
 
@@ -293,7 +309,7 @@ mod tests {
 
             feature.with_pull_request(pull_request);
 
-            assert_eq!(describe(&feature), expected);
+            assert_eq!(described(&feature, None), expected);
         }
     }
 }
