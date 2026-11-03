@@ -289,6 +289,7 @@ export function createSessions(options: {
   const publish = sessionPublisher(options.cache, options.binding, options.hosts);
   const sessions: Sessions = new Sessions({
     ...options,
+    hosted: (root) => options.hosts()?.byPath(root) !== undefined,
     onChange: (change) => {
       publish(change);
       // A session's status changes with its turn's state, which what needs the human reads.

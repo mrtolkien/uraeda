@@ -541,10 +541,11 @@ test.each([
   { continues: false, name: "a run cut 7 hours before does not", wait: 7 * HOUR },
   { continues: false, name: "a run whose transcript is gone does not", transcript: false },
   { continues: false, name: "a run of an older session does not", older: true },
+  { continues: false, name: "a run of a repository no longer listed does not", unlisted: true },
   { continues: false, name: "a queued turn that never started does not", queued: true },
 ])(
   "US2.1: a run the restart cut continues at the next start, with its line: $name",
-  async ({ continues: continued, older, queued, transcript, uninstalled, wait }) => {
+  async ({ continues: continued, older, queued, transcript, uninstalled, unlisted, wait }) => {
     const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
       runs: () => ON,
     });
@@ -559,7 +560,10 @@ test.each([
       await sessions.send(repo, session.id, { text: "Then the tasks" });
     }
     adapter.installed = uninstalled !== true;
-    const next = await restart(sessions, { runs: () => ON });
+    const next = await restart(sessions, {
+      hosted: (root) => unlisted !== true || root !== session.repo,
+      runs: () => ON,
+    });
     const cut = latest(cache, session.id);
     expect(cut).toMatchObject({ reason: "Stopped: the server stopped while it ran." });
     if (transcript === false) {
