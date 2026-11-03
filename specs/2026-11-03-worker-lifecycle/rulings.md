@@ -91,10 +91,12 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 
 - **Decision**: "The agent keeps stopping." offers Dismiss when its turn failed or stopped. A run
   capped after stopping before its gate ended `done`, which a dismiss does not take, as for a run
-  halted today. The human's message clears it.
+  halted today. The human's message clears it. The capped run's card, in the sidebar and on home,
+  offers no Dismiss: the feature's status it reads does not carry its turn's state, as for a halted
+  run, so the banner on the session's page is where it is dismissed.
 - **Rationale**: the cache dismisses failed or stopped turns only, and halted runs already work this
   way.
-- **Where**: task 10.
+- **Where**: task 10, `packages/web/src/useDismiss.ts`; the card, review of task 10.
 
 ## R10: The ledger test takes the run lifecycle decision
 
