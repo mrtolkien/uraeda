@@ -153,9 +153,13 @@ export const migrations: Array<Migration> = [
 
 /**
  * Runs `body` in a write transaction, taken before it reads: another process cannot write between
- * its reads and its writes.
+ * its reads and its writes. Inside another transaction, `body` joins it: the outer one commits or
+ * rolls back the whole.
  */
 export function transaction<T>(db: DatabaseSync, body: () => T): T {
+  if (db.isTransaction) {
+    return body();
+  }
   db.exec("BEGIN IMMEDIATE");
   try {
     const result = body();

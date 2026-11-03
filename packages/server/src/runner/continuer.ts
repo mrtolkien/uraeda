@@ -7,8 +7,7 @@ import { continuedLine } from "./message.ts";
 import { deliverContinue } from "./send.ts";
 import {
   type Live,
-  REFUSALS,
-  refused,
+  ofDropped,
   SERVER_STOPPED,
   type SessionContext,
   TAKEN_BACK,
@@ -148,11 +147,13 @@ export class Continuer {
   /**
    * Claims the turn's continue, and queues its turn in the same step, so the run never reads as
    * stopped between them (R14). Nothing happens when another server or timer claimed it, or a
-   * cancel cleared it. A refusal, the agent gone or the feature dropped, leaves the run asking.
+   * cancel cleared it. A refusal leaves the run asking: the agent gone, the feature moved or
+   * dropped, or the run taken over another way. So does a failure of the cache, which writes the
+   * turn and the count as one, or not at all.
    */
   fire(turn: number): void {
     this.#timers.delete(turn);
-    const { adapter, cache, changed, live: sessions } = this.#context;
+    const { cache, changed, live: sessions } = this.#context;
     const claimed = cache.takeContinue(turn);
     const reason = claimed?.continueReason;
     const row = claimed && cache.session(claimed.sessionId);
@@ -160,28 +161,49 @@ export class Continuer {
       return;
     }
     const live = sessions.of(row);
+    const refuse = () => {
+      cache.cancelContinue(claimed.id, { stopped: false });
+      changed(live, claimed.id, claimed.state);
+    };
     try {
-      if (!this.#available()) {
-        throw refused(REFUSALS.unavailable(adapter.name));
+      if (this.#refused(claimed, row, live)) {
+        refuse();
+        return;
       }
-      // The human took the run over another way: a new session, Allow, an archive, or its agent.
-      if (!this.#current(row) || this.#latest(row.id)?.id !== claimed.id) {
-        throw refused(REFUSALS.working);
+      let queued: number;
+      try {
+        queued = deliverContinue(this.#context, live, {
+          line: continuedLine(reason),
+          reason,
+          stopped: claimed,
+        });
+      } catch (error) {
+        process.stderr.write(`The continue of turn ${claimed.id} failed: ${String(error)}\n`);
+        refuse();
+        return;
       }
-      const line = continuedLine(reason);
-      const queued = deliverContinue(this.#context, live, { line, reason, stopped: claimed });
-      cache.addContinue(row.id);
       this.#claimed.set(queued, claimed.id);
       const commit = this.#decidedAt.get(row.id);
       if (commit !== undefined) {
         this.#commits.set(row.id, commit);
       }
-    } catch {
-      cache.cancelContinue(claimed.id, { stopped: false });
-      changed(live, claimed.id, claimed.state);
     } finally {
       sessions.prune(live);
     }
+  }
+
+  /**
+   * Whether the claimed continue is refused: the agent unavailable, a move or a drop holding the
+   * session, or the human took the run over another way, a new session, Allow, or an archive.
+   */
+  #refused(claimed: TurnRow, row: SessionRow, live: Live): boolean {
+    return (
+      !this.#available() ||
+      this.#context.live.moving(live) ||
+      ofDropped(row) ||
+      !this.#current(row) ||
+      this.#latest(row.id)?.id !== claimed.id
+    );
   }
 
   /**

@@ -338,6 +338,27 @@ test("a wait whose time comes while the server stops is kept for the next start"
   expect(adapter.sent).toHaveLength(1);
 });
 
+/** A continue the cache fails to count leaves nothing half done: no turn, and the run asks. */
+test("a continue that fails as it is queued leaves no turn behind", async () => {
+  const setup = await testSessions(fixtureRepo(), { runs: () => ON });
+  const { adapter, cache } = setup;
+  const time = clock("2026-11-03T14:01:00Z");
+  const { session, turn } = await sendLimited(setup, AGENT);
+  vi.spyOn(cache, "addContinue").mockImplementationOnce(() => {
+    throw new Error("database is locked");
+  });
+  vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+  time.to(AFTER_RESET);
+  await flush();
+  expect(cache.turns(session)).toHaveLength(1);
+  expect(cache.turn(turn)).toMatchObject({ continueAt: null, continueReason: null });
+  expect(cache.session(session)?.automaticContinues).toBe(0);
+  time.by(HOUR);
+  await flush();
+  expect(adapter.sent).toHaveLength(1);
+});
+
 /** Review focus 1: a second server on the same cache arms the same wait, which continues once. */
 test("two servers sharing the cache continue a wait once", async () => {
   const setup = await testSessions(fixtureRepo(), { runs: () => ON });
