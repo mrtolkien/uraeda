@@ -190,10 +190,7 @@ pub(crate) fn note_as_proposal(note: &str, title: &str) -> Option<String> {
     let shaped = crate::files::with_unix_newlines(note, |note| {
         // An agent's note file's frontmatter is the note's marks, which a proposal has no use for.
         let note = match crate::files::frontmatter::block(note) {
-            Ok((_, end)) => {
-                let skipped: usize = note.split_inclusive('\n').take(end).map(str::len).sum();
-                note[skipped..].trim_start_matches('\n')
-            }
+            Ok(_) => crate::files::frontmatter::body(note).trim_start_matches('\n'),
             Err(_) => note,
         };
         let (first, rest) = note.split_once('\n').unwrap_or((note, ""));

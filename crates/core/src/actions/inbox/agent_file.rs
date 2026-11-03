@@ -3,11 +3,11 @@
 
 use std::fs;
 
+use crate::target::NOTES;
+
 use super::super::place::Place;
 use super::super::{ActionError, Change, commit};
 use super::{Marks, Noted, added_subject, checked_note};
-
-const NOTES: &str = "specs/notes";
 
 /// The words of a note file's name: the slug of the note's first four words, apostrophes dropped
 /// first, so "record's" gives `records`.
@@ -26,10 +26,10 @@ fn free_path(place: &Place, marks: &Marks, text: &str) -> String {
         (None, true) => "note".to_string(),
         (None, false) => words,
     };
-    let mut path = format!("{NOTES}/{stem}.md");
+    let mut path = format!("{NOTES}{stem}.md");
     let mut count = 2;
     while place.root.join(&path).exists() {
-        path = format!("{NOTES}/{stem}-{count}.md");
+        path = format!("{NOTES}{stem}-{count}.md");
         count += 1;
     }
     path

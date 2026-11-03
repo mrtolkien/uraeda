@@ -120,7 +120,8 @@ fn by_path(
 
 /// The folder of proposal files, from the top level, on the default branch.
 pub const PROPOSALS: &str = "specs/proposals/";
-/// The folder of note files, from the top level, on the default branch.
+/// The folder of note files, from the top level: on the default branch, and, for an agent's note,
+/// on its feature's or change's branch until it merges.
 pub const NOTES: &str = "specs/notes/";
 
 /// Whether a path from the top level is under `specs/proposals/`: a proposal file, a postponed
@@ -130,7 +131,7 @@ pub fn is_proposal_file(path: &str) -> bool {
 }
 
 /// Whether a path from the top level is under `specs/notes/`: a note file, its folder, or a file of
-/// it, written on the default branch.
+/// it, written on the default branch, or, for an agent's note, on its branch.
 pub fn is_note_file(path: &str) -> bool {
     path.starts_with(NOTES)
 }

@@ -140,11 +140,10 @@ fn what_section(text: &str) -> Option<(usize, usize)> {
 /// `title` is the markdown of the note's title.
 pub fn note_subsection(note: &str, title: &str) -> Vec<String> {
     let unix = note.replace("\r\n", "\n");
-    let body = match frontmatter::block(&unix) {
-        Ok((_, end)) => unix.split('\n').skip(end).collect::<Vec<_>>().join("\n"),
-        Err(_) => unix,
-    };
-    let mut lines: Vec<String> = body.split('\n').map(String::from).collect();
+    let mut lines: Vec<String> = frontmatter::body(&unix)
+        .split('\n')
+        .map(String::from)
+        .collect();
     // The headings outside fenced code, by their index, from 0.
     let headings = |lines: &[String]| -> Vec<(usize, usize)> {
         let mut in_code = false;
