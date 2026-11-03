@@ -70,6 +70,7 @@ const REFUSED = "The agent was refused an action";
 
 /** What a run that needs attention tells, by why: one halted before a gate, by default. */
 const ATTENTION: Partial<Record<StatusReason, string>> = {
+  capped: "The agent keeps stopping",
   failed: "The run failed",
   interrupted: "The server stopped the run",
   stopped: "You stopped the run",

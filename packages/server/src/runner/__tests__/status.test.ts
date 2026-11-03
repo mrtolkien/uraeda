@@ -1,4 +1,5 @@
 import { expect, test } from "vite-plus/test";
+import type { ContinueReason } from "../events.ts";
 import { SERVER_STOPPED } from "../sessions.ts";
 import { sessionStatus } from "../status.ts";
 
@@ -8,12 +9,29 @@ const ended = (
   state: "done" | "failed" | "stopped",
   kind: "chat" | "workflow" = "workflow",
   {
+    continueAt = null,
+    continueReason = null,
     dismissedAt = null,
     reason = null,
-  }: { dismissedAt?: string | null; reason?: string | null } = {},
-) => ({ dismissedAt, endedAt: "2026-10-13T10:00", kind, reason, state });
+  }: {
+    continueAt?: number | null;
+    continueReason?: ContinueReason | null;
+    dismissedAt?: string | null;
+    reason?: string | null;
+  } = {},
+) => ({
+  continueAt,
+  continueReason,
+  dismissedAt,
+  endedAt: "2026-10-13T10:00",
+  kind,
+  reason,
+  state,
+});
 const dismissed = { dismissedAt: "2026-10-13T10:30" };
 const running = {
+  continueAt: null,
+  continueReason: null,
   dismissedAt: null,
   endedAt: null,
   kind: "workflow",
@@ -28,6 +46,39 @@ test.each<[string, Partial<Input>, ReturnType<typeof sessionStatus>]>([
     "a running turn while the step waits on the human",
     { latest: running, waitsOnHuman: true },
     { label: "Working", status: "working" },
+  ],
+  [
+    "a turn waiting to continue",
+    { latest: ended("failed", "workflow", { continueAt: 1, continueReason: "limit" }) },
+    { label: "Waiting", reason: "waiting", status: "working" },
+  ],
+  [
+    "a turn waiting to continue, with a blocked action and a step that waits on the human",
+    {
+      blocked: true,
+      latest: ended("stopped", "workflow", { continueAt: 1, continueReason: "restart" }),
+      waitsOnHuman: true,
+    },
+    { label: "Waiting", reason: "waiting", status: "working" },
+  ],
+  [
+    "a turn the cap stopped",
+    { latest: ended("failed", "workflow", { continueReason: "limit" }) },
+    { label: "Needs attention", reason: "capped", status: "attention" },
+  ],
+  [
+    "a turn the cap stopped, dismissed",
+    { latest: ended("failed", "workflow", { ...dismissed, continueReason: "limit" }) },
+    { label: "Idle", status: "idle" },
+  ],
+  [
+    "a run the cap stopped before its gate",
+    {
+      latest: ended("done", "workflow", { continueReason: "gate" }),
+      seenAt: "2026-10-13T11:00",
+      waitsOnAgent: true,
+    },
+    { label: "Needs attention", reason: "capped", status: "attention" },
   ],
   [
     "an ended turn with a blocked action",

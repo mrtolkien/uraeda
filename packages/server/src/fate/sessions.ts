@@ -126,6 +126,7 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     title: titleOf(row, feature),
     ...statusOf(row, read, feature, isLatest(ctx.sessions.cache, row)),
     archived: row.archivedAt !== null,
+    automaticContinues: row.automaticContinues,
     backgroundCommands: ctx.sessions.backgroundCommands(row.id),
     edited: ctx.sessions.cache.editedFiles(row.id),
     place: await placeOf(ctx, row, feature),

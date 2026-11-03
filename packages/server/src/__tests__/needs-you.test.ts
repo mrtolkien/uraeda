@@ -85,6 +85,7 @@ test.each<[string, Parameters<typeof needsYouReason>[0], string | undefined]>([
     { status: "needs-you", statusReason: "step", step: "pull-request" },
     "pull-request",
   ],
+  ["a waiting run", { status: "working", statusReason: "waiting", step: "plan" }, undefined],
   ["a working run", { status: "working", statusReason: null, step: "spec" }, undefined],
   ["an idle feature", { status: "idle", statusReason: null, step: "plan" }, undefined],
 ])("the reason: %s", (_, input, reason) => {

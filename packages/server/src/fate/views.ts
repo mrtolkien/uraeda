@@ -25,7 +25,7 @@ import type {
   TurnState,
   UsageLimit,
 } from "../runner/events.ts";
-import type { SessionStatus, StatusReason } from "../runner/status.ts";
+import type { SessionStatus, StatusReason, Wait } from "../runner/status.ts";
 import type { FeatureStatus } from "./feature-status.ts";
 import type { ItemLook } from "./items.ts";
 import { needsYouListDataView } from "./needs-you.ts";
@@ -138,10 +138,7 @@ export type PrioritiesRecord = Omit<Record_<Priorities>, "sections"> & {
 /** The inbox: one record, `inbox`, its triage's status sent as null when there is no triage. */
 export type InboxRecord = Omit<Record_<Inbox>, "triage"> & {
   id: string;
-  /**
-   * What `inbox.restoreImage` takes back, set only on the answer of `inbox.removeImage`, null
-   * otherwise.
-   */
+  /** What `inbox.restoreImage` takes back, only in `inbox.removeImage`'s answer: else null. */
   imageRemoved?: Record_<RemovedImage> | null;
   /** The file as it was, set only on the answer of `inbox.removeCategory`, null otherwise. */
   removed?: string | null;
@@ -177,6 +174,8 @@ export type SessionRecord = {
   /** How many blocked actions of its latest turn "Allow all" would allow: 0 without a turn. */
   allowable: number;
   archived: boolean;
+  /** Its runs' automatic continues in a row, which the cap counts. */
+  automaticContinues: number;
   /** The background commands of its running turn still running. */
   backgroundCommands: number;
   /**
@@ -199,10 +198,7 @@ export type SessionRecord = {
   status: SessionStatus;
   /** "Working", "Needs you", "Needs attention", "New reply", or "Idle". */
   statusLabel: string;
-  /**
-   * Why it needs you: a blocked action, the feature's step, or a latest turn that failed, was
-   * stopped, or ended before a human gate.
-   */
+  /** Why it needs you, or why it works with no turn running: see `StatusReason`. */
   statusReason: StatusReason | null;
   /** The turn its status follows, its latest not taken back, which Dismiss sends: null before. */
   statusTurn: string | null;
@@ -217,6 +213,8 @@ export type SessionRecord = {
    * records it seen.
    */
   unseen: boolean;
+  /** When its run continues by itself, while it waits; null otherwise. */
+  wait: Wait | null;
 };
 
 /** A turn of a session, without its items. */
@@ -399,6 +397,7 @@ export const sessionDataView = dataView<SessionRecord>("Session")({
   agent: true,
   allowable: true,
   archived: true,
+  automaticContinues: true,
   backgroundCommands: true,
   edited: true,
   folder: true,
@@ -414,6 +413,7 @@ export const sessionDataView = dataView<SessionRecord>("Session")({
   title: true,
   turns: true,
   unseen: true,
+  wait: true,
 });
 
 export const turnDataView = dataView<TurnRecord>("Turn")({

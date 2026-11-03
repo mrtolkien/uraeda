@@ -90,6 +90,7 @@ export function sessionRecord(id: string, overrides: Partial<SessionRecord> = {}
     agent: "fake",
     allowable: 0,
     archived: false,
+    automaticContinues: 0,
     backgroundCommands: 0,
     edited: [],
     folder: null,
@@ -105,6 +106,7 @@ export function sessionRecord(id: string, overrides: Partial<SessionRecord> = {}
     title: "A chat",
     turns: [],
     unseen: false,
+    wait: null,
     ...overrides,
   };
 }
