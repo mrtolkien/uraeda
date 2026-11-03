@@ -302,18 +302,18 @@ git commit -m "feat(master-pr): the inbox reads agents' note files"
   for an id naming a note file of `specs/notes/` no line links, refuses `INBOX.md` changed since
   `previous` (`INBOX.md` and the stale message, as `apply`), writes the file's line with
   `inbox::add` at the end of its category, and runs `act` on the line's `note-<n>` id and the new
-  hash; `INBOX.md` goes back as it was when `act` refuses, and a category the line made goes once
-  the line left it. Any other id runs `act` unchanged. An id naming no such file refuses
-  `no note <id>`. `acting_read` is the same for the actions read at a `&str`; `moving`, for
-  `category`, `place`, and a drop among the notes, then drops the file's `category` field from its
-  frontmatter; the commit bar counts that drop as part of the move, no change of its own, and
-  Discard restores the file from `HEAD`. `remove` deletes an agent's note's file alone, `INBOX.md`
-  unchanged, and only when the file is as `HEAD` has it: an edited or never committed file refuses
-  `<path> has uncommitted changes: the note was not removed`, writing nothing. Its commit holds the
-  deleted file, and `INBOX.md` only when the file exists. A note file made a proposal leaves its
-  frontmatter out, and its Undo writes back the file `HEAD` has, frontmatter included, as
-  [R8](rulings.md#r8-an-agents-note-made-a-proposal-leaves-its-frontmatter) says. Signatures of the
-  actions do not change.
+  hash; `INBOX.md` goes back as it was when `act` refuses, deleted when it did not exist, and a
+  category the line made goes once the line left it. Any other id runs `act` unchanged. An id naming
+  no such file refuses `no note <id>`. `acting_read` is the same for the actions read at a `&str`;
+  `moving`, for `category`, `place`, and a drop among the notes, then drops the file's `category`
+  field from its frontmatter; the commit bar counts that drop as part of the move, no change of its
+  own, and Discard restores the file from `HEAD`. `remove` deletes an agent's note's file alone,
+  `INBOX.md` unchanged, and only when the file is as `HEAD` has it: an edited or never committed
+  file refuses `<path> has uncommitted changes: the note was not removed`, writing nothing. Its
+  commit holds the deleted file, and `INBOX.md` only when the file exists. A note file made a
+  proposal leaves its frontmatter out, and its Undo writes back the file `HEAD` has, frontmatter
+  included, as [R8](rulings.md#r8-an-agents-note-made-a-proposal-leaves-its-frontmatter) says.
+  Signatures of the actions do not change.
 
 - [x] **Step 1: Write the failing tests**
 
