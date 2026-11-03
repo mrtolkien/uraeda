@@ -47,5 +47,13 @@ export function optimisticSettings({ id, keyboard, runs, server }: Values) {
       id,
       keyboard: { ...keyboard, singleKeyShortcuts: { ...keyboard.singleKeyShortcuts, saved: on } },
     }),
+    setVimCommands: (lines: Array<string>) => ({
+      id,
+      keyboard: { ...keyboard, vimCommands: { ...keyboard.vimCommands, saved: lines } },
+    }),
+    setVimMode: (on: boolean) => ({
+      id,
+      keyboard: { ...keyboard, vimMode: { ...keyboard.vimMode, saved: on } },
+    }),
   };
 }

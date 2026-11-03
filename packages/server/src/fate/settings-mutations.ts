@@ -83,4 +83,14 @@ export const settingsMutations = {
       settingsChanged(call, (dir) => call.ctx.binding.setSingleKeyShortcuts(dir, input.on)),
     type: "Settings",
   },
+  "settings.setVimCommands": {
+    resolve: ({ input, ...call }: ListResolver<{ lines: Array<string> }>) =>
+      settingsChanged(call, (dir) => call.ctx.binding.setVimCommands(dir, input.lines)),
+    type: "Settings",
+  },
+  "settings.setVimMode": {
+    resolve: ({ input, ...call }: ListResolver<{ on: boolean }>) =>
+      settingsChanged(call, (dir) => call.ctx.binding.setVimMode(dir, input.on)),
+    type: "Settings",
+  },
 };

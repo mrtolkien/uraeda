@@ -119,3 +119,15 @@ pub fn set_continue(dir: String, key: String, on: bool) -> napi::Result<AsyncTas
 pub fn set_automatic_continues(dir: String, continues: String) -> AsyncTask<Job<Settings>> {
     job(move || settings::set_automatic_continues(Path::new(&dir), &continues))
 }
+
+/// Sets whether the text fields edit with Vim's keys.
+#[napi(ts_return_type = "Promise<Settings>")]
+pub fn set_vim_mode(dir: String, on: bool) -> AsyncTask<Job<Settings>> {
+    job(move || settings::set_vim_mode(Path::new(&dir), on))
+}
+
+/// Sets the lines of Vim's commands run when Vim starts.
+#[napi(ts_return_type = "Promise<Settings>")]
+pub fn set_vim_commands(dir: String, lines: Vec<String>) -> AsyncTask<Job<Settings>> {
+    job(move || settings::set_vim_commands(Path::new(&dir), &lines))
+}

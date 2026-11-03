@@ -219,6 +219,34 @@ fn parse_keyboard(keyboard: &dyn TableLike) -> Result<KeyboardSettings, Problem>
         })?;
         settings.single_key_shortcuts = Some(on);
     }
+    if let Some((key, item)) = keyboard.get_key_value("vim_mode") {
+        let on = item.as_bool().ok_or_else(|| {
+            (
+                offset(key, item),
+                "vim_mode",
+                "Vim mode is true or false.".to_owned(),
+            )
+        })?;
+        settings.vim_mode = Some(on);
+    }
+    if let Some((key, item)) = keyboard.get_key_value("vim_commands") {
+        let lines = item
+            .as_array()
+            .and_then(|lines| {
+                lines
+                    .iter()
+                    .map(|line| line.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .ok_or_else(|| {
+                (
+                    offset(key, item),
+                    "vim_commands",
+                    "Vim commands are a list of lines, like [\"imap jj <Esc>\"].".to_owned(),
+                )
+            })?;
+        settings.vim_commands = Some(lines);
+    }
     Ok(settings)
 }
 

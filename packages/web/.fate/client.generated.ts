@@ -446,6 +446,16 @@ const mutations = {
     FateAPI['mutations']['settings.setSingleKeyShortcuts']['input'],
     FateAPI['mutations']['settings.setSingleKeyShortcuts']['output']
   >('Settings'),
+  'settings.setVimCommands': mutation<
+    Settings,
+    FateAPI['mutations']['settings.setVimCommands']['input'],
+    FateAPI['mutations']['settings.setVimCommands']['output']
+  >('Settings'),
+  'settings.setVimMode': mutation<
+    Settings,
+    FateAPI['mutations']['settings.setVimMode']['input'],
+    FateAPI['mutations']['settings.setVimMode']['output']
+  >('Settings'),
   'settled.comment': mutation<
     WorkflowFile,
     FateAPI['mutations']['settled.comment']['input'],

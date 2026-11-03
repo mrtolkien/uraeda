@@ -283,7 +283,7 @@ system `git`. The stage is `early`: UI behaviour the sandbox shows has no test.
   `packages/binding/contracts.test.ts`, `packages/server/src/settings.ts`,
   `packages/server/src/fate/settings.ts`, `packages/server/src/fate/settings-mutations.ts`,
   `packages/web/src/views.ts`, `packages/web/.fate/client.generated.ts`,
-  `packages/web/src/settings/optimistic.ts`
+  `packages/web/src/settings/optimistic.ts`, `packages/web/src/settings/SettingsView.stories.tsx`
 - Test: `crates/core/tests/settings.rs`, `packages/server/src/__tests__/settings.test.ts`,
   `packages/server/src/__tests__/settings-fate.test.ts`
 
@@ -304,7 +304,7 @@ system `git`. The stage is `early`: UI behaviour the sandbox shows has no test.
   - Web: `SettingsRecordView.keyboard.vimMode` and `.vimCommands`; `shown.setVimMode(on)` and
     `shown.setVimCommands(lines)` in `optimistic.ts`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `crates/core/tests/settings.rs`, add rows to `reads_the_keyboard_table`: `vim_mode = true` and
 `vim_commands = ["imap jj <Esc>", "nmap Y y$"]` read as written; a file without them reads `None`;
@@ -320,22 +320,22 @@ both through the mutations and reads them back.
 The break each test catches: a default of `true`; a list read from a string; a write that drops a
 comment or reorders keys; a mutation not reaching the file.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
-- Run: `nix develop -c cargo nextest run -p uraeda-core settings`
+- Run: `nix develop -c cargo nextest run -p uraeda-core --test settings`
 - Expected: FAIL, compile error `no field vim_mode` or the missing `set_vim_mode`.
 
-- [ ] **Step 3: Implement the keys, from the core to the web's view**, following
+- [x] **Step 3: Implement the keys, from the core to the web's view**, following
       `single_key_shortcuts`'s path (commit `63fc7ef5`). Rebuild the binding with
-      `vp run --filter uraeda-binding build`, and regenerate the fate client as the server's scripts
-      do.
+      `vp run --filter uraeda-binding build`, and regenerate the fate client with the web's build,
+      `vp run --filter uraeda-web build`, whose fate plugin writes it.
 
 - [ ] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(vim-text): the Vim mode and Vim commands settings"

@@ -230,6 +230,24 @@ test("single-key shortcuts are on by default, and the file's value turns them of
   ).toEqual({ inForce: false, saved: false, source: { kind: "file" } });
 });
 
+/** Vim's settings in force over `file`, without the run's values. */
+function vim(file: Settings | null) {
+  const { vimCommands, vimMode } = inForce(none, file).keyboard;
+  return { vimCommands, vimMode };
+}
+
+test("Vim is off and without commands by default, and the file's values turn it on", () => {
+  expect(vim(null)).toEqual({
+    vimCommands: { inForce: [], saved: null, source: { kind: "default" } },
+    vimMode: { inForce: false, saved: null, source: { kind: "default" } },
+  });
+  expect(vim(file)).toEqual(vim(null));
+  expect(vim({ ...file, keyboard: { vimCommands: ["imap jj <Esc>"], vimMode: true } })).toEqual({
+    vimCommands: { inForce: ["imap jj <Esc>"], saved: ["imap jj <Esc>"], source: { kind: "file" } },
+    vimMode: { inForce: true, saved: true, source: { kind: "file" } },
+  });
+});
+
 /** Opens the settings of `dir`, closed after the test. */
 async function opened(dir: string, options: GivenValues = none) {
   const settings = await ServerSettings.open({ binding, dir, options });

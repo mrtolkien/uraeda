@@ -8,10 +8,19 @@ import { RepositoryPathContext } from "../routes.tsx";
 import type { ServerActions, ServerValues } from "./ServerSettings.tsx";
 import { SettingsView } from "./SettingsView.tsx";
 
+/** Vim's settings at their defaults: off, without commands. */
+const vimDefaults: Pick<ServerValues["keyboard"], "vimCommands" | "vimMode"> = {
+  vimCommands: { inForce: [], saved: null, source: { kind: "default" } },
+  vimMode: { inForce: false, saved: null, source: { kind: "default" } },
+};
+
 /** The settings file of a machine reached through its tailnet name, nothing overridden. */
 const server: ServerValues = {
   file: "~/.config/uraeda/config.toml",
-  keyboard: { singleKeyShortcuts: { inForce: true, saved: null, source: { kind: "default" } } },
+  keyboard: {
+    singleKeyShortcuts: { inForce: true, saved: null, source: { kind: "default" } },
+    ...vimDefaults,
+  },
   problem: null,
   runs: {
     automaticContinues: { inForce: 3, saved: null, source: { kind: "default" } },
@@ -124,7 +133,10 @@ export const KeyboardOff: Story = {
     category: "keyboard",
     server: {
       ...server,
-      keyboard: { singleKeyShortcuts: { inForce: false, saved: false, source: { kind: "file" } } },
+      keyboard: {
+        singleKeyShortcuts: { inForce: false, saved: false, source: { kind: "file" } },
+        ...vimDefaults,
+      },
     },
   },
 };

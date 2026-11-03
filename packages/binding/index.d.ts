@@ -537,6 +537,12 @@ export declare function setSingleKeyShortcuts(dir: string, on: boolean): Promise
  */
 export declare function settingsFile(dir: string): string
 
+/** Sets the lines of Vim's commands run when Vim starts. */
+export declare function setVimCommands(dir: string, lines: Array<string>): Promise<Settings>
+
+/** Sets whether the text fields edit with Vim's keys. */
+export declare function setVimMode(dir: string, on: boolean): Promise<Settings>
+
 /**
  * Starts a change typed as a text, with its images, in its own worktree, as `startText` does with
  * the kind `"change"`.
@@ -1275,6 +1281,10 @@ export interface ItemSettingsView {
 export interface KeyboardSettings {
   /** Whether the keys of one printable character act: `true` when unset. */
   singleKeyShortcuts?: boolean
+  /** Whether the text fields edit with Vim's keys: `false` when unset. */
+  vimMode?: boolean
+  /** The lines of Vim's commands run when Vim starts, like `imap jj <Esc>`: none when unset. */
+  vimCommands?: Array<string>
 }
 
 /**

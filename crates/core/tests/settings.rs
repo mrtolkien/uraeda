@@ -567,22 +567,57 @@ fn reports_a_failed_write() {
 }
 
 /// A file's text, or none, and what its keyboard table reads as, or the problem.
-type KeyboardRow<'a> = (Option<&'a str>, Result<Option<bool>, String>);
+type KeyboardRow<'a> = (Option<&'a str>, Result<KeyboardSettings, String>);
+
+/// The keyboard table holding only `single_key_shortcuts`.
+fn shortcuts(on: Option<bool>) -> KeyboardSettings {
+    KeyboardSettings {
+        single_key_shortcuts: on,
+        ..KeyboardSettings::default()
+    }
+}
+
+const VIM_COMMANDS_PROBLEM: &str =
+    "vim_commands: Vim commands are a list of lines, like [\"imap jj <Esc>\"].";
 
 #[test]
 fn reads_the_keyboard_table() {
     let dir = tempdir();
-    let rows: [KeyboardRow; 5] = [
-        (None, Ok(None)),
-        (Some("[agents]\nmodel = \"x\"\n"), Ok(None)),
-        (Some("[keyboard]\n"), Ok(None)),
+    let rows: [KeyboardRow; 9] = [
+        // Vim stays off and without commands until the file says otherwise.
+        (None, Ok(shortcuts(None))),
+        (Some("[agents]\nmodel = \"x\"\n"), Ok(shortcuts(None))),
+        (Some("[keyboard]\n"), Ok(shortcuts(None))),
         (
             Some("[keyboard]\nsingle_key_shortcuts = false\n"),
-            Ok(Some(false)),
+            Ok(shortcuts(Some(false))),
         ),
         (
             Some("[keyboard]\nsingle_key_shortcuts = 1\n"),
             Err("line 2, single_key_shortcuts: Single-key shortcuts is true or false.".into()),
+        ),
+        (
+            Some(
+                "[keyboard]\nvim_mode = true\nvim_commands = [\"imap jj <Esc>\", \"nmap Y y$\"]\n",
+            ),
+            Ok(KeyboardSettings {
+                vim_mode: Some(true),
+                vim_commands: Some(vec!["imap jj <Esc>".into(), "nmap Y y$".into()]),
+                ..KeyboardSettings::default()
+            }),
+        ),
+        (
+            Some("[keyboard]\nvim_mode = \"yes\"\n"),
+            Err("line 2, vim_mode: Vim mode is true or false.".into()),
+        ),
+        // One line given as a string, not a list, is refused rather than read as a list.
+        (
+            Some("[keyboard]\nvim_commands = \"imap jj <Esc>\"\n"),
+            Err(format!("line 2, {VIM_COMMANDS_PROBLEM}")),
+        ),
+        (
+            Some("[keyboard]\n\nvim_commands = [1]\n"),
+            Err(format!("line 3, {VIM_COMMANDS_PROBLEM}")),
         ),
     ];
     for (contents, expected) in rows {
@@ -594,10 +629,8 @@ fn reads_the_keyboard_table() {
         let read = settings::read(dir.path());
 
         let expected = expected
-            .map(|single_key_shortcuts| Settings {
-                keyboard: KeyboardSettings {
-                    single_key_shortcuts,
-                },
+            .map(|keyboard| Settings {
+                keyboard,
                 ..Settings::default()
             })
             .map_err(|problem| unreadable(dir.path(), &problem));
@@ -658,4 +691,30 @@ fn refuses_a_keyboard_write_to_a_broken_file() {
         assert_eq!(change, Err(expected), "for {before:?}");
         assert_eq!(text(dir.path()), before);
     }
+}
+
+#[test]
+fn sets_vim_keys_keeping_the_hand_edits() {
+    let dir = tempdir();
+    let before =
+        "# mine\n[keyboard]\nsingle_key_shortcuts = false # mouse only\n\n[server]\nport = 4400\n";
+    write(dir.path(), before);
+
+    settings::set_vim_mode(dir.path(), true).unwrap();
+    let saved = settings::set_vim_commands(dir.path(), &["imap jj <Esc>".to_owned()]).unwrap();
+
+    assert_eq!(
+        saved.keyboard,
+        KeyboardSettings {
+            single_key_shortcuts: Some(false),
+            vim_mode: Some(true),
+            vim_commands: Some(vec!["imap jj <Esc>".into()]),
+        }
+    );
+    assert_eq!(
+        text(dir.path()),
+        "# mine\n[keyboard]\nsingle_key_shortcuts = false # mouse only\nvim_mode = true\n\
+         vim_commands = [\"imap jj <Esc>\"]\n\n[server]\nport = 4400\n"
+    );
+    assert_eq!(settings::read(dir.path()).unwrap(), saved);
 }
