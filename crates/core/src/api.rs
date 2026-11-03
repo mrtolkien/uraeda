@@ -48,7 +48,7 @@ mod start;
 mod warm;
 
 pub use answers::*;
-pub use buffer::{BufferView, read_buffer, save_buffer};
+pub use buffer::{BufferView, buffer_folder, read_buffer, save_buffer};
 pub use category_edits::*;
 use checks::checked;
 pub use checks::fix_links;
