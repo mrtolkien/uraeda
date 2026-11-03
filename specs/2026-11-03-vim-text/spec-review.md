@@ -1,23 +1,15 @@
 ---
 verdict: changes-requested
-commit: 0fca081
+commit: 93a87e9
 ---
 
 # Review: Spec, Vim in text edit mode
 
-## C1: Lines 86–87, under "US2: Vim's keys, behind a switch (P1)"
+## C1: Lines 39–41, under "Your review"
 
-> You turn Vim keys on in the settings' Keyboard section, and every field takes Vim's keys, starting
-> in insert mode. Escape goes to normal mode; a second Escape does what Escape did before.
+> - **C2** (the buffer takes the whole page): done. The buffer shows only its text and the status
+>   line, with no sidebar, title, pane, or button. See
+>   [open a file as a buffer](#us5-open-a-file-as-a-buffer-p2).
 
-The status line looks a bit weird, it should look close to LazyVim's default conf. But I see the
-mockup is very basic. Navigation can be just "NAV".
-
-Also call the setting "Vim mode"
-
-## C2: Lines 156–157, under "US5: Open a file as a buffer (P2)"
-
-> On any page showing one file, `Space b` opens the whole file as it is on disk, frontmatter
-> included, in the editor. You edit it, Vim on or off, and save with Ctrl+Enter, `:w`, or Save.
-
-In that case, the buffer should take _the whole page_. Remove all unnecessary UI.
+No no. That’s a bit too extreme. I want it to take the full _center column_ and keep the sidebar and
+maybe even a title/breadcrumbs at the top like bufferline does.
