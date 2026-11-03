@@ -240,7 +240,7 @@ branch, there is nothing to do.
      version, then repair the branch's links again in the next step. When the branch's side holds
      more than link repairs, it is no repair: stop, as for any conflict needing a choice.
    - **In a file the build generates**, like a binding's typings: take either side, then regenerate
-     it with the build, and commit what it writes. Never merge it by hand.
+     it with the build, stage what it writes, and continue the rebase. Never merge it by hand.
    - **In `PRIORITIES.md` or `INBOX.md`**: a branch started before branches stopped writing them
      still has its own edit: take the default branch's version. The branch never writes either.
    - **In a decision or the constitution**: stop, and start a new round of questions.
@@ -353,10 +353,10 @@ replaces the folder with its record, and marks the pull request ready.
 ## Pull request
 
 The pull request is opened as a draft after the final review, and marked ready by the
-[finish](finish.md) step, whose last commit also removes the feature's proposal from
-`PRIORITIES.md`. It is the feature's last human gate: it merges the record, the decisions, and the
-code at once. Its body is written when it is marked ready: an opening block, then the record's text,
-then one screenshot per new view, as [the finish step](finish.md#mark-the-pull-request-ready) says.
+[finish](finish.md) step, whose last commit replaces the folder with its record. It is the feature's
+last human gate: it merges the record, the decisions, and the code at once. Its body is written when
+it is marked ready: an opening block, then the record's text, then one screenshot per new view, as
+[the finish step](finish.md#mark-the-pull-request-ready) says.
 
 If you cannot open a pull request, push the branch, and put the body in the last commit's message.
 When the human talks with you in the session, say the same in one or two sentences, with the pull
