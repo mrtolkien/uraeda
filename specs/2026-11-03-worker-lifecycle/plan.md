@@ -1233,10 +1233,13 @@ git commit -m "feat(worker-lifecycle): show waiting runs, the cap, and the Runs 
 **Files:**
 
 - Start from: `packages/web/src/RunLifecycle.stories.tsx#Home` and `#ContinueAllPreview`
-- Create: `packages/server/src/fate/continue-all.ts`
+- Create: `packages/server/src/fate/continue-all.ts`, and `packages/web/src/home/ContinueAll.tsx`,
+  the button and the preview's styles
 - Modify:
   - `packages/server/src/fate/mutations.ts`, which registers it
-  - `packages/web/src/home/Core.tsx` and `HomeHub.tsx`
+  - `packages/server/src/runner/status.ts`, with `continuedByAll`, and `fate/sources.ts`, which
+    exports `workspace`
+  - `packages/web/src/home/Core.tsx` and `HomeHub.tsx`, and `web/src/wait.ts`, with `waitTime`
   - `docs/web-ui.md`
 - Test:
   - `packages/server/src/__tests__/continue-all.test.ts`
@@ -1247,57 +1250,60 @@ git commit -m "feat(worker-lifecycle): show waiting runs, the cap, and the Runs 
 - Consumes: task 6's `continuable`, `FeatureStatus.wait`, and `waitLabel`.
 - Produces: the repository mutation `feature.continueAll`, with input `{}`. It answers the
   `Workspace` record.
-  - It sends each feature of the repository whose `FeatureStatus` is `continuable` the step's
-    recommended message, with `recommendedMessage`, through `ctx.sessions.send` to its latest
-    session. That is the message the step's start sends.
-  - It skips the features at a gate, blocked, or working.
+  - It sends each feature of the repository that `continuedByAll` picks, its `FeatureStatus`
+    `continuable` and its step waiting on the agent, the step's recommended message, with
+    `recommendedMessage`, through `ctx.sessions.send` to its latest session, `fresh` off. That is
+    the message the step's start sends (ruling R19).
+  - It skips the features at a gate, a run that failed there too, blocked, or working.
   - A feature refused, for example while another session works, is skipped. The others go on.
 
 The views:
 
-- **Needs you's pane** has `Continue all` in its border when a row is `continuable`.
+- **Needs you's pane** has `Continue all` in its border when `continuedByAll` picks a row.
 - **While the button is under the pointer or focused**:
   - the rows it continues get `pickedStyles.picked`;
-  - every other row of home is dimmed to an opacity of 0.4;
+  - every other card of home is dimmed to an opacity of 0.4, and the widgets under the Overview line
+    with them;
   - both fade in 150 ms, at once with reduced motion.
 - **In progress**: a waiting feature's detail is its task, then
   `waiting for the usage limit, until {time}` for a limit.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 "US5: Continue all sends each stopped run its step's message, and none to a gate":
 
 - `2026-10-12-cli-tuis` has a failed turn, `Not logged in · Please run /login`;
-- `2026-10-11-web-ui` waits on the human;
+- `2026-10-11-web-ui` waits on the human, its run failed the same way (R19);
 - after `feature.continueAll`, `adapter.sent` holds one message, the plan step's
-  `/uraeda Continue the feature`, sent to the first feature's session.
+  `/uraeda Continue the feature`, sent to the first feature's session, as its second turn.
 
-"Continue all's preview tints the runs it continues and dims the rest": render home's core with one
-continuable and one gate feature, then hover `Continue all`. The continuable row carries the picked
-style, and the gate's row the dimmed one.
+"Continue all's preview tints the runs it continues and dims the rest": render home with one
+continuable and one gate feature, both runs failed, then hover `Continue all`. The continuable row
+carries the picked style, and the gate's row the dimmed one.
 
 The break each test catches:
 
-- The server test: a rule that sends to every Needs you row, so the gate gets a message.
-- The web test: a preview that picks rows by a rule of its own, not `continuable`.
+- The server test: a send in a new session, as `fresh` by default does at `plan`. A rule that sends
+  to every Needs you row cannot reach the gate, whose step has no message (R19).
+- The web test: a preview that picks rows by a rule of its own, not `continuedByAll`.
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run:
   `nix develop -c vp test packages/server/src/__tests__/continue-all.test.ts packages/web/src/__tests__/continue-all.test.tsx`
 - Expected: FAIL. `feature.continueAll` is not a mutation.
 
-- [ ] **Step 3: Implement the mutation and the views**
+- [x] **Step 3: Implement the mutation and the views**
 
-- [ ] **Step 4: Run the tests to check they pass, then review home in the sandbox,** in both themes,
+- [x] **Step 4: Run the tests to check they pass, then review home in the sandbox,** in both themes,
       at a phone's and a desktop's width.
 
-- [ ] **Step 5: Run the task's validation**
+- [x] **Step 5: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/server/src/ packages/web/src/ docs/web-ui.md

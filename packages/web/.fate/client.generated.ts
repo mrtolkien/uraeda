@@ -66,6 +66,11 @@ const mutations = {
     FateAPI['mutations']['defaultRound.submit']['input'],
     FateAPI['mutations']['defaultRound.submit']['output']
   >('WorkflowFile'),
+  'feature.continueAll': mutation<
+    Workspace,
+    FateAPI['mutations']['feature.continueAll']['input'],
+    FateAPI['mutations']['feature.continueAll']['output']
+  >('Workspace'),
   'feature.drop': mutation<
     Dropped,
     FateAPI['mutations']['feature.drop']['input'],

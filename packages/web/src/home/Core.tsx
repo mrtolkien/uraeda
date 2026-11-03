@@ -2,17 +2,21 @@
 // what needs the human, what is in progress, and the sessions without a workflow, or at work on
 // what left the flight, when one runs.
 // Each is a pane of the sidebar's own cards; `coreParts` gives each its node and its height, for
-// the layout.
+// the layout. Needs you has Continue all in its border while a run there asks to go on; while it is
+// under the pointer or focused, the cards it continues are tinted and every other card is dimmed.
 import type { Icon } from "@astryxdesign/core/Icon";
 import { focusVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactNode } from "react";
+import { continuedByAll } from "uraeda-server/status";
 import { waiting } from "../labels.ts";
 import { Empty } from "../layout/Empty.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { pickedStyles } from "../layout/picked.ts";
 import { byStatus, type Feature, isSessionCard, type Row, rowOf } from "../sidebar/cards.ts";
 import { FeatureCard, SessionCard } from "../sidebar/Cards.tsx";
+import { waitTime } from "../wait.ts";
+import { ContinueAll, previewStyles } from "./ContinueAll.tsx";
 
 const styles = stylex.create({
   // The card's own row draws no ring: the card does, around the whole card, its task list too, not
@@ -32,12 +36,24 @@ const EMPTY = 1.5;
 type CoreCard = { detail?: string | undefined; key: string; node: ReactNode };
 
 /**
- * A pane of cards: `cards` each with its detail line if it has one, or `empty` text. The card whose
- * key is `picked` is drawn picked.
+ * How the cards are drawn: the one whose key is `picked` picked; while Continue all's preview is
+ * on, the ones in `continued` picked and the others dimmed instead.
  */
+type Look = { continued: ReadonlySet<string>; isPreviewing: boolean; picked: string | undefined };
+
+/** A card's style, as `look` draws it. */
+function lookOf(key: string, { continued, isPreviewing, picked }: Look) {
+  if (isPreviewing) {
+    return continued.has(key) ? pickedStyles.picked : previewStyles.dimmed;
+  }
+  return key === picked && pickedStyles.picked;
+}
+
+/** A pane of cards: `cards` each with its detail line if it has one, or `empty` text. */
 function part(
   key: string,
   pane: {
+    actions?: ReactNode;
     count: number;
     icon: ComponentProps<typeof Icon>["icon"];
     title: string;
@@ -45,7 +61,7 @@ function part(
   },
   cards: Array<CoreCard>,
   empty: string,
-  picked: string | undefined,
+  look: Look,
 ): CorePart {
   const height = FRAME + (cards.length === 0 ? EMPTY : cards.length * CARD);
   return {
@@ -63,7 +79,8 @@ function part(
               key={card.key}
               // A card, framed as a list's row: the keyboard's ring around the whole card, its task list too;
               // picked, a list's selected row's tint, so home has one selection, in a pane or a list.
-              {...stylex.props(pickedStyles.ringWithin, card.key === picked && pickedStyles.picked)}
+              // Into Continue all's preview and out of it, it fades.
+              {...stylex.props(pickedStyles.ringWithin, previewStyles.row, lookOf(card.key, look))}
             >
               <div {...stylex.props(styles.ringless)}>{card.node}</div>
             </div>
@@ -80,24 +97,44 @@ const session = (row: Row): CoreCard => ({
   node: <SessionCard pathname="" row={row} />,
 });
 
+/** A feature's detail in progress: its task, and when a usage limit holds it, until when. */
+function progressDetail(f: Feature): string | undefined {
+  const { task } = f.step;
+  const { wait } = f.status;
+  if (wait?.reason !== "limit") {
+    return task ?? undefined;
+  }
+  const until = `the usage limit, until ${waitTime(wait)}`;
+  return task ? `${task} · waiting for ${until}` : `Waiting for ${until}`;
+}
+
+/** The keys of the features Continue all continues, by the server's own rule. */
+export const continuedKeys = (human: Array<Feature>): ReadonlySet<string> =>
+  new Set(human.filter(continuedByAll).map((f) => `f:${f.folder}`));
+
 /**
  * The core's panes in their reading order: the problems, when there are any, what needs the human,
  * what is in progress, the sessions at work among them, and the other sessions without a workflow,
- * when there are any. The card whose key is `picked` is drawn picked.
+ * when there are any. The card whose key is `picked` is drawn picked. `preview` is Continue all's:
+ * whether it is on, and what turns it on and off.
  */
 export function coreParts({
   agents,
   human,
   invalid,
   picked,
+  preview,
   rows,
 }: {
   agents: Array<Feature>;
   human: Array<Feature>;
   invalid: Array<Feature>;
   picked?: string | undefined;
+  preview?: { isOn: boolean; onChange: (isOn: boolean) => void };
   rows: Array<Row>;
 }): Array<CorePart> {
+  const continued = continuedKeys(human);
+  const look: Look = { continued, isPreviewing: preview?.isOn ?? false, picked };
   const feature = (f: Feature, detail?: string): CoreCard => ({
     detail,
     key: `f:${f.folder}`,
@@ -116,10 +153,7 @@ export function coreParts({
   // A session at work is in progress, after the features; the others wait in Sessions.
   const working = all.filter((row) => row.status === "working");
   const sessions = all.filter((row) => row.status !== "working");
-  const progress = [
-    ...agents.map((f) => feature(f, f.step.task ?? undefined)),
-    ...working.map(session),
-  ];
+  const progress = [...agents.map((f) => feature(f, progressDetail(f))), ...working.map(session)];
   return [
     ...(invalid.length === 0
       ? []
@@ -129,22 +163,30 @@ export function coreParts({
             { count: invalid.length, icon: "warning", title: "Problems", tone: "problem" },
             invalid.map((f) => feature(f, f.problems[0]?.message)),
             "",
-            picked,
+            look,
           ),
         ]),
     part(
       "needs-you",
-      { count: human.length, icon: "uraeda:hourglass", title: "Needs you", tone: "attention" },
+      {
+        ...(continued.size === 0 || preview === undefined
+          ? {}
+          : { actions: <ContinueAll onPreview={preview.onChange} /> }),
+        count: human.length,
+        icon: "uraeda:hourglass",
+        title: "Needs you",
+        tone: "attention",
+      },
       human.map((f) => feature(f, waiting(f).line)),
       "Nothing waits on you.",
-      picked,
+      look,
     ),
     part(
       "in-progress",
       { count: progress.length, icon: "uraeda:activity", title: "In progress" },
       progress,
       "Nothing in progress.",
-      picked,
+      look,
     ),
     // Only while a session runs, as the sidebar's: an empty pane has nothing to tell.
     ...(sessions.length === 0
@@ -155,7 +197,7 @@ export function coreParts({
             { count: sessions.length, icon: "uraeda:bot", title: "Sessions" },
             sessions.map(session),
             "",
-            picked,
+            look,
           ),
         ]),
   ];

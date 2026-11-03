@@ -124,7 +124,7 @@ async function found<T>(
   return (await Promise.all(ids.map(read))).flatMap((record) => record ?? []);
 }
 
-async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
+export async function workspace(ctx: RepoContext): Promise<WorkspaceRecord> {
   const read = await ctx.binding.readWorkspace(ctx.repo);
   const root = await checkoutDir(ctx);
   const looks = itemLooks(ctx);

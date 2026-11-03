@@ -127,6 +127,12 @@ time it goes on, and its session says so above the composer: a message you send 
 Stop ends the wait. Past the continues in a row set under Runs, without a commit or a message from
 you, the run reads "The agent keeps stopping." and asks for you.
 
+On Home, Needs you has "Continue all" in its border while a run there failed, was stopped, or ended
+early, at a step where the agent works. It sends each such run its step's message, in its own
+session, as continuing the step does, and leaves the features waiting for you at a gate alone. Under
+the pointer or focused, it tints the runs it continues and dims every other row. A run waiting for a
+usage limit's reset reads in In progress, with the time it goes on.
+
 Claude Code runs in `auto` permission mode, with your own settings, and with the server's copy of
 the skill as a plugin: see the [agents](../specs/decisions/agents.md) decision.
 
