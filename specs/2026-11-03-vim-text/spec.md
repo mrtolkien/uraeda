@@ -1,6 +1,6 @@
 ---
-status: changes-requested
-revision: 1
+status: awaiting-human
+revision: 2
 clarifications: 1
 risk-tier: medium
 plan-review: false
@@ -8,23 +8,20 @@ plan-review: false
 
 # Spec: Vim in text edit mode
 
-> [!NOTE]
+> [!IMPORTANT]
 >
-> Changes requested on 2026-11-03: 2 comments in spec-review.md.
+> Spec to review, about 10 minutes.
 >
 > - You approve one editor, built on CodeMirror, for every text field: Markdown highlighted, long
->   lines wrapped, Vim's keys behind a switch, the mode in the status line, and a buffer for any
->   file.
-> - A new decision, Text editing, and a change to UI components: text fields leave Astryx for good,
->   Vim on or off. Your note asked for highlighting without Vim, which only the editor gives.
-> - The cost of that note: CodeMirror loads with every page, about 176 KB compressed, where the
->   round assumed it only with Vim on.
-> - Two fields stay as they are, reading "every field" narrowly: the password, for password
->   managers, and a picker's filter, which is part of Astryx's palette.
-> - Fields that ignore Escape today, like a comment, now leave on it, as the keyboard guide says.
-> - The buffer's save also commits, so a hand edit never rides into the next inbox action's commit.
-> - Risk tier medium: no plan review. 25 test files type into today's fields and move to one typing
->   helper, their assertions kept.
+>   lines wrapped, Vim mode behind a switch, the mode in the status line, and a buffer for any file.
+> - Since your review, the status line takes the shape of LazyVim's: the mode in its coloured block
+>   with lualine's names and NAV, then the file, the hints, the counts, and the cursor's place.
+> - That shape is the status line's for everyone: with Vim mode off, the same line without its mode.
+> - The buffer now takes the whole window: only the text and the status line. `:w` saves, `:q` goes
+>   back, and the phone's bottom bar holds Save and Back.
+> - The setting is "Vim mode", `vim_mode` in the settings file. Each mode keeps the icon you asked
+>   for in the round, though LazyVim draws none.
+> - Unchanged: the new Text editing decision, the change to UI components, and every other story.
 
 The [proposal](proposal.md) asks for Vim's keys in every text field of the web UI, as many as
 possible, in the browser and instant, with the mode in the status line, and a shortcut opening any
@@ -33,6 +30,15 @@ answers, comments, notes, rows, and messages to agents. The [discovery](discover
 complete engine, CodeMirror's, which works only inside a CodeMirror editor. Your
 [answers](clarifications-01.md) chose it for every field, with Markdown highlighting even without
 Vim, so every field becomes that editor.
+
+## Your review
+
+- **C1** (a status line like LazyVim's, NAV, the setting's name): done. The status line takes
+  lualine's sections and Catppuccin's colours, NAV names the page's keys, and the setting is "Vim
+  mode". See [the mode in the status line](#us3-the-mode-in-the-status-line-p2).
+- **C2** (the buffer takes the whole page): done. The buffer shows only its text and the status
+  line, with no sidebar, title, pane, or button. See
+  [open a file as a buffer](#us5-open-a-file-as-a-buffer-p2).
 
 ## Decisions
 
@@ -83,10 +89,10 @@ More scenarios:
 
 ### US2: Vim's keys, behind a switch (P1)
 
-You turn Vim keys on in the settings' Keyboard section, and every field takes Vim's keys, starting
+You turn Vim mode on in the settings' Keyboard section, and every field takes Vim's keys, starting
 in insert mode. Escape goes to normal mode; a second Escape does what Escape did before.
 
-[Vim on: the modes, a field, and the setting](mockups/vim.html)
+[Vim mode: a field, and the setting](mockups/vim.html)
 
 Key scenarios:
 
@@ -109,28 +115,29 @@ More scenarios:
    have no Vim and the engine is not loaded.
 4. **Given** the search of the `?` key map, a dialog, **When** you press Escape in normal mode,
    **Then** the key map closes, as today.
-5. **Given** Vim is turned off in the settings, **When** a field already has the focus, **Then** it
-   loses Vim at once, keeping its text.
 
 ### US3: The mode in the status line (P2)
 
-With Vim on, the status line opens with the mode, its full name, an icon, and its colour, so you
-always know whether keys act on the page or in the text.
+The status line takes the shape of LazyVim's, lualine's sections in Catppuccin's colours. With Vim
+mode on, it opens with the mode, so you always know whether keys act on the page or in the text.
 
-[Vim on: the modes, a field, and the setting](mockups/vim.html)
+[The status line, one per mode](mockups/statusline.html)
 
 Key scenarios:
 
-1. **Given** Vim is on and no field has the focus, **When** you look at the status line, **Then** it
-   starts with NAVIGATION and a compass, in the theme's quiet surface colour.
+1. **Given** Vim mode is on and no field has the focus, **When** you look at the status line,
+   **Then** it opens with NAV and a compass in a grey block, then the page's hints, and the counts
+   at its right end.
 2. **Given** a comment in insert mode, **When** you press Escape, **Then** INSERT, green with a
-   pencil, becomes NORMAL, blue with a block, and the cursor becomes a block.
-3. **Given** Vim is off, **When** you look at the status line, **Then** no mode is drawn.
+   pencil, becomes NORMAL, blue with a block, the cursor becomes a block, and the right end shows
+   the cursor's place, like "Top 3:9".
+3. **Given** Vim mode is off, **When** you look at the status line, **Then** it has the same
+   sections and separators, without the mode.
 
 More scenarios:
 
-1. **Given** normal mode, **When** you press `V`, `Ctrl+V`, or `R`, **Then** the mode reads VISUAL
-   LINE or VISUAL BLOCK in mauve, or REPLACE in red.
+1. **Given** normal mode, **When** you press `v`, `V`, `Ctrl+V`, `R`, or `:`, **Then** the mode
+   reads VISUAL, V-LINE, or V-BLOCK in mauve, REPLACE in red, or COMMAND in peach.
 2. **Given** a screen reader, **When** the mode changes in a field, **Then** the new mode is read
    out politely, once.
 
@@ -139,7 +146,7 @@ More scenarios:
 You list Vim commands in the settings file or in the Keyboard section, like `imap jj <Esc>`, and
 they run when Vim starts. A line the engine refuses shows its error under the field.
 
-[Vim on: the modes, a field, and the setting](mockups/vim.html)
+[Vim mode: a field, and the setting](mockups/vim.html)
 
 Key scenarios:
 
@@ -154,30 +161,34 @@ Key scenarios:
 ### US5: Open a file as a buffer (P2)
 
 On any page showing one file, `Space b` opens the whole file as it is on disk, frontmatter included,
-in the editor. You edit it, Vim on or off, and save with Ctrl+Enter, `:w`, or Save.
+and the buffer takes the whole window: only the text, and the status line naming the file. You edit
+it, Vim mode on or off, save with `:w` or Ctrl+Enter, and leave with `:q`.
 
 [A file opened as a buffer](mockups/buffer.html)
 
 Key scenarios:
 
-1. **Given** the priorities page, **When** you press `Space b`, **Then** `specs/PRIORITIES.md` opens
-   whole, titled with its path, its line reading "default branch · saved".
-2. **Given** you add the line "- Global undo" under Now, **When** you save, **Then** the file is
-   written and committed as `chore: edit specs/PRIORITIES.md`, and the priorities page shows the
-   line.
+1. **Given** the priorities page, **When** you press `Space b`, **Then** `specs/PRIORITIES.md` fills
+   the window, with no sidebar, title, or button, and the status line reads its branch, "main", and
+   its path.
+2. **Given** you add the line "- Global undo" under Now, **When** you type `:w`, **Then** the file
+   is written and committed as `chore: edit specs/PRIORITIES.md`, and the status line's unsaved mark
+   goes.
 3. **Given** an agent committed to the priorities since the buffer opened, **When** you save,
-   **Then** nothing is written, and the proposal editor's conflict banner offers "Copy my text" and
-   "Load the new version".
+   **Then** nothing is written, and a banner across the top offers "Copy my text" and "Load the new
+   version".
 
 More scenarios:
 
 1. **Given** a feature's spec page, **When** you press `Space b`, **Then** its `spec.md` opens from
    the feature's branch, and a save commits `chore(<slug>): edit spec.md` there.
 2. **Given** the feature's agent is working, **When** you save its spec's buffer, **Then** it is
-   refused: "An agent is working on this feature. Stop it first, or wait for it."
-3. **Given** unsaved text in a buffer, **When** you press `b`, **Then** the Leave guard asks first,
-   as on the proposal editor.
-4. **Given** home or the settings, pages showing no single file, **When** you press `Space b`,
+   refused, in the banner: "An agent is working on this feature. Stop it first, or wait for it."
+3. **Given** unsaved text in a buffer, **When** you type `:q`, or press `b` outside the text,
+   **Then** the Leave guard asks first; `:wq` saves, then goes back.
+4. **Given** a phone, **When** a buffer is open, **Then** the bottom bar holds Back and Save, its
+   only controls.
+5. **Given** home or the settings, pages showing no single file, **When** you press `Space b`,
    **Then** nothing happens, and the leader menu does not list it there.
 
 ## Replaced behaviour
@@ -216,19 +227,24 @@ components keep their props and callers, so pages change little.
   a one-line field's normal mode, yanks reaching the clipboard, and running your commands once,
   keeping the refused lines and their errors. Registers, marks, and macros are the engine's, shared
   by every field of the tab.
-- **The mode store** holds the focused field's mode, or NAVIGATION, for the indicator.
-- **The mode indicator** opens the status line, from the store, with each mode's name, Lucide icon,
-  and colour: NAVIGATION `compass`, NORMAL `square`, INSERT `pencil`, the VISUAL modes
-  `square-dashed`, REPLACE `replace`. It is a file of its own: `StatusLine.tsx` has 240 lines.
-- **The settings** gain `vim` and `vim_commands` in the core's `[keyboard]` table, through the
+- **The mode store** holds the focused field's mode, or NAV, and its cursor's place.
+- **The status line** takes lualine's sections, as LazyVim sets them: the mode, the branch, the file
+  and the page's hints, then the counts and the cursor's place. Its separators are triangles it
+  draws, since the bundled fonts have no Powerline glyphs. Each mode has lualine's name, a Lucide
+  icon, and the Catppuccin lualine theme's colour: NAV `compass` grey, NORMAL `square` blue, INSERT
+  `pencil` green, VISUAL, V-LINE, and V-BLOCK `square-dashed` mauve, REPLACE `replace` red, COMMAND
+  `terminal` peach. The branch and the file show on a buffer only. The sections are files of their
+  own: `StatusLine.tsx` has 240 lines.
+- **The settings** gain `vim_mode` and `vim_commands` in the core's `[keyboard]` table, through the
   binding, the server's settings view and mutations, and the Keyboard section: the switch, the
   commands' field, and its refused lines. See the [data model](data-model.md).
 - **The buffer** is a page at `/buffer/<path>`, over the proposal editor's hook, keeping the
-  frontmatter. Its save writes and commits in one queued git write, with the conflict check of
-  today. The core's rule for text writes accepts any Markdown file under `specs/`, from the default
-  branch or, for a feature's folder at any depth, from its branch. `Space b` is declared on the
-  pages showing one file: the proposal editor, a feature's file pages, the inbox, the priorities, a
-  decision, and a document.
+  frontmatter. The shell draws it alone, without the sidebar, the rail, or the top tabs, over the
+  status line on wide screens and the bottom bar on the phone. Its `:q` and `:wq` go back. Its save
+  writes and commits in one queued git write, with the conflict check of today. The core's rule for
+  text writes accepts any Markdown file under `specs/`, from the default branch or, for a feature's
+  folder at any depth, from its branch. `Space b` is declared on the pages showing one file: the
+  proposal editor, a feature's file pages, the inbox, the priorities, a decision, and a document.
 - **A lint rule** forbids Astryx's text fields outside the editor, with the password's and the
   picker's exceptions marked in place.
 - **The documentation**: the skill's conventions gain the buffer's commit message, the keyboard
@@ -248,11 +264,12 @@ Tradeoffs:
 | High       | Vim on, a changed row, Escape twice quickly                        | the first goes to normal mode; the second asks "Discard your changes?" before dropping anything |
 | High       | A buffer saved over a file changed underneath                      | nothing is written; the conflict banner offers to copy the text or load the new version         |
 | High       | A buffer edit breaks the file's format, like a decision's sections | saved and committed as typed; `ura check`'s problems show where they do today                   |
-| High       | Turning Vim off while a field holds unsaved text                   | the text stays, unsaved, in the same field                                                      |
+| High       | Turning Vim mode off while a field holds unsaved text              | the field loses Vim at once; the text stays, unsaved, in the same field                         |
 | Normal     | Shift+Escape in Chrome on Linux, where it opens the task manager   | the field takes it, as JupyterLab's Vim does                                                    |
 | Normal     | A dead key or an input method in normal mode                       | the engine's known gap: the character may be inserted; insert mode works as today               |
 | Normal     | `"+p` without clipboard permission                                 | the browser asks for it, or offers its own Paste; nothing is pasted until allowed               |
 | Normal     | A one-line field with a 2,000-character line                       | it wraps and grows; past 9 lines, as tall as the phone's composer, it scrolls inside            |
+| Normal     | A buffer open on a screen too short for its text                   | the text scrolls inside the window; the status line stays at the bottom                         |
 | Normal     | The `:` prompt in a one-line field                                 | it opens under the field, as in a multi-line one                                                |
 | Niche      | Ctrl+W in insert mode                                              | the browser closes the tab; the Leave guard asks first when text is unsaved                     |
 | Niche      | An iPad with a keyboard, its main pointer touch                    | no Vim, as on a phone                                                                           |
@@ -287,10 +304,15 @@ Settled while writing this spec:
   `dw`, and a typed `x` work, and Escape in normal mode reaches the page.
 - **Refused commands** carry the engine's message, checked the same way: "Not an editor command
   ":foo bar"", "Unknown option: nsense".
-- **The mode names** are Vim's own, in capitals; the command line keeps the mode it came from.
+- **The mode names** are lualine's, which LazyVim shows: NORMAL, INSERT, VISUAL, V-LINE, V-BLOCK,
+  REPLACE, COMMAND, with NAV for the page's keys, as you asked.
+- **No clock** at the status line's right end, unlike LazyVim's: Uraeda's page shows no time
+  elsewhere, and the line keeps the counts there.
 - **Code blocks** are highlighted as Markdown, not by their language, to keep the size.
 - **The buffer** opens Markdown files only, and saves with a commit, unlike the proposal editor,
   because the inbox and the priorities are committed by every structured action.
+- **A buffer opens** with its cursor at the file's start, in normal mode with Vim mode on, as when
+  Vim opens a file: a buffer is read before it is edited.
 - **`Space b`** is free on every page, and "b" reads as buffer.
 
 ## Constitution check
@@ -303,3 +325,23 @@ Settled while writing this spec:
 
 Medium: two new settings keys and wider text writes in the core, and every field of the UI changes
 its element, with no stored data converted.
+
+## History
+
+> [!NOTE]
+>
+> Changes requested on 2026-11-03: 2 comments in spec-review.md.
+>
+> - You approve one editor, built on CodeMirror, for every text field: Markdown highlighted, long
+>   lines wrapped, Vim's keys behind a switch, the mode in the status line, and a buffer for any
+>   file.
+> - A new decision, Text editing, and a change to UI components: text fields leave Astryx for good,
+>   Vim on or off. Your note asked for highlighting without Vim, which only the editor gives.
+> - The cost of that note: CodeMirror loads with every page, about 176 KB compressed, where the
+>   round assumed it only with Vim on.
+> - Two fields stay as they are, reading "every field" narrowly: the password, for password
+>   managers, and a picker's filter, which is part of Astryx's palette.
+> - Fields that ignore Escape today, like a comment, now leave on it, as the keyboard guide says.
+> - The buffer's save also commits, so a hand edit never rides into the next inbox action's commit.
+> - Risk tier medium: no plan review. 25 test files type into today's fields and move to one typing
+>   helper, their assertions kept.
