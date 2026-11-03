@@ -17,10 +17,7 @@ pub fn candidates(workspace: &Workspace) -> Vec<&Feature> {
     let mut features: Vec<&Feature> = workspace
         .features
         .iter()
-        .filter(|f| {
-            f.step.name == StepName::Done
-                && (status::leftovers(f).is_some() || clean::merged_line(workspace, f).is_some())
-        })
+        .filter(|f| f.step.name == StepName::Done && status::leftovers(workspace, f).is_some())
         .collect();
     features.sort_by(|a, b| a.folder.cmp(&b.folder));
     features
