@@ -122,3 +122,24 @@ test("a typed commit message stays once its commit is refused", async () => {
   const kept = screen.getByRole("textbox", { name: "Message" });
   expect(fieldText(kept)).toBe("chore: plan the undo");
 });
+
+// Break: a typed message kept after its commit landed, which comes back over the suggestion once
+// the pane's lines read the same again.
+test("a landed typed message goes, and the same change again reads the suggestion", async () => {
+  const repo = fixtureRepo();
+  const priorities = join(repo, "specs/PRIORITIES.md");
+  const before = readFileSync(priorities, "utf8");
+  writeFileSync(priorities, `${before}\n- Global undo\n`);
+  await renderPage("/commit", repo);
+  const field = await screen.findByRole("textbox", { name: "Message" });
+  const suggested = fieldText(field);
+  await type(field, "chore: plan the undo");
+
+  await click(screen.getByRole("button", { name: "Commit" }));
+  await refreshUntil(() => expect(screen.queryByRole("textbox", { name: "Message" })).toBeNull());
+
+  writeFileSync(priorities, `${before}\n- Global undo\n- Global undo\n`);
+  await refreshUntil(() =>
+    expect(fieldText(screen.getByRole("textbox", { name: "Message" }))).toBe(suggested),
+  );
+});

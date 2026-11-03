@@ -50,7 +50,7 @@ const happenedAt = (write: Write, where: Where) =>
   (where.href === undefined || write.href === where.href);
 
 /** Whether `write` was refused at `where`: messages not sent belong to their composer. */
-const refusedAt = (write: Write, where: Where) =>
+export const refusedAt = (write: Write, where: Where) =>
   write.state === "refused" && write.failure !== "unsent" && happenedAt(write, where);
 
 /**
