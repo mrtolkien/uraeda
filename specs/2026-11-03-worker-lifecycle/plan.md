@@ -675,18 +675,18 @@ git commit -m "feat(worker-lifecycle): settings to turn off and cap automatic co
 
 - Produces: nothing other tasks use.
 
-- [ ] **Step 1: Add the rule.** Background work, such as a test suite, a build, or a subagent, is
+- [x] **Step 1: Add the rule.** Background work, such as a test suite, a build, or a subagent, is
       started the way the agent's harness tracks: a background command or agent it reports on, never
       a shell's `&`. The agent then ends its turn and waits for the work's notice. It never polls in
       sleep loops, or rereads an output file in a loop: a run blocked in a loop cannot read the
       human's messages. The rule applies to every agent, so it names no tool.
 
-- [ ] **Step 2: Run the task's validation**
+- [x] **Step 2: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS. The format and the skill's checks hold.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add skills/uraeda/references/implementation.md
