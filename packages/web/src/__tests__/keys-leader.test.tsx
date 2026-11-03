@@ -5,10 +5,10 @@
 // which then presses the menu's next key, which only a sequence still waiting takes. The state
 // machine itself is `keys-sequence.test.ts`'s.
 import { Button } from "@astryxdesign/core/Button";
-import { TextArea } from "@astryxdesign/core/TextArea";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
+import { TextField } from "../fields/TextField.tsx";
+import { TextLine } from "../fields/TextLine.tsx";
 import { SLIDE_MS } from "../keys/LeaderMenu.tsx";
 import { LeaderMenuHost } from "../keys/LeaderMenuHost.tsx";
 import { KeysProvider, useKeys } from "../keys/registry.tsx";
@@ -67,8 +67,8 @@ const page = (singleKeys: boolean) => (
   <KeysProvider singleKeys={singleKeys}>
     <Page />
     <LeaderMenuHost />
-    <TextInput label="Name" onChange={noop} value="" />
-    <TextArea label="Message" onChange={noop} value="" />
+    <TextLine label="Name" onChange={noop} value="" />
+    <TextField kind="comment" label="Message" onChange={noop} value="" />
     <Button label="Note button" onClick={noop} />
   </KeysProvider>
 );
