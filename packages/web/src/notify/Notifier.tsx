@@ -4,7 +4,7 @@
 import { Component, type ReactNode, Suspense, use } from "react";
 import { FateClient } from "react-fate";
 import { useNeedsYou } from "../data.ts";
-import { ListClientContext } from "../RepositoryMenu.tsx";
+import { ListClientContext } from "../ListClient.tsx";
 import { NotificationBanner } from "./NotificationBanner.tsx";
 import { useNotificationBanner } from "./permission.ts";
 import { useNotifier } from "./useNotifier.ts";

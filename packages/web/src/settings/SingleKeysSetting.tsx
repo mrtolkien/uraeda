@@ -3,7 +3,7 @@
 import { type ReactNode, Suspense, useEffect } from "react";
 import { useSettings } from "../data.ts";
 import { Unread } from "../HandOver.tsx";
-import { OnListClient } from "../RepositoryMenu.tsx";
+import { OnListClient } from "../ListClient.tsx";
 
 function ReadSingleKeys({ onRead }: { onRead: (on: boolean) => void }): ReactNode {
   // A file that cannot be read leaves the setting at its default: on.

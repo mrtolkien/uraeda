@@ -39,7 +39,8 @@ import {
   useRoute,
   useSearch,
 } from "./routes.tsx";
-import { ListClientContext, useOpenRepository } from "./RepositoryMenu.tsx";
+import { ListClientContext } from "./ListClient.tsx";
+import { useOpenRepository } from "./RepositoryMenu.tsx";
 import { FirstRun, MissingFolder, UnknownRepository } from "./RepositoryPages.tsx";
 import { Shell } from "./Shell.tsx";
 import { SignInPage } from "./sign-in/SignInPage.tsx";

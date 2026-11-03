@@ -16,7 +16,7 @@ import type { Decorator, Preview } from "@storybook/react-vite";
 import { type ReactNode, Suspense, useSyncExternalStore } from "react";
 import { FateClient } from "react-fate";
 import { fateClients } from "../src/clients.ts";
-import { ListClientContext } from "../src/RepositoryMenu.tsx";
+import { ListClientContext } from "../src/ListClient.tsx";
 import { RepositoryContext } from "../src/routes.tsx";
 import { PreviewBase } from "../src/stories.tsx";
 import type { ThemeMode } from "../src/theme.tsx";
