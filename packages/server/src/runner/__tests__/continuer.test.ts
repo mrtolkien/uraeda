@@ -126,6 +126,34 @@ test.each([
   expect(cache.items(next.id, 0, 1)).toEqual([{ kind: "system", seq: 0, text: LIMIT_LINE }]);
 });
 
+/** SC-003: a limit's turn whose process exits is never published asking, by any change. */
+test("a limit whose process exits publishes its run only waiting", async () => {
+  const published: Array<string | undefined> = [];
+  const setup = await testSessions(fixtureRepo(), {
+    onChange: (change, cache) => {
+      const turn = "session" in change ? cache.turns(change.session).at(-1) : undefined;
+      if (turn?.state === "failed") {
+        published.push(statusOf(cache, turn.id).reason);
+      }
+    },
+    runs: () => ON,
+  });
+  const { adapter, cache, repo, sessions } = setup;
+  clock("2026-11-03T14:01:00Z");
+  const session = await sessions.featureSession(repo, AGENT);
+  // The process exits after the limit's event, without a result.
+  adapter.script([
+    { limit: SESSION_LIMIT, type: "limit" },
+    { code: 1, stderr: SESSION_LIMIT.text!, type: "exit" },
+  ]);
+  const { turn } = await sessions.send(repo, session.id, { text: "Go on with the plan" });
+  await sessions.settled(turn);
+  await flush();
+  expect(cache.turn(turn)).toMatchObject({ continueAt: AFTER_RESET, state: "failed" });
+  expect(published.length).toBeGreaterThan(0);
+  expect(new Set(published)).toEqual(new Set(["waiting"]));
+});
+
 test.each([
   {
     at: [AFTER_RESET, AFTER_RESET + 60_000],
