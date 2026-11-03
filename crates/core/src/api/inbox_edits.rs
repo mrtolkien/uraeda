@@ -20,9 +20,23 @@ pub fn read_inbox(repo: &Path) -> Result<Inbox> {
     let (text, _) = on_default(&git, &workspace, edits::PATH);
     Ok(edits::assembled(
         &text.unwrap_or_default(),
+        &notes_on_default(&git, &workspace),
         change_count(&git, &workspace),
         |path| on_default(&git, &workspace, path).0,
     ))
+}
+
+/// The note files of the default branch, from its checkout when it has one, else from its tip.
+fn notes_on_default(git: &crate::git::Git, workspace: &crate::workspace::Workspace) -> Vec<String> {
+    let Some(default) = workspace.default_branch.as_deref() else {
+        return Vec::new();
+    };
+    if let Some(root) = super::default_branch::default_checkout(git, default) {
+        return crate::files::inbox::note_paths_on_disk(&root);
+    }
+    git.tip(default)
+        .and_then(|tip| git.list_files(tip, "specs/notes").ok())
+        .unwrap_or_default()
 }
 
 /// The marks of a note added from the web UI: `about` is the folder of the page it was added from,

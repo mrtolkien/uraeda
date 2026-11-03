@@ -5,12 +5,14 @@ use pulldown_cmark::{Event, Parser, Tag, TagEnd};
 
 use super::lines::{self, Item, item_marker};
 
+mod agent;
 pub mod categories;
 mod diff;
 mod found;
 mod outline;
 mod read;
 
+pub use agent::{NoteFile, is_note_file_path, joined, note_files, note_paths_on_disk};
 pub use diff::{NoteChange, diff};
 pub use found::{file_of_lines, ids_of_lines, of_lines};
 pub use outline::{Drop, drop_item, outline};

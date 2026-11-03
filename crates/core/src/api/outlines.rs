@@ -41,11 +41,13 @@ pub(super) fn note_stays(place: &Place, id: &str, previous: &str) -> Result<()> 
     let Some(text) = as_read(place, inbox_edits::PATH, previous) else {
         return Ok(());
     };
-    let has_file = inbox::read(&text)
-        .categories
-        .iter()
-        .flat_map(|category| &category.notes)
-        .any(|note| note.id == id && note.file.is_some());
+    // An agent's note's id is its file's path: it has a file.
+    let has_file = inbox::is_note_file_path(id)
+        || inbox::read(&text, &[])
+            .categories
+            .iter()
+            .flat_map(|category| &category.notes)
+            .any(|note| note.id == id && note.file.is_some());
     if has_file {
         return Err(refused(
             "A note with a file stays a note: nested, its file would no longer be found by its link.",

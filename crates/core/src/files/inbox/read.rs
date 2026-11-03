@@ -1,6 +1,7 @@
 //! `INBOX.md` read for editing: its notes by category, with what the web UI shows and writes back.
 
 use super::super::lines::Item;
+use super::agent::{NoteFile, agent_notes};
 use super::{Note, body, category_names, link_text, parse, scan};
 
 /// A note of `INBOX.md`, for editing.
@@ -104,8 +105,67 @@ fn inbox_note(lines: &[&str], note: Note, item: &Item) -> InboxNote {
     }
 }
 
-/// The notes of `INBOX.md` by category.
-pub fn read(text: &str) -> Inbox {
+/// The notes of `INBOX.md` by category, then each agent's note of `files`, a note file no note
+/// links, at the end of its category, as `ura note` would add its line: a category `INBOX.md` lacks
+/// comes after the file's own. An agent's note's id is its file's path.
+pub fn read(text: &str, files: &[NoteFile]) -> Inbox {
+    let mut inbox = read_text(text);
+    let mut keys: Vec<String> = inbox
+        .categories
+        .iter()
+        .flat_map(|category| category.notes.iter().map(|note| note.key.clone()))
+        .collect();
+    for agent in agent_notes(text, files) {
+        // A note is read under the title, as in `INBOX.md`.
+        let single = format!("# Inbox\n\n{}\n", agent.line);
+        let lines: Vec<&str> = single.split('\n').collect();
+        let (Some(note), Some((_, item))) = (parse(&single).pop(), scan(&single).pop()) else {
+            continue;
+        };
+        let mut note = inbox_note(&lines, note, &item);
+        let slug = crate::slug::from_text(&super::super::lines::plain(&note.text).0);
+        let mut taken: Vec<&str> = keys.iter().map(String::as_str).collect();
+        taken.push("triage");
+        let key = super::super::lines::unique_keys_besides(vec![slug], &taken)
+            .pop()
+            .unwrap_or_default();
+        keys.push(key.clone());
+        note.key = key;
+        note.id.clone_from(&agent.path);
+        note.start_line = 0;
+        note.end_line = 0;
+        inbox.count += 1;
+        match inbox
+            .categories
+            .iter_mut()
+            .find(|category| category.name == agent.category)
+        {
+            Some(category) => category.notes.push(note),
+            None => {
+                let at = match agent.category {
+                    None => 0,
+                    Some(_) => inbox.categories.len(),
+                };
+                inbox.categories.insert(
+                    at,
+                    InboxCategory {
+                        name: agent.category.clone(),
+                        notes: vec![note],
+                    },
+                );
+            }
+        }
+        if let Some(name) = agent.category
+            && !inbox.names.contains(&name)
+        {
+            inbox.names.push(name);
+        }
+    }
+    inbox
+}
+
+/// The notes of `INBOX.md` alone, by category.
+fn read_text(text: &str) -> Inbox {
     let unix = text.replace("\r\n", "\n");
     let lines: Vec<&str> = unix.split('\n').collect();
     let notes = parse(&unix);

@@ -241,7 +241,7 @@ fn a_line_drops_under_an_earlier_lines_nested_item() {
 fn nested_items_are_keyed_under_their_item_at_their_depth() {
     let text = "# Inbox\n\n- One\n  - Same\n    - Deep\n  - Same\n";
 
-    let note = &inbox::read(text).categories[0].notes[0];
+    let note = &inbox::read(text, &[]).categories[0].notes[0];
     let line = &priorities::read(LINES, None).sections[1].proposals[1];
 
     let read: Vec<(&str, u32)> = note

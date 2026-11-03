@@ -173,7 +173,7 @@ fn a_note_line_has_its_marks_in_order() {
 fn read_groups_notes_with_no_category_first_and_hides_empty_categories() {
     let text = "# Inbox\n\n- First\n\n## Empty\n\n## UI\n\n- [agent] [run-ui] Icons\n  - blurry\n\n## CLI\n\n- [Noted](notes/x.md)\n";
 
-    let read = inbox::read(text);
+    let read = inbox::read(text, &[]);
 
     assert_eq!(read.hash, hash(text));
     assert_eq!(read.count, 3);
@@ -204,7 +204,7 @@ fn read_groups_notes_with_no_category_first_and_hides_empty_categories() {
 fn a_note_files_title_is_its_link_text_as_typed() {
     let text = "# Inbox\n\n- [Fix \\[x\\] in the `a]b` view](notes/fix.md)\n";
 
-    let read = inbox::read(text);
+    let read = inbox::read(text, &[]);
 
     let note = &read.categories[0].notes[0];
     assert_eq!(
@@ -492,7 +492,7 @@ fn closing_hashes_are_not_part_of_a_category() {
 fn a_note_shows_its_children() {
     let text = "# Inbox\n\n## UI\n\n- Icons are blurry\n  - on retina screens\n  - in [the sidebar](decisions/ui-layout.md)\n- Next note\n";
 
-    let read = inbox::read(text);
+    let read = inbox::read(text, &[]);
 
     let icons = &read.categories[0].notes[0];
     assert_eq!(
@@ -521,7 +521,7 @@ fn a_note_shows_its_children() {
 fn a_notes_code_block_gives_no_children() {
     let text = "# Inbox\n\n- Keep this list\n  ```md\n  - not an item\n  ```\n  - an item\n";
 
-    let read = inbox::read(text);
+    let read = inbox::read(text, &[]);
 
     let children: Vec<&str> = read.categories[0].notes[0]
         .children
@@ -534,7 +534,7 @@ fn a_notes_code_block_gives_no_children() {
 /// A note linking a proposal file has no note file: its link is only its text.
 #[test]
 fn a_note_linking_a_proposal_file_has_no_file() {
-    let read = inbox::read("# Inbox\n\n- [Planned](proposals/planned.md)\n");
+    let read = inbox::read("# Inbox\n\n- [Planned](proposals/planned.md)\n", &[]);
 
     assert_eq!(read.categories[0].notes[0].file, None);
 }
@@ -565,8 +565,92 @@ fn marks_alone_on_the_first_line_keep_the_link_on_the_next() {
         (None, "[todo]")
     );
     // The inbox's list reads the link alone, its note file's title with it.
-    let read = inbox::read(text);
+    let read = inbox::read(text, &[]);
     let note = &read.categories[0].notes[0];
     assert_eq!(note.text, "[A long title](notes/a-long-title/note.md)");
     assert_eq!(note.file_title.as_deref(), Some("A long title"));
+}
+
+/// A note file of `specs/notes/`, with its frontmatter and title.
+fn note_file(name: &str, front: &str, title: &str) -> inbox::NoteFile {
+    inbox::NoteFile {
+        path: format!("specs/notes/{name}"),
+        text: format!("---\n{front}---\n\n# {title}\n\nMore.\n"),
+    }
+}
+
+/// US2 2 and more 1: agents' note files show at the end of their category, a category the inbox
+/// lacks after its own, and one with none after the notes without one. A file a line links shows
+/// once, as its line, and a line keeps its key when a file with the same text arrives.
+#[test]
+fn agents_note_files_show_at_the_end_of_their_category() {
+    let text = "# Inbox\n\n- Loose\n\n## Deferred fixes\n\n- Human's\n- [Linked](notes/linked.md)\n\n## UI\n\n- Blurry\n";
+    let files = [
+        note_file(
+            "feature-state-the-workspace.md",
+            "agent: true\nabout: feature-state\ncategory: Deferred fixes\n",
+            "The workspace record's `running`",
+        ),
+        note_file("linked.md", "agent: true\ncategory: Testing\n", "Linked"),
+        note_file(
+            "reading-pass-humans.md",
+            "agent: true\nabout: reading-pass\ncategory: Testing\n",
+            "Human's",
+        ),
+        note_file("x-uncategorized/note.md", "agent: true\n", "Uncategorized"),
+    ];
+
+    let read = inbox::read(text, &files);
+
+    let placed: Vec<(Option<&str>, &str, &str)> = read
+        .categories
+        .iter()
+        .flat_map(|c| {
+            c.notes
+                .iter()
+                .map(move |n| (c.name.as_deref(), n.id.as_str(), n.key.as_str()))
+        })
+        .collect();
+    let at = |id: &str| {
+        placed
+            .iter()
+            .position(|(_, found, _)| *found == id)
+            .unwrap()
+    };
+    let ours = "specs/notes/feature-state-the-workspace.md";
+    let testing = "specs/notes/reading-pass-humans.md";
+    let loose = "specs/notes/x-uncategorized/note.md";
+    assert_eq!(placed[at(ours)].0, Some("Deferred fixes"));
+    assert_eq!(at(ours), at("note-3") + 1, "after the category's lines");
+    assert_eq!(placed[at(loose)].0, None);
+    assert_eq!(at(loose), at("note-1") + 1);
+    assert_eq!(placed[at(testing)].0, Some("Testing"));
+    assert_eq!(
+        at(testing),
+        at("note-4") + 1,
+        "after the inbox's own categories"
+    );
+    assert_eq!(placed[at("note-2")].2, "human-s");
+    assert_eq!(placed[at(testing)].2, "human-s-2");
+    assert!(
+        !placed
+            .iter()
+            .any(|(_, id, _)| *id == "specs/notes/linked.md")
+    );
+    assert_eq!(read.count, 7);
+    assert_eq!(read.names, ["Deferred fixes", "UI", "Testing"]);
+    let note = &read.categories[1].notes[2];
+    assert_eq!(
+        note.lines,
+        [
+            "- [agent] [feature-state] [The workspace record's `running`](notes/feature-state-the-workspace.md)"
+        ]
+    );
+    assert_eq!(note.file.as_deref(), Some(ours));
+    assert_eq!(
+        note.file_title.as_deref(),
+        Some("The workspace record's `running`")
+    );
+    assert!(note.agent);
+    assert_eq!(note.about.as_deref(), Some("feature-state"));
 }
