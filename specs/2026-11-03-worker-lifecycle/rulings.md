@@ -135,3 +135,14 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   unlike the port and the cap, which the core checks for the file and the variable alike.
 - **If wrong**: a core rule for the switches' text, called by the binding, as `checkedPort` is.
 - **Where**: task 4, `packages/server/src/env.ts`.
+
+## R14: A continue's turn is queued in the step that claims it
+
+- **Decision**: when a continue fires, its turn is added to the cache as `queued`, with its line and
+  message, in the same synchronous step as `takeContinue`. The session's queue starts it, as it
+  starts any queued turn.
+- **Rationale**: a claimed turn keeps its `continue_reason` with `continue_at` null, which is how a
+  capped turn reads. Between the claim and a turn added after the process opened, the run would read
+  "The agent keeps stopping." and could notify. A queued turn reads as working at once. Found by the
+  review of task 3.
+- **Where**: task 8.
