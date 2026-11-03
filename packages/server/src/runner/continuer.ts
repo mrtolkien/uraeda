@@ -332,8 +332,9 @@ export class Continuer {
 
   /**
    * When a limit's continue goes: a minute after its reset, an hour from now without one, never
-   * sooner than a minute from now, and a minute after the latest limit's continue at that time or
-   * later, so the runs waiting for one reset go one by one.
+   * sooner than a minute from now. The runs waiting for one reset go a minute apart: it steps a
+   * minute at a time while another limit's continue waits in that minute, so a later wait, as one
+   * without a reset, never delays it.
    */
   #limitContinue(limit: Limit): number {
     const now = Date.now();
@@ -342,8 +343,11 @@ export class Continuer {
       Number.isNaN(reset) ? now + RETRY_WITHOUT_RESET_MS : reset + MINUTE_MS,
       now + MINUTE_MS,
     );
-    const latest = this.#context.cache.latestLimitContinue(at);
-    return latest === undefined ? at : latest + MINUTE_MS;
+    let time = at;
+    while (this.#context.cache.limitContinueWithin(time, time + MINUTE_MS)) {
+      time += MINUTE_MS;
+    }
+    return time;
   }
 
   /** Arms the turn's timer for `at`, unref'd: it never keeps the server running. */

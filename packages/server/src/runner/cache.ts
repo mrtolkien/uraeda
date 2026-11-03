@@ -11,7 +11,7 @@ import {
   dropContinues,
   endTurn,
   interrupted,
-  latestLimitContinue,
+  limitContinueWithin,
   markCapped,
   pendingContinues,
   reopenTurn,
@@ -364,8 +364,8 @@ export class SessionCache {
   pendingContinues(): Array<TurnRow> {
     return pendingContinues(this.db);
   }
-  latestLimitContinue(from: number): number | undefined {
-    return latestLimitContinue(this.db, from);
+  limitContinueWithin(from: number, to: number): boolean {
+    return limitContinueWithin(this.db, from, to);
   }
   serverCuts(reason: string, since: string): Array<TurnRow> {
     return serverCuts(this.db, reason, since);

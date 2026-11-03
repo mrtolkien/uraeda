@@ -516,8 +516,8 @@ keeps two servers or timers from continuing a run twice.
   - `dropContinues(reason: ContinueReason): Array<TurnRow>`: clears both columns of every pending
     continue of that reason.
   - `pendingContinues(): Array<TurnRow>`: every turn with `continue_at` set.
-  - `latestLimitContinue(from: number): number | undefined`: the latest `continue_at` of a pending
-    limit continue at or after `from`.
+  - `limitContinueWithin(from: number, to: number): boolean`: whether a pending limit continue waits
+    in `[from, to)` (ruling R22).
   - `addContinue(session: string): number`: increments `automatic_continues`, and returns it; throws
     `no session <id>` for a missing session.
   - `resetContinues(session: string): void`.
@@ -926,9 +926,10 @@ The rules:
    - a limit of kind `other` changes nothing: it fails and asks, its text as its reason;
    - with `afterLimit` off, the same;
    - when the session's `automaticContinues` is at the cap, `markCapped`;
-   - otherwise `scheduleContinue` at the reset plus a minute. With
-     `latestLimitContinue(reset + 1 min)` set, it is a minute after that one. Without a reset, the
-     continue is an hour from now. A time already past becomes a minute from now.
+   - otherwise `scheduleContinue` at the reset plus a minute. Without a reset, the continue is an
+     hour from now. A time already past becomes a minute from now. From that time, it steps a minute
+     at a time while `limitContinueWithin(t, t + 1 min)`: the waits of the same reset go a minute
+     apart, and a later wait never delays it (ruling R22).
 2. **When the timer fires**:
    - `takeContinue` claims the continue; nothing happens without the claim;
    - `addContinue` counts it;
