@@ -68,3 +68,11 @@ export const keyboard = outline(
   h("path", { d: "M8 12h.01" }),
   h("rect", { height: "16", rx: "2", width: "20", x: "2", y: "4" }),
 );
+
+/** Lucide's `refresh-cw`. */
+export const refreshCw = outline(
+  h("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
+  h("path", { d: "M21 3v5h-5" }),
+  h("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
+  h("path", { d: "M8 16H3v5" }),
+);

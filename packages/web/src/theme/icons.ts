@@ -66,7 +66,16 @@ import {
   outline,
 } from "./lucide.ts";
 import { maximize, minimize, monitor, smartphone } from "./windowIcons.ts";
-import { badgeCheck, hourglass, keyboard, lightbulb, map, scale, shield } from "./lucideParts.ts";
+import {
+  badgeCheck,
+  hourglass,
+  keyboard,
+  lightbulb,
+  map,
+  refreshCw,
+  scale,
+  shield,
+} from "./lucideParts.ts";
 import { filePenLine, gitCompare, listChecks, users } from "./sessionIcons.ts";
 import { arrowRightLeft, brain, indent, outdent, trash } from "./activityIcons.ts";
 import { play, save } from "./barIcons.ts";
@@ -160,6 +169,7 @@ const DECISION_ICONS = {
   package: packageIcon,
   palette,
   paperclip: attach,
+  "refresh-cw": refreshCw,
   repeat,
   ruler,
   "scan-eye": scanEye,
