@@ -1,12 +1,12 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Vim in text edit mode
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 7 questions, about 20 minutes.
+> Answered on 2026-11-03.
 >
 > - Verdict: worth building, with changes: one engine gives nearly every key, but only to fields
 >   rebuilt on its editor. "All fields" means choosing which ones.
@@ -112,7 +112,8 @@ wherever one fits". It also sets how far "as many keys as possible" goes.
   - [pro] no cost.
   - [con] the fields stay plain; Neovim stays where you write long text.
 
-**Answer:**
+**Answer:** A: We don’t need to style it exactly like Astryx’s though. It can look more
+“terminal-like”
 
 ## Q2: Which fields get Vim?
 
@@ -142,7 +143,10 @@ decision asks that every field of a class behave the same.
   - [pro] exactly "ALL text input fields".
   - [con] 13 more sites, among them searches and a password, rebuilt for little gain.
 
-**Answer:**
+**Answer:** C: There’s a lot of gain, vim mode is super convenient event for single line inputs
+
+While you’re at it make sure that single line inputs wrap: on mobile, a long single line input like
+a priority is impossible to edit properly
 
 ## Q3: What does Escape do once Vim is in normal mode?
 
@@ -168,7 +172,7 @@ Why it matters: it decides how you get from writing back to the page's keys, man
   - [pro] no field left by accident.
   - [con] a key unlike every other field, which must be told on screen.
 
-**Answer:**
+**Answer:** A
 
 ## Q4: Where does the mode show?
 
@@ -192,7 +196,7 @@ Why it matters: it is the one visible part of the feature when you are not typin
   - [pro] next to the cursor, and on the phone too.
   - [con] a line taken from every field, and not at the bottom as asked.
 
-**Answer:**
+**Answer:** A: Should use the full mode name though, with an icon
 
 ## Q5: Which files can the buffer open?
 
@@ -219,7 +223,7 @@ overlaps the master PR feature.
   - [pro] a smaller first feature.
   - [con] no buffer for now.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Where does a yank go?
 
@@ -242,7 +246,7 @@ Why it matters: it decides whether a yank reaches other apps without `"+`.
   - [pro] the clipboard changes only when asked.
   - [con] two more keys for each copy to another app.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: Can you add your own mappings, like `jj` for Escape?
 
@@ -266,7 +270,7 @@ configuration.
   - [pro] a familiar format and place.
   - [con] a second file beside the settings file.
 
-**Answer:**
+**Answer:** A
 
 ## Settled without the human
 
@@ -300,3 +304,7 @@ configuration.
   to the same files, a merge but no conflict.
 
 **Notes:**
+
+- **No Markdown highlighting**: Let’s add it if it’s only 85kcal
+
+  Should be there for all text edit fields, even without vim mode
