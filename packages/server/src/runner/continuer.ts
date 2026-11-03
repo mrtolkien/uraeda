@@ -191,8 +191,16 @@ export class Continuer {
   async start(): Promise<void> {
     this.runsChanged();
     const { adapter, cache } = this.#context;
+    // The limits' overdue waits go a minute apart, in their order, as they would have.
+    let overdue = Date.now();
     for (const turn of cache.pendingContinues()) {
-      this.#arm(turn.id, turn.continueAt ?? Date.now());
+      const at = turn.continueAt ?? Date.now();
+      if (turn.continueReason === "limit" && at <= Date.now()) {
+        this.#arm(turn.id, overdue);
+        overdue += MINUTE_MS;
+      } else {
+        this.#arm(turn.id, at);
+      }
     }
     if (!this.#runs().afterRestart) {
       return;
