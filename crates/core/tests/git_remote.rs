@@ -257,7 +257,8 @@ fn a_pull_or_a_push_that_never_answers_is_stopped() {
     );
     assert_eq!(SYNC_DEADLINE, Duration::from_secs(600));
 
-    // Stopped inside the rebase: the fetch ran, and the hook sleeps once `HEAD` is detached.
+    // Stopped inside the rebase: the fetch ran, and the hook sleeps once `HEAD` is detached. The
+    // deadline leaves the local fetch ample room, so only the hook can reach it.
     let repo = TestRepo::diverged();
     let head = repo.git(&["rev-parse", "main"]);
     repo.write(".git/hooks/post-checkout", "#!/bin/sh\nsleep 3600\n");
@@ -267,7 +268,7 @@ fn a_pull_or_a_push_that_never_answers_is_stopped() {
     )
     .unwrap();
     let failed = git(&repo)
-        .pull_within(Duration::from_secs(2), None)
+        .pull_within(Duration::from_secs(10), None)
         .unwrap_err()
         .to_string();
     assert!(failed.contains("so the pull was stopped"), "{failed}");

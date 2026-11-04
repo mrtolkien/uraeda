@@ -88,7 +88,8 @@ function DiffBody({
   if (diff.isCapped) {
     return (
       <HStack align="center" gap={3} wrap="wrap">
-        <DiffCount added={diff.added} removed={diff.removed} />
+        {/* A diff capped for its size has no counts: they come with the whole diff. */}
+        {diff.added + diff.removed > 0 && <DiffCount added={diff.added} removed={diff.removed} />}
         <Button label="Show the whole diff" onClick={() => setWhole(true)} variant="secondary" />
       </HStack>
     );
