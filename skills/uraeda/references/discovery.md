@@ -88,15 +88,14 @@ human wrote it.
 
 ## Scope check
 
-Before investigating details, assess the proposal's scope. Propose a split only when building one
-part has real implications on the next, as [the split rule](writing.md#a-spec) says: a sync protocol
-whose shape the offline mode built on it depends on, say. Then make the split the first question of
-the round, with the recommended split as option A. It covers the pieces, how the first shapes the
-next, and the order to build them. Investigate the first piece in depth, and leave the others for
-their own features.
+Before investigating details, assess the proposal's scope, and again whenever the investigation
+shows more. Propose a split only when building one part changes how the next is designed, as
+[the split rule](writing.md#a-spec) says: say, an offline mode whose design depends on how the sync
+protocol it builds on turns out. Then make the split the first question of the round, with the
+recommended split as option A. It covers the pieces, how the first shapes the next, and the order to
+build them. Investigate the first piece in depth, and leave the others for their own features.
 
-A proposal is never split for its size. Several independent pieces ("reminders, sharing, and a
-calendar view") stay in one feature, and so does a spec with many stories.
+Several independent pieces ("reminders, sharing, and a calendar view") stay in one feature.
 
 ## Investigate in depth
 

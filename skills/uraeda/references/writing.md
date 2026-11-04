@@ -214,10 +214,12 @@ opening anything else, so each rule below keeps it short and whole.
 32. **The reviewed part aims at 2,000 words.** Length goes to what the human decides. The build's
     details are the plan's, and the rarer scenarios go under "More scenarios". `spec.length` warns
     past 2,500 words on a spec waiting for review.
-33. **The split rule: the discovery proposes a split only when one part shapes the next.** Building
-    the first part changes how the next is designed, so the next is specified once the first is
-    built. Size is never a reason: no count of stories, scenarios, or decisions makes a spec too
-    large. The split is a question of the round, with the recommended split as option A.
+33. **The split rule: the discovery proposes a split only when building one part changes how the
+    next is designed.** The next part is then specified once the first is built. Size is never a
+    reason: no count of stories, scenarios, or decisions makes a spec too large. A spec past rule
+    32's length moves the build's details to the plan and the rarer scenarios under "More
+    scenarios", and keeps the rest. The split is a question of the round, with the recommended split
+    as option A.
 
 ## A decision
 

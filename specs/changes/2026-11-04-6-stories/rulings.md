@@ -6,11 +6,12 @@ decisions. None binds future work: those are decisions.
 ## R1: Only the split rule's limits go
 
 - **Decision**: the split rule loses its three counts, 6 stories, 30 scenarios, and 2 changed
-  decisions. The skill's other numbers stay: the block's 7 items, the spec's 2,000 words, a
-  decision's 10 rules and 80-word Why.
+  decisions. The skill's other numbers stay, such as the block's 7 items, the spec's 2,000 words, a
+  sentence's 25 words, a decision's 10 rules, and a scenario's 4 steps.
 - **Rationale**: the proposal names the stories limit, and the split it triggers. The other numbers
-  bound how long a file is to read, not what a feature holds, and `ura check` warns on each of them
-  (`block.items`, `spec.length`, `decision.rules`, `decision.why`): removing them changes the tool.
+  bound how long a file or a sentence is to read, not what a feature holds, and most have a lint in
+  `ura check` (`block.items`, `spec.length`, `writing.sentence`, `decision.rules`): removing them
+  changes the tool.
 - **If wrong**: each other limit is its own rule in
   [Writing for the human](/skills/uraeda/references/writing.md) and its own lint, removed one at a
   time.
