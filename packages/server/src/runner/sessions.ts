@@ -282,7 +282,7 @@ export class Sessions {
 
   /**
    * Stops the running turn, which keeps the session, and the turns queued after it, or the run's
-   * wait to continue, for good.
+   * wait to continue, or its agent's own wakeup, for good.
    */
   stop(repo: string, session: string): void {
     const { changed, continuer, turns } = this.#context;
@@ -293,6 +293,7 @@ export class Sessions {
     if (live.turn) {
       turns.halt(live, live.turn, { state: "stopped" });
     }
+    turns.stopWakeup(live);
     for (const turn of continuer.cancel(live.id, { stopped: true })) {
       changed(live, turn, "stopped");
     }
