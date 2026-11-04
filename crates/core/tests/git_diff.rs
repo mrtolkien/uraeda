@@ -92,3 +92,59 @@ fn a_commit_lists_its_files_with_their_counts() {
         .unwrap();
     assert!(diff.text.unwrap().contains("\n-line 4\n+line 9\n"));
 }
+
+/// A working tree's diff reads only a file of this checkout: `../outside` and an absolute path
+/// are refused before any file is read. Break: reading the path on disk unchecked.
+#[test]
+fn a_diff_reads_only_a_file_of_this_checkout() {
+    let repo = TestRepo::new();
+    repo.write("README.md", "# Readme\n");
+    repo.commit("chore: readme");
+    let git = Git::discover(repo.path()).unwrap();
+
+    for path in ["../outside", "/etc/passwd"] {
+        let diff = git.file_diff(DiffOf::Worktree, path, false);
+        assert!(diff.is_err(), "not refused: {path}: {diff:?}");
+    }
+}
+
+/// A whole file added or deleted reads as git writes it, `@@ -0,0 +1,2 @@` and `@@ -1,2 +0,0 @@`,
+/// a last line without a newline is marked, and a CRLF file keeps its line ends. Break: the hunk
+/// header's empty side starting at line 1.
+#[test]
+fn a_diff_reads_as_git_writes_it() {
+    let repo = TestRepo::new();
+    repo.write("gone.md", "x\ny\n");
+    repo.write("tail.md", "a\nb");
+    repo.write("crlf.md", "a\r\nb\r\n");
+    repo.commit("chore: files");
+    repo.remove("gone.md");
+    repo.write("new.md", "a\nb\n");
+    repo.write("tail.md", "a\nc");
+    repo.write("crlf.md", "a\r\nc\r\n");
+    let git = Git::discover(repo.path()).unwrap();
+    let text = |path| {
+        git.file_diff(DiffOf::Worktree, path, false)
+            .unwrap()
+            .text
+            .unwrap()
+    };
+
+    assert_eq!(
+        text("new.md"),
+        "--- /dev/null\n+++ b/new.md\n@@ -0,0 +1,2 @@\n+a\n+b\n"
+    );
+    assert_eq!(
+        text("gone.md"),
+        "--- a/gone.md\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-x\n-y\n"
+    );
+    assert_eq!(
+        text("tail.md"),
+        "--- a/tail.md\n+++ b/tail.md\n@@ -1,2 +1,2 @@\n a\n-b\n\\ No newline at end of file\n\
+         +c\n\\ No newline at end of file\n"
+    );
+    assert_eq!(
+        text("crlf.md"),
+        "--- a/crlf.md\n+++ b/crlf.md\n@@ -1,2 +1,2 @@\n a\r\n-b\r\n+c\r\n"
+    );
+}

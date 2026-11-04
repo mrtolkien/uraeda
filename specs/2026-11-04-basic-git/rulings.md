@@ -213,3 +213,18 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a clean that left something reads as refused in the toast, though the rest of it
   landed; the page's next view shows what is left.
 - **Where**: task 6.
+
+## R19: Discard takes one file, and the core checks every path the page sends
+
+- **Decision**: `Git::discard_path` refuses a folder, on disk or in `HEAD`, with "<path> is a
+  folder: discard its files one by one.", and a conflicted file with "<path> conflicts: take a
+  side."; a file `HEAD` lacks is staged only when the index holds that path exactly.
+  `Git::file_diff` checks a working tree's path itself, so the API no longer does (R17's check moves
+  into the core); `Git::merge_branch` refuses a detached `HEAD` with a pull's text; a hunk's empty
+  side starts at the line before, as git writes it; the page's state tells a binary file on disk
+  from its first 8,000 bytes before reading it whole.
+- **Rationale**: `git checkout HEAD -- docs` wipes every edit under `docs`, and over a conflict
+  takes a side unasked; the core owns git's reads, so a diff read from anywhere stays inside the
+  checkout; a merge on a detached `HEAD` moves no branch.
+- **If wrong**: discarding a folder takes one press per file; nothing else changes.
+- **Where**: tasks 2, 3, 4, and 5, after the review of tasks 2 to 4.

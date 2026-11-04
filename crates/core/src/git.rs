@@ -258,6 +258,13 @@ impl Git {
         Some(entry.object_id())
     }
 
+    /// The mode of the entry at `path` in a commit's tree, `None` when it has none.
+    fn entry_mode(&self, commit: ObjectId, path: &str) -> Option<gix::object::tree::EntryMode> {
+        let tree = self.tree(commit).ok()?;
+        let entry = tree.lookup_entry_by_path(path).ok()??;
+        Some(entry.mode())
+    }
+
     /// Every file under `dir` at a commit, with paths from the top level, sorted.
     pub fn list_files(&self, commit: ObjectId, dir: &str) -> Result<Vec<String>, GitError> {
         let tree = self.tree(commit)?;

@@ -552,8 +552,9 @@ git commit -m "feat(basic-git): refuse commits while a pull or a merge is stoppe
     than `DIFF_CAP` lines and `whole` is false;
   - `pub struct CommitFiles { pub id: ObjectId, pub subject: String, pub body: String, pub authored: i64, pub files: Vec<ChangedFile> }`;
   - `impl Git { pub fn file_diff(&self, of: DiffOf, path: &str, whole: bool) -> Result<FileDiff, GitError>; pub fn commit_files(&self, id: ObjectId) -> Result<CommitFiles, GitError> }`:
-    a working-tree diff goes from `HEAD` to the file on disk, staged or not; a commit's from its
-    first parent, or from nothing for a root commit.
+    a working-tree diff goes from `HEAD` to the file on disk, staged or not, its path through
+    `Git::checked` first; a commit's from its first parent, or from nothing for a root commit. A
+    hunk's empty side starts at the line before, as git writes it: `@@ -0,0 +1,2 @@`.
 
 - [x] **Step 1: Write the failing tests, and the helpers they use**
 
@@ -703,7 +704,9 @@ git commit -m "feat(basic-git): fetch, pull, and push the checked-out branch, ne
     `impl Git { pub fn stage_paths(&self, paths: &[String]) -> Result<(), GitError>; pub fn unstage_paths(&self, paths: &[String]) -> Result<(), GitError>; pub fn discard_path(&self, path: &str) -> Result<(), GitError> }`.
     `stage_paths` is `git add --all -- paths`, so a deleted file stages its deletion. `discard_path`
     makes the file as it is in `HEAD`, from the index and the working tree; a file `HEAD` lacks is
-    removed from the index and deleted. It never runs `git clean`, nor any `--force`;
+    removed from the index and deleted. A folder is refused, "<path> is a folder: discard its files
+    one by one.", and so is a conflicted file, "<path> conflicts: take a side.". It never runs
+    `git clean`, nor any `--force`;
   - in `git/commit.rs`:
     `pub fn commit_index(&self, message: &str, on_output: OnOutput) -> Result<ObjectId, GitError>`,
     committing what is staged through `commit_staged` (hooks and signing as configured), refusing an
@@ -722,7 +725,8 @@ git commit -m "feat(basic-git): fetch, pull, and push the checked-out branch, ne
     - `abort_stopped` runs `git rebase --abort` or `git merge --abort`, which puts an autostash
       back; a stash's stop has no abort, and refuses; with nothing stopped, both refuse;
     - `merge_branch` runs `git merge --no-edit --end-of-options <branch>`, refused as a commit is
-      while a pull or a merge is stopped; a merge that stops on a conflict returns `Ok`.
+      while a pull or a merge is stopped, and on a detached `HEAD` as a pull is; a merge that stops
+      on a conflict returns `Ok`.
 
 - [x] **Step 1: Write the failing tests**
 
@@ -778,11 +782,10 @@ git commit -m "feat(basic-git): stage, commit, discard, merge, and resolve confl
 - Create: `crates/core/src/api/git_page.rs`, its views in `api/git_page/views.rs`,
   `crates/binding/src/git_reads.rs`
 - Modify: `crates/core/src/api.rs` (re-exports), `crates/core/src/git/history.rs` (`history_page`),
-  `crates/core/src/git/staging.rs` (`checked` made `pub(crate)` for a worktree's diff),
-  `crates/core/src/view/feature.rs` (`feature_title`, shared with the groups' names),
-  `crates/core/src/watch.rs` (`Changes::git`), `crates/binding/src/lib.rs` (module line),
-  `packages/binding/index.d.ts` and `index.js` (generated), the server's `Changes` literals
-  (`git: false`)
+  `crates/core/src/git/staging.rs` (`checked` made `pub(crate)`), `crates/core/src/view/feature.rs`
+  (`feature_title`, shared with the groups' names), `crates/core/src/watch.rs` (`Changes::git`),
+  `crates/binding/src/lib.rs` (module line), `packages/binding/index.d.ts` and `index.js`
+  (generated), the server's `Changes` literals (`git: false`)
 - Test: `crates/core/tests/git_page.rs`, `staging_a_file_reports_git` in
   `crates/core/tests/watch.rs`
 

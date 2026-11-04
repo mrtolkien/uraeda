@@ -8,7 +8,7 @@ use gix::diff::index::Change;
 use gix::index::entry::Stage;
 use gix::status::index_worktree::iter::Summary;
 
-use super::diff::{is_binary as is_binary_blob, line_counts, on_disk};
+use super::diff::{is_binary as is_binary_blob, line_counts, on_disk, starts_binary};
 use super::{Git, GitError, ObjectId, Stopped, read_error};
 
 /// How a file differs from `HEAD`: an untracked file, or one staged as added, is `New`.
@@ -127,10 +127,15 @@ impl Git {
         let conflicts = self.conflicts()?;
         let mut files = Vec::new();
         for (path, row) in self.rows(&conflicts)? {
-            let counts = line_counts(
-                &self.at_head(&path)?.unwrap_or_default(),
-                &on_disk(&self.root, &path)?.unwrap_or_default(),
-            );
+            // A binary file on disk is told from its first bytes, never read whole.
+            let counts = if starts_binary(&self.root, &path) {
+                None
+            } else {
+                line_counts(
+                    &self.at_head(&path)?.unwrap_or_default(),
+                    &on_disk(&self.root, &path)?.unwrap_or_default(),
+                )
+            };
             files.push(FileChange {
                 state: row.state(),
                 staged: row.staged(),
@@ -140,7 +145,7 @@ impl Git {
             });
         }
         Ok(CheckoutState {
-            has_remote: self.repo.try_find_remote("origin").is_some(),
+            has_remote: self.has_origin(),
             branch,
             detached,
             ahead,

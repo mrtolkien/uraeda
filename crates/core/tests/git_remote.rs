@@ -145,3 +145,57 @@ fn a_credential_failure_says_how_to_give_one() {
         )
     );
 }
+
+/// Review focus 3: a pull passes `--rebase` only when no key says how to pull, and nothing syncs
+/// while a pull is stopped. Breaks: dropping `branch.<branch>.rebase`, or `pull.ff`, from the keys
+/// read; dropping the stopped check, which refuses a pull for a detached `HEAD` instead.
+#[test]
+fn a_pull_reads_every_key_that_says_how() {
+    without_user_git_config();
+
+    // `branch.main.rebase false` merges.
+    let repo = TestRepo::diverged();
+    repo.git(&["config", "branch.main.rebase", "false"]);
+    git(&repo).pull(None).unwrap();
+    assert_eq!(
+        repo.git(&["rev-parse", "HEAD^2"]),
+        repo.git(&["rev-parse", "origin/main"])
+    );
+
+    // `pull.ff only` refuses diverged branches, as git does, and nothing moves.
+    let repo = TestRepo::diverged();
+    repo.git(&["config", "pull.ff", "only"]);
+    let head = repo.git(&["rev-parse", "HEAD"]);
+    assert!(git(&repo).pull(None).is_err());
+    assert_eq!(repo.git(&["rev-parse", "HEAD"]), head);
+
+    // A stopped pull refuses another pull and a push.
+    let repo = TestRepo::with_origin();
+    repo.stopped_pull();
+    let stopped = "A pull is stopped: continue or abort it first.";
+    assert_eq!(refusal(git(&repo).pull(None)), stopped);
+    assert_eq!(refusal(git(&repo).push(None)), stopped);
+}
+
+/// The edge case "Push rejected": a push a hook of `origin` refuses keeps git's message, the
+/// hook's, and is not read as commits to pull. Break: matching any "rejected".
+#[test]
+fn a_push_a_hook_refuses_keeps_git_message() {
+    without_user_git_config();
+    let repo = TestRepo::with_origin();
+    let hook = repo.parent().join("origin.git/hooks/pre-receive");
+    std::fs::create_dir_all(hook.parent().unwrap()).unwrap();
+    std::fs::write(&hook, "#!/bin/sh\necho 'main is protected'\nexit 1\n").unwrap();
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    repo.write("local.md", "local\n");
+    repo.commit("chore: local");
+
+    let failed = git(&repo).push(None).unwrap_err();
+
+    assert!(!matches!(failed, GitError::Refused(_)), "{failed:?}");
+    let failed = failed.to_string();
+    assert!(failed.contains("main is protected"), "{failed}");
+}

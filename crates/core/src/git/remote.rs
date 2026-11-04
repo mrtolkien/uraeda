@@ -81,13 +81,20 @@ impl Git {
             return Err(GitError::Refused(format!("There is no remote to {to}.")));
         }
         self.ensure_not_stopped()?;
+        self.branch_to_write()
+    }
+
+    /// The branch checked out, for a write that moves it: refused on a detached `HEAD`, naming
+    /// the default branch.
+    pub(super) fn branch_to_write(&self) -> Result<String, GitError> {
         self.current_branch().ok_or_else(|| {
             let default = self.default_branch().unwrap_or_else(|| "main".to_string());
             GitError::Refused(format!("{default} is not checked out: HEAD is detached."))
         })
     }
 
-    fn has_origin(&self) -> bool {
+    /// Whether this repository has an `origin`.
+    pub(super) fn has_origin(&self) -> bool {
         self.repo.find_remote("origin").is_ok()
     }
 

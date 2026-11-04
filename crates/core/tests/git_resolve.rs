@@ -116,3 +116,20 @@ fn merge_brings_a_branch_into_main() {
     assert_eq!(stopped.kind, StoppedKind::Merge);
     assert_eq!(repo.unmerged(), ["README.md", "specs/vim.md"]);
 }
+
+/// Edge "Detached `HEAD`": a merge needs a branch to land on. Break: merging on a detached
+/// `HEAD`, which moves no branch.
+#[test]
+fn merge_refuses_a_detached_head() {
+    let repo = TestRepo::with_origin();
+    repo.branch("topic");
+    repo.add_on_branch("topic", "topic.md", "# Topic\n");
+    repo.git(&["switch", "--quiet", "--detach"]);
+    let head = repo.git(&["rev-parse", "HEAD"]);
+    let git = Git::discover(repo.path()).unwrap();
+
+    let refused = refusal(git.merge_branch("topic", None));
+
+    assert_eq!(refused, "main is not checked out: HEAD is detached.");
+    assert_eq!(repo.git(&["rev-parse", "HEAD"]), head);
+}

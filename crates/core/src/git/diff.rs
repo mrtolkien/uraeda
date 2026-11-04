@@ -3,6 +3,7 @@
 //! its slider heuristics), written in the unified format with 3 lines of context.
 
 use std::fmt::Write as _;
+use std::io::Read as _;
 use std::path::Path;
 
 use gix::diff::blob::unified_diff::{ConsumeHunk, ContextSize, DiffLineKind, HunkHeader};
@@ -58,7 +59,10 @@ impl Git {
     /// The diff of the file at `path`: capped past [`DIFF_CAP`] lines unless `whole`.
     pub fn file_diff(&self, of: DiffOf, path: &str, whole: bool) -> Result<FileDiff, GitError> {
         let (before, after) = match of {
-            DiffOf::Worktree => (self.at_head(path)?, on_disk(&self.root, path)?),
+            DiffOf::Worktree => {
+                let path = self.checked(path)?;
+                (self.at_head(path)?, on_disk(&self.root, path)?)
+            }
             DiffOf::Commit(id) => {
                 let parent = self.first_parent(id)?;
                 let before = parent.map(|parent| self.read_file(parent, path));
@@ -194,9 +198,25 @@ pub(super) fn on_disk(root: &Path, path: &str) -> Result<Option<Vec<u8>>, GitErr
     read.map(Some).map_err(read_error(path))
 }
 
+/// How many first bytes git looks in for a NUL, which makes a file binary.
+const BINARY_PREFIX: usize = 8_000;
+
 /// Whether git takes `bytes` as binary: a NUL in its first 8,000 bytes.
 pub(super) fn is_binary(bytes: &[u8]) -> bool {
-    bytes[..bytes.len().min(8_000)].contains(&0)
+    bytes[..bytes.len().min(BINARY_PREFIX)].contains(&0)
+}
+
+/// Whether the regular file at `path` on disk is binary, from its first 8,000 bytes alone: a
+/// symbolic link, a missing file, or one that cannot be read is not.
+pub(super) fn starts_binary(root: &Path, path: &str) -> bool {
+    let file = root.join(path);
+    if !std::fs::symlink_metadata(&file).is_ok_and(|meta| meta.is_file()) {
+        return false;
+    }
+    let mut prefix = Vec::with_capacity(BINARY_PREFIX);
+    std::fs::File::open(&file)
+        .and_then(|file| file.take(BINARY_PREFIX as u64).read_to_end(&mut prefix))
+        .is_ok_and(|_| is_binary(&prefix))
 }
 
 /// The lines added and removed from `before` to `after`, `None` when either is binary.
@@ -234,7 +254,8 @@ fn unified(path: &str, before: Option<&[u8]>, after: Option<&[u8]>) -> String {
     text
 }
 
-/// Writes each hunk as git does: its header, then each line with its prefix, a last line without
+/// Writes each hunk as git does: its header, an empty side starting at the line before, so a
+/// whole file added reads `@@ -0,0 +1,2 @@`, then each line with its prefix, a last line without
 /// a newline marked "\ No newline at end of file".
 struct Hunks(String);
 
@@ -243,9 +264,15 @@ impl ConsumeHunk for Hunks {
 
     fn consume_hunk(
         &mut self,
-        header: HunkHeader,
+        mut header: HunkHeader,
         lines: &[(DiffLineKind, &[u8])],
     ) -> std::io::Result<()> {
+        if header.before_hunk_len == 0 {
+            header.before_hunk_start = header.before_hunk_start.saturating_sub(1);
+        }
+        if header.after_hunk_len == 0 {
+            header.after_hunk_start = header.after_hunk_start.saturating_sub(1);
+        }
         writeln!(self.0, "{header}").map_err(std::io::Error::other)?;
         for (kind, line) in lines {
             self.0.push(kind.to_prefix());
