@@ -6,6 +6,7 @@ import { join } from "node:path";
 import type { Adapter, AgentProcess, Capabilities, OpenOptions } from "./adapter.ts";
 import { allowRule, type Blocks, lines, parseLine } from "./claude-events.ts";
 import type { AgentEvent, Denial } from "./events.ts";
+import { WEB_UI_INSTRUCTIONS } from "./instructions.ts";
 
 /** A failed process keeps this many lines of stderr. */
 const STDERR_LINES = 20;
@@ -35,7 +36,7 @@ function endWithServer() {
 
 /**
  * The arguments of a session's process: print mode, stream-json both ways, `auto` mode, the skill,
- * and the chat images' folder, which the agent reads even when the user blocks reads outside the
+ * the web UI's instructions, appended to the system prompt on every start, and the chat images' folder, which the agent reads even when the user blocks reads outside the
  * working directory. Only that folder is added, never the whole data folder: `auto` mode lets the
  * agent write to added folders.
  */
@@ -58,6 +59,8 @@ export function claudeArgs(
     pluginDir,
     "--add-dir",
     imagesDir,
+    "--append-system-prompt",
+    WEB_UI_INSTRUCTIONS,
     options.resume ? "--resume" : "--session-id",
     options.nativeId,
     ...(options.allowed === undefined ? [] : ["--allowedTools", ...options.allowed]),

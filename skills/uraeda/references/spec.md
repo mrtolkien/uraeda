@@ -149,8 +149,8 @@ First, look for an existing decision on the same topic.
   since the file is gone.
 
 The human sees each change as the difference between the decision on the branch and at the merge
-base with the default branch. Uraeda draws it in place, and `git diff` shows it without Uraeda. The
-approval step activates each listed decision: see [Approval](approval.md).
+base with the default branch, as `git diff` shows it. The approval step activates each listed
+decision: see [Approval](approval.md).
 
 ### Writing a decision
 
@@ -160,8 +160,7 @@ the human gives the limits of each section, and how a **Why** reads.
 
 - **Title**: the topic.
 - **Icon**: in the frontmatter, the name of a [Lucide](https://lucide.dev/icons/) icon that shows
-  the topic, like `git-branch`. The web UI draws it beside the title, and a default icon for a name
-  it does not know. It is optional.
+  the topic, like `git-branch`. It is optional.
 - **Intent**: before `## Rules`: the choice and what it protects. Specifics appear only where they
   are hard constraints.
 - **Rules**: MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY rules that a spec, a plan, or code can be
@@ -287,8 +286,8 @@ tested on its own: a user could get value from P1 alone. A story holds, in order
 - **"Why this priority:"**: only when the order is not obvious from the journeys.
 - **"Key scenarios:"**: a numbered list of two or three scenarios, the ones that show the story
   best.
-- **"More scenarios:"**: optional, the other scenarios. The web UI folds them, and they do not count
-  in the spec's reviewed part.
+- **"More scenarios:"**: optional, the other scenarios. They do not count in the spec's reviewed
+  part.
 
 Scenarios are written as **Given** / **When** / **Then**, with exact values. Write "a weekly task
 due Monday the 5th", "it is due Monday the 12th", never "the next week". Each has at most 4 steps.
@@ -307,8 +306,8 @@ behaviour, and wins when the two disagree.
 
 **With an active preview decision**, `specs/decisions/preview.md`, mockups are Storybook stories,
 written where the decision says: one export per state. Embed each one by a
-[story link](conventions.md#markdown) alone in its paragraph: Uraeda shows the story there, live, at
-a phone's width and a desktop's.
+[story link](conventions.md#markdown) alone in its paragraph, where the preview shows it live, at a
+phone's width and a desktop's.
 
 ```markdown
 [Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)
@@ -316,7 +315,7 @@ a phone's width and a desktop's.
 
 Before linking a story, set the worktree up as the project's git decision asks, like its install. A
 new worktree has none of its dependencies, and its Storybook does not start without them. Then check
-that each story you link renders, in Uraeda or with the decision's `preview-command`.
+that each story you link renders, with the decision's `preview-command`.
 
 Story links need Storybook's Vite builder, which the decision requires. After a
 [visual question](discovery.md#visual-questions), the spec's commit keeps the picked variant's
@@ -399,8 +398,7 @@ first:
 ```
 
 Rate each one: high when it can lose data or mislead the user, niche when few users meet it, normal
-otherwise. `ura check` reports any other importance as `edges.importance`. The web UI folds the
-niche ones.
+otherwise. `ura check` reports any other importance as `edges.importance`.
 
 **Success criteria** are measurable outcomes, each one checkable by a test or a benchmark. Write
 "Setting a preset repeat takes two clicks from the open task", not "Setting a repeat is easy". Each
@@ -463,8 +461,7 @@ no `plan-review` has `false`.
 Write `data-model.md` next to the spec, from
 [its template](../assets/templates/specs/YYYY-MM-DD-feature-slug/data-model.md), whenever the
 feature adds or changes stored data or a file format, at any size. The human reviews it with the
-spec, and the web UI shows it after the stories as "Data". Types internal to the code are the
-plan's.
+spec. Types internal to the code are the plan's.
 
 - **One section per entity, file, or format**, `## <Entity>`.
 - **A table of its fields**: the field, its type, its meaning, and its change: new, changed,

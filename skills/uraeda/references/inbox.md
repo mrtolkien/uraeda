@@ -117,10 +117,6 @@ create it as `# Inbox`, a blank line, and the note, and add that title to a file
   worktree, it defaults to that one. `--category` names the category, created when missing;
   `--agent` writes `agent: true`; `--no-commit` leaves the file for you to commit. It refuses a
   blank note with "A note needs text.", and runs only in a repository with a `specs/` folder.
-- **In the web UI**: the ＋ next to Inbox in the sidebar, from any page. From a feature's or a
-  change's page, the note gets its slug. "Add" leaves it uncommitted, for the commit page's Commit.
-  "Add as a file" saves a note with images as a file that holds them, linked from the inbox: pick,
-  paste, or drop as many as it needs.
 - **In the editor**: the plugin's "Add a note" action, which writes without committing.
 
 ### Images on a note
@@ -137,9 +133,6 @@ images live in its note file's folder, in `specs/notes/`, as
    line of its own after a blank line: `![alt](images/name.webp)`. In a note file written from the
    proposal template, as older tools wrote them, the links go at the end of its What. A single-file
    note file, `<slug>.md`, becomes a folder first, `<slug>/note.md`, and the links to it follow.
-
-The web UI does it from a note's page, with "Add images", or by dropping them on the page, and draws
-the images under the note's text, and the first one on its row.
 
 An image no file of its folder links is an orphan: a commit of the folder deletes it, and one left
 in a folder nobody has committed stays on disk. `ura inbox clean` lists them with `--dry-run`, and
@@ -259,8 +252,7 @@ decisions.
    first line as the body. Stop: the triage waits for the human.
 
 The human answers it like any round: each `**Answer:**` filled, `status: answered`, and the file
-committed alone with `chore: answer the inbox triage`. In the web UI, the inbox page's "Answer it"
-opens it in the questions view, and Submit commits it. `ura answer` answers features' rounds only.
+committed alone with `chore: answer the inbox triage`. `ura answer` answers features' rounds only.
 
 ### Applying the answers
 
@@ -284,8 +276,8 @@ Once `INBOX-TRIAGE.md` is `answered`:
    as **Start as a change** in [Projects](projects.md#starting-postponing-and-dropping-a-feature)
    says: `ura start <proposal> --slug <slug> --change`. The answer is the human asking for it, as
    [starting a change](change.md#starting-a-change) requires. Its proposal is the file, unchanged:
-   the human's note, not what the question's context found. Then say to open `/f/<folder>` in the
-   web UI, where the change's own session runs: this run does not make the change.
+   the human's note, not what the question's context found. Then say that the change is started, in
+   its own worktree: this run does not make the change.
 
 ## Agents' notes
 

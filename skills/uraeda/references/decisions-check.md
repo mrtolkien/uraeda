@@ -70,9 +70,8 @@ is deleted when the check is applied.
    for the human.
 
 The human answers it like any round: each `**Answer:**` filled, `status: answered`, and the file
-committed alone with `chore: answer the decisions check`. In the web UI, the decisions page's "Check
-decisions" opens it in the questions view, with each option's candidate drawn against the active
-decision, and Submit commits it. `ura answer` answers features' rounds only.
+committed alone with `chore: answer the decisions check`. `ura answer` answers features' rounds
+only.
 
 ## Applying the answers
 
@@ -105,5 +104,5 @@ Once `DECISIONS-CHECK.md` is `answered`:
    and `- Skip, <decision> changed since the check: <question>`. When no answer edits a decision, no
    change starts, and this commit is the whole run.
 
-Then say to open `/f/<folder>` in the web UI, where the change's own session runs: this run does not
-make the change, and never switches the main checkout.
+Then say that the change is started, in its own worktree: this run does not make the change, and
+never switches the main checkout.

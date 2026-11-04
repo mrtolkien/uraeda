@@ -206,7 +206,7 @@ Records are frozen once merged: edit one only to fix a broken link, or to add `s
 its line, as [pointing to the records it replaces](#point-to-the-records-it-replaces) says. A later
 feature that changes the behaviour says so in its own record. A link broken by a later move is
 repaired as [the catch-up](implementation.md#where-a-moved-link-points) says: with `ura`,
-`ura check --fix`, and in the web UI, "Fix moved links" on the done feature's page.
+`ura check --fix`.
 
 The branch, its worktree, and its line in `PRIORITIES.md` stay until the human cleans them. When you
 find a merged feature with a worktree, a local branch, or a line in the priorities left, tell the

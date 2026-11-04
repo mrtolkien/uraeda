@@ -28,6 +28,29 @@ the repository of the folder you are in. Each repository's pages are under `/r/<
 A repository that lacks the files the workflow needs opens Home on a Setup pane. "Set up with the
 agent" opens a session with the setup message ready to send.
 
+## The workflow's files
+
+The web UI reads the workflow's files as the skill writes them, and draws them:
+
+- A decision's `icon`, a [Lucide](https://lucide.dev/icons/) name, shows beside its title, and a
+  default icon for a name it does not know. A decision changed on a branch shows its change against
+  the default branch, in place.
+- A spec folds its stories' "More scenarios" and its niche edge cases, and shows `data-model.md`
+  after the stories, as "Data".
+- With a preview decision, a story link alone in its paragraph shows the story live, at a phone's
+  width and a desktop's, in a file and in a session's message. A prototype's HTML page linked alone
+  in its paragraph shows live too, and an image or an SVG shows in place.
+- A comment on a point settled without you is written as a bullet of the round's notes, starting
+  with the point's bold subject.
+- On the inbox, the ＋ next to Inbox in the sidebar adds a note from any page, and from a feature's
+  or a change's page with its slug. "Add" leaves it uncommitted, and "Add as a file" saves a note
+  with images as a file of its own. A note's page adds images with "Add images", or by dropping
+  them, and draws them under its text.
+- The inbox page's "Answer it" and the decisions page's "Check decisions" open their round in the
+  questions view, where Submit commits it.
+- A done feature's page repairs links its files lost to a later move with "Fix moved links", as
+  `ura check --fix` does.
+
 ## Sign-in
 
 Every browser signs in. The first start shows an access key, once, in the terminal: keep it in a
@@ -210,8 +233,24 @@ the first tap shows this and the second sends. A run it could not continue, as w
 of its feature works, stays as it was, and a toast says why. A run waiting for a usage limit's reset
 reads in In progress, with the time it goes on.
 
+"＋ New" starts a feature from a typed text, with no proposal file: its first line is the title, and
+its research effort goes in the proposal's `discovery` field. It starts a change from a typed
+request, an inbox note, or a priorities line. A line of **Now** it was filled from is replaced by
+the new link in the start commit. "Drop the change…" and "Drop the feature…", in a session's
+actions, drop it.
+
+When you ask a session on the main checkout for a code change, the agent offers it as a change, in a
+card holding its proposal: edit the proposal and its slug, then start it, and the session goes on in
+the change's worktree. A change that needs more than a change's flow is offered as a feature the
+same way. A run that starts a change it does not make, like applying an inbox triage, gives the
+change's page, where its own session runs.
+
 Claude Code runs in `auto` permission mode, with your own settings, and with the server's copy of
-the skill as a plugin: see the [agents](../specs/decisions/agents.md) decision.
+the skill as a plugin: see the [agents](../specs/decisions/agents.md) decision. The skill holds the
+workflow for any agent, and never describes the web UI. The server adds the web UI's own
+instructions to every session, in
+[`instructions.ts`](../packages/server/src/runner/instructions.ts): its offers' cards, and what it
+shows of the agent's messages.
 
 ## The data folder
 

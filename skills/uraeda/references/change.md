@@ -38,43 +38,27 @@ A change's folder is `specs/changes/YYYY-MM-DD-<slug>/`. It holds `proposal.md`,
 
 ## Starting a change
 
-Only when a human asks. A change starts like a feature, with its own names. Start it from Change on
-the web UI's New page, with `ura start <proposal> --slug <slug> --change`, or by hand. See **Start
-as a change** in [Projects](projects.md#starting-postponing-and-dropping-a-feature).
+Only when a human asks. A change starts like a feature, with its own names: with
+`ura start <proposal> --slug <slug> --change`, or by hand. See **Start as a change** in
+[Projects](projects.md#starting-postponing-and-dropping-a-feature).
 
 **From a session on the main checkout**, a request for a code change is offered as a change, not
 committed to the default branch. A session is a conversation with you: without a workflow, it runs
-on the main checkout. Offer the change in a fenced block whose info string is `uraeda-offer change`.
-It holds the proposal in the human's own words, its `# Title` first:
+on the main checkout. Offer the change once, with its proposal in the human's own words, its
+`# Title` first:
 
-````markdown
-```uraeda-offer change
+```markdown
 # Login redirects twice
 
 After signing in, the app shows the home page, then the sign-in page again.
 ```
-````
 
-Uraeda shows the block as a card, where the human edits the proposal and its slug, then starts the
-change. Every other reader sees the block as text. Offer once. Only the latest offer of a session
-has buttons. An offer of a change in a change's or a feature's session reads as text, since a
-session only moves up. Change no file before the human says yes.
-
-When the card starts the change, the same session goes on in the change's worktree. Its next message
-names the worktree, the branch, and the files you edited on the main checkout, to carry over. A file
-the human also edited since stays on the main checkout: merge it by hand. Leave every other
-uncommitted file where it is.
-
-When the human says yes in words instead, in Uraeda, offer the block again, and ask the human to
-start the change from its card. Only the card moves this session into the change's worktree. Started
-any other way, the change later gets a second session in the same worktree. The human may also start
-it from the New page, and talk in the change's session. In a harness without Uraeda, commit its
-proposal file on the default branch, `chore: expand <title>`. Start it as
+Change no file before the human says yes. On their yes, commit its proposal file on the default
+branch, `chore: expand <title>`. Start it as
 [Projects](projects.md#starting-postponing-and-dropping-a-feature) says, and run the change in its
 worktree.
 
-Typos, formatting, and comments stay in the session, made there as before. A change or a feature may
-hold several sessions, all in its worktree, and only one of them works at a time.
+Typos, formatting, and comments stay in the session, made there as before.
 
 ## Finding the step
 
@@ -196,19 +180,11 @@ Some changes need more than the light flow allows. Offer to make the change a fe
 
 The size of the diff is never a reason.
 
-The upgrade moves the change in place: its branch, its folder, its code, and its sessions become the
-feature's. Offer it, and never make it alone:
+The upgrade moves the change in place: its branch, its folder, and its code become the feature's.
+Offer it, and never make it alone:
 
-- **When the human talks with you in the session**, offer it in a fenced block whose info string is
-  `uraeda-offer feature`. The block holds the reason in one sentence. Uraeda shows it as a card the
-  human accepts:
-
-  ````markdown
-  ```uraeda-offer feature
-  It changes the format of `PRIORITIES.md`, which every project has.
-  ```
-  ````
-
+- **When the human talks with you in the session**, offer it with the reason in one sentence, like
+  "It changes the format of `PRIORITIES.md`, which every project has.", and wait for their yes.
 - **In a run nobody follows**, ask in a round, with the question "Make this change a feature?". Its
   context names the reason, and option A is the upgrade. The round may come before the change's
   other questions, or hold them too.
@@ -278,10 +254,9 @@ time, one commit per item:
   project's decisions: [a UI gets few tests](code-quality.md#how-many). Screenshots are never
   committed for review. In the messages that report your work, link each story you wrote or changed.
   Use a [story link](conventions.md#markdown), alone in its paragraph, with a blank line before and
-  after. Uraeda shows it live in the session, where the human can try it and comment on it. Before
-  linking a story, set the worktree up as the project's git decision asks, like its install. A new
-  worktree has none of its dependencies, and its Storybook does not start without them. Then check
-  that each story you link renders, in Uraeda or with the decision's `preview-command`.
+  after. Before linking a story, set the worktree up as the project's git decision asks, like its
+  install. A new worktree has none of its dependencies, and its Storybook does not start without
+  them. Then check that each story you link renders, with the preview decision's `preview-command`.
 - **Rulings.** The choices a later reader would want explained go in the change's `rulings.md`, from
   [the template](../assets/templates/specs/YYYY-MM-DD-feature-slug/rulings.md), in the same commit,
   as the [implementation step](implementation.md#rulings) describes.
@@ -348,7 +323,7 @@ Comments on the pull request are handled as for a feature, as
 | "The diff is big, I'll stop and ask"                      | Size is never a stop.                                                         |
 | "One more fix and it will pass"                           | After three failed fixes the approach is wrong: offer the upgrade.            |
 | "It's a small fix, I'll commit it to main from here"      | Offer it as a change: its branch, its tests, and its pull request.            |
-| "It is feature-sized, I'll make it a feature now"         | Offer it in a block or a round: the move waits for the human's yes.           |
+| "It is feature-sized, I'll make it a feature now"         | Offer it in the session or a round: the move waits for the human's yes.       |
 | "The feature needs a clean branch, I'll revert the code"  | The code stays: the move renames the branch and the folder in place.          |
 | "I'll write a discovery file for this round"              | A change's round is `clarifications-NN.md` alone: findings go in its Context. |
 

@@ -20,12 +20,12 @@ GitHub Flavored Markdown, plus these extensions, which stay readable where they 
 - **Story links**: a link to a `*.stories.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, or `.svelte` file,
   from the repository root or relative, then `#` and the story's export name, an ASCII identifier:
   `[Repeat menu, open](/src/tasks/RepeatMenu.stories.tsx#Open)`. With an active preview decision, a
-  story link alone in its paragraph shows the story live in Uraeda, and anywhere else opens it in
-  Storybook. A variant's story link is a paragraph of its option.
+  story link alone in its paragraph shows the story in the preview, and opens it in Storybook. A
+  variant's story link is a paragraph of its option.
 - **Diagrams**: a fenced code block whose language is `mermaid`. Use it for a flow, a sequence, or
   states that a list would make hard to follow: a `flowchart`, a `sequenceDiagram`, or a
-  `stateDiagram-v2`. It reads as text anywhere, and renders on GitHub and in Uraeda. Never an image
-  of a diagram, an ASCII drawing, or another diagram language. See
+  `stateDiagram-v2`. It reads as text anywhere, and renders on GitHub. Never an image of a diagram,
+  an ASCII drawing, or another diagram language. See
   [Writing for the human](writing.md#every-document).
 - **Images**: `![alt](images/name.webp)`, saved in the `images/` folder next to the file, and
   committed with it. Each is re-encoded once as WebP, with no metadata. Its long edge is at most
@@ -33,9 +33,7 @@ GitHub Flavored Markdown, plus these extensions, which stay readable where they 
   `.gif`, without metadata. A proposal file that gets an image becomes a folder,
   `<slug>/proposal.md`, and a note file `<slug>/note.md`, and links to them follow. When you commit
   a human's file, delete the images of its folder that no file there links to; starting a feature
-  moves them all, unchanged. In Uraeda, these images show in place, and so does a prototype's image
-  in a `mockups/` folder, an SVG too, linked alone in its paragraph. In a session's message, write
-  their paths from the repository root.
+  moves them all, unchanged.
 
 Templates are strict where tools and agents need to find things, and free elsewhere:
 
@@ -127,7 +125,7 @@ Workflow files track their state in frontmatter fields.
 the implementation, with the approved spec as it is.
 
 A change's folder has no other status: its rounds are `clarifications-NN.md`, as a feature's are.
-See [Change](change.md). A decision's `icon` that the web UI does not know shows a default icon.
+See [Change](change.md).
 
 A decision is `proposed` while a branch creates or changes it, an active one included: the branch
 edits it in place, and empties its `approved-by`. The default branch keeps the active text until the
@@ -226,15 +224,13 @@ Its rounds use `discovery(<slug>):`, and an approved change to a decision uses
 `decision(<slug>): apply <topic>`.
 
 Tools save the human's edits and never commit them on their own. An edit waits until the human
-commits it: on the web UI's Commit page, or by an action that says it commits, like submitting a
-round's answers. Starting a feature or a change may commit on its own. The Commit page commits each
-branch with changes apart, the default branch's and each feature's, with its own message. A buffer,
-the web UI's editor of a whole file under `specs/`, only saves its file: its edit waits on that page
-too, on the feature's branch for a file of a feature's folder. The commit names it as one change,
-`edit <path>`, in place of the changes its lines would read as.
+commits it, or runs an action that says it commits, like submitting a round's answers. Starting a
+feature or a change may commit on its own. Each branch with changes commits apart, the default
+branch's and each feature's, with its own message. An edit of a whole file under `specs/` commits as
+one change, `edit <path>`, in place of the changes its lines would read as.
 
 The human's commits, and the agent's when the human asks, use the step's type for what they answer
-and `chore:` for the rest. `ura` and the web UI write the same messages. A message the human typed
+and `chore:` for the rest. `ura` and other tools write the same messages. A message the human typed
 is committed as typed.
 
 | Commit                             | Example                                                                                                                                             |
@@ -266,7 +262,7 @@ changes the same way: `add "<note>" to the inbox`, `edit "<note>" in the inbox`,
 `move "<note>" from the inbox to <Section>`, or
 `move "<note>" from the inbox to the proposal <title>`. See [Inbox](inbox.md).
 
-`ura` and the web UI amend the latest commit rather than add one when both are `chore:` commits
+`ura` and other tools amend the latest commit rather than add one when both are `chore:` commits
 without a scope, of `INBOX.md`, `PRIORITIES.md`, and files under `specs/proposals/` and
 `specs/notes/` alone, on the default branch. The latest commit has one parent, and no other branch,
 remote branch as last fetched or pushed, or tag holds it: a commit pushed and known to be pushed

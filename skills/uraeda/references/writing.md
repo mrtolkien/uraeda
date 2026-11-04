@@ -52,8 +52,8 @@ See [The `ura` CLI](cli.md).
    and states. Prose carries the rest. The reader recognizes the kind at a glance.
 7. **Diagrams are Mermaid code blocks.** Draw a flow, a sequence, or states that a list would make
    hard to follow in a fenced code block whose language is `mermaid`. Use a `flowchart`, a
-   `sequenceDiagram`, or a `stateDiagram-v2`. It reads as text in any editor, and renders on GitHub
-   and in Uraeda. A diagram never repeats as a list what the text around it says. See
+   `sequenceDiagram`, or a `stateDiagram-v2`. It reads as text in any editor, and renders on GitHub.
+   A diagram never repeats as a list what the text around it says. See
    [Markdown](conventions.md#markdown).
 8. **No padding.** A sentence that changes nothing the reader decides or checks is cut: restating
    the heading, announcing what follows, thanking, or hedging. Length comes from content, never from
@@ -82,7 +82,6 @@ exceptions. Their Context is free text without parts. They have no settled point
 
 A comment on one settled point, of Check these or of the settled section, is a bullet at the end of
 the notes, starting with that point's bold subject. Its further lines are indented by two spaces.
-The web UI writes comments on settled points this way, and a human can write them by hand.
 
 ### The block
 
@@ -184,8 +183,8 @@ The web UI writes comments on settled points this way, and a human can write the
 25. **A settled point starts with its bold subject**, continued by what was chosen and why, then a
     link to its source: `- **Undoing a completion** puts back what completing changed. See ...`.
     Subjects are unique in the round, the points to check included: the human comments on a point by
-    its subject. A point without its bold subject fails `ura check` (`settled.subject`): the web UI
-    would draw nothing for it.
+    its subject. A point without its bold subject fails `ura check` (`settled.subject`): the human
+    could not comment on it.
 
 ## A spec
 

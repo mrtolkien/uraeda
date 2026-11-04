@@ -50,3 +50,43 @@ fn the_skill_entry_point_stays_lean() {
          reference, and link it"
     );
 }
+
+/// The markdown files under `folder`, at any depth.
+fn markdown_files(folder: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
+    for entry in fs::read_dir(folder).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            markdown_files(&path, files);
+        } else if path.extension().is_some_and(|extension| extension == "md") {
+            files.push(path);
+        }
+    }
+}
+
+// The skill holds the workflow for any harness: what only the web UI does, it tells its own
+// sessions (`packages/server/src/runner/instructions.ts`), and its users (`docs/web-ui.md`).
+#[test]
+fn the_skill_never_describes_the_web_ui() {
+    let skill = repository().join("skills/uraeda");
+    let mut files = vec![skill.join("SKILL.md")];
+    markdown_files(&skill.join("references"), &mut files);
+    markdown_files(&skill.join("assets/templates"), &mut files);
+
+    for file in files {
+        let text = fs::read_to_string(&file).unwrap();
+        for phrase in [
+            "web UI",
+            "uraeda-offer",
+            "in Uraeda",
+            "Uraeda shows",
+            "Uraeda's helper",
+        ] {
+            assert!(
+                !text.contains(phrase),
+                "{} names the web UI with \"{phrase}\": move it to the web UI's instructions or \
+                 docs/web-ui.md",
+                file.display()
+            );
+        }
+    }
+}
