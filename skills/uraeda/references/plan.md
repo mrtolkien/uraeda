@@ -63,8 +63,9 @@ Rewrite the links to it as [approval](approval.md#delete-the-prototypes) describ
 
 ## Scope check
 
-If the spec covers several independent subsystems, it should have been split before approval. If it
-was not, do not write one plan for all of them. Stop, as described in
+If a part of the spec cannot be designed until another part is built, it should have been split
+before approval, as [the split rule](writing.md#a-spec) says. If it was not, do not write one plan
+for all of it. Stop, as described in
 [Stopping to go back to the human](#stopping-to-go-back-to-the-human), with a question proposing the
 split, the recommended split as option A. Each plan must produce working, testable software on its
 own.
@@ -450,7 +451,7 @@ Stop when the plan would need:
   dependency, or a platform does not allow it. Every way around it changes what users get.
 - **To pick between two sections of the spec that disagree**, or to meet an edge case its data
   cannot support.
-- **A split** of a spec that covers several independent subsystems (see
+- **A split** of a spec where one part cannot be designed until another is built (see
   [Scope check](#scope-check)).
 - **A new limit or rule** the spec does not state, like a maximum, that users would notice.
 

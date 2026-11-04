@@ -88,15 +88,15 @@ human wrote it.
 
 ## Scope check
 
-Before investigating details, assess the proposal's scope. If it describes several independent
-subsystems ("reminders, sharing, and a calendar view"), do not refine all of them at once. Make the
-split the first question of the round, with the recommended split as option A. It covers the
-independent pieces, how they relate, and the order to build them. Investigate the first piece in
-depth, and leave the others for their own features.
+Before investigating details, assess the proposal's scope. Propose a split only when building one
+part has real implications on the next, as [the split rule](writing.md#a-spec) says: a sync protocol
+whose shape the offline mode built on it depends on, say. Then make the split the first question of
+the round, with the recommended split as option A. It covers the pieces, how the first shapes the
+next, and the order to build them. Investigate the first piece in depth, and leave the others for
+their own features.
 
-A proposal can also be one subsystem too large for one spec. When the spec it leads to would pass
-[the split rule](writing.md#a-spec), past 6 stories, 30 scenarios, or 2 changed decisions, propose a
-split the same way.
+A proposal is never split for its size. Several independent pieces ("reminders, sharing, and a
+calendar view") stay in one feature, and so does a spec with many stories.
 
 ## Investigate in depth
 

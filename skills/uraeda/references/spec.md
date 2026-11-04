@@ -498,9 +498,10 @@ Before committing, read the spec again with fresh eyes, and fix what you find in
 3. **Consistency**: no section contradicts another, and every UI change has a mockup. The
    architecture's units deliver every user story. The data model supports every edge case, over two
    consecutive occurrences when it repeats.
-4. **Scope**: the spec fits a single plan, within [the split rule](writing.md#a-spec). If it does
-   not, start a new round, following [Discovery](discovery.md), with a question proposing the split,
-   the recommended split as option A. Answered rounds are never edited.
+4. **Scope**: no part of the spec waits on another part's build to be designed, as
+   [the split rule](writing.md#a-spec) says. If one does, start a new round, following
+   [Discovery](discovery.md), with a question proposing the split, the recommended split as option
+   A. Answered rounds are never edited.
 5. **Ambiguity**: a requirement that can be read two ways is rewritten to say one.
 6. **Linear reading**: nothing is referred to before it is introduced, the block names subjects, and
    each rule is stated once.
