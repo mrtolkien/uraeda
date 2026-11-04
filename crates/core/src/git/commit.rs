@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use super::{Git, GitError, ObjectId, StoppedKind, process, read_error};
+use super::{Git, GitError, ObjectId, process, read_error};
 
 /// What a commit staged, for [`Git::commit_stage`]: the paths `git add` took, and whether they
 /// are committed alone.
@@ -188,7 +188,8 @@ impl Git {
 
     /// Runs `git commit` with the hooks, `extra` after its message, its output streamed to
     /// `on_output` when one is given. Every commit goes through it, and none while a pull or a
-    /// merge is stopped: a rebase's would land on its detached `HEAD`, a merge's would end it.
+    /// merge is stopped: a rebase's would land on its detached `HEAD`, a merge's would end it. An
+    /// action is refused earlier, before it writes, when it reaches its checkout.
     fn commit_staged(
         &self,
         extra: &[&str],
@@ -196,11 +197,7 @@ impl Git {
         body: Option<&str>,
         on_output: OnOutput,
     ) -> Result<(), GitError> {
-        match self.stopped().map(|stopped| stopped.kind) {
-            Some(StoppedKind::Pull) => return Err(refused("pull")),
-            Some(StoppedKind::Merge) => return Err(refused("merge")),
-            Some(StoppedKind::Stash) | None => {}
-        }
+        self.ensure_not_stopped()?;
         let hooks = self
             .hooks_override()
             .map(|path| format!("core.hooksPath={path}"));
@@ -243,11 +240,4 @@ pub fn others_staged(staged: &[String], paths: &[String]) -> Vec<String> {
         })
         .cloned()
         .collect()
-}
-
-/// The refusal of a commit, or a merge, while `operation` is stopped.
-pub(super) fn refused(operation: &str) -> GitError {
-    GitError::Refused(format!(
-        "A {operation} is stopped: continue or abort it first."
-    ))
 }

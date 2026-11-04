@@ -99,7 +99,8 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   runner gives `git_write` a caller in this task, with no dead-code marker, and keeps a commit's
   hooks from waiting on a prompt in the server.
 - **If wrong**: a hook that asks for credentials at a terminal during `ura`'s commit now fails
-  instead of prompting.
+  instead of prompting. Every process `process::run` starts, not only writes, now has its stdin
+  closed.
 - **Where**: task 1.
 
 ## R11: A binary or a delete conflict is never resolved by its markers
@@ -152,3 +153,21 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: a file named `*.md` must stage itself alone, and a path the web sends must never
   make the core delete a file the page did not list, like `.git/config` or an ignored `.env`.
 - **Where**: task 4.
+
+## R15: A stopped pull or merge refuses an action before it writes
+
+- **Decision**: `Git::ensure_not_stopped`, in `git/stopped.rs`, owns the refusal "A pull is stopped:
+  continue or abort it first." (or "A merge is stopped: …"), and replaces `commit::refused`.
+  `place::reach` calls it on the checkout it reaches, unless it created it, and `reach_switching` on
+  this one, so an action is refused before writing a file; the start's checks call it first too, so
+  a start during a merge now reads "A merge is stopped: continue or abort it first." instead of
+  "cannot start: a merge is in progress on main: …", and `operation_in_progress` names only a
+  cherry-pick, a revert, or applying patches. `default_checkout` finds the default branch's checkout
+  as `reach` does (`place::holder`), a stopped rebase of it included. A stash's stop names
+  `stash@{0}` only while `refs/stash` exists.
+- **Rationale**: refused only at the commit, an action left its file written, which made
+  `git rebase --continue` fail, and over a file already changed it answered "other changes" instead
+  of the spec's text. One owner keeps the commit's, the sync's, and the merge's texts the same.
+- **If wrong**: an action during a stopped pull could write and wait for the commit; nothing else
+  changes.
+- **Where**: tasks 1, 3, and 4.

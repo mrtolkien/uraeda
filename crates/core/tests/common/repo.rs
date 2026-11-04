@@ -236,6 +236,26 @@ impl TestRepo {
         assert!(self.path.join(".git/rebase-merge").exists());
     }
 
+    /// Leaves a merge of a local branch, `topic`, into `main` stopped on one conflicting file,
+    /// `specs/PRIORITIES.md`, changed on both sides.
+    pub fn stopped_merge(&self) {
+        let path = "specs/PRIORITIES.md";
+        let text = |line: &str| format!("# Priorities\n\n## Now\n\n- {line}\n");
+        self.write(path, &text("Base"));
+        self.commit("chore: priorities");
+        self.switch_new("topic");
+        self.write(path, &text("Topic"));
+        self.commit("chore: topic priorities");
+        self.switch("main");
+        self.write(path, &text("Main"));
+        self.commit("chore: main priorities");
+        assert!(
+            !self.try_git(&["merge", "--no-edit", "topic"]),
+            "the merge did not stop"
+        );
+        assert!(self.path.join(".git/MERGE_HEAD").exists());
+    }
+
     pub fn delete_branch(&self, name: &str) {
         self.git(&["branch", "--quiet", "-D", name]);
     }
