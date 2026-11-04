@@ -3,7 +3,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { expect, test, vi } from "vite-plus/test";
+import { expect, test } from "vite-plus/test";
 import { GIT_ID } from "../fate.ts";
 import type { RepoContext } from "../fate/context.ts";
 import { gitMutations } from "../fate/git-mutations.ts";
@@ -17,6 +17,7 @@ import {
   fixtureRepo,
   git,
   mutate,
+  queueWhen,
   testServer,
 } from "./helpers.ts";
 
@@ -163,23 +164,24 @@ test("a pull lands in the queue with its output", async () => {
 /** The server, its repository's queue, and a held commit of the main checkout, landing. */
 async function heldCommit(using = binding) {
   const server = await testServer(fixtureRepo(), { binding: using });
-  const { queue } = server.hosts.byPath(server.repo)!;
+  const host = server.hosts.byPath(server.repo)!;
+  const { queue } = host;
   const hook = heldHook(server.repo);
   writeFileSync(join(server.repo, "held.txt"), "held\n");
   expect(
     (await mutate(server.app, "git.stage", { folder: null, paths: ["held.txt"] }, ["id"])).error,
   ).toBeUndefined();
   const committing = mutate(server.app, "git.commit", { folder: null, message: "Held" }, ["id"]);
-  await vi.waitFor(() => expect(queue.writes()).toMatchObject([{ state: "running" }]));
-  return { committing, hook, queue, server };
+  await queueWhen(host, (writes) => writes.length === 1 && writes[0].state === "running");
+  return { committing, hook, host, queue, server };
 }
 
 // Break caught: the guard run only as the write is queued, not again as it lands.
 test("a write queued before a chat's turn started is refused as it lands", async () => {
-  const { committing, hook, queue, server } = await heldCommit();
+  const { committing, hook, host, queue, server } = await heldCommit();
   writeFileSync(join(server.repo, "notes.txt"), "a note\n");
   const staging = mutate(server.app, "git.stage", { folder: null, paths: ["notes.txt"] }, ["id"]);
-  await vi.waitFor(() => expect(queue.writes()).toHaveLength(2));
+  await queueWhen(host, (writes) => writes.length === 2);
 
   const chat = (await mutate(server.app, "session.newChat", {}, ["id"])).data as Data;
   const session = await send(server, { session: chat.id });

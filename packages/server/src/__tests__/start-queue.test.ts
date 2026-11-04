@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { expect, test, vi } from "vite-plus/test";
-import { binding, byId, type Data, git, mutate, testServer } from "./helpers.ts";
+import { binding, byId, type Data, git, mutate, queueWhen, testServer } from "./helpers.ts";
 
 type Server = Awaited<ReturnType<typeof testServer>>;
 
@@ -52,18 +52,20 @@ async function writes(server: Server): Promise<Array<Record<string, Data>>> {
   return queue.writes;
 }
 
+/** The repository's host, whose queue the tests watch. */
+const host = (server: Server) => server.hosts.get(server.name)!;
+
 /** The start's write in the queue, once `ready` holds for it. */
 async function startWrite(server: Server, ready: (write: Record<string, Data>) => boolean) {
-  let found: Record<string, Data> | undefined;
-  await vi.waitFor(async () => {
-    found = (await writes(server)).find((write) => write.steps !== undefined);
-    expect(found !== undefined && ready(found)).toBe(true);
-  });
-  return found as Record<string, Data>;
+  const found = (queued: Array<Record<string, Data>>) =>
+    queued.find((write) => write.steps !== undefined && ready(write));
+  const write = found(await queueWhen(host(server), (queued) => found(queued) !== undefined));
+  // A copy, as a client reads it: the queue changes its steps in place as the start moves.
+  return structuredClone(write) as Record<string, Data>;
 }
 
 /** Waits until every write queued landed or was refused. */
-const idle = (server: Server) => server.hosts.get(server.name)!.queue.idle();
+const idle = (server: Server) => host(server).queue.idle();
 
 const start = (server: Server, proposal: string) =>
   mutate(server.app, "feature.start", { proposal, slug: SLUG }, PLAN_FIELDS);
@@ -145,7 +147,9 @@ test("a typed change's start waiting in the queue holds its slug", async () => {
   ]);
   await mutate(server.app, "priorities.commit", {}, ["id"]);
   const change = mutate(server.app, "change.start", { slug: SLUG, text: "# Faster\n" }, ["id"]);
-  await vi.waitFor(async () => expect(await writes(server)).toHaveLength(2));
+  // The lists' commit, held by its hook, and the change's start behind it.
+  await queueWhen(host(server), (queued) => queued.length === 2);
+  expect(await writes(server)).toHaveLength(2);
 
   const again = await start(server, PROPOSAL);
 
