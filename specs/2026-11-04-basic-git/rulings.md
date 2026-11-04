@@ -517,3 +517,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: an edit that keeps the file's line counts and staging, made while its diff is open,
   shows once the diff is opened again.
 - **Where**: the final review's fixes.
+
+## R35: Edits outside `specs/` reach the page when it is shown, not live
+
+- **Decision**: a file edited in a terminal or an editor outside `specs/`, which changes neither the
+  index nor a ref, updates the Git page and the sidebar's count when the page or the tab is shown
+  again, and with the next git write or fetch, not the moment it is saved.
+- **Rationale**: the watcher watches `specs/` and git's own folders; watching every folder of a
+  checkout, `node_modules/` and `target/` included, costs far more than the count is worth, and the
+  page reads the checkout afresh each time it is shown (R3).
+- **Alternatives considered**: a recursive watch of each checkout, skipping ignored folders:
+  rejected for its cost on large repositories.
+- **If wrong**: the count lags while the human works in a terminal; a recursive watch would replace
+  this.
+- **Where**: the final review.
