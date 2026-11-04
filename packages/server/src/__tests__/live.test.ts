@@ -231,7 +231,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-test("a session's status change is published at once, with the list, its feature, and the workspace", () => {
+test("a session's status change is published at once, with the list, its feature, the workspace, and the Git page", () => {
   const { cache, session, turn } = sessionWithItems(150);
   const host = hostAt("/repo");
   const sent = published(host.live);
@@ -247,6 +247,8 @@ test("a session's status change is published at once, with the list, its feature
     "SessionList all",
     "Feature 2026-10-12-cli-tuis",
     "Workspace workspace",
+    "GitPage git",
+    "GitSummary git",
   ]);
 });
 
@@ -366,6 +368,8 @@ test("SC-002: items are published at most every 250 ms", () => {
     "SessionList all",
     "Feature 2026-10-12-cli-tuis",
     "Workspace workspace",
+    "GitPage git",
+    "GitSummary git",
   ]);
 });
 

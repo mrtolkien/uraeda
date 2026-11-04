@@ -37,6 +37,14 @@ import { historyDataView } from "./fate/views-history.ts";
 import { ledgerDataView } from "./fate/views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-repositories.ts";
 import { writeQueueDataView } from "./fate/write-queue.ts";
+import {
+  conflictFileDataView,
+  gitCommitDataView,
+  gitDiffDataView,
+  gitHistoryPageDataView,
+  gitPageDataView,
+  gitSummaryDataView,
+} from "./fate/views-git.ts";
 
 export {
   agentDataView,
@@ -45,12 +53,18 @@ export {
   branchDecisionDataView,
   bufferDataView,
   commitPanesDataView,
+  conflictFileDataView,
   continuedAllDataView,
   proposalFileDataView,
   droppedDataView,
   featureDataView,
   fileDataView,
   folderSuggestionsDataView,
+  gitCommitDataView,
+  gitDiffDataView,
+  gitHistoryPageDataView,
+  gitPageDataView,
+  gitSummaryDataView,
   historyDataView,
   inboxDataView,
   ledgerDataView,
@@ -88,6 +102,7 @@ export { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
 export { COMMIT_PANES_ID } from "./fate/views-buffer.ts";
 export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
 export { WRITE_QUEUE_ID } from "./fate/write-queue.ts";
+export { GIT_ID, gitDiffId } from "./fate/views-git.ts";
 
 /** The types fate's generated client and the UI's views use, named after each view's type. */
 export type Workspace = Entity<typeof workspaceDataView, "Workspace">;
@@ -128,6 +143,17 @@ export type StoryHref = Entity<typeof storyHrefDataView, "StoryHref">;
 export type Settings = Entity<typeof settingsDataView, "Settings">;
 export type NeedsYouList = Entity<typeof needsYouListDataView, "NeedsYouList">;
 export type WriteQueue = Entity<typeof writeQueueDataView, "WriteQueue">;
+/** The Git page, read at once, with whether an agent works in each checkout. */
+export type GitPage = Entity<typeof gitPageDataView, "GitPage">;
+/** The sidebar's count: the changes to commit, and the commits to pull. */
+export type GitSummary = Entity<typeof gitSummaryDataView, "GitSummary">;
+/** A file's diff, by `gitDiffId`. */
+export type GitDiff = Entity<typeof gitDiffDataView, "GitDiff">;
+export type GitCommit = Entity<typeof gitCommitDataView, "GitCommit">;
+/** A page of the history, after the commit of its id. */
+export type GitHistoryPage = Entity<typeof gitHistoryPageDataView, "GitHistoryPage">;
+/** A conflicted text file of the main checkout, for the editor, by its path. */
+export type ConflictFile = Entity<typeof conflictFileDataView, "ConflictFile">;
 /** A write of the queue, and a step of a start's. */
 export type { QueuedWrite, StartStep, WriteFailure } from "./writes/queue.ts";
 export { NEEDS_YOU_ID } from "./fate/needs-you.ts";
@@ -148,10 +174,19 @@ export type { ChatImage } from "./runner/images.ts";
  */
 export type FateVariables = { device?: Device; fate: Context };
 
-/** The roots: the views', and the write queue's and Continue all's, which live in their own modules. */
+/**
+ * The roots: the views', and the write queue's, Continue all's, and the Git page's, which live in
+ * their own modules.
+ */
 export const Root = {
   ...Views,
+  conflictFiles: list(conflictFileDataView),
   continuedAllList: list(continuedAllDataView),
+  gitCommits: list(gitCommitDataView),
+  gitDiffs: list(gitDiffDataView),
+  gitHistoryPages: list(gitHistoryPageDataView),
+  gitPages: list(gitPageDataView),
+  gitSummaries: list(gitSummaryDataView),
   writeQueues: list(writeQueueDataView),
 };
 

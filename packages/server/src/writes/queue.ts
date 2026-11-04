@@ -150,6 +150,20 @@ export class WriteQueue {
     return this.add(write, land, keys).landed;
   }
 
+  /**
+   * Lands `land` after the writes queued before it, as `enqueue` does, outside the record: the
+   * toast never shows it, and its output goes nowhere. It rejects with its failure, which the
+   * record never keeps.
+   */
+  background(land: Land): Promise<unknown> {
+    const landed = this.#tail.then(() => land(() => {}));
+    this.#tail = landed.then(
+      () => {},
+      () => {},
+    );
+    return landed;
+  }
+
   /** `enqueue`, answering the write's id in the record too, which `update` takes. */
   add(
     write: NewWrite,
