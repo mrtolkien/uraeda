@@ -22,8 +22,9 @@ const styles = stylex.create({
     maxWidth: "100%",
     overflowX: "auto",
   },
-  // The diagram's size, as wide as it draws, and never more than the card's room when it fits.
-  sized: (width: string) => ({ width }),
+  // The diagram's size, as wide as it draws, and never more than the card's room when it fits;
+  // narrower than its room, in its middle, as a figure, rather than at its left edge.
+  sized: (width: string) => ({ marginInline: "auto", width }),
   // Pele's colours and fonts, from the theme's own, so a diagram follows the colour mode.
   theme: {
     "--pele-accent": colorVars["--color-accent"],
@@ -46,10 +47,44 @@ const MAX_HEIGHT = 3000;
 /** A diagram drawn: Pele's SVG, its size in pixels, and its type, "flowchart" or "git graph". */
 type Drawn = { height: number; kind: string; svg: string; width: number };
 
-/** Draws `source` with Pele, imported on demand, its ids starting with `idPrefix`. */
-async function draw(source: string, idPrefix: string): Promise<Drawn> {
-  const { renderAsync } = await import("pele/lazy");
-  const { height, svg, type, width } = await renderAsync(source, { idPrefix });
+/** The fonts a diagram is drawn in: the theme's, as `styles.theme` sets them on `element`. */
+type Fonts = { family: string; mono: string };
+
+/** The fonts `element` draws a diagram in, from its `--pele-font` and `--pele-font-mono`. */
+function fontsOf(element: Element): Fonts {
+  const style = getComputedStyle(element);
+  return {
+    family: style.getPropertyValue("--pele-font").trim(),
+    mono: style.getPropertyValue("--pele-font-mono").trim(),
+  };
+}
+
+/**
+ * Loads `fonts`, so Pele measures their own glyphs rather than a fallback's; a font that does not
+ * load leaves the fallback, which the page draws too.
+ */
+async function loaded({ family, mono }: Fonts) {
+  const faces = typeof document === "undefined" ? undefined : document.fonts;
+  if (!faces) {
+    return;
+  }
+  await Promise.all(
+    [family, mono].filter(Boolean).map((font) => faces.load(`1em ${font}`).catch(() => [])),
+  );
+}
+
+/**
+ * Draws `source` with Pele, imported on demand, its ids starting with `idPrefix`, its labels
+ * measured in `fonts`, the ones the page draws them in: with Pele's own metrics, a label in the
+ * theme's wider monospace font ran into the next one and past the diagram's edge.
+ */
+async function draw(source: string, idPrefix: string, fonts: Fonts): Promise<Drawn> {
+  const [{ renderAsync }] = await Promise.all([import("pele/lazy"), loaded(fonts)]);
+  const { height, svg, type, width } = await renderAsync(source, {
+    idPrefix,
+    ...(fonts.family ? { fontFamily: fonts.family } : {}),
+    ...(fonts.mono ? { fontFamilyMono: fonts.mono } : {}),
+  });
   // A source that does not parse throws above, rather than drawing an error picture.
   return {
     height,
@@ -96,7 +131,9 @@ export function Diagram({ place, source }: { place?: Place; source: string }) {
   const room = useWidthOf(scroller);
   useEffect(() => {
     let live = true;
-    draw(source, idPrefix).then(
+    const element = scroller.current;
+    const fonts = element ? fontsOf(element) : { family: "", mono: "" };
+    draw(source, idPrefix, fonts).then(
       (result) => live && setDrawn(result),
       () => live && setDrawn("failed"),
     );
@@ -118,7 +155,7 @@ export function Diagram({ place, source }: { place?: Place; source: string }) {
       {...(scrolls
         ? { "aria-label": `${title}, scrolls sideways`, role: "region", tabIndex: 0 }
         : {})}
-      {...stylex.props(styles.block, styles.scroller)}
+      {...stylex.props(styles.block, styles.scroller, styles.theme)}
     >
       {drawn === "failed" && (
         <>
@@ -139,7 +176,7 @@ export function Diagram({ place, source }: { place?: Place; source: string }) {
           dangerouslySetInnerHTML={{ __html: drawnNow.svg }}
           onClick={openLinkInNewTab}
           role={scrolls ? undefined : "group"}
-          {...stylex.props(styles.theme, styles.sized(`${width}px`))}
+          {...stylex.props(styles.sized(`${width}px`))}
         />
       )}
     </div>
