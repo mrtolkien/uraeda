@@ -6,10 +6,9 @@
 >
 > Still wanted for my personal usage
 
-- [In vim mode, visual mode seems to be working properly... except selected text…](/specs/changes/2026-11-04-vim-mode/proposal.md)
-- [Reading long responses is not comfortable because the composer always stays…](/specs/changes/2026-11-04-reading-long/proposal.md)
 - [Basic git UI in the web ui (pull, see diffs, ...)](/specs/2026-11-04-basic-git/proposal.md)
-- [Some stuff is weirdly left-aligned, like sections titles, headers, and graphs.](/specs/changes/2026-11-04-some-stuff/proposal.md)
+- [There shouldn't be a limit of 6 user stories in a feature.](/specs/changes/2026-11-04-6-stories/proposal.md)
+- [Check that there's a clear distinction between the skill/references and the…](/specs/changes/2026-11-04-skill-ref/proposal.md)
 
 - Review the UI guidelines properly
 
