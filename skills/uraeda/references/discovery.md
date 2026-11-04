@@ -452,7 +452,7 @@ reading: a layout, a control, a motion, not a label's wording.
 
 Before linking a story, set the worktree up as the project's git decision asks, like its install. A
 new worktree has none of its dependencies, and its Storybook does not start without them. Then check
-that each story you link renders, in Uraeda or with the decision's `preview-command`.
+that each story you link renders, with the decision's `preview-command`.
 
 The human may answer with a mix, "A, with B's grip". Commit the variants with the round. The spec
 keeps the picked one, as [mockups](spec.md#mockups) describes.
@@ -465,7 +465,7 @@ whole layout or a colour scheme. They need no preview decision.
 
 - **In the feature's `mockups/` folder**, each prototype with the files it loads.
 - **Linked from the round**: each option links its prototype in a paragraph of its own, as a variant
-  does. Uraeda shows an HTML page live there, and an image, an SVG or a PNG, in place.
+  does.
 - **Throwaway**: they are not the spec's mockups. The [approval](approval.md#delete-the-prototypes)
   of the spec deletes them, and git keeps them.
 

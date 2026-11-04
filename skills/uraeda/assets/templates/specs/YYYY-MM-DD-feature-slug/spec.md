@@ -53,8 +53,7 @@ Key scenarios:
 
 1. **Given** [state], **When** [action], **Then** [outcome]
 
-[Optional: the rarer scenarios, folded in the web UI. Leave out the paragraph and its list when
-there are none.]
+[Optional: the rarer scenarios. Leave out the paragraph and its list when there are none.]
 
 More scenarios:
 

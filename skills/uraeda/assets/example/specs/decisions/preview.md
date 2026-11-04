@@ -18,8 +18,8 @@ where a spec, a question, or a session links them. The picked mockup is the code
   `npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`.
 - This decision's frontmatter MUST hold the preview's folder and command, as `preview-folder: .` and
   that `preview-command`. Checked by `ura check`.
-- Storybook MUST use its Vite builder, through `@storybook/react-vite`. Checked by Uraeda's helper,
-  which stops a webpack Storybook.
+- Storybook MUST use its Vite builder, through `@storybook/react-vite`. Checked by
+  `uraeda-preview.js`, which stops a webpack Storybook.
 - Mockups and named states MUST be stories, in `*.stories.tsx` files under `src/`, one export per
   state or variant.
 - Stories MUST get their tasks from the app's own store, on an in-memory IndexedDB the story fills,

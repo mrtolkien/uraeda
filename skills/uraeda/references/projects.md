@@ -27,21 +27,22 @@ when they say so.
 
 For a project with a UI, propose next a preview decision, `specs/decisions/preview.md`, from
 [the template](../assets/templates/specs/decisions/preview.md): the Storybook in which mockups are
-stories, which Uraeda runs and shows live. Its `preview-folder` is the folder Storybook runs in, and
-its `preview-command` starts it with `{port}` and `--host 127.0.0.1`, as
-`npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`.
+stories, which a tool that shows the preview runs for each worktree. Its `preview-folder` is the
+folder Storybook runs in, and its `preview-command` starts it with `{port}` and `--host 127.0.0.1`,
+as `npx storybook dev --ci --no-open --exact-port --host 127.0.0.1 --port {port}`.
 
 - **A stack Storybook supports** uses its own Storybook, in the folder that holds the UI, on
-  Storybook's Vite builder: Uraeda's helper stops a webpack Storybook. Its `.storybook/main.ts` is
-  wrapped by `uraeda-preview.js`, and its preview loads `uraeda-pick.js`, both copied from this
+  Storybook's Vite builder: `uraeda-preview.js` stops a webpack Storybook. Its `.storybook/main.ts`
+  is wrapped by `uraeda-preview.js`, and its preview loads `uraeda-pick.js`, both copied from this
   skill's `assets/storybook/`. Its packages are pinned to exact versions, and its telemetry is off.
 - **Any other stack**, like Rails or Django, gets a mockups Storybook in `storybook/` at the
   repository's root, in React with Astryx, with the same two files, reading
   `specs/*/mockups/*.stories.tsx` and `specs/changes/*/mockups/*.stories.tsx`. Its stories are
   mockups only, and leave with the feature's or the change's folder when it finishes.
-- **Data**: Uraeda forwards only Storybook's GET and HEAD requests and WebSocket upgrades, in
-  sandboxed frames. A story that reads data with POSTs needs a Storybook-only middleware turning
-  GETs back into POSTs, and event streams opened without credentials: say so in the decision.
+- **Data**: a tool that shows the preview forwards only Storybook's GET and HEAD requests and
+  WebSocket upgrades, in sandboxed frames. A story that reads data with POSTs needs a Storybook-only
+  middleware turning GETs back into POSTs, and event streams opened without credentials: say so in
+  the decision.
 
 The decision stays `proposed` until the human approves it; then set Storybook up, in a commit of its
 own. A "no" is recorded as [Discovery](discovery.md#what-to-ask-and-what-to-settle) describes.
@@ -50,8 +51,7 @@ A project is set up once its constitution is written and its code-quality and te
 exist, whatever their status. The preview decision is optional. A constitution is still the template
 while its title, a principle's name, a rule, or a date holds a placeholder, like `[Project]` or
 `[YYYY-MM-DD]`: any bracketed text there that is not a link, a footnote, or a task box counts as
-one. Until then, `ura status` ends with the files missing, and the web UI's Home lists them in its
-Setup pane.
+one. Until then, `ura status` ends with the files missing.
 
 With `ura`, `ura init` does it, and writes nothing outside `specs/`. It prints `created` or `kept`
 for each template it copies: run again, it only adds what is missing, like `INBOX.md` in a project
@@ -103,10 +103,7 @@ Do these only when a human asks.
   renamed. If a folder or branch with that name exists, choose another slug. With `ura`,
   `ura start <proposal> --slug <slug>` runs these steps for a proposal file or folder of
   `specs/proposals/`, or its name, whatever it holds: the proposal is freeform. Without `--slug`, it
-  takes the first two words of the proposal file's name that name something. In the web UI, Feature
-  on the New page starts one from a typed text, with no proposal file: its first line is the title,
-  its research effort goes in the proposal's `discovery` field, and a line of **Now** it was filled
-  from is replaced by its link in the start commit, as a change's is.
+  takes the first two words of the proposal file's name that name something.
   1. On the default branch, create `specs/YYYY-MM-DD-feature-slug/`, and move the proposal file into
      it as `proposal.md`, its words unchanged: the proposal is the human's words, never rewritten.
      Only its relative links change, to point at the same files from the new folder, as **Expand**
@@ -139,22 +136,21 @@ Do these only when a human asks.
      [going back to the human](../SKILL.md#going-back-to-the-human-with-new-questions).
 - **Start as a change**: a bug fix or a small change starts as a [change](change.md), with the same
   steps under its own names: the folder `specs/changes/YYYY-MM-DD-<slug>/`, the branch
-  `change/YYYY-MM-DD-<slug>`, and the worktree `.worktrees/YYYY-MM-DD-<slug>/`. In the web UI,
-  Change on the New page starts one from a typed request, an inbox note, or a proposal line, with no
-  proposal file: a note's text is its request, and the note leaves `INBOX.md` in a commit of its
-  own. A line of **Now** started as a change is replaced by the change's link in the start commit,
-  as a feature's proposal is. Its nested lines go into the change's proposal, but those the request
-  holds already. A line changed since it was read stays, and the link is added above it. A line of
-  **Next** or **Later** started as a change leaves `PRIORITIES.md` as before: the link is added at
-  the top of **Now**, and the line leaves in a write of its own. A session's offer starts one too:
-  see [Change](change.md#starting-a-change). With `ura`,
+  `change/YYYY-MM-DD-<slug>`, and the worktree `.worktrees/YYYY-MM-DD-<slug>/`. A change started
+  from an inbox note takes the note's text as its proposal, and the note leaves `INBOX.md` in a
+  commit of its own. A line of **Now** started as a change is replaced by the change's link in the
+  start commit, as a feature's proposal is. Its nested lines go into the change's proposal, but
+  those the request holds already. A line changed since it was read stays, and the link is added
+  above it. A line of **Next** or **Later** started as a change leaves `PRIORITIES.md` as before:
+  the link is added at the top of **Now**, and the line leaves in a write of its own. A session's
+  yes starts one too: see [Change](change.md#starting-a-change). With `ura`,
   `ura start <proposal> --slug <slug> --change` starts a proposal file as a change, and refuses a
   postponed folder holding files a change's folder has no place for, like a feature's `spec.md`:
   start that one as a feature. By hand, the steps above, with the proposal linked to
   `/specs/changes/YYYY-MM-DD-<slug>/proposal.md`. Then run the [change](change.md) step.
 - **Start a change as a feature**: on the human's yes, a started change becomes a feature in place.
-  It keeps its code, its worktree, and its sessions. With `ura`, `ura start <change> --feature`. By
-  hand, as [Upgrading](change.md#upgrading) says.
+  It keeps its code and its worktree. With `ura`, `ura start <change> --feature`. By hand, as
+  [Upgrading](change.md#upgrading) says.
 - **Postpone or block**: on the feature's branch, move the whole folder to
   `specs/proposals/<slug>/`, without its date: the proposal, the discovery rounds, and the
   questions, answered or not, stay as they are. Revert the branch's edits to the decisions: delete
@@ -178,8 +174,7 @@ Do these only when a human asks.
   `fix(<slug>): repair the links to moved files`. Remove its worktree, never forced. It stays when
   it has uncommitted changes, is locked, is the one you are in, or is outside `.worktrees/`: then
   say where it stays. Keep the branch, so nothing is lost, and give the human
-  `git branch -D <branch>` to delete it. In the web UI, "Drop the change…" or "Drop the feature…" in
-  a session's actions does it. A merged feature is not dropped: `ura clean` removes it.
+  `git branch -D <branch>` to delete it. A merged feature is not dropped: `ura clean` removes it.
 
 ## Finishing a feature
 

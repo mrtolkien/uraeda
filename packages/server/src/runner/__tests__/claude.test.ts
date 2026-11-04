@@ -8,6 +8,7 @@ import { allowRule, type Blocks, lines, parseLine } from "../claude-events.ts";
 import { layout } from "../../paths.ts";
 import { ClaudeAdapter, claudeArgs } from "../claude.ts";
 import type { AgentEvent, Denial } from "../events.ts";
+import { WEB_UI_INSTRUCTIONS } from "../instructions.ts";
 import { chatOpening } from "../message.ts";
 
 const SESSION = "06e0f968-6806-4810-b91e-df3ca38e0f25";
@@ -58,9 +59,24 @@ test("SC-006: a new session's arguments", () => {
     "/plugin",
     "--add-dir",
     "/data/images",
+    "--append-system-prompt",
+    WEB_UI_INSTRUCTIONS,
     "--session-id",
     "id",
   ]);
+});
+
+test("a resumed session gets the web UI's instructions again", () => {
+  const args = claudeArgs({ ...open, resume: true }, "/plugin", "/data/images");
+
+  expect(args[args.indexOf("--append-system-prompt") + 1]).toBe(WEB_UI_INSTRUCTIONS);
+});
+
+test("the web UI's instructions show its offer blocks", () => {
+  for (const kind of ["change", "feature"]) {
+    expect(WEB_UI_INSTRUCTIONS).toContain(`\`uraeda-offer ${kind}\``);
+  }
+  expect(WEB_UI_INSTRUCTIONS).toContain("```uraeda-offer change\n# ");
 });
 
 test("a resumed session with an allow rule", () => {
@@ -69,7 +85,7 @@ test("a resumed session with an allow rule", () => {
       { ...open, allowed: ["Bash(gh pr create --draft)"], resume: true },
       "/plugin",
       "/data/images",
-    ).slice(13),
+    ).slice(15),
   ).toEqual(["--resume", "id", "--allowedTools", "Bash(gh pr create --draft)"]);
 });
 
@@ -79,7 +95,7 @@ test("several allow rules are each their own argument, last", () => {
       { ...open, allowed: ["Bash(rm -rf dist)", "Edit(src/a.ts)"], resume: true },
       "/plugin",
       "/data/images",
-    ).slice(13),
+    ).slice(15),
   ).toEqual(["--resume", "id", "--allowedTools", "Bash(rm -rf dist)", "Edit(src/a.ts)"]);
 });
 

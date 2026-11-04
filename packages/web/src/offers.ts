@@ -3,6 +3,7 @@
 // the changes and features dropped, and the lines a move leaves on its session, like "Started as the change …". Kept for the page,
 // not the component: a session that becomes a change draws again as the change's session.
 import { useSyncExternalStore } from "react";
+import { OFFER_LANGUAGE } from "uraeda-server/instructions";
 
 /** What an offer moves: a session to a change, or a change to a feature. */
 export type OfferKind = "change" | "feature";
@@ -13,8 +14,8 @@ export type OfferKind = "change" | "feature";
  */
 export type Offer = { body: string; kind: OfferKind };
 
-/** The fence's language, before the kind. */
-export const OFFER_LANGUAGE = "uraeda-offer";
+/** The fence's language, before the kind, as the server's instructions teach it to the agent. */
+export { OFFER_LANGUAGE };
 
 /** An offer block, closed: its kind, then its body, its lines ending in LF or CRLF. */
 const BLOCK = /^```uraeda-offer[ \t]+(change|feature)[ \t]*\r?\n([\s\S]*?)\r?\n```[ \t]*\r?$/gmu;

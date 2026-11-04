@@ -150,8 +150,7 @@ again from the repository.
    the next agent trusts it without running it again.
 
 In the messages that report your work, link each story you wrote or changed, alone in its paragraph,
-with a blank line before and after, as a [story link](conventions.md#markdown): Uraeda shows it live
-in the session, where the human can try it and comment on it.
+with a blank line before and after, as a [story link](conventions.md#markdown).
 
 ### Review the waves
 
@@ -391,9 +390,8 @@ the branch is then most likely behind it.
 ## Comments on the pull request
 
 The comments pass runs when the human's message asks to address the pull request's comments,
-whatever the step table says, and when the pull request has changes requested. Uraeda records such a
-run with the trigger `comments`. The human chose when to send the agent: the pass handles the
-comments there at that moment.
+whatever the step table says, and when the pull request has changes requested. The human chose when
+to send the agent: the pass handles the comments there at that moment.
 
 **What to read**: every unresolved review thread, and every review or comment posted after the
 branch's last push. Resolved threads are settled, and outdated ones are about code that changed
