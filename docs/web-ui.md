@@ -202,7 +202,7 @@ and Conflicts lists each file. A text file opens in the editor, where a bar over
 one side, named by its branch, or both, and the text stays yours to edit; save it, with Save or
 Ctrl+Enter, once its markers are gone. A file's row can also take one side whole. Continue goes on
 once every file is resolved, and Abort puts the branch back as it was. `m` opens Continue and Abort
-as a menu.
+as a menu. Until then, Pull, Push, and Merge wait, and the title's line reads "pull stopped".
 
 Worktrees lists the main checkout and every worktree, each with its state. A merged feature's offers
 Clean, which removes its worktree, its branch, and its priorities line, as `ura clean` does. One

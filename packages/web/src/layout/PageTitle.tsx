@@ -18,6 +18,9 @@ const styles = stylex.create({
   title: { flexGrow: 1, minWidth: 0 },
   // What stays beside the title keeps its whole width.
   beside: { flexShrink: 0 },
+  // The aside gives up its room first, down to its widest part, its own items wrapping, so the
+  // title's words never break while the aside could still wrap.
+  aside: { flexShrink: 1000 },
 });
 
 /** What a page's title says of its subject, under it: marks, such as a status, then its text. */
@@ -27,8 +30,8 @@ export type TitleMeta = { marks?: ReactNode; text: ReactNode };
  * A page's title: `children`, its words, at level 1, `id` its anchor, `around` drawing it inside
  * another element, as a block a comment can select. `count` follows it, a badge without words, as
  * the inbox's review asked (C3). `actions` stay beside it at every width, as a "…" menu; `aside`
- * sits at the row's end on wider screens, and under the title on the phone, as a search or a page's
- * main tool. `above` is the line over it, a file's path; `status` a workflow file's status, as a
+ * sits at the row's end on wider screens, shrinking first, its own items wrapping, and under the
+ * title's lines on the phone, as a search or a page's main tool. `above` is the line over it, a file's path; `status` a workflow file's status, as a
  * badge over it; `meta` the supporting line under it, the subject's state; `description` the
  * secondary text under them, what the page is for.
  */
@@ -68,7 +71,7 @@ export function PageTitle({
         {count !== undefined && <Badge label={String(count)} variant="neutral" />}
       </HStack>
       {actions && <div {...stylex.props(styles.beside)}>{actions}</div>}
-      {aside && !narrow && <div {...stylex.props(styles.beside)}>{aside}</div>}
+      {aside && !narrow && <div {...stylex.props(styles.aside)}>{aside}</div>}
     </HStack>
   );
   return (

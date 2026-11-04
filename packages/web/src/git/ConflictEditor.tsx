@@ -2,27 +2,27 @@
 // screens, a page of its own on the phone. A bar over each conflict takes a side, by branch, or
 // both; the text stays editable, unsaved and marked so until the human saves it, with Save or
 // Ctrl+Enter, over the version read: a file changed since is refused, its text kept to copy, or the
-// new version loaded, as a buffer's (`buffer/useBuffer.ts`). Saved without markers, the file reads
-// resolved, and Continue goes on.
+// new version loaded, as a buffer's (`fields/useFileEditor.ts`). Saved without markers, the file
+// reads resolved, and Continue goes on. It is drawn only while the page lists the file, as its
+// record is not sent live: read afresh each time it opens.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useFateClient, useLiveView, useRequest, view } from "react-fate";
 import type { ConflictFile } from "uraeda-server/fate";
-import { refusal } from "../errors.ts";
+import { useRefreshOnShow } from "../data.ts";
 import { conflictBar } from "../fields/editor/conflictBar.ts";
 import { conflictsIn } from "../fields/editor/conflicts.ts";
 import { Editor } from "../fields/editor/Editor.tsx";
 import { RestoreNotice } from "../fields/RestoreNotice.tsx";
-import { useTextField } from "../fields/useTextField.ts";
+import { readVersion, useFileEditor } from "../fields/useFileEditor.ts";
 import { useKeys } from "../keys/registry.tsx";
 import { plural } from "../labels.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { ConflictBanner } from "../pane/ProposalEditor.tsx";
-import { useSave } from "../useSave.ts";
 import { Back } from "./Back.tsx";
 import { gitAddress } from "./address.ts";
 import type { Stopped } from "./useConflictWrites.ts";
@@ -35,56 +35,35 @@ const fileRequest = (path: string) => ({ conflictFile: { id: path, view: Conflic
 /** The sentence of the restore notice when the file changed since the text was typed. */
 const FILE_CHANGED = "The file changed since: saving replaces it.";
 
-/** The conflicted file at `path`, its field, its saves, and a refused save. */
+/** The conflicted file at `path`, read afresh as it opens, its field, its saves, and a refusal. */
 function useConflictFile(path: string) {
   const fate = useFateClient();
   const request = useMemo(() => fileRequest(path), [path]);
-  const { conflictFile } = useRequest(request);
+  const { conflictFile } = useRequest(request, { mode: "network-only" });
+  useRefreshOnShow(request);
   const file = useLiveView(ConflictFileView, conflictFile) ?? undefined;
-  const field = useTextField(`${path}#conflict`, file?.text ?? "", { exact: true });
-  const [conflict, setConflict] = useState<string>();
-  if (conflict !== undefined && !field.dirty) {
-    setConflict(undefined);
-  }
-  const save = useSave<string>(async (text, hash) => {
-    const write = { href: gitAddress({ kind: "conflict", path }), label: `Saving ${path}` };
-    const result = await fate.mutations.git
-      .saveConflict({ input: { hash, path, text, write }, view: ConflictFileView })
-      .catch((error: unknown) => ({ error, result: undefined }));
-    if (result.error) {
-      const failed = refusal(result.error);
-      if (failed.kind === "conflict") {
-        setConflict(failed.message);
-      }
-      return { message: failed.message, ok: false };
-    }
-    field.saved(text);
-    return { ok: true, saved: result.result?.hash ?? hash };
-  }, file?.hash ?? "");
-  const reload = async () => {
-    setConflict(undefined);
-    const { conflictFile: fresh } = await fate.request(request, { mode: "network-only" });
-    const read = fresh
-      ? ((await fate.readView(ConflictFileView, fresh)) as unknown as { data: { hash: string } })
-      : undefined;
-    if (read) {
-      field.discard();
-      save.settle(read.data.hash, true);
-    }
-  };
-  const { state } = save;
-  return {
-    conflict,
-    field,
+  const editor = useFileEditor({
     file,
-    refused: state.kind === "error" && !conflict ? state.message : undefined,
-    reload,
-    saveText: () => {
-      if (field.dirty) {
-        void save.save(field.text);
-      }
+    key: `${path}#conflict`,
+    read: () => readVersion(fate, request, ConflictFileView),
+    write: (hash, text) => {
+      const write = { href: gitAddress({ kind: "conflict", path }), label: `Saving ${path}` };
+      return fate.mutations.git.saveConflict({
+        input: { hash, path, text, write },
+        view: ConflictFileView,
+      });
     },
-  };
+  });
+  return { ...editor, file };
+}
+
+/** The pane of a file that no longer conflicts, or never did. */
+export function NoConflict({ isNarrow, path }: { isNarrow: boolean; path: string }) {
+  return (
+    <Pane actions={<Back isNarrow={isNarrow} />} title={path}>
+      <Text color="secondary">{path} no longer conflicts.</Text>
+    </Pane>
+  );
 }
 
 /** The conflicted file at `path` in the editor, its bar naming the sides of `stopped`. */
@@ -109,11 +88,7 @@ export function ConflictEditor({
     editor.file ? [{ hint: "⌃⏎", keys: "mod+Enter", label: "save", run: editor.saveText }] : [],
   );
   if (!editor.file) {
-    return (
-      <Pane actions={<Back isNarrow={isNarrow} />} title={path}>
-        <Text color="secondary">{path} no longer conflicts.</Text>
-      </Pane>
-    );
+    return <NoConflict isNarrow={isNarrow} path={path} />;
   }
   const left = conflictsIn(field.text).length;
   return (

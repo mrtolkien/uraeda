@@ -1,9 +1,9 @@
 // The Git page's title: its line says the checked-out branch against `origin`, "main · 3 to pull · 6
-// to push · fetched just now", "main · no remote", or "detached at 4f8c2b7"; under it, Fetch, Pull,
-// Push, and "Merge into main…", each disabled while it cannot run.
+// to push · fetched just now", "main · no remote", "main · pull stopped · fetched just now", or
+// "detached at 4f8c2b7"; beside it, under it on the phone, Fetch, Pull, Push, and "Merge into
+// main…", each disabled while it cannot run.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
-import { VStack } from "@astryxdesign/core/VStack";
 import { PageTitle } from "../layout/PageTitle.tsx";
 import { useNow } from "../useNow.ts";
 import { WriteButton } from "../writes/WriteButton.tsx";
@@ -26,9 +26,30 @@ export function ago(ms: number): string {
   return hours < 24 ? `${count(hours, "hour")} ago` : `${count(Math.floor(hours / 24), "day")} ago`;
 }
 
-/** The title's line, at `now` in milliseconds. */
+/**
+ * The operation a stopped pull or merge is, which the core refuses a pull, a push, and a merge
+ * over; nothing for a stash's stop, which refuses none.
+ */
+export const stoppedOperation = (page: Pick<GitPageData, "stopped">) =>
+  page.stopped && page.stopped.kind !== "stash" ? page.stopped.kind : undefined;
+
+/**
+ * Whether Pull, Push, and Merge cannot run: an agent works in the checkout, `HEAD` is detached, or
+ * a pull or a merge is stopped.
+ */
+export const isSyncStuck = (
+  page: Pick<GitPageData, "agentWorking" | "detached" | "stopped">,
+): boolean => page.agentWorking || Boolean(page.detached) || stoppedOperation(page) !== undefined;
+
+/**
+ * The title's line, at `now` in milliseconds. While a pull or a merge is stopped, it says so in
+ * place of the counts, which compare the branch's ref, not what the stop has replayed so far.
+ */
 export function syncLine(
-  page: Pick<GitPageData, "ahead" | "behind" | "branch" | "detached" | "fetchedAt" | "hasRemote">,
+  page: Pick<
+    GitPageData,
+    "ahead" | "behind" | "branch" | "detached" | "fetchedAt" | "hasRemote" | "stopped"
+  >,
   now: number,
 ): string {
   if (page.detached) {
@@ -42,12 +63,14 @@ export function syncLine(
     page.fetchedAt === null || page.fetchedAt === undefined
       ? "never fetched"
       : `fetched ${ago(now - page.fetchedAt * 1000)}`;
-  return [
-    branch,
-    ...(page.behind > 0 ? [`${page.behind} to pull`] : []),
-    ...(page.ahead > 0 ? [`${page.ahead} to push`] : []),
-    fetched,
-  ].join(" · ");
+  const stopped = stoppedOperation(page);
+  const counts = stopped
+    ? [`${stopped} stopped`]
+    : [
+        ...(page.behind > 0 ? [`${page.behind} to pull`] : []),
+        ...(page.ahead > 0 ? [`${page.ahead} to push`] : []),
+      ];
+  return [branch, ...counts, fetched].join(" · ");
 }
 
 /** A button's label with its count, "Pull · 3", or alone at 0. */
@@ -55,8 +78,9 @@ const counted = (label: string, n: number) => (n > 0 ? `${label} · ${n}` : labe
 
 /**
  * The title, its line, and the sync's buttons: without a remote, no Fetch, Pull, or Push; on a
- * detached `HEAD`, Pull, Push, and Merge disabled; while an agent works in the checkout, every one,
- * as the guard refuses a fetch then too (R20). Pull is the main action while there is something to pull, else Push.
+ * detached `HEAD`, or while a pull or a merge is stopped, Pull, Push, and Merge disabled, the
+ * stop's without their counts; while an agent works in the checkout, every one, as the guard refuses a fetch then
+ * too (R20). Pull is the main action while there is something to pull, else Push.
  */
 export function Sync({
   onMerge,
@@ -69,43 +93,51 @@ export function Sync({
 }) {
   // The line's "fetched 2 minutes ago" grows on its own.
   const now = useNow(30_000);
-  const isStuck = page.agentWorking || Boolean(page.detached);
+  const isStuck = isSyncStuck(page);
+  // A stop's counts compare the branch's ref, not what the stop replayed: the buttons drop them.
+  const isStopped = stoppedOperation(page) !== undefined;
+  const behind = isStopped ? 0 : page.behind;
+  const ahead = isStopped ? 0 : page.ahead;
   const branch = page.branch ?? "main";
-  // The buttons go under the title's line at every width, wrapping there: beside the title, in the
-  // list's column, four of them squeezed "Git" onto three lines.
+  const buttons = (
+    <HStack gap={1} justify="end" wrap="wrap">
+      {page.hasRemote && (
+        <>
+          <WriteButton
+            isDisabled={page.agentWorking}
+            label="Fetch"
+            onClick={writes.fetch}
+            size="sm"
+            variant="secondary"
+          />
+          <WriteButton
+            isDisabled={isStuck}
+            label={counted("Pull", behind)}
+            onClick={writes.pull}
+            size="sm"
+            variant={behind > 0 ? "primary" : "secondary"}
+          />
+          <WriteButton
+            isDisabled={isStuck}
+            label={counted("Push", ahead)}
+            onClick={writes.push}
+            size="sm"
+            variant={behind === 0 && ahead > 0 ? "primary" : "secondary"}
+          />
+        </>
+      )}
+      <Button
+        isDisabled={isStuck || page.branches.length === 0}
+        label={`Merge into ${branch}…`}
+        onClick={onMerge}
+        size="sm"
+        variant="ghost"
+      />
+    </HStack>
+  );
   return (
-    <VStack gap={2}>
-      <PageTitle meta={{ text: syncLine(page, now) }}>Git</PageTitle>
-      <HStack gap={1} wrap="wrap">
-        {page.hasRemote && (
-          <>
-            <WriteButton
-              isDisabled={page.agentWorking}
-              label="Fetch"
-              onClick={writes.fetch}
-              variant="secondary"
-            />
-            <WriteButton
-              isDisabled={isStuck}
-              label={counted("Pull", page.behind)}
-              onClick={writes.pull}
-              variant={page.behind > 0 ? "primary" : "secondary"}
-            />
-            <WriteButton
-              isDisabled={isStuck}
-              label={counted("Push", page.ahead)}
-              onClick={writes.push}
-              variant={page.behind === 0 && page.ahead > 0 ? "primary" : "secondary"}
-            />
-          </>
-        )}
-        <Button
-          isDisabled={isStuck || page.branches.length === 0}
-          label={`Merge into ${branch}…`}
-          onClick={onMerge}
-          variant="ghost"
-        />
-      </HStack>
-    </VStack>
+    <PageTitle aside={buttons} meta={{ text: syncLine(page, now) }}>
+      Git
+    </PageTitle>
   );
 }

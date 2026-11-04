@@ -13,6 +13,7 @@ export function WriteButton({
   isDisabled = false,
   label,
   onClick,
+  size,
   tooltip,
   variant,
 }: {
@@ -21,6 +22,8 @@ export function WriteButton({
   isDisabled?: boolean | undefined;
   label: string;
   onClick: () => Promise<unknown>;
+  /** Its size, as Astryx names it: small beside a page's title, as the Git page's sync. */
+  size?: "sm" | undefined;
   /** Why it is disabled, as a question left blank. */
   tooltip?: string | undefined;
   variant?: Variant | undefined;
@@ -41,6 +44,7 @@ export function WriteButton({
       isDisabled={isDisabled}
       label={label}
       onClick={click}
+      {...(size === undefined ? {} : { size })}
       // Astryx keeps a disabled button with a tooltip focusable, through `aria-disabled`.
       {...(tooltip === undefined ? {} : { tooltip })}
       variant={variant}

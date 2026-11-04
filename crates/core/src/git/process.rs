@@ -115,7 +115,8 @@ fn run_command(mut command: Command) -> Result<Vec<u8>, Failure> {
 /// `on_line` as it comes, like a hook's report while it runs. Returns the whole output, its lines
 /// in the order they came, once it succeeds. A failure's message is stderr's first line, then
 /// stdout's, as [`run`] has it. Past `deadline`, the process and every one it started are stopped,
-/// as they may hold its output open, and it fails with [`Failure::Deadline`].
+/// as they may hold its output open, and it fails with [`Failure::Deadline`]: on unix alone, where
+/// a process group can be stopped.
 fn stream_command(
     mut command: Command,
     on_line: &dyn Fn(&str),
@@ -142,7 +143,8 @@ fn stream_command(
         if let Some(deadline) = deadline {
             let timed_out = &timed_out;
             scope.spawn(move || {
-                if finish.recv_timeout(deadline) == Err(RecvTimeoutError::Timeout) {
+                // Marked before the stop, which `wait` then sees; not without unix, as nothing stops.
+                if finish.recv_timeout(deadline) == Err(RecvTimeoutError::Timeout) && cfg!(unix) {
                     timed_out.store(true, Ordering::SeqCst);
                     stop_group(group);
                 }
@@ -199,7 +201,8 @@ fn stop_group(group: u32) {
     }
 }
 
-/// No process groups to stop without unix: the deadline is never reached.
+/// No process groups to stop without unix: the process runs to its end, and is not marked past
+/// its deadline.
 #[cfg(not(unix))]
 fn stop_group(_group: u32) {}
 

@@ -11,8 +11,14 @@ import { type ConflictChoice, chosenLines, conflictsIn } from "./conflicts.ts";
 /** The names of a conflict's sides: git's stage 2, `ours`, and its stage 3, `theirs`. */
 export type SideLabels = { ours: string; theirs: string };
 
-/** Replaces the `index`th block of the editor's text, as it is now, by `choice`. */
+/**
+ * Replaces the `index`th block of the editor's text, as it is now, by `choice`: nothing while the
+ * editor is read-only, as while an agent works.
+ */
 function choose(view: EditorView, index: number, choice: ConflictChoice) {
+  if (view.state.readOnly) {
+    return;
+  }
   const text = view.state.doc.toString();
   const block = conflictsIn(text)[index];
   if (block) {
@@ -28,16 +34,19 @@ function choose(view: EditorView, index: number, choice: ConflictChoice) {
 class Bar extends WidgetType {
   readonly labels: SideLabels;
   readonly index: number;
+  readonly isDisabled: boolean;
 
-  constructor(labels: SideLabels, index: number) {
+  constructor(labels: SideLabels, index: number, isDisabled: boolean) {
     super();
     this.labels = labels;
     this.index = index;
+    this.isDisabled = isDisabled;
   }
 
   override eq(other: Bar) {
     return (
       other.index === this.index &&
+      other.isDisabled === this.isDisabled &&
       other.labels.ours === this.labels.ours &&
       other.labels.theirs === this.labels.theirs
     );
@@ -57,6 +66,7 @@ class Bar extends WidgetType {
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = label;
+      button.disabled = this.isDisabled;
       button.addEventListener("click", () => choose(view, this.index, choice));
       bar.append(button);
     }
@@ -69,14 +79,16 @@ class Bar extends WidgetType {
   }
 }
 
-/** A bar over each block of the state's text. */
+/** A bar over each block of the state's text, its buttons disabled while the state is read-only. */
 function barsOf(state: EditorState, labels: SideLabels): DecorationSet {
   const blocks = conflictsIn(state.doc.toString());
   return Decoration.set(
     blocks.map((block, index) =>
-      Decoration.widget({ block: true, side: -1, widget: new Bar(labels, index) }).range(
-        block.from,
-      ),
+      Decoration.widget({
+        block: true,
+        side: -1,
+        widget: new Bar(labels, index, state.readOnly),
+      }).range(block.from),
     ),
   );
 }
@@ -102,11 +114,12 @@ const barTheme = EditorView.baseTheme({
     fontWeight: "var(--font-weight-medium)",
     padding: "var(--spacing-0-5) var(--spacing-2)",
   },
+  ".cm-conflict-bar button:disabled": { cursor: "default", opacity: "0.5" },
   ".cm-conflict-bar button:focus-visible": {
     outline: "2px solid var(--color-accent)",
     outlineOffset: "1px",
   },
-  ".cm-conflict-bar button:hover": { backgroundColor: "var(--color-background-gray)" },
+  ".cm-conflict-bar button:hover:enabled": { backgroundColor: "var(--color-background-gray)" },
 });
 
 /** The conflict bar, its sides named `labels`. */
@@ -115,7 +128,9 @@ export function conflictBar(labels: SideLabels): Extension {
     create: (state) => barsOf(state, labels),
     provide: (field) => EditorView.decorations.from(field),
     update: (value, transaction) =>
-      transaction.docChanged ? barsOf(transaction.state, labels) : value,
+      transaction.docChanged || transaction.startState.readOnly !== transaction.state.readOnly
+        ? barsOf(transaction.state, labels)
+        : value,
   });
   return [bars, barTheme];
 }
