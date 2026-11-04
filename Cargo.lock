@@ -2911,6 +2911,7 @@ dependencies = [
  "gix",
  "image",
  "include_dir",
+ "libc",
  "libwebp-sys",
  "napi",
  "napi-build",

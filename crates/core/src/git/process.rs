@@ -3,7 +3,9 @@
 use std::io::{self, BufRead, BufReader, Read};
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::sync::mpsc::{self, Sender};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, RecvTimeoutError, Sender};
+use std::time::Duration;
 
 use super::GitError;
 
@@ -18,6 +20,8 @@ pub(crate) enum Failure {
     Read(String),
     /// It exited with an error: `message` is its output's first line, `output` all of it.
     Exit { message: String, output: String },
+    /// It ran past its deadline, and was stopped with every process it started.
+    Deadline,
 }
 
 impl Failure {
@@ -32,6 +36,10 @@ impl Failure {
             Failure::NotFound => GitError::GitNotFound,
             Failure::Start(error) | Failure::Read(error) => command(error.clone(), error),
             Failure::Exit { message, output } => command(message, output),
+            Failure::Deadline => command(
+                "it ran too long, and was stopped".to_string(),
+                String::new(),
+            ),
         }
     }
 }
@@ -50,13 +58,31 @@ pub(crate) fn git_write(
     dir: &Path,
     on_line: Option<&dyn Fn(&str)>,
 ) -> Result<Vec<u8>, Failure> {
+    let git = write_command(args, dir);
+    match on_line {
+        Some(on_line) => stream_command(git, on_line, None),
+        None => run_command(git),
+    }
+}
+
+/// Runs `git` with `args` in `dir` as [`git_write`] does, its output streamed to `on_line`, and
+/// stops it, with every process it started, like `ssh`, once it runs past `deadline`: a remote
+/// that never answers fails it with [`Failure::Deadline`].
+pub(crate) fn git_write_within(
+    args: &[&str],
+    dir: &Path,
+    on_line: &dyn Fn(&str),
+    deadline: Duration,
+) -> Result<Vec<u8>, Failure> {
+    stream_command(write_command(args, dir), on_line, Some(deadline))
+}
+
+/// `git` with `args`, to run in `dir` for a write: see [`git_write`].
+fn write_command(args: &[&str], dir: &Path) -> Command {
     let mut git = command("git", args, dir);
     git.env("GIT_TERMINAL_PROMPT", "0")
         .env("GIT_EDITOR", "true");
-    match on_line {
-        Some(on_line) => stream_command(git, on_line),
-        None => run_command(git),
-    }
+    git
 }
 
 /// `program` with `args`, to run in `dir`, its stdin closed.
@@ -88,8 +114,18 @@ fn run_command(mut command: Command) -> Result<Vec<u8>, Failure> {
 /// Runs `command` as [`run`] does, its stdout and stderr read line by line, each line given to
 /// `on_line` as it comes, like a hook's report while it runs. Returns the whole output, its lines
 /// in the order they came, once it succeeds. A failure's message is stderr's first line, then
-/// stdout's, as [`run`] has it.
-fn stream_command(mut command: Command, on_line: &dyn Fn(&str)) -> Result<Vec<u8>, Failure> {
+/// stdout's, as [`run`] has it. Past `deadline`, the process and every one it started are stopped,
+/// as they may hold its output open, and it fails with [`Failure::Deadline`].
+fn stream_command(
+    mut command: Command,
+    on_line: &dyn Fn(&str),
+    deadline: Option<Duration>,
+) -> Result<Vec<u8>, Failure> {
+    // A group of its own, so a stop reaches what it started too.
+    #[cfg(unix)]
+    if deadline.is_some() {
+        std::os::unix::process::CommandExt::process_group(&mut command, 0);
+    }
     let mut child = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -99,7 +135,19 @@ fn stream_command(mut command: Command, on_line: &dyn Fn(&str)) -> Result<Vec<u8
     let (sender, receiver) = mpsc::channel();
     let mut output = Output::default();
     let mut failed = None;
+    let (finished, finish) = mpsc::channel::<()>();
+    let timed_out = AtomicBool::new(false);
+    let group = child.id();
     std::thread::scope(|scope| {
+        if let Some(deadline) = deadline {
+            let timed_out = &timed_out;
+            scope.spawn(move || {
+                if finish.recv_timeout(deadline) == Err(RecvTimeoutError::Timeout) {
+                    timed_out.store(true, Ordering::SeqCst);
+                    stop_group(group);
+                }
+            });
+        }
         let to_stdout = sender.clone();
         scope.spawn(move || stdout.map(|pipe| send_lines(pipe, false, &to_stdout)));
         scope.spawn(move || stderr.map(|pipe| send_lines(pipe, true, &sender)));
@@ -116,8 +164,13 @@ fn stream_command(mut command: Command, on_line: &dyn Fn(&str)) -> Result<Vec<u8
                 }
             }
         }
+        // Every pipe is closed: the deadline's watch ends.
+        drop(finished);
     });
     let status = child.wait().map_err(start)?;
+    if timed_out.load(Ordering::SeqCst) {
+        return Err(Failure::Deadline);
+    }
     if let Some(error) = failed {
         return Err(Failure::Read(error.to_string()));
     }
@@ -132,6 +185,23 @@ fn stream_command(mut command: Command, on_line: &dyn Fn(&str)) -> Result<Vec<u8
             .to_string(),
     })
 }
+
+/// Stops the process group `group`, a process started in a group of its own and everything it
+/// started. Its leader is not waited for yet, so the group's id is still its own.
+#[cfg(unix)]
+fn stop_group(group: u32) {
+    let Ok(group) = libc::pid_t::try_from(group) else {
+        return;
+    };
+    // SAFETY: `kill` takes no pointer; a negative id names the process group.
+    unsafe {
+        libc::kill(-group, libc::SIGKILL);
+    }
+}
+
+/// No process groups to stop without unix: the deadline is never reached.
+#[cfg(not(unix))]
+fn stop_group(_group: u32) {}
 
 /// A process's output, each stream's own and both merged in the order their lines came.
 #[derive(Default)]
@@ -214,9 +284,13 @@ mod tests {
     fn a_streamed_failure_is_named_by_stderr_first() {
         let lines = Mutex::new(Vec::new());
         let script = "echo out; sleep 0.1; echo err >&2; exit 1";
-        let failed = stream_command(command("sh", &["-c", script], Path::new(".")), &|line| {
-            lines.lock().unwrap().push(line.to_string());
-        });
+        let failed = stream_command(
+            command("sh", &["-c", script], Path::new(".")),
+            &|line| {
+                lines.lock().unwrap().push(line.to_string());
+            },
+            None,
+        );
 
         let Err(Failure::Exit { message, output }) = failed else {
             panic!("{failed:?}");
