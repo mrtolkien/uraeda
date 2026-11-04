@@ -10,7 +10,6 @@
 import { type Extension, Prec } from "@codemirror/state";
 import { drawSelection, EditorView, ViewPlugin } from "@codemirror/view";
 import { type CodeMirror, type CodeMirrorV, getCM, Vim, vim } from "@replit/codemirror-vim";
-import { placeOf } from "../Editor.tsx";
 import { type Mode, setFocused, setMode } from "../modeStore.ts";
 import { editorActions, normalKeys, readFirst } from "../slot.ts";
 
@@ -181,7 +180,7 @@ const modeReport = ViewPlugin.fromClass(
     dialog = () => {
       if (this.cm && prompting(this.cm)) {
         this.fromPrompt = true;
-        setFocused({ mode: "command", ...placeOf(this.view) });
+        setFocused({ mode: "command" });
       } else {
         this.report();
       }
@@ -235,7 +234,7 @@ const afterFocus = Prec.lowest(
     if (update.view.hasFocus) {
       setMode(modeOf(cm));
     } else if (prompting(cm)) {
-      setFocused({ mode: "command", ...placeOf(update.view) });
+      setFocused({ mode: "command" });
     }
   }),
 );
