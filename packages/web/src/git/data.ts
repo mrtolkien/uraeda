@@ -96,12 +96,13 @@ export type GitGroup = GitPageData["groups"][number];
 export type GitWorktree = GitPageData["worktrees"][number];
 export type GitCommitRow = GitPageData["history"][number];
 
-const PAGE_REQUEST = { gitPage: { id: GIT_ID, view: GitPageView } };
+/** The request of the page's record. */
+export const GIT_PAGE_REQUEST = { gitPage: { id: GIT_ID, view: GitPageView } };
 
 /** The Git page's record. */
 export function useGitPage(): GitPageData | null {
-  const { gitPage } = useRequest(PAGE_REQUEST);
-  useRefreshOnShow(PAGE_REQUEST);
+  const { gitPage } = useRequest(GIT_PAGE_REQUEST);
+  useRefreshOnShow(GIT_PAGE_REQUEST);
   return useLiveView(GitPageView, gitPage) as GitPageData | null;
 }
 

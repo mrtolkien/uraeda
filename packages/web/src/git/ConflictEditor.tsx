@@ -6,7 +6,6 @@
 // resolved, and Continue goes on.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
-import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { useMemo, useState } from "react";
@@ -23,8 +22,8 @@ import { plural } from "../labels.ts";
 import { AnnouncedBanner } from "../layout/AnnouncedBanner.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { ConflictBanner } from "../pane/ProposalEditor.tsx";
-import { navigateHere } from "../routes.tsx";
 import { useSave } from "../useSave.ts";
+import { Back } from "./Back.tsx";
 import { gitAddress } from "./address.ts";
 import type { Stopped } from "./useConflictWrites.ts";
 
@@ -86,18 +85,6 @@ function useConflictFile(path: string) {
       }
     },
   };
-}
-
-/** The phone's way back to the sections, as a diff's. */
-function Back({ isNarrow }: { isNarrow: boolean }) {
-  return isNarrow ? (
-    <Button
-      icon={<Icon icon="arrowLeft" />}
-      label="Back"
-      onClick={() => navigateHere(gitAddress())}
-      variant="ghost"
-    />
-  ) : null;
 }
 
 /** The conflicted file at `path` in the editor, its bar naming the sides of `stopped`. */

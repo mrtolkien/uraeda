@@ -133,21 +133,25 @@ function useRun() {
   return { errors, run };
 }
 
-/** The page's writes, and what each place shows of them. */
-export function useGitWrites() {
-  const fate = useFateClient();
-  const confirm = useConfirm();
-  const repo = useRepositoryPath();
-  const { errors, run } = useRun();
+/**
+ * The staging writes, and the boxes they show before they answer: a commit waits for its group's
+ * staging writes still answering.
+ */
+function useStaging(run: ReturnType<typeof useRun>["run"]) {
+  const git = useFateClient().mutations.git;
   const [staging, setStaging] = useState<ReadonlyMap<string, boolean>>(new Map());
   /** The staging writes still answering, by their group's folder. */
   const stagingWrites = useRef(new Map<string | null, Set<Promise<boolean>>>());
-  const git = fate.mutations.git;
-  const view = GitPageView;
+  /** The last staging write of each box shown, by `stagingKey`: an earlier one leaves it shown. */
+  const lastStaging = useRef(new Map<string, symbol>());
 
   /** Stages `paths` of a group, or unstages them with `on` false, their boxes shown at once. */
   const stage = async (group: GitGroup, paths: ReadonlyArray<string>, on: boolean) => {
     const keys = paths.map((path) => stagingKey(group.folder, path));
+    const token = Symbol("staging");
+    for (const key of keys) {
+      lastStaging.current.set(key, token);
+    }
     setStaging((before) => new Map([...before, ...keys.map((key) => [key, on] as const)]));
     const what = paths.length === 1 ? paths[0] : plural(paths.length, "file");
     const input = { folder: group.folder, paths: [...paths] };
@@ -156,8 +160,8 @@ export function useGitWrites() {
       `${on ? "Staging" : "Unstaging"} ${what}`,
       (write) =>
         on
-          ? git.stage({ input: { ...input, write }, view })
-          : git.unstage({ input: { ...input, write }, view }),
+          ? git.stage({ input: { ...input, write }, view: GitPageView })
+          : git.unstage({ input: { ...input, write }, view: GitPageView }),
     );
     const writes = stagingWrites.current.get(group.folder) ?? new Set();
     stagingWrites.current.set(group.folder, writes.add(writing));
@@ -166,13 +170,33 @@ export function useGitWrites() {
     } finally {
       writes.delete(writing);
     }
-    setStaging((before) => new Map([...before].filter(([key]) => !keys.includes(key))));
+    // A box pressed again meanwhile stays as that press shows it, until its own write answers.
+    const done = keys.filter((key) => lastStaging.current.get(key) === token);
+    for (const key of done) {
+      lastStaging.current.delete(key);
+    }
+    setStaging((before) => new Map([...before].filter(([key]) => !done.includes(key))));
   };
+
+  /** Waits for a group's staging writes still answering. */
+  const settled = (folder: string | null) => Promise.all(stagingWrites.current.get(folder) ?? []);
+  return { settled, stage, staging };
+}
+
+/** The page's writes, and what each place shows of them. */
+export function useGitWrites() {
+  const fate = useFateClient();
+  const confirm = useConfirm();
+  const repo = useRepositoryPath();
+  const { errors, run } = useRun();
+  const { settled, stage, staging } = useStaging(run);
+  const git = fate.mutations.git;
+  const view = GitPageView;
 
   /** Commits what a group has staged with the message typed, which goes once the commit lands. */
   const commit = async (group: GitGroup) => {
     // A box ticked just before is committed too: the commit waits for its write to answer.
-    await Promise.all(stagingWrites.current.get(group.folder) ?? []);
+    await settled(group.folder);
     const key = unsavedKey(repo, messageField(group.folder));
     const message = readUnsaved(key)?.text ?? "";
     const landed = await run({ folder: group.folder }, `Committing on ${group.name}`, (write) =>

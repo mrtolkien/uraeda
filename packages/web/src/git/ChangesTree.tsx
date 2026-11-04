@@ -23,7 +23,9 @@ import { gitAddress } from "./address.ts";
 import { CommitField } from "./CommitField.tsx";
 import type { GitGroup } from "./data.ts";
 import { PlaceError } from "./PlaceError.tsx";
+import { Row } from "./Row.tsx";
 import type { TreeRow } from "./tree.ts";
+import type { ListRow } from "./useGitKeys.ts";
 import { filesShown, placeHref, type GitWrites } from "./useGitWrites.ts";
 
 const styles = stylex.create({
@@ -95,6 +97,7 @@ export function TreeLine({
           variant="ghost"
         />
       ) : (
+        // A blank of a chevron's width: Astryx's stacks have no fixed-width spacer.
         <span {...stylex.props(styles.leaf)} />
       )}
       <CheckboxInput
@@ -104,13 +107,18 @@ export function TreeLine({
         onChange={() => void writes.stage(group, row.paths, row.staged !== true)}
         value={row.staged}
       />
-      <span {...stylex.props(styles.name)}>
-        {row.folder ? (
-          <Link onClick={() => onFold(row.path)}>{row.name}</Link>
-        ) : (
-          <Link href={here(gitAddress({ file: row.path, folder, kind: "file" }))}>{row.name}</Link>
-        )}
-      </span>
+      {row.folder ? (
+        <Link onClick={() => onFold(row.path)} xstyle={styles.name}>
+          {row.name}
+        </Link>
+      ) : (
+        <Link
+          href={here(gitAddress({ file: row.path, folder, kind: "file" }))}
+          xstyle={styles.name}
+        >
+          {row.name}
+        </Link>
+      )}
     </HStack>
   );
 }
@@ -167,5 +175,56 @@ export function ChangesGroup({
         </VStack>
       </Pane>
     </VStack>
+  );
+}
+
+/** A group's pane, with its rows among the list's `rows`: none without a change. */
+export function Group({
+  commitRef,
+  cursor,
+  group,
+  isDisabled,
+  onFold,
+  onPick,
+  rows,
+  writes,
+}: {
+  commitRef: (handle: EditorHandle | null) => void;
+  cursor: string | undefined;
+  group: GitGroup;
+  isDisabled: boolean;
+  onFold: (path: string) => void;
+  onPick: (key: string) => void;
+  rows: ReadonlyArray<ListRow>;
+  writes: GitWrites;
+}) {
+  if (group.files.length === 0) {
+    return null;
+  }
+  return (
+    <ChangesGroup commitRef={commitRef} group={group} isDisabled={isDisabled} writes={writes}>
+      {rows.map(
+        (row) =>
+          row.kind === "tree" &&
+          row.group === group && (
+            <Row
+              end={<RowEnd row={row.row} />}
+              isInline
+              isPicked={cursor === row.key}
+              key={row.key}
+              onPick={() => onPick(row.key)}
+              rowKey={row.key}
+            >
+              <TreeLine
+                group={group}
+                isDisabled={isDisabled}
+                onFold={onFold}
+                row={row.row}
+                writes={writes}
+              />
+            </Row>
+          ),
+      )}
+    </ChangesGroup>
   );
 }
