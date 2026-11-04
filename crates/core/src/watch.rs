@@ -49,7 +49,7 @@ pub struct Changes {
     /// Whether a feature, a branch, or a worktree appeared or went.
     pub workspace: bool,
     /// Whether what the Git page shows of a checkout changed: its `HEAD`, its index, a stopped
-    /// operation, the main checkout's branch or its `origin` branch, or the last fetch.
+    /// operation, the main checkout's branch or its `origin` branch, the last fetch, or the stash.
     pub git: bool,
 }
 
@@ -195,7 +195,7 @@ fn snapshot(root: &Path) -> Snapshot {
 
 /// What the Git page reads of each checkout's git folder, as its files are: `HEAD`, the index's
 /// size and time, a stopped merge or rebase; then the main checkout's branch tip and its `origin`
-/// branch's, and when `origin` was last fetched.
+/// branch's, when `origin` was last fetched, and the stash, which a stopped stash's banner names.
 fn git_state(git: &Git) -> String {
     let common = git.common_dir();
     let mut folders = vec![common.clone()];
@@ -223,7 +223,12 @@ fn git_state(git: &Git) -> String {
     let branch = read(common.join("HEAD"))
         .and_then(|head| Some(head.trim().strip_prefix("ref: refs/heads/")?.to_string()));
     let tips = branch.map(|branch| (git.tip(&branch), git.remote_tip(&branch)));
-    state.push_str(&format!("{tips:?}{:?}", stamp(common.join("FETCH_HEAD"))));
+    state.push_str(&format!(
+        "{tips:?}{:?}{:?}{:?}",
+        stamp(common.join("FETCH_HEAD")),
+        read(common.join("refs/stash")),
+        stamp(common.join("logs/refs/stash")),
+    ));
     hash(&state)
 }
 

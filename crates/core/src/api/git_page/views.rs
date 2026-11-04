@@ -41,6 +41,7 @@ pub struct GitPageView {
 #[serde(rename_all = "camelCase")]
 pub struct StoppedView {
     /// `pull`, `merge`, or `stash`.
+    #[cfg_attr(feature = "napi", napi(ts_type = "'pull' | 'merge' | 'stash'"))]
     pub kind: String,
     /// Git's stage 2, like `origin/main` during a pull.
     pub ours: String,
@@ -71,10 +72,12 @@ pub struct FileChangeView {
     /// From the checkout's top level.
     pub path: String,
     /// `modified`, `new`, or `deleted`.
+    #[cfg_attr(feature = "napi", napi(ts_type = "'modified' | 'new' | 'deleted'"))]
     pub state: String,
     /// `no`, `yes`, or `partly`.
+    #[cfg_attr(feature = "napi", napi(ts_type = "'no' | 'yes' | 'partly'"))]
     pub staged: String,
-    /// Lines added and removed from `HEAD`; none for a binary file.
+    /// Lines added and removed from `HEAD`; none for a binary file, or one past 1 MiB.
     pub added: Option<u32>,
     pub removed: Option<u32>,
 }
@@ -88,6 +91,12 @@ pub struct ConflictView {
     pub path: String,
     /// `both-changed`, `both-added`, `deleted-ours`, `deleted-theirs`, `both-deleted`,
     /// `added-ours`, or `added-theirs`; `ours` is the stopped operation's `ours` side.
+    #[cfg_attr(
+        feature = "napi",
+        napi(
+            ts_type = "'both-changed' | 'both-added' | 'deleted-ours' | 'deleted-theirs' | 'both-deleted' | 'added-ours' | 'added-theirs'"
+        )
+    )]
     pub kind: String,
     pub is_binary: bool,
     pub is_resolved: bool,
@@ -105,6 +114,7 @@ pub struct CommitRowView {
     /// In Unix seconds.
     pub authored: i64,
     /// `pull` for a commit only `origin` has, `push` for one only the branch has, else empty.
+    #[cfg_attr(feature = "napi", napi(ts_type = "'' | 'pull' | 'push'"))]
     pub mark: String,
 }
 
@@ -122,6 +132,10 @@ pub struct WorktreeView {
     pub folder: Option<String>,
     /// `missing`, `changes`, `locked`, `merged` for a feature done, or `clean`, the first that
     /// holds.
+    #[cfg_attr(
+        feature = "napi",
+        napi(ts_type = "'missing' | 'changes' | 'locked' | 'merged' | 'clean'")
+    )]
     pub state: String,
 }
 
@@ -152,7 +166,8 @@ pub struct GitAt {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitDiffView {
-    /// What it is of and its path: `<commit or folder or "">:<path>`.
+    /// What it is of and its path, `<commit or folder or "">:<path>`, then `:whole` when the whole
+    /// was asked for.
     pub id: String,
     pub path: String,
     /// The unified diff; none for a binary file, or one capped.

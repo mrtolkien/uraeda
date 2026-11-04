@@ -946,7 +946,7 @@ export interface Changes {
   workspace: boolean
   /**
    * Whether what the Git page shows of a checkout changed: its `HEAD`, its index, a stopped
-   * operation, the main checkout's branch or its `origin` branch, or the last fetch.
+   * operation, the main checkout's branch or its `origin` branch, the last fetch, or the stash.
    */
   git: boolean
 }
@@ -995,7 +995,7 @@ export interface CommitRowView {
   /** In Unix seconds. */
   authored: number
   /** `pull` for a commit only `origin` has, `push` for one only the branch has, else empty. */
-  mark: string
+  mark: '' | 'pull' | 'push'
 }
 
 /** A commit an action made. */
@@ -1022,7 +1022,7 @@ export interface ConflictView {
    * `both-changed`, `both-added`, `deleted-ours`, `deleted-theirs`, `both-deleted`,
    * `added-ours`, or `added-theirs`; `ours` is the stopped operation's `ours` side.
    */
-  kind: string
+  kind: 'both-changed' | 'both-added' | 'deleted-ours' | 'deleted-theirs' | 'both-deleted' | 'added-ours' | 'added-theirs'
   isBinary: boolean
   isResolved: boolean
 }
@@ -1264,10 +1264,10 @@ export interface FileChangeView {
   /** From the checkout's top level. */
   path: string
   /** `modified`, `new`, or `deleted`. */
-  state: string
+  state: 'modified' | 'new' | 'deleted'
   /** `no`, `yes`, or `partly`. */
-  staged: string
-  /** Lines added and removed from `HEAD`; none for a binary file. */
+  staged: 'no' | 'yes' | 'partly'
+  /** Lines added and removed from `HEAD`; none for a binary file, or one past 1 MiB. */
   added?: number
   removed?: number
 }
@@ -1359,7 +1359,10 @@ export interface GitCommitView {
 
 /** A file's diff. */
 export interface GitDiffView {
-  /** What it is of and its path: `<commit or folder or "">:<path>`. */
+  /**
+   * What it is of and its path, `<commit or folder or "">:<path>`, then `:whole` when the whole
+   * was asked for.
+   */
   id: string
   path: string
   /** The unified diff; none for a binary file, or one capped. */
@@ -2352,7 +2355,7 @@ export interface StepView {
 /** The operation the main checkout stopped in, its sides named by branch. */
 export interface StoppedView {
   /** `pull`, `merge`, or `stash`. */
-  kind: string
+  kind: 'pull' | 'merge' | 'stash'
   /** Git's stage 2, like `origin/main` during a pull. */
   ours: string
   /** Git's stage 3. */
@@ -2481,5 +2484,5 @@ export interface WorktreeView {
    * `missing`, `changes`, `locked`, `merged` for a feature done, or `clean`, the first that
    * holds.
    */
-  state: string
+  state: 'missing' | 'changes' | 'locked' | 'merged' | 'clean'
 }
