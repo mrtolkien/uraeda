@@ -1,12 +1,13 @@
 ---
-status: awaiting-human
+status: answered
 ---
 
 # Clarifications, round 01: Basic git UI in the web UI
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> 13 questions and 2 follow-ups, about 35 minutes.
+> Answered in part on 2026-11-04, then replaced by [round 02](clarifications-02.md): a simpler,
+> generic git client, everything in one spec.
 >
 > - Verdict: worth building, with changes: fixing conflicts in the page is a feature of its own. And
 >   "pull main" is never a fast-forward here: `main` holds Uraeda's unpushed chores.
@@ -114,7 +115,7 @@ agent fixes them until a second feature.
   - [pro] the quickest to build.
   - [con] a conflict during a pull leaves the page stuck until a terminal finishes it.
 
-**Answer:**
+**Answer:** B
 
 ### Q1.A: What can you do with a conflict from the page?
 
@@ -162,7 +163,7 @@ every text field uses.
   - [pro] the clearest view of each side.
   - [con] the most work; three panes do not fit the phone.
 
-**Answer:**
+**Answer:** A
 
 ## Q2: What does Pull do when `main` has commits `origin` lacks?
 
@@ -192,7 +193,7 @@ whether your history gets merge commits.
   - [pro] the choice is always yours.
   - [con] a question after every merged pull request.
 
-**Answer:**
+**Answer:** A
 
 ## Q3: What happens to uncommitted edits during a pull?
 
@@ -217,7 +218,7 @@ them often.
   - [pro] nothing is ever stashed.
   - [con] one more step before most pulls.
 
-**Answer:**
+**Answer:** B
 
 ## Q4: When does Uraeda fetch from `origin`?
 
@@ -240,7 +241,7 @@ Why it matters: it decides whether the page can say "3 commits to pull" before y
   - [pro] nothing runs unasked.
   - [con] the counts are as old as your last pull.
 
-**Answer:**
+**Answer:** A
 
 ## Q5: Does the page push?
 
@@ -259,7 +260,7 @@ Why it matters: without it, a terminal stays part of the loop.
   - [pro] less to build.
   - [con] your chores stay local until you push in a terminal.
 
-**Answer:**
+**Answer:** A
 
 ## Q6: Which diffs does the page show?
 
@@ -280,7 +281,7 @@ Why it matters: each kind is a source of data and a place in the page.
   - [pro] the smallest.
   - [con] after a pull, you cannot see what it brought.
 
-**Answer:**
+**Answer:** A
 
 ## Q7: What draws a diff's lines?
 
@@ -304,7 +305,7 @@ Why it matters: a new dependency is pinned and kept; Astryx's component follows 
   - [pro] the most complete, and fast on huge diffs.
   - [con] its own colour themes beside Astryx's, and the heaviest bundle.
 
-**Answer:**
+**Answer:** A
 
 ## Q8: What does the page show of changes Uraeda did not make?
 
@@ -332,7 +333,7 @@ Why it matters: it decides whether the page is a full `git status`, and whether 
   - [pro] nothing new.
   - [con] the page hides what `git status` shows.
 
-**Answer:**
+**Answer:** A
 
 ## Q9: How does the history read?
 
@@ -351,7 +352,7 @@ Why it matters: a graph is a component Astryx lacks, built for this page.
   - [pro] the branches' shape at a glance.
   - [con] a graph component to build and keep readable on the phone.
 
-**Answer:**
+**Answer:** Replaced by round 02.
 
 ## Q10: What does the page do with worktrees?
 
@@ -374,7 +375,7 @@ you ask.
   - [pro] nothing destructive.
   - [con] cleaning stays in the terminal.
 
-**Answer:**
+**Answer:** Replaced by round 02.
 
 ## Q11: How is the page laid out?
 
@@ -395,7 +396,7 @@ Why it matters: it sets how diffs are read, the page's main job after pulling.
   - [pro] the Commit page's shape, simplest.
   - [con] going back and forth between the list and each diff.
 
-**Answer:**
+**Answer:** Replaced by round 02.
 
 ## Q12: Where does the page live, and how is it reached?
 
@@ -418,7 +419,7 @@ Why it matters: the page becomes a place of its own, and the sidebar can tell wh
   - [pro] the sidebar stays as quiet as today.
   - [con] the page hides when nothing waits, reachable by keys only.
 
-**Answer:**
+**Answer:** Replaced by round 02.
 
 ## Q13: Which rules join the Git decision?
 
@@ -437,7 +438,7 @@ Why it matters: these rules outlive the page.
   - [pro] the smallest change.
   - [con] a later feature could pull on its own without breaking a rule.
 
-**Answer:**
+**Answer:** Replaced by round 02.
 
 ## Settled without the human
 
