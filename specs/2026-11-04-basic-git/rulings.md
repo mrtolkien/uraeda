@@ -327,3 +327,26 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: `Panes` draws the list alone without a detail, and the list drawn anew lost the
   focus of the box Space had just ticked; Storybook's fixture is shared and has no remote.
 - **Where**: task 9.
+
+## R26: The conflicts' writes, questions, and bar
+
+- **Decision**: the conflicts' writes run through `useGitWrites`' `run`, now returned, at the place
+  `"sync"`, so their refusals show under the title with Pull's; the editor's save shows its refusal
+  in its own pane, a stale save offering the text to copy or the new version to load, as a buffer's,
+  its toast opening `/git?conflict=<path>`. Abort always asks (SC-003): "The resolved files go back
+  as they were." once a file reads resolved or had a side taken on the page, which the browser
+  remembers while the operation is stopped, else "main goes back as it was before the pull.". The
+  banner counts the files not yet resolved, "every conflict is resolved." at none; Continue is
+  enabled once every conflict reads resolved; `m` opens Continue and Abort as a menu anchored at
+  Continue. A delete conflict's "Keep the file" takes the side that has it; a file deleted on both
+  offers "Delete the file" alone; one added on one side alone reads "added on main alone". The bar's
+  buttons are the browser's, in a CodeMirror widget, styled from the Astryx theme's tokens, an
+  Astryx gap the plan lists. `Editor.tsx`, at its length limit, gives `hearLabels` to
+  `fields/editor/labels.ts`. A row's head line on the phone wraps its actions, which cut "Keep the
+  file" and "Delete the file" short.
+- **Rationale**: one place per section, as R22 has it; a resolved file leaves the conflicts once its
+  side is staged, so the page cannot read it back after a reload; the mockup puts Abort and Continue
+  in the section's title, beside the files they act on.
+- **If wrong**: after a reload, Abort over files resolved by a whole side alone says main goes back,
+  not the resolved files; it still asks.
+- **Where**: task 10.

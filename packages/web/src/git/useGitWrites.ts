@@ -210,6 +210,8 @@ export function useGitWrites() {
     pull: () => run("sync", "Pulling", (write) => git.pull({ input: { write }, view })),
     push: () => run("sync", "Pushing", (write) => git.push({ input: { write }, view })),
     remove,
+    /** Runs a write of a place, as the page's others: the conflicts' writes are the sync's. */
+    run,
     stage,
     /** The boxes shown before their write answers, by `stagingKey`. */
     staging,
