@@ -1,8 +1,7 @@
 // The status line, at the bottom of the window. On semi-wide and wide screens, one line in
 // LazyVim's shape, lualine's sections (`status/`): the Vim mode while Vim's keys are on, the branch
 // a page names, the hints of the keys that work on the page (the key registry's), then how many
-// cards need the human and how many sessions run, and the cursor's place while a field has the
-// focus. On the phone, a bar of the page's own controls only (`TopBarSlot`, as a
+// cards need the human and how many sessions run. On the phone, a bar of the page's own controls only (`TopBarSlot`, as a
 // round's count and Next), while it has any: the phone's tabs show the counts. An Astryx gap
 // (plan, Complexity tracking): no component draws a status line. Astryx's `Kbd` writes keys in
 // capitals, "J K", where the line writes them as typed. Its counts are not announced as they change:
@@ -25,7 +24,6 @@ import { useMode } from "../fields/editor/modeStore.ts";
 import { useVimOn } from "../fields/editor/vim/load.ts";
 import { useShownBranch } from "./status/branch.ts";
 import { ModeAnnouncer, ModeSection } from "./status/Mode.tsx";
-import { Place } from "./status/Place.tsx";
 import { Section, sectionStyles, Separator, type Tone, toneOf } from "./status/Sections.tsx";
 import { bareButtonStyles } from "../layout/bareButton.ts";
 import { barVars } from "../layout/bar.stylex.ts";
@@ -251,7 +249,7 @@ function Start({ tone }: { tone: Tone }) {
       {tone !== "off" && (
         <>
           <ModeSection mode={mode} tone={tone} />
-          <Separator from="mode" into={branch ? "b" : "line"} pointing="right" tone={tone} />
+          <Separator from="mode" into={branch ? "b" : "line"} tone={tone} />
         </>
       )}
       {branch && (
@@ -260,7 +258,7 @@ function Start({ tone }: { tone: Tone }) {
             <Icon icon="uraeda:git-branch" size="sm" />
             {branch}
           </Section>
-          <Separator from="b" into="line" pointing="right" tone={tone} />
+          <Separator from="b" into="line" tone={tone} />
         </>
       )}
     </>
@@ -268,8 +266,7 @@ function Start({ tone }: { tone: Tone }) {
 }
 
 /**
- * The line of semi-wide and wide screens: the mode and the branch, the hints, the counts, and the
- * cursor's place.
+ * The line of semi-wide and wide screens: the mode and the branch, the hints, and the counts.
  */
 function Line() {
   // Left out under a sheet that leaves the page usable, which rises from the same edge.
@@ -283,7 +280,6 @@ function Line() {
       <Start tone={tone} />
       <Hints />
       <Counts />
-      <Place tone={tone} />
     </footer>
   );
 }

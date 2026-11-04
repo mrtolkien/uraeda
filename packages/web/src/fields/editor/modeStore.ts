@@ -1,5 +1,5 @@
-// The focused field's Vim mode and cursor's place, for the status line (R4): a small store outside
-// React, since every keystroke moves the cursor and a context would draw the shell again each time.
+// The focused field's Vim mode, for the status line (R4): a small store outside React, read by the
+// shell's line alone, so a change of mode draws the line again, not the shell.
 import { useSyncExternalStore } from "react";
 
 /** A Vim mode. Without Vim, a focused field reports `insert`. */
@@ -12,11 +12,8 @@ export type Mode =
   | "visual-block"
   | "visual-line";
 
-/** The cursor's place: its line and column, from 1, and how far the field is scrolled, Vim's way. */
-export type Place = { column: number; line: number; progress: string };
-
 /** What the status line reads: `nav` while no field has the focus. */
-export type ModeView = { column?: number; line?: number; mode: Mode | "nav"; progress?: string };
+export type ModeView = { mode: Mode | "nav" };
 
 const NAV: ModeView = { mode: "nav" };
 
@@ -30,8 +27,8 @@ function set(next: ModeView) {
   }
 }
 
-/** The focused field, with its mode and place, or `null` once no field has the focus. */
-export function setFocused(field: ({ mode: Mode } & Place) | null) {
+/** The focused field, with its mode, or `null` once no field has the focus. */
+export function setFocused(field: { mode: Mode } | null) {
   set(field ? { ...field } : NAV);
 }
 
@@ -42,18 +39,6 @@ export function setMode(mode: Mode) {
   }
 }
 
-/** The focused field's cursor, moved. */
-export function setPlace(place: Place) {
-  if (
-    current.mode !== "nav" &&
-    (current.line !== place.line ||
-      current.column !== place.column ||
-      current.progress !== place.progress)
-  ) {
-    set({ ...current, ...place });
-  }
-}
-
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
   return () => {
@@ -61,10 +46,10 @@ const subscribe = (listener: () => void) => {
   };
 };
 
-/** The focused field's mode and place, or `nav`, as they are now, outside React. */
+/** The focused field's mode, or `nav`, as it is now, outside React. */
 export const modeNow = (): ModeView => current;
 
-/** The focused field's mode and place, or `nav`. */
+/** The focused field's mode, or `nav`. */
 export function useMode(): ModeView {
   return useSyncExternalStore(subscribe, () => current);
 }

@@ -146,7 +146,7 @@ CHANGE PLACES"). It is not a page's place for its own controls.
 The bottom line of wide and semi-wide screens, in the shape of LazyVim's: lualine's sections in
 Catppuccin's colours, set apart by triangles. In order: the Vim mode while Vim mode is on, the
 branch a page names, like a buffer's, the page's key hints, the counts of what needs the human and
-what runs, and the cursor's place while a field has the focus, like "Top 3:9". The mode reads NAV,
+what runs. No cursor's place: its line, column, and "All" were "distracting". The mode reads NAV,
 grey, while keys act on the page, and in a field NORMAL in blue, INSERT in green, VISUAL in mauve,
 REPLACE in red, or COMMAND in peach. With Vim mode off, the line keeps its sections without the
 mode. It holds no content. It has a slot for a page's own controls, which only the phone's bar uses
