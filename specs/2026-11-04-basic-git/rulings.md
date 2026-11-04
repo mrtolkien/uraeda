@@ -397,3 +397,20 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a fetch over a slow link that needs more than 2 minutes always fails; a slow check,
   as the removal's read of the page, holds the next write's queueing.
 - **Where**: tasks 3 and 7, after the review of tasks 8 and 9.
+
+## R29: The page reads its checkouts at once, and SC-001's 100 ms is checked on a release build
+
+- **Decision**: `api::git_page` reads the main checkout's state and each worktree's in scoped
+  threads, one each, at once, a panic carried on as the caller's. Its benchmark,
+  `bench_git_page_on_uraedas_repository`, reads the page with a watch running, as the server's does,
+  and prints the mean of 10 reads; it asserts the mean under 100 ms only in a build without debug
+  assertions, as
+  `cargo nextest run --cargo-profile release -p uraeda-core --test git_page --run-ignored only`
+  makes. Measured on Uraeda's repository with four worktrees: 812 ms in a debug build before, 146 ms
+  after, and 39 ms in release.
+- **Rationale**: each checkout's status walks its whole working tree, about 10 ms in release and 60
+  to 110 ms unoptimized, one after another; the performance decision sets its 100 ms on a release
+  build, and `vp run bench` makes a debug one, where one status alone takes about 100 ms.
+- **If wrong**: `vp run bench` never fails on the page's time: the release command above is the one
+  that checks it, by hand in the review.
+- **Where**: task 12.

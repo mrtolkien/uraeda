@@ -122,7 +122,7 @@ on past a refusal: the next writes land, or are refused, each alone.
 ## Pages
 
 Anything the human reads or works in for a while is a page, with its own address: a proposal file, a
-round, a spec, a session, the commit. "Committing is its own dedicated view/flow." Back returns to
+round, a spec, a session, the Git page. "Committing is its own dedicated view/flow." Back returns to
 where they were.
 
 ## The side column

@@ -28,17 +28,18 @@ whose answers either continue the implementation or revise the spec.
 
 ## Committing
 
-- **Commit is a place of its own**: while changes wait, a Commit in the sidebar and in the phone's
-  tabs opens the commit page, with what the commit holds, edited proposal files included.
-  "Committing is its own dedicated view/flow."
+- **Git is a place of its own**: Git, in the sidebar and `Space g`, opens the Git page, with every
+  changed file of the main checkout, edited proposal files included, and each feature worktree's a
+  buffer saved into. "Committing is its own dedicated view/flow." `/commit` leads to it.
 - **Saving never commits**: a buffer, a form, and a list only save their file, and the edit waits on
-  the commit page, unless the action says it commits.
-- **One pane per branch with changes**, the default branch's first, then each feature's whose files
-  a buffer changed. Each pane lists what its commit holds, its message in a field filled with the
-  suggestion, and its own Commit and Discard. A rewritten message is unsaved text until its commit
-  lands, committed as typed, and "Use the suggested message" brings the suggestion back. With one
-  pane, the page looks as before.
-- **Discard asks first**, through the shared confirmation, since it destroys what was typed.
+  the Git page, unless the action says it commits.
+- **Changes are a tree, staged as in lazygit**: one tree per checkout with changes, the main
+  checkout's first. Space stages a file or a folder, `a` stages or unstages them all, and a staged
+  file keeps its row. Each tree has its own message, empty until typed, and its own Commit, which
+  commits what is staged.
+- **Discard asks first**, through the shared confirmation, and restores one file, as git does.
+- **Pull, push, fetch, and merge are the page's**, as lazygit's keys, `p`, `P`, `f`, and `M`; a
+  conflict they stop on is fixed in the page, in the shared editor, then continued or aborted.
 - **Starting work may commit by itself**: a flow whose only sense is to start, like starting a
   feature, commits what it must without asking. "That much is ok."
 

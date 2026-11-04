@@ -5,6 +5,7 @@ mod common;
 
 use common::repo::TestRepo;
 use common::texts::proposal;
+use std::time::{Duration, Instant};
 use uraeda_core::api::{self, ChangeGroupView, FileChangeView, WorktreeView};
 
 const FOLDER: &str = "2026-10-11-web-ui";
@@ -214,5 +215,32 @@ fn refused<T: std::fmt::Debug>(result: Result<T, api::ApiError>) -> String {
     match result {
         Err(error) if error.code == "refused" => error.message,
         other => panic!("not refused: {other:?}"),
+    }
+}
+
+/// SC-001, with `vp run bench`: the Git page of Uraeda's own repository, its history, changes, and
+/// worktrees, read from what the server holds, a watch running as the server's does, the mean of
+/// 10 reads after a first one. The performance decision's 100 ms is on a release build, where it
+/// is checked; a debug build, as `vp run bench` makes, only prints its mean: unoptimized, gix's
+/// status of one checkout of this repository takes about 100 ms alone (ruling R29).
+#[test]
+#[ignore = "benchmark"]
+fn bench_git_page_on_uraedas_repository() {
+    let repo = common::repository_path("");
+    let _watch = uraeda_core::watch::watch(&repo, |_| {}).unwrap();
+    api::git_page(&repo).unwrap();
+    let times: Vec<Duration> = (0..10)
+        .map(|_| {
+            let start = Instant::now();
+            let page = api::git_page(&repo).unwrap();
+            let elapsed = start.elapsed();
+            assert!(!page.history.is_empty(), "{page:?}");
+            elapsed
+        })
+        .collect();
+    let mean = times.iter().sum::<Duration>() / times.len() as u32;
+    println!("git_page: mean {mean:?} of {times:?}");
+    if !cfg!(debug_assertions) {
+        assert!(mean < Duration::from_millis(100), "mean {mean:?}");
     }
 }

@@ -3,8 +3,8 @@
 // states; "empty", a project just set up; "broken", whose features carry the problems
 // `ura check` reports; "realistic", a full day's load (`realistic.ts`); and "bare", a repository
 // not set up, without `specs/`.
-import { copyFileSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import {
   addStoryFeature,
   commitPreview,
@@ -86,6 +86,53 @@ function buildSample(repo: string) {
     copyFileSync(fixture(`realistic/decisions/${name}`), join(repo, "specs/decisions", name));
   }
   commitAll(repo, "docs: code-quality and testing decisions");
+  addOrigin(repo);
+}
+
+/** The line of `specs/PRIORITIES.md` the sample's own commit and its `origin`'s both change. */
+const PRIORITY_LINE = "- Claude Code runner (triggered manually)";
+
+/** Replaces `PRIORITY_LINE` in `repo`'s `specs/PRIORITIES.md` with `line`, and commits it. */
+function changePriority(repo: string, line: string, message: string) {
+  const file = join(repo, "specs/PRIORITIES.md");
+  const text = readFileSync(file, "utf8");
+  if (!text.includes(PRIORITY_LINE)) {
+    throw new Error(`specs/PRIORITIES.md has no line "${PRIORITY_LINE}"`);
+  }
+  writeFileSync(file, text.replace(PRIORITY_LINE, line));
+  commitAll(repo, message);
+}
+
+/**
+ * The sample's `origin`: a bare repository beside it, `sample-origin.git`, with its `main` pushed
+ * and tracked. Then a commit on `origin`, made in a second clone and fetched, and a local chore,
+ * each changing the same line of `specs/PRIORITIES.md`: the Git page shows one to pull and one to
+ * push, and a pull stops on a conflict. The seed points `origin` at the bare repository's final
+ * folder.
+ */
+function addOrigin(repo: string) {
+  const origin = join(dirname(repo), "sample-origin.git");
+  const upstream = join(dirname(repo), ".sample-upstream");
+  git(dirname(repo), "init", "--quiet", "--bare", "--initial-branch", "main", origin);
+  git(repo, "remote", "add", "origin", origin);
+  git(repo, "push", "--quiet", "--no-verify", "--set-upstream", "origin", "main");
+  git(dirname(repo), "clone", "--quiet", origin, upstream);
+  git(upstream, "config", "user.name", git(repo, "config", "user.name").trim());
+  git(upstream, "config", "user.email", git(repo, "config", "user.email").trim());
+  git(upstream, "config", "commit.gpgsign", "false");
+  changePriority(
+    upstream,
+    "- Claude Code runner (triggered from the web UI)",
+    "docs: the runner is triggered from the web UI",
+  );
+  git(upstream, "push", "--quiet", "--no-verify", "origin", "main");
+  rmSync(upstream, { force: true, recursive: true });
+  git(repo, "fetch", "--quiet", "origin");
+  changePriority(
+    repo,
+    "- Claude Code runner (triggered by a git hook)",
+    "chore: the runner is triggered by a git hook",
+  );
 }
 
 /**

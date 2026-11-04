@@ -33,7 +33,7 @@ export function titleOf(section: string) {
 /**
  * A ＋ form's buttons: `start` first in the row, like the inbox's "Attach an image", Cancel when
  * the form has one, then Add, the primary one and Enter's, which adds the line uncommitted, for the
- * commit page's Commit.
+ * Git page's Commit.
  */
 export function AddButtons({
   addLabel = "Add",

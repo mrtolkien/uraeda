@@ -35,7 +35,26 @@ const HISTORY_PAGE: usize = 50;
 pub fn git_page(repo: &Path) -> Result<GitPageView> {
     let (git, workspace) = open_any(repo)?;
     let main = Git::open(&git.main_root())?;
-    let state = main.checkout_state()?;
+    let mut records = main.worktree_records()?;
+    records.sort_by(|a, b| a.path.cmp(&b.path));
+    // Each checkout's status walks its whole working tree: the main checkout's and each
+    // worktree's run at once, one thread each.
+    let (state, reads) = std::thread::scope(|scope| {
+        let root = main.root();
+        let main_state = scope.spawn(move || Git::open(root)?.checkout_state());
+        let handles: Vec<_> = records
+            .iter()
+            .map(|record| {
+                (!record.missing).then(|| scope.spawn(|| Git::open(&record.path)?.checkout_state()))
+            })
+            .collect();
+        let reads: Vec<_> = handles
+            .into_iter()
+            .map(|handle| handle.map(joined))
+            .collect();
+        (joined(main_state), reads)
+    });
+    let state = state?;
     let name = state
         .branch
         .clone()
@@ -46,14 +65,11 @@ pub fn git_page(repo: &Path) -> Result<GitPageView> {
         name,
         files: state.files.iter().map(file_view).collect(),
     }];
-    let mut records = main.worktree_records()?;
-    records.sort_by(|a, b| a.path.cmp(&b.path));
     let mut worktrees = Vec::new();
-    for record in records {
+    for (record, read) in records.into_iter().zip(reads) {
         let feature = workspace.as_deref().and_then(|w| feature_on(w, &record));
         // A worktree that cannot be read counts as having changes, so nothing offers to remove
         // it, and has no group: its files are unknown.
-        let read = (!record.missing).then(|| Git::open(&record.path)?.checkout_state());
         let changes = match &read {
             None => false,
             Some(Ok(state)) => !state.files.is_empty() || !state.conflicts.is_empty(),
@@ -111,6 +127,13 @@ pub fn git_page(repo: &Path) -> Result<GitPageView> {
         has_more_history,
         worktrees,
     })
+}
+
+/// What a scoped thread returned, its panic carried on as this thread's.
+fn joined<T>(handle: std::thread::ScopedJoinHandle<'_, T>) -> T {
+    handle
+        .join()
+        .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
 }
 
 /// The sidebar's count, without counting any file's lines.

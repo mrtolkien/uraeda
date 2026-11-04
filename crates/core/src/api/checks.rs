@@ -55,7 +55,7 @@ fn check_feature(git: &Git, feature: &Feature) -> Vec<Problem> {
 
 /// Repairs the links of a done feature's record whose file moved or was deleted since, as
 /// `ura check --fix` does, in the checkout that has the default branch, without committing: the
-/// commit page lists the repair. Returns the feature read again. Refused for a feature not read
+/// Git page lists the repair. Returns the feature read again. Refused for a feature not read
 /// from the default branch.
 pub fn fix_links(repo: &Path, folder: &str) -> Result<FeatureView> {
     {

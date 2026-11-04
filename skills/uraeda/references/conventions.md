@@ -225,10 +225,8 @@ Its rounds use `discovery(<slug>):`, and an approved change to a decision uses
 
 Tools save the human's edits and never commit them on their own. An edit waits until the human
 commits it, or runs an action that says it commits, like submitting a round's answers. Starting a
-feature or a change may commit on its own. Each branch with changes commits apart, the default
-branch's and each feature's, with its own message. An edit of a whole file under `specs/` commits as
-one change, `edit <path>`, in place of the changes its lines would read as, on the feature's branch
-for a file of a feature's folder.
+feature or a change may commit on its own. A tool commits the files the human staged, with the
+message they typed, in the checkout that holds them.
 
 The human's commits, and the agent's when the human asks, use the step's type for what they answer
 and `chore:` for the rest. `ura` and other tools write the same messages. A message the human typed
