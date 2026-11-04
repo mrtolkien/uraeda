@@ -101,3 +101,16 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: a hook that asks for credentials at a terminal during `ura`'s commit now fails
   instead of prompting.
 - **Where**: task 1.
+
+## R11: A binary or a delete conflict is never resolved by its markers
+
+- **Decision**: a conflict's `is_resolved` holds only for a text file both sides have
+  (`BothChanged`, `BothAdded`) whose working file has no marker line. A binary conflict, or one
+  where a side deleted or alone added the file, stays unresolved until a whole side is taken, which
+  stages it and takes it out of the conflicts. Task 4's Continue reads `Conflict::is_resolved`, and
+  its private marker test gives way to `checkout::holds_markers` at the wave's merge.
+- **Rationale**: git writes no markers in those files, so the marker test alone would read them
+  resolved at once, and Continue would stage git's leftover side without the human choosing one, as
+  the spec offers only whole sides for them.
+- **If wrong**: a human who fixed such a file by hand must still press a side on its row.
+- **Where**: tasks 2 and 4.

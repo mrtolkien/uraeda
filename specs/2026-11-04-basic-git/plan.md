@@ -524,26 +524,30 @@ git commit -m "feat(basic-git): refuse commits while a pull or a merge is stoppe
   - `pub enum ConflictKind { BothChanged, BothAdded, DeletedOurs, DeletedTheirs, BothDeleted, AddedOurs, AddedTheirs }`
     (git's `UU AA DU UD DD AU UA`; `DeletedOurs` is deleted on `ours`, changed on `theirs`);
     `pub struct Conflict { pub path: String, pub kind: ConflictKind, pub is_binary: bool, pub is_resolved: bool }`,
-    `is_resolved` when the working file has no line starting `<<<<<<< ` nor `>>>>>>> `;
+    `is_resolved` when both sides have the file as text (`BothChanged`, `BothAdded`, not binary) and
+    the working file has no line starting `<<<<<<< ` nor `>>>>>>> `, tested by
+    `checkout::holds_markers`, `pub(crate)` for task 4; a binary or a delete conflict is never
+    resolved by markers, only by taking a side whole (ruling R11);
   - `pub struct CheckoutState { pub branch: Option<String>, pub detached: Option<String>, pub has_remote: bool, pub ahead: u32, pub behind: u32, pub stopped: Option<Stopped>, pub files: Vec<FileChange>, pub conflicts: Vec<Conflict> }`,
-    `detached` the 7-character id when `HEAD` is detached and nothing is stopped; `ahead` and
-    `behind` against `origin/<branch>`, 0 without one; files sorted by path, conflicted files only
-    in `conflicts`;
+    `branch` the branch checked out, or the one a stopped rebase replays; `detached` the 7-character
+    id when `HEAD` is detached and nothing is stopped; `ahead` and `behind` against
+    `origin/<branch>`, 0 without one; files sorted by path, conflicted files only in `conflicts`;
   - `impl Git { pub fn checkout_state(&self) -> Result<CheckoutState, GitError>; pub fn changed_count(&self) -> Result<u32, GitError> }`,
-    the second without counting lines, for the sidebar.
+    the second counting changed and conflicted files without counting lines, for the sidebar.
 - Produces, in `git/diff.rs`:
   - `pub const DIFF_CAP: usize = 1_000;`
   - `pub enum DiffOf { Worktree, Commit(ObjectId) }`;
   - `pub struct FileDiff { pub path: String, pub text: Option<String>, pub binary: Option<(u64, u64)>, pub added: u32, pub removed: u32, pub is_capped: bool }`:
-    `text` is a unified diff with `--- a/` and `+++ b/` headers and 3 lines of context, `None` for a
-    binary file or a capped one; `binary` the sizes before and after in bytes; `is_capped` when the
-    diff has more than `DIFF_CAP` lines and `whole` is false;
+    `text` is a unified diff with `--- a/` and `+++ b/` headers (`/dev/null` for a side without the
+    file, as git writes it) and 3 lines of context, `None` for a binary file or a capped one;
+    `binary` the sizes before and after in bytes; `is_capped` when the diff adds and removes more
+    than `DIFF_CAP` lines and `whole` is false;
   - `pub struct CommitFiles { pub id: ObjectId, pub subject: String, pub body: String, pub authored: i64, pub files: Vec<ChangedFile> }`;
   - `impl Git { pub fn file_diff(&self, of: DiffOf, path: &str, whole: bool) -> Result<FileDiff, GitError>; pub fn commit_files(&self, id: ObjectId) -> Result<CommitFiles, GitError> }`:
     a working-tree diff goes from `HEAD` to the file on disk, staged or not; a commit's from its
     first parent, or from nothing for a root commit.
 
-- [ ] **Step 1: Write the failing tests, and the helpers they use**
+- [x] **Step 1: Write the failing tests, and the helpers they use**
 
 - `the_state_counts_commits_to_pull_and_to_push`: `with_origin`, 2 local commits, 3
   `upstream_commit`s: `ahead == 2`, `behind == 3`, `branch == Some("main")`, `has_remote`. Breaks:
@@ -554,9 +558,9 @@ git commit -m "feat(basic-git): refuse commits while a pull or a merge is stoppe
   untracked files.
 - `a_conflict_names_its_sides_by_branch`, a row each: `stopped_pull` gives `Pull`, `ours`
   `origin/main`, `theirs` `main`, one `BothChanged` conflict, not resolved, and resolved once its
-  markers are edited out; a merge of a branch `topic` gives `Merge`, `theirs` `topic`; a file
-  deleted upstream and changed locally gives `DeletedOurs` in the rebase. Break: naming stage 2
-  "main" during a rebase.
+  markers are edited out; a merge of a branch `topic` gives `Merge`, `theirs` `topic`, its conflict
+  in a binary file `is_binary`; a file deleted upstream and changed locally gives `DeletedOurs` in
+  the rebase. Break: naming stage 2 "main" during a rebase.
 - `a_stash_that_conflicts_lists_its_files_and_keeps_the_stash`: with `rebase.autoStash true` and an
   uncommitted edit to the line an upstream commit changes, `git pull --rebase`: `stopped` is `Stash`
   with `stash == Some("stash@{0}")`, the file is in `conflicts`, and `git stash list` still has it.
@@ -565,26 +569,28 @@ git commit -m "feat(basic-git): refuse commits while a pull or a merge is stoppe
   grown to 14,336 gives `binary == Some((12288, 14336))` and no text; a file of 3,000 new lines
   gives `is_capped`, `added == 3000`, no text, and with `whole` the text.
 - `a_commit_lists_its_files_with_their_counts`: a commit changing two files lists both with their
-  counts, and its subject.
+  counts, and its subject; its file's diff is from its parent, not `HEAD`.
+- Helpers, in `tests/common/repo.rs`: `write_bytes`, `try_git` (a git command that may stop), and
+  `upstream_remove` (a deletion on `origin/main`).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test git_checkout --test git_diff`
 - Expected: FAIL, `checkout_state` not found.
 
-- [ ] **Step 3: Implement `checkout_state`, `changed_count`, `file_diff`, and `commit_files`**
+- [x] **Step 3: Implement `checkout_state`, `changed_count`, `file_diff`, and `commit_files`**
 
 Through gix: the status iterator (tree-to-index and index-to-worktree, untracked files listed), the
 index's stages for conflicts, `behind` both ways, blob diffs with `gix-diff`'s unified output. The
 line counts come from the same diff machinery as `file_diff`, without building the text. Paths are
 the repository's bytes as UTF-8, never quoted.
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core specs/2026-11-04-basic-git/plan.md
