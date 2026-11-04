@@ -20,7 +20,7 @@ import {
   scheduleContinue,
   serverCuts,
   startTurn,
-  stopDone,
+  stopEnded,
   takeContinue,
   touch,
 } from "./cache-turns.ts";
@@ -342,9 +342,9 @@ export class SessionCache {
     endTurn(this.db, id, end);
   }
 
-  /** Makes a done turn stopped by the human: see `stopDone`. */
-  stopDone(turn: number): boolean {
-    return stopDone(this.db, turn);
+  /** Makes an ended turn stopped by the human: see `stopEnded`. */
+  stopEnded(turn: number): boolean {
+    return stopEnded(this.db, turn);
   }
 
   /** Dismisses a failed or stopped turn, and its continue: see `dismiss`. */

@@ -58,12 +58,16 @@ export function endTurn(db: DatabaseSync, id: number, end: { reason?: string; st
 }
 
 /**
- * Makes a done turn stopped by the human, without a reason, as the human's Stop while its agent
- * waited for its own wakeup: false for a turn in any other state.
+ * Makes an ended turn, done or failed, stopped by the human, without a reason, as their Stop while
+ * its run waited outside the cache: its agent's own wakeup, or a message's takeover of its wait.
+ * False for a turn in any other state, or dismissed.
  */
-export function stopDone(db: DatabaseSync, turn: number): boolean {
+export function stopEnded(db: DatabaseSync, turn: number): boolean {
   const { changes } = db
-    .prepare("UPDATE turns SET state = 'stopped', reason = NULL WHERE id = ? AND state = 'done'")
+    .prepare(
+      `UPDATE turns SET state = 'stopped', reason = NULL
+       WHERE id = ? AND state IN ('done', 'failed') AND dismissed_at IS NULL`,
+    )
     .run(turn);
   return Number(changes) > 0;
 }

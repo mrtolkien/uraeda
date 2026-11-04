@@ -235,6 +235,42 @@ test("a message refused during a wait leaves the wait in place", async () => {
   expect(changes.slice(published)).toContainEqual(expect.objectContaining({ turn }));
 });
 
+/** A refused message gives back no wait the human stopped while it was read (run lifecycle). */
+test("Stop during a message later refused keeps the wait cancelled, and the run stopped", async () => {
+  // Once `held` is set, the message's read of its step waits for it, then finds no branch.
+  const reads: { held?: PromiseWithResolvers<void>; reached: boolean } = { reached: false };
+  const deferred = {
+    ...binding,
+    nextStep: async (...args: Parameters<typeof binding.nextStep>) => {
+      const next = await binding.nextStep(...args);
+      if (reads.held === undefined) {
+        return next;
+      }
+      reads.reached = true;
+      await reads.held.promise;
+      return { ...next, branch: undefined };
+    },
+  } as typeof binding;
+  const setup = await testSessions(fixtureRepo(), { binding: deferred, runs: () => ON });
+  const { adapter, cache, repo, sessions } = setup;
+  const time = clock("2026-11-03T14:01:00Z");
+  const { session, turn } = await sendLimited(setup, AGENT);
+  expect(cache.turn(turn)).toMatchObject({ continueAt: AFTER_RESET, continueReason: "limit" });
+
+  reads.held = Promise.withResolvers<void>();
+  const sending = sessions.send(repo, session, { text: "Skip the review" });
+  await until(() => reads.reached);
+  sessions.stop(repo, session);
+  reads.held.resolve();
+  await expect(sending).rejects.toThrow("refused: This feature has no branch left: it is merged.");
+
+  expect(cache.turn(turn)).toMatchObject({ continueAt: null, continueReason: null });
+  expect(statusOf(cache, turn).reason).toBe("stopped");
+  time.to(AFTER_RESET);
+  await flush();
+  expect(continues(adapter)).toBe(0);
+});
+
 /** Rule 6: a continue's turn taken back before it started gives the run back its own reason. */
 test("a continue taken back while queued leaves the run failed, not capped", async () => {
   const setup = await testSessions(fixtureRepo(), { runs: () => ON });

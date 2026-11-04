@@ -75,6 +75,8 @@ export class Continuer {
    * a dismiss, or going on: a decision that read meanwhile is dropped.
    */
   #takenOver = new Map<string, number>();
+  /** The takeover count of each session's latest Stop: a refused message restores no wait after. */
+  #stops = new Map<string, number>();
   /** Whether `start` ran: the restart's scan waits for it. */
   #started = false;
   /** Whether the server stops: no timer is armed then. */
@@ -130,19 +132,32 @@ export class Continuer {
   /**
    * The human's message or Allow takes the place of the session's continue, and sets its count
    * back. Returns the turns cancelled, and what puts the wait and the count back, as they were,
-   * for a refused one, which never went.
+   * for a refused one, which never went: unless the run was taken over since, by Stop, a dismiss,
+   * another message, or Allow, or the wait's kind was switched off. A Stop since leaves the runs
+   * whose wait it cancelled stopped.
    */
   takeOver(session: string): { restore: () => void; turns: Array<number> } {
     const { cache } = this.#context;
     const count = cache.session(session)?.automaticContinues ?? 0;
     const cancelled = this.#cancel(session, { stopped: false });
+    const taken = this.#taken(session);
     cache.resetContinues(session);
     const restore = () => {
+      if (this.#taken(session) !== taken) {
+        if ((this.#stops.get(session) ?? 0) > taken) {
+          for (const turn of cancelled.filter((one) => cache.stopEnded(one.id))) {
+            this.#publish({ ...turn, state: "stopped" });
+          }
+        }
+        return;
+      }
       cache.resetContinues(session, count);
+      const runs = this.#runs();
       for (const { continueAt, continueReason, id } of cancelled) {
         if (
           continueAt !== null &&
           continueReason !== null &&
+          runs[SWITCHES[continueReason]] &&
           cache.scheduleContinue(id, continueAt, continueReason, TAKEN_BACK)
         ) {
           this.#arm(id, continueAt);
@@ -161,6 +176,9 @@ export class Continuer {
   #cancel(session: string, { stopped }: { stopped: boolean }): Array<TurnRow> {
     const { cache } = this.#context;
     this.takenOver(session);
+    if (stopped) {
+      this.#stops.set(session, this.#taken(session));
+    }
     return cache
       .pendingContinues()
       .filter((turn) => turn.sessionId === session && this.#clear(turn.id))

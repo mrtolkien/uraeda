@@ -283,3 +283,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   wakeup, at most a day (R16).
 - **Where**: final review, `packages/server/src/runner/continuer.ts`, `status.ts`, and
   `packages/server/src/fate/session-reads.ts`.
+
+## R25: A Stop while a message reads leaves the run stopped once the message is refused
+
+- **Decision**: a message cancels the run's wait as it starts (`Continuer.takeOver`), and a refused
+  one puts the wait and the count back only when no takeover happened since, by Stop, a dismiss,
+  another message, or Allow, and the wait's kind is still on. When a Stop came in between, the turn
+  whose wait the message cancelled becomes stopped by the human at the refusal, `stopEnded` in
+  `cache-turns.ts`, as the Stop of a waiting run makes it.
+- **Rationale**: Stop arriving while the message awaits the binding finds no wait to cancel: the
+  message holds it. The restore then brought the wait back, and the run went on at the reset after
+  the human stopped it, against the run lifecycle decision. Found by the final review.
+- **If wrong**: between such a Stop and the refusal, a few milliseconds, the run reads failed, not
+  stopped; a message that goes is not affected.
+- **Where**: final review, `packages/server/src/runner/continuer.ts`.
