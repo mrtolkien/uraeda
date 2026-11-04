@@ -6,7 +6,6 @@
 >
 > Still wanted for my personal usage
 
-- ["Master" PR: when multiple agents runs, make sure all PRs can merge smoothy. Also, make workflow file changes less problematic with merge issues.](/specs/2026-11-03-master-pr/proposal.md)
 - [Vim in text edit mode](/specs/2026-11-03-vim-text/proposal.md)
 
 - Review the UI guidelines properly
