@@ -972,10 +972,11 @@ git commit -m "feat(vim-text): open any file of specs/ as a buffer"
 
 - [x] **Step 1: Write the pages**, each where [documentation](../decisions/documentation.md) says.
 
-- [ ] **Step 2: Run the benchmark**
+- [x] **Step 2: Run the benchmark**
 
 - Run: `nix develop -c vp run performance`
-- Expected: every target met, the keystroke within 16 ms and reloads within 1 second.
+- Expected: the spec's targets met, the keystroke within 16 ms (SC-002) and reloads within 1 second
+  (SC-003); the performance pass's other rows reported, not gated (R23).
 
 - [x] **Step 3: Run the task's validation**
 
