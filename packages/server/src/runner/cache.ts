@@ -13,6 +13,7 @@ import {
   interrupted,
   limitContinueWithin,
   markCapped,
+  moveContinue,
   pendingContinues,
   reopenTurn,
   resetContinues,
@@ -351,6 +352,9 @@ export class SessionCache {
   }
   markCapped(turn: number, reason: ContinueReason, takenBack: string): boolean {
     return markCapped(this.db, turn, reason, takenBack);
+  }
+  moveContinue(turn: number, from: number, at: number): boolean {
+    return moveContinue(this.db, turn, from, at);
   }
   takeContinue(turn: number): TurnRow | undefined {
     return takeContinue(this.db, turn);

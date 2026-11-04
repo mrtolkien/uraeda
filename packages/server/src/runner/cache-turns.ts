@@ -136,6 +136,17 @@ export function scheduleContinue(
   return decideContinue(db, turn, at, why, takenBack);
 }
 
+/**
+ * Moves the turn's waiting continue from `from` to `at`, and returns whether it did: only while it
+ * still waits for `from`, so a claim, a cancel, or another server's move meanwhile stands.
+ */
+export function moveContinue(db: DatabaseSync, turn: number, from: number, at: number): boolean {
+  const { changes } = db
+    .prepare("UPDATE turns SET continue_at = ?1 WHERE id = ?2 AND continue_at = ?3")
+    .run(at, turn, from);
+  return Number(changes) > 0;
+}
+
 /** Records why the turn's run would have continued, past the cap, none waiting: see above. */
 export function markCapped(
   db: DatabaseSync,

@@ -382,6 +382,12 @@ test.each([
   const next = await restart(setup.sessions, { hosted: () => runs > 0, runs: () => ON });
   time.to(Date.parse(startsAt));
   await next.startContinues();
+  if (Date.parse(startsAt) > AFTER_RESET) {
+    // An overdue wait reads the time it goes on: now, and the next a minute after.
+    const at = Date.parse(startsAt);
+    expect(cache.turn(first.turn)?.continueAt).toBe(at);
+    expect(second && cache.turn(second.turn)?.continueAt).toBe(second && at + 60_000);
+  }
   if (second) {
     // The first goes at once, the second a minute later: read before `until`, which moves timers.
     time.by(60_000 - 1);
