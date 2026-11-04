@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
 import { forgetUnsaved } from "../fields/unsaved.ts";
+import { navigate } from "../routes.tsx";
 import {
   atRepo,
   click,
@@ -109,6 +110,33 @@ test("a buffer's conflict banner goes once nothing is unsaved", async () => {
   await waitFor(() =>
     expect(screen.queryByRole("button", { name: "Load the new version" })).toBeNull(),
   );
+});
+
+// Break caught: an edit of the file's blank or leading space alone, a final line break added, not
+// saved, as a field's text trimmed reads as unchanged.
+test("a buffer saves a final line break added alone", async () => {
+  const repo = fixtureRepo();
+  await renderPage(`/buffer/${PRIORITIES}`, repo);
+  const field = await prioritiesField();
+  const typed = `${fieldText(field)}\n`;
+
+  await type(field, typed);
+  await act(async () => void fireEvent.keyDown(field, { ctrlKey: true, key: "Enter" }));
+
+  await waitFor(() => expect(readFileSync(join(repo, PRIORITIES), "utf8")).toBe(typed));
+});
+
+// Break caught: leaving a buffer whose first line was indented alone, without asking, loses it.
+test("leaving a buffer with its first line indented asks first", async () => {
+  const repo = fixtureRepo();
+  await renderPage(`/buffer/${PRIORITIES}`, repo);
+  const field = await prioritiesField();
+
+  await type(field, `  ${fieldText(field)}`);
+  await act(async () => navigate(atRepo("/priorities")));
+
+  expect(await screen.findByRole("dialog", { name: "Leave page?" })).toBeTruthy();
+  expect(window.location.pathname).toBe(atRepo(`/buffer/${PRIORITIES}`));
 });
 
 // Break caught: `Space b` offered for a file that does not exist, opening a page that says so.

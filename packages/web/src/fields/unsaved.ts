@@ -112,9 +112,9 @@ function notifyAny() {
   }
 }
 
-/** Whether two texts differ by more than spaces and line breaks at their ends. */
-export function differ(a: string, b: string): boolean {
-  return a.trim() !== b.trim();
+/** Whether two texts differ by more than spaces and line breaks at their ends; at all when `exact`. */
+export function differ(a: string, b: string, exact = false): boolean {
+  return exact ? a !== b : a.trim() !== b.trim();
 }
 
 /** The entry of a key, if its field holds unsaved text. */
@@ -245,11 +245,14 @@ export function useUnsavedOf(keys: ReadonlyArray<string>): ReadonlySet<string> {
  * page. An entry whose field is not drawn, like a sheet's comment once the sheet closed, is kept
  * for when it shows again, and is not on the page.
  */
-const drawn = new Map<object, { key: string; saved: string }>();
+const drawn = new Map<object, { exact: boolean; key: string; saved: string }>();
 
-/** Says a field is drawn, by an object of its own, until the function returned is called. */
-export function drawField(field: object, key: string, saved: string): () => void {
-  drawn.set(field, { key, saved });
+/**
+ * Says a field is drawn, by an object of its own, until the function returned is called; `exact`
+ * when any change of its text, its ends included, is unsaved.
+ */
+export function drawField(field: object, key: string, saved: string, exact = false): () => void {
+  drawn.set(field, { exact, key, saved });
   notifyAny();
   return () => {
     drawn.delete(field);
@@ -260,9 +263,9 @@ export function drawField(field: object, key: string, saved: string): () => void
 /** Whether a field drawn now holds text that differs from its saved text: what leaving loses. */
 export function hasDrawnUnsaved(): boolean {
   load();
-  for (const { key, saved } of drawn.values()) {
+  for (const { exact, key, saved } of drawn.values()) {
     const entry = entries.get(key);
-    if (entry && differ(entry.text, saved)) {
+    if (entry && differ(entry.text, saved, exact)) {
       return true;
     }
   }

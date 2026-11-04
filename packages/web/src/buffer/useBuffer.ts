@@ -45,7 +45,8 @@ export function useBuffer(path: string) {
   useRefreshOnShow(request);
   const file = useLiveView(BufferView, buffer) ?? undefined;
   const text = file?.text ?? "";
-  const field = useTextField(`${path}#buffer`, text);
+  // A raw file: a final line break or a first line's indent alone is an edit to save.
+  const field = useTextField(`${path}#buffer`, text, { exact: true });
   const [conflict, setConflict] = useState<string>();
   // The conflict goes with the text it kept: undone back to the file's, there is nothing to copy.
   if (conflict !== undefined && !field.dirty) {
