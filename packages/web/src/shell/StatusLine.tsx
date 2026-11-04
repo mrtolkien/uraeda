@@ -203,7 +203,7 @@ function noAway() {
 
 /**
  * Tells `onAway` while the phone's bar is out of the way, and once it shows again, so that what
- * sits on it, as the session's composer, follows it down as it slides away (`Shell.tsx`).
+ * sits on it, as the commit toast, follows it down as it slides away (`Shell.tsx`).
  */
 function useShownForOthers(isShown: boolean, onAway: (isAway: boolean) => void) {
   useEffect(() => {

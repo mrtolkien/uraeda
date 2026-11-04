@@ -90,8 +90,8 @@ const styles = stylex.create({
     minHeight: "var(--size-frame-height)",
     paddingBlockEnd: "var(--size-status-line)",
   },
-  // The phone's bar out of the way: what sits on it, as the session's composer, follows it down
-  // (`SessionView.tsx`).
+  // The phone's bar out of the way: what sits on it, as the commit toast, follows it down
+  // (`writes/CommitToast.tsx`).
   statusAway: { "--status-line-offset": "0px" },
   // On the phone, the tabs' bar on top too (`shell/Tabs.tsx`).
   narrow: {

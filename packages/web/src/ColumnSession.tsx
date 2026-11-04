@@ -17,8 +17,8 @@ import type { Draft } from "./useDraft.ts";
 
 /**
  * The feature's latest session, in the column that scrolls it: its header, a link to the session's
- * page, its transcript following its end in the column, and its composer at the column's foot. Before
- * its first message creates the session, the composer alone. `draft` is the composer's text and
+ * page, its transcript following its end in the column, and its composer after it. Before its first
+ * message creates the session, the composer alone. `draft` is the composer's text and
  * images, the feature's, which the session's page holds too, so that the column can go and come
  * back, and the human go to the session's page and back, without losing them.
  */
@@ -86,13 +86,20 @@ export function sessionTab(draft: Draft, folder: string, agent: string | undefin
   };
 }
 
-/** Focuses what `find` finds once it is drawn, within two seconds, without scrolling the page. */
-export function focusOnceDrawn(find: () => HTMLElement | null | undefined) {
+/**
+ * Focuses what `find` finds once it is drawn, within two seconds, without scrolling the page; with
+ * `isRevealed`, it then scrolls it into view, as the session's composer after its transcript: its
+ * column first, and the page only when the column is out of view.
+ */
+export function focusOnceDrawn(find: () => HTMLElement | null | undefined, isRevealed = false) {
   const start = performance.now();
   const tick = () => {
     const found = find();
     if (found) {
       found.focus({ preventScroll: true });
+      if (isRevealed) {
+        found.scrollIntoView({ block: "nearest" });
+      }
     } else if (performance.now() - start < 2000) {
       requestAnimationFrame(tick);
     }
@@ -117,8 +124,9 @@ export function useColumnAsk(folder: string, draft: Draft | undefined) {
     draft?.ask(quote);
     setTab("session");
     showDocumentColumn();
-    focusOnceDrawn(() =>
-      document.getElementById(SESSION_PANEL)?.querySelector<HTMLElement>('[role="textbox"]'),
+    focusOnceDrawn(
+      () => document.getElementById(SESSION_PANEL)?.querySelector<HTMLElement>('[role="textbox"]'),
+      true,
     );
   };
 }

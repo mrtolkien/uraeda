@@ -7,7 +7,7 @@ import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 
 const styles = stylex.create({
   jump: {
-    // Above the composer, over the transcript's end, without moving it.
+    // Above its anchor, at the window's foot or over the composer's top, without moving anything.
     bottom: "100%",
     display: "flex",
     insetInline: 0,
@@ -56,7 +56,7 @@ export function usePublishedJump() {
 }
 
 /**
- * "Jump to the latest", above the composer, while the page does not follow the transcript's end.
+ * "Jump to the latest", at the window's foot, while the page does not follow the transcript's end.
  * Pressed, it goes to the latest reply (`onJump`): the focus moves first to the composer's text
  * field, in `composer`, rather than falling to the page.
  */

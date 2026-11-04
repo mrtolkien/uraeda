@@ -2,6 +2,7 @@
 kind: change
 finished: 2026-11-01
 pull-request: https://github.com/mrtolkien/uraeda/pull/82
+superseded-by: [2026-11-04-reading-long]
 ---
 
 # Record: I dislike moving buttons: for example on feature start, the composer jumps…
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/82
 > The record of a merged change, not instructions to follow. Started on 2026-11-01, finished on
 > 2026-11-01, in [its pull request](https://github.com/mrtolkien/uraeda/pull/82). Its full files are
 > in git: `git log -- specs/changes/2026-11-01-stable-buttons/`.
+>
+> Superseded in part by [2026-11-04-reading-long](2026-11-04-reading-long.md).
 
 ## What and why
 

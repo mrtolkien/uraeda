@@ -25,7 +25,7 @@ const styles = stylex.create({
   },
   // As tall as the window under the shell's bars at least, its last block at its foot: a session's
   // composer stays where it is while its transcript loads and grows. No room under that block,
-  // which brings its own: at the page's end, it is where it sticks while the page scrolls.
+  // which brings its own.
   full: {
     display: "flex",
     flexDirection: "column",

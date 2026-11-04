@@ -148,19 +148,30 @@ function useFocusOnOpen(input: RefObject<EditorHandle | null>, isNewSession = fa
 }
 
 /**
- * `i`, the registry's key, comes back to the field, unless it is disabled. The field's own keys are
- * the editor's: Ctrl+Enter or Cmd+Enter sends, as it saves every other field (the UI components
+ * `i`, the registry's key, comes back to the field, into view, unless it is disabled. The field's
+ * own keys are the editor's: Ctrl+Enter or Cmd+Enter sends, as it saves every other field (the UI components
  * decision); Enter adds a line, on every screen; Escape leaves the field for the page, keeping the
  * draft. A message of images alone, or images still being saved, are the send's to judge.
  */
-function useInsertKey(input: RefObject<EditorHandle | null>, isDisabled: boolean) {
+function useInsertKey(
+  input: RefObject<EditorHandle | null>,
+  place: RefObject<HTMLElement | null>,
+  isDisabled: boolean,
+) {
   useKeys([
     {
       hint: "i",
       hintLabel: "insert",
       keys: "i",
       label: "Write a message",
-      run: () => (isDisabled ? false : input.current?.focus()),
+      run: () => {
+        if (isDisabled) {
+          return false;
+        }
+        input.current?.focus();
+        // A session's composer is after its transcript: it comes into view, above the status line.
+        place.current?.scrollIntoView({ block: "nearest" });
+      },
     },
   ]);
 }
@@ -328,7 +339,8 @@ export function Composer(given: ComposerProps) {
   const hasContent = value.trim() !== "" || (!workflow && !onSend && images.length > 0);
   const canSend = hasContent && !saving && !unavailable;
   const { error, pending, stop, submit } = useSend(props, { canSend, sent: attaching.sent });
-  useInsertKey(input, Boolean(unavailable));
+  const place = useRef<HTMLDivElement>(null);
+  useInsertKey(input, place, Boolean(unavailable));
   useFocusOnOpen(input, given.isNewSession);
   const placeholder = given.placeholder ?? `Message ${name}`;
   const isFolded = useFolded(box, !wide && isBlank(value, images, workflow, pending, error));
@@ -347,7 +359,7 @@ export function Composer(given: ComposerProps) {
   const attach = attachOf(given, agent, unavailable, attaching.addFiles);
   return (
     <>
-      <DropHint hint={drop.hint}>
+      <DropHint hint={drop.hint} ref={place}>
         <ChatComposer
           drawer={
             images.length > 0 ? (
