@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use super::{Git, GitError, StoppedKind, process, read_error};
+use super::{Git, GitError, ObjectId, StoppedKind, process, read_error};
 
 /// What a commit staged, for [`Git::commit_stage`]: the paths `git add` took, and whether they
 /// are committed alone.
@@ -167,6 +167,25 @@ impl Git {
             .inspect_err(|_| drop(self.unstage_stage(&staged)))
     }
 
+    /// Commits what is staged, the Git page's commit, with `message` as typed, through the hooks
+    /// and signing as configured, and returns the new commit. Refuses an empty message, and an
+    /// index with nothing staged. A commit the hooks refuse leaves its files staged.
+    pub fn commit_index(&self, message: &str, on_output: OnOutput) -> Result<ObjectId, GitError> {
+        if message.trim().is_empty() {
+            return Err(GitError::Refused(
+                "Write a commit message first.".to_string(),
+            ));
+        }
+        if self.staged_files()?.is_empty() {
+            return Err(GitError::Refused("Nothing is staged.".to_string()));
+        }
+        self.commit_staged(&[], message, None, on_output)?;
+        self.head().ok_or_else(|| GitError::Read {
+            what: "HEAD".to_string(),
+            message: "no commit after the commit".to_string(),
+        })
+    }
+
     /// Runs `git commit` with the hooks, `extra` after its message, its output streamed to
     /// `on_output` when one is given. Every commit goes through it, and none while a pull or a
     /// merge is stopped: a rebase's would land on its detached `HEAD`, a merge's would end it.
@@ -226,7 +245,7 @@ pub fn others_staged(staged: &[String], paths: &[String]) -> Vec<String> {
         .collect()
 }
 
-/// The refusal of a commit while `operation` is stopped.
+/// The refusal of a commit, or a merge, while `operation` is stopped.
 pub(super) fn refused(operation: &str) -> GitError {
     GitError::Refused(format!(
         "A {operation} is stopped: continue or abort it first."
