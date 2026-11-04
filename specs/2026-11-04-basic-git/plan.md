@@ -628,7 +628,10 @@ git commit -m "feat(basic-git): read the checkout's files, conflicts, and diffs"
   `push` refuse with `"There is no remote to pull from."` and `"There is no remote to push to."`);
   `fetch` runs on a detached `HEAD` (ruling R12):
   - `impl Git { pub fn fetch(&self, on_output: OnOutput) -> Result<(), GitError> }`:
-    `git fetch --prune origin`;
+    `git fetch --prune origin`, stopped with every process it started after `FETCH_DEADLINE`, 2
+    minutes (`process::git_write_within`), failing "git fetch failed: origin gave no answer in 2
+    minutes, so the fetch was stopped."; `fetch_within(deadline, on_output)` takes another deadline,
+    as the test's (R28);
   - `pub fn pull(&self, on_output: OnOutput) -> Result<(), GitError>`:
     `git pull --no-edit [--rebase] origin --end-of-options <branch>`, `--rebase` only when none of
     `pull.rebase`, `pull.ff`, and `branch.<branch>.rebase` is set (read through gix's
@@ -990,11 +993,13 @@ git commit -m "feat(basic-git): the Git page's writes"
   `git.discard {folder, path}`, `git.commit {folder, message}`, `git.resolve {path, resolution}`,
   `git.removeWorktree {path}`, `git.clean {folder}`. Keys: `["git", LISTS]` for the main checkout,
   `featureKeys(folder)` for a group, both for a clean and for the removal of a feature's worktree.
-  Each guard runs as the write is queued and again as it lands (R24). A refusal stays in the queue's
-  record and answers the call. `git.saveConflict {path, text, hash}` answers the `ConflictFile` with
-  its new hash, through `landed`, its refusal leaving the record. The quiet `git.fetch` is not
-  guarded; `git.removeWorktree` is guarded as the main checkout's and as its feature's; `git.clean`
-  as both (R20).
+  Each guard runs as the write is queued and again as it lands (R24). The page's writes are queued
+  in the order they came, their checks before the queueing run one after another
+  (`WriteQueue.arrive`, R28), and the web's commit waits for its group's staging writes. A refusal
+  stays in the queue's record and answers the call. `git.saveConflict {path, text, hash}` answers
+  the `ConflictFile` with its new hash, through `landed`, its refusal leaving the record. The quiet
+  `git.fetch` is not guarded; `git.removeWorktree` is guarded as the main checkout's and as its
+  feature's; `git.clean` as both (R20).
 - Produces: after each landed or refused git write, after `changes.git` from the watcher, and when a
   session's turn starts or ends (a change with a `state`, in `sessionPublisher`), `live.update` of
   `GitPage` and `GitSummary` at `GIT_ID`, by `publishGit(bus)` in `live.ts`.
