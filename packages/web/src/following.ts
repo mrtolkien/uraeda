@@ -118,10 +118,22 @@ export function useKeepsEndAsItGrows(ref: RefObject<HTMLElement | null>) {
         toEnd(box);
       }
     };
+    // A scroll that leaves the page where `toEnd` last put it is the human's, or a restored place:
+    // the page is no longer where it moved itself, whatever an earlier page recorded.
+    const target = scroller(element) ?? window;
+    const moved = () => {
+      if (position(scroller(element)) !== ownEnds.get(target)) {
+        ownEnds.delete(target);
+      }
+    };
     keep();
     const observer = new ResizeObserver(keep);
     observer.observe(element);
-    return () => observer.disconnect();
+    target.addEventListener("scroll", moved, { passive: true });
+    return () => {
+      observer.disconnect();
+      target.removeEventListener("scroll", moved);
+    };
   }, [ref]);
 }
 

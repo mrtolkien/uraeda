@@ -1,7 +1,7 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 /** The outline of the field a file dragged over the page would go to. */
 export const dropStyles = stylex.create({
@@ -15,7 +15,11 @@ export const dropStyles = stylex.create({
 });
 
 const styles = stylex.create({
-  field: { position: "relative" },
+  field: {
+    position: "relative",
+    // Brought into view, as the composer by `i`, it stops above the shell's status line.
+    scrollMarginBlockEnd: "var(--size-status-line, 0px)",
+  },
   hint: {
     insetBlockStart: spacingVars["--spacing-2"],
     insetInlineEnd: spacingVars["--spacing-2"],
@@ -35,13 +39,15 @@ export function DropHint({
   children,
   hint,
   isLabelled = false,
+  ref,
 }: {
   children: ReactNode;
   hint?: string;
   isLabelled?: boolean;
+  ref?: Ref<HTMLDivElement>;
 }) {
   return (
-    <div {...stylex.props(styles.field)}>
+    <div ref={ref} {...stylex.props(styles.field)}>
       {children}
       {hint && (
         <Badge label={hint} variant="info" xstyle={[styles.hint, isLabelled && styles.labelled]} />

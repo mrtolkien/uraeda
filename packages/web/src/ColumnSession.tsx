@@ -88,8 +88,8 @@ export function sessionTab(draft: Draft, folder: string, agent: string | undefin
 
 /**
  * Focuses what `find` finds once it is drawn, within two seconds, without scrolling the page; with
- * `isRevealed`, it then scrolls it into view in its own box, as the session's composer after its
- * transcript.
+ * `isRevealed`, it then scrolls it into view, as the session's composer after its transcript: its
+ * column first, and the page only when the column is out of view.
  */
 export function focusOnceDrawn(find: () => HTMLElement | null | undefined, isRevealed = false) {
   const start = performance.now();

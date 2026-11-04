@@ -38,7 +38,7 @@ export type QueuedWrite = {
 
 const styles = stylex.create({
   // Where the leader menu rises, over the status line: the menu, when open, covers it.
-  // The phone's bar may slide away: the toast follows it down, as a session's jump to the latest does.
+  // The phone's bar may slide away: the toast follows it down.
   place: {
     insetBlockEnd: `calc(var(--status-line-offset, var(--size-status-line, 0px)) + ${spacingVars["--spacing-2"]})`,
     insetInlineEnd: spacingVars["--spacing-3"],

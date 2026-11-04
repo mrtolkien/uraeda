@@ -49,6 +49,7 @@ decisions. None binds future work: those are decisions.
 - **Rationale**: without it, `i` focused a composer out of view, and the human typed in a field they
   could not see.
 - **Where**: [`Composer.tsx`](/packages/web/src/Composer.tsx),
+  [`DropHint.tsx`](/packages/web/src/attach/DropHint.tsx),
   [`ColumnSession.tsx`](/packages/web/src/ColumnSession.tsx)
 
 ## R6: No new test

@@ -72,17 +72,14 @@ const styles = stylex.create({
   },
   jump: {
     // "Jump to the latest", at the window's foot while the human reads above the end, above the
-    // shell's status line, following it down as it slides away; right above the composer at the
-    // end. It takes no room. At the page's foot from its first draw with the composer under it,
-    // while the transcript loads and grows (`Page`'s `isFull`): a short session's composer never
-    // moves down as the session's messages come.
-    bottom: "var(--status-line-offset, var(--size-status-line, 0px))",
+    // shell's status line; right above the composer at the end. It takes no room. At the page's
+    // foot from its first draw with the composer under it, while the transcript loads and grows
+    // (`Page`'s `isFull`): a short session's composer never moves down as the session's messages
+    // come. On the phone's page, the bottom bar's arrow jumps instead.
+    bottom: "var(--size-status-line, 0px)",
     height: 0,
     marginBlockStart: "auto",
     position: "sticky",
-    transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
-    transitionProperty: "bottom",
-    transitionTimingFunction: "ease-out",
     zIndex: 1,
   },
 });

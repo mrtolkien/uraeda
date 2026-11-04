@@ -12,7 +12,6 @@ import type { Trigger } from "uraeda-server/fate";
 import { IMAGE_REFUSALS } from "uraeda-server/limits";
 import { AttachStatus } from "./attach/AttachStatus.tsx";
 import { type DraftImage, useChatImages } from "./attach/chatImages.ts";
-import * as stylex from "@stylexjs/stylex";
 import { DropHint, dropStyles } from "./attach/DropHint.tsx";
 import { useImageDrop } from "./attach/useImageDrop.ts";
 import { FoldingField, paperclip, phoneBoxStyles, useFolded } from "./ComposerField.tsx";
@@ -33,11 +32,6 @@ const TEXT_ONLY = "A proposal is text: add its images in the editor.";
 /** Why the draft's images stay in the composer while it holds the workflow's message. */
 const WORKFLOW_KEEPS_IMAGES =
   "The workflow's message takes no images: they stay here for your next message.";
-
-const styles = stylex.create({
-  // Brought into view by `i`, it stops above the shell's status line.
-  box: { scrollMarginBlockEnd: "var(--size-status-line, 0px)" },
-});
 
 /** The workflow's run a message starts, while the composer holds it. */
 type Workflow = { file?: string; fresh?: boolean; step?: string; trigger: Trigger };
@@ -154,14 +148,14 @@ function useFocusOnOpen(input: RefObject<EditorHandle | null>, isNewSession = fa
 }
 
 /**
- * `i`, the registry's key, comes back to the field, into view, unless it is disabled. The field's own keys are
- * the editor's: Ctrl+Enter or Cmd+Enter sends, as it saves every other field (the UI components
+ * `i`, the registry's key, comes back to the field, into view, unless it is disabled. The field's
+ * own keys are the editor's: Ctrl+Enter or Cmd+Enter sends, as it saves every other field (the UI components
  * decision); Enter adds a line, on every screen; Escape leaves the field for the page, keeping the
  * draft. A message of images alone, or images still being saved, are the send's to judge.
  */
 function useInsertKey(
   input: RefObject<EditorHandle | null>,
-  box: RefObject<HTMLElement | null>,
+  place: RefObject<HTMLElement | null>,
   isDisabled: boolean,
 ) {
   useKeys([
@@ -176,7 +170,7 @@ function useInsertKey(
         }
         input.current?.focus();
         // A session's composer is after its transcript: it comes into view, above the status line.
-        box.current?.scrollIntoView({ block: "nearest" });
+        place.current?.scrollIntoView({ block: "nearest" });
       },
     },
   ]);
@@ -345,7 +339,8 @@ export function Composer(given: ComposerProps) {
   const hasContent = value.trim() !== "" || (!workflow && !onSend && images.length > 0);
   const canSend = hasContent && !saving && !unavailable;
   const { error, pending, stop, submit } = useSend(props, { canSend, sent: attaching.sent });
-  useInsertKey(input, box, Boolean(unavailable));
+  const place = useRef<HTMLDivElement>(null);
+  useInsertKey(input, place, Boolean(unavailable));
   useFocusOnOpen(input, given.isNewSession);
   const placeholder = given.placeholder ?? `Message ${name}`;
   const isFolded = useFolded(box, !wide && isBlank(value, images, workflow, pending, error));
@@ -364,7 +359,7 @@ export function Composer(given: ComposerProps) {
   const attach = attachOf(given, agent, unavailable, attaching.addFiles);
   return (
     <>
-      <DropHint hint={drop.hint}>
+      <DropHint hint={drop.hint} ref={place}>
         <ChatComposer
           drawer={
             images.length > 0 ? (
@@ -399,7 +394,7 @@ export function Composer(given: ComposerProps) {
           status={composerStatus(error, props, unavailable)}
           value={value}
           {...(wide ? {} : { density: "compact" as const })}
-          xstyle={[styles.box, !wide && phoneBoxStyles, drop.isTarget && dropStyles.target]}
+          xstyle={[!wide && phoneBoxStyles, drop.isTarget && dropStyles.target]}
         />
       </DropHint>
       <AttachStatus status={attaching.status} />
