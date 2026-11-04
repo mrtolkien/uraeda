@@ -1,12 +1,15 @@
 // The Git page's writes the human could lose without seeing it: Space stages the file its row's
 // box is, leaving the row in its place (US3 1); a typed commit message stays through a hook's
-// refusal and goes once its commit lands (US3 more 6); and Discard asks before it restores a file
-// (US3 more 4, SC-003).
+// refusal and goes once its commit lands (US3 more 6); Discard asks before it restores a file
+// (US3 more 4, SC-003); and a conflicted file's editor never keeps a text that no longer conflicts
+// (US4).
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vite-plus/test";
+import { navigate } from "../routes.tsx";
 import {
+  atRepo,
   click,
   fieldText,
   fixtureRepo,
@@ -33,6 +36,23 @@ function changedRepo() {
   git(repo, "commit", "--quiet", "--no-verify", "-m", "docs: the web UI");
   write(repo, "docs/web-ui.md", "# The web UI\n\nIt draws the specs.\n");
   write(repo, "specs/INBOX.md", `${read(repo, "specs/INBOX.md")}\n- A note\n`);
+  return repo;
+}
+
+/**
+ * The fixture stopped on a merge of `other` into `main`, both of which changed the first line of
+ * `specs/PRIORITIES.md`.
+ */
+function stoppedMerge() {
+  const repo = fixtureRepo();
+  const text = read(repo);
+  git(repo, "checkout", "--quiet", "-b", "other");
+  write(repo, "specs/PRIORITIES.md", `Other's first line\n${text}`);
+  git(repo, "commit", "--quiet", "--no-verify", "-am", "other");
+  git(repo, "checkout", "--quiet", "main");
+  write(repo, "specs/PRIORITIES.md", `Main's first line\n${text}`);
+  git(repo, "commit", "--quiet", "--no-verify", "-am", "main");
+  expect(() => git(repo, "merge", "--quiet", "other")).toThrow();
   return repo;
 }
 
@@ -129,4 +149,57 @@ test("discard asks first, and only Discard restores the file", async () => {
   await click(within(again).getByRole("button", { name: /^Discard\b/ }));
 
   await waitFor(() => expect(read(repo, "docs/web-ui.md")).toBe("# The web UI\n"));
+});
+
+// Review I1. Break: the editor drawn from its first read whatever the page lists, so after its row's
+// "Use main" it keeps the old markers, and its save is refused as stale.
+test("a conflict resolved from its row leaves the editor", async () => {
+  const repo = stoppedMerge();
+  await renderPage("/git?conflict=specs/PRIORITIES.md", repo);
+  const field = await screen.findByRole("textbox", { name: "specs/PRIORITIES.md" });
+  expect(fieldText(field)).toContain("<<<<<<< HEAD");
+
+  // The row's "Use main", not the editor's bar's.
+  const [row] = screen
+    .getAllByRole("button", { name: "Use main" })
+    .filter((button) => !button.closest(".cm-editor"));
+  await click(row!);
+
+  await waitFor(() => expect(staged(repo)).toBe("specs/PRIORITIES.md\n"));
+  await refreshUntil(() =>
+    expect(document.body.textContent).toContain("specs/PRIORITIES.md no longer conflicts."),
+  );
+  expect(screen.queryByRole("textbox", { name: "specs/PRIORITIES.md" })).toBeNull();
+});
+
+// Review I1. Break: the editor shown from the browser's copy of the file, read before it changed.
+test("a conflict's editor reads the file afresh as it opens", async () => {
+  const repo = stoppedMerge();
+  await renderPage("/git?conflict=specs/PRIORITIES.md", repo);
+  await screen.findByRole("textbox", { name: "specs/PRIORITIES.md" });
+  await act(async () => navigate(atRepo("/priorities")));
+  await waitFor(() =>
+    expect(screen.queryByRole("textbox", { name: "specs/PRIORITIES.md" })).toBeNull(),
+  );
+  write(repo, "specs/PRIORITIES.md", `${read(repo)}- Typed elsewhere\n`);
+
+  await act(async () => navigate(atRepo("/git?conflict=specs/PRIORITIES.md")));
+
+  await waitFor(() =>
+    expect(fieldText(screen.getByRole("textbox", { name: "specs/PRIORITIES.md" }))).toContain(
+      "- Typed elsewhere",
+    ),
+  );
+});
+
+// Review (R30 pass). Break: Merge, and its `M`, left enabled while a merge is stopped, which the
+// core refuses.
+test("a stopped merge disables Merge and its key", async () => {
+  const repo = stoppedMerge();
+  await renderPage("/git", repo);
+  const merge = await screen.findByRole("button", { name: "Merge into main…" });
+
+  expect(merge).toHaveProperty("disabled", true);
+  await act(async () => void fireEvent.keyDown(document.body, { key: "M", shiftKey: true }));
+  expect(screen.queryByRole("dialog")).toBeNull();
 });

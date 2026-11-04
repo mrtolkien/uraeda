@@ -1,7 +1,10 @@
 // The conflicts git wrote into a file, found in the text being edited, as the conflict bar offers
 // them: each block from its `<<<<<<< ` line to its `>>>>>>> ` line, its two sides between, the base
 // section `diff3` adds after `||||||| ` dropped. The core tells a file resolved by the same marker
-// lines (ruling R4); this reads the text before it is saved.
+// lines (ruling R4); this reads the text before it is saved. A side's own line that looks like a
+// marker is taken for one, as git's markers cannot tell them apart: a quoted `<<<<<<< ` line opens
+// the block at it, the one before left as text, and a Markdown heading's `=======` underline in
+// the first side parts the sides there. The text stays editable for those.
 
 /**
  * A conflict's block: `from`, the start of its `<<<<<<< ` line, and `to`, the end of its `>>>>>>> `

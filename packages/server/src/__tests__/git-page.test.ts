@@ -252,3 +252,29 @@ test("the page's writes are queued in the order they came", async () => {
     "Notes\n\nnotes.txt\n",
   );
 });
+
+// Review minor. Break caught: the queue's arrivals chained on the refused step, so the write after
+// it is refused with the same answer, never queued.
+test("a write its guard refuses lets the next one queue", async () => {
+  const server = await testServer();
+  writeFileSync(join(server.repo, "notes.txt"), "a note\n");
+  // Only the first guard finds a chat's agent at work.
+  let checks = 0;
+  const sessions = {
+    chatWorking: (repo: string) => ++checks === 1 || server.sessions.chatWorking(repo),
+    mainRoot: (repo: string) => server.sessions.mainRoot(repo),
+    working: (repo: string) => server.sessions.working(repo),
+  };
+  const ctx = { ...server, binding, sessions } as unknown as RepoContext;
+  const stage = () =>
+    gitMutations["git.stage"].resolve({
+      ctx,
+      input: { folder: null, paths: ["notes.txt"] },
+      select: ["id"],
+    });
+
+  const settled = await Promise.allSettled([stage(), stage()]);
+
+  expect(settled.map(({ status }) => status)).toEqual(["rejected", "fulfilled"]);
+  expect(git(server.repo, "diff", "--cached", "--name-only")).toBe("notes.txt\n");
+});

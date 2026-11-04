@@ -27,14 +27,14 @@ import { WriteButton } from "../writes/WriteButton.tsx";
 import { gitAddress, type Picked, pickedOf } from "./address.ts";
 import { useOpenedFromGit } from "./Back.tsx";
 import { Group, treeKey } from "./ChangesTree.tsx";
-import { ConflictEditor } from "./ConflictEditor.tsx";
+import { ConflictEditor, NoConflict } from "./ConflictEditor.tsx";
 import { conflictKey, Conflicts, isEditable } from "./Conflicts.tsx";
 import { type GitGroup, type GitPageData, GitPageView, useGitPage } from "./data.ts";
 import { Detail } from "./Diff.tsx";
 import { History, historyKey, useMoreHistory } from "./History.tsx";
 import { MergePicker } from "./MergePicker.tsx";
 import { PlaceError } from "./PlaceError.tsx";
-import { Sync } from "./Sync.tsx";
+import { isSyncStuck, Sync } from "./Sync.tsx";
 import { buildTree, type FileChange } from "./tree.ts";
 import { type GitActions, type ListRow, pickOf, useGitKeys } from "./useGitKeys.ts";
 import {
@@ -142,7 +142,7 @@ function useActions(
   const here = useRepoPath();
   const repo = useRepositoryPath();
   const writable = (group: GitGroup) => page !== null && !refusedIn(page, group);
-  const stuck = page === null || page.agentWorking || Boolean(page.detached);
+  const stuck = page === null || isSyncStuck(page);
   return {
     commit: (group) => {
       if (!writable(group)) {
@@ -283,6 +283,26 @@ function useCursor(picked: Picked | undefined) {
   ] as const;
 }
 
+/**
+ * What the detail shows: the address's row, else, on wide screens, the selected row's, or the
+ * first row's that has one, so the detail stays while the selection is on a folder; the phone
+ * shows the sections.
+ */
+function detailShown(
+  picked: Picked | undefined,
+  narrow: boolean,
+  rows: ReadonlyArray<ListRow>,
+  shown: string | undefined,
+): Picked | undefined {
+  if (picked || narrow) {
+    return picked;
+  }
+  return (
+    pickOf(rows.find((row) => row.key === shown)) ??
+    rows.map(pickOf).find((one) => one !== undefined)
+  );
+}
+
 /** The Git page, at `/git`. */
 export function GitPage() {
   const fate = useFateClient();
@@ -315,14 +335,7 @@ export function GitPage() {
   if (!page) {
     return null;
   }
-  // Nothing in the address: wide screens show the selected row's, or the first row's that has one,
-  // so the detail stays while the selection is on a folder; the phone shows the sections.
-  const detailOf =
-    picked ??
-    (narrow
-      ? undefined
-      : (pickOf(rows.find((row) => row.key === shown)) ??
-        rows.map(pickOf).find((one) => one !== undefined)));
+  const detailOf = detailShown(picked, narrow, rows, shown);
   return (
     <Page kind="panes">
       <Panes
@@ -400,7 +413,9 @@ function PickedDetail({
   writes: GitWrites;
 }) {
   if (picked.kind === "conflict") {
-    return page.stopped ? (
+    // Its record is not sent live: the editor goes once the page no longer lists the file.
+    const listed = page.conflicts.some((conflict) => conflict.path === picked.path);
+    return page.stopped && listed ? (
       <Suspense fallback={null}>
         <ConflictEditor
           isDisabled={page.agentWorking}
@@ -410,7 +425,9 @@ function PickedDetail({
           stopped={page.stopped}
         />
       </Suspense>
-    ) : null;
+    ) : (
+      <NoConflict isNarrow={isNarrow} path={picked.path} />
+    );
   }
   const target = picked.kind === "file" ? fileOf(page, picked) : undefined;
   return (

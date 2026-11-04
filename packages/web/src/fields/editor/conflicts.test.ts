@@ -122,3 +122,19 @@ test.each([
 ])("$what gives no block", ({ text }) => {
   expect(conflictsIn(text)).toEqual([]);
 });
+
+// Read knowingly as git's own marker lines would be: a marker line inside a side is taken for one.
+test.each([
+  {
+    blocks: [{ ours: "ours\n", theirs: "theirs\n" }],
+    text: "<<<<<<< HEAD\nquoted:\n<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> other\n",
+    what: "a quoted opening line inside ours: the block opens at it",
+  },
+  {
+    blocks: [{ ours: "Title\n", theirs: "more ours\n=======\ntheirs\n" }],
+    text: "<<<<<<< HEAD\nTitle\n=======\nmore ours\n=======\ntheirs\n>>>>>>> other\n",
+    what: "a setext underline in ours: the sides part at the first separator",
+  },
+])("$what", ({ blocks, text }) => {
+  expect(conflictsIn(text).map(({ ours, theirs }) => ({ ours, theirs }))).toEqual(blocks);
+});

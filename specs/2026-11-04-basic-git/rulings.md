@@ -418,20 +418,48 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the time): it was already there, and is named in the pull request.
 - **Where**: task 12.
 
-## R30: The sync's buttons sit under the title's line, and the page's details go back the way they came
+## R30: The sync's buttons sit beside the title, and the page's details go back the way they came
 
-- **Decision**: the Git page's Fetch, Pull, Push, and "Merge into main…" sit under the title's line
-  at every width, wrapping there, not beside the title. Fetch and `f` are disabled while a chat's
-  agent works in the main checkout, as the guard refuses a loud fetch then (R20). The view's
-  worktrees carry `isWorking`, their feature's agent at work, which disables their Clean and Remove
-  as the guard refuses them. Each history entry the page opens while drawn records the page's
+- **Decision**: the Git page's Fetch, Pull, Push, and "Merge into main…" sit beside the title, as
+  the mockup draws them, small, and under its line on the phone. `PageTitle`'s aside gives up its
+  room first, down to its widest button, its buttons wrapping onto a second line beside the title,
+  so the title's words never break while the aside could still wrap. Fetch and `f` are disabled
+  while a chat's agent works in the main checkout, as the guard refuses a loud fetch then (R20). The
+  view's worktrees carry `isWorking`, their feature's agent at work, which disables their Clean and
+  Remove as the guard refuses them. Each history entry the page opens while drawn records the page's
   address it came from as its `from`, and the phone's Back of a diff, a commit, or a conflict goes
   back in the browser's history when there is one, else to the sections afresh. "Show more" on a
   history that lost its last commit shown (R23) forgets the pages read and reads the first again. A
   box pressed twice stays as the last press shows it until that press's write answers.
 - **Rationale**: beside the title, in the list's column at 1440 px, the four buttons kept their
-  width and squeezed "Git" onto three lines; `PageTitle` is shared by every page. The sections come
+  width and squeezed "Git" onto three lines, as `PageTitle` never let its aside shrink: the fix is
+  the shared component's, as the UI components decision asks. Its other asides, the Inbox's Organize
+  and the Settings' search, have room beside their titles and are drawn as before. The sections come
   back where they were scrolled only through the browser's Back, and a detail opened from another
   page, or loaded directly, has none of the Git page's before it.
-- **If wrong**: the title's row is a line taller on wide screens than the mockup's.
-- **Where**: task 9, after the review of tasks 8 and 9.
+- **If wrong**: in the list's column at 1440 px the buttons take two lines beside "Git", "Merge into
+  main…" on the second: the title's row is that much taller than the mockup's.
+- **Where**: task 9, after the review of tasks 8 and 9; the aside's shrinking after the review of
+  tasks 10 and 11.
+
+## R31: A conflict's editor follows the page's list, and a stop holds the sync
+
+- **Decision**: the conflict editor is drawn only while the page lists its file, else "<path> no
+  longer conflicts.", and reads the file from the server each time it opens, its record not being
+  sent live. Its saves share the buffer's hook (`fields/useFileEditor.ts`): a stale hash read again
+  and written over once, and "Load the new version" drops the text when the file is gone. While a
+  pull or a merge is stopped, Pull, Push, and Merge, and `p`, `P`, and `M`, are disabled, as the
+  core refuses them, and the title's line reads "main · pull stopped · fetched …" in place of its
+  counts, which compare the branch's ref, not what the stop replayed; the buttons drop their counts
+  too. The sides taken on the page are kept by repository and stop. The bar's buttons are disabled,
+  and do nothing, in a read-only editor. A side's own line that looks like a marker is read as git's
+  marker: a quoted `<<<<<<< ` opens the block there, and a setext `=======` in the first side parts
+  the sides there. Without unix, a git process past its deadline runs to its end and is not reported
+  as stopped.
+- **Rationale**: after its row's "Use main", the editor kept the old markers, its save refused as
+  stale, and its reload found nothing to load. The replayed branch's counts would need a second read
+  of the rebase; a stop's line saying so misleads no one. Git's markers carry no escape, so any
+  reading of a quoted marker is a guess: the text stays editable.
+- **If wrong**: a text file that conflicts again under the same path after a stop ends opens afresh
+  only once the page lists it again.
+- **Where**: tasks 10 and 11, after their review.
