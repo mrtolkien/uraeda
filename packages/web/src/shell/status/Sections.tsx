@@ -1,8 +1,8 @@
 // lualine's sections, as LazyVim sets them, for the status line: `a` the mode, in its colour; `b`
-// on a raised ground, in the mode's colour; `c` on the line's own ground; `z` the cursor's place, in
-// the mode's colour again. Between them, lualine's separators: triangles drawn here, as the bundled
-// fonts have no Powerline glyphs. The colours are Catppuccin's, through the theme's tokens: NAV
-// grey, NORMAL blue, INSERT green, the visual modes mauve, REPLACE red, COMMAND peach.
+// on a raised ground, in the mode's colour; `c` on the line's own ground. Between them, lualine's
+// separators: triangles drawn here, as the bundled fonts have no Powerline glyphs. The colours are
+// Catppuccin's, through the theme's tokens: NAV grey, NORMAL blue, INSERT green, the visual modes
+// mauve, REPLACE red, COMMAND peach.
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
@@ -22,9 +22,8 @@ export function toneOf(mode: Mode | "nav", isVimOn: boolean): Tone {
 const styles = stylex.create({
   a: { fontWeight: fontWeightVars["--font-weight-bold"] },
   b: { backgroundColor: colorVars["--color-background-gray"] },
-  left: { clipPath: "polygon(100% 0, 0 50%, 100% 100%)" },
   line: { backgroundColor: colorVars["--color-background-muted"] },
-  right: { clipPath: "polygon(0 0, 100% 50%, 0 100%)" },
+  pointing: { clipPath: "polygon(0 0, 100% 50%, 0 100%)" },
   section: {
     alignItems: "center",
     display: "flex",
@@ -80,13 +79,12 @@ const inks = stylex.create({
 });
 
 /** A section's kind, as lualine names them. */
-export type Kind = "a" | "b" | "c" | "z";
+export type Kind = "a" | "b" | "c";
 
 /** A section's styles, for a section drawn by its own element, like the hints. */
 export function sectionStyles(kind: Kind, tone: Tone) {
   switch (kind) {
     case "a":
-    case "z":
       return [styles.section, styles.a, fills[tone]];
     case "b":
       return [styles.section, styles.b, inks[tone]];
@@ -108,29 +106,12 @@ const ground = (of: Ground, tone: Tone) =>
 
 /**
  * lualine's separator between two sections: a triangle in the colour of the section it comes
- * `from`, pointing into the one it goes `into`, on that one's ground: rightward on the line's left
- * side, leftward on its right side.
+ * `from`, pointing rightward into the one it goes `into`, on that one's ground.
  */
-export function Separator({
-  from,
-  into,
-  pointing,
-  tone,
-}: {
-  from: Ground;
-  into: Ground;
-  pointing: "left" | "right";
-  tone: Tone;
-}) {
+export function Separator({ from, into, tone }: { from: Ground; into: Ground; tone: Tone }) {
   return (
     <span aria-hidden {...stylex.props(styles.separator, ground(into, tone))}>
-      <span
-        {...stylex.props(
-          styles.shape,
-          ground(from, tone),
-          pointing === "right" ? styles.right : styles.left,
-        )}
-      />
+      <span {...stylex.props(styles.shape, ground(from, tone), styles.pointing)} />
     </span>
   );
 }

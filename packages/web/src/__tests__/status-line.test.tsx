@@ -44,27 +44,23 @@ function show() {
 /** The status line's text. */
 const line = () => screen.getByRole("contentinfo", { name: "Status line" }).textContent ?? "";
 
-const AT = { column: 9, line: 3, progress: "Top" };
-
 // Break: the mode left out of the line with Vim on, or shown with Vim off.
 test("with Vim on the line opens with the mode, NAV outside a field; with Vim off it has none", () => {
   act(() => setVimOn(true));
   show();
   expect(line()).toMatch(/^NAV/);
-  act(() => setFocused({ mode: "normal", ...AT }));
+  act(() => setFocused({ mode: "normal" }));
   expect(line()).toMatch(/^NORMAL/);
-  expect(line()).toMatch(/Top3:9$/);
 
   act(() => setVimOn(false));
   expect(line()).not.toMatch(/NORMAL|NAV/);
-  expect(line()).toMatch(/Top 3:9$/);
 });
 
 // Break: a mode change no screen reader hears, or one it hears again on each focus.
 test("a mode's change in a field is read out once, politely, and a field's focus is not", () => {
   act(() => setVimOn(true));
   show();
-  act(() => setFocused({ mode: "normal", ...AT }));
+  act(() => setFocused({ mode: "normal" }));
   expect(announce).not.toHaveBeenCalled();
   act(() => setMode("insert"));
   expect(announce).toHaveBeenCalledExactlyOnceWith("Insert mode", "polite");

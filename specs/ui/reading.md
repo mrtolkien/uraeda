@@ -22,12 +22,14 @@ on purpose: its marks are what the human edits.
 
 Each role has its font, picked in Settings, Fonts, or with `Space u f` then the role's key, each
 font's name drawn in its own face: the UI, headings, prose, code and keys, and the human's sent
-messages in a session (`theme/fonts.ts`). By default the UI is Monaspace Neon, headings Xenon, code
-and keys Krypton, the human's messages Radon, and prose Atkinson Hyperlegible Next: "Make
-hyperlegible + monaspace fonts the default". `Space u f d` restores them, after a confirmation.
-Radon is for the human's sent bubbles alone: "use it _only_ for human text bubbles in the session
-view, after sending". Each font sets its own reading measure, so a line holds about 80 characters
-whatever font is picked. Lines are 1.4 high everywhere: "just do 1.4 everywhere".
+messages in a session (`theme/fonts.ts`). By default the UI and the human's messages are Monaspace
+Neon, headings Xenon, and prose Atkinson Hyperlegible Next: "Make hyperlegible + monaspace fonts the
+default". The human's sent bubbles keep a role of their own, but Radon, a handwriting face, was
+"weird": "the normal monaspace font" instead. Code and keys, and so every text field, are in
+JetBrains Mono: Krypton was "too aggressive" in the editor, "go back to a standard monospace one".
+`Space u f d` restores them, after a confirmation. Each font sets its own reading measure, so a line
+holds about 80 characters whatever font is picked. Lines are 1.4 high everywhere: "just do 1.4
+everywhere".
 
 ## Line length
 

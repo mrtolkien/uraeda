@@ -115,7 +115,7 @@ to normal mode with the picker open, where `j` and `k` move along the list and E
 highlighted item; Escape in normal mode closes the picker.
 
 The status line at the bottom opens with the mode: NAV while keys act on the page, else the field's,
-like NORMAL or INSERT. At its right end, it shows the cursor's place, like "Top 3:9".
+like NORMAL or INSERT.
 
 Touch screens have no Vim: on a phone, or wherever the main pointer is a finger, fields type as
 without it, and the engine is never loaded.

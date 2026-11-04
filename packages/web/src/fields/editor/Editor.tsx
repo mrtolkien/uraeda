@@ -27,7 +27,7 @@ import {
 import { isLayerOpen } from "../../keys/layers.ts";
 import { fieldKeys } from "./keys.ts";
 import { markdown } from "./markdown.ts";
-import { setFocused, setPlace, type Place } from "./modeStore.ts";
+import { setFocused } from "./modeStore.ts";
 import { oneLine } from "./oneLine.ts";
 import {
   type EditorActions,
@@ -165,62 +165,19 @@ function partsOf(props: PartProps) {
   };
 }
 
-/** How far the field is scrolled, as Vim's ruler says it: All, Top, Bot, or a percentage. */
-function progressOf({ scrollDOM: { clientHeight, scrollHeight, scrollTop } }: EditorView) {
-  if (scrollHeight <= clientHeight) {
-    return "All";
-  }
-  if (scrollTop <= 0) {
-    return "Top";
-  }
-  const end = scrollHeight - clientHeight;
-  return scrollTop >= end ? "Bot" : `${Math.round((scrollTop / end) * 100)}%`;
-}
-
-/** The cursor's place, for the status line. */
-export function placeOf(view: EditorView): Place {
-  const head = view.state.selection.main.head;
-  const line = view.state.doc.lineAt(head);
-  return { column: head - line.from + 1, line: line.number, progress: progressOf(view) };
-}
-
 /** The field holding the focus, which alone may say that none does. */
 let focusedView: EditorView | null = null;
 
-/** Tells the mode store of a field's focus and cursor. */
+/** Tells the mode store of a field's focus. */
 function reportFocus(update: ViewUpdate) {
   const { view } = update;
   if (update.focusChanged && view.hasFocus) {
     focusedView = view;
-    setFocused({ mode: "insert", ...placeOf(view) });
+    setFocused({ mode: "insert" });
   } else if (update.focusChanged && focusedView === view) {
     focusedView = null;
     setFocused(null);
-  } else if (
-    view.hasFocus &&
-    (update.selectionSet || update.docChanged || update.geometryChanged)
-  ) {
-    measurePlace(view);
   }
-}
-
-/** The key of a place's measure, one per field and frame however many keys moved it. */
-const PLACE = {};
-
-/**
- * Gives the mode store the cursor's place in CodeMirror's next measure, with its layout: read as a
- * key is handled, the field's scroll would lay the page out at each keystroke.
- */
-function measurePlace(view: EditorView) {
-  view.requestMeasure({
-    key: PLACE,
-    read: placeOf,
-    write: (place) => {
-      if (view.hasFocus) {
-        setPlace(place);
-      }
-    },
-  });
 }
 
 /** Whether a click's label is a field's own, whose `for` names its content element. */
@@ -370,11 +327,6 @@ function extensionsOf(latest: { current: EditorProps }, actions: () => EditorAct
           event.preventDefault();
         }
         return took;
-      },
-      scroll: (_event, view) => {
-        if (view.hasFocus) {
-          measurePlace(view);
-        }
       },
     }),
     EditorView.updateListener.of((update) => {
