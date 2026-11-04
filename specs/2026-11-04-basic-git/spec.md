@@ -1,5 +1,5 @@
 ---
-status: awaiting-human
+status: changes-requested
 revision: 1
 clarifications: 2
 risk-tier: high
@@ -8,9 +8,9 @@ plan-review: false
 
 # Spec: Basic git UI in the web UI
 
-> [!IMPORTANT]
+> [!NOTE]
 >
-> Spec to review, about 20 minutes.
+> Changes requested on 2026-11-04: 2 comments in spec-review.md.
 >
 > - You approve a generic git page for the main checkout, replacing the Commit page. It pulls,
 >   pushes, merges, stages and commits any file, and fixes conflicts in the shared editor.
