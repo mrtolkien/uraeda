@@ -1,6 +1,7 @@
 // The key picker (US4): the Jump palette made general, one dialog over a list of items of any kind,
 // with the item under the cursor previewed beside the list as raw markdown, on wide and semi-wide
 // screens. Astryx's `CommandPalette` draws the search and the list, inline in a dialog of our own,
+// its search the shared editor in its input slot (`PickerEditor`), Vim mode included,
 // so the preview can sit beside them: an Astryx gap (plan, Complexity tracking), for the palette
 // has no preview slot, and the markdown is drawn as plain wrapped text. A part in its footer reads the cursor
 // from the palette's context, puts it on the first result after each letter, so Enter opens it, and
@@ -12,7 +13,6 @@
 import {
   CommandPalette,
   CommandPaletteFooter,
-  CommandPaletteInput,
   useCommandPaletteContext,
 } from "@astryxdesign/core/CommandPalette";
 import { Dialog } from "@astryxdesign/core/Dialog";
@@ -37,6 +37,8 @@ import {
   useState,
 } from "react";
 import { searchRanked } from "../decisions/jump.ts";
+import type { EditorHandle } from "../fields/editor/Editor.tsx";
+import { PickerEditor } from "../fields/editor/PickerEditor.tsx";
 import { afterOverlayCloses } from "../layout/Overlay.tsx";
 import { Sheet } from "../layout/Sheet.tsx";
 import { useBackCloses } from "../layout/useBackCloses.ts";
@@ -138,7 +140,7 @@ function CursorFooter({
   source,
 }: {
   /** The search field: its text is what the human sees, whatever the palette has committed. */
-  field: RefObject<HTMLInputElement | null>;
+  field: RefObject<EditorHandle | null>;
   onCursor: (id: string | undefined) => void;
   source: SearchSource<PickerEntry>;
 }) {
@@ -147,7 +149,7 @@ function CursorFooter({
   // The field's text, not the palette's: a letter typed as the items arrive is in the field while
   // the palette still holds the query before it, and searching that would drop the letter.
   const searchAgain = useEffectEvent(() =>
-    palette?.setSearch(field.current?.value ?? palette.search),
+    palette?.setSearch(field.current?.view()?.state.doc.toString() ?? palette.search),
   );
   useEffect(() => {
     if (searched.current !== source) {
@@ -225,7 +227,7 @@ function Search({
   onPick: (id: string) => void;
   placeholder: string;
 }) {
-  const field = useRef<HTMLInputElement>(null);
+  const field = useRef<EditorHandle>(null);
   // The caller builds the items again at each render: they are kept until what the list shows of
   // them changes, and the source with them. The previews are no part of that, so a cursor that
   // moves does not weigh whole files.
@@ -256,7 +258,7 @@ function Search({
       emptyBootstrapText={isLoading ? "Loading…" : "Nothing to find."}
       emptySearchText={isLoading ? "Loading…" : "Nothing matches."}
       footer={<CursorFooter field={field} onCursor={onCursor} source={source} />}
-      input={<CommandPaletteInput label={label} placeholder={placeholder} ref={field} />}
+      input={<PickerEditor label={label} placeholder={placeholder} ref={field} />}
       isInline
       isOpen
       label={label}
