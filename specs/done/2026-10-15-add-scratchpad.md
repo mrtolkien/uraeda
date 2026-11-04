@@ -2,7 +2,8 @@
 kind: feature
 finished: 2026-10-16
 pull-request: https://github.com/mrtolkien/uraeda/pull/20
-superseded-by: [2026-10-28-proposal-naming, 2026-11-01-move-relinks, 2026-11-03-master-pr, 2026-11-03-vim-text]
+superseded-by:
+  [2026-10-28-proposal-naming, 2026-11-01-move-relinks, 2026-11-03-master-pr, 2026-11-03-vim-text]
 ---
 
 # Record: Inbox
