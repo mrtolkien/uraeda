@@ -197,3 +197,19 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   disk, so a path the web sends must stay inside the checkout; a push moves only `origin`'s tip, and
   a stopped operation or a stage only git's folder.
 - **Where**: task 5.
+
+## R18: The page's removal and clean say what stays, in the core's words
+
+- **Decision**: `git_remove_worktree` matches the path the page sends against each worktree git
+  records, by its path from the main checkout's root, as `ura clean` writes it (`clean::relative`,
+  now `pub(crate)`), and checks the worktree for changes itself before `git worktree remove`,
+  refusing with "<path> has changes: commit or discard them first."; `clean_feature` is refused,
+  after what it could do, with each part that stays and why, like "The branch x stays: it has
+  commits main lacks."; `save_conflict_file` checks its path with task 4's `Git::checked`, now
+  `pub(crate)`, before looking for its conflict.
+- **Rationale**: git's own refusal of a worktree with changes reads as a failed command, not the
+  page's text; a clean that leaves its worktree or branch must not read as done; one check of a path
+  the web sends, not two.
+- **If wrong**: a clean that left something reads as refused in the toast, though the rest of it
+  landed; the page's next view shows what is left.
+- **Where**: task 6.

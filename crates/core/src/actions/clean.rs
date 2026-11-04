@@ -306,7 +306,7 @@ pub(crate) fn worktree(
 }
 
 /// A path from the main checkout, with `..` for a path outside it: `.worktrees/x`, `../elsewhere`.
-fn relative(base: &Path, path: &Path) -> String {
+pub(crate) fn relative(base: &Path, path: &Path) -> String {
     let base: Vec<_> = base.components().collect();
     let target: Vec<_> = path.components().collect();
     let common = base.iter().zip(&target).take_while(|(a, b)| a == b).count();

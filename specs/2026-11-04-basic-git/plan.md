@@ -872,8 +872,9 @@ signed in can overwrite or delete.
 
 - Create: `crates/core/src/api/git_writes.rs`, `crates/binding/src/git_writes.rs`
 - Modify: `crates/core/src/api.rs` (re-exports), `crates/core/src/api/error.rs` (a commit's hook
-  output), `crates/binding/src/lib.rs` (module line), `packages/binding/index.d.ts` and `index.js`
-  (generated)
+  output, `commit_error`), `crates/core/src/git/staging.rs` (`Git::checked` made `pub(crate)`),
+  `crates/core/src/actions/clean.rs` (`relative` made `pub(crate)`), `crates/binding/src/lib.rs`
+  (module line), `packages/binding/index.d.ts` and `index.js` (generated)
 - Test: `crates/core/tests/git_writes.rs`
 
 **Interfaces:**
@@ -892,13 +893,15 @@ signed in can overwrite or delete.
     refusal is `ApiError{code: "hook", output: Some(..)}`, as the existing commits' are;
   - `git_resolve(repo, path: &str, resolution: &str /* "ours" | "theirs" | "delete" */) -> Result<()>`;
   - `save_conflict_file(repo, path: &str, text: &str, hash: &str) -> Result<ConflictFileView>`:
-    refused unless `path` is conflicted in the main checkout; `"conflict"` when the file changed
-    since `hash`;
+    refused unless `path` passes `Git::checked` and is conflicted in the main checkout, not binary,
+    and not a symbolic link; `"conflict"` when the file changed since `hash`; never stages. Until
+    the merge, `ConflictFileView` is a private copy in `api/git_writes.rs`, with task 5's fields;
   - `git_remove_worktree(repo, path: &str) -> Result<()>`: only a path `worktree_records` lists,
-    never the main checkout; a missing one prunes; one with changes is refused, never forced; its
-    branch stays;
+    matched by its path from the main checkout's root (`clean::relative`), never the main checkout;
+    a missing one prunes; one with changes is refused, "<path> has changes: commit or discard them
+    first.", never forced; its branch stays;
   - `clean_feature(repo, folder: &str) -> Result<()>`: `actions::clean::clean` on the feature, not a
-    dry run.
+    dry run; refused, after what it could do, with what stays and why, when something stays.
 - Produces, in the binding: `gitFetch(repo, onOutput)`, `gitPull`, `gitPush`,
   `gitMerge(repo, branch, onOutput)`, `gitContinue`, `gitAbort`, `gitStage(repo, folder, paths)`,
   `gitUnstage`, `gitDiscard(repo, folder, path)`,
@@ -906,32 +909,35 @@ signed in can overwrite or delete.
   `saveConflictFile(repo, path, text, hash)`, `gitRemoveWorktree(repo, path)`,
   `cleanFeature(repo, folder)`; `folder` is `string | null`, `onOutput` `(line: string) => void`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `the_page_writes_only_what_it_lists`, a row each: `save_conflict_file` of a file that is not
 conflicted, and of `../x`, is refused and writes nothing; `git_stage` of `/etc/passwd` is refused;
 `git_remove_worktree` of the main checkout's path, and of a folder that is no worktree, is refused;
 of a worktree with changes is refused and the folder stays; of `.worktrees/coherence-before` removes
 the folder and keeps its branch; of a missing one prunes its record; `git_stage` with an unknown
-folder is refused; `clean_feature` of a merged feature removes its worktree and branch. Breaks:
-`save_conflict_file` writing any path; `--force` on removal.
+folder is refused; `clean_feature` of a merged feature removes its worktree and branch; a commit a
+hook refuses is `hook` with its output, the file still staged; in a stopped merge, a save over a
+stale hash is `conflict` and writes nothing, and one over the read hash writes the text. Breaks:
+`save_conflict_file` writing any path; `--force` on removal; a commit's failure mapped as any git
+error.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test git_writes`
 - Expected: FAIL, `save_conflict_file` not found.
 
-- [ ] **Step 3: Implement the writes and the binding's writes**
+- [x] **Step 3: Implement the writes and the binding's writes**
 
 The streaming writes pass a `ThreadsafeFunction<String, ...>` as `land` does. Regenerate the
 binding: `nix develop -c vp run --filter uraeda-binding build`.
 
-- [ ] **Step 4: Run the task's validation, and make the breaks**
+- [x] **Step 4: Run the task's validation, and make the breaks**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS. Make each break, see it fail, revert it, report it in the commit body.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates packages/binding specs/2026-11-04-basic-git/plan.md

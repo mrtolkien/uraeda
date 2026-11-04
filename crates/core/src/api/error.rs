@@ -27,6 +27,19 @@ pub(super) fn refused(message: impl Into<String>) -> ApiError {
     }
 }
 
+/// The error of a commit the Git page asked for: a hook's refusal is `hook`, with the hooks' whole
+/// output, as an action's commit is; any other failure as [`GitError`]'s.
+pub(super) fn commit_error(error: GitError) -> ApiError {
+    match error {
+        GitError::Command {
+            subcommand,
+            message,
+            output,
+        } if subcommand == "commit" => ActionError::Hook { message, output }.into(),
+        error => error.into(),
+    }
+}
+
 impl From<ActionError> for ApiError {
     fn from(error: ActionError) -> ApiError {
         match error {

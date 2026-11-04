@@ -28,6 +28,7 @@ pub mod deferred;
 pub mod drafts;
 pub mod file_writes;
 pub mod git_reads;
+pub mod git_writes;
 pub mod history;
 pub mod inbox_categories;
 pub mod inbox_writes;
