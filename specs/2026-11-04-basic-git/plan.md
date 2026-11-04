@@ -1042,15 +1042,18 @@ git commit -m "feat(basic-git): serve the Git page, its writes, and its guard"
 - Consumes: `WriteQueue.background`, the `GitPage` source (task 7), `binding.gitFetch`.
 - Produces: `FETCH_EVERY_MS = 300_000`;
   `startFetcher(path: string, binding: Binding, queue: WriteQueue, changed: () => void): Fetcher`
-  with `Fetcher = { now(): Promise<void>; failure(): string | undefined; stop(): void }`: fetches at
-  once and every 5 minutes, in `queue.background`, one at a time (a call while one runs joins it),
-  keeping the last failure's message until a fetch succeeds, calling `changed` after each. Started
-  per repository in `Hosts` as `startPullRequests` is, stopped with it.
-- Produces: `GitPage`'s `fetchFailure?: string`; the quiet `git.fetch` of task 7 now runs
-  `fetcher.now()`; a loud one stays a queued write with its toast, and its outcome also sets or
-  clears the failure.
+  with
+  `Fetcher = { now(): Promise<void>; failure(): string | undefined; settle(error?: unknown): void; stop(): void }`:
+  fetches at once and every 5 minutes, in `queue.background`, one at a time (a call while one runs
+  joins it), keeping the last failure's message until a fetch succeeds, calling `changed` when the
+  failure changed (what a fetch brings reaches the page through the watcher's `git` change);
+  `settle` keeps a loud fetch's outcome. Started per repository in `Hosts` as `startPullRequests`
+  is, as `Host.fetcher`, stopped with it (R21).
+- Produces: `GitPage`'s `fetchFailure: string | null`; the quiet `git.fetch` of task 7 now runs
+  `fetcher.now()` and answers the page, its failure in `fetchFailure`, never as an error; a loud one
+  stays a queued write with its toast, and its outcome also sets or clears the failure.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `the fetcher fetches every 5 minutes, outside the toast`, with fake timers on `setInterval`: a bare
 `origin` gains a commit; after `FETCH_EVERY_MS`, `GitSummary`'s `behind` is 1 and the queue's
@@ -1058,19 +1061,19 @@ git commit -m "feat(basic-git): serve the Git page, its writes, and its guard"
 leaves `fetchFailure` set and `writes()` empty, and a queued `git.stage` still lands; `origin`
 restored, the next fetch clears `fetchFailure`. Break: enqueueing the fetch as a record's write.
 
-- [ ] **Step 2: Run it to check it fails**
+- [x] **Step 2: Run it to check it fails**
 
 - Run: `nix develop -c vp test packages/server/src/__tests__/git-fetch.test.ts`
-- Expected: FAIL, `startFetcher` not found.
+- Expected: FAIL, `GitSummary`'s `behind` still 0, as no fetcher runs.
 
-- [ ] **Step 3: Implement the fetcher**
+- [x] **Step 3: Implement the fetcher**
 
-- [ ] **Step 4: Run the task's validation**
+- [x] **Step 4: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/server specs/2026-11-04-basic-git/plan.md

@@ -144,22 +144,26 @@ export const gitMutations = {
       ),
     type: "GitPage",
   },
-  // A quiet fetch, the page's on its open, lands in the queue without a toast; it is no human's
-  // write, and changes no file of a checkout, so no agent refuses it.
+  // A quiet fetch, the page's on its open, is the fetcher's, without a toast: it is no human's
+  // write, and changes no file of a checkout, so no agent refuses it, and a failure is the page's
+  // `fetchFailure`. A loud one is the human's write, whose outcome the fetcher keeps too.
   "git.fetch": {
     resolve: async (args: Resolver<Queued<{ quiet?: boolean }>>) => {
       const { ctx, input, select } = args;
-      const fetch: Land = (onOutput) => ctx.binding.gitFetch(ctx.repo, onOutput);
-      if (!input.quiet) {
-        return mainWrite(args, "Fetching", (_, onOutput) => fetch(onOutput));
+      const fetcher = ctx.hosts.byPath(ctx.repo)?.fetcher;
+      if (input.quiet) {
+        await fetcher?.now();
+        return sources.masked(gitPageDataView, ctx, await gitPage(ctx), select);
       }
-      const queue = ctx.hosts.byPath(ctx.repo)?.queue;
-      try {
-        await refusable(() => (queue ? queue.background(fetch) : fetch(() => {})));
-      } finally {
-        changed(ctx);
-      }
-      return sources.masked(gitPageDataView, ctx, await gitPage(ctx), select);
+      return mainWrite(args, "Fetching", async (repo, onOutput) => {
+        try {
+          await ctx.binding.gitFetch(repo, onOutput);
+        } catch (error) {
+          fetcher?.settle(error);
+          throw error;
+        }
+        fetcher?.settle();
+      });
     },
     type: "GitPage",
   },
