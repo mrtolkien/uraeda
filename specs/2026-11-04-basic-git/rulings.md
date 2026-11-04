@@ -263,3 +263,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   sent every repository's page at the server's start, with nothing new.
 - **If wrong**: the page's open shows a failing fetch only in its view, not as a refused call.
 - **Where**: task 8.
+
+## R23: The page's reads skip what they cannot read, and its writes take only what it lists
+
+- **Decision**: the page's view reads each worktree's state once; one that cannot be read, as with a
+  broken index, reads `changes` and has no group, and the sidebar's count leaves it out, so neither
+  fails. A changed file past 1 MiB, on disk or in `HEAD`, is listed without line counts, as a binary
+  one is. Removing a missing worktree runs `git worktree remove` on its record alone, never
+  `git worktree prune`; a locked one is refused, "<path> is locked: unlock it first.". `git_merge`
+  takes only one of the page's `branches`; `git_history` refuses an `after` its history lacks, so
+  the web reloads the first page; `conflict_file` refuses a symbolic link and a file it cannot read,
+  and `save_conflict_file` a file it cannot read; a diff's id ends in `:whole` for the whole.
+  `git_fetch` takes no write lock. `Changes::git` hashes the stash's ref and log too. The views'
+  string fields are literal unions in the binding's typings.
+- **Rationale**: one stale worktree must not blank the page and every page's sidebar; a big text
+  file would be diffed on every read of the page (SC-001); pruning dropped every missing worktree's
+  record unasked; a fetch writes only refs and objects, which git locks itself, and the fetcher's
+  fetch every 5 minutes would hold every save behind a slow remote; dropping a stash touches no
+  index.
+- **If wrong**: a big file's counts show only in its diff; nothing else changes.
+- **Where**: tasks 5 and 6, after their review.

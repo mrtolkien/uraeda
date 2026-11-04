@@ -6,7 +6,7 @@
 use std::path::Path;
 
 use super::error::commit_error;
-use super::git_page::group_root;
+use super::git_page::{group_root, merge_candidates};
 use super::{ConflictFileView, Result, find, open, refused, write_lock};
 use crate::actions::ActionError;
 use crate::actions::clean::{self, Left, Leftover, WhyLeft, relative};
@@ -33,7 +33,8 @@ fn main_checkout(repo: &Path) -> Result<Git> {
 
 /// Fetches `origin` in the main checkout, `on_output` given git's output as it comes.
 pub fn git_fetch(repo: &Path, on_output: impl Fn(&str)) -> Result<()> {
-    let _lock = write_lock(repo);
+    // No write lock: a fetch writes only refs and objects, which git locks itself, and a slow
+    // remote would hold every save of the repository behind it.
     Ok(main_checkout(repo)?.fetch(Some(&on_output))?)
 }
 
@@ -49,10 +50,18 @@ pub fn git_push(repo: &Path, on_output: impl Fn(&str)) -> Result<()> {
     Ok(main_checkout(repo)?.push(Some(&on_output))?)
 }
 
-/// Merges `branch`, local or on `origin`, into the main checkout's branch.
+/// Merges `branch`, one of the page's merge candidates, into the main checkout's branch: anything
+/// else is refused.
 pub fn git_merge(repo: &Path, branch: &str, on_output: impl Fn(&str)) -> Result<()> {
     let _lock = write_lock(repo);
-    Ok(main_checkout(repo)?.merge_branch(branch, Some(&on_output))?)
+    let git = main_checkout(repo)?;
+    if !merge_candidates(&git, git.current_branch().as_deref())?
+        .iter()
+        .any(|candidate| candidate == branch)
+    {
+        return Err(refused(format!("{branch} is not a branch to merge.")));
+    }
+    Ok(git.merge_branch(branch, Some(&on_output))?)
 }
 
 /// Continues the main checkout's stopped pull or merge once its conflicts are resolved.
@@ -148,7 +157,8 @@ pub fn save_conflict_file(
     if file.symlink_metadata().is_ok_and(|meta| meta.is_symlink()) {
         return Err(refused(format!("{path} is not in this checkout.")));
     }
-    let current = std::fs::read_to_string(&file).unwrap_or_default();
+    let current = std::fs::read_to_string(&file)
+        .map_err(|error| refused(format!("cannot read {path}: {error}")))?;
     if hash(&current) != previous {
         return Err(ActionError::changed(path).into());
     }
@@ -163,8 +173,8 @@ pub fn save_conflict_file(
 }
 
 /// Removes the linked worktree at `path`, from the main checkout's root, as git lists it: never
-/// forced, so one with changes is refused; a missing one has its record pruned. Its branch stays.
-/// The page asks first.
+/// forced, so one with changes or locked is refused; a missing one has its record removed, and no
+/// other's. Its branch stays. The page asks first.
 pub fn git_remove_worktree(repo: &Path, path: &str) -> Result<()> {
     let _lock = write_lock(repo);
     let git = main_checkout(repo)?;
@@ -174,10 +184,10 @@ pub fn git_remove_worktree(repo: &Path, path: &str) -> Result<()> {
         .into_iter()
         .find(|record| !path.is_empty() && relative(main, &record.path) == path)
         .ok_or_else(|| refused(format!("{path} is not a worktree.")))?;
-    if record.missing {
-        return Ok(git.prune_worktrees()?);
+    if record.locked {
+        return Err(refused(format!("{path} is locked: unlock it first.")));
     }
-    if Git::open(&record.path)?.has_local_changes()? {
+    if !record.missing && Git::open(&record.path)?.has_local_changes()? {
         return Err(refused(format!(
             "{path} has changes: commit or discard them first."
         )));

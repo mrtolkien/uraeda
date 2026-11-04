@@ -86,7 +86,7 @@ From the spec, word for word:
   continue or abort it first."
 - Merging is "Merge into main…" on a branch picked from the local and `origin` branches.
 - A worktree with changes reads "has changes" and offers neither Clean nor Remove; a missing one
-  reads "missing", with Remove, which prunes its record. Remove keeps the branch.
+  reads "missing", with Remove, which removes its record alone. Remove keeps the branch.
 - While a chat's agent works in the main checkout: "An agent works in this checkout.", and Pull,
   Push, Stage, Commit, and Merge are disabled.
 - Keys: `p` pull, `P` push, `f` fetch, Space stage or unstage, `a` stage or unstage all, Enter fold
@@ -803,15 +803,17 @@ git commit -m "feat(basic-git): stage, commit, discard, merge, and resolve confl
   - `StoppedView { kind: String /* "pull" | "merge" | "stash" */, ours: String, theirs: String, stash: Option<String> }`;
   - `ChangeGroupView { folder: Option<String> /* None: the main checkout */, name: String /* the main checkout's branch, else its detached id, or the feature's title */, files: Vec<FileChangeView> }`,
     the main checkout's group first and always there, then one per feature worktree with changes;
-  - `FileChangeView { path: String, state: String /* "modified" | "new" | "deleted" */, staged: String /* "no" | "yes" | "partly" */, added: Option<u32>, removed: Option<u32> }`;
+  - `FileChangeView { path: String, state: String /* "modified" | "new" | "deleted" */, staged: String /* "no" | "yes" | "partly" */, added: Option<u32>, removed: Option<u32> /* None: binary, or past 1 MiB */ }`;
+    each of these string fields typed in the binding as its literal union (`ts_type`);
   - `ConflictView { path: String, kind: String /* "both-changed" | "both-added" | "deleted-ours" | "deleted-theirs" | "both-deleted" | "added-ours" | "added-theirs" */, is_binary: bool, is_resolved: bool }`;
   - `CommitRowView { id: String, short: String, subject: String, authored: i64, mark: String /* "" | "pull" | "push" */ }`;
-  - `WorktreeView { path: String /* from the main checkout's root */, name: String, branch: Option<String>, folder: Option<String>, state: String /* "merged" | "changes" | "missing" | "locked" | "clean" */ }`,
+  - `WorktreeView { path: String /* from the main checkout's root */, name: String, branch: Option<String>, folder: Option<String>, state: String /* "missing" | "changes" | "locked" | "merged" | "clean" */ }`,
     the linked worktrees only, sorted by path, the first state that holds in that order, `merged`
-    for a feature whose step is `Done` (matched by its branch or its `left_branch`);
+    for a feature whose step is `Done` (matched by its branch or its `left_branch`); one that cannot
+    be read reads `changes` and has no group, failing neither the page nor the summary;
   - `GitSummaryView { id: String /* "git" */, changes: u32, behind: u32 }`, `changes` summed over
     every group;
-  - `GitDiffView { id: String, path: String, text: Option<String>, binary_before: Option<f64>, binary_after: Option<f64>, added: u32, removed: u32, is_capped: bool }`;
+  - `GitDiffView { id: String /* "<commit or folder>:<path>", then ":whole" when whole */, path: String, text: Option<String>, binary_before: Option<f64>, binary_after: Option<f64>, added: u32, removed: u32, is_capped: bool }`;
   - `GitCommitView { id: String, subject: String, body: String, authored: i64, files: Vec<ChangedFile> }`;
   - `GitHistoryPageView { id: String /* the commit it continues after */, commits: Vec<CommitRowView>, has_more: bool }`;
   - `ConflictFileView { id: String /* the path */, path: String, text: String, hash: String }`;
@@ -821,14 +823,14 @@ git commit -m "feat(basic-git): stage, commit, discard, merge, and resolve confl
     `GitAt { folder: Option<String>, commit: Option<String> }` (both `None`: the main checkout's
     working tree), `git_commit(repo, id: &str) -> Result<GitCommitView>`,
     `git_history(repo, after: &str) -> Result<GitHistoryPageView>` (pages of 50, `after` a commit
-    id; the page view's first page too),
+    id; the page view's first page too; refused when the history does not hold `after`),
     `conflict_file(repo, path: &str) -> Result<ConflictFileView>` (refused for a file that is not
-    conflicted, or binary).
+    conflicted, binary, a symbolic link, or unreadable).
   - `pub(crate) fn group_root(git: &Git, workspace: &Workspace, folder: Option<&str>) -> Result<PathBuf>`:
     the main checkout for `None`, a feature's worktree for its folder, refused otherwise. Task 6's
     writes use it as `super::git_page::group_root`; `git_diff` uses it too.
-- Produces, in `watch.rs`: `Changes::git: bool`, true when `HEAD`, the index, `FETCH_HEAD`, or a
-  stopped operation of the main checkout or a worktree changed.
+- Produces, in `watch.rs`: `Changes::git: bool`, true when `HEAD`, the index, `FETCH_HEAD`, the
+  stash, or a stopped operation of the main checkout or a worktree changed.
 - Produces, in the binding: `gitPage(repo)`, `gitSummary(repo)`, `gitDiff(repo, at, path, whole)`,
   `gitCommit(repo, id)`, `gitHistory(repo, after)`, `conflictFile(repo, path)`, each a promise of
   its view.
@@ -850,9 +852,9 @@ git commit -m "feat(basic-git): stage, commit, discard, merge, and resolve confl
 
 - [x] **Step 3: Implement the views, `history_page`, `Changes::git`, and the binding's reads**
 
-The page's view reads `checkout_state` of the main checkout and of each feature worktree with local
-changes (`has_local_changes` first, so clean ones cost one stop of the status). Then regenerate the
-binding: `nix develop -c vp run --filter uraeda-binding build`.
+The page's view reads `checkout_state` of the main checkout and of each worktree, once each: no
+files and no conflicts is no group. A file past 1 MiB, on disk or in `HEAD`, is listed without line
+counts (R23). Then regenerate the binding: `nix develop -c vp run --filter uraeda-binding build`.
 
 - [x] **Step 4: Run the task's validation**
 
@@ -882,13 +884,12 @@ signed in can overwrite or delete.
 
 **Interfaces:**
 
-- Consumes: tasks 3 and 4's writes, `actions::clean::clean`, `Git::remove_worktree`,
-  `prune_worktrees`.
-- Produces, in `api/git_writes.rs`, each under `write_lock(repo)`, each acting on the group's root
-  (task 5's `group_root`), the remote writes on the main checkout only:
+- Consumes: tasks 3 and 4's writes, `actions::clean::clean`, `Git::remove_worktree`.
+- Produces, in `api/git_writes.rs`, each under `write_lock(repo)` but `git_fetch` (R23), each acting
+  on the group's root (task 5's `group_root`), the remote writes on the main checkout only:
   - `git_fetch(repo, on_output) -> Result<()>`, `git_pull`, `git_push`,
-    `git_merge(repo, branch: &str, on_output)`, `git_continue(repo, on_output)`,
-    `git_abort(repo, on_output)`;
+    `git_merge(repo, branch: &str, on_output)` (refused for a branch not in the page's `branches`),
+    `git_continue(repo, on_output)`, `git_abort(repo, on_output)`;
   - `git_stage(repo, folder: Option<&str>, paths: &[String]) -> Result<()>`, `git_unstage`,
     `git_discard(repo, folder, path: &str)`;
   - `git_commit_staged(repo, folder, message: &str, on_output) -> Result<CommitView>`: a hook's
@@ -896,12 +897,13 @@ signed in can overwrite or delete.
   - `git_resolve(repo, path: &str, resolution: &str /* "ours" | "theirs" | "delete" */) -> Result<()>`;
   - `save_conflict_file(repo, path: &str, text: &str, hash: &str) -> Result<ConflictFileView>`:
     refused unless `path` passes `Git::checked` and is conflicted in the main checkout, not binary,
-    and not a symbolic link; `"conflict"` when the file changed since `hash`; never stages;
-    `ConflictFileView` is task 5's;
+    and not a symbolic link, and readable; `"conflict"` when the file changed since `hash`; never
+    stages; `ConflictFileView` is task 5's;
   - `git_remove_worktree(repo, path: &str) -> Result<()>`: only a path `worktree_records` lists,
     matched by its path from the main checkout's root (`clean::relative`), never the main checkout;
-    a missing one prunes; one with changes is refused, "<path> has changes: commit or discard them
-    first.", never forced; its branch stays;
+    a missing one has its record removed, `git worktree remove`, no other's; a locked one is
+    refused, "<path> is locked: unlock it first."; one with changes is refused, "<path> has changes:
+    commit or discard them first.", never forced; its branch stays;
   - `clean_feature(repo, folder: &str) -> Result<()>`: `actions::clean::clean` on the feature, not a
     dry run; refused, after what it could do, with what stays and why, when something stays.
 - Produces, in the binding: `gitFetch(repo, onOutput)`, `gitPull`, `gitPush`,
@@ -917,12 +919,12 @@ signed in can overwrite or delete.
 conflicted, and of `../x`, is refused and writes nothing; `git_stage` of `/etc/passwd` is refused;
 `git_remove_worktree` of the main checkout's path, and of a folder that is no worktree, is refused;
 of a worktree with changes is refused and the folder stays; of `.worktrees/coherence-before` removes
-the folder and keeps its branch; of a missing one prunes its record; `git_stage` with an unknown
-folder is refused; `clean_feature` of a merged feature removes its worktree and branch; a commit a
-hook refuses is `hook` with its output, the file still staged; in a stopped merge, a save over a
-stale hash is `conflict` and writes nothing, and one over the read hash writes the text. Breaks:
-`save_conflict_file` writing any path; `--force` on removal; a commit's failure mapped as any git
-error.
+the folder and keeps its branch; of a missing one removes its record and keeps the other missing
+one's; of a locked one is refused; `git_stage` with an unknown folder is refused; `clean_feature` of
+a merged feature removes its worktree and branch; a commit a hook refuses is `hook` with its output,
+the file still staged; in a stopped merge, a save over a stale hash is `conflict` and writes
+nothing, and one over the read hash writes the text. Breaks: `save_conflict_file` writing any path;
+`--force` on removal; a commit's failure mapped as any git error.
 
 - [x] **Step 2: Run it to check it fails**
 
