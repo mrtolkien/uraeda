@@ -15,6 +15,7 @@ import { useRepositoryPath } from "../routes.tsx";
 import { refusedAt, useDismissWrite, useWriteQueue } from "../writes/useWriteQueue.ts";
 import { GIT_PATH } from "./address.ts";
 import { type GitGroup, GitPageView, type GitWorktree } from "./data.ts";
+import type { FileChange } from "./tree.ts";
 
 /**
  * Where a write's refusal shows: under the title for the sync, the merge, and a stopped pull's
@@ -41,6 +42,20 @@ export const messageField = (folder: string | null) => `git:${folder ?? "main"}#
 
 /** A staged box shown before its write answers, by `stagingKey`. */
 export const stagingKey = (folder: string | null, path: string) => `${folder ?? ""}\u0000${path}`;
+
+/**
+ * A group's files, each box as its staging write left it while that write answers: the index is
+ * written before the page comes back, and Commit counts what the boxes show.
+ */
+export function filesShown(
+  group: GitGroup,
+  { staging }: { staging: ReadonlyMap<string, boolean> },
+): ReadonlyArray<FileChange> {
+  return group.files.map((file) => {
+    const pending = staging.get(stagingKey(group.folder, file.path));
+    return pending === undefined ? file : { ...file, staged: pending ? "yes" : "no" };
+  });
+}
 
 /** What Discard asks before it restores `path`, or deletes it when it is new. */
 function discardQuestion(path: string, isNew: boolean): ConfirmOptions {

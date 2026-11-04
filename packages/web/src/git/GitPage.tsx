@@ -36,21 +36,13 @@ import { Sync } from "./Sync.tsx";
 import { buildTree, type FileChange } from "./tree.ts";
 import { type GitActions, type ListRow, pickOf, useGitKeys } from "./useGitKeys.ts";
 import {
+  filesShown,
   type GitWrites,
   messageField,
   placeHref,
-  stagingKey,
   useGitWrites,
 } from "./useGitWrites.ts";
 import { offerOf, Worktrees, worktreeKey } from "./Worktrees.tsx";
-
-/** A group's files, each box as its staging write left it while that write answers. */
-function filesShown(group: GitGroup, writes: GitWrites): ReadonlyArray<FileChange> {
-  return group.files.map((file) => {
-    const pending = writes.staging.get(stagingKey(group.folder, file.path));
-    return pending === undefined ? file : { ...file, staged: pending ? "yes" : "no" };
-  });
-}
 
 /** The folded folders of each group, by `treeKey`. */
 type Folded = ReadonlySet<string>;
@@ -311,6 +303,7 @@ const EMPTY: GitPageData = {
   conflicts: [],
   detached: null,
   fetchedAt: null,
+  fetchFailure: null,
   groups: [],
   hasMoreHistory: false,
   hasRemote: false,
