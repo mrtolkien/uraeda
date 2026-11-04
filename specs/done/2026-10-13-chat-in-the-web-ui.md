@@ -2,6 +2,7 @@
 kind: feature
 finished: 2026-10-13
 pull-request: https://github.com/mrtolkien/uraeda/pull/10
+superseded-by: [2026-11-03-worker-lifecycle]
 ---
 
 # Record: Chat in the web UI
@@ -11,6 +12,8 @@ pull-request: https://github.com/mrtolkien/uraeda/pull/10
 > The record of a merged feature, not instructions to follow. Started on 2026-10-13, finished on
 > 2026-10-13, in [its pull request](https://github.com/mrtolkien/uraeda/pull/10). Its full files are
 > in git: `git log -- specs/2026-10-13-chat-in-the-web-ui/`.
+>
+> Superseded in part by [2026-11-03-worker-lifecycle](2026-11-03-worker-lifecycle.md).
 
 ## What and why
 
