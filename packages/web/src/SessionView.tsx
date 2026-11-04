@@ -1,6 +1,6 @@
 // A session's view: its header, transcript, and composer, drawn by the session's page and by a
 // round's Session column, where it scrolls in the column's box.
-import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
+import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import { VStack } from "@astryxdesign/core/VStack";
 import * as stylex from "@stylexjs/stylex";
 import {
@@ -27,7 +27,13 @@ import { SessionHeader } from "./SessionHeader.tsx";
 import { OffersProvider, SessionEnd } from "./SessionOffers.tsx";
 import { SessionActions } from "./SessionActions.tsx";
 import { JumpToLatest, usePublishJump } from "./JumpToLatest.tsx";
-import { type ScrolledAway, useFollowEnd, useOpenAtEnd, useScrolledAway } from "./following.ts";
+import {
+  type ScrolledAway,
+  useFollowEnd,
+  useKeepsEndAsItGrows,
+  useOpenAtEnd,
+  useScrolledAway,
+} from "./following.ts";
 import { isNarrow, useWidthClass } from "./layout/useWidthClass.ts";
 import { Attention } from "./SessionAttention.tsx";
 import { Page } from "./layout/Page.tsx";
@@ -50,28 +56,34 @@ const styles = stylex.create({
     "--page-bleed": `calc(-1 * ${spacingVars["--spacing-4"]})`,
   },
   boxedComposer: {
-    // In a box, at its foot: over its padding there, which the transcript's end scrolls into.
-    bottom: 0,
+    // In a box, at its end: over its padding there.
     marginBlockEnd: `calc(-1 * ${spacingVars["--spacing-4"]})`,
   },
+  boxedJump: {
+    bottom: 0,
+  },
   composer: {
-    // The composer stays at the bottom of the window while the transcript scrolls, above the
-    // shell's status line, fixed at the window's bottom, following it down as it slides away.
-    backgroundColor: colorVars["--color-background-surface"],
-    bottom: "var(--status-line-offset, var(--size-status-line, 0px))",
-    // At the page's foot from its first draw, while the transcript loads and grows (`Page`'s
-    // `isFull`): it never moves down as the session's messages come.
-    marginBlockStart: "auto",
+    // After the transcript, at the page's end: the transcript has the whole window while the human
+    // reads it. "The composer should just always be at the end, after the messages."
     paddingBlock: spacingVars["--spacing-3"],
+  },
+  composerPhone: {
+    paddingBlock: spacingVars["--spacing-2"],
+  },
+  jump: {
+    // "Jump to the latest", at the window's foot while the human reads above the end, above the
+    // shell's status line, following it down as it slides away; right above the composer at the
+    // end. It takes no room. At the page's foot from its first draw with the composer under it,
+    // while the transcript loads and grows (`Page`'s `isFull`): a short session's composer never
+    // moves down as the session's messages come.
+    bottom: "var(--status-line-offset, var(--size-status-line, 0px))",
+    height: 0,
+    marginBlockStart: "auto",
     position: "sticky",
     transitionDuration: { "@media (prefers-reduced-motion: reduce)": "0s", default: "200ms" },
     transitionProperty: "bottom",
     transitionTimingFunction: "ease-out",
-  },
-  // On the phone, its box alone floats over the transcript, which shows around it.
-  composerPhone: {
-    backgroundColor: "transparent",
-    paddingBlock: spacingVars["--spacing-2"],
+    zIndex: 1,
   },
 });
 
@@ -354,8 +366,7 @@ type SessionPaneProps = {
  * first message creates it, the title and the composer alone. A feature's or a new chat's first
  * message creates the session under the same composer, which keeps the field typed in, its focus,
  * and its text. `isBoxed`, it is drawn in the box that scrolls it, as a page's column, without its
- * crumbs and column: its transcript follows its end in that box, and its composer stays at the
- * box's foot.
+ * crumbs and column: its transcript follows its end in that box, and its composer comes after it.
  */
 export function SessionPane({
   blocked,
@@ -377,6 +388,7 @@ export function SessionPane({
   const composer = useRef<HTMLDivElement>(null);
   // Kept by the pane, which the transcript's data does not wait for.
   const away = useScrolledAway(composer, id);
+  useKeepsEndAsItGrows(composer);
   const [jump, setJump] = useState<() => void>();
   // The bottom bar's arrow is the session page's: a boxed session keeps its own.
   usePublishJump(isBoxed ? undefined : jump);
@@ -415,6 +427,9 @@ export function SessionPane({
           />
         </Suspense>
       )}
+      <div {...stylex.props(styles.jump, isBoxed && styles.boxedJump)}>
+        {jump && <JumpToLatest composer={composer} isBoxed={isBoxed} onJump={jump} />}
+      </div>
       <div
         ref={composer}
         {...stylex.props(
@@ -423,7 +438,6 @@ export function SessionPane({
           isBoxed && styles.boxedComposer,
         )}
       >
-        {jump && <JumpToLatest composer={composer} isBoxed={isBoxed} onJump={jump} />}
         {returned.element}
         <Composer
           {...(folder === undefined ? {} : { folder })}

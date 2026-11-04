@@ -161,8 +161,8 @@ today.
 - **The agent's text is at the reading measure**, about 80 characters a line, not the page's width.
 - **The human's sent messages** are on a faint blue, in their own font (Radon).
 - **Jump to the latest** goes to the start of the agent's last message, where its reply reads from;
-  while the session works, to its end, following it. On wide screens, a small arrow over the
-  composer's top; on the phone, the bottom bar's ↓ alone.
+  while the session works, to its end, following it. On wide screens, a small arrow at the window's
+  foot, over the composer's top at the end; on the phone, the bottom bar's ↓ alone.
 - **An Activity row** is a head line, its kind's icon, a check or a cross, and how long it ran, over
   what it acted on, across the row's whole width, three lines at most, cut in its middle around
   `[...]`, which shows it whole. A divider sets steps apart. Opened, a row scrolls to its start.

@@ -70,10 +70,10 @@ way.
 
 ## The composer
 
-A session's composer floats over the transcript on the glass of the bar under it, its box alone,
-nothing drawn around it, and it follows the bar down as the bar slides away. Empty and unfocused, it
-folds to one line, its field and Send; a tap opens it, its paperclip and actions on one line. Send
-is an icon, as the paperclip is, not a filled button.
+A session's composer comes after the transcript, at the page's end, above the bottom bar, in its
+glass box alone, nothing drawn around it: the transcript has the whole screen while the human reads
+it. Empty and unfocused, it folds to one line, its field and Send; a tap opens it, its paperclip and
+actions on one line. Send is an icon, as the paperclip is, not a filled button.
 
 ## The decisions page
 

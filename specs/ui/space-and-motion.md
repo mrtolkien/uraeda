@@ -39,10 +39,12 @@ view:
   icons staying where they were. "NOTHING SHOULD CHANGE PLACES."
 - **Buttons stay put through a flow**: "I dislike moving buttons". This means the buttons that act,
   like sending, starting, or committing, not a whole page arriving after a navigation. A session's
-  composer sits at the window's foot from its first draw, short transcript or long, scrolled or at
-  the end. A page draws once what it shows is read, rather than a part arriving later on top and
-  pushing the rest down, as a feature's "Next" did. A feature's start draws in its session's frame,
-  crumbs and column, so its landing changes the steps alone.
+  composer comes after its messages, at the page's end, so that the transcript has the whole window
+  while the human reads it: "the composer should just always be at the end, after the messages". A
+  short session's composer sits at the window's foot from its first draw, and stays there as the
+  messages come, until they fill the window. A page draws once what it shows is read, rather than a
+  part arriving later on top and pushing the rest down, as a feature's "Next" did. A feature's start
+  draws in its session's frame, crumbs and column, so its landing changes the steps alone.
 - **About 200 ms, eased**, for what moves: the sidebar folding, the leader menu rising from the
   bottom and resizing, the columns gliding sideways to the selection, a row moving to its new place,
   a bar sliding away as the page scrolls. 100 ms was tried and felt abrupt.

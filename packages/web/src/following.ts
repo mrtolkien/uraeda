@@ -86,13 +86,43 @@ export function useOpenAtEnd(ref: RefObject<HTMLElement | null>, away?: Scrolled
 /**
  * Keeps the end in view as an element at the transcript's end first draws, when the human was at
  * the end before it: what is past the end once it draws is no more than its own height. A card
- * drawn after the page opened at its end, as an offer's, would otherwise sit under the composer.
+ * drawn after the page opened at its end, as an offer's, would otherwise sit below the view.
  */
 export function keepsEnd(element: HTMLElement) {
   const box = scroller(element);
   if (past(box) - element.getBoundingClientRect().height <= AT_END) {
     toEnd(box);
   }
+}
+
+/**
+ * Keeps the end in view as the element `ref` names, at the page's end, grows: a session's
+ * composer, after the transcript, whose field draws after the page opened at its end, or which
+ * unfolds on the phone, would otherwise grow below the view. It moves to the end when the page was
+ * last moved there by its own scroll, as it opened or followed, or when the human was at the end
+ * before it grew; never while they read above it.
+ */
+export function useKeepsEndAsItGrows(ref: RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    let height = element.getBoundingClientRect().height;
+    const keep = () => {
+      const grown = element.getBoundingClientRect().height - height;
+      height += grown;
+      const box = scroller(element);
+      const placed = position(box) === ownEnds.get(box ?? window);
+      if (past(box) > 0 && (placed || (grown > 0 && past(box) - grown <= AT_END))) {
+        toEnd(box);
+      }
+    };
+    keep();
+    const observer = new ResizeObserver(keep);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
 }
 
 /** Where each scroller, or the window, was last moved to its end, by `toEnd`. */

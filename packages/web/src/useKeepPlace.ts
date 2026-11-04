@@ -9,7 +9,7 @@ import { atEnd, scroller } from "./following.ts";
 import { scrollInstantly } from "./keepPlace.ts";
 import { useWidthClass, widthClassNow } from "./layout/useWidthClass.ts";
 
-/** How far down the window the place is read: below the top bar, above the sticky composer. */
+/** How far down the window the place is read: below the top bar, above the bottom bars. */
 const READ_AT = 1 / 3;
 
 /** Whether an element holds text of its own, besides its children's. */
