@@ -279,6 +279,54 @@ impl TestRepo {
     pub fn git(&self, args: &[&str]) -> String {
         run_git(&self.path, args)
     }
+
+    /// Writes `bytes` at `path`, for a binary file.
+    pub fn write_bytes(&self, path: &str, bytes: &[u8]) {
+        let file = self.path.join(path);
+        fs::create_dir_all(file.parent().unwrap()).unwrap();
+        fs::write(file, bytes).unwrap();
+    }
+
+    /// Runs git in the repository, and says whether it succeeded, for a command that may stop.
+    pub fn try_git(&self, args: &[&str]) -> bool {
+        without_user_git(Command::new("git").args(args).current_dir(&self.path))
+            .output()
+            .expect("git runs")
+            .status
+            .success()
+    }
+
+    /// Deletes `path` on `origin/main` through a clone of its own, then fetches it here.
+    pub fn upstream_remove(&self, path: &str, message: &str) {
+        let remover = self.dir.path().join("remover");
+        if !remover.exists() {
+            run_git(
+                self.dir.path(),
+                &[
+                    "clone",
+                    "--quiet",
+                    "--branch",
+                    "main",
+                    "origin.git",
+                    "remover",
+                ],
+            );
+            for (key, value) in [("user.name", "Other"), ("user.email", "other@example.com")] {
+                run_git(&remover, &["config", key, value]);
+            }
+        }
+        run_git(
+            &remover,
+            &["pull", "--quiet", "--ff-only", "origin", "main"],
+        );
+        run_git(&remover, &["rm", "--quiet", "--", path]);
+        run_git(
+            &remover,
+            &["commit", "--quiet", "--no-verify", "--message", message],
+        );
+        run_git(&remover, &["push", "--quiet", "origin", "HEAD:main"]);
+        self.git(&["fetch", "--quiet", "origin"]);
+    }
 }
 
 /// Runs git in a folder, and returns its stdout. Panics when git fails.

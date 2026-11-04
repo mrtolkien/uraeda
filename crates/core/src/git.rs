@@ -7,7 +7,9 @@ use std::time::SystemTime;
 
 mod amend;
 mod branches;
+mod checkout;
 mod commit;
+mod diff;
 mod history;
 mod log;
 pub(crate) mod process;
@@ -17,7 +19,9 @@ mod stopped;
 mod worktrees;
 
 pub use amend::Latest;
+pub use checkout::{CheckoutState, Conflict, ConflictKind, FileChange, FileState, Staged};
 pub use commit::{OnOutput, Stage, others_staged};
+pub use diff::{CommitFiles, DIFF_CAP, DiffOf, FileDiff};
 pub use history::{CommitInfo, CommitPaths, Range};
 pub use stopped::{Stopped, StoppedKind};
 pub use worktrees::{Worktree, WorktreeRecord};
