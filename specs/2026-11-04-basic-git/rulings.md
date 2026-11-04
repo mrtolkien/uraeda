@@ -87,3 +87,17 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **Rationale**: the core has no human to ask; what it guards is that nothing is removed beyond what
   was named.
 - **Where**: tasks 4, 6, and 9.
+
+## R10: An action reaches a branch being rebased, and the commit runs through `git_write`
+
+- **Decision**: `place::reach` takes a checkout whose stopped rebase replays a branch as holding it
+  (`Git::rebasing`), so an action on `main` during a stopped pull reaches the main checkout and
+  `commit_staged` refuses it with "A pull is stopped: continue or abort it first."; and
+  `commit_staged` runs through `process::git_write`, which replaced `run_streaming`.
+- **Rationale**: during a rebase `HEAD` is detached, so `reach` tried `git worktree add` for `main`,
+  which git refuses with its own message, never the spec's. Running the commit through the one write
+  runner gives `git_write` a caller in this task, with no dead-code marker, and keeps a commit's
+  hooks from waiting on a prompt in the server.
+- **If wrong**: a hook that asks for credentials at a terminal during `ura`'s commit now fails
+  instead of prompting.
+- **Where**: task 1.

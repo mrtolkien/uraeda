@@ -38,14 +38,45 @@ impl Failure {
 
 /// Runs `program` with `args` in `dir`, and returns its stdout once it succeeds.
 pub(crate) fn run(program: &str, args: &[&str], dir: &Path) -> Result<Vec<u8>, Failure> {
-    let output = Command::new(program)
-        .args(args)
-        .current_dir(dir)
-        .output()
-        .map_err(|error| match error.kind() {
-            std::io::ErrorKind::NotFound => Failure::NotFound,
-            _ => Failure::Start(error.to_string()),
-        })?;
+    run_command(command(program, args, dir))
+}
+
+/// Runs `git` with `args` in `dir` for a write the human asked for, which must never wait on
+/// someone at a terminal: no stdin, no credential prompt (`GIT_TERMINAL_PROMPT=0`), and no editor
+/// (`GIT_EDITOR=true` keeps the message git prepared). Its output is streamed to `on_line` when
+/// one is given, as [`stream_command`] does; else it returns stdout once it succeeds, as [`run`].
+pub(crate) fn git_write(
+    args: &[&str],
+    dir: &Path,
+    on_line: Option<&dyn Fn(&str)>,
+) -> Result<Vec<u8>, Failure> {
+    let mut git = command("git", args, dir);
+    git.env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_EDITOR", "true");
+    match on_line {
+        Some(on_line) => stream_command(git, on_line),
+        None => run_command(git),
+    }
+}
+
+/// `program` with `args`, to run in `dir`, its stdin closed.
+fn command(program: &str, args: &[&str], dir: &Path) -> Command {
+    let mut command = Command::new(program);
+    command.args(args).current_dir(dir).stdin(Stdio::null());
+    command
+}
+
+/// Why a process could not start.
+fn start(error: std::io::Error) -> Failure {
+    match error.kind() {
+        std::io::ErrorKind::NotFound => Failure::NotFound,
+        _ => Failure::Start(error.to_string()),
+    }
+}
+
+/// Runs `command`, and returns its stdout once it succeeds.
+fn run_command(mut command: Command) -> Result<Vec<u8>, Failure> {
+    let output = command.output().map_err(start)?;
     if output.status.success() {
         return Ok(output.stdout);
     }
@@ -54,24 +85,12 @@ pub(crate) fn run(program: &str, args: &[&str], dir: &Path) -> Result<Vec<u8>, F
     Err(exit(&stderr, &stdout))
 }
 
-/// Runs `program` as [`run`] does, its stdout and stderr read line by line, each line given to
+/// Runs `command` as [`run`] does, its stdout and stderr read line by line, each line given to
 /// `on_line` as it comes, like a hook's report while it runs. Returns the whole output, its lines
 /// in the order they came, once it succeeds. A failure's message is stderr's first line, then
 /// stdout's, as [`run`] has it.
-pub(crate) fn run_streaming(
-    program: &str,
-    args: &[&str],
-    dir: &Path,
-    on_line: &dyn Fn(&str),
-) -> Result<Vec<u8>, Failure> {
-    let start = |error: std::io::Error| match error.kind() {
-        std::io::ErrorKind::NotFound => Failure::NotFound,
-        _ => Failure::Start(error.to_string()),
-    };
-    let mut child = Command::new(program)
-        .args(args)
-        .current_dir(dir)
-        .stdin(Stdio::null())
+fn stream_command(mut command: Command, on_line: &dyn Fn(&str)) -> Result<Vec<u8>, Failure> {
+    let mut child = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -195,7 +214,7 @@ mod tests {
     fn a_streamed_failure_is_named_by_stderr_first() {
         let lines = Mutex::new(Vec::new());
         let script = "echo out; sleep 0.1; echo err >&2; exit 1";
-        let failed = run_streaming("sh", &["-c", script], Path::new("."), &|line| {
+        let failed = stream_command(command("sh", &["-c", script], Path::new(".")), &|line| {
             lines.lock().unwrap().push(line.to_string());
         });
 
@@ -204,5 +223,33 @@ mod tests {
         };
         assert_eq!((message.as_str(), output.as_str()), ("err", "out\nerr"));
         assert_eq!(lines.into_inner().unwrap(), ["out", "err"]);
+    }
+
+    /// A write never waits on a terminal: git sees no prompt and no editor, streamed or not.
+    #[test]
+    fn a_write_runs_git_without_a_prompt_or_an_editor() {
+        let env = ["-c", "alias.env=!env", "env"];
+        let lines = Mutex::new(Vec::new());
+        let streamed = git_write(
+            &env,
+            Path::new("."),
+            Some(&|line| {
+                lines.lock().unwrap().push(line.to_string());
+            }),
+        )
+        .unwrap();
+        let ran = String::from_utf8(git_write(&env, Path::new("."), None).unwrap()).unwrap();
+
+        for output in [ran, String::from_utf8(streamed).unwrap()] {
+            let lines: Vec<&str> = output.lines().collect();
+            assert!(lines.contains(&"GIT_TERMINAL_PROMPT=0"), "{output}");
+            assert!(lines.contains(&"GIT_EDITOR=true"), "{output}");
+        }
+        assert!(
+            lines
+                .into_inner()
+                .unwrap()
+                .contains(&"GIT_EDITOR=true".to_string())
+        );
     }
 }

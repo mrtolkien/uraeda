@@ -170,6 +170,72 @@ impl TestRepo {
         self.git(&["fetch", "--quiet", "origin"]);
     }
 
+    /// A repository whose `main` is pushed to a bare `origin` and tracks it.
+    pub fn with_origin() -> TestRepo {
+        let repo = TestRepo::new();
+        repo.push("main");
+        repo.git(&[
+            "branch",
+            "--quiet",
+            "--set-upstream-to",
+            "origin/main",
+            "main",
+        ]);
+        repo
+    }
+
+    /// Commits `text` at `path` to `origin/main` through a second clone, next to the repository,
+    /// then fetches it here: someone else's commit, to pull.
+    pub fn upstream_commit(&self, path: &str, text: &str, message: &str) {
+        let upstream = self.dir.path().join("upstream");
+        if !upstream.exists() {
+            run_git(
+                self.dir.path(),
+                &["clone", "--quiet", "origin.git", "upstream"],
+            );
+            for (key, value) in [("user.name", "Other"), ("user.email", "other@example.com")] {
+                run_git(&upstream, &["config", key, value]);
+            }
+        }
+        run_git(
+            &upstream,
+            &["pull", "--quiet", "--ff-only", "origin", "main"],
+        );
+        let file = upstream.join(path);
+        fs::create_dir_all(file.parent().unwrap()).unwrap();
+        fs::write(file, text).unwrap();
+        run_git(&upstream, &["add", "--all"]);
+        run_git(
+            &upstream,
+            &["commit", "--quiet", "--no-verify", "--message", message],
+        );
+        run_git(&upstream, &["push", "--quiet", "origin", "HEAD:main"]);
+        self.git(&["fetch", "--quiet", "origin"]);
+    }
+
+    /// Leaves a rebase of `main` onto `origin/main` stopped on one conflicting file,
+    /// `specs/PRIORITIES.md`, changed on both sides, as `git pull --rebase` leaves it. On a
+    /// repository made by [`TestRepo::with_origin`].
+    pub fn stopped_pull(&self) {
+        let path = "specs/PRIORITIES.md";
+        let text = |line: &str| format!("# Priorities\n\n## Now\n\n- {line}\n");
+        self.write(path, &text("Base"));
+        self.commit("chore: priorities");
+        self.git(&["push", "--quiet", "origin", "main"]);
+        self.upstream_commit(path, &text("Upstream"), "chore: upstream priorities");
+        self.write(path, &text("Local"));
+        self.commit("chore: local priorities");
+        let pulled = without_user_git(
+            Command::new("git")
+                .args(["pull", "--quiet", "--rebase", "origin", "main"])
+                .current_dir(&self.path),
+        )
+        .output()
+        .expect("git runs");
+        assert!(!pulled.status.success(), "the pull did not stop");
+        assert!(self.path.join(".git/rebase-merge").exists());
+    }
+
     pub fn delete_branch(&self, name: &str) {
         self.git(&["branch", "--quiet", "-D", name]);
     }
