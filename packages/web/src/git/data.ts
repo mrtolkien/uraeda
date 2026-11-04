@@ -21,9 +21,9 @@ export const gitDiffId = (
 
 /**
  * The page: its sync, its groups of changes, its conflicts, its history, its worktrees, and the
- * last background fetch's failure, which a server without the fetcher leaves out.
+ * last background fetch's failure.
  */
-export const GitPageView = view<GitPage & { fetchFailure?: string | null }>()({
+export const GitPageView = view<GitPage>()({
   agentWorking: true,
   ahead: true,
   behind: true,
@@ -82,16 +82,14 @@ export type GitPageData = Pick<
   | "conflicts"
   | "detached"
   | "fetchedAt"
+  | "fetchFailure"
   | "groups"
   | "hasMoreHistory"
   | "hasRemote"
   | "history"
   | "stopped"
   | "worktrees"
-> & {
-  /** The last background fetch's failure, until one succeeds: the fetcher's, when the server has it. */
-  fetchFailure?: string | null;
-};
+>;
 
 /** A group of changes: the main checkout's, its folder null, or a feature's worktree's. */
 export type GitGroup = GitPageData["groups"][number];

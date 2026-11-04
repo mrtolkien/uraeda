@@ -24,7 +24,7 @@ import { CommitField } from "./CommitField.tsx";
 import type { GitGroup } from "./data.ts";
 import { PlaceError } from "./PlaceError.tsx";
 import type { TreeRow } from "./tree.ts";
-import { placeHref, type GitWrites } from "./useGitWrites.ts";
+import { filesShown, placeHref, type GitWrites } from "./useGitWrites.ts";
 
 const styles = stylex.create({
   // A row's depth, a step each. A custom property: the token lint takes a calc of a number read at
@@ -134,7 +134,7 @@ export function ChangesGroup({
 }) {
   const place = { folder: group.folder };
   const isMain = group.folder === null;
-  const staged = group.files.filter((file) => file.staged !== "no").length;
+  const staged = filesShown(group, writes).filter((file) => file.staged !== "no").length;
   return (
     <VStack gap={2}>
       <RefusedHere
