@@ -50,16 +50,18 @@ export function holdsVariants(stories: Stories | null, document: Document, quest
 
 /**
  * Whether a question holds something wide, in its context, its example, its why, or an option: a
- * table, or a live window (`holdsWindow`). Its card then keeps one column, the whole card's width
- * theirs.
+ * table, a diagram, or a live window (`holdsWindow`). Its card then keeps one column, the whole
+ * card's width theirs: in a split card's question column, a flowchart showed a third of itself.
  */
 export function holdsWide(stories: Stories | null, document: Document, question: QuestionItem) {
-  const tables = document.blocks.filter((block) => block.kind === "table");
+  const wide = document.blocks.filter(
+    (block) => block.kind === "table" || (block.kind === "code" && block.language === "mermaid"),
+  );
   return (
     holdsAny(
       document,
       question,
-      tables.map((block) => block.id),
+      wide.map((block) => block.id),
     ) || holdsWindow(stories, document, question)
   );
 }
