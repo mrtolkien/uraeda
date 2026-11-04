@@ -21,7 +21,7 @@ fn png(size: usize) -> Vec<u8> {
 /// US2 1, more 1, and more 2: a text file's diff is unified, a binary file's gives its sizes, and
 /// one over the cap gives its counts alone until the whole is asked for. Breaks: counting the
 /// context as changed lines; diffing a binary file as text; capping on the file's lines rather
-/// than the diff's.
+/// than the diff's; counting a side over 1 MiB before the cap.
 #[test]
 fn a_diff_is_unified_binary_or_capped() {
     let repo = TestRepo::new();
@@ -51,6 +51,19 @@ fn a_diff_is_unified_binary_or_capped() {
     let whole = git.file_diff(DiffOf::Worktree, "big.txt", true).unwrap();
     assert!(!whole.is_capped);
     assert!(whole.text.unwrap().lines().count() > DIFF_CAP);
+
+    // Final review M3: a side over 1 MiB is capped before its lines are counted, as the page's
+    // list leaves its counts out (R23); the whole still counts them.
+    repo.write("huge.txt", &lines(0..120_000));
+    assert!(repo.read("huge.txt").len() > 1 << 20);
+    let capped = git.file_diff(DiffOf::Worktree, "huge.txt", false).unwrap();
+    assert!(capped.is_capped && capped.text.is_none());
+    assert_eq!((capped.added, capped.removed), (0, 0));
+    let whole = git.file_diff(DiffOf::Worktree, "huge.txt", true).unwrap();
+    assert_eq!(
+        (whole.added, whole.removed, whole.is_capped),
+        (120_000, 0, false)
+    );
 }
 
 /// US2 3: a commit lists the files it changed, each with its counts, and its diff is from its

@@ -1,8 +1,9 @@
 // The Git page's writes. Each is refused while an agent works in its checkout (`git-guard.ts`), as
 // it is queued and again as it lands, in the repository's write queue, after the writes made
-// before it, in the order they came though their checks wait (`WriteQueue.arrive`), named by its `write` input, git's output streamed into the queue's record for the
-// toast. It answers once it landed, with the page; a refusal stays in the record and answers the
-// call too. After each, landed or refused, the page and the sidebar's count are sent again.
+// before it, in the order they came though their checks wait (`WriteQueue.arrive`), named by its
+// `write` input, git's output streamed into the queue's record for the toast. It answers once it
+// landed, with the page; a refusal stays in the record and answers the call too. After each,
+// landed or refused, the page and the sidebar's count are sent again.
 import { publishGit } from "../live.ts";
 import type { Land, NewWrite, WriteInput } from "../writes/queue.ts";
 import type { RepoContext, Resolver } from "./context.ts";

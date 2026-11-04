@@ -10,6 +10,7 @@ use gix::diff::blob::unified_diff::{ConsumeHunk, ContextSize, DiffLineKind, Hunk
 use gix::diff::blob::{Algorithm, Diff, InternedInput, UnifiedDiff, diff_with_slider_heuristics};
 use gix::object::tree::diff::ChangeDetached;
 
+use super::checkout::COUNT_CAP;
 use super::{Git, GitError, ObjectId, read_error};
 use crate::changes::ChangedFile;
 
@@ -37,7 +38,8 @@ pub struct FileDiff {
     pub binary: Option<(u64, u64)>,
     pub added: u32,
     pub removed: u32,
-    /// More than [`DIFF_CAP`] lines added and removed, and the whole was not asked for.
+    /// More than [`DIFF_CAP`] lines added and removed, or a side of text past 1 MiB, its lines
+    /// then not counted, and the whole was not asked for.
     pub is_capped: bool,
 }
 
@@ -56,7 +58,8 @@ pub struct CommitFiles {
 }
 
 impl Git {
-    /// The diff of the file at `path`: capped past [`DIFF_CAP`] lines unless `whole`.
+    /// The diff of the file at `path`: capped past [`DIFF_CAP`] lines, or a side past 1 MiB, unless
+    /// `whole`.
     pub fn file_diff(&self, of: DiffOf, path: &str, whole: bool) -> Result<FileDiff, GitError> {
         let (before, after) = match of {
             DiffOf::Worktree => {
@@ -78,8 +81,15 @@ impl Git {
             removed: 0,
             is_capped: false,
         };
-        let Some((added, removed)) = line_counts(old.unwrap_or_default(), new.unwrap_or_default())
-        else {
+        let (old_bytes, new_bytes) = (old.unwrap_or_default(), new.unwrap_or_default());
+        // A text side past `COUNT_CAP` is capped before its lines are counted, as the page's list
+        // leaves its counts out; a binary one still gives its sizes.
+        let big = old_bytes.len().max(new_bytes.len()) > COUNT_CAP;
+        if !whole && big && !is_binary(old_bytes) && !is_binary(new_bytes) {
+            diff.is_capped = true;
+            return Ok(diff);
+        }
+        let Some((added, removed)) = line_counts(old_bytes, new_bytes) else {
             let size = |side: Option<&[u8]>| side.map_or(0, |bytes| bytes.len() as u64);
             diff.binary = Some((size(old), size(new)));
             return Ok(diff);

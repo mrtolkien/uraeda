@@ -38,7 +38,8 @@ impl Git {
     }
 
     /// Stages each conflicted file, refusing while one is not [`super::Conflict::is_resolved`],
-    /// then continues the stopped rebase or merge. A stash put back with conflicts
+    /// then continues the stopped rebase or merge, skipping a replayed commit the resolution left
+    /// empty. A stash put back with conflicts
     /// has nothing to continue: its files are staged, and the stash kept.
     pub fn continue_stopped(&self, on_output: OnOutput) -> Result<(), GitError> {
         let Some(stopped) = self.stopped() else {
@@ -62,7 +63,20 @@ impl Git {
         if stopped.kind == StoppedKind::Stash {
             return Ok(());
         }
-        self.run_stop(&[self.operation(), "--continue"], on_output)
+        // A resolution that leaves the replayed commit empty, its side taken whole, is skipped:
+        // git's apply backend refuses `--continue` on it. A skip may stop again on the next one.
+        let operation = self.operation();
+        let step = if operation == "rebase" && self.stages_nothing() {
+            "--skip"
+        } else {
+            "--continue"
+        };
+        self.run_stop(&[operation, step], on_output)
+    }
+
+    /// Whether the index holds `HEAD`'s tree, read by git, as the staging just rewrote the index.
+    fn stages_nothing(&self) -> bool {
+        process::run("git", &["diff", "--cached", "--quiet"], &self.root).is_ok()
     }
 
     /// Aborts the stopped rebase or merge, which puts back the checkout as it was before, its

@@ -8,7 +8,7 @@ use crate::files::{frontmatter, markdown, spec};
 use crate::today::Date;
 use crate::workspace::Feature;
 
-use super::super::images::{images_folder, linked_images};
+use super::super::images::linked_images;
 use super::super::place::Place;
 use super::super::{ActionError, Change};
 use super::{pending, review_name, subject, title, waiting_text};
@@ -153,16 +153,6 @@ pub fn request_changes(
     })
 }
 
-/// The files a verdict writes, its images included, checked against the staged files before
-/// anything is written.
-fn verdict_paths(feature: &Feature, file: &str) -> [String; 3] {
-    [
-        format!("{}/{file}", feature.path),
-        format!("{}/{}", feature.path, review_name(file)),
-        images_folder(&feature.path),
-    ]
-}
-
 /// Approves a file and commits it.
 pub fn approve_and_commit(
     place: &Place,
@@ -172,9 +162,8 @@ pub fn approve_and_commit(
     tier: &Tier,
     today: Date,
 ) -> Result<super::super::Committed, ActionError> {
-    super::super::place::ensure_only_staged(place, &verdict_paths(feature, file))?;
     let change = approve(place, feature, file, summary, tier, today)?;
-    super::super::commit::commit(place, &change)
+    super::super::commit::commit_only(place, &change)
 }
 
 /// Requests changes on a file and commits it.
@@ -185,7 +174,6 @@ pub fn request_changes_and_commit(
     summary: Option<&str>,
     today: Date,
 ) -> Result<super::super::Committed, ActionError> {
-    super::super::place::ensure_only_staged(place, &verdict_paths(feature, file))?;
     let change = request_changes(place, feature, file, summary, today)?;
-    super::super::commit::commit(place, &change)
+    super::super::commit::commit_only(place, &change)
 }

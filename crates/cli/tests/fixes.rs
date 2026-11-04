@@ -49,8 +49,9 @@ fn a_refused_answer_leaves_the_checkout() {
     assert_eq!(output.stdout, "");
 }
 
+/// Final review I4: other staged files stay staged, out of the answer's commit.
 #[test]
-fn staged_files_refuse_before_anything_is_written() {
+fn other_staged_files_stay_out_of_the_answer() {
     let repo = waiting(&["A", "B", "A"]);
     repo.switch("2026-10-10-cli-core");
     repo.write("other.md", "x\n");
@@ -58,11 +59,9 @@ fn staged_files_refuse_before_anything_is_written() {
 
     let output = ura(&repo, &["answer", "--submit"]);
 
-    assert_eq!(
-        output.stderr,
-        "ura: other files are staged: other.md: commit or unstage them first\n"
-    );
-    assert!(repo.read(FILE).contains("status: awaiting-human"));
+    assert_eq!(output.code, 0, "{}", output.stderr);
+    assert!(repo.read(FILE).contains("status: answered"));
+    assert_eq!(repo.porcelain(), "A  other.md\n");
 }
 
 /// A proposal file staged but never committed starts once, and leaves nothing staged behind.

@@ -105,18 +105,29 @@ pub fn git_commit_staged(
     on_output: impl Fn(&str),
 ) -> Result<CommitView> {
     let _lock = write_lock(repo);
+    let message = without_blank_lines_around(message);
     let commit = group(repo, folder)?
         .commit_index(message, Some(&on_output))
         .map_err(commit_error)?;
     Ok(CommitView {
-        subject: message
-            .trim()
-            .lines()
-            .next()
-            .unwrap_or_default()
-            .to_string(),
+        subject: message.lines().next().unwrap_or_default().to_string(),
         commit: commit.to_hex_with_len(7).to_string(),
     })
+}
+
+/// `message` without its blank lines before the first line with text and after the last: git keeps
+/// them as typed, and a leading one would leave the subject empty.
+fn without_blank_lines_around(message: &str) -> &str {
+    let is_blank = |line: &&str| line.trim().is_empty();
+    let start = message
+        .split_inclusive('\n')
+        .take_while(is_blank)
+        .map(str::len)
+        .sum::<usize>();
+    let message = &message[start..];
+    let end = message.trim_end().len();
+    // The last line's own spaces go too, as no subject or body needs them.
+    &message[..end]
 }
 
 /// Resolves the main checkout's conflicted file at `path` with a side whole, `ours` or `theirs`

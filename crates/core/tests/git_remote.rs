@@ -5,7 +5,7 @@ mod common;
 use common::repo::{TestRepo, unauthorized_remote, without_user_git_config};
 use std::time::Duration;
 
-use uraeda_core::git::{FETCH_DEADLINE, Git, GitError, StoppedKind};
+use uraeda_core::git::{FETCH_DEADLINE, Git, GitError, SYNC_DEADLINE, StoppedKind};
 
 fn git(repo: &TestRepo) -> Git {
     Git::discover(repo.path()).unwrap()
@@ -222,4 +222,60 @@ fn a_fetch_that_never_answers_is_stopped() {
         "git fetch failed: origin gave no answer in 1 second, so the fetch was stopped."
     );
     assert_eq!(FETCH_DEADLINE, Duration::from_secs(120));
+}
+
+/// Final review I1: a pull or a push on a remote that never answers is stopped at its deadline, as
+/// a fetch is, so a hung ssh holds no save behind it. A pull stopped inside its rebase, its
+/// `post-checkout` hook asleep, leaves the rebase in progress: the page shows the stop, and Abort
+/// puts the branch back. Breaks: no deadline, which hangs until nextest stops the test.
+#[test]
+fn a_pull_or_a_push_that_never_answers_is_stopped() {
+    without_user_git_config();
+    let repo = TestRepo::diverged();
+    repo.git(&["config", "remote.origin.uploadpack", "sleep 3600; :"]);
+    let failed = git(&repo)
+        .pull_within(Duration::from_secs(1), None)
+        .unwrap_err()
+        .to_string();
+    assert_eq!(
+        failed,
+        "git pull failed: origin gave no answer in 1 second, so the pull was stopped."
+    );
+    assert_eq!(git(&repo).stopped(), None);
+
+    let repo = TestRepo::with_origin();
+    repo.write("local.md", "local\n");
+    repo.commit("chore: local");
+    repo.git(&["config", "remote.origin.receivepack", "sleep 3600; :"]);
+    let failed = git(&repo)
+        .push_within(Duration::from_secs(1), None)
+        .unwrap_err()
+        .to_string();
+    assert_eq!(
+        failed,
+        "git push failed: origin gave no answer in 1 second, so the push was stopped."
+    );
+    assert_eq!(SYNC_DEADLINE, Duration::from_secs(600));
+
+    // Stopped inside the rebase: the fetch ran, and the hook sleeps once `HEAD` is detached.
+    let repo = TestRepo::diverged();
+    let head = repo.git(&["rev-parse", "main"]);
+    repo.write(".git/hooks/post-checkout", "#!/bin/sh\nsleep 3600\n");
+    std::fs::set_permissions(
+        repo.path().join(".git/hooks/post-checkout"),
+        std::os::unix::fs::PermissionsExt::from_mode(0o755),
+    )
+    .unwrap();
+    let failed = git(&repo)
+        .pull_within(Duration::from_secs(2), None)
+        .unwrap_err()
+        .to_string();
+    assert!(failed.contains("so the pull was stopped"), "{failed}");
+    assert_eq!(
+        git(&repo).stopped().map(|stopped| stopped.kind),
+        Some(StoppedKind::Pull)
+    );
+    repo.remove(".git/hooks/post-checkout");
+    git(&repo).abort_stopped(None).unwrap();
+    assert_eq!(repo.git(&["rev-parse", "main"]), head);
 }

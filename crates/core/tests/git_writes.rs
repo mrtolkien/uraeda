@@ -61,7 +61,8 @@ fn listed(repo: &TestRepo, path: &str) -> bool {
 /// US6 1, 2; SC-003 (removal); Review focus 1; US3 more 6, a hook's refusal keeps its output; a
 /// conflicted file saves over the hash it was read at. Breaks: `save_conflict_file` writing any
 /// path, which writes the file that is not conflicted; `--force` on removal, which removes the
-/// worktree with changes; a commit's failure mapped as any git error, which drops the hook's output.
+/// worktree with changes; a commit's failure mapped as any git error, which drops the hook's output;
+/// the view's path of a worktree outside the main checkout made absolute, which removal never finds.
 #[test]
 fn the_page_writes_only_what_it_lists() {
     let repo = worktrees();
@@ -112,6 +113,18 @@ fn the_page_writes_only_what_it_lists() {
     );
     assert!(listed(&repo, ".worktrees/held"));
 
+    // Final review I3: a worktree outside the main checkout is removed at the path the page shows.
+    repo.git(&["worktree", "add", "--quiet", "-b", "spike", "../repo-spike"]);
+    let page = api::git_page(at).unwrap();
+    let spike = page
+        .worktrees
+        .iter()
+        .find(|worktree| worktree.branch.as_deref() == Some("spike"));
+    let spike = spike.unwrap().path.clone();
+    assert_eq!(spike, "../repo-spike");
+    api::git_remove_worktree(at, &spike).unwrap();
+    assert!(!repo.parent().join("repo-spike").exists());
+
     api::clean_feature(at, FOLDER).unwrap();
     assert!(!repo.exists(WORKTREE));
     assert!(!repo.try_git(&["rev-parse", "--verify", "--quiet", FOLDER]));
@@ -123,7 +136,12 @@ fn the_page_writes_only_what_it_lists() {
     assert_eq!(error.code, "hook");
     assert!(error.output.unwrap().contains("lint: README.md is wrong"));
     assert_eq!(repo.staged(), ["README.md"]);
-    repo.commit("docs: readme");
+    // Final review M1: the blank lines around a typed message are no empty subject.
+    repo.set_hook("exit 0");
+    let committed = api::git_commit_staged(at, None, "\n  \ndocs: readme\n\nWhy.\n\n", |_| {});
+    assert_eq!(committed.unwrap().subject, "docs: readme");
+    let head = repo.git(&["cat-file", "commit", "HEAD"]);
+    assert!(head.ends_with("\n\ndocs: readme\n\nWhy.\n"), "{head}");
 
     let merge = api::git_merge(at, "HEAD~1", |_| {});
     assert_eq!(refused(merge), "HEAD~1 is not a branch to merge.");

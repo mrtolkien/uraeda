@@ -233,7 +233,8 @@ impl TestRepo {
         .output()
         .expect("git runs");
         assert!(!pulled.status.success(), "the pull did not stop");
-        assert!(self.path.join(".git/rebase-merge").exists());
+        // `rebase-apply` under `rebase.backend apply`.
+        assert!(self.exists(".git/rebase-merge") || self.exists(".git/rebase-apply"));
     }
 
     /// Leaves a merge of a local branch, `topic`, into `main` stopped on one conflicting file,

@@ -10,7 +10,7 @@ use crate::git::Git;
 use crate::target::{is_linked_file, is_note_file};
 use crate::workspace::{first_file, folder_slug, path_folder};
 
-use super::place::{self, Place};
+use super::place::Place;
 use super::{ActionError, Change, Committed, changes, commit, images};
 
 const PRIORITIES: &str = "specs/PRIORITIES.md";
@@ -117,20 +117,6 @@ fn moved_from(place: &Place, git: &Git, path: &str, text: &str) -> Option<String
     })
 }
 
-/// Every path a file's commit may hold, for the check of the staged files before any write: a
-/// proposal file's or a note file's, the files its lists need and their images too.
-fn candidates(place: &Place, path: &str) -> Vec<String> {
-    let mut paths = vec![path.to_string(), PRIORITIES.to_string(), INBOX.to_string()];
-    paths.extend(folder(path).map(images::images_folder));
-    paths.extend(single_files(path));
-    if is_linked_file(path) {
-        let linked = changes::linked_files(place);
-        paths.extend(changes::images_folders(&linked));
-        paths.extend(linked);
-    }
-    paths
-}
-
 /// The commit of a proposal file, `chore: expand <title>`, or `chore: edit the proposal <title>`
 /// once committed, and of a note file, `chore: add the note <title>`, or `chore: edit the note
 /// <title>` once committed, both with `PRIORITIES.md` and `INBOX.md` when they changed; of a
@@ -216,11 +202,9 @@ pub fn change(place: &Place, path: &str) -> Result<Change, ActionError> {
     })
 }
 
-/// Commits a proposal file, a note file, or a proposal, as [`change`] names it.
+/// Commits a proposal file, a note file, or a proposal, as [`change`] names it, alone: files the
+/// human staged stay staged, out of the commit.
 pub fn commit(place: &Place, path: &str) -> Result<Committed, ActionError> {
-    checked(path)?;
-    place::ensure_only_staged(place, &candidates(place, path))?;
     let change = change(place, path)?;
-    place::ensure_only_staged(place, &change.paths)?;
-    commit::commit(place, &change)
+    commit::commit_only(place, &change)
 }

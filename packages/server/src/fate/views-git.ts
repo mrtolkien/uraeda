@@ -1,6 +1,6 @@
 // The data views of the Git page: the page, read at once, with whether an agent works in each of
-// its checkouts and why the last background fetch failed; the sidebar's count; a file's diff; a commit; a page of the history; and a
-// conflicted file for the editor. The core reads the repository at each request (R3): nothing is
+// its checkouts and why the last background fetch failed; the sidebar's count; a file's diff; a
+// commit; a page of the history; and a conflicted file for the editor. The core reads the repository at each request (R3): nothing is
 // kept here. A record's optional fields are sent as null, as fate merges a record's fields
 // shallowly and would keep a field an update leaves out.
 import { dataView } from "@nkzw/fate/server";

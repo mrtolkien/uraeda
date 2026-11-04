@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use crate::git::{Git, GitError, others_staged};
+use crate::git::{Git, GitError};
 
 /// The working tree an action writes in.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -115,18 +115,6 @@ pub fn reach_switching(git: &Git, branch: &str) -> Result<Place, PlaceError> {
         created: false,
         switched: Some(branch.to_string()),
     })
-}
-
-/// Refuses when files other than `paths`, or files outside their folders, are staged in the
-/// working tree an action writes in: its commit would carry them. Checked before any write.
-pub fn ensure_only_staged(place: &Place, paths: &[String]) -> Result<(), GitError> {
-    let git = Git::open(&place.root)?;
-    let others = others_staged(&git.staged_files()?, paths);
-    if others.is_empty() {
-        Ok(())
-    } else {
-        Err(GitError::OtherStagedFiles(others))
-    }
 }
 
 /// Switches a working tree back to the branch it was on, after an action that switched it was

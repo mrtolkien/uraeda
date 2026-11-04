@@ -76,9 +76,9 @@ pub fn ensure_unchanged(place: &Place, round: DefaultRound, base: &str) -> Resul
     }
 }
 
-/// The commit of the round alone, answered.
+/// The commit of the round alone, answered: files the human staged stay staged, out of it.
 fn commit_round(place: &Place, round: DefaultRound) -> Result<Committed, ActionError> {
-    commit::commit(
+    commit::commit_only(
         place,
         &Change {
             paths: vec![round.path().to_string()],
@@ -89,7 +89,7 @@ fn commit_round(place: &Place, round: DefaultRound) -> Result<Committed, ActionE
 }
 
 /// Submits the round, answered as a feature's is, and commits it alone. Refused before anything is
-/// written when it changed since it was read with the hash `previous`, or other files are staged.
+/// written when it changed since it was read with the hash `previous`.
 pub fn submit(
     place: &Place,
     round: DefaultRound,
@@ -97,7 +97,6 @@ pub fn submit(
     today: Date,
 ) -> Result<Committed, ActionError> {
     ensure_unchanged(place, round, previous)?;
-    super::place::ensure_only_staged(place, &[round.path().to_string()])?;
     answer::record(place, round.path(), today, false)?;
     commit_round(place, round)
 }
@@ -120,6 +119,5 @@ pub fn retry(place: &Place, round: DefaultRound) -> Result<Committed, ActionErro
             answer::name_of(path)
         )));
     }
-    super::place::ensure_only_staged(place, &[path.to_string()])?;
     commit_round(place, round)
 }
