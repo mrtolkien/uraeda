@@ -8,11 +8,9 @@
 
 - [In vim mode, visual mode seems to be working properly... except selected text…](/specs/changes/2026-11-04-vim-mode/proposal.md)
 - [Reading long responses is not comfortable because the composer always stays…](/specs/changes/2026-11-04-reading-long/proposal.md)
+- [Basic git UI in the web ui (pull, see diffs, ...)](/specs/2026-11-04-basic-git/proposal.md)
 
 - Review the UI guidelines properly
-
-- Basic git UI in the web ui (pull, see diffs, ...)
-  - Pretty much web lazygit?
 
 - Global undo
 - Keyboard nav in questions and specs
