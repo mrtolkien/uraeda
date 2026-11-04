@@ -298,3 +298,32 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the feature's files, which its commits wait for.
 - **If wrong**: a list's commit waits for a slow push, which writes none of its files.
 - **Where**: task 7.
+
+## R22: The Git page's records and places live in `git/`, and its refusals are found by their place
+
+- **Decision**: the page's views and hooks (`GitPageView`, `useGitPage`, `useGitSummary`, `GIT_ID`,
+  `gitDiffId`) are in `packages/web/src/git/data.ts`, not `views.ts` and `data.ts`; the web copies
+  the server's `GIT_ID` and `gitDiffId`, as it imports no runtime code from `uraeda-server/fate`.
+  `GitPageView` selects `fetchFailure` through a widened type, so task 8's field shows once merged
+  and a server without it leaves it out. Each write names its place in its `href`: `/git` for the
+  sync's, `/git#changes` or `/git#changes-<folder>` for a group's, `/git#worktrees`; each section
+  shows `RefusedHere` for its place, which takes a `title` (`gitRefusalTitle`, from the write's
+  label), and a refusal that never reached the queue, as the agent guard's, from the call's answer.
+  A typed message goes once `git.commit` answers landed, since the call waits for the landing:
+  `commit/usePaneWrites.ts`'s `landing` map is not needed. The Git page's query only picks a row, so
+  `navigate` and Back between two of its addresses never ask "Leave page?".
+- **Rationale**: `views.ts` and `data.ts` are 3 and 6 lines under the file limit; the queue's record
+  holds only `href` and `label`, so a place is told by its `href`; a commit refused or landed is
+  known when the call answers.
+- **If wrong**: a refusal opened from the toast lands on the page with its hash, not scrolled to it.
+- **Where**: task 9.
+
+## R25: On wide screens the Git page's detail never leaves while the page has a file or a commit
+
+- **Decision**: with nothing in the address, the detail shows the selected row's diff or commit, or,
+  on a folder or a worktree, the first row's that has one; `j`/`k` move it along, in the same
+  history entry. The page's stories show the fixture's main checkout, wide and on the phone; the
+  spec's named states stay the mockups'.
+- **Rationale**: `Panes` draws the list alone without a detail, and the list drawn anew lost the
+  focus of the box Space had just ticked; Storybook's fixture is shared and has no remote.
+- **Where**: task 9.

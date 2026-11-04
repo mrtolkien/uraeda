@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { currentEntry, setLeaveGuard, subscribeLocation } from "../routes.tsx";
+import { currentEntry, parseLocation, setLeaveGuard, subscribeLocation } from "../routes.tsx";
 import { type ConfirmOptions, useConfirm } from "./Confirm.tsx";
 import { overlayOf } from "../layout/useBackCloses.ts";
 import { hasDrawnUnsaved, useHasDrawnUnsaved } from "./unsaved.ts";
@@ -29,9 +29,12 @@ let leaving = false;
 function guardBack(event: PopStateEvent) {
   const left = new URL(shown.url);
   // An overlay's entry the app was loaded on, like a sheet the address names, is closed by Back.
+  // The Git page's query only picks a row: its commit message stays, drawn or not.
   const samePage =
     left.pathname === window.location.pathname &&
-    (left.search === window.location.search || overlayOf(shown.state) !== undefined);
+    (left.search === window.location.search ||
+      overlayOf(shown.state) !== undefined ||
+      parseLocation(left.pathname).route.page === "git");
   const asking = leaving || samePage ? undefined : check?.();
   leaving = false;
   if (!asking) {

@@ -53,6 +53,7 @@ import {
   BufferPage,
   CheckPage,
   CommitPage,
+  GitPage,
   DecisionsPage,
   EditorPage,
   FeaturePage,
@@ -170,6 +171,8 @@ function RoutePage({ route }: { route: Route }) {
       return <LedgerRoute open={{ kind: "constitution" }} />;
     case "commit":
       return <CommitPage />;
+    case "git":
+      return <GitPage />;
     case "edit":
       return <EditorPage key={route.path} path={route.path} />;
     case "buffer":

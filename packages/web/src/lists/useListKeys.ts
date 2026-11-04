@@ -14,9 +14,10 @@ export type { Columns };
 
 /**
  * The rows' links, in the list's order: each row marks its item with `data-row`, and a row a list
- * opens itself holds a button, in a `data-row-link`, where the others hold a link.
+ * opens itself holds a button, in a `data-row-link`, where the others hold a link. A row whose box
+ * Space ticks, as the Git page's changed files, is found by its checkbox too.
  */
-const ROW = "[data-row] a[href], [data-row-link] button";
+const ROW = '[data-row] a[href], [data-row-link] button, [data-row] input[type="checkbox"]';
 
 /** The key a row names itself with, `data-row-key`: what the list's own order is read by. */
 const ROW_KEY = "data-row-key";
