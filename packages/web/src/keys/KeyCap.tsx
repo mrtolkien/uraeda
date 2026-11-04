@@ -8,8 +8,7 @@ import { SpaceGlyph } from "./Glyphs.tsx";
 const styles = stylex.create({
   key: {
     color: colorVars["--color-text-orange"],
-    // The code's font, where a browser sets a `kbd` in its own monospace one: the UI's too, with
-    // the current fonts, and Monaspace's Krypton with the Monaspace experiment's (`theme/fonts.ts`).
+    // The code's font, where a browser sets a `kbd` in its own monospace one (`theme/fonts.ts`).
     fontFamily: typographyVars["--font-family-code"],
     fontWeight: fontWeightVars["--font-weight-bold"],
   },
