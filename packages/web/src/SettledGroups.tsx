@@ -4,6 +4,7 @@ import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, useState } from "react";
 import type { Document, SettledGroup } from "uraeda-binding";
 import { type Folds, useHashFold } from "./Folds.tsx";
+import { pageText } from "./layout/Page.tsx";
 import { Pane } from "./layout/Pane.tsx";
 import { CheckPane } from "./RoundParts.tsx";
 import { PART_IDS } from "./roundPartIds.ts";
@@ -124,7 +125,7 @@ export function SettledGroups({
       {hasCheck && check && <CheckPane count={check.points}>{points(check)}</CheckPane>}
       {hasEnd && (
         <>
-          <Heading level={2} xstyle={styles.endHeading}>
+          <Heading level={2} xstyle={[pageText, styles.endHeading]}>
             Settled without you
           </Heading>
           {end.map((group) => (

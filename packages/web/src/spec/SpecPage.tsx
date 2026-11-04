@@ -17,7 +17,7 @@ import { useFile, usePreviewOn } from "../data.ts";
 import { readAlong, storyRead } from "../readAhead.ts";
 import { type Folds, useHashFold } from "../Folds.tsx";
 import { MountedSteps } from "../layout/MountedSteps.tsx";
-import { Page } from "../layout/Page.tsx";
+import { Page, pageText } from "../layout/Page.tsx";
 import { Pane } from "../layout/Pane.tsx";
 import { isNarrow, useWidthClass } from "../layout/useWidthClass.ts";
 import { scrollMarginStyles } from "../layout/scrollMargin.ts";
@@ -75,8 +75,8 @@ const styles = stylex.create({
 });
 
 /**
- * A group of the spec's parts: its heading, its icon, title, and what it counts ("· 4"), then its
- * parts.
+ * A group of the spec's parts: its heading, its icon, title, and what it counts ("· 4"), from the
+ * panes' left edge, then its parts.
  */
 function Group({
   children,
@@ -98,7 +98,10 @@ function Group({
     <VStack gap={wide ? 4 : 3}>
       <div
         id={id}
-        {...stylex.props(wide ? scrollMarginStyles.belowNothing : scrollMarginStyles.belowBar)}
+        {...stylex.props(
+          pageText,
+          wide ? scrollMarginStyles.belowNothing : scrollMarginStyles.belowBar,
+        )}
       >
         <Heading id={`${id}-title`} level={2} tabIndex={-1} xstyle={[styles.title, styles.heading]}>
           {icon && <Icon icon={icon} />}

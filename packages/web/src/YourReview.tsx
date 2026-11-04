@@ -8,6 +8,7 @@ import type { CommentItem } from "uraeda-binding";
 import { CommentForm } from "./CommentForm.tsx";
 import type { useFile } from "./data.ts";
 import { Band } from "./layout/Band.tsx";
+import { pageText } from "./layout/Page.tsx";
 import { Paragraph } from "./layout/Paragraph.tsx";
 import { generalField } from "./reviewField.ts";
 import { where } from "./ReviewComments.tsx";
@@ -106,7 +107,8 @@ export function YourVerdict({
  * The review's own part, after the file: its comments, each where it points, the general ones
  * with Edit and Remove, `general`, what an edit of one shows, a general comment's field, always
  * there but while `isGeneralOpen`, the review's own general draft taking its place, as an image
- * dropped with no comment open starts it, and the verdict.
+ * dropped with no comment open starts it, and the verdict. From the panes' left edge on a reading
+ * page, a reading pane wide, as its title is.
  */
 export function YourReview({
   choices,
@@ -132,7 +134,7 @@ export function YourReview({
   wide: boolean;
 }) {
   return (
-    <>
+    <VStack gap={3} xstyle={pageText}>
       <Band />
       <Heading level={2}>Your review</Heading>
       {comments.length === 0 && <Empty>No comment yet.</Empty>}
@@ -158,6 +160,6 @@ export function YourReview({
         refusals={refusals}
         targeted={comments.filter((comment) => !comment.general).length}
       />
-    </>
+    </VStack>
   );
 }
