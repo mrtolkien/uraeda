@@ -56,6 +56,32 @@ fn a_stopped_pull_continues_once_resolved_or_aborts() {
     assert_eq!(repo.read("README.md"), "# Test\n\nEdited\n");
 }
 
+/// Ruling R11: a delete conflict holds no markers, yet Continue refuses it until a side is taken.
+/// Break: counting only the files that hold markers, which reads it resolved at once.
+#[test]
+fn a_delete_conflict_needs_a_side_before_continue() {
+    let repo = TestRepo::with_origin();
+    repo.write("docs/old.md", "old\n");
+    repo.commit("chore: old");
+    repo.git(&["push", "--quiet", "origin", "main"]);
+    repo.upstream_remove("docs/old.md", "chore: drop old");
+    repo.write("docs/old.md", "changed\n");
+    repo.commit("chore: change old");
+    assert!(!repo.try_git(&["pull", "--rebase", "origin", "main"]));
+    let git = Git::discover(repo.path()).unwrap();
+
+    let refused = git.continue_stopped(None);
+    assert_eq!(refusal(refused), "1 file still conflicts.");
+    assert_eq!(repo.unmerged(), ["docs/old.md"]);
+
+    git.resolve_conflict("docs/old.md", Resolution::Theirs)
+        .unwrap();
+    git.continue_stopped(None).unwrap();
+
+    assert_eq!(git.stopped(), None);
+    assert_eq!(repo.read("docs/old.md"), "changed\n");
+}
+
 /// US5 1, 2; edge "A ref name starting with `-`". Break: dropping `--end-of-options`, which reads
 /// `-x` as an option.
 #[test]

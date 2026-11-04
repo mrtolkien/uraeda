@@ -194,7 +194,7 @@ impl Git {
     }
 
     /// The index's conflicted files, by path, each kind from the stages it holds.
-    fn conflicts(&self) -> Result<Vec<Conflict>, GitError> {
+    pub(super) fn conflicts(&self) -> Result<Vec<Conflict>, GitError> {
         let index = self
             .repo
             .index_or_empty()
