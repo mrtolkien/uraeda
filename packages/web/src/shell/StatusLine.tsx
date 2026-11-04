@@ -1,11 +1,11 @@
 // The status line, at the bottom of the window. On semi-wide and wide screens, one line in
 // LazyVim's shape, lualine's sections (`status/`): the Vim mode while Vim's keys are on, the branch
 // a page names, the hints of the keys that work on the page (the key registry's), then how many
-// cards need the human and how many sessions run. On the phone, a bar of the page's own controls only (`TopBarSlot`, as a
-// round's count and Next), while it has any: the phone's tabs show the counts. An Astryx gap
-// (plan, Complexity tracking): no component draws a status line. Astryx's `Kbd` writes keys in
-// capitals, "J K", where the line writes them as typed. Its counts are not announced as they change:
-// the column's panes and the tabs say them where they are read.
+// cards need the human and how many sessions run. On the phone, a bar of the page's own controls
+// only (`TopBarSlot`, as a round's count and Next), while it has any: the phone's tabs show the
+// counts. An Astryx gap (plan, Complexity tracking): no component draws a status line. Astryx's
+// `Kbd` writes keys in capitals, "J K", where the line writes them as typed. Its counts are not
+// announced as they change: the column's panes and the tabs say them where they are read.
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";

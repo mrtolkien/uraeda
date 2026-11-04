@@ -12,8 +12,9 @@ const LINE = 1.5;
 const PAD_BLOCK = "var(--spacing-1-5)";
 const PAD_INLINE = "var(--spacing-2)";
 
-/** The drawn selection's colour: the accent, Catppuccin's mauve, over the field's ground. */
-const SELECTION = "color-mix(in srgb, var(--color-accent) 25%, transparent)";
+/** The drawn selection's colour: the accent, Catppuccin's mauve, at `percent` over the ground. */
+const selection = (percent: number) =>
+  `color-mix(in srgb, var(--color-accent) ${percent}%, transparent)`;
 
 /** The height of `lines` lines of text, with the room around them. */
 const linesHigh = (lines: number) => `calc(${lines} * ${LINE}em + 2 * ${PAD_BLOCK})`;
@@ -44,10 +45,11 @@ export const editorTheme: Extension = EditorView.theme({
   ".cm-placeholder": { color: "var(--color-syntax-comment)" },
   ".cm-scroller": { fontFamily: "var(--font-family-code)", lineHeight: String(LINE) },
   // The selection CodeMirror's layer draws, which the Vim layer adds: Visual mode's mauve, faint
-  // enough for the text to read on it, where the grey hardly showed on the field's ground.
-  ".cm-selectionBackground": { backgroundColor: SELECTION },
+  // enough for the text to read on it, where the grey hardly showed on the field's ground; fainter
+  // still in a field without the focus.
+  ".cm-selectionBackground": { backgroundColor: selection(12) },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
-    backgroundColor: SELECTION,
+    backgroundColor: selection(25),
   },
 });
 

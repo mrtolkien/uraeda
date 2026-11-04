@@ -1,7 +1,8 @@
 // lualine's sections, as LazyVim sets them, for the status line: `a` the mode, in its colour; `b`
-// on a raised ground, in the mode's colour; `c` on the line's own ground. Between them, lualine's separators: triangles drawn here, as the bundled
-// fonts have no Powerline glyphs. The colours are Catppuccin's, through the theme's tokens: NAV
-// grey, NORMAL blue, INSERT green, the visual modes mauve, REPLACE red, COMMAND peach.
+// on a raised ground, in the mode's colour; `c` on the line's own ground. Between them, lualine's
+// separators: triangles drawn here, as the bundled fonts have no Powerline glyphs. The colours are
+// Catppuccin's, through the theme's tokens: NAV grey, NORMAL blue, INSERT green, the visual modes
+// mauve, REPLACE red, COMMAND peach.
 import { colorVars, fontWeightVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
