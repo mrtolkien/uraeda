@@ -411,8 +411,9 @@ function fetchOn(
  * Reads the page again, as when it comes back to the foreground, until `check` passes: live
  * updates do not reach these tests, so a run's later state is read this way. Each try lets the
  * requests start, then waits for their answers inside its act before checking the page.
+ * `options` are `waitFor`'s.
  */
-export async function refreshUntil(check: () => void) {
+export async function refreshUntil(check: () => void, options?: { timeout?: number }) {
   await waitFor(async () => {
     await act(async () => {
       document.dispatchEvent(new Event("visibilitychange"));
@@ -420,7 +421,7 @@ export async function refreshUntil(check: () => void) {
       await settleRequests();
     });
     check();
-  });
+  }, options);
 }
 
 /** Taps an element, and lets React draw what follows. */
