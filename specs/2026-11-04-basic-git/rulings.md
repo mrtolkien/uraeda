@@ -114,3 +114,22 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   the spec offers only whole sides for them.
 - **If wrong**: a human who fixed such a file by hand must still press a side on its row.
 - **Where**: tasks 2 and 4.
+
+## R12: What a fetch, a pull, and a push refuse, and the credential test's remote
+
+- **Decision**: a fetch runs on a detached `HEAD`, as it changes no branch; a pull and a push are
+  also refused while a pull or a merge is stopped, with the commit's text ("A pull is stopped:
+  continue or abort it first."); a pull passes `--rebase` only when `branch.<branch>.rebase` is
+  unset too, as git reads it over `pull.rebase`; a push is refused as lacking `origin`'s commits
+  only on a `[rejected]` ref, while a hook's `[remote rejected]` keeps git's message. The credential
+  test runs a local HTTP server answering 401 with `core.askPass` empty, and `git_remote.rs` runs
+  the core's git without the machine's configuration (`without_user_git_config`), since gix and git
+  both read a developer's `pull.rebase`.
+- **Rationale**: the spec disables only Pull and Push on a detached `HEAD`, and the fetcher would
+  otherwise fail every 5 minutes during a stopped pull, whose `HEAD` is detached; that stop would
+  else read "main is not checked out"; `branch.main.rebase false` is the user's configuration, which
+  the spec follows; a hook's refusal is not "pull first". The server answers at once, with no
+  network, and git's exact line, "terminal prompts disabled", fails the test without
+  `GIT_TERMINAL_PROMPT=0`.
+- **If wrong**: a fetch on a detached `HEAD` shows its failure like any other.
+- **Where**: task 3.

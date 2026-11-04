@@ -356,3 +356,80 @@ pub fn without_user_git(command: &mut Command) -> &mut Command {
         .env_remove("GIT_INDEX_FILE")
         .env_remove("GIT_COMMON_DIR")
 }
+
+/// Keeps the git this test process runs, through the core, away from the machine's configuration,
+/// as [`without_user_git`] does for a test's own commands: a developer's `pull.rebase` or
+/// `rebase.autoStash` would change what a pull does. Set once, before the first repository: the
+/// whole process reads it, and nextest runs each test in a process of its own.
+pub fn without_user_git_config() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    // SAFETY: every test of a binary calling this calls it first, before any thread reads the
+    // environment.
+    ONCE.call_once(|| unsafe {
+        std::env::set_var("GIT_CONFIG_GLOBAL", "/dev/null");
+        std::env::set_var("GIT_CONFIG_NOSYSTEM", "1");
+    });
+}
+
+/// The URL of a git server on this machine that answers every request with "401 Unauthorized",
+/// as a remote needing a password does, without the network.
+pub fn unauthorized_remote() -> String {
+    use std::io::{BufRead, BufReader, Write};
+
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    std::thread::spawn(move || {
+        for stream in listener.incoming().flatten() {
+            let mut reader = BufReader::new(&stream);
+            let mut line = String::new();
+            while reader.read_line(&mut line).is_ok_and(|read| read > 0) && line != "\r\n" {
+                line.clear();
+            }
+            let _ = (&stream).write_all(
+                b"HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"git\"\r\n\
+                  Content-Length: 0\r\nConnection: close\r\n\r\n",
+            );
+        }
+    });
+    format!("http://127.0.0.1:{port}/origin.git")
+}
+
+#[allow(
+    dead_code,
+    reason = "each test binary uses only part of the shared helpers"
+)]
+impl TestRepo {
+    /// A repository made by [`TestRepo::with_origin`] whose `main` has 2 commits to push and
+    /// `origin/main` 3 to pull, each on a file of its own.
+    pub fn diverged() -> TestRepo {
+        let repo = TestRepo::with_origin();
+        for n in 1..=2 {
+            repo.write(&format!("local-{n}.md"), "local\n");
+            repo.commit(&format!("chore: local {n}"));
+        }
+        for n in 1..=3 {
+            repo.upstream_commit(
+                &format!("upstream-{n}.md"),
+                "upstream\n",
+                &format!("chore: upstream {n}"),
+            );
+        }
+        repo
+    }
+
+    /// How many commits `range` holds, like `origin/main..main`.
+    pub fn count(&self, range: &str) -> usize {
+        self.git(&["rev-list", "--count", range])
+            .trim()
+            .parse()
+            .unwrap()
+    }
+
+    /// The commit a revision of the bare `origin` names.
+    pub fn origin_rev(&self, revision: &str) -> String {
+        run_git(
+            &self.dir.path().join("origin.git"),
+            &["rev-parse", revision],
+        )
+    }
+}
