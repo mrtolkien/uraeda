@@ -14,6 +14,7 @@ import {
   type SessionContext,
   TAKEN_BACK,
   type Timer,
+  wakeupPending,
 } from "./session-state.ts";
 
 /** Which automatic continues are on, and how many in a row a session takes: the `[runs]` settings. */
@@ -113,7 +114,7 @@ export class Continuer {
       return this.#decide(turn, "limit", () => limitContinueAt(this.#context.cache, limit), taken);
     }
     if (turn.state === "done" && turn.kind === "workflow") {
-      return this.#beforeGate(turn, taken);
+      return this.#beforeGate(live, turn, taken);
     }
     return undefined;
   }
@@ -298,12 +299,13 @@ export class Continuer {
 
   /**
    * Asks a workflow turn done before its feature's next human gate to go on to it: once, so the
-   * gate's own continue's turn that ends so asks for the human, halted.
+   * gate's own continue's turn that ends so asks for the human, halted. Never while its process
+   * waits for a wakeup the agent set: the agent goes on by itself then (R24).
    */
-  async #beforeGate(turn: TurnRow, taken: number): Promise<void> {
+  async #beforeGate(live: Live, turn: TurnRow, taken: number): Promise<void> {
     const { binding, cache } = this.#context;
     const session = cache.session(turn.sessionId);
-    if (!session?.folder || !this.#runs().beforeGate) {
+    if (!session?.folder || !this.#runs().beforeGate || wakeupPending(live.proc)) {
       return;
     }
     // Asked once: the turn of the gate's own continue, sent, stops for the human. A gate past the

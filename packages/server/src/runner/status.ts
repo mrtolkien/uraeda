@@ -68,8 +68,8 @@ export const STATUS_ORDER: Record<SessionStatus, number> = {
  * waiting to continue by itself, a blocked action not allowed, a latest turn that failed or was
  * stopped, until the human dismisses it, as capped when it would have continued, a step that
  * waits on the human, a dismissed turn as idle, a latest turn that ended while the step still waits
- * on the agent, in its folder's latest session, a latest turn that ended after the human last saw
- * the session, and otherwise idle.
+ * on the agent, in its folder's latest session, as waiting while its process waits for a wakeup
+ * the agent set, a latest turn that ended after the human last saw the session, and otherwise idle.
  */
 export function sessionStatus(input: {
   blocked: boolean;
@@ -88,6 +88,8 @@ export function sessionStatus(input: {
   stepName?: string;
   waitsOnAgent?: boolean;
   waitsOnHuman: boolean;
+  /** Whether the session's process waits for a wakeup the agent set: it goes on by itself then. */
+  wakeup?: boolean;
 }): { label: string; reason?: StatusReason; status: SessionStatus } {
   const { blocked, latest, latestSession = true, queued, seenAt, stepName, waitsOnHuman } = input;
   const waitsOnAgent = latestSession && input.waitsOnAgent === true;
@@ -122,6 +124,10 @@ export function sessionStatus(input: {
     waitsOnAgent &&
     stepName !== "pull-request-unknown"
   ) {
+    // The agent waits by its own wakeup: its run halted nothing yet (US6).
+    if (input.wakeup === true) {
+      return { label: "Waiting", reason: "waiting", status: "working" };
+    }
     return { label: "Needs attention", reason: capped ? "capped" : "halted", status: "attention" };
   }
   if (unseen) {

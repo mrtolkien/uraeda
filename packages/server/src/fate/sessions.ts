@@ -124,7 +124,12 @@ export async function sessionRecord(ctx: RepoContext, row: SessionRow): Promise<
     name: row.title,
     startedAt: row.createdAt,
     title: titleOf(row, feature),
-    ...statusOf(row, read, feature, isLatest(ctx.sessions.cache, row)),
+    ...statusOf(
+      row,
+      { ...read, wakeup: ctx.sessions.wakeup(row.id) },
+      feature,
+      isLatest(ctx.sessions.cache, row),
+    ),
     archived: row.archivedAt !== null,
     automaticContinues: row.automaticContinues,
     backgroundCommands: ctx.sessions.backgroundCommands(row.id),
@@ -203,7 +208,7 @@ async function rows(
     .filter((row) => row.folder === null || features.has(row.folder))
     .map((row) => {
       const feature = row.folder === null ? undefined : features.get(row.folder);
-      const read = turnsOf(cache, row.id);
+      const read = { ...turnsOf(cache, row.id), wakeup: ctx.sessions.wakeup(row.id) };
       const { status, statusLabel, wait } = statusOf(row, read, feature, isLatest(cache, row));
       return {
         agent: row.agent,

@@ -21,6 +21,7 @@ import {
   TAKEN_BACK,
   type SessionChange,
   type SessionContext,
+  wakeupPending,
 } from "./session-state.ts";
 import { Transcript } from "./transcript.ts";
 import { Turns } from "./turns.ts";
@@ -179,17 +180,18 @@ export class Sessions {
 
   /** What the turn does now, while it runs on this server's process. */
   activity(turn: number): TurnActivity | undefined {
-    for (const live of this.#context.live.values()) {
-      if (live.turn?.id === turn) {
-        return { ...live.turn.activity };
-      }
-    }
-    return undefined;
+    const live = [...this.#context.live.values()].find((one) => one.turn?.id === turn);
+    return live?.turn && { ...live.turn.activity };
   }
 
   /** How many background commands of the session's run still run, on this server's process. */
   backgroundCommands(session: string): number {
     return commandCount(this.#context.live.get(session)?.proc?.background);
+  }
+
+  /** Whether the session's process, on this server, waits for a wakeup the agent set. */
+  wakeup(session: string): boolean {
+    return wakeupPending(this.#context.live.get(session)?.proc);
   }
 
   /** The latest session of a change or a feature, created when it has none: `featureSession`. */
