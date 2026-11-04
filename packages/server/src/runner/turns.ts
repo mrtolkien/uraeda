@@ -16,6 +16,7 @@ import {
   type TurnEnd,
   WAKEUP_GRACE_MS,
   WATCHDOG_MS,
+  wakeupPending,
 } from "./session-state.ts";
 
 /**
@@ -108,6 +109,23 @@ export class Turns {
     cache.appendItem(ended.id, { kind: "system", text: RESUMED });
     this.track(ended.id);
     return this.#open(live, ended.id, ended.first);
+  }
+
+  /**
+   * Stops a run that waits for its agent's own wakeup, no turn running: its process closes, which
+   * drops the wakeup, so nothing reopens its turn, and its last turn, done, reads stopped by the
+   * human. Nothing without a pending wakeup.
+   */
+  stopWakeup(live: Live) {
+    const proc = live.proc;
+    if (live.turn || !proc || !wakeupPending(proc)) {
+      return;
+    }
+    this.#context.processes.close(proc);
+    const ended = proc.ended?.id;
+    if (ended !== undefined && this.#context.cache.stopDone(ended)) {
+      this.#context.changed(live, ended, "stopped");
+    }
   }
 
   /**

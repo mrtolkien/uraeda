@@ -739,6 +739,34 @@ test("a run done before its gate with a pending wakeup is not asked, and works u
   expect(statusOf(cache, turn, sessions.wakeup(session.id)).reason).toBe("waiting");
 });
 
+/** A run the human stopped never goes on by itself: Stop drops the agent's own wakeup too. */
+test("Stop on a run waiting for its wakeup stops it, and the wakeup reopens nothing", async () => {
+  const { adapter, cache, changes, repo, sessions } = await testSessions(fixtureRepo(), {
+    runs: () => ON,
+  });
+  const time = clock("2026-11-03T14:01:00Z");
+  // A process that outlives its close still writes: only its close keeps the turn ended.
+  adapter.ignoreClose = true;
+  const session = await sessions.featureSession(repo, AGENT);
+  adapter.script([{ at: new Date(Date.now() + 25 * 60_000).toISOString(), type: "wakeup" }]);
+  const { turn } = await sessions.send(repo, session.id, { text: "Wait for CI", workflow: PLAN });
+  await sessions.settled(turn);
+  expect(statusOf(cache, turn, sessions.wakeup(session.id)).reason).toBe("waiting");
+
+  const published = changes.length;
+  sessions.stop(repo, session.id);
+  expect(statusOf(cache, turn, sessions.wakeup(session.id)).reason).toBe("stopped");
+  expect(adapter.closes).toBe(1);
+  expect(changes.slice(published)).toContainEqual(
+    expect.objectContaining({ state: "stopped", turn }),
+  );
+
+  time.by(25 * 60_000);
+  adapter.emit({ text: "CI passed.", type: "text" });
+  await flush();
+  expect(cache.turns(session.id).map((one) => one.state)).toEqual(["stopped"]);
+});
+
 /** A gate past the cap was never asked: once the human sends the run on, its next stop is. */
 test("a gate past the cap asks, and the next stop after the human's message goes on", async () => {
   const { adapter, cache, repo, sessions } = await testSessions(fixtureRepo(), {
