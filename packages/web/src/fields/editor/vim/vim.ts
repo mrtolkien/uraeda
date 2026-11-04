@@ -8,7 +8,7 @@
 // also reaches the clipboard; and the human's commands run when it starts, each refusal with its
 // line.
 import { type Extension, Prec } from "@codemirror/state";
-import { EditorView, ViewPlugin } from "@codemirror/view";
+import { drawSelection, EditorView, ViewPlugin } from "@codemirror/view";
 import { type CodeMirror, type CodeMirrorV, getCM, Vim, vim } from "@replit/codemirror-vim";
 import { placeOf } from "../Editor.tsx";
 import { type Mode, setFocused, setMode } from "../modeStore.ts";
@@ -268,10 +268,14 @@ const vimTheme = EditorView.theme({
   },
 });
 
-/** The layer, for each field's slot: the engine, the field's keys before it, its look, its mode. */
+/**
+ * The layer, for each field's slot: the engine, the field's keys before it, its look, its mode, and
+ * CodeMirror's own drawn selection, since the engine hides the browser's and draws none itself.
+ */
 export const extension = (): Extension => [
   fieldFirst,
   Prec.highest(vim()),
+  drawSelection(),
   vimTheme,
   modeReport,
   afterFocus,

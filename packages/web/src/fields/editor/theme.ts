@@ -27,7 +27,7 @@ export const editorTheme: Extension = EditorView.theme({
   // A disabled field, as Astryx's: its text dimmed.
   "&:has(.cm-content[contenteditable='false'])": { color: "var(--color-text-disabled)" },
   "&.cm-focused": { borderColor: "var(--color-accent)", outline: "none" },
-  // The selection, the browser's own, or drawn by a layer like Vim's.
+  // The selection, the browser's own, or drawn by CodeMirror's layer, which the Vim layer adds.
   ".cm-content": {
     caretColor: "var(--color-text-primary)",
     padding: `${PAD_BLOCK} 0`,

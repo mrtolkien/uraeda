@@ -191,6 +191,20 @@ test("Shift+Escape leaves a comment from insert mode, keeping its text", async (
   await waitFor(() => expect(mode()).toBe("nav"));
 });
 
+test("visual mode's selection is drawn, as the engine hides the browser's", async () => {
+  const { field } = await roundPage();
+  await focus(field);
+  await type(field, "Review the UI guidelines properly");
+
+  await keys(field, "<Esc>0v$");
+
+  await waitFor(() => expect(mode()).toBe("visual"));
+  const view = EditorView.findFromDOM(field)!;
+  expect(view.state.selection.main.empty).toBe(false);
+  // Breaks if nothing draws CodeMirror's own selection, whose layer the engine's look relies on.
+  expect(view.dom.querySelector(".cm-selectionLayer")).not.toBeNull();
+});
+
 test("a yank reaches the clipboard", async () => {
   const { field } = await roundPage();
   await focus(field);
