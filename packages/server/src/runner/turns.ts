@@ -123,7 +123,7 @@ export class Turns {
     }
     this.#context.processes.close(proc);
     const ended = proc.ended?.id;
-    if (ended !== undefined && this.#context.cache.stopDone(ended)) {
+    if (ended !== undefined && this.#context.cache.stopEnded(ended)) {
       this.#context.changed(live, ended, "stopped");
     }
   }
