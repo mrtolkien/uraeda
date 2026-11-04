@@ -418,7 +418,8 @@ own commits, or lets one land on a detached `HEAD`.
 
 - Create: `crates/core/src/git/worktrees.rs` (moved from `git.rs`), `crates/core/src/git/stopped.rs`
 - Modify: `crates/core/src/git.rs` (module lines, `GitError::Refused`), `git/process.rs`
-  (`git_write`), `git/commit.rs` (`commit_staged`)
+  (`git_write`), `git/commit.rs` (`commit_staged`), `actions/place.rs` (`reach` finds a branch being
+  rebased)
 - Test: `crates/core/tests/git_stopped.rs`; `crates/core/tests/common/repo.rs` (helpers)
 
 **Interfaces:**
@@ -427,7 +428,8 @@ own commits, or lets one land on a detached `HEAD`.
   `pub(crate) fn git_write(args: &[&str], dir: &Path, on_line: Option<&dyn Fn(&str)>) -> Result<Vec<u8>, Failure>`,
   running `git` with stdin null, `GIT_TERMINAL_PROMPT=0`, and `GIT_EDITOR=true`, streaming when
   `on_line` is given. Every write of tasks 3, 4, and 6 runs through it, mapped with
-  `Failure::into_git(subcommand)`.
+  `Failure::into_git(subcommand)`. `commit_staged` runs through it already, and `run_streaming`,
+  which only the commit used, is gone (ruling R10).
 - Produces, in `git.rs`: `GitError::Refused(String)`, displayed as its text alone.
 - Produces, in `git/stopped.rs`: `pub enum StoppedKind { Pull, Merge, Stash }` and
   `pub struct Stopped { pub kind: StoppedKind, pub ours: String, pub theirs: String, pub stash: Option<String> }`,
@@ -441,6 +443,10 @@ own commits, or lets one land on a detached `HEAD`.
   - no operation but unmerged index entries is a `Stash`: a stash put back with conflicts; `ours` is
     the current branch, `theirs` is `"the stash"`, `stash` is `Some("stash@{0}")`;
   - otherwise `None`.
+- Produces, in `git/stopped.rs`: `impl Git { pub fn rebasing(&self) -> Option<String> }`, the branch
+  a stopped rebase replays. `place::reach` takes a checkout rebasing a branch as holding it, so an
+  action on `main` reaches the main checkout and its commit is refused, rather than failing on
+  `git worktree add` (ruling R10).
 - Produces: `Git::commit_staged` refuses with
   `GitError::Refused("A pull is stopped: continue or abort it first.")` when `stopped()` is a
   `Pull`, and `"A merge is stopped: continue or abort it first."` when a `Merge`, before running
@@ -466,7 +472,7 @@ Structural only: `worktrees`, `worktree_records`, `add_worktree`, `add_worktree_
 `git/worktrees.rs`, re-exported as before. Run `nix develop -c vp run fast`: PASS, before and after.
 Commit alone: `refactor(basic-git): move the worktree functions out of git.rs`.
 
-- [ ] **Step 3: Write the failing test, and the helpers it uses**
+- [x] **Step 3: Write the failing test, and the helpers it uses**
 
 `a_stopped_pull_refuses_every_commit`: on `stopped_pull()`, `Git::stopped()` is a `Pull` with
 `ours == "origin/main"` and `theirs == "main"`; then an inbox action that commits on `main`
@@ -474,24 +480,25 @@ Commit alone: `refactor(basic-git): move the worktree functions out of git.rs`.
 continue or abort it first.", and `git rev-parse HEAD` did not move. The break it catches: the guard
 reading gix's `operation_in_progress`, which returns `None` for a rebase.
 
-- [ ] **Step 4: Run it to check it fails**
+- [x] **Step 4: Run it to check it fails**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test git_stopped`
-- Expected: FAIL, `stopped` not found (it does not compile), then, once it exists, the commit
-  landing on the detached `HEAD`.
+- Expected: FAIL, `stopped` not found (it does not compile); once it exists, "git worktree failed:
+  fatal: 'main' is already used by worktree", until `place::reach` takes the rebased branch as held;
+  then the commit landing on the detached `HEAD` (`committed: true`).
 
-- [ ] **Step 5: Implement `git_write`, `GitError::Refused`, `Git::stopped`, and the guard**
+- [x] **Step 5: Implement `git_write`, `GitError::Refused`, `Git::stopped`, and the guard**
 
 As the interfaces say. `stopped` reads through gix (`Repository::state()`, the index's stages, the
 rebase folder's `head-name` and `onto`), never through `git`.
 
-- [ ] **Step 6: Run the task's validation**
+- [x] **Step 6: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS, the existing commit tests included. Make the break (read the state through
   `operation_in_progress`), see the test fail, revert it, and say so in the commit body.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add crates/core specs/2026-11-04-basic-git/plan.md

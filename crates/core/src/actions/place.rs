@@ -39,8 +39,14 @@ pub fn reach(git: &Git, branch: &str) -> Result<Place, PlaceError> {
     Ok(place)
 }
 
+/// A checkout holds the branch checked out, or the one a stopped rebase replays: its commits are
+/// then refused, never written in a new worktree, which git refuses for that branch.
+fn holds(git: &Git) -> Option<String> {
+    git.current_branch().or_else(|| git.rebasing())
+}
+
 fn reached(git: &Git, branch: &str) -> Result<Place, PlaceError> {
-    if git.current_branch().as_deref() == Some(branch) {
+    if holds(git).as_deref() == Some(branch) {
         return Ok(Place {
             root: git.root().to_path_buf(),
             created: false,
@@ -48,10 +54,10 @@ fn reached(git: &Git, branch: &str) -> Result<Place, PlaceError> {
         });
     }
     let worktrees = git.worktrees()?;
-    if let Some(worktree) = worktrees
-        .iter()
-        .find(|worktree| worktree.branch.as_deref() == Some(branch) && worktree.path.exists())
-    {
+    if let Some(worktree) = worktrees.iter().find(|worktree| {
+        let held = || Git::open(&worktree.path).ok().as_ref().and_then(holds);
+        worktree.path.exists() && worktree.branch.clone().or_else(held).as_deref() == Some(branch)
+    }) {
         return Ok(Place {
             root: worktree.path.clone(),
             created: false,

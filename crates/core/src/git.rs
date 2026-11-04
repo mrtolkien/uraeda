@@ -13,11 +13,13 @@ mod log;
 pub(crate) mod process;
 mod refresh;
 mod status;
+mod stopped;
 mod worktrees;
 
 pub use amend::Latest;
 pub use commit::{OnOutput, Stage, others_staged};
 pub use history::{CommitInfo, CommitPaths, Range};
+pub use stopped::{Stopped, StoppedKind};
 pub use worktrees::{Worktree, WorktreeRecord};
 
 pub use gix::ObjectId;
@@ -42,6 +44,10 @@ pub enum GitError {
     OtherStagedFiles(Vec<String>),
     #[error("cannot create the worktree: {0} exists")]
     WorktreeExists(String),
+    /// A write refused before running, its text the whole message, like "A pull is stopped:
+    /// continue or abort it first."
+    #[error("{0}")]
+    Refused(String),
 }
 
 /// A branch, local, on `origin`, or both.

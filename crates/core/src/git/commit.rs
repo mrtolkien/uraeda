@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use super::{Git, GitError, process, read_error};
+use super::{Git, GitError, StoppedKind, process, read_error};
 
 /// What a commit staged, for [`Git::commit_stage`]: the paths `git add` took, and whether they
 /// are committed alone.
@@ -168,7 +168,8 @@ impl Git {
     }
 
     /// Runs `git commit` with the hooks, `extra` after its message, its output streamed to
-    /// `on_output` when one is given.
+    /// `on_output` when one is given. Every commit goes through it, and none while a pull or a
+    /// merge is stopped: a rebase's would land on its detached `HEAD`, a merge's would end it.
     fn commit_staged(
         &self,
         extra: &[&str],
@@ -176,6 +177,11 @@ impl Git {
         body: Option<&str>,
         on_output: OnOutput,
     ) -> Result<(), GitError> {
+        match self.stopped().map(|stopped| stopped.kind) {
+            Some(StoppedKind::Pull) => return Err(refused("pull")),
+            Some(StoppedKind::Merge) => return Err(refused("merge")),
+            Some(StoppedKind::Stash) | None => {}
+        }
         let hooks = self
             .hooks_override()
             .map(|path| format!("core.hooksPath={path}"));
@@ -191,12 +197,9 @@ impl Git {
             commit.push("--cleanup=verbatim");
         }
         commit.extend(extra);
-        match on_output {
-            Some(on_line) => process::run_streaming("git", &commit, &self.root, on_line)
-                .map(drop)
-                .map_err(|failure| failure.into_git("commit")),
-            None => self.run("commit", &commit),
-        }
+        process::git_write(&commit, &self.root, on_output)
+            .map(drop)
+            .map_err(|failure| failure.into_git("commit"))
     }
 
     /// Resets the index entries of `paths`, files or folders, to `HEAD`, the working tree kept.
@@ -221,4 +224,11 @@ pub fn others_staged(staged: &[String], paths: &[String]) -> Vec<String> {
         })
         .cloned()
         .collect()
+}
+
+/// The refusal of a commit while `operation` is stopped.
+fn refused(operation: &str) -> GitError {
+    GitError::Refused(format!(
+        "A {operation} is stopped: continue or abort it first."
+    ))
 }
