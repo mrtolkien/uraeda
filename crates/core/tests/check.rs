@@ -2572,8 +2572,10 @@ fn the_example_spec_is_at_most_2000_words() {
 /// The shape warnings of a decision the human approved as it stands, over this test: the UI layout
 /// decision's Why and alternatives, as the panes-size spec changed them, and the UI behaviour
 /// decision's 12 rules, as the performance pass's four rules on writes, one claim each, made them,
-/// and the attachments decision's rule on SVG, its MUST and its MAY, as mockup previews approved it.
-/// Theirs to trim or keep.
+/// the attachments decision's rule on SVG, its MUST and its MAY, as mockup previews approved it,
+/// and the Git decision's 11 rules and 84-word Why, as Vim in text edit mode's rules on commits and
+/// the master pull request's rules on branches, each approved alone, made them together. Theirs to
+/// trim or keep.
 fn approved_over_its_shape(problem: &Problem) -> bool {
     (problem.file.ends_with("specs/decisions/ui-layout.md")
         && matches!(
@@ -2584,6 +2586,8 @@ fn approved_over_its_shape(problem: &Problem) -> bool {
             && problem.rule == "decision.rules")
         || (problem.file.ends_with("specs/decisions/attachments.md")
             && problem.rule == "decision.keywords")
+        || (problem.file.ends_with("specs/decisions/git.md")
+            && matches!(problem.rule.as_str(), "decision.rules" | "decision.why"))
 }
 
 /// US3 1, SC-001, SC-004: the repository's decisions warn nothing on their shape, and each Why
