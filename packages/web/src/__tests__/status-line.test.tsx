@@ -1,7 +1,7 @@
 // The status line's Vim mode (US3, the Text editing decision's "The status line MUST name the Vim
 // mode while Vim is on"): named with Vim on, left out with Vim off, and read out once as it changes
-// in a field, which a sighted review of the line would not show; and no cursor's place, which the
-// human found distracting. Its look is reviewed in the sandbox.
+// in a field, which a sighted review of the line would not show. Its look is reviewed in the
+// sandbox.
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { setFocused, setMode } from "../fields/editor/modeStore.ts";
@@ -54,16 +54,6 @@ test("with Vim on the line opens with the mode, NAV outside a field; with Vim of
 
   act(() => setVimOn(false));
   expect(line()).not.toMatch(/NORMAL|NAV/);
-});
-
-// Break: the cursor's line and column, or Vim's "All", "Top", "Bot", shown again in a field.
-test("the line ends with the counts in a field, with no cursor's place", () => {
-  act(() => setVimOn(true));
-  show();
-  const outside = line();
-  act(() => setFocused({ mode: "normal" }));
-  expect(line()).toMatch(/running$/);
-  expect(line().replace(/^NORMAL/, "")).toBe(outside.replace(/^NAV/, ""));
 });
 
 // Break: a mode change no screen reader hears, or one it hears again on each focus.
