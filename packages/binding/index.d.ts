@@ -119,6 +119,9 @@ export declare function checkedPort(typed: string): number
  */
 export declare function checkoutCommit(checkout: string): Promise<string | null>
 
+/** Cleans the merged feature of `folder` as `ura clean` does. */
+export declare function cleanFeature(repo: string, folder: string): Promise<void>
+
 /**
  * Commits the pane of `branch` with `message` as typed, trimmed of the blank lines around it;
  * refused when it is blank.
@@ -234,8 +237,20 @@ export declare function expandProposal(repo: string, id: string, previous: strin
  */
 export declare function fixLinks(repo: string, folder: string): Promise<FeatureView>
 
+/** Aborts the main checkout's stopped pull or merge. */
+export declare function gitAbort(repo: string, onOutput: (line: string) => void): Promise<void>
+
 /** A commit of the main checkout's history, by its id, with the files it changed. */
 export declare function gitCommit(repo: string, id: string): Promise<GitCommitView>
+
+/**
+ * Commits what is staged in the group `folder`'s checkout with `message` as typed, through the
+ * hooks. A hook's refusal rejects with `hook: `, its output after a blank line.
+ */
+export declare function gitCommitStaged(repo: string, folder: string | null, message: string, onOutput: (line: string) => void): Promise<CommitView>
+
+/** Continues the main checkout's stopped pull or merge once its conflicts are resolved. */
+export declare function gitContinue(repo: string, onOutput: (line: string) => void): Promise<void>
 
 /**
  * The diff of a file, of a commit or of a group's working tree, capped past 1,000 lines unless
@@ -243,8 +258,17 @@ export declare function gitCommit(repo: string, id: string): Promise<GitCommitVi
  */
 export declare function gitDiff(repo: string, at: GitAt, path: string, whole: boolean): Promise<GitDiffView>
 
+/** Discards the changes to the file at `path` in the group `folder`'s checkout. */
+export declare function gitDiscard(repo: string, folder: string | null, path: string): Promise<void>
+
+/** Fetches `origin` in the main checkout. */
+export declare function gitFetch(repo: string, onOutput: (line: string) => void): Promise<void>
+
 /** The page of the main checkout's history after the commit `after`. */
 export declare function gitHistory(repo: string, after: string): Promise<GitHistoryPageView>
+
+/** Merges `branch`, local or on `origin`, into the main checkout's branch. */
+export declare function gitMerge(repo: string, branch: string, onOutput: (line: string) => void): Promise<void>
 
 /**
  * The Git page: the main checkout's sync, changes, conflicts, and history's first page, each
@@ -252,8 +276,35 @@ export declare function gitHistory(repo: string, after: string): Promise<GitHist
  */
 export declare function gitPage(repo: string): Promise<GitPageView>
 
+/**
+ * Pulls the main checkout's branch from `origin`, rebasing unless the configuration says how to
+ * pull. A pull that stops on a conflict resolves: the page's view shows the stop.
+ */
+export declare function gitPull(repo: string, onOutput: (line: string) => void): Promise<void>
+
+/** Pushes the main checkout's branch to `origin`, never forced. */
+export declare function gitPush(repo: string, onOutput: (line: string) => void): Promise<void>
+
+/**
+ * Removes the linked worktree at `path`, from the main checkout's root, never forced; prunes a
+ * missing one's record. Its branch stays.
+ */
+export declare function gitRemoveWorktree(repo: string, path: string): Promise<void>
+
+/**
+ * Resolves the main checkout's conflicted file at `path` with git's `ours` or `theirs` whole, or
+ * by deleting it, and stages it.
+ */
+export declare function gitResolve(repo: string, path: string, resolution: "ours" | "theirs" | "delete"): Promise<void>
+
+/** Stages `paths`, files or folders, in the group `folder`'s checkout. */
+export declare function gitStage(repo: string, folder: string | null, paths: Array<string>): Promise<void>
+
 /** The sidebar's count: the files to commit in every group, and the commits to pull. */
 export declare function gitSummary(repo: string): Promise<GitSummaryView>
+
+/** Unstages `paths`, files or folders, in the group `folder`'s checkout. */
+export declare function gitUnstage(repo: string, folder: string | null, paths: Array<string>): Promise<void>
 
 /** The bytes of an image file, with the MIME type detected from its first bytes. */
 export interface ImageFile {
@@ -521,6 +572,12 @@ export declare function saveAnswer(repo: string, folder: string, question: strin
  * feature's branch or the default branch, without committing; resolves with the new hash.
  */
 export declare function saveBuffer(repo: string, path: string, text: string, previous: string): Promise<string>
+
+/**
+ * Saves `text` over the main checkout's conflicted file at `path`, read at `hash`. Rejects with
+ * `conflict: ` when the file changed since.
+ */
+export declare function saveConflictFile(repo: string, path: string, text: string, hash: string): Promise<ConflictFileView>
 
 /** Saves the notes on the settled points, over the notes last read. */
 export declare function saveNotes(repo: string, folder: string, notes: string, previous: string): Promise<FileView>

@@ -33,6 +33,7 @@ mod drop_at;
 mod error;
 mod files;
 mod git_page;
+mod git_writes;
 mod history;
 mod image_edits;
 mod inbox_edits;
@@ -70,6 +71,11 @@ pub use git_page::{
     ChangeGroupView, CommitRowView, ConflictFileView, ConflictView, FileChangeView, GitAt,
     GitCommitView, GitDiffView, GitHistoryPageView, GitPageView, GitSummaryView, StoppedView,
     WorktreeView, conflict_file, git_commit, git_diff, git_history, git_page, git_summary,
+};
+pub use git_writes::{
+    clean_feature, git_abort, git_commit_staged, git_continue, git_discard, git_fetch, git_merge,
+    git_pull, git_push, git_remove_worktree, git_resolve, git_stage, git_unstage,
+    save_conflict_file,
 };
 pub use history::read_history;
 pub use image_edits::{remove_note_image, restore_note_image};
