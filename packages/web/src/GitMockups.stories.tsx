@@ -1,4 +1,4 @@
-// The git page's mockups (`specs/2026-11-04-basic-git/spec.md`): the page of the main checkout, its
+// The git page's mockups (`specs/done/2026-11-04-basic-git.md`): the page of the main checkout, its
 // sync, the changed files to stage, the history, and the worktrees, with the picked
 // row's diff beside them on wide screens and alone on the phone; a pull stopped by a conflict; an
 // agent working in the checkout; a refused pull; and Clean's question. Built from the real components

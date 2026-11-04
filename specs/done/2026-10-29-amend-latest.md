@@ -2,7 +2,7 @@
 kind: change
 finished: 2026-10-29
 pull-request: https://github.com/mrtolkien/uraeda/pull/66
-superseded-by: [2026-10-30-proposal-start]
+superseded-by: [2026-10-30-proposal-start, 2026-11-04-basic-git]
 ---
 
 # Record: Amend the latest commit
@@ -14,6 +14,8 @@ superseded-by: [2026-10-30-proposal-start]
 > in git: `git log -- specs/changes/2026-10-29-amend-latest/`.
 >
 > Superseded in part by [2026-10-30-proposal-start](2026-10-30-proposal-start.md).
+>
+> Superseded in part by [2026-11-04-basic-git](2026-11-04-basic-git.md).
 
 ## What and why
 

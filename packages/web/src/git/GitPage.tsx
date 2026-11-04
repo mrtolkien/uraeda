@@ -1,4 +1,4 @@
-// The Git page (`specs/2026-11-04-basic-git/spec.md`), for the main checkout: its title's line and
+// The Git page (`specs/done/2026-11-04-basic-git.md`), for the main checkout: its title's line and
 // sync, the banners of what holds its writes back, each group's changes as a tree with its commit,
 // the history, and the worktrees, with the picked row's diff or commit beside them on wide screens,
 // a page of its own on the phone, the picked row in the address. It fetches as it opens, in the
