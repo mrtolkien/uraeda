@@ -14,6 +14,7 @@ mod history;
 mod log;
 pub(crate) mod process;
 mod refresh;
+mod remote;
 mod status;
 mod stopped;
 mod worktrees;

@@ -611,26 +611,29 @@ git commit -m "feat(basic-git): read the checkout's files, conflicts, and diffs"
 
 - Consumes: `process::git_write`, `GitError::Refused`, `TestRepo::with_origin`, `upstream_commit`
   (task 1).
-- Produces, in `git/remote.rs`, each refusing a detached `HEAD` with
+- Produces, in `git/remote.rs`, `pull` and `push` refusing a detached `HEAD` with
   `GitError::Refused("main is not checked out: HEAD is detached.")` adapted to the default branch's
-  name, and doing nothing without an `origin` remote (`fetch` returns `Ok`, `pull` and `push` refuse
-  with `"There is no remote to pull from."` and `"There is no remote to push to."`):
+  name, and a stopped pull or merge with the commit's refusal ("A pull is stopped: continue or abort
+  it first."), and each doing nothing without an `origin` remote (`fetch` returns `Ok`, `pull` and
+  `push` refuse with `"There is no remote to pull from."` and `"There is no remote to push to."`);
+  `fetch` runs on a detached `HEAD` (ruling R12):
   - `impl Git { pub fn fetch(&self, on_output: OnOutput) -> Result<(), GitError> }`:
     `git fetch --prune origin`;
   - `pub fn pull(&self, on_output: OnOutput) -> Result<(), GitError>`:
-    `git pull --no-edit [--rebase] origin --end-of-options <branch>`, `--rebase` only when neither
-    `pull.rebase` nor `pull.ff` is set (read through gix's configuration). A pull that stops on a
-    conflict returns `Ok`: `stopped()` then shows it;
+    `git pull --no-edit [--rebase] origin --end-of-options <branch>`, `--rebase` only when none of
+    `pull.rebase`, `pull.ff`, and `branch.<branch>.rebase` is set (read through gix's
+    configuration). A pull that stops on a conflict returns `Ok`: `stopped()` then shows it;
   - `pub fn push(&self, on_output: OnOutput) -> Result<(), GitError>`:
     `git push --porcelain origin --end-of-options <branch>`, never `--force` nor
-    `--force-with-lease`; a rejected ref (`!` in the porcelain output) is
-    `GitError::Refused("origin has commits main lacks: pull first.")` with the branch's name.
+    `--force-with-lease`; a rejected ref (`!` and `[rejected]` in the porcelain output, not a hook's
+    `[remote rejected]`) is `GitError::Refused("origin has commits main lacks: pull first.")` with
+    the branch's name.
   - A failure whose output holds `terminal prompts disabled`, `could not read Username`,
     `Authentication failed`, `Permission denied (publickey)`, or
     `Could not read from remote repository` keeps git's first line as its message, followed by " The
     server runs git without a terminal: give it a credential helper or an ssh-agent."
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 - `a_pull_follows_the_configuration_and_rebases_by_default`, a row each, each starting from 2 local
   commits and 3 upstream ones: no configuration rebases (`ahead == 2`, no merge commit);
@@ -642,27 +645,31 @@ git commit -m "feat(basic-git): read the checkout's files, conflicts, and diffs"
 - `a_push_never_forces`: after an upstream commit, a push is refused with exactly "origin has
   commits main lacks: pull first.", and `origin/main` on the bare remote is unchanged; after a pull,
   the push lands and `ahead == 0`. Break: retrying with `--force-with-lease`.
-- `a_credential_failure_says_how_to_give_one`: `origin` set to `https://127.0.0.1:9/none.git` behind
-  a fake `credential.helper` that fails, or an HTTP URL needing a user: the fetch's error holds
-  git's line and the hint. Break: running without `GIT_TERMINAL_PROMPT=0`, which hangs; the test's
-  timeout of nextest then fails it.
+- `a_credential_failure_says_how_to_give_one`: `origin` set to a local HTTP server answering 401
+  (`unauthorized_remote`), `core.askPass` empty: the fetch's error is exactly git's line, "fatal:
+  could not read Username for '…': terminal prompts disabled", and the hint. Break: running without
+  `GIT_TERMINAL_PROMPT=0`, which prompts at a terminal, or fails with another line without one.
+- The rows also cover a pull that stops on a conflict (`Ok`, `stopped()` a `Pull`). Every test of
+  `git_remote.rs` first calls `without_user_git_config()`, which keeps the machine's git
+  configuration away from the core's git; `TestRepo::diverged()`, `count`, and `origin_rev` hold the
+  setup (ruling R12).
 
-- [ ] **Step 2: Run them to check they fail**
+- [x] **Step 2: Run them to check they fail**
 
 - Run: `nix develop -c cargo nextest run -p uraeda-core --test git_remote`
 - Expected: FAIL, `pull` not found.
 
-- [ ] **Step 3: Implement `fetch`, `pull`, and `push`**
+- [x] **Step 3: Implement `fetch`, `pull`, and `push`**
 
 As the interfaces say, through `git_write`.
 
-- [ ] **Step 4: Run the task's validation, and make the breaks**
+- [x] **Step 4: Run the task's validation, and make the breaks**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS. Make each break the tests name, see it fail, revert it, and report it in the
   commit body.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core specs/2026-11-04-basic-git/plan.md

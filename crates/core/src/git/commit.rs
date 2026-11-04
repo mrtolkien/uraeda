@@ -227,7 +227,7 @@ pub fn others_staged(staged: &[String], paths: &[String]) -> Vec<String> {
 }
 
 /// The refusal of a commit while `operation` is stopped.
-fn refused(operation: &str) -> GitError {
+pub(super) fn refused(operation: &str) -> GitError {
     GitError::Refused(format!(
         "A {operation} is stopped: continue or abort it first."
     ))
