@@ -88,7 +88,7 @@ test("a comment being written is not replaced by an answer changed elsewhere", a
   expect(saveButton("Q2").hasAttribute("disabled")).toBe(false);
 });
 
-/** The round's single Commit, at its end, under its notes: not the app's way to the Commit page. */
+/** The round's single Commit, at its end, under its notes: not the app's way to the Git page. */
 const commitButton = () =>
   within(document.getElementById("notes") as HTMLElement).getByRole("button", { name: "Commit" });
 

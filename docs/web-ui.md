@@ -164,23 +164,54 @@ opens in normal mode at the file's start. On the phone, the bottom bar holds Bac
 
 A save is refused when the file changed since the buffer opened. A banner then offers "Copy my text"
 and "Load the new version". A feature's file is refused while its agent works: "An agent is working
-on this feature. Stop it first, or wait for it." Its edit then waits too, on the Commit page.
+on this feature. Stop it first, or wait for it." Its edit then waits too, on the Git page.
 
-## Committing
+## The Git page
 
 Saving never commits. The inbox, the priorities, proposal and note files, and buffers only save
-their files, and Commit, in the sidebar or the phone's tabs, opens the Commit page. Actions that say
-they commit, like submitting a round's answers or a review's verdict, still commit at once.
+their files, and you commit them on the Git page. Actions that say they commit, like submitting a
+round's answers or a review's verdict, still commit at once. Git, in the sidebar, or `Space g`,
+opens it; `/commit`, the Commit page's old address, leads there. The sidebar's Git shows how many
+files changed, and how many commits wait on `origin`, as "↓3".
 
-The Commit page shows a pane per branch with changes: the default branch's first, then each
-feature's whose files a buffer changed. Each pane lists what its commit holds, a buffer's file as
-"Edit <path>". Its message is a field filled with the suggested message. Rewrite it, and it is
-committed as typed; until then it is unsaved text, kept in this browser like any field's, and "Use
-the suggested message" brings the suggestion back. Each pane has its own Commit and Discard, and
-Discard asks first.
+The page works on the main checkout. Its title's line reads the branch against `origin`, as "main ·
+3 to pull · 6 to push · fetched just now". It fetches as it opens, and again every 5 minutes while
+it stays open. Fetch (`f`), Pull (`p`), and Push (`P`) run git as a terminal does, with your
+configuration: a pull rebases or merges as `pull.rebase` says, and stashes your edits only with
+`rebase.autoStash`. A push never forces: when `origin` has commits the branch lacks, it reads
+"origin has commits main lacks: pull first." The server runs git without a terminal, so a remote
+that asks for a password needs a credential helper or an ssh-agent.
 
-With several panes, `j` and `k` select one, and Enter and `d` commit or discard it. Ctrl+Enter in a
-message commits its pane. On the phone, a single pane's Commit and Discard sit in the bottom bar.
+Changes lists every changed file as a tree of folders, in the main checkout's group, then in one
+group per feature's worktree a buffer saved into. `j` and `k`, or the arrows, move over the rows,
+Enter folds or unfolds a folder, and Space ticks a row's box, staging its file, or every file under
+a folder. `a` stages every file of the group, or unstages them all when all are staged. A staged
+file keeps its row. Each group has its commit message, empty until you type it, and `c`, its Commit,
+or Ctrl+Enter in the message commits what is staged, through your hooks. A hook's refusal shows
+above Changes, and the files stay staged. `d` asks before discarding a file's changes.
+
+Picking a file shows its diff beside the sections, or as a page of its own on the phone, with Back
+to the sections. Past 1,000 lines, it shows its counts and "Show the whole diff". History lists the
+branch's commits, newest first: ↓ marks those to pull, ↑ those to push. A commit opens its message
+and its files, each with its diff, and "Show more" reads older ones. The picked row is in the
+address, so a reload or a shared link opens it again.
+
+"Merge into main…", or `M`, merges a local branch, or one of `origin`'s, into the checked-out one.
+When a pull or a merge stops on a conflict, a banner reads "The pull stopped: 1 file conflicts.",
+and Conflicts lists each file. A text file opens in the editor, where a bar over each conflict takes
+one side, named by its branch, or both, and the text stays yours to edit; save it, with Save or
+Ctrl+Enter, once its markers are gone. A file's row can also take one side whole. Continue goes on
+once every file is resolved, and Abort puts the branch back as it was. `m` opens Continue and Abort
+as a menu.
+
+Worktrees lists the main checkout and every worktree, each with its state. A merged feature's offers
+Clean, which removes its worktree, its branch, and its priorities line, as `ura clean` does. One
+without changes, or whose folder is gone, offers Remove, which keeps its branch; `d` on its row asks
+the same. One with changes offers neither.
+
+While an agent works in the main checkout, the page reads "An agent works in this checkout.", and
+its writes are disabled until the turn ends. Every write shows in the toast, and a refusal shows
+next to what it concerns.
 
 ## Reaching it from another device
 

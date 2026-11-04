@@ -220,6 +220,19 @@ function repairWorktrees(project: string, from: string, to: string) {
 }
 
 /**
+ * Points each remote of a project moved from `from` to `to`, a repository built beside it as
+ * "sample"'s `origin` is, at its new folder: git records a local remote's absolute path.
+ */
+function repairRemotes(project: string, from: string, to: string) {
+  for (const remote of git(project, "remote").split("\n").filter(Boolean)) {
+    const url = git(project, "remote", "get-url", remote).trim();
+    if (url.startsWith(from + "/")) {
+      git(project, "remote", "set-url", remote, to + url.slice(from.length));
+    }
+  }
+}
+
+/**
  * Builds `.sandbox/` anew, replacing the one there: in a temporary folder beside it, renamed into
  * place, then completed there. A failure removes what it built. It runs holding the lock, so no
  * other seed moves or removes either folder meanwhile.
@@ -252,6 +265,7 @@ async function build(root: string, version: string, builders: Builders) {
     const { dataDir, projects } = paths(folder);
     for (const project of Object.values(projects)) {
       repairWorktrees(project, join(temporary, "projects"), join(folder, "projects"));
+      repairRemotes(project, join(temporary, "projects"), join(folder, "projects"));
     }
     // "sample" last, the most recently opened.
     for (const project of [

@@ -126,6 +126,26 @@ test("the sample's worktrees work at their place after the rename", () => {
   expect(leftovers(root)).toEqual([]);
 });
 
+test("the sample's origin is its own, at its place after the rename, and a pull stops on a conflict", () => {
+  const sample = built.projects.sample;
+  const origin = join(root, ".sandbox", "projects", "sample-origin.git");
+
+  expect(git(sample, "remote", "get-url", "origin").trim()).toBe(origin);
+  expect(git(sample, "rev-list", "--left-right", "--count", "main...origin/main").trim()).toBe(
+    "1\t1",
+  );
+  expect(git(sample, "status", "--porcelain")).toBe("");
+
+  // The pull runs in a copy: the sandbox's own sample stays as it was.
+  const copy = join(temporaryFolder("sandbox-pull"), "sample");
+  git(root, "clone", "--quiet", "--no-local", "--origin", "local", sample, copy);
+  git(copy, "remote", "add", "origin", origin);
+  git(copy, "config", "user.name", "Test");
+  git(copy, "config", "user.email", "test@example.com");
+  expect(() => git(copy, "pull", "--quiet", "--rebase", "origin", "main")).toThrow();
+  expect(git(copy, "diff", "--name-only", "--diff-filter=U").trim()).toBe("specs/PRIORITIES.md");
+});
+
 test("the sandbox lists its five projects, in its own data folder", async () => {
   const rows = await readRepositories(built.dataDir);
 

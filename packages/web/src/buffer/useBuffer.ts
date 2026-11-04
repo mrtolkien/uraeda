@@ -76,7 +76,7 @@ export function useBuffer(path: string) {
       return { message: failed.message, ok: false };
     }
     field.saved(value);
-    // The Commit page, and the sidebar's count, list the file the save changed.
+    // The Git page, and the sidebar's count, list the file the save changed.
     rereadChanges(fate);
     return { ok: true, saved: result.result?.hash ?? previous };
   }, file?.hash ?? "");

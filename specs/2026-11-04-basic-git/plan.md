@@ -1299,31 +1299,39 @@ git commit -m "feat(basic-git): the Git page replaces the Commit page"
 
 **Files:**
 
-- Modify: `packages/web/samples/projects.ts` (the sample project's `origin`), `docs/web-ui.md`
-  ("Committing" becomes the Git page's section), `README.md` if it names the Commit page
-- Test: `crates/core/tests/git_page.rs` (`bench_git_page_on_uraedas_repository`)
+- Modify: `packages/web/samples/projects.ts` (the sample project's `origin`),
+  `packages/web/sandbox/seed.ts` (the moved projects' remotes repaired), `docs/web-ui.md`
+  ("Committing" becomes the Git page's section), `specs/ui/flows.md`, `specs/ui/surfaces.md`, and
+  `skills/uraeda/references/conventions.md` (the Commit page's mentions),
+  `crates/core/src/api/git_page.rs` (the checkouts' states read at once, ruling R29)
+- Test: `crates/core/tests/git_page.rs` (`bench_git_page_on_uraedas_repository`),
+  `packages/web/sandbox/__tests__/seed.test.ts` (the sample's `origin`)
 
 **Interfaces:**
 
 - Consumes: everything above.
 
-- [ ] **Step 1: Give the sample project a remote**
+- [x] **Step 1: Give the sample project a remote**
 
-A bare `origin` beside it under `.sandbox/projects/`, with the sample's `main` pushed, then one
-commit on `origin` that local `main` lacks, and one local chore changing the same line of
-`specs/PRIORITIES.md`, so a pull stops on a conflict; a second clone does the upstream commit.
+A bare `origin` beside it under `.sandbox/projects/`, `sample-origin.git`, with the sample's `main`
+pushed, then one commit on `origin` that local `main` lacks, fetched, and one local chore changing
+the same line of `specs/PRIORITIES.md`, so a pull stops on a conflict; a second clone does the
+upstream commit. The seed points `origin` at its final folder after the build's rename.
 
-- [ ] **Step 2: Write the benchmark**
+- [x] **Step 2: Write the benchmark**
 
 `bench_git_page_on_uraedas_repository`, ignored, run by `vp run bench`: `api::git_page` on
-`common::repository_path()`, its mean under 100 ms.
+`common::repository_path("")`, a watch running as the server's does, its mean of 10 reads printed,
+and checked under 100 ms in a release build (ruling R29).
 
-- [ ] **Step 3: Update the documentation**
+- [x] **Step 3: Update the documentation**
 
 - [ ] **Step 4: Run the benchmark and the complete validation**
 
-- Run: `nix develop -c vp run bench` and `nix develop -c vp run ready`
-- Expected: PASS, the benchmark's mean printed under 100 ms.
+- Run: `nix develop -c vp run bench`,
+  `nix develop -c cargo nextest run --cargo-profile release -p uraeda-core --test git_page --run-ignored only`,
+  and `nix develop -c vp run ready`
+- Expected: PASS, the release benchmark's mean printed under 100 ms.
 
 - [ ] **Step 5: Commit**
 
