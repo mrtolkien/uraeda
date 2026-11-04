@@ -192,6 +192,19 @@ fn a_commit_on_the_default_branch_reports_the_features_with_a_branch() {
     );
 }
 
+/// The Git page's view follows the index: staging a file outside `specs/` reports `git`.
+#[test]
+fn staging_a_file_reports_git() {
+    let repo = repo();
+    repo.write("notes.txt", "a note\n");
+    let (_watcher, receiver) = watching(&repo);
+
+    repo.git(&["add", "notes.txt"]);
+
+    let changes = next(&receiver);
+    assert!(changes.git, "{changes:?}");
+}
+
 /// Writes the priorities, and returns every report up to the one that saw the write: the
 /// snapshot that saw it was read after everything done before the write.
 fn until_priorities(

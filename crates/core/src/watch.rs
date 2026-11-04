@@ -48,6 +48,9 @@ pub struct Changes {
     pub decisions: bool,
     /// Whether a feature, a branch, or a worktree appeared or went.
     pub workspace: bool,
+    /// Whether what the Git page shows of a checkout changed: its `HEAD`, its index, a stopped
+    /// operation, the main checkout's branch or its `origin` branch, or the last fetch.
+    pub git: bool,
 }
 
 impl Changes {
@@ -59,6 +62,7 @@ impl Changes {
             && !self.inbox
             && !self.decisions
             && !self.workspace
+            && !self.git
     }
 }
 
@@ -76,6 +80,7 @@ struct Snapshot {
     inbox: String,
     decisions: String,
     workspace: String,
+    git: String,
     /// The folders to watch: `specs/` of every working tree, and git's references.
     folders: BTreeSet<(PathBuf, bool)>,
 }
@@ -95,9 +100,11 @@ fn snapshot(root: &Path) -> Snapshot {
         // A worktree's `specs/` may not exist yet: its top level shows it appear.
         folders.insert((worktree.path.clone(), false));
     }
+    let git_state = git_state(&git);
     let Ok(read) = cache::read(&git) else {
         return Snapshot {
             folders,
+            git: git_state,
             ..Snapshot::default()
         };
     };
@@ -181,8 +188,43 @@ fn snapshot(root: &Path) -> Snapshot {
         workspace: hash(
             &serde_json::to_string(&(listing, worktrees, branches)).unwrap_or_default(),
         ),
+        git: git_state,
         folders,
     }
+}
+
+/// What the Git page reads of each checkout's git folder, as its files are: `HEAD`, the index's
+/// size and time, a stopped merge or rebase; then the main checkout's branch tip and its `origin`
+/// branch's, and when `origin` was last fetched.
+fn git_state(git: &Git) -> String {
+    let common = git.common_dir();
+    let mut folders = vec![common.clone()];
+    if let Ok(entries) = std::fs::read_dir(common.join("worktrees")) {
+        folders.extend(entries.flatten().map(|entry| entry.path()));
+    }
+    let stamp = |path: PathBuf| {
+        std::fs::metadata(path)
+            .ok()
+            .map(|metadata| (metadata.len(), metadata.modified().ok()))
+    };
+    let read = |path: PathBuf| std::fs::read_to_string(path).ok();
+    let mut state = String::new();
+    for folder in &folders {
+        state.push_str(&format!(
+            "{:?}\n",
+            (
+                read(folder.join("HEAD")),
+                stamp(folder.join("index")),
+                read(folder.join("MERGE_HEAD")),
+                folder.join("rebase-merge").exists() || folder.join("rebase-apply").exists(),
+            )
+        ));
+    }
+    let branch = read(common.join("HEAD"))
+        .and_then(|head| Some(head.trim().strip_prefix("ref: refs/heads/")?.to_string()));
+    let tips = branch.map(|branch| (git.tip(&branch), git.remote_tip(&branch)));
+    state.push_str(&format!("{tips:?}{:?}", stamp(common.join("FETCH_HEAD"))));
+    hash(&state)
 }
 
 /// The keys whose hash differs between two maps, added and removed ones included.
@@ -217,6 +259,7 @@ fn compare(before: &Snapshot, after: &Snapshot) -> Changes {
         inbox: before.inbox != after.inbox,
         decisions: before.decisions != after.decisions,
         workspace: before.workspace != after.workspace,
+        git: before.git != after.git,
     }
 }
 

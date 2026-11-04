@@ -32,6 +32,7 @@ mod drop;
 mod drop_at;
 mod error;
 mod files;
+mod git_page;
 mod history;
 mod image_edits;
 mod inbox_edits;
@@ -65,6 +66,11 @@ pub use drop_at::DropAt;
 pub use error::ApiError;
 use error::refused;
 pub use files::{attach_image, encode_image, read_image, read_raw};
+pub use git_page::{
+    ChangeGroupView, CommitRowView, ConflictFileView, ConflictView, FileChangeView, GitAt,
+    GitCommitView, GitDiffView, GitHistoryPageView, GitPageView, GitSummaryView, StoppedView,
+    WorktreeView, conflict_file, git_commit, git_diff, git_history, git_page, git_summary,
+};
 pub use history::read_history;
 pub use image_edits::{remove_note_image, restore_note_image};
 pub(crate) use inbox_edits::note_texts_on_default;

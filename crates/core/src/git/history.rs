@@ -32,6 +32,17 @@ pub struct CommitInfo {
     pub committed: i64,
 }
 
+/// Where a commit of the checked-out branch's history is against its `origin` branch.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Mark {
+    /// On both, or there is no `origin` branch to compare with.
+    None,
+    /// Only on `origin`: a pull brings it.
+    ToPull,
+    /// Only local: a push sends it.
+    ToPush,
+}
+
 /// The paths of the `specs/` folders, the top level's and any nested one, one commit added,
 /// deleted, or renamed, renames found by git's similarity.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -82,24 +93,68 @@ impl Git {
             .map_err(read_error("the history"))?;
         let mut commits = Vec::new();
         for info in walk {
-            let info = info.map_err(read_error("the history"))?;
-            let commit = info.object().map_err(read_error("the history"))?;
-            let author = commit.author().map_err(read_error("the history"))?;
-            let committer = commit.committer().map_err(read_error("the history"))?;
-            let message = commit.message_raw_sloppy();
-            let subject = message
-                .split(|byte| *byte == b'\n')
-                .next()
-                .unwrap_or_default();
-            commits.push(CommitInfo {
-                id: info.id,
-                parents: info.parent_ids().map(|id| id.detach()).collect(),
-                subject: String::from_utf8_lossy(subject).trim().to_string(),
-                authored: author.seconds(),
-                committed: committer.seconds(),
-            });
+            commits.push(commit_info_of(&info.map_err(read_error("the history"))?)?);
         }
         Ok(commits)
+    }
+
+    /// A page of `count` commits of the checked-out branch's history, after the commit `after`, or
+    /// from the first: the commits its `origin` branch has that it lacks first, each `ToPull`,
+    /// then those of `HEAD`, the ones `origin` lacks `ToPush`, each run newest first. During a
+    /// stopped rebase, the branch replayed is the one compared.
+    pub fn history_page(
+        &self,
+        after: Option<ObjectId>,
+        count: usize,
+    ) -> Result<Vec<(CommitInfo, Mark)>, GitError> {
+        let Some(head) = self.head() else {
+            return Ok(Vec::new());
+        };
+        let branch = self.current_branch().or_else(|| self.rebasing());
+        let remote = branch.as_deref().and_then(|branch| self.remote_tip(branch));
+        let to_push: std::collections::HashSet<ObjectId> = match remote {
+            Some(remote) => self
+                .walk(head, Some(remote))?
+                .map(|info| info.map(|info| info.id))
+                .collect::<Result<_, _>>()?,
+            None => Default::default(),
+        };
+        let pulls = match remote {
+            Some(remote) => Some(self.walk(remote, Some(head))?),
+            None => None,
+        };
+        let pulls = pulls.into_iter().flatten().map(|info| (info, Mark::ToPull));
+        let local = self.walk(head, None)?.map(|info| {
+            let pushed = info.as_ref().is_ok_and(|info| to_push.contains(&info.id));
+            (info, if pushed { Mark::ToPush } else { Mark::None })
+        });
+        let mut rows = pulls.chain(local);
+        if let Some(after) = after {
+            for (info, _) in rows.by_ref() {
+                if info?.id == after {
+                    break;
+                }
+            }
+        }
+        rows.take(count)
+            .map(|(info, mark)| Ok((info?, mark)))
+            .collect()
+    }
+
+    /// The commits of `tip` that `hidden` lacks, newest committed first.
+    fn walk(
+        &self,
+        tip: ObjectId,
+        hidden: Option<ObjectId>,
+    ) -> Result<impl Iterator<Item = Result<CommitInfo, GitError>> + '_, GitError> {
+        let walk = self
+            .repo
+            .rev_walk([tip])
+            .with_hidden(hidden)
+            .sorting(Sorting::ByCommitTime(CommitTimeOrder::NewestFirst))
+            .all()
+            .map_err(read_error("the history"))?;
+        Ok(walk.map(|info| commit_info_of(&info.map_err(read_error("the history"))?)))
     }
 
     /// Whether the history of the commit whose full hash is `head` holds `commit`: `head` is it,
@@ -147,6 +202,25 @@ impl Git {
                 .collect()
         })
     }
+}
+
+/// A walked commit's id, parents, subject, and times.
+fn commit_info_of(info: &gix::revision::walk::Info<'_>) -> Result<CommitInfo, GitError> {
+    let commit = info.object().map_err(read_error("the history"))?;
+    let author = commit.author().map_err(read_error("the history"))?;
+    let committer = commit.committer().map_err(read_error("the history"))?;
+    let message = commit.message_raw_sloppy();
+    let subject = message
+        .split(|byte| *byte == b'\n')
+        .next()
+        .unwrap_or_default();
+    Ok(CommitInfo {
+        id: info.id,
+        parents: info.parent_ids().map(|id| id.detach()).collect(),
+        subject: String::from_utf8_lossy(subject).trim().to_string(),
+        authored: author.seconds(),
+        committed: committer.seconds(),
+    })
 }
 
 fn numstat_in(
