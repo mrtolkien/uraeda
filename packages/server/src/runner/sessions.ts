@@ -4,7 +4,7 @@ import type { Adapter } from "./adapter.ts";
 import type { SessionCache, SessionRow } from "./cache.ts";
 import { CONTINUES_ON, Continuer, type ContinueSettings } from "./continuer.ts";
 import type { TurnActivity, UsageLimit } from "./events.ts";
-import { LiveSessions } from "./live-sessions.ts";
+import { LiveSessions, working } from "./live-sessions.ts";
 import { chatTitle } from "./message.ts";
 import { Processes } from "./processes.ts";
 import { checkSend, type SendInput } from "./send-input.ts";
@@ -55,10 +55,6 @@ type SessionsOptions = {
   onChange: (change: SessionChange) => void;
   runs?: () => ContinueSettings;
 };
-
-/** Whether a turn of the session runs, starts, or waits. */
-const working = (live: Live) =>
-  live.turn !== undefined || live.starting === true || live.queue.length > 0;
 
 /**
  * Sessions of turns with agents: at most one process and one turn per session, and one working
@@ -177,8 +173,7 @@ export class Sessions {
   }
 
   #busy(repo: string) {
-    const root = this.#roots.get(repo) ?? repo;
-    return [...this.#context.live.values()].filter((live) => live.repo === root && working(live));
+    return this.#context.live.working(this.#roots.get(repo) ?? repo);
   }
 
   /** What the turn does now, while it runs on this server's process. */

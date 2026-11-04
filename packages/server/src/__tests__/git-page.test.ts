@@ -3,7 +3,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
-import { expect, test } from "vite-plus/test";
+import { expect, test, vi } from "vite-plus/test";
 import { GIT_ID } from "../fate.ts";
 import type { QueuedWrite } from "../writes/queue.ts";
 import { heldHook } from "./held-hook.ts";
@@ -156,4 +156,60 @@ test("a pull lands in the queue with its output", async () => {
     { ...COMMITTING, failure: "hook", output: expect.stringContaining("lint: 1 problem") },
   ]);
   expect(git(repo, "log", "-1", "--format=%s")).toBe("Pulled\n");
+});
+
+/** The server, its repository's queue, and a held commit of the main checkout, landing. */
+async function heldCommit(using = binding) {
+  const server = await testServer(fixtureRepo(), { binding: using });
+  const { queue } = server.hosts.byPath(server.repo)!;
+  const hook = heldHook(server.repo);
+  writeFileSync(join(server.repo, "held.txt"), "held\n");
+  expect(
+    (await mutate(server.app, "git.stage", { folder: null, paths: ["held.txt"] }, ["id"])).error,
+  ).toBeUndefined();
+  const committing = mutate(server.app, "git.commit", { folder: null, message: "Held" }, ["id"]);
+  await vi.waitFor(() => expect(queue.writes()).toMatchObject([{ state: "running" }]));
+  return { committing, hook, queue, server };
+}
+
+// Break caught: the guard run only as the write is queued, not again as it lands.
+test("a write queued before a chat's turn started is refused as it lands", async () => {
+  const { committing, hook, queue, server } = await heldCommit();
+  writeFileSync(join(server.repo, "notes.txt"), "a note\n");
+  const staging = mutate(server.app, "git.stage", { folder: null, paths: ["notes.txt"] }, ["id"]);
+  await vi.waitFor(() => expect(queue.writes()).toHaveLength(2));
+
+  const chat = (await mutate(server.app, "session.newChat", {}, ["id"])).data as Data;
+  const session = await send(server, { session: chat.id });
+  hook.release();
+
+  expect((await committing).error).toBeUndefined();
+  expect((await staging).error).toEqual(CHAT_WORKS);
+  expect(status(server.repo)).toContain("?? notes.txt");
+  expect(queue.writes()).toMatchObject([
+    { output: CHAT_WORKS.message.slice("refused: ".length), state: "refused" },
+  ]);
+  await stop(server, session);
+});
+
+// Break caught: the main checkout's writes keyed `git` alone, which no list's commit waits for.
+test("a list's commit waits for the main checkout's git write", async () => {
+  const committed: Array<string> = [];
+  const { committing, hook, queue, server } = await heldCommit({
+    ...binding,
+    commitPriorities: (repo) => {
+      committed.push("priorities");
+      return binding.commitPriorities(repo);
+    },
+  });
+
+  const priorities = mutate(server.app, "priorities.commit", {}, ["id"]);
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  expect(committed).toEqual([]);
+
+  hook.release();
+  await committing;
+  await priorities;
+  await queue.idle();
+  expect(committed).toEqual(["priorities"]);
 });

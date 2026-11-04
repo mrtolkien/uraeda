@@ -81,13 +81,14 @@ export function publish(changes: Changes, host: Pick<Host, "path" | "live">, ses
   }
   // The inbox and the priorities share the count of changes waiting for a commit, every branch's
   // pane's, so a change of either, or of a feature, whose checkout a buffer may have edited, sends
-  // both, and the Commit page's panes.
-  if (changes.priorities || changes.inbox || changes.features.length > 0) {
+  // both, the Commit page's panes, and the Git page, whose changes they are too.
+  const edited = changes.priorities || changes.inbox || changes.features.length > 0;
+  if (edited) {
     live.update("Priorities", PRIORITIES_ID, { eventId: eventId("priorities") });
     live.update("Inbox", INBOX_ID, { eventId: eventId("inbox") });
     live.update("CommitPanes", COMMIT_PANES_ID, { eventId: eventId("commit-panes") });
   }
-  if (changes.git) {
+  if (edited || changes.git) {
     publishGit(live);
   }
   // The ledger carries the decisions check's status, which a change of the inbox's rounds moves.
