@@ -19,7 +19,7 @@ pub fn promote_change(repo: String, folder: String) -> AsyncTask<Job<PromotedVie
 }
 
 /// Repairs the links of the done feature `folder`'s record whose file moved or was deleted since,
-/// in the default branch's checkout, without committing: the commit page lists the repair. Returns
+/// in the default branch's checkout, without committing: the Git page lists the repair. Returns
 /// the feature read again; rejects a feature not on the default branch.
 #[napi(ts_return_type = "Promise<FeatureView>")]
 pub fn fix_links(repo: String, folder: String) -> AsyncTask<Job<FeatureView>> {

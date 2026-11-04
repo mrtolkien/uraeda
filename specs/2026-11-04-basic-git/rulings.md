@@ -350,3 +350,30 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
 - **If wrong**: after a reload, Abort over files resolved by a whole side alone says main goes back,
   not the resolved files; it still asks.
 - **Where**: task 10.
+
+## R27: The lists' count of changes keeps its read, and the Commit page's other tests go with it
+
+- **Decision**: `api/commit_panes.rs` becomes `api/branch_panes.rs`, which keeps only the read of
+  each branch's changes, since `Priorities.changes`, `changeLines`, and `Inbox.changes` still count
+  them; `BranchPane` loses its folder and message and leaves the API, and `actions/changes/panes.rs`
+  keeps `pane` alone, without the suggested message. `commit_branch`, `discard_branch`,
+  `branch_changes`, `commit_pane`, and `discard_pane` go. Besides the tests the spec's Replaced
+  behaviour names, `branch_commits.rs`'s `a_branch_commits_alone`, `an_empty_message_is_refused`,
+  `a_feature_pane_leaves_a_staged_file_out`, `a_pane_commits_a_created_file_and_a_deleted_one`, and
+  `a_finished_unmerged_features_pane_is_its_own` go, and `buffer.test.ts`'s "a feature pane is
+  refused while its agent works": each calls only the removed commit or discard.
+  `a_recorded_file_committed_elsewhere_is_forgotten` and `the_lists_commits_leave_a_buffers_edit`
+  stay, read through `read_priorities`. `buffer.test.ts`'s "a buffer's save sends the Commit page's
+  panes and the count" stays as "… the Git page and the count": a buffer's save now sends `GitPage`
+  and `GitSummary` in place of `CommitPanes`. `rereadChanges` no longer reads the Git summary, which
+  the server's live updates send. The sidebar's Git entry and the phone's tab show without `specs/`
+  too, as `gitSummary` reads any repository; the entry is Astryx's secondary button, as the mockup's
+  `SidebarEntry`, and its icon `uraeda:git-branch`, the app's own. `commit-toast.test.tsx`'s first
+  test waits for the home to draw before it checks the refusal left with the page: with the Git
+  entry always in the column, the home draws some 70 ms after the navigation's `act`. Only the
+  trivially wrong lines of `specs/ui/` and the inbox reference are fixed here; `docs/web-ui.md`,
+  `specs/ui/flows.md`'s Committing, and `conventions.md`'s commit paragraph are left for task 12.
+- **Rationale**: the count of the inbox's and the priorities' changes has callers beyond the Commit
+  page; a test of a removed function guards nothing; the save's live update still guards the
+  sidebar's count after a decision saved on the default branch.
+- **Where**: task 11.

@@ -1,6 +1,6 @@
 //! The inbox: its notes' edits, each written on the default branch over the inbox read at
-//! `previous`; the moves of notes into the priorities and proposal files; the commit page's panes,
-//! their Commit and Discard; and the answers of the default branch's rounds. A category or `about`
+//! `previous`; the moves of notes into the priorities and proposal files; and the answers of the
+//! default branch's rounds. A category or `about`
 //! left out is none, so they come last.
 
 use std::path::Path;
@@ -8,9 +8,9 @@ use std::path::Path;
 use napi::bindgen_prelude::{AsyncTask, Buffer};
 use napi_derive::napi;
 use uraeda_core::actions::commit::InboxAdded;
-use uraeda_core::api::{self, BranchPane};
+use uraeda_core::api;
 use uraeda_core::files::inbox::Inbox;
-use uraeda_core::view::{CommitView, FileView};
+use uraeda_core::view::FileView;
 
 use super::{Job, job};
 
@@ -296,26 +296,6 @@ pub fn attach_note_images(
         let (_, file) = api::attach_note_images(Path::new(&repo), &id, &images, &previous)?;
         Ok(file)
     })
-}
-
-/// The Commit page's panes: the default branch's, then each branch's whose checkout holds files a
-/// buffer edited, each with its lines and its suggested message.
-#[napi(ts_return_type = "Promise<Array<BranchPane>>")]
-pub fn commit_panes(repo: String) -> AsyncTask<Job<Vec<BranchPane>>> {
-    job(move || api::branch_changes(Path::new(&repo)))
-}
-
-/// Commits the pane of `branch` with `message` as typed, trimmed of the blank lines around it;
-/// refused when it is blank.
-#[napi(ts_return_type = "Promise<CommitView>")]
-pub fn commit_branch(repo: String, branch: String, message: String) -> AsyncTask<Job<CommitView>> {
-    job(move || api::commit_branch(Path::new(&repo), &branch, &message))
-}
-
-/// Discards the pane of `branch`, the files a buffer edited put back as committed.
-#[napi(ts_return_type = "Promise<void>")]
-pub fn discard_branch(repo: String, branch: String) -> AsyncTask<Job<()>> {
-    job(move || api::discard_branch(Path::new(&repo), &branch))
 }
 
 /// A round of questions on the default branch, `inbox-triage` or `decisions-check`, read as a round

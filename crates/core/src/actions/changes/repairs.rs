@@ -1,4 +1,4 @@
-//! The link repairs the commit page lists: the markdown files of `specs/` whose only change since
+//! The link repairs the Git page lists: the markdown files of `specs/` whose only change since
 //! `HEAD` is link destinations, or links turned into their words, as a move or a Fix writes them.
 //! Found by their content, so nothing is held between the repair and the commit.
 

@@ -6,19 +6,21 @@ import { refusable } from "./errors.ts";
 import { writable } from "./sessions.ts";
 import { sources } from "./sources.ts";
 import { INBOX_ID, PRIORITIES_ID } from "./views.ts";
-import { bufferDataView, COMMIT_PANES_ID, sentBuffer } from "./views-buffer.ts";
+import { bufferDataView, sentBuffer } from "./views-buffer.ts";
+import { GIT_ID } from "./views-git.ts";
 
 let sent = 0;
 
 /**
- * Sends the records a save adds a change to: the Commit page's panes, and the commit bar's count,
- * which the priorities and the inbox carry. The core's watcher sends them for the lists and the
+ * Sends the records a save adds a change to: the Git page and its sidebar count, and the count of
+ * changes the priorities and the inbox carry. The core's watcher sends them for the lists and the
  * features only, not for a decision or the constitution saved on the default branch.
  */
 function publishSaved(ctx: RepoContext) {
   const live = ctx.hosts.byPath(ctx.repo)?.live;
   const records = [
-    ["CommitPanes", COMMIT_PANES_ID],
+    ["GitPage", GIT_ID],
+    ["GitSummary", GIT_ID],
     ["Priorities", PRIORITIES_ID],
     ["Inbox", INBOX_ID],
   ] as const;

@@ -1,5 +1,5 @@
 // A done feature's record linking a file that moved since: its page notes the link, and "Fix moved
-// links" rewrites the record without committing, for the commit page to commit.
+// links" rewrites the record without committing, for the Git page to commit.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";

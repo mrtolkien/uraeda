@@ -1,6 +1,6 @@
 // The phone's bar of tabs, at the top of every page: Home with the count of what needs the human,
-// Inbox with its notes' count, Priorities, Sessions with the running sessions' count, Commit while
-// something waits for one, a `…` that holds Decisions and Settings, and New, each an icon named by
+// Inbox with its notes' count, Priorities, Sessions with the running sessions' count, Git while
+// something waits on it, a `…` that holds Decisions and Settings, and New, each an icon named by
 // its page, the current page's marked. The Sessions tab opens the shell's panes as a page of
 // their own. The phone's status line holds a page's own controls only: these counts are its counts.
 import { Badge } from "@astryxdesign/core/Badge";
@@ -10,7 +10,8 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { borderVars, colorVars, spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ComponentProps, Suspense } from "react";
-import { useInbox, usePriorities } from "../data.ts";
+import { useInbox } from "../data.ts";
+import { useGitSummary } from "../git/data.ts";
 import { navigate, useRepoPath } from "../routes.tsx";
 import { DESTINATIONS } from "../destinations.ts";
 import { useNavigation } from "../sessionData.ts";
@@ -113,21 +114,31 @@ function Tab({
   );
 }
 
-/** The commit tab, while something waits for a commit: the one place they are committed. */
-function CommitTab({ isCurrent }: { isCurrent: boolean }) {
-  const count = usePriorities()?.changes ?? 0;
-  if (count === 0) {
+/**
+ * The Git tab, while something waits on the Git page: the changes to commit and the commits to
+ * pull, counted together over its icon, and each named after the page.
+ */
+function GitTab({ isCurrent }: { isCurrent: boolean }) {
+  const summary = useGitSummary();
+  const changes = summary?.changes ?? 0;
+  const behind = summary?.behind ?? 0;
+  if (changes + behind === 0) {
     return null;
   }
+  const counted = () =>
+    [
+      ...(changes > 0 ? [plural(changes, "change")] : []),
+      ...(behind > 0 ? [`${behind} to pull`] : []),
+    ].join(", ");
   return (
     <Tab
       badge="warning"
-      count={count}
-      counted={(n) => plural(n, "change")}
-      icon={DESTINATIONS.commit.icon}
+      count={changes + behind}
+      counted={counted}
+      icon={DESTINATIONS.git.icon}
       isCurrent={isCurrent}
-      label={DESTINATIONS.commit.label}
-      to={DESTINATIONS.commit.path}
+      label={DESTINATIONS.git.label}
+      to={DESTINATIONS.git.path}
       variant="primary"
     />
   );
@@ -240,13 +251,10 @@ export function Tabs({
         label={DESTINATIONS.sessions.label}
         to={DESTINATIONS.sessions.path}
       />
-      {/* Without specs/, nothing waits for a commit, and the priorities cannot be read. */}
-      {!data.workspace?.noSpecs && (
-        <Suspense fallback={null}>
-          <CommitTab isCurrent={at(DESTINATIONS.commit.path)} />
-        </Suspense>
-      )}
-      {/* Between Commit and New, so their two filled blocks do not run into one. */}
+      <Suspense fallback={null}>
+        <GitTab isCurrent={at(DESTINATIONS.git.path)} />
+      </Suspense>
+      {/* Between Git and New, so their two filled blocks do not run into one. */}
       <MoreTab at={at} />
       <Tab
         icon={DESTINATIONS.new.icon}

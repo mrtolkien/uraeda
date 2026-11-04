@@ -1,5 +1,5 @@
 //! The priorities: their lines' edits, outlines, and drops, each written on the default branch over
-//! the priorities read at `previous`, and the commit page's Commit and Discard.
+//! the priorities read at `previous`, and the commit bar's Commit and Discard.
 
 use std::path::Path;
 

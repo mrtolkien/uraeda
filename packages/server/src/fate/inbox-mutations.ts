@@ -1,7 +1,7 @@
 /**
  * The mutations of the inbox, each written on the default branch over the hash it was read at: its
  * notes' edits, their moves into the priorities and proposal files, and the answers of the default
- * branch's rounds; the commit page's are `commit-mutations.ts`'s. None writes a feature's files, so
+ * branch's rounds; the Git page's are `git-mutations.ts`'s. None writes a feature's files, so
  * none is refused while an agent works: `writable` guards features only.
  */
 import type { Resolver } from "./context.ts";

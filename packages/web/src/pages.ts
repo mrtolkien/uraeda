@@ -17,7 +17,6 @@ export const BranchDecisionPage = page(
 );
 export const BufferPage = page(async () => (await import("./buffer/BufferPage.tsx")).BufferPage);
 export const CheckPage = page(async () => (await import("./decisions/CheckPage.tsx")).CheckPage);
-export const CommitPage = page(async () => (await import("./CommitPage.tsx")).CommitPage);
 export const DecisionsPage = page(
   async () => (await import("./decisions/DecisionsPage.tsx")).DecisionsPage,
 );

@@ -22,7 +22,7 @@ mod repairs;
 mod texts;
 
 pub use discard::discard;
-pub use panes::{Pane, commit_pane, discard_pane, pane};
+pub use panes::{Pane, pane};
 
 use files::{
     Edited, Found, Grown, Undo, edited_files, grown_files, linked_by, take_item, take_note,
@@ -253,7 +253,7 @@ fn gather(place: &Place) -> Listed {
 }
 
 /// The change list of the lists' own commit, the editor's and the commit bar's: the files a buffer
-/// edited other than the lists are left out, for the Commit page alone to commit.
+/// edited other than the lists are left out, for the Git page alone to commit.
 fn gather_lists_route(place: &Place) -> Listed {
     let (edits, others) = lists_and_other_edits(place);
     gather_with(place, edits, &others)
@@ -419,7 +419,7 @@ pub fn message(place: &Place) -> (String, Option<String>) {
 /// The proposal files and note files a commit of the two lists holds: those the moves went into,
 /// those the lists link that no commit has, and the note files that moved or left. A proposal
 /// file's commit from its editor holding the lists holds them too, and leaves the link repairs on
-/// the commit page.
+/// the Git page.
 pub(super) fn linked_files(place: &Place) -> Vec<String> {
     let (_, others) = lists_and_other_edits(place);
     let mut paths = gather_lists(place, &[], &others).paths;
@@ -448,7 +448,7 @@ pub(super) fn linked_images(place: &Place, paths: &[String]) -> Result<Vec<Strin
 
 /// Commits `INBOX.md`, `PRIORITIES.md`, and the files notes went into, moved, or left, a folder
 /// with its images, with a message naming their changes. The other files a buffer edited wait for
-/// the Commit page's pane.
+/// the Git page.
 pub fn commit(place: &Place) -> Result<Committed, ActionError> {
     let listed = gather_lists_route(place);
     let message = message_of(&listed, CHORE);

@@ -32,7 +32,7 @@ import { allBranchChangesDataView, branchChangesDataView } from "./fate/views-br
 import { continuedAllDataView } from "./fate/views-continued-all.ts";
 import { droppedDataView } from "./fate/views-dropped.ts";
 import { startPlanDataView } from "./fate/views-start-plan.ts";
-import { bufferDataView, commitPanesDataView } from "./fate/views-buffer.ts";
+import { bufferDataView } from "./fate/views-buffer.ts";
 import { historyDataView } from "./fate/views-history.ts";
 import { ledgerDataView } from "./fate/views-ledger.ts";
 import { folderSuggestionsDataView, repositoriesDataView } from "./fate/views-repositories.ts";
@@ -52,7 +52,6 @@ export {
   branchChangesDataView,
   branchDecisionDataView,
   bufferDataView,
-  commitPanesDataView,
   conflictFileDataView,
   continuedAllDataView,
   proposalFileDataView,
@@ -99,7 +98,6 @@ export {
 export { SETTINGS_ID } from "./fate/settings.ts";
 export { LEDGER_ID } from "./fate/views-ledger.ts";
 export { ALL_BRANCH_CHANGES_ID } from "./fate/views-branch.ts";
-export { COMMIT_PANES_ID } from "./fate/views-buffer.ts";
 export { REPOSITORIES_ID } from "./fate/views-repositories.ts";
 export { WRITE_QUEUE_ID } from "./fate/write-queue.ts";
 export { GIT_ID, gitDiffId } from "./fate/views-git.ts";
@@ -112,8 +110,6 @@ export type AllBranchChanges = Entity<typeof allBranchChangesDataView, "AllBranc
 export type History = Entity<typeof historyDataView, "History">;
 /** A Markdown file under `specs/` in a buffer, by its path. */
 export type Buffer = Entity<typeof bufferDataView, "Buffer">;
-/** The Commit page's panes, a branch's each. */
-export type CommitPanes = Entity<typeof commitPanesDataView, "CommitPanes">;
 export type WorkflowFile = Entity<typeof fileDataView, "WorkflowFile">;
 export type BranchDecision = Entity<typeof branchDecisionDataView, "BranchDecision">;
 export type Priorities = Entity<typeof prioritiesDataView, "Priorities">;

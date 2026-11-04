@@ -129,7 +129,7 @@ function useTypedNote(start?: string | null) {
 
 /**
  * What a note's add reports: the note, and its note file when added as one. It is never committed:
- * commits come from the commit page.
+ * commits come from the Git page.
  */
 export type NoteAdded = {
   file?: string;
@@ -263,7 +263,7 @@ function useCloseGuard({
  * `about`, on a feature's or a change's page, is its folder, which marks the note with its slug. Its
  * text is kept as the page changes and restored as it opens again (`useTypedNote`); closing the
  * overlay asks "Discard your changes?" first when it holds text or images, through `closes`, which
- * the overlay asks. Enter adds, as Add does, its one button: the commit page commits. With
+ * the overlay asks. Enter adds, as Add does, its one button: the Git page commits. With
  * `images`, picked with "Attach an image", dropped, or pasted, and held by the overlay (`picked`),
  * Add becomes "Add as a file".
  */

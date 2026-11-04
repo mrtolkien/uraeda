@@ -75,7 +75,7 @@ import {
   branchChangesDataView,
   sentChanges,
 } from "./views-branch.ts";
-import { bufferSource, commitPanesSource } from "./views-buffer.ts";
+import { bufferSource } from "./views-buffer.ts";
 import { gitSources } from "./views-git.ts";
 import { historyDataView, sentHistory } from "./views-history.ts";
 import { LEDGER_ID, ledgerDataView, sentLedger } from "./views-ledger.ts";
@@ -372,7 +372,6 @@ export const sources = createSources<Context>([
     }),
   ),
   bufferSource,
-  commitPanesSource,
   ...gitSources,
   fileSource(agentDataView, {
     byIds: async (ctx, ids) => (ids.includes(AGENT_ID) ? [agentRecord(ctx)] : []),

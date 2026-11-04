@@ -7,7 +7,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";
 import * as stylex from "@stylexjs/stylex";
 import { type ReactNode, Suspense } from "react";
-import { useInbox, usePriorities } from "../data.ts";
+import { useInbox } from "../data.ts";
 import { useClosedRail } from "../layout/closedRail.ts";
 import { Room } from "../layout/Room.tsx";
 import { Logo } from "../Logo.tsx";
@@ -21,6 +21,7 @@ import { DESTINATIONS } from "../destinations.ts";
 import { AddNoteButton, AddProposalButton } from "../SidebarAdd.tsx";
 import { columnVars } from "./column.stylex.ts";
 import { ShellPane } from "./ShellPanes.tsx";
+import { useGitSummary } from "../git/data.ts";
 
 const styles = stylex.create({
   actions: {
@@ -92,23 +93,32 @@ export function ColumnHeading({
   );
 }
 
+/** The sidebar's Git entry's words: "Git", then the changes to commit and "↓" the commits to pull. */
+export function gitLabel(changes: number, behind: number): string {
+  return [
+    DESTINATIONS.git.label,
+    ...(changes > 0 ? [String(changes)] : []),
+    ...(behind > 0 ? [`↓${behind}`] : []),
+  ].join(" · ");
+}
+
 /**
- * Commit, while something waits for one: the one place the inbox's, the priorities', and the
- * proposal and note files' edits are committed, with what a commit would hold. First, as the thing
- * to do before the rest; an icon alone in the closed rail.
+ * Git, always there, with the count of what waits on the Git page: the changes to commit, then the
+ * commits to pull. First, as the thing to do before the rest; an icon alone in the closed rail.
  */
-function CommitAction({ look }: { look: ActionLook }) {
+function GitAction({ look }: { look: ActionLook }) {
+  const summary = useGitSummary();
+  return <GitButton label={gitLabel(summary?.changes ?? 0, summary?.behind ?? 0)} look={look} />;
+}
+
+function GitButton({ label, look }: { label: string; look: ActionLook }) {
   const here = useRepoPath();
-  const count = usePriorities()?.changes ?? 0;
-  if (count === 0) {
-    return null;
-  }
   return (
     <Button
-      href={here("/commit")}
-      icon={<Icon icon="check" size={look.icon} />}
-      label={`Commit · ${count}`}
-      variant="primary"
+      href={here(DESTINATIONS.git.path)}
+      icon={<Icon icon={DESTINATIONS.git.icon} size={look.icon} />}
+      label={label}
+      variant="secondary"
       xstyle={look.xstyle}
     />
   );
@@ -127,7 +137,7 @@ function useActionLook(isColumn: boolean): ActionLook {
 }
 
 /**
- * `lead` first, as the folded column's Unfold; then Commit, while something waits; then New, which
+ * `lead` first, as the folded column's Unfold; then Git, with what waits; then New, which
  * opens the New page. On the desktop's column, `isColumn`, their icons are the rail's 20 px,
  * which the closed rail shows alone.
  */
@@ -139,16 +149,12 @@ export function ColumnActions({
   lead?: ReactNode;
 }) {
   const look = useActionLook(isColumn);
-  const noSpecs = useNavigation().workspace?.noSpecs;
   return (
     <div {...stylex.props(styles.actions)}>
       {lead}
-      {/* Without specs/, nothing waits for a commit, and the priorities cannot be read. */}
-      {!noSpecs && (
-        <Suspense fallback={null}>
-          <CommitAction look={look} />
-        </Suspense>
-      )}
+      <Suspense fallback={<GitButton label={DESTINATIONS.git.label} look={look} />}>
+        <GitAction look={look} />
+      </Suspense>
       <NewButton look={look} />
     </div>
   );

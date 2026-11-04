@@ -17,7 +17,6 @@ export type Route =
   | { name: string; page: "decision" }
   | { folder: string; name: string; page: "branch-decision" }
   | { page: "constitution" }
-  | { page: "commit" }
   | { page: "git" }
   | { page: "edit"; path: string }
   | { page: "buffer"; path: string }
@@ -94,9 +93,6 @@ export function parseRoute(pathname: string, search = ""): Route {
   if (parts[0] === "f" && parts.length === 4 && parts[2] === "runs") {
     return { folder: parts[1], id: parts[3], page: "run" };
   }
-  if (parts[0] === "commit" && parts.length === 1) {
-    return { page: "commit" };
-  }
   if (parts[0] === "git" && parts.length === 1) {
     return { page: "git" };
   }
@@ -115,6 +111,10 @@ export function parseRoute(pathname: string, search = ""): Route {
   }
   if (parts[0] === "changes" && parts.length === 2 && parts[1] === "new") {
     return { page: "moved", path: "/new?kind=change" };
+  }
+  // The Commit page's address, from before the Git page replaced it.
+  if (parts[0] === "commit" && parts.length === 1) {
+    return { page: "moved", path: "/git" };
   }
   if (parts[0] === "storybook" && parts.length === 1) {
     return { folder: MAIN_CHECKOUT, page: "storybook" };

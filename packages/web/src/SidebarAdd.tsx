@@ -141,7 +141,7 @@ function AddOverlay({
 
 /**
  * The priorities' form: it jots a proposal down at the end of a section of `PRIORITIES.md`, Next by
- * default, at once, uncommitted, for the commit page's Commit. A toast says where it went, with
+ * default, at once, uncommitted, for the Git page's Commit. A toast says where it went, with
  * Undo. Closing it with Close, Back, or Escape keeps its text.
  */
 function ProposalOverlay({

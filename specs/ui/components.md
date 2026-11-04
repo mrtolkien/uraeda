@@ -41,7 +41,6 @@ anything, and a change made to one is made once.
 | A one-line field                           | `fields/TextLine.tsx`; edited in place, `EditableLine.tsx`'s `LineField`                           |
 | A field of several lines                   | `fields/TextField.tsx`, its height by its `kind`, with `useTextField`'s unsaved store              |
 | A file opened as a buffer                  | `buffer/BufferPage.tsx`, its top line `buffer/Bufferline.tsx`, opened by `useBufferKey`            |
-| A branch's pane of the commit page         | `commit/BranchPane.tsx`                                                                            |
 | A comment                                  | `CommentForm.tsx`                                                                                  |
 | A message to the agent                     | `Composer.tsx`                                                                                     |
 | An agent's session: its messages and calls | `SessionView.tsx`, `Transcript.tsx`, `session/ActivityPanel.tsx`, `session/PlanProgress.tsx`       |

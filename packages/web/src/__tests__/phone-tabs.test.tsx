@@ -1,23 +1,31 @@
-// The phone's tabs fit a 375 px phone with Commit showing: Decisions and Settings wait in a `…`,
+// The phone's tabs fit a 375 px phone with Git showing: Decisions and Settings wait in a `…`,
 // whose popover holds them, and which is the current page's tab while one of them is open.
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, test } from "vite-plus/test";
-import { atRepo, atWidth, quiet, renderPage } from "./helpers.tsx";
+import { atRepo, atWidth, fixtureRepo, quiet, renderPage } from "./helpers.tsx";
 
 beforeEach(() => atWidth(375));
 
-/** The phone's tabs, drawn at `path`. */
+/** The phone's tabs, drawn at `path`, with a file changed, so the Git tab shows. */
 async function tabsAt(path: string) {
-  await renderPage(path);
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, "scratch.md"), "A change.\n");
+  await renderPage(path, repo);
   const tabs = await screen.findByRole("navigation", { name: "Tabs" });
   await quiet();
   return tabs;
 }
 
-// Break: Decisions or Settings back in the bar, which makes it nine 44 px controls with Commit, or
+// Break: Decisions or Settings back in the bar, which makes it nine 44 px controls with Git, or
 // left out of the `…`, which leaves them out of reach.
 test("the phone's tabs fold Decisions and Settings into the …, which opens them", async () => {
   const tabs = await tabsAt("/");
+  expect(within(tabs).getByRole("link", { name: /^Git, 1 change/ })).toBeTruthy();
+  // Eight 44 px controls, 352 px, fit the 375 px phone.
+  const controls = within(tabs).getAllByRole("link").length;
+  expect(controls + within(tabs).getAllByRole("button").length).toBeLessThanOrEqual(8);
   expect(within(tabs).queryByRole("link", { name: /^Decisions/ })).toBeNull();
   expect(within(tabs).queryByRole("link", { name: /^Settings/ })).toBeNull();
   const more = within(tabs).getByRole("button", { name: "More" });

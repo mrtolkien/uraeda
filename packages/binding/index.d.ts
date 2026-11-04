@@ -122,18 +122,6 @@ export declare function checkoutCommit(checkout: string): Promise<string | null>
 /** Cleans the merged feature of `folder` as `ura clean` does. */
 export declare function cleanFeature(repo: string, folder: string): Promise<void>
 
-/**
- * Commits the pane of `branch` with `message` as typed, trimmed of the blank lines around it;
- * refused when it is blank.
- */
-export declare function commitBranch(repo: string, branch: string, message: string): Promise<CommitView>
-
-/**
- * The Commit page's panes: the default branch's, then each branch's whose checkout holds files a
- * buffer edited, each with its lines and its suggested message.
- */
-export declare function commitPanes(repo: string): Promise<Array<BranchPane>>
-
 /** Commits the priorities alone. */
 export declare function commitPriorities(repo: string): Promise<Priorities>
 
@@ -164,9 +152,6 @@ export declare function dataDir(custom?: string | undefined | null): string
  * once.
  */
 export declare function deferCommits(repo: string, on: boolean): void
-
-/** Discards the pane of `branch`, the files a buffer edited put back as committed. */
-export declare function discardBranch(repo: string, branch: string): Promise<void>
 
 /** Restores the committed priorities. */
 export declare function discardPriorities(repo: string): Promise<Priorities>
@@ -232,7 +217,7 @@ export declare function expandProposal(repo: string, id: string, previous: strin
 
 /**
  * Repairs the links of the done feature `folder`'s record whose file moved or was deleted since,
- * in the default branch's checkout, without committing: the commit page lists the repair. Returns
+ * in the default branch's checkout, without committing: the Git page lists the repair. Returns
  * the feature read again; rejects a feature not on the default branch.
  */
 export declare function fixLinks(repo: string, folder: string): Promise<FeatureView>
@@ -851,19 +836,6 @@ export interface BranchDecision {
   change: DecisionChange
   /** The branch's version of the file. */
   document: Document
-}
-
-/** One branch's pane: what its commit holds, a line each, and the message suggested for it. */
-export interface BranchPane {
-  branch: string
-  /**
-   * The folder of the feature or change on the branch, as an agent's session names it; none on
-   * the default branch.
-   */
-  folder?: string
-  count: number
-  lines: Array<string>
-  message: string
 }
 
 /** A buffer's file as read: its whole text, frontmatter included, and the branch it is written on. */
@@ -1777,7 +1749,7 @@ export interface Priorities {
   sections: Array<SectionItems>
   /** How many proposals were added, moved, edited, or removed since the last commit. */
   changes: number
-  /** The changes the commit would hold, each as a line: what a commit page shows. */
+  /** The changes the commit would hold, each as a line: what the Git page shows. */
   changeLines: Array<string>
 }
 

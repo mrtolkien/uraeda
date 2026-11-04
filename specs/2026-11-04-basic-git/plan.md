@@ -1247,38 +1247,43 @@ git commit -m "feat(basic-git): fix conflicts in the Git page and the shared edi
 
 - Modify: `packages/web/src/destinations.ts` (`git` in place of `commit`), `keys/leaderTree.ts`
   (`goGitBindings`: `space g` and `g c`), `keys/LeaderKeys.tsx`, `routeTable.ts` (`/commit` as
-  `{page: "moved", path: "/git"}`), `App.tsx`, `shell/ColumnPanes.tsx` (`GitAction`),
+  `{page: "moved", path: "/git"}`), `App.tsx`, `pages.ts`, `shell/ColumnPanes.tsx` (`GitAction`),
   `shell/Tabs.tsx` (`GitTab`), `writes/RefusedHere.tsx` and `writes/CommitToast.tsx` (`/git`),
-  `data.ts` (`rereadChanges`)
+  `data.ts` (`rereadChanges`), `views.ts`, `fields/Confirm.tsx` (`discardChanges` goes); the
+  server's `fate/buffer.ts` (a save sends `GitPage` and `GitSummary`), `live.ts`, `fate.ts`,
+  `fate/views.ts`, `fate/sources.ts`, `fate/mutations.ts`, `fate/views-buffer.ts`; the core's
+  `api/commit_panes.rs`, renamed `api/branch_panes.rs`, keeping the read the lists' count of changes
+  needs, and `actions/changes/panes.rs`, keeping `pane` alone (ruling R27)
 - Delete: `packages/web/src/CommitPage.tsx`, `packages/web/src/commit/`,
-  `packages/server/src/fate/commit-mutations.ts`, the `CommitPanes` view and source,
-  `crates/core/src/api/commit_panes.rs`, `crates/core/src/actions/changes/panes.rs` if nothing else
-  calls it, the binding's `commitPanes`, `commitBranch`, `discardBranch`
+  `packages/server/src/fate/commit-mutations.ts`, the `CommitPanes` view and source, the core's
+  `branch_changes`, `commit_branch`, `discard_branch`, `commit_pane`, `discard_pane`, the binding's
+  `commitPanes`, `commitBranch`, `discardBranch`
 - Test: rewrite `keys-leader-tree.test.tsx`'s two SC-007 tests and `phone-tabs.test.tsx`; delete the
   tests the spec's Replaced behaviour lists
 
 **Interfaces:**
 
 - Consumes: `GitSummary` (task 7), `GitPage()` (task 9).
-- Produces: `DESTINATIONS.git = { icon: "git-branch", label: "Git", path: "/git" }`; the sidebar's
-  `GitAction` always shown, "Git", "Git · 3", "Git · ↓3", or "Git · 3 · ↓3"; the phone's `GitTab`
-  while `changes + behind > 0`.
+- Produces: `DESTINATIONS.git = { icon: "uraeda:git-branch", label: "Git", path: "/git" }`; the
+  sidebar's `GitAction` always shown, "Git", "Git · 3", "Git · ↓3", or "Git · 3 · ↓3"; the phone's
+  `GitTab` while `changes + behind > 0`.
 
-- [ ] **Step 1: Rewrite the tests of the places**
+- [x] **Step 1: Rewrite the tests of the places**
 
 SC-007's two tests list Git among the places, by `space g`; `/commit` leads to `/git`; the phone's
 tabs fit 375 px with the Git tab showing. Delete `branch_commits.rs`'s tests named under the spec's
-Replaced behaviour, `commit-toast.test.tsx`'s three `/commit` tests (task 9 rewrote two), and the
-server's tests of `changes.commit` and `changes.discard` (ruling R6).
+Replaced behaviour, and those that call only the removed commit or discard (ruling R27),
+`commit-toast.test.tsx`'s three `/commit` tests (task 9 rewrote two), and the server's tests of
+`changes.commit` and `changes.discard` (ruling R6).
 
-- [ ] **Step 2: Move the place, and remove the Commit page and its panes**
+- [x] **Step 2: Move the place, and remove the Commit page and its panes**
 
-- [ ] **Step 3: Run the task's validation**
+- [x] **Step 3: Run the task's validation**
 
 - Run: `nix develop -c vp run fast`
 - Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A crates packages specs/2026-11-04-basic-git/plan.md specs/2026-11-04-basic-git/rulings.md

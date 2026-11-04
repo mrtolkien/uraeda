@@ -14,19 +14,19 @@ pub(super) fn section(id: &str) -> Result<Section> {
     Section::from_id(id).ok_or_else(|| refused(format!("no section {id}")))
 }
 
-/// How many changes the Commit page counts, every branch's pane.
+/// How many changes wait for a commit, every branch's.
 pub(super) fn change_count(git: &Git, workspace: &Workspace) -> u32 {
-    super::commit_panes::panes(git, workspace)
+    super::branch_panes::panes(git, workspace)
         .iter()
         .map(|pane| pane.count)
         .sum()
 }
 
-/// The priorities, with the count of the Commit page's changes, every branch's, and the default
+/// The priorities, with the count of the changes waiting for a commit, every branch's, and the default
 /// branch's as lines, without creating a worktree.
 pub fn read_priorities(repo: &Path) -> Result<Priorities> {
     let (git, workspace) = open(repo)?;
-    let panes = super::commit_panes::panes(&git, &workspace);
+    let panes = super::branch_panes::panes(&git, &workspace);
     let lines = panes
         .iter()
         .find(|pane| workspace.default_branch.as_deref() == Some(pane.branch.as_str()))

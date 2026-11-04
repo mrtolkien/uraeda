@@ -2,7 +2,7 @@
 // the center column under its bufferline, the sidebar beside it; the page has no column of its own
 // at the right. Its cursor starts at the file's start, in Vim's normal mode with Vim on, as a file
 // Vim opens. `:w` or Ctrl+Enter saves it on its branch, which the status line names, without
-// committing: the Commit page lists it. `:q`, or `b` outside the text, goes back, the Leave guard
+// committing: the Git page lists it. `:q`, or `b` outside the text, goes back, the Leave guard
 // asking first while the text is not saved. On the phone, the bottom bar holds Back and Save.
 import { VStack } from "@astryxdesign/core/VStack";
 import { spacingVars } from "@astryxdesign/core/theme/tokens.stylex";

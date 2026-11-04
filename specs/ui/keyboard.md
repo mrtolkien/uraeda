@@ -34,10 +34,8 @@ Every view keeps the habits that apply to what it shows; a page adds the ones it
 
 A page's own keys are few, short, and mnemonic: the feature page's `n` for the next step and `s` `S`
 for its sessions, the inbox's `c` to move a note to a category and `p` to promote it, the
-priorities' `e` to expand a proposal into a file and `v` to switch between columns and a list. The
-Commit page's panes, one per branch with changes, take `j` `k` to select one among several, and
-`Enter` and `d` to commit or discard the selected pane, discarding after a yes/no. A page never
-gives a base key another meaning.
+priorities' `e` to expand a proposal into a file and `v` to switch between columns and a list. A
+page never gives a base key another meaning.
 
 ## In a field
 
@@ -64,8 +62,8 @@ Every text field is one editor, with keys of its own that the page never hears.
 `Space b` opens the file the page shows, frontmatter included, as a buffer: the center column holds
 its whole text, under a line naming the file. With Vim mode on, it opens in normal mode at the
 file's start, as Vim opens a file. `:w` or `Ctrl+Enter` saves it, without committing: the edit waits
-on the Commit page. `:q`, or `b` outside the text, goes back, asking first while the text is not
-saved; `:wq` saves, then goes back. `Escape` leaves the text for the page's keys, as in any field.
+on the Git page. `:q`, or `b` outside the text, goes back, asking first while the text is not saved;
+`:wq` saves, then goes back. `Escape` leaves the text for the page's keys, as in any field.
 
 ## Selection
 
