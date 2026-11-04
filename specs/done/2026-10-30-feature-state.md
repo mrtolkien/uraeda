@@ -3,6 +3,7 @@ kind: feature
 finished: 2026-10-31
 pull-request: https://github.com/mrtolkien/uraeda/pull/80
 supersedes: [2026-10-15-add-bugfixing, 2026-10-29-performance-pass]
+superseded-by: [2026-11-03-worker-lifecycle]
 ---
 
 # Record: Feature state pass
@@ -12,6 +13,8 @@ supersedes: [2026-10-15-add-bugfixing, 2026-10-29-performance-pass]
 > The record of a merged feature, not instructions to follow. Started on 2026-10-30, finished on
 > 2026-10-31, in [its pull request](https://github.com/mrtolkien/uraeda/pull/80). Its full files are
 > in git: `git log -- specs/2026-10-30-feature-state/`.
+>
+> Superseded in part by [2026-11-03-worker-lifecycle](2026-11-03-worker-lifecycle.md).
 
 ## What and why
 
@@ -210,4 +213,4 @@ git decision, if they are about the status of a feature".
   Dismiss; a pull request merged and not fetched loses its number on the feature page; the workspace
   record's `running` has no reader left.
 - Resuming runs after a restart, and continuing every stopped agent at once, stay in
-  [Worker lifecycle](../2026-11-03-worker-lifecycle/proposal.md).
+  [Worker lifecycle](2026-11-03-worker-lifecycle.md).

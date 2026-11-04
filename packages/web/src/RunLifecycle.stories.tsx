@@ -1,4 +1,4 @@
-// The worker lifecycle's mockups (`specs/2026-11-03-worker-lifecycle/spec.md`): a run waiting for a
+// The worker lifecycle's mockups (`specs/done/2026-11-03-worker-lifecycle.md`): a run waiting for a
 // usage limit's reset, the lines a run continued by Uraeda leaves in its session, the run that
 // reached the cap on automatic continues, home's panes with a waiting run and Continue all, and
 // the Runs settings' new rows. Built from the real components over fixed text, with no server: the

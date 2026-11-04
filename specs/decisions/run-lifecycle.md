@@ -32,7 +32,7 @@ A run that stops for something outside the work, a restart, a limit, or an early
 until the human notices, often overnight. Continuing it keeps the workflow asynchronous. Continuing
 without a cap could loop and spend usage, so the human sets one. A run that polls cannot read the
 human's messages, and its waits outlive the work. History:
-[Worker lifecycle](../2026-11-03-worker-lifecycle/spec.md).
+[Worker lifecycle](../done/2026-11-03-worker-lifecycle.md).
 
 ## Alternatives considered
 
