@@ -34,6 +34,12 @@ test("code and keys, and so every text field, default to a standard monospace fo
   expect(style()).toMatch(/font-family-code: "JetBrains Mono Variable"/);
 });
 
+// Break: the human's sent messages back in Radon, Monaspace's handwriting face.
+test("the human's messages default to the interface's font, Monaspace Neon", () => {
+  const style = rootStyle();
+  expect(style()).toMatch(/font-family-human: "Monaspace Neon"/);
+});
+
 test("the fonts picked before the app draws are on its root from its first draw", () => {
   const inter = FONTS.find((font) => font.id === "inter")!;
   window.localStorage.setItem(KEY, JSON.stringify({ reading: "inter" }));
