@@ -1,5 +1,5 @@
 // The ＋ forms of the priorities and the inbox, with Add, the primary button and Enter's, which
-// adds the line uncommitted, for the commit page's Commit. A dialog on wide screens, a sheet on
+// adds the line uncommitted, for the Git page's Commit. A dialog on wide screens, a sheet on
 // narrow ones, over the fixture repository's real priorities and inbox, through fate.
 import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactNode } from "react";

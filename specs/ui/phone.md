@@ -56,10 +56,7 @@ What goes in it, in this order:
 
 A page with one main action has a bar of it alone, in the accent: the draft editor's Start, which
 opens the Start pane as a sheet, the slug focused; the inbox's and the priorities' Add, which opens
-their add form, as the sidebar's ＋ does. The commit page has two, while one branch has changes:
-Discard on the left, which asks first, and Commit, a save icon, in the accent on the right; the
-page's own buttons leave it. With two branches or more, each pane keeps its own Commit and Discard,
-and the bar holds none. A buffer's bar holds Back and Save.
+their add form, as the sidebar's ＋ does. A buffer's bar holds Back and Save.
 
 What does not go in it: words, keys, counts written out (a tile's label says them to screen
 readers), a page's content, and anything the page already shows in reach.

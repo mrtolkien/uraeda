@@ -8,7 +8,6 @@ import { startMutations } from "./starts.ts";
 import { sendMutations } from "./send-mutations.ts";
 import { writesMutations } from "./writes-mutations.ts";
 import { bufferMutations } from "./buffer.ts";
-import { commitMutations } from "./commit-mutations.ts";
 import { gitMutations } from "./git-mutations.ts";
 import { callSiteError, refusable } from "./errors.ts";
 import { previewDataView, restartPreview } from "./preview.ts";
@@ -34,7 +33,6 @@ const repositoryMutations = {
   ...sendMutations,
   ...writesMutations,
   ...bufferMutations,
-  ...commitMutations,
   ...gitMutations,
   "item.settings": {
     resolve: async ({

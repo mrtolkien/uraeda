@@ -43,16 +43,18 @@ export function goNewBinding(go: (path: string) => void): Binding {
 }
 
 /**
- * `g c`: the commit page, as the go keys' one more place. Not one of `PLACES`: `Space c` is
- * Continue's, so only the go keys can take `c` for the page.
+ * `Space g` and `g c`: the Git page. Not one of `PLACES`: `Space c` is Continue's and `g g` the
+ * top of a list, so the leader takes `g` for it and the go keys `c`, as for the Commit page it
+ * replaced.
  */
-export function goCommitBinding(go: (path: string) => void): Binding {
-  return {
-    icon: DESTINATIONS.commit.icon,
-    keys: "g c",
-    label: DESTINATIONS.commit.label,
-    run: () => go(DESTINATIONS.commit.path),
-  };
+export function goGitBindings(go: (path: string) => void): Array<Binding> {
+  const git = DESTINATIONS.git;
+  return ["space g", "g c"].map((keys) => ({
+    icon: git.icon,
+    keys,
+    label: git.label,
+    run: () => go(git.path),
+  }));
 }
 
 /** The kinds `Space f` finds, by their key, as the picker's sources name them. */

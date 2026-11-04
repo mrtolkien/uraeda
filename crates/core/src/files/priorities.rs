@@ -188,7 +188,7 @@ pub struct Priorities {
     pub sections: Vec<SectionItems>,
     /// How many proposals were added, moved, edited, or removed since the last commit.
     pub changes: u32,
-    /// The changes the commit would hold, each as a line: what a commit page shows.
+    /// The changes the commit would hold, each as a line: what the Git page shows.
     pub change_lines: Vec<String>,
 }
 

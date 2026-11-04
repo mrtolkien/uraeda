@@ -21,7 +21,7 @@ export type StartStep = {
 /**
  * Why a refused write did not land: `hook`, a hook refused its commit, and the core undid its
  * files; `failed`, anything else, a staging failure, a commit the core no longer holds after a
- * restart, other files staged: its files are left written, uncommitted, listed on the commit page.
+ * restart, other files staged: its files are left written, uncommitted, listed on the Git page.
  * `unsent` is no commit: messages kept for a feature's commits or start, which landed, that could
  * not be sent, their text in `queued` for the composer.
  */

@@ -63,7 +63,7 @@ export const Refused: Story = {
 
 /**
  * The commit failed for another reason than a hook, here git's lock: the approval stays written,
- * not committed, on the feature's branch, which the commit page does not list: Open leads to its
+ * not committed, on the feature's branch: Open leads to its
  * page's Try again.
  */
 export const Failed: Story = {

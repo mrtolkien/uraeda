@@ -96,44 +96,9 @@ test.each([
   await server.sessions.settled(Number((session.turns as Array<Data>).at(-1)));
 });
 
-// Break caught: a feature pane's commit on the Commit page that skips the refusal while its agent
-// works, committing the buffer's edits under it.
-test("a feature pane is refused while its agent works", async () => {
-  const server = await testServer();
-  const folder = "2026-10-16-centred-x";
-  const branch = `change/${folder}`;
-  const path = `specs/changes/${folder}/proposal.md`;
-  addChange(server.repo, folder, { "proposal.md": "# Centre\n" });
-  const [before] = await byId(server.app, "Buffer", [path], ["id", "hash"]);
-  const saved = await mutate(
-    server.app,
-    "buffer.save",
-    { hash: before.hash, path, text: "# Centre\n\nMore.\n" },
-    ["id"],
-  );
-  expect(saved.error).toBeUndefined();
-  const [commit] = await byId(server.app, "CommitPanes", ["commit"], ["id", "panes"]);
-  expect(commit.panes).toMatchObject([{ branch, folder, lines: ["- Edit proposal.md"] }]);
-  const tip = git(server.repo, "rev-parse", branch);
-  const session = await send(server, folder);
-
-  const refused = await mutate(
-    server.app,
-    "changes.commit",
-    { branch, message: "chore: centre the x" },
-    ["id"],
-  );
-
-  expect(refused.error).toEqual(REFUSED);
-  expect(git(server.repo, "rev-parse", branch)).toBe(tip);
-  await server.sessions.mainRoot(server.repo);
-  server.sessions.stop(server.repo, session.id as string);
-  await server.sessions.settled(Number((session.turns as Array<Data>).at(-1)));
-});
-
 // Break caught: a decision saved in a buffer on the default branch, which the core's watcher sends
-// no list's update for, missing from an open Commit page and from the sidebar's count.
-test("a buffer's save sends the Commit page's panes and the count", async () => {
+// no list's update for, missing from an open Git page and from the sidebar's count.
+test("a buffer's save sends the Git page and the count", async () => {
   const server = await testServer();
   const host = server.hosts.get(server.name)!;
   const path = "specs/decisions/git.md";
@@ -148,7 +113,8 @@ test("a buffer's save sends the Commit page's panes and the count", async () => 
   );
 
   expect(saved.error).toBeUndefined();
-  expect(update).toHaveBeenCalledWith("CommitPanes", "commit", expect.anything());
+  expect(update).toHaveBeenCalledWith("GitPage", "git", expect.anything());
+  expect(update).toHaveBeenCalledWith("GitSummary", "git", expect.anything());
   expect(update).toHaveBeenCalledWith("Priorities", "priorities", expect.anything());
   expect(update).toHaveBeenCalledWith("Inbox", "inbox", expect.anything());
 });

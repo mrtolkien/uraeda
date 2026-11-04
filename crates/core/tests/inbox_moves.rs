@@ -1143,7 +1143,7 @@ fn a_note_whose_marks_end_its_first_line_moves_as_one_line() {
     ));
 }
 
-/// US1, US4 2: a file whose change is links alone waits on the commit page as a repair, committed
+/// US1, US4 2: a file whose change is links alone waits on the Git page as a repair, committed
 /// and discarded with the list; a human's edit of another file is not a repair.
 #[test]
 fn a_repair_waits_on_the_commit_page() {

@@ -2,7 +2,7 @@
 //! git folder, so each worktree has its own record, one path from the top level per line, with the
 //! id its last commit had for the file at the save. A commit of the file by any route, which
 //! changes that id, ends its record: an agent's later edit of it is not the human's. Losing the
-//! record only turns a buffer's edits back into the lines the Commit page reads from the files.
+//! record only turns a buffer's edits back into the lines the Git page reads from the files.
 
 use std::collections::BTreeMap;
 use std::fs;

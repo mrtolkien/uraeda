@@ -1,6 +1,8 @@
 // The leader's tree (US1 top level, SC-001, SC-007): every top-level page is reached in at most
 // three presses from the home, the place entries are the destinations' own icon and label, and the
 // New, Find, and UI groups run what their buttons do.
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { addChange } from "uraeda-binding/test-utils";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
@@ -29,6 +31,15 @@ async function atHome(navigation = "Navigation") {
   await quiet();
 }
 
+/** The home of a repository with a file changed, so the phone's Git tab shows. */
+async function atChanged(navigation: string) {
+  const repo = fixtureRepo();
+  writeFileSync(join(repo, "README.md"), "Changed.\n");
+  await renderPage("/", repo);
+  await screen.findByRole("navigation", { name: navigation });
+  await quiet();
+}
+
 /** Back to the home, from wherever a test went. */
 async function home() {
   await act(async () => navigate(atRepo("/")));
@@ -44,6 +55,8 @@ test("each page of the top level opens in at most three presses from the home (S
     [[" ", "d"], "/decisions"],
     [[" ", "s"], "/sessions"],
     [[" ", ","], "/settings"],
+    [[" ", "g"], "/git"],
+    [["g", "c"], "/git"],
     [[" ", "n", "s"], "/new"],
     [[" ", "n", "c"], "/new"],
     [[" ", "n", "f"], "/new"],
@@ -224,21 +237,22 @@ function expectPlaces(menu: HTMLElement, nav: HTMLElement, places: Array<{ label
 // Break: a place entry with an icon or a label of its own.
 test("the menu's place entries draw the icon and label of the navigation column's links (SC-007)", async () => {
   await atHome();
-  const { decisions, home, inbox, priorities, settings } = DESTINATIONS;
+  const { decisions, git, home, inbox, priorities, settings } = DESTINATIONS;
   const nav = screen.getByRole("navigation", { name: "Navigation" });
   const menu = menuAfter(" ");
-  expectPlaces(menu, nav, [decisions, home, inbox, priorities, settings]);
+  expectPlaces(menu, nav, [decisions, git, home, inbox, priorities, settings]);
   press("Escape");
-  // `g`'s menu names the same places the same way.
-  expectPlaces(menuAfter("g"), nav, [decisions, home, inbox, priorities, settings]);
+  // `g`'s menu names the same places the same way, Git by `g c`.
+  expectPlaces(menuAfter("g"), nav, [decisions, git, home, inbox, priorities, settings]);
 });
 
 // Break: a place entry with an icon or a label of its own.
 test("the menu's place entries draw the icon and label of the phone's tabs too (SC-007)", async () => {
   atWidth(402);
-  await atHome("Tabs");
-  const { home, inbox, priorities, sessions } = DESTINATIONS;
+  await atChanged("Tabs");
+  const { git, home, inbox, priorities, sessions } = DESTINATIONS;
   expectPlaces(menuAfter(" "), screen.getByRole("navigation", { name: "Tabs" }), [
+    git,
     home,
     inbox,
     priorities,
@@ -257,9 +271,10 @@ function expectLinks(nav: HTMLElement, places: Array<{ label: string }>) {
 
 test("the navigation column names its places as the menu does (SC-007)", async () => {
   await atHome();
-  const { decisions, home, inbox, priorities, settings } = DESTINATIONS;
+  const { decisions, git, home, inbox, priorities, settings } = DESTINATIONS;
   expectLinks(screen.getByRole("navigation", { name: "Navigation" }), [
     decisions,
+    git,
     home,
     inbox,
     priorities,
@@ -269,9 +284,10 @@ test("the navigation column names its places as the menu does (SC-007)", async (
 
 test("the phone's tabs name theirs as the menu does (SC-007)", async () => {
   atWidth(402);
-  await atHome("Tabs");
-  const { home, inbox, priorities, sessions } = DESTINATIONS;
+  await atChanged("Tabs");
+  const { git, home, inbox, priorities, sessions } = DESTINATIONS;
   expectLinks(screen.getByRole("navigation", { name: "Tabs" }), [
+    git,
     home,
     inbox,
     priorities,

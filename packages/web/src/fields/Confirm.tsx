@@ -40,19 +40,6 @@ export type ConfirmOptions<T extends string = never> = {
   title: string;
 };
 
-/** What the commit page's Discard asks: `count` changes waiting for a commit are written back. */
-export function discardChanges(count: number): ConfirmOptions {
-  return {
-    body: `${count === 1 ? "The change" : `The ${count} changes`} waiting for a commit will be discarded.`,
-    cancel: "Keep them",
-    confirm: "Discard them",
-    // `d d` discards, as `y` does.
-    confirmKey: "d",
-    destructive: true,
-    title: "Discard these changes?",
-  };
-}
-
 /** What `d` asks on a line of a list, before it deletes it; `d` or `y` deletes, `n` keeps. */
 export function deleteLine(text: string): ConfirmOptions {
   return {

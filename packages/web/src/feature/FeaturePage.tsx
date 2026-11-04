@@ -229,7 +229,7 @@ function FeatureTitle({ done, feature }: { done: boolean; feature: FeatureData }
 
 /**
  * The check's notes; for a done feature, read from the default branch, with "Fix moved links",
- * which rewrites its record's moved links, uncommitted, for the commit page; why it was refused
+ * which rewrites its record's moved links, uncommitted, for the Git page; why it was refused
  * shows under them until dismissed.
  */
 function FeatureNotes({ feature }: { feature: FeatureData }) {
@@ -245,7 +245,7 @@ function FeatureNotes({ feature }: { feature: FeatureData }) {
       setRefused(refusal(result.error).message);
       return;
     }
-    // The commit page's count of changes now holds the repair.
+    // The Git page's count of changes now holds the repair.
     rereadChanges(fate);
   };
   return (

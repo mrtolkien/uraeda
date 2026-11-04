@@ -413,39 +413,6 @@ test("US6: an image the core refuses adds nothing", async () => {
   expect(existsSync(join(repo, "specs/notes/headings-are-flat"))).toBe(false);
 });
 
-test("US2 7: the commit bar commits the inbox's changes", async () => {
-  const repo = fixtureRepo();
-  const { app, hosts, name } = await testApp(repo);
-  const { hash } = await readInbox(app);
-  await mutate(app, "inbox.add", { hash, text: "A note to commit" }, ["id"]);
-
-  const [commit] = await byId(app, "CommitPanes", ["commit"], ["id", "panes"]);
-  const [{ branch, message }] = commit.panes as Array<{ branch: string; message: string }>;
-
-  const committed = await mutate(app, "changes.commit", { branch, message }, ["id", "changes"]);
-
-  // The commit answers once its files are written, and lands in the write queue behind it.
-  expect(committed.data.id).toBe("priorities");
-  await hosts.get(name)!.queue.idle();
-  expect((await readInbox(app)).changes).toBe(0);
-  expect(git(repo, "log", "-1", "--format=%s").trim()).toBe(
-    'chore: add "A note to commit" to the inbox',
-  );
-});
-
-test("the commit bar's Discard restores the inbox", async () => {
-  const repo = fixtureRepo();
-  const { app } = await testApp(repo);
-  const before = read(repo, "specs/INBOX.md");
-  const { hash } = await readInbox(app);
-  await mutate(app, "inbox.add", { hash, text: "A note to discard" }, ["id"]);
-
-  const discarded = await mutate(app, "changes.discard", { branch: "main" }, ["id", "changes"]);
-
-  expect(discarded.data.changes).toBe(0);
-  expect(read(repo, "specs/INBOX.md")).toBe(before);
-});
-
 test("the triage is missing until an agent writes it", async () => {
   const [file] = await byId((await testApp()).app, "WorkflowFile", ["inbox-triage"], FILE);
 

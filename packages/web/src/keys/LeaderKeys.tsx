@@ -20,7 +20,7 @@ import { useKeyPicker } from "./KeyPicker.tsx";
 import { useKeyMap } from "./KeyMap.tsx";
 import {
   findBindings,
-  goCommitBinding,
+  goGitBindings,
   goNewBinding,
   newBindings,
   placeBindings,
@@ -46,7 +46,7 @@ export function LeaderKeys() {
     ...placeBindings("space", navigateHere),
     ...placeBindings("g", navigateHere),
     goNewBinding(navigateHere),
-    goCommitBinding(navigateHere),
+    ...goGitBindings(navigateHere),
     ...findBindings(picker.open),
     ...newBindings(navigateHere, openForm),
     continuing,

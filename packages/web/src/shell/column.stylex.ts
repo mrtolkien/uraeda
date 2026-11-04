@@ -21,7 +21,7 @@ export const columnVars = stylex.defineVars({
   "--rail-frame-pull": "4px",
   // How far a pane's separator runs past the rail's edges, so it spans the whole rail.
   "--rail-separator-reach": "40px",
-  // Commit's and New's icon, from their 38 px box's edge, under the rows' icons.
+  // Git's and New's icon, from their 38 px box's edge, under the rows' icons.
   "--rail-fit-inset": "11.5px",
   // A column's pane action's icon, nudged past the room before it to stand under the rows'.
   "--column-action-nudge": "4.6px",

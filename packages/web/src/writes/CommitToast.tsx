@@ -2,7 +2,7 @@
 // one running, with what it does, then the ones waiting their turn. The page already shows each
 // write's result: the toast says only that it is still landing in git. A write refused stays until
 // it is opened or dismissed, its output under it, as its page also shows: a hook's refusal put its
-// files back, any other failure left them written, for the commit page. On the phone, it spans the
+// files back, any other failure left them written, for the Git page. On the phone, it spans the
 // screen's width over the bottom bar.
 import { Button } from "@astryxdesign/core/Button";
 import { HStack } from "@astryxdesign/core/HStack";
@@ -25,7 +25,7 @@ import { REFUSED_ID, useDismissWrite, useWriteQueue } from "./useWriteQueue.ts";
 export type QueuedWrite = {
   /** Once refused, why: a hook refused it, its files put back, or it failed, its files left. */
   failure?: WriteFailure;
-  /** The feature's file it wrote, which the commit page never lists. */
+  /** The feature's file it wrote, whose page tries it again. */
   file?: string;
   folder?: string;
   id: string;
@@ -67,8 +67,8 @@ const styles = stylex.create({
 });
 
 /**
- * Why a refused write did not land, and what it left: a failure points to the commit page, or, for
- * a feature's file, which the commit page never lists, to its page's Try again.
+ * Why a refused write did not land, and what it left: a failure points to the Git page, or, for a
+ * feature's file, to its page's Try again.
  */
 function RefusalText({ commitHref, write }: { commitHref?: string; write: QueuedWrite }) {
   if (write.failure === "unsent") {
@@ -89,7 +89,7 @@ function RefusalText({ commitHref, write }: { commitHref?: string; write: Queued
         <>
           {" The "}
           <Link hasUnderline href={commitHref}>
-            commit page
+            Git page
           </Link>
           {" lists it."}
         </>
@@ -146,13 +146,13 @@ function Row({
  * running one first. Nothing when there are none.
  */
 export function CommitToastView({
-  commitHref = "/commit",
+  commitHref = "/git",
   isNarrow = false,
   onDismiss,
   onOpen,
   writes,
 }: {
-  /** The commit page's address, which a failed write's row links. */
+  /** The Git page's address, which a failed write's row links. */
   commitHref?: string;
   /** Whether the screen is a phone's: the toast spans its width. */
   isNarrow?: boolean;
@@ -218,7 +218,7 @@ export function CommitToast() {
   };
   return (
     <CommitToastView
-      commitHref={here("/commit")}
+      commitHref={here("/git")}
       isNarrow={narrow}
       onDismiss={(id) => void dismiss(id)}
       onOpen={open}

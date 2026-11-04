@@ -8,7 +8,6 @@ import {
   AgentView,
   BranchChangesView,
   BranchDecisionView,
-  CommitPanesView,
   ProposalFileTextView,
   ProposalFileView,
   FeatureView,
@@ -40,7 +39,6 @@ export const WORKSPACE_ID = "workspace";
 export const PRIORITIES_ID = "priorities";
 export const INBOX_ID = "inbox";
 export const LEDGER_ID = "ledger";
-export const COMMIT_PANES_ID = "commit";
 const AGENT_ID = "agent";
 const PROPOSAL_HINTS_ID = "proposal";
 const REPOSITORIES_ID = "repositories";
@@ -191,15 +189,14 @@ export async function readInbox(
 }
 
 /**
- * The count of changes waiting for a commit, which `Inbox` and `Priorities` both carry and the
- * commit tab shows, read again with both files and the Commit page's panes after a change of the
- * other, like a move across them, a commit, or a discard.
+ * The count of changes waiting for a commit, which `Inbox` and `Priorities` both carry, read again
+ * with both files after a change of the other, like a move across them, a commit, or a discard. The
+ * Git page's count comes with the server's live updates.
  */
 export function rereadChanges(fate: ReturnType<typeof useFateClient>) {
   void fate
     .request(
       {
-        commitPanes: { id: COMMIT_PANES_ID, view: CommitPanesView },
         inbox: { id: INBOX_ID, view: InboxView },
         priorities: { id: PRIORITIES_ID, view: PrioritiesView },
       },

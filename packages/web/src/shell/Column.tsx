@@ -1,4 +1,4 @@
-// The shell's column, on semi-wide and wide screens: its heading, Commit and New, then the panes,
+// The shell's column, on semi-wide and wide screens: its heading, Git and New, then the panes,
 // Navigate and the work, and at its foot the 5 h window and Settings. Wide, it is 14% of the window
 // until its edge is dragged, folds to its 52 px rail with `[` or `Space u [`, and unfolds with
 // them or its rail's Unfold, its width easing over 200 ms; semi-wide, it is the rail, which opens

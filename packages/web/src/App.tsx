@@ -52,7 +52,6 @@ import {
   BranchDecisionPage,
   BufferPage,
   CheckPage,
-  CommitPage,
   GitPage,
   DecisionsPage,
   EditorPage,
@@ -169,8 +168,6 @@ function RoutePage({ route }: { route: Route }) {
       return <LedgerRoute open={{ kind: "decision", name: route.name }} />;
     case "constitution":
       return <LedgerRoute open={{ kind: "constitution" }} />;
-    case "commit":
-      return <CommitPage />;
     case "git":
       return <GitPage />;
     case "edit":
@@ -291,7 +288,7 @@ function RunRedirect({ folder, id }: { folder: string; id: string }) {
 }
 
 /**
- * An address from before sessions: the same page at its new one, with its query and its hash. The
+ * An address from before sessions, or the Commit page's: the same page at its new one, with its query and its hash. The
  * new address's own query comes first, and wins over a parameter of the same name.
  */
 function Moved({ path }: { path: string }) {

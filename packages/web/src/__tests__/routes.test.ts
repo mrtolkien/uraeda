@@ -30,6 +30,9 @@ test.each([
     "/f/2026-10-17-spec-page/decisions/task-storage",
     { folder: "2026-10-17-spec-page", name: "task-storage", page: "branch-decision" },
   ],
+  // US1 more 6: the Commit page's address leads to the Git page.
+  ["/git", { page: "git" }],
+  ["/commit", { page: "moved", path: "/git" }],
 ])("parseRoute(%s)", (path, route) => expect(parseRoute(path)).toEqual(route));
 
 /** US3: the New page's kind is in its query, Session when it names none or another. */

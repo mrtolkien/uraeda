@@ -212,7 +212,7 @@ export const sessionMoves = {
   "feature.fixLinks": {
     resolve: async ({ ctx, input, select }: Resolver<{ folder: string }>) => {
       // It commits nothing, but writes the default branch's files: in the queue's turn, so a
-      // commit of the commit page or the lists never takes the record half written.
+      // commit of the Git page or the lists never takes the record half written.
       const { folder } = input;
       const feature = await queued(
         ctx,

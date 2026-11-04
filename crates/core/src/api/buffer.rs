@@ -1,6 +1,6 @@
 //! A buffer: any Markdown file under `specs/`, read whole and saved as typed, never committed. A
 //! feature's or a change's file, at any depth of its folder, is written on its branch; any other on
-//! the default branch. Each save is recorded beside the checkout it wrote, for the Commit page.
+//! the default branch. Each save is recorded beside the checkout it wrote, for the Git page.
 
 use std::path::{Component, Path, PathBuf};
 
@@ -69,7 +69,7 @@ fn inside(root: &Path, path: &str) -> Result<()> {
 }
 
 /// The feature or change whose branch is `branch`, finished or not: the one a buffer's file of its
-/// folder is written for, and whose pane on the Commit page commits it.
+/// folder is written for, and whose group on the Git page commits it.
 pub(super) fn branch_owner<'a>(
     workspace: &'a Workspace,
     branch: &str,
