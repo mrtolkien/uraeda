@@ -7,6 +7,7 @@
 > Still wanted for my personal usage
 
 - [In vim mode, visual mode seems to be working properly... except selected text…](/specs/changes/2026-11-04-vim-mode/proposal.md)
+- [Reading long responses is not comfortable because the composer always stays…](/specs/changes/2026-11-04-reading-long/proposal.md)
 
 - Review the UI guidelines properly
 
