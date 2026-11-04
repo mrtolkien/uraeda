@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { EditorView } from "@codemirror/view";
-import { getCM } from "@replit/codemirror-vim";
+import { getCM, Vim } from "@replit/codemirror-vim";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { modeNow } from "../fields/editor/modeStore.ts";
@@ -203,6 +203,26 @@ test("visual mode's selection is drawn, as the engine hides the browser's", asyn
   expect(view.state.selection.main.empty).toBe(false);
   // Breaks if nothing draws CodeMirror's own selection, whose layer the engine's look relies on.
   expect(view.dom.querySelector(".cm-selectionLayer")).not.toBeNull();
+});
+
+test("visual block mode selects a block, one range a line", async () => {
+  const { field } = await roundPage();
+  await focus(field);
+  await type(field, "first line\nsecond line");
+
+  await keys(field, "<Esc>k0");
+  const view = EditorView.findFromDOM(field)!;
+  await act(async () => {
+    Vim.handleKey(getCM(view)!, "<C-v>", "user");
+  });
+  await keys(field, "jl");
+
+  await waitFor(() => expect(mode()).toBe("visual-block"));
+  // Breaks if the editor keeps only the main range, as CodeMirror does unless told otherwise.
+  expect(view.state.selection.ranges.map(({ from, to }) => view.state.sliceDoc(from, to))).toEqual([
+    "fi",
+    "se",
+  ]);
 });
 
 test("a yank reaches the clipboard", async () => {
