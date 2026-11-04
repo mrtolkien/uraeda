@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { temporaryFolder } from "uraeda-binding/test-utils";
 import { expect, test, vi } from "vite-plus/test";
 import { GIT_ID } from "../fate.ts";
+import type { RepoContext } from "../fate/context.ts";
+import { gitMutations } from "../fate/git-mutations.ts";
 import type { QueuedWrite } from "../writes/queue.ts";
 import { heldHook } from "./held-hook.ts";
 import {
@@ -212,4 +214,41 @@ test("a list's commit waits for the main checkout's git write", async () => {
   await priorities;
   await queue.idle();
   expect(committed).toEqual(["priorities"]);
+});
+
+// Review I2. Break caught: the guard awaited before the write is queued, so a commit whose guard
+// answers first lands before the staging asked for before it, and commits nothing.
+test("the page's writes are queued in the order they came", async () => {
+  const server = await testServer();
+  writeFileSync(join(server.repo, "notes.txt"), "a note\n");
+  const root = await server.sessions.mainRoot(server.repo);
+  // The first guard's read of the main checkout answers late, as an uncached read does.
+  const late = Promise.withResolvers<string>();
+  let reads = 0;
+  const sessions = {
+    chatWorking: (repo: string) => server.sessions.chatWorking(repo),
+    mainRoot: () => (++reads === 1 ? late.promise : Promise.resolve(root)),
+    working: (repo: string) => server.sessions.working(repo),
+  };
+  const ctx = { ...server, binding, sessions } as unknown as RepoContext;
+
+  const staging = gitMutations["git.stage"].resolve({
+    ctx,
+    input: { folder: null, paths: ["notes.txt"] },
+    select: ["id"],
+  });
+  const committing = gitMutations["git.commit"].resolve({
+    ctx,
+    input: { folder: null, message: "Notes" },
+    select: ["id"],
+  });
+  // Every guard that could answer has: only the first read is still out.
+  await new Promise((resolve) => setImmediate(resolve));
+  late.resolve(root);
+
+  const settled = await Promise.allSettled([staging, committing]);
+  expect(settled.map(({ status }) => status)).toEqual(["fulfilled", "fulfilled"]);
+  expect(git(server.repo, "show", "--name-only", "--format=%s", "HEAD")).toBe(
+    "Notes\n\nnotes.txt\n",
+  );
 });

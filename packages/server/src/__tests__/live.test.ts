@@ -373,6 +373,19 @@ test("SC-002: items are published at most every 250 ms", () => {
   ]);
 });
 
+// Review of wave 5: a turn queued behind another of its worktree counts as working for the guard
+// (`LiveSessions.working`), and the runner reports it with its state, `queued`.
+test("a queued turn sends the Git page, whose writes it refuses", () => {
+  const { cache, session, turn } = sessionWithItems(0);
+  const host = hostAt("/repo");
+  const sent = published(host.live);
+  const publish = sessionPublisher(cache, binding, hostsOf(host));
+
+  publish({ folder: null, repo: "/repo", session, state: "queued", turn });
+
+  expect(sent()).toEqual(expect.arrayContaining(["GitPage git", "GitSummary git"]));
+});
+
 test("US3.4: a sub-agent that starts or ends is published to the list", () => {
   vi.useFakeTimers();
   const { cache, session, turn } = sessionWithItems(0);

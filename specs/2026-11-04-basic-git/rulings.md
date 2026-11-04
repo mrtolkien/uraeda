@@ -377,3 +377,23 @@ The low-impact choices made while planning and building [the plan](plan.md), ins
   page; a test of a removed function guards nothing; the save's live update still guards the
   sidebar's count after a decision saved on the default branch.
 - **Where**: task 11.
+
+## R28: A fetch stops after 2 minutes, and the page's writes queue in the order they came
+
+- **Decision**: `Git::fetch` runs git in a process group of its own, through
+  `process::git_write_within`, and past `FETCH_DEADLINE`, 2 minutes, stops the whole group, failing
+  "git fetch failed: origin gave no answer in 2 minutes, so the fetch was stopped."; the core
+  depends on `libc` on unix for that stop. `Git::fetch_within` takes the deadline, as the test's
+  second. The page's writes run their checks before the queueing, the guard and the removal's read
+  of its feature, in `WriteQueue.arrive`, one after another in the order the calls came, each queued
+  before the next one's checks start; the web's commit waits for its group's staging writes still
+  answering. A refusal by the guard before the queueing still never reaches the record.
+- **Rationale**: a fetch on a remote that never answers, as a hung ssh connection, held the queue's
+  tail, and every write behind it, forever; git alone stopped leaves ssh, or the remote's
+  upload-pack, holding its output, so the stop must reach what it started; the user's http and ssh
+  configuration stay as they are. A guard waits on a read of the main checkout, uncached the first
+  time, so a commit made just after a staging could be queued first, and commit nothing; queueing
+  first and guarding only at the landing would put every agent's refusal in the toast.
+- **If wrong**: a fetch over a slow link that needs more than 2 minutes always fails; a slow check,
+  as the removal's read of the page, holds the next write's queueing.
+- **Where**: tasks 3 and 7, after the review of tasks 8 and 9.

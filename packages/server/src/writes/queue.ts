@@ -86,6 +86,8 @@ export class WriteQueue {
   #calls: Promise<void> = Promise.resolve();
   /** The last landing queued: the next one starts once it settles. */
   #tail: Promise<void> = Promise.resolve();
+  /** The last write's arrival: the next one's checks start once it is queued or refused. */
+  #arrivals: Promise<void> = Promise.resolve();
   #next = 0;
 
   /**
@@ -162,6 +164,21 @@ export class WriteQueue {
       () => {},
     );
     return landed;
+  }
+
+  /**
+   * Runs `arrive`, a write's checks before it is queued and its queueing, once those of the writes
+   * that came before it ran, so writes whose checks wait, as on a read of the checkout, are queued
+   * in the order they came. `arrive` must not wait for its landing: the next write's checks wait
+   * for it.
+   */
+  arrive<T>(arrive: () => Promise<T>): Promise<T> {
+    const arrived = this.#arrivals.then(arrive);
+    this.#arrivals = arrived.then(
+      () => {},
+      () => {},
+    );
+    return arrived;
   }
 
   /** `enqueue`, answering the write's id in the record too, which `update` takes. */

@@ -1,6 +1,6 @@
 // The Git page's writes. Each is refused while an agent works in its checkout (`git-guard.ts`), as
 // it is queued and again as it lands, in the repository's write queue, after the writes made
-// before it, named by its `write` input, git's output streamed into the queue's record for the
+// before it, in the order they came though their checks wait (`WriteQueue.arrive`), named by its `write` input, git's output streamed into the queue's record for the
 // toast. It answers once it landed, with the page; a refusal stays in the record and answers the
 // call too. After each, landed or refused, the page and the sidebar's count are sent again.
 import { publishGit } from "../live.ts";
@@ -41,31 +41,51 @@ const page = async ({ ctx, select }: Resolver<unknown>) =>
   sources.masked(gitPageDataView, ctx, await gitPage(ctx), select);
 
 /**
- * Runs `land` as a write of the repository's queue once `guard` lets it, `guard` checked again as
- * it lands: an agent may have started meanwhile. Its refusal then stays in the record. It answers
- * with the page masked to `select`. Without a host, it lands at once.
+ * Runs `step`, a write's checks and its queueing, after those of the page's writes that came before
+ * it: see `WriteQueue.arrive`. Without a host, at once.
  */
-async function gitWrite(
-  args: Resolver<unknown>,
-  guard: () => Promise<void>,
-  write: NewWrite & { keys: Array<string> },
-  land: Land,
-) {
+function arriving<T>(ctx: RepoContext, step: () => Promise<T>): Promise<T> {
+  const queue = ctx.hosts.byPath(ctx.repo)?.queue;
+  return queue ? queue.arrive(step) : step();
+}
+
+/** A write of the page: what refuses it, its name and keys, and what lands it. */
+type GitWriteOf = { guard: () => Promise<void>; keys: Array<string>; land: Land; write: NewWrite };
+
+/**
+ * Runs a write of the repository's queue once its `guard` lets it, `guard` checked again as it
+ * lands: an agent may have started meanwhile. Its refusal then stays in the record. `writeOf`
+ * reads what the write needs before it is queued, in the order the writes came. It answers with
+ * the page masked to `select`. Without a host, it lands at once.
+ */
+async function queuedGitWrite(args: Resolver<unknown>, writeOf: () => Promise<GitWriteOf>) {
   const { ctx } = args;
+  const queue = ctx.hosts.byPath(ctx.repo)?.queue;
   try {
-    await guard();
-    const queue = ctx.hosts.byPath(ctx.repo)?.queue;
-    const { keys, ...record } = write;
-    const guarded: Land = async (onOutput) => {
+    // In an object, so the next write's checks wait for this one's queueing, not its landing.
+    const { landing } = await arriving(ctx, async () => {
+      const { guard, keys, land, write } = await writeOf();
       await guard();
-      return land(onOutput);
-    };
-    await refusable(() => (queue ? queue.enqueue(record, guarded, keys) : land(() => {})));
+      const guarded: Land = async (onOutput) => {
+        await guard();
+        return land(onOutput);
+      };
+      return { landing: queue ? queue.enqueue(write, guarded, keys) : land(() => {}) };
+    });
+    await refusable(() => landing);
   } finally {
     changed(ctx);
   }
   return page(args);
 }
+
+/** [`queuedGitWrite`], for a write that needs no read before it is queued. */
+const gitWrite = (
+  args: Resolver<unknown>,
+  guard: () => Promise<void>,
+  { keys, ...write }: NewWrite & { keys: Array<string> },
+  land: Land,
+) => queuedGitWrite(args, async () => ({ guard, keys, land, write }));
 
 /** A write of the main checkout, refused while a chat's agent works in it. */
 const mainWrite = (
@@ -197,17 +217,16 @@ export const gitMutations = {
   "git.removeWorktree": {
     resolve: async (args: Resolver<Queued<{ path: string }>>) => {
       const { ctx, input } = args;
-      // Its removal writes the main checkout's git folder and the feature's worktree.
-      const folder = await worktreeFolder(ctx, input.path);
-      return gitWrite(
-        args,
-        () => bothWritable(ctx, folder),
-        {
-          ...named(input.write, `Removing ${input.path}`),
+      return queuedGitWrite(args, async () => {
+        // Its removal writes the main checkout's git folder and the feature's worktree.
+        const folder = await worktreeFolder(ctx, input.path);
+        return {
+          guard: () => bothWritable(ctx, folder),
           keys: [...MAIN, ...(folder === undefined ? [] : featureKeys(folder))],
-        },
-        () => ctx.binding.gitRemoveWorktree(ctx.repo, input.path),
-      );
+          land: () => ctx.binding.gitRemoveWorktree(ctx.repo, input.path),
+          write: named(input.write, `Removing ${input.path}`),
+        };
+      });
     },
     type: "GitPage",
   },
@@ -227,16 +246,16 @@ export const gitMutations = {
       select,
     }: Resolver<Queued<{ hash: string; path: string; text: string }>>) => {
       try {
-        await checkoutWritable(ctx, null);
-        const saved = await landed(
-          ctx,
-          MAIN,
-          named(input.write, `Saving ${input.path}`),
-          async () => {
-            await checkoutWritable(ctx, null);
-            return ctx.binding.saveConflictFile(ctx.repo, input.path, input.text, input.hash);
-          },
-        );
+        const { saving } = await arriving(ctx, async () => {
+          await checkoutWritable(ctx, null);
+          return {
+            saving: landed(ctx, MAIN, named(input.write, `Saving ${input.path}`), async () => {
+              await checkoutWritable(ctx, null);
+              return ctx.binding.saveConflictFile(ctx.repo, input.path, input.text, input.hash);
+            }),
+          };
+        });
+        const saved = await saving;
         return sources.masked(conflictFileDataView, ctx, { ...saved }, select);
       } finally {
         changed(ctx);

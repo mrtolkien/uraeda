@@ -3,8 +3,8 @@
 // refusals of its place first; a refusal shows next to the section it concerns, from the queue's
 // record, or from the call's answer when the write never reached the queue, as an agent's guard
 // refusing it. Discard, Remove, and Clean ask first. Staging shows its box ticked at once, until
-// the write answers.
-import { useState } from "react";
+// the write answers, and a commit waits for its group's staging writes still answering.
+import { useRef, useState } from "react";
 import { useFateClient } from "react-fate";
 import { guarded, refusal } from "../errors.ts";
 import type { ConfirmOptions } from "../fields/Confirm.tsx";
@@ -140,6 +140,8 @@ export function useGitWrites() {
   const repo = useRepositoryPath();
   const { errors, run } = useRun();
   const [staging, setStaging] = useState<ReadonlyMap<string, boolean>>(new Map());
+  /** The staging writes still answering, by their group's folder. */
+  const stagingWrites = useRef(new Map<string | null, Set<Promise<boolean>>>());
   const git = fate.mutations.git;
   const view = GitPageView;
 
@@ -149,16 +151,28 @@ export function useGitWrites() {
     setStaging((before) => new Map([...before, ...keys.map((key) => [key, on] as const)]));
     const what = paths.length === 1 ? paths[0] : plural(paths.length, "file");
     const input = { folder: group.folder, paths: [...paths] };
-    await run({ folder: group.folder }, `${on ? "Staging" : "Unstaging"} ${what}`, (write) =>
-      on
-        ? git.stage({ input: { ...input, write }, view })
-        : git.unstage({ input: { ...input, write }, view }),
+    const writing = run(
+      { folder: group.folder },
+      `${on ? "Staging" : "Unstaging"} ${what}`,
+      (write) =>
+        on
+          ? git.stage({ input: { ...input, write }, view })
+          : git.unstage({ input: { ...input, write }, view }),
     );
+    const writes = stagingWrites.current.get(group.folder) ?? new Set();
+    stagingWrites.current.set(group.folder, writes.add(writing));
+    try {
+      await writing;
+    } finally {
+      writes.delete(writing);
+    }
     setStaging((before) => new Map([...before].filter(([key]) => !keys.includes(key))));
   };
 
   /** Commits what a group has staged with the message typed, which goes once the commit lands. */
   const commit = async (group: GitGroup) => {
+    // A box ticked just before is committed too: the commit waits for its write to answer.
+    await Promise.all(stagingWrites.current.get(group.folder) ?? []);
     const key = unsavedKey(repo, messageField(group.folder));
     const message = readUnsaved(key)?.text ?? "";
     const landed = await run({ folder: group.folder }, `Committing on ${group.name}`, (write) =>
